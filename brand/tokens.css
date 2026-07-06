@@ -1,0 +1,18 @@
+/**
+ * inbox design tokens — CSS custom properties.
+ * Source: shushzerv brand book (55% cream · 25% gray · 17% coach red · 3% gold).
+ */
+:root {
+  --sz-bg: #f4efe9;
+  --sz-bg-elevated: rgba(255, 255, 255, 0.78);
+  --sz-bg-glass: rgba(255, 255, 255, 0.7);
+  --sz-border: rgba(44, 44, 42, 0.08);
+  --sz-text: #2c2c2a;
+  --sz-text-secondary: #6b6b67;
+  --sz-accent: #c41e1e;
+  --sz-accent-dark: #4a1420;
+  --sz-accent-soft: rgba(196, 30, 30, 0.10);
+  --sz-gold: #b68a3b;
+  --sz-gold-dark: #9a7530;
+  --sz-gold-soft: rgba(182, 138, 59, 0.14);
+}

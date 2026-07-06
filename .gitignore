@@ -1,0 +1,9 @@
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.log
+node_modules
+.env
+.env.*
+!.env.example

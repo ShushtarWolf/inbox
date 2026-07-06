@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" fill="none" role="img" aria-label="IN BOX S icon set">
+  <title>IN BOX S icons</title>
+  <g stroke="#000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Icon 1: reclining / tilted -->
+    <g transform="translate(60 60)">
+      <path d="M-22 18 H22 M-22 18 V32 M22 18 V32"/>
+      <g transform="translate(0 -8) rotate(14)">
+        <path d="M-20 6 H20 M-20 6 V-8 M20 6 V-8"/>
+      </g>
+      <circle cx="0" cy="-18" r="10" fill="#000" stroke="none"/>
+    </g>
+
+    <!-- Icon 2: flat bench -->
+    <g transform="translate(180 60)">
+      <path d="M-22 18 H22 M-22 18 V32 M22 18 V32"/>
+      <path d="M-20 -6 H20 M-20 -6 V-20 M20 -6 V-20"/>
+      <circle cx="0" cy="-28" r="10" fill="#000" stroke="none"/>
+    </g>
+
+    <!-- Icon 3: seated / framed -->
+    <g transform="translate(300 60)">
+      <path d="M-18 -14 V-2 M18 -14 V-2 M-18 20 V32 M18 20 V32"/>
+      <path d="M-18 -14 H18 M-18 32 H18"/>
+      <path d="M-8 10 V28 M8 10 V28" stroke-width="8"/>
+      <circle cx="0" cy="-28" r="10" fill="#000" stroke="none"/>
+    </g>
+  </g>
+</svg>

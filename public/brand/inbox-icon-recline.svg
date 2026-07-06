@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Recline icon">
+  <g transform="translate(60 68)" stroke="#C41E1E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-28 10 H28 M-28 10 V26 M28 10 V26"/>
+    <g transform="translate(0 -10) rotate(14)">
+      <path d="M-24 -2 H24 M-24 -2 V-18 M24 -2 V-18"/>
+    </g>
+    <circle cx="0" cy="-30" r="12" fill="#C41E1E" stroke="none"/>
+  </g>
+</svg>
