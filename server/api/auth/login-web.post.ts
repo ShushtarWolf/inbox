@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const normalized = email?.trim().toLowerCase()
   const base = locale === 'en' ? '/en' : ''
+  const stamp = `ts=${Date.now()}`
 
   if (!normalized || !password) {
     return sendRedirect(event, `${base}/login?error=invalid`)
@@ -24,10 +25,10 @@ export default defineEventHandler(async (event) => {
     await setUserSession(event, { user: toSessionUser(user) })
 
     const target = user.role === 'CLUB_ADMIN'
-      ? `${base}/owner`
+      ? `${base}/owner?${stamp}`
       : user.role === 'COACH'
-        ? `${base}/coach`
-        : `${base}/athlete`
+        ? `${base}/coach?${stamp}`
+        : `${base}/athlete?${stamp}`
 
     return sendRedirect(event, target)
   } catch {
