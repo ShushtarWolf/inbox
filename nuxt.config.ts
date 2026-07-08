@@ -82,6 +82,7 @@ export default defineNuxtConfig({
     },
     client: {
       installPrompt: true,
+      register: false,
     },
     devOptions: { enabled: false },
   },
