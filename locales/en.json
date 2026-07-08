@@ -1,0 +1,258 @@
+{
+  "brand": {
+    "name": "inbox"
+  },
+  "common": {
+    "add": "Add",
+    "close": "Close",
+    "currency": "IRR",
+    "date": "Date",
+    "detail": "Detail",
+    "empty": "No data yet",
+    "family": "Family name",
+    "languageFa": "فارسی",
+    "languageEn": "English",
+    "loading": "Loading...",
+    "menu": "Menu",
+    "mobile": "Mobile",
+    "name": "Name",
+    "retry": "Retry",
+    "save": "Save",
+    "send": "Send"
+  },
+  "nav": {
+    "home": "Home",
+    "clubs": "Clubs",
+    "coaches": "Coaches",
+    "me": "Me",
+    "login": "Login",
+    "bookings": "Bookings",
+    "profile": "Profile",
+    "overview": "Overview"
+  },
+  "home": {
+    "title": "Book courts & coaches",
+    "subtitle": "Padel & tennis — pay at club",
+    "bookCourt": "Book court",
+    "findCoach": "Find coach",
+    "sportsLabel": "Padel & tennis",
+    "coachSessionsLabel": "Private sessions",
+    "eyebrow": "App home",
+    "welcome": "Hi, {name}",
+    "guestName": "Athlete",
+    "heroBody": "Book courts, find coaches, and jump into the main flows without the clutter of a website landing page.",
+    "bookCourtHint": "Clubs and open slots for your selected sport",
+    "findCoachHint": "Available coaches for private sessions and training",
+    "sportsTitle": "Choose sport",
+    "sportsSubtitle": "Quick filters to narrow the right option",
+    "bookingsTileTitle": "My bookings",
+    "bookingsTileBody": "Upcoming sessions, booking details, and quick access to your athlete area",
+    "bookingsTileAction": "View bookings",
+    "roleTileTitle": "Your dashboard",
+    "roleTileSignedIn": "Jump straight into the area that matches your current role.",
+    "roleTileGuest": "Sign in to access bookings and role-based dashboards.",
+    "clubSectionTitle": "Suggested clubs",
+    "clubSectionBody": "A few strong options to start booking quickly",
+    "mapSectionTitle": "Club map",
+    "mapSectionBody": "See clubs on the map and choose directly from their name and price",
+    "mapSelectedLabel": "Selected club",
+    "coachSectionTitle": "Suggested coaches",
+    "coachSectionBody": "For private training and better weekly planning",
+    "seeAll": "See all",
+    "clubCta": "Book",
+    "coachCta": "Details",
+    "utilityFastTitle": "Fast",
+    "utilityFastBody": "Book in a few taps",
+    "utilityLocaleTitle": "Bilingual",
+    "utilityLocaleBody": "Persian and English",
+    "utilityPwaTitle": "Installable",
+    "utilityPwaBody": "App-like experience on mobile"
+  },
+  "clubs": {
+    "title": "Clubs",
+    "freeSlotsToday": "Free slots today",
+    "mapView": "Map",
+    "moreFilters": "More filters",
+    "allCities": "All cities",
+    "nearby": "Nearby me",
+    "allAmenities": "All amenities",
+    "minPrice": "Min price",
+    "verifiedOnly": "Verified only",
+    "verified": "Verified",
+    "reviews": "reviews",
+    "distance": "Distance",
+    "amenities": "Amenities",
+    "gallery": "Gallery",
+    "pricingMatrix": "Pricing",
+    "policies": "Policies",
+    "map": "Map",
+    "openMap": "Open map",
+    "testimonials": "Testimonials",
+    "sort": {
+      "rank": "Best match",
+      "rating": "Highest rated",
+      "price": "Lowest price",
+      "nearby": "Nearest"
+    }
+  },
+  "coaches": {
+    "title": "Coaches",
+    "allSpecialties": "All specialties",
+    "specialties": "Specialties",
+    "credentials": "Credentials",
+    "availability": "Availability",
+    "packages": "Packages"
+  },
+  "dashboard": {
+    "athlete": "Athlete dashboard",
+    "coach": "Coach dashboard",
+    "owner": "Club owner dashboard"
+  },
+  "athlete": {
+    "nextBookingFallback": "No upcoming booking"
+  },
+  "coach": {
+    "today": "Today",
+    "schedule": "Schedule",
+    "clients": "Clients",
+    "noSessionsToday": "No sessions today",
+    "dayLabel": "Day {day}",
+    "bioFa": "Biography (FA)",
+    "bioEn": "Biography (EN)"
+  },
+  "booking": {
+    "payAtClub": "Pay at club",
+    "confirm": "Confirm booking",
+    "cancel": "Cancel",
+    "courtsSection": "Courts",
+    "coachSection": "Coach",
+    "successCourt": "Court booking confirmed",
+    "successCoach": "Coach booking submitted",
+    "cancellationPolicy": "Booking policy",
+    "cancellationWindow": "cancellation window",
+    "rescheduleWindow": "reschedule window",
+    "joinWaitlist": "Join waitlist",
+    "noSlots": "No slots are available for this date.",
+    "reschedule": "Reschedule"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "invalidCredentials": "Invalid credentials",
+    "dashboardLoadFailed": "Login succeeded, but loading your dashboard failed. Please refresh and try again."
+  },
+  "owner": {
+    "calendar": "Today's calendar",
+    "finance": "Finance",
+    "equipments": "Equipment",
+    "packages": "Packages",
+    "crm": "CRM",
+    "coaches": "Coaches",
+    "support": "Support",
+    "settings": "Settings",
+    "legend": "Color legend",
+    "activeClub": "Active club",
+    "reserve": "Reserve",
+    "cancel": "Cancel",
+    "shape": "Shape 1",
+    "hour": "Hour",
+    "free": "Free",
+    "seasonReserve": "Season reserve",
+    "packageReserve": "Package reserve",
+    "reserveWithCoach": "Reserve with coach",
+    "guestName": "Guest name",
+    "guestFamily": "Guest family",
+    "guestMobile": "Guest mobile",
+    "comments": "Notes",
+    "paymentMethod": "Payment method",
+    "paymentMethods": {
+      "IPG": "IPG",
+      "CASH": "Cash",
+      "PAID": "Paid",
+      "NOT_PAID": "Not paid"
+    },
+    "status": {
+      "TEAM": "Team",
+      "PUBLIC": "Public",
+      "RESERVED": "Reserved",
+      "FREE": "Free",
+      "CANCELLED": "Cancelled",
+      "PENDING": "Pending",
+      "CLOSED": "Closed"
+    },
+    "financeCards": {
+      "revenue": "Revenue",
+      "bookingsToday": "Bookings",
+      "pending": "Pending",
+      "paidRate": "Paid rate",
+      "utilization": "Utilization",
+      "ltv": "LTV",
+      "churnRisk": "Churn risk",
+      "noShowRate": "No-show rate"
+    },
+    "financeTable": {
+      "guest": "Guest",
+      "payment": "Payment",
+      "status": "Status"
+    },
+    "equipmentsPage": {
+      "club": "Club equipment",
+      "rental": "Rental",
+      "sell": "For sale",
+      "services": "Services"
+    },
+    "packagesPage": {
+      "title": "Title",
+      "coachPlaceholder": "No coach or choose coach",
+      "price": "Price",
+      "discount": "Discount %",
+      "saveStub": "Save package"
+    },
+    "crmPage": {
+      "name": "Name",
+      "mobile": "Mobile",
+      "pushSms": "Push SMS",
+      "smsLogged": "SMS logged (no gateway in v1)",
+      "recentCampaigns": "Recent campaigns",
+      "allRecipients": "All recipients",
+      "campaignName": "Campaign name",
+      "reactivation": "Reactivation",
+      "noShowRisk": "No-show risk",
+      "reminders": "Reminders"
+    },
+    "funnelTitle": "Booking funnel",
+    "funnel": {
+      "views": "Views",
+      "initiated": "Started",
+      "confirmed": "Confirmed",
+      "paid": "Paid"
+    },
+    "segmentsTitle": "Customer signals",
+    "segmentCards": {
+      "activeContacts": "Active contacts",
+      "churnRisk": "Churn risk",
+      "waitlist": "Waitlist",
+      "cancellations": "Cancellations"
+    },
+    "supportPlaceholder": "Support inbox.local placeholder for v1",
+    "settingsPlaceholder": "Club hours and courts - settings placeholder",
+    "seasonPage": {
+      "title": "Season reserve (Shape 3)"
+    },
+    "packagePage": {
+      "title": "Package reserve (Shape 4)",
+      "coachPlaceholder": "- Coach -"
+    }
+  },
+  "pwa": {
+    "installTitle": "Install inbox",
+    "installBody": "Add inbox to your home screen for a faster app-like booking experience.",
+    "installButton": "Install",
+    "dismissButton": "Not now",
+    "offlineTitle": "You are offline",
+    "offlineBody": "Reconnect to keep browsing clubs, coaches, and bookings."
+  }
+}

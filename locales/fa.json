@@ -1,0 +1,258 @@
+{
+  "brand": {
+    "name": "inbox"
+  },
+  "common": {
+    "add": "افزودن",
+    "close": "بستن",
+    "currency": "تومان",
+    "date": "تاریخ",
+    "detail": "جزئیات",
+    "empty": "هنوز داده‌ای نیست",
+    "family": "نام خانوادگی",
+    "languageFa": "فارسی",
+    "languageEn": "English",
+    "loading": "در حال بارگذاری...",
+    "menu": "منو",
+    "mobile": "موبایل",
+    "name": "نام",
+    "retry": "تلاش دوباره",
+    "save": "ذخیره",
+    "send": "ارسال"
+  },
+  "nav": {
+    "home": "خانه",
+    "clubs": "باشگاه‌ها",
+    "coaches": "مربیان",
+    "me": "من",
+    "login": "ورود",
+    "bookings": "رزروها",
+    "profile": "پروفایل",
+    "overview": "خلاصه"
+  },
+  "home": {
+    "title": "رزرو زمین و مربی",
+    "subtitle": "پدل و تنیس — پرداخت در باشگاه",
+    "bookCourt": "رزرو زمین",
+    "findCoach": "مربی",
+    "sportsLabel": "پدل و تنیس",
+    "coachSessionsLabel": "جلسات خصوصی",
+    "eyebrow": "صفحه اصلی اپ",
+    "welcome": "سلام، {name}",
+    "guestName": "دوست ورزشکار",
+    "heroBody": "رزرو زمین، پیدا کردن مربی و رفتن به بخش‌های اصلی، بدون شلوغی یک صفحه وب.",
+    "bookCourtHint": "باشگاه‌ها و سانس‌های آزاد برای ورزش انتخابی",
+    "findCoachHint": "مربی‌های در دسترس برای جلسه خصوصی و تمرین",
+    "sportsTitle": "انتخاب ورزش",
+    "sportsSubtitle": "فیلترهای سریع برای پیدا کردن گزینه مناسب",
+    "bookingsTileTitle": "رزروهای من",
+    "bookingsTileBody": "جلسات آینده، جزئیات رزرو و دسترسی سریع به پنل ورزشکار",
+    "bookingsTileAction": "مشاهده رزروها",
+    "roleTileTitle": "پنل نقش شما",
+    "roleTileSignedIn": "بر اساس نقش فعلی، سریع وارد بخش کاری خود شوید.",
+    "roleTileGuest": "برای دسترسی به رزروها و پنل‌ها، وارد حساب خود شوید.",
+    "clubSectionTitle": "باشگاه‌های پیشنهادی",
+    "clubSectionBody": "چند گزینه مناسب برای شروع سریع رزرو",
+    "mapSectionTitle": "نقشه باشگاه‌ها",
+    "mapSectionBody": "باشگاه‌ها را روی نقشه ببینید و از روی نام و قیمت انتخاب کنید",
+    "mapSelectedLabel": "باشگاه انتخاب‌شده",
+    "coachSectionTitle": "مربی‌های پیشنهادی",
+    "coachSectionBody": "برای تمرین خصوصی و برنامه‌ریزی بهتر",
+    "seeAll": "همه",
+    "clubCta": "رزرو",
+    "coachCta": "جزئیات",
+    "utilityFastTitle": "سریع",
+    "utilityFastBody": "رزرو در چند لمس",
+    "utilityLocaleTitle": "دو زبانه",
+    "utilityLocaleBody": "فارسی و انگلیسی",
+    "utilityPwaTitle": "نصب‌پذیر",
+    "utilityPwaBody": "تجربه شبیه اپ روی موبایل"
+  },
+  "clubs": {
+    "title": "باشگاه‌ها",
+    "freeSlotsToday": "سانس‌های آزاد امروز",
+    "mapView": "نقشه",
+    "moreFilters": "فیلتر بیشتر",
+    "allCities": "همه شهرها",
+    "nearby": "نزدیک من",
+    "allAmenities": "همه امکانات",
+    "minPrice": "حداقل قیمت",
+    "verifiedOnly": "فقط تاییدشده",
+    "verified": "تاییدشده",
+    "reviews": "نظر",
+    "distance": "فاصله",
+    "amenities": "امکانات",
+    "gallery": "گالری",
+    "pricingMatrix": "جدول قیمت",
+    "policies": "قوانین",
+    "map": "نقشه",
+    "openMap": "باز کردن نقشه",
+    "testimonials": "تجربه کاربران",
+    "sort": {
+      "rank": "بهترین انتخاب",
+      "rating": "بیشترین امتیاز",
+      "price": "کمترین قیمت",
+      "nearby": "نزدیک‌ترین"
+    }
+  },
+  "coaches": {
+    "title": "مربیان",
+    "allSpecialties": "همه تخصص‌ها",
+    "specialties": "تخصص‌ها",
+    "credentials": "اعتبارنامه‌ها",
+    "availability": "زمان‌های در دسترس",
+    "packages": "پکیج‌ها"
+  },
+  "dashboard": {
+    "athlete": "پنل ورزشکار",
+    "coach": "پنل مربی",
+    "owner": "پنل مالک باشگاه"
+  },
+  "athlete": {
+    "nextBookingFallback": "رزروی در پیش ندارید"
+  },
+  "coach": {
+    "today": "امروز",
+    "schedule": "برنامه",
+    "clients": "مشتریان",
+    "noSessionsToday": "امروز جلسه‌ای ندارید",
+    "dayLabel": "روز {day}",
+    "bioFa": "بیو فارسی",
+    "bioEn": "بیو انگلیسی"
+  },
+  "booking": {
+    "payAtClub": "پرداخت در باشگاه",
+    "confirm": "تأیید رزرو",
+    "cancel": "لغو",
+    "courtsSection": "زمین",
+    "coachSection": "مربی",
+    "successCourt": "رزرو زمین ثبت شد",
+    "successCoach": "درخواست جلسه با مربی ثبت شد",
+    "cancellationPolicy": "قوانین رزرو",
+    "cancellationWindow": "مهلت لغو",
+    "rescheduleWindow": "مهلت جابه‌جایی",
+    "joinWaitlist": "عضویت در لیست انتظار",
+    "noSlots": "برای این تاریخ سانس آزادی وجود ندارد.",
+    "reschedule": "جابه‌جایی"
+  },
+  "auth": {
+    "login": "ورود",
+    "register": "ثبت‌نام",
+    "email": "ایمیل",
+    "password": "رمز",
+    "name": "نام",
+    "invalidCredentials": "اطلاعات ورود نامعتبر است",
+    "dashboardLoadFailed": "ورود انجام شد، اما بارگذاری پنل با خطا روبه‌رو شد. صفحه را تازه کنید و دوباره تلاش کنید."
+  },
+  "owner": {
+    "calendar": "تقویم امروز",
+    "finance": "مالی",
+    "equipments": "تجهیزات",
+    "packages": "پکیج‌ها",
+    "crm": "CRM",
+    "coaches": "مربیان",
+    "support": "پشتیبانی",
+    "settings": "تنظیمات",
+    "legend": "راهنمای رنگ‌ها",
+    "activeClub": "باشگاه فعال",
+    "reserve": "رزرو",
+    "cancel": "لغو",
+    "shape": "شکل ۱",
+    "hour": "ساعت",
+    "free": "آزاد",
+    "seasonReserve": "رزرو فصلی",
+    "packageReserve": "رزرو پکیج",
+    "reserveWithCoach": "رزرو با مربی",
+    "guestName": "نام مهمان",
+    "guestFamily": "نام خانوادگی مهمان",
+    "guestMobile": "موبایل مهمان",
+    "comments": "توضیحات",
+    "paymentMethod": "روش پرداخت",
+    "paymentMethods": {
+      "IPG": "درگاه",
+      "CASH": "نقدی",
+      "PAID": "پرداخت‌شده",
+      "NOT_PAID": "پرداخت‌نشده"
+    },
+    "status": {
+      "TEAM": "تیمی",
+      "PUBLIC": "عمومی",
+      "RESERVED": "رزرو شده",
+      "FREE": "آزاد",
+      "CANCELLED": "لغو شده",
+      "PENDING": "در انتظار",
+      "CLOSED": "بسته"
+    },
+    "financeCards": {
+      "revenue": "درآمد",
+      "bookingsToday": "رزروها",
+      "pending": "در انتظار",
+      "paidRate": "نرخ پرداخت",
+      "utilization": "استفاده",
+      "ltv": "ارزش طول عمر",
+      "churnRisk": "ریسک ریزش",
+      "noShowRate": "نرخ عدم حضور"
+    },
+    "financeTable": {
+      "guest": "مهمان",
+      "payment": "پرداخت",
+      "status": "وضعیت"
+    },
+    "equipmentsPage": {
+      "club": "تجهیزات باشگاه",
+      "rental": "اجاره‌ای",
+      "sell": "برای فروش",
+      "services": "خدمات"
+    },
+    "packagesPage": {
+      "title": "عنوان",
+      "coachPlaceholder": "بدون مربی یا انتخاب مربی",
+      "price": "قیمت",
+      "discount": "درصد تخفیف",
+      "saveStub": "ذخیره پکیج"
+    },
+    "crmPage": {
+      "name": "نام",
+      "mobile": "موبایل",
+      "pushSms": "ارسال پیامک",
+      "smsLogged": "پیامک ثبت شد (درگاه در نسخه ۱ وصل نیست)",
+      "recentCampaigns": "کمپین‌های اخیر",
+      "allRecipients": "همه مخاطبان",
+      "campaignName": "نام کمپین",
+      "reactivation": "بازفعال‌سازی",
+      "noShowRisk": "ریسک عدم حضور",
+      "reminders": "یادآورها"
+    },
+    "funnelTitle": "قیف رزرو",
+    "funnel": {
+      "views": "بازدید",
+      "initiated": "شروع",
+      "confirmed": "تایید",
+      "paid": "پرداخت"
+    },
+    "segmentsTitle": "سیگنال‌های مشتری",
+    "segmentCards": {
+      "activeContacts": "مخاطبان فعال",
+      "churnRisk": "در معرض ریزش",
+      "waitlist": "لیست انتظار",
+      "cancellations": "لغوها"
+    },
+    "supportPlaceholder": "متن موقت پشتیبانی inbox.local برای نسخه ۱",
+    "settingsPlaceholder": "ساعت باشگاه و زمین‌ها - متن موقت تنظیمات",
+    "seasonPage": {
+      "title": "رزرو فصلی (شکل ۳)"
+    },
+    "packagePage": {
+      "title": "رزرو پکیج (شکل ۴)",
+      "coachPlaceholder": "- مربی -"
+    }
+  },
+  "pwa": {
+    "installTitle": "نصب inbox",
+    "installBody": "برای تجربه سریع‌تر شبیه اپ، inbox را به صفحه اصلی اضافه کنید.",
+    "installButton": "نصب",
+    "dismissButton": "بعدا",
+    "offlineTitle": "آفلاین هستید",
+    "offlineBody": "برای ادامه مرور باشگاه‌ها، مربی‌ها و رزروها دوباره آنلاین شوید."
+  }
+}

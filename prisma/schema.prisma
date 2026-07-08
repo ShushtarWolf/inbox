@@ -1,0 +1,545 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ATHLETE
+  COACH
+  CLUB_ADMIN
+}
+
+enum SlotDisplayStatus {
+  FREE
+  RESERVED
+  PUBLIC
+  TEAM
+  PENDING
+  CANCELLED
+  CLOSED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PAY_AT_CLUB
+  PAID
+}
+
+enum PaymentMethod {
+  IPG
+  CASH
+  PAID
+  NOT_PAID
+}
+
+enum BookingSource {
+  PLATFORM
+  CLUB
+}
+
+enum EquipmentCategory {
+  CLUB
+  RENTAL
+  SELL
+  SERVICE
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  FRONT_DESK
+  COACH
+  ANALYST
+}
+
+enum ReviewTargetType {
+  CLUB
+  COACH
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  NOTIFIED
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum ReservationEventType {
+  CREATED
+  CONFIRMED
+  CANCELLED
+  RESCHEDULED
+  WAITLIST_JOINED
+  WAITLIST_NOTIFIED
+  WAITLIST_CONVERTED
+  NO_SHOW
+}
+
+enum CampaignChannel {
+  SMS
+  WHATSAPP
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  nameEn       String?
+  role         Role     @default(ATHLETE)
+  locale       String   @default("fa")
+  phone        String?
+  createdAt    DateTime @default(now())
+
+  ownedClubs    Club[]         @relation("ClubOwner")
+  coachProfile  Coach?
+  bookings      Booking[]
+  coachSessions CoachSession[] @relation("AthleteSessions")
+  reviews       Review[]
+  memberships   StaffMembership[]
+  bookingEvents ReservationEvent[] @relation("ReservationActor")
+  waitlistEntries WaitlistEntry[]
+}
+
+model Sport {
+  id     String @id @default(cuid())
+  slug   String @unique
+  nameFa String
+  nameEn String
+  icon   String
+
+  courts  Court[]
+  coaches Coach[]
+}
+
+model Club {
+  id        String  @id @default(cuid())
+  slug      String  @unique
+  nameFa    String
+  nameEn    String
+  addressFa String
+  addressEn String
+  city      String
+  district  String?
+  lat       Float?
+  lng       Float?
+  rating    Float   @default(4.5)
+  priceFrom Int     @default(500000)
+  image     String?
+  featured  Boolean @default(false)
+  openHour  Int     @default(8)
+  closeHour Int     @default(22)
+  descriptionFa String?
+  descriptionEn String?
+  phone         String?
+  whatsapp      String?
+  amenitiesJson String?
+  policiesJson  String?
+  pricingJson   String?
+  verificationNote String?
+  verifiedAt    DateTime?
+  priceTo       Int?
+  cancellationWindowHours Int @default(12)
+  rescheduleWindowHours   Int @default(24)
+  waitlistEnabled Boolean @default(true)
+
+  ownerId String?
+  owner   User?   @relation("ClubOwner", fields: [ownerId], references: [id])
+
+  courts      Court[]
+  equipment   Equipment[]
+  contacts    Contact[]
+  smsLogs     SmsLog[]
+  packages    PackageDraft[]
+  seasonBooks SeasonBooking[]
+  coaches     Coach[]
+  media       ClubMedia[]
+  reviews     Review[]
+  waitlistEntries WaitlistEntry[]
+  campaigns   Campaign[]
+  segments    ContactSegment[]
+  reminders   ReminderRule[]
+  memberships StaffMembership[]
+}
+
+model Court {
+  id     String @id @default(cuid())
+  nameFa String
+  nameEn String
+  price  Int    @default(600000)
+
+  clubId  String
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  sportId String
+  sport   Sport  @relation(fields: [sportId], references: [id])
+
+  slots Slot[]
+  waitlistEntries WaitlistEntry[]
+}
+
+model Slot {
+  id            String            @id @default(cuid())
+  date          String
+  startTime     String
+  endTime       String
+  price         Int
+  displayStatus SlotDisplayStatus @default(FREE)
+
+  courtId String
+  court   Court  @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  booking Booking?
+
+  @@index([courtId, date])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  status        BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(PAY_AT_CLUB)
+  paymentMethod PaymentMethod?
+  source        BookingSource @default(PLATFORM)
+  guestName     String?
+  guestFamily   String?
+  guestMobile   String?
+  comments      String?
+  createdAt     DateTime      @default(now())
+  cancelledAt   DateTime?
+  cancellationReason String?
+  rescheduledToBookingId String?
+  rescheduledFromBookingId String?
+  noShowAt      DateTime?
+  checkedInAt   DateTime?
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  slotId String @unique
+  slot   Slot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  coachId String?
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  payment Payment?
+  events  ReservationEvent[]
+}
+
+model SeasonBooking {
+  id          String   @id @default(cuid())
+  guestName   String
+  guestFamily String
+  guestMobile String
+  daysJson    String
+  timesJson   String
+  comments    String?
+  createdAt   DateTime @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model Coach {
+  id           String  @id @default(cuid())
+  nameFa       String
+  nameEn       String
+  city         String
+  rating       Float   @default(4.8)
+  sessionPrice Int     @default(400000)
+  photo        String?
+  bioFa        String?
+  bioEn        String?
+  featured     Boolean @default(false)
+  headlineFa   String?
+  headlineEn   String?
+  specialtiesJson String?
+  credentialsJson String?
+  languagesJson String?
+  verifiedAt   DateTime?
+  verificationNote String?
+  experienceYears Int @default(0)
+  isBookable   Boolean @default(true)
+
+  sportId String
+  sport   Sport  @relation(fields: [sportId], references: [id])
+  userId  String? @unique
+  user    User?   @relation(fields: [userId], references: [id])
+  clubId  String?
+  club    Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  sessions     CoachSession[]
+  availability CoachAvailability[]
+  bookings     Booking[]
+  packages     PackageDraft[]
+  media        CoachMedia[]
+  reviews      Review[]
+  waitlistEntries WaitlistEntry[]
+  membershipLinks StaffMembership[] @relation("MembershipCoach")
+}
+
+model CoachSession {
+  id            String        @id @default(cuid())
+  date          String
+  startTime     String
+  endTime       String
+  status        BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(PAY_AT_CLUB)
+  price         Int
+  createdAt     DateTime      @default(now())
+  cancelledAt   DateTime?
+  cancellationReason String?
+  rescheduledToSessionId String?
+  rescheduledFromSessionId String?
+  noShowAt      DateTime?
+  checkedInAt   DateTime?
+
+  coachId   String
+  coach     Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   User   @relation("AthleteSessions", fields: [athleteId], references: [id], onDelete: Cascade)
+  payment Payment?
+  events  ReservationEvent[]
+}
+
+model CoachAvailability {
+  id        String @id @default(cuid())
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model ClubMedia {
+  id        String   @id @default(cuid())
+  url       String
+  sortOrder Int      @default(0)
+  captionFa String?
+  captionEn String?
+  createdAt DateTime @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model CoachMedia {
+  id        String   @id @default(cuid())
+  url       String
+  sortOrder Int      @default(0)
+  captionFa String?
+  captionEn String?
+  createdAt DateTime @default(now())
+
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id          String           @id @default(cuid())
+  targetType  ReviewTargetType
+  rating      Int
+  title       String?
+  body        String
+  authorName  String
+  isVerified  Boolean          @default(false)
+  publishedAt DateTime         @default(now())
+
+  authorUserId String?
+  authorUser   User?  @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  clubId       String?
+  club         Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  coachId      String?
+  coach        Coach? @relation(fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model Equipment {
+  id       String            @id @default(cuid())
+  nameFa   String
+  nameEn   String
+  category EquipmentCategory
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  mobile    String
+  lastVisit String?
+  createdAt DateTime @default(now())
+  tagsJson       String?
+  source         String?
+  totalVisits    Int      @default(0)
+  lifetimeValue  Int      @default(0)
+  lastBookedAt   DateTime?
+  inactiveDays   Int      @default(0)
+  consentSms     Boolean  @default(true)
+  noShowCount    Int      @default(0)
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  campaignRecipients CampaignRecipient[]
+}
+
+model SmsLog {
+  id        String   @id @default(cuid())
+  message   String
+  recipient String
+  createdAt DateTime @default(now())
+  segmentName String?
+  campaignName String?
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model PackageDraft {
+  id         String   @id @default(cuid())
+  title      String
+  capacity   Int      @default(8)
+  price      Int
+  discount   Int      @default(0)
+  startDate  String?
+  finishDate String?
+  daysJson   String?
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  clubId  String
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  coachId String?
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+}
+
+model WaitlistEntry {
+  id         String         @id @default(cuid())
+  date       String
+  startTime  String
+  endTime    String
+  status     WaitlistStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now())
+  notifiedAt DateTime?
+  acceptedAt DateTime?
+  guestName  String?
+  guestMobile String?
+
+  userId  String?
+  user    User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clubId  String
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId String?
+  court   Court? @relation(fields: [courtId], references: [id], onDelete: SetNull)
+  coachId String?
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+}
+
+model ReservationEvent {
+  id        String               @id @default(cuid())
+  type      ReservationEventType
+  createdAt DateTime             @default(now())
+  metadataJson String?
+
+  actorUserId String?
+  actorUser   User?         @relation("ReservationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  bookingId   String?
+  booking     Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  coachSessionId String?
+  coachSession   CoachSession? @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Int
+  method    PaymentMethod
+  status    PaymentStatus
+  createdAt DateTime @default(now())
+
+  bookingId      String?      @unique
+  booking        Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  coachSessionId String?      @unique
+  coachSession   CoachSession? @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
+}
+
+model ContactSegment {
+  id          String   @id @default(cuid())
+  name        String
+  filterJson  String
+  createdAt   DateTime @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  channel     CampaignChannel @default(SMS)
+  template    String
+  status      CampaignStatus @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  segmentId String?
+  segment   ContactSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  recipients CampaignRecipient[]
+}
+
+model CampaignRecipient {
+  id        String   @id @default(cuid())
+  status    String
+  createdAt DateTime @default(now())
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+model ReminderRule {
+  id          String   @id @default(cuid())
+  name        String
+  triggerType String
+  offsetHours Int      @default(0)
+  template    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model StaffMembership {
+  id             String    @id @default(cuid())
+  role           StaffRole
+  permissionsJson String?
+  active         Boolean   @default(true)
+  isPrimary      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  coachId String?
+  coach   Coach? @relation("MembershipCoach", fields: [coachId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, clubId, role])
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>رزرو فصل</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="../../public/brand/inbox-logo-mark.svg" alt="" />
+        <h1>پنل مالک باشگاه</h1>
+        <p>inbox — نمونه HTML</p>
+      </div>
+      <nav>
+        <ul class="nav">
+          <li><a href="index.html">تقویم امروز</a></li>
+          <li><a href="calendar-actions.html">عملیات اسلات</a></li>
+          <li><a href="finance.html">مالی</a></li>
+          <li><a href="equipments.html">تجهیزات</a></li>
+          <li><a href="package-creator.html">ساخت پکیج</a></li>
+          <li><a href="crm.html">CRM</a></li>
+          <li><a href="season-reserve.html" class="active">رزرو فصل</a></li>
+          <li><a href="package-reserve.html">رزرو پکیج</a></li>
+          <li><a href="cancelling.html">لغو رزرو</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="page-header">
+        <div>
+          <span class="badge">Shape 3</span>
+          <h2>Season Reserve pop up</h2>
+          <p class="sub">رزرو تکراری / فصلی با انتخاب روز و ساعت</p>
+        </div>
+      </header>
+
+      <div class="mock-row">
+        <div class="form-panel card" style="max-width:480px">
+          <h3>رزرو فصل</h3>
+          <div class="field-row">
+            <div class="field">
+              <label>name <span class="req">requirement</span></label>
+              <input type="text" readonly />
+            </div>
+            <div class="field">
+              <label>family <span class="req">requirements</span></label>
+              <input type="text" readonly />
+            </div>
+          </div>
+          <div class="field">
+            <label>mobile number <span class="req">req</span></label>
+            <input type="text" readonly />
+          </div>
+          <div class="field">
+            <label>روزهای هفته — multi-select</label>
+            <div class="day-chips">
+              <span class="chip on">یکشنبه</span>
+              <span class="chip on">دوشنبه</span>
+              <span class="chip">سه‌شنبه</span>
+              <span class="chip">چهارشنبه</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>equipments</label>
+            <select disabled>
+              <option>Free Racket</option>
+              <option>Free balls</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>comments</label>
+            <textarea readonly></textarea>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary">ثبت</button>
+            <button type="button" class="btn btn-ghost">انصراف</button>
+          </div>
+        </div>
+
+        <div class="popup-menu">
+          <h3>clock selector</h3>
+          <ul>
+            <li class="highlight">۱۲</li>
+            <li>۱۳</li>
+            <li>۱۴</li>
+            <li>۱۵</li>
+            <li>۱۶</li>
+          </ul>
+          <p class="note" style="margin:0.75rem;border:0;background:transparent">when selected open pop up</p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="screen-label">③ Season Reserve</div>
+</body>
+</html>

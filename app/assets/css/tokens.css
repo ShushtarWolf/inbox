@@ -1,0 +1,8 @@
+:root {
+  --sz-bg: #f4efe9;
+  --sz-accent: #c41e1e;
+  --sz-accent-dark: #4a1420;
+  --sz-gold: #b68a3b;
+  --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sz-tab-bar-height: 4.5rem;
+}

@@ -1,9 +1,30 @@
+# dependencies
+node_modules
+
+# nuxt
+.nuxt
+.output
+.data
+dist
+
+# database
+*.db
+*.db-journal
+prisma/dev.db
+prisma/dev.db-journal
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+
+# os / editor
 .DS_Store
 .idea
 .vscode/*
 !.vscode/extensions.json
-*.log
-node_modules
-.env
-.env.*
-!.env.example
+
+.cache

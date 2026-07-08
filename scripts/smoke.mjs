@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+/** Smoke test — run after `npm run dev` or against BASE_URL */
+const base = process.env.BASE_URL || 'http://localhost:3000'
+const cookieJar = new Map()
+const oneDayMs = 24 * 60 * 60 * 1000
+
+function dateOffset(days) {
+  return new Date(Date.now() + days * oneDayMs).toISOString().slice(0, 10)
+}
+
+async function check(path, opts = {}) {
+  const headers = new Headers(opts.headers || {})
+  if (opts.session && cookieJar.has(opts.session)) {
+    headers.set('cookie', cookieJar.get(opts.session))
+  }
+  const res = await fetch(`${base}${path}`, { ...opts, headers })
+  if (!res.ok) throw new Error(`${path} → ${res.status}`)
+  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
+  if (setCookies.length && opts.session) {
+    const merged = new Map()
+    const previous = cookieJar.get(opts.session)
+    if (previous) {
+      for (const item of previous.split('; ')) {
+        const [key, ...rest] = item.split('=')
+        merged.set(key, rest.join('='))
+      }
+    }
+    for (const entry of setCookies) {
+      const [pair] = entry.split(';')
+      const [key, ...rest] = pair.split('=')
+      merged.set(key, rest.join('='))
+    }
+    cookieJar.set(opts.session, [...merged.entries()].map(([key, value]) => `${key}=${value}`).join('; '))
+  }
+  return res.json()
+}
+
+async function main() {
+  const futureDate = dateOffset(2)
+  await check('/api/health')
+  await check('/api/sports')
+  const clubs = await check('/api/clubs?city=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&verified=true&sort=rank')
+  const club = await check(`/api/clubs/${clubs[0].slug}`)
+  await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
+  const coaches = await check('/api/coaches?verified=true&sort=rank')
+  await check(`/api/coaches/${coaches[0].id}`)
+  let availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${futureDate}`)
+  let coachDate = futureDate
+  for (let offset = 3; offset < 8 && availability.slots.length < 2; offset++) {
+    coachDate = dateOffset(offset)
+    availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${coachDate}`)
+  }
+
+  await check('/api/auth/login', {
+    method: 'POST',
+    session: 'athlete',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'athlete@inbox.local', password: 'demo1234' }),
+  })
+  await check('/api/auth/login', {
+    method: 'POST',
+    session: 'owner',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@inbox.local', password: 'demo1234' }),
+  })
+
+  const slots = await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
+  if (slots.length >= 2) {
+    const createdBooking = await check('/api/bookings/court', {
+      method: 'POST',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slotId: slots[0].id }),
+    })
+    await check(`/api/bookings/${createdBooking.id}/reschedule`, {
+      method: 'PATCH',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slotId: slots[1].id }),
+    })
+    await check(`/api/bookings/${createdBooking.id}/cancel`, {
+      method: 'PATCH',
+      session: 'athlete',
+    })
+  }
+
+  if (availability.slots.length >= 2) {
+    const createdCoachSession = await check('/api/bookings/coach', {
+      method: 'POST',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        coachId: coaches[0].id,
+        date: coachDate,
+        startTime: availability.slots[0].startTime,
+      }),
+    })
+    await check(`/api/coach-sessions/${createdCoachSession.id}/reschedule`, {
+      method: 'PATCH',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        date: coachDate,
+        startTime: availability.slots[1].startTime,
+      }),
+    })
+  }
+
+  await check('/api/owner/contacts?segment=vip', { session: 'owner' })
+  await check('/api/owner/finance', { session: 'owner' })
+  await check('/api/owner/staff', { session: 'owner' })
+  await check('/api/owner/calendar', { session: 'owner' })
+  await check('/api/owner/sms', {
+    method: 'POST',
+    session: 'owner',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: 'Smoke reminder',
+      recipient: 'vip',
+      campaignName: 'Smoke campaign',
+    }),
+  })
+
+  await check('/api/waitlist', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      clubSlug: club.slug,
+      date: futureDate,
+      startTime: '21:00',
+      endTime: '22:00',
+      guestName: 'Smoke User',
+      guestMobile: '09120000001',
+    }),
+  })
+  console.log('smoke ok')
+}
+
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

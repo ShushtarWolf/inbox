@@ -1,0 +1,36 @@
+{
+  "name": "inbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "TMPDIR=/tmp nuxt dev",
+    "preview": "nuxt preview --port 3000",
+    "start": "node --env-file=.env .output/server/index.mjs",
+    "postinstall": "nuxt prepare && prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma db push --force-reset && prisma db seed",
+    "db:studio": "prisma studio",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "prisma": {
+    "seed": "node --import tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.8",
+    "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@fontsource-variable/vazirmatn": "^5.2.8",
+    "@nuxtjs/i18n": "^10.4.0",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@prisma/client": "^6.19.3",
+    "@vite-pwa/nuxt": "^1.1.1",
+    "nuxt": "^4.4.7",
+    "nuxt-auth-utils": "^0.5.29",
+    "prisma": "^6.19.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vue": "^3.5.35",
+    "vue-router": "^5.1.0"
+  }
+}
