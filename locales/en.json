@@ -142,6 +142,7 @@
     "password": "Password",
     "name": "Name",
     "invalidCredentials": "Invalid credentials",
+    "loginFailed": "Server error. Please try again.",
     "dashboardLoadFailed": "Login succeeded, but loading your dashboard failed. Please refresh and try again."
   },
   "owner": {

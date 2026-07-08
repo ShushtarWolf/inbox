@@ -6,15 +6,19 @@ const { login } = useAuth()
 const email = ref('athlete@inbox.local')
 const password = ref('demo1234')
 const error = ref('')
+const loading = ref(false)
 
 async function submit() {
   error.value = ''
+  loading.value = true
   let user
 
   try {
     user = await login(email.value, password.value)
-  } catch {
-    error.value = t('auth.invalidCredentials')
+  } catch (e: unknown) {
+    const status = (e as { statusCode?: number })?.statusCode
+    error.value = status === 401 ? t('auth.invalidCredentials') : t('auth.loginFailed')
+    loading.value = false
     return
   }
 
@@ -23,25 +27,24 @@ async function submit() {
     : user.role === 'COACH'
       ? localePath('/coach')
       : localePath('/athlete')
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1a314a'},body:JSON.stringify({sessionId:'1a314a',runId:'pre-fix',hypothesisId:'C',location:'app/pages/login.vue',message:'login returned role and target',data:{role:user.role,target},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   try {
-    await navigateTo(target, { external: true })
+    await navigateTo(target)
   } catch {
     error.value = t('auth.dashboardLoadFailed')
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-sm space-y-4 pt-8">
-    <h1 class="font-display text-xl font-black">{{ t('auth.login') }}</h1>
-    <input v-model="email" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" />
-    <input v-model="password" type="password" :placeholder="t('auth.password')" class="w-full rounded-xl border px-3 py-2" />
+  <form class="mx-auto max-w-sm space-y-4 pt-8" @submit.prevent="submit">
+    <h1 class="font-display text-xl font-extrabold">{{ t('auth.login') }}</h1>
+    <input v-model="email" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" autocomplete="email" />
+    <input v-model="password" type="password" :placeholder="t('auth.password')" class="w-full rounded-xl border px-3 py-2" autocomplete="current-password" />
     <p v-if="error" class="text-sm text-brand-primary">{{ error }}</p>
-    <button type="button" class="btn-primary w-full" @click="submit">{{ t('auth.login') }}</button>
+    <button type="submit" class="btn-primary w-full" :disabled="loading">{{ t('auth.login') }}</button>
     <NuxtLink :to="localePath('/register')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
-  </div>
+  </form>
 </template>

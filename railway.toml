@@ -1,7 +1,7 @@
 [build]
-buildCommand = "npm run build && npx prisma db push && npx prisma db seed"
+buildCommand = "npm run build"
 
 [deploy]
-startCommand = "node .output/server/index.mjs"
+startCommand = "node scripts/start-production.mjs"
 healthcheckPath = "/api/health"
 restartPolicyType = "ON_FAILURE"

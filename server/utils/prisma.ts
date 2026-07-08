@@ -3,6 +3,9 @@ import { join } from 'node:path'
 import { PrismaClient } from '@prisma/client'
 
 function resolveDatabaseUrl(): string {
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+    return 'file:/app/data/inbox.db'
+  }
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL
     if (url === 'file:./dev.db' || url === 'file:dev.db') {

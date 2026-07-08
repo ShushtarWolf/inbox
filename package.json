@@ -7,6 +7,7 @@
     "dev": "TMPDIR=/tmp nuxt dev",
     "preview": "nuxt preview --port 3000",
     "start": "node .output/server/index.mjs",
+    "start:production": "node scripts/start-production.mjs",
     "postinstall": "nuxt prepare && prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
