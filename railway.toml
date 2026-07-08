@@ -1,0 +1,7 @@
+[build]
+buildCommand = "npm run build && npx prisma db push && npx prisma db seed"
+
+[deploy]
+startCommand = "node .output/server/index.mjs"
+healthcheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"
