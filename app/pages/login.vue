@@ -8,6 +8,14 @@ const password = ref('demo1234')
 const error = ref('')
 const loading = ref(false)
 
+function redirectTo(target: string) {
+  if (import.meta.client) {
+    window.location.assign(target)
+    return
+  }
+  return navigateTo(target)
+}
+
 async function submit() {
   error.value = ''
   loading.value = true
@@ -29,7 +37,7 @@ async function submit() {
       : localePath('/athlete')
 
   loading.value = false
-  await navigateTo(target)
+  await redirectTo(target)
 }
 </script>
 

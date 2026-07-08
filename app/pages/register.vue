@@ -6,14 +6,22 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 
+function redirectTo(target: string) {
+  if (import.meta.client) {
+    window.location.assign(target)
+    return
+  }
+  return navigateTo(target)
+}
+
 async function submit() {
   const user = await $fetch<{ role: string }>('/api/auth/register', {
     method: 'POST',
     body: { name: name.value, email: email.value, password: password.value, role: 'ATHLETE', locale: locale.value },
   })
-  if (user.role === 'CLUB_ADMIN') await navigateTo(localePath('/owner'))
-  else if (user.role === 'COACH') await navigateTo(localePath('/coach'))
-  else await navigateTo(localePath('/athlete'))
+  if (user.role === 'CLUB_ADMIN') await redirectTo(localePath('/owner'))
+  else if (user.role === 'COACH') await redirectTo(localePath('/coach'))
+  else await redirectTo(localePath('/athlete'))
 }
 </script>
 
