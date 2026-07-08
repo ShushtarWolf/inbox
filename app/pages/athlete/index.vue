@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE' })
+definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { data, pending } = useAuthedFetch('/api/bookings/mine')
 const next = computed(() => data.value?.courtBookings?.[0] || data.value?.coachSessions?.[0])
