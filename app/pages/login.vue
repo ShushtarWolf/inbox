@@ -9,11 +9,12 @@ const error = ref('')
 const loading = ref(false)
 
 function redirectTo(target: string) {
+  const freshTarget = `${target}${target.includes('?') ? '&' : '?'}ts=${Date.now()}`
   if (import.meta.client) {
-    window.location.assign(target)
+    window.location.assign(freshTarget)
     return
   }
-  return navigateTo(target)
+  return navigateTo(freshTarget)
 }
 
 async function submit() {

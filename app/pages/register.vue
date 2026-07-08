@@ -7,11 +7,12 @@ const email = ref('')
 const password = ref('')
 
 function redirectTo(target: string) {
+  const freshTarget = `${target}${target.includes('?') ? '&' : '?'}ts=${Date.now()}`
   if (import.meta.client) {
-    window.location.assign(target)
+    window.location.assign(freshTarget)
     return
   }
-  return navigateTo(target)
+  return navigateTo(freshTarget)
 }
 
 async function submit() {
