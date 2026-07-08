@@ -1,53 +1,25 @@
 <script setup lang="ts">
-const { t } = useI18n()
-const localePath = useLocalePath()
-const { login } = useAuth()
-const router = useRouter()
+const { t, locale } = useI18n()
+const route = useRoute()
 
 const email = ref('athlete@inbox.local')
 const password = ref('demo1234')
-const error = ref('')
-const loading = ref(false)
 
-function redirectTo(target: string) {
-  if (import.meta.client) {
-    return router.push(target)
-  }
-  return navigateTo(target)
-}
-
-async function submit() {
-  error.value = ''
-  loading.value = true
-  let user
-
-  try {
-    user = await login(email.value, password.value)
-  } catch (e: unknown) {
-    const status = (e as { statusCode?: number })?.statusCode
-    error.value = status === 401 ? t('auth.invalidCredentials') : t('auth.loginFailed')
-    loading.value = false
-    return
-  }
-
-  const target = user.role === 'CLUB_ADMIN'
-    ? localePath('/owner')
-    : user.role === 'COACH'
-      ? localePath('/coach')
-      : localePath('/athlete')
-
-  loading.value = false
-  await redirectTo(target)
-}
+const error = computed(() => {
+  if (route.query.error === 'invalid') return t('auth.invalidCredentials')
+  if (route.query.error === 'server') return t('auth.loginFailed')
+  return ''
+})
 </script>
 
 <template>
-  <form class="mx-auto max-w-sm space-y-4 pt-8" @submit.prevent="submit">
+  <form class="mx-auto max-w-sm space-y-4 pt-8" method="post" action="/api/auth/login-web">
     <h1 class="font-display text-xl font-extrabold">{{ t('auth.login') }}</h1>
-    <input v-model="email" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" autocomplete="email" />
-    <input v-model="password" type="password" :placeholder="t('auth.password')" class="w-full rounded-xl border px-3 py-2" autocomplete="current-password" />
+    <input v-model="email" name="email" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" autocomplete="email" />
+    <input v-model="password" name="password" type="password" :placeholder="t('auth.password')" class="w-full rounded-xl border px-3 py-2" autocomplete="current-password" />
+    <input type="hidden" name="locale" :value="locale" />
     <p v-if="error" class="text-sm text-brand-primary">{{ error }}</p>
-    <button type="submit" class="btn-primary w-full" :disabled="loading">{{ t('auth.login') }}</button>
-    <NuxtLink :to="localePath('/register')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
+    <button type="submit" class="btn-primary w-full">{{ t('auth.login') }}</button>
+    <NuxtLink :to="locale === 'en' ? '/en/register' : '/register'" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
   </form>
 </template>
