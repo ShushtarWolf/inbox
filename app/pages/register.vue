@@ -1,18 +1,17 @@
 <script setup lang="ts">
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
+const router = useRouter()
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
 
 function redirectTo(target: string) {
-  const freshTarget = `${target}${target.includes('?') ? '&' : '?'}ts=${Date.now()}`
   if (import.meta.client) {
-    window.location.assign(freshTarget)
-    return
+    return router.push(target)
   }
-  return navigateTo(freshTarget)
+  return navigateTo(target)
 }
 
 async function submit() {

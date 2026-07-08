@@ -2,6 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { login } = useAuth()
+const router = useRouter()
 
 const email = ref('athlete@inbox.local')
 const password = ref('demo1234')
@@ -9,12 +10,10 @@ const error = ref('')
 const loading = ref(false)
 
 function redirectTo(target: string) {
-  const freshTarget = `${target}${target.includes('?') ? '&' : '?'}ts=${Date.now()}`
   if (import.meta.client) {
-    window.location.assign(freshTarget)
-    return
+    return router.push(target)
   }
-  return navigateTo(freshTarget)
+  return navigateTo(target)
 }
 
 async function submit() {
