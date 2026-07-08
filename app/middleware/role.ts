@@ -1,4 +1,5 @@
 export default defineNuxtRouteMiddleware(async (to) => {
+  if (import.meta.server) return
   const role = to.meta.role as string | undefined
   if (!role) return
   const { user, fetch } = useAuth()

@@ -5,6 +5,7 @@ export function useAuthedFetch<T>(url: string | (() => string), options: UseFetc
 
   return useFetch<T>(url, {
     ...options,
+    server: options.server ?? false,
     $fetch: requestFetch,
   })
 }
