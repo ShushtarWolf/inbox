@@ -28,13 +28,8 @@ async function submit() {
       ? localePath('/coach')
       : localePath('/athlete')
 
-  try {
-    await navigateTo(target)
-  } catch {
-    error.value = t('auth.dashboardLoadFailed')
-  } finally {
-    loading.value = false
-  }
+  loading.value = false
+  await navigateTo(target)
 }
 </script>
 
