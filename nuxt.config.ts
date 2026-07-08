@@ -53,6 +53,7 @@ export default defineNuxtConfig({
   },
 
   pwa: {
+    disable: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' ? false : true,
     minify: false,
     registerType: 'autoUpdate',
     manifest: {

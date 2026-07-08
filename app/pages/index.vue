@@ -23,20 +23,6 @@ onMounted(() => {
   if (!user.value) fetchAuth()
 })
 
-watchEffect(() => {
-  if (!import.meta.client || !user.value) return
-  const shortcut = user.value.role === 'ATHLETE'
-    ? '/athlete/bookings'
-    : user.value.role === 'COACH'
-      ? '/coach'
-      : user.value.role === 'OWNER'
-        ? '/owner'
-        : null
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1a314a'},body:JSON.stringify({sessionId:'1a314a',runId:'pre-fix',hypothesisId:'C',location:'app/pages/index.vue',message:'home role shortcut evaluated',data:{role:user.value.role,shortcut},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-})
-
 const highlightedClubs = computed(() => clubs.value?.slice(0, 2) || [])
 const highlightedCoaches = computed(() => coaches.value?.slice(0, 2) || [])
 const firstName = computed(() => user.value?.name?.split(' ')[0] || t('home.guestName'))
@@ -56,12 +42,6 @@ const roleShortcut = computed(() => {
   if (user.value.role === 'OWNER') return { label: t('owner.calendar'), to: localePath('/owner') }
   return null
 })
-
-if (import.meta.server) {
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1a314a'},body:JSON.stringify({sessionId:'1a314a',runId:'pre-fix-home',hypothesisId:'C',location:'app/pages/index.vue',message:'home server role shortcut evaluated',data:{role:user.value?.role ?? null,shortcut:roleShortcut.value?.to ?? null,label:roleShortcut.value?.label ?? null},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-}
 
 function bookingLink(path: '/clubs' | '/coaches') {
   return localePath({
