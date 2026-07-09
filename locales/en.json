@@ -146,6 +146,8 @@
     "nextSession": "Next session",
     "noClients": "No clients scheduled yet",
     "noSessionsToday": "No sessions today",
+    "noUpcomingSessions": "No upcoming sessions scheduled",
+    "noAvailability": "No availability windows configured yet",
     "dayLabel": "Day {day}",
     "bioFa": "Biography (FA)",
     "bioEn": "Biography (EN)"
@@ -213,6 +215,7 @@
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
     "slotActions": "Slot actions",
+    "clockSelector": "Time",
     "cancelReasonPlaceholder": "Select a cancellation reason",
     "cancelReasons": {
       "CUSTOMER_REQUEST": "Customer request",
@@ -294,6 +297,12 @@
     "crmPage": {
       "name": "Name",
       "mobile": "Mobile",
+      "stats": {
+        "contacts": "Contacts",
+        "activeThisMonth": "Active this month",
+        "smsSent": "SMS sent",
+        "campaigns": "Campaigns"
+      },
       "pushSms": "Push SMS",
       "smsLogged": "SMS logged (no gateway in v1)",
       "recentCampaigns": "Recent campaigns",

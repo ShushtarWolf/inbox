@@ -25,8 +25,20 @@ export default defineEventHandler(async (event) => {
     where: { clubId: club.id, active: true },
     orderBy: { createdAt: 'asc' },
   })
+  const allContacts = await prisma.contact.findMany({ where: { clubId: club.id } })
+  const allCampaigns = await prisma.campaign.findMany({ where: { clubId: club.id }, include: { recipients: true } })
+  const smsSent = allCampaigns.reduce(
+    (sum, campaign) => sum + campaign.recipients.filter((recipient) => recipient.status === 'delivered').length,
+    0,
+  )
 
   return {
+    stats: {
+      totalContacts: allContacts.length,
+      activeThisMonth: allContacts.filter((contact) => contact.inactiveDays < 30).length,
+      smsSent,
+      campaigns: allCampaigns.length,
+    },
     contacts,
     segments: [
       { id: 'all', name: 'All contacts', count: contacts.length },

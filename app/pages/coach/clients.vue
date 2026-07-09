@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' })
+definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { data } = await useAuthedFetch('/api/coach/clients')
 </script>
@@ -12,6 +12,6 @@ const { data } = await useAuthedFetch('/api/coach/clients')
       <p class="text-sm text-brand-gray-600">{{ c.phone }}</p>
       <p class="text-xs text-brand-gray-600">{{ $t('coach.nextSession') }}: {{ c.nextSessionDate }} · {{ c.nextSessionTime }}</p>
     </div>
-    <p v-if="!data?.clients?.length" class="text-sm text-brand-gray-600">{{ $t('coach.noClients') }}</p>
+    <p v-if="!data?.clients?.length" class="rounded-xl border border-dashed border-black/10 bg-brand-cream/40 p-4 text-sm text-brand-gray-600">{{ $t('coach.noClients') }}</p>
   </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-type NavItem = { to: string; label: string; icon?: string }
+import { isNavItemActive, type NavItem } from '#shared/nav.ts'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   title: string
   items: NavItem[]
   dark?: boolean
@@ -12,7 +12,7 @@ withDefaults(defineProps<{
 const route = useRoute()
 
 function isActive(to: string) {
-  return route.path === to || route.path.startsWith(`${to}/`)
+  return isNavItemActive(route.path, to, props.items)
 }
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type NavItem = { to: string; label: string; icon?: string }
+import type { NavItem } from '#shared/nav.ts'
 
 const props = withDefaults(defineProps<{
   title: string
@@ -89,6 +89,6 @@ function goBack() {
       </main>
     </div>
 
-    <AppBottomNav :items="items" max-width-class="max-w-lg" />
+    <AppBottomNav :items="items" :dark="darkNav" max-width-class="max-w-lg" />
   </div>
 </template>

@@ -13,7 +13,8 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:dashboard": "node scripts/smoke-dashboard.mjs"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"

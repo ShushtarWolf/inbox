@@ -1,11 +1,13 @@
 <script setup lang="ts">
-type NavItem = { to: string; label: string; icon?: string }
+import { isNavItemActive, type NavItem } from '#shared/nav.ts'
 
 const props = withDefaults(defineProps<{
   items: NavItem[]
   maxWidthClass?: string
+  dark?: boolean
 }>(), {
   maxWidthClass: 'max-w-lg',
+  dark: false,
 })
 
 const route = useRoute()
@@ -20,12 +22,15 @@ const columnsClass = computed(() => {
 })
 
 function isActive(to: string) {
-  return route.path === to || route.path.startsWith(`${to}/`)
+  return isNavItemActive(route.path, to, props.items)
 }
 </script>
 
 <template>
-  <nav class="fixed inset-x-0 bottom-0 z-50 border-t border-black/5 bg-white/95 pb-[var(--sz-safe-bottom)] backdrop-blur-xl lg:hidden">
+  <nav
+    class="fixed inset-x-0 bottom-0 z-50 border-t pb-[var(--sz-safe-bottom)] backdrop-blur-xl lg:hidden"
+    :class="dark ? 'border-white/10 bg-brand-primary-dark/95 text-white' : 'border-black/5 bg-white/95'"
+  >
     <div
       class="mx-auto"
       :class="[
@@ -40,7 +45,9 @@ function isActive(to: string) {
         class="flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-semibold"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
-          isActive(item.to) ? 'text-brand-primary' : 'text-brand-gray-600',
+          isActive(item.to)
+            ? (dark ? 'text-brand-gold' : 'text-brand-primary')
+            : (dark ? 'text-white/75' : 'text-brand-gray-600'),
         ]"
       >
         <span v-if="item.icon" class="text-lg">{{ item.icon }}</span>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type NavItem = { to: string; label: string; icon?: string }
+import type { NavItem } from '#shared/nav.ts'
 
 const localePath = useLocalePath()
 

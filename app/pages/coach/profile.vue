@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' })
+definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { setLocale } = useI18n()
 const { user, fetch } = useAuth()

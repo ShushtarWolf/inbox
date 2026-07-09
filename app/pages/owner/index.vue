@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
 
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 interface OwnerCalendarBooking {
   guestName?: string | null
@@ -353,9 +353,9 @@ const legend = [
       </div>
     </aside>
 
-    <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-3xl" @close="closeMenu">
-      <div class="flex flex-wrap gap-4">
-        <div class="w-full min-w-[12rem] max-w-xs rounded-xl bg-white shadow-lg sm:w-52">
+    <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div class="w-full shrink-0 rounded-xl bg-white shadow-lg lg:w-52">
           <div v-if="selectedSlot" class="border-b px-4 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
@@ -370,7 +370,7 @@ const legend = [
           <button type="button" class="block w-full px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('common.close') }}</button>
         </div>
 
-        <div v-if="showCancel" class="w-full max-w-sm flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="showCancel" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.cancel') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
@@ -385,7 +385,7 @@ const legend = [
           </div>
         </div>
 
-        <div v-if="showReserve" class="w-full max-w-sm flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="showReserve" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
 const { data, refresh } = await useAuthedFetch('/api/owner/finance')
@@ -36,17 +36,17 @@ function paymentStatusLabel(status: string) {
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="rounded-xl border bg-white p-4 lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.financePage.weeklyChart') }}</h2>
-        <div class="flex h-40 items-end gap-2">
+        <div class="flex h-44 items-end justify-between gap-2 rounded-xl bg-gradient-to-t from-brand-cream/80 to-white px-3 pb-2 pt-4">
           <div
             v-for="(amount, index) in data?.weeklyRevenue || []"
             :key="data?.weekLabels?.[index] || index"
             class="flex flex-1 flex-col items-center gap-2"
           >
             <div
-              class="w-full rounded-t-lg bg-brand-primary/80"
-              :style="{ height: `${Math.max(12, (amount / maxWeeklyRevenue) * 100)}%` }"
+              class="w-full max-w-[2.5rem] rounded-t-md bg-gradient-to-t from-brand-primary to-brand-primary/60 shadow-sm transition-all"
+              :style="{ height: `${Math.max(16, (amount / maxWeeklyRevenue) * 100)}%` }"
             />
-            <span class="text-[10px] text-brand-gray-600">{{ data?.weekLabels?.[index]?.slice(5) }}</span>
+            <span class="text-[10px] font-semibold text-brand-gray-600">{{ data?.weekLabels?.[index]?.slice(5) }}</span>
           </div>
         </div>
       </div>

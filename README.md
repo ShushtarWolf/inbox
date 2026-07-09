@@ -40,7 +40,23 @@ Set `NUXT_SESSION_PASSWORD` in production to override the built-in demo fallback
 
 **Coach:** `/coach` · `/coach/schedule` · `/coach/clients` · `/coach/profile`
 
-**Owner:** `/owner` (calendar) · `/owner/finance` · `/owner/equipments` · `/owner/packages` · `/owner/crm`
+**Owner:** `/owner` (calendar) · `/owner/finance` · `/owner/equipments` · `/owner/packages` · `/owner/crm` · `/owner/coaches` · `/owner/support` · `/owner/settings`
+
+Reserve sub-routes (calendar modal only): `/owner/reserve/season` · `/owner/reserve/package`
+
+## Dashboard navigation
+
+Three role dashboards share [`DashboardShell.vue`](app/components/DashboardShell.vue):
+
+| Role | Layout | Nav items | Mobile | Desktop |
+|------|--------|-----------|--------|---------|
+| Owner (`CLUB_ADMIN`) | `dashboard-owner` | 8 sidebar items | Bottom nav (scroll when >5) + drawer | Dark sidebar with icons |
+| Coach | `dashboard-coach` | 4 items | Bottom nav | Sidebar |
+| Athlete | `dashboard-athlete` | 3 items | Bottom nav | Sidebar |
+
+**IA decision:** Owner keeps 8 nav items (not the HTML prototype’s 9). Season/package reserve and cancel flows are reached from the calendar slot modal, not the sidebar.
+
+Nav item type: [`shared/nav.ts`](shared/nav.ts) (`NavItem`).
 
 ## Languages
 
@@ -67,8 +83,10 @@ Set `NUXT_SESSION_PASSWORD` in production to override the built-in demo fallback
 - Pay at club (no live IPG)
 - Owner calendar with 7 slot statuses (from doodles)
 - Manual reserve / cancel / season / package flows
-- CRM logs SMS only (no gateway)
+- CRM: contact list + stats; SMS logged via API only (no gateway / campaign composer)
 - Package creator saves drafts (public classes = phase 2)
+- Owner coaches page: read-only staff list (invite/edit flows = post-MVP)
+- Staff `permissionsJson`: stored in DB; nav gating deferred to post-MVP (all `CLUB_ADMIN` see full owner nav)
 
 ## Brand assets
 
@@ -80,4 +98,5 @@ Original assets in `public/brand`, `public/icons`, `brand/palette.ts`. Planning 
 npm run db:reset    # reset + seed
 npm run build       # production build
 npm run smoke       # API smoke (needs server running)
+npm run smoke:dashboard  # dashboard HTML routes (needs server running)
 ```

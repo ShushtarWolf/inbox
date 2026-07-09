@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const localePath = useLocalePath()
 const route = useRoute()
@@ -64,36 +64,40 @@ const rentalEquipments = computed(() =>
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg space-y-4">
+  <div class="mx-auto max-w-3xl space-y-4">
     <PageHeaderNav :title="t('owner.seasonPage.title')" :home-to="localePath('/')" :back-to="localePath('/owner')" />
-    <div class="space-y-3 rounded-2xl border border-black/5 bg-white p-4 shadow-card">
-      <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="w-full rounded-xl border px-3 py-2">
-      <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="w-full rounded-xl border px-3 py-2">
-      <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <div class="flex-1 space-y-3 rounded-2xl border border-black/5 bg-white p-4 shadow-card">
+        <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="w-full rounded-xl border px-3 py-2">
+        <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="w-full rounded-xl border px-3 py-2">
+        <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
 
-      <div>
-        <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="day in weekdayOptions"
-            :key="day"
-            type="button"
-            class="rounded-full border px-3 py-1 text-xs font-bold"
-            :class="form.days.includes(day) ? 'border-brand-primary bg-brand-cream text-brand-primary' : 'border-black/10 text-brand-gray-600'"
-            @click="toggleDay(day)"
-          >
-            {{ t(`owner.weekdays.${day}`) }}
-          </button>
+        <div>
+          <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="day in weekdayOptions"
+              :key="day"
+              type="button"
+              class="rounded-full border px-3 py-1 text-xs font-bold"
+              :class="form.days.includes(day) ? 'border-brand-primary bg-brand-cream text-brand-primary' : 'border-black/10 text-brand-gray-600'"
+              @click="toggleDay(day)"
+            >
+              {{ t(`owner.weekdays.${day}`) }}
+            </button>
+          </div>
         </div>
+
+        <select v-model="form.equipmentId" class="w-full rounded-xl border px-3 py-2">
+          <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+          <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+        </select>
+
+        <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="w-full rounded-xl border px-3 py-2" rows="4" />
+        <button type="button" class="btn-primary w-full" @click="submit">{{ t('common.save') }}</button>
       </div>
 
-      <select v-model="form.equipmentId" class="w-full rounded-xl border px-3 py-2">
-        <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-        <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
-      </select>
-
-      <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="w-full rounded-xl border px-3 py-2" rows="4" />
-      <button type="button" class="btn-primary w-full" @click="submit">{{ t('common.save') }}</button>
+      <OwnerClockPicker v-model="form.times" class="w-full lg:w-40" />
     </div>
   </div>
 </template>

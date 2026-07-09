@@ -1,7 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
+const { formatCurrency } = useFormatters()
 const { data: coaches } = await useAuthedFetch('/api/coaches')
 const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
 const { data: packages, refresh } = await useAuthedFetch('/api/owner/packages')
@@ -31,6 +32,21 @@ function toggleDay(day: string) {
   }
 }
 
+function packageDays(pkg: { daysJson?: string | null }) {
+  try {
+    const parsed = JSON.parse(pkg.daysJson || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function coachName(coachId?: string | null) {
+  if (!coachId) return null
+  const coach = coaches.value?.find((item: { id: string }) => item.id === coachId)
+  return coach ? localizedField(coach, 'nameFa', 'nameEn') : null
+}
+
 async function create() {
   await $fetch('/api/owner/packages', {
     method: 'POST',
@@ -58,9 +74,21 @@ const rentalEquipments = computed(() =>
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('owner.packages') }}</h1>
-    <div class="flex flex-wrap gap-2">
-      <div v-for="p in packages" :key="p.id" class="rounded-lg border bg-brand-cream px-4 py-6 text-sm font-bold">{{ p.title }}</div>
-      <div class="flex min-w-[6rem] items-center justify-center rounded-lg border border-dashed border-brand-primary/30 bg-white px-4 py-6 text-2xl text-brand-primary">+</div>
+    <div class="flex flex-wrap gap-3">
+      <div
+        v-for="p in packages"
+        :key="p.id"
+        class="min-w-[10rem] rounded-xl border border-black/5 bg-brand-cream px-4 py-4 shadow-sm"
+      >
+        <p class="font-bold text-brand-primary">{{ p.title }}</p>
+        <p v-if="coachName(p.coachId)" class="mt-1 text-xs text-brand-gray-600">{{ coachName(p.coachId) }}</p>
+        <p class="mt-2 text-sm font-black">{{ formatCurrency(p.price) }}</p>
+        <p v-if="packageDays(p).length" class="mt-1 text-xs text-brand-gray-600">
+          {{ packageDays(p).map((day: string) => t(`owner.weekdays.${day}`)).join(' · ') }}
+        </p>
+        <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600">{{ p.startDate }} – {{ p.finishDate || '…' }}</p>
+      </div>
+      <div class="flex min-w-[6rem] items-center justify-center rounded-xl border border-dashed border-brand-primary/30 bg-white px-4 py-6 text-2xl text-brand-primary">+</div>
     </div>
     <div class="mx-auto max-w-lg space-y-2 rounded-2xl border border-black/5 bg-white p-4">
       <h2 class="font-bold">{{ t('owner.packagesPage.createTitle') }}</h2>

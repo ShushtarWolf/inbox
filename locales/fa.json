@@ -146,6 +146,8 @@
     "nextSession": "جلسه بعدی",
     "noClients": "هنوز مشتری زمان‌بندی‌شده‌ای ندارید",
     "noSessionsToday": "امروز جلسه‌ای ندارید",
+    "noUpcomingSessions": "جلسه آینده‌ای برنامه‌ریزی نشده",
+    "noAvailability": "هنوز بازه زمانی در دسترس ثبت نشده",
     "dayLabel": "روز {day}",
     "bioFa": "بیو فارسی",
     "bioEn": "بیو انگلیسی"
@@ -213,6 +215,7 @@
     "packageReserve": "رزرو پکیج",
     "reserveWithCoach": "رزرو با مربی",
     "slotActions": "عملیات اسلات",
+    "clockSelector": "ساعت",
     "cancelReasonPlaceholder": "دلیل لغو را انتخاب کنید",
     "cancelReasons": {
       "CUSTOMER_REQUEST": "درخواست مشتری",
@@ -294,6 +297,12 @@
     "crmPage": {
       "name": "نام",
       "mobile": "موبایل",
+      "stats": {
+        "contacts": "مخاطبین",
+        "activeThisMonth": "فعال این ماه",
+        "smsSent": "پیامک ارسالی",
+        "campaigns": "کمپین"
+      },
       "pushSms": "ارسال پیامک",
       "smsLogged": "پیامک ثبت شد (درگاه در نسخه ۱ وصل نیست)",
       "recentCampaigns": "کمپین‌های اخیر",

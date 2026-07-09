@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
 const { formatHours } = useFormatters()
@@ -27,6 +27,25 @@ async function send() {
 <template>
   <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
     <div class="space-y-4">
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border bg-white p-3 text-center">
+          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
+          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.contacts') }}</p>
+        </div>
+        <div class="rounded-xl border bg-white p-3 text-center">
+          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.activeThisMonth || 0 }}</p>
+          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
+        </div>
+        <div class="rounded-xl border bg-white p-3 text-center">
+          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.smsSent || 0 }}</p>
+          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.smsSent') }}</p>
+        </div>
+        <div class="rounded-xl border bg-white p-3 text-center">
+          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.campaigns || 0 }}</p>
+          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.campaigns') }}</p>
+        </div>
+      </div>
+
       <div class="flex flex-wrap gap-2">
         <button
           v-for="segment in data?.segments"

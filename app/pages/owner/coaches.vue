@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
+definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 const { data, refresh } = await useAuthedFetch('/api/owner/staff')
 useOwnerClubRefresh(refresh)
 const { formatTimeRange } = useFormatters()
