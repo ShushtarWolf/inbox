@@ -105,12 +105,11 @@ async function useNearby() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="font-display text-xl font-black">{{ t('clubs.title') }}</h1>
-      <div class="flex gap-2">
-        <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showMap = !showMap">{{ t('clubs.mapView') }}</button>
-        <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showMoreFilters = !showMoreFilters">{{ t('clubs.moreFilters') }}</button>
-      </div>
+    <PageHeaderNav :title="t('clubs.title')" :home-to="localePath('/')" />
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showMap = !showMap">{{ t('clubs.mapView') }}</button>
+      <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showMoreFilters = !showMoreFilters">{{ t('clubs.moreFilters') }}</button>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -196,6 +195,7 @@ async function useNearby() {
           <p class="mt-1 text-xs text-brand-gray-600">{{ club.amenityPreview.join(' · ') }}</p>
           <p v-if="club.distanceKm != null" class="mt-1 text-xs text-brand-gray-600">{{ t('clubs.distance') }}: {{ club.distanceKm }} km</p>
         </div>
+        <span class="self-center rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.clubCta') }}</span>
       </NuxtLink>
     </div>
   </div>

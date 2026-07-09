@@ -27,10 +27,6 @@ const highlightedClubs = computed(() => clubs.value?.slice(0, 2) || [])
 const highlightedCoaches = computed(() => coaches.value?.slice(0, 2) || [])
 const firstName = computed(() => user.value?.name?.split(' ')[0] || t('home.guestName'))
 const selectedMapClubSlug = ref<string | null>(null)
-const activeSportLabel = computed(() => {
-  const match = sports.value?.find((item) => item.slug === sport.value)
-  return match ? localizedField(match, 'nameFa', 'nameEn') : t('home.sportsLabel')
-})
 const heroSportIcon = ref(`/icons/sports/${sport.value || 'padel'}.svg`)
 watch(sport, (value) => {
   heroSportIcon.value = `/icons/sports/${value || 'padel'}.svg`
@@ -131,7 +127,7 @@ function handleHeroSportIconError() {
 <template>
   <div class="space-y-4 animate-fade-in">
     <section class="ios-card overflow-hidden bg-gradient-to-br from-brand-primary-dark via-brand-primary-dark to-brand-primary p-4 text-white shadow-card">
-      <div class="flex items-start justify-between gap-3">
+      <div>
         <div>
           <p class="text-xs font-bold uppercase tracking-[0.2em] text-white/70">{{ t('home.eyebrow') }}</p>
           <h1 class="mt-2 max-w-xs text-2xl font-black leading-tight">
@@ -139,12 +135,6 @@ function handleHeroSportIconError() {
           </h1>
           <p class="mt-2 max-w-sm text-sm text-white/80">{{ t('home.heroBody') }}</p>
         </div>
-        <NuxtLink
-          :to="user ? localePath('/athlete') : localePath('/login')"
-          class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white backdrop-blur"
-        >
-          {{ user ? t('nav.me') : t('nav.login') }}
-        </NuxtLink>
       </div>
 
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -168,7 +158,7 @@ function handleHeroSportIconError() {
         class="mt-4 block rounded-[2rem] bg-white p-2 text-brand-gray-900 shadow-[0_16px_42px_rgba(0,0,0,0.16)] transition hover:-translate-y-0.5"
       >
         <div class="flex items-center gap-2">
-          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-[#77f05f] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-brand-primary/8 text-brand-primary shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
             <img :src="heroSportIcon" alt="" class="h-10 w-10" @error="handleHeroSportIconError" />
           </div>
 
@@ -206,7 +196,7 @@ function handleHeroSportIconError() {
             </div>
           </div>
 
-          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-[#77f05f] text-brand-gray-950 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]">
+          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-brand-primary text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]">
             <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="2.2" />
               <path d="m16 16 4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
@@ -223,7 +213,6 @@ function handleHeroSportIconError() {
           <h2 class="text-sm font-black">{{ t('home.sportsTitle') }}</h2>
           <p class="text-xs text-brand-gray-600">{{ t('home.sportsSubtitle') }}</p>
         </div>
-        <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-primary shadow-card">{{ activeSportLabel }}</span>
       </div>
 
       <div class="flex gap-2 overflow-x-auto pb-1">
@@ -295,11 +284,7 @@ function handleHeroSportIconError() {
                 </div>
               </button>
             </div>
-
             <div class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
-            <div class="absolute bottom-3 left-3 rounded-full bg-white/92 px-3 py-1 text-[11px] font-bold text-brand-gray-700 shadow-card">
-              {{ activeSportLabel }}
-            </div>
           </div>
         </div>
 

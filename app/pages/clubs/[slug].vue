@@ -11,12 +11,16 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
 
 <template>
   <div v-if="club" class="space-y-4">
+    <PageHeaderNav
+      :title="localizedField(club, 'nameFa', 'nameEn')"
+      :subtitle="localizedField(club, 'addressFa', 'addressEn')"
+      :home-to="localePath('/')"
+      :back-to="localePath('/clubs')"
+    />
     <img :src="club.image || '/demo/clubs/padel-zone-tehran.jpg'" alt="" class="ios-card -mx-4 aspect-[16/10] w-[calc(100%+2rem)] object-cover" />
     <div class="flex items-center gap-2">
-      <h1 class="font-display text-xl font-black">{{ localizedField(club, 'nameFa', 'nameEn') }}</h1>
       <span v-if="club.verifiedAt" class="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold text-brand-primary">{{ t('clubs.verified') }}</span>
     </div>
-    <p class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
     <p class="text-sm text-brand-gray-600">⭐ {{ club.reviewSummary?.average || club.rating }} · {{ club.reviewSummary?.count || 0 }} {{ t('clubs.reviews') }}</p>
     <p class="text-sm">{{ localizedField(club, 'descriptionFa', 'descriptionEn') }}</p>
 

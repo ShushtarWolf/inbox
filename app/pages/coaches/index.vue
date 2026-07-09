@@ -42,10 +42,9 @@ async function syncRoute() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="font-display text-xl font-black">{{ t('coaches.title') }}</h1>
-      <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
-    </div>
+    <PageHeaderNav :title="t('coaches.title')" :home-to="localePath('/')" />
+
+    <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
     <div class="flex flex-wrap gap-2">
       <button type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === '' ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
       <button v-for="city in cityOptions" :key="city" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city; syncRoute()">
@@ -84,6 +83,7 @@ async function syncRoute() {
           <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ c.specialties.slice(0, 2).join(' · ') }}</p>
           <p class="text-sm font-black text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
         </div>
+        <span class="rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.coachCta') }}</span>
       </NuxtLink>
     </div>
   </div>
