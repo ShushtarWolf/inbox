@@ -1,12 +1,33 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE' })
 
+interface CourtBooking {
+  id: string
+  status: string
+  payment?: { status?: string } | null
+  paymentStatus?: string | null
+  slot: {
+    date: string
+    startTime: string
+    court: {
+      club: {
+        slug: string
+        nameFa: string
+        nameEn: string
+        cancellationWindowHours: number
+      }
+    }
+  }
+}
+
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
-const rescheduleTarget = ref<any>(null)
-const rescheduleDate = ref(new Date().toISOString().slice(0, 10))
+const { formatTimeRange, formatHours } = useFormatters()
+const { today } = useLocalDate()
+const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
+const rescheduleTarget = ref<CourtBooking | null>(null)
+const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
 
 const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('/api/slots/available', {
@@ -17,10 +38,15 @@ const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('
   immediate: false,
 })
 
-async function openReschedule(booking: any) {
+async function openReschedule(booking: CourtBooking) {
   rescheduleTarget.value = booking
   rescheduleDate.value = booking.slot.date
   await refreshSlots()
+}
+
+function closeReschedule() {
+  rescheduleTarget.value = null
+  rescheduleSlotId.value = ''
 }
 
 async function cancel(id: string) {
@@ -39,10 +65,13 @@ async function rescheduleCourt() {
     method: 'PATCH',
     body: { slotId: rescheduleSlotId.value },
   })
-  rescheduleTarget.value = null
-  rescheduleSlotId.value = ''
+  closeReschedule()
   refresh()
 }
+
+watch(rescheduleDate, () => {
+  if (rescheduleTarget.value) refreshSlots()
+})
 
 function bookingStatusLabel(status: string) {
   return t(`booking.status.${status}`)
@@ -57,16 +86,19 @@ function paymentStatusLabel(status: string) {
   <div class="space-y-4">
     <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
 
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+
     <section v-if="data?.courtBookings?.length" class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
       <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm">{{ b.slot.date }} {{ b.slot.startTime }}</p>
+        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ b.slot.date }} {{ formatTimeRange(b.slot.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(b.status) }}</span>
           <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
         </div>
-        <p class="mt-2 text-xs text-brand-gray-600">{{ b.slot.court.club.cancellationWindowHours }}h {{ t('booking.cancellationWindow') }}</p>
+        <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
           <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="openReschedule(b)">
@@ -83,12 +115,12 @@ function paymentStatusLabel(status: string) {
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.coachSection') }}</h2>
       <div v-for="s in data.coachSessions" :key="s.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm">{{ s.date }} {{ s.startTime }}</p>
+        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ s.date }} {{ formatTimeRange(s.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(s.status) }}</span>
           <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
         </div>
-        <p class="mt-2 text-xs text-brand-gray-600">{{ s.coach.club?.cancellationWindowHours || 24 }}h {{ t('booking.cancellationWindow') }}</p>
+        <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
           <button v-if="s.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelCoach(s.id)">
@@ -98,14 +130,13 @@ function paymentStatusLabel(status: string) {
       </div>
     </section>
 
-    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
+    <div v-if="!pending && !error && !data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
       {{ t('booking.emptyState') }}
     </div>
 
-    <div v-if="rescheduleTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="rescheduleTarget = null">
-      <div class="w-full max-w-md rounded-2xl bg-white p-4">
-        <h2 class="mb-3 font-bold">{{ t('booking.reschedule') }}</h2>
-        <input v-model="rescheduleDate" type="date" class="mb-3 w-full rounded border px-3 py-2" @change="refreshSlots()" />
+    <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
+      <div class="rounded-2xl bg-white p-4">
+        <AppDateInput v-model="rescheduleDate" class="mb-3" />
         <div class="max-h-64 space-y-2 overflow-auto">
           <button
             v-for="slot in replacementSlots"
@@ -115,14 +146,14 @@ function paymentStatusLabel(status: string) {
             :class="rescheduleSlotId === slot.id ? 'border-brand-primary text-brand-primary' : ''"
             @click="rescheduleSlotId = slot.id"
           >
-            {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · {{ slot.startTime }}
+            {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
           </button>
         </div>
         <div class="mt-4 flex gap-2">
           <button type="button" class="btn-primary flex-1" :disabled="!rescheduleSlotId" @click="rescheduleCourt">{{ t('booking.confirm') }}</button>
-          <button type="button" class="flex-1 rounded-xl border px-4 py-3 text-sm font-bold" @click="rescheduleTarget = null">{{ t('common.close') }}</button>
+          <button type="button" class="flex-1 rounded-xl border px-4 py-3 text-sm font-bold" @click="closeReschedule">{{ t('common.close') }}</button>
         </div>
       </div>
-    </div>
+    </AppModal>
   </div>
 </template>

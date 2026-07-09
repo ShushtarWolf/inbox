@@ -25,7 +25,11 @@ const { data: coaches } = await useFetch('/api/coaches', {
 })
 
 const cityOptions = ['تهران', 'اصفهان', 'شیراز']
-const specialtyOptions = ['Padel basics', 'Match tactics', 'Serve', 'Women coaching', 'Backhand']
+const specialtyOptions = ['Padel basics', 'Match tactics', 'Serve', 'Women coaching', 'Backhand'] as const
+
+function specialtyLabel(value: string) {
+  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+}
 
 async function syncRoute() {
   await router.replace({
@@ -54,7 +58,7 @@ async function syncRoute() {
     <div v-if="showFilters" class="ios-card grid gap-3 p-4 lg:grid-cols-3">
       <select v-model="filters.specialty" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
         <option value="">{{ t('coaches.allSpecialties') }}</option>
-        <option v-for="option in specialtyOptions" :key="option" :value="option">{{ option }}</option>
+        <option v-for="option in specialtyOptions" :key="option" :value="option">{{ specialtyLabel(option) }}</option>
       </select>
       <select v-model="filters.sort" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
         <option value="rank">{{ t('clubs.sort.rank') }}</option>

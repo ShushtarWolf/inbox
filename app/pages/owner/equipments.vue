@@ -3,6 +3,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { data, refresh } = await useAuthedFetch('/api/owner/equipments')
+useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
 const grouped = computed(() => ({
   CLUB: data.value?.filter((e: { category: string }) => e.category === 'CLUB') || [],

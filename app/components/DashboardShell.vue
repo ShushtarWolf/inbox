@@ -23,6 +23,24 @@ const mainClass = computed(() => {
 const dashboardRoot = computed(() => props.items[0]?.to || localePath('/'))
 const isDashboardRoot = computed(() => route.path === dashboardRoot.value)
 
+function onKeydown(event: KeyboardEvent) {
+  if (open.value && event.key === 'Escape') {
+    open.value = false
+  }
+}
+
+onMounted(() => {
+  if (import.meta.client) {
+    document.addEventListener('keydown', onKeydown)
+  }
+})
+
+onUnmounted(() => {
+  if (import.meta.client) {
+    document.removeEventListener('keydown', onKeydown)
+  }
+})
+
 function goBack() {
   if (isDashboardRoot.value) {
     return navigateTo(localePath('/'))
@@ -34,7 +52,7 @@ function goBack() {
 
 <template>
   <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] lg:flex-row lg:pb-0">
-    <div v-if="open" class="fixed inset-0 z-40 bg-black/40 lg:hidden" @click="open = false" />
+    <div v-if="open" class="fixed inset-0 z-40 bg-black/40 lg:hidden" role="presentation" @click="open = false" />
 
     <div
       class="fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 lg:static lg:translate-x-0"

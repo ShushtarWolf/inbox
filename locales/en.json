@@ -19,7 +19,13 @@
     "name": "Name",
     "retry": "Retry",
     "save": "Save",
-    "send": "Send"
+    "send": "Send",
+    "whatsapp": "WhatsApp",
+    "error": "Something went wrong",
+    "hoursShort": "{count}h",
+    "distanceKm": "{count} km",
+    "courtsCount": "{count} courts",
+    "datePickerHint": "Gregorian picker — shown as {date} in your locale"
   },
   "nav": {
     "home": "Home",
@@ -98,6 +104,14 @@
       "rating": "Highest rated",
       "price": "Lowest price",
       "nearby": "Nearest"
+    },
+    "amenityOptions": {
+      "Parking": "Parking",
+      "Cafe": "Cafe",
+      "Locker room": "Locker room",
+      "Shower": "Shower",
+      "Pro shop": "Pro shop",
+      "Kids area": "Kids area"
     }
   },
   "coaches": {
@@ -106,7 +120,14 @@
     "specialties": "Specialties",
     "credentials": "Credentials",
     "availability": "Availability",
-    "packages": "Packages"
+    "packages": "Packages",
+    "specialtyOptions": {
+      "Padel basics": "Padel basics",
+      "Match tactics": "Match tactics",
+      "Serve": "Serve",
+      "Women coaching": "Women coaching",
+      "Backhand": "Backhand"
+    }
   },
   "dashboard": {
     "athlete": "Athlete dashboard",
@@ -178,10 +199,14 @@
     "support": "Support",
     "settings": "Settings",
     "legend": "Color legend",
+    "dashboardEyebrow": "Dashboard",
+    "calendarSubtitle": "Stay organized and track court availability for {date}",
+    "legendHint": "Slot colors follow the same soft scheduling style as the calendar.",
+    "quickNotes": "Quick notes",
+    "quickNotesBody": "Tap any slot to reserve, cancel, or open the related booking flow. Free time stays neutral while booked courts use pastel accents.",
     "activeClub": "Active club",
     "reserve": "Reserve",
     "cancel": "Cancel",
-    "shape": "Shape 1",
     "hour": "Hour",
     "free": "Free",
     "seasonReserve": "Season reserve",
@@ -252,7 +277,9 @@
       "noShowRisk": "No-show risk",
       "reminders": "Reminders",
       "logOnlyNote": "This flow only records a campaign log in MVP. It does not send a real SMS.",
-      "remindersInfo": "Reminder rules are shown here for visibility only. Automated delivery is not active in this MVP."
+      "remindersInfo": "Reminder rules are shown here for visibility only. Automated delivery is not active in this MVP.",
+      "delivered": "{delivered}/{total} delivered",
+      "vip": "VIP"
     },
     "funnelTitle": "Booking funnel",
     "funnel": {
@@ -297,10 +324,10 @@
     "supportPlaceholder": "Support inbox.local placeholder for v1",
     "settingsPlaceholder": "Club hours and courts - settings placeholder",
     "seasonPage": {
-      "title": "Season reserve (Shape 3)"
+      "title": "Season reserve"
     },
     "packagePage": {
-      "title": "Package reserve (Shape 4)",
+      "title": "Package reserve",
       "coachPlaceholder": "- Coach -"
     }
   },

@@ -3,11 +3,13 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const route = useRoute()
 const localePath = useLocalePath()
+const { t } = useI18n()
 const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
+const { today } = useLocalDate()
 const session = computed(() => data.value?.coachSessions?.find((item: { id: string }) => item.id === route.params.id))
-const rescheduleDate = ref(new Date().toISOString().slice(0, 10))
+const rescheduleDate = ref(today())
 const startTime = ref('')
 
 const { data: availability, refresh: refreshAvailability } = await useAuthedFetch(() => `/api/coaches/${session.value?.coachId}/availability`, {
@@ -22,6 +24,10 @@ watch(session, (value) => {
   }
 }, { immediate: true })
 
+watch(rescheduleDate, () => {
+  if (session.value && session.value.status !== 'CANCELLED') refreshAvailability()
+})
+
 watch(availability, (value) => {
   if (value?.slots?.length && !value.slots.some((slot: { startTime: string }) => slot.startTime === startTime.value)) {
     startTime.value = value.slots[0].startTime
@@ -29,11 +35,11 @@ watch(availability, (value) => {
 })
 
 function bookingStatusLabel(status: string) {
-  return useNuxtApp().$i18n.t(`booking.status.${status}`)
+  return t(`booking.status.${status}`)
 }
 
 function paymentStatusLabel(status: string) {
-  return useNuxtApp().$i18n.t(`booking.paymentStatus.${status}`)
+  return t(`booking.paymentStatus.${status}`)
 }
 
 async function cancelSession() {
@@ -74,11 +80,11 @@ async function rescheduleSession() {
         <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(session.status) }}</span>
         <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(session.payment?.status || session.paymentStatus) }}</span>
       </div>
-      <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: {{ session.id }}</p>
+      <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ session.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(session.payment?.amount || session.price) }}</p>
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${session.payment?.method || 'NOT_PAID'}`) }}</p>
-      <p class="text-sm text-brand-gray-600">{{ session.coach.club?.cancellationWindowHours || 24 }}h {{ $t('booking.cancellationWindow') }}</p>
-      <p class="text-sm text-brand-gray-600">{{ session.coach.club?.rescheduleWindowHours || 24 }}h {{ $t('booking.rescheduleWindow') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.cancellationWindowHours || 24) }} {{ $t('booking.cancellationWindow') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.rescheduleWindowHours || 24) }} {{ $t('booking.rescheduleWindow') }}</p>
       <div v-if="session.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button type="button" class="rounded-xl border px-4 py-2 text-sm font-bold" @click="cancelSession">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadAvailability">{{ $t('booking.reschedule') }}</button>
@@ -87,10 +93,10 @@ async function rescheduleSession() {
 
     <div v-if="session.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
-      <input v-model="rescheduleDate" type="date" class="w-full rounded border px-3 py-2" @change="loadAvailability()" />
-      <select v-model="startTime" class="w-full rounded border px-3 py-2">
+      <AppDateInput v-model="rescheduleDate" />
+      <select v-model="startTime" class="w-full rounded border px-3 py-2" dir="ltr">
         <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">
-          {{ slot.startTime }} - {{ slot.endTime }}
+          {{ formatTimeRange(slot.startTime, slot.endTime) }}
         </option>
       </select>
       <p v-if="availability && !availability.slots?.length" class="text-sm text-brand-gray-600">{{ $t('booking.noSlots') }}</p>

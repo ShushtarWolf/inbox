@@ -3,11 +3,32 @@ import { palette } from '#shared/palette.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
 
+interface OwnerCalendarBooking {
+  guestName?: string | null
+  guestFamily?: string | null
+  guestMobile?: string | null
+  payment?: { method?: string; status?: string } | null
+  paymentMethod?: string | null
+  paymentStatus?: string | null
+  comments?: string | null
+}
+
+interface OwnerCalendarSlot {
+  id: string
+  courtId: string
+  startTime: string
+  endTime: string
+  displayStatus: string
+  booking?: OwnerCalendarBooking | null
+}
+
 const { t } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatDate } = useFormatters()
-const date = ref(new Date().toISOString().slice(0, 10))
-const selectedSlot = ref<any>(null)
+const { formatDate, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
+const { today } = useLocalDate()
+
+const date = ref(today())
+const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const showMenu = ref(false)
 const showReserve = ref(false)
 
@@ -20,9 +41,13 @@ const form = reactive({
   comments: '',
 })
 
-const { data, refresh } = await useAuthedFetch('/api/owner/calendar', {
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/calendar', {
   query: computed(() => ({ date: date.value })),
 })
+
+useOwnerClubRefresh(refresh)
+
+watch(date, () => refresh())
 
 const hours = computed(() => {
   const set = new Set<string>()
@@ -31,10 +56,10 @@ const hours = computed(() => {
 })
 
 const courts = computed(() => data.value?.courts || [])
-const formattedDate = computed(() => formatDate(date.value))
+const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
-const dayNumber = computed(() => currentDate.value.getDate())
-const weekdayLabel = computed(() => new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(currentDate.value))
+const dayNumber = computed(() => formatNumber(currentDate.value.getDate()))
+const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 
 function slotClass(status: string) {
   const map: Record<string, string> = {
@@ -54,37 +79,22 @@ function statusLabel(status: string) {
 }
 
 function cellSlot(courtId: string, hour: string) {
-  return data.value?.slots?.find((s: { courtId: string; startTime: string }) => s.courtId === courtId && s.startTime === hour)
+  return data.value?.slots?.find((s: OwnerCalendarSlot) => s.courtId === courtId && s.startTime === hour)
 }
 
-function timeLabel(value: string) {
-  return value.slice(0, 5)
-}
-
-function slotTimeRange(slot: any) {
-  if (!slot?.endTime)
-    return timeLabel(slot?.startTime || '')
-
-  return `${timeLabel(slot.startTime)} - ${timeLabel(slot.endTime)}`
-}
-
-function slotLabel(slot: any) {
-  if (!slot)
-    return ''
+function slotLabel(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot) return ''
 
   if (slot.displayStatus === 'FREE')
-    return t('owner.free')
+    return t('owner.status.FREE')
 
   const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
   return fullName || statusLabel(slot.displayStatus)
 }
 
-function slotMeta(slot: any) {
-  if (!slot)
+function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot || slot.displayStatus === 'FREE')
     return ''
-
-  if (slot.displayStatus === 'FREE')
-    return t('owner.status.FREE')
 
   if (slot.booking?.guestMobile)
     return slot.booking.guestMobile
@@ -92,7 +102,8 @@ function slotMeta(slot: any) {
   return statusLabel(slot.displayStatus)
 }
 
-function openSlot(slot: any) {
+function openSlot(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot) return
   selectedSlot.value = slot
   showMenu.value = true
   showReserve.value = false
@@ -142,6 +153,7 @@ function slotGuestName() {
 }
 
 async function doReserve() {
+  if (!selectedSlot.value) return
   await $fetch('/api/owner/reserve', {
     method: 'POST',
     body: { slotId: selectedSlot.value.id, ...form, displayStatus: 'RESERVED' },
@@ -151,6 +163,7 @@ async function doReserve() {
 }
 
 async function doCancel() {
+  if (!selectedSlot.value) return
   await $fetch('/api/owner/cancel', { method: 'POST', body: { slotId: selectedSlot.value.id } })
   closeMenu()
   refresh()
@@ -169,31 +182,39 @@ const legend = [
 
 <template>
   <div class="space-y-6">
-    <section class="calendar-shell overflow-hidden rounded-[2rem] border border-[#e9e6f2] bg-white shadow-[0_30px_80px_rgba(41,29,87,0.08)]">
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+
+    <section v-else class="calendar-shell overflow-hidden rounded-[2rem] border border-[#e9e6f2] bg-white shadow-[0_30px_80px_rgba(41,29,87,0.08)]">
       <div class="border-b border-[#f0eef7] px-5 py-5 sm:px-7">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p class="mb-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#a6a1b5]">Dashboard</p>
+            <p class="mb-1 text-xs font-semibold tracking-[0.24em] text-[#a6a1b5]">{{ t('owner.dashboardEyebrow') }}</p>
             <h1 class="font-display text-2xl font-black text-[#27243a]">{{ t('owner.calendar') }}</h1>
-            <p class="mt-1 text-sm text-[#8a859d]">Stay organized and track court availability for {{ formattedDate }}</p>
+            <p class="mt-1 text-sm text-[#8a859d]">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
             <label class="calendar-date-picker">
-              <span>{{ t('owner.shape') }}</span>
-              <input v-model="date" type="date" class="calendar-date-input" />
+              <span>{{ t('common.date') }}</span>
+              <input v-model="date" type="date" dir="ltr" class="calendar-date-input tabular-nums">
             </label>
           </div>
         </div>
 
         <div class="mt-5 flex justify-end">
           <div class="calendar-toolbar-pill font-semibold text-[#5d5873]">
-            {{ weekdayLabel }} {{ dayNumber }}
+            <span>{{ weekdayLabel }}</span>
+            <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi>
           </div>
         </div>
       </div>
 
-      <div class="overflow-x-auto px-3 pb-3 pt-4 sm:px-5 sm:pb-5">
+      <div v-if="!courts.length" class="px-5 py-8 text-center text-sm text-[#8a859d]">
+        {{ t('common.empty') }}
+      </div>
+
+      <div v-else class="overflow-x-auto px-3 pb-3 pt-4 sm:px-5 sm:pb-5">
         <div class="min-w-[900px]">
           <div class="grid calendar-grid border-b border-[#f2f0f7] pb-3">
             <div />
@@ -213,7 +234,7 @@ const legend = [
             class="grid calendar-grid border-b border-[#f6f4fb] last:border-b-0"
           >
             <div class="calendar-time-cell">
-              <span class="calendar-time">{{ timeLabel(hour) }}</span>
+              <bdi dir="ltr" class="calendar-time tabular-nums">{{ formatTimeRange(hour) }}</bdi>
             </div>
 
             <div
@@ -228,9 +249,9 @@ const legend = [
                 :class="slotClass(cellSlot(court.id, hour)!.displayStatus)"
                 @click="openSlot(cellSlot(court.id, hour))"
               >
-                <span class="calendar-slot-time">{{ slotTimeRange(cellSlot(court.id, hour)) }}</span>
+                <bdi dir="ltr" class="calendar-slot-time tabular-nums">{{ formatTimeRange(cellSlot(court.id, hour)!.startTime, cellSlot(court.id, hour)!.endTime) }}</bdi>
                 <span class="calendar-slot-title">{{ slotLabel(cellSlot(court.id, hour)) }}</span>
-                <span class="calendar-slot-meta">{{ slotMeta(cellSlot(court.id, hour)) }}</span>
+                <bdi v-if="slotMeta(cellSlot(court.id, hour))" dir="ltr" class="calendar-slot-meta tabular-nums">{{ slotMeta(cellSlot(court.id, hour)) }}</bdi>
               </button>
             </div>
           </div>
@@ -238,14 +259,14 @@ const legend = [
       </div>
     </section>
 
-    <aside class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <aside v-if="!pending && !error" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div class="rounded-[1.5rem] border border-[#ece8f6] bg-white p-5 shadow-[0_20px_50px_rgba(41,29,87,0.06)]">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-base font-bold text-[#27243a]">{{ t('owner.legend') }}</h2>
-            <p class="mt-1 text-sm text-[#8a859d]">Slot colors follow the same soft scheduling style as the calendar.</p>
+            <p class="mt-1 text-sm text-[#8a859d]">{{ t('owner.legendHint') }}</p>
           </div>
-          <span class="rounded-full bg-[#f6f3ff] px-3 py-1 text-xs font-semibold text-[#6f6885]">{{ courts.length }} courts</span>
+          <span class="rounded-full bg-[#f6f3ff] px-3 py-1 text-xs font-semibold text-[#6f6885]">{{ t('common.courtsCount', { count: formatNumber(courts.length) }) }}</span>
         </div>
         <div class="mt-4 flex flex-wrap gap-3">
           <div v-for="item in legend" :key="item.status" class="calendar-legend-item">
@@ -256,18 +277,18 @@ const legend = [
       </div>
 
       <div class="rounded-[1.5rem] border border-[#ece8f6] bg-[#faf8ff] p-5 shadow-[0_20px_50px_rgba(41,29,87,0.04)]">
-        <h2 class="text-base font-bold text-[#27243a]">Quick Notes</h2>
+        <h2 class="text-base font-bold text-[#27243a]">{{ t('owner.quickNotes') }}</h2>
         <p class="mt-2 text-sm leading-6 text-[#8a859d]">
-          Tap any slot to reserve, cancel, or open the related booking flow. Free time stays neutral while booked courts use pastel accents.
+          {{ t('owner.quickNotesBody') }}
         </p>
       </div>
     </aside>
 
-    <div v-if="showMenu" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeMenu">
-      <div class="flex max-w-2xl flex-wrap gap-4">
+    <AppModal :open="showMenu" :title="t('owner.reserve')" max-width-class="max-w-2xl" @close="closeMenu">
+      <div class="flex flex-wrap gap-4">
         <div class="w-48 rounded-xl bg-white shadow-lg">
           <div v-if="selectedSlot" class="border-b px-4 py-3 text-sm">
-            <p class="font-bold">{{ slotTimeRange(selectedSlot) }}</p>
+            <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p class="mt-1 text-xs text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
@@ -278,9 +299,9 @@ const legend = [
 
         <div v-if="showReserve" class="w-80 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
-          <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" />
-          <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" />
-          <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" />
+          <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
+          <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
+          <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="mb-2 w-full rounded border px-2 py-1.5 text-sm tabular-nums">
           <select v-model="form.paymentMethod" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
             <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
             <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
@@ -293,7 +314,7 @@ const legend = [
           <button type="button" class="btn-primary w-full" @click="doReserve">{{ slotActionLabel() }}</button>
         </div>
       </div>
-    </div>
+    </AppModal>
   </div>
 </template>
 
@@ -370,8 +391,7 @@ const legend = [
 .calendar-column-day {
   font-size: 0.7rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
   color: #b0a9c2;
 }
 
@@ -420,9 +440,8 @@ const legend = [
 .calendar-slot-time {
   font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   opacity: 0.8;
-  text-transform: uppercase;
 }
 
 .calendar-slot-title {

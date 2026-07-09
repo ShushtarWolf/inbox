@@ -3,11 +3,13 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const route = useRoute()
 const localePath = useLocalePath()
+const { t } = useI18n()
 const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
+const { today } = useLocalDate()
 const booking = computed(() => data.value?.courtBookings?.find((b: { id: string }) => b.id === route.params.id))
-const rescheduleDate = ref(new Date().toISOString().slice(0, 10))
+const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
 
 const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('/api/slots/available', {
@@ -24,12 +26,16 @@ watch(booking, (value) => {
   }
 }, { immediate: true })
 
+watch(rescheduleDate, () => {
+  if (booking.value && booking.value.status !== 'CANCELLED') refreshSlots()
+})
+
 function bookingStatusLabel(status: string) {
-  return useNuxtApp().$i18n.t(`booking.status.${status}`)
+  return t(`booking.status.${status}`)
 }
 
 function paymentStatusLabel(status: string) {
-  return useNuxtApp().$i18n.t(`booking.paymentStatus.${status}`)
+  return t(`booking.paymentStatus.${status}`)
 }
 
 async function cancelBooking() {
@@ -67,11 +73,11 @@ async function rescheduleBooking() {
         <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(booking.status) }}</span>
         <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(booking.payment?.status || booking.paymentStatus) }}</span>
       </div>
-      <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: {{ booking.id }}</p>
+      <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ booking.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${booking.payment?.method || booking.paymentMethod || 'NOT_PAID'}`) }}</p>
-      <p class="text-sm text-brand-gray-600">{{ booking.slot.court.club.cancellationWindowHours }}h {{ $t('booking.cancellationWindow') }}</p>
-      <p class="text-sm text-brand-gray-600">{{ booking.slot.court.club.rescheduleWindowHours }}h {{ $t('booking.rescheduleWindow') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button type="button" class="rounded-xl border px-4 py-2 text-sm font-bold" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>
@@ -80,7 +86,7 @@ async function rescheduleBooking() {
 
     <div v-if="booking.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
-      <input v-model="rescheduleDate" type="date" class="w-full rounded border px-3 py-2" @change="loadReplacementSlots()" />
+      <AppDateInput v-model="rescheduleDate" />
       <div v-if="replacementSlots?.length" class="space-y-2">
         <button
           v-for="slot in replacementSlots"
@@ -90,7 +96,7 @@ async function rescheduleBooking() {
           :class="rescheduleSlotId === slot.id ? 'border-brand-primary text-brand-primary' : ''"
           @click="rescheduleSlotId = slot.id"
         >
-          {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · {{ slot.startTime }}
+          {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
         </button>
       </div>
       <p v-else class="text-sm text-brand-gray-600">{{ $t('booking.noSlots') }}</p>

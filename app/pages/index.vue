@@ -129,7 +129,7 @@ function handleHeroSportIconError() {
     <section class="ios-card overflow-hidden bg-gradient-to-br from-brand-primary-dark via-brand-primary-dark to-brand-primary p-4 text-white shadow-card">
       <div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.2em] text-white/70">{{ t('home.eyebrow') }}</p>
+          <p class="text-xs font-bold tracking-[0.2em] text-white/70" :class="locale === 'en' ? 'uppercase' : ''">{{ t('home.eyebrow') }}</p>
           <h1 class="mt-2 max-w-xs text-2xl font-black leading-tight">
             {{ t('home.welcome', { name: firstName }) }}
           </h1>

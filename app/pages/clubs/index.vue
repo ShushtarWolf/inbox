@@ -4,7 +4,7 @@ const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatDistanceKm } = useFormatters()
 const showMoreFilters = ref(false)
 const showMap = ref(false)
 const locating = ref(false)
@@ -35,7 +35,11 @@ const { data: clubs } = await useFetch('/api/clubs', {
 })
 
 const cityOptions = ['تهران', 'اصفهان', 'شیراز']
-const amenityOptions = ['Parking', 'Cafe', 'Locker room', 'Shower', 'Pro shop', 'Kids area']
+const amenityOptions = ['Parking', 'Cafe', 'Locker room', 'Shower', 'Pro shop', 'Kids area'] as const
+
+function amenityLabel(value: string) {
+  return t(`clubs.amenityOptions.${value}` as 'clubs.amenityOptions.Parking')
+}
 
 const clubsWithCoordinates = computed(() => {
   return (clubs.value || []).filter((club) => typeof club.lat === 'number' && typeof club.lng === 'number')
@@ -124,7 +128,7 @@ async function useNearby() {
       <div class="grid gap-3 lg:grid-cols-4">
         <select v-model="filters.amenity" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
           <option value="">{{ t('clubs.allAmenities') }}</option>
-          <option v-for="option in amenityOptions" :key="option" :value="option">{{ option }}</option>
+          <option v-for="option in amenityOptions" :key="option" :value="option">{{ amenityLabel(option) }}</option>
         </select>
         <select v-model="filters.sort" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
           <option value="rank">{{ t('clubs.sort.rank') }}</option>
@@ -169,7 +173,7 @@ async function useNearby() {
             @click="selectedMapClubSlug = club.slug"
           >
             <p class="font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-            <p class="text-brand-gray-600">{{ club.city }}<span v-if="club.distanceKm != null"> · {{ club.distanceKm }}km</span></p>
+            <p class="text-brand-gray-600">{{ club.city }}<span v-if="club.distanceKm != null"> · {{ formatDistanceKm(club.distanceKm) }}</span></p>
           </button>
         </div>
       </div>

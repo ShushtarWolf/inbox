@@ -4,6 +4,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const { data: coaches } = await useAuthedFetch('/api/coaches')
 const { data: packages, refresh } = await useAuthedFetch('/api/owner/packages')
+useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
 
 const form = reactive({ title: '', capacity: 8, price: 0, discount: 0, coachId: '', comment: '' })

@@ -2,7 +2,12 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
+const { localizedField } = useLocalizedField()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
+const ownerClubVersion = ref(0)
+
+provide('ownerClubVersion', ownerClubVersion)
+
 const nav = computed(() => [
   { to: localePath('/owner'), label: t('owner.calendar'), icon: '📅' },
   { to: localePath('/owner/finance'), label: t('owner.finance'), icon: '💳' },
@@ -23,6 +28,10 @@ watchEffect(() => {
   }
 })
 
+watch(selectedClubId, () => {
+  ownerClubVersion.value += 1
+})
+
 onMounted(() => fetchAuth())
 </script>
 
@@ -32,7 +41,7 @@ onMounted(() => fetchAuth())
       <label class="text-xs font-bold text-brand-gray-600">{{ t('owner.activeClub') }}</label>
       <select v-model="selectedClubId" class="rounded-xl border px-3 py-2 text-sm">
         <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
-          {{ item.club.nameFa }} / {{ item.club.nameEn }}
+          {{ localizedField(item.club, 'nameFa', 'nameEn') }}
         </option>
       </select>
     </div>

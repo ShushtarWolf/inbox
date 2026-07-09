@@ -2,10 +2,12 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
 
 const { t } = useI18n()
+const { formatHours } = useFormatters()
 const selectedSegment = ref('all')
 const { data, refresh } = await useAuthedFetch('/api/owner/contacts', {
   query: computed(() => ({ segment: selectedSegment.value === 'all' ? undefined : selectedSegment.value })),
 })
+useOwnerClubRefresh(refresh)
 const sms = reactive({ message: '', recipient: 'all', campaignName: '', schedule: '' })
 const feedback = ref('')
 
@@ -68,7 +70,7 @@ async function send() {
               <span class="text-xs text-brand-gray-600">{{ campaign.status }}</span>
             </div>
             <p class="text-xs text-brand-gray-600">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
-            <p class="text-xs text-brand-gray-600">{{ campaign.delivered }}/{{ campaign.total }} delivered</p>
+            <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.delivered', { delivered: campaign.delivered, total: campaign.total }) }}</p>
           </div>
         </div>
       </div>
@@ -81,11 +83,11 @@ async function send() {
         <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="mb-2 w-full rounded border p-2 text-sm" />
         <select v-model="sms.recipient" class="mb-2 w-full rounded border p-2 text-sm">
           <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
-          <option value="vip">VIP</option>
+          <option value="vip">{{ t('owner.crmPage.vip') }}</option>
           <option value="inactive">{{ t('owner.crmPage.reactivation') }}</option>
           <option value="atRisk">{{ t('owner.crmPage.noShowRisk') }}</option>
         </select>
-        <input v-model="sms.schedule" type="datetime-local" class="mb-2 w-full rounded border p-2 text-sm" />
+        <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="mb-2 w-full rounded border p-2 text-sm tabular-nums">
         <textarea v-model="sms.message" class="mb-2 w-full rounded border p-2 text-sm" rows="4" />
         <button type="button" class="btn-primary" @click="send">{{ t('common.send') }}</button>
         <p v-if="feedback" class="mt-2 text-sm text-brand-gray-600">{{ feedback }}</p>
@@ -97,7 +99,7 @@ async function send() {
         <div class="space-y-2 text-sm">
           <div v-for="rule in data?.reminders" :key="rule.id" class="rounded-xl border px-3 py-2">
             <p class="font-bold">{{ rule.name }}</p>
-            <p class="text-xs text-brand-gray-600">{{ rule.triggerType }} · {{ rule.offsetHours }}h</p>
+            <p class="text-xs text-brand-gray-600">{{ rule.triggerType }} · {{ formatHours(rule.offsetHours) }}</p>
           </div>
         </div>
       </div>

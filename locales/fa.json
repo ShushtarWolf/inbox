@@ -19,7 +19,13 @@
     "name": "نام",
     "retry": "تلاش دوباره",
     "save": "ذخیره",
-    "send": "ارسال"
+    "send": "ارسال",
+    "whatsapp": "واتساپ",
+    "error": "مشکلی پیش آمد",
+    "hoursShort": "{count} ساعت",
+    "distanceKm": "{count} کیلومتر",
+    "courtsCount": "{count} زمین",
+    "datePickerHint": "انتخابگر میلادی — نمایش به‌صورت {date}"
   },
   "nav": {
     "home": "خانه",
@@ -98,6 +104,14 @@
       "rating": "بیشترین امتیاز",
       "price": "کمترین قیمت",
       "nearby": "نزدیک‌ترین"
+    },
+    "amenityOptions": {
+      "Parking": "پارکینگ",
+      "Cafe": "کافه",
+      "Locker room": "رختکن",
+      "Shower": "دوش",
+      "Pro shop": "فروشگاه",
+      "Kids area": "فضای کودک"
     }
   },
   "coaches": {
@@ -106,7 +120,14 @@
     "specialties": "تخصص‌ها",
     "credentials": "اعتبارنامه‌ها",
     "availability": "زمان‌های در دسترس",
-    "packages": "پکیج‌ها"
+    "packages": "پکیج‌ها",
+    "specialtyOptions": {
+      "Padel basics": "مبانی پدل",
+      "Match tactics": "تاکتیک مسابقه",
+      "Serve": "سرویس",
+      "Women coaching": "مربیگری بانوان",
+      "Backhand": "بک‌هند"
+    }
   },
   "dashboard": {
     "athlete": "پنل ورزشکار",
@@ -178,10 +199,14 @@
     "support": "پشتیبانی",
     "settings": "تنظیمات",
     "legend": "راهنمای رنگ‌ها",
+    "dashboardEyebrow": "داشبورد",
+    "calendarSubtitle": "برنامه‌ریزی و پیگیری سانس‌های آزاد برای {date}",
+    "legendHint": "رنگ سانس‌ها همان سبک نرم تقویم را دنبال می‌کند.",
+    "quickNotes": "نکات سریع",
+    "quickNotesBody": "روی هر سانس بزنید تا رزرو، لغو یا جریان رزرو مرتبط را باز کنید. زمان آزاد خنثی می‌ماند و سانس‌های رزروشده با رنگ‌های ملایم مشخص می‌شوند.",
     "activeClub": "باشگاه فعال",
     "reserve": "رزرو",
     "cancel": "لغو",
-    "shape": "شکل ۱",
     "hour": "ساعت",
     "free": "آزاد",
     "seasonReserve": "رزرو فصلی",
@@ -252,7 +277,9 @@
       "noShowRisk": "ریسک عدم حضور",
       "reminders": "یادآورها",
       "logOnlyNote": "در این MVP این بخش فقط لاگ کمپین را ثبت می‌کند و پیامک واقعی ارسال نمی‌شود.",
-      "remindersInfo": "قوانین یادآوری فقط برای مشاهده نمایش داده می‌شوند و ارسال خودکار در این MVP فعال نیست."
+      "remindersInfo": "قوانین یادآوری فقط برای مشاهده نمایش داده می‌شوند و ارسال خودکار در این MVP فعال نیست.",
+      "delivered": "{delivered} از {total} تحویل‌شده",
+      "vip": "وی‌آی‌پی"
     },
     "funnelTitle": "قیف رزرو",
     "funnel": {
@@ -297,10 +324,10 @@
     "supportPlaceholder": "متن موقت پشتیبانی inbox.local برای نسخه ۱",
     "settingsPlaceholder": "ساعت باشگاه و زمین‌ها - متن موقت تنظیمات",
     "seasonPage": {
-      "title": "رزرو فصلی (شکل ۳)"
+      "title": "رزرو فصلی"
     },
     "packagePage": {
-      "title": "رزرو پکیج (شکل ۴)",
+      "title": "رزرو پکیج",
       "coachPlaceholder": "- مربی -"
     }
   },

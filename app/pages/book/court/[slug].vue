@@ -5,15 +5,17 @@ const localePath = useLocalePath()
 const slug = route.params.slug as string
 const { user, fetch: fetchAuth } = useAuth()
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
+const { today } = useLocalDate()
+const { fetchErrorMessage } = useFetchError()
 
-const date = ref(new Date().toISOString().slice(0, 10))
+const date = ref(today())
 const selectedSlot = ref<string | null>(null)
 const done = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 
-const { data: slots, refresh } = await useFetch('/api/slots/available', {
+const { data: slots, pending, error, refresh } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: date.value })),
 })
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
@@ -31,9 +33,9 @@ async function confirm() {
     feedbackTone.value = 'success'
     feedback.value = t('booking.successCourt')
     refresh()
-  } catch (error: any) {
+  } catch (error: unknown) {
     feedbackTone.value = 'error'
-    feedback.value = error?.data?.statusMessage || t('booking.actionFailed')
+    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
   }
 }
 
@@ -53,9 +55,9 @@ async function joinWaitlist() {
     })
     feedbackTone.value = 'success'
     feedback.value = t('booking.waitlistJoined')
-  } catch (error: any) {
+  } catch (error: unknown) {
     feedbackTone.value = 'error'
-    feedback.value = error?.data?.statusMessage || t('booking.actionFailed')
+    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
   } finally {
     joiningWaitlist.value = false
   }
@@ -67,11 +69,16 @@ onMounted(() => fetchAuth())
 <template>
   <div class="space-y-4">
     <PageHeaderNav :title="t('home.bookCourt')" :home-to="localePath('/')" :back-to="localePath(`/clubs/${slug}`)" />
-    <input v-model="date" type="date" class="w-full rounded-xl border border-black/10 px-3 py-2" />
+    <AppDateInput v-model="date" />
     <div v-if="club" class="ios-card p-4 text-sm">
       <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
-      <p class="mt-1 text-brand-gray-600">{{ club.cancellationWindowHours }}h {{ t('booking.cancellationWindow') }} · {{ club.rescheduleWindowHours }}h {{ t('booking.rescheduleWindow') }}</p>
+      <p class="mt-1 text-brand-gray-600">
+        {{ formatHours(club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }} · {{ formatHours(club.rescheduleWindowHours) }} {{ t('booking.rescheduleWindow') }}
+      </p>
     </div>
+
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 
     <div v-if="feedback" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
       {{ feedback }}
@@ -82,7 +89,7 @@ onMounted(() => fetchAuth())
       <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
     </div>
 
-    <div v-else class="space-y-2">
+    <div v-else-if="!pending && !error" class="space-y-2">
       <div v-if="!slots?.length" class="ios-card space-y-2 p-4 text-center">
         <p class="font-bold">{{ t('booking.noSlots') }}</p>
         <button type="button" class="rounded-xl border px-4 py-3 text-sm font-bold" @click="joinWaitlist">
@@ -98,7 +105,7 @@ onMounted(() => fetchAuth())
         @click="selectedSlot = s.id"
       >
         <p class="font-bold">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm">{{ s.startTime }} – {{ s.endTime }} · {{ formatCurrency(s.price) }}</p>
+        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
       </button>
       <button v-if="slots?.length" type="button" class="btn-primary w-full" :disabled="!selectedSlot" @click="confirm">
         {{ t('booking.confirm') }}

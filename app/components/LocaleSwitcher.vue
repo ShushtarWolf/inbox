@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { locale, locales, setLocale } = useI18n()
+const { locale, locales, setLocale, t } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
 
 const available = computed(() => locales.value as Array<{ code: string }>)
@@ -15,7 +15,7 @@ const available = computed(() => locales.value as Array<{ code: string }>)
       :class="locale === item.code ? 'bg-brand-primary text-white' : 'text-brand-gray-700'"
       @click="setLocale(item.code)"
     >
-      {{ item.code === 'fa' ? 'فا' : 'EN' }}
+      {{ item.code === 'fa' ? t('common.languageFa') : t('common.languageEn') }}
     </NuxtLink>
   </div>
 </template>

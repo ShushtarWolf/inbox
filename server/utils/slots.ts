@@ -1,4 +1,5 @@
 import type { SlotDisplayStatus } from '@prisma/client'
+import { todayDateString } from '#shared/localDate.ts'
 
 export function slotStatusLabel(status: SlotDisplayStatus, locale = 'fa') {
   const fa: Record<SlotDisplayStatus, string> = {
@@ -23,7 +24,7 @@ export function slotStatusLabel(status: SlotDisplayStatus, locale = 'fa') {
 }
 
 export function todayDateStr() {
-  return new Date().toISOString().slice(0, 10)
+  return todayDateString()
 }
 
 export function formatHour(h: number) {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
-const { data } = await useAuthedFetch('/api/owner/staff')
+const { data, refresh } = await useAuthedFetch('/api/owner/staff')
+useOwnerClubRefresh(refresh)
+const { formatTimeRange } = useFormatters()
 const { localizedField } = useLocalizedField()
 </script>
 
@@ -22,7 +24,7 @@ const { localizedField } = useLocalizedField()
         <ul class="space-y-2 text-sm">
           <li v-for="session in data?.upcomingSessions" :key="session.id" class="rounded-xl border p-3">
             <p class="font-bold">{{ localizedField(session.coach, 'nameFa', 'nameEn') }}</p>
-            <p class="text-brand-gray-600">{{ session.date }} · {{ session.startTime }}</p>
+            <p class="text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ session.date }} · {{ formatTimeRange(session.startTime) }}</bdi></p>
           </li>
         </ul>
       </section>

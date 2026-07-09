@@ -2,7 +2,8 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' })
 
 const { t } = useI18n()
-const { data } = await useAuthedFetch('/api/owner/finance')
+const { data, refresh } = await useAuthedFetch('/api/owner/finance')
+useOwnerClubRefresh(refresh)
 const { formatCurrency } = useFormatters()
 
 function statLabel(key: string) {
