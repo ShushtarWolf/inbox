@@ -51,27 +51,7 @@ function bookingLink(path: '/clubs' | '/coaches') {
 }
 
 const mappableClubs = computed(() => {
-  const list = (clubs.value || []).filter((club) => typeof club.lat === 'number' && typeof club.lng === 'number')
-  if (!list.length) return []
-
-  const lats = list.map((club) => club.lat as number)
-  const lngs = list.map((club) => club.lng as number)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const latSpan = maxLat - minLat || 1
-  const lngSpan = maxLng - minLng || 1
-
-  return list.map((club) => {
-    const top = 18 + ((maxLat - (club.lat as number)) / latSpan) * 64
-    const left = 12 + (((club.lng as number) - minLng) / lngSpan) * 76
-    return {
-      ...club,
-      top: `${top}%`,
-      left: `${left}%`,
-    }
-  })
+  return (clubs.value || []).filter((club) => typeof club.lat === 'number' && typeof club.lng === 'number')
 })
 
 watch(mappableClubs, (clubsOnMap) => {
@@ -87,6 +67,23 @@ watch(mappableClubs, (clubsOnMap) => {
 
 const selectedMapClub = computed(() => {
   return mappableClubs.value.find((club) => club.slug === selectedMapClubSlug.value) || mappableClubs.value[0] || null
+})
+
+const selectedMapEmbedUrl = computed(() => {
+  if (!selectedMapClub.value) return null
+
+  const lat = selectedMapClub.value.lat as number
+  const lng = selectedMapClub.value.lng as number
+  const latDelta = 0.018
+  const lngDelta = 0.026
+  const bbox = [
+    (lng - lngDelta).toFixed(6),
+    (lat - latDelta).toFixed(6),
+    (lng + lngDelta).toFixed(6),
+    (lat + latDelta).toFixed(6),
+  ].join('%2C')
+
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lng.toFixed(6)}`
 })
 
 function handleHeroSportIconError() {
@@ -130,6 +127,14 @@ function handleHeroSportIconError() {
           <p class="mt-1 text-xs text-white/75">{{ t('home.findCoachHint') }}</p>
         </NuxtLink>
       </div>
+
+      <NuxtLink
+        :to="bookingLink('/clubs')"
+        class="mt-3 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-black text-brand-primary shadow-card"
+      >
+        <span class="text-base leading-none">⌕</span>
+        <span>{{ t('home.searchWithFilters') }}</span>
+      </NuxtLink>
     </section>
 
     <section class="space-y-3">
@@ -165,52 +170,40 @@ function handleHeroSportIconError() {
       </div>
 
       <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(240px,0.9fr)]">
-        <div class="relative min-h-[320px] overflow-hidden rounded-[28px] border border-black/5 bg-[radial-gradient(circle_at_top,_rgba(196,30,30,0.14),_transparent_35%),linear-gradient(180deg,_#f7f1eb_0%,_#efe6dd_100%)]">
-          <div class="pointer-events-none absolute inset-0 opacity-70">
-            <div class="absolute inset-x-[12%] top-[18%] h-px bg-brand-primary/10" />
-            <div class="absolute inset-x-[8%] top-[42%] h-px bg-brand-primary/10" />
-            <div class="absolute inset-x-[16%] top-[68%] h-px bg-brand-primary/10" />
-            <div class="absolute inset-y-[14%] left-[24%] w-px bg-brand-primary/10" />
-            <div class="absolute inset-y-[18%] left-[54%] w-px bg-brand-primary/10" />
-            <div class="absolute inset-y-[12%] left-[76%] w-px bg-brand-primary/10" />
-            <div class="absolute left-[10%] top-[14%] h-28 w-28 rounded-full bg-brand-primary/6 blur-2xl" />
-            <div class="absolute right-[8%] top-[52%] h-24 w-24 rounded-full bg-brand-gold/15 blur-2xl" />
+        <div class="overflow-hidden rounded-[28px] border border-black/5 bg-brand-cream/40">
+          <div class="relative min-h-[320px]">
+            <iframe
+              v-if="selectedMapEmbedUrl"
+              :src="selectedMapEmbedUrl"
+              class="absolute inset-0 h-full w-full border-0"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              :title="t('home.mapSectionTitle')"
+            />
+            <div v-else class="flex h-[320px] items-center justify-center px-6 text-center text-sm text-brand-gray-600">
+              {{ t('common.empty') }}
+            </div>
+
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
+            <div class="absolute bottom-3 left-3 rounded-full bg-white/92 px-3 py-1 text-[11px] font-bold text-brand-gray-700 shadow-card">
+              {{ activeSportLabel }}
+            </div>
           </div>
 
-          <div class="absolute inset-0">
+          <div v-if="mappableClubs.length" class="flex gap-2 overflow-x-auto border-t border-black/5 bg-white/85 p-3">
             <button
               v-for="club in mappableClubs"
               :key="club.id"
               type="button"
-              class="absolute -translate-x-1/2 -translate-y-1/2 transition-transform"
-              :style="{ top: club.top, left: club.left }"
+              class="shrink-0 rounded-2xl border px-3 py-2 text-start shadow-sm transition"
+              :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary text-white' : 'border-black/5 bg-white text-brand-gray-900'"
               @click="selectedMapClubSlug = club.slug"
             >
-              <div
-                class="rounded-2xl border px-3 py-2 text-start shadow-card backdrop-blur-sm"
-                :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary text-white scale-105' : 'border-black/5 bg-white/92 text-brand-gray-900'"
-              >
-                <div class="flex items-center gap-2">
-                  <span
-                    class="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full"
-                    :class="selectedMapClubSlug === club.slug ? 'bg-white/25' : 'bg-brand-primary/12'"
-                  >
-                    <span
-                      class="h-1.5 w-1.5 rounded-full"
-                      :class="selectedMapClubSlug === club.slug ? 'bg-white' : 'bg-brand-primary'"
-                    />
-                  </span>
-                  <span class="max-w-[9.5rem] truncate text-[11px] font-black">{{ localizedField(club, 'nameFa', 'nameEn') }}</span>
-                </div>
-                <p class="mt-1 text-[11px] font-bold" :class="selectedMapClubSlug === club.slug ? 'text-white/85' : 'text-brand-primary'">
-                  {{ formatCurrency(club.priceFrom) }}
-                </p>
-              </div>
+              <p class="max-w-[11rem] truncate text-[11px] font-black">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <p class="mt-1 text-[11px] font-bold" :class="selectedMapClubSlug === club.slug ? 'text-white/85' : 'text-brand-primary'">
+                {{ formatCurrency(club.priceFrom) }}
+              </p>
             </button>
-          </div>
-
-          <div class="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-brand-gray-700 shadow-card">
-            {{ activeSportLabel }}
           </div>
         </div>
 
