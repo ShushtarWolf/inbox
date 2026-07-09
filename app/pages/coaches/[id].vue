@@ -11,18 +11,22 @@ const { data: coach } = await useFetch(`/api/coaches/${id}`)
 
 <template>
   <div v-if="coach" class="space-y-4">
+    <PageHeaderNav
+      :title="localizedField(coach, 'nameFa', 'nameEn')"
+      :subtitle="localizedField(coach, 'headlineFa', 'headlineEn') || localizedField(coach, 'bioFa', 'bioEn')"
+      :home-to="localePath('/')"
+      :back-to="localePath('/coaches')"
+    />
     <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="mx-auto h-24 w-24 rounded-full object-cover" />
     <div class="text-center">
       <div class="flex items-center justify-center gap-2">
-        <h1 class="font-display text-xl font-black">{{ localizedField(coach, 'nameFa', 'nameEn') }}</h1>
         <span v-if="coach.verifiedAt" class="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold text-brand-primary">{{ t('clubs.verified') }}</span>
       </div>
-      <p class="text-sm text-brand-gray-600">{{ localizedField(coach, 'headlineFa', 'headlineEn') || localizedField(coach, 'bioFa', 'bioEn') }}</p>
       <p class="mt-1 text-xs text-brand-gray-600">⭐ {{ coach.reviewSummary?.average || coach.rating }} · {{ coach.reviewSummary?.count || 0 }} {{ t('clubs.reviews') }}</p>
     </div>
     <p class="text-center text-sm text-brand-gray-600">{{ localizedField(coach, 'bioFa', 'bioEn') }}</p>
     <p class="text-center text-lg font-black text-brand-primary">{{ formatCurrency(coach.sessionPrice) }}</p>
-    <NuxtLink :to="localePath(`/book/coach/${id}`)" class="btn-primary block text-center">{{ t('booking.confirm') }}</NuxtLink>
+    <NuxtLink :to="localePath(`/book/coach/${id}`)" class="btn-primary block text-center">{{ t('home.coachCta') }}</NuxtLink>
 
     <section v-if="coach.specialties?.length" class="ios-card p-4">
       <h2 class="mb-2 font-bold">{{ t('coaches.specialties') }}</h2>

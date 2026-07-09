@@ -10,6 +10,8 @@ const { data } = await useAuthedFetch('/api/coach/clients')
     <div v-for="c in data?.clients" :key="c.id" class="ios-card p-3">
       <p class="font-bold">{{ c.name }}</p>
       <p class="text-sm text-brand-gray-600">{{ c.phone }}</p>
+      <p class="text-xs text-brand-gray-600">{{ $t('coach.nextSession') }}: {{ c.nextSessionDate }} · {{ c.nextSessionTime }}</p>
     </div>
+    <p v-if="!data?.clients?.length" class="text-sm text-brand-gray-600">{{ $t('coach.noClients') }}</p>
   </div>
 </template>

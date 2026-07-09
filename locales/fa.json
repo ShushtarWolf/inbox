@@ -4,6 +4,7 @@
   },
   "common": {
     "add": "افزودن",
+    "back": "بازگشت",
     "close": "بستن",
     "currency": "تومان",
     "date": "تاریخ",
@@ -64,7 +65,7 @@
     "coachSectionBody": "برای تمرین خصوصی و برنامه‌ریزی بهتر",
     "seeAll": "همه",
     "clubCta": "رزرو",
-    "coachCta": "جزئیات",
+    "coachCta": "رزرو مربی",
     "utilityFastTitle": "سریع",
     "utilityFastBody": "رزرو در چند لمس",
     "utilityLocaleTitle": "دو زبانه",
@@ -119,6 +120,10 @@
     "today": "امروز",
     "schedule": "برنامه",
     "clients": "مشتریان",
+    "upcoming": "پیش رو",
+    "upcomingSessions": "جلسه‌های پیش رو",
+    "nextSession": "جلسه بعدی",
+    "noClients": "هنوز مشتری زمان‌بندی‌شده‌ای ندارید",
     "noSessionsToday": "امروز جلسه‌ای ندارید",
     "dayLabel": "روز {day}",
     "bioFa": "بیو فارسی",
@@ -136,8 +141,22 @@
     "cancellationWindow": "مهلت لغو",
     "rescheduleWindow": "مهلت جابه‌جایی",
     "joinWaitlist": "عضویت در لیست انتظار",
+    "waitlistJoined": "شما به لیست انتظار اضافه شدید.",
     "noSlots": "برای این تاریخ سانس آزادی وجود ندارد.",
-    "reschedule": "جابه‌جایی"
+    "reschedule": "جابه‌جایی",
+    "actionFailed": "انجام این عملیات ممکن نشد.",
+    "emptyState": "هنوز رزروی ندارید.",
+    "reservationId": "شناسه رزرو",
+    "status": {
+      "CONFIRMED": "تایید شده",
+      "CANCELLED": "لغو شده",
+      "PENDING": "در انتظار"
+    },
+    "paymentStatus": {
+      "PAID": "پرداخت‌شده",
+      "PAY_AT_CLUB": "پرداخت در باشگاه",
+      "NOT_PAID": "پرداخت‌نشده"
+    }
   },
   "auth": {
     "login": "ورود",
@@ -199,9 +218,14 @@
       "noShowRate": "نرخ عدم حضور"
     },
     "financeTable": {
+      "reservation": "رزرو",
       "guest": "مهمان",
       "payment": "پرداخت",
-      "status": "وضعیت"
+      "status": "وضعیت",
+      "kind": {
+        "court": "رزرو زمین",
+        "coach": "جلسه مربی"
+      }
     },
     "equipmentsPage": {
       "club": "تجهیزات باشگاه",
@@ -226,7 +250,9 @@
       "campaignName": "نام کمپین",
       "reactivation": "بازفعال‌سازی",
       "noShowRisk": "ریسک عدم حضور",
-      "reminders": "یادآورها"
+      "reminders": "یادآورها",
+      "logOnlyNote": "در این MVP این بخش فقط لاگ کمپین را ثبت می‌کند و پیامک واقعی ارسال نمی‌شود.",
+      "remindersInfo": "قوانین یادآوری فقط برای مشاهده نمایش داده می‌شوند و ارسال خودکار در این MVP فعال نیست."
     },
     "funnelTitle": "قیف رزرو",
     "funnel": {
@@ -241,6 +267,32 @@
       "churnRisk": "در معرض ریزش",
       "waitlist": "لیست انتظار",
       "cancellations": "لغوها"
+    },
+    "settingsPage": {
+      "clubProfile": "مشخصات باشگاه",
+      "role": "نقش عضویت",
+      "slug": "اسلاگ باشگاه",
+      "location": "موقعیت",
+      "address": "آدرس",
+      "operations": "عملیات",
+      "hours": "ساعت باشگاه",
+      "cancellation": "مهلت لغو",
+      "reschedule": "مهلت جابه‌جایی",
+      "waitlist": "لیست انتظار",
+      "waitlistEnabled": "فعال",
+      "waitlistDisabled": "غیرفعال",
+      "inventory": "موجودی فعال",
+      "courts": "زمین",
+      "coaches": "مربی",
+      "contacts": "راه‌های تماس باشگاه"
+    },
+    "supportPage": {
+      "operations": "راهنمای عملیات",
+      "calendarHelp": "برای ایجاد، ویرایش و لغو رزرو زمین از تقویم مالک استفاده کنید. سانس‌های بسته از اقدام مستقیم رزرو خارج هستند.",
+      "paymentHelp": "بخش مالی فقط رزروها و وضعیت‌های پرداخت ذخیره‌شده را نشان می‌دهد. وضعیت پرداخت تا وقتی رزرو از تقویم به‌روزرسانی نشود صرفاً اطلاع‌رسانی است.",
+      "crmHelp": "کمپین‌ها و یادآورها در CRM دیده می‌شوند، اما در این MVP ارسال پیامک فقط به‌صورت ثبت لاگ انجام می‌شود.",
+      "contactTitle": "راه‌های تماس پشتیبانی باشگاه",
+      "contactNote": "این اطلاعات از باشگاه فعال خوانده می‌شود. قبل از اضافه کردن ابزارهای پشتیبانی پیشرفته‌تر، اطلاعات تماس را در لایه داده کامل کنید."
     },
     "supportPlaceholder": "متن موقت پشتیبانی inbox.local برای نسخه ۱",
     "settingsPlaceholder": "ساعت باشگاه و زمین‌ها - متن موقت تنظیمات",

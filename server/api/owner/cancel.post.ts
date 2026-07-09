@@ -16,12 +16,19 @@ export default defineEventHandler(async (event) => {
     if (slot.booking) {
       await tx.booking.update({
         where: { id: slot.booking.id },
-        data: { status: 'CANCELLED', comments: body.reason },
+        data: { status: 'CANCELLED', comments: body.reason, cancelledAt: new Date() },
+      })
+      await tx.reservationEvent.create({
+        data: {
+          bookingId: slot.booking.id,
+          type: 'CANCELLED',
+          metadataJson: JSON.stringify({ reason: body.reason || 'owner-cancel' }),
+        },
       })
     }
     await tx.slot.update({
       where: { id: slot.id },
-      data: { displayStatus: 'CANCELLED' },
+      data: { displayStatus: 'FREE' },
     })
   })
   return { ok: true }

@@ -8,6 +8,14 @@ const { formatCurrency } = useFormatters()
 function statLabel(key: string) {
   return t(`owner.financeCards.${key}`)
 }
+
+function bookingStatusLabel(status: string) {
+  return t(`booking.status.${status}`)
+}
+
+function paymentStatusLabel(status: string) {
+  return t(`booking.paymentStatus.${status}`)
+}
 </script>
 
 <template>
@@ -59,18 +67,31 @@ function statLabel(key: string) {
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-brand-cream">
+            <th class="p-2">{{ t('owner.financeTable.reservation') }}</th>
             <th class="p-2">{{ t('owner.financeTable.guest') }}</th>
             <th class="p-2">{{ t('owner.financeTable.payment') }}</th>
-            <th class="p-2">{{ t('owner.financeCards.revenue') }}</th>
             <th class="p-2">{{ t('owner.financeTable.status') }}</th>
+            <th class="p-2">{{ t('owner.financeCards.revenue') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="tx in data?.transactions" :key="tx.id" class="border-t">
-            <td class="p-2">{{ tx.guestName }}<span class="ms-1 text-xs text-brand-gray-600">({{ tx.kind }})</span></td>
-            <td class="p-2">{{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }}</td>
+            <td class="p-2">
+              <p class="font-bold">{{ t(`owner.financeTable.kind.${tx.kind}`) }}</p>
+              <p class="text-xs text-brand-gray-600">{{ tx.reservationLabel }}</p>
+              <p v-if="tx.coachName" class="text-xs text-brand-gray-600">{{ tx.coachName }}</p>
+            </td>
+            <td class="p-2">
+              <p class="font-bold">{{ tx.guestName }}</p>
+              <p v-if="tx.guestMobile" class="text-xs text-brand-gray-600">{{ tx.guestMobile }}</p>
+              <p class="text-xs text-brand-gray-600">{{ tx.id }}</p>
+            </td>
+            <td class="p-2">
+              <p>{{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }}</p>
+              <p class="text-xs text-brand-gray-600">{{ paymentStatusLabel(tx.paymentStatus) }}</p>
+            </td>
+            <td class="p-2">{{ bookingStatusLabel(tx.bookingStatus) }}</td>
             <td class="p-2">{{ formatCurrency(tx.amount) }}</td>
-            <td class="p-2">{{ tx.paymentStatus }}</td>
           </tr>
         </tbody>
       </table>

@@ -8,5 +8,11 @@ export default defineEventHandler(async (event) => {
     include: { athlete: { select: { name: true, phone: true } } },
     orderBy: { startTime: 'asc' },
   })
-  return { coach, sessions }
+  const upcomingSessions = await prisma.coachSession.findMany({
+    where: { coachId: coach.id, date: { gte: today }, status: { not: 'CANCELLED' } },
+    include: { athlete: { select: { name: true, phone: true } } },
+    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    take: 5,
+  })
+  return { coach, sessions, upcomingSessions }
 })

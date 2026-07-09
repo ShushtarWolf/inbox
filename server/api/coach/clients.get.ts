@@ -7,6 +7,10 @@ export default defineEventHandler(async (event) => {
     include: { athlete: { select: { id: true, name: true, phone: true } } },
     orderBy: { date: 'asc' },
   })
-  const clients = [...new Map(sessions.map((s) => [s.athlete.id, s.athlete])).values()]
+  const clients = [...new Map(sessions.map((s) => [s.athlete.id, {
+    ...s.athlete,
+    nextSessionDate: s.date,
+    nextSessionTime: s.startTime,
+  }])).values()]
   return { sessions, clients }
 })

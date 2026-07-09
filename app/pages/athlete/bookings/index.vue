@@ -8,8 +8,6 @@ const { localizedField } = useLocalizedField()
 const rescheduleTarget = ref<any>(null)
 const rescheduleDate = ref(new Date().toISOString().slice(0, 10))
 const rescheduleSlotId = ref('')
-const coachRescheduleDate = ref(new Date().toISOString().slice(0, 10))
-const coachRescheduleTime = ref('')
 
 const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('/api/slots/available', {
   query: computed(() => ({
@@ -30,6 +28,11 @@ async function cancel(id: string) {
   refresh()
 }
 
+async function cancelCoach(sessionId: string) {
+  await $fetch(`/api/coach-sessions/${sessionId}/cancel`, { method: 'PATCH' })
+  refresh()
+}
+
 async function rescheduleCourt() {
   if (!rescheduleTarget.value || !rescheduleSlotId.value) return
   await $fetch(`/api/bookings/${rescheduleTarget.value.id}/reschedule`, {
@@ -41,30 +44,29 @@ async function rescheduleCourt() {
   refresh()
 }
 
-async function rescheduleCoach(sessionId: string) {
-  if (!coachRescheduleTime.value) return
-  await $fetch(`/api/coach-sessions/${sessionId}/reschedule`, {
-    method: 'PATCH',
-    body: {
-      date: coachRescheduleDate.value,
-      startTime: coachRescheduleTime.value,
-    },
-  })
-  coachRescheduleTime.value = ''
-  refresh()
+function bookingStatusLabel(status: string) {
+  return t(`booking.status.${status}`)
+}
+
+function paymentStatusLabel(status: string) {
+  return t(`booking.paymentStatus.${status}`)
 }
 </script>
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('nav.bookings') }}</h1>
+    <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
 
     <section v-if="data?.courtBookings?.length" class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
       <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm">{{ b.slot.date }} {{ b.slot.startTime }}</p>
-        <p class="text-xs text-brand-gray-600">{{ b.slot.court.club.cancellationWindowHours }}h {{ t('booking.cancellationWindow') }}</p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs">
+          <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(b.status) }}</span>
+          <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
+        </div>
+        <p class="mt-2 text-xs text-brand-gray-600">{{ b.slot.court.club.cancellationWindowHours }}h {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
           <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="openReschedule(b)">
@@ -82,13 +84,23 @@ async function rescheduleCoach(sessionId: string) {
       <div v-for="s in data.coachSessions" :key="s.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm">{{ s.date }} {{ s.startTime }}</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <input v-model="coachRescheduleDate" type="date" class="rounded border px-2 py-1 text-xs" />
-          <input v-model="coachRescheduleTime" type="time" class="rounded border px-2 py-1 text-xs" />
-          <button type="button" class="text-xs font-bold text-brand-primary" @click="rescheduleCoach(s.id)">{{ t('booking.reschedule') }}</button>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs">
+          <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(s.status) }}</span>
+          <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
+        </div>
+        <p class="mt-2 text-xs text-brand-gray-600">{{ s.coach.club?.cancellationWindowHours || 24 }}h {{ t('booking.cancellationWindow') }}</p>
+        <div class="mt-2 flex gap-2">
+          <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
+          <button v-if="s.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelCoach(s.id)">
+            {{ t('booking.cancel') }}
+          </button>
         </div>
       </div>
     </section>
+
+    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
+      {{ t('booking.emptyState') }}
+    </div>
 
     <div v-if="rescheduleTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="rescheduleTarget = null">
       <div class="w-full max-w-md rounded-2xl bg-white p-4">

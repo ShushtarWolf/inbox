@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
         ...(from || to ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       },
     },
-    include: { slot: { include: { court: true } }, payment: true },
+    include: { slot: { include: { court: true } }, payment: true, user: { select: { name: true, phone: true } } },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       coach: { clubId: club.id },
       ...(from || to ? { date: { gte: from, lte: to } } : {}),
     },
-    include: { payment: true, coach: true },
+    include: { payment: true, coach: true, athlete: { select: { name: true, phone: true } } },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
   const ltv = contacts.length ? Math.round(contacts.reduce((sum, contact) => sum + contact.lifetimeValue, 0) / contacts.length) : 0
   const funnel = {
-    views: totalReservationCount + waitlistEntries.length + 12,
+    views: totalReservationCount + waitlistEntries.length,
     initiated: totalReservationCount + waitlistEntries.length,
     confirmed: bookings.filter((booking) => booking.status === 'CONFIRMED').length + coachSessions.filter((session) => session.status === 'CONFIRMED').length,
     paid: paidBookings + paidSessions,
@@ -60,21 +60,26 @@ export default defineEventHandler(async (event) => {
     transactions: [
       ...bookings.map((booking) => ({
         id: booking.id,
-        guestName: booking.guestName,
+        guestName: booking.guestName || booking.user?.name || 'Guest',
+        guestMobile: booking.guestMobile || booking.user?.phone || null,
         paymentMethod: booking.payment?.method || booking.paymentMethod,
         paymentStatus: booking.payment?.status || booking.paymentStatus,
         amount: booking.payment?.amount || booking.slot.price,
-        status: booking.status,
+        bookingStatus: booking.status,
         kind: 'court',
+        reservationLabel: `${booking.slot.date} · ${booking.slot.startTime}`,
       })),
       ...coachSessions.map((session) => ({
         id: session.id,
-        guestName: session.coach.nameFa,
-        paymentMethod: session.payment?.method || 'CASH',
+        guestName: session.athlete.name,
+        guestMobile: session.athlete.phone || null,
+        paymentMethod: session.payment?.method || null,
         paymentStatus: session.payment?.status || session.paymentStatus,
         amount: session.payment?.amount || session.price,
-        status: session.status,
+        bookingStatus: session.status,
         kind: 'coach',
+        reservationLabel: `${session.date} · ${session.startTime}`,
+        coachName: session.coach.nameFa,
       })),
     ].slice(0, 50),
     segments: {

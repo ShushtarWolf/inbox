@@ -9,6 +9,8 @@ const date = ref(new Date().toISOString().slice(0, 10))
 const startTime = ref('')
 const done = ref(false)
 const joiningWaitlist = ref(false)
+const feedback = ref('')
+const feedbackTone = ref<'success' | 'error'>('success')
 
 const { data: coach } = await useFetch(`/api/coaches/${id}`)
 const { data: availability } = await useFetch(`/api/coaches/${id}/availability`, {
@@ -17,28 +19,43 @@ const { data: availability } = await useFetch(`/api/coaches/${id}/availability`,
 
 async function confirm() {
   if (!user.value) return navigateTo(localePath('/login'))
-  await $fetch('/api/bookings/coach', {
-    method: 'POST',
-    body: { coachId: id, date: date.value, startTime: startTime.value },
-  })
-  done.value = true
+  try {
+    await $fetch('/api/bookings/coach', {
+      method: 'POST',
+      body: { coachId: id, date: date.value, startTime: startTime.value },
+    })
+    done.value = true
+    feedbackTone.value = 'success'
+    feedback.value = t('booking.successCoach')
+  } catch (error: any) {
+    feedbackTone.value = 'error'
+    feedback.value = error?.data?.statusMessage || t('booking.actionFailed')
+  }
 }
 
 async function joinWaitlist() {
   joiningWaitlist.value = true
-  await $fetch('/api/waitlist', {
-    method: 'POST',
-    body: {
-      clubSlug: coach.value?.club?.slug,
-      coachId: id,
-      date: date.value,
-      startTime: '18:00',
-      endTime: '19:00',
-      guestName: user.value?.name,
-      guestMobile: user.value?.phone,
-    },
-  })
-  joiningWaitlist.value = false
+  try {
+    await $fetch('/api/waitlist', {
+      method: 'POST',
+      body: {
+        clubSlug: coach.value?.club?.slug,
+        coachId: id,
+        date: date.value,
+        startTime: '18:00',
+        endTime: '19:00',
+        guestName: user.value?.name,
+        guestMobile: user.value?.phone,
+      },
+    })
+    feedbackTone.value = 'success'
+    feedback.value = t('booking.waitlistJoined')
+  } catch (error: any) {
+    feedbackTone.value = 'error'
+    feedback.value = error?.data?.statusMessage || t('booking.actionFailed')
+  } finally {
+    joiningWaitlist.value = false
+  }
 }
 
 watch(availability, () => {
@@ -50,11 +67,14 @@ onMounted(() => fetchAuth())
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ t('home.findCoach') }}</h1>
+    <PageHeaderNav :title="t('home.findCoach')" :home-to="localePath('/')" :back-to="localePath(`/coaches/${id}`)" />
     <input v-model="date" type="date" class="w-full rounded-xl border px-3 py-2" />
     <div v-if="coach" class="ios-card p-4 text-sm">
       <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
       <p class="mt-1 text-brand-gray-600">{{ coach.club?.rescheduleWindowHours || 24 }}h {{ t('booking.rescheduleWindow') }}</p>
+    </div>
+    <div v-if="feedback" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
+      {{ feedback }}
     </div>
     <select v-model="startTime" class="w-full rounded-xl border px-3 py-2">
       <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ slot.startTime }} - {{ slot.endTime }}</option>

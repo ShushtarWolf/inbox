@@ -7,16 +7,17 @@ const { data, refresh } = await useAuthedFetch('/api/owner/contacts', {
   query: computed(() => ({ segment: selectedSegment.value === 'all' ? undefined : selectedSegment.value })),
 })
 const sms = reactive({ message: '', recipient: 'all', campaignName: '', schedule: '' })
+const feedback = ref('')
 
 async function send() {
-  await $fetch('/api/owner/sms', {
+  const response = await $fetch('/api/owner/sms', {
     method: 'POST',
     body: {
       ...sms,
       segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
     },
   })
-  alert(t('owner.crmPage.smsLogged'))
+  feedback.value = response.note || t('owner.crmPage.smsLogged')
   refresh()
 }
 </script>
@@ -38,22 +39,24 @@ async function send() {
       </div>
 
       <div class="rounded-xl border bg-white p-4">
-      <h1 class="mb-3 font-bold">{{ $t('owner.crm') }}</h1>
-      <table class="w-full text-sm">
-        <thead><tr class="text-brand-gray-600"><th class="p-2">{{ t('owner.crmPage.name') }}</th><th class="p-2">{{ t('owner.crmPage.mobile') }}</th></tr></thead>
-        <tbody>
-          <tr v-for="c in data?.contacts" :key="c.id" class="border-t">
-            <td class="p-2">
-              <p class="font-bold">{{ c.name }}</p>
-              <p class="text-xs text-brand-gray-600">{{ c.lastVisit }} · {{ c.totalVisits }}x</p>
-            </td>
-            <td class="p-2">
-              <p>{{ c.mobile }}</p>
-              <p class="text-xs text-brand-gray-600">{{ c.lifetimeValue }}</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <h1 class="mb-3 font-bold">{{ $t('owner.crm') }}</h1>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[30rem] text-sm">
+            <thead><tr class="text-brand-gray-600"><th class="p-2">{{ t('owner.crmPage.name') }}</th><th class="p-2">{{ t('owner.crmPage.mobile') }}</th></tr></thead>
+            <tbody>
+              <tr v-for="c in data?.contacts" :key="c.id" class="border-t">
+                <td class="p-2">
+                  <p class="font-bold">{{ c.name }}</p>
+                  <p class="text-xs text-brand-gray-600">{{ c.lastVisit }} · {{ c.totalVisits }}x</p>
+                </td>
+                <td class="p-2">
+                  <p>{{ c.mobile }}</p>
+                  <p class="text-xs text-brand-gray-600">{{ c.lifetimeValue }}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="rounded-xl border bg-white p-4">
@@ -74,6 +77,7 @@ async function send() {
     <div class="space-y-4">
       <div class="rounded-xl border bg-white p-4">
         <h2 class="mb-2 font-bold">{{ t('owner.crmPage.pushSms') }}</h2>
+        <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.logOnlyNote') }}</p>
         <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="mb-2 w-full rounded border p-2 text-sm" />
         <select v-model="sms.recipient" class="mb-2 w-full rounded border p-2 text-sm">
           <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
@@ -84,10 +88,12 @@ async function send() {
         <input v-model="sms.schedule" type="datetime-local" class="mb-2 w-full rounded border p-2 text-sm" />
         <textarea v-model="sms.message" class="mb-2 w-full rounded border p-2 text-sm" rows="4" />
         <button type="button" class="btn-primary" @click="send">{{ t('common.send') }}</button>
+        <p v-if="feedback" class="mt-2 text-sm text-brand-gray-600">{{ feedback }}</p>
       </div>
 
       <div class="rounded-xl border bg-white p-4">
         <h2 class="mb-2 font-bold">{{ t('owner.crmPage.reminders') }}</h2>
+        <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.remindersInfo') }}</p>
         <div class="space-y-2 text-sm">
           <div v-for="rule in data?.reminders" :key="rule.id" class="rounded-xl border px-3 py-2">
             <p class="font-bold">{{ rule.name }}</p>

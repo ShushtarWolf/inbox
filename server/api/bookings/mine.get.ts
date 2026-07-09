@@ -5,12 +5,13 @@ export default defineEventHandler(async (event) => {
     include: {
       slot: { include: { court: { include: { club: true, sport: true } } } },
       coach: true,
+      payment: true,
     },
     orderBy: { createdAt: 'desc' },
   })
   const coachSessions = await prisma.coachSession.findMany({
     where: { athleteId: user.id },
-    include: { coach: { include: { sport: true } } },
+    include: { coach: { include: { sport: true, club: true } }, payment: true },
     orderBy: { createdAt: 'desc' },
   })
   return { courtBookings, coachSessions }

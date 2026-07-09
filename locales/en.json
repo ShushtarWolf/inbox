@@ -4,6 +4,7 @@
   },
   "common": {
     "add": "Add",
+    "back": "Back",
     "close": "Close",
     "currency": "IRR",
     "date": "Date",
@@ -64,7 +65,7 @@
     "coachSectionBody": "For private training and better weekly planning",
     "seeAll": "See all",
     "clubCta": "Book",
-    "coachCta": "Details",
+    "coachCta": "Book coach",
     "utilityFastTitle": "Fast",
     "utilityFastBody": "Book in a few taps",
     "utilityLocaleTitle": "Bilingual",
@@ -119,6 +120,10 @@
     "today": "Today",
     "schedule": "Schedule",
     "clients": "Clients",
+    "upcoming": "Upcoming",
+    "upcomingSessions": "Upcoming sessions",
+    "nextSession": "Next session",
+    "noClients": "No clients scheduled yet",
     "noSessionsToday": "No sessions today",
     "dayLabel": "Day {day}",
     "bioFa": "Biography (FA)",
@@ -136,8 +141,22 @@
     "cancellationWindow": "cancellation window",
     "rescheduleWindow": "reschedule window",
     "joinWaitlist": "Join waitlist",
+    "waitlistJoined": "You have been added to the waitlist.",
     "noSlots": "No slots are available for this date.",
-    "reschedule": "Reschedule"
+    "reschedule": "Reschedule",
+    "actionFailed": "This action could not be completed.",
+    "emptyState": "You do not have any bookings yet.",
+    "reservationId": "Reservation ID",
+    "status": {
+      "CONFIRMED": "Confirmed",
+      "CANCELLED": "Cancelled",
+      "PENDING": "Pending"
+    },
+    "paymentStatus": {
+      "PAID": "Paid",
+      "PAY_AT_CLUB": "Pay at club",
+      "NOT_PAID": "Not paid"
+    }
   },
   "auth": {
     "login": "Login",
@@ -199,9 +218,14 @@
       "noShowRate": "No-show rate"
     },
     "financeTable": {
+      "reservation": "Reservation",
       "guest": "Guest",
       "payment": "Payment",
-      "status": "Status"
+      "status": "Status",
+      "kind": {
+        "court": "Court booking",
+        "coach": "Coach session"
+      }
     },
     "equipmentsPage": {
       "club": "Club equipment",
@@ -226,7 +250,9 @@
       "campaignName": "Campaign name",
       "reactivation": "Reactivation",
       "noShowRisk": "No-show risk",
-      "reminders": "Reminders"
+      "reminders": "Reminders",
+      "logOnlyNote": "This flow only records a campaign log in MVP. It does not send a real SMS.",
+      "remindersInfo": "Reminder rules are shown here for visibility only. Automated delivery is not active in this MVP."
     },
     "funnelTitle": "Booking funnel",
     "funnel": {
@@ -241,6 +267,32 @@
       "churnRisk": "Churn risk",
       "waitlist": "Waitlist",
       "cancellations": "Cancellations"
+    },
+    "settingsPage": {
+      "clubProfile": "Club profile",
+      "role": "Membership role",
+      "slug": "Club slug",
+      "location": "Location",
+      "address": "Address",
+      "operations": "Operations",
+      "hours": "Club hours",
+      "cancellation": "Cancellation window",
+      "reschedule": "Reschedule window",
+      "waitlist": "Waitlist",
+      "waitlistEnabled": "Enabled",
+      "waitlistDisabled": "Disabled",
+      "inventory": "Active inventory",
+      "courts": "courts",
+      "coaches": "coaches",
+      "contacts": "Club contacts"
+    },
+    "supportPage": {
+      "operations": "Operations help",
+      "calendarHelp": "Use the owner calendar to create, update, and cancel court reservations. Closed slots are hidden from direct reserve actions.",
+      "paymentHelp": "Finance shows saved reservation and payment records. Payment state is informational unless a reservation is updated from the calendar.",
+      "crmHelp": "CRM campaigns and reminders are visible in the dashboard, but outbound SMS is still log-only in this MVP.",
+      "contactTitle": "Club support contacts",
+      "contactNote": "These contacts come from the active club profile. Add or update them in the data layer before exposing more advanced support tooling."
     },
     "supportPlaceholder": "Support inbox.local placeholder for v1",
     "settingsPlaceholder": "Club hours and courts - settings placeholder",
