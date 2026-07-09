@@ -6,6 +6,8 @@ const { data, refresh } = await useAuthedFetch('/api/owner/finance')
 useOwnerClubRefresh(refresh)
 const { formatCurrency } = useFormatters()
 
+const maxWeeklyRevenue = computed(() => Math.max(...(data.value?.weeklyRevenue || [1]), 1))
+
 function statLabel(key: string) {
   return t(`owner.financeCards.${key}`)
 }
@@ -28,6 +30,42 @@ function paymentStatusLabel(status: string) {
           {{ key === 'revenue' || key === 'ltv' ? formatCurrency(Number(val)) : `${val}${['paidRate', 'utilization', 'noShowRate'].includes(String(key)) ? '%' : ''}` }}
         </p>
         <p class="text-xs text-brand-gray-600">{{ statLabel(String(key)) }}</p>
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-3">
+      <div class="rounded-xl border bg-white p-4 lg:col-span-2">
+        <h2 class="mb-3 font-bold">{{ t('owner.financePage.weeklyChart') }}</h2>
+        <div class="flex h-40 items-end gap-2">
+          <div
+            v-for="(amount, index) in data?.weeklyRevenue || []"
+            :key="data?.weekLabels?.[index] || index"
+            class="flex flex-1 flex-col items-center gap-2"
+          >
+            <div
+              class="w-full rounded-t-lg bg-brand-primary/80"
+              :style="{ height: `${Math.max(12, (amount / maxWeeklyRevenue) * 100)}%` }"
+            />
+            <span class="text-[10px] text-brand-gray-600">{{ data?.weekLabels?.[index]?.slice(5) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-xl border bg-white p-4">
+        <h2 class="mb-3 font-bold">{{ t('owner.financePage.paymentBreakdown') }}</h2>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center justify-between">
+            <span>{{ t('owner.paymentMethods.IPG') }}</span>
+            <span class="font-bold">{{ data?.paymentBreakdown?.IPG || 0 }}%</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>{{ t('owner.paymentMethods.CASH') }}</span>
+            <span class="font-bold">{{ data?.paymentBreakdown?.CASH || 0 }}%</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>{{ t('owner.paymentMethods.NOT_PAID') }}</span>
+            <span class="font-bold">{{ data?.paymentBreakdown?.NOT_PAID || 0 }}%</span>
+          </div>
+        </div>
       </div>
     </div>
 

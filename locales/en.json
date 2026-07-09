@@ -212,6 +212,26 @@
     "seasonReserve": "Season reserve",
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
+    "slotActions": "Slot actions",
+    "cancelReasonPlaceholder": "Select a cancellation reason",
+    "cancelReasons": {
+      "CUSTOMER_REQUEST": "Customer request",
+      "NO_PAYMENT": "No payment",
+      "SCHEDULE_CONFLICT": "Schedule conflict"
+    },
+    "weekdays": {
+      "Sun": "Sun",
+      "Mon": "Mon",
+      "Tue": "Tue",
+      "Wed": "Wed",
+      "Thu": "Thu",
+      "Fri": "Fri",
+      "Sat": "Sat"
+    },
+    "financePage": {
+      "weeklyChart": "Weekly revenue",
+      "paymentBreakdown": "Payment methods"
+    },
     "guestName": "Guest name",
     "guestFamily": "Guest family",
     "guestMobile": "Guest mobile",
@@ -260,9 +280,15 @@
     },
     "packagesPage": {
       "title": "Title",
+      "createTitle": "Create new package",
       "coachPlaceholder": "No coach or choose coach",
       "price": "Price",
       "discount": "Discount %",
+      "capacity": "Capacity",
+      "startDate": "Start date",
+      "finishDate": "Finish date",
+      "weekdays": "Weekdays",
+      "equipmentPlaceholder": "Equipment (optional)",
       "saveStub": "Save package"
     },
     "crmPage": {

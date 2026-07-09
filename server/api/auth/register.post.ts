@@ -49,6 +49,16 @@ export default defineEventHandler(async (event) => {
           data: { nameFa: `زمین ${i}`, nameEn: `Court ${i}`, clubId: club.id, sportId: sport.id },
         })
       }
+      await tx.staffMembership.create({
+        data: {
+          userId: created.id,
+          clubId: club.id,
+          role: 'OWNER',
+          permissionsJson: JSON.stringify(['calendar', 'finance', 'crm', 'team']),
+          active: true,
+          isPrimary: true,
+        },
+      })
     }
     return created
   })

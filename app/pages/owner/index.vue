@@ -23,6 +23,7 @@ interface OwnerCalendarSlot {
 }
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
 const { today } = useLocalDate()
@@ -31,6 +32,8 @@ const date = ref(today())
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const showMenu = ref(false)
 const showReserve = ref(false)
+const showCancel = ref(false)
+const cancelReason = ref('')
 
 const form = reactive({
   guestName: '',
@@ -39,7 +42,10 @@ const form = reactive({
   paymentMethod: 'CASH',
   paymentStatus: 'PAY_AT_CLUB',
   comments: '',
+  equipmentIds: [] as string[],
 })
+
+const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
 
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/calendar', {
   query: computed(() => ({ date: date.value })),
@@ -107,21 +113,66 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   selectedSlot.value = slot
   showMenu.value = true
   showReserve.value = false
+  showCancel.value = false
+  cancelReason.value = ''
   form.guestName = slot.booking?.guestName || ''
   form.guestFamily = slot.booking?.guestFamily || ''
   form.guestMobile = slot.booking?.guestMobile || ''
   form.paymentMethod = slot.booking?.payment?.method || slot.booking?.paymentMethod || 'CASH'
   form.paymentStatus = slot.booking?.payment?.status || slot.booking?.paymentStatus || 'PAY_AT_CLUB'
   form.comments = slot.booking?.comments || ''
+  form.equipmentIds = []
 }
 
 function openReserveForm() {
   showReserve.value = true
+  showCancel.value = false
+}
+
+function openCancelForm() {
+  showCancel.value = true
+  showReserve.value = false
+}
+
+function openCommentsForm() {
+  showReserve.value = true
+  showCancel.value = false
 }
 
 function closeMenu() {
   showMenu.value = false
   showReserve.value = false
+  showCancel.value = false
+  cancelReason.value = ''
+}
+
+function slotQuery() {
+  if (!selectedSlot.value) return {}
+  return {
+    slotId: selectedSlot.value.id,
+    guestName: form.guestName || undefined,
+    guestFamily: form.guestFamily || undefined,
+    guestMobile: form.guestMobile || undefined,
+    comments: form.comments || undefined,
+  }
+}
+
+function goSeasonReserve() {
+  closeMenu()
+  navigateTo(localePath({ path: '/owner/reserve/season', query: slotQuery() }))
+}
+
+function goPackageReserve() {
+  closeMenu()
+  navigateTo(localePath({ path: '/owner/reserve/package', query: slotQuery() }))
+}
+
+function reserveComments() {
+  const equipmentNames = (equipments.value || [])
+    .filter((item: { id: string }) => form.equipmentIds.includes(item.id))
+    .map((item: { nameFa: string; nameEn: string }) => localizedField(item, 'nameFa', 'nameEn'))
+  const equipmentNote = equipmentNames.length ? `${t('owner.equipments')}: ${equipmentNames.join(', ')}` : ''
+  return [form.comments, equipmentNote].filter(Boolean).join('\n')
 }
 
 function slotActionLabel() {
@@ -156,18 +207,36 @@ async function doReserve() {
   if (!selectedSlot.value) return
   await $fetch('/api/owner/reserve', {
     method: 'POST',
-    body: { slotId: selectedSlot.value.id, ...form, displayStatus: 'RESERVED' },
+    body: {
+      slotId: selectedSlot.value.id,
+      guestName: form.guestName,
+      guestFamily: form.guestFamily,
+      guestMobile: form.guestMobile,
+      paymentMethod: form.paymentMethod,
+      paymentStatus: form.paymentStatus,
+      comments: reserveComments(),
+      displayStatus: 'RESERVED',
+    },
   })
   closeMenu()
   refresh()
 }
 
 async function doCancel() {
-  if (!selectedSlot.value) return
-  await $fetch('/api/owner/cancel', { method: 'POST', body: { slotId: selectedSlot.value.id } })
+  if (!selectedSlot.value || !cancelReason.value) return
+  await $fetch('/api/owner/cancel', {
+    method: 'POST',
+    body: { slotId: selectedSlot.value.id, reason: cancelReason.value },
+  })
   closeMenu()
   refresh()
 }
+
+const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
+
+const rentalEquipments = computed(() =>
+  (equipments.value || []).filter((item: { category: string }) => item.category === 'CLUB' || item.category === 'RENTAL'),
+)
 
 const legend = [
   { status: 'TEAM', color: palette.slotDisplay.TEAM },
@@ -284,20 +353,39 @@ const legend = [
       </div>
     </aside>
 
-    <AppModal :open="showMenu" :title="t('owner.reserve')" max-width-class="max-w-2xl" @close="closeMenu">
+    <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-3xl" @close="closeMenu">
       <div class="flex flex-wrap gap-4">
-        <div class="w-48 rounded-xl bg-white shadow-lg">
+        <div class="w-full min-w-[12rem] max-w-xs rounded-xl bg-white shadow-lg sm:w-52">
           <div v-if="selectedSlot" class="border-b px-4 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p class="mt-1 text-xs text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
+          <button v-if="canCancelSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm font-bold" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canReserveSlot()" type="button" class="block w-full border-b bg-brand-primary px-4 py-3 text-start text-sm font-bold text-white" @click="openReserveForm">{{ slotActionLabel() }}</button>
-          <button v-if="canCancelSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm font-bold" @click="doCancel">{{ t('owner.cancel') }}</button>
+          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="goSeasonReserve">{{ t('owner.seasonReserve') }}</button>
+          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="goPackageReserve">{{ t('owner.reserveWithCoach') }}</button>
+          <button type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openCommentsForm">{{ t('owner.comments') }}</button>
+          <NuxtLink :to="localePath('/owner/equipments')" class="block w-full border-b px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('owner.equipments') }}</NuxtLink>
           <button type="button" class="block w-full px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('common.close') }}</button>
         </div>
 
-        <div v-if="showReserve" class="w-80 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="showCancel" class="w-full max-w-sm flex-1 rounded-xl bg-white p-4 shadow-lg">
+          <h3 class="mb-3 font-bold">{{ t('owner.cancel') }}</h3>
+          <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
+          <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
+          <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="mb-2 w-full rounded border px-2 py-1.5 text-sm tabular-nums" readonly>
+          <select v-model="cancelReason" class="mb-3 w-full rounded border px-2 py-1.5 text-sm">
+            <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
+            <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
+          </select>
+          <div class="flex gap-2">
+            <button type="button" class="btn-primary flex-1" :disabled="!cancelReason" @click="doCancel">{{ t('owner.cancel') }}</button>
+            <button type="button" class="btn-ghost flex-1" @click="showCancel = false">{{ t('common.back') }}</button>
+          </div>
+        </div>
+
+        <div v-if="showReserve" class="w-full max-w-sm flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
@@ -309,6 +397,10 @@ const legend = [
           <select v-model="form.paymentStatus" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
             <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
             <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
+          </select>
+          <label class="mb-2 block text-xs font-semibold text-brand-gray-600">{{ t('owner.equipments') }}</label>
+          <select v-model="form.equipmentIds" multiple class="mb-2 min-h-[5rem] w-full rounded border px-2 py-1.5 text-sm">
+            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
           </select>
           <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="2" />
           <button type="button" class="btn-primary w-full" @click="doReserve">{{ slotActionLabel() }}</button>

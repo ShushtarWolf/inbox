@@ -39,6 +39,42 @@ export default defineEventHandler(async (event) => {
   const activeContacts = contacts.filter((contact) => contact.inactiveDays < 7).length
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
   const ltv = contacts.length ? Math.round(contacts.reduce((sum, contact) => sum + contact.lifetimeValue, 0) / contacts.length) : 0
+
+  const weekLabels: string[] = []
+  const weeklyRevenue: number[] = []
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const day = new Date()
+    day.setDate(day.getDate() - offset)
+    const key = day.toISOString().slice(0, 10)
+    weekLabels.push(key)
+    const dayRevenue =
+      bookings
+        .filter((booking) => booking.slot.date === key)
+        .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0) +
+      coachSessions
+        .filter((session) => session.date === key)
+        .reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
+    weeklyRevenue.push(dayRevenue)
+  }
+
+  const paymentTotals = { IPG: 0, CASH: 0, NOT_PAID: 0 }
+  for (const booking of bookings) {
+    const method = booking.payment?.method || booking.paymentMethod || 'NOT_PAID'
+    const bucket = method === 'IPG' ? 'IPG' : method === 'CASH' ? 'CASH' : 'NOT_PAID'
+    paymentTotals[bucket] += 1
+  }
+  for (const session of coachSessions) {
+    const method = session.payment?.method || 'NOT_PAID'
+    const bucket = method === 'IPG' ? 'IPG' : method === 'CASH' ? 'CASH' : 'NOT_PAID'
+    paymentTotals[bucket] += 1
+  }
+  const paymentCount = paymentTotals.IPG + paymentTotals.CASH + paymentTotals.NOT_PAID
+  const paymentBreakdown = {
+    IPG: paymentCount ? Math.round((paymentTotals.IPG / paymentCount) * 100) : 0,
+    CASH: paymentCount ? Math.round((paymentTotals.CASH / paymentCount) * 100) : 0,
+    NOT_PAID: paymentCount ? Math.round((paymentTotals.NOT_PAID / paymentCount) * 100) : 0,
+  }
+
   const funnel = {
     views: totalReservationCount + waitlistEntries.length,
     initiated: totalReservationCount + waitlistEntries.length,
@@ -57,6 +93,9 @@ export default defineEventHandler(async (event) => {
       noShowRate: totalReservationCount ? Math.round((noShowCount / totalReservationCount) * 100) : 0,
     },
     funnel,
+    weeklyRevenue,
+    weekLabels,
+    paymentBreakdown,
     transactions: [
       ...bookings.map((booking) => ({
         id: booking.id,

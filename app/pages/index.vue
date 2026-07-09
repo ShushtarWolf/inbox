@@ -34,9 +34,17 @@ watch(sport, (value) => {
 const roleShortcut = computed(() => {
   if (!user.value) return null
   if (user.value.role === 'ATHLETE') return { label: t('nav.bookings'), to: localePath('/athlete/bookings') }
-  if (user.value.role === 'COACH') return { label: t('coach.schedule'), to: localePath('/coach') }
-  if (user.value.role === 'OWNER') return { label: t('owner.calendar'), to: localePath('/owner') }
+  if (user.value.role === 'COACH') return { label: t('coach.today'), to: localePath('/coach') }
+  if (user.value.role === 'CLUB_ADMIN') return { label: t('owner.calendar'), to: localePath('/owner') }
   return null
+})
+
+const bookingsTileLink = computed(() => {
+  if (!user.value) return localePath('/login')
+  if (user.value.role === 'ATHLETE') return localePath('/athlete/bookings')
+  if (user.value.role === 'COACH') return localePath('/coach')
+  if (user.value.role === 'CLUB_ADMIN') return localePath('/owner')
+  return localePath('/login')
 })
 const heroSearchDate = computed(() => {
   return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
@@ -314,7 +322,7 @@ function handleHeroSportIconError() {
         <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">⌁</div>
         <p class="mt-3 font-black">{{ t('home.bookingsTileTitle') }}</p>
         <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.bookingsTileBody') }}</p>
-        <NuxtLink :to="user ? localePath('/athlete/bookings') : localePath('/login')" class="mt-4 inline-flex text-sm font-bold text-brand-primary">
+        <NuxtLink :to="bookingsTileLink" class="mt-4 inline-flex text-sm font-bold text-brand-primary">
           {{ t('home.bookingsTileAction') }}
         </NuxtLink>
       </div>

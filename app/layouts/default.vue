@@ -1,12 +1,28 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const nav = computed(() => [
-  { to: localePath('/'), label: t('nav.home'), icon: '🏠' },
-  { to: localePath('/clubs'), label: t('nav.clubs'), icon: '🎾' },
-  { to: localePath('/coaches'), label: t('nav.coaches'), icon: '👤' },
-  { to: localePath('/athlete'), label: t('nav.me'), icon: '📋' },
-])
+const { user, fetch: fetchAuth } = useAuth()
+
+const nav = computed(() => {
+  const meTarget = !user.value
+    ? localePath('/login')
+    : user.value.role === 'CLUB_ADMIN'
+      ? localePath('/owner')
+      : user.value.role === 'COACH'
+        ? localePath('/coach')
+        : localePath('/athlete')
+
+  return [
+    { to: localePath('/'), label: t('nav.home'), icon: '🏠' },
+    { to: localePath('/clubs'), label: t('nav.clubs'), icon: '🎾' },
+    { to: localePath('/coaches'), label: t('nav.coaches'), icon: '👤' },
+    { to: meTarget, label: t('nav.me'), icon: '📋' },
+  ]
+})
+
+onMounted(() => {
+  if (!user.value) fetchAuth()
+})
 </script>
 
 <template>

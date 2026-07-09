@@ -30,12 +30,13 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        class="block border-s-2 px-4 py-2.5 text-sm font-semibold transition"
+        class="flex items-center border-s-2 px-4 py-2.5 text-sm font-semibold transition"
         :class="[
           dark ? 'border-transparent opacity-85 hover:bg-white/5' : 'border-transparent text-brand-gray-700 hover:bg-brand-cream',
           isActive(item.to) ? (dark ? 'border-brand-gold bg-white/10 opacity-100' : 'border-brand-primary bg-brand-cream text-brand-primary') : '',
         ]"
       >
+        <span v-if="item.icon" class="me-2 text-base" aria-hidden="true">{{ item.icon }}</span>
         {{ item.label }}
       </NuxtLink>
     </nav>

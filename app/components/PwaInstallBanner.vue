@@ -4,7 +4,10 @@ const dismissed = useCookie('inbox_pwa_dismissed', { default: () => '0' })
 const canInstall = ref(false)
 const route = useRoute()
 
-const shouldShow = computed(() => !route.path.includes('/owner') && !route.path.includes('/coach'))
+const shouldShow = computed(() => {
+  const path = route.path
+  return !path.includes('/owner') && !path.includes('/coach') && !path.includes('/athlete')
+})
 
 function onBeforeInstallPrompt(event: Event) {
   event.preventDefault()

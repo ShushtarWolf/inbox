@@ -12,6 +12,8 @@ export default defineEventHandler(async (event) => {
     finishDate?: string
     coachId?: string
     comment?: string
+    daysJson?: string
+    equipmentId?: string
   }>(event)
   return prisma.packageDraft.create({
     data: {
@@ -22,8 +24,9 @@ export default defineEventHandler(async (event) => {
       discount: body.discount || 0,
       startDate: body.startDate,
       finishDate: body.finishDate,
+      daysJson: body.daysJson,
       coachId: body.coachId,
-      comment: body.comment,
+      comment: body.equipmentId ? [body.comment, `equipment:${body.equipmentId}`].filter(Boolean).join(' | ') : body.comment,
     },
   })
 })

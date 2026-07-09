@@ -212,6 +212,26 @@
     "seasonReserve": "رزرو فصلی",
     "packageReserve": "رزرو پکیج",
     "reserveWithCoach": "رزرو با مربی",
+    "slotActions": "عملیات اسلات",
+    "cancelReasonPlaceholder": "دلیل لغو را انتخاب کنید",
+    "cancelReasons": {
+      "CUSTOMER_REQUEST": "درخواست مشتری",
+      "NO_PAYMENT": "عدم پرداخت",
+      "SCHEDULE_CONFLICT": "تداخل برنامه"
+    },
+    "weekdays": {
+      "Sun": "یکشنبه",
+      "Mon": "دوشنبه",
+      "Tue": "سه‌شنبه",
+      "Wed": "چهارشنبه",
+      "Thu": "پنجشنبه",
+      "Fri": "جمعه",
+      "Sat": "شنبه"
+    },
+    "financePage": {
+      "weeklyChart": "نمودار درآمد هفتگی",
+      "paymentBreakdown": "روش پرداخت"
+    },
     "guestName": "نام مهمان",
     "guestFamily": "نام خانوادگی مهمان",
     "guestMobile": "موبایل مهمان",
@@ -260,9 +280,15 @@
     },
     "packagesPage": {
       "title": "عنوان",
+      "createTitle": "ساخت پکیج جدید",
       "coachPlaceholder": "بدون مربی یا انتخاب مربی",
       "price": "قیمت",
       "discount": "درصد تخفیف",
+      "capacity": "ظرفیت",
+      "startDate": "تاریخ شروع",
+      "finishDate": "تاریخ پایان",
+      "weekdays": "روزهای هفته",
+      "equipmentPlaceholder": "تجهیزات (اختیاری)",
       "saveStub": "ذخیره پکیج"
     },
     "crmPage": {
