@@ -20,7 +20,7 @@ async function add() {
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('owner.equipments') }}</h1>
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid gap-4 md:grid-cols-3">
       <div
         v-for="(label, cat) in { CLUB: t('owner.equipmentsPage.club'), RENTAL: t('owner.equipmentsPage.rental'), SELL: t('owner.equipmentsPage.sell') }"
         :key="cat"
@@ -33,7 +33,7 @@ async function add() {
         <button v-if="cat === 'CLUB'" type="button" class="mt-2 text-xs font-bold text-brand-primary" @click="add">{{ t('common.add') }}</button>
       </div>
     </div>
-    <div class="max-w-xs rounded-xl border bg-white p-4">
+    <div class="mx-auto w-full max-w-xs rounded-xl border bg-white p-4 md:mx-0">
       <h3 class="font-bold">{{ t('owner.equipmentsPage.services') }}</h3>
       <ul class="mt-2 text-sm"><li v-for="e in grouped.SERVICE" :key="e.id">{{ localizedField(e, 'nameFa', 'nameEn') }}</li></ul>
     </div>

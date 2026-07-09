@@ -3,6 +3,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const { user, fetch } = useAuth()
 const { setLocale } = useI18n()
+const localePath = useLocalePath()
 const name = ref('')
 const phone = ref('')
 const profileLocale = ref<'fa' | 'en'>('fa')
@@ -23,7 +24,7 @@ async function save() {
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('nav.profile') }}</h1>
+    <PageHeaderNav :title="$t('nav.profile')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
     <input v-model="name" :placeholder="$t('common.name')" class="w-full rounded-xl border px-3 py-2" />
     <input v-model="phone" :placeholder="$t('common.mobile')" class="w-full rounded-xl border px-3 py-2" />
     <select v-model="profileLocale" class="w-full rounded-xl border px-3 py-2">
