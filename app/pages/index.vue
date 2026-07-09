@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatCurrency } = useFormatters()
@@ -41,6 +41,13 @@ const roleShortcut = computed(() => {
   if (user.value.role === 'COACH') return { label: t('coach.schedule'), to: localePath('/coach') }
   if (user.value.role === 'OWNER') return { label: t('owner.calendar'), to: localePath('/owner') }
   return null
+})
+const heroSearchDate = computed(() => {
+  return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date())
 })
 
 function bookingLink(path: '/clubs' | '/coaches') {
@@ -84,6 +91,34 @@ const selectedMapEmbedUrl = computed(() => {
   ].join('%2C')
 
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lng.toFixed(6)}`
+})
+
+const positionedMapClubs = computed(() => {
+  if (!selectedMapClub.value) return []
+
+  const centerLat = selectedMapClub.value.lat as number
+  const centerLng = selectedMapClub.value.lng as number
+  const latDelta = 0.018
+  const lngDelta = 0.026
+  const minTop = 18
+  const maxTop = 82
+  const minLeft = 12
+  const maxLeft = 88
+
+  return mappableClubs.value.map((club) => {
+    const lat = club.lat as number
+    const lng = club.lng as number
+    const topRatio = (centerLat + latDelta - lat) / (latDelta * 2)
+    const leftRatio = (lng - (centerLng - lngDelta)) / (lngDelta * 2)
+    const top = minTop + Math.min(Math.max(topRatio, 0), 1) * (maxTop - minTop)
+    const left = minLeft + Math.min(Math.max(leftRatio, 0), 1) * (maxLeft - minLeft)
+
+    return {
+      ...club,
+      top: `${top}%`,
+      left: `${left}%`,
+    }
+  })
 })
 
 function handleHeroSportIconError() {
@@ -130,10 +165,55 @@ function handleHeroSportIconError() {
 
       <NuxtLink
         :to="bookingLink('/clubs')"
-        class="mt-3 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-black text-brand-primary shadow-card"
+        class="mt-4 block rounded-[2rem] bg-white p-2 text-brand-gray-900 shadow-[0_16px_42px_rgba(0,0,0,0.16)] transition hover:-translate-y-0.5"
       >
-        <span class="text-base leading-none">⌕</span>
-        <span>{{ t('home.searchWithFilters') }}</span>
+        <div class="flex items-center gap-2">
+          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-[#77f05f] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+            <img :src="heroSportIcon" alt="" class="h-10 w-10" @error="handleHeroSportIconError" />
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] gap-2 md:grid-cols-[minmax(0,1.55fr)_auto_minmax(0,1fr)]">
+              <div class="min-w-0 rounded-[1.45rem] px-3 py-2.5">
+                <div class="flex items-center gap-2 text-brand-gray-900">
+                  <svg class="h-4 w-4 shrink-0 text-brand-gray-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 21s6-4.35 6-10a6 6 0 1 0-12 0c0 5.65 6 10 6 10Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="1.8" />
+                  </svg>
+                  <span class="truncate text-sm font-black">{{ t('home.heroSearchWhere') }}</span>
+                </div>
+                <p class="mt-1 truncate text-sm text-brand-gray-500">{{ t('home.heroSearchWhereHint') }}</p>
+              </div>
+
+              <div class="hidden items-center justify-center md:flex">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/8 bg-white text-brand-gray-500 shadow-sm">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="m5 12 14-7-4.5 14-2.8-5-6.7-2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="min-w-0 border-l border-black/8 px-3 py-2.5">
+                <div class="flex items-center gap-2 text-brand-gray-900">
+                  <svg class="h-4 w-4 shrink-0 text-brand-gray-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3.75" y="5.25" width="16.5" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M8 3.75v3M16 3.75v3M3.75 9.75h16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  </svg>
+                  <span class="truncate text-sm font-black">{{ t('home.heroSearchWhen') }}</span>
+                </div>
+                <p class="mt-1 truncate text-sm text-brand-gray-500">{{ heroSearchDate }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-[1.6rem] bg-[#77f05f] text-brand-gray-950 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]">
+            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="2.2" />
+              <path d="m16 16 4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+            <span class="sr-only">{{ t('home.searchWithFilters') }}</span>
+          </div>
+        </div>
       </NuxtLink>
     </section>
 
@@ -184,26 +264,42 @@ function handleHeroSportIconError() {
               {{ t('common.empty') }}
             </div>
 
+            <div class="absolute inset-0">
+              <button
+                v-for="club in positionedMapClubs"
+                :key="club.id"
+                type="button"
+                class="absolute -translate-x-1/2 -translate-y-1/2 transition-transform"
+                :style="{ top: club.top, left: club.left }"
+                @click="selectedMapClubSlug = club.slug"
+              >
+                <div
+                  class="rounded-2xl border px-3 py-2 text-start shadow-card backdrop-blur-sm"
+                  :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary text-white scale-105' : 'border-black/5 bg-white/92 text-brand-gray-900'"
+                >
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full"
+                      :class="selectedMapClubSlug === club.slug ? 'bg-white/25' : 'bg-brand-primary/12'"
+                    >
+                      <span
+                        class="h-1.5 w-1.5 rounded-full"
+                        :class="selectedMapClubSlug === club.slug ? 'bg-white' : 'bg-brand-primary'"
+                      />
+                    </span>
+                    <span class="max-w-[9.5rem] truncate text-[11px] font-black">{{ localizedField(club, 'nameFa', 'nameEn') }}</span>
+                  </div>
+                  <p class="mt-1 text-[11px] font-bold" :class="selectedMapClubSlug === club.slug ? 'text-white/85' : 'text-brand-primary'">
+                    {{ formatCurrency(club.priceFrom) }}
+                  </p>
+                </div>
+              </button>
+            </div>
+
             <div class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
             <div class="absolute bottom-3 left-3 rounded-full bg-white/92 px-3 py-1 text-[11px] font-bold text-brand-gray-700 shadow-card">
               {{ activeSportLabel }}
             </div>
-          </div>
-
-          <div v-if="mappableClubs.length" class="flex gap-2 overflow-x-auto border-t border-black/5 bg-white/85 p-3">
-            <button
-              v-for="club in mappableClubs"
-              :key="club.id"
-              type="button"
-              class="shrink-0 rounded-2xl border px-3 py-2 text-start shadow-sm transition"
-              :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary text-white' : 'border-black/5 bg-white text-brand-gray-900'"
-              @click="selectedMapClubSlug = club.slug"
-            >
-              <p class="max-w-[11rem] truncate text-[11px] font-black">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="mt-1 text-[11px] font-bold" :class="selectedMapClubSlug === club.slug ? 'text-white/85' : 'text-brand-primary'">
-                {{ formatCurrency(club.priceFrom) }}
-              </p>
-            </button>
           </div>
         </div>
 
