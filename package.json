@@ -14,7 +14,8 @@
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:dashboard": "node scripts/smoke-dashboard.mjs"
+    "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
+    "qa:matrix": "node scripts/qa-matrix.mjs"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"
