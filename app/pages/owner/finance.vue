@@ -2,14 +2,20 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
-const { data, refresh } = await useAuthedFetch('/api/owner/finance')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
 useOwnerClubRefresh(refresh)
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatNumber } = useFormatters()
 
 const maxWeeklyRevenue = computed(() => Math.max(...(data.value?.weeklyRevenue || [1]), 1))
 
 function statLabel(key: string) {
   return t(`owner.financeCards.${key}`)
+}
+
+function formatStatValue(key: string, val: unknown) {
+  if (key === 'revenue' || key === 'ltv') return formatCurrency(Number(val))
+  const suffix = ['paidRate', 'utilization', 'noShowRate'].includes(key) ? '%' : ''
+  return `${formatNumber(val)}${suffix}`
 }
 
 function bookingStatusLabel(status: string) {
@@ -24,10 +30,13 @@ function paymentStatusLabel(status: string) {
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('owner.finance') }}</h1>
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <template v-else>
     <div class="grid gap-3 md:grid-cols-4">
       <div v-for="(val, key) in data?.stats" :key="key" class="rounded-xl border bg-white p-3 text-center">
         <p class="text-lg font-black text-brand-primary">
-          {{ key === 'revenue' || key === 'ltv' ? formatCurrency(Number(val)) : `${val}${['paidRate', 'utilization', 'noShowRate'].includes(String(key)) ? '%' : ''}` }}
+          {{ formatStatValue(String(key), val) }}
         </p>
         <p class="text-xs text-brand-gray-600">{{ statLabel(String(key)) }}</p>
       </div>
@@ -46,7 +55,7 @@ function paymentStatusLabel(status: string) {
               class="w-full max-w-[2.5rem] rounded-t-md bg-gradient-to-t from-brand-primary to-brand-primary/60 shadow-sm transition-all"
               :style="{ height: `${Math.max(16, (amount / maxWeeklyRevenue) * 100)}%` }"
             />
-            <span class="text-[10px] font-semibold text-brand-gray-600">{{ data?.weekLabels?.[index]?.slice(5) }}</span>
+            <span class="text-[10px] font-semibold text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ data?.weekLabels?.[index]?.slice(5) }}</bdi></span>
           </div>
         </div>
       </div>
@@ -74,19 +83,19 @@ function paymentStatusLabel(status: string) {
         <h2 class="mb-3 font-bold">{{ t('owner.funnelTitle') }}</h2>
         <div class="grid gap-3 sm:grid-cols-4">
           <div class="rounded-xl bg-brand-cream p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ data?.funnel?.views || 0 }}</p>
+            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.views || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.views') }}</p>
           </div>
           <div class="rounded-xl bg-brand-cream p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ data?.funnel?.initiated || 0 }}</p>
+            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.initiated || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.initiated') }}</p>
           </div>
           <div class="rounded-xl bg-brand-cream p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ data?.funnel?.confirmed || 0 }}</p>
+            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.confirmed || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.confirmed') }}</p>
           </div>
           <div class="rounded-xl bg-brand-cream p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ data?.funnel?.paid || 0 }}</p>
+            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.paid || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.paid') }}</p>
           </div>
         </div>
@@ -94,10 +103,10 @@ function paymentStatusLabel(status: string) {
       <div class="rounded-xl border bg-white p-4">
         <h2 class="mb-3 font-bold">{{ t('owner.segmentsTitle') }}</h2>
         <div class="space-y-2 text-sm">
-          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.activeContacts') }}</span><span class="font-bold">{{ data?.segments?.activeContacts || 0 }}</span></div>
-          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.churnRisk') }}</span><span class="font-bold">{{ data?.segments?.churnRisk || 0 }}</span></div>
-          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.waitlist') }}</span><span class="font-bold">{{ data?.segments?.waitlist || 0 }}</span></div>
-          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.cancellations') }}</span><span class="font-bold">{{ data?.segments?.cancellations || 0 }}</span></div>
+          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.activeContacts') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.activeContacts || 0) }}</span></div>
+          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.churnRisk') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.churnRisk || 0) }}</span></div>
+          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.waitlist') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.waitlist || 0) }}</span></div>
+          <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.cancellations') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.cancellations || 0) }}</span></div>
         </div>
       </div>
     </div>
@@ -135,5 +144,6 @@ function paymentStatusLabel(status: string) {
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

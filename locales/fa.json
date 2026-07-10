@@ -22,6 +22,9 @@
     "send": "ارسال",
     "whatsapp": "واتساپ",
     "error": "مشکلی پیش آمد",
+    "saved": "با موفقیت ذخیره شد",
+    "edit": "ویرایش",
+    "delete": "حذف",
     "hoursShort": "{count} ساعت",
     "distanceKm": "{count} کیلومتر",
     "courtsCount": "{count} زمین",
@@ -285,7 +288,12 @@
       "rental": "اجاره‌ای",
       "sell": "برای فروش",
       "services": "خدمات",
-      "newItem": "جدید"
+      "newItem": "جدید",
+      "addTitle": "افزودن تجهیزات",
+      "editTitle": "ویرایش تجهیزات",
+      "itemName": "نام",
+      "confirmDelete": "این مورد حذف شود؟",
+      "selectForBooking": "انتخاب تجهیزات برای این رزرو"
     },
     "packagesPage": {
       "title": "عنوان",
@@ -341,7 +349,11 @@
     "roles": {
       "CLUB_ADMIN": "مدیر باشگاه",
       "COACH": "مربی",
-      "STAFF": "کارمند"
+      "STAFF": "کارمند",
+      "OWNER": "مالک",
+      "MANAGER": "مدیر",
+      "FRONT_DESK": "پذیرش",
+      "ANALYST": "تحلیلگر"
     },
     "funnelTitle": "قیف رزرو",
     "funnel": {
@@ -363,6 +375,14 @@
       "slug": "اسلاگ باشگاه",
       "location": "موقعیت",
       "address": "آدرس",
+      "nameFa": "نام (فارسی)",
+      "nameEn": "نام (انگلیسی)",
+      "city": "شهر",
+      "district": "محله",
+      "addressFa": "آدرس (فارسی)",
+      "addressEn": "آدرس (انگلیسی)",
+      "openHour": "ساعت شروع",
+      "closeHour": "ساعت پایان",
       "operations": "عملیات",
       "hours": "ساعت باشگاه",
       "cancellation": "مهلت لغو",

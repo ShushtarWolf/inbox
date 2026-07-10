@@ -23,7 +23,6 @@ interface OwnerCalendarSlot {
 }
 
 const { t, locale } = useI18n()
-const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
 const { today } = useLocalDate()
@@ -33,7 +32,14 @@ const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const showMenu = ref(false)
 const showReserve = ref(false)
 const showCancel = ref(false)
+const showSeason = ref(false)
+const showPackage = ref(false)
+const showEquipment = ref(false)
 const cancelReason = ref('')
+const saving = ref(false)
+const actionError = ref('')
+
+const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
 const form = reactive({
   guestName: '',
@@ -45,7 +51,23 @@ const form = reactive({
   equipmentIds: [] as string[],
 })
 
+const seasonForm = reactive({
+  days: ['Sun'] as string[],
+  times: ['12:00'],
+  equipmentId: '',
+  comments: '',
+})
+
+const packageForm = reactive({
+  coachId: '',
+  days: ['Sun'] as string[],
+  times: ['12:00'],
+  equipmentId: '',
+  comments: '',
+})
+
 const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
+const { data: staffData } = await useAuthedFetch('/api/owner/staff')
 
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/calendar', {
   query: computed(() => ({ date: date.value })),
@@ -64,6 +86,11 @@ const hours = computed(() => {
 const courts = computed(() => data.value?.courts || [])
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
+const clubCoaches = computed(() =>
+  (staffData.value?.staff || [])
+    .filter((member: { coach?: { id: string } | null }) => member.coach)
+    .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
+)
 const dayNumber = computed(() => formatNumber(currentDate.value.getDate()))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 
@@ -108,13 +135,21 @@ function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
   return statusLabel(slot.displayStatus)
 }
 
+function resetPanels() {
+  showReserve.value = false
+  showCancel.value = false
+  showSeason.value = false
+  showPackage.value = false
+  showEquipment.value = false
+}
+
 function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
   selectedSlot.value = slot
   showMenu.value = true
-  showReserve.value = false
-  showCancel.value = false
+  resetPanels()
   cancelReason.value = ''
+  actionError.value = ''
   form.guestName = slot.booking?.guestName || ''
   form.guestFamily = slot.booking?.guestFamily || ''
   form.guestMobile = slot.booking?.guestMobile || ''
@@ -122,49 +157,67 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   form.paymentStatus = slot.booking?.payment?.status || slot.booking?.paymentStatus || 'PAY_AT_CLUB'
   form.comments = slot.booking?.comments || ''
   form.equipmentIds = []
+  seasonForm.days = ['Sun']
+  seasonForm.times = [slot.startTime.slice(0, 5)]
+  seasonForm.equipmentId = ''
+  seasonForm.comments = slot.booking?.comments || ''
+  packageForm.coachId = ''
+  packageForm.days = ['Sun']
+  packageForm.times = [slot.startTime.slice(0, 5)]
+  packageForm.equipmentId = ''
+  packageForm.comments = slot.booking?.comments || ''
 }
 
 function openReserveForm() {
+  resetPanels()
   showReserve.value = true
-  showCancel.value = false
 }
 
 function openCancelForm() {
+  resetPanels()
   showCancel.value = true
-  showReserve.value = false
 }
 
 function openCommentsForm() {
+  resetPanels()
   showReserve.value = true
-  showCancel.value = false
+}
+
+function openSeasonForm() {
+  resetPanels()
+  showSeason.value = true
+}
+
+function openPackageForm() {
+  resetPanels()
+  showPackage.value = true
+}
+
+function openEquipmentForm() {
+  resetPanels()
+  showEquipment.value = true
 }
 
 function closeMenu() {
   showMenu.value = false
-  showReserve.value = false
-  showCancel.value = false
+  resetPanels()
   cancelReason.value = ''
+  actionError.value = ''
 }
 
-function slotQuery() {
-  if (!selectedSlot.value) return {}
-  return {
-    slotId: selectedSlot.value.id,
-    guestName: form.guestName || undefined,
-    guestFamily: form.guestFamily || undefined,
-    guestMobile: form.guestMobile || undefined,
-    comments: form.comments || undefined,
+function toggleDay(days: string[], day: string) {
+  if (days.includes(day)) {
+    return days.filter((item) => item !== day)
   }
+  return [...days, day]
 }
 
-function goSeasonReserve() {
-  closeMenu()
-  navigateTo(localePath({ path: '/owner/reserve/season', query: slotQuery() }))
+function toggleSeasonDay(day: string) {
+  seasonForm.days = toggleDay(seasonForm.days, day)
 }
 
-function goPackageReserve() {
-  closeMenu()
-  navigateTo(localePath({ path: '/owner/reserve/package', query: slotQuery() }))
+function togglePackageDay(day: string) {
+  packageForm.days = toggleDay(packageForm.days, day)
 }
 
 function reserveComments() {
@@ -204,32 +257,130 @@ function slotGuestName() {
 }
 
 async function doReserve() {
-  if (!selectedSlot.value) return
-  await $fetch('/api/owner/reserve', {
-    method: 'POST',
-    body: {
-      slotId: selectedSlot.value.id,
-      guestName: form.guestName,
-      guestFamily: form.guestFamily,
-      guestMobile: form.guestMobile,
-      paymentMethod: form.paymentMethod,
-      paymentStatus: form.paymentStatus,
-      comments: reserveComments(),
-      displayStatus: 'RESERVED',
-    },
-  })
-  closeMenu()
-  refresh()
+  if (!selectedSlot.value || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/reserve', {
+      method: 'POST',
+      body: {
+        slotId: selectedSlot.value.id,
+        guestName: form.guestName,
+        guestFamily: form.guestFamily,
+        guestMobile: form.guestMobile,
+        paymentMethod: form.paymentMethod,
+        paymentStatus: form.paymentStatus,
+        comments: reserveComments(),
+        displayStatus: 'RESERVED',
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function doCancel() {
-  if (!selectedSlot.value || !cancelReason.value) return
-  await $fetch('/api/owner/cancel', {
-    method: 'POST',
-    body: { slotId: selectedSlot.value.id, reason: cancelReason.value },
-  })
-  closeMenu()
-  refresh()
+  if (!selectedSlot.value || !cancelReason.value || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/cancel', {
+      method: 'POST',
+      body: { slotId: selectedSlot.value.id, reason: cancelReason.value },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doSeasonReserve() {
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/season', {
+      method: 'POST',
+      body: {
+        guestName: form.guestName,
+        guestFamily: form.guestFamily,
+        guestMobile: form.guestMobile,
+        days: seasonForm.days,
+        times: seasonForm.times,
+        comments: seasonForm.comments,
+        slotId: selectedSlot.value.id,
+        equipmentId: seasonForm.equipmentId || undefined,
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doPackageReserve() {
+  if (!selectedSlot.value || saving.value || !packageForm.days.length) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/package-reserve', {
+      method: 'POST',
+      body: {
+        guestName: form.guestName,
+        guestFamily: form.guestFamily,
+        guestMobile: form.guestMobile,
+        coachId: packageForm.coachId,
+        days: packageForm.days,
+        times: packageForm.times,
+        comments: packageForm.comments,
+        slotId: selectedSlot.value.id,
+        equipmentId: packageForm.equipmentId || undefined,
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveEquipmentSelection() {
+  if (!selectedSlot.value || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/reserve', {
+      method: 'POST',
+      body: {
+        slotId: selectedSlot.value.id,
+        guestName: form.guestName,
+        guestFamily: form.guestFamily,
+        guestMobile: form.guestMobile,
+        paymentMethod: form.paymentMethod,
+        paymentStatus: form.paymentStatus,
+        comments: reserveComments(),
+        displayStatus: selectedSlot.value.booking ? 'RESERVED' : 'RESERVED',
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
 }
 
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
@@ -264,10 +415,7 @@ const legend = [
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
-            <label class="calendar-date-picker">
-              <span>{{ t('common.date') }}</span>
-              <input v-model="date" type="date" dir="ltr" class="calendar-date-input tabular-nums">
-            </label>
+            <AppDateInput v-model="date" class="calendar-date-picker-wrap" />
           </div>
         </div>
 
@@ -363,10 +511,10 @@ const legend = [
           </div>
           <button v-if="canCancelSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm font-bold" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canReserveSlot()" type="button" class="block w-full border-b bg-brand-primary px-4 py-3 text-start text-sm font-bold text-white" @click="openReserveForm">{{ slotActionLabel() }}</button>
-          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="goSeasonReserve">{{ t('owner.seasonReserve') }}</button>
-          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="goPackageReserve">{{ t('owner.reserveWithCoach') }}</button>
+          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
+          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
           <button type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openCommentsForm">{{ t('owner.comments') }}</button>
-          <NuxtLink :to="localePath('/owner/equipments')" class="block w-full border-b px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('owner.equipments') }}</NuxtLink>
+          <button type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
           <button type="button" class="block w-full px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('common.close') }}</button>
         </div>
 
@@ -379,8 +527,9 @@ const legend = [
             <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
             <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
           </select>
+          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
           <div class="flex gap-2">
-            <button type="button" class="btn-primary flex-1" :disabled="!cancelReason" @click="doCancel">{{ t('owner.cancel') }}</button>
+            <button type="button" class="btn-primary flex-1" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
             <button type="button" class="btn-ghost flex-1" @click="showCancel = false">{{ t('common.back') }}</button>
           </div>
         </div>
@@ -403,7 +552,91 @@ const legend = [
             <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
           </select>
           <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="2" />
-          <button type="button" class="btn-primary w-full" @click="doReserve">{{ slotActionLabel() }}</button>
+          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
+          <button type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
+        </div>
+
+        <div v-if="showSeason" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+          <h3 class="mb-3 font-bold">{{ t('owner.seasonPage.title') }}</h3>
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div class="min-w-0 flex-1 space-y-2">
+              <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="w-full rounded border px-2 py-1.5 text-sm">
+              <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="w-full rounded border px-2 py-1.5 text-sm">
+              <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="w-full rounded border px-2 py-1.5 text-sm tabular-nums">
+              <div>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="day in weekdayOptions"
+                    :key="day"
+                    type="button"
+                    class="rounded-full border px-3 py-1 text-xs font-bold"
+                    :class="seasonForm.days.includes(day) ? 'border-brand-primary bg-brand-cream text-brand-primary' : 'border-black/10 text-brand-gray-600'"
+                    @click="toggleSeasonDay(day)"
+                  >
+                    {{ t(`owner.weekdays.${day}`) }}
+                  </button>
+                </div>
+              </div>
+              <select v-model="seasonForm.equipmentId" class="w-full rounded border px-2 py-1.5 text-sm">
+                <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+              </select>
+              <textarea v-model="seasonForm.comments" :placeholder="t('owner.comments')" class="w-full rounded border px-2 py-1.5 text-sm" rows="3" />
+              <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+              <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            </div>
+            <OwnerClockPicker v-model="seasonForm.times" class="w-full shrink-0 lg:w-40" />
+          </div>
+        </div>
+
+        <div v-if="showPackage" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+          <h3 class="mb-3 font-bold">{{ t('owner.packagePage.title') }}</h3>
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div class="min-w-0 flex-1 space-y-2">
+              <select v-model="packageForm.coachId" class="w-full rounded border px-2 py-1.5 text-sm">
+                <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
+                <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
+              </select>
+              <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="w-full rounded border px-2 py-1.5 text-sm">
+              <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="w-full rounded border px-2 py-1.5 text-sm">
+              <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="w-full rounded border px-2 py-1.5 text-sm tabular-nums">
+              <div>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="day in weekdayOptions"
+                    :key="day"
+                    type="button"
+                    class="rounded-full border px-3 py-1 text-xs font-bold"
+                    :class="packageForm.days.includes(day) ? 'border-brand-primary bg-brand-cream text-brand-primary' : 'border-black/10 text-brand-gray-600'"
+                    @click="togglePackageDay(day)"
+                  >
+                    {{ t(`owner.weekdays.${day}`) }}
+                  </button>
+                </div>
+              </div>
+              <select v-model="packageForm.equipmentId" class="w-full rounded border px-2 py-1.5 text-sm">
+                <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+              </select>
+              <textarea v-model="packageForm.comments" :placeholder="t('owner.comments')" class="w-full rounded border px-2 py-1.5 text-sm" rows="3" />
+              <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+              <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            </div>
+            <OwnerClockPicker v-model="packageForm.times" class="w-full shrink-0 lg:w-40" />
+          </div>
+        </div>
+
+        <div v-if="showEquipment" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+          <h3 class="mb-3 font-bold">{{ t('owner.equipments') }}</h3>
+          <label class="mb-2 block text-xs font-semibold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
+          <select v-model="form.equipmentIds" multiple class="mb-3 min-h-[8rem] w-full rounded border px-2 py-1.5 text-sm">
+            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+          </select>
+          <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="2" />
+          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
+          <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
         </div>
       </div>
     </AppModal>
@@ -423,7 +656,33 @@ const legend = [
   grid-template-columns: 5.5rem repeat(auto-fit, minmax(8.5rem, 1fr));
 }
 
-.calendar-date-picker,
+.calendar-date-picker-wrap :deep(input) {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-weight: 600;
+  color: #27243a;
+}
+
+.calendar-date-picker-wrap :deep(label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #ece8f6;
+  background: #fff;
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  color: #6f6885;
+}
+
+.calendar-date-picker-wrap :deep(p) {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8a859d;
+  white-space: nowrap;
+}
+
 .calendar-toolbar-pill,
 .calendar-tab {
   display: inline-flex;
@@ -434,34 +693,6 @@ const legend = [
   background: #fff;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
-}
-
-.calendar-date-picker {
-  color: #6f6885;
-}
-
-.calendar-date-input {
-  border: 0;
-  background: transparent;
-  color: #27243a;
-  font-weight: 600;
-  outline: none;
-}
-
-.calendar-primary-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #27243a;
-  padding: 0.85rem 1.2rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.calendar-tab {
-  color: #8f89a1;
 }
 
 .calendar-tab-active {

@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const { formatHours } = useFormatters()
 const selectedSegment = ref('all')
-const { data, refresh } = await useAuthedFetch('/api/owner/contacts', {
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/contacts', {
   query: computed(() => ({ segment: selectedSegment.value === 'all' ? undefined : selectedSegment.value })),
 })
 useOwnerClubRefresh(refresh)
@@ -43,6 +43,9 @@ async function send() {
 
 <template>
   <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <template v-else>
     <div class="space-y-4">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border bg-white p-3 text-center">
@@ -140,5 +143,6 @@ async function send() {
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>

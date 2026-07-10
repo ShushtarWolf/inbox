@@ -3,11 +3,20 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { formatCurrency } = useFormatters()
-const { data: coaches } = await useAuthedFetch('/api/coaches')
+const { data: staffData } = await useAuthedFetch('/api/owner/staff')
 const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
-const { data: packages, refresh } = await useAuthedFetch('/api/owner/packages')
+const { data: packages, pending, error, refresh } = await useAuthedFetch('/api/owner/packages')
 useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
+
+const saving = ref(false)
+const createError = ref('')
+
+const clubCoaches = computed(() =>
+  (staffData.value?.staff || [])
+    .filter((member: { coach?: { id: string } | null }) => member.coach)
+    .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
+)
 
 const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
@@ -43,27 +52,37 @@ function packageDays(pkg: { daysJson?: string | null }) {
 
 function coachName(coachId?: string | null) {
   if (!coachId) return null
-  const coach = coaches.value?.find((item: { id: string }) => item.id === coachId)
+  const coach = clubCoaches.value?.find((item: { id: string }) => item.id === coachId)
   return coach ? localizedField(coach, 'nameFa', 'nameEn') : null
 }
 
 async function create() {
-  await $fetch('/api/owner/packages', {
-    method: 'POST',
-    body: {
-      title: form.title,
-      capacity: form.capacity,
-      price: form.price,
-      discount: form.discount,
-      coachId: form.coachId || undefined,
-      comment: form.comment,
-      startDate: form.startDate || undefined,
-      finishDate: form.finishDate || undefined,
-      daysJson: JSON.stringify(form.days),
-      equipmentId: form.equipmentId || undefined,
-    },
-  })
-  refresh()
+  saving.value = true
+  createError.value = ''
+  try {
+    await $fetch('/api/owner/packages', {
+      method: 'POST',
+      body: {
+        title: form.title,
+        capacity: form.capacity,
+        price: form.price,
+        discount: form.discount,
+        coachId: form.coachId || undefined,
+        comment: form.comment,
+        startDate: form.startDate || undefined,
+        finishDate: form.finishDate || undefined,
+        daysJson: JSON.stringify(form.days),
+        equipmentId: form.equipmentId || undefined,
+      },
+    })
+    form.title = ''
+    form.comment = ''
+    await refresh()
+  } catch {
+    createError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
 }
 
 const rentalEquipments = computed(() =>
@@ -74,6 +93,9 @@ const rentalEquipments = computed(() =>
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('owner.packages') }}</h1>
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <template v-else>
     <div class="flex flex-wrap gap-3">
       <div
         v-for="p in packages"
@@ -95,7 +117,7 @@ const rentalEquipments = computed(() =>
       <input v-model="form.title" :placeholder="t('owner.packagesPage.title')" class="w-full rounded-xl border px-3 py-2">
       <select v-model="form.coachId" class="w-full rounded-xl border px-3 py-2">
         <option value="">{{ t('owner.packagesPage.coachPlaceholder') }}</option>
-        <option v-for="c in coaches" :key="c.id" :value="c.id">{{ localizedField(c, 'nameFa', 'nameEn') }}</option>
+        <option v-for="c in clubCoaches" :key="c.id" :value="c.id">{{ localizedField(c, 'nameFa', 'nameEn') }}</option>
       </select>
       <div>
         <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
@@ -124,7 +146,9 @@ const rentalEquipments = computed(() =>
       </select>
       <input v-model.number="form.discount" type="number" :placeholder="t('owner.packagesPage.discount')" class="w-full rounded-xl border px-3 py-2">
       <textarea v-model="form.comment" :placeholder="t('owner.comments')" class="w-full rounded-xl border px-3 py-2" rows="2" />
-      <button type="button" class="btn-primary w-full" @click="create">{{ t('owner.packagesPage.saveStub') }}</button>
+      <p v-if="createError" class="text-sm text-red-600">{{ createError }}</p>
+      <button type="button" class="btn-primary w-full" :disabled="saving || !form.title" @click="create">{{ saving ? t('common.loading') : t('owner.packagesPage.saveStub') }}</button>
     </div>
+    </template>
   </div>
 </template>

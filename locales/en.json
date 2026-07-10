@@ -22,6 +22,9 @@
     "send": "Send",
     "whatsapp": "WhatsApp",
     "error": "Something went wrong",
+    "saved": "Saved successfully",
+    "edit": "Edit",
+    "delete": "Delete",
     "hoursShort": "{count}h",
     "distanceKm": "{count} km",
     "courtsCount": "{count} courts",
@@ -285,7 +288,12 @@
       "rental": "Rental",
       "sell": "For sale",
       "services": "Services",
-      "newItem": "New"
+      "newItem": "New",
+      "addTitle": "Add equipment",
+      "editTitle": "Edit equipment",
+      "itemName": "Name",
+      "confirmDelete": "Delete this item?",
+      "selectForBooking": "Select equipment for this booking"
     },
     "packagesPage": {
       "title": "Title",
@@ -341,7 +349,11 @@
     "roles": {
       "CLUB_ADMIN": "Club admin",
       "COACH": "Coach",
-      "STAFF": "Staff"
+      "STAFF": "Staff",
+      "OWNER": "Owner",
+      "MANAGER": "Manager",
+      "FRONT_DESK": "Front desk",
+      "ANALYST": "Analyst"
     },
     "funnelTitle": "Booking funnel",
     "funnel": {
@@ -363,6 +375,14 @@
       "slug": "Club slug",
       "location": "Location",
       "address": "Address",
+      "nameFa": "Name (Farsi)",
+      "nameEn": "Name (English)",
+      "city": "City",
+      "district": "District",
+      "addressFa": "Address (Farsi)",
+      "addressEn": "Address (English)",
+      "openHour": "Open hour",
+      "closeHour": "Close hour",
       "operations": "Operations",
       "hours": "Club hours",
       "cancellation": "Cancellation window",

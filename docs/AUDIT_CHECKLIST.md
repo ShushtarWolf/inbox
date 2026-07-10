@@ -21,41 +21,35 @@
 | `/coach/schedule` | `app/pages/coach/schedule.vue` | — | — | — | — | OK |
 | `/coach/clients` | `app/pages/coach/clients.vue` | — | — | — | — | OK |
 | `/coach/profile` | `app/pages/coach/profile.vue` | — | — | — | — | OK |
-| `/owner` | `app/pages/owner/index.vue` | hardcoded EN, shape key, uppercase | hardcoded EN | time bidi, uppercase CSS | `any`, UTC date | Fixed |
-| `/owner/finance` | `app/pages/owner/finance.vue` | — | — | — | club cookie refresh | Fixed |
-| `/owner/equipments` | `app/pages/owner/equipments.vue` | — | — | — | club cookie refresh | Fixed |
-| `/owner/packages` | `app/pages/owner/packages.vue` | — | — | — | club cookie refresh | Fixed |
-| `/owner/crm` | `app/pages/owner/crm.vue` | delivered, VIP | delivered, VIP | datetime-local | club cookie refresh | Fixed |
-| `/owner/coaches` | `app/pages/owner/coaches.vue` | — | — | session times | club cookie refresh | Fixed |
-| `/owner/support` | `app/pages/owner/support.vue` | WhatsApp label | — | phone LTR | club cookie refresh | Fixed |
-| `/owner/settings` | `app/pages/owner/settings.vue` | bilingual names, WhatsApp | — | hours/phone LTR | club cookie refresh | Fixed |
-| `/owner/reserve/season` | `app/pages/owner/reserve/season.vue` | shape in title (locale) | shape in title | — | — | Fixed (locale keys) |
-| `/owner/reserve/package` | `app/pages/owner/reserve/package.vue` | — | — | — | — | OK |
-| `layout` | `app/layouts/dashboard-owner.vue` | bilingual club names | — | — | cookie refresh | Fixed |
+| `/owner` | `app/pages/owner/index.vue` | Jalali hint via AppDateInput | — | modal actions inline | all slot actions in modal | Fixed |
+| `/owner/finance` | `app/pages/owner/finance.vue` | Persian digits on stats | — | week labels LTR | loading/error states | Fixed |
+| `/owner/equipments` | `app/pages/owner/equipments.vue` | — | — | — | add/edit/delete all categories | Fixed |
+| `/owner/packages` | `app/pages/owner/packages.vue` | — | — | — | club-scoped coaches, loading/error | Fixed |
+| `/owner/crm` | `app/pages/owner/crm.vue` | delivered, VIP | delivered, VIP | datetime-local | loading/error states | Fixed |
+| `/owner/coaches` | `app/pages/owner/coaches.vue` | StaffRole i18n | StaffRole i18n | session times | loading/error states | Fixed |
+| `/owner/support` | `app/pages/owner/support.vue` | WhatsApp label | — | phone LTR | club cookie refresh | OK |
+| `/owner/settings` | `app/pages/owner/settings.vue` | editable bilingual fields | — | hours/phone LTR | PATCH API + save states | Fixed |
+| `/owner/reserve/season` | `app/pages/owner/reserve/season.vue` | — | — | — | redirects to /owner | Repurposed |
+| `/owner/reserve/package` | `app/pages/owner/reserve/package.vue` | — | — | — | redirects to /owner | Repurposed |
+| `layout` | `app/layouts/dashboard-owner.vue` | bilingual club names | — | club selector top-right in FA | cookie refresh | Fixed |
 | `layout` | `app/layouts/default.vue` | — | — | — | — | OK |
 | `layout` | `app/layouts/dashboard-athlete.vue` | — | — | — | — | OK |
 | `layout` | `app/layouts/dashboard-coach.vue` | — | — | — | — | OK |
 | `component` | `app/components/DashboardShell.vue` | — | — | RTL sidebar desktop override | escape on overlay | Fixed |
 | `component` | `app/composables/useAuth.ts` | — | — | — | profile locale overriding URL | Fixed |
-| `component` | `app/pages/clubs/index.vue` | city labels, amenity cards, km | city labels | — | hardcoded km/amenities | Fixed |
-| `component` | `app/pages/coaches/index.vue` | city/specialty labels | city/specialty labels | — | hardcoded cities/specialties | Fixed |
-| `component` | `app/pages/owner/crm.vue` | segment/status labels | segment/status labels | phone/datetime LTR | English API strings | Fixed |
-| `component` | `app/pages/owner/coaches.vue` | role enum | role enum | phone LTR | raw role strings | Fixed |
-| `component` | `app/pages/owner/settings.vue` | role enum | — | — | raw role string | Fixed |
-| `component` | `app/pages/owner/equipments.vue` | new item name | — | — | hardcoded جدید | Fixed |
-| `component` | `app/pages/owner/index.vue` | letter-spacing on FA | — | — | tracking on eyebrow/day | Fixed |
-| `component` | `app/pages/login.vue` | — | — | — | manual /en/register path | Fixed |
-| `component` | `app/components/LocaleSwitcher.vue` | hardcoded EN | — | — | — | Fixed |
-| `component` | `app/components/AppModal.vue` | — | — | centered modal | new shared component | Added |
-| `component` | `app/components/AppDateInput.vue` | Gregorian picker | — | dir=ltr | new shared component | Added |
-| Popup | `owner/index.vue` slot menu | — | — | time bidi | modal a11y | Fixed |
+| `component` | `app/components/AppModal.vue` | — | — | centered modal | shared modal a11y | OK |
+| `component` | `app/components/AppDateInput.vue` | Jalali formatted hint (fa-IR) | — | dir=ltr | used on owner calendar | Fixed |
+| Popup | `owner/index.vue` slot menu | — | — | time bidi | season/package/equipment inline | Fixed |
 | Popup | `athlete/bookings/index.vue` reschedule | native date | — | time bidi | modal a11y | Fixed |
-| Popup | `clubs/index.vue` filters/map | amenity labels | — | — | inline panels OK | Fixed |
-| Popup | `coaches/index.vue` filters | specialty labels | — | — | inline panel OK | Fixed |
-| Popup | `DashboardShell.vue` sidebar | — | — | RTL sidebar | escape key | Fixed |
+| API | `server/api/owner/settings.patch.ts` | — | — | — | new editable settings endpoint | Added |
+| API | `server/api/owner/equipments/[id].patch.ts` | — | — | — | rename equipment | Added |
+| API | `server/api/owner/equipments/[id].delete.ts` | — | — | — | delete equipment | Added |
 
 ## Remaining known limitations
 
-- **Jalali date picker**: FA mode still uses native Gregorian `<input type="date">` with `dir="ltr"` and a formatted Jalali/Gregorian hint via `AppDateInput`. A true Jalali picker is deferred.
+- **Jalali date picker**: FA mode uses native Gregorian `<input type="date">` with `dir="ltr"` and a formatted Jalali hint via `AppDateInput` / `formatDate` (fa-IR calendar). A dedicated Jalali picker library is deferred.
+- **Season/package reserve**: Forms submit to `SeasonBooking` log only; they do not auto-generate recurring calendar slots.
+- **CRM SMS**: Log-only in MVP; no real SMS gateway.
+- **Finance `bookingsToday` stat**: API returns total reservation count, not strictly "today" — label kept as generic "Bookings".
 - **Server `slotStatusLabel()`** in `server/utils/slots.ts` duplicates `fa.json` keys but is only used server-side for non-UI paths; UI uses i18n exclusively.
 - **PwaInstallBanner** `deferredPrompt` typed as `any` (browser BeforeInstallPromptEvent has no stable TS type).
