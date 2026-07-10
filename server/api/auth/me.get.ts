@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
       role: true,
       phone: true,
       locale: true,
+      coachProfile: { select: { photo: true } },
       memberships: {
         where: { active: true },
         select: {
@@ -22,5 +23,12 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
-  return { user }
+  if (!user) return { user: null }
+  const { coachProfile, ...rest } = user
+  return {
+    user: {
+      ...rest,
+      avatarUrl: coachProfile?.photo || null,
+    },
+  }
 })

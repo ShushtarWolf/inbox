@@ -7,6 +7,13 @@ export function roleDashboardPath(role: string, locale: 'fa' | 'en' = 'fa') {
   return `${base}/athlete`
 }
 
+export function profilePathForRole(role: string, locale: 'fa' | 'en' = 'fa') {
+  const base = locale === 'en' ? '/en' : ''
+  if (role === 'CLUB_ADMIN') return `${base}/owner/settings`
+  if (role === 'COACH') return `${base}/coach/profile`
+  return `${base}/athlete/profile`
+}
+
 export function buildReturnTo(path: string, query?: Record<string, string | undefined>) {
   const params = new URLSearchParams()
   if (query) {

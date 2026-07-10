@@ -15,7 +15,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const open = ref(false)
-const { logout, displayName, fetch: fetchAuth } = useAuth()
+const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
 
 async function handleLogout() {
   await logout()
@@ -76,7 +76,23 @@ function goBack() {
           </div>
           <p class="min-w-0 truncate font-display text-base font-black">{{ title }}</p>
           <div class="flex min-w-0 items-center gap-2">
-            <span v-if="displayName" class="hidden max-w-[5.5rem] truncate text-xs font-semibold text-brand-gray-700 sm:inline" :title="displayName">{{ displayName }}</span>
+            <AppUserShortcut
+              v-if="displayName"
+              :to="profilePath"
+              :name="displayName"
+              :avatar-url="avatarUrl"
+              :initials="initials"
+              compact
+              class="sm:hidden"
+            />
+            <AppUserShortcut
+              v-if="displayName"
+              :to="profilePath"
+              :name="displayName"
+              :avatar-url="avatarUrl"
+              :initials="initials"
+              class="hidden sm:inline-flex"
+            />
             <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
             <LocaleSwitcher />
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
@@ -90,7 +106,13 @@ function goBack() {
           <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
         </div>
         <LocaleSwitcher />
-        <span v-if="displayName" class="max-w-[8rem] truncate text-xs font-semibold text-brand-gray-700" :title="displayName">{{ displayName }}</span>
+        <AppUserShortcut
+          v-if="displayName"
+          :to="profilePath"
+          :name="displayName"
+          :avatar-url="avatarUrl"
+          :initials="initials"
+        />
         <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
       </div>
 

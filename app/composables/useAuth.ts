@@ -1,6 +1,6 @@
-import { roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo } from '#shared/returnTo.ts'
+import { profilePathForRole, roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo } from '#shared/returnTo.ts'
 
-export { roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo }
+export { roleDashboardPath, profilePathForRole, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo }
 
 export function dashboardPathForRole(role: string, locale: 'fa' | 'en' = 'fa') {
   return roleDashboardPath(role, locale)
@@ -14,6 +14,7 @@ type AuthUser = {
   role: string
   phone?: string | null
   locale?: string | null
+  avatarUrl?: string | null
   memberships?: Array<{
     role: string
     isPrimary: boolean
@@ -47,6 +48,19 @@ export function useAuth() {
   })
 
   const firstName = computed(() => displayName.value.split(/\s+/)[0] || '')
+
+  const initials = computed(() => {
+    const parts = displayName.value.split(/\s+/).filter(Boolean)
+    if (parts.length >= 2) return `${parts[0]![0] || ''}${parts[1]![0] || ''}`.toUpperCase()
+    return (displayName.value[0] || '?').toUpperCase()
+  })
+
+  const avatarUrl = computed(() => user.value?.avatarUrl || null)
+
+  const profilePath = computed(() => {
+    if (!user.value) return localePath('/login')
+    return localePath(profilePathForRole(user.value.role, locale.value === 'en' ? 'en' : 'fa'))
+  })
 
   async function alignLocaleWithUrl() {
     if (!import.meta.client) return
@@ -97,6 +111,9 @@ export function useAuth() {
     user,
     displayName,
     firstName,
+    initials,
+    avatarUrl,
+    profilePath,
     pending,
     fetch,
     login,
