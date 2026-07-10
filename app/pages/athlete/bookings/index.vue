@@ -23,7 +23,7 @@ interface CourtBooking {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatTimeRange, formatHours } = useFormatters()
+const { formatTimeRange, formatHours, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
 const rescheduleTarget = ref<CourtBooking | null>(null)
@@ -93,7 +93,7 @@ function paymentStatusLabel(status: string) {
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
       <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ b.slot.date }} {{ formatTimeRange(b.slot.startTime) }}</bdi></p>
+        <p class="text-sm" dir="auto">{{ formatIsoDate(b.slot.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(b.slot.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(b.status) }}</span>
           <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
@@ -115,7 +115,7 @@ function paymentStatusLabel(status: string) {
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.coachSection') }}</h2>
       <div v-for="s in data.coachSessions" :key="s.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ s.date }} {{ formatTimeRange(s.startTime) }}</bdi></p>
+        <p class="text-sm" dir="auto">{{ formatIsoDate(s.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(s.status) }}</span>
           <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>

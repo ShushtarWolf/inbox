@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatIsoDate } = useFormatters()
 const { data: staffData } = await useAuthedFetch('/api/owner/staff')
 const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
 const { data: packages, pending, error, refresh } = await useAuthedFetch('/api/owner/packages')
@@ -108,7 +108,7 @@ const rentalEquipments = computed(() =>
         <p v-if="packageDays(p).length" class="mt-1 text-xs text-brand-gray-600">
           {{ packageDays(p).map((day: string) => t(`owner.weekdays.${day}`)).join(' · ') }}
         </p>
-        <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ p.startDate }} – {{ p.finishDate || '…' }}</bdi></p>
+        <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600" dir="auto">{{ formatIsoDate(p.startDate) }} – {{ p.finishDate ? formatIsoDate(p.finishDate) : '…' }}</p>
       </div>
       <div class="flex min-w-[6rem] items-center justify-center rounded-xl border border-dashed border-brand-primary/30 bg-white px-4 py-6 text-2xl text-brand-primary">+</div>
     </div>

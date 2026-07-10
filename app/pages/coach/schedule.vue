@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
 const { t } = useI18n()
-const { formatTimeRange } = useFormatters()
+const { formatIsoDate, formatTimeRange } = useFormatters()
 const { data } = await useAuthedFetch('/api/coach/profile')
 const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
 </script>
@@ -23,7 +23,7 @@ const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
       <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.upcomingSessions') }}</h2>
       <div v-for="session in clientsData?.sessions?.slice(0, 7) || []" :key="session.id" class="ios-card p-3 text-sm">
         <p class="font-bold">{{ session.athlete.name }}</p>
-        <p><bdi dir="ltr" class="tabular-nums">{{ session.date }} · {{ formatTimeRange(session.startTime, session.endTime) }}</bdi></p>
+        <p dir="auto">{{ formatIsoDate(session.date) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(session.startTime, session.endTime) }}</bdi></p>
       </div>
       <p v-if="!clientsData?.sessions?.length" class="text-sm text-brand-gray-600">{{ $t('coach.noUpcomingSessions') }}</p>
     </section>

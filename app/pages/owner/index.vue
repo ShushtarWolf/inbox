@@ -24,7 +24,7 @@ interface OwnerCalendarSlot {
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
 const { today } = useLocalDate()
 
 const date = ref(today())
@@ -91,7 +91,7 @@ const clubCoaches = computed(() =>
     .filter((member: { coach?: { id: string } | null }) => member.coach)
     .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
 )
-const dayNumber = computed(() => formatNumber(currentDate.value.getDate()))
+const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 
 function slotClass(status: string) {
@@ -132,7 +132,10 @@ function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
   if (slot.booking?.guestMobile)
     return slot.booking.guestMobile
 
-  return statusLabel(slot.displayStatus)
+  if (slot.booking?.paymentStatus)
+    return t(`booking.paymentStatus.${slot.booking.paymentStatus}`)
+
+  return ''
 }
 
 function resetPanels() {
@@ -147,6 +150,14 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
   selectedSlot.value = slot
   showMenu.value = true
+  // #region agent log
+  const guestName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
+  const line1 = guestName || statusLabel(slot.displayStatus)
+  const line2 = slot.booking?.paymentStatus
+    ? t(`booking.paymentStatus.${slot.booking.paymentStatus}`)
+    : (slot.booking?.guestMobile || '')
+  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ab2367' }, body: JSON.stringify({ sessionId: 'ab2367', location: 'owner/index.vue:openSlot', message: 'slot modal header lines', data: { displayStatus: slot.displayStatus, guestName, line1, line2, duplicate: line1 === line2 && line1 !== '' }, timestamp: Date.now(), hypothesisId: 'H1-H3' }) }).catch(() => {})
+  // #endregion
   resetPanels()
   cancelReason.value = ''
   actionError.value = ''
@@ -245,10 +256,10 @@ function slotStatusSummary() {
   if (selectedSlot.value.booking?.paymentStatus) {
     return t(`booking.paymentStatus.${selectedSlot.value.booking.paymentStatus}`)
   }
-  if (selectedSlot.value.displayStatus === 'FREE') {
-    return t('owner.status.FREE')
+  if (selectedSlot.value.booking?.guestMobile) {
+    return selectedSlot.value.booking.guestMobile
   }
-  return statusLabel(selectedSlot.value.displayStatus)
+  return ''
 }
 
 function slotGuestName() {
@@ -415,7 +426,7 @@ const legend = [
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
-            <AppDateInput v-model="date" class="calendar-date-picker-wrap" />
+            <AppDateInput v-model="date" class="calendar-date-picker-wrap" :show-formatted-hint="false" />
           </div>
         </div>
 
@@ -507,7 +518,7 @@ const legend = [
           <div v-if="selectedSlot" class="border-b px-4 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
-            <p class="mt-1 text-xs text-brand-gray-600">{{ slotStatusSummary() }}</p>
+            <p v-if="slotStatusSummary()" class="mt-1 text-xs text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
           <button v-if="canCancelSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm font-bold" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canReserveSlot()" type="button" class="block w-full border-b bg-brand-primary px-4 py-3 text-start text-sm font-bold text-white" @click="openReserveForm">{{ slotActionLabel() }}</button>
@@ -656,7 +667,8 @@ const legend = [
   grid-template-columns: 5.5rem repeat(auto-fit, minmax(8.5rem, 1fr));
 }
 
-.calendar-date-picker-wrap :deep(input) {
+.calendar-date-picker-wrap :deep(input),
+.calendar-date-picker-wrap :deep(select) {
   border: 0;
   background: transparent;
   padding: 0;

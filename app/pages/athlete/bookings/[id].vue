@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const booking = computed(() => data.value?.courtBookings?.find((b: { id: string }) => b.id === route.params.id))
 const rescheduleDate = ref(today())
@@ -64,7 +64,7 @@ async function rescheduleBooking() {
   <div v-if="booking" class="space-y-4">
     <PageHeaderNav
       :title="localizedField(booking.slot.court.club, 'nameFa', 'nameEn')"
-      :subtitle="`${booking.slot.date} · ${booking.slot.startTime}`"
+      :subtitle="`${formatIsoDate(booking.slot.date)} · ${formatTimeRange(booking.slot.startTime)}`"
       :home-to="localePath('/')"
       :back-to="localePath('/athlete/bookings')"
     />

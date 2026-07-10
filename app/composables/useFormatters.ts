@@ -5,6 +5,17 @@ export function useFormatters() {
     return locale.value === 'fa' ? 'fa-IR' : 'en-US'
   }
 
+  function faDateOptions(extra: Intl.DateTimeFormatOptions = {}): Intl.DateTimeFormatOptions {
+    if (locale.value !== 'fa') return extra
+    return { calendar: 'persian', numberingSystem: 'arabext', ...extra }
+  }
+
+  function toDate(value: string | number | Date) {
+    if (value instanceof Date) return value
+    const normalized = typeof value === 'string' && !value.includes('T') ? `${value}T12:00:00` : value
+    return new Date(normalized)
+  }
+
   function formatNumber(value: number | string | null | undefined) {
     const numeric = typeof value === 'number' ? value : Number(value ?? 0)
     return new Intl.NumberFormat(intlLocale()).format(numeric)
@@ -15,17 +26,28 @@ export function useFormatters() {
   }
 
   function formatDate(value: string | number | Date) {
-    const date = value instanceof Date ? value : new Date(value)
-    return new Intl.DateTimeFormat(intlLocale(), {
+    return new Intl.DateTimeFormat(intlLocale(), faDateOptions({
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    }).format(date)
+    })).format(toDate(value))
+  }
+
+  function formatIsoDate(iso: string) {
+    if (!iso) return ''
+    return formatDate(iso)
+  }
+
+  function formatDayNumber(value: string | number | Date) {
+    const date = toDate(value)
+    if (locale.value === 'fa') {
+      return new Intl.DateTimeFormat(intlLocale(), faDateOptions({ day: 'numeric' })).format(date)
+    }
+    return formatNumber(date.getDate())
   }
 
   function formatWeekday(value: string | number | Date, style: 'short' | 'long' = 'short') {
-    const date = value instanceof Date ? value : new Date(value)
-    return new Intl.DateTimeFormat(intlLocale(), { weekday: style }).format(date)
+    return new Intl.DateTimeFormat(intlLocale(), faDateOptions({ weekday: style })).format(toDate(value))
   }
 
   function formatTimeLabel(value: string) {
@@ -49,6 +71,8 @@ export function useFormatters() {
     formatNumber,
     formatCurrency,
     formatDate,
+    formatIsoDate,
+    formatDayNumber,
     formatWeekday,
     formatTimeLabel,
     formatTimeRange,

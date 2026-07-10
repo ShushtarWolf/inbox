@@ -48,6 +48,8 @@ const bookingsTileLink = computed(() => {
 })
 const heroSearchDate = computed(() => {
   return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
+    calendar: locale.value === 'fa' ? 'persian' : 'gregory',
+    numberingSystem: locale.value === 'fa' ? 'arabext' : undefined,
     weekday: 'short',
     day: 'numeric',
     month: 'short',

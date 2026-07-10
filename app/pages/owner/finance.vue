@@ -4,7 +4,12 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
 useOwnerClubRefresh(refresh)
-const { formatCurrency, formatNumber } = useFormatters()
+const { formatCurrency, formatNumber, formatDate } = useFormatters()
+
+function formatWeekLabel(iso?: string) {
+  if (!iso) return ''
+  return formatDate(iso)
+}
 
 const maxWeeklyRevenue = computed(() => Math.max(...(data.value?.weeklyRevenue || [1]), 1))
 
@@ -55,7 +60,7 @@ function paymentStatusLabel(status: string) {
               class="w-full max-w-[2.5rem] rounded-t-md bg-gradient-to-t from-brand-primary to-brand-primary/60 shadow-sm transition-all"
               :style="{ height: `${Math.max(16, (amount / maxWeeklyRevenue) * 100)}%` }"
             />
-            <span class="text-[10px] font-semibold text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ data?.weekLabels?.[index]?.slice(5) }}</bdi></span>
+            <span class="text-[10px] font-semibold text-brand-gray-600" dir="auto">{{ formatWeekLabel(data?.weekLabels?.[index]) }}</span>
           </div>
         </div>
       </div>
