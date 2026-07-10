@@ -59,6 +59,11 @@ async function confirm() {
       query: { returnTo: route.fullPath },
     }))
   }
+  if (!startTime.value) {
+    feedbackTone.value = 'error'
+    feedback.value = t('booking.selectTime')
+    return
+  }
   try {
     await $fetch('/api/bookings/coach', {
       method: 'POST',
@@ -126,7 +131,7 @@ onMounted(() => {
     <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 
-    <select v-else v-model="startTime" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
+    <select v-else-if="!done" v-model="startTime" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
       <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
     </select>
 
@@ -134,7 +139,10 @@ onMounted(() => {
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
       <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
     </div>
-    <div v-else-if="!pending && !error" class="space-y-2">
+    <div
+      v-else-if="!pending && !error"
+      class="sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 space-y-2 bg-gradient-to-t from-brand-cream from-70% px-4 pb-2 pt-4 lg:static lg:mx-0 lg:bg-transparent lg:p-0"
+    >
       <button v-if="availability?.slots?.length" type="button" class="btn-primary w-full" @click="confirm">{{ t('booking.confirm') }}</button>
       <button v-else type="button" class="w-full rounded-xl border px-4 py-3 text-sm font-bold" @click="joinWaitlist">
         {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}

@@ -145,7 +145,13 @@ onMounted(() => {
         <p class="font-bold">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
       </button>
-      <button v-if="slots?.length" type="button" class="btn-primary w-full" :disabled="!selectedSlot" @click="confirm">
+      <button
+        v-if="slots?.length"
+        type="button"
+        class="btn-primary sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 w-[calc(100%+2rem)] bg-brand-cream px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] lg:static lg:mx-0 lg:w-full lg:bg-transparent lg:p-0 lg:shadow-none"
+        :disabled="!selectedSlot"
+        @click="confirm"
+      >
         {{ t('booking.confirm') }}
       </button>
     </div>

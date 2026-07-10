@@ -30,7 +30,7 @@ const query = computed(() => ({
   radiusKm: route.query.radiusKm as string | undefined,
 }))
 
-const { data: clubs } = await useFetch('/api/clubs', {
+const { data: clubs, pending, error } = await useFetch('/api/clubs', {
   query,
 })
 
@@ -187,7 +187,11 @@ async function useNearby() {
       </div>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <p v-else-if="!clubs?.length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+
+    <div v-else class="grid gap-4 lg:grid-cols-2">
       <NuxtLink
         v-for="club in clubs"
         :key="club.id"

@@ -136,6 +136,7 @@
       "Match tactics": "Match tactics",
       "Serve": "Serve",
       "Women coaching": "Women coaching",
+      "Match prep": "Match prep",
       "Backhand": "Backhand"
     }
   },
@@ -177,6 +178,7 @@
     "joinWaitlist": "Join waitlist",
     "waitlistJoined": "You have been added to the waitlist.",
     "noSlots": "No slots are available for this date.",
+    "selectTime": "Please select a time slot.",
     "reschedule": "Reschedule",
     "actionFailed": "This action could not be completed.",
     "emptyState": "You do not have any bookings yet.",

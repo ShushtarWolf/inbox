@@ -14,7 +14,7 @@ const filters = reactive({
   verified: route.query.verified === 'true',
 })
 
-const { data: coaches } = await useFetch('/api/coaches', {
+const { data: coaches, pending, error } = await useFetch('/api/coaches', {
   query: computed(() => ({
     sport: route.query.sport as string | undefined,
     city: filters.city || undefined,
@@ -29,7 +29,7 @@ const cityOptions = [
   { value: 'اصفهان', key: 'isfahan' },
   { value: 'شیراز', key: 'shiraz' },
 ] as const
-const specialtyOptions = ['Padel basics', 'Match tactics', 'Serve', 'Women coaching', 'Backhand'] as const
+const specialtyOptions = ['Padel basics', 'Match tactics', 'Match prep', 'Serve', 'Women coaching', 'Backhand'] as const
 
 function cityLabel(key: 'tehran' | 'isfahan' | 'shiraz') {
   return t(`clubs.cityOptions.${key}`)
@@ -82,7 +82,11 @@ async function syncRoute() {
         {{ t('clubs.verifiedOnly') }}
       </label>
     </div>
-    <div class="grid gap-4 lg:grid-cols-2">
+    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <p v-else-if="!coaches?.length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+
+    <div v-else class="grid gap-4 lg:grid-cols-2">
       <NuxtLink
         v-for="c in coaches"
         :key="c.id"
