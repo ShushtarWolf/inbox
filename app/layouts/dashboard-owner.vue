@@ -67,7 +67,7 @@ onMounted(() => fetchAuth())
     <div v-if="memberships.length > 1" class="mb-4 flex items-center justify-end gap-2 rtl:justify-start">
       <label class="flex items-center gap-2 text-xs font-bold text-brand-gray-600">
         <span>{{ t('owner.activeClub') }}</span>
-        <select v-model="selectedClubId" class="rounded-xl border px-3 py-2 text-sm">
+        <select v-model="selectedClubId" class="neo-select">
           <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
             {{ localizedField(item.club, 'nameFa', 'nameEn') }}
           </option>

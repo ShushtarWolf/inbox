@@ -19,7 +19,7 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
     />
     <img :src="club.image || '/demo/clubs/padel-zone-tehran.jpg'" alt="" class="ios-card -mx-4 aspect-[16/10] w-[calc(100%+2rem)] object-cover" />
     <div class="flex items-center gap-2">
-      <span v-if="club.verifiedAt" class="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold text-brand-primary">{{ t('clubs.verified') }}</span>
+      <span v-if="club.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>
     </div>
     <p class="text-sm text-brand-gray-600">⭐ {{ club.reviewSummary?.average || club.rating }} · {{ club.reviewSummary?.count || 0 }} {{ t('clubs.reviews') }}</p>
     <p class="text-sm">{{ localizedField(club, 'descriptionFa', 'descriptionEn') }}</p>
@@ -40,14 +40,14 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
     <section v-if="club.amenities?.length" class="ios-card p-4">
       <h2 class="mb-2 font-bold">{{ t('clubs.amenities') }}</h2>
       <div class="flex flex-wrap gap-2">
-        <span v-for="item in club.amenities" :key="item" class="rounded-full border px-3 py-1 text-xs">{{ item }}</span>
+        <span v-for="item in club.amenities" :key="item" class="neo-pill neo-pill-inactive">{{ item }}</span>
       </div>
     </section>
 
     <section v-if="club.media?.length" class="ios-card p-4">
       <h2 class="mb-3 font-bold">{{ t('clubs.gallery') }}</h2>
       <div class="grid gap-3 sm:grid-cols-2">
-        <div v-for="item in club.media" :key="item.id" class="overflow-hidden rounded-xl border">
+        <div v-for="item in club.media" :key="item.id" class="overflow-hidden ios-card">
           <img :src="item.url" alt="" class="aspect-[4/3] w-full object-cover" />
           <p class="p-2 text-xs text-brand-gray-600">{{ localizedField(item, 'captionFa', 'captionEn') }}</p>
         </div>
@@ -57,7 +57,7 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
     <section v-if="club.pricing?.length" class="ios-card p-4">
       <h2 class="mb-3 font-bold">{{ t('clubs.pricingMatrix') }}</h2>
       <div class="space-y-2 text-sm">
-        <div v-for="item in club.pricing" :key="localizedField(item, 'labelFa', 'labelEn')" class="flex items-center justify-between rounded-xl border px-3 py-2">
+        <div v-for="item in club.pricing" :key="localizedField(item, 'labelFa', 'labelEn')" class="flex items-center justify-between neo-select">
           <span>{{ localizedField(item, 'labelFa', 'labelEn') }}</span>
           <span class="font-bold text-brand-primary">{{ formatCurrency(item.from) }} - {{ formatCurrency(item.to) }}</span>
         </div>
@@ -77,7 +77,7 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
     <section v-if="club.coaches?.length" class="ios-card p-4">
       <h2 class="mb-3 font-bold">{{ t('owner.coaches') }}</h2>
       <div class="grid gap-3 sm:grid-cols-2">
-        <NuxtLink v-for="coach in club.coaches" :key="coach.id" :to="localePath(`/coaches/${coach.id}`)" class="rounded-xl border p-3">
+        <NuxtLink v-for="coach in club.coaches" :key="coach.id" :to="localePath(`/coaches/${coach.id}`)" class="ios-card p-3">
           <p class="font-bold">{{ localizedField(coach, 'nameFa', 'nameEn') }}</p>
           <p class="text-xs text-brand-gray-600">{{ localizedField(coach, 'headlineFa', 'headlineEn') }}</p>
         </NuxtLink>
@@ -101,7 +101,7 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
     <section v-if="club.testimonials?.length" class="ios-card p-4">
       <h2 class="mb-3 font-bold">{{ t('clubs.testimonials') }}</h2>
       <div class="space-y-3">
-        <div v-for="item in club.testimonials" :key="item.id" class="rounded-xl border p-3">
+        <div v-for="item in club.testimonials" :key="item.id" class="ios-card p-3">
           <div class="flex items-center justify-between gap-3">
             <p class="font-bold">{{ item.authorName }}</p>
             <p class="text-xs text-brand-gray-600">⭐ {{ item.rating }}</p>

@@ -26,7 +26,7 @@ const nextLabel = computed(() => {
       <p v-if="error" class="mt-2 text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
       <p v-else-if="pending" class="mt-2 text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
       <p v-else-if="next" class="mt-2 text-sm" dir="auto">{{ nextLabel }}</p>
-      <p v-else class="mt-2 rounded-lg border border-dashed border-black/10 bg-brand-cream/40 p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>
+      <p v-else class="mt-2 ios-card border-dashed p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>
     </div>
     <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary block text-center">{{ $t('nav.bookings') }}</NuxtLink>
   </div>

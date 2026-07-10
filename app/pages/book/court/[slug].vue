@@ -133,7 +133,7 @@ onMounted(() => {
     <div v-else-if="!pending && !error" class="space-y-2">
       <div v-if="!slots?.length" class="ios-card space-y-2 p-4 text-center">
         <p class="font-bold">{{ t('booking.noSlots') }}</p>
-        <button type="button" class="rounded-xl border px-4 py-3 text-sm font-bold" @click="joinWaitlist">
+        <button type="button" class="btn-ghost w-full" @click="joinWaitlist">
           {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
         </button>
       </div>

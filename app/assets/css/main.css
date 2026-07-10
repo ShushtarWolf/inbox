@@ -81,6 +81,30 @@
   .neo-input:focus {
     @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
   }
+  .neo-select {
+    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
+  }
+  .neo-select:focus {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
+  }
+  .neo-textarea {
+    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
+  }
+  .neo-textarea:focus {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
+  }
+  .neo-modal-panel {
+    @apply min-w-0 flex-1 rounded-brutal border-2 border-black bg-white p-4 shadow-brutal;
+  }
+  .neo-modal-menu {
+    @apply w-full shrink-0 overflow-hidden rounded-brutal border-2 border-black bg-white shadow-brutal lg:w-52;
+  }
+  .neo-menu-item {
+    @apply block w-full border-b-2 border-black px-4 py-3 text-start text-sm font-black transition hover:bg-brand-lavender;
+  }
+  .neo-menu-item-active {
+    @apply bg-brand-primary text-black;
+  }
   .neo-pill {
     @apply inline-flex items-center rounded-brutal border-2 border-black px-3 py-1.5 text-xs font-black shadow-brutal-sm transition-all;
   }

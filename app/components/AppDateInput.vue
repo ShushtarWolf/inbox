@@ -68,21 +68,21 @@ watch([model, locale], ([dateValue, currentLocale]) => {
     <div v-if="isFa" class="flex flex-wrap items-center gap-1">
       <select
         v-model.number="jalaliDay"
-        class="rounded-xl border border-black/10 bg-white px-2 py-2 text-sm"
+        class="neo-select px-2 py-2"
         :aria-label="t('common.date')"
       >
         <option v-for="day in jalaliDays" :key="day" :value="day">{{ formatNumber(day) }}</option>
       </select>
       <select
         v-model.number="jalaliMonth"
-        class="min-w-[6.5rem] rounded-xl border border-black/10 bg-white px-2 py-2 text-sm"
+        class="neo-select min-w-[6.5rem] px-2 py-2"
         :aria-label="t('common.date')"
       >
         <option v-for="(month, index) in PERSIAN_MONTHS" :key="month" :value="index + 1">{{ month }}</option>
       </select>
       <select
         v-model.number="jalaliYear"
-        class="rounded-xl border border-black/10 bg-white px-2 py-2 text-sm tabular-nums"
+        class="neo-select px-2 py-2 tabular-nums"
         dir="ltr"
         :aria-label="t('common.date')"
       >
@@ -95,7 +95,7 @@ watch([model, locale], ([dateValue, currentLocale]) => {
       v-model="model"
       type="date"
       dir="ltr"
-      class="w-full rounded-xl border border-black/10 px-3 py-2 tabular-nums"
+      class="neo-input tabular-nums"
     >
 
     <p v-if="formattedHint" class="text-xs text-brand-gray-600" dir="auto">{{ formattedHint }}</p>

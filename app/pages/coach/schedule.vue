@@ -17,7 +17,7 @@ const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
         <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(a.startTime, a.endTime) }}</bdi>
       </div>
     </div>
-    <p v-else class="rounded-xl border border-dashed border-black/10 bg-brand-cream/40 p-4 text-sm text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
+    <p v-else class="ios-card border-dashed p-4 text-sm text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
 
     <section class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.upcomingSessions') }}</h2>

@@ -60,24 +60,24 @@ async function syncRoute() {
   <div class="space-y-4">
     <PageHeaderNav :title="t('coaches.title')" :home-to="localePath('/')" />
 
-    <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
+    <button type="button" class="neo-pill neo-pill-inactive" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === '' ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city.value" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city.value ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city.value; syncRoute()">
+      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
+      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = city.value; syncRoute()">
         {{ cityLabel(city.key) }}
       </button>
     </div>
     <div v-if="showFilters" class="ios-card grid gap-3 p-4 lg:grid-cols-3">
-      <select v-model="filters.specialty" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
+      <select v-model="filters.specialty" class="neo-select" @change="syncRoute()">
         <option value="">{{ t('coaches.allSpecialties') }}</option>
         <option v-for="option in specialtyOptions" :key="option" :value="option">{{ specialtyLabel(option) }}</option>
       </select>
-      <select v-model="filters.sort" class="rounded-xl border px-3 py-2 text-sm" @change="syncRoute()">
+      <select v-model="filters.sort" class="neo-select" @change="syncRoute()">
         <option value="rank">{{ t('clubs.sort.rank') }}</option>
         <option value="rating">{{ t('clubs.sort.rating') }}</option>
         <option value="price">{{ t('clubs.sort.price') }}</option>
       </select>
-      <label class="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm">
+      <label class="flex items-center gap-2 neo-select">
         <input v-model="filters.verified" type="checkbox" @change="syncRoute()" />
         {{ t('clubs.verifiedOnly') }}
       </label>
@@ -93,17 +93,17 @@ async function syncRoute() {
         :to="localePath(`/coaches/${c.id}`)"
         class="ios-card flex items-center gap-3 p-3"
       >
-        <img :src="c.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 rounded-full object-cover" />
+        <img :src="c.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 border-2 border-black object-cover shadow-brutal-sm" />
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <p class="font-bold">{{ localizedField(c, 'nameFa', 'nameEn') }}</p>
-            <span v-if="c.verified" class="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold text-brand-primary">{{ t('clubs.verified') }}</span>
+            <span v-if="c.verified" class="neo-badge">{{ t('clubs.verified') }}</span>
           </div>
           <p class="text-xs text-brand-gray-600">{{ c.city }} · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</p>
           <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ formatSpecialties(c.specialties) }}</p>
           <p class="text-sm font-black text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
         </div>
-        <span class="rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.coachCta') }}</span>
+        <span class="neo-badge">{{ t('home.coachCta') }}</span>
       </NuxtLink>
     </div>
   </div>

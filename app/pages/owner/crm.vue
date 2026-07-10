@@ -48,19 +48,19 @@ async function send() {
     <template v-else>
     <div class="space-y-4">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-xl border bg-white p-3 text-center">
+        <div class="ios-card p-3 text-center">
           <p class="text-lg font-black text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.contacts') }}</p>
         </div>
-        <div class="rounded-xl border bg-white p-3 text-center">
+        <div class="ios-card p-3 text-center">
           <p class="text-lg font-black text-brand-primary">{{ data?.stats?.activeThisMonth || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
         </div>
-        <div class="rounded-xl border bg-white p-3 text-center">
+        <div class="ios-card p-3 text-center">
           <p class="text-lg font-black text-brand-primary">{{ data?.stats?.smsSent || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.smsSent') }}</p>
         </div>
-        <div class="rounded-xl border bg-white p-3 text-center">
+        <div class="ios-card p-3 text-center">
           <p class="text-lg font-black text-brand-primary">{{ data?.stats?.campaigns || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.campaigns') }}</p>
         </div>
@@ -71,15 +71,15 @@ async function send() {
           v-for="segment in data?.segments"
           :key="segment.id"
           type="button"
-          class="rounded-full border px-3 py-1 text-xs font-bold"
-          :class="selectedSegment === segment.id ? 'border-brand-primary text-brand-primary' : ''"
+          class="neo-pill neo-pill-inactive"
+          :class="selectedSegment === segment.id ? 'neo-pill-active shadow-brutal' : ''"
           @click="selectedSegment = segment.id"
         >
           {{ segmentLabel(segment) }} ({{ segment.count }})
         </button>
       </div>
 
-      <div class="rounded-xl border bg-white p-4">
+      <div class="ios-card p-4">
         <h1 class="mb-3 font-bold">{{ $t('owner.crm') }}</h1>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[30rem] text-sm">
@@ -100,10 +100,10 @@ async function send() {
         </div>
       </div>
 
-      <div class="rounded-xl border bg-white p-4">
+      <div class="ios-card p-4">
         <h2 class="mb-3 font-bold">{{ t('owner.crmPage.recentCampaigns') }}</h2>
         <div class="space-y-2 text-sm">
-          <div v-for="campaign in data?.campaigns" :key="campaign.id" class="rounded-xl border p-3">
+          <div v-for="campaign in data?.campaigns" :key="campaign.id" class="ios-card p-3">
             <div class="flex items-center justify-between gap-3">
               <p class="font-bold">{{ campaign.name }}</p>
               <span class="text-xs text-brand-gray-600">{{ campaignStatusLabel(campaign.status) }}</span>
@@ -116,27 +116,27 @@ async function send() {
     </div>
 
     <div class="space-y-4">
-      <div class="rounded-xl border bg-white p-4">
+      <div class="ios-card p-4">
         <h2 class="mb-2 font-bold">{{ t('owner.crmPage.pushSms') }}</h2>
         <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.logOnlyNote') }}</p>
-        <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="mb-2 w-full rounded border p-2 text-sm" />
-        <select v-model="sms.recipient" class="mb-2 w-full rounded border p-2 text-sm">
+        <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="mb-2 neo-input" />
+        <select v-model="sms.recipient" class="mb-2 neo-input">
           <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
           <option value="vip">{{ t('owner.crmPage.vip') }}</option>
           <option value="inactive">{{ t('owner.crmPage.reactivation') }}</option>
           <option value="atRisk">{{ t('owner.crmPage.noShowRisk') }}</option>
         </select>
-        <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="mb-2 w-full rounded border p-2 text-sm tabular-nums">
-        <textarea v-model="sms.message" class="mb-2 w-full rounded border p-2 text-sm" rows="4" />
+        <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="mb-2 neo-input tabular-nums">
+        <textarea v-model="sms.message" class="mb-2 neo-input" rows="4" />
         <button type="button" class="btn-primary" @click="send">{{ t('common.send') }}</button>
         <p v-if="feedback" class="mt-2 text-sm text-brand-gray-600">{{ feedback }}</p>
       </div>
 
-      <div class="rounded-xl border bg-white p-4">
+      <div class="ios-card p-4">
         <h2 class="mb-2 font-bold">{{ t('owner.crmPage.reminders') }}</h2>
         <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.remindersInfo') }}</p>
         <div class="space-y-2 text-sm">
-          <div v-for="rule in data?.reminders" :key="rule.id" class="rounded-xl border px-3 py-2">
+          <div v-for="rule in data?.reminders" :key="rule.id" class="neo-select">
             <p class="font-bold">{{ rule.name }}</p>
             <p class="text-xs text-brand-gray-600">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
           </div>

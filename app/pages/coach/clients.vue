@@ -12,6 +12,6 @@ const { data } = await useAuthedFetch('/api/coach/clients')
       <p class="text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ c.phone }}</bdi></p>
       <p class="text-xs text-brand-gray-600">{{ $t('coach.nextSession') }}: <bdi dir="ltr" class="tabular-nums">{{ c.nextSessionDate }} · {{ c.nextSessionTime }}</bdi></p>
     </div>
-    <p v-if="!data?.clients?.length" class="rounded-xl border border-dashed border-black/10 bg-brand-cream/40 p-4 text-sm text-brand-gray-600">{{ $t('coach.noClients') }}</p>
+    <p v-if="!data?.clients?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">{{ $t('coach.noClients') }}</p>
   </div>
 </template>

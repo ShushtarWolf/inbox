@@ -116,7 +116,7 @@ async function deleteItem(item: EquipmentItem) {
       <div
         v-for="cat in categories"
         :key="cat.key"
-        class="rounded-xl border bg-white p-4"
+        class="ios-card p-4"
       >
         <div class="mb-2 flex items-center justify-between gap-2">
           <h3 class="font-bold">{{ t(cat.labelKey) }}</h3>
@@ -139,14 +139,14 @@ async function deleteItem(item: EquipmentItem) {
     </div>
 
     <AppModal :open="showModal" :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
-      <div class="rounded-2xl bg-white p-4">
+      <div class="ios-card p-4">
         <label class="mb-3 block text-sm">
           <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.itemName') }}</span>
-          <input v-model="modalName" class="w-full rounded-xl border px-3 py-2" :dir="locale === 'fa' ? 'auto' : 'ltr'">
+          <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'">
         </label>
         <label v-if="modalCategory !== 'CLUB'" class="mb-3 block text-sm">
           <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.price') }}</span>
-          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
+          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums">
           <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</span>
         </label>
         <p v-if="modalError" class="mb-2 text-sm text-red-600">{{ modalError }}</p>

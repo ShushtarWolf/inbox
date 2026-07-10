@@ -30,9 +30,9 @@ async function save() {
 <template>
   <div class="space-y-4">
     <PageHeaderNav :title="$t('nav.profile')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
-    <input v-model="name" :placeholder="$t('common.name')" class="w-full rounded-xl border px-3 py-2" />
-    <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="w-full rounded-xl border px-3 py-2 tabular-nums" />
-    <select v-model="profileLocale" class="w-full rounded-xl border px-3 py-2">
+    <input v-model="name" :placeholder="$t('common.name')" class="neo-input" />
+    <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="neo-input tabular-nums" />
+    <select v-model="profileLocale" class="neo-input">
       <option value="fa">{{ $t('common.languageFa') }}</option>
       <option value="en">{{ $t('common.languageEn') }}</option>
     </select>

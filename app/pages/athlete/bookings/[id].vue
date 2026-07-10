@@ -95,8 +95,8 @@ async function submitReview() {
     />
     <div class="ios-card space-y-2 p-4">
       <div class="flex flex-wrap gap-2 text-xs">
-        <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(booking.status) }}</span>
-        <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(booking.payment?.status || booking.paymentStatus) }}</span>
+        <span class="neo-badge">{{ bookingStatusLabel(booking.status) }}</span>
+        <span class="neo-badge bg-white">{{ paymentStatusLabel(booking.payment?.status || booking.paymentStatus) }}</span>
       </div>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ booking.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>
@@ -104,7 +104,7 @@ async function submitReview() {
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
-        <button type="button" class="rounded-xl border px-4 py-2 text-sm font-bold" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
+        <button type="button" class="btn-ghost" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>
       </div>
     </div>
@@ -117,8 +117,8 @@ async function submitReview() {
           v-for="slot in replacementSlots"
           :key="slot.id"
           type="button"
-          class="w-full rounded-xl border px-3 py-2 text-start text-sm"
-          :class="rescheduleSlotId === slot.id ? 'border-brand-primary text-brand-primary' : ''"
+          class="neo-input text-start text-sm"
+          :class="rescheduleSlotId === slot.id ? 'neo-pill-active shadow-brutal' : ''"
           @click="rescheduleSlotId = slot.id"
         >
           {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
@@ -130,8 +130,8 @@ async function submitReview() {
 
     <div v-if="canReview && !reviewDone" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('reviews.submitTitle') }}</h2>
-      <input v-model.number="reviewRating" type="number" min="1" max="5" class="w-full rounded-xl border px-3 py-2" />
-      <textarea v-model="reviewBody" class="w-full rounded-xl border px-3 py-2" rows="3" :placeholder="$t('reviews.bodyPlaceholder')" />
+      <input v-model.number="reviewRating" type="number" min="1" max="5" class="neo-input" />
+      <textarea v-model="reviewBody" class="neo-input" rows="3" :placeholder="$t('reviews.bodyPlaceholder')" />
       <button type="button" class="btn-primary w-full" :disabled="reviewSubmitting || !reviewBody" @click="submitReview">{{ $t('reviews.submit') }}</button>
     </div>
     <p v-else-if="reviewDone" class="text-sm text-brand-primary">{{ $t('reviews.thanks') }}</p>

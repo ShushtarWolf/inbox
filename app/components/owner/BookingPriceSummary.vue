@@ -24,27 +24,27 @@ function priceLabel(amount: number) {
 </script>
 
 <template>
-  <div class="mt-4 rounded-xl border border-[#ece8f6] bg-[#faf8ff] p-3 text-sm">
+  <div class="mt-4 rounded-brutal border-2 border-black bg-brand-sky p-3 text-sm shadow-brutal-sm">
     <div class="flex items-center justify-between gap-2">
-      <span class="text-brand-gray-600">{{ t('owner.priceBreakdown.court') }}</span>
-      <span class="font-semibold">{{ priceLabel(courtPrice) }}</span>
+      <span class="font-bold text-black/70">{{ t('owner.priceBreakdown.court') }}</span>
+      <span class="font-black">{{ priceLabel(courtPrice) }}</span>
     </div>
     <div v-if="coachPrice !== undefined" class="mt-2 flex items-center justify-between gap-2">
-      <span class="text-brand-gray-600">{{ t('owner.priceBreakdown.coach') }}</span>
-      <span class="font-semibold">{{ priceLabel(coachPrice) }}</span>
+      <span class="font-bold text-black/70">{{ t('owner.priceBreakdown.coach') }}</span>
+      <span class="font-black">{{ priceLabel(coachPrice) }}</span>
     </div>
     <div class="mt-2 flex items-center justify-between gap-2">
-      <span class="text-brand-gray-600">{{ t('owner.priceBreakdown.equipment') }}</span>
-      <span class="font-semibold">{{ priceLabel(equipmentPrice || 0) }}</span>
+      <span class="font-bold text-black/70">{{ t('owner.priceBreakdown.equipment') }}</span>
+      <span class="font-black">{{ priceLabel(equipmentPrice || 0) }}</span>
     </div>
-    <div v-if="showEstimated && (sessionCount || 0) > 1" class="mt-2 flex items-center justify-between gap-2 text-xs text-brand-gray-600">
+    <div v-if="showEstimated && (sessionCount || 0) > 1" class="mt-2 flex items-center justify-between gap-2 text-xs font-bold text-black/70">
       <span>{{ t('owner.priceBreakdown.perSession') }}</span>
       <span>{{ priceLabel(perSessionTotal) }}</span>
     </div>
-    <div class="my-2 border-t border-[#e9e6f2]" />
-    <div class="flex items-center justify-between gap-2 font-bold">
+    <div class="my-2 border-t-2 border-black" />
+    <div class="flex items-center justify-between gap-2 font-black">
       <span>{{ showEstimated ? t('owner.priceBreakdown.estimatedTotal') : t('owner.priceBreakdown.total') }}</span>
-      <span class="text-brand-primary">{{ priceLabel(displayTotal) }}</span>
+      <span>{{ priceLabel(displayTotal) }}</span>
     </div>
   </div>
 </template>

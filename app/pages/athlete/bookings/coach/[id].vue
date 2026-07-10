@@ -78,8 +78,8 @@ async function rescheduleSession() {
 
     <div class="ios-card space-y-2 p-4">
       <div class="flex flex-wrap gap-2 text-xs">
-        <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(session.status) }}</span>
-        <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(session.payment?.status || session.paymentStatus) }}</span>
+        <span class="neo-badge">{{ bookingStatusLabel(session.status) }}</span>
+        <span class="neo-badge bg-white">{{ paymentStatusLabel(session.payment?.status || session.paymentStatus) }}</span>
       </div>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ session.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(session.payment?.amount || session.price) }}</p>
@@ -87,7 +87,7 @@ async function rescheduleSession() {
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.cancellationWindowHours || 24) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.rescheduleWindowHours || 24) }} {{ $t('booking.rescheduleWindow') }}</p>
       <div v-if="session.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
-        <button type="button" class="rounded-xl border px-4 py-2 text-sm font-bold" @click="cancelSession">{{ $t('booking.cancel') }}</button>
+        <button type="button" class="btn-ghost" @click="cancelSession">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadAvailability">{{ $t('booking.reschedule') }}</button>
       </div>
     </div>
@@ -95,7 +95,7 @@ async function rescheduleSession() {
     <div v-if="session.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
       <AppDateInput v-model="rescheduleDate" />
-      <select v-model="startTime" class="w-full rounded border px-3 py-2" dir="ltr">
+      <select v-model="startTime" class="neo-input" dir="ltr">
         <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">
           {{ formatTimeRange(slot.startTime, slot.endTime) }}
         </option>

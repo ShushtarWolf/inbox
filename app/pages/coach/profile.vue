@@ -41,10 +41,10 @@ async function save() {
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('nav.profile') }}</h1>
-    <textarea v-model="bioFa" :placeholder="$t('coach.bioFa')" class="w-full rounded-xl border p-2" rows="3" />
-    <textarea v-model="bioEn" :placeholder="$t('coach.bioEn')" class="w-full rounded-xl border p-2" rows="3" />
-    <input v-model.number="price" type="number" class="w-full rounded-xl border px-3 py-2" />
-    <select v-model="profileLocale" class="w-full rounded-xl border px-3 py-2">
+    <textarea v-model="bioFa" :placeholder="$t('coach.bioFa')" class="neo-textarea" rows="3" />
+    <textarea v-model="bioEn" :placeholder="$t('coach.bioEn')" class="neo-textarea" rows="3" />
+    <input v-model.number="price" type="number" class="neo-input" />
+    <select v-model="profileLocale" class="neo-input">
       <option value="fa">{{ $t('common.languageFa') }}</option>
       <option value="en">{{ $t('common.languageEn') }}</option>
     </select>

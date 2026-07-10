@@ -79,22 +79,22 @@ function finish() {
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
-    <section v-if="step === 1" class="space-y-3 rounded-xl border bg-white p-4">
+    <section v-if="step === 1" class="space-y-3 ios-card p-4">
       <h2 class="font-bold">{{ t('owner.setupProfile') }}</h2>
-      <input v-model="profile.nameFa" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.nameFa')" />
-      <input v-model="profile.nameEn" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.nameEn')" />
-      <input v-model="profile.addressFa" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.addressFa')" />
-      <input v-model="profile.phone" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.phone')" />
+      <input v-model="profile.nameFa" class="neo-input" :placeholder="t('owner.nameFa')" />
+      <input v-model="profile.nameEn" class="neo-input" :placeholder="t('owner.nameEn')" />
+      <input v-model="profile.addressFa" class="neo-input" :placeholder="t('owner.addressFa')" />
+      <input v-model="profile.phone" class="neo-input" :placeholder="t('owner.phone')" />
       <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveProfile">{{ t('common.next') }}</button>
     </section>
 
-    <section v-else class="space-y-3 rounded-xl border bg-white p-4">
+    <section v-else class="space-y-3 ios-card p-4">
       <h2 class="font-bold">{{ t('owner.setupCourts') }}</h2>
       <ul class="space-y-2 text-sm">
-        <li v-for="court in courts" :key="court.id" class="rounded border p-2">{{ court.nameFa }} / {{ court.nameEn }}</li>
+        <li v-for="court in courts" :key="court.id" class="ios-card p-2 font-bold">{{ court.nameFa }} / {{ court.nameEn }}</li>
       </ul>
-      <input v-model="newCourt.nameFa" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.courtNameFa')" />
-      <input v-model="newCourt.nameEn" class="w-full rounded-xl border px-3 py-2" :placeholder="t('owner.courtNameEn')" />
+      <input v-model="newCourt.nameFa" class="neo-input" :placeholder="t('owner.courtNameFa')" />
+      <input v-model="newCourt.nameEn" class="neo-input" :placeholder="t('owner.courtNameEn')" />
       <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">{{ t('owner.addCourt') }}</button>
       <button type="button" class="btn-primary w-full" @click="finish">{{ t('owner.setupFinish') }}</button>
     </section>

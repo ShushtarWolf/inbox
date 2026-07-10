@@ -40,14 +40,14 @@ async function submit() {
   <div class="mx-auto max-w-lg space-y-4 py-8">
     <h1 class="font-display text-2xl font-black">{{ t('clubs.applyTitle') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('clubs.applySubtitle') }}</p>
-    <p v-if="submitted" class="rounded-xl border bg-brand-cream p-4 text-sm">{{ t('clubs.applySuccess') }}</p>
+    <p v-if="submitted" class="neo-card-yellow p-4 text-sm">{{ t('clubs.applySuccess') }}</p>
     <form v-else class="space-y-3" @submit.prevent="submit">
-      <input v-model="clubName" :placeholder="t('clubs.applyClubName')" class="w-full rounded-xl border px-3 py-2" required />
-      <input v-model="city" :placeholder="t('clubs.applyCity')" class="w-full rounded-xl border px-3 py-2" required />
-      <input v-model="contactName" :placeholder="t('clubs.applyContactName')" class="w-full rounded-xl border px-3 py-2" required />
-      <input v-model="contactEmail" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" required />
-      <input v-model="contactPhone" :placeholder="t('clubs.applyPhone')" class="w-full rounded-xl border px-3 py-2" />
-      <select v-model="sport" class="w-full rounded-xl border px-3 py-2">
+      <input v-model="clubName" :placeholder="t('clubs.applyClubName')" class="neo-input" required />
+      <input v-model="city" :placeholder="t('clubs.applyCity')" class="neo-input" required />
+      <input v-model="contactName" :placeholder="t('clubs.applyContactName')" class="neo-input" required />
+      <input v-model="contactEmail" type="email" :placeholder="t('auth.email')" class="neo-input" required />
+      <input v-model="contactPhone" :placeholder="t('clubs.applyPhone')" class="neo-input" />
+      <select v-model="sport" class="neo-input">
         <option value="padel">{{ t('sports.padel') }}</option>
         <option value="tennis">{{ t('sports.tennis') }}</option>
       </select>

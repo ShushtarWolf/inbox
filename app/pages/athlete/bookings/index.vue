@@ -97,8 +97,8 @@ function paymentStatusLabel(status: string) {
         <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(b.slot.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(b.slot.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
-          <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(b.status) }}</span>
-          <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
+          <span class="neo-badge">{{ bookingStatusLabel(b.status) }}</span>
+          <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex gap-2">
@@ -119,8 +119,8 @@ function paymentStatusLabel(status: string) {
         <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(s.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
-          <span class="rounded-full bg-brand-cream px-2 py-1 font-bold text-brand-primary">{{ bookingStatusLabel(s.status) }}</span>
-          <span class="rounded-full bg-black/5 px-2 py-1 font-bold text-brand-gray-600">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
+          <span class="neo-badge">{{ bookingStatusLabel(s.status) }}</span>
+          <span class="neo-badge bg-white">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex gap-2">
@@ -137,15 +137,15 @@ function paymentStatusLabel(status: string) {
     </div>
 
     <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
-      <div class="rounded-2xl bg-white p-4">
+      <div class="ios-card p-4">
         <AppDateInput v-model="rescheduleDate" class="mb-3" />
         <div class="max-h-64 space-y-2 overflow-auto">
           <button
             v-for="slot in replacementSlots"
             :key="slot.id"
             type="button"
-            class="w-full rounded-xl border px-3 py-2 text-start text-sm"
-            :class="rescheduleSlotId === slot.id ? 'border-brand-primary text-brand-primary' : ''"
+            class="neo-input text-start text-sm"
+            :class="rescheduleSlotId === slot.id ? 'neo-pill-active shadow-brutal' : ''"
             @click="rescheduleSlotId = slot.id"
           >
             {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
@@ -153,7 +153,7 @@ function paymentStatusLabel(status: string) {
         </div>
         <div class="mt-4 flex gap-2">
           <button type="button" class="btn-primary flex-1" :disabled="!rescheduleSlotId" @click="rescheduleCourt">{{ t('booking.confirm') }}</button>
-          <button type="button" class="flex-1 rounded-xl border px-4 py-3 text-sm font-bold" @click="closeReschedule">{{ t('common.close') }}</button>
+          <button type="button" class="flex-1 btn-ghost w-full" @click="closeReschedule">{{ t('common.close') }}</button>
         </div>
       </div>
     </AppModal>

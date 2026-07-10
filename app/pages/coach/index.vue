@@ -9,7 +9,7 @@ const { data, error } = await useAuthedFetch('/api/coach/today')
 
 <template>
   <div class="space-y-4">
-    <p v-if="error" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
+    <p v-if="error" class="neo-card-lavender border-2 border-black p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
     <div class="flex items-center justify-between gap-3">
       <h1 class="font-display text-xl font-black">{{ $t('coach.today') }}</h1>
       <NuxtLink :to="localePath('/coach/schedule')" class="text-sm font-bold text-brand-primary">{{ $t('coach.schedule') }}</NuxtLink>
@@ -30,7 +30,7 @@ const { data, error } = await useAuthedFetch('/api/coach/today')
       <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi></p>
       <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ s.athlete.phone }}</bdi></p>
     </div>
-    <p v-if="!data?.sessions?.length" class="rounded-xl border border-dashed border-black/10 bg-brand-cream/40 p-4 text-sm text-brand-gray-600">{{ $t('coach.noSessionsToday') }}</p>
+    <p v-if="!data?.sessions?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">{{ $t('coach.noSessionsToday') }}</p>
 
     <section class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.upcomingSessions') }}</h2>
