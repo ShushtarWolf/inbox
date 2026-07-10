@@ -17,7 +17,10 @@ if (process.env.SEED_ON_EMPTY === 'true') {
     const userCount = await prisma.user.count()
     if (userCount === 0) {
       console.log('[start-production] Empty database — running seed (SEED_ON_EMPTY=true)')
-      execSync('npx prisma db seed', { stdio: 'inherit', env })
+      execSync('npx prisma db seed', {
+        stdio: 'inherit',
+        env: { ...env, NODE_ENV: 'production' },
+      })
     } else {
       console.log('[start-production] Database has data — skipping seed')
     }

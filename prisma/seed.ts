@@ -26,15 +26,15 @@ const CLUBS = [
     amenities: ['Parking', 'Cafe', 'Locker room', 'Shower'],
   },
   {
-    slug: 'azadi-tennis',
-    nameFa: 'تنیس آزادی',
-    nameEn: 'Azadi Tennis',
-    city: 'تهران',
-    district: 'آزادی',
+    slug: 'mashhad-tennis-center',
+    nameFa: 'مرکز تنیس مشهد',
+    nameEn: 'Mashhad Tennis Center',
+    city: 'مشهد',
+    district: 'احمدآباد',
     image: '/demo/clubs/azadi-tennis.jpg',
     sport: 'tennis',
-    lat: 35.725,
-    lng: 51.275,
+    lat: 36.297,
+    lng: 59.607,
     priceFrom: 500000,
     priceTo: 780000,
     featured: true,
@@ -76,6 +76,12 @@ const STATUSES: SlotDisplayStatus[] = ['FREE', 'RESERVED', 'PUBLIC', 'TEAM', 'PE
 
 const json = (value: unknown) => JSON.stringify(value)
 
+async function ensureSports() {
+  for (const s of SPORTS) {
+    await prisma.sport.upsert({ where: { slug: s.slug }, update: s, create: s })
+  }
+}
+
 async function main() {
   const forceReset = process.env.FORCE_SEED_RESET === 'true'
   const isProduction = process.env.NODE_ENV === 'production'
@@ -114,15 +120,17 @@ async function main() {
     await prisma.sport.deleteMany()
   }
 
-  if (isProduction) {
-    for (const s of SPORTS) {
-      await prisma.sport.upsert({ where: { slug: s.slug }, update: s, create: s })
-    }
+  const seedDemo = !isProduction || process.env.SEED_DEMO_DATA === 'true'
+  await ensureSports()
+
+  if (!seedDemo) {
     console.log('Production seed complete: sports catalog only (no demo users).')
     return
   }
 
-  for (const s of SPORTS) await prisma.sport.create({ data: s })
+  if (isProduction) {
+    console.log('Production demo seed enabled — creating clubs, coaches, and demo accounts.')
+  }
 
   const athlete = await prisma.user.create({
     data: {
@@ -183,13 +191,13 @@ async function main() {
         image: c.image,
         priceFrom: c.priceFrom,
         priceTo: c.priceTo,
-        ownerId: c.slug === 'padel-zone-tehran' || c.slug === 'azadi-tennis' ? owner.id : undefined,
+        ownerId: c.slug === 'padel-zone-tehran' || c.slug === 'mashhad-tennis-center' ? owner.id : undefined,
         openHour: 8,
         closeHour: 22,
         lat: c.lat,
         lng: c.lng,
         featured: c.featured,
-        rating: c.slug === 'padel-zone-tehran' ? 4.8 : c.slug === 'azadi-tennis' ? 4.7 : 4.5,
+        rating: c.slug === 'padel-zone-tehran' ? 4.8 : c.slug === 'mashhad-tennis-center' ? 4.7 : 4.5,
         descriptionFa: `باشگاه ${c.nameFa} برای رزرو سریع، زمین‌های استاندارد و تجربه خانوادگی طراحی شده است.`,
         descriptionEn: `${c.nameEn} offers fast booking, maintained courts, and a polished club experience.`,
         phone: '02188776655',
@@ -233,7 +241,7 @@ async function main() {
   }
 
   const ownerClub = await prisma.club.findUniqueOrThrow({ where: { id: clubBySlug['padel-zone-tehran'] } })
-  const secondOwnerClub = await prisma.club.findUniqueOrThrow({ where: { id: clubBySlug['azadi-tennis'] } })
+  const secondOwnerClub = await prisma.club.findUniqueOrThrow({ where: { id: clubBySlug['mashhad-tennis-center'] } })
   const courts = await prisma.court.findMany({ where: { clubId: ownerClub.id } })
   const today = todayDateStr()
 
@@ -344,7 +352,7 @@ async function main() {
     data: {
       nameFa: 'رضا کریمی',
       nameEn: 'Reza Karimi',
-      city: 'تهران',
+      city: 'مشهد',
       sessionPrice: 380000,
       photo: '/demo/coaches/coach-2.jpg',
       bioFa: 'مربی خصوصی تنیس برای بزرگسالان.',
@@ -357,7 +365,7 @@ async function main() {
       sportId: tennis.id,
       featured: true,
       experienceYears: 5,
-      clubId: secondOwnerClub.id,
+      clubId: clubBySlug['mashhad-tennis-center'],
     },
   })
   const maryam = await prisma.coach.create({
@@ -653,7 +661,10 @@ async function main() {
     ],
   })
 
-  console.log('Seed complete. Demo accounts: athlete@inbox.local / coach@inbox.local / owner@inbox.local — password: demo1234')
+  const accounts = 'athlete@inbox.local / coach@inbox.local / owner@inbox.local — password: demo1234'
+  console.log(isProduction
+    ? `Production demo seed complete. Demo accounts: ${accounts}`
+    : `Seed complete. Demo accounts: ${accounts}`)
 }
 
 main()
