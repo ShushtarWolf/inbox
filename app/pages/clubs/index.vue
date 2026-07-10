@@ -116,7 +116,7 @@ async function useNearby() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="t('clubs.title')" :home-to="localePath('/')" />
 
     <div class="flex flex-wrap gap-2">

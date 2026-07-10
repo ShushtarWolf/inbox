@@ -91,7 +91,7 @@ const rentalEquipments = computed(() =>
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ $t('owner.packages') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>

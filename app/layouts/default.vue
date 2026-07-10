@@ -54,7 +54,7 @@ onMounted(() => {
         </template>
       </template>
     </AppTopBar>
-    <main class="app-shell-main mx-auto w-full max-w-lg flex-1 px-4 py-4 lg:max-w-6xl lg:px-6 lg:py-6">
+    <main class="app-shell-main mx-auto w-full max-w-lg flex-1 px-4 py-5 lg:max-w-6xl lg:px-6 lg:py-8">
       <slot />
     </main>
     <footer class="mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 lg:max-w-6xl lg:pb-4">

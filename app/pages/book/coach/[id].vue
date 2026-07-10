@@ -117,7 +117,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="t('home.findCoach')" :home-to="localePath('/')" :back-to="localePath(`/coaches/${id}`)" />
     <AppDateInput v-model="date" />
     <div v-if="coach" class="ios-card p-4 text-sm">

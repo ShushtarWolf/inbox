@@ -57,7 +57,7 @@ async function syncRoute() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="t('coaches.title')" :home-to="localePath('/')" />
 
     <button type="button" class="neo-pill neo-pill-inactive" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>

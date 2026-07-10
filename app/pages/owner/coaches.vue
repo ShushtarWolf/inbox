@@ -73,7 +73,7 @@ async function deactivate(memberId: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="mb-4 font-display text-xl font-bold">{{ $t('owner.coaches') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>

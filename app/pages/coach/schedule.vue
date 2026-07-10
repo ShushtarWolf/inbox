@@ -8,7 +8,7 @@ const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ $t('coach.schedule') }}</h1>
 
     <div v-if="data?.availability?.length" class="space-y-2">

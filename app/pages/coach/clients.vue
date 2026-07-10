@@ -5,7 +5,7 @@ const { data } = await useAuthedFetch('/api/coach/clients')
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ $t('coach.clients') }}</h1>
     <div v-for="c in data?.clients" :key="c.id" class="ios-card p-3">
       <p class="font-bold">{{ c.name }}</p>

@@ -47,24 +47,28 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/40 p-4 backdrop-blur-sm"
-      role="presentation"
-      @click.self="close"
-    >
+    <Transition name="venus-modal">
       <div
-        ref="dialogRef"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="title"
-        tabindex="-1"
-        class="w-full outline-none"
-        :class="maxWidthClass || 'max-w-md'"
-        @click.stop
+        v-if="open"
+        class="fixed inset-0 z-50 overflow-y-auto bg-brand-navy/25 p-4 sm:p-6"
+        role="presentation"
+        @click.self="close"
       >
-        <slot />
+        <div class="flex min-h-full items-end justify-center sm:items-center">
+          <div
+            ref="dialogRef"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="title"
+            tabindex="-1"
+            class="w-full outline-none animate-venus-fade-up"
+            :class="maxWidthClass || 'max-w-md'"
+            @click.stop
+          >
+            <slot />
+          </div>
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>

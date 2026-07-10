@@ -24,7 +24,7 @@ function priceLabel(amount: number) {
 </script>
 
 <template>
-  <div class="venus-widget-card-accent mt-4 p-4 text-sm">
+  <div class="venus-widget-card-accent p-4 text-sm">
     <div class="flex items-center justify-between gap-2">
       <span class="font-medium text-brand-gray-600">{{ t('owner.priceBreakdown.court') }}</span>
       <span class="font-bold text-brand-navy">{{ priceLabel(courtPrice) }}</span>

@@ -68,7 +68,7 @@ async function rescheduleSession() {
 </script>
 
 <template>
-  <div v-if="session" class="space-y-4">
+  <div v-if="session" class="venus-page-stack">
     <PageHeaderNav
       :title="localizedField(session.coach, 'nameFa', 'nameEn')"
       :subtitle="`${formatIsoDate(session.date)} · ${formatTimeRange(session.startTime)}`"

@@ -40,13 +40,13 @@ function paymentStatusLabel(status: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ $t('owner.finance') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <template v-else>
-    <div class="grid gap-3 md:grid-cols-4">
-      <div v-for="(val, key) in data?.stats" :key="key" class="ios-card p-3 text-center">
+    <div class="venus-card-grid-4">
+      <div v-for="(val, key) in data?.stats" :key="key" class="ios-card text-center">
         <p class="text-lg font-bold text-brand-primary">
           {{ formatStatValue(String(key), val) }}
         </p>
@@ -54,8 +54,8 @@ function paymentStatusLabel(status: string) {
       </div>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <div class="ios-card p-4 lg:col-span-2">
+    <div class="venus-card-grid-3">
+      <div class="ios-card lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.financePage.weeklyChart') }}</h2>
         <div v-if="isChartEmpty" class="flex h-44 items-center justify-center rounded-venus border border-brand-gray-100 bg-brand-lavender px-4 text-center text-sm font-bold text-brand-gray-600">
           {{ t('owner.financePage.chartEmpty') }}
@@ -84,7 +84,7 @@ function paymentStatusLabel(status: string) {
           </div>
         </div>
       </div>
-      <div class="ios-card p-4">
+      <div class="ios-card">
         <h2 class="mb-3 font-bold">{{ t('owner.financePage.paymentBreakdown') }}</h2>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
@@ -103,10 +103,10 @@ function paymentStatusLabel(status: string) {
       </div>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <div class="ios-card p-4 lg:col-span-2">
+    <div class="venus-card-grid-3">
+      <div class="ios-card lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.funnelTitle') }}</h2>
-        <div class="grid gap-3 sm:grid-cols-4">
+        <div class="venus-card-grid-4">
           <div class="venus-widget-card-accent p-3 text-center">
             <p class="text-lg font-bold text-brand-primary">{{ formatNumber(data?.funnel?.views || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.views') }}</p>
@@ -125,7 +125,7 @@ function paymentStatusLabel(status: string) {
           </div>
         </div>
       </div>
-      <div class="ios-card p-4">
+      <div class="ios-card">
         <h2 class="mb-3 font-bold">{{ t('owner.segmentsTitle') }}</h2>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between"><span>{{ t('owner.segmentCards.activeContacts') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.activeContacts || 0) }}</span></div>

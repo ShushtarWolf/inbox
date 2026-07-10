@@ -14,7 +14,7 @@ function specialtyLabel(value: string) {
 </script>
 
 <template>
-  <div v-if="coach" class="space-y-4">
+  <div v-if="coach" class="venus-page-stack">
     <PageHeaderNav
       :title="localizedField(coach, 'nameFa', 'nameEn')"
       :subtitle="localizedField(coach, 'headlineFa', 'headlineEn') || localizedField(coach, 'bioFa', 'bioEn')"

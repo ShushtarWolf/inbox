@@ -46,7 +46,7 @@ async function send() {
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <template v-else>
-    <div class="space-y-4">
+    <div class="venus-page-stack">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="ios-card p-3 text-center">
           <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
@@ -115,7 +115,7 @@ async function send() {
       </div>
     </div>
 
-    <div class="space-y-4">
+    <div class="venus-page-stack">
       <div class="ios-card p-4">
         <h2 class="mb-2 font-bold">{{ t('owner.crmPage.pushSms') }}</h2>
         <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.logOnlyNote') }}</p>

@@ -10,7 +10,7 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
 </script>
 
 <template>
-  <div v-if="club" class="space-y-4">
+  <div v-if="club" class="venus-page-stack">
     <PageHeaderNav
       :title="localizedField(club, 'nameFa', 'nameEn')"
       :subtitle="localizedField(club, 'addressFa', 'addressEn')"

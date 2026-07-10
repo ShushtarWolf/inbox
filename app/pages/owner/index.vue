@@ -496,9 +496,9 @@ const legend = [
 </script>
 
 <template>
-  <div class="space-y-6">
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
+  <div class="venus-page-stack">
+    <AppVenusCalendarSkeleton v-if="pending" />
+    <p v-else-if="error" class="venus-alert-error">{{ t('auth.dashboardLoadFailed') }}</p>
 
     <section v-else class="calendar-shell overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-white shadow-venus" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
@@ -565,7 +565,7 @@ const legend = [
           <div
             v-for="hour in hours"
             :key="hour"
-            class="grid calendar-grid border-b border-brand-gray-100/20 last:border-b-0"
+            class="grid calendar-grid"
           >
             <div class="calendar-time-cell">
               <bdi dir="ltr" class="calendar-time tabular-nums">{{ formatTimeRange(hour) }}</bdi>
@@ -593,7 +593,7 @@ const legend = [
       </div>
     </section>
 
-    <aside v-if="!pending && !error" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <aside v-if="!pending && !error" class="venus-card-grid-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div class="ios-card p-5">
         <div class="flex items-center justify-between gap-4">
           <div>
@@ -619,8 +619,8 @@ const legend = [
     </aside>
 
     <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div class="neo-modal-menu">
+      <div class="venus-modal-shell">
+        <div class="neo-modal-menu venus-modal-menu">
           <div v-if="selectedSlot" class="border-b border-brand-gray-100 px-4 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
@@ -632,156 +632,192 @@ const legend = [
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
           <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
           <button type="button" :class="menuButtonClass('equipment')" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
-          <button type="button" class="neo-menu-item" @click="closeMenu">{{ t('common.close') }}</button>
+          <button type="button" class="neo-menu-item border-b-0" @click="closeMenu">{{ t('common.close') }}</button>
         </div>
 
-        <div v-if="activePanel === 'cancel'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.cancel') }}</h3>
-          <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input mb-2" readonly>
-          <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input mb-2" readonly>
-          <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input mb-2 tabular-nums" readonly>
-          <select v-model="cancelReason" class="neo-select mb-3">
-            <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
-            <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
-          </select>
-          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
-          <div class="flex gap-2">
-            <button type="button" class="btn-primary flex-1" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
-            <button type="button" class="btn-ghost flex-1" @click="activePanel = null">{{ t('common.back') }}</button>
+        <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
           </div>
-        </div>
-
-        <div v-if="activePanel === 'reserve'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
-          <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input mb-2">
-          <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input mb-2">
-          <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input mb-2 tabular-nums">
-          <select v-model="form.paymentMethod" class="neo-select mb-2">
-            <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
-            <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
-          </select>
-          <select v-model="form.paymentStatus" class="neo-select mb-2">
-            <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
-            <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
-          </select>
-          <label class="mb-2 block text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</label>
-          <select v-model="form.equipmentIds" multiple class="neo-select mb-2 min-h-[5rem]">
-            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-          </select>
-          <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea mb-3" rows="2" />
-          <OwnerBookingPriceSummary
-            :court-price="courtPrice"
-            :equipment-price="reserveEquipmentPrice"
-          />
-          <p v-if="actionError" class="mb-2 mt-3 text-sm text-red-600">{{ actionError }}</p>
-          <button type="button" class="btn-primary mt-3 w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
-        </div>
-
-        <div v-if="activePanel === 'comments'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.comments') }}</h3>
-          <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea mb-3" rows="6" />
-          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
-          <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
-        </div>
-
-        <div v-if="activePanel === 'season'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.seasonPage.title') }}</h3>
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
-            <div class="min-w-0 flex-1 space-y-2">
-              <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
-              <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
-              <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
-              <div>
-                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="day in weekdayOptions"
-                    :key="day"
-                    type="button"
-                    class="neo-pill"
-                    :class="seasonForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
-                    @click="toggleSeasonDay(day)"
-                  >
-                    {{ t(`owner.weekdays.${day}`) }}
-                  </button>
-                </div>
-              </div>
-              <select v-model="seasonForm.equipmentId" class="neo-select">
-                <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-              </select>
-              <textarea v-model="seasonForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
-              <OwnerBookingPriceSummary
-                :court-price="courtPrice"
-                :equipment-price="seasonEquipmentPrice"
-                :session-count="seasonSessionCount"
-                show-estimated
-              />
-              <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
-              <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input" readonly>
+            <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input" readonly>
+            <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums" readonly>
+            <select v-model="cancelReason" class="neo-select">
+              <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
+              <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
+            </select>
+          </div>
+          <div class="venus-modal-footer">
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <div class="flex gap-3">
+              <button type="button" class="btn-primary flex-1" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
+              <button type="button" class="btn-ghost flex-1" @click="activePanel = null">{{ t('common.back') }}</button>
             </div>
-            <OwnerClockPicker v-model="seasonForm.times" class="w-full shrink-0 lg:w-40" />
           </div>
         </div>
 
-        <div v-if="activePanel === 'package'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.packagePage.title') }}</h3>
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
-            <div class="min-w-0 flex-1 space-y-2">
-              <select v-model="packageForm.coachId" class="neo-select">
-                <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
-                <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
-              </select>
-              <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
-              <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
-              <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
-              <div>
-                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="day in weekdayOptions"
-                    :key="day"
-                    type="button"
-                    class="neo-pill"
-                    :class="packageForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
-                    @click="togglePackageDay(day)"
-                  >
-                    {{ t(`owner.weekdays.${day}`) }}
-                  </button>
+        <div v-if="activePanel === 'reserve'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.reserve') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
+            <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
+            <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
+            <select v-model="form.paymentMethod" class="neo-select">
+              <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
+              <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
+            </select>
+            <select v-model="form.paymentStatus" class="neo-select">
+              <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
+              <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
+            </select>
+            <label class="block text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</label>
+            <select v-model="form.equipmentIds" multiple class="neo-select min-h-[5rem]">
+              <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+            </select>
+            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+          </div>
+          <div class="venus-modal-footer">
+            <OwnerBookingPriceSummary
+              :court-price="courtPrice"
+              :equipment-price="reserveEquipmentPrice"
+            />
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'comments'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="6" />
+          </div>
+          <div class="venus-modal-footer">
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'season'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.seasonPage.title') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
+              <div class="min-w-0 flex-1 venus-form-stack">
+                <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
+                <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
+                <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
+                <div>
+                  <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="day in weekdayOptions"
+                      :key="day"
+                      type="button"
+                      class="neo-pill"
+                      :class="seasonForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
+                      @click="toggleSeasonDay(day)"
+                    >
+                      {{ t(`owner.weekdays.${day}`) }}
+                    </button>
+                  </div>
                 </div>
+                <select v-model="seasonForm.equipmentId" class="neo-select">
+                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                </select>
+                <textarea v-model="seasonForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
               </div>
-              <select v-model="packageForm.equipmentId" class="neo-select">
-                <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-              </select>
-              <textarea v-model="packageForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
-              <OwnerBookingPriceSummary
-                :court-price="courtPrice"
-                :coach-price="packageForm.coachId && selectedCoach ? selectedCoach.sessionPrice : undefined"
-                :equipment-price="packageEquipmentPrice"
-                :session-count="packageSessionCount"
-                show-estimated
-              />
-              <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
-              <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+              <OwnerClockPicker v-model="seasonForm.times" class="w-full shrink-0 lg:w-40" />
             </div>
-            <OwnerClockPicker v-model="packageForm.times" class="w-full shrink-0 lg:w-40" />
+          </div>
+          <div class="venus-modal-footer">
+            <OwnerBookingPriceSummary
+              :court-price="courtPrice"
+              :equipment-price="seasonEquipmentPrice"
+              :session-count="seasonSessionCount"
+              show-estimated
+            />
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
-        <div v-if="activePanel === 'equipment'" class="neo-modal-panel">
-          <h3 class="mb-3 font-bold">{{ t('owner.equipments') }}</h3>
-          <label class="mb-2 block text-xs font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
-          <select v-model="form.equipmentIds" multiple class="neo-select mb-3 min-h-[8rem]">
-            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-          </select>
-          <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea mb-3" rows="2" />
-          <OwnerBookingPriceSummary
-            :court-price="courtPrice"
-            :equipment-price="reserveEquipmentPrice"
-          />
-          <p v-if="actionError" class="mb-2 mt-3 text-sm text-red-600">{{ actionError }}</p>
-          <button type="button" class="btn-primary mt-3 w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
+        <div v-if="activePanel === 'package'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.packagePage.title') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
+              <div class="min-w-0 flex-1 venus-form-stack">
+                <select v-model="packageForm.coachId" class="neo-select">
+                  <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
+                  <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
+                </select>
+                <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
+                <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
+                <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
+                <div>
+                  <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="day in weekdayOptions"
+                      :key="day"
+                      type="button"
+                      class="neo-pill"
+                      :class="packageForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
+                      @click="togglePackageDay(day)"
+                    >
+                      {{ t(`owner.weekdays.${day}`) }}
+                    </button>
+                  </div>
+                </div>
+                <select v-model="packageForm.equipmentId" class="neo-select">
+                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                </select>
+                <textarea v-model="packageForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+              </div>
+              <OwnerClockPicker v-model="packageForm.times" class="w-full shrink-0 lg:w-40" />
+            </div>
+          </div>
+          <div class="venus-modal-footer">
+            <OwnerBookingPriceSummary
+              :court-price="courtPrice"
+              :coach-price="packageForm.coachId && selectedCoach ? selectedCoach.sessionPrice : undefined"
+              :equipment-price="packageEquipmentPrice"
+              :session-count="packageSessionCount"
+              show-estimated
+            />
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'equipment'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <label class="block text-xs font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
+            <select v-model="form.equipmentIds" multiple class="neo-select min-h-[8rem]">
+              <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+            </select>
+            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+          </div>
+          <div class="venus-modal-footer">
+            <OwnerBookingPriceSummary
+              :court-price="courtPrice"
+              :equipment-price="reserveEquipmentPrice"
+            />
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
+          </div>
         </div>
       </div>
     </AppModal>
@@ -799,6 +835,7 @@ const legend = [
 
 .calendar-grid {
   grid-template-columns: 5.5rem repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
 }
 
 .calendar-toolbar-pill,
@@ -852,8 +889,8 @@ const legend = [
 
 .calendar-time-cell,
 .calendar-slot-cell {
-  min-height: 7rem;
-  padding: 0.65rem 0.55rem;
+  min-height: 6rem;
+  padding: 0.25rem;
 }
 
 .calendar-time-cell {

@@ -86,7 +86,7 @@ async function submitReview() {
 </script>
 
 <template>
-  <div v-if="booking" class="space-y-4">
+  <div v-if="booking" class="venus-page-stack">
     <PageHeaderNav
       :title="localizedField(booking.slot.court.club, 'nameFa', 'nameEn')"
       :subtitle="`${formatIsoDate(booking.slot.date)} · ${formatTimeRange(booking.slot.startTime)}`"

@@ -28,7 +28,7 @@ async function save() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="$t('nav.profile')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
     <input v-model="name" :placeholder="$t('common.name')" class="neo-input" />
     <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="neo-input tabular-nums" />

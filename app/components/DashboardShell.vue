@@ -22,7 +22,7 @@ async function handleLogout() {
 }
 
 const mainClass = computed(() => {
-  return props.wide ? 'w-full px-4 py-4 lg:px-6 lg:py-6' : 'mx-auto w-full max-w-lg px-4 py-4 lg:max-w-4xl lg:px-6 lg:py-6'
+  return props.wide ? 'w-full px-4 py-5 lg:px-8 lg:py-8' : 'mx-auto w-full max-w-lg px-4 py-5 lg:max-w-4xl lg:px-6 lg:py-8'
 })
 
 const dashboardRoot = computed(() => props.items[0]?.to || localePath('/'))

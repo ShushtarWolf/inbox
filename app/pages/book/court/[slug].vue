@@ -105,7 +105,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="t('home.bookCourt')" :home-to="localePath('/')" :back-to="localePath(`/clubs/${slug}`)" />
     <AppDateInput v-model="date" />
     <div v-if="club" class="ios-card p-4 text-sm">

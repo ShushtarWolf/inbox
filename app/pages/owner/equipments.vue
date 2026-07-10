@@ -107,7 +107,7 @@ async function deleteItem(item: EquipmentItem) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ t('owner.equipments') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
@@ -139,22 +139,31 @@ async function deleteItem(item: EquipmentItem) {
     </div>
 
     <AppModal :open="showModal" :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
-      <div class="ios-card p-4">
-        <label class="mb-3 block text-sm">
-          <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.itemName') }}</span>
-          <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'">
-        </label>
-        <label v-if="modalCategory !== 'CLUB'" class="mb-3 block text-sm">
-          <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.price') }}</span>
-          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums">
-          <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</span>
-        </label>
-        <p v-if="modalError" class="mb-2 text-sm text-red-600">{{ modalError }}</p>
-        <div class="flex gap-2">
-          <button type="button" class="btn-primary flex-1" :disabled="saving || !modalName.trim()" @click="saveItem">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </button>
-          <button type="button" class="btn-ghost flex-1" @click="closeModal">{{ t('common.close') }}</button>
+      <div class="venus-modal-shell venus-modal-shell-simple">
+        <div class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.itemName') }}</span>
+              <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'">
+            </label>
+            <label v-if="modalCategory !== 'CLUB'" class="block text-sm">
+              <span class="mb-1 block font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.price') }}</span>
+              <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums">
+              <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</span>
+            </label>
+          </div>
+          <div class="venus-modal-footer">
+            <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
+            <div class="flex gap-3">
+              <button type="button" class="btn-primary flex-1" :disabled="saving || !modalName.trim()" @click="saveItem">
+                {{ saving ? t('common.loading') : t('common.save') }}
+              </button>
+              <button type="button" class="btn-ghost flex-1" @click="closeModal">{{ t('common.close') }}</button>
+            </div>
+          </div>
         </div>
       </div>
     </AppModal>

@@ -85,7 +85,7 @@ function paymentStatusLabel(status: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
 
     <AppVenusSkeleton v-if="pending" :lines="3" />
@@ -137,23 +137,32 @@ function paymentStatusLabel(status: string) {
     </div>
 
     <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
-      <div class="ios-card p-4">
-        <AppDateInput v-model="rescheduleDate" class="mb-3" />
-        <div class="max-h-64 space-y-2 overflow-auto">
-          <button
-            v-for="slot in replacementSlots"
-            :key="slot.id"
-            type="button"
-            class="neo-input text-start text-sm"
-            :class="rescheduleSlotId === slot.id ? 'neo-pill-active' : ''"
-            @click="rescheduleSlotId = slot.id"
-          >
-            {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
-          </button>
-        </div>
-        <div class="mt-4 flex gap-2">
-          <button type="button" class="btn-primary flex-1" :disabled="!rescheduleSlotId" @click="rescheduleCourt">{{ t('booking.confirm') }}</button>
-          <button type="button" class="flex-1 btn-ghost w-full" @click="closeReschedule">{{ t('common.close') }}</button>
+      <div class="venus-modal-shell venus-modal-shell-simple">
+        <div class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <h3 class="font-bold text-brand-navy">{{ t('booking.reschedule') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack">
+            <AppDateInput v-model="rescheduleDate" />
+            <div class="max-h-64 space-y-2 overflow-auto">
+              <button
+                v-for="slot in replacementSlots"
+                :key="slot.id"
+                type="button"
+                class="neo-input text-start text-sm"
+                :class="rescheduleSlotId === slot.id ? 'neo-pill-active' : ''"
+                @click="rescheduleSlotId = slot.id"
+              >
+                {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
+              </button>
+            </div>
+          </div>
+          <div class="venus-modal-footer">
+            <div class="flex gap-3">
+              <button type="button" class="btn-primary flex-1" :disabled="!rescheduleSlotId" @click="rescheduleCourt">{{ t('booking.confirm') }}</button>
+              <button type="button" class="btn-ghost flex-1" @click="closeReschedule">{{ t('common.close') }}</button>
+            </div>
+          </div>
         </div>
       </div>
     </AppModal>

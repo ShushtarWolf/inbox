@@ -8,7 +8,7 @@ const { data, error } = await useAuthedFetch('/api/coach/today')
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <p v-if="error" class="venus-widget-card-accent border border-brand-gray-100 p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
     <div class="flex items-center justify-between gap-3">
       <h1 class="font-display text-xl font-bold">{{ $t('coach.today') }}</h1>

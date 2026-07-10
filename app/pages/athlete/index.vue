@@ -20,7 +20,7 @@ const nextLabel = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="venus-page-stack">
     <div class="ios-card p-4">
       <h2 class="font-bold">{{ $t('nav.overview') }}</h2>
       <p v-if="error" class="mt-2 text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
