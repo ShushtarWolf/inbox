@@ -449,7 +449,7 @@ const legend = [
           </div>
         </div>
 
-        <div class="mt-5 flex justify-end">
+        <div class="mt-5 flex" :class="locale === 'fa' ? 'justify-start' : 'justify-end'">
           <div ref="datePickerRef" class="relative">
             <button
               type="button"
@@ -462,7 +462,7 @@ const legend = [
               <span>{{ monthLabel }}</span>
             </button>
 
-            <div v-if="showDatePicker" class="absolute end-0 z-20 mt-2">
+            <div v-if="showDatePicker" class="absolute z-20 mt-2" :class="locale === 'fa' ? 'start-0' : 'end-0'">
               <AppJalaliCalendar
                 v-if="locale === 'fa'"
                 v-model="date"
