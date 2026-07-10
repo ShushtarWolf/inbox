@@ -258,11 +258,28 @@
     "quickNotes": "نکات سریع",
     "quickNotesBody": "روی هر سانس بزنید تا رزرو، لغو یا جریان رزرو مرتبط را باز کنید. زمان آزاد خنثی می‌ماند و سانس‌های رزروشده با رنگ‌های ملایم مشخص می‌شوند.",
     "activeClub": "باشگاه فعال",
+    "setupTitle": "راه‌اندازی باشگاه",
+    "setupSubtitle": "مشخصات باشگاه و زمین‌ها را تکمیل کنید.",
+    "setupProfile": "مشخصات باشگاه",
+    "setupCourts": "زمین‌ها",
+    "setupFinish": "رفتن به تقویم",
+    "courtNameFa": "نام زمین (فارسی)",
+    "courtNameEn": "نام زمین (انگلیسی)",
+    "addCourt": "افزودن زمین",
+    "nameFa": "نام (فارسی)",
+    "nameEn": "نام (انگلیسی)",
+    "addressFa": "آدرس (فارسی)",
+    "phone": "تلفن",
+    "inviteStaff": "دعوت کارمند",
+    "sendInvite": "ارسال دعوت",
+    "inviteSent": "دعوت ارسال شد.",
+    "inviteCreated": "حساب ساخته شد. رمز موقت: {password}",
+    "deactivate": "غیرفعال‌سازی",
+    "permissionsTitle": "دسترسی‌ها",
     "reserve": "رزرو",
     "free": "رایگان",
     "cancel": "لغو",
     "hour": "ساعت",
-    "free": "آزاد",
     "seasonReserve": "رزرو فصلی",
     "packageReserve": "رزرو پکیج",
     "reserveWithCoach": "رزرو با مربی",
@@ -290,7 +307,8 @@
     },
     "financePage": {
       "weeklyChart": "نمودار درآمد هفتگی",
-      "paymentBreakdown": "روش پرداخت"
+      "paymentBreakdown": "روش پرداخت",
+      "chartEmpty": "هنوز درآمدی برای هفت روز گذشته ثبت نشده است."
     },
     "guestName": "نام مهمان",
     "guestFamily": "نام خانوادگی مهمان",
@@ -406,6 +424,13 @@
       "FRONT_DESK": "پذیرش",
       "ANALYST": "تحلیلگر"
     },
+    "permissions": {
+      "calendar": "تقویم و رزرو",
+      "finance": "مالی",
+      "crm": "CRM",
+      "team": "تیم و مربیان",
+      "settings": "تنظیمات"
+    },
     "funnelTitle": "قیف رزرو",
     "funnel": {
       "views": "بازدید",
@@ -444,7 +469,10 @@
       "inventory": "موجودی فعال",
       "courts": "زمین",
       "coaches": "مربی",
-      "contacts": "راه‌های تماس باشگاه"
+      "contacts": "راه‌های تماس باشگاه",
+      "staffAccess": "کارکنان و دسترسی",
+      "staffAccessHint": "برای هر کارمند، بخش‌های قابل مشاهده در پنل را مشخص کنید.",
+      "ownerPermissionsReadonly": "مالک به همه بخش‌ها دسترسی دارد و قابل ویرایش نیست."
     },
     "supportPage": {
       "operations": "راهنمای عملیات",

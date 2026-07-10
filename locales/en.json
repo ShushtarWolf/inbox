@@ -278,16 +278,20 @@
     "courtNameFa": "Court name (FA)",
     "courtNameEn": "Court name (EN)",
     "addCourt": "Add court",
+    "nameFa": "Name (Farsi)",
+    "nameEn": "Name (English)",
+    "addressFa": "Address (Farsi)",
+    "phone": "Phone",
     "inviteStaff": "Invite staff",
     "sendInvite": "Send invite",
     "inviteSent": "Invite sent.",
     "inviteCreated": "Account created. Temporary password: {password}",
     "deactivate": "Deactivate",
+    "permissionsTitle": "Permissions",
     "reserve": "Reserve",
     "free": "Free",
     "cancel": "Cancel",
     "hour": "Hour",
-    "free": "Free",
     "seasonReserve": "Season reserve",
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
@@ -315,7 +319,8 @@
     },
     "financePage": {
       "weeklyChart": "Weekly revenue",
-      "paymentBreakdown": "Payment methods"
+      "paymentBreakdown": "Payment methods",
+      "chartEmpty": "No revenue recorded for the past 7 days yet."
     },
     "guestName": "Guest name",
     "guestFamily": "Guest family",
@@ -431,6 +436,13 @@
       "FRONT_DESK": "Front desk",
       "ANALYST": "Analyst"
     },
+    "permissions": {
+      "calendar": "Calendar & bookings",
+      "finance": "Finance",
+      "crm": "CRM",
+      "team": "Team & coaches",
+      "settings": "Settings"
+    },
     "funnelTitle": "Booking funnel",
     "funnel": {
       "views": "Views",
@@ -469,7 +481,10 @@
       "inventory": "Active inventory",
       "courts": "courts",
       "coaches": "coaches",
-      "contacts": "Club contacts"
+      "contacts": "Club contacts",
+      "staffAccess": "Staff & access",
+      "staffAccessHint": "Choose which dashboard sections each staff member can access.",
+      "ownerPermissionsReadonly": "Owners have full access and cannot be edited here."
     },
     "supportPage": {
       "operations": "Operations help",

@@ -251,7 +251,7 @@ async function main() {
         userId: owner.id,
         clubId: ownerClub.id,
         role: 'OWNER',
-        permissionsJson: json(['calendar', 'finance', 'crm', 'team']),
+        permissionsJson: json(['calendar', 'finance', 'crm', 'team', 'settings']),
         active: true,
         isPrimary: true,
       },
@@ -259,7 +259,7 @@ async function main() {
         userId: owner.id,
         clubId: secondOwnerClub.id,
         role: 'OWNER',
-        permissionsJson: json(['calendar', 'finance', 'crm', 'team']),
+        permissionsJson: json(['calendar', 'finance', 'crm', 'team', 'settings']),
         active: true,
         isPrimary: false,
       },
@@ -267,7 +267,7 @@ async function main() {
         userId: manager.id,
         clubId: ownerClub.id,
         role: 'MANAGER',
-        permissionsJson: json(['calendar', 'crm']),
+        permissionsJson: json(['calendar', 'finance', 'crm', 'team']),
         active: true,
         isPrimary: true,
       },
@@ -323,6 +323,53 @@ async function main() {
         }
       }
     }
+  }
+
+  const demoCourt = courts[0]!
+  for (let dayOffset = 6; dayOffset >= 0; dayOffset -= 1) {
+    const date = new Date()
+    date.setDate(date.getDate() - dayOffset)
+    const dateKey = date.toISOString().slice(0, 10)
+    const revenueFactor = [0.45, 0.6, 0.75, 0.55, 0.9, 0.7, 1][6 - dayOffset] ?? 0.5
+    const slot = await prisma.slot.create({
+      data: {
+        courtId: demoCourt.id,
+        date: dateKey,
+        startTime: '18:00',
+        endTime: '19:00',
+        price: Math.round(demoCourt.price * revenueFactor),
+        displayStatus: 'RESERVED',
+      },
+    })
+    const booking = await prisma.booking.create({
+      data: {
+        slotId: slot.id,
+        guestName: 'مشتری',
+        guestFamily: 'نمونه',
+        guestMobile: '09121112222',
+        paymentMethod: dayOffset % 2 === 0 ? 'CASH' : 'IPG',
+        paymentStatus: 'PAID',
+        source: 'CLUB',
+        status: 'CONFIRMED',
+        comments: 'رزرو نمونه مالی',
+      },
+    })
+    await prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        amount: slot.price,
+        method: dayOffset % 2 === 0 ? 'CASH' : 'IPG',
+        status: 'PAID',
+      },
+    })
+    await prisma.reservationEvent.create({
+      data: {
+        type: 'CREATED',
+        bookingId: booking.id,
+        actorUserId: owner.id,
+        metadataJson: json({ source: 'seed', financeDemo: true, date: dateKey }),
+      },
+    })
   }
 
   const sara = await prisma.coach.create({

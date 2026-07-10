@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ALL_OWNER_PERMISSIONS, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
@@ -7,6 +9,19 @@ const { localizedField } = useLocalizedField()
 const { formatHours } = useFormatters()
 const { data, refresh } = await useAuthedFetch('/api/owner/settings')
 useOwnerClubRefresh(refresh)
+
+const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
+const { data: staffData, refresh: refreshStaff } = await useAuthedFetch('/api/owner/staff', {
+  immediate: false,
+  watch: false,
+})
+const staffSaving = ref<Record<string, boolean>>({})
+const staffError = ref('')
+const staffSuccess = ref('')
+
+watch(isOwner, (owner) => {
+  if (owner) refreshStaff()
+}, { immediate: true })
 
 const saving = ref(false)
 const saveError = ref('')
@@ -33,6 +48,50 @@ function staffRoleLabel(role?: string) {
   const key = `owner.roles.${role}` as const
   const translated = t(key)
   return translated === key ? role : translated
+}
+
+function permissionLabel(permission: OwnerPermission) {
+  return t(`owner.permissions.${permission}`)
+}
+
+function memberPermissions(member: { role: string; permissionsJson?: string | null }) {
+  if (member.role === 'OWNER') return [...ALL_OWNER_PERMISSIONS]
+  return parsePermissions(member.permissionsJson)
+}
+
+function isPermissionChecked(member: { role: string; permissionsJson?: string | null }, permission: OwnerPermission) {
+  return memberPermissions(member).includes(permission)
+}
+
+function toggleMemberPermission(member: { id: string; role: string; permissionsJson?: string | null }, permission: OwnerPermission) {
+  if (member.role === 'OWNER') return
+  const current = memberPermissions(member)
+  const next = current.includes(permission)
+    ? current.filter((item) => item !== permission)
+    : [...current, permission]
+  if (!staffData.value?.staff) return
+  const target = staffData.value.staff.find((item) => item.id === member.id)
+  if (target) target.permissionsJson = JSON.stringify(next)
+}
+
+async function saveMemberPermissions(member: { id: string; role: string; permissionsJson?: string | null }) {
+  if (member.role === 'OWNER') return
+  staffSaving.value[member.id] = true
+  staffError.value = ''
+  staffSuccess.value = ''
+  try {
+    const permissions = parsePermissions(member.permissionsJson)
+    await $fetch(`/api/owner/staff/${member.id}`, {
+      method: 'PATCH',
+      body: { permissions },
+    })
+    staffSuccess.value = t('common.saved')
+    await refreshStaff()
+  } catch {
+    staffError.value = t('common.error')
+  } finally {
+    staffSaving.value[member.id] = false
+  }
 }
 
 function applyClubData() {
@@ -177,6 +236,53 @@ async function save() {
             <input v-model="form.whatsapp" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
           </label>
         </div>
+      </div>
+
+      <div v-if="isOwner" class="rounded-2xl border border-black/5 bg-white p-6 md:col-span-2">
+        <h2 class="font-bold">{{ t('owner.settingsPage.staffAccess') }}</h2>
+        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
+        <p v-if="staffError" class="mt-3 text-sm text-red-600">{{ staffError }}</p>
+        <p v-if="staffSuccess" class="mt-3 text-sm text-green-700">{{ staffSuccess }}</p>
+        <ul class="mt-4 space-y-3">
+          <li v-for="member in staffData?.staff || []" :key="member.id" class="rounded-xl border p-4">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p class="font-bold">{{ member.coach ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
+                <p class="text-xs text-brand-gray-600">
+                  <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ staffRoleLabel(member.role) }}</span>
+                  <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></span>
+                </p>
+              </div>
+              <button
+                v-if="member.role !== 'OWNER'"
+                type="button"
+                class="btn-secondary text-xs"
+                :disabled="staffSaving[member.id]"
+                @click="saveMemberPermissions(member)"
+              >
+                {{ staffSaving[member.id] ? t('common.loading') : t('common.save') }}
+              </button>
+            </div>
+            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+              <label
+                v-for="permission in ALL_OWNER_PERMISSIONS"
+                :key="`${member.id}-${permission}`"
+                class="flex items-center gap-2 text-sm"
+                :class="member.role === 'OWNER' ? 'opacity-70' : ''"
+              >
+                <input
+                  type="checkbox"
+                  :checked="isPermissionChecked(member, permission)"
+                  :disabled="member.role === 'OWNER'"
+                  @change="toggleMemberPermission(member, permission)"
+                >
+                <span>{{ permissionLabel(permission) }}</span>
+              </label>
+            </div>
+            <p v-if="member.role === 'OWNER'" class="mt-2 text-xs text-brand-gray-500">{{ t('owner.settingsPage.ownerPermissionsReadonly') }}</p>
+          </li>
+          <li v-if="!(staffData?.staff || []).length" class="rounded-xl border p-4 text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
+        </ul>
       </div>
 
       <div class="md:col-span-2">

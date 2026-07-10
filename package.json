@@ -18,7 +18,8 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"

@@ -11,7 +11,14 @@ function formatWeekLabel(iso?: string) {
   return formatDate(iso)
 }
 
-const maxWeeklyRevenue = computed(() => Math.max(...(data.value?.weeklyRevenue || [1]), 1))
+const maxWeeklyRevenue = computed(() => Math.max(...(data.value?.weeklyRevenue || [0]), 0))
+const isChartEmpty = computed(() => !(data.value?.weeklyRevenue || []).some((amount) => amount > 0))
+const chartAreaHeight = 140
+
+function barHeightPx(amount: number) {
+  if (!amount || !maxWeeklyRevenue.value) return 0
+  return Math.max(12, Math.round((amount / maxWeeklyRevenue.value) * chartAreaHeight))
+}
 
 function statLabel(key: string) {
   return t(`owner.financeCards.${key}`)
@@ -50,17 +57,30 @@ function paymentStatusLabel(status: string) {
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="rounded-xl border bg-white p-4 lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.financePage.weeklyChart') }}</h2>
-        <div class="flex h-44 items-end justify-between gap-2 rounded-xl bg-gradient-to-t from-brand-cream/80 to-white px-3 pb-2 pt-4">
-          <div
-            v-for="(amount, index) in data?.weeklyRevenue || []"
-            :key="data?.weekLabels?.[index] || index"
-            class="flex flex-1 flex-col items-center gap-2"
-          >
+        <div v-if="isChartEmpty" class="flex h-44 items-center justify-center rounded-xl bg-gradient-to-t from-brand-cream/80 to-white px-4 text-center text-sm text-brand-gray-600">
+          {{ t('owner.financePage.chartEmpty') }}
+        </div>
+        <div v-else class="rounded-xl bg-gradient-to-t from-brand-cream/80 to-white px-3 pb-2 pt-4">
+          <div class="mb-2 flex items-center justify-between text-[10px] text-brand-gray-500">
+            <span>{{ formatCurrency(maxWeeklyRevenue) }}</span>
+            <span>{{ formatCurrency(0) }}</span>
+          </div>
+          <div class="flex items-end justify-between gap-2" :style="{ height: `${chartAreaHeight}px` }">
             <div
-              class="w-full max-w-[2.5rem] rounded-t-md bg-gradient-to-t from-brand-primary to-brand-primary/60 shadow-sm transition-all"
-              :style="{ height: `${Math.max(16, (amount / maxWeeklyRevenue) * 100)}%` }"
-            />
-            <span class="text-[10px] font-semibold text-brand-gray-600" dir="auto">{{ formatWeekLabel(data?.weekLabels?.[index]) }}</span>
+              v-for="(amount, index) in data?.weeklyRevenue || []"
+              :key="data?.weekLabels?.[index] || index"
+              class="group flex h-full flex-1 flex-col items-center justify-end gap-1"
+            >
+              <span class="text-[10px] font-bold text-brand-primary tabular-nums" dir="ltr">
+                <bdi>{{ formatCurrency(amount) }}</bdi>
+              </span>
+              <div
+                class="w-full max-w-[2.5rem] rounded-t-md bg-gradient-to-t from-brand-primary to-brand-primary/60 shadow-sm transition-all group-hover:from-brand-primary group-hover:to-brand-primary/80"
+                :style="{ height: `${barHeightPx(amount)}px` }"
+                :title="`${formatWeekLabel(data?.weekLabels?.[index])} — ${formatCurrency(amount)}`"
+              />
+              <span class="text-[10px] font-semibold text-brand-gray-600" dir="auto">{{ formatWeekLabel(data?.weekLabels?.[index]) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -127,7 +147,7 @@ function paymentStatusLabel(status: string) {
             <th class="p-2">{{ t('owner.financeCards.revenue') }}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody v-if="data?.transactions?.length">
           <tr v-for="tx in data?.transactions" :key="tx.id" class="border-t">
             <td class="p-2">
               <p class="font-bold">{{ t(`owner.financeTable.kind.${tx.kind}`) }}</p>
@@ -145,6 +165,11 @@ function paymentStatusLabel(status: string) {
             </td>
             <td class="p-2">{{ bookingStatusLabel(tx.bookingStatus) }}</td>
             <td class="p-2">{{ formatCurrency(tx.amount) }}</td>
+          </tr>
+        </tbody>
+        <tbody v-else>
+          <tr>
+            <td colspan="5" class="p-4 text-center text-sm text-brand-gray-600">{{ t('common.empty') }}</td>
           </tr>
         </tbody>
       </table>
