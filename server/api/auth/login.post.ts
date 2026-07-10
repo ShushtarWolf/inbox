@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     id: user.id,
     email: user.email,
     name: user.name,
+    nameEn: user.nameEn,
     role: user.role,
     locale: user.locale,
     redirectTo,

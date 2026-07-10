@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth, logout, dashboardPathForRole } = useAuth()
+const { user, fetch: fetchAuth, logout, dashboardPathForRole, displayName } = useAuth()
 
 const dashboardPath = computed(() => {
   if (!user.value) return localePath('/login')
@@ -41,8 +41,12 @@ onMounted(() => {
           </NuxtLink>
         </template>
         <template v-else>
-          <NuxtLink :to="dashboardPath" class="text-sm font-semibold text-brand-primary">
-            {{ t('nav.account') }}
+          <NuxtLink
+            :to="dashboardPath"
+            class="max-w-[9rem] truncate text-sm font-semibold text-brand-primary"
+            :title="displayName"
+          >
+            {{ displayName }}
           </NuxtLink>
           <button type="button" class="text-sm font-semibold text-brand-gray-600" @click="handleLogout">
             {{ t('nav.logout') }}

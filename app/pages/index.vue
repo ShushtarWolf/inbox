@@ -3,7 +3,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatCurrency } = useFormatters()
-const { user, fetch: fetchAuth } = useAuth()
+const { user, fetch: fetchAuth, firstName } = useAuth()
 
 const sport = ref<string | undefined>('padel')
 
@@ -25,7 +25,7 @@ onMounted(() => {
 
 const highlightedClubs = computed(() => clubs.value?.slice(0, 2) || [])
 const highlightedCoaches = computed(() => coaches.value?.slice(0, 2) || [])
-const firstName = computed(() => user.value?.name?.split(' ')[0] || t('home.guestName'))
+const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 const selectedMapClubSlug = ref<string | null>(null)
 const heroSportIcon = ref(`/icons/sports/${sport.value || 'padel'}.svg`)
 watch(sport, (value) => {
@@ -149,7 +149,7 @@ function handleHeroSportIconError() {
         <div>
           <p class="text-xs font-bold tracking-[0.2em] text-white/70" :class="locale === 'en' ? 'uppercase' : ''">{{ t('home.eyebrow') }}</p>
           <h1 class="mt-2 max-w-xs text-2xl font-black leading-tight">
-            {{ t('home.welcome', { name: firstName }) }}
+            {{ t('home.welcome', { name: firstNameOrGuest }) }}
           </h1>
           <p class="mt-2 max-w-sm text-sm text-white/80">{{ t('home.heroBody') }}</p>
         </div>

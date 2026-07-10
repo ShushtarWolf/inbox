@@ -37,6 +37,17 @@ export function useAuth() {
 
   const user = computed<AuthUser | null>(() => profile.value ?? (sessionUser.value as AuthUser | null) ?? null)
 
+  const displayName = computed(() => {
+    const current = user.value
+    if (!current) return ''
+    const faName = current.name?.trim()
+    const enName = current.nameEn?.trim()
+    if (locale.value === 'en') return enName || faName || current.email.split('@')[0] || ''
+    return faName || enName || current.email.split('@')[0] || ''
+  })
+
+  const firstName = computed(() => displayName.value.split(/\s+/)[0] || '')
+
   async function alignLocaleWithUrl() {
     if (!import.meta.client) return
     const route = useRoute()
@@ -84,6 +95,8 @@ export function useAuth() {
 
   return {
     user,
+    displayName,
+    firstName,
     pending,
     fetch,
     login,

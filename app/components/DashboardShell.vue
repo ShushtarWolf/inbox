@@ -15,7 +15,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const open = ref(false)
-const { logout } = useAuth()
+const { logout, displayName, fetch: fetchAuth } = useAuth()
 
 async function handleLogout() {
   await logout()
@@ -38,6 +38,7 @@ onMounted(() => {
   if (import.meta.client) {
     document.addEventListener('keydown', onKeydown)
   }
+  if (!displayName.value) fetchAuth()
 })
 
 onUnmounted(() => {
@@ -74,7 +75,8 @@ function goBack() {
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">{{ t('common.back') }}</button>
           </div>
           <p class="min-w-0 truncate font-display text-base font-black">{{ title }}</p>
-          <div class="flex items-center gap-2">
+          <div class="flex min-w-0 items-center gap-2">
+            <span v-if="displayName" class="hidden max-w-[5.5rem] truncate text-xs font-semibold text-brand-gray-700 sm:inline" :title="displayName">{{ displayName }}</span>
             <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
             <LocaleSwitcher />
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
@@ -88,6 +90,7 @@ function goBack() {
           <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
         </div>
         <LocaleSwitcher />
+        <span v-if="displayName" class="max-w-[8rem] truncate text-xs font-semibold text-brand-gray-700" :title="displayName">{{ displayName }}</span>
         <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
       </div>
 
