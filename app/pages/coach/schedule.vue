@@ -3,13 +3,16 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
-const { data } = await useAuthedFetch('/api/coach/profile')
-const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
+const { data, pending: profilePending, error: profileError } = await useAuthedFetch('/api/coach/profile')
+const { data: clientsData, pending: clientsPending, error: clientsError } = await useAuthedFetch('/api/coach/clients')
+const pending = computed(() => profilePending.value || clientsPending.value)
+const error = computed(() => profileError.value || clientsError.value)
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <h1 class="font-display text-xl font-bold">{{ $t('coach.schedule') }}</h1>
+  <div class="tail-page-stack">
+    <h1 class="tail-page-title">{{ $t('coach.schedule') }}</h1>
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
 
     <div v-if="data?.availability?.length" class="space-y-2">
       <div v-for="a in data.availability" :key="a.id" class="ios-card p-3 text-sm">
@@ -27,5 +30,6 @@ const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
       </div>
       <p v-if="!clientsData?.sessions?.length" class="text-sm text-brand-gray-600">{{ $t('coach.noUpcomingSessions') }}</p>
     </section>
+    </AppAsyncState>
   </div>
 </template>

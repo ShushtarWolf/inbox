@@ -4,12 +4,12 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 const localePath = useLocalePath()
 const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
-const { data, error } = await useAuthedFetch('/api/coach/today')
+const { data, pending, error } = await useAuthedFetch('/api/coach/today')
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <p v-if="error" class="venus-widget-card-accent border border-brand-gray-100 p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
+  <div class="tail-page-stack">
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
     <div class="flex items-center justify-between gap-3">
       <h1 class="font-display text-xl font-bold">{{ $t('coach.today') }}</h1>
       <NuxtLink :to="localePath('/coach/schedule')" class="text-sm font-bold text-brand-primary">{{ $t('coach.schedule') }}</NuxtLink>
@@ -40,5 +40,6 @@ const { data, error } = await useAuthedFetch('/api/coach/today')
       </div>
       <p v-if="!data?.upcomingSessions?.length" class="text-sm text-brand-gray-600">{{ $t('coach.noUpcomingSessions') }}</p>
     </section>
+    </AppAsyncState>
   </div>
 </template>

@@ -7,7 +7,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatHours } = useFormatters()
-const { data, refresh } = await useAuthedFetch('/api/owner/settings')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
 useOwnerClubRefresh(refresh)
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
@@ -151,6 +151,7 @@ async function save() {
   <div class="mx-auto max-w-2xl space-y-4">
     <PageHeaderNav :title="t('owner.settings')" :home-to="localePath('/')" :back-to="localePath('/owner')" />
 
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <form class="grid gap-4 md:grid-cols-2" @submit.prevent="save">
       <div class="ios-card p-6 md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.clubProfile') }}</h2>
@@ -293,5 +294,6 @@ async function save() {
         </button>
       </div>
     </form>
+    </AppAsyncState>
   </div>
 </template>

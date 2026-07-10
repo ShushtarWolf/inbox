@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 const route = useRoute()
 const localePath = useLocalePath()
 const { t } = useI18n()
-const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatHours, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
@@ -86,7 +86,9 @@ async function submitReview() {
 </script>
 
 <template>
-  <div v-if="booking" class="venus-page-stack">
+  <div class="tail-page-stack">
+    <AppAsyncState :pending="pending" :error="error" :empty="!booking" skeleton-variant="default">
+  <div v-if="booking" class="space-y-4">
     <PageHeaderNav
       :title="localizedField(booking.slot.court.club, 'nameFa', 'nameEn')"
       :subtitle="`${formatIsoDate(booking.slot.date)} · ${formatTimeRange(booking.slot.startTime)}`"
@@ -135,5 +137,7 @@ async function submitReview() {
       <button type="button" class="btn-primary w-full" :disabled="reviewSubmitting || !reviewBody" @click="submitReview">{{ $t('reviews.submit') }}</button>
     </div>
     <p v-else-if="reviewDone" class="text-sm text-brand-primary">{{ $t('reviews.thanks') }}</p>
+  </div>
+    </AppAsyncState>
   </div>
 </template>

@@ -5,7 +5,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const step = ref(1)
 const saving = ref(false)
-const error = ref('')
+const saveError = ref('')
 
 const profile = reactive({
   nameFa: '',
@@ -20,7 +20,7 @@ const profile = reactive({
 const courts = ref<{ id: string; nameFa: string; nameEn: string; price: number }[]>([])
 const newCourt = reactive({ nameFa: '', nameEn: '', price: 600000 })
 
-const { data: settings, refresh: refreshSettings } = await useAuthedFetch('/api/owner/settings')
+const { data: settings, pending, error: fetchError, refresh: refreshSettings } = await useAuthedFetch('/api/owner/settings')
 watchEffect(() => {
   if (!settings.value?.club) return
   const c = settings.value.club
@@ -41,7 +41,7 @@ onMounted(() => loadCourts())
 
 async function saveProfile() {
   saving.value = true
-  error.value = ''
+  saveError.value = ''
   try {
     await $fetch('/api/owner/settings', {
       method: 'PATCH',
@@ -50,7 +50,7 @@ async function saveProfile() {
     await refreshSettings()
     step.value = 2
   } catch {
-    error.value = t('common.error')
+    saveError.value = t('common.error')
   } finally {
     saving.value = false
   }
@@ -75,9 +75,10 @@ function finish() {
 
 <template>
   <div class="mx-auto max-w-lg space-y-4">
-    <h1 class="font-display text-xl font-bold">{{ t('owner.setupTitle') }}</h1>
+    <h1 class="tail-page-title">{{ t('owner.setupTitle') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+    <AppAsyncState :pending="pending" :error="fetchError" skeleton-variant="default">
+    <p v-if="saveError" class="text-sm text-red-600">{{ saveError }}</p>
 
     <section v-if="step === 1" class="space-y-3 ios-card p-4">
       <h2 class="font-bold">{{ t('owner.setupProfile') }}</h2>
@@ -98,5 +99,6 @@ function finish() {
       <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">{{ t('owner.addCourt') }}</button>
       <button type="button" class="btn-primary w-full" @click="finish">{{ t('owner.setupFinish') }}</button>
     </section>
+    </AppAsyncState>
   </div>
 </template>

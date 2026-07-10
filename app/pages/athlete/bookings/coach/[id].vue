@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 const route = useRoute()
 const localePath = useLocalePath()
 const { t } = useI18n()
-const { data, refresh } = await useAuthedFetch('/api/bookings/mine')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatHours, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
@@ -68,7 +68,9 @@ async function rescheduleSession() {
 </script>
 
 <template>
-  <div v-if="session" class="venus-page-stack">
+  <div class="tail-page-stack">
+    <AppAsyncState :pending="pending" :error="error" :empty="!session" skeleton-variant="default">
+  <div v-if="session" class="space-y-4">
     <PageHeaderNav
       :title="localizedField(session.coach, 'nameFa', 'nameEn')"
       :subtitle="`${formatIsoDate(session.date)} · ${formatTimeRange(session.startTime)}`"
@@ -103,5 +105,7 @@ async function rescheduleSession() {
       <p v-if="availability && !availability.slots?.length" class="text-sm text-brand-gray-600">{{ $t('booking.noSlots') }}</p>
       <button type="button" class="btn-primary w-full" :disabled="!startTime" @click="rescheduleSession">{{ $t('booking.confirm') }}</button>
     </div>
+  </div>
+    </AppAsyncState>
   </div>
 </template>

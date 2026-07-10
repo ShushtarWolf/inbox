@@ -3,7 +3,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { data, refresh } = await useAuthedFetch('/api/owner/settings')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
 useOwnerClubRefresh(refresh)
 </script>
 
@@ -11,6 +11,7 @@ useOwnerClubRefresh(refresh)
   <div class="mx-auto max-w-2xl space-y-4">
     <PageHeaderNav :title="t('owner.support')" :home-to="localePath('/')" :back-to="localePath('/owner')" />
 
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <div class="ios-card p-6">
       <h2 class="font-bold">{{ t('owner.supportPage.operations') }}</h2>
       <div class="mt-3 space-y-2 text-sm text-brand-gray-600">
@@ -28,5 +29,6 @@ useOwnerClubRefresh(refresh)
         <p class="text-brand-gray-600">{{ t('owner.supportPage.contactNote') }}</p>
       </div>
     </div>
+    </AppAsyncState>
   </div>
 </template>

@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 const { locale, setLocale } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
 const { user, fetch } = useAuth()
-const { data, refresh } = await useAuthedFetch('/api/coach/profile')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/coach/profile')
 const bioFa = ref('')
 const bioEn = ref('')
 const price = ref(0)
@@ -39,8 +39,9 @@ async function save() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <h1 class="font-display text-xl font-bold">{{ $t('nav.profile') }}</h1>
+  <div class="tail-page-stack">
+    <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <textarea v-model="bioFa" :placeholder="$t('coach.bioFa')" class="neo-textarea" rows="3" />
     <textarea v-model="bioEn" :placeholder="$t('coach.bioEn')" class="neo-textarea" rows="3" />
     <input v-model.number="price" type="number" class="neo-input" />
@@ -49,5 +50,6 @@ async function save() {
       <option value="en">{{ $t('common.languageEn') }}</option>
     </select>
     <button type="button" class="btn-primary w-full" @click="save">{{ $t('common.save') }}</button>
+    </AppAsyncState>
   </div>
 </template>
