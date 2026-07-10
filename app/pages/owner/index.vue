@@ -24,10 +24,12 @@ interface OwnerCalendarSlot {
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatDayNumber, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber } = useFormatters()
 const { today } = useLocalDate()
 
 const date = ref(today())
+const showDatePicker = ref(false)
+const datePickerRef = ref<HTMLElement | null>(null)
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const showMenu = ref(false)
 const showReserve = ref(false)
@@ -93,6 +95,27 @@ const clubCoaches = computed(() =>
 )
 const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
+const monthLabel = computed(() => formatMonth(currentDate.value))
+
+function closeDatePicker() {
+  showDatePicker.value = false
+}
+
+function onDocumentClick(event: MouseEvent) {
+  if (!showDatePicker.value) return
+  const target = event.target as Node | null
+  if (target && datePickerRef.value && !datePickerRef.value.contains(target)) {
+    closeDatePicker()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClick)
+})
 
 function slotClass(status: string) {
   const map: Record<string, string> = {
@@ -424,16 +447,38 @@ const legend = [
             <h1 class="font-display text-2xl font-black text-[#27243a]">{{ t('owner.calendar') }}</h1>
             <p class="mt-1 text-sm text-[#8a859d]">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
           </div>
-
-          <div class="flex flex-wrap items-center gap-3">
-            <AppDateInput v-model="date" class="calendar-date-picker-wrap" :show-formatted-hint="false" />
-          </div>
         </div>
 
         <div class="mt-5 flex justify-end">
-          <div class="calendar-toolbar-pill font-semibold text-[#5d5873]">
-            <span>{{ weekdayLabel }}</span>
-            <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi>
+          <div ref="datePickerRef" class="relative">
+            <button
+              type="button"
+              class="calendar-toolbar-pill font-semibold text-[#5d5873]"
+              :aria-expanded="showDatePicker"
+              @click.stop="showDatePicker = !showDatePicker"
+            >
+              <span>{{ weekdayLabel }}</span>
+              <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi>
+              <span>{{ monthLabel }}</span>
+            </button>
+
+            <div v-if="showDatePicker" class="absolute end-0 z-20 mt-2">
+              <AppJalaliCalendar
+                v-if="locale === 'fa'"
+                v-model="date"
+                @select="closeDatePicker"
+              />
+              <label v-else class="block rounded-[1.25rem] border border-[#ece8f6] bg-white p-4 shadow-[0_20px_50px_rgba(41,29,87,0.12)]">
+                <span class="mb-2 block text-sm font-bold text-[#27243a]">{{ t('common.date') }}</span>
+                <input
+                  v-model="date"
+                  type="date"
+                  dir="ltr"
+                  class="w-full rounded-xl border border-black/10 px-3 py-2 tabular-nums"
+                  @change="closeDatePicker"
+                >
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -667,34 +712,6 @@ const legend = [
   grid-template-columns: 5.5rem repeat(auto-fit, minmax(8.5rem, 1fr));
 }
 
-.calendar-date-picker-wrap :deep(input),
-.calendar-date-picker-wrap :deep(select) {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-weight: 600;
-  color: #27243a;
-}
-
-.calendar-date-picker-wrap :deep(label) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  border: 1px solid #ece8f6;
-  background: #fff;
-  padding: 0.7rem 1rem;
-  font-size: 0.875rem;
-  color: #6f6885;
-}
-
-.calendar-date-picker-wrap :deep(p) {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #8a859d;
-  white-space: nowrap;
-}
-
 .calendar-toolbar-pill,
 .calendar-tab {
   display: inline-flex;
@@ -705,6 +722,7 @@ const legend = [
   background: #fff;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .calendar-tab-active {

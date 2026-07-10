@@ -50,6 +50,10 @@ export function useFormatters() {
     return new Intl.DateTimeFormat(intlLocale(), faDateOptions({ weekday: style })).format(toDate(value))
   }
 
+  function formatMonth(value: string | number | Date, style: 'short' | 'long' = 'long') {
+    return new Intl.DateTimeFormat(intlLocale(), faDateOptions({ month: style })).format(toDate(value))
+  }
+
   function formatTimeLabel(value: string) {
     return value.slice(0, 5)
   }
@@ -74,6 +78,7 @@ export function useFormatters() {
     formatIsoDate,
     formatDayNumber,
     formatWeekday,
+    formatMonth,
     formatTimeLabel,
     formatTimeRange,
     formatHours,
