@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const id = route.params.id as string
@@ -8,8 +9,8 @@ const { formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 
-const date = ref(today())
-const startTime = ref('')
+const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
+const startTime = ref(typeof route.query.time === 'string' ? route.query.time : '')
 const done = ref(false)
 const joiningWaitlist = ref(false)
 const feedback = ref('')
@@ -20,8 +21,44 @@ const { data: availability, pending, error } = await useFetch(`/api/coaches/${id
   query: computed(() => ({ date: date.value })),
 })
 
+function syncBookingQuery() {
+  router.replace({
+    query: {
+      ...route.query,
+      date: date.value || undefined,
+      time: startTime.value || undefined,
+    },
+  })
+}
+
+watch(date, () => {
+  syncBookingQuery()
+})
+
+watch(startTime, () => {
+  syncBookingQuery()
+})
+
+function selectedAvailabilitySlot() {
+  return availability.value?.slots?.find((slot: { startTime: string }) => slot.startTime === startTime.value)
+    || availability.value?.slots?.[0]
+}
+
+function waitlistWindow() {
+  const slot = selectedAvailabilitySlot()
+  if (slot) {
+    return { startTime: slot.startTime, endTime: slot.endTime }
+  }
+  return { startTime: '18:00', endTime: '19:00' }
+}
+
 async function confirm() {
-  if (!user.value) return navigateTo(localePath('/login'))
+  if (!user.value) {
+    return navigateTo(localePath({
+      path: '/login',
+      query: { returnTo: route.fullPath },
+    }))
+  }
   try {
     await $fetch('/api/bookings/coach', {
       method: 'POST',
@@ -38,6 +75,7 @@ async function confirm() {
 
 async function joinWaitlist() {
   joiningWaitlist.value = true
+  const window = waitlistWindow()
   try {
     await $fetch('/api/waitlist', {
       method: 'POST',
@@ -45,8 +83,8 @@ async function joinWaitlist() {
         clubSlug: coach.value?.club?.slug,
         coachId: id,
         date: date.value,
-        startTime: '18:00',
-        endTime: '19:00',
+        startTime: window.startTime,
+        endTime: window.endTime,
         guestName: user.value?.name,
         guestMobile: user.value?.phone,
       },
@@ -62,10 +100,15 @@ async function joinWaitlist() {
 }
 
 watch(availability, () => {
-  startTime.value = availability.value?.slots?.[0]?.startTime || ''
-})
+  if (!startTime.value || !availability.value?.slots?.some((slot: { startTime: string }) => slot.startTime === startTime.value)) {
+    startTime.value = availability.value?.slots?.[0]?.startTime || ''
+  }
+}, { immediate: true })
 
-onMounted(() => fetchAuth())
+onMounted(() => {
+  fetchAuth()
+  syncBookingQuery()
+})
 </script>
 
 <template>

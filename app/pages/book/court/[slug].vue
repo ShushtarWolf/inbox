@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const slug = route.params.slug as string
@@ -9,8 +10,8 @@ const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 
-const date = ref(today())
-const selectedSlot = ref<string | null>(null)
+const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
+const selectedSlot = ref<string | null>(typeof route.query.slot === 'string' ? route.query.slot : null)
 const done = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
@@ -21,10 +22,43 @@ const { data: slots, pending, error, refresh } = await useFetch('/api/slots/avai
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
 const joiningWaitlist = ref(false)
 
+function syncBookingQuery() {
+  router.replace({
+    query: {
+      ...route.query,
+      date: date.value || undefined,
+      slot: selectedSlot.value || undefined,
+    },
+  })
+}
+
+watch(date, () => {
+  syncBookingQuery()
+})
+
+watch(selectedSlot, () => {
+  syncBookingQuery()
+})
+
+function waitlistWindow() {
+  const selected = slots.value?.find((slot: { id: string }) => slot.id === selectedSlot.value)
+  if (selected) {
+    return { startTime: selected.startTime, endTime: selected.endTime }
+  }
+  const first = slots.value?.[0]
+  if (first) {
+    return { startTime: first.startTime, endTime: first.endTime }
+  }
+  return { startTime: '20:00', endTime: '21:00' }
+}
+
 async function confirm() {
   if (!selectedSlot.value) return
   if (!user.value) {
-    await navigateTo(localePath('/login'))
+    await navigateTo(localePath({
+      path: '/login',
+      query: { returnTo: route.fullPath },
+    }))
     return
   }
   try {
@@ -41,14 +75,15 @@ async function confirm() {
 
 async function joinWaitlist() {
   joiningWaitlist.value = true
+  const window = waitlistWindow()
   try {
     await $fetch('/api/waitlist', {
       method: 'POST',
       body: {
         clubSlug: slug,
         date: date.value,
-        startTime: '20:00',
-        endTime: '21:00',
+        startTime: window.startTime,
+        endTime: window.endTime,
         guestName: user.value?.name,
         guestMobile: user.value?.phone,
       },
@@ -63,7 +98,10 @@ async function joinWaitlist() {
   }
 }
 
-onMounted(() => fetchAuth())
+onMounted(() => {
+  fetchAuth()
+  syncBookingQuery()
+})
 </script>
 
 <template>

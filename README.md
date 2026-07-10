@@ -42,7 +42,7 @@ Set `NUXT_SESSION_PASSWORD` in production to override the built-in demo fallback
 
 **Owner:** `/owner` (calendar) · `/owner/finance` · `/owner/equipments` · `/owner/packages` · `/owner/crm` · `/owner/coaches` · `/owner/support` · `/owner/settings`
 
-Reserve sub-routes (calendar modal only): `/owner/reserve/season` · `/owner/reserve/package`
+Reserve sub-routes redirect to calendar guidance pages: `/owner/reserve/season` · `/owner/reserve/package` (season/package reserve opens from a calendar slot modal)
 
 ## Dashboard navigation
 
@@ -67,10 +67,21 @@ Nav item type: [`shared/nav.ts`](shared/nav.ts) (`NavItem`).
 
 ## PWA
 
-- Install prompt is enabled for public and athlete flows
-- Offline fallback route is `/offline`
+PWA is **disabled by default**. Enable it with:
+
+```bash
+NUXT_PUBLIC_ENABLE_PWA=true npm run dev
+```
+
+When enabled:
+
+- Install prompt is available for public and athlete flows
+- Offline fallback route is `/offline` (see [`app/pages/offline.vue`](app/pages/offline.vue))
+- Service worker uses `navigateFallback: '/offline'` for uncached navigations
 - Maskable icons are included in the manifest
 - The client updates manifest `lang`, `dir`, and `start_url` based on the active locale before install
+
+To verify offline locally: enable PWA, load the app once online, then go offline in DevTools and navigate to a new route — you should land on `/offline` with a retry button.
 
 ## Responsive layouts
 

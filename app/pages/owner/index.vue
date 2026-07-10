@@ -437,7 +437,7 @@ const legend = [
 <template>
   <div class="space-y-6">
     <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <p v-else-if="error" class="text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
 
     <section v-else class="calendar-shell overflow-hidden rounded-[2rem] border border-[#e9e6f2] bg-white shadow-[0_30px_80px_rgba(41,29,87,0.08)]" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-[#f0eef7] px-5 py-5 sm:px-7">

@@ -36,6 +36,8 @@
     "coaches": "Coaches",
     "me": "Me",
     "login": "Login",
+    "logout": "Log out",
+    "account": "Account",
     "bookings": "Bookings",
     "profile": "Profile",
     "overview": "Overview"
@@ -164,6 +166,7 @@
     "payAtClub": "Pay at club",
     "confirm": "Confirm booking",
     "cancel": "Cancel",
+    "confirmCancel": "Cancel this booking? This cannot be undone.",
     "courtsSection": "Courts",
     "coachSection": "Coach",
     "successCourt": "Court booking confirmed",
@@ -197,6 +200,10 @@
     "name": "Name",
     "invalidCredentials": "Invalid credentials",
     "loginFailed": "Server error. Please try again.",
+    "registerFailed": "Registration failed. Please try again.",
+    "emailTaken": "This email is already registered.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "athleteOnlyNote": "Self-registration is for athletes. Coaches and club owners are invited separately.",
     "dashboardLoadFailed": "Login succeeded, but loading your dashboard failed. Please refresh and try again."
   },
   "owner": {
@@ -223,6 +230,11 @@
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
     "slotActions": "Slot actions",
+    "reserveRedirect": {
+      "title": "Reserve from calendar",
+      "body": "Season and package reservations are created from a slot on the owner calendar. Open the calendar, tap a slot, then choose the reserve option you need.",
+      "cta": "Open calendar"
+    },
     "clockSelector": "Time",
     "cancelReasonPlaceholder": "Select a cancellation reason",
     "cancelReasons": {

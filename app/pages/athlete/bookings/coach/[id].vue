@@ -44,6 +44,7 @@ function paymentStatusLabel(status: string) {
 
 async function cancelSession() {
   if (!session.value || session.value.status === 'CANCELLED') return
+  if (!confirm(t('booking.confirmCancel'))) return
   await $fetch(`/api/coach-sessions/${session.value.id}/cancel`, { method: 'PATCH' })
   await refresh()
 }

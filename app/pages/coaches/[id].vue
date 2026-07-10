@@ -7,6 +7,10 @@ const { formatCurrency } = useFormatters()
 const id = route.params.id as string
 
 const { data: coach } = await useFetch(`/api/coaches/${id}`)
+
+function specialtyLabel(value: string) {
+  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+}
 </script>
 
 <template>
@@ -31,7 +35,7 @@ const { data: coach } = await useFetch(`/api/coaches/${id}`)
     <section v-if="coach.specialties?.length" class="ios-card p-4">
       <h2 class="mb-2 font-bold">{{ t('coaches.specialties') }}</h2>
       <div class="flex flex-wrap gap-2">
-        <span v-for="item in coach.specialties" :key="item" class="rounded-full border px-3 py-1 text-xs">{{ item }}</span>
+        <span v-for="item in coach.specialties" :key="item" class="rounded-full border px-3 py-1 text-xs">{{ specialtyLabel(item) }}</span>
       </div>
     </section>
 

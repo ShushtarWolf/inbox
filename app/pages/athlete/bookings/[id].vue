@@ -40,6 +40,7 @@ function paymentStatusLabel(status: string) {
 
 async function cancelBooking() {
   if (!booking.value || booking.value.status === 'CANCELLED') return
+  if (!confirm(t('booking.confirmCancel'))) return
   await $fetch(`/api/bookings/${booking.value.id}/cancel`, { method: 'PATCH' })
   await refresh()
 }

@@ -15,6 +15,11 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const open = ref(false)
+const { logout } = useAuth()
+
+async function handleLogout() {
+  await logout()
+}
 
 const mainClass = computed(() => {
   return props.wide ? 'w-full px-4 py-4 lg:px-6 lg:py-6' : 'mx-auto w-full max-w-lg px-4 py-4 lg:max-w-4xl lg:px-6 lg:py-6'
@@ -72,6 +77,7 @@ function goBack() {
           <div class="flex items-center gap-2">
             <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
             <LocaleSwitcher />
+            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
           </div>
         </div>
       </header>
@@ -82,6 +88,7 @@ function goBack() {
           <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
         </div>
         <LocaleSwitcher />
+        <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
       </div>
 
       <main :class="mainClass">

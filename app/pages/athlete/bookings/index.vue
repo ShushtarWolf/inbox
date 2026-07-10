@@ -50,11 +50,13 @@ function closeReschedule() {
 }
 
 async function cancel(id: string) {
+  if (!confirm(t('booking.confirmCancel'))) return
   await $fetch(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
   refresh()
 }
 
 async function cancelCoach(sessionId: string) {
+  if (!confirm(t('booking.confirmCancel'))) return
   await $fetch(`/api/coach-sessions/${sessionId}/cancel`, { method: 'PATCH' })
   refresh()
 }

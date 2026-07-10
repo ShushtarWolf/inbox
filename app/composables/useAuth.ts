@@ -1,3 +1,11 @@
+import { roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo } from '#shared/returnTo.ts'
+
+export { roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo }
+
+export function dashboardPathForRole(role: string, locale: 'fa' | 'en' = 'fa') {
+  return roleDashboardPath(role, locale)
+}
+
 type AuthUser = {
   id: string
   email: string
@@ -20,9 +28,11 @@ type AuthUser = {
 
 export function useAuth() {
   const { locale, setLocale } = useI18n()
+  const localePath = useLocalePath()
   const { user: sessionUser, loggedIn, fetch: refreshSession, clear, ready } = useUserSession()
   const profile = useState<AuthUser | null>('auth-profile', () => null)
   const pending = useState('auth-pending', () => false)
+  const ownerClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
   const requestFetch = import.meta.server ? useRequestFetch() : $fetch
 
   const user = computed<AuthUser | null>(() => profile.value ?? (sessionUser.value as AuthUser | null) ?? null)
@@ -50,19 +60,36 @@ export function useAuth() {
     }
   }
 
-  async function login(email: string, password: string) {
-    const data = await requestFetch<AuthUser>('/api/auth/login', { method: 'POST', body: { email, password } })
+  async function login(email: string, password: string, returnTo?: string) {
+    const data = await requestFetch<AuthUser & { redirectTo?: string }>('/api/auth/login', {
+      method: 'POST',
+      body: { email, password, returnTo },
+    })
     profile.value = data
     await refreshSession()
     await alignLocaleWithUrl()
+    if (data.redirectTo) {
+      await navigateTo(data.redirectTo)
+    }
     return data
   }
 
-  async function logout() {
+  async function logout(redirectTo?: string) {
     await requestFetch('/api/auth/logout', { method: 'POST' })
     profile.value = null
+    ownerClubId.value = null
     await clear()
+    await navigateTo(redirectTo || localePath('/'))
   }
 
-  return { user, pending, fetch, login, logout, loggedIn, ready }
+  return {
+    user,
+    pending,
+    fetch,
+    login,
+    logout,
+    loggedIn,
+    ready,
+    dashboardPathForRole: (role: string) => dashboardPathForRole(role, locale.value === 'en' ? 'en' : 'fa'),
+  }
 }

@@ -1,16 +1,21 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth } = useAuth()
+const { user, fetch: fetchAuth, logout, dashboardPathForRole } = useAuth()
+
+const dashboardPath = computed(() => {
+  if (!user.value) return localePath('/login')
+  return dashboardPathForRole(user.value.role)
+})
+
+async function handleLogout() {
+  await logout()
+}
 
 const nav = computed(() => {
   const meTarget = !user.value
     ? localePath('/login')
-    : user.value.role === 'CLUB_ADMIN'
-      ? localePath('/owner')
-      : user.value.role === 'COACH'
-        ? localePath('/coach')
-        : localePath('/athlete')
+    : dashboardPathForRole(user.value.role)
 
   return [
     { to: localePath('/'), label: t('nav.home'), icon: '🏠' },
@@ -30,9 +35,19 @@ onMounted(() => {
     <AppTopBar :nav="nav">
       <template #actions>
         <LocaleSwitcher />
-        <NuxtLink :to="localePath('/login')" class="text-sm font-semibold text-brand-primary">
-          {{ t('nav.login') }}
-        </NuxtLink>
+        <template v-if="!user">
+          <NuxtLink :to="localePath('/login')" class="text-sm font-semibold text-brand-primary">
+            {{ t('nav.login') }}
+          </NuxtLink>
+        </template>
+        <template v-else>
+          <NuxtLink :to="dashboardPath" class="text-sm font-semibold text-brand-primary">
+            {{ t('nav.account') }}
+          </NuxtLink>
+          <button type="button" class="text-sm font-semibold text-brand-gray-600" @click="handleLogout">
+            {{ t('nav.logout') }}
+          </button>
+        </template>
       </template>
     </AppTopBar>
     <main class="app-shell-main mx-auto w-full max-w-lg flex-1 px-4 py-4 lg:max-w-6xl lg:px-6 lg:py-6">

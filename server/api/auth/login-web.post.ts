@@ -1,11 +1,12 @@
-import { toSessionUser } from '../../utils/auth'
+import { toSessionUser, postLoginRedirectPath } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
 
 export default defineEventHandler(async (event) => {
-  const { email, password, locale } = await readBody<{
+  const { email, password, locale, returnTo } = await readBody<{
     email?: string
     password?: string
     locale?: string
+    returnTo?: string
   }>(event)
 
   const normalized = email?.trim().toLowerCase()
@@ -24,13 +25,9 @@ export default defineEventHandler(async (event) => {
 
     await setUserSession(event, { user: toSessionUser(user) })
 
-    const target = user.role === 'CLUB_ADMIN'
-      ? `${base}/owner?${stamp}`
-      : user.role === 'COACH'
-        ? `${base}/coach?${stamp}`
-        : `${base}/athlete?${stamp}`
-
-    return sendRedirect(event, target)
+    const target = postLoginRedirectPath(user, locale, returnTo)
+    const separator = target.includes('?') ? '&' : '?'
+    return sendRedirect(event, `${target}${separator}${stamp}`)
   } catch {
     return sendRedirect(event, `${base}/login?error=server`)
   }

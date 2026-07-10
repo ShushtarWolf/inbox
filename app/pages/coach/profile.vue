@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
-const { setLocale } = useI18n()
+const { locale, setLocale } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 const { user, fetch } = useAuth()
 const { data, refresh } = await useAuthedFetch('/api/coach/profile')
 const bioFa = ref('')
@@ -23,11 +24,15 @@ onMounted(async () => {
 })
 
 async function save() {
+  const previousLocale = locale.value
   await $fetch('/api/coach/profile', {
     method: 'PATCH',
     body: { bioFa: bioFa.value, bioEn: bioEn.value, sessionPrice: price.value, locale: profileLocale.value },
   })
   await setLocale(profileLocale.value)
+  if (profileLocale.value !== previousLocale) {
+    await navigateTo(switchLocalePath(profileLocale.value))
+  }
   await fetch()
   refresh()
 }

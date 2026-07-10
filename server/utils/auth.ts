@@ -1,5 +1,15 @@
 import type { H3Event } from 'h3'
 import type { Role } from '@prisma/client'
+import { resolvePostLoginPath } from '#shared/returnTo.ts'
+
+export function postLoginRedirectPath(
+  user: { role: string; locale?: string | null },
+  locale?: string,
+  returnTo?: string,
+) {
+  const resolvedLocale = locale === 'en' || user.locale === 'en' ? 'en' : 'fa'
+  return resolvePostLoginPath(user.role, resolvedLocale, returnTo)
+}
 
 export function toSessionUser(user: {
   id: string

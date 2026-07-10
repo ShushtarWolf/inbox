@@ -2,12 +2,14 @@
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
 const localePath = useLocalePath()
+const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
-const { data } = await useAuthedFetch('/api/coach/today')
+const { data, error } = await useAuthedFetch('/api/coach/today')
 </script>
 
 <template>
   <div class="space-y-4">
+    <p v-if="error" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
     <div class="flex items-center justify-between gap-3">
       <h1 class="font-display text-xl font-black">{{ $t('coach.today') }}</h1>
       <NuxtLink :to="localePath('/coach/schedule')" class="text-sm font-bold text-brand-primary">{{ $t('coach.schedule') }}</NuxtLink>
