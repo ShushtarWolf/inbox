@@ -86,7 +86,7 @@ const rentalEquipments = computed(() =>
         <p v-if="packageDays(p).length" class="mt-1 text-xs text-brand-gray-600">
           {{ packageDays(p).map((day: string) => t(`owner.weekdays.${day}`)).join(' · ') }}
         </p>
-        <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600">{{ p.startDate }} – {{ p.finishDate || '…' }}</p>
+        <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ p.startDate }} – {{ p.finishDate || '…' }}</bdi></p>
       </div>
       <div class="flex min-w-[6rem] items-center justify-center rounded-xl border border-dashed border-brand-primary/30 bg-white px-4 py-6 text-2xl text-brand-primary">+</div>
     </div>
@@ -113,8 +113,8 @@ const rentalEquipments = computed(() =>
         </div>
       </div>
       <div class="grid gap-2 sm:grid-cols-2">
-        <input v-model="form.startDate" type="date" :placeholder="t('owner.packagesPage.startDate')" class="w-full rounded-xl border px-3 py-2">
-        <input v-model="form.finishDate" type="date" :placeholder="t('owner.packagesPage.finishDate')" class="w-full rounded-xl border px-3 py-2">
+        <AppDateInput v-model="form.startDate" />
+        <AppDateInput v-model="form.finishDate" />
       </div>
       <input v-model.number="form.capacity" type="number" min="1" :placeholder="t('owner.packagesPage.capacity')" class="w-full rounded-xl border px-3 py-2">
       <input v-model.number="form.price" type="number" :placeholder="t('owner.packagesPage.price')" class="w-full rounded-xl border px-3 py-2">

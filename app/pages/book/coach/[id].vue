@@ -83,7 +83,7 @@ onMounted(() => fetchAuth())
     <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 
-    <select v-else v-model="startTime" class="w-full rounded-xl border px-3 py-2">
+    <select v-else v-model="startTime" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
       <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
     </select>
 

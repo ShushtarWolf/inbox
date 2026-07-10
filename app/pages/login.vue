@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 
 const email = ref('athlete@inbox.local')
@@ -20,6 +21,6 @@ const error = computed(() => {
     <input type="hidden" name="locale" :value="locale" />
     <p v-if="error" class="text-sm text-brand-primary">{{ error }}</p>
     <button type="submit" class="btn-primary w-full">{{ t('auth.login') }}</button>
-    <NuxtLink :to="locale === 'en' ? '/en/register' : '/register'" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
+    <NuxtLink :to="localePath('/register')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
   </form>
 </template>

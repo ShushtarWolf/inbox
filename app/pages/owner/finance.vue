@@ -122,8 +122,8 @@ function paymentStatusLabel(status: string) {
             </td>
             <td class="p-2">
               <p class="font-bold">{{ tx.guestName }}</p>
-              <p v-if="tx.guestMobile" class="text-xs text-brand-gray-600">{{ tx.guestMobile }}</p>
-              <p class="text-xs text-brand-gray-600">{{ tx.id }}</p>
+              <p v-if="tx.guestMobile" class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ tx.guestMobile }}</bdi></p>
+              <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ tx.id }}</bdi></p>
             </td>
             <td class="p-2">
               <p>{{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }}</p>

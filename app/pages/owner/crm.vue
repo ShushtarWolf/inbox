@@ -11,15 +11,32 @@ useOwnerClubRefresh(refresh)
 const sms = reactive({ message: '', recipient: 'all', campaignName: '', schedule: '' })
 const feedback = ref('')
 
+const builtInSegments = new Set(['all', 'vip', 'inactive', 'atRisk'])
+
+function segmentLabel(segment: { id: string, name: string }) {
+  if (builtInSegments.has(segment.id)) {
+    return t(`owner.crmPage.segments.${segment.id}` as 'owner.crmPage.segments.all')
+  }
+  return segment.name
+}
+
+function campaignStatusLabel(status: string) {
+  return t(`owner.crmPage.campaignStatus.${status}` as 'owner.crmPage.campaignStatus.SENT')
+}
+
+function triggerTypeLabel(type: string) {
+  return t(`owner.crmPage.triggerType.${type}` as 'owner.crmPage.triggerType.booking_upcoming')
+}
+
 async function send() {
-  const response = await $fetch('/api/owner/sms', {
+  await $fetch('/api/owner/sms', {
     method: 'POST',
     body: {
       ...sms,
       segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
     },
   })
-  feedback.value = response.note || t('owner.crmPage.smsLogged')
+  feedback.value = t('owner.crmPage.smsLogged')
   refresh()
 }
 </script>
@@ -55,7 +72,7 @@ async function send() {
           :class="selectedSegment === segment.id ? 'border-brand-primary text-brand-primary' : ''"
           @click="selectedSegment = segment.id"
         >
-          {{ segment.name }} ({{ segment.count }})
+          {{ segmentLabel(segment) }} ({{ segment.count }})
         </button>
       </div>
 
@@ -68,10 +85,10 @@ async function send() {
               <tr v-for="c in data?.contacts" :key="c.id" class="border-t">
                 <td class="p-2">
                   <p class="font-bold">{{ c.name }}</p>
-                  <p class="text-xs text-brand-gray-600">{{ c.lastVisit }} · {{ c.totalVisits }}x</p>
+                  <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits }) }}</p>
                 </td>
                 <td class="p-2">
-                  <p>{{ c.mobile }}</p>
+                  <p><bdi dir="ltr" class="tabular-nums">{{ c.mobile }}</bdi></p>
                   <p class="text-xs text-brand-gray-600">{{ c.lifetimeValue }}</p>
                 </td>
               </tr>
@@ -86,7 +103,7 @@ async function send() {
           <div v-for="campaign in data?.campaigns" :key="campaign.id" class="rounded-xl border p-3">
             <div class="flex items-center justify-between gap-3">
               <p class="font-bold">{{ campaign.name }}</p>
-              <span class="text-xs text-brand-gray-600">{{ campaign.status }}</span>
+              <span class="text-xs text-brand-gray-600">{{ campaignStatusLabel(campaign.status) }}</span>
             </div>
             <p class="text-xs text-brand-gray-600">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.delivered', { delivered: campaign.delivered, total: campaign.total }) }}</p>
@@ -118,7 +135,7 @@ async function send() {
         <div class="space-y-2 text-sm">
           <div v-for="rule in data?.reminders" :key="rule.id" class="rounded-xl border px-3 py-2">
             <p class="font-bold">{{ rule.name }}</p>
-            <p class="text-xs text-brand-gray-600">{{ rule.triggerType }} · {{ formatHours(rule.offsetHours) }}</p>
+            <p class="text-xs text-brand-gray-600">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
           </div>
         </div>
       </div>

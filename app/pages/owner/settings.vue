@@ -17,7 +17,7 @@ useOwnerClubRefresh(refresh)
         <h2 class="font-bold">{{ t('owner.settingsPage.clubProfile') }}</h2>
         <div v-if="data?.club" class="mt-3 space-y-2 text-sm">
           <p><span class="font-bold">{{ t('owner.activeClub') }}:</span> {{ localizedField(data.club, 'nameFa', 'nameEn') }}</p>
-          <p><span class="font-bold">{{ t('owner.settingsPage.role') }}:</span> {{ data.membership?.role }}</p>
+          <p><span class="font-bold">{{ t('owner.settingsPage.role') }}:</span> {{ t(`owner.roles.${data.membership?.role}` as 'owner.roles.CLUB_ADMIN') }}</p>
           <p><span class="font-bold">{{ t('owner.settingsPage.slug') }}:</span> <bdi dir="ltr">{{ data.club.slug }}</bdi></p>
           <p><span class="font-bold">{{ t('owner.settingsPage.location') }}:</span> {{ data.club.city }}<span v-if="data.club.district"> · {{ data.club.district }}</span></p>
           <p><span class="font-bold">{{ t('owner.settingsPage.address') }}:</span> {{ localizedField(data.club, 'addressFa', 'addressEn') }}</p>

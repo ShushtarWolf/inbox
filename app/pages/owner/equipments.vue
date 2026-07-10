@@ -13,7 +13,7 @@ const grouped = computed(() => ({
 }))
 
 async function add() {
-  await $fetch('/api/owner/equipments', { method: 'POST', body: { nameFa: 'جدید', category: 'CLUB' } })
+  await $fetch('/api/owner/equipments', { method: 'POST', body: { nameFa: t('owner.equipmentsPage.newItem'), category: 'CLUB' } })
   refresh()
 }
 </script>

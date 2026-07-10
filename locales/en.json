@@ -85,6 +85,11 @@
     "mapView": "Map",
     "moreFilters": "More filters",
     "allCities": "All cities",
+    "cityOptions": {
+      "tehran": "Tehran",
+      "isfahan": "Isfahan",
+      "shiraz": "Shiraz"
+    },
     "nearby": "Nearby me",
     "allAmenities": "All amenities",
     "minPrice": "Min price",
@@ -279,7 +284,8 @@
       "club": "Club equipment",
       "rental": "Rental",
       "sell": "For sale",
-      "services": "Services"
+      "services": "Services",
+      "newItem": "New"
     },
     "packagesPage": {
       "title": "Title",
@@ -314,7 +320,28 @@
       "logOnlyNote": "This flow only records a campaign log in MVP. It does not send a real SMS.",
       "remindersInfo": "Reminder rules are shown here for visibility only. Automated delivery is not active in this MVP.",
       "delivered": "{delivered}/{total} delivered",
-      "vip": "VIP"
+      "vip": "VIP",
+      "visitCount": "{count} visits",
+      "segments": {
+        "all": "All contacts",
+        "vip": "VIP",
+        "inactive": "Needs reactivation",
+        "atRisk": "No-show risk"
+      },
+      "campaignStatus": {
+        "SENT": "Sent",
+        "SCHEDULED": "Scheduled",
+        "DRAFT": "Draft"
+      },
+      "triggerType": {
+        "booking_upcoming": "Upcoming booking",
+        "inactive_customer": "Inactive customer"
+      }
+    },
+    "roles": {
+      "CLUB_ADMIN": "Club admin",
+      "COACH": "Coach",
+      "STAFF": "Staff"
     },
     "funnelTitle": "Booking funnel",
     "funnel": {

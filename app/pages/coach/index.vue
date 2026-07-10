@@ -26,7 +26,7 @@ const { data } = await useAuthedFetch('/api/coach/today')
     <div v-for="s in data?.sessions" :key="s.id" class="ios-card p-3">
       <p class="font-bold">{{ s.athlete.name }}</p>
       <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi></p>
-      <p class="text-xs text-brand-gray-600">{{ s.athlete.phone }}</p>
+      <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ s.athlete.phone }}</bdi></p>
     </div>
     <p v-if="!data?.sessions?.length" class="rounded-xl border border-dashed border-black/10 bg-brand-cream/40 p-4 text-sm text-brand-gray-600">{{ $t('coach.noSessionsToday') }}</p>
 

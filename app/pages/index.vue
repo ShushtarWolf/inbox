@@ -54,6 +54,14 @@ const heroSearchDate = computed(() => {
   }).format(new Date())
 })
 
+function specialtyLabel(value: string) {
+  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+}
+
+function formatSpecialties(values?: string[]) {
+  return values?.slice(0, 2).map(specialtyLabel).join(' · ') || t('home.coachSessionsLabel')
+}
+
 function bookingLink(path: '/clubs' | '/coaches') {
   return localePath({
     path,
@@ -383,7 +391,7 @@ function handleHeroSportIconError() {
           <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 rounded-2xl object-cover" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-bold">{{ localizedField(coach, 'nameFa', 'nameEn') }}</p>
-            <p class="mt-0.5 truncate text-xs text-brand-gray-600">{{ coach.specialties?.slice(0, 2).join(' · ') || t('home.coachSessionsLabel') }}</p>
+            <p class="mt-0.5 truncate text-xs text-brand-gray-600">{{ formatSpecialties(coach.specialties) }}</p>
             <p class="mt-1 text-xs font-bold text-brand-primary">{{ formatCurrency(coach.sessionPrice) }}</p>
           </div>
           <span class="rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.coachCta') }}</span>

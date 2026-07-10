@@ -27,10 +27,13 @@ export function useAuth() {
 
   const user = computed<AuthUser | null>(() => profile.value ?? (sessionUser.value as AuthUser | null) ?? null)
 
-  async function syncLocale(nextLocale?: string | null) {
+  async function alignLocaleWithUrl() {
     if (!import.meta.client) return
-    if ((nextLocale !== 'fa' && nextLocale !== 'en') || locale.value === nextLocale) return
-    await setLocale(nextLocale)
+    const route = useRoute()
+    const urlLocale = route.path === '/en' || route.path.startsWith('/en/') ? 'en' : 'fa'
+    if (locale.value !== urlLocale) {
+      await setLocale(urlLocale)
+    }
   }
 
   async function fetch() {
@@ -39,7 +42,7 @@ export function useAuth() {
       await refreshSession()
       const data = await requestFetch<{ user: AuthUser | null }>('/api/auth/me')
       profile.value = data.user
-      await syncLocale(data.user?.locale ?? user.value?.locale)
+      await alignLocaleWithUrl()
     } catch {
       profile.value = null
     } finally {
@@ -51,7 +54,7 @@ export function useAuth() {
     const data = await requestFetch<AuthUser>('/api/auth/login', { method: 'POST', body: { email, password } })
     profile.value = data
     await refreshSession()
-    await syncLocale(data.locale)
+    await alignLocaleWithUrl()
     return data
   }
 

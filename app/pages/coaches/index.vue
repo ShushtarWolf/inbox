@@ -24,11 +24,23 @@ const { data: coaches } = await useFetch('/api/coaches', {
   })),
 })
 
-const cityOptions = ['تهران', 'اصفهان', 'شیراز']
+const cityOptions = [
+  { value: 'تهران', key: 'tehran' },
+  { value: 'اصفهان', key: 'isfahan' },
+  { value: 'شیراز', key: 'shiraz' },
+] as const
 const specialtyOptions = ['Padel basics', 'Match tactics', 'Serve', 'Women coaching', 'Backhand'] as const
+
+function cityLabel(key: 'tehran' | 'isfahan' | 'shiraz') {
+  return t(`clubs.cityOptions.${key}`)
+}
 
 function specialtyLabel(value: string) {
   return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+}
+
+function formatSpecialties(values?: string[]) {
+  return values?.slice(0, 2).map(specialtyLabel).join(' · ')
 }
 
 async function syncRoute() {
@@ -51,8 +63,8 @@ async function syncRoute() {
     <button type="button" class="rounded-full border px-3 py-1 text-xs font-bold" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
     <div class="flex flex-wrap gap-2">
       <button type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === '' ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city; syncRoute()">
-        {{ city }}
+      <button v-for="city in cityOptions" :key="city.value" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city.value ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city.value; syncRoute()">
+        {{ cityLabel(city.key) }}
       </button>
     </div>
     <div v-if="showFilters" class="ios-card grid gap-3 p-4 lg:grid-cols-3">
@@ -84,7 +96,7 @@ async function syncRoute() {
             <span v-if="c.verified" class="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold text-brand-primary">{{ t('clubs.verified') }}</span>
           </div>
           <p class="text-xs text-brand-gray-600">{{ c.city }} · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</p>
-          <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ c.specialties.slice(0, 2).join(' · ') }}</p>
+          <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ formatSpecialties(c.specialties) }}</p>
           <p class="text-sm font-black text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
         </div>
         <span class="rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.coachCta') }}</span>

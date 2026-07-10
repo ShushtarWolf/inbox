@@ -34,8 +34,16 @@ const { data: clubs } = await useFetch('/api/clubs', {
   query,
 })
 
-const cityOptions = ['تهران', 'اصفهان', 'شیراز']
+const cityOptions = [
+  { value: 'تهران', key: 'tehran' },
+  { value: 'اصفهان', key: 'isfahan' },
+  { value: 'شیراز', key: 'shiraz' },
+] as const
 const amenityOptions = ['Parking', 'Cafe', 'Locker room', 'Shower', 'Pro shop', 'Kids area'] as const
+
+function cityLabel(key: 'tehran' | 'isfahan' | 'shiraz') {
+  return t(`clubs.cityOptions.${key}`)
+}
 
 function amenityLabel(value: string) {
   return t(`clubs.amenityOptions.${value}` as 'clubs.amenityOptions.Parking')
@@ -118,8 +126,8 @@ async function useNearby() {
 
     <div class="flex flex-wrap gap-2">
       <button type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === '' ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city; syncRoute()">
-        {{ city }}
+      <button v-for="city in cityOptions" :key="city.value" type="button" class="rounded-full border px-3 py-1 text-xs" :class="filters.city === city.value ? 'border-brand-primary text-brand-primary' : ''" @click="filters.city = city.value; syncRoute()">
+        {{ cityLabel(city.key) }}
       </button>
       <button type="button" class="rounded-full border px-3 py-1 text-xs" @click="useNearby">{{ locating ? t('common.loading') : t('clubs.nearby') }}</button>
     </div>
@@ -196,8 +204,8 @@ async function useNearby() {
           <p class="mt-1 text-sm font-black text-brand-primary">
             {{ formatCurrency(club.priceFrom) }}<span v-if="club.priceTo"> - {{ formatCurrency(club.priceTo) }}</span>
           </p>
-          <p class="mt-1 text-xs text-brand-gray-600">{{ club.amenityPreview.join(' · ') }}</p>
-          <p v-if="club.distanceKm != null" class="mt-1 text-xs text-brand-gray-600">{{ t('clubs.distance') }}: {{ club.distanceKm }} km</p>
+          <p class="mt-1 text-xs text-brand-gray-600">{{ club.amenityPreview.map(amenityLabel).join(' · ') }}</p>
+          <p v-if="club.distanceKm != null" class="mt-1 text-xs text-brand-gray-600">{{ t('clubs.distance') }}: {{ formatDistanceKm(club.distanceKm) }}</p>
         </div>
         <span class="self-center rounded-full bg-brand-primary/10 px-2.5 py-1 text-[11px] font-bold text-brand-primary">{{ t('home.clubCta') }}</span>
       </NuxtLink>

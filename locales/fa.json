@@ -85,6 +85,11 @@
     "mapView": "نقشه",
     "moreFilters": "فیلتر بیشتر",
     "allCities": "همه شهرها",
+    "cityOptions": {
+      "tehran": "تهران",
+      "isfahan": "اصفهان",
+      "shiraz": "شیراز"
+    },
     "nearby": "نزدیک من",
     "allAmenities": "همه امکانات",
     "minPrice": "حداقل قیمت",
@@ -279,7 +284,8 @@
       "club": "تجهیزات باشگاه",
       "rental": "اجاره‌ای",
       "sell": "برای فروش",
-      "services": "خدمات"
+      "services": "خدمات",
+      "newItem": "جدید"
     },
     "packagesPage": {
       "title": "عنوان",
@@ -314,7 +320,28 @@
       "logOnlyNote": "در این MVP این بخش فقط لاگ کمپین را ثبت می‌کند و پیامک واقعی ارسال نمی‌شود.",
       "remindersInfo": "قوانین یادآوری فقط برای مشاهده نمایش داده می‌شوند و ارسال خودکار در این MVP فعال نیست.",
       "delivered": "{delivered} از {total} تحویل‌شده",
-      "vip": "وی‌آی‌پی"
+      "vip": "وی‌آی‌پی",
+      "visitCount": "{count} بازدید",
+      "segments": {
+        "all": "همه مخاطبان",
+        "vip": "وی‌آی‌پی",
+        "inactive": "نیاز به بازفعال‌سازی",
+        "atRisk": "ریسک عدم حضور"
+      },
+      "campaignStatus": {
+        "SENT": "ارسال‌شده",
+        "SCHEDULED": "زمان‌بندی‌شده",
+        "DRAFT": "پیش‌نویس"
+      },
+      "triggerType": {
+        "booking_upcoming": "یادآور رزرو آینده",
+        "inactive_customer": "بازگشت مشتری غیرفعال"
+      }
+    },
+    "roles": {
+      "CLUB_ADMIN": "مدیر باشگاه",
+      "COACH": "مربی",
+      "STAFF": "کارمند"
     },
     "funnelTitle": "قیف رزرو",
     "funnel": {

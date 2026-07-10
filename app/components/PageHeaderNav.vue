@@ -31,7 +31,7 @@ function goBack() {
   <div class="flex items-start justify-between gap-3">
     <div class="min-w-0">
       <h1 class="font-display text-xl font-black">{{ title }}</h1>
-      <p v-if="subtitle" class="mt-1 text-sm text-brand-gray-600">{{ subtitle }}</p>
+      <p v-if="subtitle" class="mt-1 text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ subtitle }}</bdi></p>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">

@@ -35,7 +35,16 @@
 | `layout` | `app/layouts/default.vue` | — | — | — | — | OK |
 | `layout` | `app/layouts/dashboard-athlete.vue` | — | — | — | — | OK |
 | `layout` | `app/layouts/dashboard-coach.vue` | — | — | — | — | OK |
-| `component` | `app/components/DashboardShell.vue` | — | — | — | escape on overlay | Fixed |
+| `component` | `app/components/DashboardShell.vue` | — | — | RTL sidebar desktop override | escape on overlay | Fixed |
+| `component` | `app/composables/useAuth.ts` | — | — | — | profile locale overriding URL | Fixed |
+| `component` | `app/pages/clubs/index.vue` | city labels, amenity cards, km | city labels | — | hardcoded km/amenities | Fixed |
+| `component` | `app/pages/coaches/index.vue` | city/specialty labels | city/specialty labels | — | hardcoded cities/specialties | Fixed |
+| `component` | `app/pages/owner/crm.vue` | segment/status labels | segment/status labels | phone/datetime LTR | English API strings | Fixed |
+| `component` | `app/pages/owner/coaches.vue` | role enum | role enum | phone LTR | raw role strings | Fixed |
+| `component` | `app/pages/owner/settings.vue` | role enum | — | — | raw role string | Fixed |
+| `component` | `app/pages/owner/equipments.vue` | new item name | — | — | hardcoded جدید | Fixed |
+| `component` | `app/pages/owner/index.vue` | letter-spacing on FA | — | — | tracking on eyebrow/day | Fixed |
+| `component` | `app/pages/login.vue` | — | — | — | manual /en/register path | Fixed |
 | `component` | `app/components/LocaleSwitcher.vue` | hardcoded EN | — | — | — | Fixed |
 | `component` | `app/components/AppModal.vue` | — | — | centered modal | new shared component | Added |
 | `component` | `app/components/AppDateInput.vue` | Gregorian picker | — | dir=ltr | new shared component | Added |

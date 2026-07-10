@@ -22,7 +22,7 @@ interface OwnerCalendarSlot {
   booking?: OwnerCalendarBooking | null
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatWeekday, formatTimeRange, formatNumber } = useFormatters()
@@ -254,11 +254,11 @@ const legend = [
     <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 
-    <section v-else class="calendar-shell overflow-hidden rounded-[2rem] border border-[#e9e6f2] bg-white shadow-[0_30px_80px_rgba(41,29,87,0.08)]">
+    <section v-else class="calendar-shell overflow-hidden rounded-[2rem] border border-[#e9e6f2] bg-white shadow-[0_30px_80px_rgba(41,29,87,0.08)]" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-[#f0eef7] px-5 py-5 sm:px-7">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p class="mb-1 text-xs font-semibold tracking-[0.24em] text-[#a6a1b5]">{{ t('owner.dashboardEyebrow') }}</p>
+            <p class="mb-1 text-xs font-semibold text-[#a6a1b5]" :class="locale === 'en' ? 'tracking-[0.24em]' : ''">{{ t('owner.dashboardEyebrow') }}</p>
             <h1 class="font-display text-2xl font-black text-[#27243a]">{{ t('owner.calendar') }}</h1>
             <p class="mt-1 text-sm text-[#8a859d]">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
           </div>
@@ -483,8 +483,11 @@ const legend = [
 .calendar-column-day {
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
   color: #b0a9c2;
+}
+
+.calendar-latin .calendar-column-day {
+  letter-spacing: 0.06em;
 }
 
 .calendar-column-title {

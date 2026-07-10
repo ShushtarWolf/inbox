@@ -55,8 +55,8 @@ function goBack() {
     <div v-if="open" class="fixed inset-0 z-40 bg-black/40 lg:hidden" role="presentation" @click="open = false" />
 
     <div
-      class="fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 lg:static lg:translate-x-0"
-      :class="open ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'"
+      class="fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 lg:static lg:translate-x-0 lg:ltr:translate-x-0 lg:rtl:translate-x-0"
+      :class="open ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:ltr:translate-x-0 lg:rtl:translate-x-0'"
     >
       <AppSideNav :title="title" :items="items" :dark="darkNav" />
     </div>
