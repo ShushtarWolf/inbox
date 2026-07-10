@@ -40,7 +40,7 @@ async function save() {
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('nav.profile') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ $t('nav.profile') }}</h1>
     <textarea v-model="bioFa" :placeholder="$t('coach.bioFa')" class="neo-textarea" rows="3" />
     <textarea v-model="bioEn" :placeholder="$t('coach.bioEn')" class="neo-textarea" rows="3" />
     <input v-model.number="price" type="number" class="neo-input" />

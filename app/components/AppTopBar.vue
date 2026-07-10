@@ -27,9 +27,10 @@ withDefaults(defineProps<{
             v-for="item in nav"
             :key="item.to"
             :to="item.to"
-            class="neo-pill neo-pill-inactive"
+            class="neo-pill neo-pill-inactive gap-1.5"
             active-class="neo-pill-active"
           >
+            <AppIcon v-if="item.icon" :name="item.icon" size="sm" />
             {{ item.label }}
           </NuxtLink>
         </nav>

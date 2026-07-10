@@ -75,7 +75,7 @@ function finish() {
 
 <template>
   <div class="mx-auto max-w-lg space-y-4">
-    <h1 class="font-display text-xl font-black">{{ t('owner.setupTitle') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ t('owner.setupTitle') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 

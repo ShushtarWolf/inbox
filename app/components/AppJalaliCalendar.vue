@@ -70,12 +70,16 @@ function isSelected(cell: { iso: string | null }) {
 <template>
   <div class="jalali-calendar rounded-venus border border-brand-gray-100 bg-white p-4 shadow-venus">
     <div class="mb-3 flex items-center justify-between gap-2">
-      <button type="button" class="jalali-calendar-nav" aria-label="ماه قبل" @click="prevMonth">‹</button>
-      <p class="text-sm font-black text-black">{{ monthLabel }}</p>
-      <button type="button" class="jalali-calendar-nav" aria-label="ماه بعد" @click="nextMonth">›</button>
+      <button type="button" class="jalali-calendar-nav" aria-label="ماه قبل" @click="prevMonth">
+        <AppIcon name="chevron_left" size="sm" />
+      </button>
+      <p class="text-sm font-bold text-brand-navy">{{ monthLabel }}</p>
+      <button type="button" class="jalali-calendar-nav" aria-label="ماه بعد" @click="nextMonth">
+        <AppIcon name="chevron_right" size="sm" />
+      </button>
     </div>
 
-    <div class="grid grid-cols-7 gap-1 text-center text-xs font-black text-black/50">
+    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-brand-navy/50">
       <span v-for="weekday in PERSIAN_WEEKDAYS" :key="weekday">{{ weekday }}</span>
     </div>
 

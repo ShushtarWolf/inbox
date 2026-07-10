@@ -18,14 +18,17 @@ function selectTime(time: string) {
 </script>
 
 <template>
-  <aside class="ios-card p-4">
-    <h3 class="mb-3 text-sm font-black text-black">{{ t('owner.clockSelector') }}</h3>
+  <aside class="venus-widget-card p-4">
+    <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-brand-navy">
+      <AppIcon name="schedule" size="sm" />
+      {{ t('owner.clockSelector') }}
+    </h3>
     <ul class="space-y-1">
       <li v-for="time in options" :key="time">
         <button
           type="button"
-          class="block w-full rounded-brutal border-2 px-3 py-2 text-start text-sm font-black transition"
-          :class="selected === time ? 'border-black bg-brand-accent text-black shadow-brutal-sm' : 'border-transparent text-black hover:border-black hover:bg-brand-lavender'"
+          class="block w-full rounded-venus px-3 py-2 text-start text-sm font-semibold transition"
+          :class="selected === time ? 'bg-brand-primary text-white shadow-venus-sm' : 'text-brand-gray-600 hover:bg-brand-lavender hover:text-brand-primary'"
           @click="selectTime(time)"
         >
           <bdi dir="ltr" class="tabular-nums">{{ time }}</bdi>

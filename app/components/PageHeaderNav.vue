@@ -28,18 +28,24 @@ function goBack() {
 </script>
 
 <template>
-  <div class="flex items-start justify-between gap-3">
+  <div class="venus-page-header">
     <div class="min-w-0">
-      <h1 class="font-display text-xl font-black">{{ title }}</h1>
-      <p v-if="subtitle" class="mt-1 text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ subtitle }}</bdi></p>
+      <h1 class="venus-page-title">{{ title }}</h1>
+      <p v-if="subtitle" class="venus-page-subtitle"><bdi dir="ltr" class="tabular-nums">{{ subtitle }}</bdi></p>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">
       <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
-        {{ t('common.back') }}
+        <span class="inline-flex items-center gap-1.5">
+          <AppIcon name="arrow_back" size="sm" />
+          {{ t('common.back') }}
+        </span>
       </button>
       <NuxtLink :to="homeTo" class="btn-ghost px-3 py-2 text-xs">
-        {{ t('nav.home') }}
+        <span class="inline-flex items-center gap-1.5">
+          <AppIcon name="home" size="sm" />
+          {{ t('nav.home') }}
+        </span>
       </NuxtLink>
     </div>
   </div>

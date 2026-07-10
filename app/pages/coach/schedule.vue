@@ -9,7 +9,7 @@ const { data: clientsData } = await useAuthedFetch('/api/coach/clients')
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('coach.schedule') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ $t('coach.schedule') }}</h1>
 
     <div v-if="data?.availability?.length" class="space-y-2">
       <div v-for="a in data.availability" :key="a.id" class="ios-card p-3 text-sm">

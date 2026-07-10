@@ -25,15 +25,15 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-sm space-y-4 pt-8">
-    <h1 class="font-display text-xl font-black">{{ t('auth.forgotPassword') }}</h1>
-    <p v-if="submitted" class="text-sm font-bold text-black/70">{{ t('auth.resetEmailSent') }}</p>
+    <h1 class="font-display text-xl font-bold">{{ t('auth.forgotPassword') }}</h1>
+    <p v-if="submitted" class="text-sm font-bold text-brand-gray-600">{{ t('auth.resetEmailSent') }}</p>
     <template v-else>
       <input v-model="email" type="email" :placeholder="t('auth.email')" class="neo-input" />
-      <p v-if="error" class="rounded-brutal border-2 border-black bg-brand-primary px-3 py-2 text-sm font-bold text-black">{{ error }}</p>
+      <p v-if="error" class="venus-alert-error">{{ error }}</p>
       <button type="button" class="btn-primary w-full" :disabled="submitting" @click="submit">
         {{ submitting ? t('common.loading') : t('auth.sendResetLink') }}
       </button>
     </template>
-    <NuxtLink :to="localePath('/login')" class="block text-center text-sm font-bold text-black underline">{{ t('auth.login') }}</NuxtLink>
+    <NuxtLink :to="localePath('/login')" class="block text-center text-sm font-bold text-brand-navy underline">{{ t('auth.login') }}</NuxtLink>
   </div>
 </template>

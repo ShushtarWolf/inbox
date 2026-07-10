@@ -51,12 +51,6 @@ function syncModelFromJalali() {
 
 watch(model, syncJalaliFromModel, { immediate: true })
 watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
-
-// #region agent log
-watch([model, locale], ([dateValue, currentLocale]) => {
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ab2367' }, body: JSON.stringify({ sessionId: 'ab2367', location: 'AppDateInput.vue:watch', message: 'date input state', data: { locale: currentLocale, model: dateValue, isFa: currentLocale === 'fa', jalali: currentLocale === 'fa' ? { jy: jalaliYear.value, jm: jalaliMonth.value, jd: jalaliDay.value } : null }, timestamp: Date.now(), hypothesisId: 'H4-H6' }) }).catch(() => {})
-}, { immediate: true })
-// #endregion
 </script>
 
 <template>

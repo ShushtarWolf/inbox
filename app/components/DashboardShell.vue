@@ -71,10 +71,20 @@ function goBack() {
       <header class="glass-bar sticky top-0 z-30 px-4 py-3 lg:hidden">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">{{ t('common.menu') }}</button>
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">{{ t('common.back') }}</button>
+            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="menu" size="sm" />
+                {{ t('common.menu') }}
+              </span>
+            </button>
+            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="arrow_back" size="sm" />
+                {{ t('common.back') }}
+              </span>
+            </button>
           </div>
-          <p class="min-w-0 truncate font-display text-base font-black">{{ title }}</p>
+          <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
           <div class="flex min-w-0 items-center gap-2">
             <AppUserShortcut
               v-if="displayName"
@@ -93,17 +103,37 @@ function goBack() {
               :initials="initials"
               class="hidden sm:inline-flex"
             />
-            <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
+            <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="home" size="sm" />
+                {{ t('nav.home') }}
+              </span>
+            </NuxtLink>
             <LocaleSwitcher />
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
+            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="logout" size="sm" />
+                {{ t('nav.logout') }}
+              </span>
+            </button>
           </div>
         </div>
       </header>
 
       <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 shadow-venus-sm lg:flex lg:items-center lg:justify-between">
         <div class="flex items-center gap-2">
-          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">{{ t('common.back') }}</button>
-          <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>
+          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
+            <span class="inline-flex items-center gap-1.5">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </span>
+          </button>
+          <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
+            <span class="inline-flex items-center gap-1.5">
+              <AppIcon name="home" size="sm" />
+              {{ t('nav.home') }}
+            </span>
+          </NuxtLink>
         </div>
         <LocaleSwitcher />
         <AppUserShortcut
@@ -113,7 +143,12 @@ function goBack() {
           :avatar-url="avatarUrl"
           :initials="initials"
         />
-        <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">{{ t('nav.logout') }}</button>
+        <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+          <span class="inline-flex items-center gap-1.5">
+            <AppIcon name="logout" size="sm" />
+            {{ t('nav.logout') }}
+          </span>
+        </button>
       </div>
 
       <main :class="mainClass">

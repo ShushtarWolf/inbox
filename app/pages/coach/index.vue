@@ -9,18 +9,18 @@ const { data, error } = await useAuthedFetch('/api/coach/today')
 
 <template>
   <div class="space-y-4">
-    <p v-if="error" class="neo-card-lavender border-2 border-black p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
+    <p v-if="error" class="venus-widget-card-accent border border-brand-gray-100 p-4 text-sm text-red-700">{{ t('auth.dashboardLoadFailed') }}</p>
     <div class="flex items-center justify-between gap-3">
-      <h1 class="font-display text-xl font-black">{{ $t('coach.today') }}</h1>
+      <h1 class="font-display text-xl font-bold">{{ $t('coach.today') }}</h1>
       <NuxtLink :to="localePath('/coach/schedule')" class="text-sm font-bold text-brand-primary">{{ $t('coach.schedule') }}</NuxtLink>
     </div>
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="ios-card p-4 text-center">
-        <p class="text-2xl font-black text-brand-primary">{{ data?.sessions?.length || 0 }}</p>
+        <p class="text-2xl font-bold text-brand-primary">{{ data?.sessions?.length || 0 }}</p>
         <p class="text-sm text-brand-gray-600">{{ $t('coach.today') }}</p>
       </div>
       <div class="ios-card p-4 text-center">
-        <p class="text-2xl font-black text-brand-primary">{{ data?.upcomingSessions?.length || 0 }}</p>
+        <p class="text-2xl font-bold text-brand-primary">{{ data?.upcomingSessions?.length || 0 }}</p>
         <p class="text-sm text-brand-gray-600">{{ $t('coach.upcoming') }}</p>
       </div>
     </div>

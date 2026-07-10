@@ -41,13 +41,13 @@ function paymentStatusLabel(status: string) {
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('owner.finance') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ $t('owner.finance') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <template v-else>
     <div class="grid gap-3 md:grid-cols-4">
       <div v-for="(val, key) in data?.stats" :key="key" class="ios-card p-3 text-center">
-        <p class="text-lg font-black text-brand-primary">
+        <p class="text-lg font-bold text-brand-primary">
           {{ formatStatValue(String(key), val) }}
         </p>
         <p class="text-xs text-brand-gray-600">{{ statLabel(String(key)) }}</p>
@@ -57,11 +57,11 @@ function paymentStatusLabel(status: string) {
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="ios-card p-4 lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.financePage.weeklyChart') }}</h2>
-        <div v-if="isChartEmpty" class="flex h-44 items-center justify-center rounded-brutal border-2 border-black bg-brand-lavender px-4 text-center text-sm font-bold text-black/70">
+        <div v-if="isChartEmpty" class="flex h-44 items-center justify-center rounded-venus border border-brand-gray-100 bg-brand-lavender px-4 text-center text-sm font-bold text-brand-gray-600">
           {{ t('owner.financePage.chartEmpty') }}
         </div>
-        <div v-else class="rounded-brutal border-2 border-black bg-brand-lavender px-3 pb-2 pt-4">
-          <div class="mb-2 flex items-center justify-between text-[10px] font-bold text-black/60">
+        <div v-else class="rounded-venus border border-brand-gray-100 bg-brand-lavender px-3 pb-2 pt-4">
+          <div class="mb-2 flex items-center justify-between text-[10px] font-bold text-brand-gray-600">
             <span>{{ formatCurrency(maxWeeklyRevenue) }}</span>
             <span>{{ formatCurrency(0) }}</span>
           </div>
@@ -71,15 +71,15 @@ function paymentStatusLabel(status: string) {
               :key="data?.weekLabels?.[index] || index"
               class="group flex h-full flex-1 flex-col items-center justify-end gap-1"
             >
-              <span class="text-[10px] font-black text-black tabular-nums" dir="ltr">
+              <span class="text-[10px] font-bold text-brand-navy tabular-nums" dir="ltr">
                 <bdi>{{ formatCurrency(amount) }}</bdi>
               </span>
               <div
-                class="w-full max-w-[2.5rem] border-2 border-black bg-brand-accent transition-all group-hover:bg-brand-primary"
+                class="w-full max-w-[2.5rem] border border-brand-gray-100 bg-brand-accent transition-all group-hover:bg-brand-primary"
                 :style="{ height: `${barHeightPx(amount)}px` }"
                 :title="`${formatWeekLabel(data?.weekLabels?.[index])} — ${formatCurrency(amount)}`"
               />
-              <span class="text-[10px] font-bold text-black/70" dir="auto">{{ formatWeekLabel(data?.weekLabels?.[index]) }}</span>
+              <span class="text-[10px] font-bold text-brand-gray-600" dir="auto">{{ formatWeekLabel(data?.weekLabels?.[index]) }}</span>
             </div>
           </div>
         </div>
@@ -107,20 +107,20 @@ function paymentStatusLabel(status: string) {
       <div class="ios-card p-4 lg:col-span-2">
         <h2 class="mb-3 font-bold">{{ t('owner.funnelTitle') }}</h2>
         <div class="grid gap-3 sm:grid-cols-4">
-          <div class="neo-card-lavender p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.views || 0) }}</p>
+          <div class="venus-widget-card-accent p-3 text-center">
+            <p class="text-lg font-bold text-brand-primary">{{ formatNumber(data?.funnel?.views || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.views') }}</p>
           </div>
-          <div class="neo-card-lavender p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.initiated || 0) }}</p>
+          <div class="venus-widget-card-accent p-3 text-center">
+            <p class="text-lg font-bold text-brand-primary">{{ formatNumber(data?.funnel?.initiated || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.initiated') }}</p>
           </div>
-          <div class="neo-card-lavender p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.confirmed || 0) }}</p>
+          <div class="venus-widget-card-accent p-3 text-center">
+            <p class="text-lg font-bold text-brand-primary">{{ formatNumber(data?.funnel?.confirmed || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.confirmed') }}</p>
           </div>
-          <div class="neo-card-lavender p-3 text-center">
-            <p class="text-lg font-black text-brand-primary">{{ formatNumber(data?.funnel?.paid || 0) }}</p>
+          <div class="venus-widget-card-accent p-3 text-center">
+            <p class="text-lg font-bold text-brand-primary">{{ formatNumber(data?.funnel?.paid || 0) }}</p>
             <p class="text-xs text-brand-gray-600">{{ t('owner.funnel.paid') }}</p>
           </div>
         </div>

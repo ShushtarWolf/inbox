@@ -18,16 +18,16 @@ function isActive(to: string) {
 
 <template>
   <aside
-    class="flex h-full w-[290px] shrink-0 flex-col bg-white shadow-venus-sm"
-    :class="dark ? 'lg:bg-brand-primary-dark' : ''"
+    class="flex h-full w-[290px] shrink-0 flex-col shadow-venus-sm"
+    :class="dark ? 'bg-brand-primary-dark text-white' : 'bg-white text-brand-navy'"
   >
-    <div class="p-6" :class="dark ? 'text-white' : ''">
-      <div class="mb-6 flex items-center gap-3">
+    <div class="p-6">
+      <div class="flex items-center gap-3">
         <div class="flex h-11 w-11 items-center justify-center rounded-venus bg-brand-primary shadow-venus-sm">
           <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 brightness-0 invert" />
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider text-brand-gray-400" :class="dark ? 'text-white/60' : ''">inbox</p>
+          <p class="text-xs font-bold uppercase tracking-wider" :class="dark ? 'text-white/60' : 'text-brand-gray-400'">inbox</p>
           <p class="text-sm font-bold" :class="dark ? 'text-white' : 'text-brand-navy'">{{ title }}</p>
         </div>
       </div>
@@ -44,8 +44,9 @@ function isActive(to: string) {
             : (dark ? 'text-white/70 hover:bg-white/5 hover:text-white' : 'text-brand-gray-600 hover:bg-brand-lavender hover:text-brand-primary'),
         ]"
       >
-        <span v-if="item.icon" class="text-lg" aria-hidden="true">{{ item.icon }}</span>
-        {{ item.label }}
+        <AppIcon v-if="item.icon" :name="item.icon" size="sm" :filled="isActive(item.to)" />
+        <span>{{ item.label }}</span>
+        <span v-if="item.badge" class="ms-auto rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white">{{ item.badge }}</span>
       </NuxtLink>
     </nav>
   </aside>

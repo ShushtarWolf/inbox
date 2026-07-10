@@ -118,7 +118,7 @@ async function submitReview() {
           :key="slot.id"
           type="button"
           class="neo-input text-start text-sm"
-          :class="rescheduleSlotId === slot.id ? 'neo-pill-active shadow-brutal' : ''"
+          :class="rescheduleSlotId === slot.id ? 'neo-pill-active' : ''"
           @click="rescheduleSlotId = slot.id"
         >
           {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>

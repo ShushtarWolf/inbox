@@ -11,14 +11,14 @@ const ownerClubVersion = ref(0)
 provide('ownerClubVersion', ownerClubVersion)
 
 const allNavItems = [
-  { path: '/owner', labelKey: 'owner.calendar', icon: '📅' },
-  { path: '/owner/finance', labelKey: 'owner.finance', icon: '💳' },
-  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: '🎾' },
-  { path: '/owner/packages', labelKey: 'owner.packages', icon: '📦' },
-  { path: '/owner/crm', labelKey: 'owner.crm', icon: '📇' },
-  { path: '/owner/coaches', labelKey: 'owner.coaches', icon: '👥' },
-  { path: '/owner/support', labelKey: 'owner.support', icon: '🛟' },
-  { path: '/owner/settings', labelKey: 'owner.settings', icon: '⚙️' },
+  { path: '/owner', labelKey: 'owner.calendar', icon: 'calendar_month' },
+  { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
+  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'inventory_2' },
+  { path: '/owner/packages', labelKey: 'owner.packages', icon: 'package_2' },
+  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'groups' },
+  { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'diversity_3' },
+  { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
 ] as const
 
 const activeMembership = computed(() => {

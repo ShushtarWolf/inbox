@@ -504,9 +504,9 @@ const legend = [
       <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p class="mb-1 text-xs font-black text-black/60" :class="locale === 'en' ? 'tracking-[0.24em]' : ''">{{ t('owner.dashboardEyebrow') }}</p>
-            <h1 class="font-display text-2xl font-black text-black">{{ t('owner.calendar') }}</h1>
-            <p class="mt-1 text-sm font-bold text-black/70">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
+            <p class="mb-1 text-xs font-bold text-brand-gray-600" :class="locale === 'en' ? 'tracking-[0.24em]' : ''">{{ t('owner.dashboardEyebrow') }}</p>
+            <h1 class="font-display text-2xl font-bold text-brand-navy">{{ t('owner.calendar') }}</h1>
+            <p class="mt-1 text-sm font-bold text-brand-gray-600">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
           </div>
         </div>
 
@@ -514,7 +514,7 @@ const legend = [
           <div ref="datePickerRef" class="relative">
             <button
               type="button"
-              class="calendar-toolbar-pill font-black text-black"
+              class="calendar-toolbar-pill font-bold text-brand-navy"
               :aria-expanded="showDatePicker"
               @click.stop="showDatePicker = !showDatePicker"
             >
@@ -530,7 +530,7 @@ const legend = [
                 @select="closeDatePicker"
               />
               <label v-else class="ios-card block p-4">
-                <span class="mb-2 block text-sm font-black text-black">{{ t('common.date') }}</span>
+                <span class="mb-2 block text-sm font-bold text-brand-navy">{{ t('common.date') }}</span>
                 <input
                   v-model="date"
                   type="date"
@@ -544,13 +544,13 @@ const legend = [
         </div>
       </div>
 
-      <div v-if="!courts.length" class="px-5 py-8 text-center text-sm font-bold text-black/70">
+      <div v-if="!courts.length" class="px-5 py-8 text-center text-sm font-bold text-brand-gray-600">
         {{ t('common.empty') }}
       </div>
 
       <div v-else class="overflow-x-auto px-3 pb-3 pt-4 sm:px-5 sm:pb-5">
         <div class="min-w-[900px]">
-          <div class="grid calendar-grid border-b-2 border-black pb-3">
+          <div class="grid calendar-grid border-b border-brand-gray-100 pb-3">
             <div />
             <div
               v-for="court in courts"
@@ -565,7 +565,7 @@ const legend = [
           <div
             v-for="hour in hours"
             :key="hour"
-            class="grid calendar-grid border-b-2 border-black/20 last:border-b-0"
+            class="grid calendar-grid border-b border-brand-gray-100/20 last:border-b-0"
           >
             <div class="calendar-time-cell">
               <bdi dir="ltr" class="calendar-time tabular-nums">{{ formatTimeRange(hour) }}</bdi>
@@ -597,8 +597,8 @@ const legend = [
       <div class="ios-card p-5">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="text-base font-black text-black">{{ t('owner.legend') }}</h2>
-            <p class="mt-1 text-sm font-bold text-black/70">{{ t('owner.legendHint') }}</p>
+            <h2 class="text-base font-bold text-brand-navy">{{ t('owner.legend') }}</h2>
+            <p class="mt-1 text-sm font-bold text-brand-gray-600">{{ t('owner.legendHint') }}</p>
           </div>
           <span class="neo-badge">{{ t('common.courtsCount', { count: formatNumber(courts.length) }) }}</span>
         </div>
@@ -610,9 +610,9 @@ const legend = [
         </div>
       </div>
 
-      <div class="neo-card-lavender p-5">
-        <h2 class="text-base font-black text-black">{{ t('owner.quickNotes') }}</h2>
-        <p class="mt-2 text-sm font-bold leading-6 text-black/70">
+      <div class="venus-widget-card-accent p-5">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.quickNotes') }}</h2>
+        <p class="mt-2 text-sm font-bold leading-6 text-brand-gray-600">
           {{ t('owner.quickNotesBody') }}
         </p>
       </div>
@@ -621,10 +621,10 @@ const legend = [
     <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div class="neo-modal-menu">
-          <div v-if="selectedSlot" class="border-b-2 border-black px-4 py-3 text-sm">
-            <p class="font-black"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
-            <p class="mt-1 font-bold text-black/70">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
-            <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-black/60">{{ slotStatusSummary() }}</p>
+          <div v-if="selectedSlot" class="border-b border-brand-gray-100 px-4 py-3 text-sm">
+            <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
+            <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
+            <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ slotActionLabel() }}</button>
@@ -636,7 +636,7 @@ const legend = [
         </div>
 
         <div v-if="activePanel === 'cancel'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.cancel') }}</h3>
+          <h3 class="mb-3 font-bold">{{ t('owner.cancel') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input mb-2" readonly>
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input mb-2" readonly>
           <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input mb-2 tabular-nums" readonly>
@@ -652,7 +652,7 @@ const legend = [
         </div>
 
         <div v-if="activePanel === 'reserve'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.reserve') }}</h3>
+          <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input mb-2">
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input mb-2">
           <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input mb-2 tabular-nums">
@@ -664,7 +664,7 @@ const legend = [
             <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
             <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
           </select>
-          <label class="mb-2 block text-xs font-black text-black/70">{{ t('owner.equipments') }}</label>
+          <label class="mb-2 block text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</label>
           <select v-model="form.equipmentIds" multiple class="neo-select mb-2 min-h-[5rem]">
             <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
           </select>
@@ -678,28 +678,28 @@ const legend = [
         </div>
 
         <div v-if="activePanel === 'comments'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.comments') }}</h3>
+          <h3 class="mb-3 font-bold">{{ t('owner.comments') }}</h3>
           <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea mb-3" rows="6" />
           <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
           <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
         </div>
 
         <div v-if="activePanel === 'season'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.seasonPage.title') }}</h3>
+          <h3 class="mb-3 font-bold">{{ t('owner.seasonPage.title') }}</h3>
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
             <div class="min-w-0 flex-1 space-y-2">
               <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
               <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
               <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
               <div>
-                <p class="mb-2 text-xs font-black text-black/70">{{ t('owner.packagesPage.weekdays') }}</p>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="day in weekdayOptions"
                     :key="day"
                     type="button"
                     class="neo-pill"
-                    :class="seasonForm.days.includes(day) ? 'neo-pill-active shadow-brutal' : 'neo-pill-inactive'"
+                    :class="seasonForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
                     @click="toggleSeasonDay(day)"
                   >
                     {{ t(`owner.weekdays.${day}`) }}
@@ -725,7 +725,7 @@ const legend = [
         </div>
 
         <div v-if="activePanel === 'package'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.packagePage.title') }}</h3>
+          <h3 class="mb-3 font-bold">{{ t('owner.packagePage.title') }}</h3>
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
             <div class="min-w-0 flex-1 space-y-2">
               <select v-model="packageForm.coachId" class="neo-select">
@@ -736,14 +736,14 @@ const legend = [
               <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
               <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
               <div>
-                <p class="mb-2 text-xs font-black text-black/70">{{ t('owner.packagesPage.weekdays') }}</p>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="day in weekdayOptions"
                     :key="day"
                     type="button"
                     class="neo-pill"
-                    :class="packageForm.days.includes(day) ? 'neo-pill-active shadow-brutal' : 'neo-pill-inactive'"
+                    :class="packageForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
                     @click="togglePackageDay(day)"
                   >
                     {{ t(`owner.weekdays.${day}`) }}
@@ -770,8 +770,8 @@ const legend = [
         </div>
 
         <div v-if="activePanel === 'equipment'" class="neo-modal-panel">
-          <h3 class="mb-3 font-black">{{ t('owner.equipments') }}</h3>
-          <label class="mb-2 block text-xs font-black text-black/70">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
+          <h3 class="mb-3 font-bold">{{ t('owner.equipments') }}</h3>
+          <label class="mb-2 block text-xs font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
           <select v-model="form.equipmentIds" multiple class="neo-select mb-3 min-h-[8rem]">
             <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
           </select>

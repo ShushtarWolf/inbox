@@ -141,7 +141,7 @@ onMounted(() => {
     </div>
     <div
       v-else-if="!pending && !error"
-      class="sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 space-y-2 border-t-2 border-black bg-brand-cream px-4 pb-2 pt-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+      class="sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 space-y-2 border-t border-brand-gray-100 bg-brand-cream px-4 pb-2 pt-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
     >
       <button v-if="availability?.slots?.length" type="button" class="btn-primary w-full" @click="confirm">{{ t('booking.confirm') }}</button>
       <button v-else type="button" class="w-full btn-ghost w-full" @click="joinWaitlist">

@@ -125,8 +125,8 @@ async function useNearby() {
     </div>
 
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = city.value; syncRoute()">
+      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
+      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active' : ''" @click="filters.city = city.value; syncRoute()">
         {{ cityLabel(city.key) }}
       </button>
       <button type="button" class="neo-pill neo-pill-inactive" @click="useNearby">{{ locating ? t('common.loading') : t('clubs.nearby') }}</button>
@@ -155,7 +155,7 @@ async function useNearby() {
     <div v-if="showMap" class="ios-card space-y-3 p-4">
       <p class="text-sm font-bold">{{ t('clubs.mapView') }}</p>
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
-        <div class="overflow-hidden rounded-brutal border-2 border-black bg-brand-lavender shadow-brutal">
+        <div class="overflow-hidden rounded-venus border border-brand-gray-100 bg-brand-lavender shadow-venus">
           <div class="relative min-h-[320px]">
             <iframe
               v-if="selectedMapEmbedUrl"
@@ -177,7 +177,7 @@ async function useNearby() {
             :key="`${club.id}-map`"
             type="button"
             class="w-full ios-card p-3 text-start text-sm transition"
-            :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary/5' : 'border-black/8 bg-white'"
+            :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary/5' : 'border-brand-gray-100 bg-white'"
             @click="selectedMapClubSlug = club.slug"
           >
             <p class="font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -205,7 +205,7 @@ async function useNearby() {
             <span v-if="club.verified" class="neo-badge">{{ t('clubs.verified') }}</span>
           </div>
           <p class="text-xs text-brand-gray-600">{{ club.city }} · ⭐ {{ club.rating }} · {{ club.reviewCount }} {{ t('clubs.reviews') }}</p>
-          <p class="mt-1 text-sm font-black text-brand-primary">
+          <p class="mt-1 text-sm font-bold text-brand-primary">
             {{ formatCurrency(club.priceFrom) }}<span v-if="club.priceTo"> - {{ formatCurrency(club.priceTo) }}</span>
           </p>
           <p class="mt-1 text-xs text-brand-gray-600">{{ club.amenityPreview.map(amenityLabel).join(' · ') }}</p>

@@ -37,9 +37,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="canInstall && shouldShow" class="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md rounded-brutal border-2 border-black bg-brand-sky p-4 shadow-brutal-lg lg:bottom-6">
-    <p class="font-black">{{ $t('pwa.installTitle') }}</p>
-    <p class="mt-1 text-sm font-bold text-black/80">{{ $t('pwa.installBody') }}</p>
+  <div v-if="canInstall && shouldShow" class="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md venus-widget-card lg:bottom-6">
+    <div class="mb-2 flex items-center gap-2">
+      <div class="venus-icon-wrap venus-icon-wrap-sm">
+        <AppIcon name="install_mobile" size="sm" />
+      </div>
+      <p class="font-bold text-brand-navy">{{ $t('pwa.installTitle') }}</p>
+    </div>
+    <p class="text-sm text-brand-gray-600">{{ $t('pwa.installBody') }}</p>
     <div class="mt-3 flex gap-2">
       <button type="button" class="btn-primary flex-1" @click="install">{{ $t('pwa.installButton') }}</button>
       <button type="button" class="btn-ghost" @click="dismiss">{{ $t('pwa.dismissButton') }}</button>

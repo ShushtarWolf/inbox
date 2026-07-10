@@ -41,19 +41,15 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        class="flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-semibold transition-colors"
+        class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-semibold transition-colors"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
-          isActive(item.to)
-            ? 'text-brand-primary'
-            : 'text-brand-gray-600',
+          isActive(item.to) ? 'text-brand-primary' : 'text-brand-gray-600',
         ]"
       >
-        <span v-if="item.icon" class="relative text-lg">
-          {{ item.icon }}
-          <span v-if="item.badge" class="absolute -end-1 -top-1 rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white">{{ item.badge }}</span>
-        </span>
+        <AppIcon :name="item.icon || 'circle'" size="sm" :filled="isActive(item.to)" />
         {{ item.label }}
+        <span v-if="item.badge" class="absolute end-2 top-2 rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white">{{ item.badge }}</span>
       </NuxtLink>
     </div>
   </nav>

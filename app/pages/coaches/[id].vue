@@ -21,7 +21,7 @@ function specialtyLabel(value: string) {
       :home-to="localePath('/')"
       :back-to="localePath('/coaches')"
     />
-    <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="mx-auto h-24 w-24 border-2 border-black object-cover shadow-brutal-sm" />
+    <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="mx-auto h-24 w-24 border border-brand-gray-100 object-cover shadow-venus-sm" />
     <div class="text-center">
       <div class="flex items-center justify-center gap-2">
         <span v-if="coach.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>
@@ -29,7 +29,7 @@ function specialtyLabel(value: string) {
       <p class="mt-1 text-xs text-brand-gray-600">⭐ {{ coach.reviewSummary?.average || coach.rating }} · {{ coach.reviewSummary?.count || 0 }} {{ t('clubs.reviews') }}</p>
     </div>
     <p class="text-center text-sm text-brand-gray-600">{{ localizedField(coach, 'bioFa', 'bioEn') }}</p>
-    <p class="text-center text-lg font-black text-brand-primary">{{ formatCurrency(coach.sessionPrice) }}</p>
+    <p class="text-center text-lg font-bold text-brand-primary">{{ formatCurrency(coach.sessionPrice) }}</p>
     <NuxtLink :to="localePath(`/book/coach/${id}`)" class="btn-primary block text-center">{{ t('home.coachCta') }}</NuxtLink>
 
     <section v-if="coach.specialties?.length" class="ios-card p-4">
@@ -61,7 +61,7 @@ function specialtyLabel(value: string) {
         <div v-for="item in coach.packages" :key="item.id" class="ios-card p-3">
           <div class="flex items-center justify-between gap-3">
             <p class="font-bold">{{ item.title }}</p>
-            <p class="text-sm font-black text-brand-primary">{{ formatCurrency(item.price) }}</p>
+            <p class="text-sm font-bold text-brand-primary">{{ formatCurrency(item.price) }}</p>
           </div>
           <p class="text-xs text-brand-gray-600">{{ item.comment }}</p>
         </div>

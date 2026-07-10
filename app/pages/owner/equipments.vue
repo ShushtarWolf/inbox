@@ -108,7 +108,7 @@ async function deleteItem(item: EquipmentItem) {
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ t('owner.equipments') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ t('owner.equipments') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 

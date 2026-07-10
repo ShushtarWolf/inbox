@@ -92,7 +92,7 @@ const rentalEquipments = computed(() =>
 
 <template>
   <div class="space-y-4">
-    <h1 class="font-display text-xl font-black">{{ $t('owner.packages') }}</h1>
+    <h1 class="font-display text-xl font-bold">{{ $t('owner.packages') }}</h1>
     <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <template v-else>
@@ -100,17 +100,17 @@ const rentalEquipments = computed(() =>
       <div
         v-for="p in packages"
         :key="p.id"
-        class="neo-card-yellow min-w-[10rem] px-4 py-4"
+        class="venus-widget-card min-w-[10rem] px-4 py-4"
       >
         <p class="font-bold text-brand-primary">{{ p.title }}</p>
         <p v-if="coachName(p.coachId)" class="mt-1 text-xs text-brand-gray-600">{{ coachName(p.coachId) }}</p>
-        <p class="mt-2 text-sm font-black">{{ formatCurrency(p.price) }}</p>
+        <p class="mt-2 text-sm font-bold">{{ formatCurrency(p.price) }}</p>
         <p v-if="packageDays(p).length" class="mt-1 text-xs text-brand-gray-600">
           {{ packageDays(p).map((day: string) => t(`owner.weekdays.${day}`)).join(' · ') }}
         </p>
         <p v-if="p.startDate" class="mt-1 text-xs text-brand-gray-600" dir="auto">{{ formatIsoDate(p.startDate) }} – {{ p.finishDate ? formatIsoDate(p.finishDate) : '…' }}</p>
       </div>
-      <div class="flex min-w-[6rem] items-center justify-center ios-card border-dashed px-4 py-6 text-2xl font-black text-black">+</div>
+      <div class="flex min-w-[6rem] items-center justify-center ios-card border-dashed px-4 py-6 text-2xl font-bold text-brand-navy">+</div>
     </div>
     <div class="mx-auto max-w-lg space-y-2 ios-card p-4">
       <h2 class="font-bold">{{ t('owner.packagesPage.createTitle') }}</h2>
@@ -127,7 +127,7 @@ const rentalEquipments = computed(() =>
             :key="day"
             type="button"
             class="neo-pill neo-pill-inactive"
-            :class="form.days.includes(day) ? 'neo-pill-active shadow-brutal' : 'neo-pill-inactive'"
+            :class="form.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
             @click="toggleDay(day)"
           >
             {{ t(`owner.weekdays.${day}`) }}

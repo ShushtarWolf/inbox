@@ -58,16 +58,16 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-sm space-y-4 pt-8">
-    <h1 class="font-display text-xl font-black">{{ t('auth.register') }}</h1>
-    <p class="text-sm font-bold text-black/70">{{ t('auth.athleteOnlyNote') }}</p>
+    <h1 class="font-display text-xl font-bold">{{ t('auth.register') }}</h1>
+    <p class="text-sm font-bold text-brand-gray-600">{{ t('auth.athleteOnlyNote') }}</p>
     <input v-model="name" :placeholder="t('auth.name')" class="neo-input" />
     <input v-model="email" type="email" :placeholder="t('auth.email')" class="neo-input" />
     <input v-model="password" type="password" :placeholder="t('auth.password')" class="neo-input" />
-    <p v-if="error" class="rounded-brutal border-2 border-black bg-brand-primary px-3 py-2 text-sm font-bold text-black">{{ error }}</p>
+    <p v-if="error" class="venus-alert-error">{{ error }}</p>
     <button type="button" class="btn-primary w-full" :disabled="submitting" @click="submit">
       {{ submitting ? t('common.loading') : t('auth.register') }}
     </button>
-    <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-black underline">
+    <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">
       {{ t('auth.login') }}
     </NuxtLink>
   </div>

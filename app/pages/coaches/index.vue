@@ -62,8 +62,8 @@ async function syncRoute() {
 
     <button type="button" class="neo-pill neo-pill-inactive" @click="showFilters = !showFilters">{{ t('clubs.moreFilters') }}</button>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active shadow-brutal' : ''" @click="filters.city = city.value; syncRoute()">
+      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
+      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active' : ''" @click="filters.city = city.value; syncRoute()">
         {{ cityLabel(city.key) }}
       </button>
     </div>
@@ -93,7 +93,7 @@ async function syncRoute() {
         :to="localePath(`/coaches/${c.id}`)"
         class="ios-card flex items-center gap-3 p-3"
       >
-        <img :src="c.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 border-2 border-black object-cover shadow-brutal-sm" />
+        <img :src="c.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 border border-brand-gray-100 object-cover shadow-venus-sm" />
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <p class="font-bold">{{ localizedField(c, 'nameFa', 'nameEn') }}</p>
@@ -101,7 +101,7 @@ async function syncRoute() {
           </div>
           <p class="text-xs text-brand-gray-600">{{ c.city }} · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</p>
           <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ formatSpecialties(c.specialties) }}</p>
-          <p class="text-sm font-black text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
+          <p class="text-sm font-bold text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
         </div>
         <span class="neo-badge">{{ t('home.coachCta') }}</span>
       </NuxtLink>

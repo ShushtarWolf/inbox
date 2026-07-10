@@ -5,9 +5,9 @@ const { data: notifications } = await useAuthedFetch('/api/notifications', { laz
 const unread = computed(() => notifications.value?.unreadCount || 0)
 
 const nav = computed(() => [
-  { to: localePath('/athlete'), label: t('nav.overview'), icon: '📋' },
-  { to: localePath('/athlete/bookings'), label: t('nav.bookings'), icon: '🎟️', badge: unread.value || undefined },
-  { to: localePath('/athlete/profile'), label: t('nav.profile'), icon: '👤' },
+  { to: localePath('/athlete'), label: t('nav.overview'), icon: 'dashboard' },
+  { to: localePath('/athlete/bookings'), label: t('nav.bookings'), icon: 'confirmation_number', badge: unread.value || undefined },
+  { to: localePath('/athlete/profile'), label: t('nav.profile'), icon: 'person' },
 ])
 </script>
 

@@ -49,19 +49,19 @@ async function send() {
     <div class="space-y-4">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="ios-card p-3 text-center">
-          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
+          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.contacts') }}</p>
         </div>
         <div class="ios-card p-3 text-center">
-          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.activeThisMonth || 0 }}</p>
+          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.activeThisMonth || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
         </div>
         <div class="ios-card p-3 text-center">
-          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.smsSent || 0 }}</p>
+          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.smsSent || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.smsSent') }}</p>
         </div>
         <div class="ios-card p-3 text-center">
-          <p class="text-lg font-black text-brand-primary">{{ data?.stats?.campaigns || 0 }}</p>
+          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.campaigns || 0 }}</p>
           <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.campaigns') }}</p>
         </div>
       </div>
@@ -72,7 +72,7 @@ async function send() {
           :key="segment.id"
           type="button"
           class="neo-pill neo-pill-inactive"
-          :class="selectedSegment === segment.id ? 'neo-pill-active shadow-brutal' : ''"
+          :class="selectedSegment === segment.id ? 'neo-pill-active' : ''"
           @click="selectedSegment = segment.id"
         >
           {{ segmentLabel(segment) }} ({{ segment.count }})

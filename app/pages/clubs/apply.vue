@@ -38,9 +38,9 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-lg space-y-4 py-8">
-    <h1 class="font-display text-2xl font-black">{{ t('clubs.applyTitle') }}</h1>
+    <h1 class="font-display text-2xl font-bold">{{ t('clubs.applyTitle') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('clubs.applySubtitle') }}</p>
-    <p v-if="submitted" class="neo-card-yellow p-4 text-sm">{{ t('clubs.applySuccess') }}</p>
+    <p v-if="submitted" class="venus-widget-card p-4 text-sm">{{ t('clubs.applySuccess') }}</p>
     <form v-else class="space-y-3" @submit.prevent="submit">
       <input v-model="clubName" :placeholder="t('clubs.applyClubName')" class="neo-input" required />
       <input v-model="city" :placeholder="t('clubs.applyCity')" class="neo-input" required />
