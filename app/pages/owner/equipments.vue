@@ -109,10 +109,8 @@ async function deleteItem(item: EquipmentItem) {
 <template>
   <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ t('owner.equipments') }}</h1>
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-
-    <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div
         v-for="cat in categories"
         :key="cat.key"
@@ -137,6 +135,7 @@ async function deleteItem(item: EquipmentItem) {
         </ul>
       </div>
     </div>
+    </AppAsyncState>
 
     <AppModal :open="showModal" :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
       <div class="venus-modal-shell venus-modal-shell-simple">

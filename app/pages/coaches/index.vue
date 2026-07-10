@@ -82,11 +82,8 @@ async function syncRoute() {
         {{ t('clubs.verifiedOnly') }}
       </label>
     </div>
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-    <p v-else-if="!coaches?.length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
-
-    <div v-else class="grid gap-4 lg:grid-cols-2">
+    <AppAsyncState :pending="pending" :error="error" :empty="!coaches?.length" skeleton-variant="table">
+    <div class="grid gap-4 lg:grid-cols-2">
       <NuxtLink
         v-for="c in coaches"
         :key="c.id"
@@ -106,5 +103,6 @@ async function syncRoute() {
         <span class="neo-badge">{{ t('home.coachCta') }}</span>
       </NuxtLink>
     </div>
+    </AppAsyncState>
   </div>
 </template>

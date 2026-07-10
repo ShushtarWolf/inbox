@@ -5,6 +5,7 @@ const props = withDefaults(defineProps<{
   empty?: boolean
   loadingLabel?: string
   skeletonLines?: number
+  skeletonVariant?: 'default' | 'table' | 'stat-grid' | 'calendar'
   inline?: boolean
 }>(), {
   pending: false,
@@ -12,6 +13,7 @@ const props = withDefaults(defineProps<{
   empty: false,
   loadingLabel: '',
   skeletonLines: 3,
+  skeletonVariant: 'default',
   inline: false,
 })
 
@@ -27,19 +29,24 @@ const label = computed(() => props.loadingLabel || t('common.loading'))
 </script>
 
 <template>
-  <div v-if="pending" :class="inline ? '' : 'venus-page-enter'">
+  <div v-if="pending" :class="inline ? '' : 'tail-page-enter'">
     <slot name="loading">
-      <AppVenusSkeleton :lines="skeletonLines" />
+      <AppVenusCalendarSkeleton v-if="skeletonVariant === 'calendar'" />
+      <AppVenusSkeleton
+        v-else
+        :lines="skeletonLines"
+        :variant="skeletonVariant === 'calendar' ? 'default' : skeletonVariant"
+      />
       <AppVenusSpinner v-if="inline" size="sm" :label="label" class="mt-4" />
     </slot>
   </div>
-  <p v-else-if="errorMessage" class="rounded-venus border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+  <p v-else-if="errorMessage" class="tail-alert-error">
     {{ errorMessage }}
   </p>
-  <p v-else-if="empty" class="ios-card p-5 text-sm font-semibold text-brand-gray-600">
+  <p v-else-if="empty" class="tail-card text-sm font-medium text-brand-gray-500">
     <slot name="empty">{{ t('common.empty') }}</slot>
   </p>
-  <div v-else class="venus-page-enter">
+  <div v-else class="tail-page-enter">
     <slot />
   </div>
 </template>

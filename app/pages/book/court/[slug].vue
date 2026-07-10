@@ -115,9 +115,6 @@ onMounted(() => {
       </p>
     </div>
 
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-
     <div v-if="feedback" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
       {{ feedback }}
     </div>
@@ -130,7 +127,8 @@ onMounted(() => {
       <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
 
-    <div v-else-if="!pending && !error" class="space-y-2">
+    <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">
+    <div class="space-y-2">
       <div v-if="!slots?.length" class="ios-card space-y-2 p-4 text-center">
         <p class="font-bold">{{ t('booking.noSlots') }}</p>
         <button type="button" class="btn-ghost w-full" @click="joinWaitlist">
@@ -158,5 +156,6 @@ onMounted(() => {
         {{ t('booking.confirm') }}
       </button>
     </div>
+    </AppAsyncState>
   </div>
 </template>

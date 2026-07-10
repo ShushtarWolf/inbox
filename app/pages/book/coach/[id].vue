@@ -128,25 +128,25 @@ onMounted(() => {
       {{ feedback }}
     </div>
 
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
+      <select v-if="!done" v-model="startTime" dir="ltr" class="neo-input tabular-nums">
+        <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
+      </select>
 
-    <select v-else-if="!done" v-model="startTime" dir="ltr" class="neo-input tabular-nums">
-      <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
-    </select>
+      <div
+        v-if="!done"
+        class="sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 space-y-2 border-t border-brand-gray-100 bg-brand-cream px-4 pb-2 pt-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+      >
+        <button v-if="availability?.slots?.length" type="button" class="btn-primary w-full" @click="confirm">{{ t('booking.confirm') }}</button>
+        <button v-else type="button" class="w-full btn-ghost w-full" @click="joinWaitlist">
+          {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
+        </button>
+      </div>
+    </AppAsyncState>
 
     <div v-if="done" class="ios-card p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
       <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
-    </div>
-    <div
-      v-else-if="!pending && !error"
-      class="sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 space-y-2 border-t border-brand-gray-100 bg-brand-cream px-4 pb-2 pt-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
-    >
-      <button v-if="availability?.slots?.length" type="button" class="btn-primary w-full" @click="confirm">{{ t('booking.confirm') }}</button>
-      <button v-else type="button" class="w-full btn-ghost w-full" @click="joinWaitlist">
-        {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
-      </button>
     </div>
   </div>
 </template>

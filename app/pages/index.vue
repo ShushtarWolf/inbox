@@ -7,17 +7,19 @@ const { user, fetch: fetchAuth, firstName } = useAuth()
 
 const sport = ref<string | undefined>('padel')
 
-const { data: sports } = await useFetch('/api/sports')
-const { data: clubs } = await useFetch('/api/clubs', {
+const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
+const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs', {
   query: computed(() => ({
     sport: sport.value,
   })),
 })
-const { data: coaches } = await useFetch('/api/coaches', {
+const { data: coaches, pending: coachesPending } = await useFetch('/api/coaches', {
   query: computed(() => ({
     sport: sport.value,
   })),
 })
+
+const pagePending = computed(() => sportsPending.value || clubsPending.value || coachesPending.value)
 
 onMounted(() => {
   if (!user.value) fetchAuth()
@@ -143,8 +145,9 @@ function handleHeroSportIconError() {
 </script>
 
 <template>
-  <div class="space-y-5 animate-fade-in venus-stagger">
-    <section class="venus-hero-card">
+  <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
+  <div class="tail-page-stack animate-fade-in tail-stagger">
+    <section class="tail-hero-card">
       <p class="text-xs font-bold tracking-[0.2em] text-white/80" :class="locale === 'en' ? 'uppercase' : ''">{{ t('home.eyebrow') }}</p>
       <h1 class="mt-2 max-w-xs text-2xl font-bold leading-tight">
         {{ t('home.welcome', { name: firstNameOrGuest }) }}
@@ -403,4 +406,5 @@ function handleHeroSportIconError() {
 
     <PwaInstallBanner />
   </div>
+  </AppAsyncState>
 </template>

@@ -6,7 +6,7 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency } = useFormatters()
 const id = route.params.id as string
 
-const { data: coach } = await useFetch(`/api/coaches/${id}`)
+const { data: coach, pending, error } = await useFetch(`/api/coaches/${id}`)
 
 function specialtyLabel(value: string) {
   return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
@@ -14,7 +14,8 @@ function specialtyLabel(value: string) {
 </script>
 
 <template>
-  <div v-if="coach" class="venus-page-stack">
+  <AppAsyncState :pending="pending" :error="error" :empty="!coach" skeleton-variant="default">
+  <div v-if="coach" class="tail-page-stack">
     <PageHeaderNav
       :title="localizedField(coach, 'nameFa', 'nameEn')"
       :subtitle="localizedField(coach, 'headlineFa', 'headlineEn') || localizedField(coach, 'bioFa', 'bioEn')"
@@ -88,4 +89,5 @@ function specialtyLabel(value: string) {
       </div>
     </section>
   </div>
+  </AppAsyncState>
 </template>

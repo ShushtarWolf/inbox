@@ -27,7 +27,7 @@ export default defineNuxtConfig({
       ],
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { name: 'theme-color', content: '#4318FF' },
+        { name: 'theme-color', content: '#465FFF' },
         { name: 'description', content: "inbox — every court's a box; your game's in the inbox." },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
@@ -63,8 +63,8 @@ export default defineNuxtConfig({
       description: "every court's a box; your game's in the inbox.",
       lang: 'fa',
       dir: 'rtl',
-      theme_color: '#4318FF',
-      background_color: '#F4F7FE',
+      theme_color: '#465FFF',
+      background_color: '#F9FAFB',
       display: 'standalone',
       start_url: '/',
       icons: [

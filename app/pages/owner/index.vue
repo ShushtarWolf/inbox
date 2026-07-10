@@ -496,11 +496,9 @@ const legend = [
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <AppVenusCalendarSkeleton v-if="pending" />
-    <p v-else-if="error" class="venus-alert-error">{{ t('auth.dashboardLoadFailed') }}</p>
-
-    <section v-else class="calendar-shell overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-white shadow-venus" :class="locale === 'en' ? 'calendar-latin' : ''">
+  <div class="tail-page-stack">
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
+    <section class="calendar-shell overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-venus-sm" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -593,7 +591,7 @@ const legend = [
       </div>
     </section>
 
-    <aside v-if="!pending && !error" class="venus-card-grid-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <aside class="tail-card-grid-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div class="ios-card p-5">
         <div class="flex items-center justify-between gap-4">
           <div>
@@ -821,6 +819,7 @@ const legend = [
         </div>
       </div>
     </AppModal>
+    </AppAsyncState>
   </div>
 </template>
 
@@ -843,23 +842,23 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 1rem;
-  border: 1px solid #e0e5f2;
+  border-radius: 0.5rem;
+  border: 1px solid #e4e7ec;
   background: #fff;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: #2b3674;
+  font-weight: 500;
+  color: #101828;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(112, 144, 176, 0.08);
+  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   transition: all 0.2s ease;
 }
 
 .calendar-tab-active {
-  border-color: #4318ff;
-  background: rgba(67, 24, 255, 0.08);
-  color: #4318ff;
-  font-weight: 700;
+  border-color: #465fff;
+  background: #ecf3ff;
+  color: #465fff;
+  font-weight: 600;
 }
 
 .calendar-column-head {
@@ -873,8 +872,8 @@ const legend = [
 
 .calendar-column-day {
   font-size: 0.7rem;
-  font-weight: 600;
-  color: #a3aed0;
+  font-weight: 500;
+  color: #98a2b3;
 }
 
 .calendar-latin .calendar-column-day {
@@ -883,8 +882,8 @@ const legend = [
 
 .calendar-column-title {
   font-size: 0.95rem;
-  font-weight: 700;
-  color: #2b3674;
+  font-weight: 600;
+  color: #101828;
 }
 
 .calendar-time-cell,
@@ -902,8 +901,8 @@ const legend = [
 
 .calendar-time {
   font-size: 0.78rem;
-  font-weight: 700;
-  color: #a3aed0;
+  font-weight: 600;
+  color: #98a2b3;
 }
 
 .calendar-slot-card {
@@ -913,15 +912,15 @@ const legend = [
   align-items: flex-start;
   justify-content: flex-start;
   gap: 0.45rem;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   padding: 0.95rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 18px rgba(112, 144, 176, 0.08);
+  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
 }
 
 .calendar-slot-card:hover {
   transform: translateY(-2px);
-  box-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.12);
+  box-shadow: 0px 4px 8px -2px rgba(16, 24, 40, 0.1);
 }
 
 .calendar-slot-time {
@@ -947,12 +946,12 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  border-radius: 1rem;
-  background: #f4f7fe;
+  border-radius: 0.5rem;
+  background: #f9fafb;
   padding: 0.7rem 0.95rem;
   font-size: 0.78rem;
-  font-weight: 600;
-  color: #2b3674;
+  font-weight: 500;
+  color: #344054;
 }
 
 .calendar-legend-dot {
@@ -962,37 +961,37 @@ const legend = [
 }
 
 :deep(.slot-free) {
-  background: #e9edf7;
-  color: #707eae;
+  background: #f2f4f7;
+  color: #667085;
 }
 
 :deep(.slot-reserved) {
-  background: #4318ff;
+  background: #465fff;
   color: #fff;
 }
 
 :deep(.slot-public) {
-  background: #6ad2ff;
-  color: #2b3674;
+  background: #36bffa;
+  color: #101828;
 }
 
 :deep(.slot-team) {
-  background: #01b574;
+  background: #12b76a;
   color: #fff;
 }
 
 :deep(.slot-pending) {
-  background: #ffb547;
-  color: #2b3674;
+  background: #f79009;
+  color: #101828;
 }
 
 :deep(.slot-cancel) {
-  background: #e0e5f2;
-  color: #707eae;
+  background: #e4e7ec;
+  color: #667085;
 }
 
 :deep(.slot-closed) {
-  background: #2b3674;
+  background: #344054;
   color: #fff;
 }
 

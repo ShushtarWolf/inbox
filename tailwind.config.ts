@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['DM Sans Variable', 'DM Sans', 'Vazirmatn Variable', 'Vazirmatn', 'system-ui', 'sans-serif'],
-        display: ['DM Sans Variable', 'DM Sans', 'Vazirmatn Variable', 'sans-serif'],
+        sans: ['Outfit Variable', 'Outfit', 'Vazirmatn Variable', 'Vazirmatn', 'system-ui', 'sans-serif'],
+        display: ['Outfit Variable', 'Outfit', 'Vazirmatn Variable', 'sans-serif'],
       },
       colors: {
         brand: {
@@ -32,18 +32,23 @@ export default {
         },
       },
       borderRadius: {
-        ios: '1.25rem',
-        'ios-lg': '1.75rem',
-        venus: '1.25rem',
-        'venus-lg': '1.75rem',
-        'venus-xl': '2.5rem',
+        ios: '0.75rem',
+        'ios-lg': '1rem',
+        venus: '0.75rem',
+        'venus-lg': '1rem',
+        'venus-xl': '1.25rem',
+        tail: '0.75rem',
+        'tail-lg': '1rem',
+        'tail-xl': '1.25rem',
       },
       boxShadow: {
-        card: '14px 17px 40px 4px rgba(112, 144, 176, 0.08)',
-        glass: '0 8px 32px rgba(112, 144, 176, 0.12)',
-        venus: '14px 17px 40px 4px rgba(112, 144, 176, 0.08)',
-        'venus-sm': '0 4px 18px rgba(112, 144, 176, 0.08)',
-        'venus-focus': '0 0 0 3px rgba(67, 24, 255, 0.15)',
+        card: '0px 1px 3px 0px rgba(16, 24, 40, 0.1), 0px 1px 2px 0px rgba(16, 24, 40, 0.06)',
+        glass: '0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06)',
+        venus: '0px 1px 3px 0px rgba(16, 24, 40, 0.1), 0px 1px 2px 0px rgba(16, 24, 40, 0.06)',
+        'venus-sm': '0px 1px 2px 0px rgba(16, 24, 40, 0.05)',
+        'venus-focus': '0px 0px 0px 4px rgba(70, 95, 255, 0.12)',
+        'tail-md': '0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06)',
+        'tail-lg': '0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)',
       },
       keyframes: {
         'venus-shimmer': {
@@ -69,6 +74,10 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(400%)' },
         },
+        'tail-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.5' },
+        },
       },
       animation: {
         'venus-shimmer': 'venus-shimmer 1.6s ease-in-out infinite',
@@ -77,6 +86,7 @@ export default {
         'venus-fade-in': 'venus-fade-in 0.35s ease-out both',
         'venus-scale-in': 'venus-scale-in 0.4s ease-out both',
         'venus-progress': 'venus-progress 1.2s ease-in-out infinite',
+        'tail-pulse': 'tail-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },

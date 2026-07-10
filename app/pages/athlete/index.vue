@@ -23,10 +23,16 @@ const nextLabel = computed(() => {
   <div class="venus-page-stack">
     <div class="ios-card p-4">
       <h2 class="font-bold">{{ $t('nav.overview') }}</h2>
-      <p v-if="error" class="mt-2 text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
-      <AppVenusSkeleton v-else-if="pending" :lines="2" :show-card="false" class="mt-2" />
-      <p v-else-if="next" class="mt-2 text-sm" dir="auto">{{ nextLabel }}</p>
-      <p v-else class="mt-2 ios-card border-dashed p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>
+      <AppAsyncState
+        :pending="pending"
+        :error="error ? t('auth.dashboardLoadFailed') : false"
+        inline
+        :skeleton-lines="2"
+        skeleton-variant="default"
+      >
+        <p v-if="next" class="mt-2 text-sm" dir="auto">{{ nextLabel }}</p>
+        <p v-else class="mt-2 ios-card border-dashed p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>
+      </AppAsyncState>
     </div>
     <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary block text-center">{{ $t('nav.bookings') }}</NuxtLink>
   </div>

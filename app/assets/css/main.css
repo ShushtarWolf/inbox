@@ -1,7 +1,5 @@
 @import '@fontsource-variable/vazirmatn/index.css';
-@import '@fontsource-variable/dm-sans/index.css';
-@import '@fontsource-variable/manrope/index.css';
-@import '@fontsource-variable/space-grotesk/index.css';
+@import '@fontsource-variable/outfit/index.css';
 @import './tokens.css';
 
 @tailwind base;
@@ -17,44 +15,41 @@
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
   }
   [dir='ltr'] body {
-    font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
   }
   [dir='rtl'] .font-display {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
   }
   [dir='ltr'] .font-display {
-    font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-brand-navy;
+    @apply font-semibold text-brand-navy;
   }
 }
 
 @layer components {
+  /* ── TailAdmin shell ── */
   .glass-bar {
-    @apply border-b border-brand-gray-200/80 bg-white/90 shadow-venus-sm backdrop-blur-xl;
+    @apply border-b border-brand-gray-200 bg-white shadow-venus-sm;
   }
+  .app-shell-main {
+    @apply lg:px-8 lg:py-8;
+  }
+
+  /* ── Cards (ios-card / tail-card) ── */
   .ios-card,
-  .neo-card {
-    @apply rounded-venus border border-brand-gray-100 bg-white p-5 shadow-venus;
+  .neo-card,
+  .tail-card {
+    @apply rounded-tail border border-brand-gray-200 bg-white p-5 shadow-venus-sm;
   }
-  .neo-card-lavender {
-    @apply rounded-venus border border-brand-gray-100 bg-brand-lavender shadow-venus-sm;
-  }
-  .neo-card-yellow {
-    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
-  }
-  .neo-card-sky {
-    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
-  }
-  .neo-card-mint {
-    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
-  }
+
+  /* ── Buttons ── */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-venus bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-venus-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-medium text-white shadow-venus-sm transition-all duration-200;
   }
   .btn-primary:hover:not(:disabled) {
-    @apply bg-brand-primary-light shadow-venus;
+    @apply bg-brand-primary-dark;
   }
   .btn-primary:active:not(:disabled) {
     @apply scale-[0.98];
@@ -63,99 +58,271 @@
     @apply cursor-not-allowed opacity-60;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-venus border border-brand-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-lg border border-brand-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-brand-gray-700 shadow-venus-sm transition-all duration-200;
   }
   .btn-ghost:hover {
-    @apply border-brand-primary/20 bg-brand-primary-soft text-brand-primary;
+    @apply border-brand-primary/30 bg-brand-primary-soft text-brand-primary;
   }
-  .btn-coral {
-    @apply btn-primary;
+  .btn-coral { @apply btn-primary; }
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border border-brand-gray-300 bg-white px-4 py-2 text-sm font-medium text-brand-gray-700 transition hover:bg-brand-gray-50;
   }
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-600;
+  }
+
+  /* ── Form controls ── */
   .neo-input,
   .neo-select,
-  .neo-textarea {
-    @apply w-full rounded-venus border border-brand-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-brand-navy outline-none transition-all duration-200;
+  .neo-textarea,
+  .tail-input,
+  .tail-select,
+  .tail-textarea {
+    @apply w-full rounded-lg border border-brand-gray-300 bg-white px-4 py-2.5 text-sm font-normal text-brand-navy outline-none transition-all duration-200;
   }
   .neo-input:focus,
   .neo-select:focus,
-  .neo-textarea:focus {
+  .neo-textarea:focus,
+  .tail-input:focus,
+  .tail-select:focus,
+  .tail-textarea:focus {
     @apply border-brand-primary shadow-venus-focus;
   }
-  .neo-modal-panel {
-    @apply min-w-0 flex-1 rounded-venus-lg border-0 bg-white shadow-none;
+
+  /* ── Pills & badges ── */
+  .neo-pill,
+  .tail-pill {
+    @apply inline-flex items-center rounded-full px-4 py-2 text-xs font-medium transition-all duration-200;
   }
-  .neo-modal-menu {
-    @apply w-full shrink-0 overflow-hidden rounded-none border-0 bg-white shadow-none lg:w-52;
+  .neo-pill-active,
+  .tail-pill-active {
+    @apply bg-brand-primary-soft text-brand-primary;
   }
-  .neo-menu-item {
-    @apply block w-full border-b border-brand-gray-100 px-4 py-3 text-start text-sm font-semibold text-brand-gray-600 transition hover:bg-brand-lavender hover:text-brand-primary;
+  .neo-pill-inactive,
+  .tail-pill-inactive {
+    @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/30 hover:bg-brand-gray-50 hover:text-brand-primary;
   }
-  .neo-menu-item-active {
-    @apply bg-brand-primary-soft font-bold text-brand-primary;
+  .neo-badge,
+  .tail-badge {
+    @apply inline-flex items-center rounded-full bg-brand-primary-soft px-3 py-1 text-[11px] font-medium text-brand-primary;
   }
-  .neo-pill {
-    @apply inline-flex items-center rounded-full px-4 py-2 text-xs font-bold transition-all duration-200;
+  .tail-badge-success { @apply bg-emerald-50 text-emerald-700; }
+  .tail-badge-warning { @apply bg-amber-50 text-amber-700; }
+  .tail-badge-danger { @apply bg-red-50 text-red-600; }
+  .tail-badge-gray { @apply bg-brand-gray-100 text-brand-gray-600; }
+
+  /* ── Sidebar menu (TailAdmin) ── */
+  .tail-menu-item {
+    @apply relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition;
   }
-  .neo-pill-active {
-    @apply bg-brand-primary text-white shadow-venus-sm;
+  .tail-menu-item-active {
+    @apply bg-brand-primary-soft text-brand-primary;
   }
-  .neo-pill-inactive {
-    @apply border border-brand-gray-200 bg-white text-brand-gray-600 hover:border-brand-primary/30 hover:text-brand-primary;
-  }
-  .neo-badge {
-    @apply inline-flex items-center rounded-full bg-brand-primary-soft px-3 py-1 text-[11px] font-bold text-brand-primary;
-  }
-  .app-shell-main {
-    @apply lg:px-8 lg:py-8;
+  .tail-menu-item-inactive {
+    @apply text-brand-gray-700 hover:bg-brand-gray-100;
   }
 
-  /* Layout rhythm — page/section/card spacing */
-  .venus-page-stack {
+  /* ── Modals ── */
+  .neo-modal-panel,
+  .venus-modal-panel,
+  .tail-modal-panel {
+    @apply min-w-0 flex-1 rounded-tail-lg border-0 bg-white shadow-none;
+  }
+  .neo-modal-menu,
+  .venus-modal-menu,
+  .tail-modal-menu {
+    @apply w-full shrink-0 overflow-hidden border-0 bg-white shadow-none lg:w-52;
+  }
+  .neo-menu-item,
+  .tail-menu-action {
+    @apply block w-full border-b border-brand-gray-200 px-4 py-3 text-start text-sm font-medium text-brand-gray-600 transition hover:bg-brand-gray-50 hover:text-brand-primary;
+  }
+  .neo-menu-item-active,
+  .tail-menu-action-active {
+    @apply bg-brand-primary-soft font-semibold text-brand-primary;
+  }
+  .venus-modal-shell,
+  .tail-modal-shell {
+    @apply flex w-full max-h-[min(88dvh,760px)] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:flex-row;
+  }
+  .venus-modal-shell-simple,
+  .tail-modal-shell-simple {
+    @apply max-h-[min(80dvh,560px)] max-w-md flex-col;
+  }
+  .venus-modal-panel-header,
+  .tail-modal-header {
+    @apply shrink-0 border-b border-brand-gray-200 px-5 py-4;
+  }
+  .venus-modal-panel-body,
+  .tail-modal-body {
+    @apply min-h-0 flex-1 overflow-y-auto px-5 py-4;
+  }
+  .venus-modal-footer,
+  .tail-modal-footer {
+    @apply shrink-0 space-y-3 border-t border-brand-gray-200 bg-brand-gray-50 px-5 py-4;
+  }
+
+  /* ── Layout rhythm ── */
+  .venus-page-stack,
+  .tail-page-stack {
     @apply space-y-6;
   }
-  .venus-section-stack {
+  .venus-section-stack,
+  .tail-section-stack {
     @apply space-y-4;
   }
-  .venus-form-stack {
+  .venus-form-stack,
+  .tail-form-stack {
     @apply flex flex-col gap-3;
   }
-  .venus-card-grid {
+  .venus-card-grid,
+  .tail-card-grid {
     @apply grid gap-5;
   }
-  .venus-card-grid-2 {
+  .venus-card-grid-2,
+  .tail-card-grid-2 {
     @apply grid gap-5 sm:grid-cols-2;
   }
-  .venus-card-grid-3 {
+  .venus-card-grid-3,
+  .tail-card-grid-3 {
     @apply grid gap-5 lg:grid-cols-3;
   }
-  .venus-card-grid-4 {
+  .venus-card-grid-4,
+  .tail-card-grid-4 {
     @apply grid gap-5 md:grid-cols-2 xl:grid-cols-4;
   }
 
-  /* Modal shell — capped height, scrollable body, sticky footer */
-  .venus-modal-shell {
-    @apply flex w-full max-h-[min(88dvh,760px)] flex-col overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-white shadow-venus lg:flex-row;
+  /* ── Page headers ── */
+  .venus-page-header,
+  .tail-page-header {
+    @apply mb-6 flex flex-wrap items-start justify-between gap-4;
   }
-  .venus-modal-shell-simple {
-    @apply max-h-[min(80dvh,560px)] max-w-md flex-col;
+  .venus-page-title,
+  .tail-page-title {
+    @apply font-display text-2xl font-semibold text-brand-navy;
   }
-  .venus-modal-menu {
-    @apply max-h-[38dvh] shrink-0 overflow-y-auto border-b border-brand-gray-100 lg:max-h-none lg:w-52 lg:border-b-0 lg:border-e;
+  .venus-page-subtitle,
+  .tail-page-subtitle {
+    @apply mt-1 text-sm font-normal text-brand-gray-500;
   }
-  .venus-modal-panel {
-    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+  .venus-section-title,
+  .tail-section-title {
+    @apply text-lg font-semibold text-brand-navy;
   }
-  .venus-modal-panel-header {
-    @apply shrink-0 border-b border-brand-gray-100 px-5 py-4;
-  }
-  .venus-modal-panel-body {
-    @apply min-h-0 flex-1 overflow-y-auto px-5 py-4;
-  }
-  .venus-modal-footer {
-    @apply shrink-0 space-y-3 border-t border-brand-gray-100 bg-brand-cream/40 px-5 py-4;
+  .venus-section-subtitle,
+  .tail-section-subtitle {
+    @apply text-xs font-normal text-brand-gray-500;
   }
 
-  /* Venus UI kit — headers, widgets, icons */
+  /* ── Widget / stat cards ── */
+  .venus-widget-card,
+  .tail-widget-card {
+    @apply rounded-tail border border-brand-gray-200 bg-white p-5 shadow-venus-sm transition-all duration-200 hover:shadow-tail-md;
+  }
+  .venus-widget-card-accent,
+  .tail-widget-card-accent {
+    @apply rounded-tail border border-brand-gray-200 bg-brand-gray-50 p-5 shadow-venus-sm;
+  }
+  .venus-stat-card,
+  .tail-stat-card {
+    @apply rounded-tail border border-brand-gray-200 bg-white p-5 shadow-venus-sm;
+  }
+  .tail-stat-value {
+    @apply text-2xl font-semibold text-brand-navy;
+  }
+  .tail-stat-label {
+    @apply text-sm font-normal text-brand-gray-500;
+  }
+  .tail-stat-change-up {
+    @apply text-xs font-medium text-emerald-600;
+  }
+  .tail-stat-change-down {
+    @apply text-xs font-medium text-red-500;
+  }
+
+  /* ── Icon wraps ── */
+  .venus-icon-wrap,
+  .tail-icon-wrap {
+    @apply flex shrink-0 items-center justify-center rounded-lg bg-brand-primary-soft text-brand-primary;
+  }
+  .venus-icon-wrap-sm, .tail-icon-wrap-sm { @apply h-10 w-10; }
+  .venus-icon-wrap-md, .tail-icon-wrap-md { @apply h-11 w-11; }
+  .venus-icon-wrap-lg, .tail-icon-wrap-lg { @apply h-14 w-14; }
+
+  /* ── Hero / search ── */
+  .venus-hero-card,
+  .tail-hero-card {
+    @apply overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-gradient-to-br from-brand-primary to-brand-primary-dark p-6 text-white shadow-tail-md;
+  }
+  .venus-hero-action,
+  .tail-hero-action {
+    @apply rounded-lg border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition hover:bg-white/20;
+  }
+  .venus-search-bar,
+  .tail-search-bar {
+    @apply rounded-tail-lg border border-brand-gray-200 bg-white p-3 shadow-venus-sm;
+  }
+  .venus-list-item,
+  .tail-list-item {
+    @apply flex items-center gap-3 border-b border-brand-gray-200 pb-3 transition hover:opacity-80 last:border-b-0 last:pb-0;
+  }
+  .venus-avatar,
+  .tail-avatar {
+    @apply rounded-lg object-cover shadow-venus-sm ring-2 ring-white;
+  }
+
+  /* ── Alerts ── */
+  .venus-alert-error,
+  .tail-alert-error {
+    @apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600;
+  }
+  .venus-alert-success,
+  .tail-alert-success {
+    @apply rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700;
+  }
+  .venus-price,
+  .tail-price {
+    @apply font-semibold text-brand-primary;
+  }
+
+  /* ── Tables (TailAdmin) ── */
+  .tail-table-wrap {
+    @apply overflow-x-auto rounded-tail border border-brand-gray-200 bg-white shadow-venus-sm;
+  }
+  .tail-table {
+    @apply w-full min-w-full text-sm;
+  }
+  .tail-table thead tr {
+    @apply border-b border-brand-gray-200 bg-brand-gray-50;
+  }
+  .tail-table th {
+    @apply px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-brand-gray-500;
+  }
+  .tail-table tbody tr {
+    @apply border-b border-brand-gray-200 transition hover:bg-brand-gray-50 last:border-b-0;
+  }
+  .tail-table td {
+    @apply px-4 py-3 text-brand-gray-700;
+  }
+
+  /* ── Charts ── */
+  .tail-chart-bar {
+    @apply w-full rounded-t-lg bg-brand-primary transition-all hover:bg-brand-primary-dark;
+  }
+  .tail-chart-empty {
+    @apply flex h-44 items-center justify-center rounded-lg border border-dashed border-brand-gray-300 bg-brand-gray-50 px-4 text-center text-sm text-brand-gray-500;
+  }
+
+  /* ── Calendar slots ── */
+  .slot-free { @apply rounded-lg bg-brand-gray-100 font-medium text-brand-gray-600; }
+  .slot-reserved { @apply rounded-lg bg-brand-primary font-medium text-white; }
+  .slot-public { @apply rounded-lg bg-brand-sky font-medium text-brand-navy; }
+  .slot-team { @apply rounded-lg bg-brand-mint font-medium text-white; }
+  .slot-pending { @apply rounded-lg bg-amber-400 font-medium text-brand-navy; }
+  .slot-cancel { @apply rounded-lg bg-brand-gray-300 font-medium text-brand-gray-600 line-through; }
+  .slot-closed { @apply rounded-lg bg-brand-gray-700 font-medium text-white; }
+
+  /* ── Loading / skeleton (TailAdmin lazy load) ── */
   .material-symbols-rounded {
     font-family: 'Material Symbols Rounded';
     font-weight: normal;
@@ -173,105 +340,38 @@
   .material-symbols-rounded.filled {
     font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   }
-  .venus-page-header {
-    @apply mb-6 flex flex-wrap items-start justify-between gap-4;
-  }
-  .venus-page-title {
-    @apply font-display text-2xl font-bold text-brand-navy;
-  }
-  .venus-page-subtitle {
-    @apply mt-1 text-sm font-medium text-brand-gray-600;
-  }
-  .venus-section-title {
-    @apply text-lg font-bold text-brand-navy;
-  }
-  .venus-section-subtitle {
-    @apply text-xs font-medium text-brand-gray-600;
-  }
-  .venus-widget-card {
-    @apply rounded-venus border border-brand-gray-100 bg-white p-5 shadow-venus transition-all duration-200 hover:shadow-glass;
-  }
-  .venus-widget-card-accent {
-    @apply rounded-venus border border-brand-primary/10 bg-brand-primary-soft p-5 shadow-venus-sm;
-  }
-  .venus-stat-card {
-    @apply rounded-venus border border-brand-gray-100 bg-white p-4 text-center shadow-venus-sm;
-  }
-  .venus-icon-wrap {
-    @apply flex shrink-0 items-center justify-center rounded-venus bg-brand-primary-soft text-brand-primary shadow-venus-sm;
-  }
-  .venus-icon-wrap-sm {
-    @apply h-10 w-10;
-  }
-  .venus-icon-wrap-md {
-    @apply h-11 w-11;
-  }
-  .venus-icon-wrap-lg {
-    @apply h-14 w-14;
-  }
-  .venus-hero-card {
-    @apply overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-gradient-to-br from-brand-primary to-brand-primary-light p-6 text-white shadow-venus;
-  }
-  .venus-hero-action {
-    @apply rounded-venus border border-white/20 bg-white/10 p-4 backdrop-blur-sm transition hover:bg-white/20;
-  }
-  .venus-search-bar {
-    @apply rounded-venus-lg border border-brand-gray-100 bg-white p-3 shadow-venus;
-  }
-  .venus-list-item {
-    @apply flex items-center gap-3 border-b border-brand-gray-100 pb-3 transition hover:opacity-80 last:border-b-0 last:pb-0;
-  }
-  .venus-avatar {
-    @apply rounded-venus object-cover shadow-venus-sm ring-2 ring-white;
-  }
-  .venus-alert-error {
-    @apply rounded-venus border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600;
-  }
-  .venus-alert-success {
-    @apply rounded-venus border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700;
-  }
-  .venus-price {
-    @apply font-bold text-brand-primary;
-  }
-  .slot-free { @apply rounded-venus bg-brand-lavender font-semibold text-brand-gray-600; }
-  .slot-reserved { @apply rounded-venus bg-brand-primary font-semibold text-white; }
-  .slot-public { @apply rounded-venus bg-brand-accent font-semibold text-brand-navy; }
-  .slot-team { @apply rounded-venus bg-brand-mint font-semibold text-white; }
-  .slot-pending { @apply rounded-venus bg-amber-400 font-semibold text-brand-navy; }
-  .slot-cancel { @apply rounded-venus bg-brand-gray-300 font-semibold text-brand-gray-600 line-through; }
-  .slot-closed { @apply rounded-venus bg-brand-navy font-semibold text-white; }
-
-  /* Venus loading kit */
-  .venus-spinner {
+  .venus-spinner,
+  .tail-spinner {
     @apply inline-block h-8 w-8 rounded-full border-[3px] border-brand-gray-200 border-t-brand-primary animate-venus-spin;
   }
-  .venus-spinner-sm {
-    @apply h-5 w-5 border-2;
+  .venus-spinner-sm, .tail-spinner-sm { @apply h-5 w-5 border-2; }
+  .venus-spinner-lg, .tail-spinner-lg { @apply h-12 w-12 border-4; }
+  .venus-skeleton,
+  .tail-skeleton {
+    @apply rounded-lg bg-brand-gray-200 animate-tail-pulse;
   }
-  .venus-spinner-lg {
-    @apply h-12 w-12 border-4;
-  }
-  .venus-skeleton {
-    @apply rounded-venus bg-gradient-to-r from-brand-gray-100 via-brand-gray-200 to-brand-gray-100 bg-[length:200%_100%] animate-venus-shimmer;
-  }
-  .venus-loading-block {
+  .venus-loading-block,
+  .tail-loading-block {
     @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
   }
-  .venus-loading-label {
-    @apply text-sm font-semibold text-brand-gray-600;
+  .venus-loading-label,
+  .tail-loading-label {
+    @apply text-sm font-medium text-brand-gray-500;
   }
-  .venus-page-enter {
+  .venus-page-enter,
+  .tail-page-enter {
     @apply animate-venus-fade-up;
   }
-  .venus-stagger > * {
+  .venus-stagger > *,
+  .tail-stagger > * {
     @apply animate-venus-fade-up;
   }
-  .venus-stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .venus-stagger > *:nth-child(2) { animation-delay: 60ms; }
-  .venus-stagger > *:nth-child(3) { animation-delay: 120ms; }
-  .venus-stagger > *:nth-child(4) { animation-delay: 180ms; }
-  .venus-stagger > *:nth-child(5) { animation-delay: 240ms; }
-  .venus-stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .venus-stagger > *:nth-child(1), .tail-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .venus-stagger > *:nth-child(2), .tail-stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .venus-stagger > *:nth-child(3), .tail-stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .venus-stagger > *:nth-child(4), .tail-stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .venus-stagger > *:nth-child(5), .tail-stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .venus-stagger > *:nth-child(6), .tail-stagger > *:nth-child(6) { animation-delay: 300ms; }
 }
 
 @layer utilities {
@@ -280,7 +380,7 @@
   }
 }
 
-/* Nuxt page transition — Venus style */
+/* Page transitions */
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -292,14 +392,6 @@
 .page-leave-to {
   opacity: 0;
   transform: translateY(-6px);
-}
-
-/* Route progress bar */
-.venus-route-progress {
-  @apply pointer-events-none fixed inset-x-0 top-0 z-[100] h-[3px] overflow-hidden bg-brand-primary-soft;
-}
-.venus-route-progress-bar {
-  @apply h-full w-1/4 rounded-full bg-brand-primary animate-venus-progress;
 }
 
 /* Modal transition */
@@ -319,4 +411,14 @@
 .venus-modal-leave-to .animate-venus-fade-up {
   opacity: 0;
   transform: translateY(12px) scale(0.98);
+}
+
+/* Route progress */
+.venus-route-progress,
+.tail-route-progress {
+  @apply pointer-events-none fixed inset-x-0 top-0 z-[100] h-[3px] overflow-hidden bg-brand-primary-soft;
+}
+.venus-route-progress-bar,
+.tail-route-progress-bar {
+  @apply h-full w-1/4 rounded-full bg-brand-primary animate-venus-progress;
 }

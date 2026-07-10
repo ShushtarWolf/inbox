@@ -1,13 +1,13 @@
 :root {
-  --sz-bg: #f4f7fe;
-  --sz-accent: #4318ff;
-  --sz-accent-dark: #1b2559;
-  --sz-accent-light: #868cff;
-  --sz-navy: #2b3674;
-  --sz-secondary: #a3aed0;
-  --sz-card-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.08);
-  --sz-card-radius: 1.25rem;
-  --sz-input-radius: 1rem;
+  --sz-bg: #f9fafb;
+  --sz-accent: #465fff;
+  --sz-accent-dark: #3641f5;
+  --sz-accent-light: #7592ff;
+  --sz-navy: #101828;
+  --sz-secondary: #667085;
+  --sz-card-shadow: 0px 1px 3px 0px rgba(16, 24, 40, 0.1), 0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --sz-card-radius: 0.75rem;
+  --sz-input-radius: 0.5rem;
   --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
   --sz-tab-bar-height: 4.5rem;
 }

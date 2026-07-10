@@ -93,9 +93,7 @@ const rentalEquipments = computed(() =>
 <template>
   <div class="venus-page-stack">
     <h1 class="font-display text-xl font-bold">{{ $t('owner.packages') }}</h1>
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-    <template v-else>
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
     <div class="flex flex-wrap gap-3">
       <div
         v-for="p in packages"
@@ -149,6 +147,6 @@ const rentalEquipments = computed(() =>
       <p v-if="createError" class="text-sm text-red-600">{{ createError }}</p>
       <button type="button" class="btn-primary w-full" :disabled="saving || !form.title" @click="create">{{ saving ? t('common.loading') : t('owner.packagesPage.saveStub') }}</button>
     </div>
-    </template>
+    </AppAsyncState>
   </div>
 </template>

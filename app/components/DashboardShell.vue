@@ -67,7 +67,7 @@ function goBack() {
       <AppSideNav :title="title" :items="items" :dark="darkNav" />
     </div>
 
-    <div class="min-w-0 flex-1">
+    <div class="min-w-0 flex-1 bg-brand-cream">
       <header class="glass-bar sticky top-0 z-30 px-4 py-3 lg:hidden">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">

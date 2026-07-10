@@ -13,14 +13,14 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <header class="glass-bar sticky top-0 z-40 px-6 py-4">
+  <header class="glass-bar sticky top-0 z-40 px-4 py-4 sm:px-6">
     <div class="mx-auto flex w-full items-center justify-between gap-4" :class="maxWidthClass">
       <div class="flex min-w-0 items-center gap-4">
         <NuxtLink :to="localePath('/')" class="flex items-center gap-3 transition hover:opacity-80">
-          <div class="flex h-10 w-10 items-center justify-center rounded-venus bg-brand-primary shadow-venus-sm">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
           </div>
-          <span class="font-display text-lg font-bold text-brand-navy">{{ $t('brand.name') }}</span>
+          <span class="font-display text-lg font-semibold text-brand-navy">{{ $t('brand.name') }}</span>
         </NuxtLink>
         <nav v-if="nav.length" class="hidden lg:flex items-center gap-2">
           <NuxtLink

@@ -42,107 +42,95 @@ async function send() {
 </script>
 
 <template>
-  <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-    <template v-else>
-    <div class="venus-page-stack">
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="ios-card p-3 text-center">
-          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.totalContacts || 0 }}</p>
-          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.contacts') }}</p>
+  <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+    <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div class="tail-page-stack xl:col-span-1">
+        <div class="tail-card-grid-4">
+          <AppTailStatCard :label="t('owner.crmPage.stats.contacts')" :value="data?.stats?.totalContacts || 0" icon="groups" />
+          <AppTailStatCard :label="t('owner.crmPage.stats.activeThisMonth')" :value="data?.stats?.activeThisMonth || 0" icon="person_check" />
+          <AppTailStatCard :label="t('owner.crmPage.stats.smsSent')" :value="data?.stats?.smsSent || 0" icon="sms" />
+          <AppTailStatCard :label="t('owner.crmPage.stats.campaigns')" :value="data?.stats?.campaigns || 0" icon="campaign" />
         </div>
-        <div class="ios-card p-3 text-center">
-          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.activeThisMonth || 0 }}</p>
-          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
-        </div>
-        <div class="ios-card p-3 text-center">
-          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.smsSent || 0 }}</p>
-          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.smsSent') }}</p>
-        </div>
-        <div class="ios-card p-3 text-center">
-          <p class="text-lg font-bold text-brand-primary">{{ data?.stats?.campaigns || 0 }}</p>
-          <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.stats.campaigns') }}</p>
-        </div>
-      </div>
 
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="segment in data?.segments"
-          :key="segment.id"
-          type="button"
-          class="neo-pill neo-pill-inactive"
-          :class="selectedSegment === segment.id ? 'neo-pill-active' : ''"
-          @click="selectedSegment = segment.id"
-        >
-          {{ segmentLabel(segment) }} ({{ segment.count }})
-        </button>
-      </div>
-
-      <div class="ios-card p-4">
-        <h1 class="mb-3 font-bold">{{ $t('owner.crm') }}</h1>
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[30rem] text-sm">
-            <thead><tr class="text-brand-gray-600"><th class="p-2">{{ t('owner.crmPage.name') }}</th><th class="p-2">{{ t('owner.crmPage.mobile') }}</th></tr></thead>
-            <tbody>
-              <tr v-for="c in data?.contacts" :key="c.id" class="border-t">
-                <td class="p-2">
-                  <p class="font-bold">{{ c.name }}</p>
-                  <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits }) }}</p>
-                </td>
-                <td class="p-2">
-                  <p><bdi dir="ltr" class="tabular-nums">{{ c.mobile }}</bdi></p>
-                  <p class="text-xs text-brand-gray-600">{{ c.lifetimeValue }}</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="segment in data?.segments"
+            :key="segment.id"
+            type="button"
+            class="tail-pill"
+            :class="selectedSegment === segment.id ? 'tail-pill-active' : 'tail-pill-inactive'"
+            @click="selectedSegment = segment.id"
+          >
+            {{ segmentLabel(segment) }} ({{ segment.count }})
+          </button>
         </div>
-      </div>
 
-      <div class="ios-card p-4">
-        <h2 class="mb-3 font-bold">{{ t('owner.crmPage.recentCampaigns') }}</h2>
-        <div class="space-y-2 text-sm">
-          <div v-for="campaign in data?.campaigns" :key="campaign.id" class="ios-card p-3">
-            <div class="flex items-center justify-between gap-3">
-              <p class="font-bold">{{ campaign.name }}</p>
-              <span class="text-xs text-brand-gray-600">{{ campaignStatusLabel(campaign.status) }}</span>
+        <AppTailTable :title="$t('owner.crm')">
+          <thead>
+            <tr>
+              <th>{{ t('owner.crmPage.name') }}</th>
+              <th>{{ t('owner.crmPage.mobile') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in data?.contacts" :key="c.id">
+              <td>
+                <p class="font-semibold text-brand-navy">{{ c.name }}</p>
+                <p class="text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits }) }}</p>
+              </td>
+              <td>
+                <p><bdi dir="ltr" class="tabular-nums">{{ c.mobile }}</bdi></p>
+                <p class="text-xs text-brand-gray-500">{{ c.lifetimeValue }}</p>
+              </td>
+            </tr>
+          </tbody>
+        </AppTailTable>
+
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-4">{{ t('owner.crmPage.recentCampaigns') }}</h2>
+          <div class="space-y-3 text-sm">
+            <div v-for="campaign in data?.campaigns" :key="campaign.id" class="tail-widget-card-accent">
+              <div class="flex items-center justify-between gap-3">
+                <p class="font-semibold text-brand-navy">{{ campaign.name }}</p>
+                <span class="tail-badge-gray">{{ campaignStatusLabel(campaign.status) }}</span>
+              </div>
+              <p class="mt-1 text-xs text-brand-gray-500">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
+              <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.delivered', { delivered: campaign.delivered, total: campaign.total }) }}</p>
             </div>
-            <p class="text-xs text-brand-gray-600">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
-            <p class="text-xs text-brand-gray-600">{{ t('owner.crmPage.delivered', { delivered: campaign.delivered, total: campaign.total }) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tail-page-stack">
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-2">{{ t('owner.crmPage.pushSms') }}</h2>
+          <p class="mb-4 text-sm text-brand-gray-500">{{ t('owner.crmPage.logOnlyNote') }}</p>
+          <div class="tail-form-stack">
+            <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="tail-input" />
+            <select v-model="sms.recipient" class="tail-select">
+              <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
+              <option value="vip">{{ t('owner.crmPage.vip') }}</option>
+              <option value="inactive">{{ t('owner.crmPage.reactivation') }}</option>
+              <option value="atRisk">{{ t('owner.crmPage.noShowRisk') }}</option>
+            </select>
+            <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="tail-input tabular-nums">
+            <textarea v-model="sms.message" class="tail-textarea" rows="4" />
+            <button type="button" class="btn-primary" @click="send">{{ t('common.send') }}</button>
+            <p v-if="feedback" class="tail-alert-success">{{ feedback }}</p>
+          </div>
+        </div>
+
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-2">{{ t('owner.crmPage.reminders') }}</h2>
+          <p class="mb-4 text-sm text-brand-gray-500">{{ t('owner.crmPage.remindersInfo') }}</p>
+          <div class="space-y-3 text-sm">
+            <div v-for="rule in data?.reminders" :key="rule.id" class="tail-widget-card-accent">
+              <p class="font-semibold text-brand-navy">{{ rule.name }}</p>
+              <p class="text-xs text-brand-gray-500">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="venus-page-stack">
-      <div class="ios-card p-4">
-        <h2 class="mb-2 font-bold">{{ t('owner.crmPage.pushSms') }}</h2>
-        <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.logOnlyNote') }}</p>
-        <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="mb-2 neo-input" />
-        <select v-model="sms.recipient" class="mb-2 neo-input">
-          <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
-          <option value="vip">{{ t('owner.crmPage.vip') }}</option>
-          <option value="inactive">{{ t('owner.crmPage.reactivation') }}</option>
-          <option value="atRisk">{{ t('owner.crmPage.noShowRisk') }}</option>
-        </select>
-        <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="mb-2 neo-input tabular-nums">
-        <textarea v-model="sms.message" class="mb-2 neo-input" rows="4" />
-        <button type="button" class="btn-primary" @click="send">{{ t('common.send') }}</button>
-        <p v-if="feedback" class="mt-2 text-sm text-brand-gray-600">{{ feedback }}</p>
-      </div>
-
-      <div class="ios-card p-4">
-        <h2 class="mb-2 font-bold">{{ t('owner.crmPage.reminders') }}</h2>
-        <p class="mb-2 text-sm text-brand-gray-600">{{ t('owner.crmPage.remindersInfo') }}</p>
-        <div class="space-y-2 text-sm">
-          <div v-for="rule in data?.reminders" :key="rule.id" class="neo-select">
-            <p class="font-bold">{{ rule.name }}</p>
-            <p class="text-xs text-brand-gray-600">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    </template>
-  </div>
+  </AppAsyncState>
 </template>

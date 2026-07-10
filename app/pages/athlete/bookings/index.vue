@@ -88,9 +88,7 @@ function paymentStatusLabel(status: string) {
   <div class="venus-page-stack">
     <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
 
-    <AppVenusSkeleton v-if="pending" :lines="3" />
-    <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
-
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
     <section v-if="data?.courtBookings?.length" class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
       <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
@@ -132,9 +130,10 @@ function paymentStatusLabel(status: string) {
       </div>
     </section>
 
-    <div v-if="!pending && !error && !data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
+    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
       {{ t('booking.emptyState') }}
     </div>
+    </AppAsyncState>
 
     <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
       <div class="venus-modal-shell venus-modal-shell-simple">

@@ -6,11 +6,12 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency } = useFormatters()
 const slug = route.params.slug as string
 
-const { data: club } = await useFetch(`/api/clubs/${slug}`)
+const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
 </script>
 
 <template>
-  <div v-if="club" class="venus-page-stack">
+  <AppAsyncState :pending="pending" :error="error" :empty="!club" skeleton-variant="default">
+  <div v-if="club" class="tail-page-stack">
     <PageHeaderNav
       :title="localizedField(club, 'nameFa', 'nameEn')"
       :subtitle="localizedField(club, 'addressFa', 'addressEn')"
@@ -111,4 +112,5 @@ const { data: club } = await useFetch(`/api/clubs/${slug}`)
       </div>
     </section>
   </div>
+  </AppAsyncState>
 </template>
