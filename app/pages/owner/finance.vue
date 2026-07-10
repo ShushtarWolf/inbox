@@ -42,7 +42,7 @@ function paymentStatusLabel(status: string) {
 <template>
   <div class="space-y-4">
     <h1 class="font-display text-xl font-black">{{ $t('owner.finance') }}</h1>
-    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <template v-else>
     <div class="grid gap-3 md:grid-cols-4">

@@ -82,7 +82,7 @@ async function syncRoute() {
         {{ t('clubs.verifiedOnly') }}
       </label>
     </div>
-    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
     <p v-else-if="!coaches?.length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
 

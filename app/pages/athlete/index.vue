@@ -24,7 +24,7 @@ const nextLabel = computed(() => {
     <div class="ios-card p-4">
       <h2 class="font-bold">{{ $t('nav.overview') }}</h2>
       <p v-if="error" class="mt-2 text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
-      <p v-else-if="pending" class="mt-2 text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
+      <AppVenusSkeleton v-else-if="pending" :lines="2" :show-card="false" class="mt-2" />
       <p v-else-if="next" class="mt-2 text-sm" dir="auto">{{ nextLabel }}</p>
       <p v-else class="mt-2 ios-card border-dashed p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>
     </div>

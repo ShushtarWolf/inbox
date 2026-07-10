@@ -68,7 +68,7 @@ function isSelected(cell: { iso: string | null }) {
 </script>
 
 <template>
-  <div class="jalali-calendar rounded-brutal border-2 border-black bg-white p-4 shadow-brutal">
+  <div class="jalali-calendar rounded-venus border border-brand-gray-100 bg-white p-4 shadow-venus">
     <div class="mb-3 flex items-center justify-between gap-2">
       <button type="button" class="jalali-calendar-nav" aria-label="ماه قبل" @click="prevMonth">‹</button>
       <p class="text-sm font-black text-black">{{ monthLabel }}</p>
@@ -106,14 +106,13 @@ function isSelected(cell: { iso: string | null }) {
   width: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
-  border: 2px solid #000;
-  background: #f7ce46;
-  color: #000;
+  border-radius: 0.75rem;
+  border: 1px solid #e0e5f2;
+  background: #f4f7fe;
+  color: #4318ff;
   font-size: 1.1rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
-  box-shadow: 2px 2px 0 0 #000;
 }
 
 .jalali-calendar-day {
@@ -122,24 +121,22 @@ function isSelected(cell: { iso: string | null }) {
   width: 100%;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
+  border-radius: 0.75rem;
   font-size: 0.82rem;
-  font-weight: 800;
-  color: #000;
+  font-weight: 600;
+  color: #2b3674;
 }
 
 .jalali-calendar-day:hover {
-  background: #c9a0dc;
+  background: #e9edf7;
 }
 
 .jalali-calendar-day-selected {
-  border: 2px solid #000;
-  background: #f28b82;
-  color: #000;
-  box-shadow: 2px 2px 0 0 #000;
+  background: #4318ff;
+  color: #fff;
 }
 
 .jalali-calendar-day-selected:hover {
-  background: #f28b82;
+  background: #3311db;
 }
 </style>

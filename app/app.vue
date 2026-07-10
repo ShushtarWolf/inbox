@@ -15,7 +15,13 @@ useHead(() => ({
 </script>
 
 <template>
+  <AppRouteProgress />
   <NuxtLayout>
-    <NuxtPage />
+    <NuxtPage
+      :transition="{
+        name: 'page',
+        mode: 'out-in',
+      }"
+    />
   </NuxtLayout>
 </template>

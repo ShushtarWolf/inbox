@@ -143,7 +143,7 @@ function handleHeroSportIconError() {
 </script>
 
 <template>
-  <div class="space-y-4 animate-fade-in">
+  <div class="space-y-4 animate-fade-in venus-stagger">
     <section class="ios-card overflow-hidden border-2 border-black bg-brand-lavender p-4 text-black shadow-brutal-lg">
       <div>
         <div>

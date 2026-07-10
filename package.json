@@ -25,6 +25,7 @@
     "seed": "node --import tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource-variable/manrope": "^5.2.8",
     "@fontsource-variable/space-grotesk": "^5.2.10",
     "@fontsource-variable/vazirmatn": "^5.2.8",

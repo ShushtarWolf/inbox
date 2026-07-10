@@ -13,12 +13,14 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <header class="glass-bar sticky top-0 z-40 px-4 py-3">
+  <header class="glass-bar sticky top-0 z-40 px-6 py-4">
     <div class="mx-auto flex w-full items-center justify-between gap-4" :class="maxWidthClass">
-      <div class="flex min-w-0 items-center gap-3">
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-2 transition hover:-translate-y-0.5">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8 border-2 border-black bg-white shadow-brutal-sm" />
-          <span class="font-display text-lg font-black">{{ $t('brand.name') }}</span>
+      <div class="flex min-w-0 items-center gap-4">
+        <NuxtLink :to="localePath('/')" class="flex items-center gap-3 transition hover:opacity-80">
+          <div class="flex h-10 w-10 items-center justify-center rounded-venus bg-brand-primary shadow-venus-sm">
+            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
+          </div>
+          <span class="font-display text-lg font-bold text-brand-navy">{{ $t('brand.name') }}</span>
         </NuxtLink>
         <nav v-if="nav.length" class="hidden lg:flex items-center gap-2">
           <NuxtLink
@@ -26,13 +28,13 @@ withDefaults(defineProps<{
             :key="item.to"
             :to="item.to"
             class="neo-pill neo-pill-inactive"
-            active-class="neo-pill-active shadow-brutal"
+            active-class="neo-pill-active"
           >
             {{ item.label }}
           </NuxtLink>
         </nav>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <slot name="actions" />
       </div>
     </div>

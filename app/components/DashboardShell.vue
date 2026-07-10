@@ -100,7 +100,7 @@ function goBack() {
         </div>
       </header>
 
-      <div class="hidden border-b-2 border-black bg-brand-lavender px-6 py-3 lg:flex lg:items-center lg:justify-between">
+      <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 shadow-venus-sm lg:flex lg:items-center lg:justify-between">
         <div class="flex items-center gap-2">
           <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">{{ t('common.back') }}</button>
           <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>

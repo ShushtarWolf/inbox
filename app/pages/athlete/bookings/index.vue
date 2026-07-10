@@ -88,7 +88,7 @@ function paymentStatusLabel(status: string) {
   <div class="space-y-4">
     <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
 
-    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('common.error') }}</p>
 
     <section v-if="data?.courtBookings?.length" class="space-y-2">

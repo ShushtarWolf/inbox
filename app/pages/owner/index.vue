@@ -497,11 +497,11 @@ const legend = [
 
 <template>
   <div class="space-y-6">
-    <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+    <AppVenusSkeleton v-if="pending" :lines="3" />
     <p v-else-if="error" class="text-sm text-red-600">{{ t('auth.dashboardLoadFailed') }}</p>
 
-    <section v-else class="calendar-shell overflow-hidden rounded-brutal border-2 border-black bg-white shadow-brutal-lg" :class="locale === 'en' ? 'calendar-latin' : ''">
-      <div class="border-b-2 border-black px-5 py-5 sm:px-7">
+    <section v-else class="calendar-shell overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-white shadow-venus" :class="locale === 'en' ? 'calendar-latin' : ''">
+      <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p class="mb-1 text-xs font-black text-black/60" :class="locale === 'en' ? 'tracking-[0.24em]' : ''">{{ t('owner.dashboardEyebrow') }}</p>
@@ -794,7 +794,7 @@ const legend = [
 }
 
 .calendar-shell {
-  background: #e066ff;
+  background: #fff;
 }
 
 .calendar-grid {
@@ -806,21 +806,23 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.25rem;
-  border: 2px solid #000;
+  border-radius: 1rem;
+  border: 1px solid #e0e5f2;
   background: #fff;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 600;
+  color: #2b3674;
   cursor: pointer;
-  box-shadow: 2px 2px 0 0 #000;
+  box-shadow: 0 4px 18px rgba(112, 144, 176, 0.08);
+  transition: all 0.2s ease;
 }
 
 .calendar-tab-active {
-  border-color: #000;
-  background: #f7ce46;
-  color: #000;
-  font-weight: 900;
+  border-color: #4318ff;
+  background: rgba(67, 24, 255, 0.08);
+  color: #4318ff;
+  font-weight: 700;
 }
 
 .calendar-column-head {
@@ -834,9 +836,8 @@ const legend = [
 
 .calendar-column-day {
   font-size: 0.7rem;
-  font-weight: 800;
-  color: #000;
-  opacity: 0.6;
+  font-weight: 600;
+  color: #a3aed0;
 }
 
 .calendar-latin .calendar-column-day {
@@ -845,8 +846,8 @@ const legend = [
 
 .calendar-column-title {
   font-size: 0.95rem;
-  font-weight: 900;
-  color: #000;
+  font-weight: 700;
+  color: #2b3674;
 }
 
 .calendar-time-cell,
@@ -864,9 +865,8 @@ const legend = [
 
 .calendar-time {
   font-size: 0.78rem;
-  font-weight: 900;
-  color: #000;
-  opacity: 0.6;
+  font-weight: 700;
+  color: #a3aed0;
 }
 
 .calendar-slot-card {
@@ -876,28 +876,27 @@ const legend = [
   align-items: flex-start;
   justify-content: flex-start;
   gap: 0.45rem;
-  border-radius: 0.25rem;
-  border: 2px solid #000;
+  border-radius: 1rem;
   padding: 0.95rem;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-  box-shadow: 2px 2px 0 0 #000;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 18px rgba(112, 144, 176, 0.08);
 }
 
 .calendar-slot-card:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 0 #000;
+  transform: translateY(-2px);
+  box-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.12);
 }
 
 .calendar-slot-time {
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.04em;
   opacity: 0.8;
 }
 
 .calendar-slot-title {
   font-size: 0.84rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -911,55 +910,52 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  border-radius: 0.25rem;
-  border: 2px solid #000;
-  background: #fff;
+  border-radius: 1rem;
+  background: #f4f7fe;
   padding: 0.7rem 0.95rem;
   font-size: 0.78rem;
-  font-weight: 800;
-  color: #000;
-  box-shadow: 2px 2px 0 0 #000;
+  font-weight: 600;
+  color: #2b3674;
 }
 
 .calendar-legend-dot {
   height: 0.7rem;
   width: 0.7rem;
-  border-radius: 0;
-  border: 1px solid #000;
+  border-radius: 999px;
 }
 
 :deep(.slot-free) {
-  background: #c9a0dc;
-  color: #000;
+  background: #e9edf7;
+  color: #707eae;
 }
 
 :deep(.slot-reserved) {
-  background: #f28b82;
-  color: #000;
+  background: #4318ff;
+  color: #fff;
 }
 
 :deep(.slot-public) {
-  background: #f7ce46;
-  color: #000;
+  background: #6ad2ff;
+  color: #2b3674;
 }
 
 :deep(.slot-team) {
-  background: #66bb6a;
-  color: #000;
+  background: #01b574;
+  color: #fff;
 }
 
 :deep(.slot-pending) {
-  background: #f5a623;
-  color: #000;
+  background: #ffb547;
+  color: #2b3674;
 }
 
 :deep(.slot-cancel) {
-  background: #a080b8;
-  color: #000;
+  background: #e0e5f2;
+  color: #707eae;
 }
 
 :deep(.slot-closed) {
-  background: #1a1a1a;
+  background: #2b3674;
   color: #fff;
 }
 

@@ -1,4 +1,5 @@
 @import '@fontsource-variable/vazirmatn/index.css';
+@import '@fontsource-variable/dm-sans/index.css';
 @import '@fontsource-variable/manrope/index.css';
 @import '@fontsource-variable/space-grotesk/index.css';
 @import './tokens.css';
@@ -9,132 +10,169 @@
 
 @layer base {
   body {
-    @apply bg-brand-cream text-brand-gray-900 font-sans antialiased;
+    @apply bg-brand-cream text-brand-navy font-sans antialiased;
     min-height: 100dvh;
   }
   [dir='rtl'] body {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
   }
   [dir='ltr'] body {
-    font-family: 'Manrope Variable', Manrope, system-ui, sans-serif;
+    font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   }
   [dir='rtl'] .font-display {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
   }
+  [dir='ltr'] .font-display {
+    font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+  }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-black;
+    @apply font-bold text-brand-navy;
   }
 }
 
 @layer components {
   .glass-bar {
-    @apply border-b-2 border-black bg-brand-lavender shadow-brutal-sm;
+    @apply border-b border-brand-gray-200/80 bg-white/90 shadow-venus-sm backdrop-blur-xl;
   }
-  .ios-card {
-    @apply rounded-brutal border-2 border-black bg-white shadow-brutal;
-  }
+  .ios-card,
   .neo-card {
-    @apply rounded-brutal border-2 border-black bg-white shadow-brutal;
+    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
   }
   .neo-card-lavender {
-    @apply rounded-brutal border-2 border-black bg-brand-lavender shadow-brutal;
+    @apply rounded-venus border border-brand-gray-100 bg-brand-lavender shadow-venus-sm;
   }
   .neo-card-yellow {
-    @apply rounded-brutal border-2 border-black bg-brand-accent shadow-brutal;
+    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
   }
   .neo-card-sky {
-    @apply rounded-brutal border-2 border-black bg-brand-sky shadow-brutal;
+    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
   }
   .neo-card-mint {
-    @apply rounded-brutal border-2 border-black bg-brand-mint shadow-brutal;
+    @apply rounded-venus border border-brand-gray-100 bg-white shadow-venus;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-brand-accent px-4 py-2.5 text-sm font-black text-black shadow-brutal transition-all;
+    @apply inline-flex items-center justify-center rounded-venus bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-venus-sm transition-all duration-200;
   }
-  .btn-primary:hover {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal-lg;
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-brand-primary-light shadow-venus;
   }
-  .btn-primary:active {
-    @apply translate-x-0.5 translate-y-0.5 shadow-none;
+  .btn-primary:active:not(:disabled) {
+    @apply scale-[0.98];
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-60;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-white px-4 py-2.5 text-sm font-black text-black shadow-brutal-sm transition-all;
+    @apply inline-flex items-center justify-center rounded-venus border border-brand-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm transition-all duration-200;
   }
   .btn-ghost:hover {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
-  }
-  .btn-ghost:active {
-    @apply translate-x-0.5 translate-y-0.5 shadow-none;
+    @apply border-brand-primary/20 bg-brand-primary-soft text-brand-primary;
   }
   .btn-coral {
-    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-brand-primary px-4 py-2.5 text-sm font-black text-black shadow-brutal transition-all;
+    @apply btn-primary;
   }
-  .btn-coral:hover {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal-lg;
-  }
-  .btn-coral:active {
-    @apply translate-x-0.5 translate-y-0.5 shadow-none;
-  }
-  .neo-input {
-    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
-  }
-  .neo-input:focus {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
-  }
-  .neo-select {
-    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
-  }
-  .neo-select:focus {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
-  }
+  .neo-input,
+  .neo-select,
   .neo-textarea {
-    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
+    @apply w-full rounded-venus border border-brand-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-brand-navy outline-none transition-all duration-200;
   }
+  .neo-input:focus,
+  .neo-select:focus,
   .neo-textarea:focus {
-    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
+    @apply border-brand-primary shadow-venus-focus;
   }
   .neo-modal-panel {
-    @apply min-w-0 flex-1 rounded-brutal border-2 border-black bg-white p-4 shadow-brutal;
+    @apply min-w-0 flex-1 rounded-venus-lg border border-brand-gray-100 bg-white p-5 shadow-venus;
   }
   .neo-modal-menu {
-    @apply w-full shrink-0 overflow-hidden rounded-brutal border-2 border-black bg-white shadow-brutal lg:w-52;
+    @apply w-full shrink-0 overflow-hidden rounded-venus-lg border border-brand-gray-100 bg-white shadow-venus lg:w-52;
   }
   .neo-menu-item {
-    @apply block w-full border-b-2 border-black px-4 py-3 text-start text-sm font-black transition hover:bg-brand-lavender;
+    @apply block w-full border-b border-brand-gray-100 px-4 py-3 text-start text-sm font-semibold text-brand-gray-600 transition hover:bg-brand-lavender hover:text-brand-primary;
   }
   .neo-menu-item-active {
-    @apply bg-brand-primary text-black;
+    @apply bg-brand-primary-soft font-bold text-brand-primary;
   }
   .neo-pill {
-    @apply inline-flex items-center rounded-brutal border-2 border-black px-3 py-1.5 text-xs font-black shadow-brutal-sm transition-all;
+    @apply inline-flex items-center rounded-full px-4 py-2 text-xs font-bold transition-all duration-200;
   }
   .neo-pill-active {
-    @apply bg-brand-accent text-black;
+    @apply bg-brand-primary text-white shadow-venus-sm;
   }
   .neo-pill-inactive {
-    @apply bg-white text-black hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal;
+    @apply border border-brand-gray-200 bg-white text-brand-gray-600 hover:border-brand-primary/30 hover:text-brand-primary;
   }
   .neo-badge {
-    @apply inline-flex items-center rounded-brutal border-2 border-black bg-brand-accent px-2.5 py-1 text-[11px] font-black text-black shadow-brutal-sm;
+    @apply inline-flex items-center rounded-full bg-brand-primary-soft px-3 py-1 text-[11px] font-bold text-brand-primary;
   }
   .app-shell-main {
-    @apply lg:px-6 lg:py-6;
+    @apply lg:px-8 lg:py-8;
   }
-  .slot-free { @apply border-2 border-black bg-brand-lavender text-black font-bold; }
-  .slot-reserved { @apply border-2 border-black bg-brand-primary text-black font-bold; }
-  .slot-public { @apply border-2 border-black bg-brand-accent text-black font-bold; }
-  .slot-team { @apply border-2 border-black bg-brand-mint text-black font-bold; }
-  .slot-pending { @apply border-2 border-black bg-brand-gold text-black font-bold; }
-  .slot-cancel { @apply border-2 border-black bg-brand-gray-400 text-black font-bold line-through; }
-  .slot-closed { @apply border-2 border-black bg-brand-primary-dark text-white font-bold; }
+  .slot-free { @apply rounded-venus bg-brand-lavender font-semibold text-brand-gray-600; }
+  .slot-reserved { @apply rounded-venus bg-brand-primary font-semibold text-white; }
+  .slot-public { @apply rounded-venus bg-brand-accent font-semibold text-brand-navy; }
+  .slot-team { @apply rounded-venus bg-brand-mint font-semibold text-white; }
+  .slot-pending { @apply rounded-venus bg-amber-400 font-semibold text-brand-navy; }
+  .slot-cancel { @apply rounded-venus bg-brand-gray-300 font-semibold text-brand-gray-600 line-through; }
+  .slot-closed { @apply rounded-venus bg-brand-navy font-semibold text-white; }
+
+  /* Venus loading kit */
+  .venus-spinner {
+    @apply inline-block h-8 w-8 rounded-full border-[3px] border-brand-gray-200 border-t-brand-primary animate-venus-spin;
+  }
+  .venus-spinner-sm {
+    @apply h-5 w-5 border-2;
+  }
+  .venus-spinner-lg {
+    @apply h-12 w-12 border-4;
+  }
+  .venus-skeleton {
+    @apply rounded-venus bg-gradient-to-r from-brand-gray-100 via-brand-gray-200 to-brand-gray-100 bg-[length:200%_100%] animate-venus-shimmer;
+  }
+  .venus-loading-block {
+    @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
+  }
+  .venus-loading-label {
+    @apply text-sm font-semibold text-brand-gray-600;
+  }
+  .venus-page-enter {
+    @apply animate-venus-fade-up;
+  }
+  .venus-stagger > * {
+    @apply animate-venus-fade-up;
+  }
+  .venus-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .venus-stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .venus-stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .venus-stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .venus-stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .venus-stagger > *:nth-child(6) { animation-delay: 300ms; }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+    animation: venus-fade-up 0.45s ease-out both;
   }
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+}
+
+/* Nuxt page transition — Venus style */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Route progress bar */
+.venus-route-progress {
+  @apply pointer-events-none fixed inset-x-0 top-0 z-[100] h-[3px] overflow-hidden bg-brand-primary-soft;
+}
+.venus-route-progress-bar {
+  @apply h-full w-1/4 rounded-full bg-brand-primary animate-venus-progress;
 }
