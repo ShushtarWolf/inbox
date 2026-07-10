@@ -21,29 +21,96 @@
   [dir='rtl'] .font-display {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
   }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black;
+  }
 }
 
 @layer components {
   .glass-bar {
-    @apply border-b border-black/5 bg-brand-cream/90 backdrop-blur-xl;
+    @apply border-b-2 border-black bg-brand-lavender shadow-brutal-sm;
   }
   .ios-card {
-    @apply rounded-ios border border-black/5 bg-white shadow-card;
+    @apply rounded-brutal border-2 border-black bg-white shadow-brutal;
+  }
+  .neo-card {
+    @apply rounded-brutal border-2 border-black bg-white shadow-brutal;
+  }
+  .neo-card-lavender {
+    @apply rounded-brutal border-2 border-black bg-brand-lavender shadow-brutal;
+  }
+  .neo-card-yellow {
+    @apply rounded-brutal border-2 border-black bg-brand-accent shadow-brutal;
+  }
+  .neo-card-sky {
+    @apply rounded-brutal border-2 border-black bg-brand-sky shadow-brutal;
+  }
+  .neo-card-mint {
+    @apply rounded-brutal border-2 border-black bg-brand-mint shadow-brutal;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white;
+    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-brand-accent px-4 py-2.5 text-sm font-black text-black shadow-brutal transition-all;
+  }
+  .btn-primary:hover {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal-lg;
+  }
+  .btn-primary:active {
+    @apply translate-x-0.5 translate-y-0.5 shadow-none;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold;
+    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-white px-4 py-2.5 text-sm font-black text-black shadow-brutal-sm transition-all;
+  }
+  .btn-ghost:hover {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
+  }
+  .btn-ghost:active {
+    @apply translate-x-0.5 translate-y-0.5 shadow-none;
+  }
+  .btn-coral {
+    @apply inline-flex items-center justify-center rounded-brutal border-2 border-black bg-brand-primary px-4 py-2.5 text-sm font-black text-black shadow-brutal transition-all;
+  }
+  .btn-coral:hover {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal-lg;
+  }
+  .btn-coral:active {
+    @apply translate-x-0.5 translate-y-0.5 shadow-none;
+  }
+  .neo-input {
+    @apply w-full rounded-brutal border-2 border-black bg-white px-3 py-2.5 text-sm font-bold shadow-brutal-sm outline-none transition-all;
+  }
+  .neo-input:focus {
+    @apply -translate-x-0.5 -translate-y-0.5 shadow-brutal;
+  }
+  .neo-pill {
+    @apply inline-flex items-center rounded-brutal border-2 border-black px-3 py-1.5 text-xs font-black shadow-brutal-sm transition-all;
+  }
+  .neo-pill-active {
+    @apply bg-brand-accent text-black;
+  }
+  .neo-pill-inactive {
+    @apply bg-white text-black hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal;
+  }
+  .neo-badge {
+    @apply inline-flex items-center rounded-brutal border-2 border-black bg-brand-accent px-2.5 py-1 text-[11px] font-black text-black shadow-brutal-sm;
   }
   .app-shell-main {
     @apply lg:px-6 lg:py-6;
   }
-  .slot-free { @apply bg-[#E8E6E2] text-brand-gray-600; }
-  .slot-reserved { @apply bg-brand-primary text-white; }
-  .slot-public { @apply bg-brand-gold text-white; }
-  .slot-team { @apply bg-[#6B1F28] text-white; }
-  .slot-pending { @apply bg-brand-primary-dark text-white; }
-  .slot-cancel { @apply bg-brand-gray-400 text-white line-through; }
-  .slot-closed { @apply bg-brand-gray-700 text-white; }
+  .slot-free { @apply border-2 border-black bg-brand-lavender text-black font-bold; }
+  .slot-reserved { @apply border-2 border-black bg-brand-primary text-black font-bold; }
+  .slot-public { @apply border-2 border-black bg-brand-accent text-black font-bold; }
+  .slot-team { @apply border-2 border-black bg-brand-mint text-black font-bold; }
+  .slot-pending { @apply border-2 border-black bg-brand-gold text-black font-bold; }
+  .slot-cancel { @apply border-2 border-black bg-brand-gray-400 text-black font-bold line-through; }
+  .slot-closed { @apply border-2 border-black bg-brand-primary-dark text-white font-bold; }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }

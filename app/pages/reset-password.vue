@@ -38,16 +38,16 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-sm space-y-4 pt-8">
-    <h1 class="font-display text-xl font-extrabold">{{ t('auth.resetPassword') }}</h1>
-    <p v-if="done" class="text-sm text-brand-gray-600">{{ t('auth.resetSuccess') }}</p>
+    <h1 class="font-display text-xl font-black">{{ t('auth.resetPassword') }}</h1>
+    <p v-if="done" class="text-sm font-bold text-black/70">{{ t('auth.resetSuccess') }}</p>
     <template v-else>
-      <input v-model="password" type="password" :placeholder="t('auth.newPassword')" class="w-full rounded-xl border px-3 py-2" />
-      <input v-model="confirm" type="password" :placeholder="t('auth.confirmPassword')" class="w-full rounded-xl border px-3 py-2" />
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+      <input v-model="password" type="password" :placeholder="t('auth.newPassword')" class="neo-input" />
+      <input v-model="confirm" type="password" :placeholder="t('auth.confirmPassword')" class="neo-input" />
+      <p v-if="error" class="rounded-brutal border-2 border-black bg-brand-primary px-3 py-2 text-sm font-bold text-black">{{ error }}</p>
       <button type="button" class="btn-primary w-full" :disabled="submitting || !token" @click="submit">
         {{ submitting ? t('common.loading') : t('auth.resetPassword') }}
       </button>
     </template>
-    <NuxtLink :to="localePath('/login')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.login') }}</NuxtLink>
+    <NuxtLink :to="localePath('/login')" class="block text-center text-sm font-bold text-black underline">{{ t('auth.login') }}</NuxtLink>
   </div>
 </template>

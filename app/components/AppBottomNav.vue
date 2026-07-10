@@ -28,8 +28,8 @@ function isActive(to: string) {
 
 <template>
   <nav
-    class="fixed inset-x-0 bottom-0 z-50 border-t pb-[var(--sz-safe-bottom)] backdrop-blur-xl lg:hidden"
-    :class="dark ? 'border-white/10 bg-brand-primary-dark/95 text-white' : 'border-black/5 bg-white/95'"
+    class="fixed inset-x-0 bottom-0 z-50 border-t-2 border-black pb-[var(--sz-safe-bottom)] lg:hidden"
+    :class="dark ? 'bg-brand-lavender text-black' : 'bg-white text-black'"
   >
     <div
       class="mx-auto"
@@ -42,17 +42,17 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        class="flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-semibold"
+        class="flex min-h-14 flex-col items-center justify-center gap-0.5 border-t-2 px-2 py-2 text-[10px] font-black transition"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
           isActive(item.to)
-            ? (dark ? 'text-brand-gold' : 'text-brand-primary')
-            : (dark ? 'text-white/75' : 'text-brand-gray-600'),
+            ? 'border-black bg-brand-accent text-black'
+            : 'border-transparent text-black/70 hover:bg-brand-lavender/40',
         ]"
       >
         <span v-if="item.icon" class="relative text-lg">
           {{ item.icon }}
-          <span v-if="item.badge" class="absolute -end-1 -top-1 rounded-full bg-brand-primary px-1 text-[9px] text-white">{{ item.badge }}</span>
+          <span v-if="item.badge" class="absolute -end-1 -top-1 rounded-brutal border border-black bg-brand-primary px-1 text-[9px] font-black text-black">{{ item.badge }}</span>
         </span>
         {{ item.label }}
       </NuxtLink>

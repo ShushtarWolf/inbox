@@ -68,14 +68,14 @@ function isSelected(cell: { iso: string | null }) {
 </script>
 
 <template>
-  <div class="jalali-calendar rounded-[1.25rem] border border-[#ece8f6] bg-white p-4 shadow-[0_20px_50px_rgba(41,29,87,0.12)]">
+  <div class="jalali-calendar rounded-brutal border-2 border-black bg-white p-4 shadow-brutal">
     <div class="mb-3 flex items-center justify-between gap-2">
       <button type="button" class="jalali-calendar-nav" aria-label="ماه قبل" @click="prevMonth">‹</button>
-      <p class="text-sm font-bold text-[#27243a]">{{ monthLabel }}</p>
+      <p class="text-sm font-black text-black">{{ monthLabel }}</p>
       <button type="button" class="jalali-calendar-nav" aria-label="ماه بعد" @click="nextMonth">›</button>
     </div>
 
-    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-[#b0a9c2]">
+    <div class="grid grid-cols-7 gap-1 text-center text-xs font-black text-black/50">
       <span v-for="weekday in PERSIAN_WEEKDAYS" :key="weekday">{{ weekday }}</span>
     </div>
 
@@ -106,12 +106,14 @@ function isSelected(cell: { iso: string | null }) {
   width: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  border: 1px solid #ece8f6;
-  background: #fff;
-  color: #6f6885;
+  border-radius: 0.25rem;
+  border: 2px solid #000;
+  background: #f7ce46;
+  color: #000;
   font-size: 1.1rem;
+  font-weight: 900;
   line-height: 1;
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .jalali-calendar-day {
@@ -120,22 +122,24 @@ function isSelected(cell: { iso: string | null }) {
   width: 100%;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: 0.25rem;
   font-size: 0.82rem;
-  font-weight: 700;
-  color: #534c68;
+  font-weight: 800;
+  color: #000;
 }
 
 .jalali-calendar-day:hover {
-  background: #f6f3ff;
+  background: #c9a0dc;
 }
 
 .jalali-calendar-day-selected {
-  background: #6d4cff;
-  color: #fff;
+  border: 2px solid #000;
+  background: #f28b82;
+  color: #000;
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .jalali-calendar-day-selected:hover {
-  background: #5d3de6;
+  background: #f28b82;
 }
 </style>

@@ -794,7 +794,7 @@ const legend = [
 }
 
 .calendar-shell {
-  background: linear-gradient(180deg, rgba(250, 248, 255, 0.72) 0%, rgba(255, 255, 255, 1) 22%);
+  background: #e066ff;
 }
 
 .calendar-grid {
@@ -806,19 +806,21 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 999px;
-  border: 1px solid #ece8f6;
+  border-radius: 0.25rem;
+  border: 2px solid #000;
   background: #fff;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .calendar-tab-active {
-  border-color: #e1dcf3;
-  background: #f3efff;
-  color: #534c68;
-  font-weight: 700;
+  border-color: #000;
+  background: #f7ce46;
+  color: #000;
+  font-weight: 900;
 }
 
 .calendar-column-head {
@@ -832,8 +834,9 @@ const legend = [
 
 .calendar-column-day {
   font-size: 0.7rem;
-  font-weight: 700;
-  color: #b0a9c2;
+  font-weight: 800;
+  color: #000;
+  opacity: 0.6;
 }
 
 .calendar-latin .calendar-column-day {
@@ -842,8 +845,8 @@ const legend = [
 
 .calendar-column-title {
   font-size: 0.95rem;
-  font-weight: 800;
-  color: #27243a;
+  font-weight: 900;
+  color: #000;
 }
 
 .calendar-time-cell,
@@ -861,8 +864,9 @@ const legend = [
 
 .calendar-time {
   font-size: 0.78rem;
-  font-weight: 800;
-  color: #a49db7;
+  font-weight: 900;
+  color: #000;
+  opacity: 0.6;
 }
 
 .calendar-slot-card {
@@ -872,26 +876,28 @@ const legend = [
   align-items: flex-start;
   justify-content: flex-start;
   gap: 0.45rem;
-  border-radius: 1.3rem;
+  border-radius: 0.25rem;
+  border: 2px solid #000;
   padding: 0.95rem;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .calendar-slot-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(59, 47, 99, 0.08);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #000;
 }
 
 .calendar-slot-time {
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.04em;
   opacity: 0.8;
 }
 
 .calendar-slot-title {
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.35;
 }
 
@@ -905,53 +911,56 @@ const legend = [
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  border-radius: 999px;
-  background: #faf8ff;
+  border-radius: 0.25rem;
+  border: 2px solid #000;
+  background: #fff;
   padding: 0.7rem 0.95rem;
   font-size: 0.78rem;
-  font-weight: 700;
-  color: #5d5873;
+  font-weight: 800;
+  color: #000;
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .calendar-legend-dot {
   height: 0.7rem;
   width: 0.7rem;
-  border-radius: 999px;
+  border-radius: 0;
+  border: 1px solid #000;
 }
 
 :deep(.slot-free) {
-  background: #f4f1f8;
-  color: #716a84;
+  background: #c9a0dc;
+  color: #000;
 }
 
 :deep(.slot-reserved) {
-  background: #dbeafe;
-  color: #255485;
+  background: #f28b82;
+  color: #000;
 }
 
 :deep(.slot-public) {
-  background: #e9defe;
-  color: #6e47c9;
+  background: #f7ce46;
+  color: #000;
 }
 
 :deep(.slot-team) {
-  background: #d7f4ef;
-  color: #2d776e;
+  background: #66bb6a;
+  color: #000;
 }
 
 :deep(.slot-pending) {
-  background: #fee7d5;
-  color: #ad6332;
+  background: #f5a623;
+  color: #000;
 }
 
 :deep(.slot-cancel) {
-  background: #eceaf1;
-  color: #8a859d;
+  background: #a080b8;
+  color: #000;
 }
 
 :deep(.slot-closed) {
-  background: #dfe4f2;
-  color: #55617e;
+  background: #1a1a1a;
+  color: #fff;
 }
 
 @media (max-width: 640px) {

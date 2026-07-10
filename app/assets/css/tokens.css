@@ -1,8 +1,16 @@
 :root {
-  --sz-bg: #f4efe9;
-  --sz-accent: #c41e1e;
-  --sz-accent-dark: #4a1420;
-  --sz-gold: #b68a3b;
+  --sz-bg: #e066ff;
+  --sz-accent: #f7ce46;
+  --sz-accent-dark: #f5a623;
+  --sz-coral: #f28b82;
+  --sz-lavender: #c9a0dc;
+  --sz-mint: #66bb6a;
+  --sz-sky: #81d4fa;
+  --sz-border: #000000;
+  --sz-text: #1a1a1a;
   --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
   --sz-tab-bar-height: 4.5rem;
+  --sz-brutal-shadow: 4px 4px 0 0 #000;
+  --sz-brutal-shadow-sm: 2px 2px 0 0 #000;
+  --sz-brutal-shadow-lg: 6px 6px 0 0 #000;
 }

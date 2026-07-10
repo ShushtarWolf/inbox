@@ -58,7 +58,7 @@ function goBack() {
 
 <template>
   <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] lg:flex-row lg:pb-0">
-    <div v-if="open" class="fixed inset-0 z-40 bg-black/40 lg:hidden" role="presentation" @click="open = false" />
+    <div v-if="open" class="fixed inset-0 z-40 bg-black/60 lg:hidden" role="presentation" @click="open = false" />
 
     <div
       class="fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 lg:static lg:translate-x-0 lg:ltr:translate-x-0 lg:rtl:translate-x-0"
@@ -100,7 +100,7 @@ function goBack() {
         </div>
       </header>
 
-      <div class="hidden border-b border-black/5 bg-brand-cream/60 px-6 py-3 lg:flex lg:items-center lg:justify-between">
+      <div class="hidden border-b-2 border-black bg-brand-lavender px-6 py-3 lg:flex lg:items-center lg:justify-between">
         <div class="flex items-center gap-2">
           <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">{{ t('common.back') }}</button>
           <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">{{ t('nav.home') }}</NuxtLink>

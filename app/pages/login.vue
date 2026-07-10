@@ -23,14 +23,14 @@ const error = computed(() => {
 
 <template>
   <form class="mx-auto max-w-sm space-y-4 pt-8" method="post" action="/api/auth/login-web">
-    <h1 class="font-display text-xl font-extrabold">{{ t('auth.login') }}</h1>
-    <input v-model="email" name="email" type="email" :placeholder="t('auth.email')" class="w-full rounded-xl border px-3 py-2" autocomplete="email" />
-    <input v-model="password" name="password" type="password" :placeholder="t('auth.password')" class="w-full rounded-xl border px-3 py-2" autocomplete="current-password" />
+    <h1 class="font-display text-xl font-black">{{ t('auth.login') }}</h1>
+    <input v-model="email" name="email" type="email" :placeholder="t('auth.email')" class="neo-input" autocomplete="email" />
+    <input v-model="password" name="password" type="password" :placeholder="t('auth.password')" class="neo-input" autocomplete="current-password" />
     <input type="hidden" name="locale" :value="locale" />
     <input type="hidden" name="returnTo" :value="returnTo" />
-    <p v-if="error" class="text-sm text-brand-primary">{{ error }}</p>
+    <p v-if="error" class="rounded-brutal border-2 border-black bg-brand-primary px-3 py-2 text-sm font-bold text-black">{{ error }}</p>
     <button type="submit" class="btn-primary w-full">{{ t('auth.login') }}</button>
-    <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.forgotPassword') }}</NuxtLink>
-    <NuxtLink :to="localePath({ path: '/register', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
+    <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm font-bold text-black underline">{{ t('auth.forgotPassword') }}</NuxtLink>
+    <NuxtLink :to="localePath({ path: '/register', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-black underline">{{ t('auth.register') }}</NuxtLink>
   </form>
 </template>
