@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { Role } from '@prisma/client'
 import { resolvePostLoginPath } from '#shared/returnTo.ts'
+import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
 
 export function postLoginRedirectPath(
   user: { role: string; locale?: string | null },
@@ -57,7 +58,7 @@ export async function requireRole(event: H3Event, ...roles: Role[]) {
   return user
 }
 
-export async function requireOwnerClub(event: H3Event) {
+export async function requireOwnerClub(event: H3Event, permission?: OwnerPermission) {
   const user = await requireRole(event, 'CLUB_ADMIN')
   const memberships = await prisma.staffMembership.findMany({
     where: { userId: user.id, active: true, role: { in: ['OWNER', 'MANAGER', 'ANALYST', 'FRONT_DESK'] } },
@@ -72,10 +73,15 @@ export async function requireOwnerClub(event: H3Event) {
   if (!selectedClubId || selectedClubId !== membership.clubId) {
     setCookie(event, 'owner_club_id', membership.clubId, { path: '/', sameSite: 'lax' })
   }
+  const permissions = parsePermissions(membership.permissionsJson)
+  if (permission && membership.role !== 'OWNER' && !hasOwnerPermission(permissions, permission)) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
   return {
     user,
     club: membership.club,
     membership,
+    permissions,
     clubs: memberships.map((item) => ({
       id: item.club.id,
       slug: item.club.slug,
@@ -83,6 +89,7 @@ export async function requireOwnerClub(event: H3Event) {
       nameEn: item.club.nameEn,
       role: item.role,
       isPrimary: item.isPrimary,
+      permissions: parsePermissions(item.permissionsJson),
     })),
   }
 }

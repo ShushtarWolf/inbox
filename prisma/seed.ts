@@ -77,31 +77,50 @@ const STATUSES: SlotDisplayStatus[] = ['FREE', 'RESERVED', 'PUBLIC', 'TEAM', 'PE
 const json = (value: unknown) => JSON.stringify(value)
 
 async function main() {
-  await prisma.campaignRecipient.deleteMany()
-  await prisma.campaign.deleteMany()
-  await prisma.contactSegment.deleteMany()
-  await prisma.reminderRule.deleteMany()
-  await prisma.payment.deleteMany()
-  await prisma.reservationEvent.deleteMany()
-  await prisma.waitlistEntry.deleteMany()
-  await prisma.review.deleteMany()
-  await prisma.clubMedia.deleteMany()
-  await prisma.coachMedia.deleteMany()
-  await prisma.staffMembership.deleteMany()
-  await prisma.smsLog.deleteMany()
-  await prisma.contact.deleteMany()
-  await prisma.packageDraft.deleteMany()
-  await prisma.seasonBooking.deleteMany()
-  await prisma.booking.deleteMany()
-  await prisma.coachSession.deleteMany()
-  await prisma.coachAvailability.deleteMany()
-  await prisma.slot.deleteMany()
-  await prisma.equipment.deleteMany()
-  await prisma.court.deleteMany()
-  await prisma.coach.deleteMany()
-  await prisma.club.deleteMany()
-  await prisma.user.deleteMany()
-  await prisma.sport.deleteMany()
+  const forceReset = process.env.FORCE_SEED_RESET === 'true'
+  const isProduction = process.env.NODE_ENV === 'production'
+  const userCount = await prisma.user.count()
+
+  if (!forceReset && userCount > 0) {
+    console.log('Seed skipped: database already has data. Set FORCE_SEED_RESET=true to wipe and reseed.')
+    return
+  }
+
+  if (forceReset) {
+    await prisma.campaignRecipient.deleteMany()
+    await prisma.campaign.deleteMany()
+    await prisma.contactSegment.deleteMany()
+    await prisma.reminderRule.deleteMany()
+    await prisma.payment.deleteMany()
+    await prisma.reservationEvent.deleteMany()
+    await prisma.waitlistEntry.deleteMany()
+    await prisma.review.deleteMany()
+    await prisma.clubMedia.deleteMany()
+    await prisma.coachMedia.deleteMany()
+    await prisma.staffMembership.deleteMany()
+    await prisma.smsLog.deleteMany()
+    await prisma.contact.deleteMany()
+    await prisma.packageDraft.deleteMany()
+    await prisma.seasonBooking.deleteMany()
+    await prisma.booking.deleteMany()
+    await prisma.coachSession.deleteMany()
+    await prisma.coachAvailability.deleteMany()
+    await prisma.slot.deleteMany()
+    await prisma.equipment.deleteMany()
+    await prisma.court.deleteMany()
+    await prisma.coach.deleteMany()
+    await prisma.club.deleteMany()
+    await prisma.user.deleteMany()
+    await prisma.sport.deleteMany()
+  }
+
+  if (isProduction) {
+    for (const s of SPORTS) {
+      await prisma.sport.upsert({ where: { slug: s.slug }, update: s, create: s })
+    }
+    console.log('Production seed complete: sports catalog only (no demo users).')
+    return
+  }
 
   for (const s of SPORTS) await prisma.sport.create({ data: s })
 
@@ -438,14 +457,14 @@ async function main() {
   })
 
   const equipData = [
-    { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const },
-    { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const },
-    { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const },
-    { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const },
-    { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const },
-    { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const },
-    { nameFa: 'توپ فروشی', nameEn: 'Ball', category: 'SELL' as const },
-    { nameFa: 'Ball kid', nameEn: 'Ball kid', category: 'SERVICE' as const },
+    { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const, price: 0 },
+    { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const, price: 0 },
+    { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const, price: 0 },
+    { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const, price: 50000 },
+    { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const, price: 30000 },
+    { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const, price: 150000 },
+    { nameFa: 'توپ فروشی', nameEn: 'Ball', category: 'SELL' as const, price: 200000 },
+    { nameFa: 'Ball kid', nameEn: 'Ball kid', category: 'SERVICE' as const, price: 100000 },
   ]
   for (const e of equipData) {
     await prisma.equipment.create({ data: { ...e, clubId: ownerClub.id } })

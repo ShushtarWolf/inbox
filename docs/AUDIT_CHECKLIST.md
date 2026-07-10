@@ -5,7 +5,12 @@
 | `/` | `app/pages/index.vue` | uppercase on eyebrow | — | — | — | Fixed |
 | `/login` | `app/pages/login.vue` | — | — | — | — | OK |
 | `/register` | `app/pages/register.vue` | — | — | — | — | OK |
-| `/offline` | `app/pages/offline.vue` | — | — | — | — | OK |
+| `/forgot-password` | `app/pages/forgot-password.vue` | — | — | — | — | OK |
+| `/reset-password` | `app/pages/reset-password.vue` | — | — | — | — | OK |
+| `/privacy` | `app/pages/privacy.vue` | — | — | — | — | OK |
+| `/terms` | `app/pages/terms.vue` | — | — | — | — | OK |
+| `/clubs/apply` | `app/pages/clubs/apply.vue` | — | — | — | — | OK |
+| `/owner/setup` | `app/pages/owner/setup.vue` | — | — | — | wizard | OK |
 | `/clubs` | `app/pages/clubs/index.vue` | English amenity labels | — | km suffix | hardcoded amenities | Fixed |
 | `/clubs/[slug]` | `app/pages/clubs/[slug].vue` | — | — | — | — | OK |
 | `/coaches` | `app/pages/coaches/index.vue` | English specialty labels | — | — | hardcoded specialties | Fixed |

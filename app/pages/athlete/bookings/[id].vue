@@ -59,6 +59,30 @@ async function rescheduleBooking() {
   rescheduleSlotId.value = ''
   await refresh()
 }
+
+const reviewRating = ref(5)
+const reviewBody = ref('')
+const reviewSubmitting = ref(false)
+const reviewDone = ref(false)
+
+const canReview = computed(() =>
+  booking.value?.status === 'CONFIRMED' && !booking.value?.review && booking.value?.slot?.date < today(),
+)
+
+async function submitReview() {
+  if (!booking.value) return
+  reviewSubmitting.value = true
+  try {
+    await $fetch('/api/reviews', {
+      method: 'POST',
+      body: { bookingId: booking.value.id, rating: reviewRating.value, body: reviewBody.value },
+    })
+    reviewDone.value = true
+    await refresh()
+  } finally {
+    reviewSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -103,5 +127,13 @@ async function rescheduleBooking() {
       <p v-else class="text-sm text-brand-gray-600">{{ $t('booking.noSlots') }}</p>
       <button type="button" class="btn-primary w-full" :disabled="!rescheduleSlotId" @click="rescheduleBooking">{{ $t('booking.confirm') }}</button>
     </div>
+
+    <div v-if="canReview && !reviewDone" class="ios-card space-y-3 p-4">
+      <h2 class="font-bold">{{ $t('reviews.submitTitle') }}</h2>
+      <input v-model.number="reviewRating" type="number" min="1" max="5" class="w-full rounded-xl border px-3 py-2" />
+      <textarea v-model="reviewBody" class="w-full rounded-xl border px-3 py-2" rows="3" :placeholder="$t('reviews.bodyPlaceholder')" />
+      <button type="button" class="btn-primary w-full" :disabled="reviewSubmitting || !reviewBody" @click="submitReview">{{ $t('reviews.submit') }}</button>
+    </div>
+    <p v-else-if="reviewDone" class="text-sm text-brand-primary">{{ $t('reviews.thanks') }}</p>
   </div>
 </template>

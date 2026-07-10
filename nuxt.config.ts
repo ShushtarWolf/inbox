@@ -75,7 +75,7 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      mode: 'development',
+      mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
       navigateFallback: '/offline',
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
       globIgnores: ['**/videos/**', '**/planning/**'],

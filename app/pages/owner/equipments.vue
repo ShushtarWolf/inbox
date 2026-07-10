@@ -5,6 +5,7 @@ const { t, locale } = useI18n()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/equipments')
 useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
+const { formatCurrency } = useFormatters()
 
 type EquipmentCategory = 'CLUB' | 'RENTAL' | 'SELL' | 'SERVICE'
 
@@ -13,6 +14,7 @@ interface EquipmentItem {
   nameFa: string
   nameEn: string
   category: EquipmentCategory
+  price: number
 }
 
 const categories: { key: EquipmentCategory; labelKey: string }[] = [
@@ -33,13 +35,20 @@ const showModal = ref(false)
 const editing = ref<EquipmentItem | null>(null)
 const modalCategory = ref<EquipmentCategory>('CLUB')
 const modalName = ref('')
+const modalPrice = ref(0)
 const saving = ref(false)
 const modalError = ref('')
+
+function formatEquipmentPrice(item: EquipmentItem) {
+  if (item.category === 'CLUB' || !item.price) return t('owner.free')
+  return formatCurrency(item.price)
+}
 
 function openAdd(category: EquipmentCategory) {
   editing.value = null
   modalCategory.value = category
   modalName.value = t('owner.equipmentsPage.newItem')
+  modalPrice.value = 0
   modalError.value = ''
   showModal.value = true
 }
@@ -48,6 +57,7 @@ function openEdit(item: EquipmentItem) {
   editing.value = item
   modalCategory.value = item.category
   modalName.value = localizedField(item, 'nameFa', 'nameEn')
+  modalPrice.value = item.price
   modalError.value = ''
   showModal.value = true
 }
@@ -64,15 +74,16 @@ async function saveItem() {
   saving.value = true
   modalError.value = ''
   try {
+    const price = modalCategory.value === 'CLUB' ? 0 : Math.max(0, Math.round(modalPrice.value || 0))
     if (editing.value) {
       const body = locale.value === 'fa'
-        ? { nameFa: name }
-        : { nameEn: name }
+        ? { nameFa: name, price }
+        : { nameEn: name, price }
       await $fetch(`/api/owner/equipments/${editing.value.id}`, { method: 'PATCH', body })
     } else {
       const body = locale.value === 'fa'
-        ? { nameFa: name, nameEn: t('owner.equipmentsPage.newItem'), category: modalCategory.value }
-        : { nameEn: name, nameFa: t('owner.equipmentsPage.newItem'), category: modalCategory.value }
+        ? { nameFa: name, nameEn: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price }
+        : { nameEn: name, nameFa: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price }
       await $fetch('/api/owner/equipments', { method: 'POST', body })
     }
     closeModal()
@@ -113,7 +124,10 @@ async function deleteItem(item: EquipmentItem) {
         </div>
         <ul class="space-y-1 text-sm">
           <li v-for="e in grouped[cat.key]" :key="e.id" class="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-brand-cream/50">
-            <span>{{ localizedField(e, 'nameFa', 'nameEn') }}</span>
+            <span>
+              {{ localizedField(e, 'nameFa', 'nameEn') }}
+              <span class="text-xs text-brand-gray-600">· {{ formatEquipmentPrice(e) }}</span>
+            </span>
             <span class="flex shrink-0 gap-1">
               <button type="button" class="text-xs text-brand-gray-600" @click="openEdit(e)">{{ t('common.edit') }}</button>
               <button type="button" class="text-xs text-red-600" @click="deleteItem(e)">{{ t('common.delete') }}</button>
@@ -129,6 +143,11 @@ async function deleteItem(item: EquipmentItem) {
         <label class="mb-3 block text-sm">
           <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.itemName') }}</span>
           <input v-model="modalName" class="w-full rounded-xl border px-3 py-2" :dir="locale === 'fa' ? 'auto' : 'ltr'">
+        </label>
+        <label v-if="modalCategory !== 'CLUB'" class="mb-3 block text-sm">
+          <span class="mb-1 block font-bold">{{ t('owner.equipmentsPage.price') }}</span>
+          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="w-full rounded-xl border px-3 py-2 tabular-nums">
+          <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</span>
         </label>
         <p v-if="modalError" class="mb-2 text-sm text-red-600">{{ modalError }}</p>
         <div class="flex gap-2">

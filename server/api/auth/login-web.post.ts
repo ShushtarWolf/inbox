@@ -2,6 +2,7 @@ import { toSessionUser, postLoginRedirectPath } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
 
 export default defineEventHandler(async (event) => {
+  enforceRateLimit(event, 'auth:login-web')
   const { email, password, locale, returnTo } = await readBody<{
     email?: string
     password?: string

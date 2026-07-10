@@ -1,4 +1,4 @@
-export type NavItem = { to: string; label: string; icon?: string }
+export type NavItem = { to: string; label: string; icon?: string; badge?: number }
 
 /** True when this nav item should show as active for the current path. */
 export function isNavItemActive(path: string, to: string, items: NavItem[]): boolean {

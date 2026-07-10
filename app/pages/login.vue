@@ -30,6 +30,7 @@ const error = computed(() => {
     <input type="hidden" name="returnTo" :value="returnTo" />
     <p v-if="error" class="text-sm text-brand-primary">{{ error }}</p>
     <button type="submit" class="btn-primary w-full">{{ t('auth.login') }}</button>
+    <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm text-brand-gray-600">{{ t('auth.forgotPassword') }}</NuxtLink>
     <NuxtLink :to="localePath({ path: '/register', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm text-brand-gray-600">{{ t('auth.register') }}</NuxtLink>
   </form>
 </template>

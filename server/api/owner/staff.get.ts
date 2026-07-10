@@ -1,10 +1,10 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'team')
   const memberships = await prisma.staffMembership.findMany({
     where: { clubId: club.id, active: true },
     include: {
       user: { select: { id: true, name: true, nameEn: true, email: true, phone: true } },
-      coach: { select: { id: true, nameFa: true, nameEn: true, city: true } },
+      coach: { select: { id: true, nameFa: true, nameEn: true, city: true, sessionPrice: true } },
     },
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
   })

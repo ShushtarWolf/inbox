@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'crm')
   const query = getQuery(event)
   const segment = query.segment as string | undefined
   const contacts = await prisma.contact.findMany({

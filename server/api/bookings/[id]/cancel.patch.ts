@@ -25,5 +25,14 @@ export default defineEventHandler(async (event) => {
       },
     })
   })
+
+  await notifyWaitlistForFreedSlot({
+    clubId: booking.slot.court.clubId,
+    courtId: booking.slot.courtId,
+    date: booking.slot.date,
+    startTime: booking.slot.startTime,
+    endTime: booking.slot.endTime,
+  })
+
   return { ok: true }
 })

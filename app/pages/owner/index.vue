@@ -3,28 +3,44 @@ import { palette } from '#shared/palette.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
+interface OwnerCalendarBookingEquipment {
+  equipmentId: string
+  priceAtBooking: number
+  equipment?: { id: string; nameFa: string; nameEn: string; price: number; category: string } | null
+}
+
 interface OwnerCalendarBooking {
   guestName?: string | null
   guestFamily?: string | null
   guestMobile?: string | null
-  payment?: { method?: string; status?: string } | null
+  coachId?: string | null
+  payment?: { method?: string; status?: string; amount?: number } | null
   paymentMethod?: string | null
   paymentStatus?: string | null
   comments?: string | null
+  bookingEquipments?: OwnerCalendarBookingEquipment[]
 }
 
 interface OwnerCalendarSlot {
   id: string
   courtId: string
+  date?: string
+  price?: number
   startTime: string
   endTime: string
   displayStatus: string
   booking?: OwnerCalendarBooking | null
 }
 
+type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | null
+
+const DAY_MAP: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+}
+
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
 
 const date = ref(today())
@@ -32,11 +48,7 @@ const showDatePicker = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const showMenu = ref(false)
-const showReserve = ref(false)
-const showCancel = ref(false)
-const showSeason = ref(false)
-const showPackage = ref(false)
-const showEquipment = ref(false)
+const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
 const saving = ref(false)
 const actionError = ref('')
@@ -90,9 +102,18 @@ const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() =>
   (staffData.value?.staff || [])
-    .filter((member: { coach?: { id: string } | null }) => member.coach)
-    .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
+    .filter((member: { coach?: { id: string; sessionPrice?: number } | null }) => member.coach)
+    .map((member: { coach: { id: string; nameFa: string; nameEn: string; sessionPrice: number } }) => member.coach),
 )
+const selectedSlotFull = computed(() => {
+  if (!selectedSlot.value?.id) return null
+  return data.value?.slots?.find((s: { id: string }) => s.id === selectedSlot.value!.id) || selectedSlot.value
+})
+const courtPrice = computed(() => selectedSlotFull.value?.price ?? 0)
+const selectedCoach = computed(() => {
+  if (!packageForm.coachId) return null
+  return clubCoaches.value.find((coach: { id: string }) => coach.id === packageForm.coachId) || null
+})
 const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 const monthLabel = computed(() => formatMonth(currentDate.value))
@@ -162,74 +183,111 @@ function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function resetPanels() {
-  showReserve.value = false
-  showCancel.value = false
-  showSeason.value = false
-  showPackage.value = false
-  showEquipment.value = false
+  activePanel.value = null
 }
+
+function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
+  if (slot.displayStatus === 'CLOSED') return 'comments'
+  if (slot.booking) return 'reserve'
+  return 'reserve'
+}
+
+function menuButtonClass(panel: ActivePanel) {
+  const base = 'block w-full border-b px-4 py-3 text-start text-sm'
+  return activePanel.value === panel ? `${base} bg-brand-primary font-bold text-white` : base
+}
+
+function countRecurringSessions(days: string[], times: string[], anchorDate?: string, weeks = 8) {
+  const wanted = new Set(days.map((day) => DAY_MAP[day]).filter((value) => value !== undefined))
+  if (!wanted.size || !times.length) return 0
+  const anchor = anchorDate || date.value
+  const start = new Date(`${anchor}T12:00:00Z`)
+  let dateCount = 0
+  for (let offset = 0; offset < weeks * 7; offset += 1) {
+    const day = new Date(start)
+    day.setUTCDate(start.getUTCDate() + offset)
+    if (wanted.has(day.getUTCDay())) dateCount += 1
+  }
+  return dateCount * times.length
+}
+
+function equipmentPriceForItem(item: { category: string; price: number }) {
+  if (item.category === 'CLUB') return 0
+  return item.price || 0
+}
+
+function sumEquipmentIds(ids: string[]) {
+  return (equipments.value || [])
+    .filter((item: { id: string }) => ids.includes(item.id))
+    .reduce((sum: number, item: { category: string; price: number }) => sum + equipmentPriceForItem(item), 0)
+}
+
+function equipmentOptionLabel(item: { nameFa: string; nameEn: string; category: string; price: number }) {
+  const name = localizedField(item, 'nameFa', 'nameEn')
+  if (item.category === 'CLUB' || !item.price) return `${name} (${t('owner.free')})`
+  return `${name} — ${formatCurrency(item.price)}`
+}
+
+const reserveEquipmentPrice = computed(() => sumEquipmentIds(form.equipmentIds))
+const seasonEquipmentPrice = computed(() => sumEquipmentIds(seasonForm.equipmentId ? [seasonForm.equipmentId] : []))
+const packageEquipmentPrice = computed(() => sumEquipmentIds(packageForm.equipmentId ? [packageForm.equipmentId] : []))
+const seasonSessionCount = computed(() =>
+  countRecurringSessions(seasonForm.days, seasonForm.times, selectedSlotFull.value?.date),
+)
+const packageSessionCount = computed(() =>
+  countRecurringSessions(packageForm.days, packageForm.times, selectedSlotFull.value?.date),
+)
 
 function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
-  selectedSlot.value = slot
+  const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  selectedSlot.value = fullSlot
   showMenu.value = true
-  // #region agent log
-  const guestName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
-  const line1 = guestName || statusLabel(slot.displayStatus)
-  const line2 = slot.booking?.paymentStatus
-    ? t(`booking.paymentStatus.${slot.booking.paymentStatus}`)
-    : (slot.booking?.guestMobile || '')
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ab2367' }, body: JSON.stringify({ sessionId: 'ab2367', location: 'owner/index.vue:openSlot', message: 'slot modal header lines', data: { displayStatus: slot.displayStatus, guestName, line1, line2, duplicate: line1 === line2 && line1 !== '' }, timestamp: Date.now(), hypothesisId: 'H1-H3' }) }).catch(() => {})
-  // #endregion
   resetPanels()
+  activePanel.value = defaultPanelForSlot(fullSlot)
   cancelReason.value = ''
   actionError.value = ''
-  form.guestName = slot.booking?.guestName || ''
-  form.guestFamily = slot.booking?.guestFamily || ''
-  form.guestMobile = slot.booking?.guestMobile || ''
-  form.paymentMethod = slot.booking?.payment?.method || slot.booking?.paymentMethod || 'CASH'
-  form.paymentStatus = slot.booking?.payment?.status || slot.booking?.paymentStatus || 'PAY_AT_CLUB'
-  form.comments = slot.booking?.comments || ''
-  form.equipmentIds = []
+  form.guestName = fullSlot.booking?.guestName || ''
+  form.guestFamily = fullSlot.booking?.guestFamily || ''
+  form.guestMobile = fullSlot.booking?.guestMobile || ''
+  form.paymentMethod = fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH'
+  form.paymentStatus = fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB'
+  form.comments = fullSlot.booking?.comments || ''
+  const equipmentIds = fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || []
+  form.equipmentIds = equipmentIds
   seasonForm.days = ['Sun']
-  seasonForm.times = [slot.startTime.slice(0, 5)]
-  seasonForm.equipmentId = ''
-  seasonForm.comments = slot.booking?.comments || ''
-  packageForm.coachId = ''
+  seasonForm.times = [fullSlot.startTime.slice(0, 5)]
+  seasonForm.equipmentId = equipmentIds[0] || ''
+  seasonForm.comments = fullSlot.booking?.comments || ''
+  packageForm.coachId = fullSlot.booking?.coachId || ''
   packageForm.days = ['Sun']
-  packageForm.times = [slot.startTime.slice(0, 5)]
-  packageForm.equipmentId = ''
-  packageForm.comments = slot.booking?.comments || ''
+  packageForm.times = [fullSlot.startTime.slice(0, 5)]
+  packageForm.equipmentId = equipmentIds[0] || ''
+  packageForm.comments = fullSlot.booking?.comments || ''
 }
 
 function openReserveForm() {
-  resetPanels()
-  showReserve.value = true
+  activePanel.value = 'reserve'
 }
 
 function openCancelForm() {
-  resetPanels()
-  showCancel.value = true
+  activePanel.value = 'cancel'
 }
 
 function openCommentsForm() {
-  resetPanels()
-  showReserve.value = true
+  activePanel.value = 'comments'
 }
 
 function openSeasonForm() {
-  resetPanels()
-  showSeason.value = true
+  activePanel.value = 'season'
 }
 
 function openPackageForm() {
-  resetPanels()
-  showPackage.value = true
+  activePanel.value = 'package'
 }
 
 function openEquipmentForm() {
-  resetPanels()
-  showEquipment.value = true
+  activePanel.value = 'equipment'
 }
 
 function closeMenu() {
@@ -254,40 +312,9 @@ function togglePackageDay(day: string) {
   packageForm.days = toggleDay(packageForm.days, day)
 }
 
-function reserveComments() {
-  const equipmentNames = (equipments.value || [])
-    .filter((item: { id: string }) => form.equipmentIds.includes(item.id))
-    .map((item: { nameFa: string; nameEn: string }) => localizedField(item, 'nameFa', 'nameEn'))
-  const equipmentNote = equipmentNames.length ? `${t('owner.equipments')}: ${equipmentNames.join(', ')}` : ''
-  return [form.comments, equipmentNote].filter(Boolean).join('\n')
-}
-
-function slotActionLabel() {
-  return selectedSlot.value?.booking ? t('common.save') : t('owner.reserve')
-}
-
-function canCancelSlot() {
-  return Boolean(selectedSlot.value?.booking)
-}
-
-function canReserveSlot() {
-  return selectedSlot.value?.displayStatus !== 'CLOSED'
-}
-
-function slotStatusSummary() {
-  if (!selectedSlot.value) return ''
-  if (selectedSlot.value.booking?.paymentStatus) {
-    return t(`booking.paymentStatus.${selectedSlot.value.booking.paymentStatus}`)
-  }
-  if (selectedSlot.value.booking?.guestMobile) {
-    return selectedSlot.value.booking.guestMobile
-  }
-  return ''
-}
-
-function slotGuestName() {
-  if (!selectedSlot.value?.booking) return ''
-  return [selectedSlot.value.booking.guestName, selectedSlot.value.booking.guestFamily].filter(Boolean).join(' ').trim()
+function reserveDisplayStatus() {
+  if (!selectedSlot.value) return 'RESERVED'
+  return selectedSlot.value.displayStatus === 'FREE' ? 'RESERVED' : selectedSlot.value.displayStatus
 }
 
 async function doReserve() {
@@ -304,8 +331,9 @@ async function doReserve() {
         guestMobile: form.guestMobile,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
-        comments: reserveComments(),
-        displayStatus: 'RESERVED',
+        comments: form.comments,
+        equipmentIds: form.equipmentIds,
+        displayStatus: reserveDisplayStatus(),
       },
     })
     closeMenu()
@@ -351,6 +379,8 @@ async function doSeasonReserve() {
         comments: seasonForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: seasonForm.equipmentId || undefined,
+        paymentMethod: form.paymentMethod,
+        paymentStatus: form.paymentStatus,
       },
     })
     closeMenu()
@@ -379,6 +409,8 @@ async function doPackageReserve() {
         comments: packageForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: packageForm.equipmentId || undefined,
+        paymentMethod: form.paymentMethod,
+        paymentStatus: form.paymentStatus,
       },
     })
     closeMenu()
@@ -404,8 +436,9 @@ async function saveEquipmentSelection() {
         guestMobile: form.guestMobile,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
-        comments: reserveComments(),
-        displayStatus: selectedSlot.value.booking ? 'RESERVED' : 'RESERVED',
+        comments: form.comments,
+        equipmentIds: form.equipmentIds,
+        displayStatus: reserveDisplayStatus(),
       },
     })
     closeMenu()
@@ -415,6 +448,34 @@ async function saveEquipmentSelection() {
   } finally {
     saving.value = false
   }
+}
+
+function slotActionLabel() {
+  return selectedSlot.value?.booking ? t('common.save') : t('owner.reserve')
+}
+
+function canCancelSlot() {
+  return Boolean(selectedSlot.value?.booking)
+}
+
+function canReserveSlot() {
+  return selectedSlot.value?.displayStatus !== 'CLOSED'
+}
+
+function slotStatusSummary() {
+  if (!selectedSlot.value) return ''
+  if (selectedSlot.value.booking?.paymentStatus) {
+    return t(`booking.paymentStatus.${selectedSlot.value.booking.paymentStatus}`)
+  }
+  if (selectedSlot.value.booking?.guestMobile) {
+    return selectedSlot.value.booking.guestMobile
+  }
+  return ''
+}
+
+function slotGuestName() {
+  if (!selectedSlot.value?.booking) return ''
+  return [selectedSlot.value.booking.guestName, selectedSlot.value.booking.guestFamily].filter(Boolean).join(' ').trim()
 }
 
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
@@ -565,16 +626,16 @@ const legend = [
             <p class="mt-1 text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
-          <button v-if="canCancelSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm font-bold" @click="openCancelForm">{{ t('owner.cancel') }}</button>
-          <button v-if="canReserveSlot()" type="button" class="block w-full border-b bg-brand-primary px-4 py-3 text-start text-sm font-bold text-white" @click="openReserveForm">{{ slotActionLabel() }}</button>
-          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
-          <button v-if="canReserveSlot()" type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
-          <button type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openCommentsForm">{{ t('owner.comments') }}</button>
-          <button type="button" class="block w-full border-b px-4 py-3 text-start text-sm" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
+          <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
+          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ slotActionLabel() }}</button>
+          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
+          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
+          <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
+          <button type="button" :class="menuButtonClass('equipment')" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
           <button type="button" class="block w-full px-4 py-3 text-start text-sm" @click="closeMenu">{{ t('common.close') }}</button>
         </div>
 
-        <div v-if="showCancel" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="activePanel === 'cancel'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.cancel') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm" readonly>
@@ -586,11 +647,11 @@ const legend = [
           <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
           <div class="flex gap-2">
             <button type="button" class="btn-primary flex-1" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
-            <button type="button" class="btn-ghost flex-1" @click="showCancel = false">{{ t('common.back') }}</button>
+            <button type="button" class="btn-ghost flex-1" @click="activePanel = null">{{ t('common.back') }}</button>
           </div>
         </div>
 
-        <div v-if="showReserve" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="activePanel === 'reserve'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.reserve') }}</h3>
           <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
           <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="mb-2 w-full rounded border px-2 py-1.5 text-sm">
@@ -605,14 +666,25 @@ const legend = [
           </select>
           <label class="mb-2 block text-xs font-semibold text-brand-gray-600">{{ t('owner.equipments') }}</label>
           <select v-model="form.equipmentIds" multiple class="mb-2 min-h-[5rem] w-full rounded border px-2 py-1.5 text-sm">
-            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
           </select>
           <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="2" />
-          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
-          <button type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
+          <OwnerBookingPriceSummary
+            :court-price="courtPrice"
+            :equipment-price="reserveEquipmentPrice"
+          />
+          <p v-if="actionError" class="mb-2 mt-3 text-sm text-red-600">{{ actionError }}</p>
+          <button type="button" class="btn-primary mt-3 w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
         </div>
 
-        <div v-if="showSeason" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="activePanel === 'comments'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+          <h3 class="mb-3 font-bold">{{ t('owner.comments') }}</h3>
+          <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="6" />
+          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
+          <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+        </div>
+
+        <div v-if="activePanel === 'season'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.seasonPage.title') }}</h3>
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
             <div class="min-w-0 flex-1 space-y-2">
@@ -636,9 +708,15 @@ const legend = [
               </div>
               <select v-model="seasonForm.equipmentId" class="w-full rounded border px-2 py-1.5 text-sm">
                 <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
               </select>
               <textarea v-model="seasonForm.comments" :placeholder="t('owner.comments')" class="w-full rounded border px-2 py-1.5 text-sm" rows="3" />
+              <OwnerBookingPriceSummary
+                :court-price="courtPrice"
+                :equipment-price="seasonEquipmentPrice"
+                :session-count="seasonSessionCount"
+                show-estimated
+              />
               <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
               <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
             </div>
@@ -646,7 +724,7 @@ const legend = [
           </div>
         </div>
 
-        <div v-if="showPackage" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="activePanel === 'package'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.packagePage.title') }}</h3>
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
             <div class="min-w-0 flex-1 space-y-2">
@@ -674,9 +752,16 @@ const legend = [
               </div>
               <select v-model="packageForm.equipmentId" class="w-full rounded border px-2 py-1.5 text-sm">
                 <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+                <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
               </select>
               <textarea v-model="packageForm.comments" :placeholder="t('owner.comments')" class="w-full rounded border px-2 py-1.5 text-sm" rows="3" />
+              <OwnerBookingPriceSummary
+                :court-price="courtPrice"
+                :coach-price="packageForm.coachId && selectedCoach ? selectedCoach.sessionPrice : undefined"
+                :equipment-price="packageEquipmentPrice"
+                :session-count="packageSessionCount"
+                show-estimated
+              />
               <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
               <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
             </div>
@@ -684,15 +769,19 @@ const legend = [
           </div>
         </div>
 
-        <div v-if="showEquipment" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
+        <div v-if="activePanel === 'equipment'" class="min-w-0 flex-1 rounded-xl bg-white p-4 shadow-lg">
           <h3 class="mb-3 font-bold">{{ t('owner.equipments') }}</h3>
           <label class="mb-2 block text-xs font-semibold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
           <select v-model="form.equipmentIds" multiple class="mb-3 min-h-[8rem] w-full rounded border px-2 py-1.5 text-sm">
-            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+            <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
           </select>
           <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="mb-3 w-full rounded border px-2 py-1.5 text-sm" rows="2" />
-          <p v-if="actionError" class="mb-2 text-sm text-red-600">{{ actionError }}</p>
-          <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
+          <OwnerBookingPriceSummary
+            :court-price="courtPrice"
+            :equipment-price="reserveEquipmentPrice"
+          />
+          <p v-if="actionError" class="mb-2 mt-3 text-sm text-red-600">{{ actionError }}</p>
+          <button type="button" class="btn-primary mt-3 w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
         </div>
       </div>
     </AppModal>

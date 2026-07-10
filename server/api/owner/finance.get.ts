@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'finance')
   const query = getQuery(event)
   const from = query.from as string | undefined
   const to = query.to as string | undefined
@@ -10,7 +10,12 @@ export default defineEventHandler(async (event) => {
         ...(from || to ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       },
     },
-    include: { slot: { include: { court: true } }, payment: true, user: { select: { name: true, phone: true } } },
+    include: {
+      slot: { include: { court: true } },
+      payment: true,
+      user: { select: { name: true, phone: true } },
+      bookingEquipments: { include: { equipment: true } },
+    },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
@@ -81,10 +86,14 @@ export default defineEventHandler(async (event) => {
     confirmed: bookings.filter((booking) => booking.status === 'CONFIRMED').length + coachSessions.filter((session) => session.status === 'CONFIRMED').length,
     paid: paidBookings + paidSessions,
   }
+  const today = todayDateStr()
+  const bookingsToday = bookings.filter((b) => b.slot.date === today).length
+    + coachSessions.filter((s) => s.date === today).length
+
   return {
     stats: {
       revenue,
-      bookingsToday: totalReservationCount,
+      bookingsToday,
       pending: bookings.filter((b) => b.status === 'PENDING').length,
       paidRate: totalReservationCount ? Math.round(((paidBookings + paidSessions) / totalReservationCount) * 100) : 0,
       utilization: bookableSlots ? Math.round((usedSlots / bookableSlots) * 100) : 0,
@@ -107,6 +116,9 @@ export default defineEventHandler(async (event) => {
         bookingStatus: booking.status,
         kind: 'court',
         reservationLabel: `${booking.slot.date} · ${booking.slot.startTime}`,
+        equipmentSummary: booking.bookingEquipments
+          .map((item) => item.equipment.nameFa)
+          .join(', ') || null,
       })),
       ...coachSessions.map((session) => ({
         id: session.id,

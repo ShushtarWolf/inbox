@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  enforceRateLimit(event, 'auth:login')
   const { email, password, returnTo, locale } = await readBody<{
     email?: string
     password?: string

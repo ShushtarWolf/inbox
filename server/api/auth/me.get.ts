@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
         select: {
           role: true,
           isPrimary: true,
+          permissionsJson: true,
           club: { select: { id: true, slug: true, nameFa: true, nameEn: true } },
         },
       },

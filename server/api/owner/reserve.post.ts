@@ -1,5 +1,11 @@
+import {
+  calculateSessionTotal,
+  loadEquipmentForBooking,
+  syncBookingEquipments,
+} from '../../utils/bookingTotal'
+
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string
     guestName?: string
@@ -9,6 +15,7 @@ export default defineEventHandler(async (event) => {
     paymentStatus?: string
     comments?: string
     displayStatus?: string
+    equipmentIds?: string[]
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
 
@@ -20,11 +27,20 @@ export default defineEventHandler(async (event) => {
 
   const paymentMethod = (body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'
   const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
+  const equipmentIds = [...new Set(body.equipmentIds || [])]
+  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentIds)
+  const totalAmount = calculateSessionTotal({
+    courtPrice: slot.price,
+    equipmentPrices: equipmentItems.map((item) => (item.category === 'CLUB' ? 0 : item.price)),
+  })
+  const displayStatus = (body.displayStatus as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC' | undefined)
+    || slot.displayStatus
+    || 'RESERVED'
 
   if (slot.booking) {
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({
-        where: { id: slot.booking.id },
+        where: { id: slot.booking!.id },
         data: {
           guestName: body.guestName,
           guestFamily: body.guestFamily,
@@ -35,23 +51,24 @@ export default defineEventHandler(async (event) => {
           status: 'CONFIRMED',
         },
       })
+      await syncBookingEquipments(tx, slot.booking!.id, equipmentItems)
       await tx.payment.upsert({
-        where: { bookingId: slot.booking.id },
+        where: { bookingId: slot.booking!.id },
         update: {
-          amount: slot.price,
+          amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
         },
         create: {
-          bookingId: slot.booking.id,
-          amount: slot.price,
+          bookingId: slot.booking!.id,
+          amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
         },
       })
       await tx.slot.update({
         where: { id: slot.id },
-        data: { displayStatus: (body.displayStatus as 'RESERVED') || 'RESERVED' },
+        data: { displayStatus },
       })
     })
   } else {
@@ -69,10 +86,11 @@ export default defineEventHandler(async (event) => {
           paymentStatus,
         },
       })
+      await syncBookingEquipments(tx, createdBooking.id, equipmentItems)
       await tx.payment.create({
         data: {
           bookingId: createdBooking.id,
-          amount: slot.price,
+          amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
         },
@@ -86,9 +104,9 @@ export default defineEventHandler(async (event) => {
       })
       await tx.slot.update({
         where: { id: slot.id },
-        data: { displayStatus: (body.displayStatus as 'RESERVED') || 'RESERVED' },
+        data: { displayStatus },
       })
     })
   }
-  return { ok: true }
+  return { ok: true, amount: totalAmount }
 })

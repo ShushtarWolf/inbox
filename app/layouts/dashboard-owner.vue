@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { hasOwnerPermission, OWNER_NAV_PERMISSIONS, parsePermissions } from '#shared/ownerPermissions.ts'
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
@@ -8,16 +10,41 @@ const ownerClubVersion = ref(0)
 
 provide('ownerClubVersion', ownerClubVersion)
 
-const nav = computed(() => [
-  { to: localePath('/owner'), label: t('owner.calendar'), icon: '📅' },
-  { to: localePath('/owner/finance'), label: t('owner.finance'), icon: '💳' },
-  { to: localePath('/owner/equipments'), label: t('owner.equipments'), icon: '🎾' },
-  { to: localePath('/owner/packages'), label: t('owner.packages'), icon: '📦' },
-  { to: localePath('/owner/crm'), label: t('owner.crm'), icon: '📇' },
-  { to: localePath('/owner/coaches'), label: t('owner.coaches'), icon: '👥' },
-  { to: localePath('/owner/support'), label: t('owner.support'), icon: '🛟' },
-  { to: localePath('/owner/settings'), label: t('owner.settings'), icon: '⚙️' },
-])
+const allNavItems = [
+  { path: '/owner', labelKey: 'owner.calendar', icon: '📅' },
+  { path: '/owner/finance', labelKey: 'owner.finance', icon: '💳' },
+  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: '🎾' },
+  { path: '/owner/packages', labelKey: 'owner.packages', icon: '📦' },
+  { path: '/owner/crm', labelKey: 'owner.crm', icon: '📇' },
+  { path: '/owner/coaches', labelKey: 'owner.coaches', icon: '👥' },
+  { path: '/owner/support', labelKey: 'owner.support', icon: '🛟' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: '⚙️' },
+] as const
+
+const activeMembership = computed(() => {
+  const memberships = user.value?.memberships || []
+  return memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
+})
+
+const nav = computed(() => {
+  const membership = activeMembership.value
+  const role = membership?.role
+  const permissions = parsePermissions(membership?.permissionsJson)
+  const isOwner = role === 'OWNER'
+
+  return allNavItems
+    .filter((item) => {
+      const perm = OWNER_NAV_PERMISSIONS[item.path]
+      if (!perm) return true
+      if (isOwner) return true
+      return hasOwnerPermission(permissions, perm)
+    })
+    .map((item) => ({
+      to: localePath(item.path),
+      label: t(item.labelKey),
+      icon: item.icon,
+    }))
+})
 
 const memberships = computed(() => user.value?.memberships || [])
 

@@ -50,7 +50,10 @@ function isActive(to: string) {
             : (dark ? 'text-white/75' : 'text-brand-gray-600'),
         ]"
       >
-        <span v-if="item.icon" class="text-lg">{{ item.icon }}</span>
+        <span v-if="item.icon" class="relative text-lg">
+          {{ item.icon }}
+          <span v-if="item.badge" class="absolute -end-1 -top-1 rounded-full bg-brand-primary px-1 text-[9px] text-white">{{ item.badge }}</span>
+        </span>
         {{ item.label }}
       </NuxtLink>
     </div>

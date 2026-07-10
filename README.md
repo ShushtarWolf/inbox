@@ -8,7 +8,8 @@ Nuxt 4 app for padel & tennis court and coach booking. PWA, FA/EN, three role da
 nvm use
 npm install
 cp .env.example .env   # if needed
-npm run db:push
+docker compose up -d
+npm run db:migrate
 npm run db:seed
 npm run dev
 ```
@@ -22,15 +23,44 @@ npm run build
 node .output/server/index.mjs
 ```
 
-Set `NUXT_SESSION_PASSWORD` in production to override the built-in demo fallback secret.
+Set `NUXT_SESSION_PASSWORD` in production (minimum 32 characters). The app will refuse to start in production without a valid secret.
 
-## Demo accounts
+### Production deploy
+
+Railway runs [`scripts/start-production.mjs`](scripts/start-production.mjs) which applies the schema and starts the server. By default **no seed runs on deploy**.
+
+| Env var | Purpose |
+|---------|---------|
+| `SEED_ON_EMPTY=true` | Run seed only when the database has zero users (first deploy) |
+| `FORCE_SEED_RESET=true` | Wipe and reseed — **dev/local only**; never set in production |
+
+Production seed creates the sports catalog only (no demo accounts). Demo passwords (`demo1234`) must never be used in production.
+
+### Database migrations
+
+Schema changes use Prisma migrations (PostgreSQL). Local workflow:
+
+```bash
+docker compose up -d
+npm run db:migrate        # prisma migrate dev — creates/applies migrations
+npm run db:migrate:deploy # production: apply pending migrations only
+```
+
+Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
+
+**Railway env vars:** `DATABASE_URL` (Postgres connection string), `NUXT_SESSION_PASSWORD`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`.
+
+See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md).
+
+## Demo accounts (local development only)
 
 | Role | Email | Password |
 |------|-------|----------|
 | Athlete | `athlete@inbox.local` | `demo1234` |
 | Coach | `coach@inbox.local` | `demo1234` |
 | Club owner | `owner@inbox.local` | `demo1234` |
+
+Run `FORCE_SEED_RESET=true npm run db:seed` to wipe and recreate demo data locally.
 
 ## Routes
 

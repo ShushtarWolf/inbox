@@ -122,9 +122,12 @@ onMounted(() => {
       {{ feedback }}
     </div>
 
-    <div v-if="done" class="ios-card p-4 text-center">
+    <div v-if="done" class="ios-card space-y-2 p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCourt') }}</p>
+      <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+      <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
       <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
+      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
 
     <div v-else-if="!pending && !error" class="space-y-2">

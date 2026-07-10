@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club, membership } = await requireOwnerClub(event)
+  const { club, membership } = await requireOwnerClub(event, 'settings')
 
   const [courtsCount, coachesCount] = await Promise.all([
     prisma.court.count({ where: { clubId: club.id } }),

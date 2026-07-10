@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'calendar')
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing equipment id' })
 

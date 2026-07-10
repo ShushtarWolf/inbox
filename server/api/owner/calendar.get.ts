@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'calendar')
   const query = getQuery(event)
   const date = (query.date as string) || todayDateStr()
   await ensureSlotsForDate(club.id, date)
@@ -10,7 +10,15 @@ export default defineEventHandler(async (event) => {
   })
   const slots = await prisma.slot.findMany({
     where: { court: { clubId: club.id }, date },
-    include: { booking: true, court: true },
+    include: {
+      booking: {
+        include: {
+          payment: true,
+          bookingEquipments: { include: { equipment: true } },
+        },
+      },
+      court: true,
+    },
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })
 

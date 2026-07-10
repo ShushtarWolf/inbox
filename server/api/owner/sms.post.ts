@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'crm')
   const body = await readBody<{ message?: string; recipient?: string; segmentName?: string; campaignName?: string; schedule?: string }>(event)
   const contacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const recipientContacts =

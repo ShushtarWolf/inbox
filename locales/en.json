@@ -28,7 +28,8 @@
     "hoursShort": "{count}h",
     "distanceKm": "{count} km",
     "courtsCount": "{count} courts",
-    "datePickerHint": "Gregorian picker — shown as {date} in your locale"
+    "datePickerHint": "Gregorian picker — shown as {date} in your locale",
+    "next": "Next"
   },
   "nav": {
     "home": "Home",
@@ -115,6 +116,17 @@
       "price": "Lowest price",
       "nearby": "Nearest"
     },
+    "applyTitle": "List your club",
+    "applySubtitle": "Submit your club for review. Our team will contact you after approval.",
+    "applyClubName": "Club name",
+    "applyCity": "City",
+    "applyContactName": "Contact name",
+    "applyPhone": "Phone",
+    "applySubmit": "Submit application",
+    "applySuccess": "Application received. We will email you when your club is approved.",
+    "applyFailed": "Could not submit application.",
+    "applyLink": "List your club",
+    "backToList": "Back to clubs",
     "amenityOptions": {
       "Parking": "Parking",
       "Cafe": "Cafe",
@@ -191,8 +203,29 @@
     "paymentStatus": {
       "PAID": "Paid",
       "PAY_AT_CLUB": "Pay at club",
+      "PENDING_AT_CLUB": "Pay at club",
+      "PENDING_ONLINE": "Payment pending",
       "NOT_PAID": "Not paid"
-    }
+    },
+    "viewBookings": "View my bookings"
+  },
+  "reviews": {
+    "submitTitle": "Rate your visit",
+    "bodyPlaceholder": "Share your experience…",
+    "submit": "Submit review",
+    "thanks": "Thanks for your review!"
+  },
+  "legal": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "privacyTitle": "Privacy Policy",
+    "privacyBody": "inbox collects account and booking data to provide sports court and coach reservations. We do not sell personal data. Contact your club for payment records.",
+    "termsTitle": "Terms of Service",
+    "termsBody": "Bookings are subject to club cancellation policies. Payment at launch is at the club unless online payments are enabled. Users must provide accurate contact information."
+  },
+  "sports": {
+    "padel": "Padel",
+    "tennis": "Tennis"
   },
   "auth": {
     "login": "Login",
@@ -206,7 +239,20 @@
     "emailTaken": "This email is already registered.",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "athleteOnlyNote": "Self-registration is for athletes. Coaches and club owners are invited separately.",
-    "dashboardLoadFailed": "Login succeeded, but loading your dashboard failed. Please refresh and try again."
+    "dashboardLoadFailed": "Login succeeded, but loading your dashboard failed. Please refresh and try again.",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "sendResetLink": "Send reset link",
+    "resetEmailSent": "If an account exists for that email, a reset link has been sent.",
+    "resetRequestFailed": "Could not process request. Please try again.",
+    "resetFailed": "Invalid or expired reset link.",
+    "resetSuccess": "Password updated. Redirecting to login…",
+    "passwordMismatch": "Passwords do not match."
+  },
+  "errors": {
+    "rateLimited": "Too many requests. Please wait a moment and try again."
   },
   "owner": {
     "calendar": "Today's calendar",
@@ -224,7 +270,21 @@
     "quickNotes": "Quick notes",
     "quickNotesBody": "Tap any slot to reserve, cancel, or open the related booking flow. Free time stays neutral while booked courts use pastel accents.",
     "activeClub": "Active club",
+    "setupTitle": "Club setup",
+    "setupSubtitle": "Complete your club profile and courts.",
+    "setupProfile": "Club profile",
+    "setupCourts": "Courts",
+    "setupFinish": "Go to calendar",
+    "courtNameFa": "Court name (FA)",
+    "courtNameEn": "Court name (EN)",
+    "addCourt": "Add court",
+    "inviteStaff": "Invite staff",
+    "sendInvite": "Send invite",
+    "inviteSent": "Invite sent.",
+    "inviteCreated": "Account created. Temporary password: {password}",
+    "deactivate": "Deactivate",
     "reserve": "Reserve",
+    "free": "Free",
     "cancel": "Cancel",
     "hour": "Hour",
     "free": "Free",
@@ -306,6 +366,8 @@
       "addTitle": "Add equipment",
       "editTitle": "Edit equipment",
       "itemName": "Name",
+      "price": "Price",
+      "priceHint": "Zero means free",
       "confirmDelete": "Delete this item?",
       "selectForBooking": "Select equipment for this booking"
     },
@@ -423,8 +485,16 @@
       "title": "Season reserve"
     },
     "packagePage": {
-      "title": "Package reserve",
+      "title": "Reserve with coach",
       "coachPlaceholder": "- Coach -"
+    },
+    "priceBreakdown": {
+      "court": "Court",
+      "coach": "Coach",
+      "equipment": "Equipment",
+      "total": "Total",
+      "perSession": "Per session",
+      "estimatedTotal": "Estimated total"
     }
   },
   "pwa": {

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -31,7 +31,11 @@ enum BookingStatus {
 
 enum PaymentStatus {
   PAY_AT_CLUB
+  PENDING_AT_CLUB
+  PENDING_ONLINE
   PAID
+  FAILED
+  REFUNDED
 }
 
 enum PaymentMethod {
@@ -115,6 +119,21 @@ model User {
   memberships   StaffMembership[]
   bookingEvents ReservationEvent[] @relation("ReservationActor")
   waitlistEntries WaitlistEntry[]
+  passwordResetTokens PasswordResetToken[]
+  notifications Notification[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Sport {
@@ -126,6 +145,33 @@ model Sport {
 
   courts  Court[]
   coaches Coach[]
+}
+
+enum ClubStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ClubApplication {
+  id           String            @id @default(cuid())
+  clubName     String
+  city         String
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  sportSlug    String            @default("padel")
+  status       ApplicationStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+
+  clubId String? @unique
+  club   Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
 }
 
 model Club {
@@ -143,6 +189,7 @@ model Club {
   priceFrom Int     @default(500000)
   image     String?
   featured  Boolean @default(false)
+  status    ClubStatus @default(ACTIVE)
   openHour  Int     @default(8)
   closeHour Int     @default(22)
   descriptionFa String?
@@ -176,6 +223,7 @@ model Club {
   segments    ContactSegment[]
   reminders   ReminderRule[]
   memberships StaffMembership[]
+  application ClubApplication?
 }
 
 model Court {
@@ -235,17 +283,22 @@ model Booking {
   coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
   payment Payment?
   events  ReservationEvent[]
+  review  Review?
+  bookingEquipments BookingEquipment[]
 }
 
 model SeasonBooking {
-  id          String   @id @default(cuid())
-  guestName   String
-  guestFamily String
-  guestMobile String
-  daysJson    String
-  timesJson   String
-  comments    String?
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  guestName      String
+  guestFamily    String
+  guestMobile    String
+  daysJson       String
+  timesJson      String
+  comments       String?
+  equipmentId    String?
+  equipmentPrice Int      @default(0)
+  coachId        String?
+  createdAt      DateTime @default(now())
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -363,6 +416,23 @@ model Review {
   club         Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId      String?
   coach        Coach? @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  bookingId    String? @unique
+  booking      Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  metadataJson String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
 }
 
 model Equipment {
@@ -370,9 +440,24 @@ model Equipment {
   nameFa   String
   nameEn   String
   category EquipmentCategory
+  price    Int               @default(0)
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  bookingEquipments BookingEquipment[]
+}
+
+model BookingEquipment {
+  id             String @id @default(cuid())
+  priceAtBooking Int    @default(0)
+
+  bookingId   String
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, equipmentId])
 }
 
 model Contact {
@@ -462,11 +547,16 @@ model ReservationEvent {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  amount    Int
-  method    PaymentMethod
-  status    PaymentStatus
-  createdAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  amount         Int
+  method         PaymentMethod
+  status         PaymentStatus
+  provider       String        @default("pay_at_club")
+  providerRef    String?
+  idempotencyKey String?       @unique
+  metadataJson   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   bookingId      String?      @unique
   booking        Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)

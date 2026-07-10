@@ -1,7 +1,7 @@
 import type { EquipmentCategory } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'settings')
   const body = await readBody<{
     nameFa?: string
     nameEn?: string

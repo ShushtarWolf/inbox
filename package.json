@@ -10,12 +10,15 @@
     "start:production": "node scripts/start-production.mjs",
     "postinstall": "nuxt prepare && prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
-    "qa:matrix": "node scripts/qa-matrix.mjs"
+    "qa:matrix": "node scripts/qa-matrix.mjs",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"
@@ -38,6 +41,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
-    "@types/jalaali-js": "^1.2.0"
+    "@types/jalaali-js": "^1.2.0",
+    "vitest": "^3.2.4"
   }
 }

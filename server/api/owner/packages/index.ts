@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event)
+  const { club } = await requireOwnerClub(event, 'calendar')
   if (event.method === 'GET') {
     return prisma.packageDraft.findMany({ where: { clubId: club.id }, include: { coach: true } })
   }

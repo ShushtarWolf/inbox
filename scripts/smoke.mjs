@@ -110,6 +110,7 @@ async function main() {
   await check('/api/owner/finance', { session: 'owner' })
   await check('/api/owner/staff', { session: 'owner' })
   await check('/api/owner/calendar', { session: 'owner' })
+  await check('/api/owner/courts', { session: 'owner' })
   await check('/api/owner/sms', {
     method: 'POST',
     session: 'owner',
@@ -133,6 +134,30 @@ async function main() {
       guestMobile: '09120000001',
     }),
   })
+
+  await check('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'athlete@inbox.local' }),
+  })
+  await check('/api/notifications', { session: 'athlete' })
+
+  if (slots.length >= 1) {
+    const booking = await check('/api/bookings/court', {
+      method: 'POST',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slotId: slots[0].id }),
+    })
+    await check('/api/payments/checkout', {
+      method: 'POST',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ bookingId: booking.id }),
+    })
+    await check(`/api/bookings/${booking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
+  }
+
   console.log('smoke ok')
 }
 
