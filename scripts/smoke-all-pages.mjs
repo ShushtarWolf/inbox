@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Full page smoke — public routes + authenticated dashboards. */
-const base = process.env.BASE_URL || 'https://shushzerv-production.up.railway.app'
+const base = process.env.BASE_URL || 'http://localhost:3000'
 
 const publicPaths = [
   '/',

@@ -10,7 +10,7 @@
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for `POST /api/admin/provision` and club approval |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default), `test`, or `live` |
 | `EMAIL_ENABLED` | No | `true` to send password-reset emails (default: log only) |
-| `SENTRY_DSN` | No | Error tracking when set |
+| `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
 
 ## Database backup (PostgreSQL)
 

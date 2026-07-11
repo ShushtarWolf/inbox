@@ -53,7 +53,7 @@
 ## Remaining known limitations
 
 - **Jalali date picker**: FA mode uses native Gregorian `<input type="date">` with `dir="ltr"` and a formatted Jalali hint via `AppDateInput` / `formatDate` (fa-IR calendar). A dedicated Jalali picker library is deferred.
-- **Season/package reserve**: Forms submit to `SeasonBooking` log only; they do not auto-generate recurring calendar slots.
+- **Season/package reserve**: Owner calendar modal submits to `/api/owner/season` and `/api/owner/package-reserve` with `slotId`, which calls `generateRecurringCourtSlots` to create up to 8 weeks of calendar slots and bookings. Verified in `scripts/smoke.mjs` and CI.
 - **CRM SMS**: Log-only in MVP; no real SMS gateway.
 - **Finance `bookingsToday` stat**: API returns total reservation count, not strictly "today" — label kept as generic "Bookings".
 - **Server `slotStatusLabel()`** in `server/utils/slots.ts` duplicates `fa.json` keys but is only used server-side for non-UI paths; UI uses i18n exclusively.

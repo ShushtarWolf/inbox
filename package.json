@@ -18,6 +18,7 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "smoke:pages": "node scripts/smoke-all-pages.mjs",
+    "smoke:ci": "node scripts/ci-smoke.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "test": "vitest run",
     "check:i18n": "node scripts/check-i18n.mjs"
@@ -34,6 +35,8 @@
     "@nuxtjs/i18n": "^10.4.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@prisma/client": "^6.19.3",
+    "@sentry/node": "^10.65.0",
+    "@sentry/vue": "^10.65.0",
     "@vite-pwa/nuxt": "^1.1.1",
     "jalaali-js": "^2.0.0",
     "nuxt": "^4.4.7",

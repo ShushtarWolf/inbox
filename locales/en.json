@@ -219,9 +219,176 @@
     "privacy": "Privacy",
     "terms": "Terms",
     "privacyTitle": "Privacy Policy",
-    "privacyBody": "inbox collects account and booking data to provide sports court and coach reservations. We do not sell personal data. Contact your club for payment records.",
     "termsTitle": "Terms of Service",
-    "termsBody": "Bookings are subject to club cancellation policies. Payment at launch is at the club unless online payments are enabled. Users must provide accurate contact information."
+    "lastUpdated": "Last updated: July 2026",
+    "disclaimer": "This document is provided for transparency. Clubs operating on inbox may have additional policies. For legal advice specific to your jurisdiction, consult qualified counsel.",
+    "privacyIntro": "inbox (“we”, “us”) operates a sports court and coach booking platform. This policy explains what personal data we collect, why we use it, and the choices you have.",
+    "termsIntro": "By creating an account or making a booking through inbox, you agree to these Terms of Service. If you do not agree, please do not use the platform.",
+    "privacySections": [
+      {
+        "title": "1. Who we are",
+        "paragraphs": [
+          "inbox provides software that connects athletes with sports clubs and coaches for court and session reservations.",
+          "Each club listed on inbox is an independent operator responsible for its facilities, staff, pricing, and on-site policies."
+        ]
+      },
+      {
+        "title": "2. Information we collect",
+        "paragraphs": [
+          "Account data: name, email address, phone number, preferred language, and password (stored as a one-way hash).",
+          "Booking data: club, court or coach, date and time, guest details you provide, equipment selections, comments, and booking status.",
+          "Payment records: when pay-at-club is enabled, we store payment method and status metadata supplied by the club or athlete; we do not store full card numbers.",
+          "Communications: password-reset requests, in-app notifications, and optional SMS or email logs initiated by clubs.",
+          "Technical data: server logs, IP address, browser type, and error reports when error tracking is enabled."
+        ]
+      },
+      {
+        "title": "3. How we use your data",
+        "paragraphs": [
+          "To create and manage your account and authenticate sessions.",
+          "To process, display, and modify reservations you or your club make.",
+          "To send transactional messages such as booking confirmations, password resets, and waitlist alerts when delivery is enabled.",
+          "To help clubs manage contacts, finance summaries, and operational dashboards.",
+          "To maintain platform security, prevent abuse, and improve reliability."
+        ]
+      },
+      {
+        "title": "4. Legal bases and sharing",
+        "paragraphs": [
+          "We process data to perform our contract with you (providing the booking service) and, where applicable, based on legitimate interests in operating a secure platform.",
+          "We share booking and contact details with the club and coach involved in your reservation so they can deliver the service.",
+          "We do not sell personal data. We may use infrastructure providers (hosting, database, error monitoring) who process data on our instructions.",
+          "We may disclose information when required by law or to protect the rights and safety of users and clubs."
+        ]
+      },
+      {
+        "title": "5. Retention",
+        "paragraphs": [
+          "Account and booking records are kept while your account is active and for a reasonable period afterward for legal, accounting, and dispute-resolution purposes.",
+          "Clubs may retain their own copies of booking and payment records according to their internal policies.",
+          "Server logs and error reports are retained for a limited operational period unless a longer period is required for investigation."
+        ]
+      },
+      {
+        "title": "6. Your rights",
+        "paragraphs": [
+          "Depending on applicable law, you may request access, correction, deletion, or restriction of your personal data.",
+          "You can update profile information from your athlete dashboard. For other requests, contact us using the details below.",
+          "You may withdraw consent for optional communications where consent is the legal basis."
+        ]
+      },
+      {
+        "title": "7. Security",
+        "paragraphs": [
+          "We use industry-standard measures including encrypted sessions, hashed passwords, role-based access controls, and rate limiting on authentication endpoints.",
+          "No online service is completely secure. Please use a strong, unique password and notify us if you suspect unauthorized access."
+        ]
+      },
+      {
+        "title": "8. Children",
+        "paragraphs": [
+          "inbox is not directed at children under 13. Accounts for minors should be created and supervised by a parent or guardian where required by local law."
+        ]
+      },
+      {
+        "title": "9. International transfers",
+        "paragraphs": [
+          "Your data may be processed on servers located outside your country. We take steps to ensure appropriate safeguards where transfers occur."
+        ]
+      },
+      {
+        "title": "10. Changes and contact",
+        "paragraphs": [
+          "We may update this policy from time to time. Material changes will be reflected on this page with an updated date.",
+          "Questions or privacy requests: privacy{'@'}inbox.app (replace with your operational contact before public launch)."
+        ]
+      }
+    ],
+    "termsSections": [
+      {
+        "title": "1. Acceptance",
+        "paragraphs": [
+          "These terms govern your use of the inbox website and applications. By registering, logging in, or booking, you accept these terms and our Privacy Policy."
+        ]
+      },
+      {
+        "title": "2. The service",
+        "paragraphs": [
+          "inbox is a booking and club-management platform. We facilitate discovery, reservation, and communication between athletes, coaches, and clubs.",
+          "We do not own or operate sports facilities unless explicitly stated. Clubs are solely responsible for court availability, coaching quality, safety, and on-site rules."
+        ]
+      },
+      {
+        "title": "3. Accounts",
+        "paragraphs": [
+          "Athletes may self-register. Coach and club-owner accounts are created by invitation or admin provisioning.",
+          "You must provide accurate information and keep your credentials confidential. You are responsible for activity under your account.",
+          "We may suspend or terminate accounts that violate these terms or applicable law."
+        ]
+      },
+      {
+        "title": "4. Bookings",
+        "paragraphs": [
+          "A booking is confirmed when the platform displays a confirmed status. Availability shown online is subject to change by the club.",
+          "Rescheduling and cancellation options depend on booking type, timing, and club policy. Some owner-initiated season or package reservations create recurring slots on the club calendar.",
+          "Waitlist entries do not guarantee a slot until a booking is confirmed."
+        ]
+      },
+      {
+        "title": "5. Payments",
+        "paragraphs": [
+          "Unless online payment is explicitly enabled for your club, payment is made at the club (“pay at club”). inbox may record payment method and status for operational tracking.",
+          "Prices, taxes, refunds, and receipts are determined by the club unless otherwise stated at checkout.",
+          "When online payments are enabled in the future, additional payment-provider terms may apply."
+        ]
+      },
+      {
+        "title": "6. Club policies",
+        "paragraphs": [
+          "Each club may publish cancellation windows, no-show rules, equipment fees, and conduct requirements. Club rules apply in addition to these terms.",
+          "Disputes about service quality, refunds, or facility conditions should first be directed to the relevant club."
+        ]
+      },
+      {
+        "title": "7. Acceptable use",
+        "paragraphs": [
+          "You may not misuse the platform, attempt unauthorized access, scrape data at scale, interfere with other users, or provide false booking information.",
+          "Club staff must use owner tools only for legitimate club operations and comply with applicable messaging and privacy laws when contacting athletes."
+        ]
+      },
+      {
+        "title": "8. Intellectual property",
+        "paragraphs": [
+          "inbox branding, software, and content we provide are protected by applicable intellectual-property laws. You receive a limited license to use the service for personal or authorized club purposes."
+        ]
+      },
+      {
+        "title": "9. Disclaimers and liability",
+        "paragraphs": [
+          "The service is provided “as is” to the extent permitted by law. We do not guarantee uninterrupted access or that every listing is error-free.",
+          "To the maximum extent permitted by law, inbox is not liable for indirect or consequential damages arising from club services, injuries at facilities, or third-party actions.",
+          "Nothing in these terms limits liability where such limitation is prohibited by law."
+        ]
+      },
+      {
+        "title": "10. Changes",
+        "paragraphs": [
+          "We may modify these terms. Continued use after changes are posted constitutes acceptance of the updated terms."
+        ]
+      },
+      {
+        "title": "11. Governing law",
+        "paragraphs": [
+          "These terms are governed by the laws applicable to the operator of inbox in its principal place of business, without regard to conflict-of-law rules. Courts with competent jurisdiction may hear disputes unless mandatory consumer protections require otherwise."
+        ]
+      },
+      {
+        "title": "12. Contact",
+        "paragraphs": [
+          "Support and legal inquiries: support{'@'}inbox.app (replace with your operational contact before public launch)."
+        ]
+      }
+    ]
   },
   "sports": {
     "padel": "Padel",
@@ -252,7 +419,12 @@
     "passwordMismatch": "Passwords do not match."
   },
   "errors": {
-    "rateLimited": "Too many requests. Please wait a moment and try again."
+    "rateLimited": "Too many requests. Please wait a moment and try again.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you requested does not exist or has moved.",
+    "genericTitle": "Something went wrong",
+    "genericBody": "An unexpected error occurred. Please try again.",
+    "goHome": "Back to home"
   },
   "owner": {
     "calendar": "Today's calendar",

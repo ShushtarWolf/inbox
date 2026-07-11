@@ -9,6 +9,29 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inbox
+          POSTGRES_PASSWORD: inbox
+          POSTGRES_DB: inbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inbox -d inbox"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox
+      NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
+      ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
+      PAYMENTS_MODE: pay_at_club
+      BASE_URL: http://127.0.0.1:3000
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,6 +43,9 @@ jobs:
       - run: npm ci
       - run: npx nuxt prepare
       - run: npx prisma generate
+      - run: npm run db:migrate:deploy
+      - run: FORCE_SEED_RESET=true npm run db:seed
       - run: npm run check:i18n
       - run: npm run build
       - run: npm test
+      - run: node scripts/ci-smoke.mjs

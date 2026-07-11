@@ -3,6 +3,7 @@
 const base = process.env.BASE_URL || 'http://localhost:3000'
 const cookieJar = new Map()
 const oneDayMs = 24 * 60 * 60 * 1000
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function dateOffset(days) {
   return new Date(Date.now() + days * oneDayMs).toISOString().slice(0, 10)
@@ -111,6 +112,53 @@ async function main() {
   await check('/api/owner/staff', { session: 'owner' })
   await check('/api/owner/calendar', { session: 'owner' })
   await check('/api/owner/courts', { session: 'owner' })
+
+  const seasonDate = dateOffset(21)
+  const calendar = await check(`/api/owner/calendar?date=${seasonDate}`, { session: 'owner' })
+  const freeSlots = (calendar.slots || []).filter((slot) => slot.displayStatus === 'FREE')
+  if (freeSlots.length >= 1) {
+    const seasonSlot = freeSlots[0]
+    const weekday = DAY_NAMES[new Date(`${seasonSlot.date}T12:00:00Z`).getUTCDay()]
+    const seasonResult = await check('/api/owner/season', {
+      method: 'POST',
+      session: 'owner',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        guestName: 'Smoke',
+        guestFamily: 'Season',
+        guestMobile: '09120000099',
+        slotId: seasonSlot.id,
+        days: [weekday],
+        times: [seasonSlot.startTime.slice(0, 5)],
+      }),
+    })
+    if (!seasonResult.slotsCreated || seasonResult.slotsCreated < 1) {
+      throw new Error('season reserve did not create recurring slots')
+    }
+  }
+
+  const packageDate = dateOffset(28)
+  const packageCalendar = await check(`/api/owner/calendar?date=${packageDate}`, { session: 'owner' })
+  const packageSlot = (packageCalendar.slots || []).find((slot) => slot.displayStatus === 'FREE')
+  if (packageSlot) {
+    const weekday = DAY_NAMES[new Date(`${packageSlot.date}T12:00:00Z`).getUTCDay()]
+    const packageResult = await check('/api/owner/package-reserve', {
+      method: 'POST',
+      session: 'owner',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        guestName: 'Smoke',
+        guestFamily: 'Package',
+        guestMobile: '09120000098',
+        slotId: packageSlot.id,
+        days: [weekday],
+        times: [packageSlot.startTime.slice(0, 5)],
+      }),
+    })
+    if (!packageResult.slotsCreated || packageResult.slotsCreated < 1) {
+      throw new Error('package reserve did not create recurring slots')
+    }
+  }
   await check('/api/owner/sms', {
     method: 'POST',
     session: 'owner',
