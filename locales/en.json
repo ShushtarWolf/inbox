@@ -2,6 +2,10 @@
   "brand": {
     "name": "inbox"
   },
+  "calendar": {
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
   "common": {
     "add": "Add",
     "back": "Back",
@@ -152,8 +156,11 @@
       "Serve": "Serve",
       "Women coaching": "Women coaching",
       "Match prep": "Match prep",
-      "Backhand": "Backhand"
-    }
+      "Backhand": "Backhand",
+      "Footwork": "Footwork",
+      "Beginner tennis": "Beginner tennis"
+    },
+    "noReviewsYet": "No reviews yet"
   },
   "dashboard": {
     "athlete": "Athlete dashboard",
@@ -245,7 +252,14 @@
       "PENDING_ONLINE": "Payment pending",
       "NOT_PAID": "Not paid"
     },
-    "viewBookings": "View my bookings"
+    "viewBookings": "View my bookings",
+    "errors": {
+      "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
+      "coachUnavailable": "Coach is not available at this time.",
+      "sessionTaken": "This session time is already booked.",
+      "coachNotBookable": "This coach is not accepting bookings right now.",
+      "coachNotFound": "Coach not found."
+    }
   },
   "reviews": {
     "submitTitle": "Rate your visit",

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
+
 const route = useRoute()
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -9,7 +11,7 @@ const id = route.params.id as string
 const { data: coach, pending, error } = await useFetch(`/api/coaches/${id}`)
 
 function specialtyLabel(value: string) {
-  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+  return translateCoachSpecialty(t, value)
 }
 </script>
 
@@ -27,11 +29,12 @@ function specialtyLabel(value: string) {
       <div class="flex items-center justify-center gap-2">
         <span v-if="coach.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>
       </div>
-      <p class="mt-1 text-xs text-brand-gray-600">⭐ {{ coach.reviewSummary?.average || coach.rating }} · {{ coach.reviewSummary?.count || 0 }} {{ t('clubs.reviews') }}</p>
+      <p v-if="coach.reviewSummary?.count" class="mt-1 text-xs text-brand-gray-600">⭐ {{ coach.reviewSummary?.average || coach.rating }} · {{ coach.reviewSummary?.count }} {{ t('clubs.reviews') }}</p>
+      <p v-else class="mt-1 text-xs text-brand-gray-600">{{ t('coaches.noReviewsYet') }}</p>
     </div>
     <p class="text-center text-sm text-brand-gray-600">{{ localizedField(coach, 'bioFa', 'bioEn') }}</p>
     <p class="text-center text-lg font-bold text-brand-primary">{{ formatCurrency(coach.sessionPrice) }}</p>
-    <NuxtLink :to="localePath(`/book/coach/${id}`)" class="btn-primary block text-center">{{ t('home.coachCta') }}</NuxtLink>
+    <NuxtLink :to="localePath(`/book/coach/${coach.slug || id}`)" class="btn-primary block text-center">{{ t('home.coachCta') }}</NuxtLink>
 
     <section v-if="coach.specialties?.length" class="ios-card p-4">
       <h2 class="mb-2 font-bold">{{ t('coaches.specialties') }}</h2>

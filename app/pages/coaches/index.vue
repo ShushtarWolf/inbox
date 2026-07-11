@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -36,7 +38,7 @@ function cityLabel(key: 'tehran' | 'isfahan' | 'shiraz') {
 }
 
 function specialtyLabel(value: string) {
-  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+  return translateCoachSpecialty(t, value)
 }
 
 function formatSpecialties(values?: string[]) {
@@ -87,7 +89,7 @@ async function syncRoute() {
       <NuxtLink
         v-for="c in coaches"
         :key="c.id"
-        :to="localePath(`/coaches/${c.id}`)"
+        :to="localePath(`/coaches/${c.slug || c.id}`)"
         class="ios-card flex items-center gap-3 p-3"
       >
         <img :src="c.photo || '/placeholders/coach.svg'" alt="" class="h-14 w-14 border border-brand-gray-100 object-cover shadow-venus-sm" />
@@ -96,7 +98,11 @@ async function syncRoute() {
             <p class="font-bold">{{ localizedField(c, 'nameFa', 'nameEn') }}</p>
             <span v-if="c.verified" class="neo-badge">{{ t('clubs.verified') }}</span>
           </div>
-          <p class="text-xs text-brand-gray-600">{{ c.city }} · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</p>
+          <p class="text-xs text-brand-gray-600">
+            {{ c.city }}
+            <template v-if="c.reviewCount > 0"> · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</template>
+            <template v-else> · {{ t('coaches.noReviewsYet') }}</template>
+          </p>
           <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ formatSpecialties(c.specialties) }}</p>
           <p class="text-sm font-bold text-brand-primary">{{ formatCurrency(c.sessionPrice) }}</p>
         </div>

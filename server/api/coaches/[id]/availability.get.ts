@@ -1,12 +1,18 @@
 import { addOneHour } from '../../../utils/reservations'
+import { findCoachByIdOrSlug } from '../../../utils/coaches'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
+  if (!id) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+
   const query = getQuery(event)
   const date = (query.date as string) || todayDateStr()
 
+  const coachRecord = await findCoachByIdOrSlug(id)
+  if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+
   const coach = await prisma.coach.findUnique({
-    where: { id },
+    where: { id: coachRecord.id },
     include: { availability: true },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })

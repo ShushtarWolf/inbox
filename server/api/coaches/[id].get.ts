@@ -1,9 +1,16 @@
+import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { parseJsonArray, reviewSummary } from '../../utils/catalog'
+import { slugify } from '../../utils/slug'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
+  if (!id) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+
+  const coachRecord = await findCoachByIdOrSlug(id)
+  if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+
   const coach = await prisma.coach.findUnique({
-    where: { id },
+    where: { id: coachRecord.id },
     include: {
       sport: true,
       availability: true,
@@ -20,6 +27,7 @@ export default defineEventHandler(async (event) => {
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
   return {
     ...coach,
+    slug: slugify(coach.nameEn),
     specialties: parseJsonArray(coach.specialtiesJson),
     credentials: parseJsonArray(coach.credentialsJson),
     languages: parseJsonArray(coach.languagesJson),

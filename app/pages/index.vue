@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
+
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
@@ -59,7 +61,7 @@ const heroSearchDate = computed(() => {
 })
 
 function specialtyLabel(value: string) {
-  return t(`coaches.specialtyOptions.${value}` as 'coaches.specialtyOptions.Padel basics')
+  return translateCoachSpecialty(t, value)
 }
 
 function formatSpecialties(values?: string[]) {

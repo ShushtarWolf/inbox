@@ -188,8 +188,8 @@ function resetPanels() {
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
   if (slot.displayStatus === 'CLOSED') return 'comments'
-  if (slot.booking) return 'reserve'
-  return 'reserve'
+  if (slot.displayStatus === 'FREE') return 'reserve'
+  return null
 }
 
 function menuButtonClass(panel: ActivePanel) {
@@ -247,13 +247,14 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   activePanel.value = defaultPanelForSlot(fullSlot)
   cancelReason.value = ''
   actionError.value = ''
-  form.guestName = fullSlot.booking?.guestName || ''
-  form.guestFamily = fullSlot.booking?.guestFamily || ''
-  form.guestMobile = fullSlot.booking?.guestMobile || ''
-  form.paymentMethod = fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH'
-  form.paymentStatus = fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB'
-  form.comments = fullSlot.booking?.comments || ''
-  const equipmentIds = fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || []
+  const isFree = fullSlot.displayStatus === 'FREE'
+  form.guestName = isFree ? '' : (fullSlot.booking?.guestName || '')
+  form.guestFamily = isFree ? '' : (fullSlot.booking?.guestFamily || '')
+  form.guestMobile = isFree ? '' : (fullSlot.booking?.guestMobile || '')
+  form.paymentMethod = isFree ? 'CASH' : (fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH')
+  form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB')
+  form.comments = isFree ? '' : (fullSlot.booking?.comments || '')
+  const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
   seasonForm.days = ['Sun']
   seasonForm.times = [fullSlot.startTime.slice(0, 5)]

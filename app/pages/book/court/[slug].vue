@@ -115,7 +115,7 @@ onMounted(() => {
       </p>
     </div>
 
-    <div v-if="feedback" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
+    <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
       {{ feedback }}
     </div>
 
@@ -128,7 +128,7 @@ onMounted(() => {
     </div>
 
     <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">
-    <div class="space-y-2">
+    <div class="venus-booking-slots">
       <div v-if="!slots?.length" class="ios-card space-y-2 p-4 text-center">
         <p class="font-bold">{{ t('booking.noSlots') }}</p>
         <button type="button" class="btn-ghost w-full" @click="joinWaitlist">

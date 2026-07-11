@@ -2,6 +2,10 @@
   "brand": {
     "name": "inbox"
   },
+  "calendar": {
+    "prevMonth": "ماه قبل",
+    "nextMonth": "ماه بعد"
+  },
   "common": {
     "add": "افزودن",
     "back": "بازگشت",
@@ -151,8 +155,11 @@
       "Serve": "سرویس",
       "Women coaching": "مربیگری بانوان",
       "Match prep": "آمادگی مسابقه",
-      "Backhand": "بک‌هند"
-    }
+      "Backhand": "بک‌هند",
+      "Footwork": "فوت‌ورک",
+      "Beginner tennis": "تنیس مقدماتی"
+    },
+    "noReviewsYet": "هنوز نظری ثبت نشده"
   },
   "dashboard": {
     "athlete": "پنل ورزشکار",
@@ -244,7 +251,14 @@
       "PENDING_ONLINE": "در انتظار پرداخت",
       "NOT_PAID": "پرداخت‌نشده"
     },
-    "viewBookings": "مشاهده رزروها"
+    "viewBookings": "مشاهده رزروها",
+    "errors": {
+      "startTimeTooSoon": "زمان انتخاب‌شده برای رزرو خیلی نزدیک است. لطفاً سانس بعدی را انتخاب کنید.",
+      "coachUnavailable": "مربی در این زمان در دسترس نیست.",
+      "sessionTaken": "این سانس قبلاً رزرو شده است.",
+      "coachNotBookable": "این مربی در حال حاضر رزرو نمی‌پذیرد.",
+      "coachNotFound": "مربی پیدا نشد."
+    }
   },
   "reviews": {
     "submitTitle": "امتیاز به باشگاه",

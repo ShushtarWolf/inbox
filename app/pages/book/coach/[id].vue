@@ -124,7 +124,7 @@ onMounted(() => {
       <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
       <p class="mt-1 text-brand-gray-600">{{ formatHours(coach.club?.rescheduleWindowHours || 24) }} {{ t('booking.rescheduleWindow') }}</p>
     </div>
-    <div v-if="feedback" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
+    <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
       {{ feedback }}
     </div>
 

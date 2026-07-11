@@ -1,6 +1,8 @@
-import { coachRankingScore, getQueryNumber, parseJsonArray, reviewSummary } from '../../utils/catalog'
+import { coachRankingScore, getQueryNumber, parseJsonArray } from '../../utils/catalog'
+import { slugify } from '../../utils/slug'
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
   const query = getQuery(event)
   const sport = query.sport as string | undefined
   const city = query.city as string | undefined
@@ -17,23 +19,29 @@ export default defineEventHandler(async (event) => {
       ...(typeof minPrice === 'number' ? { sessionPrice: { gte: minPrice } } : {}),
       ...(typeof maxPrice === 'number' ? { sessionPrice: { lte: maxPrice } } : {}),
     },
-    include: { sport: true, reviews: true, club: true },
+    include: {
+      sport: true,
+      club: true,
+      _count: { select: { reviews: true } },
+    },
     orderBy: [{ featured: 'desc' }, { rating: 'desc' }, { sessionPrice: 'asc' }],
   })
   const hydrated = coaches.map((coach) => {
     const specialties = parseJsonArray(coach.specialtiesJson)
-    const reviews = reviewSummary(coach.reviews)
+    const reviewCount = coach._count.reviews
+    const { _count, ...coachData } = coach
     return {
-      ...coach,
+      ...coachData,
+      slug: slugify(coach.nameEn),
       specialties,
       verified: Boolean(coach.verifiedAt),
-      reviewCount: reviews.count,
-      verifiedReviewCount: reviews.verifiedCount,
-      rating: reviews.count ? reviews.average : coach.rating,
+      reviewCount,
+      verifiedReviewCount: 0,
+      rating: coach.rating,
       rankingScore: coachRankingScore({
         featured: coach.featured,
-        rating: reviews.count ? reviews.average : coach.rating,
-        reviewCount: reviews.count,
+        rating: coach.rating,
+        reviewCount,
         experienceYears: coach.experienceYears,
         isBookable: coach.isBookable,
       }),
@@ -47,4 +55,7 @@ export default defineEventHandler(async (event) => {
   })
 
   return hydrated
+}, {
+  maxAge: 60,
+  getKey: (event) => `coaches:${event.path}:${JSON.stringify(getQuery(event))}`,
 })

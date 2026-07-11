@@ -1,4 +1,5 @@
 import { addOneHour, canManageReservation } from '../../utils/reservations'
+import { findCoachByIdOrSlug } from '../../utils/coaches'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -7,8 +8,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
+  const coachRecord = await findCoachByIdOrSlug(body.coachId)
+  if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+
   const coach = await prisma.coach.findUnique({
-    where: { id: body.coachId },
+    where: { id: coachRecord.id },
     include: { availability: true, club: true },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
@@ -22,7 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Coach is not available at this time' })
   }
   if (!canManageReservation(body.date, body.startTime, coach.club?.rescheduleWindowHours ?? 24)) {
-    throw createError({ statusCode: 409, statusMessage: 'Start time is too soon' })
+    throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
   }
   const existing = await prisma.coachSession.findFirst({
     where: { coachId: coach.id, date: body.date, startTime: body.startTime, status: { not: 'CANCELLED' } },

@@ -1,14 +1,14 @@
 import { toSessionUser, postLoginRedirectPath } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
+import { readFormData } from 'h3'
 
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:login-web')
-  const { email, password, locale, returnTo } = await readBody<{
-    email?: string
-    password?: string
-    locale?: string
-    returnTo?: string
-  }>(event)
+  await enforceRateLimit(event, 'auth:login-web')
+  const form = await readFormData(event)
+  const email = form.get('email')?.toString()
+  const password = form.get('password')?.toString()
+  const locale = form.get('locale')?.toString()
+  const returnTo = form.get('returnTo')?.toString()
 
   const normalized = email?.trim().toLowerCase()
   const base = locale === 'en' ? '/en' : ''

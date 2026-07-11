@@ -46,16 +46,16 @@
 
   /* ── Buttons ── */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-medium text-white shadow-venus-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-venus-sm transition-all duration-200;
   }
   .btn-primary:hover:not(:disabled) {
-    @apply bg-brand-primary-dark;
+    @apply bg-brand-primary-dark shadow-md;
   }
   .btn-primary:active:not(:disabled) {
     @apply scale-[0.98];
   }
   .btn-primary:disabled {
-    @apply cursor-not-allowed opacity-60;
+    @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 opacity-100 shadow-none;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center rounded-lg border border-brand-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-brand-gray-700 shadow-venus-sm transition-all duration-200;
@@ -188,6 +188,12 @@
   /* Sticky bottom action bar — keeps primary CTAs visible above mobile tab bar */
   .venus-sticky-action {
     @apply sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-30 -mx-4 border-t border-brand-gray-100 bg-brand-cream px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none;
+  }
+
+  /* Booking slot lists — keep last rows tappable above the mobile tab bar */
+  .venus-booking-slots {
+    @apply space-y-2 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+5rem)] lg:pb-0;
+    scroll-padding-bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 5rem);
   }
 
   /* ── Layout rhythm ── */

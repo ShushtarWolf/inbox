@@ -6,8 +6,10 @@ const model = defineModel<string>({ required: true })
 const props = withDefaults(defineProps<{
   label?: string
   showFormattedHint?: boolean
+  useCalendar?: boolean
 }>(), {
   showFormattedHint: true,
+  useCalendar: true,
 })
 
 const { t, locale } = useI18n()
@@ -59,7 +61,9 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
       <slot name="label">{{ label || t('common.date') }}</slot>
     </span>
 
-    <div v-if="isFa" class="flex flex-wrap items-center gap-1">
+    <AppJalaliCalendar v-if="isFa && useCalendar" v-model="model" />
+
+    <div v-else-if="isFa" class="flex flex-wrap items-center gap-1">
       <select
         v-model.number="jalaliDay"
         class="neo-select px-2 py-2"
