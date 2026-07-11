@@ -1,5 +1,7 @@
 import { fileURLToPath } from 'node:url'
 
+const PWA_RESET_VERSION = '4'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-02',
   devtools: { enabled: false },
@@ -20,6 +22,14 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'inbox',
+      script: [
+        {
+          key: 'inbox-pwa-reset',
+          type: 'text/javascript',
+          tagPosition: 'head',
+          children: `(function(){try{var v='${PWA_RESET_VERSION}';var k='inbox-sw-reset';if(localStorage.getItem(k)===v)return;localStorage.setItem(k,v);var reload=function(){location.reload()};var purge=function(){if(!('caches' in window))return Promise.resolve();return caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})};if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister()}))}).then(purge).then(reload).catch(reload)}else{purge().then(reload).catch(reload)}}catch(e){}})();`,
+        },
+      ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.svg' },
@@ -55,8 +65,24 @@ export default defineNuxtConfig({
     },
   },
 
+  routeRules: {
+    '/**': {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    },
+    '/_nuxt/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/api/**': {
+      cors: true,
+    },
+  },
+
   pwa: {
-    disable: process.env.NUXT_PUBLIC_ENABLE_PWA === 'false',
+    disable: process.env.NUXT_PUBLIC_ENABLE_PWA !== 'true',
     minify: false,
     registerType: 'autoUpdate',
     manifest: {
@@ -86,7 +112,7 @@ export default defineNuxtConfig({
       mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
       navigateFallback: '/offline',
       navigateFallbackDenylist: [/^\/api\//],
-      globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+      globPatterns: ['**/*.{js,css,svg,png,ico,woff2}'],
       globIgnores: ['**/videos/**', '**/planning/**'],
       maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       cleanupOutdatedCaches: true,
@@ -94,15 +120,15 @@ export default defineNuxtConfig({
       clientsClaim: true,
     },
     client: {
-      installPrompt: true,
-      register: true,
+      installPrompt: false,
+      register: false,
     },
     devOptions: { enabled: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' },
   },
 
   runtimeConfig: {
     public: {
-      enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA !== 'false',
+      enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
     },
     session: {
       name: 'inbox-session',
