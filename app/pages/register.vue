@@ -8,6 +8,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { fetch: refreshAuth, dashboardPathForRole } = useAuth()
+const { startGoogleSignIn } = useGoogleAuth()
 
 const name = ref('')
 const email = ref('')
@@ -59,7 +60,7 @@ async function submit() {
 <template>
   <div class="mx-auto max-w-sm venus-form-stack pt-8">
     <h1 class="font-display text-xl font-bold">{{ t('auth.register') }}</h1>
-    <p class="text-sm font-bold text-brand-gray-600">{{ t('auth.athleteOnlyNote') }}</p>
+    <p class="text-sm font-bold text-brand-gray-600">{{ t('register.athleteSubtitle') }}</p>
     <AppFormField :label="t('auth.name')">
       <input v-model="name" class="neo-input" autocomplete="name" />
     </AppFormField>
@@ -73,8 +74,15 @@ async function submit() {
     <button type="button" class="btn-primary w-full" :disabled="submitting || !name.trim() || !email.trim() || !password.trim()" @click="submit">
       {{ submitting ? t('common.loading') : t('auth.register') }}
     </button>
+    <button type="button" class="btn-secondary w-full" @click="startGoogleSignIn(returnTo)">
+      {{ t('auth.google') }}
+    </button>
     <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">
       {{ t('auth.login') }}
     </NuxtLink>
+    <div class="space-y-1 text-center text-xs text-brand-gray-600">
+      <NuxtLink :to="localePath('/register/owner')" class="block font-bold text-brand-navy underline">{{ t('register.ownerLink') }}</NuxtLink>
+      <NuxtLink :to="localePath('/register/coach')" class="block font-bold text-brand-navy underline">{{ t('register.coachLink') }}</NuxtLink>
+    </div>
   </div>
 </template>

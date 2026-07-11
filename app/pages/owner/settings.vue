@@ -114,7 +114,21 @@ function applyClubData() {
   form.image = club.image || ''
 }
 
+const galleryUrl = ref('')
+
 watch(data, applyClubData, { immediate: true })
+
+async function addGalleryImage(url: string) {
+  if (!url) return
+  await $fetch('/api/owner/media', { method: 'POST', body: { url } })
+  galleryUrl.value = ''
+  await refresh()
+}
+
+async function removeGalleryImage(id: string) {
+  await $fetch(`/api/owner/media/${id}`, { method: 'DELETE' })
+  await refresh()
+}
 
 async function save() {
   saving.value = true
@@ -184,9 +198,7 @@ async function save() {
             <input v-model="form.district" class="neo-input">
           </label>
           <label class="block text-sm sm:col-span-2">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.imageUrl') }}</span>
-            <input v-model="form.image" type="url" dir="ltr" class="neo-input" placeholder="https://">
-            <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.imageUrlHint') }}</span>
+            <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
           </label>
           <label class="block text-sm sm:col-span-2">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressFa') }}</span>
@@ -244,6 +256,24 @@ async function save() {
             <span class="mb-1 block font-bold">{{ t('common.whatsapp') }}</span>
             <input v-model="form.whatsapp" dir="ltr" class="neo-input tabular-nums">
           </label>
+        </div>
+      </div>
+
+      <div class="ios-card p-6 md:col-span-2">
+        <h2 class="font-bold">{{ t('register.clubGallery') }}</h2>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <div v-for="item in data?.club?.media || []" :key="item.id">
+            <img :src="item.url" alt="" class="h-20 w-20 object-cover border" />
+            <button type="button" class="mt-1 block text-xs text-red-600" @click="removeGalleryImage(item.id)">
+              {{ t('common.delete') }}
+            </button>
+          </div>
+        </div>
+        <div class="mt-3 space-y-2">
+          <AppImageUpload v-model="galleryUrl" />
+          <button type="button" class="btn-secondary" :disabled="!galleryUrl" @click="addGalleryImage(galleryUrl)">
+            {{ t('upload.addPhoto') }}
+          </button>
         </div>
       </div>
 

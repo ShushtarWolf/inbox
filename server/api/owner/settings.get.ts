@@ -24,6 +24,10 @@ export default defineEventHandler(async (event) => {
       cancellationWindowHours: club.cancellationWindowHours,
       rescheduleWindowHours: club.rescheduleWindowHours,
       waitlistEnabled: club.waitlistEnabled,
+      media: await prisma.clubMedia.findMany({
+        where: { clubId: club.id },
+        orderBy: { sortOrder: 'asc' },
+      }),
     },
     membership: {
       role: membership.role,

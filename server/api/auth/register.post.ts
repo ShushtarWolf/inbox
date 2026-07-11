@@ -10,6 +10,9 @@ export default defineEventHandler(async (event) => {
   }
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
+    if (!existing.passwordHash && existing.oauthProvider) {
+      throw createError({ statusCode: 409, statusMessage: 'Use Google sign-in for this account' })
+    }
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
   }
 

@@ -17,6 +17,14 @@
 | `SMTP_PASS` | If email | SMTP password |
 | `SMTP_FROM` | If email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
 | `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
+| `S3_ENDPOINT` | For uploads | Railway bucket S3 endpoint |
+| `S3_BUCKET` | For uploads | Bucket name |
+| `S3_ACCESS_KEY` | For uploads | Bucket access key |
+| `S3_SECRET_KEY` | For uploads | Bucket secret key |
+| `S3_PUBLIC_URL` | For uploads | Public base URL for uploaded images |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
+| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
+| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://your-domain.com/auth/google` |
 
 ## Database backup (PostgreSQL)
 

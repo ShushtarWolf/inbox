@@ -20,8 +20,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
-    if (!user || !verifySecret(password, user.passwordHash)) {
-      return sendRedirect(event, `${base}/login?error=invalid`)
+    if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
+      const errorCode = user && !user.passwordHash ? 'oauth' : 'invalid'
+      return sendRedirect(event, `${base}/login?error=${errorCode}`)
     }
 
     await setUserSession(event, { user: toSessionUser(user) })

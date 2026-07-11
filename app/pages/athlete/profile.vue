@@ -7,18 +7,23 @@ const switchLocalePath = useSwitchLocalePath()
 const localePath = useLocalePath()
 const name = ref('')
 const phone = ref('')
+const avatarUrl = ref('')
 const profileLocale = ref<'fa' | 'en'>('fa')
 
 onMounted(async () => {
   await fetch()
   name.value = user.value?.name || ''
   phone.value = user.value?.phone || ''
+  avatarUrl.value = user.value?.avatarUrl || ''
   profileLocale.value = user.value?.locale === 'en' ? 'en' : 'fa'
 })
 
 async function save() {
   const previousLocale = locale.value
-  await $fetch('/api/profile', { method: 'PATCH', body: { name: name.value, phone: phone.value, locale: profileLocale.value } })
+  await $fetch('/api/profile', {
+    method: 'PATCH',
+    body: { name: name.value, phone: phone.value, locale: profileLocale.value, avatarUrl: avatarUrl.value || null },
+  })
   await setLocale(profileLocale.value)
   if (profileLocale.value !== previousLocale) {
     await navigateTo(switchLocalePath(profileLocale.value))
@@ -30,6 +35,7 @@ async function save() {
 <template>
   <div class="venus-page-stack">
     <PageHeaderNav :title="$t('nav.profile')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
+    <AppImageUpload v-model="avatarUrl" :label="$t('register.profilePhoto')" />
     <input v-model="name" :placeholder="$t('common.name')" class="neo-input" />
     <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="neo-input tabular-nums" />
     <select v-model="profileLocale" class="neo-input">

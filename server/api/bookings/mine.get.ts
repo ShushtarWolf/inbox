@@ -14,5 +14,13 @@ export default defineEventHandler(async (event) => {
     include: { coach: { include: { sport: true, club: true } }, payment: true },
     orderBy: { createdAt: 'desc' },
   })
-  return { courtBookings, coachSessions }
+  const packageBookings = await prisma.packageBooking.findMany({
+    where: { athleteId: user.id },
+    include: {
+      package: { include: { club: true, coach: true } },
+      payment: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  return { courtBookings, coachSessions, packageBookings }
 })

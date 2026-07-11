@@ -14,8 +14,8 @@ export default defineEventHandler(async (event) => {
     where: { email: normalized },
     include: { coachProfile: { select: { photo: true } } },
   })
-  if (!user || !verifySecret(password, user.passwordHash)) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
+  if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
+    throw createError({ statusCode: 401, statusMessage: user && !user.passwordHash ? 'Use Google sign-in for this account' : 'Invalid credentials' })
   }
   await setUserSession(event, { user: toSessionUser(user) })
   const redirectTo = postLoginRedirectPath(user, locale, returnTo)
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     nameEn: rest.nameEn,
     role: rest.role,
     locale: rest.locale,
-    avatarUrl: coachProfile?.photo || null,
+    avatarUrl: rest.avatarUrl || coachProfile?.photo || null,
     redirectTo,
   }
 })

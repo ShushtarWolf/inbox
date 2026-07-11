@@ -127,6 +127,13 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    oauth: {
+      google: {
+        clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID || '',
+        clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET || '',
+        redirectURL: process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || '',
+      },
+    },
     public: {
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
       sentryDsn: process.env.SENTRY_DSN || '',

@@ -130,7 +130,19 @@ function paymentStatusLabel(status: string) {
       </div>
     </section>
 
-    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length" class="ios-card p-4 text-sm text-brand-gray-600">
+    <section v-if="data?.packageBookings?.length" class="space-y-2">
+      <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.packageSection') }}</h2>
+      <div v-for="b in data.packageBookings" :key="b.id" class="ios-card p-3">
+        <p class="font-bold">{{ b.package.title }}</p>
+        <p class="text-sm text-brand-gray-600">{{ localizedField(b.package.club, 'nameFa', 'nameEn') }}</p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs">
+          <span class="neo-badge">{{ bookingStatusLabel(b.status) }}</span>
+          <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length && !data?.packageBookings?.length" class="ios-card p-4 text-sm text-brand-gray-600">
       {{ t('booking.emptyState') }}
     </div>
     </AppAsyncState>

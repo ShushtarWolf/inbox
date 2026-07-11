@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
       role: true,
       phone: true,
       locale: true,
+      avatarUrl: true,
       coachProfile: { select: { photo: true } },
       memberships: {
         where: { active: true },
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
   return {
     user: {
       ...rest,
-      avatarUrl: coachProfile?.photo || null,
+      avatarUrl: rest.avatarUrl || coachProfile?.photo || null,
     },
   }
 })

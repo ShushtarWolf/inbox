@@ -1,0 +1,14 @@
+export default defineEventHandler(async (event) => {
+  const user = await requireRole(event, 'COACH')
+  const coach = await prisma.coach.findUnique({ where: { userId: user.id } })
+  if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach profile not found' })
+
+  const id = getRouterParam(event, 'id')
+  if (!id) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
+
+  const slot = await prisma.coachAvailability.findFirst({ where: { id, coachId: coach.id } })
+  if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+
+  await prisma.coachAvailability.delete({ where: { id } })
+  return { ok: true }
+})

@@ -65,6 +65,9 @@ function specialtyLabel(value: string) {
             <p class="text-sm font-bold text-brand-primary">{{ formatCurrency(item.price) }}</p>
           </div>
           <p class="text-xs text-brand-gray-600">{{ item.comment }}</p>
+          <NuxtLink :to="localePath(`/book/package/${item.id}`)" class="mt-2 inline-block text-sm font-bold text-brand-primary">
+            {{ t('booking.packageConfirm') }}
+          </NuxtLink>
         </div>
       </div>
     </section>

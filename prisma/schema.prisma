@@ -101,26 +101,32 @@ enum CampaignStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  nameEn       String?
-  role         Role     @default(ATHLETE)
-  locale       String   @default("fa")
-  phone        String?
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String
+  nameEn        String?
+  role          Role     @default(ATHLETE)
+  locale        String   @default("fa")
+  phone         String?
+  avatarUrl     String?
+  oauthProvider String?
+  oauthSubject  String?
+  createdAt     DateTime @default(now())
 
-  ownedClubs    Club[]         @relation("ClubOwner")
-  coachProfile  Coach?
-  bookings      Booking[]
-  coachSessions CoachSession[] @relation("AthleteSessions")
-  reviews       Review[]
-  memberships   StaffMembership[]
-  bookingEvents ReservationEvent[] @relation("ReservationActor")
+  ownedClubs      Club[]           @relation("ClubOwner")
+  coachProfile    Coach?
+  bookings        Booking[]
+  coachSessions   CoachSession[]   @relation("AthleteSessions")
+  packageBookings PackageBooking[]
+  reviews         Review[]
+  memberships     StaffMembership[]
+  bookingEvents   ReservationEvent[] @relation("ReservationActor")
   waitlistEntries WaitlistEntry[]
   passwordResetTokens PasswordResetToken[]
-  notifications Notification[]
+  notifications   Notification[]
+
+  @@unique([oauthProvider, oauthSubject])
 }
 
 model PasswordResetToken {
@@ -200,6 +206,7 @@ model Club {
   policiesJson  String?
   pricingJson   String?
   verificationNote String?
+  credentialsJson  String?
   verifiedAt    DateTime?
   priceTo       Int?
   cancellationWindowHours Int @default(12)
@@ -508,6 +515,27 @@ model PackageDraft {
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId String?
   coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  bookings PackageBooking[]
+}
+
+model PackageBooking {
+  id            String        @id @default(cuid())
+  status        BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(PAY_AT_CLUB)
+  price         Int
+  daysJson      String?
+  timesJson     String?
+  createdAt     DateTime      @default(now())
+  cancelledAt   DateTime?
+
+  packageId String
+  package   PackageDraft @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   User         @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  payment   Payment?
+
+  @@index([packageId, status])
+  @@index([athleteId])
 }
 
 model WaitlistEntry {
@@ -558,10 +586,12 @@ model Payment {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  bookingId      String?      @unique
-  booking        Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  coachSessionId String?      @unique
-  coachSession   CoachSession? @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
+  bookingId         String?          @unique
+  booking           Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  coachSessionId    String?          @unique
+  coachSession      CoachSession?    @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
+  packageBookingId  String?          @unique
+  packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
 }
 
 model ContactSegment {

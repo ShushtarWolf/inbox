@@ -11,6 +11,8 @@ Status as of July 2026. Re-verify before each production release.
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
 - [x] `PAYMENTS_MODE=pay_at_club` (no live IPG until business approval)
 - [ ] `SENTRY_DSN` set for production error tracking (add your Sentry project DSN in Railway)
+- [ ] Railway S3 bucket created; `S3_*` vars set on app service
+- [ ] Google OAuth client created; `NUXT_OAUTH_GOOGLE_*` vars set; redirect URI `https://<domain>/auth/google`
 - [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Railway (when ready to send live email)
 - [x] Login page no longer pre-fills demo credentials
 - [x] Demo seed gated behind `SEED_DEMO_DATA=true` (production default: sports catalog only)
