@@ -80,22 +80,34 @@ function finish() {
     <AppAsyncState :pending="pending" :error="fetchError" skeleton-variant="default">
     <p v-if="saveError" class="text-sm text-red-600">{{ saveError }}</p>
 
-    <section v-if="step === 1" class="space-y-3 ios-card p-4">
+    <section v-if="step === 1" class="venus-form-stack ios-card p-4">
       <h2 class="font-bold">{{ t('owner.setupProfile') }}</h2>
-      <input v-model="profile.nameFa" class="neo-input" :placeholder="t('owner.nameFa')" />
-      <input v-model="profile.nameEn" class="neo-input" :placeholder="t('owner.nameEn')" />
-      <input v-model="profile.addressFa" class="neo-input" :placeholder="t('owner.addressFa')" />
-      <input v-model="profile.phone" class="neo-input" :placeholder="t('owner.phone')" />
+      <AppFormField :label="t('owner.nameFa')">
+        <input v-model="profile.nameFa" class="neo-input" />
+      </AppFormField>
+      <AppFormField :label="t('owner.nameEn')">
+        <input v-model="profile.nameEn" dir="ltr" class="neo-input" />
+      </AppFormField>
+      <AppFormField :label="t('owner.addressFa')">
+        <input v-model="profile.addressFa" class="neo-input" />
+      </AppFormField>
+      <AppFormField :label="t('owner.phone')">
+        <input v-model="profile.phone" dir="ltr" class="neo-input tabular-nums" />
+      </AppFormField>
       <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveProfile">{{ t('common.next') }}</button>
     </section>
 
-    <section v-else class="space-y-3 ios-card p-4">
+    <section v-else class="venus-form-stack ios-card p-4">
       <h2 class="font-bold">{{ t('owner.setupCourts') }}</h2>
       <ul class="space-y-2 text-sm">
         <li v-for="court in courts" :key="court.id" class="ios-card p-2 font-bold">{{ court.nameFa }} / {{ court.nameEn }}</li>
       </ul>
-      <input v-model="newCourt.nameFa" class="neo-input" :placeholder="t('owner.courtNameFa')" />
-      <input v-model="newCourt.nameEn" class="neo-input" :placeholder="t('owner.courtNameEn')" />
+      <AppFormField :label="t('owner.courtNameFa')">
+        <input v-model="newCourt.nameFa" class="neo-input" />
+      </AppFormField>
+      <AppFormField :label="t('owner.courtNameEn')">
+        <input v-model="newCourt.nameEn" dir="ltr" class="neo-input" />
+      </AppFormField>
       <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">{{ t('owner.addCourt') }}</button>
       <button type="button" class="btn-primary w-full" @click="finish">{{ t('owner.setupFinish') }}</button>
     </section>

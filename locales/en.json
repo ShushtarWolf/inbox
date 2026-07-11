@@ -13,6 +13,7 @@
     "family": "Family name",
     "languageFa": "فارسی",
     "languageEn": "English",
+    "language": "Language",
     "loading": "Loading...",
     "menu": "Menu",
     "mobile": "Mobile",
@@ -122,6 +123,7 @@
     "applyCity": "City",
     "applyContactName": "Contact name",
     "applyPhone": "Phone",
+    "applySport": "Sport",
     "applySubmit": "Submit application",
     "applySuccess": "Application received. We will email you when your club is approved.",
     "applyFailed": "Could not submit application.",
@@ -211,6 +213,7 @@
   },
   "reviews": {
     "submitTitle": "Rate your visit",
+    "ratingLabel": "Rating (1–5)",
     "bodyPlaceholder": "Share your experience…",
     "submit": "Submit review",
     "thanks": "Thanks for your review!"
@@ -467,7 +470,11 @@
     "seasonReserve": "Season reserve",
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
-    "slotActions": "Slot actions",
+    "slotActions": "Session actions",
+    "reserveFormTitle": "Reservation form",
+    "confirmReserve": "Confirm reservation",
+    "paymentStatusLabel": "Payment status",
+    "guestRequired": "Guest name, family name, and mobile are required.",
     "reserveRedirect": {
       "title": "Reserve from calendar",
       "body": "Season and package reservations are created from a slot on the owner calendar. Open the calendar, tap a slot, then choose the reserve option you need.",

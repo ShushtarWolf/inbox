@@ -88,6 +88,22 @@
   .tail-textarea:focus {
     @apply border-brand-primary shadow-venus-focus;
   }
+  .neo-textarea,
+  .tail-textarea {
+    @apply min-h-[4.5rem] shrink-0 resize-y;
+  }
+  .neo-form-field {
+    @apply shrink-0;
+  }
+  .neo-equipment-picker {
+    @apply max-h-40 space-y-1 overflow-y-auto overscroll-contain rounded-lg border border-brand-gray-300 bg-white p-2;
+  }
+  .neo-equipment-option {
+    @apply flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-brand-navy transition hover:bg-brand-gray-50;
+  }
+  .neo-equipment-option:has(input:checked) {
+    @apply bg-brand-primary-soft text-brand-primary;
+  }
 
   /* ── Pills & badges ── */
   .neo-pill,
@@ -150,11 +166,11 @@
   }
   .venus-modal-shell,
   .tail-modal-shell {
-    @apply flex w-full min-h-0 max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:flex-row;
+    @apply flex w-full min-h-0 max-h-[min(92dvh,calc(100dvh-var(--sz-tab-bar-height)-var(--sz-safe-bottom)-2rem))] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:max-h-[min(92dvh,calc(100dvh-2rem))] lg:flex-row;
   }
   .venus-modal-shell-simple,
   .tail-modal-shell-simple {
-    @apply flex max-h-[min(85dvh,calc(100dvh-2rem))] max-w-md flex-col;
+    @apply flex max-h-[min(85dvh,calc(100dvh-var(--sz-tab-bar-height)-var(--sz-safe-bottom)-2rem))] max-w-md flex-col lg:max-h-[min(85dvh,calc(100dvh-2rem))];
   }
   .venus-modal-panel-header,
   .tail-modal-header {
@@ -186,6 +202,16 @@
   .venus-form-stack,
   .tail-form-stack {
     @apply flex flex-col gap-3;
+  }
+  .venus-form-stack > :not(.venus-form-grid),
+  .tail-form-stack > :not(.venus-form-grid) {
+    @apply shrink-0;
+  }
+  .venus-form-grid {
+    @apply grid shrink-0 gap-3 sm:grid-cols-2;
+  }
+  .venus-modal-title-bar {
+    @apply flex shrink-0 items-center justify-between gap-3 border-b border-brand-gray-200 bg-white px-5 py-4;
   }
   .venus-card-grid,
   .tail-card-grid {

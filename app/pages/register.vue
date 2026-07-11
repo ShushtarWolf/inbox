@@ -57,14 +57,20 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-sm space-y-4 pt-8">
+  <div class="mx-auto max-w-sm venus-form-stack pt-8">
     <h1 class="font-display text-xl font-bold">{{ t('auth.register') }}</h1>
     <p class="text-sm font-bold text-brand-gray-600">{{ t('auth.athleteOnlyNote') }}</p>
-    <input v-model="name" :placeholder="t('auth.name')" class="neo-input" />
-    <input v-model="email" type="email" :placeholder="t('auth.email')" class="neo-input" />
-    <input v-model="password" type="password" :placeholder="t('auth.password')" class="neo-input" />
+    <AppFormField :label="t('auth.name')">
+      <input v-model="name" class="neo-input" autocomplete="name" />
+    </AppFormField>
+    <AppFormField :label="t('auth.email')">
+      <input v-model="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+    </AppFormField>
+    <AppFormField :label="t('auth.password')">
+      <input v-model="password" type="password" class="neo-input" autocomplete="new-password" />
+    </AppFormField>
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
-    <button type="button" class="btn-primary w-full" :disabled="submitting" @click="submit">
+    <button type="button" class="btn-primary w-full" :disabled="submitting || !name.trim() || !email.trim() || !password.trim()" @click="submit">
       {{ submitting ? t('common.loading') : t('auth.register') }}
     </button>
     <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">

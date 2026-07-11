@@ -41,16 +41,28 @@ async function submit() {
     <h1 class="font-display text-2xl font-bold">{{ t('clubs.applyTitle') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('clubs.applySubtitle') }}</p>
     <p v-if="submitted" class="venus-widget-card p-4 text-sm">{{ t('clubs.applySuccess') }}</p>
-    <form v-else class="space-y-3" @submit.prevent="submit">
-      <input v-model="clubName" :placeholder="t('clubs.applyClubName')" class="neo-input" required />
-      <input v-model="city" :placeholder="t('clubs.applyCity')" class="neo-input" required />
-      <input v-model="contactName" :placeholder="t('clubs.applyContactName')" class="neo-input" required />
-      <input v-model="contactEmail" type="email" :placeholder="t('auth.email')" class="neo-input" required />
-      <input v-model="contactPhone" :placeholder="t('clubs.applyPhone')" class="neo-input" />
-      <select v-model="sport" class="neo-input">
+    <form v-else class="venus-form-stack" @submit.prevent="submit">
+      <AppFormField :label="t('clubs.applyClubName')" required>
+        <input v-model="clubName" class="neo-input" required />
+      </AppFormField>
+      <AppFormField :label="t('clubs.applyCity')" required>
+        <input v-model="city" class="neo-input" required />
+      </AppFormField>
+      <AppFormField :label="t('clubs.applyContactName')" required>
+        <input v-model="contactName" class="neo-input" required />
+      </AppFormField>
+      <AppFormField :label="t('auth.email')" required>
+        <input v-model="contactEmail" type="email" dir="ltr" class="neo-input" required autocomplete="email" />
+      </AppFormField>
+      <AppFormField :label="t('clubs.applyPhone')">
+        <input v-model="contactPhone" dir="ltr" class="neo-input tabular-nums" />
+      </AppFormField>
+      <AppFormField :label="t('clubs.applySport')">
+        <select v-model="sport" class="neo-select">
         <option value="padel">{{ t('sports.padel') }}</option>
         <option value="tennis">{{ t('sports.tennis') }}</option>
       </select>
+      </AppFormField>
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
       <button type="submit" class="btn-primary w-full" :disabled="submitting">{{ submitting ? t('common.loading') : t('clubs.applySubmit') }}</button>
     </form>

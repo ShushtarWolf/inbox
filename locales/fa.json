@@ -13,6 +13,7 @@
     "family": "نام خانوادگی",
     "languageFa": "فارسی",
     "languageEn": "English",
+    "language": "زبان",
     "loading": "در حال بارگذاری...",
     "menu": "منو",
     "mobile": "موبایل",
@@ -121,6 +122,7 @@
     "applyCity": "شهر",
     "applyContactName": "نام مسئول",
     "applyPhone": "تلفن",
+    "applySport": "ورزش",
     "applySubmit": "ارسال درخواست",
     "applySuccess": "درخواست دریافت شد. پس از تایید باشگاه با شما تماس می‌گیریم.",
     "applyFailed": "ارسال درخواست انجام نشد.",
@@ -210,6 +212,7 @@
   },
   "reviews": {
     "submitTitle": "امتیاز به باشگاه",
+    "ratingLabel": "امتیاز (۱ تا ۵)",
     "bodyPlaceholder": "تجربه خود را بنویسید…",
     "submit": "ثبت نظر",
     "thanks": "از نظر شما متشکریم!"
@@ -466,7 +469,11 @@
     "seasonReserve": "رزرو فصلی",
     "packageReserve": "رزرو پکیج",
     "reserveWithCoach": "رزرو با مربی",
-    "slotActions": "عملیات اسلات",
+    "slotActions": "عملیات سانس",
+    "reserveFormTitle": "فرم رزرو",
+    "confirmReserve": "ثبت رزرو",
+    "paymentStatusLabel": "وضعیت پرداخت",
+    "guestRequired": "نام، نام خانوادگی و موبایل مهمان الزامی است.",
     "reserveRedirect": {
       "title": "رزرو از تقویم",
       "body": "رزرو فصلی و پکیج از روی سانس در تقویم مالک انجام می‌شود. تقویم را باز کنید، روی سانس بزنید و گزینه رزرو موردنظر را انتخاب کنید.",

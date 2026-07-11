@@ -79,14 +79,20 @@ async function deactivate(memberId: string) {
     <div class="grid gap-4 lg:grid-cols-2">
       <section class="ios-card p-4">
         <h2 class="mb-3 font-bold">{{ t('owner.inviteStaff') }}</h2>
-        <div class="space-y-2">
-          <input v-model="inviteEmail" type="email" :placeholder="t('auth.email')" class="neo-input" />
-          <input v-model="inviteName" :placeholder="t('auth.name')" class="neo-input" />
-          <select v-model="inviteRole" class="neo-input">
+        <div class="venus-form-stack">
+          <AppFormField :label="t('auth.email')" required>
+            <input v-model="inviteEmail" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+          </AppFormField>
+          <AppFormField :label="t('auth.name')" required>
+            <input v-model="inviteName" class="neo-input" autocomplete="name" />
+          </AppFormField>
+          <AppFormField :label="t('owner.settingsPage.role')">
+            <select v-model="inviteRole" class="neo-select">
             <option value="COACH">{{ t('owner.roles.COACH') }}</option>
             <option value="MANAGER">{{ t('owner.roles.MANAGER') }}</option>
             <option value="FRONT_DESK">{{ t('owner.roles.FRONT_DESK') }}</option>
           </select>
+          </AppFormField>
           <div class="ios-card bg-brand-lavender/40 p-3">
             <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissionsTitle') }}</p>
             <div class="grid gap-2 sm:grid-cols-2">
@@ -102,7 +108,7 @@ async function deactivate(memberId: string) {
           </div>
           <p v-if="inviteError" class="text-sm text-red-600">{{ inviteError }}</p>
           <p v-if="inviteResult" class="text-sm text-brand-gray-600">{{ inviteResult }}</p>
-          <button type="button" class="btn-primary w-full" :disabled="inviting" @click="sendInvite">{{ inviting ? t('common.loading') : t('owner.sendInvite') }}</button>
+          <button type="button" class="btn-primary w-full" :disabled="inviting || !inviteEmail.trim() || !inviteName.trim()" @click="sendInvite">{{ inviting ? t('common.loading') : t('owner.sendInvite') }}</button>
         </div>
         <h2 class="mb-3 mt-6 font-bold">{{ $t('owner.coaches') }}</h2>
         <ul class="space-y-2">

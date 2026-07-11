@@ -110,13 +110,17 @@ const rentalEquipments = computed(() =>
       </div>
       <div class="flex min-w-[6rem] items-center justify-center ios-card border-dashed px-4 py-6 text-2xl font-bold text-brand-navy">+</div>
     </div>
-    <div class="mx-auto max-w-lg space-y-2 ios-card p-4">
+    <div class="mx-auto max-w-lg venus-form-stack ios-card p-4">
       <h2 class="font-bold">{{ t('owner.packagesPage.createTitle') }}</h2>
-      <input v-model="form.title" :placeholder="t('owner.packagesPage.title')" class="neo-input">
-      <select v-model="form.coachId" class="neo-input">
-        <option value="">{{ t('owner.packagesPage.coachPlaceholder') }}</option>
-        <option v-for="c in clubCoaches" :key="c.id" :value="c.id">{{ localizedField(c, 'nameFa', 'nameEn') }}</option>
-      </select>
+      <AppFormField :label="t('owner.packagesPage.title')" required>
+        <input v-model="form.title" class="neo-input">
+      </AppFormField>
+      <AppFormField :label="t('owner.packagesPage.coachPlaceholder')">
+        <select v-model="form.coachId" class="neo-select">
+          <option value="">{{ t('owner.packagesPage.coachPlaceholder') }}</option>
+          <option v-for="c in clubCoaches" :key="c.id" :value="c.id">{{ localizedField(c, 'nameFa', 'nameEn') }}</option>
+        </select>
+      </AppFormField>
       <div>
         <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
         <div class="flex flex-wrap gap-2">
@@ -136,14 +140,24 @@ const rentalEquipments = computed(() =>
         <AppDateInput v-model="form.startDate" />
         <AppDateInput v-model="form.finishDate" />
       </div>
-      <input v-model.number="form.capacity" type="number" min="1" :placeholder="t('owner.packagesPage.capacity')" class="neo-input">
-      <input v-model.number="form.price" type="number" :placeholder="t('owner.packagesPage.price')" class="neo-input">
-      <select v-model="form.equipmentId" class="neo-input">
-        <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-        <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
-      </select>
-      <input v-model.number="form.discount" type="number" :placeholder="t('owner.packagesPage.discount')" class="neo-input">
-      <textarea v-model="form.comment" :placeholder="t('owner.comments')" class="neo-input" rows="2" />
+      <AppFormField :label="t('owner.packagesPage.capacity')">
+        <input v-model.number="form.capacity" type="number" min="1" class="neo-input">
+      </AppFormField>
+      <AppFormField :label="t('owner.packagesPage.price')">
+        <input v-model.number="form.price" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
+      </AppFormField>
+      <AppFormField :label="t('owner.packagesPage.equipmentPlaceholder')">
+        <select v-model="form.equipmentId" class="neo-select">
+          <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+          <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ localizedField(item, 'nameFa', 'nameEn') }}</option>
+        </select>
+      </AppFormField>
+      <AppFormField :label="t('owner.packagesPage.discount')">
+        <input v-model.number="form.discount" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
+      </AppFormField>
+      <AppFormField :label="t('owner.comments')">
+        <textarea v-model="form.comment" class="neo-textarea" rows="3" />
+      </AppFormField>
       <p v-if="createError" class="text-sm text-red-600">{{ createError }}</p>
       <button type="button" class="btn-primary venus-sticky-action w-full" :disabled="saving || !form.title" @click="create">{{ saving ? t('common.loading') : t('owner.packagesPage.saveStub') }}</button>
     </div>

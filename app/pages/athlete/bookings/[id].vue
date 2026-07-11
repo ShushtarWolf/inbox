@@ -130,10 +130,14 @@ async function submitReview() {
       <button type="button" class="btn-primary w-full" :disabled="!rescheduleSlotId" @click="rescheduleBooking">{{ $t('booking.confirm') }}</button>
     </div>
 
-    <div v-if="canReview && !reviewDone" class="ios-card space-y-3 p-4">
+    <div v-if="canReview && !reviewDone" class="ios-card venus-form-stack p-4">
       <h2 class="font-bold">{{ $t('reviews.submitTitle') }}</h2>
-      <input v-model.number="reviewRating" type="number" min="1" max="5" class="neo-input" />
-      <textarea v-model="reviewBody" class="neo-input" rows="3" :placeholder="$t('reviews.bodyPlaceholder')" />
+      <AppFormField :label="$t('reviews.ratingLabel')">
+        <input v-model.number="reviewRating" type="number" min="1" max="5" dir="ltr" class="neo-input tabular-nums" />
+      </AppFormField>
+      <AppFormField :label="$t('reviews.bodyPlaceholder')">
+        <textarea v-model="reviewBody" class="neo-textarea" rows="3" />
+      </AppFormField>
       <button type="button" class="btn-primary w-full" :disabled="reviewSubmitting || !reviewBody" @click="submitReview">{{ $t('reviews.submit') }}</button>
     </div>
     <p v-else-if="reviewDone" class="text-sm text-brand-primary">{{ $t('reviews.thanks') }}</p>

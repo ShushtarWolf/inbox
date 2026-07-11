@@ -42,14 +42,24 @@ async function save() {
   <div class="tail-page-stack">
     <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-    <textarea v-model="bioFa" :placeholder="$t('coach.bioFa')" class="neo-textarea" rows="3" />
-    <textarea v-model="bioEn" :placeholder="$t('coach.bioEn')" class="neo-textarea" rows="3" />
-    <input v-model.number="price" type="number" class="neo-input" />
-    <select v-model="profileLocale" class="neo-input">
-      <option value="fa">{{ $t('common.languageFa') }}</option>
-      <option value="en">{{ $t('common.languageEn') }}</option>
-    </select>
-    <button type="button" class="btn-primary w-full" @click="save">{{ $t('common.save') }}</button>
+    <div class="venus-form-stack">
+      <AppFormField :label="$t('coach.bioFa')">
+        <textarea v-model="bioFa" class="neo-textarea" rows="3" />
+      </AppFormField>
+      <AppFormField :label="$t('coach.bioEn')">
+        <textarea v-model="bioEn" class="neo-textarea" rows="3" dir="ltr" />
+      </AppFormField>
+      <AppFormField :label="$t('owner.packagePage.coachPlaceholder')">
+        <input v-model.number="price" type="number" min="0" dir="ltr" class="neo-input tabular-nums" />
+      </AppFormField>
+      <AppFormField :label="$t('common.language')">
+        <select v-model="profileLocale" class="neo-select">
+          <option value="fa">{{ $t('common.languageFa') }}</option>
+          <option value="en">{{ $t('common.languageEn') }}</option>
+        </select>
+      </AppFormField>
+      <button type="button" class="btn-primary w-full" @click="save">{{ $t('common.save') }}</button>
+    </div>
     </AppAsyncState>
   </div>
 </template>

@@ -140,9 +140,6 @@ async function deleteItem(item: EquipmentItem) {
     <AppModal :open="showModal" :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
       <div class="venus-modal-shell venus-modal-shell-simple">
         <div class="venus-modal-panel">
-          <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle') }}</h3>
-          </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <label class="block text-sm">
               <span class="mb-1 block font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.itemName') }}</span>

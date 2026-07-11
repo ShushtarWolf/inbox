@@ -138,9 +138,6 @@ function paymentStatusLabel(status: string) {
     <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
       <div class="venus-modal-shell venus-modal-shell-simple">
         <div class="venus-modal-panel">
-          <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('booking.reschedule') }}</h3>
-          </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <AppDateInput v-model="rescheduleDate" />
             <div class="max-h-64 space-y-2 overflow-auto">

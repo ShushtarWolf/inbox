@@ -323,7 +323,7 @@ function reserveDisplayStatus() {
 }
 
 async function doReserve() {
-  if (!selectedSlot.value || saving.value) return
+  if (!selectedSlot.value || saving.value || !canSubmitReserve()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -369,7 +369,7 @@ async function doCancel() {
 }
 
 async function doSeasonReserve() {
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length) return
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -398,7 +398,7 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
-  if (!selectedSlot.value || saving.value || !packageForm.days.length) return
+  if (!selectedSlot.value || saving.value || !packageForm.days.length || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -455,8 +455,8 @@ async function saveEquipmentSelection() {
   }
 }
 
-function slotActionLabel() {
-  return selectedSlot.value?.booking ? t('common.save') : t('owner.reserve')
+function reserveMenuLabel() {
+  return t('owner.reserve')
 }
 
 function canCancelSlot() {
@@ -488,6 +488,31 @@ const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as
 const rentalEquipments = computed(() =>
   (equipments.value || []).filter((item: { category: string }) => item.category === 'CLUB' || item.category === 'RENTAL'),
 )
+
+const equipmentPickerOptions = computed(() =>
+  rentalEquipments.value.map((item: { id: string; nameFa: string; nameEn: string; category: string; price: number }) => ({
+    id: item.id,
+    label: equipmentOptionLabel(item),
+  })),
+)
+
+function isNewReservation() {
+  return selectedSlot.value?.displayStatus === 'FREE'
+}
+
+function guestFieldsValid() {
+  return Boolean(form.guestName.trim() && form.guestFamily.trim() && form.guestMobile.trim())
+}
+
+function canSubmitReserve() {
+  if (saving.value) return false
+  if (isNewReservation()) return guestFieldsValid()
+  return true
+}
+
+function confirmReserveLabel() {
+  return isNewReservation() ? t('owner.confirmReserve') : t('common.save')
+}
 
 const legend = [
   { status: 'TEAM', color: palette.slotDisplay.TEAM },
@@ -630,7 +655,7 @@ const legend = [
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
           </div>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
-          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ slotActionLabel() }}</button>
+          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
           <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
@@ -651,13 +676,21 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
-            <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input" readonly>
-            <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input" readonly>
-            <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums" readonly>
-            <select v-model="cancelReason" class="neo-select">
-              <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
-              <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
-            </select>
+            <AppFormField :label="t('owner.guestName')">
+              <input v-model="form.guestName" class="neo-input" readonly>
+            </AppFormField>
+            <AppFormField :label="t('owner.guestFamily')">
+              <input v-model="form.guestFamily" class="neo-input" readonly>
+            </AppFormField>
+            <AppFormField :label="t('owner.guestMobile')">
+              <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" readonly>
+            </AppFormField>
+            <AppFormField :label="t('owner.cancelReasonPlaceholder')">
+              <select v-model="cancelReason" class="neo-select">
+                <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
+                <option v-for="reason in cancelReasons" :key="reason" :value="reason">{{ t(`owner.cancelReasons.${reason}`) }}</option>
+              </select>
+            </AppFormField>
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
@@ -677,34 +710,45 @@ const legend = [
                   {{ t('common.back') }}
                 </span>
               </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.reserve') }}</h3>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.reserveFormTitle') }}</h3>
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
-            <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
-            <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
-            <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
-            <select v-model="form.paymentMethod" class="neo-select">
-              <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
-              <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
-            </select>
-            <select v-model="form.paymentStatus" class="neo-select">
-              <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
-              <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
-            </select>
-            <label class="block text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</label>
-            <select v-model="form.equipmentIds" multiple class="neo-select min-h-[5rem]">
-              <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-            </select>
-            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+            <div class="venus-form-grid">
+              <AppFormField :label="t('owner.guestName')" required>
+                <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
+              </AppFormField>
+              <AppFormField :label="t('owner.guestFamily')" required>
+                <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+              </AppFormField>
+            </div>
+            <AppFormField :label="t('owner.guestMobile')" required>
+              <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+            </AppFormField>
+            <AppFormField :label="t('owner.paymentMethod')">
+              <select v-model="form.paymentMethod" class="neo-select">
+                <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
+                <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
+              </select>
+            </AppFormField>
+            <AppFormField :label="t('owner.paymentStatusLabel')">
+              <select v-model="form.paymentStatus" class="neo-select">
+                <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
+                <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
+              </select>
+            </AppFormField>
+            <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+              <OwnerEquipmentPicker v-model="form.equipmentIds" :options="equipmentPickerOptions" />
+            </AppFormField>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
               :court-price="courtPrice"
               :equipment-price="reserveEquipmentPrice"
             />
+            <p v-if="isNewReservation() && !guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : slotActionLabel() }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
           </div>
         </div>
 
@@ -721,11 +765,13 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
-            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="6" />
+            <AppFormField :label="t('owner.comments')">
+              <textarea v-model="form.comments" class="neo-textarea" rows="6" />
+            </AppFormField>
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -744,9 +790,17 @@ const legend = [
           <div class="venus-modal-panel-body">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
               <div class="min-w-0 flex-1 venus-form-stack">
-                <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
-                <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
-                <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
+                <div class="venus-form-grid">
+                  <AppFormField :label="t('owner.guestName')" required>
+                    <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
+                  </AppFormField>
+                  <AppFormField :label="t('owner.guestFamily')" required>
+                    <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+                  </AppFormField>
+                </div>
+                <AppFormField :label="t('owner.guestMobile')" required>
+                  <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+                </AppFormField>
                 <div>
                   <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
                   <div class="flex flex-wrap gap-2">
@@ -762,11 +816,15 @@ const legend = [
                     </button>
                   </div>
                 </div>
-                <select v-model="seasonForm.equipmentId" class="neo-select">
-                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                </select>
-                <textarea v-model="seasonForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+                <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+                  <select v-model="seasonForm.equipmentId" class="neo-select">
+                    <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                    <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                  </select>
+                </AppFormField>
+                <AppFormField :label="t('owner.comments')">
+                  <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
+                </AppFormField>
               </div>
               <OwnerClockPicker v-model="seasonForm.times" class="w-full shrink-0 lg:w-40" />
             </div>
@@ -778,8 +836,9 @@ const legend = [
               :session-count="seasonSessionCount"
               show-estimated
             />
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -798,13 +857,23 @@ const legend = [
           <div class="venus-modal-panel-body">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
               <div class="min-w-0 flex-1 venus-form-stack">
-                <select v-model="packageForm.coachId" class="neo-select">
-                  <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
-                  <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
-                </select>
-                <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
-                <input v-model="form.guestFamily" :placeholder="t('owner.guestFamily')" class="neo-input">
-                <input v-model="form.guestMobile" :placeholder="t('owner.guestMobile')" dir="ltr" class="neo-input tabular-nums">
+                <AppFormField :label="t('owner.packagePage.coachPlaceholder')">
+                  <select v-model="packageForm.coachId" class="neo-select">
+                    <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
+                    <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
+                  </select>
+                </AppFormField>
+                <div class="venus-form-grid">
+                  <AppFormField :label="t('owner.guestName')" required>
+                    <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
+                  </AppFormField>
+                  <AppFormField :label="t('owner.guestFamily')" required>
+                    <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+                  </AppFormField>
+                </div>
+                <AppFormField :label="t('owner.guestMobile')" required>
+                  <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+                </AppFormField>
                 <div>
                   <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
                   <div class="flex flex-wrap gap-2">
@@ -820,11 +889,15 @@ const legend = [
                     </button>
                   </div>
                 </div>
-                <select v-model="packageForm.equipmentId" class="neo-select">
-                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                </select>
-                <textarea v-model="packageForm.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+                <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+                  <select v-model="packageForm.equipmentId" class="neo-select">
+                    <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                    <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                  </select>
+                </AppFormField>
+                <AppFormField :label="t('owner.comments')">
+                  <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
+                </AppFormField>
               </div>
               <OwnerClockPicker v-model="packageForm.times" class="w-full shrink-0 lg:w-40" />
             </div>
@@ -837,8 +910,9 @@ const legend = [
               :session-count="packageSessionCount"
               show-estimated
             />
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -855,11 +929,9 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
-            <label class="block text-xs font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
-            <select v-model="form.equipmentIds" multiple class="neo-select min-h-[8rem]">
-              <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-            </select>
-            <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="3" />
+            <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+              <OwnerEquipmentPicker v-model="form.equipmentIds" :options="equipmentPickerOptions" />
+            </AppFormField>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary

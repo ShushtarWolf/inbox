@@ -28,7 +28,9 @@ async function submit() {
     <h1 class="font-display text-xl font-bold">{{ t('auth.forgotPassword') }}</h1>
     <p v-if="submitted" class="text-sm font-bold text-brand-gray-600">{{ t('auth.resetEmailSent') }}</p>
     <template v-else>
-      <input v-model="email" type="email" :placeholder="t('auth.email')" class="neo-input" />
+      <AppFormField :label="t('auth.email')">
+        <input v-model="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+      </AppFormField>
       <p v-if="error" class="venus-alert-error">{{ error }}</p>
       <button type="button" class="btn-primary w-full" :disabled="submitting" @click="submit">
         {{ submitting ? t('common.loading') : t('auth.sendResetLink') }}

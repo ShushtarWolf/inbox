@@ -22,10 +22,14 @@ const error = computed(() => {
 </script>
 
 <template>
-  <form class="mx-auto max-w-sm space-y-4 pt-8" method="post" action="/api/auth/login-web">
+  <form class="mx-auto max-w-sm venus-form-stack pt-8" method="post" action="/api/auth/login-web">
     <h1 class="font-display text-xl font-bold">{{ t('auth.login') }}</h1>
-    <input v-model="email" name="email" type="email" :placeholder="t('auth.email')" class="neo-input" autocomplete="email" />
-    <input v-model="password" name="password" type="password" :placeholder="t('auth.password')" class="neo-input" autocomplete="current-password" />
+    <AppFormField :label="t('auth.email')">
+      <input v-model="email" name="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+    </AppFormField>
+    <AppFormField :label="t('auth.password')">
+      <input v-model="password" name="password" type="password" class="neo-input" autocomplete="current-password" />
+    </AppFormField>
     <input type="hidden" name="locale" :value="locale" />
     <input type="hidden" name="returnTo" :value="returnTo" />
     <p v-if="error" class="venus-alert-error">{{ error }}</p>

@@ -61,10 +61,21 @@ onUnmounted(() => {
             aria-modal="true"
             :aria-label="title"
             tabindex="-1"
-            class="w-full outline-none animate-venus-fade-up"
+            class="w-full overflow-hidden rounded-tail-lg outline-none animate-venus-fade-up"
             :class="maxWidthClass || 'max-w-md'"
             @click.stop
           >
+            <div v-if="title" class="venus-modal-title-bar">
+              <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
+              <button
+                type="button"
+                class="btn-ghost px-3 py-1.5 text-xs"
+                :aria-label="$t('common.close')"
+                @click="close"
+              >
+                {{ $t('common.close') }}
+              </button>
+            </div>
             <slot />
           </div>
         </div>

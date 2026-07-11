@@ -41,8 +41,12 @@ async function submit() {
     <h1 class="font-display text-xl font-bold">{{ t('auth.resetPassword') }}</h1>
     <p v-if="done" class="text-sm font-bold text-brand-gray-600">{{ t('auth.resetSuccess') }}</p>
     <template v-else>
-      <input v-model="password" type="password" :placeholder="t('auth.newPassword')" class="neo-input" />
-      <input v-model="confirm" type="password" :placeholder="t('auth.confirmPassword')" class="neo-input" />
+      <AppFormField :label="t('auth.newPassword')">
+        <input v-model="password" type="password" class="neo-input" autocomplete="new-password" />
+      </AppFormField>
+      <AppFormField :label="t('auth.confirmPassword')">
+        <input v-model="confirm" type="password" class="neo-input" autocomplete="new-password" />
+      </AppFormField>
       <p v-if="error" class="venus-alert-error">{{ error }}</p>
       <button type="button" class="btn-primary w-full" :disabled="submitting || !token" @click="submit">
         {{ submitting ? t('common.loading') : t('auth.resetPassword') }}
