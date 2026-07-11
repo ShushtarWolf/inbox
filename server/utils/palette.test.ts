@@ -15,6 +15,7 @@ describe('brandbook palette', () => {
   it('uses gold accent from brand book', () => {
     expect(BRAND_ACCENT).toBe('#B68A3B')
     expect(palette.brand.gold).toBe('#B68A3B')
+    expect(palette.brand.primarySoft).toBe('#C41E1E1A')
   })
 
   it('maps calendar slot colors to brand book', () => {

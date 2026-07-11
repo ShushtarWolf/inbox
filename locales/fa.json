@@ -115,6 +115,17 @@
       "price": "کمترین قیمت",
       "nearby": "نزدیک‌ترین"
     },
+    "applyTitle": "ثبت باشگاه",
+    "applySubtitle": "باشگاه خود را برای بررسی ارسال کنید. پس از تایید با شما تماس می‌گیریم.",
+    "applyClubName": "نام باشگاه",
+    "applyCity": "شهر",
+    "applyContactName": "نام مسئول",
+    "applyPhone": "تلفن",
+    "applySubmit": "ارسال درخواست",
+    "applySuccess": "درخواست دریافت شد. پس از تایید باشگاه با شما تماس می‌گیریم.",
+    "applyFailed": "ارسال درخواست انجام نشد.",
+    "applyLink": "ثبت باشگاه",
+    "backToList": "بازگشت به باشگاه‌ها",
     "amenityOptions": {
       "Parking": "پارکینگ",
       "Cafe": "کافه",

@@ -90,11 +90,12 @@ export default defineNuxtConfig({
       globIgnores: ['**/videos/**', '**/planning/**'],
       maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       cleanupOutdatedCaches: true,
+      skipWaiting: true,
+      clientsClaim: true,
     },
     client: {
       installPrompt: true,
       register: true,
-      periodicSyncForUpdates: 3600,
     },
     devOptions: { enabled: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' },
   },

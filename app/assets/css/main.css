@@ -123,7 +123,7 @@
   }
   .tail-menu-item-dark-active {
     @apply bg-white/10 text-white;
-    border-inline-end: 3px solid theme('colors.brand.gold');
+    border-inline-end: 3px solid var(--sz-gold);
   }
   .tail-menu-item-dark-inactive {
     @apply text-white/80 hover:bg-white/5 hover:text-white;
