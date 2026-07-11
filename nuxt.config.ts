@@ -27,10 +27,12 @@ export default defineNuxtConfig({
       ],
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { name: 'theme-color', content: '#465FFF' },
+        { name: 'theme-color', content: '#C41E1E' },
         { name: 'description', content: "inbox — every court's a box; your game's in the inbox." },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
       ],
     },
   },
@@ -54,19 +56,24 @@ export default defineNuxtConfig({
   },
 
   pwa: {
-    disable: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' ? false : true,
+    disable: process.env.NUXT_PUBLIC_ENABLE_PWA === 'false',
     minify: false,
     registerType: 'autoUpdate',
     manifest: {
+      id: '/',
       name: 'inbox — Sports Booking',
       short_name: 'inbox',
       description: "every court's a box; your game's in the inbox.",
       lang: 'fa',
       dir: 'rtl',
-      theme_color: '#465FFF',
-      background_color: '#F9FAFB',
+      theme_color: '#C41E1E',
+      background_color: '#F4EFE9',
       display: 'standalone',
+      display_override: ['standalone', 'minimal-ui'],
+      orientation: 'portrait',
+      scope: '/',
       start_url: '/',
+      categories: ['sports', 'lifestyle'],
       icons: [
         { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -78,18 +85,24 @@ export default defineNuxtConfig({
     workbox: {
       mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
       navigateFallback: '/offline',
+      navigateFallbackDenylist: [/^\/api\//],
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
       globIgnores: ['**/videos/**', '**/planning/**'],
       maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      cleanupOutdatedCaches: true,
     },
     client: {
       installPrompt: true,
-      register: false,
+      register: true,
+      periodicSyncForUpdates: 3600,
     },
-    devOptions: { enabled: false },
+    devOptions: { enabled: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' },
   },
 
   runtimeConfig: {
+    public: {
+      enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA !== 'false',
+    },
     session: {
       name: 'inbox-session',
       password: process.env.NUXT_SESSION_PASSWORD || 'inbox-demo-session-password-change-me',

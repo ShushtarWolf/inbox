@@ -28,7 +28,10 @@ function isActive(to: string) {
 
 <template>
   <nav
-    class="fixed inset-x-0 bottom-0 z-50 border-t border-brand-gray-200 bg-white pb-[var(--sz-safe-bottom)] shadow-venus-sm lg:hidden"
+    class="fixed inset-x-0 bottom-0 z-50 border-t pb-[var(--sz-safe-bottom)] shadow-venus-sm lg:hidden"
+    :class="dark
+      ? 'border-white/10 bg-brand-primary-dark'
+      : 'border-brand-gray-200 bg-white'"
   >
     <div
       class="mx-auto"
@@ -44,7 +47,9 @@ function isActive(to: string) {
         class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-medium transition-colors"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
-          isActive(item.to) ? 'text-brand-primary' : 'text-brand-gray-500',
+          isActive(item.to)
+            ? (dark ? 'text-brand-gold' : 'text-brand-primary')
+            : (dark ? 'text-white/70' : 'text-brand-gray-500'),
         ]"
       >
         <AppIcon :name="item.icon || 'circle'" size="sm" :filled="isActive(item.to)" />

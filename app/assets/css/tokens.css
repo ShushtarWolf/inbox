@@ -1,13 +1,33 @@
+/**
+ * inbox design tokens — CSS custom properties.
+ * Source: shushzerv brand book (55% cream · 25% gray · 17% coach red · 3% gold).
+ */
 :root {
-  --sz-bg: #f9fafb;
-  --sz-accent: #465fff;
-  --sz-accent-dark: #3641f5;
-  --sz-accent-light: #7592ff;
-  --sz-navy: #101828;
-  --sz-secondary: #667085;
-  --sz-card-shadow: 0px 1px 3px 0px rgba(16, 24, 40, 0.1), 0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --sz-bg: #f4efe9;
+  --sz-bg-elevated: rgba(255, 255, 255, 0.78);
+  --sz-bg-glass: rgba(255, 255, 255, 0.7);
+  --sz-border: rgba(44, 44, 42, 0.08);
+  --sz-text: #2c2c2a;
+  --sz-text-secondary: #6b6b67;
+  --sz-accent: #c41e1e;
+  --sz-accent-dark: #4a1420;
+  --sz-accent-light: #d63a3a;
+  --sz-accent-soft: rgba(196, 30, 30, 0.10);
+  --sz-gold: #b68a3b;
+  --sz-gold-dark: #9a7530;
+  --sz-gold-soft: rgba(182, 138, 59, 0.14);
+  --sz-navy: #2c2c2a;
+  --sz-secondary: #6b6b67;
+  --sz-card-shadow: 0 4px 24px rgba(44, 44, 42, 0.08);
   --sz-card-radius: 0.75rem;
   --sz-input-radius: 0.5rem;
   --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
   --sz-tab-bar-height: 4.5rem;
+  --sz-slot-free: #e8e6e2;
+  --sz-slot-reserved: #c41e1e;
+  --sz-slot-public: #b68a3b;
+  --sz-slot-team: #6b1f28;
+  --sz-slot-pending: #4a1420;
+  --sz-slot-cancel: #a3a39f;
+  --sz-slot-closed: #52524f;
 }

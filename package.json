@@ -17,6 +17,7 @@
     "db:studio": "prisma studio",
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
+    "smoke:pages": "node scripts/smoke-all-pages.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "test": "vitest run",
     "check:i18n": "node scripts/check-i18n.mjs"

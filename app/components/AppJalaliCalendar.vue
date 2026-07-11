@@ -111,9 +111,9 @@ function isSelected(cell: { iso: string | null }) {
   align-items: center;
   justify-content: center;
   border-radius: 0.75rem;
-  border: 1px solid #e4e7ec;
-  background: #f9fafb;
-  color: #465fff;
+  border: 1px solid var(--sz-border);
+  background: var(--sz-bg);
+  color: var(--sz-accent);
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
@@ -128,19 +128,19 @@ function isSelected(cell: { iso: string | null }) {
   border-radius: 0.75rem;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #101828;
+  color: var(--sz-navy);
 }
 
 .jalali-calendar-day:hover {
-  background: #f2f4f7;
+  background: var(--sz-bg-elevated);
 }
 
 .jalali-calendar-day-selected {
-  background: #465fff;
+  background: var(--sz-accent);
   color: #fff;
 }
 
 .jalali-calendar-day-selected:hover {
-  background: #3641f5;
+  background: var(--sz-accent-dark);
 }
 </style>

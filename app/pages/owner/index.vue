@@ -848,16 +848,16 @@ const legend = [
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #101828;
+  color: var(--sz-navy);
   cursor: pointer;
   box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   transition: all 0.2s ease;
 }
 
 .calendar-tab-active {
-  border-color: #465fff;
-  background: #ecf3ff;
-  color: #465fff;
+  border-color: var(--sz-accent);
+  background: var(--sz-accent-soft);
+  color: var(--sz-accent);
   font-weight: 600;
 }
 
@@ -883,7 +883,7 @@ const legend = [
 .calendar-column-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #101828;
+  color: var(--sz-navy);
 }
 
 .calendar-time-cell,
@@ -961,37 +961,37 @@ const legend = [
 }
 
 :deep(.slot-free) {
-  background: #f2f4f7;
-  color: #667085;
+  background: var(--sz-slot-free);
+  color: var(--sz-secondary);
 }
 
 :deep(.slot-reserved) {
-  background: #465fff;
+  background: var(--sz-slot-reserved);
   color: #fff;
 }
 
 :deep(.slot-public) {
-  background: #36bffa;
-  color: #101828;
+  background: var(--sz-slot-public);
+  color: var(--sz-navy);
 }
 
 :deep(.slot-team) {
-  background: #12b76a;
+  background: var(--sz-slot-team);
   color: #fff;
 }
 
 :deep(.slot-pending) {
-  background: #f79009;
-  color: #101828;
+  background: var(--sz-slot-pending);
+  color: #fff;
 }
 
 :deep(.slot-cancel) {
-  background: #e4e7ec;
-  color: #667085;
+  background: var(--sz-slot-cancel);
+  color: var(--sz-secondary);
 }
 
 :deep(.slot-closed) {
-  background: #344054;
+  background: var(--sz-slot-closed);
   color: #fff;
 }
 

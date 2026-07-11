@@ -403,8 +403,6 @@ function handleHeroSportIconError() {
         <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.utilityPwaBody') }}</p>
       </div>
     </section>
-
-    <PwaInstallBanner />
   </div>
   </AppAsyncState>
 </template>

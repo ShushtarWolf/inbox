@@ -12,7 +12,7 @@ const nav = computed(() => [
 </script>
 
 <template>
-  <DashboardShell :title="t('dashboard.athlete')" :items="nav">
+  <DashboardShell :title="t('dashboard.athlete')" :items="nav" :dark-nav="true">
     <slot />
   </DashboardShell>
 </template>
