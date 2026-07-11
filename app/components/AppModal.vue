@@ -50,11 +50,11 @@ onUnmounted(() => {
     <Transition name="venus-modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 overflow-y-auto bg-brand-navy/25 p-4 sm:p-6"
+        class="fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-brand-navy/25 p-4 pb-[max(1rem,var(--sz-safe-bottom))] sm:p-6"
         role="presentation"
         @click.self="close"
       >
-        <div class="flex min-h-full items-end justify-center sm:items-center">
+        <div class="flex flex-1 items-end justify-center py-2 sm:items-center sm:py-4">
           <div
             ref="dialogRef"
             role="dialog"

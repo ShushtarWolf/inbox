@@ -145,7 +145,7 @@ const rentalEquipments = computed(() =>
       <input v-model.number="form.discount" type="number" :placeholder="t('owner.packagesPage.discount')" class="neo-input">
       <textarea v-model="form.comment" :placeholder="t('owner.comments')" class="neo-input" rows="2" />
       <p v-if="createError" class="text-sm text-red-600">{{ createError }}</p>
-      <button type="button" class="btn-primary w-full" :disabled="saving || !form.title" @click="create">{{ saving ? t('common.loading') : t('owner.packagesPage.saveStub') }}</button>
+      <button type="button" class="btn-primary venus-sticky-action w-full" :disabled="saving || !form.title" @click="create">{{ saving ? t('common.loading') : t('owner.packagesPage.saveStub') }}</button>
     </div>
     </AppAsyncState>
   </div>

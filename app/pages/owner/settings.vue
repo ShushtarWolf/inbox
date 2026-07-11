@@ -289,7 +289,7 @@ async function save() {
       <div class="md:col-span-2">
         <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
         <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
-        <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="saving">
+        <button type="submit" class="btn-primary venus-sticky-action w-full sm:w-auto" :disabled="saving">
           {{ saving ? t('common.loading') : t('common.save') }}
         </button>
       </div>

@@ -149,7 +149,7 @@ onMounted(() => {
       <button
         v-if="slots?.length"
         type="button"
-        class="btn-primary sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-40 -mx-4 w-[calc(100%+2rem)] bg-brand-cream px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] lg:static lg:mx-0 lg:w-full lg:bg-transparent lg:p-0 lg:shadow-none"
+        class="btn-primary venus-sticky-action w-full lg:w-full"
         :disabled="!selectedSlot"
         @click="confirm"
       >

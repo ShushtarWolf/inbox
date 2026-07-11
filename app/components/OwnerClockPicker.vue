@@ -23,7 +23,7 @@ function selectTime(time: string) {
       <AppIcon name="schedule" size="sm" />
       {{ t('owner.clockSelector') }}
     </h3>
-    <ul class="space-y-1">
+    <ul class="max-h-[min(280px,36dvh)] space-y-1 overflow-y-auto overscroll-contain">
       <li v-for="time in options" :key="time">
         <button
           type="button"

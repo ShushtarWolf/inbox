@@ -133,12 +133,12 @@
   .neo-modal-panel,
   .venus-modal-panel,
   .tail-modal-panel {
-    @apply min-w-0 flex-1 rounded-tail-lg border-0 bg-white shadow-none;
+    @apply flex min-h-0 min-w-0 flex-1 flex-col rounded-tail-lg border-0 bg-white shadow-none;
   }
   .neo-modal-menu,
   .venus-modal-menu,
   .tail-modal-menu {
-    @apply w-full shrink-0 overflow-hidden border-0 bg-white shadow-none lg:w-52;
+    @apply w-full shrink-0 overflow-y-auto border-0 bg-white shadow-none max-lg:max-h-[38dvh] lg:w-52 lg:max-h-none lg:overflow-hidden;
   }
   .neo-menu-item,
   .tail-menu-action {
@@ -150,11 +150,11 @@
   }
   .venus-modal-shell,
   .tail-modal-shell {
-    @apply flex w-full max-h-[min(88dvh,760px)] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:flex-row;
+    @apply flex w-full min-h-0 max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:flex-row;
   }
   .venus-modal-shell-simple,
   .tail-modal-shell-simple {
-    @apply max-h-[min(80dvh,560px)] max-w-md flex-col;
+    @apply flex max-h-[min(85dvh,calc(100dvh-2rem))] max-w-md flex-col;
   }
   .venus-modal-panel-header,
   .tail-modal-header {
@@ -167,6 +167,11 @@
   .venus-modal-footer,
   .tail-modal-footer {
     @apply shrink-0 space-y-3 border-t border-brand-gray-200 bg-brand-gray-50 px-5 py-4;
+  }
+
+  /* Sticky bottom action bar — keeps primary CTAs visible above mobile tab bar */
+  .venus-sticky-action {
+    @apply sticky bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] z-30 -mx-4 border-t border-brand-gray-100 bg-brand-cream px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none;
   }
 
   /* ── Layout rhythm ── */

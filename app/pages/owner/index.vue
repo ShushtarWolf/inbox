@@ -297,6 +297,11 @@ function closeMenu() {
   actionError.value = ''
 }
 
+function backToMenu() {
+  activePanel.value = null
+  actionError.value = ''
+}
+
 function toggleDay(days: string[], day: string) {
   if (days.includes(day)) {
     return days.filter((item) => item !== day)
@@ -618,7 +623,7 @@ const legend = [
 
     <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
       <div class="venus-modal-shell">
-        <div class="neo-modal-menu venus-modal-menu">
+        <div class="neo-modal-menu venus-modal-menu" :class="{ 'max-lg:hidden': activePanel }">
           <div v-if="selectedSlot" class="border-b border-brand-gray-100 px-4 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
@@ -635,7 +640,15 @@ const legend = [
 
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input" readonly>
@@ -657,7 +670,15 @@ const legend = [
 
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.reserve') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.reserve') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <input v-model="form.guestName" :placeholder="t('owner.guestName')" class="neo-input">
@@ -689,7 +710,15 @@ const legend = [
 
         <div v-if="activePanel === 'comments'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <textarea v-model="form.comments" :placeholder="t('owner.comments')" class="neo-textarea" rows="6" />
@@ -702,7 +731,15 @@ const legend = [
 
         <div v-if="activePanel === 'season'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.seasonPage.title') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.seasonPage.title') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -748,7 +785,15 @@ const legend = [
 
         <div v-if="activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.packagePage.title') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.packagePage.title') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -799,7 +844,15 @@ const legend = [
 
         <div v-if="activePanel === 'equipment'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <h3 class="font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
+            </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <label class="block text-xs font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.selectForBooking') }}</label>
