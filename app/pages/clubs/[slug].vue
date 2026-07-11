@@ -18,7 +18,7 @@ const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
       :home-to="localePath('/')"
       :back-to="localePath('/clubs')"
     />
-    <img :src="club.image || '/demo/clubs/padel-zone-tehran.jpg'" alt="" class="ios-card -mx-4 aspect-[16/10] w-[calc(100%+2rem)] object-cover" />
+    <img :src="club.image || '/placeholders/club.svg'" alt="" class="ios-card -mx-4 aspect-[16/10] w-[calc(100%+2rem)] object-cover" />
     <div class="flex items-center gap-2">
       <span v-if="club.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>
     </div>

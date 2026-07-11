@@ -58,5 +58,21 @@ export default defineEventHandler(async (event) => {
       metadataJson: JSON.stringify({ source: 'coach-booking' }),
     },
   })
+
+  const athlete = await prisma.user.findUnique({ where: { id: user.id } })
+  if (athlete?.email) {
+    await sendNotification({
+      channel: 'email',
+      to: athlete.email,
+      template: 'BOOKING_CONFIRMED',
+      data: {
+        kind: 'coach',
+        clubName: coach.club?.nameEn || coach.club?.nameFa || coach.nameEn || coach.nameFa,
+        date: body.date,
+        startTime: body.startTime,
+      },
+    })
+  }
+
   return session
 })

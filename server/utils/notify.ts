@@ -1,9 +1,13 @@
+import { sendEmail } from './email'
+import { renderEmailTemplate } from './emailTemplates'
+
 export type NotifyChannel = 'email' | 'sms' | 'in_app'
 
 export type NotifyTemplate =
   | 'WAITLIST_SLOT_AVAILABLE'
   | 'PASSWORD_RESET'
   | 'BOOKING_CONFIRMED'
+  | 'CLUB_APPROVED'
 
 export async function sendNotification(opts: {
   channel: NotifyChannel
@@ -15,8 +19,11 @@ export async function sendNotification(opts: {
   const smsEnabled = process.env.SMS_ENABLED === 'true'
 
   if (opts.channel === 'email' && emailEnabled) {
-    console.log('[notify:email]', opts.template, opts.to, opts.data)
-    return { sent: true }
+    const { subject, text, html } = renderEmailTemplate(opts.template, opts.data)
+    const result = await sendEmail({ to: opts.to, subject, text, html })
+    if (result.sent) return { sent: true }
+    console.log('[notify:email:fallback]', opts.template, opts.to, opts.data)
+    return { sent: false, logged: true }
   }
   if (opts.channel === 'sms' && smsEnabled) {
     console.log('[notify:sms]', opts.template, opts.to, opts.data)

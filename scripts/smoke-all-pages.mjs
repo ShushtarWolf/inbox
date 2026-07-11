@@ -25,7 +25,7 @@ const ownerPaths = [
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
 const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
-const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
+const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/notifications', '/athlete/profile']
 
 const cookieJar = new Map()
 

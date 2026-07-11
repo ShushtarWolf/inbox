@@ -195,7 +195,7 @@ async function useNearby() {
         :to="localePath(`/clubs/${club.slug}`)"
         class="ios-card flex gap-3 overflow-hidden"
       >
-        <img :src="club.image || '/demo/clubs/padel-zone-tehran.jpg'" alt="" class="h-24 w-24 object-cover lg:h-full lg:w-40" />
+        <img :src="club.image || '/placeholders/club.svg'" alt="" class="h-24 w-24 object-cover lg:h-full lg:w-40" />
         <div class="flex flex-1 flex-col justify-center py-2 pe-3">
           <div class="flex items-center gap-2">
             <p class="font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>

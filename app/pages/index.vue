@@ -348,7 +348,7 @@ function handleHeroSportIconError() {
           :to="localePath(`/clubs/${club.slug}`)"
           class="venus-list-item"
         >
-          <img :src="club.image || '/demo/clubs/padel-zone-tehran.jpg'" alt="" class="h-14 w-14 venus-avatar rounded-venus" />
+          <img :src="club.image || '/placeholders/club.svg'" alt="" class="h-14 w-14 venus-avatar rounded-venus" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-bold text-brand-navy">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
             <p class="mt-0.5 text-xs text-brand-gray-600">{{ club.city }} · ⭐ {{ club.rating }}</p>
@@ -375,7 +375,7 @@ function handleHeroSportIconError() {
           :to="localePath(`/coaches/${coach.id}`)"
           class="venus-list-item"
         >
-          <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 venus-avatar rounded-venus" />
+          <img :src="coach.photo || '/placeholders/coach.svg'" alt="" class="h-14 w-14 venus-avatar rounded-venus" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-bold text-brand-navy">{{ localizedField(coach, 'nameFa', 'nameEn') }}</p>
             <p class="mt-0.5 truncate text-xs text-brand-gray-600">{{ formatSpecialties(coach.specialties) }}</p>

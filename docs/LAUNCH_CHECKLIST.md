@@ -6,11 +6,16 @@ Status as of July 2026. Re-verify before each production release.
 
 - [x] `NUXT_SESSION_PASSWORD` set (32+ chars) on Railway
 - [x] `DATABASE_URL` points to Postgres (`${{Postgres.DATABASE_URL}}`)
+- [x] `NUXT_PUBLIC_SITE_URL` set on Railway
 - [x] `SEED_ON_EMPTY` removed / set to `false` after first deploy
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
 - [x] `PAYMENTS_MODE=pay_at_club` (no live IPG until business approval)
 - [ ] `SENTRY_DSN` set for production error tracking (add your Sentry project DSN in Railway)
-- [ ] Demo passwords removed from production (unset `SEED_DEMO_DATA`; rotate or delete demo accounts if present)
+- [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Railway (when ready to send live email)
+- [x] Login page no longer pre-fills demo credentials
+- [x] Demo seed gated behind `SEED_DEMO_DATA=true` (production default: sports catalog only)
+- [x] Demo cleanup script: `CONFIRM=yes node scripts/cleanup-demo-accounts.mjs`
+- [ ] Demo passwords removed from production (unset `SEED_DEMO_DATA`; run cleanup script if demo accounts present)
 - [ ] Postgres backup verified (`pg_dump`)
 
 ## Automated QA
@@ -41,8 +46,9 @@ Run `node scripts/qa-matrix.mjs` against staging URL.
 | Athlete register/login/book/cancel | | |
 | Owner calendar/finance/settings | | |
 | Coach schedule | | |
-| Forgot/reset password | | |
-| Club apply form | | |
+| Forgot/reset password (email) | | |
+| Club apply → admin approve | | |
+| Athlete notifications | | |
 | Legal pages | | |
 
 ## Security
@@ -56,4 +62,4 @@ Run `node scripts/qa-matrix.mjs` against staging URL.
 
 - [ ] Merge `cursor/booking-mvp-hardening` → `main`
 - [ ] Monitor Railway deploy logs + Sentry
-- [ ] Replace placeholder legal contact emails (`privacy@inbox.app`, `support@inbox.app`)
+- [x] Replace placeholder legal contact emails (`privacy@inbox.ir`, `support@inbox.ir`)

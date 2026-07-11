@@ -5,8 +5,8 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 
-const email = ref('athlete@inbox.local')
-const password = ref('demo1234')
+const email = ref('')
+const password = ref('')
 
 const returnTo = computed(() => {
   const value = route.query.returnTo

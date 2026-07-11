@@ -41,6 +41,7 @@ const form = reactive({
   waitlistEnabled: true,
   phone: '',
   whatsapp: '',
+  image: '',
 })
 
 function staffRoleLabel(role?: string) {
@@ -110,6 +111,7 @@ function applyClubData() {
   form.waitlistEnabled = club.waitlistEnabled ?? true
   form.phone = club.phone || ''
   form.whatsapp = club.whatsapp || ''
+  form.image = club.image || ''
 }
 
 watch(data, applyClubData, { immediate: true })
@@ -135,6 +137,7 @@ async function save() {
         waitlistEnabled: form.waitlistEnabled,
         phone: form.phone || null,
         whatsapp: form.whatsapp || null,
+        image: form.image || null,
       },
     })
     saveSuccess.value = true
@@ -179,6 +182,11 @@ async function save() {
           <label class="block text-sm">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.district') }}</span>
             <input v-model="form.district" class="neo-input">
+          </label>
+          <label class="block text-sm sm:col-span-2">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.imageUrl') }}</span>
+            <input v-model="form.image" type="url" dir="ltr" class="neo-input" placeholder="https://">
+            <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.imageUrlHint') }}</span>
           </label>
           <label class="block text-sm sm:col-span-2">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressFa') }}</span>

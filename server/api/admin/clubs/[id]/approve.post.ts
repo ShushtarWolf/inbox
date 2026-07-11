@@ -1,4 +1,7 @@
 import { randomBytes } from 'node:crypto'
+import { hashSecret } from '../../../../utils/password'
+import { siteUrl } from '../../../../utils/email'
+import { sendNotification } from '../../../../utils/notify'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -20,6 +23,7 @@ export default defineEventHandler(async (event) => {
 
   let user = await prisma.user.findUnique({ where: { email: ownerEmail } })
   const tempPassword = randomBytes(12).toString('base64url')
+  const isNewUser = !user
 
   const result = await prisma.$transaction(async (tx) => {
     if (!user) {
@@ -81,9 +85,20 @@ export default defineEventHandler(async (event) => {
     return { club, user: user! }
   })
 
+  await sendNotification({
+    channel: 'email',
+    to: result.user.email,
+    template: 'CLUB_APPROVED',
+    data: {
+      clubName: application.clubName,
+      loginUrl: `${siteUrl()}/login`,
+      tempPassword: isNewUser ? tempPassword : undefined,
+    },
+  })
+
   return {
     clubId: result.club.id,
     ownerEmail: result.user.email,
-    temporaryPassword: user?.passwordHash ? undefined : tempPassword,
+    temporaryPassword: isNewUser ? tempPassword : undefined,
   }
 })

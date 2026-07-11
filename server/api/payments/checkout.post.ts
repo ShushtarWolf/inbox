@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { getPaymentService } from '../../utils/payments/service'
-import { getPaymentsMode } from '#shared/payments.ts'
+import type { PaymentProvider } from '#shared/payments.ts'
+import { getPaymentsMode, PAYMENT_CURRENCY } from '#shared/payments.ts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -16,7 +17,21 @@ export default defineEventHandler(async (event) => {
       include: { slot: true, payment: true },
     })
     if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
-    amount = booking.payment?.amount || booking.slot.price
+    if (booking.payment) {
+      return {
+        paymentId: booking.payment.id,
+        mode: getPaymentsMode(),
+        intent: {
+          id: booking.payment.id,
+          amount: booking.payment.amount,
+          currency: PAYMENT_CURRENCY,
+          status: booking.payment.status,
+          provider: booking.payment.provider as PaymentProvider,
+          providerRef: booking.payment.providerRef || undefined,
+        },
+      }
+    }
+    amount = booking.slot.price
   }
 
   const mode = getPaymentsMode()

@@ -90,7 +90,7 @@ async function syncRoute() {
         :to="localePath(`/coaches/${c.id}`)"
         class="ios-card flex items-center gap-3 p-3"
       >
-        <img :src="c.photo || '/demo/coaches/coach-1.jpg'" alt="" class="h-14 w-14 border border-brand-gray-100 object-cover shadow-venus-sm" />
+        <img :src="c.photo || '/placeholders/coach.svg'" alt="" class="h-14 w-14 border border-brand-gray-100 object-cover shadow-venus-sm" />
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <p class="font-bold">{{ localizedField(c, 'nameFa', 'nameEn') }}</p>

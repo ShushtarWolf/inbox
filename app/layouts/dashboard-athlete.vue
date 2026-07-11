@@ -6,7 +6,8 @@ const unread = computed(() => notifications.value?.unreadCount || 0)
 
 const nav = computed(() => [
   { to: localePath('/athlete'), label: t('nav.overview'), icon: 'dashboard' },
-  { to: localePath('/athlete/bookings'), label: t('nav.bookings'), icon: 'confirmation_number', badge: unread.value || undefined },
+  { to: localePath('/athlete/bookings'), label: t('nav.bookings'), icon: 'confirmation_number' },
+  { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications', badge: unread.value || undefined },
   { to: localePath('/athlete/profile'), label: t('nav.profile'), icon: 'person' },
 ])
 </script>

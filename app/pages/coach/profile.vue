@@ -8,6 +8,7 @@ const { data, pending, error, refresh } = await useAuthedFetch('/api/coach/profi
 const bioFa = ref('')
 const bioEn = ref('')
 const price = ref(0)
+const photo = ref('')
 const profileLocale = ref<'fa' | 'en'>('fa')
 
 watch(data, (d) => {
@@ -15,6 +16,7 @@ watch(data, (d) => {
     bioFa.value = d.bioFa || ''
     bioEn.value = d.bioEn || ''
     price.value = d.sessionPrice
+    photo.value = d.photo || ''
   }
 }, { immediate: true })
 
@@ -27,7 +29,7 @@ async function save() {
   const previousLocale = locale.value
   await $fetch('/api/coach/profile', {
     method: 'PATCH',
-    body: { bioFa: bioFa.value, bioEn: bioEn.value, sessionPrice: price.value, locale: profileLocale.value },
+    body: { bioFa: bioFa.value, bioEn: bioEn.value, sessionPrice: price.value, photo: photo.value || null, locale: profileLocale.value },
   })
   await setLocale(profileLocale.value)
   if (profileLocale.value !== previousLocale) {
@@ -48,6 +50,9 @@ async function save() {
       </AppFormField>
       <AppFormField :label="$t('coach.bioEn')">
         <textarea v-model="bioEn" class="neo-textarea" rows="3" dir="ltr" />
+      </AppFormField>
+      <AppFormField :label="$t('coach.photoUrl')">
+        <input v-model="photo" type="url" dir="ltr" class="neo-input" placeholder="https://">
       </AppFormField>
       <AppFormField :label="$t('owner.packagePage.coachPlaceholder')">
         <input v-model.number="price" type="number" min="0" dir="ltr" class="neo-input tabular-nums" />

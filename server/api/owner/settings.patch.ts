@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
     waitlistEnabled?: boolean
     phone?: string | null
     whatsapp?: string | null
+    image?: string | null
   }>(event)
 
   const data: Record<string, unknown> = {}
@@ -48,6 +49,13 @@ export default defineEventHandler(async (event) => {
   if (body.district !== undefined) data.district = body.district?.trim() || null
   if (body.phone !== undefined) data.phone = body.phone?.trim() || null
   if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp?.trim() || null
+  if (body.image !== undefined) {
+    const value = body.image?.trim() || null
+    if (value && !/^https?:\/\/.+/i.test(value)) {
+      throw createError({ statusCode: 400, statusMessage: 'image must be a valid http(s) URL' })
+    }
+    data.image = value
+  }
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
 
   for (const key of ['openHour', 'closeHour', 'cancellationWindowHours', 'rescheduleWindowHours'] as const) {
@@ -80,6 +88,7 @@ export default defineEventHandler(async (event) => {
     addressEn: updated.addressEn,
     phone: updated.phone,
     whatsapp: updated.whatsapp,
+    image: updated.image,
     openHour: updated.openHour,
     closeHour: updated.closeHour,
     cancellationWindowHours: updated.cancellationWindowHours,

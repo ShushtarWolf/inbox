@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: true },
+    include: { booking: true, court: true },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
@@ -31,5 +31,14 @@ export default defineEventHandler(async (event) => {
       data: { displayStatus: 'FREE' },
     })
   })
+
+  await notifyWaitlistForFreedSlot({
+    clubId: club.id,
+    courtId: slot.courtId,
+    date: slot.date,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+  })
+
   return { ok: true }
 })

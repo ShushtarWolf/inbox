@@ -22,7 +22,7 @@ function specialtyLabel(value: string) {
       :home-to="localePath('/')"
       :back-to="localePath('/coaches')"
     />
-    <img :src="coach.photo || '/demo/coaches/coach-1.jpg'" alt="" class="mx-auto h-24 w-24 border border-brand-gray-100 object-cover shadow-venus-sm" />
+    <img :src="coach.photo || '/placeholders/coach.svg'" alt="" class="mx-auto h-24 w-24 border border-brand-gray-100 object-cover shadow-venus-sm" />
     <div class="text-center">
       <div class="flex items-center justify-center gap-2">
         <span v-if="coach.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>

@@ -41,6 +41,7 @@
     "logout": "Log out",
     "account": "Account",
     "bookings": "Bookings",
+    "notifications": "Notifications",
     "profile": "Profile",
     "overview": "Overview"
   },
@@ -175,7 +176,35 @@
     "noAvailability": "No availability windows configured yet",
     "dayLabel": "Day {day}",
     "bioFa": "Biography (FA)",
-    "bioEn": "Biography (EN)"
+    "bioEn": "Biography (EN)",
+    "photoUrl": "Profile photo URL"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all read"
+  },
+  "admin": {
+    "title": "Club applications",
+    "secretPrompt": "Enter the admin provisioning secret to review applications.",
+    "secretLabel": "Admin secret",
+    "secretRequired": "Admin secret is required",
+    "invalidSecret": "Invalid admin secret",
+    "enter": "Continue",
+    "logout": "Lock admin",
+    "noApplications": "No applications yet",
+    "clubName": "Club",
+    "city": "City",
+    "contact": "Contact",
+    "sport": "Sport",
+    "status": "Status",
+    "date": "Submitted",
+    "approve": "Approve",
+    "approveTitle": "Approve club application",
+    "ownerEmail": "Owner login email",
+    "approveSuccess": "Club approved and owner notified by email.",
+    "tempPassword": "Temporary password"
   },
   "booking": {
     "payAtClub": "Pay at club",
@@ -303,7 +332,7 @@
         "title": "10. Changes and contact",
         "paragraphs": [
           "We may update this policy from time to time. Material changes will be reflected on this page with an updated date.",
-          "Questions or privacy requests: privacy{'@'}inbox.app (replace with your operational contact before public launch)."
+          "Questions or privacy requests: privacy{'@'}inbox.ir"
         ]
       }
     ],
@@ -388,7 +417,7 @@
       {
         "title": "12. Contact",
         "paragraphs": [
-          "Support and legal inquiries: support{'@'}inbox.app (replace with your operational contact before public launch)."
+          "Support and legal inquiries: support{'@'}inbox.ir"
         ]
       }
     ]
@@ -523,7 +552,7 @@
     },
     "financeCards": {
       "revenue": "Revenue",
-      "bookingsToday": "Bookings",
+      "bookingsToday": "Bookings today",
       "pending": "Pending",
       "paidRate": "Paid rate",
       "utilization": "Utilization",
@@ -648,6 +677,8 @@
       "district": "District",
       "addressFa": "Address (Farsi)",
       "addressEn": "Address (English)",
+      "imageUrl": "Cover image URL",
+      "imageUrlHint": "Paste a public https:// image link (recommended 800×600 or larger).",
       "openHour": "Open hour",
       "closeHour": "Close hour",
       "operations": "Operations",

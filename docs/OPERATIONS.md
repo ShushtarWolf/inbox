@@ -6,10 +6,16 @@
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string (Railway: reference `${{Postgres.DATABASE_URL}}`) |
 | `NUXT_SESSION_PASSWORD` | Yes | Session encryption secret (min 32 chars, not demo fallback) |
+| `NUXT_PUBLIC_SITE_URL` | Yes (prod) | Public URL for password reset and booking confirmation links |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
-| `ADMIN_PROVISION_SECRET` | Yes | Header secret for `POST /api/admin/provision` and club approval |
+| `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default), `test`, or `live` |
-| `EMAIL_ENABLED` | No | `true` to send password-reset emails (default: log only) |
+| `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only) |
+| `SMTP_HOST` | If email | SMTP server hostname |
+| `SMTP_PORT` | If email | SMTP port (typically 587 or 465) |
+| `SMTP_USER` | If email | SMTP username |
+| `SMTP_PASS` | If email | SMTP password |
+| `SMTP_FROM` | If email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
 | `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
 
 ## Database backup (PostgreSQL)
@@ -45,7 +51,14 @@ Production start sequence (`scripts/start-production.mjs`):
 
 ## Admin provisioning
 
-### Create coach or club owner (no public UI)
+### Review club applications (web UI)
+
+1. Open `/admin/applications` on the production site
+2. Enter `ADMIN_PROVISION_SECRET`
+3. Review pending applications and approve with the owner login email
+4. New owners receive a welcome email with login URL and temporary password
+
+### Create coach or club owner (API)
 
 ```bash
 curl -X POST https://shushzerv-production.up.railway.app/api/admin/provision \
