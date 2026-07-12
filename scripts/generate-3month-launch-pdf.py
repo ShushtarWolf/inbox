@@ -1,26 +1,42 @@
 #!/usr/bin/env python3
-"""Generate planning/3-month-launch.pdf — inbox 3-month launch plan (FA, RTL)."""
+"""Generate planning/3-month-launch.pdf — inbox brand book styling."""
 
+from __future__ import annotations
+
+import html
+import subprocess
 from pathlib import Path
 
-import arabic_reshaper
-from bidi.algorithm import get_display
-from fpdf import FPDF
-
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "planning" / "3-month-launch.pdf"
-FONT = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+OUT_PDF = ROOT / "planning" / "3-month-launch.pdf"
+OUT_HTML = ROOT / "planning" / ".3-month-launch-print.html"
+VAZIR_WOFF2 = (
+    ROOT
+    / "node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2"
+)
+OUTFIT_WOFF2 = (
+    ROOT / "node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2"
+)
+LOGO = ROOT / "public/brand/inbox-logo-mark.svg"
+CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-
-def fa(text: str) -> str:
-    if not text:
-        return ""
-    return get_display(arabic_reshaper.reshape(text))
-
+# Brand book — server/utils/palette.ts
+C = {
+    "primary": "#C41E1E",
+    "primaryDark": "#4A1420",
+    "gold": "#B68A3B",
+    "cream": "#F4EFE9",
+    "navy": "#2C2C2A",
+    "gray500": "#6B6B67",
+    "gray200": "#D4D2CE",
+    "gray100": "#E8E6E2",
+    "white": "#FFFFFF",
+}
 
 MONTHS = [
     {
-        "title": "ماه ۱ — زیرساخت + پایلوت بهناز (۱۳ تیر – ۱۰ مرداد ۱۴۰۵)",
+        "title": "ماه ۱ — زیرساخت + پایلوت بهناز",
+        "range": "۱۳ تیر – ۱۰ مرداد ۱۴۰۵",
         "rows": [
             ("۱", "ثبت merchant زرین‌پال", "۲۰ تیر", "۱–۲ هفته (اداری)", "۵–۱۰ م.ت ضمانت"),
             ("۲", "خط SMS + تأیید قالب", "۲۷ تیر", "۳–۷ روز (اداری)", "۵–۱۰ م.ت"),
@@ -37,12 +53,13 @@ MONTHS = [
         "output": "خروجی: پایلوت بهناز زنده — هنوز رزرو واقعی نیست",
     },
     {
-        "title": "ماه ۲ — تثبیت + soft launch (۱۱ مرداد – ۷ شهریور ۱۴۰۵)",
+        "title": "ماه ۲ — تثبیت + soft launch",
+        "range": "۱۱ مرداد – ۷ شهریور ۱۴۰۵",
         "rows": [
             ("۱۲", "رفع باگ‌های پایلوت", "۱۷ مرداد", "۱۶ ساعت", "—"),
             ("۱۳", "SMTP زنده", "۲۴ مرداد", "۴ ساعت", "~۰.۳ م.ت/ماه"),
             ("۱۴", "refund / cancel تست‌شده", "۳۱ مرداد", "۸ ساعت", "—"),
-            ("۱۵", "Google OAuth", "۷ شهریور", "۶ ساعت", "۰ (اختیاری)"),
+            ("۱۵", "Google OAuth", "۷ شهریور", "۶ ساعت", "اختیاری"),
             ("۱۶", "PWA + تست موبایل", "۷ شهریور", "۴ ساعت", "—"),
             ("۱۷", "اینماد + صفحات legal", "۷ شهریور", "۴ ساعت + اداری", "~۰.۲ م.ت"),
             ("۱۸", "مدل قیمت (اشتراک/کارمزد)", "۳۱ مرداد", "جلسه ۲ ساعت", "—"),
@@ -56,7 +73,8 @@ MONTHS = [
         "output": "خروجی: ۲ باشگاه live — آماده رزرو عمومی",
     },
     {
-        "title": "ماه ۳ — لانچ + اولین رزرو واقعی (۸ شهریور – ۵ مهر ۱۴۰۵)",
+        "title": "ماه ۳ — لانچ + اولین رزرو واقعی",
+        "range": "۸ شهریور – ۵ مهر ۱۴۰۵",
         "rows": [
             ("۲۵", "اعلام عمومی", "۱۲ شهریور", "۸ ساعت (مارکتینگ)", "۵–۱۰ م.ت"),
             ("۲۶", "مانیتورینگ ۴۸ ساعت اول", "۱۴ شهریور", "۸ ساعت", "—"),
@@ -76,7 +94,7 @@ MILESTONES = [
     ("Zarinpal + SMS live", "۳ مرداد"),
     ("پایلوت بهناز (تست)", "۱۰ مرداد"),
     ("Soft launch", "۲۸ شهریور"),
-    ("اولین رزرو واقعی", "۲۱ شهریور"),
+    ("اولین رزرو واقعی", "۲۱ شهریور", True),
     ("۳+ باشگاه فعال", "۲۶ شهریور"),
 ]
 
@@ -88,144 +106,373 @@ SUMMARY = [
 ]
 
 
-class PlanPDF(FPDF):
-    def footer(self):
-        self.set_y(-12)
-        self.set_font("ArialUni", size=8)
-        self.cell(0, 8, fa(f"صفحه {self.page_no()}"), align="C")
+def esc(text: str) -> str:
+    return html.escape(text, quote=True)
 
 
-def render_table(pdf: PlanPDF, headers: list[str], rows: list[tuple], col_widths: list[float]):
-    pdf.set_font("ArialUni", size=8)
-    pdf.set_fill_color(196, 30, 30)
-    pdf.set_text_color(255, 255, 255)
-    for i, h in enumerate(headers):
-        pdf.cell(col_widths[i], 7, fa(h), border=1, fill=True, align="C")
-    pdf.ln()
-
-    pdf.set_text_color(0, 0, 0)
-    fill = False
-    for row in rows:
-        if pdf.get_y() > 270:
-            pdf.add_page()
-            pdf.set_font("ArialUni", size=8)
-        if fill:
-            pdf.set_fill_color(244, 239, 233)
-        else:
-            pdf.set_fill_color(255, 255, 255)
-        x0, y0 = pdf.get_x(), pdf.get_y()
-        heights = []
-        lines_per_cell = []
-        for j, cell in enumerate(row):
-            pdf.set_xy(x0 + sum(col_widths[:j]), y0)
-            lines = pdf.multi_cell(col_widths[j], 5, fa(cell), border=0, split_only=True)
-            lines_per_cell.append(lines)
-            heights.append(len(lines) * 5)
-        row_h = max(max(heights), 6)
-        if y0 + row_h > 280:
-            pdf.add_page()
-            y0 = pdf.get_y()
-        for j, cell in enumerate(row):
-            pdf.set_xy(x0 + sum(col_widths[:j]), y0)
-            pdf.multi_cell(col_widths[j], 5, fa(cell), border=1, fill=fill, align="R")
-            pdf.set_xy(x0 + sum(col_widths[:j]), y0)
-            pdf.cell(col_widths[j], row_h, "", border=1, fill=fill)
-        pdf.set_xy(x0, y0 + row_h)
-        fill = not fill
+def table_rows(rows: list[tuple], *, milestone_col: int | None = None) -> str:
+    out = []
+    for i, row in enumerate(rows):
+        cells = list(row)
+        is_milestone = len(cells) > 2 and cells[-1] is True
+        if is_milestone:
+            cells = cells[:-1]
+        tr_class = "milestone" if is_milestone else ("alt" if i % 2 else "")
+        tds = "".join(f"<td>{esc(str(c))}</td>" for c in cells)
+        out.append(f'<tr class="{tr_class}">{tds}</tr>')
+    return "\n".join(out)
 
 
-def main():
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+def task_table(rows: list[tuple]) -> str:
+    body = []
+    for i, (num, task, deadline, effort, note) in enumerate(rows):
+        milestone = "milestone" if "رزرو واقعی" in task else ""
+        alt = "alt" if i % 2 else ""
+        body.append(
+            f"""<tr class="{milestone} {alt}">
+  <td class="num">{esc(num)}</td>
+  <td class="task">{esc(task)}</td>
+  <td class="deadline">{esc(deadline)}</td>
+  <td class="effort">{esc(effort)}</td>
+  <td class="note">{esc(note)}</td>
+  <td class="check">☐</td>
+</tr>"""
+        )
+    return "\n".join(body)
 
-    pdf = PlanPDF(orientation="P", unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_font("ArialUni", "", FONT)
-    pdf.add_page()
 
-    pdf.set_font("ArialUni", size=16)
-    pdf.cell(0, 12, fa("inbox — برنامه ۳ ماهه تا لانچ"), ln=True, align="C")
-    pdf.set_font("ArialUni", size=10)
-    pdf.cell(0, 8, fa("از پایلوت تا اولین رزرو واقعی (خارج از تست بهناز)"), ln=True, align="C")
-    pdf.cell(0, 6, fa("شروع: ۱۳ تیر ۱۴۰۵  |  پایان هدف: ۵ مهر ۱۴۰۵"), ln=True, align="C")
-    pdf.ln(4)
+def build_html() -> str:
+    vazir = VAZIR_WOFF2.as_uri()
+    outfit = OUTFIT_WOFF2.as_uri()
+    logo = LOGO.as_uri()
 
-    pdf.set_font("ArialUni", size=9)
-    pdf.multi_cell(
-        0,
-        5,
-        fa(
-            "تعریف رزرو واقعی: ورزشکار/باشگاه خارج از دایره تست داخلی بهناز — "
-            "با پرداخت زرین‌پال و SMS تأیید."
-        ),
-        align="R",
-    )
-    pdf.ln(3)
+    month_blocks = []
+    for m in MONTHS:
+        month_blocks.append(
+            f"""
+<section class="month">
+  <div class="month-head">
+    <h2>{esc(m["title"])}</h2>
+    <span class="month-range">{esc(m["range"])}</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>کار</th><th>مهلت</th><th>زمان اجرا</th><th>هزینه / یادداشت</th><th>☐</th>
+      </tr>
+    </thead>
+    <tbody>
+      {task_table(m["rows"])}
+    </tbody>
+  </table>
+  <p class="month-out">{esc(m["output"])}</p>
+</section>"""
+        )
 
-    headers = ["#", "کار", "مهلت", "زمان اجرا", "هزینه / یادداشت"]
-    widths = [10, 52, 22, 38, 38]
+    milestone_rows = []
+    for item in MILESTONES:
+        highlight = len(item) == 3 and item[2]
+        cls = ' class="milestone"' if highlight else ""
+        milestone_rows.append(
+            f"<tr{cls}><td>{esc(item[0])}</td><td>{esc(item[1])}</td><td>☐</td></tr>"
+        )
 
-    for month in MONTHS:
-        pdf.set_font("ArialUni", size=11)
-        pdf.set_text_color(196, 30, 30)
-        pdf.cell(0, 8, fa(month["title"]), ln=True, align="R")
-        pdf.set_text_color(0, 0, 0)
-        pdf.ln(1)
-        render_table(pdf, headers, month["rows"], widths)
-        pdf.set_font("ArialUni", size=9)
-        pdf.set_text_color(80, 80, 80)
-        pdf.cell(0, 6, fa(month["output"]), ln=True, align="R")
-        pdf.set_text_color(0, 0, 0)
-        pdf.ln(4)
+    return f"""<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>inbox — برنامه ۳ ماهه</title>
+  <style>
+    @font-face {{
+      font-family: 'Vazirmatn';
+      src: url('{vazir}') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }}
+    @font-face {{
+      font-family: 'Outfit';
+      src: url('{outfit}') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }}
 
-    pdf.add_page()
-    pdf.set_font("ArialUni", size=12)
-    pdf.cell(0, 10, fa("Milestone‌ها"), ln=True, align="R")
-    render_table(
-        pdf,
-        ["هدف", "مهلت", "انجام شد ☐"],
-        [(m, d, "☐") for m, d in MILESTONES],
-        [80, 40, 30],
-    )
-    pdf.ln(6)
+    @page {{
+      size: A4;
+      margin: 14mm 12mm 16mm;
+    }}
 
-    pdf.set_font("ArialUni", size=12)
-    pdf.cell(0, 10, fa("جمع‌بندی زمان توسعه"), ln=True, align="R")
-    render_table(pdf, ["بخش", "زمان"], SUMMARY, [100, 60])
-    pdf.ln(6)
+    * {{ box-sizing: border-box; }}
 
-    pdf.set_font("ArialUni", size=12)
-    pdf.cell(0, 10, fa("بودجه ۳ ماهه (قابل تکمیل)"), ln=True, align="R")
-    render_table(
-        pdf,
-        ["قلم", "ماه ۱", "ماه ۲", "ماه ۳", "جمع"],
-        [
-            ("VPS + دامنه", "", "", "", ""),
-            ("SMS", "", "", "", ""),
-            ("Cursor", "", "", "", ""),
-            ("حقوق توسعه", "", "", "", ""),
-            ("تبلیغ", "", "", "", ""),
-            ("حقوقی / اینماد", "", "", "", ""),
-            ("جمع", "", "", "", ""),
-        ],
-        [36, 28, 28, 28, 28],
-    )
-    pdf.ln(4)
+    body {{
+      margin: 0;
+      font-family: 'Vazirmatn', 'Outfit', system-ui, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: {C["navy"]};
+      background: {C["white"]};
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }}
 
-    pdf.set_font("ArialUni", size=12)
-    pdf.cell(0, 10, fa("درآمد هدف (قابل تکمیل)"), ln=True, align="R")
-    render_table(
-        pdf,
-        ["ماه", "باشگاه فعال", "رزرو", "درآمد (ت.)"],
-        [
-            ("۱ (تست)", "۱", "۰", "۰"),
-            ("۲", "", "", ""),
-            ("۳", "", "", ""),
-        ],
-        [30, 40, 40, 50],
-    )
+    .cover {{
+      background: linear-gradient(145deg, {C["cream"]} 0%, {C["white"]} 55%);
+      border: 1px solid {C["gray200"]};
+      border-radius: 16px;
+      padding: 22px 24px 20px;
+      margin-bottom: 22px;
+      page-break-after: avoid;
+    }}
 
-    pdf.output(str(OUT))
-    print(f"Wrote {OUT}")
+    .cover-top {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }}
+
+    .logo {{
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }}
+
+    .brand-tag {{
+      font-family: 'Outfit', sans-serif;
+      font-size: 11pt;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: {C["primary"]};
+    }}
+
+    h1 {{
+      margin: 0 0 6px;
+      font-size: 21pt;
+      font-weight: 700;
+      color: {C["primaryDark"]};
+      line-height: 1.25;
+    }}
+
+    .subtitle {{
+      margin: 0 0 10px;
+      font-size: 11.5pt;
+      color: {C["gray500"]};
+    }}
+
+    .meta {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }}
+
+    .pill {{
+      background: {C["white"]};
+      border: 1px solid {C["gray200"]};
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 9.5pt;
+      color: {C["navy"]};
+    }}
+
+    .pill strong {{ color: {C["primary"]}; }}
+
+    .intro {{
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: {C["cream"]};
+      border-right: 4px solid {C["gold"]};
+      border-radius: 10px;
+      font-size: 10pt;
+      color: {C["gray500"]};
+    }}
+
+    .month {{
+      margin-bottom: 20px;
+      break-inside: avoid-page;
+    }}
+
+    .month-head {{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid {C["primary"]};
+    }}
+
+    h2 {{
+      margin: 0;
+      font-size: 13pt;
+      font-weight: 700;
+      color: {C["primaryDark"]};
+    }}
+
+    .month-range {{
+      font-size: 9pt;
+      color: {C["gold"]};
+      font-weight: 600;
+      white-space: nowrap;
+    }}
+
+    table {{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 9.5pt;
+      border: 1px solid {C["gray200"]};
+      border-radius: 10px;
+      overflow: hidden;
+    }}
+
+    thead th {{
+      background: {C["primary"]};
+      color: {C["white"]};
+      font-weight: 600;
+      text-align: right;
+      padding: 8px 10px;
+      border-bottom: 1px solid {C["primaryDark"]};
+    }}
+
+    tbody td {{
+      padding: 7px 10px;
+      vertical-align: top;
+      border-bottom: 1px solid {C["gray200"]};
+    }}
+
+    tbody tr:last-child td {{ border-bottom: none; }}
+    tbody tr.alt {{ background: {C["cream"]}; }}
+    tbody tr.milestone {{
+      background: rgba(182, 138, 59, 0.12);
+      font-weight: 600;
+    }}
+
+    td.num {{ width: 28px; text-align: center; color: {C["primary"]}; font-weight: 700; }}
+    td.deadline {{ width: 68px; white-space: nowrap; font-weight: 600; }}
+    td.effort {{ width: 92px; color: {C["primaryDark"]}; }}
+    td.note {{ color: {C["gray500"]}; font-size: 9pt; }}
+    td.check {{ width: 28px; text-align: center; color: {C["gray500"]}; }}
+
+    .month-out {{
+      margin: 8px 2px 0;
+      font-size: 9.5pt;
+      color: {C["gray500"]};
+      font-style: normal;
+    }}
+
+    .page-break {{ page-break-before: always; }}
+
+    h3 {{
+      margin: 0 0 10px;
+      font-size: 12pt;
+      color: {C["primaryDark"]};
+      border-bottom: 1px solid {C["gray200"]};
+      padding-bottom: 6px;
+    }}
+
+    .section {{ margin-bottom: 18px; }}
+
+    .footer-note {{
+      margin-top: 16px;
+      font-size: 8.5pt;
+      color: {C["gray500"]};
+      text-align: center;
+    }}
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-top">
+      <img class="logo" src="{logo}" alt="inbox" />
+      <span class="brand-tag">inbox · shushzerv</span>
+    </div>
+    <h1>برنامه ۳ ماهه تا لانچ</h1>
+    <p class="subtitle">از پایلوت تا اولین رزرو واقعی (خارج از تست بهناز)</p>
+    <div class="meta">
+      <span class="pill"><strong>شروع:</strong> ۱۳ تیر ۱۴۰۵</span>
+      <span class="pill"><strong>پایان هدف:</strong> ۵ مهر ۱۴۰۵</span>
+      <span class="pill"><strong>توسعه:</strong> ~۱۸۰–۲۲۰ ساعت</span>
+    </div>
+  </div>
+
+  <p class="intro">
+    <strong>رزرو واقعی</strong> = ورزشکار/باشگاه خارج از دایره تست داخلی بهناز، با پرداخت زرین‌پال و SMS تأیید.
+  </p>
+
+  {''.join(month_blocks)}
+
+  <div class="page-break"></div>
+
+  <div class="section">
+    <h3>Milestone‌ها</h3>
+    <table>
+      <thead><tr><th>هدف</th><th>مهلت</th><th>☐</th></tr></thead>
+      <tbody>
+        {''.join(milestone_rows)}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>جمع‌بندی زمان توسعه</h3>
+    <table>
+      <thead><tr><th>بخش</th><th>زمان</th></tr></thead>
+      <tbody>
+        {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(a)}</td><td>{esc(b)}</td></tr>' for i,(a,b) in enumerate(SUMMARY))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>بودجه ۳ ماهه (قابل تکمیل)</h3>
+    <table>
+      <thead><tr><th>قلم</th><th>ماه ۱</th><th>ماه ۲</th><th>ماه ۳</th><th>جمع</th></tr></thead>
+      <tbody>
+        {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(r)}</td><td></td><td></td><td></td><td></td></tr>' for i,r in enumerate(["VPS + دامنه","SMS","Cursor","حقوق توسعه","تبلیغ","حقوقی / اینماد","جمع"]))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>درآمد هدف (قابل تکمیل)</h3>
+    <table>
+      <thead><tr><th>ماه</th><th>باشگاه فعال</th><th>رزرو</th><th>درآمد (ت.)</th></tr></thead>
+      <tbody>
+        <tr><td>۱ (تست)</td><td>۱</td><td>۰</td><td>۰</td></tr>
+        <tr class="alt"><td>۲</td><td></td><td></td><td></td></tr>
+        <tr><td>۳</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="footer-note">inbox brand book · Vazirmatn + Outfit · coach red #C41E1E · cream #F4EFE9</p>
+</body>
+</html>"""
+
+
+def print_pdf(html_path: Path, pdf_path: Path) -> None:
+    cmd = [
+        CHROME,
+        "--headless=new",
+        "--disable-gpu",
+        "--no-pdf-header-footer",
+        f"--print-to-pdf={pdf_path}",
+        html_path.as_uri(),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        raise RuntimeError(f"Chrome PDF failed: {result.stderr or result.stdout}")
+
+
+def main() -> None:
+    if not VAZIR_WOFF2.exists():
+        raise SystemExit(f"Missing font: {VAZIR_WOFF2}")
+    OUT_PDF.parent.mkdir(parents=True, exist_ok=True)
+    OUT_HTML.write_text(build_html(), encoding="utf-8")
+    print_pdf(OUT_HTML, OUT_PDF)
+    print(f"Wrote {OUT_PDF}")
 
 
 if __name__ == "__main__":
