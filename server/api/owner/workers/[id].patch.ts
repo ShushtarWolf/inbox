@@ -5,7 +5,7 @@ import {
   parseWorkingHours,
   serializeAccessAreas,
   serializeWorkingHours,
-} from '~/server/utils/workers'
+} from '../../../utils/workers'
 
 export default defineEventHandler(async (event) => {
   const { club, membership } = await requireOwnerClub(event, 'settings')

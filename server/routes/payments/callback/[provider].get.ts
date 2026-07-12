@@ -1,4 +1,4 @@
-import { confirmPaymentAndSync } from '../../utils/paymentSync'
+import { confirmPaymentAndSync } from '../../../utils/paymentSync'
 
 export default defineEventHandler(async (event) => {
   const provider = getRouterParam(event, 'provider')

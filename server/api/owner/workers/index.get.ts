@@ -1,4 +1,4 @@
-import { mapWorkerRecord } from '~/server/utils/workers'
+import { mapWorkerRecord } from '../../../utils/workers'
 
 export default defineEventHandler(async (event) => {
   const { club, membership } = await requireOwnerClub(event, 'settings')
