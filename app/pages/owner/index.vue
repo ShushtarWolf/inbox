@@ -64,6 +64,7 @@ const form = reactive({
   paymentStatus: 'PAY_AT_CLUB',
   comments: '',
   equipmentIds: [] as string[],
+  displayStatus: 'RESERVED',
 })
 
 const seasonForm = reactive({
@@ -215,8 +216,7 @@ function resetPanels() {
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
   if (slot.displayStatus === 'CLOSED') return 'comments'
-  if (slot.displayStatus === 'FREE') return 'reserve'
-  return null
+  return 'reserve'
 }
 
 function menuButtonClass(panel: ActivePanel) {
@@ -344,12 +344,6 @@ function openSelectionCancel() {
   activePanel.value = 'cancel'
 }
 
-function selectedCoachName() {
-  if (!selectedSlotFull.value?.booking?.coachId) return ''
-  const coach = clubCoaches.value.find((item: { id: string }) => item.id === selectedSlotFull.value?.booking?.coachId)
-  return coach ? localizedField(coach, 'nameFa', 'nameEn') : ''
-}
-
 function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
   if (!slot) return
   const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
@@ -367,6 +361,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.paymentMethod = isFree ? 'CASH' : (fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH')
   form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB')
   form.comments = isFree ? '' : (fullSlot.booking?.comments || '')
+  form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
   const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
   seasonForm.days = ['Sun']
@@ -435,9 +430,16 @@ function togglePackageDay(day: string) {
 }
 
 function reserveDisplayStatus() {
-  if (!selectedSlot.value) return 'RESERVED'
-  return selectedSlot.value.displayStatus === 'FREE' ? 'RESERVED' : selectedSlot.value.displayStatus
+  if (!selectedSlot.value) return form.displayStatus || 'RESERVED'
+  if (selectedSlot.value.displayStatus === 'FREE') return 'RESERVED'
+  return form.displayStatus || selectedSlot.value.displayStatus
 }
+
+function isEditingBooking() {
+  return Boolean(selectedSlot.value?.booking) && !batchMode.value
+}
+
+const editableSlotStatuses = ['RESERVED', 'PUBLIC', 'TEAM', 'PENDING'] as const
 
 function slotsForReserve() {
   if (batchMode.value && activePanel.value === 'reserve') return selectedSlotsFull.value
@@ -469,7 +471,7 @@ async function doReserve() {
           paymentStatus: form.paymentStatus,
           comments: form.comments,
           equipmentIds: form.equipmentIds,
-          displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+          displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
         },
       })
     }
@@ -593,7 +595,7 @@ async function saveEquipmentSelection() {
 }
 
 function reserveMenuLabel() {
-  return t('owner.reserve')
+  return isEditingBooking() ? t('owner.editBookingTitle') : t('owner.reserve')
 }
 
 function canCancelSlot() {
@@ -650,8 +652,11 @@ function guestFieldsValid() {
 
 function canSubmitReserve() {
   if (saving.value) return false
-  if (isNewReservation()) return guestFieldsValid()
-  return true
+  return guestFieldsValid()
+}
+
+function reserveFormTitle() {
+  return isEditingBooking() ? t('owner.editBookingTitle') : t('owner.reserveFormTitle')
 }
 
 function confirmReserveLabel() {
@@ -866,13 +871,8 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
-            <OwnerSlotBookingSummary
-              v-if="selectedSlotFull?.booking"
-              :slot="selectedSlotFull"
-              :coach-name="selectedCoachName()"
-            />
             <AppFormField :label="t('owner.guestName')">
-              <input v-model="form.guestName" class="neo-input" readonly>
+              <input v-model="form.guestName" class="neo-input" readonly aria-readonly="true">
             </AppFormField>
             <AppFormField :label="t('owner.guestFamily')">
               <input v-model="form.guestFamily" class="neo-input" readonly>
@@ -905,50 +905,94 @@ const legend = [
                   {{ t('common.back') }}
                 </span>
               </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.reserveFormTitle') }}</h3>
+              <h3 class="font-bold text-brand-navy">{{ reserveFormTitle() }}</h3>
             </div>
           </div>
-          <div class="venus-modal-panel-body venus-form-stack">
-            <OwnerSlotBookingSummary
-              v-if="selectedSlotFull && selectedSlotFull.displayStatus !== 'FREE'"
-              :slot="selectedSlotFull"
-              :coach-name="selectedCoachName()"
-            />
+          <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doReserve">
+            <p v-if="selectedSlotFull && selectedSlotFull.displayStatus !== 'FREE'" class="rounded-venus bg-brand-lavender px-3 py-2 text-xs font-bold text-brand-navy">
+              <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlotFull.startTime, selectedSlotFull.endTime) }}</bdi>
+              · {{ statusLabel(selectedSlotFull.displayStatus) }}
+            </p>
             <div class="venus-form-grid">
-              <AppFormField :label="t('owner.guestName')" required>
-                <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
+              <AppFormField :label="t('owner.guestName')" required field-id="owner-reserve-guest-name">
+                <input
+                  id="owner-reserve-guest-name"
+                  v-model="form.guestName"
+                  class="neo-input"
+                  autocomplete="given-name"
+                  required
+                  :aria-required="true"
+                >
               </AppFormField>
-              <AppFormField :label="t('owner.guestFamily')" required>
-                <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+              <AppFormField :label="t('owner.guestFamily')" required field-id="owner-reserve-guest-family">
+                <input
+                  id="owner-reserve-guest-family"
+                  v-model="form.guestFamily"
+                  class="neo-input"
+                  autocomplete="family-name"
+                  required
+                  :aria-required="true"
+                >
               </AppFormField>
             </div>
-            <AppFormField :label="t('owner.guestMobile')" required>
-              <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+            <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
+              <input
+                id="owner-reserve-guest-mobile"
+                v-model="form.guestMobile"
+                dir="ltr"
+                class="neo-input tabular-nums"
+                autocomplete="tel"
+                inputmode="tel"
+                required
+                :aria-required="true"
+              >
             </AppFormField>
-            <AppFormField :label="t('owner.paymentMethod')">
-              <select v-model="form.paymentMethod" class="neo-select">
+            <AppFormField v-if="isEditingBooking()" :label="t('owner.slotStatusLabel')" field-id="owner-reserve-slot-status">
+              <select id="owner-reserve-slot-status" v-model="form.displayStatus" class="neo-select">
+                <option v-for="status in editableSlotStatuses" :key="status" :value="status">
+                  {{ statusLabel(status) }}
+                </option>
+              </select>
+            </AppFormField>
+            <AppFormField :label="t('owner.paymentMethod')" field-id="owner-reserve-payment-method">
+              <select id="owner-reserve-payment-method" v-model="form.paymentMethod" class="neo-select">
                 <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
                 <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
               </select>
             </AppFormField>
-            <AppFormField :label="t('owner.paymentStatusLabel')">
-              <select v-model="form.paymentStatus" class="neo-select">
+            <AppFormField :label="t('owner.paymentStatusLabel')" field-id="owner-reserve-payment-status">
+              <select id="owner-reserve-payment-status" v-model="form.paymentStatus" class="neo-select">
                 <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
                 <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
               </select>
             </AppFormField>
-            <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-              <OwnerEquipmentPicker v-model="form.equipmentIds" :options="equipmentPickerOptions" />
+            <AppFormField :label="t('owner.equipmentsPage.selectForBooking')" field-id="owner-reserve-equipment">
+              <OwnerEquipmentPicker
+                v-model="form.equipmentIds"
+                :options="equipmentPickerOptions"
+                :aria-labelledby="'owner-reserve-equipment-label'"
+              />
             </AppFormField>
-          </div>
+            <AppFormField :label="t('owner.comments')" field-id="owner-reserve-comments">
+              <textarea id="owner-reserve-comments" v-model="form.comments" class="neo-textarea" rows="3" />
+            </AppFormField>
+          </form>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
               :court-price="courtPrice"
               :equipment-price="reserveEquipmentPrice"
             />
-            <p v-if="isNewReservation() && !guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button type="button" class="btn-primary w-full" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
+            <button
+              v-if="isEditingBooking() && canCancelSlot()"
+              type="button"
+              class="btn-ghost w-full"
+              @click="openCancelForm"
+            >
+              {{ t('owner.cancelBooking') }}
+            </button>
           </div>
         </div>
 

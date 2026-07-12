@@ -2,6 +2,7 @@
 const props = defineProps<{
   modelValue: string[]
   options: Array<{ id: string; label: string }>
+  ariaLabelledby?: string
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
@@ -18,7 +19,7 @@ function toggle(id: string) {
 </script>
 
 <template>
-  <div class="neo-equipment-picker">
+  <div class="neo-equipment-picker" :aria-labelledby="ariaLabelledby">
     <label
       v-for="option in options"
       :key="option.id"
@@ -28,6 +29,7 @@ function toggle(id: string) {
         type="checkbox"
         class="rounded border-brand-gray-300 text-brand-primary focus:ring-brand-primary"
         :checked="modelValue.includes(option.id)"
+        :aria-label="option.label"
         @change="toggle(option.id)"
       >
       <span>{{ option.label }}</span>
