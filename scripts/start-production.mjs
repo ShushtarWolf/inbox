@@ -9,6 +9,16 @@ if (!dbUrl) {
 
 const env = { ...process.env, DATABASE_URL: dbUrl }
 
+// Recover from a previously failed slot unique-index migration in production.
+try {
+  execSync('npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint', {
+    stdio: 'inherit',
+    env,
+  })
+} catch {
+  // No failed migration to resolve.
+}
+
 if (process.env.SKIP_MIGRATE !== 'true') {
   execSync('npx prisma migrate deploy', { stdio: 'inherit', env })
 }
