@@ -437,10 +437,7 @@ async function save() {
 
       <div v-if="isOwner" class="ios-card p-6 md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.workersSection') }}</h2>
-        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.workersSectionHint') }}</p>
-        <NuxtLink :to="localePath('/owner/workers')" class="btn-secondary mt-4 inline-flex">
-          {{ t('owner.settingsPage.manageWorkers') }}
-        </NuxtLink>
+        <OwnerWorkersPanel embedded />
       </div>
 
       <div v-if="isOwner" class="ios-card p-6 md:col-span-2">

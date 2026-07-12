@@ -34,7 +34,10 @@ const nav = computed(() => {
   const isOwner = role === 'OWNER'
 
   return allNavItems
-    .filter((item) => canAccessOwnerNav(item.path, permissions, isOwner))
+    .filter((item) => {
+      if (item.path === '/owner/workers' && !isOwner) return false
+      return canAccessOwnerNav(item.path, permissions, isOwner)
+    })
     .map((item) => ({
       to: localePath(item.path),
       label: t(item.labelKey),

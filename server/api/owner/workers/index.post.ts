@@ -8,7 +8,8 @@ import {
 } from '~/server/utils/workers'
 
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event, 'team')
+  const { club, membership } = await requireOwnerClub(event, 'settings')
+  requireClubOwner(membership)
   const body = await readBody<{
     firstName?: string
     lastName?: string
