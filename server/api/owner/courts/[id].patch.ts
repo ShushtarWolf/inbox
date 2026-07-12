@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     closeHour?: number | null
     image?: string | null
     facilitiesJson?: string | null
+    pricingJson?: string | null
   }>(event)
   const court = await prisma.court.findFirst({ where: { id, clubId: club.id } })
   if (!court) throw createError({ statusCode: 404, statusMessage: 'Not found' })
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
   if (body.closeHour !== undefined) data.closeHour = body.closeHour
   if (body.image !== undefined) data.image = body.image?.trim() || null
   if (body.facilitiesJson !== undefined) data.facilitiesJson = body.facilitiesJson
+  if (body.pricingJson !== undefined) data.pricingJson = body.pricingJson
   if (body.sportSlug) {
     const sport = await prisma.sport.findFirst({
       where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },

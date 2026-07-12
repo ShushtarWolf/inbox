@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'uploads:guest')
+  await enforceRateLimit(event, 'uploads:guest')
   const form = await readMultipartFormData(event)
   if (!form?.length) {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
-const { locale, setLocale } = useI18n()
-const switchLocalePath = useSwitchLocalePath()
-const { user, fetch } = useAuth()
+const { fetch } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/coach/profile')
 const { data: clubs } = await useFetch<Array<{ id: string; nameFa: string; nameEn: string; city: string }>>('/api/clubs/options')
 
@@ -13,7 +11,6 @@ const price = ref(0)
 const photo = ref('')
 const clubId = ref('')
 const credentialsText = ref('')
-const profileLocale = ref<'fa' | 'en'>('fa')
 const newDay = ref(1)
 const newStart = ref('09:00')
 const newEnd = ref('17:00')
@@ -36,13 +33,7 @@ watch(data, (d) => {
   }
 }, { immediate: true })
 
-onMounted(async () => {
-  await fetch()
-  profileLocale.value = user.value?.locale === 'en' ? 'en' : 'fa'
-})
-
 async function save() {
-  const previousLocale = locale.value
   const credentials = credentialsText.value.split('\n').map((line) => line.trim()).filter(Boolean)
   await $fetch('/api/coach/profile', {
     method: 'PATCH',
@@ -53,13 +44,8 @@ async function save() {
       photo: photo.value || null,
       clubId: clubId.value || undefined,
       credentials,
-      locale: profileLocale.value,
     },
   })
-  await setLocale(profileLocale.value)
-  if (profileLocale.value !== previousLocale) {
-    await navigateTo(switchLocalePath(profileLocale.value))
-  }
   await fetch()
   refresh()
 }
@@ -116,13 +102,6 @@ async function removeGalleryImage(id: string) {
       <AppFormField :label="$t('owner.packagePage.coachPlaceholder')">
         <input v-model.number="price" type="number" min="0" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
-      <AppFormField :label="$t('common.language')">
-        <select v-model="profileLocale" class="neo-select">
-          <option value="fa">{{ $t('common.languageFa') }}</option>
-          <option value="en">{{ $t('common.languageEn') }}</option>
-        </select>
-      </AppFormField>
-
       <section class="ios-card p-4 space-y-3">
         <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
         <div class="flex flex-wrap gap-2 text-xs">

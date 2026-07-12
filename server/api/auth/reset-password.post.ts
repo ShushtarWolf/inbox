@@ -5,7 +5,7 @@ function hashToken(token: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:reset-password')
+  await enforceRateLimit(event, 'auth:reset-password')
   const { token, password } = await readBody<{ token?: string; password?: string }>(event)
   if (!token || !password || password.length < 6) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })

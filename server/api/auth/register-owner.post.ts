@@ -2,7 +2,7 @@ import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:register-owner')
+  await enforceRateLimit(event, 'auth:register-owner')
   const body = await readBody<{
     name?: string
     email?: string

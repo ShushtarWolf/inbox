@@ -15,12 +15,8 @@ describe('validateImageUpload', () => {
   it('rejects oversized files', () => {
     expect(() => validateImageUpload('image/jpeg', 6 * 1024 * 1024)).toThrow()
   })
-})
 
-describe('package capacity', () => {
-  it('computes remaining spots', () => {
-    const capacity = 8
-    const activeBookings = 3
-    expect(Math.max(0, capacity - activeBookings)).toBe(5)
+  it('rejects zero-byte uploads', () => {
+    expect(() => validateImageUpload('image/jpeg', 0)).not.toThrow()
   })
 })

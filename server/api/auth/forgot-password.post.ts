@@ -7,7 +7,7 @@ function hashToken(token: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:forgot-password')
+  await enforceRateLimit(event, 'auth:forgot-password')
   const { email } = await readBody<{ email?: string }>(event)
   const normalized = email?.trim().toLowerCase()
 

@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     closeHour?: number | null
     image?: string | null
     facilitiesJson?: string | null
+    pricingJson?: string | null
   }>(event)
   const sport = await prisma.sport.findFirst({
     where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
       closeHour: body.closeHour ?? null,
       image: body.image?.trim() || null,
       facilitiesJson: body.facilitiesJson ?? null,
+      pricingJson: body.pricingJson ?? null,
     },
   })
 })

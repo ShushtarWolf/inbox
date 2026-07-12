@@ -16,6 +16,7 @@ const emit = defineEmits<{
 
 const { formatNumber } = useFormatters()
 const { t } = useI18n()
+const { today } = useLocalDate()
 
 const PERSIAN_WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const
 
@@ -63,6 +64,23 @@ function nextMonth() {
     return
   }
   viewMonth.value += 1
+}
+
+const todayIso = computed(() => today())
+
+const isViewingTodayMonth = computed(() => {
+  const j = isoToJalaali(todayIso.value)
+  return viewYear.value === j.jy && viewMonth.value === j.jm
+})
+
+function goToToday() {
+  const j = isoToJalaali(todayIso.value)
+  viewYear.value = j.jy
+  viewMonth.value = j.jm
+  if (props.mode === 'single') {
+    model.value = todayIso.value
+    emit('select')
+  }
 }
 
 function isInRange(iso: string) {
@@ -123,11 +141,21 @@ function cellClass(cell: { iso: string | null }) {
 <template>
   <div class="jalali-calendar rounded-venus border border-brand-gray-100 bg-white p-4 shadow-venus">
     <div class="mb-3 flex items-center justify-between gap-2">
-      <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
+      <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
         <AppIcon name="chevron_left" size="sm" />
       </button>
-      <p class="text-sm font-bold text-brand-navy">{{ monthLabel }}</p>
-      <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
+      <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
+        <p class="truncate text-sm font-bold text-brand-navy">{{ monthLabel }}</p>
+        <button
+          v-if="!isViewingTodayMonth"
+          type="button"
+          class="jalali-calendar-today shrink-0"
+          @click="goToToday"
+        >
+          {{ t('calendar.today') }}
+        </button>
+      </div>
+      <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
         <AppIcon name="chevron_right" size="sm" />
       </button>
     </div>
@@ -170,6 +198,20 @@ function cellClass(cell: { iso: string | null }) {
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
+}
+
+.jalali-calendar-today {
+  border-radius: 9999px;
+  border: 1px solid var(--sz-border);
+  background: var(--sz-bg);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sz-accent);
+}
+
+.jalali-calendar-today:hover {
+  background: var(--sz-bg-elevated);
 }
 
 .jalali-calendar-day {

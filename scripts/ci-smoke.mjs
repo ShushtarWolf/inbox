@@ -61,6 +61,10 @@ async function main() {
     console.log('[ci-smoke] server healthy')
     runScript('smoke.mjs')
     runScript('smoke-all-pages.mjs')
+    runScript('smoke-auth.mjs')
+    runScript('smoke-security.mjs')
+    runScript('smoke-seo.mjs')
+    runScript('smoke-performance.mjs')
     console.log('[ci-smoke] all checks passed')
   } catch (error) {
     exitCode = 1

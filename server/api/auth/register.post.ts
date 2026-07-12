@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:register')
+  await enforceRateLimit(event, 'auth:register')
   const body = await readBody<{ name?: string; email?: string; password?: string; locale?: string }>(event)
   const name = body.name?.trim()
   const email = body.email?.trim().toLowerCase()

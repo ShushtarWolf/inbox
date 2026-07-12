@@ -4,15 +4,19 @@ Nuxt 4 app for padel & tennis court and coach booking. PWA, FA/EN, three role da
 
 ## Setup
 
+**PostgreSQL is required** — SQLite is not supported. Use Docker Compose:
+
 ```bash
 nvm use
 npm install
-cp .env.example .env   # if needed
+cp .env.example .env   # set DATABASE_URL to postgresql://...
 docker compose up -d
 npm run db:migrate
 npm run db:seed
 npm run dev
 ```
+
+`npm run dev` runs `check-db` automatically via `predev`.
 
 Open http://localhost:3000 (FA) · http://localhost:3000/en (EN)
 
@@ -136,9 +140,21 @@ Original assets in `public/brand`, `public/icons`, `brand/palette.ts`. Planning 
 ## Scripts
 
 ```bash
+npm test            # 99 vitest unit tests
+npm run smoke:ci    # full integration (Postgres + build required)
+npm run test:e2e:ci # Playwright e2e (starts server automatically)
+npm run lint        # ESLint + vuejs-accessibility
+npm run analyze     # bundle analysis via nuxi analyze
+npm run check:db    # verify DATABASE_URL is PostgreSQL
+
 npm run db:reset    # reset + seed
 npm run build       # production build
 npm run smoke       # API smoke (needs server running)
 npm run smoke:dashboard  # dashboard HTML routes (needs server running)
 node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to production)
 ```
+
+### Provider architecture (stub only)
+
+- **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Live gateways not implemented.
+- **SMS:** `SMS_PROVIDER=log` (default). CRM and notify route through `getSmsService()` — no live gateway or OTP auth.

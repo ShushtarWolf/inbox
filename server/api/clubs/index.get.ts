@@ -1,6 +1,7 @@
-import { clubRankingScore, getQueryNumber, haversineKm, parseJsonArray, reviewSummary } from '../../utils/catalog'
+import { clubRankingScore, getQueryNumber, haversineKm, parseJsonArray } from '../../utils/catalog'
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
   const query = getQuery(event)
   const sport = query.sport as string | undefined
   const city = query.city as string | undefined
@@ -26,14 +27,14 @@ export default defineEventHandler(async (event) => {
     where,
     include: {
       courts: { include: { sport: true } },
-      reviews: true,
+      _count: { select: { reviews: true } },
     },
     orderBy: [{ featured: 'desc' }, { rating: 'desc' }, { priceFrom: 'asc' }],
   })
 
   const hydrated = clubs.map((club) => {
     const amenities = parseJsonArray(club.amenitiesJson)
-    const reviews = reviewSummary(club.reviews)
+    const reviewCount = club._count.reviews
     const distanceKm =
       typeof lat === 'number' && typeof lng === 'number' && club.lat && club.lng
         ? Number(haversineKm(lat, lng, club.lat, club.lng).toFixed(1))
@@ -47,9 +48,9 @@ export default defineEventHandler(async (event) => {
       district: club.district,
       lat: club.lat,
       lng: club.lng,
-      rating: reviews.count ? reviews.average : club.rating,
-      reviewCount: reviews.count,
-      verifiedReviewCount: reviews.verifiedCount,
+      rating: club.rating,
+      reviewCount,
+      verifiedReviewCount: 0,
       priceFrom: club.priceFrom,
       priceTo: club.priceTo,
       image: club.image,
@@ -60,8 +61,8 @@ export default defineEventHandler(async (event) => {
       sports: [...new Set(club.courts.map((court) => court.sport.slug))],
       rankingScore: clubRankingScore({
         featured: club.featured,
-        rating: reviews.count ? reviews.average : club.rating,
-        reviewCount: reviews.count,
+        rating: club.rating,
+        reviewCount,
         priceFrom: club.priceFrom,
         distanceKm,
       }),
@@ -79,4 +80,7 @@ export default defineEventHandler(async (event) => {
     if (!lat || !lng || club.distanceKm == null) return true
     return club.distanceKm <= radiusKm
   })
+}, {
+  maxAge: 60,
+  getKey: (event) => `clubs:${event.path}:${JSON.stringify(getQuery(event))}`,
 })

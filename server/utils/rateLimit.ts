@@ -1,23 +1,33 @@
 import type { H3Event } from 'h3'
-
-const buckets = new Map<string, { count: number; resetAt: number }>()
+import { checkRateLimitBucket } from '#shared/rateLimitBucket.ts'
 
 const WINDOW_MS = 60_000
 const MAX_REQUESTS = 15
 
-export function enforceRateLimit(event: H3Event, key: string) {
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
-  const bucketKey = `${key}:${ip}`
-  const now = Date.now()
-  const bucket = buckets.get(bucketKey)
-
-  if (!bucket || now >= bucket.resetAt) {
-    buckets.set(bucketKey, { count: 1, resetAt: now + WINDOW_MS })
-    return
+async function rateLimitStorage() {
+  try {
+    if (process.env.REDIS_URL) {
+      return useStorage('redis')
+    }
+  } catch {
+    // redis storage not configured
   }
+  return useStorage('cache')
+}
 
-  bucket.count += 1
-  if (bucket.count > MAX_REQUESTS) {
+export async function enforceRateLimit(event: H3Event, key: string) {
+  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+  const bucketKey = `rate:${key}:${ip}`
+  const storage = await rateLimitStorage()
+  const now = Date.now()
+
+  const existing = await storage.getItem<{ count: number; resetAt: number }>(bucketKey)
+  const result = checkRateLimitBucket(existing, now, { windowMs: WINDOW_MS, max: MAX_REQUESTS })
+
+  if (!result.allowed) {
     throw createError({ statusCode: 429, statusMessage: 'errors.rateLimited' })
   }
+
+  const ttlSeconds = Math.max(1, Math.ceil((result.bucket.resetAt - now) / 1000))
+  await storage.setItem(bucketKey, result.bucket, { ttl: ttlSeconds })
 }

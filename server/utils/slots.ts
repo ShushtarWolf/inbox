@@ -1,5 +1,6 @@
 import type { SlotDisplayStatus } from '@prisma/client'
 import { todayDateString } from '#shared/localDate.ts'
+import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 
 export function slotStatusLabel(status: SlotDisplayStatus, locale = 'fa') {
   const fa: Record<SlotDisplayStatus, string> = {
@@ -47,6 +48,7 @@ export function hourEnd(h: number) {
 export type CourtSlotInput = {
   courtId: string
   price: number
+  pricingJson?: string | null
   openHour: number
   closeHour: number
   sessionDurationMinutes?: number
@@ -83,7 +85,7 @@ export function computeMissingSlots(
         date,
         startTime,
         endTime,
-        price: court.price,
+        price: computeListedSlotPrice(court.price, startTime, court.pricingJson),
         displayStatus: 'FREE',
       })
     }
@@ -109,6 +111,7 @@ export async function ensureSlotsForDate(clubId: string, date: string) {
     courts.map((court) => ({
       courtId: court.id,
       price: court.price,
+      pricingJson: court.pricingJson,
       openHour: court.openHour ?? court.club.openHour,
       closeHour: court.closeHour ?? court.club.closeHour,
       sessionDurationMinutes: court.club.defaultSessionDurationMinutes,

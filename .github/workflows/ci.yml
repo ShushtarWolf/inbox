@@ -30,7 +30,9 @@ jobs:
       NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
       ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
       PAYMENTS_MODE: pay_at_club
+      SMS_PROVIDER: log
       BASE_URL: http://127.0.0.1:3000
+      CI: true
 
     steps:
       - uses: actions/checkout@v4
@@ -49,3 +51,5 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: node scripts/ci-smoke.mjs
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:e2e:ci

@@ -5,12 +5,13 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "TMPDIR=/tmp nuxt dev",
+    "predev": "node scripts/check-db.mjs",
     "preview": "nuxt preview --port 3000",
     "start": "node .output/server/index.mjs",
     "start:production": "node scripts/start-production.mjs",
     "postinstall": "nuxt prepare && prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "node scripts/check-db.mjs && prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
@@ -18,10 +19,20 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "smoke:pages": "node scripts/smoke-all-pages.mjs",
+    "smoke:auth": "node scripts/smoke-auth.mjs",
+    "smoke:security": "node scripts/smoke-security.mjs",
+    "smoke:seo": "node scripts/smoke-seo.mjs",
+    "smoke:performance": "node scripts/smoke-performance.mjs",
     "smoke:ci": "node scripts/ci-smoke.mjs",
+    "test:e2e:ci": "node scripts/ci-e2e.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "test": "vitest run",
-    "check:i18n": "node scripts/check-i18n.mjs"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "eslint .",
+    "analyze": "nuxi analyze",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:db": "node scripts/check-db.mjs"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"
@@ -51,7 +62,13 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@eslint/js": "^9.28.0",
+    "@playwright/test": "^1.52.0",
     "@types/jalaali-js": "^1.2.0",
+    "eslint": "^9.28.0",
+    "eslint-plugin-vue": "^10.2.0",
+    "eslint-plugin-vuejs-accessibility": "^2.4.1",
     "vitest": "^3.2.4"
   }
 }

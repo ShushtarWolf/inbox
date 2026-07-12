@@ -109,7 +109,6 @@ function goBack() {
                 {{ t('nav.home') }}
               </span>
             </NuxtLink>
-            <LocaleSwitcher />
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
               <span class="inline-flex items-center gap-1.5">
                 <AppIcon name="logout" size="sm" />
@@ -135,7 +134,6 @@ function goBack() {
             </span>
           </NuxtLink>
         </div>
-        <LocaleSwitcher />
         <AppUserShortcut
           v-if="displayName"
           :to="profilePath"

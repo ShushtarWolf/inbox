@@ -29,7 +29,6 @@ onMounted(() => {
   <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] lg:pb-0">
     <AppTopBar :nav="nav">
       <template #actions>
-        <LocaleSwitcher />
         <template v-if="!user">
           <NuxtLink :to="localePath('/login')" class="btn-primary px-4 py-2 text-xs">
             <span class="inline-flex items-center gap-1.5">

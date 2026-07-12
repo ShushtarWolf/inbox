@@ -14,6 +14,8 @@ const publicPaths = [
   '/terms',
   '/offline',
   '/clubs/apply',
+  '/forgot-password',
+  '/reset-password',
   '/en/register/owner',
   '/en/register/coach',
   '/en',
@@ -21,6 +23,7 @@ const publicPaths = [
   '/en/coaches',
   '/en/login',
   '/en/privacy',
+  '/en/forgot-password',
 ]
 
 const ownerPaths = [
@@ -118,6 +121,38 @@ async function main() {
   } catch (error) {
     console.warn(`skip manifest: ${error.message}`)
   }
+
+  // Dynamic routes from seeded data
+  try {
+    const clubsRes = await fetch(`${base}/api/clubs`)
+    const coachesRes = await fetch(`${base}/api/coaches`)
+    if (clubsRes.ok && coachesRes.ok) {
+      const clubs = await clubsRes.json()
+      const coaches = await coachesRes.json()
+      if (clubs[0]?.slug) {
+        await check(`/clubs/${clubs[0].slug}`, { label: `club ${clubs[0].slug}` })
+        console.log(`ok  dynamic /clubs/${clubs[0].slug}`)
+      }
+      if (coaches[0]?.id) {
+        await check(`/coaches/${coaches[0].id}`, { label: `coach ${coaches[0].id}` })
+        console.log(`ok  dynamic /coaches/${coaches[0].id}`)
+      }
+      if (clubs[0]?.slug) {
+        await check(`/book/court/${clubs[0].slug}`, { label: 'book court' })
+        console.log(`ok  /book/court/${clubs[0].slug}`)
+      }
+      if (coaches[0]?.id) {
+        await check(`/book/coach/${coaches[0].id}`, { label: 'book coach' })
+        console.log(`ok  /book/coach/${coaches[0].id}`)
+      }
+    }
+  } catch (error) {
+    console.warn(`skip dynamic routes: ${error.message}`)
+  }
+
+  // 404 error page renders SPA shell
+  await check('/this-route-does-not-exist-xyz', { expectStatus: 404, label: '404 page' })
+  console.log('ok  404 page')
 
   console.log('smoke-all-pages ok')
 }

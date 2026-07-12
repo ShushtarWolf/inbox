@@ -11,6 +11,7 @@ const props = defineProps<{
     openHour?: number | null
     closeHour?: number | null
     facilitiesJson?: string | null
+    pricingJson?: string | null
     sport?: { slug: string }
   } | null
   clubOpenHour: number
@@ -37,6 +38,7 @@ const form = reactive({
   closeHour: null as number | null,
   facilities: [] as string[],
   useClubHours: true,
+  pricingJson: null as string | null,
 })
 
 watch(() => props.court, (court) => {
@@ -50,6 +52,7 @@ watch(() => props.court, (court) => {
     form.closeHour = null
     form.facilities = []
     form.useClubHours = true
+    form.pricingJson = null
     return
   }
   form.nameFa = court.nameFa
@@ -61,6 +64,7 @@ watch(() => props.court, (court) => {
   form.closeHour = court.closeHour ?? null
   form.facilities = parseFacilitiesJson(court.facilitiesJson)
   form.useClubHours = court.openHour == null && court.closeHour == null
+  form.pricingJson = court.pricingJson ?? null
 }, { immediate: true })
 
 function toggleFacility(slug: string) {
@@ -81,6 +85,7 @@ function submit() {
     openHour: form.useClubHours ? null : form.openHour,
     closeHour: form.useClubHours ? null : form.closeHour,
     facilitiesJson: JSON.stringify(form.facilities),
+    pricingJson: form.pricingJson,
   })
 }
 </script>
@@ -99,6 +104,7 @@ function submit() {
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtPrice') }}</span>
         <input v-model.number="form.price" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
+        <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.basePriceHint') }}</span>
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtSport') }}</span>
@@ -123,6 +129,12 @@ function submit() {
         <input v-model.number="form.closeHour" type="number" min="1" max="24" dir="ltr" class="neo-input tabular-nums">
       </label>
     </div>
+    <OwnerCourtPricingTimeline
+      v-model="form.pricingJson"
+      :base-price="form.price"
+      :open-hour="form.useClubHours ? clubOpenHour : (form.openHour ?? clubOpenHour)"
+      :close-hour="form.useClubHours ? clubCloseHour : (form.closeHour ?? clubCloseHour)"
+    />
     <div>
       <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.settingsPage.courtFacilities') }}</p>
       <div class="flex flex-wrap gap-2">

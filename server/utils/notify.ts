@@ -1,5 +1,8 @@
 import { sendEmail } from './email'
 import { renderEmailTemplate } from './emailTemplates'
+import { renderSmsTemplate } from './sms/templates'
+import { sendSms } from './sms/service'
+import { isSmsEnabled } from '#shared/sms.ts'
 
 export type NotifyChannel = 'email' | 'sms' | 'in_app'
 
@@ -14,9 +17,9 @@ export async function sendNotification(opts: {
   to: string
   template: NotifyTemplate
   data: Record<string, unknown>
+  clubId?: string
 }) {
   const emailEnabled = process.env.EMAIL_ENABLED === 'true'
-  const smsEnabled = process.env.SMS_ENABLED === 'true'
 
   if (opts.channel === 'email' && emailEnabled) {
     const { subject, text, html } = renderEmailTemplate(opts.template, opts.data)
@@ -25,9 +28,10 @@ export async function sendNotification(opts: {
     console.log('[notify:email:fallback]', opts.template, opts.to, opts.data)
     return { sent: false, logged: true }
   }
-  if (opts.channel === 'sms' && smsEnabled) {
-    console.log('[notify:sms]', opts.template, opts.to, opts.data)
-    return { sent: true }
+
+  if (opts.channel === 'sms' && isSmsEnabled()) {
+    const body = renderSmsTemplate(opts.template, opts.data)
+    return sendSms({ to: opts.to, body, clubId: opts.clubId })
   }
 
   console.log('[notify:log]', opts.channel, opts.template, opts.to, opts.data)

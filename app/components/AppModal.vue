@@ -10,6 +10,28 @@ const emit = defineEmits<{
 }>()
 
 const dialogRef = ref<HTMLElement | null>(null)
+const previousFocus = ref<HTMLElement | null>(null)
+
+function getFocusableElements(root: HTMLElement) {
+  return [...root.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  )].filter((el) => !el.hasAttribute('disabled'))
+}
+
+function onDialogKeydown(event: KeyboardEvent) {
+  if (!props.open || event.key !== 'Tab' || !dialogRef.value) return
+  const focusable = getFocusableElements(dialogRef.value)
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
 
 function close() {
   emit('close')
@@ -26,7 +48,14 @@ watch(() => props.open, (isOpen) => {
   if (import.meta.client) {
     document.body.style.overflow = isOpen ? 'hidden' : ''
     if (isOpen) {
-      nextTick(() => dialogRef.value?.focus())
+      previousFocus.value = document.activeElement as HTMLElement | null
+      nextTick(() => {
+        dialogRef.value?.focus()
+        document.addEventListener('keydown', onDialogKeydown)
+      })
+    } else {
+      document.removeEventListener('keydown', onDialogKeydown)
+      previousFocus.value?.focus()
     }
   }
 })
@@ -40,6 +69,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (import.meta.client) {
     document.removeEventListener('keydown', onKeydown)
+    document.removeEventListener('keydown', onDialogKeydown)
     document.body.style.overflow = ''
   }
 })

@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  enforceRateLimit(event, 'auth:register-coach')
+  await enforceRateLimit(event, 'auth:register-coach')
   const body = await readBody<{
     name?: string
     email?: string

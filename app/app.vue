@@ -1,20 +1,13 @@
 <script setup lang="ts">
-const { locale } = useI18n()
-const switchLocalePath = useSwitchLocalePath()
-
-useHead(() => ({
+useHead({
   htmlAttrs: {
-    dir: locale.value === 'fa' ? 'rtl' : 'ltr',
-    lang: locale.value === 'fa' ? 'fa-IR' : 'en-US',
+    dir: 'rtl',
+    lang: 'fa-IR',
   },
   meta: [
     { name: 'theme-color', content: '#C41E1E' },
   ],
-  link: [
-    { rel: 'alternate', hreflang: 'fa-IR', href: switchLocalePath('fa') || '/' },
-    { rel: 'alternate', hreflang: 'en-US', href: switchLocalePath('en') || '/en' },
-  ],
-}))
+})
 </script>
 
 <template>
