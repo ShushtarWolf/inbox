@@ -592,7 +592,9 @@
     "financePage": {
       "weeklyChart": "Weekly revenue",
       "paymentBreakdown": "Payment methods",
-      "chartEmpty": "No revenue recorded for the past 7 days yet."
+      "chartEmpty": "No revenue recorded for the past 7 days yet.",
+      "payoutsTitle": "Payout settings",
+      "payoutsPlaceholder": "Payout account configuration will be available in a future release."
     },
     "guestName": "Guest name",
     "guestFamily": "Guest family",
@@ -657,9 +659,21 @@
       "capacity": "Capacity",
       "startDate": "Start date",
       "finishDate": "Finish date",
+      "dateRange": "Date range",
+      "dateRangeInvalid": "Finish date must be on or after start date",
+      "scheduleRequired": "Set session times for at least one selected weekday",
+      "packageLevel": "Package level",
+      "players": "Players",
+      "playerLevel": "Player level",
+      "addPlayer": "Add player",
+      "spotsRemaining": "{count} spots remaining",
       "weekdays": "Weekdays",
       "equipmentPlaceholder": "Equipment (optional)",
-      "saveStub": "Save package"
+      "saveStub": "Save package",
+      "packageLevel": "Package level",
+      "players": "Players",
+      "addPlayer": "Add player",
+      "spotsRemaining": "{count} spots remaining"
     },
     "crmPage": {
       "name": "Name",
@@ -710,7 +724,12 @@
     },
     "permissions": {
       "calendar": "Calendar & bookings",
-      "finance": "Finance",
+      "finance": "Finance (full access)",
+      "finance:view": "Finance dashboard",
+      "finance:transactions": "Transactions list",
+      "finance:reports": "Charts & reports",
+      "finance:payouts": "Payout settings",
+      "financeGroup": "Finance access",
       "crm": "CRM",
       "team": "Team & coaches",
       "settings": "Settings"
@@ -758,7 +777,22 @@
       "contacts": "Club contacts",
       "staffAccess": "Staff & access",
       "staffAccessHint": "Choose which dashboard sections each staff member can access.",
-      "ownerPermissionsReadonly": "Owners have full access and cannot be edited here."
+      "ownerPermissionsReadonly": "Owners have full access and cannot be edited here.",
+      "sessionDurations": "Session durations",
+      "sessionDurationsHint": "Choose allowed session lengths. The default drives the calendar slot grid.",
+      "minutes": "min",
+      "defaultSessionDuration": "Default session duration",
+      "amenities": "Club amenities",
+      "courtsSection": "Courts",
+      "addCourt": "Add court",
+      "courtNameFa": "Court name (Farsi)",
+      "courtNameEn": "Court name (English)",
+      "courtPrice": "Court price",
+      "courtSport": "Sport",
+      "courtImage": "Court image",
+      "courtFacilities": "Court facilities",
+      "useClubHours": "Use club default hours",
+      "confirmDeleteCourt": "Delete this court?"
     },
     "supportPage": {
       "operations": "Operations help",
@@ -774,7 +808,9 @@
       "title": "Season reserve",
       "startTime": "Start time",
       "endTime": "End time",
-      "sessionCountLabel": "{count} sessions over {weeks} weeks ({days}, {timeRange})"
+      "sessionCountLabel": "{count} sessions over {weeks} weeks ({days}, {timeRange})",
+      "perDayTimes": "custom times per day",
+      "selectWeekdays": "Select weekdays to set session times"
     },
     "packagePage": {
       "title": "Reserve with coach",

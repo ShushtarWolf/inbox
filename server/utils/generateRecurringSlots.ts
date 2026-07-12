@@ -1,5 +1,6 @@
 import { datesForWeekdays, hourFromTime } from './seasonSlots'
-import { formatHour, hourEnd } from './slots'
+import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { formatHour, hourEnd, addMinutes } from './slots'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
 
 export type RecurringGuestInfo = {
@@ -20,7 +21,8 @@ export async function generateRecurringCourtSlots(opts: {
   courtId: string
   anchorDate: string
   weekdays: string[]
-  times: string[]
+  times?: string[]
+  dayTimes?: Record<string, string[]>
   weeks?: number
   displayStatus?: 'RESERVED' | 'TEAM' | 'PENDING'
   guestInfo?: RecurringGuestInfo
@@ -53,10 +55,16 @@ export async function generateRecurringCourtSlots(opts: {
 
   for (const date of dates) {
     await ensureSlotsForDate(opts.clubId, date)
-    for (const time of opts.times) {
+    const weekday = weekdayNameFromDate(date)
+    const timesForDate = opts.dayTimes?.[weekday] ?? opts.times ?? []
+    for (const time of timesForDate) {
       const hour = hourFromTime(time)
-      if (hour < court.club.openHour || hour >= court.club.closeHour) continue
+      const openHour = court.openHour ?? court.club.openHour
+      const closeHour = court.closeHour ?? court.club.closeHour
+      if (hour < openHour || hour >= closeHour) continue
       const startTime = formatHour(hour)
+      const duration = court.club.defaultSessionDurationMinutes || 60
+      const endTime = duration === 60 ? hourEnd(hour) : addMinutes(startTime, duration)
       const existing = await prisma.slot.findFirst({
         where: { courtId: court.id, date, startTime, displayStatus: { not: 'CANCELLED' } },
         include: { booking: true },
@@ -76,7 +84,7 @@ export async function generateRecurringCourtSlots(opts: {
             courtId: court.id,
             date,
             startTime,
-            endTime: hourEnd(hour),
+            endTime,
             price: court.price,
             displayStatus: status,
           },

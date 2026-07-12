@@ -1,10 +1,24 @@
 <script setup lang="ts">
+import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
+
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
+const { user } = useAuth()
+const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
 useOwnerClubRefresh(refresh)
 const { formatCurrency, formatNumber, formatDate } = useFormatters()
+
+const activeMembership = computed(() => {
+  const memberships = user.value?.memberships || []
+  return memberships.find((item) => item.club.id === selectedClubId.value) || memberships[0]
+})
+const permissions = computed(() => parsePermissions(activeMembership.value?.permissionsJson))
+const isOwner = computed(() => activeMembership.value?.role === 'OWNER')
+const canReports = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:reports'))
+const canTransactions = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:transactions'))
+const canPayouts = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:payouts'))
 
 function formatWeekLabel(iso?: string) {
   if (!iso) return ''
@@ -43,7 +57,7 @@ function paymentStatusLabel(status: string) {
   <div class="tail-page-stack">
     <h1 class="tail-page-title">{{ $t('owner.finance') }}</h1>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
-      <div class="tail-card-grid-4">
+      <div v-if="canReports" class="tail-card-grid-4">
         <AppTailStatCard
           v-for="(val, key) in data?.stats"
           :key="key"
@@ -53,7 +67,7 @@ function paymentStatusLabel(status: string) {
         />
       </div>
 
-      <div class="tail-card-grid-3">
+      <div v-if="canReports" class="tail-card-grid-3">
         <div class="tail-card lg:col-span-2">
           <h2 class="tail-section-title mb-4">{{ t('owner.financePage.weeklyChart') }}</h2>
           <div v-if="isChartEmpty" class="tail-chart-empty">
@@ -102,7 +116,7 @@ function paymentStatusLabel(status: string) {
         </div>
       </div>
 
-      <div class="tail-card-grid-3">
+      <div v-if="canReports" class="tail-card-grid-3">
         <div class="tail-card lg:col-span-2">
           <h2 class="tail-section-title mb-4">{{ t('owner.funnelTitle') }}</h2>
           <div class="tail-card-grid-4">
@@ -123,7 +137,7 @@ function paymentStatusLabel(status: string) {
         </div>
       </div>
 
-      <AppTailTable :title="t('owner.financeTable.reservation')">
+      <AppTailTable v-if="canTransactions" :title="t('owner.financeTable.reservation')">
         <thead>
           <tr>
             <th>{{ t('owner.financeTable.reservation') }}</th>
@@ -158,6 +172,11 @@ function paymentStatusLabel(status: string) {
           </tr>
         </tbody>
       </AppTailTable>
+
+      <div v-if="canPayouts" class="tail-card">
+        <h2 class="tail-section-title mb-2">{{ t('owner.financePage.payoutsTitle') }}</h2>
+        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPlaceholder') }}</p>
+      </div>
     </AppAsyncState>
   </div>
 </template>

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
-import { countRecurringSessions, timesInRange } from '#shared/recurringSessions.ts'
+import {
+  countRecurringSessionsByDay,
+  ensureDayTimesForDays,
+  hasValidDayTimes,
+  weekdayNameFromDate,
+  type DayTimeRange,
+} from '#shared/recurringSessions.ts'
+import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -69,8 +76,7 @@ const form = reactive({
 
 const seasonForm = reactive({
   days: ['Sun'] as string[],
-  startTime: '12:00',
-  endTime: '13:00',
+  dayTimes: {} as Record<string, DayTimeRange>,
   equipmentId: '',
   comments: '',
 })
@@ -78,8 +84,7 @@ const seasonForm = reactive({
 const packageForm = reactive({
   coachId: '',
   days: ['Sun'] as string[],
-  startTime: '12:00',
-  endTime: '13:00',
+  dayTimes: {} as Record<string, DayTimeRange>,
   equipmentId: '',
   comments: '',
 })
@@ -105,6 +110,13 @@ const hours = computed(() => {
 })
 
 const courts = computed(() => data.value?.courts || [])
+const scheduleTimeOptions = computed(() => {
+  const court = courts.value.find((item: { id: string }) => item.id === selectedSlotFull.value?.courtId)
+  const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
+  const close = court?.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22
+  const step = data.value?.sessionDurationMinutes ?? 60
+  return buildHourlyOptions(open, close, step)
+})
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() =>
@@ -224,12 +236,19 @@ function menuButtonClass(panel: ActivePanel) {
   return activePanel.value === panel ? `${base} neo-menu-item-active` : base
 }
 
-function seasonTimes() {
-  return timesInRange(seasonForm.startTime, seasonForm.endTime)
+function defaultDayRange(fullSlot: { startTime: string; endTime: string }): DayTimeRange {
+  return {
+    start: fullSlot.startTime.slice(0, 5),
+    end: fullSlot.endTime.slice(0, 5),
+  }
 }
 
-function packageTimes() {
-  return timesInRange(packageForm.startTime, packageForm.endTime)
+function seasonScheduleValid() {
+  return hasValidDayTimes(seasonForm.dayTimes, seasonForm.days)
+}
+
+function packageScheduleValid() {
+  return hasValidDayTimes(packageForm.dayTimes, packageForm.days)
 }
 
 function equipmentPriceForItem(item: { category: string; price: number }) {
@@ -259,19 +278,17 @@ const reserveEquipmentPrice = computed(() => {
 const seasonEquipmentPrice = computed(() => sumEquipmentIds(seasonForm.equipmentId ? [seasonForm.equipmentId] : []))
 const packageEquipmentPrice = computed(() => sumEquipmentIds(packageForm.equipmentId ? [packageForm.equipmentId] : []))
 const seasonSessionCount = computed(() =>
-  countRecurringSessions(
+  countRecurringSessionsByDay(
+    seasonForm.dayTimes,
     seasonForm.days,
-    seasonForm.startTime,
-    seasonForm.endTime,
     selectedSlotFull.value?.date || date.value,
     RECURRING_WEEKS,
   ),
 )
 const packageSessionCount = computed(() =>
-  countRecurringSessions(
+  countRecurringSessionsByDay(
+    packageForm.dayTimes,
     packageForm.days,
-    packageForm.startTime,
-    packageForm.endTime,
     selectedSlotFull.value?.date || date.value,
     RECURRING_WEEKS,
   ),
@@ -283,7 +300,7 @@ const seasonSessionLabel = computed(() => {
     count: seasonSessionCount.value,
     weeks: RECURRING_WEEKS,
     days: dayLabels,
-    timeRange: formatTimeRange(seasonForm.startTime, seasonForm.endTime),
+    timeRange: t('owner.seasonPage.perDayTimes'),
   })
 })
 const packageSessionLabel = computed(() => {
@@ -293,7 +310,7 @@ const packageSessionLabel = computed(() => {
     count: packageSessionCount.value,
     weeks: RECURRING_WEEKS,
     days: dayLabels,
-    timeRange: formatTimeRange(packageForm.startTime, packageForm.endTime),
+    timeRange: t('owner.seasonPage.perDayTimes'),
   })
 })
 
@@ -364,15 +381,15 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
   const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
-  seasonForm.days = ['Sun']
-  seasonForm.startTime = fullSlot.startTime.slice(0, 5)
-  seasonForm.endTime = fullSlot.endTime.slice(0, 5)
+  const defaultRange = defaultDayRange(fullSlot)
+  const anchorDay = weekdayNameFromDate(fullSlot.date)
+  seasonForm.days = [anchorDay]
+  seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = fullSlot.booking?.comments || ''
   packageForm.coachId = fullSlot.booking?.coachId || ''
-  packageForm.days = ['Sun']
-  packageForm.startTime = fullSlot.startTime.slice(0, 5)
-  packageForm.endTime = fullSlot.endTime.slice(0, 5)
+  packageForm.days = [anchorDay]
+  packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.equipmentId = equipmentIds[0] || ''
   packageForm.comments = fullSlot.booking?.comments || ''
 }
@@ -422,11 +439,17 @@ function toggleDay(days: string[], day: string) {
 }
 
 function toggleSeasonDay(day: string) {
-  seasonForm.days = toggleDay(seasonForm.days, day)
+  const nextDays = toggleDay(seasonForm.days, day)
+  const fallback = Object.values(seasonForm.dayTimes)[0] || defaultDayRange(selectedSlotFull.value || { startTime: '12:00', endTime: '13:00' })
+  seasonForm.days = nextDays
+  seasonForm.dayTimes = ensureDayTimesForDays(seasonForm.dayTimes, nextDays, fallback)
 }
 
 function togglePackageDay(day: string) {
-  packageForm.days = toggleDay(packageForm.days, day)
+  const nextDays = toggleDay(packageForm.days, day)
+  const fallback = Object.values(packageForm.dayTimes)[0] || defaultDayRange(selectedSlotFull.value || { startTime: '12:00', endTime: '13:00' })
+  packageForm.days = nextDays
+  packageForm.dayTimes = ensureDayTimesForDays(packageForm.dayTimes, nextDays, fallback)
 }
 
 function reserveDisplayStatus() {
@@ -506,8 +529,7 @@ async function doCancel() {
 }
 
 async function doSeasonReserve() {
-  const times = seasonTimes()
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !times.length || !guestFieldsValid()) return
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -518,7 +540,7 @@ async function doSeasonReserve() {
         guestFamily: form.guestFamily,
         guestMobile: form.guestMobile,
         days: seasonForm.days,
-        times,
+        dayTimes: seasonForm.dayTimes,
         comments: seasonForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: seasonForm.equipmentId || undefined,
@@ -536,8 +558,7 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
-  const times = packageTimes()
-  if (!selectedSlot.value || saving.value || !packageForm.days.length || !times.length || !guestFieldsValid()) return
+  if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -549,7 +570,7 @@ async function doPackageReserve() {
         guestMobile: form.guestMobile,
         coachId: packageForm.coachId,
         days: packageForm.days,
-        times,
+        dayTimes: packageForm.dayTimes,
         comments: packageForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: packageForm.equipmentId || undefined,
@@ -1070,10 +1091,11 @@ const legend = [
                   <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
                 </AppFormField>
               </div>
-              <OwnerTimeRangePicker
-                v-model:start-time="seasonForm.startTime"
-                v-model:end-time="seasonForm.endTime"
-                class="w-full shrink-0 lg:w-44"
+              <OwnerDayTimeSchedules
+                v-model:day-times="seasonForm.dayTimes"
+                :days="seasonForm.days"
+                :options="scheduleTimeOptions"
+                class="w-full shrink-0 lg:w-52"
               />
             </div>
             <p v-if="seasonSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
@@ -1089,7 +1111,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !seasonTimes().length || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -1152,10 +1174,11 @@ const legend = [
                   <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
                 </AppFormField>
               </div>
-              <OwnerTimeRangePicker
-                v-model:start-time="packageForm.startTime"
-                v-model:end-time="packageForm.endTime"
-                class="w-full shrink-0 lg:w-44"
+              <OwnerDayTimeSchedules
+                v-model:day-times="packageForm.dayTimes"
+                :days="packageForm.days"
+                :options="scheduleTimeOptions"
+                class="w-full shrink-0 lg:w-52"
               />
             </div>
             <p v-if="packageSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
@@ -1172,7 +1195,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageTimes().length || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 

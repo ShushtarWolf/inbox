@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ALL_OWNER_PERMISSIONS, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+import { ALL_OWNER_PERMISSIONS, BASE_OWNER_PERMISSIONS, FINANCE_SUB_PERMISSIONS, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -8,7 +9,8 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatHours } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
-useOwnerClubRefresh(refresh)
+const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch('/api/owner/courts')
+useOwnerClubRefresh(() => { refresh(); refreshCourts() })
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
 const { data: staffData, refresh: refreshStaff } = await useAuthedFetch('/api/owner/staff', {
@@ -26,6 +28,10 @@ watch(isOwner, (owner) => {
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
+const courtSaving = ref(false)
+const courtError = ref('')
+const editingCourtId = ref<string | null>(null)
+const showCourtForm = ref(false)
 
 const form = reactive({
   nameFa: '',
@@ -42,6 +48,9 @@ const form = reactive({
   phone: '',
   whatsapp: '',
   image: '',
+  amenities: [] as string[],
+  sessionDurations: [60] as number[],
+  defaultSessionDurationMinutes: 60,
 })
 
 function staffRoleLabel(role?: string) {
@@ -51,12 +60,12 @@ function staffRoleLabel(role?: string) {
   return translated === key ? role : translated
 }
 
-function permissionLabel(permission: OwnerPermission) {
+function permissionLabel(permission: OwnerPermission | string) {
   return t(`owner.permissions.${permission}`)
 }
 
 function memberPermissions(member: { role: string; permissionsJson?: string | null }) {
-  if (member.role === 'OWNER') return [...ALL_OWNER_PERMISSIONS]
+  if (member.role === 'OWNER') return [...ALL_OWNER_PERMISSIONS, 'finance' as OwnerPermission]
   return parsePermissions(member.permissionsJson)
 }
 
@@ -112,6 +121,76 @@ function applyClubData() {
   form.phone = club.phone || ''
   form.whatsapp = club.whatsapp || ''
   form.image = club.image || ''
+  form.amenities = parseFacilitiesJson((club as { amenitiesJson?: string }).amenitiesJson)
+  form.sessionDurations = parseSessionDurationsJson((club as { sessionDurationsJson?: string }).sessionDurationsJson)
+  form.defaultSessionDurationMinutes = (club as { defaultSessionDurationMinutes?: number }).defaultSessionDurationMinutes ?? 60
+}
+
+function toggleAmenity(slug: string) {
+  if (form.amenities.includes(slug)) {
+    form.amenities = form.amenities.filter((item) => item !== slug)
+  } else {
+    form.amenities = [...form.amenities, slug]
+  }
+}
+
+function toggleSessionDuration(minutes: number) {
+  if (form.sessionDurations.includes(minutes)) {
+    const next = form.sessionDurations.filter((item) => item !== minutes)
+    form.sessionDurations = next.length ? next : [minutes]
+  } else {
+    form.sessionDurations = [...form.sessionDurations, minutes].sort((a, b) => a - b)
+  }
+  if (!form.sessionDurations.includes(form.defaultSessionDurationMinutes)) {
+    form.defaultSessionDurationMinutes = form.sessionDurations[0] || 60
+  }
+}
+
+async function saveCourt(body: Record<string, unknown>) {
+  courtSaving.value = true
+  courtError.value = ''
+  try {
+    if (editingCourtId.value) {
+      await $fetch(`/api/owner/courts/${editingCourtId.value}`, { method: 'PATCH', body })
+    } else {
+      await $fetch('/api/owner/courts', { method: 'POST', body })
+    }
+    editingCourtId.value = null
+    showCourtForm.value = false
+    await refreshCourts()
+    await refresh()
+  } catch {
+    courtError.value = t('common.error')
+  } finally {
+    courtSaving.value = false
+  }
+}
+
+async function deleteCourt(id: string) {
+  if (!confirm(t('owner.settingsPage.confirmDeleteCourt'))) return
+  courtSaving.value = true
+  courtError.value = ''
+  try {
+    await $fetch(`/api/owner/courts/${id}`, { method: 'DELETE' })
+    editingCourtId.value = null
+    showCourtForm.value = false
+    await refreshCourts()
+    await refresh()
+  } catch {
+    courtError.value = t('common.error')
+  } finally {
+    courtSaving.value = false
+  }
+}
+
+function startEditCourt(court: { id: string }) {
+  editingCourtId.value = court.id
+  showCourtForm.value = true
+}
+
+function startCreateCourt() {
+  editingCourtId.value = null
+  showCourtForm.value = true
 }
 
 const galleryUrl = ref('')
@@ -152,6 +231,9 @@ async function save() {
         phone: form.phone || null,
         whatsapp: form.whatsapp || null,
         image: form.image || null,
+        amenitiesJson: JSON.stringify(form.amenities),
+        sessionDurationsJson: JSON.stringify(form.sessionDurations),
+        defaultSessionDurationMinutes: form.defaultSessionDurationMinutes,
       },
     })
     saveSuccess.value = true
@@ -208,6 +290,81 @@ async function save() {
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressEn') }}</span>
             <input v-model="form.addressEn" required dir="ltr" class="neo-input">
           </label>
+        </div>
+      </div>
+
+      <div class="ios-card p-6 md:col-span-2">
+        <h2 class="font-bold">{{ t('owner.settingsPage.sessionDurations') }}</h2>
+        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.sessionDurationsHint') }}</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            v-for="minutes in DEFAULT_SESSION_DURATIONS"
+            :key="minutes"
+            type="button"
+            class="neo-pill"
+            :class="form.sessionDurations.includes(minutes) ? 'neo-pill-active' : 'neo-pill-inactive'"
+            @click="toggleSessionDuration(minutes)"
+          >
+            {{ minutes }} {{ t('owner.settingsPage.minutes') }}
+          </button>
+        </div>
+        <label class="mt-3 block text-sm">
+          <span class="mb-1 block font-bold">{{ t('owner.settingsPage.defaultSessionDuration') }}</span>
+          <select v-model.number="form.defaultSessionDurationMinutes" class="neo-select">
+            <option v-for="minutes in form.sessionDurations" :key="minutes" :value="minutes">
+              {{ minutes }} {{ t('owner.settingsPage.minutes') }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="ios-card p-6 md:col-span-2">
+        <h2 class="font-bold">{{ t('owner.settingsPage.amenities') }}</h2>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            v-for="facility in COURT_FACILITY_OPTIONS"
+            :key="facility.slug"
+            type="button"
+            class="neo-pill"
+            :class="form.amenities.includes(facility.slug) ? 'neo-pill-active' : 'neo-pill-inactive'"
+            @click="toggleAmenity(facility.slug)"
+          >
+            {{ localizedField(facility, 'nameFa', 'nameEn') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="ios-card p-6 md:col-span-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="font-bold">{{ t('owner.settingsPage.courtsSection') }}</h2>
+          <button type="button" class="btn-secondary text-sm" @click="startCreateCourt">{{ t('owner.settingsPage.addCourt') }}</button>
+        </div>
+        <p v-if="courtError" class="mt-2 text-sm text-red-600">{{ courtError }}</p>
+        <ul class="mt-3 space-y-2">
+          <li
+            v-for="court in courtsData || []"
+            :key="court.id"
+            class="flex items-center justify-between gap-2 rounded-venus border border-brand-gray-100 px-3 py-2"
+          >
+            <div>
+              <p class="font-bold">{{ localizedField(court, 'nameFa', 'nameEn') }}</p>
+              <p class="text-xs text-brand-gray-600">
+                {{ court.openHour ?? form.openHour }}:00 – {{ court.closeHour ?? form.closeHour }}:00
+              </p>
+            </div>
+            <button type="button" class="btn-ghost text-xs" @click="startEditCourt(court)">{{ t('common.edit') }}</button>
+          </li>
+        </ul>
+        <div v-if="showCourtForm" class="mt-4 border-t border-brand-gray-100 pt-4">
+          <OwnerCourtForm
+            :court="editingCourtId ? (courtsData || []).find((c: { id: string }) => c.id === editingCourtId) : null"
+            :club-open-hour="form.openHour"
+            :club-close-hour="form.closeHour"
+            :saving="courtSaving"
+            @save="saveCourt"
+            @cancel="showCourtForm = false; editingCourtId = null"
+            @delete="deleteCourt"
+          />
         </div>
       </div>
 
@@ -304,7 +461,7 @@ async function save() {
             </div>
             <div class="mt-3 grid gap-2 sm:grid-cols-2">
               <label
-                v-for="permission in ALL_OWNER_PERMISSIONS"
+                v-for="permission in BASE_OWNER_PERMISSIONS"
                 :key="`${member.id}-${permission}`"
                 class="flex items-center gap-2 text-sm"
                 :class="member.role === 'OWNER' ? 'opacity-70' : ''"
@@ -317,6 +474,25 @@ async function save() {
                 >
                 <span>{{ permissionLabel(permission) }}</span>
               </label>
+            </div>
+            <div class="mt-4">
+              <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissions.financeGroup') }}</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <label
+                  v-for="permission in FINANCE_SUB_PERMISSIONS"
+                  :key="`${member.id}-${permission}`"
+                  class="flex items-center gap-2 text-sm"
+                  :class="member.role === 'OWNER' ? 'opacity-70' : ''"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="isPermissionChecked(member, permission)"
+                    :disabled="member.role === 'OWNER'"
+                    @change="toggleMemberPermission(member, permission)"
+                  >
+                  <span>{{ permissionLabel(permission) }}</span>
+                </label>
+              </div>
             </div>
             <p v-if="member.role === 'OWNER'" class="mt-2 text-xs text-brand-gray-500">{{ t('owner.settingsPage.ownerPermissionsReadonly') }}</p>
           </li>

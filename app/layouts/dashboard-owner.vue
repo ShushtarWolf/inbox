@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { hasOwnerPermission, OWNER_NAV_PERMISSIONS, parsePermissions } from '#shared/ownerPermissions.ts'
+import { canAccessOwnerNav, parsePermissions } from '#shared/ownerPermissions.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -33,12 +33,7 @@ const nav = computed(() => {
   const isOwner = role === 'OWNER'
 
   return allNavItems
-    .filter((item) => {
-      const perm = OWNER_NAV_PERMISSIONS[item.path]
-      if (!perm) return true
-      if (isOwner) return true
-      return hasOwnerPermission(permissions, perm)
-    })
+    .filter((item) => canAccessOwnerNav(item.path, permissions, isOwner))
     .map((item) => ({
       to: localePath(item.path),
       label: t(item.labelKey),

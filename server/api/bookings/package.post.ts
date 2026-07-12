@@ -11,12 +11,13 @@ export default defineEventHandler(async (event) => {
       club: true,
       coach: true,
       bookings: { where: { status: { not: 'CANCELLED' } }, select: { id: true } },
+      players: { select: { id: true } },
     },
   })
   if (!pkg || pkg.club.status !== 'ACTIVE') {
     throw createError({ statusCode: 404, statusMessage: 'Package not found' })
   }
-  if (pkg.bookings.length >= pkg.capacity) {
+  if (pkg.bookings.length + pkg.players.length >= pkg.capacity) {
     throw createError({ statusCode: 409, statusMessage: 'Package is full' })
   }
 

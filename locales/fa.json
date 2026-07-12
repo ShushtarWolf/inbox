@@ -591,7 +591,9 @@
     "financePage": {
       "weeklyChart": "نمودار درآمد هفتگی",
       "paymentBreakdown": "روش پرداخت",
-      "chartEmpty": "هنوز درآمدی برای هفت روز گذشته ثبت نشده است."
+      "chartEmpty": "هنوز درآمدی برای هفت روز گذشته ثبت نشده است.",
+      "payoutsTitle": "تنظیمات تسویه",
+      "payoutsPlaceholder": "پیکربندی حساب تسویه در نسخه‌های بعدی اضافه می‌شود."
     },
     "guestName": "نام مهمان",
     "guestFamily": "نام خانوادگی مهمان",
@@ -656,9 +658,15 @@
       "capacity": "ظرفیت",
       "startDate": "تاریخ شروع",
       "finishDate": "تاریخ پایان",
+      "dateRange": "بازه تاریخ",
+      "dateRangeInvalid": "تاریخ پایان باید بعد از تاریخ شروع باشد",
       "weekdays": "روزهای هفته",
       "equipmentPlaceholder": "تجهیزات (اختیاری)",
-      "saveStub": "ذخیره پکیج"
+      "saveStub": "ذخیره پکیج",
+      "packageLevel": "سطح پکیج",
+      "players": "بازیکنان",
+      "addPlayer": "افزودن بازیکن",
+      "spotsRemaining": "{count} جای خالی باقی مانده"
     },
     "crmPage": {
       "name": "نام",
@@ -709,7 +717,12 @@
     },
     "permissions": {
       "calendar": "تقویم و رزرو",
-      "finance": "مالی",
+      "finance": "مالی (دسترسی کامل)",
+      "finance:view": "داشبورد مالی",
+      "finance:transactions": "فهرست تراکنش‌ها",
+      "finance:reports": "نمودارها و گزارش‌ها",
+      "finance:payouts": "تنظیمات تسویه",
+      "financeGroup": "دسترسی مالی",
       "crm": "CRM",
       "team": "تیم و مربیان",
       "settings": "تنظیمات"
@@ -757,7 +770,22 @@
       "contacts": "راه‌های تماس باشگاه",
       "staffAccess": "کارکنان و دسترسی",
       "staffAccessHint": "برای هر کارمند، بخش‌های قابل مشاهده در پنل را مشخص کنید.",
-      "ownerPermissionsReadonly": "مالک به همه بخش‌ها دسترسی دارد و قابل ویرایش نیست."
+      "ownerPermissionsReadonly": "مالک به همه بخش‌ها دسترسی دارد و قابل ویرایش نیست.",
+      "sessionDurations": "مدت سانس‌ها",
+      "sessionDurationsHint": "مدت‌های مجاز سانس را انتخاب کنید. مدت پیش‌فرض، شبکه تقویم را تعیین می‌کند.",
+      "minutes": "دقیقه",
+      "defaultSessionDuration": "مدت پیش‌فرض سانس",
+      "amenities": "امکانات باشگاه",
+      "courtsSection": "زمین‌ها",
+      "addCourt": "افزودن زمین",
+      "courtNameFa": "نام زمین (فارسی)",
+      "courtNameEn": "نام زمین (انگلیسی)",
+      "courtPrice": "قیمت زمین",
+      "courtSport": "ورزش",
+      "courtImage": "تصویر زمین",
+      "courtFacilities": "امکانات زمین",
+      "useClubHours": "استفاده از ساعت پیش‌فرض باشگاه",
+      "confirmDeleteCourt": "این زمین حذف شود؟"
     },
     "supportPage": {
       "operations": "راهنمای عملیات",
@@ -773,7 +801,9 @@
       "title": "رزرو فصلی",
       "startTime": "ساعت شروع",
       "endTime": "ساعت پایان",
-      "sessionCountLabel": "{count} سانس در {weeks} هفته ({days}، {timeRange})"
+      "sessionCountLabel": "{count} سانس در {weeks} هفته ({days}، {timeRange})",
+      "perDayTimes": "ساعت جدا برای هر روز",
+      "selectWeekdays": "روزهای هفته را انتخاب کنید تا ساعت سانس را تنظیم کنید"
     },
     "packagePage": {
       "title": "رزرو با مربی",

@@ -4,10 +4,15 @@ export default defineEventHandler(async (event) => {
   const date = (query.date as string) || todayDateStr()
   await ensureSlotsForDate(club.id, date)
 
-  const courts = await prisma.court.findMany({
+  const courtsRaw = await prisma.court.findMany({
     where: { clubId: club.id },
     orderBy: { nameFa: 'asc' },
   })
+  const courts = courtsRaw.map((court) => ({
+    ...court,
+    effectiveOpenHour: court.openHour ?? club.openHour,
+    effectiveCloseHour: court.closeHour ?? club.closeHour,
+  }))
   const slots = await prisma.slot.findMany({
     where: { court: { clubId: club.id }, date },
     include: {
@@ -22,5 +27,12 @@ export default defineEventHandler(async (event) => {
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })
 
-  return { date, courts, slots }
+  return {
+    date,
+    courts,
+    slots,
+    clubOpenHour: club.openHour,
+    clubCloseHour: club.closeHour,
+    sessionDurationMinutes: club.defaultSessionDurationMinutes,
+  }
 })

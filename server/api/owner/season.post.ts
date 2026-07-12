@@ -1,5 +1,24 @@
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
+import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
+
+function resolveDayTimes(
+  dayTimes?: Record<string, DayTimeRange>,
+  times?: string[],
+  days?: string[],
+): { storedJson: string; expanded: Record<string, string[]> } {
+  if (dayTimes && Object.keys(dayTimes).length) {
+    const expanded = expandDayTimeRanges(dayTimes)
+    return { storedJson: JSON.stringify(dayTimes), expanded }
+  }
+  if (times?.length && days?.length) {
+    const endHour = Number.parseInt(times[times.length - 1].slice(0, 2), 10) + 1
+    const legacyRange = { start: times[0], end: `${String(endHour).padStart(2, '0')}:00` }
+    const mapped = Object.fromEntries(days.map((day) => [day, legacyRange])) as Record<string, DayTimeRange>
+    return { storedJson: JSON.stringify(mapped), expanded: expandDayTimeRanges(mapped) }
+  }
+  return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
+}
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -9,6 +28,7 @@ export default defineEventHandler(async (event) => {
     guestMobile?: string
     days?: string[]
     times?: string[]
+    dayTimes?: Record<string, DayTimeRange>
     comments?: string
     slotId?: string
     equipmentId?: string
@@ -24,6 +44,8 @@ export default defineEventHandler(async (event) => {
     if (equipment) equipmentPrice = equipmentPriceAtBooking(equipment)
   }
 
+  const { storedJson, expanded } = resolveDayTimes(body.dayTimes, body.times, body.days)
+
   const record = await prisma.seasonBooking.create({
     data: {
       clubId: club.id,
@@ -31,7 +53,7 @@ export default defineEventHandler(async (event) => {
       guestFamily: body.guestFamily || '',
       guestMobile: body.guestMobile || '',
       daysJson: JSON.stringify(body.days || []),
-      timesJson: JSON.stringify(body.times || []),
+      timesJson: storedJson,
       comments: body.comments,
       equipmentId: body.equipmentId || null,
       equipmentPrice,
@@ -39,7 +61,8 @@ export default defineEventHandler(async (event) => {
   })
 
   let slotsCreated = 0
-  if (body.slotId && body.days?.length && body.times?.length) {
+  const hasSchedule = body.days?.length && Object.keys(expanded).length
+  if (body.slotId && hasSchedule) {
     const slot = await prisma.slot.findFirst({
       where: { id: body.slotId, court: { clubId: club.id } },
     })
@@ -48,8 +71,8 @@ export default defineEventHandler(async (event) => {
         clubId: club.id,
         courtId: slot.courtId,
         anchorDate: slot.date,
-        weekdays: body.days,
-        times: body.times,
+        weekdays: body.days!,
+        dayTimes: expanded,
         displayStatus: 'RESERVED',
         guestInfo: {
           guestName: body.guestName || '',

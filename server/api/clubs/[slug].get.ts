@@ -1,6 +1,8 @@
 import { parseJsonValue, reviewSummary } from '../../utils/catalog'
+import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
   const slug = getRouterParam(event, 'slug')
   const club = await prisma.club.findUnique({
     where: { slug },
@@ -28,7 +30,6 @@ export default defineEventHandler(async (event) => {
   if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })
 
   const today = todayDateStr()
-  await ensureSlotsForDate(club.id, today)
 
   const slots = await prisma.slot.findMany({
     where: { court: { clubId: club.id }, date: today, displayStatus: 'FREE' },
@@ -39,6 +40,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...club,
+    courts: club.courts.map((court) => ({
+      ...court,
+      facilities: parseFacilitiesJson(court.facilitiesJson),
+    })),
     amenities: parseJsonValue<string[]>(club.amenitiesJson, []),
     pricing: parseJsonValue<Array<Record<string, unknown>>>(club.pricingJson, []),
     policies: parseJsonValue<Array<Record<string, unknown>>>(club.policiesJson, []),
@@ -60,4 +65,7 @@ export default defineEventHandler(async (event) => {
       courtNameEn: s.court.nameEn,
     })),
   }
+}, {
+  maxAge: 60,
+  getKey: (event) => `club:${getRouterParam(event, 'slug')}`,
 })

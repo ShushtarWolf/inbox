@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
     phone?: string | null
     whatsapp?: string | null
     image?: string | null
+    amenitiesJson?: string | null
+    sessionDurationsJson?: string | null
+    defaultSessionDurationMinutes?: number
   }>(event)
 
   const data: Record<string, unknown> = {}
@@ -57,6 +60,15 @@ export default defineEventHandler(async (event) => {
     data.image = value
   }
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
+  if (body.amenitiesJson !== undefined) data.amenitiesJson = body.amenitiesJson
+  if (body.sessionDurationsJson !== undefined) data.sessionDurationsJson = body.sessionDurationsJson
+  if (body.defaultSessionDurationMinutes !== undefined) {
+    const value = Number(body.defaultSessionDurationMinutes)
+    if (!Number.isFinite(value) || value <= 0) {
+      throw createError({ statusCode: 400, statusMessage: 'defaultSessionDurationMinutes must be positive' })
+    }
+    data.defaultSessionDurationMinutes = value
+  }
 
   for (const key of ['openHour', 'closeHour', 'cancellationWindowHours', 'rescheduleWindowHours'] as const) {
     if (body[key] !== undefined) {
@@ -91,6 +103,9 @@ export default defineEventHandler(async (event) => {
     image: updated.image,
     openHour: updated.openHour,
     closeHour: updated.closeHour,
+    defaultSessionDurationMinutes: updated.defaultSessionDurationMinutes,
+    sessionDurationsJson: updated.sessionDurationsJson,
+    amenitiesJson: updated.amenitiesJson,
     cancellationWindowHours: updated.cancellationWindowHours,
     rescheduleWindowHours: updated.rescheduleWindowHours,
     waitlistEnabled: updated.waitlistEnabled,

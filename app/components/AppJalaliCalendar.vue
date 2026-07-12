@@ -2,12 +2,20 @@
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 
 const model = defineModel<string>({ required: true })
+const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
+
+const props = withDefaults(defineProps<{
+  mode?: 'single' | 'range'
+}>(), {
+  mode: 'single',
+})
 
 const emit = defineEmits<{
   select: []
 }>()
 
 const { formatNumber } = useFormatters()
+const { t } = useI18n()
 
 const PERSIAN_WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const
 
@@ -57,24 +65,69 @@ function nextMonth() {
   viewMonth.value += 1
 }
 
+function isInRange(iso: string) {
+  if (props.mode !== 'range' || !model.value || !rangeEnd.value) return false
+  const start = model.value <= rangeEnd.value ? model.value : rangeEnd.value
+  const end = model.value <= rangeEnd.value ? rangeEnd.value : model.value
+  return iso >= start && iso <= end
+}
+
+function isRangeStart(cell: { iso: string | null }) {
+  if (!cell.iso || props.mode !== 'range') return false
+  return cell.iso === model.value
+}
+
+function isRangeEnd(cell: { iso: string | null }) {
+  if (!cell.iso || props.mode !== 'range') return false
+  return cell.iso === rangeEnd.value
+}
+
 function selectDay(iso: string) {
+  if (props.mode === 'range') {
+    if (!model.value || rangeEnd.value) {
+      model.value = iso
+      rangeEnd.value = ''
+      return
+    }
+    if (iso < model.value) {
+      rangeEnd.value = model.value
+      model.value = iso
+    } else {
+      rangeEnd.value = iso
+    }
+    emit('select')
+    return
+  }
   model.value = iso
   emit('select')
 }
 
 function isSelected(cell: { iso: string | null }) {
-  return Boolean(cell.iso && cell.iso === model.value)
+  if (!cell.iso) return false
+  if (props.mode === 'range') {
+    return isRangeStart(cell) || isRangeEnd(cell)
+  }
+  return cell.iso === model.value
+}
+
+function cellClass(cell: { iso: string | null }) {
+  if (!cell.iso) return ''
+  if (props.mode === 'range' && isInRange(cell.iso)) {
+    if (isRangeStart(cell) || isRangeEnd(cell)) return 'jalali-calendar-day-selected'
+    return 'jalali-calendar-day-in-range'
+  }
+  return isSelected(cell) ? 'jalali-calendar-day-selected' : ''
 }
 </script>
 
 <template>
   <div class="jalali-calendar rounded-venus border border-brand-gray-100 bg-white p-4 shadow-venus">
     <div class="mb-3 flex items-center justify-between gap-2">
-      <button type="button" class="jalali-calendar-nav" aria-label="ماه قبل" @click="prevMonth">
+      <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
         <AppIcon name="chevron_left" size="sm" />
       </button>
       <p class="text-sm font-bold text-brand-navy">{{ monthLabel }}</p>
-      <button type="button" class="jalali-calendar-nav" aria-label="ماه بعد" @click="nextMonth">
+      <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
         <AppIcon name="chevron_right" size="sm" />
       </button>
     </div>
@@ -89,7 +142,7 @@ function isSelected(cell: { iso: string | null }) {
           v-if="cell.day && cell.iso"
           type="button"
           class="jalali-calendar-day"
-          :class="isSelected(cell) ? 'jalali-calendar-day-selected' : ''"
+          :class="cellClass(cell)"
           @click="selectDay(cell.iso!)"
         >
           {{ formatNumber(cell.day) }}
@@ -142,5 +195,10 @@ function isSelected(cell: { iso: string | null }) {
 
 .jalali-calendar-day-selected:hover {
   background: var(--sz-accent-dark);
+}
+
+.jalali-calendar-day-in-range {
+  background: color-mix(in srgb, var(--sz-accent) 18%, transparent);
+  color: var(--sz-navy);
 }
 </style>

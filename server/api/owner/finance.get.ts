@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const { club } = await requireOwnerClub(event, 'finance')
+  const { club } = await requireOwnerClub(event, 'finance:view')
   const query = getQuery(event)
   const from = query.from as string | undefined
   const to = query.to as string | undefined

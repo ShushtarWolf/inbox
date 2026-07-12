@@ -119,6 +119,7 @@ model User {
   bookings        Booking[]
   coachSessions   CoachSession[]   @relation("AthleteSessions")
   packageBookings PackageBooking[]
+  packagePlayers  PackagePlayer[]
   reviews         Review[]
   memberships     StaffMembership[]
   bookingEvents   ReservationEvent[] @relation("ReservationActor")
@@ -198,6 +199,8 @@ model Club {
   status    ClubStatus @default(ACTIVE)
   openHour  Int     @default(8)
   closeHour Int     @default(22)
+  defaultSessionDurationMinutes Int @default(60)
+  sessionDurationsJson          String?
   descriptionFa String?
   descriptionEn String?
   phone         String?
@@ -238,6 +241,10 @@ model Court {
   nameFa String
   nameEn String
   price  Int    @default(600000)
+  image  String?
+  openHour  Int?
+  closeHour Int?
+  facilitiesJson String?
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -261,6 +268,7 @@ model Slot {
 
   booking Booking?
 
+  @@unique([courtId, date, startTime])
   @@index([courtId, date])
 }
 
@@ -505,9 +513,11 @@ model PackageDraft {
   capacity   Int      @default(8)
   price      Int
   discount   Int      @default(0)
+  level      Int?
   startDate  String?
   finishDate String?
   daysJson   String?
+  timesJson  String?
   comment    String?
   createdAt  DateTime @default(now())
 
@@ -516,6 +526,22 @@ model PackageDraft {
   coachId String?
   coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
   bookings PackageBooking[]
+  players  PackagePlayer[]
+}
+
+model PackagePlayer {
+  id          String   @id @default(cuid())
+  guestName   String
+  guestMobile String?
+  level       Int?
+  createdAt   DateTime @default(now())
+
+  packageId String
+  package   PackageDraft @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  athleteId String?
+  athlete   User?        @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+
+  @@index([packageId])
 }
 
 model PackageBooking {
