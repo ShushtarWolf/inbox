@@ -808,11 +808,12 @@
       "offPeakDiscount": "Off-peak discount",
       "offPeakDiscountHint": "Apply this discount during quiet hours on listed slot prices.",
       "workersSection": "Workers",
-      "workersSectionHint": "Manage club staff with working hours, contact details, and dashboard access.",
+      "workersSectionHint": "Keep an on-site staff roster with contact details, shifts, and responsibilities. Workers are hired in person — no platform login.",
       "manageWorkers": "Manage workers"
     },
     "workersPage": {
-      "subtitle": "Add workers with contact details, working hours, and optional login credentials.",
+      "subtitle": "Add club workers hired on-site. This is separate from coaches, who are invited to the platform.",
+      "coachesNote": "Coaches (مربی) are invited separately. Workers (کارکنان) are recorded here for your internal roster only.",
       "addWorker": "Add worker",
       "addTitle": "Add worker",
       "editTitle": "Edit worker",
@@ -821,11 +822,27 @@
       "mobile": "Mobile number",
       "emergencyMobile": "Emergency number",
       "emergency": "Emergency",
-      "emailHint": "Login email (optional — creates dashboard access)",
+      "position": "Job",
       "workingHours": "Working hours",
+      "accessAreas": "Responsibilities",
+      "accessAreasHint": "Which club areas this worker handles on-site (not dashboard login).",
       "noSchedule": "No schedule set",
-      "hasLogin": "Has login",
-      "confirmDelete": "Remove this worker?"
+      "confirmDelete": "Remove this worker from the roster?"
+    },
+    "workerPositions": {
+      "RECEPTION": "Reception",
+      "MAINTENANCE": "Maintenance",
+      "SECURITY": "Security",
+      "CLEANING": "Cleaning",
+      "OTHER": "Other"
+    },
+    "workerAccess": {
+      "calendar": "Calendar & reservations",
+      "equipments": "Equipment",
+      "packages": "Packages",
+      "crm": "Customer service",
+      "finance": "Cash desk & finance",
+      "facilities": "Facilities"
     },
     "supportPage": {
       "operations": "Operations help",

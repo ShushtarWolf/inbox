@@ -100,6 +100,12 @@ enum CampaignStatus {
   SENT
 }
 
+enum WalletTransactionType {
+  REFUND_CREDIT
+  PAYMENT_DEBIT
+  ADJUSTMENT
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -126,8 +132,35 @@ model User {
   waitlistEntries WaitlistEntry[]
   passwordResetTokens PasswordResetToken[]
   notifications   Notification[]
+  wallet          Wallet?
 
   @@unique([oauthProvider, oauthSubject])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id        String                @id @default(cuid())
+  amount    Int
+  type      WalletTransactionType
+  note      String?
+  createdAt DateTime              @default(now())
+
+  walletId  String
+  wallet    Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  paymentId String?
+  bookingId String?
+
+  @@index([walletId, createdAt])
 }
 
 model PasswordResetToken {
@@ -690,28 +723,24 @@ model StaffMembership {
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId String?
   coach   Coach? @relation("MembershipCoach", fields: [coachId], references: [id], onDelete: SetNull)
-  worker  ClubWorker?
 
   @@unique([userId, clubId, role])
 }
 
 model ClubWorker {
-  id               String    @id @default(cuid())
+  id               String   @id @default(cuid())
   firstName        String
   lastName         String
   mobile           String
   emergencyMobile  String?
-  email            String?
-  role             StaffRole @default(FRONT_DESK)
+  position         String   @default("RECEPTION")
   workingHoursJson String?
-  permissionsJson  String?
-  active           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
+  accessAreasJson  String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  membershipId String? @unique
-  membership   StaffMembership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
 
   @@index([clubId, active])
 }

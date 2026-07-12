@@ -1,10 +1,9 @@
 import type { DayTimeRange } from '#shared/recurringSessions.ts'
-import { defaultPermissionsForRole, normalizePermissions, parsePermissions } from '#shared/ownerPermissions.ts'
+import { normalizeAccessAreas, normalizeWorkerPosition, parseAccessAreas } from '#shared/workerAccess.ts'
 import {
-  ensureWorkerLogin,
   mapWorkerRecord,
-  normalizeWorkerRole,
   parseWorkingHours,
+  serializeAccessAreas,
   serializeWorkingHours,
 } from '~/server/utils/workers'
 
@@ -23,51 +22,21 @@ export default defineEventHandler(async (event) => {
     lastName?: string
     mobile?: string
     emergencyMobile?: string | null
-    email?: string | null
-    role?: string
-    permissions?: string[]
+    position?: string
+    accessAreas?: string[]
     workingHours?: Record<string, DayTimeRange>
   }>(event)
 
   const firstName = body.firstName?.trim() || existing.firstName
   const lastName = body.lastName?.trim() || existing.lastName
   const mobile = body.mobile?.trim() || existing.mobile
-  const role = body.role ? normalizeWorkerRole(body.role) : existing.role
-  const permissions = body.permissions?.length
-    ? normalizePermissions(body.permissions)
-    : existing.permissionsJson
-      ? normalizePermissions(parsePermissions(existing.permissionsJson))
-      : defaultPermissionsForRole(role)
+  const position = body.position ? normalizeWorkerPosition(body.position) : normalizeWorkerPosition(existing.position)
+  const accessAreas = body.accessAreas
+    ? normalizeAccessAreas(body.accessAreas)
+    : parseAccessAreas(existing.accessAreasJson)
   const workingHours = body.workingHours
     ? parseWorkingHours(JSON.stringify(body.workingHours))
     : parseWorkingHours(existing.workingHoursJson)
-  const email = body.email !== undefined ? (body.email?.trim().toLowerCase() || null) : existing.email
-
-  let membershipId = existing.membershipId
-  let temporaryPassword: string | undefined
-
-  if (email) {
-    const login = await ensureWorkerLogin({
-      clubId: club.id,
-      email,
-      firstName,
-      lastName,
-      mobile,
-      role,
-      permissions,
-    })
-    membershipId = login.membershipId
-    temporaryPassword = login.temporaryPassword
-  } else if (membershipId) {
-    await prisma.staffMembership.update({
-      where: { id: membershipId },
-      data: {
-        role,
-        permissionsJson: JSON.stringify(permissions),
-        active: true,
-      },
-    })
-  }
 
   const worker = await prisma.clubWorker.update({
     where: { id },
@@ -78,13 +47,11 @@ export default defineEventHandler(async (event) => {
       emergencyMobile: body.emergencyMobile !== undefined
         ? (body.emergencyMobile?.trim() || null)
         : existing.emergencyMobile,
-      email,
-      role,
+      position,
       workingHoursJson: serializeWorkingHours(workingHours),
-      permissionsJson: JSON.stringify(permissions),
-      membershipId,
+      accessAreasJson: serializeAccessAreas(accessAreas),
     },
   })
 
-  return { ...mapWorkerRecord(worker), temporaryPassword }
+  return mapWorkerRecord(worker)
 })

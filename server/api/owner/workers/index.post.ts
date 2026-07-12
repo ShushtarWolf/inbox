@@ -1,10 +1,9 @@
 import type { DayTimeRange } from '#shared/recurringSessions.ts'
-import { defaultPermissionsForRole, normalizePermissions } from '#shared/ownerPermissions.ts'
+import { normalizeAccessAreas, normalizeWorkerPosition } from '#shared/workerAccess.ts'
 import {
-  ensureWorkerLogin,
   mapWorkerRecord,
-  normalizeWorkerRole,
   parseWorkingHours,
+  serializeAccessAreas,
   serializeWorkingHours,
 } from '~/server/utils/workers'
 
@@ -15,9 +14,8 @@ export default defineEventHandler(async (event) => {
     lastName?: string
     mobile?: string
     emergencyMobile?: string
-    email?: string
-    role?: string
-    permissions?: string[]
+    position?: string
+    accessAreas?: string[]
     workingHours?: Record<string, DayTimeRange>
   }>(event)
 
@@ -28,29 +26,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
-  const role = normalizeWorkerRole(body.role)
-  const permissions = body.permissions?.length
-    ? normalizePermissions(body.permissions)
-    : defaultPermissionsForRole(role)
+  const position = normalizeWorkerPosition(body.position)
+  const accessAreas = normalizeAccessAreas(body.accessAreas || [])
   const workingHours = parseWorkingHours(JSON.stringify(body.workingHours || {}))
-  const email = body.email?.trim().toLowerCase() || null
-
-  let membershipId: string | null = null
-  let temporaryPassword: string | undefined
-
-  if (email) {
-    const login = await ensureWorkerLogin({
-      clubId: club.id,
-      email,
-      firstName,
-      lastName,
-      mobile,
-      role,
-      permissions,
-    })
-    membershipId = login.membershipId
-    temporaryPassword = login.temporaryPassword
-  }
 
   const worker = await prisma.clubWorker.create({
     data: {
@@ -59,13 +37,11 @@ export default defineEventHandler(async (event) => {
       lastName,
       mobile,
       emergencyMobile: body.emergencyMobile?.trim() || null,
-      email,
-      role,
+      position,
       workingHoursJson: serializeWorkingHours(workingHours),
-      permissionsJson: JSON.stringify(permissions),
-      membershipId,
+      accessAreasJson: serializeAccessAreas(accessAreas),
     },
   })
 
-  return { ...mapWorkerRecord(worker), temporaryPassword }
+  return mapWorkerRecord(worker)
 })

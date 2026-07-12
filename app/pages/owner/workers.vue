@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import {
-  ALL_OWNER_PERMISSIONS,
-  defaultPermissionsForRole,
-  parsePermissions,
-  type OwnerPermission,
-} from '#shared/ownerPermissions.ts'
+  WORKER_ACCESS_AREAS,
+  WORKER_POSITIONS,
+  parseAccessAreas,
+  type WorkerAccessArea,
+  type WorkerPosition,
+} from '#shared/workerAccess.ts'
 import type { DayTimeRange } from '#shared/recurringSessions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -22,39 +23,33 @@ interface WorkerItem {
   lastName: string
   mobile: string
   emergencyMobile: string | null
-  email: string | null
-  role: string
+  position: WorkerPosition
   workingHours: Record<string, DayTimeRange>
-  permissionsJson: string | null
-  hasLogin: boolean
+  accessAreasJson: string | null
 }
 
 const showModal = ref(false)
 const editing = ref<WorkerItem | null>(null)
 const saving = ref(false)
 const modalError = ref('')
-const credentialResult = ref('')
 
 const form = reactive({
   firstName: '',
   lastName: '',
   mobile: '',
   emergencyMobile: '',
-  email: '',
-  role: 'FRONT_DESK',
+  position: 'RECEPTION' as WorkerPosition,
   selectedDays: [] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
-  permissions: [] as OwnerPermission[],
+  accessAreas: [] as WorkerAccessArea[],
 })
 
-function staffRoleLabel(role: string) {
-  const key = `owner.roles.${role}` as const
-  const translated = t(key)
-  return translated === key ? role : translated
+function positionLabel(position: WorkerPosition) {
+  return t(`owner.workerPositions.${position}`)
 }
 
-function permissionLabel(permission: OwnerPermission) {
-  return t(`owner.permissions.${permission}`)
+function accessAreaLabel(area: WorkerAccessArea) {
+  return t(`owner.workerAccess.${area}`)
 }
 
 function resetForm() {
@@ -62,18 +57,16 @@ function resetForm() {
   form.lastName = ''
   form.mobile = ''
   form.emergencyMobile = ''
-  form.email = ''
-  form.role = 'FRONT_DESK'
+  form.position = 'RECEPTION'
   form.selectedDays = []
   form.dayTimes = {}
-  form.permissions = [...defaultPermissionsForRole('FRONT_DESK')]
+  form.accessAreas = []
 }
 
 function openAdd() {
   editing.value = null
   resetForm()
   modalError.value = ''
-  credentialResult.value = ''
   showModal.value = true
 }
 
@@ -83,13 +76,11 @@ function openEdit(worker: WorkerItem) {
   form.lastName = worker.lastName
   form.mobile = worker.mobile
   form.emergencyMobile = worker.emergencyMobile || ''
-  form.email = worker.email || ''
-  form.role = worker.role
+  form.position = worker.position
   form.selectedDays = Object.keys(worker.workingHours)
   form.dayTimes = { ...worker.workingHours }
-  form.permissions = parsePermissions(worker.permissionsJson) as OwnerPermission[]
+  form.accessAreas = parseAccessAreas(worker.accessAreasJson)
   modalError.value = ''
-  credentialResult.value = ''
   showModal.value = true
 }
 
@@ -98,12 +89,6 @@ function closeModal() {
   editing.value = null
   modalError.value = ''
 }
-
-watch(() => form.role, (role) => {
-  if (!editing.value) {
-    form.permissions = [...defaultPermissionsForRole(role)]
-  }
-})
 
 function toggleDay(day: string) {
   if (form.selectedDays.includes(day)) {
@@ -120,11 +105,11 @@ function toggleDay(day: string) {
   }
 }
 
-function togglePermission(permission: OwnerPermission) {
-  if (form.permissions.includes(permission)) {
-    form.permissions = form.permissions.filter((item) => item !== permission)
+function toggleAccessArea(area: WorkerAccessArea) {
+  if (form.accessAreas.includes(area)) {
+    form.accessAreas = form.accessAreas.filter((item) => item !== area)
   } else {
-    form.permissions = [...form.permissions, permission]
+    form.accessAreas = [...form.accessAreas, area]
   }
 }
 
@@ -140,7 +125,6 @@ async function saveWorker() {
   if (!form.firstName.trim() || !form.lastName.trim() || !form.mobile.trim()) return
   saving.value = true
   modalError.value = ''
-  credentialResult.value = ''
   try {
     const workingHours: Record<string, DayTimeRange> = {}
     for (const day of form.selectedDays) {
@@ -151,20 +135,15 @@ async function saveWorker() {
       lastName: form.lastName.trim(),
       mobile: form.mobile.trim(),
       emergencyMobile: form.emergencyMobile.trim() || null,
-      email: form.email.trim() || null,
-      role: form.role,
-      permissions: form.permissions,
+      position: form.position,
+      accessAreas: form.accessAreas,
       workingHours,
     }
-    const res = await $fetch<{ temporaryPassword?: string }>(
+    await $fetch(
       editing.value ? `/api/owner/workers/${editing.value.id}` : '/api/owner/workers',
       { method: editing.value ? 'PATCH' : 'POST', body },
     )
-    if (res.temporaryPassword) {
-      credentialResult.value = t('owner.inviteCreated', { password: res.temporaryPassword })
-    } else {
-      closeModal()
-    }
+    closeModal()
     await refresh()
   } catch {
     modalError.value = t('common.error')
@@ -173,7 +152,7 @@ async function saveWorker() {
   }
 }
 
-async function deactivateWorker(worker: WorkerItem) {
+async function removeWorker(worker: WorkerItem) {
   if (!confirm(t('owner.workersPage.confirmDelete'))) return
   try {
     await $fetch(`/api/owner/workers/${worker.id}`, { method: 'DELETE' })
@@ -191,6 +170,7 @@ async function deactivateWorker(worker: WorkerItem) {
       <button type="button" class="btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
     <p class="text-sm text-brand-gray-600">{{ t('owner.workersPage.subtitle') }}</p>
+    <p class="text-xs text-brand-gray-500">{{ t('owner.workersPage.coachesNote') }}</p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
       <ul class="space-y-3">
@@ -199,8 +179,7 @@ async function deactivateWorker(worker: WorkerItem) {
             <div class="min-w-0 flex-1">
               <p class="font-bold">{{ worker.firstName }} {{ worker.lastName }}</p>
               <p class="mt-1 text-xs text-brand-gray-600">
-                <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ staffRoleLabel(worker.role) }}</span>
-                <span v-if="worker.hasLogin" class="ms-2 rounded-full bg-brand-lavender/60 px-2 py-0.5 font-semibold">{{ t('owner.workersPage.hasLogin') }}</span>
+                <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ positionLabel(worker.position) }}</span>
               </p>
               <p class="mt-2 text-sm">
                 <bdi dir="ltr" class="tabular-nums">{{ worker.mobile }}</bdi>
@@ -208,15 +187,14 @@ async function deactivateWorker(worker: WorkerItem) {
                   · {{ t('owner.workersPage.emergency') }}: <bdi dir="ltr" class="tabular-nums">{{ worker.emergencyMobile }}</bdi>
                 </span>
               </p>
-              <p v-if="worker.email" class="mt-1 text-xs text-brand-gray-600"><bdi dir="ltr">{{ worker.email }}</bdi></p>
               <p class="mt-2 text-xs text-brand-gray-600">{{ workingHoursSummary(worker) }}</p>
-              <p v-if="worker.permissionsJson" class="mt-1 text-[11px] text-brand-gray-500">
-                {{ parsePermissions(worker.permissionsJson).map((p) => permissionLabel(p as OwnerPermission)).join(' · ') }}
+              <p v-if="worker.accessAreasJson" class="mt-1 text-[11px] text-brand-gray-500">
+                {{ parseAccessAreas(worker.accessAreasJson).map((area) => accessAreaLabel(area)).join(' · ') }}
               </p>
             </div>
             <div class="flex shrink-0 gap-2">
               <button type="button" class="text-xs text-brand-gray-600" @click="openEdit(worker)">{{ t('common.edit') }}</button>
-              <button type="button" class="text-xs text-red-600" @click="deactivateWorker(worker)">{{ t('owner.deactivate') }}</button>
+              <button type="button" class="text-xs text-red-600" @click="removeWorker(worker)">{{ t('common.delete') }}</button>
             </div>
           </div>
         </li>
@@ -248,14 +226,11 @@ async function deactivateWorker(worker: WorkerItem) {
                 <input v-model="form.emergencyMobile" type="tel" dir="ltr" class="neo-input tabular-nums">
               </AppFormField>
             </div>
-            <AppFormField :label="t('owner.workersPage.emailHint')">
-              <input v-model="form.email" type="email" dir="ltr" class="neo-input" autocomplete="email">
-            </AppFormField>
-            <AppFormField :label="t('owner.settingsPage.role')">
-              <select v-model="form.role" class="neo-select">
-                <option value="MANAGER">{{ t('owner.roles.MANAGER') }}</option>
-                <option value="FRONT_DESK">{{ t('owner.roles.FRONT_DESK') }}</option>
-                <option value="ANALYST">{{ t('owner.roles.ANALYST') }}</option>
+            <AppFormField :label="t('owner.workersPage.position')">
+              <select v-model="form.position" class="neo-select">
+                <option v-for="position in WORKER_POSITIONS" :key="position" :value="position">
+                  {{ positionLabel(position) }}
+                </option>
               </select>
             </AppFormField>
 
@@ -281,21 +256,21 @@ async function deactivateWorker(worker: WorkerItem) {
             </div>
 
             <div class="ios-card bg-brand-lavender/40 p-3">
-              <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissionsTitle') }}</p>
+              <p class="mb-1 text-xs font-bold text-brand-gray-600">{{ t('owner.workersPage.accessAreas') }}</p>
+              <p class="mb-2 text-[11px] text-brand-gray-500">{{ t('owner.workersPage.accessAreasHint') }}</p>
               <div class="grid gap-2 sm:grid-cols-2">
-                <label v-for="permission in ALL_OWNER_PERMISSIONS" :key="permission" class="flex items-center gap-2 text-sm">
+                <label v-for="area in WORKER_ACCESS_AREAS" :key="area" class="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    :checked="form.permissions.includes(permission)"
-                    @change="togglePermission(permission)"
+                    :checked="form.accessAreas.includes(area)"
+                    @change="toggleAccessArea(area)"
                   >
-                  <span>{{ permissionLabel(permission) }}</span>
+                  <span>{{ accessAreaLabel(area) }}</span>
                 </label>
               </div>
             </div>
           </div>
           <div class="venus-modal-footer">
-            <p v-if="credentialResult" class="text-sm text-brand-gray-600">{{ credentialResult }}</p>
             <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
             <div class="flex gap-3">
               <button
