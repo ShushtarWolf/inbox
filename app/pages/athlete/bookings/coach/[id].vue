@@ -99,7 +99,7 @@ async function rescheduleSession() {
       <AppDateInput v-model="rescheduleDate" />
       <select v-model="startTime" class="neo-input" dir="ltr">
         <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">
-          {{ formatTimeRange(slot.startTime, slot.endTime) }}
+          {{ formatTimeRange(slot.startTime, slot.endTime) }} — {{ formatCurrency(availability?.sessionPrice || session.price) }}
         </option>
       </select>
       <p v-if="availability && !availability.slots?.length" class="text-sm text-brand-gray-600">{{ $t('booking.noSlots') }}</p>

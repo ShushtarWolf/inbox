@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
+import { countRecurringSessions, timesInRange } from '#shared/recurringSessions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -34,9 +35,7 @@ interface OwnerCalendarSlot {
 
 type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | null
 
-const DAY_MAP: Record<string, number> = {
-  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-}
+const RECURRING_WEEKS = 8
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
@@ -47,6 +46,8 @@ const date = ref(today())
 const showDatePicker = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
+const selectedSlotIds = ref<string[]>([])
+const selectionCourtId = ref<string | null>(null)
 const showMenu = ref(false)
 const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
@@ -67,7 +68,8 @@ const form = reactive({
 
 const seasonForm = reactive({
   days: ['Sun'] as string[],
-  times: ['12:00'],
+  startTime: '12:00',
+  endTime: '13:00',
   equipmentId: '',
   comments: '',
 })
@@ -75,7 +77,8 @@ const seasonForm = reactive({
 const packageForm = reactive({
   coachId: '',
   days: ['Sun'] as string[],
-  times: ['12:00'],
+  startTime: '12:00',
+  endTime: '13:00',
   equipmentId: '',
   comments: '',
 })
@@ -89,7 +92,10 @@ const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/calen
 
 useOwnerClubRefresh(refresh)
 
-watch(date, () => refresh())
+watch(date, () => {
+  clearSelection()
+  refresh()
+})
 
 const hours = computed(() => {
   const set = new Set<string>()
@@ -109,7 +115,28 @@ const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
   return data.value?.slots?.find((s: { id: string }) => s.id === selectedSlot.value!.id) || selectedSlot.value
 })
-const courtPrice = computed(() => selectedSlotFull.value?.price ?? 0)
+const selectedSlotsFull = computed(() =>
+  selectedSlotIds.value
+    .map((id) => data.value?.slots?.find((s: OwnerCalendarSlot) => s.id === id))
+    .filter(Boolean)
+    .sort((a: OwnerCalendarSlot, b: OwnerCalendarSlot) => a.startTime.localeCompare(b.startTime)) as OwnerCalendarSlot[],
+)
+const selectionCourt = computed(() =>
+  courts.value.find((court: { id: string }) => court.id === selectionCourtId.value) || null,
+)
+const batchMode = computed(() => selectedSlotIds.value.length > 1 && showMenu.value)
+const canBatchReserve = computed(() =>
+  selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
+)
+const canBatchCancel = computed(() =>
+  selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => Boolean(slot.booking)),
+)
+const courtPrice = computed(() => {
+  if (batchMode.value && activePanel.value === 'reserve') {
+    return selectedSlotsFull.value.reduce((sum, slot) => sum + (slot.price ?? 0), 0)
+  }
+  return selectedSlotFull.value?.price ?? 0
+})
 const selectedCoach = computed(() => {
   if (!packageForm.coachId) return null
   return clubCoaches.value.find((coach: { id: string }) => coach.id === packageForm.coachId) || null
@@ -197,18 +224,12 @@ function menuButtonClass(panel: ActivePanel) {
   return activePanel.value === panel ? `${base} neo-menu-item-active` : base
 }
 
-function countRecurringSessions(days: string[], times: string[], anchorDate?: string, weeks = 8) {
-  const wanted = new Set(days.map((day) => DAY_MAP[day]).filter((value) => value !== undefined))
-  if (!wanted.size || !times.length) return 0
-  const anchor = anchorDate || date.value
-  const start = new Date(`${anchor}T12:00:00Z`)
-  let dateCount = 0
-  for (let offset = 0; offset < weeks * 7; offset += 1) {
-    const day = new Date(start)
-    day.setUTCDate(start.getUTCDate() + offset)
-    if (wanted.has(day.getUTCDay())) dateCount += 1
-  }
-  return dateCount * times.length
+function seasonTimes() {
+  return timesInRange(seasonForm.startTime, seasonForm.endTime)
+}
+
+function packageTimes() {
+  return timesInRange(packageForm.startTime, packageForm.endTime)
 }
 
 function equipmentPriceForItem(item: { category: string; price: number }) {
@@ -228,19 +249,111 @@ function equipmentOptionLabel(item: { nameFa: string; nameEn: string; category: 
   return `${name} — ${formatCurrency(item.price)}`
 }
 
-const reserveEquipmentPrice = computed(() => sumEquipmentIds(form.equipmentIds))
+const reserveEquipmentPrice = computed(() => {
+  const base = sumEquipmentIds(form.equipmentIds)
+  if (batchMode.value && activePanel.value === 'reserve') {
+    return base * selectedSlotsFull.value.length
+  }
+  return base
+})
 const seasonEquipmentPrice = computed(() => sumEquipmentIds(seasonForm.equipmentId ? [seasonForm.equipmentId] : []))
 const packageEquipmentPrice = computed(() => sumEquipmentIds(packageForm.equipmentId ? [packageForm.equipmentId] : []))
 const seasonSessionCount = computed(() =>
-  countRecurringSessions(seasonForm.days, seasonForm.times, selectedSlotFull.value?.date),
+  countRecurringSessions(
+    seasonForm.days,
+    seasonForm.startTime,
+    seasonForm.endTime,
+    selectedSlotFull.value?.date || date.value,
+    RECURRING_WEEKS,
+  ),
 )
 const packageSessionCount = computed(() =>
-  countRecurringSessions(packageForm.days, packageForm.times, selectedSlotFull.value?.date),
+  countRecurringSessions(
+    packageForm.days,
+    packageForm.startTime,
+    packageForm.endTime,
+    selectedSlotFull.value?.date || date.value,
+    RECURRING_WEEKS,
+  ),
 )
+const seasonSessionLabel = computed(() => {
+  if (!seasonSessionCount.value || !seasonForm.days.length) return ''
+  const dayLabels = seasonForm.days.map((day) => t(`owner.weekdays.${day}`)).join(locale.value === 'fa' ? ' و ' : ' & ')
+  return t('owner.seasonPage.sessionCountLabel', {
+    count: seasonSessionCount.value,
+    weeks: RECURRING_WEEKS,
+    days: dayLabels,
+    timeRange: formatTimeRange(seasonForm.startTime, seasonForm.endTime),
+  })
+})
+const packageSessionLabel = computed(() => {
+  if (!packageSessionCount.value || !packageForm.days.length) return ''
+  const dayLabels = packageForm.days.map((day) => t(`owner.weekdays.${day}`)).join(locale.value === 'fa' ? ' و ' : ' & ')
+  return t('owner.seasonPage.sessionCountLabel', {
+    count: packageSessionCount.value,
+    weeks: RECURRING_WEEKS,
+    days: dayLabels,
+    timeRange: formatTimeRange(packageForm.startTime, packageForm.endTime),
+  })
+})
 
-function openSlot(slot: OwnerCalendarSlot | null | undefined) {
+function clearSelection() {
+  selectedSlotIds.value = []
+  selectionCourtId.value = null
+}
+
+function isSlotSelected(slot: OwnerCalendarSlot) {
+  return selectedSlotIds.value.includes(slot.id)
+}
+
+function toggleFreeSlot(slot: OwnerCalendarSlot) {
+  if (selectionCourtId.value && selectionCourtId.value !== slot.courtId) {
+    selectedSlotIds.value = [slot.id]
+    selectionCourtId.value = slot.courtId
+    return
+  }
+  if (isSlotSelected(slot)) {
+    selectedSlotIds.value = selectedSlotIds.value.filter((id) => id !== slot.id)
+    if (!selectedSlotIds.value.length) selectionCourtId.value = null
+    return
+  }
+  if (!selectionCourtId.value) selectionCourtId.value = slot.courtId
+  selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
+}
+
+function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
   const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  if (fullSlot.displayStatus !== 'FREE') {
+    clearSelection()
+    openSlot(fullSlot)
+    return
+  }
+  toggleFreeSlot(fullSlot)
+}
+
+function openSelectionReserve() {
+  if (!canBatchReserve.value || !selectedSlotsFull.value.length) return
+  openSlot(selectedSlotsFull.value[0], { keepSelection: true })
+  activePanel.value = 'reserve'
+}
+
+function openSelectionCancel() {
+  if (!canBatchCancel.value || !selectedSlotsFull.value.length) return
+  openSlot(selectedSlotsFull.value[0], { keepSelection: true })
+  activePanel.value = 'cancel'
+}
+
+function selectedCoachName() {
+  if (!selectedSlotFull.value?.booking?.coachId) return ''
+  const coach = clubCoaches.value.find((item: { id: string }) => item.id === selectedSlotFull.value?.booking?.coachId)
+  return coach ? localizedField(coach, 'nameFa', 'nameEn') : ''
+}
+
+function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
+  if (!slot) return
+  const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  if (!opts?.keepSelection) clearSelection()
   selectedSlot.value = fullSlot
   showMenu.value = true
   resetPanels()
@@ -257,12 +370,14 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined) {
   const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
   seasonForm.days = ['Sun']
-  seasonForm.times = [fullSlot.startTime.slice(0, 5)]
+  seasonForm.startTime = fullSlot.startTime.slice(0, 5)
+  seasonForm.endTime = fullSlot.endTime.slice(0, 5)
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = fullSlot.booking?.comments || ''
   packageForm.coachId = fullSlot.booking?.coachId || ''
   packageForm.days = ['Sun']
-  packageForm.times = [fullSlot.startTime.slice(0, 5)]
+  packageForm.startTime = fullSlot.startTime.slice(0, 5)
+  packageForm.endTime = fullSlot.endTime.slice(0, 5)
   packageForm.equipmentId = equipmentIds[0] || ''
   packageForm.comments = fullSlot.booking?.comments || ''
 }
@@ -296,6 +411,7 @@ function closeMenu() {
   resetPanels()
   cancelReason.value = ''
   actionError.value = ''
+  clearSelection()
 }
 
 function backToMenu() {
@@ -323,25 +439,40 @@ function reserveDisplayStatus() {
   return selectedSlot.value.displayStatus === 'FREE' ? 'RESERVED' : selectedSlot.value.displayStatus
 }
 
+function slotsForReserve() {
+  if (batchMode.value && activePanel.value === 'reserve') return selectedSlotsFull.value
+  if (selectedSlotFull.value) return [selectedSlotFull.value]
+  return []
+}
+
+function slotsForCancel() {
+  if (batchMode.value && activePanel.value === 'cancel') return selectedSlotsFull.value
+  if (selectedSlotFull.value?.booking) return [selectedSlotFull.value]
+  return []
+}
+
 async function doReserve() {
-  if (!selectedSlot.value || saving.value || !canSubmitReserve()) return
+  const targets = slotsForReserve()
+  if (!targets.length || saving.value || !canSubmitReserve()) return
   saving.value = true
   actionError.value = ''
   try {
-    await $fetch('/api/owner/reserve', {
-      method: 'POST',
-      body: {
-        slotId: selectedSlot.value.id,
-        guestName: form.guestName,
-        guestFamily: form.guestFamily,
-        guestMobile: form.guestMobile,
-        paymentMethod: form.paymentMethod,
-        paymentStatus: form.paymentStatus,
-        comments: form.comments,
-        equipmentIds: form.equipmentIds,
-        displayStatus: reserveDisplayStatus(),
-      },
-    })
+    for (const slot of targets) {
+      await $fetch('/api/owner/reserve', {
+        method: 'POST',
+        body: {
+          slotId: slot.id,
+          guestName: form.guestName,
+          guestFamily: form.guestFamily,
+          guestMobile: form.guestMobile,
+          paymentMethod: form.paymentMethod,
+          paymentStatus: form.paymentStatus,
+          comments: form.comments,
+          equipmentIds: form.equipmentIds,
+          displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+        },
+      })
+    }
     closeMenu()
     await refresh()
   } catch {
@@ -352,14 +483,17 @@ async function doReserve() {
 }
 
 async function doCancel() {
-  if (!selectedSlot.value || !cancelReason.value || saving.value) return
+  const targets = slotsForCancel()
+  if (!targets.length || !cancelReason.value || saving.value) return
   saving.value = true
   actionError.value = ''
   try {
-    await $fetch('/api/owner/cancel', {
-      method: 'POST',
-      body: { slotId: selectedSlot.value.id, reason: cancelReason.value },
-    })
+    for (const slot of targets) {
+      await $fetch('/api/owner/cancel', {
+        method: 'POST',
+        body: { slotId: slot.id, reason: cancelReason.value },
+      })
+    }
     closeMenu()
     await refresh()
   } catch {
@@ -370,7 +504,8 @@ async function doCancel() {
 }
 
 async function doSeasonReserve() {
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !guestFieldsValid()) return
+  const times = seasonTimes()
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !times.length || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -381,7 +516,7 @@ async function doSeasonReserve() {
         guestFamily: form.guestFamily,
         guestMobile: form.guestMobile,
         days: seasonForm.days,
-        times: seasonForm.times,
+        times,
         comments: seasonForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: seasonForm.equipmentId || undefined,
@@ -399,7 +534,8 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
-  if (!selectedSlot.value || saving.value || !packageForm.days.length || !guestFieldsValid()) return
+  const times = packageTimes()
+  if (!selectedSlot.value || saving.value || !packageForm.days.length || !times.length || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -411,7 +547,7 @@ async function doPackageReserve() {
         guestMobile: form.guestMobile,
         coachId: packageForm.coachId,
         days: packageForm.days,
-        times: packageForm.times,
+        times,
         comments: packageForm.comments,
         slotId: selectedSlot.value.id,
         equipmentId: packageForm.equipmentId || undefined,
@@ -497,7 +633,14 @@ const equipmentPickerOptions = computed(() =>
   })),
 )
 
+function slotButtonClass(slot: OwnerCalendarSlot) {
+  const classes = [slotClass(slot.displayStatus), 'slot', 'calendar-slot-card', 'w-full', 'text-start']
+  if (isSlotSelected(slot)) classes.push('slot-selected')
+  return classes
+}
+
 function isNewReservation() {
+  if (batchMode.value) return true
   return selectedSlot.value?.displayStatus === 'FREE'
 }
 
@@ -608,15 +751,48 @@ const legend = [
               <button
                 v-if="cellSlot(court.id, hour)"
                 type="button"
-                class="slot calendar-slot-card w-full text-start"
-                :class="slotClass(cellSlot(court.id, hour)!.displayStatus)"
-                @click="openSlot(cellSlot(court.id, hour))"
+                :class="slotButtonClass(cellSlot(court.id, hour)!)"
+                @click="handleSlotClick(cellSlot(court.id, hour))"
               >
                 <bdi dir="ltr" class="calendar-slot-time tabular-nums">{{ formatTimeRange(cellSlot(court.id, hour)!.startTime, cellSlot(court.id, hour)!.endTime) }}</bdi>
                 <span class="calendar-slot-title">{{ slotLabel(cellSlot(court.id, hour)) }}</span>
                 <bdi v-if="slotMeta(cellSlot(court.id, hour))" dir="ltr" class="calendar-slot-meta tabular-nums">{{ slotMeta(cellSlot(court.id, hour)) }}</bdi>
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="selectedSlotIds.length"
+        class="calendar-selection-bar border-t border-brand-gray-100 bg-white px-4 py-4 sm:px-5"
+      >
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
+            <p v-if="selectionCourt" class="mt-1 text-sm font-bold text-brand-navy">
+              {{ localizedField(selectionCourt, 'nameFa', 'nameEn') }} · {{ formattedDate }}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span
+                v-for="slot in selectedSlotsFull"
+                :key="slot.id"
+                class="neo-badge bg-brand-lavender text-brand-navy"
+              >
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
+              {{ t('owner.reserve') }}
+            </button>
+            <button type="button" class="btn-ghost" :disabled="!canBatchCancel" @click="openSelectionCancel">
+              {{ t('owner.cancel') }}
+            </button>
+            <button type="button" class="btn-ghost" @click="clearSelection">
+              {{ t('owner.selectionBar.clear') }}
+            </button>
           </div>
         </div>
       </div>
@@ -654,6 +830,15 @@ const legend = [
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
+            <div v-if="batchMode" class="mt-2 flex flex-wrap gap-1">
+              <span
+                v-for="slot in selectedSlotsFull"
+                :key="slot.id"
+                class="rounded bg-brand-lavender px-2 py-0.5 text-xs font-bold text-brand-navy"
+              >
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+              </span>
+            </div>
           </div>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
@@ -677,6 +862,11 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
+            <OwnerSlotBookingSummary
+              v-if="selectedSlotFull?.booking"
+              :slot="selectedSlotFull"
+              :coach-name="selectedCoachName()"
+            />
             <AppFormField :label="t('owner.guestName')">
               <input v-model="form.guestName" class="neo-input" readonly>
             </AppFormField>
@@ -715,6 +905,11 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
+            <OwnerSlotBookingSummary
+              v-if="selectedSlotFull && selectedSlotFull.displayStatus !== 'FREE'"
+              :slot="selectedSlotFull"
+              :coach-name="selectedCoachName()"
+            />
             <div class="venus-form-grid">
               <AppFormField :label="t('owner.guestName')" required>
                 <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
@@ -827,8 +1022,15 @@ const legend = [
                   <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
                 </AppFormField>
               </div>
-              <OwnerClockPicker v-model="seasonForm.times" class="w-full shrink-0 lg:w-40" />
+              <OwnerTimeRangePicker
+                v-model:start-time="seasonForm.startTime"
+                v-model:end-time="seasonForm.endTime"
+                class="w-full shrink-0 lg:w-44"
+              />
             </div>
+            <p v-if="seasonSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
+              {{ seasonSessionLabel }}
+            </p>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
@@ -839,7 +1041,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !seasonTimes().length || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -861,7 +1063,9 @@ const legend = [
                 <AppFormField :label="t('owner.packagePage.coachPlaceholder')">
                   <select v-model="packageForm.coachId" class="neo-select">
                     <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
-                    <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">{{ localizedField(coach, 'nameFa', 'nameEn') }}</option>
+                    <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">
+                      {{ localizedField(coach, 'nameFa', 'nameEn') }} — {{ formatCurrency(coach.sessionPrice) }}
+                    </option>
                   </select>
                 </AppFormField>
                 <div class="venus-form-grid">
@@ -900,8 +1104,15 @@ const legend = [
                   <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
                 </AppFormField>
               </div>
-              <OwnerClockPicker v-model="packageForm.times" class="w-full shrink-0 lg:w-40" />
+              <OwnerTimeRangePicker
+                v-model:start-time="packageForm.startTime"
+                v-model:end-time="packageForm.endTime"
+                class="w-full shrink-0 lg:w-44"
+              />
             </div>
+            <p v-if="packageSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
+              {{ packageSessionLabel }}
+            </p>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
@@ -913,7 +1124,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageTimes().length || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -1047,6 +1258,18 @@ const legend = [
 .calendar-slot-card:hover {
   transform: translateY(-2px);
   box-shadow: 0px 4px 8px -2px rgba(16, 24, 40, 0.1);
+}
+
+.calendar-slot-card.slot-selected {
+  outline: 3px solid var(--sz-accent);
+  outline-offset: 2px;
+}
+
+.calendar-selection-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  box-shadow: 0 -4px 12px rgba(16, 24, 40, 0.08);
 }
 
 .calendar-slot-time {

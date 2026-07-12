@@ -5,7 +5,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const id = route.params.id as string
 const { user, fetch: fetchAuth } = useAuth()
-const { formatTimeRange, formatHours } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 
@@ -132,6 +132,13 @@ onMounted(() => {
       <select v-if="!done" v-model="startTime" dir="ltr" class="neo-input tabular-nums">
         <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
       </select>
+
+      <div v-if="!done && (availability?.sessionPrice || coach?.sessionPrice)" class="ios-card p-4 text-sm">
+        <div class="flex items-center justify-between gap-3">
+          <span class="font-medium text-brand-gray-600">{{ t('booking.sessionPrice') }}</span>
+          <span class="font-bold text-brand-navy">{{ formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0) }}</span>
+        </div>
+      </div>
 
       <div
         v-if="!done"

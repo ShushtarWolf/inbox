@@ -228,6 +228,7 @@
     "packageSpots": "{count} جای خالی",
     "successCourt": "رزرو زمین ثبت شد",
     "successCoach": "درخواست جلسه با مربی ثبت شد",
+    "sessionPrice": "قیمت جلسه",
     "cancellationPolicy": "قوانین رزرو",
     "cancellationWindow": "مهلت لغو",
     "rescheduleWindow": "مهلت جابه‌جایی",
@@ -525,7 +526,7 @@
     "calendarSubtitle": "برنامه‌ریزی و پیگیری سانس‌های آزاد برای {date}",
     "legendHint": "رنگ سانس‌ها همان سبک نرم تقویم را دنبال می‌کند.",
     "quickNotes": "نکات سریع",
-    "quickNotesBody": "روی هر سانس بزنید تا رزرو، لغو یا جریان رزرو مرتبط را باز کنید. زمان آزاد خنثی می‌ماند و سانس‌های رزروشده با رنگ‌های ملایم مشخص می‌شوند.",
+    "quickNotesBody": "سانس‌های آزاد یک زمین را انتخاب کنید، سپس از نوار پایین رزرو یا لغو کنید. برای مشاهده یا ویرایش رزرو، روی سانس اشغال‌شده بزنید.",
     "activeClub": "باشگاه فعال",
     "setupTitle": "راه‌اندازی باشگاه",
     "setupSubtitle": "مشخصات باشگاه و زمین‌ها را تکمیل کنید.",
@@ -552,6 +553,11 @@
     "seasonReserve": "رزرو فصلی",
     "packageReserve": "رزرو پکیج",
     "reserveWithCoach": "رزرو با مربی",
+    "currentBooking": "رزرو فعلی",
+    "selectionBar": {
+      "title": "ساعات انتخاب‌شده",
+      "clear": "پاک کردن انتخاب"
+    },
     "slotActions": "عملیات سانس",
     "reserveFormTitle": "فرم رزرو",
     "confirmReserve": "ثبت رزرو",
@@ -760,7 +766,10 @@
     "supportPlaceholder": "متن موقت پشتیبانی inbox.local برای نسخه ۱",
     "settingsPlaceholder": "ساعت باشگاه و زمین‌ها - متن موقت تنظیمات",
     "seasonPage": {
-      "title": "رزرو فصلی"
+      "title": "رزرو فصلی",
+      "startTime": "ساعت شروع",
+      "endTime": "ساعت پایان",
+      "sessionCountLabel": "{count} سانس در {weeks} هفته ({days}، {timeRange})"
     },
     "packagePage": {
       "title": "رزرو با مربی",

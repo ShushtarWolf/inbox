@@ -229,6 +229,7 @@
     "packageSpots": "{count} spots left",
     "successCourt": "Court booking confirmed",
     "successCoach": "Coach booking submitted",
+    "sessionPrice": "Session price",
     "cancellationPolicy": "Booking policy",
     "cancellationWindow": "cancellation window",
     "rescheduleWindow": "reschedule window",
@@ -526,7 +527,7 @@
     "calendarSubtitle": "Stay organized and track court availability for {date}",
     "legendHint": "Slot colors follow the same soft scheduling style as the calendar.",
     "quickNotes": "Quick notes",
-    "quickNotesBody": "Tap any slot to reserve, cancel, or open the related booking flow. Free time stays neutral while booked courts use pastel accents.",
+    "quickNotesBody": "Select free slots on one court, then reserve or cancel from the action bar. Tap an occupied slot to view or edit its booking.",
     "activeClub": "Active club",
     "setupTitle": "Club setup",
     "setupSubtitle": "Complete your club profile and courts.",
@@ -553,6 +554,11 @@
     "seasonReserve": "Season reserve",
     "packageReserve": "Package reserve",
     "reserveWithCoach": "Reserve with coach",
+    "currentBooking": "Current booking",
+    "selectionBar": {
+      "title": "Selected hours",
+      "clear": "Clear selection"
+    },
     "slotActions": "Session actions",
     "reserveFormTitle": "Reservation form",
     "confirmReserve": "Confirm reservation",
@@ -761,7 +767,10 @@
     "supportPlaceholder": "Support inbox.local placeholder for v1",
     "settingsPlaceholder": "Club hours and courts - settings placeholder",
     "seasonPage": {
-      "title": "Season reserve"
+      "title": "Season reserve",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "sessionCountLabel": "{count} sessions over {weeks} weeks ({days}, {timeRange})"
     },
     "packagePage": {
       "title": "Reserve with coach",
