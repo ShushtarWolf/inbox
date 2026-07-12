@@ -1,5 +1,6 @@
 import { addOneHour, canManageReservation } from '../../utils/reservations'
 import { findCoachByIdOrSlug } from '../../utils/coaches'
+import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
   }
 
+  const paymentFields = initialPlatformPaymentFields(coach.sessionPrice)
   const session = await prisma.coachSession.create({
     data: {
       coachId: coach.id,
@@ -43,15 +45,13 @@ export default defineEventHandler(async (event) => {
       startTime: body.startTime,
       endTime: addOneHour(body.startTime),
       price: coach.sessionPrice,
-      paymentStatus: 'PAY_AT_CLUB',
+      paymentStatus: paymentFields.paymentStatus,
     },
   })
   await prisma.payment.create({
     data: {
       coachSessionId: session.id,
-      amount: coach.sessionPrice,
-      method: 'CASH',
-      status: 'PAY_AT_CLUB',
+      ...paymentFields.payment,
     },
   })
   await prisma.reservationEvent.create({

@@ -1,3 +1,5 @@
+import { countsTowardRevenue } from '#shared/bookingPayment.ts'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
   const query = getQuery(event)
@@ -31,11 +33,15 @@ export default defineEventHandler(async (event) => {
   const contacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const waitlistEntries = await prisma.waitlistEntry.findMany({ where: { clubId: club.id } })
   const courts = await prisma.court.findMany({ where: { clubId: club.id }, include: { slots: true } })
-  const paidBookings = bookings.filter((booking) => booking.paymentStatus === 'PAID').length
-  const paidSessions = coachSessions.filter((session) => session.paymentStatus === 'PAID').length
+  const paidBookings = bookings.filter((booking) => countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus)).length
+  const paidSessions = coachSessions.filter((session) => countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus)).length
   const revenue =
-    bookings.reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0) +
-    coachSessions.reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
+    bookings
+      .filter((booking) => countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus))
+      .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0)
+    + coachSessions
+      .filter((session) => countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus))
+      .reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
   const totalReservationCount = bookings.length + coachSessions.length
   const cancelledCount = bookings.filter((booking) => booking.status === 'CANCELLED').length + coachSessions.filter((session) => session.status === 'CANCELLED').length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -54,10 +60,10 @@ export default defineEventHandler(async (event) => {
     weekLabels.push(key)
     const dayRevenue =
       bookings
-        .filter((booking) => booking.slot.date === key)
-        .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0) +
-      coachSessions
-        .filter((session) => session.date === key)
+        .filter((booking) => booking.slot.date === key && countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus))
+        .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0)
+      + coachSessions
+        .filter((session) => session.date === key && countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus))
         .reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
     weeklyRevenue.push(dayRevenue)
   }

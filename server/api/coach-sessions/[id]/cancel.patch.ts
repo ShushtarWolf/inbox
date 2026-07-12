@@ -1,11 +1,12 @@
 import { canManageReservation } from '../../../utils/reservations'
+import { cancelCoachSession } from '../../../utils/cancellations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const session = await prisma.coachSession.findFirst({
     where: { id, athleteId: user.id },
-    include: { coach: { include: { club: true } } },
+    include: { coach: { include: { club: true } }, payment: true },
   })
 
   if (!session) {
@@ -20,20 +21,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.coachSession.update({
-      where: { id },
-      data: { status: 'CANCELLED', cancelledAt: new Date() },
-    })
-    await tx.reservationEvent.create({
-      data: {
-        coachSessionId: id,
-        actorUserId: user.id,
-        type: 'CANCELLED',
-        metadataJson: JSON.stringify({ reason: 'athlete-cancel' }),
-      },
-    })
+  return cancelCoachSession({
+    sessionId: id!,
+    actorUserId: user.id,
+    reason: 'athlete-cancel',
+    paymentId: session.payment?.id,
+    userId: session.athleteId,
   })
-
-  return { ok: true }
 })

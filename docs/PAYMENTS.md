@@ -4,8 +4,8 @@
 
 | `PAYMENTS_MODE` | Behavior |
 |-----------------|----------|
-| `pay_at_club` (default) | No online checkout; payments marked `PENDING_AT_CLUB` |
-| `test` | IPG adapters return sandbox redirect URLs |
+| `pay_at_club` (default) | No online checkout; bookings marked `PAY_AT_CLUB` |
+| `test` | IPG adapters return sandbox redirect URLs; bookings start `PENDING_ONLINE` |
 | `live` | Real Zarinpal/IDPay charges (go-live only) |
 
 ## Env vars
@@ -16,23 +16,37 @@
 
 ## Checkout flow
 
-1. Client calls `POST /api/payments/checkout` with `bookingId` or `coachSessionId`
-2. Service creates `Payment` row via `server/utils/payments/service.ts`
-3. In `pay_at_club` mode: returns intent without `redirectUrl`
-4. In `live` mode: returns IPG redirect URL
+1. Athlete books court/coach/package → `Payment` row created with mode-appropriate status
+2. Athlete taps **Pay online** or **Pay with wallet** on booking screens
+3. `POST /api/payments/checkout` creates IPG intent (or debits wallet)
+4. Browser returns via `GET /payments/callback/[provider]` or webhook confirms payment
+5. `Booking.paymentStatus` and `Payment.status` stay in sync via `paymentSync`
+
+## Wallet
+
+- Users have a `Wallet` balance (IRR)
+- Cancelling a **paid** booking refunds to gateway (IPG) or credits wallet (cash / fallback)
+- `GET /api/wallet` — balance + recent transactions
+- Checkout accepts `useWallet: true` to pay from balance
+
+## Cancellation refunds
+
+All cancel endpoints (`/api/bookings/[id]/cancel`, coach, package, owner) call `refundPaymentForCancellation`:
+
+| Payment type | Refund path |
+|--------------|-------------|
+| IPG (online) | Gateway `refund()` → wallet credit on failure |
+| Cash / pay-at-club (marked PAID) | Wallet credit for registered athletes |
+| Unpaid (`PAY_AT_CLUB`) | No refund |
 
 ## Webhooks
 
-`POST /api/payments/webhook/[provider]` — idempotent status update. Verify provider signature before go-live.
+`POST /api/payments/webhook/[provider]` — idempotent status update + parent booking sync.
 
 ## Go-live checklist
 
 1. Set `PAYMENTS_MODE=live` on Railway
 2. Configure merchant credentials
 3. Register webhook URL with IPG
-4. Test refund flow via `refund()` service method
-5. Update athlete UI to show pay button (currently display-only)
-
-## Refund policy hooks
-
-Use `getPaymentService(provider).refund(paymentId)` from owner finance tools (future).
+4. Test cancel refund flow (gateway + wallet fallback)
+5. Run `prisma migrate deploy` for wallet tables

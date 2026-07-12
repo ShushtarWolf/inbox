@@ -1,30 +1,24 @@
+import { getPaymentService } from '../../../utils/payments/service'
+import { syncPaymentToParent } from '../../../utils/paymentSync'
+
 export default defineEventHandler(async (event) => {
-  const provider = getRouterParam(event, 'provider')
+  const providerName = getRouterParam(event, 'provider')
   const body = await readBody<{ providerRef?: string; status?: string }>(event)
-  if (!provider || !body.providerRef) {
+  if (!providerName || !body.providerRef) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid payload' })
   }
 
-  // Signature verification placeholder for IPG webhooks
-  const payment = await prisma.payment.findFirst({
-    where: { provider, providerRef: body.providerRef },
-  })
-  if (!payment) {
+  const service = getPaymentService(providerName)
+  if (service.verifyWebhook && !service.verifyWebhook(body)) {
+    throw createError({ statusCode: 403, statusMessage: 'Invalid webhook signature' })
+  }
+
+  if (body.status !== 'paid') {
     return { ok: true, skipped: true }
   }
 
-  if (body.status === 'paid' && payment.status !== 'PAID') {
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: 'PAID' },
-    })
-    if (payment.bookingId) {
-      await prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { paymentStatus: 'PAID', paymentMethod: 'IPG' },
-      })
-    }
-  }
+  const intent = await service.confirm(body.providerRef)
+  await syncPaymentToParent(intent.id)
 
-  return { ok: true }
+  return { ok: true, paymentId: intent.id }
 })

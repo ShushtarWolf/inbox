@@ -23,9 +23,12 @@ interface CourtBooking {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatTimeRange, formatHours, formatIsoDate } = useFormatters()
+const { formatTimeRange, formatHours, formatIsoDate, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
+const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
+const payingId = ref<string | null>(null)
 const rescheduleTarget = ref<CourtBooking | null>(null)
 const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
@@ -51,14 +54,59 @@ function closeReschedule() {
 
 async function cancel(id: string) {
   if (!confirm(t('booking.confirmCancel'))) return
-  await $fetch(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
+  const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
+  if (result.refund?.walletCredited) {
+    alert(t('booking.refundToWallet'))
+  }
   refresh()
 }
 
 async function cancelCoach(sessionId: string) {
   if (!confirm(t('booking.confirmCancel'))) return
-  await $fetch(`/api/coach-sessions/${sessionId}/cancel`, { method: 'PATCH' })
+  const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/coach-sessions/${sessionId}/cancel`, { method: 'PATCH' })
+  if (result.refund?.walletCredited) {
+    alert(t('booking.refundToWallet'))
+  }
   refresh()
+}
+
+async function cancelPackage(id: string) {
+  if (!confirm(t('booking.confirmCancel'))) return
+  const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/package-bookings/${id}/cancel`, { method: 'PATCH' })
+  if (result.refund?.walletCredited) {
+    alert(t('booking.refundToWallet'))
+  }
+  refresh()
+}
+
+async function payBooking(bookingId: string, useWallet = false) {
+  payingId.value = bookingId
+  try {
+    await startCheckout({ bookingId, useWallet })
+    await refresh()
+  } finally {
+    payingId.value = null
+  }
+}
+
+async function payCoach(sessionId: string, useWallet = false) {
+  payingId.value = sessionId
+  try {
+    await startCheckout({ coachSessionId: sessionId, useWallet })
+    await refresh()
+  } finally {
+    payingId.value = null
+  }
+}
+
+async function payPackage(packageBookingId: string, useWallet = false) {
+  payingId.value = packageBookingId
+  try {
+    await startCheckout({ packageBookingId, useWallet })
+    await refresh()
+  } finally {
+    payingId.value = null
+  }
 }
 
 async function rescheduleCourt() {
@@ -99,8 +147,17 @@ function paymentStatusLabel(status: string) {
           <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
-        <div class="mt-2 flex gap-2">
+        <div class="mt-2 flex flex-wrap gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
+          <button
+            v-if="b.status !== 'CANCELLED' && onlineEnabled && canPayOnline(b.payment?.status || b.paymentStatus)"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === b.id"
+            @click="payBooking(b.id)"
+          >
+            {{ t('booking.payNow') }}
+          </button>
           <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="openReschedule(b)">
             {{ t('booking.reschedule') }}
           </button>
@@ -121,8 +178,17 @@ function paymentStatusLabel(status: string) {
           <span class="neo-badge bg-white">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
-        <div class="mt-2 flex gap-2">
+        <div class="mt-2 flex flex-wrap gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
+          <button
+            v-if="s.status !== 'CANCELLED' && onlineEnabled && canPayOnline(s.payment?.status || s.paymentStatus)"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === s.id"
+            @click="payCoach(s.id)"
+          >
+            {{ t('booking.payNow') }}
+          </button>
           <button v-if="s.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelCoach(s.id)">
             {{ t('booking.cancel') }}
           </button>
@@ -138,6 +204,20 @@ function paymentStatusLabel(status: string) {
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="neo-badge">{{ bookingStatusLabel(b.status) }}</span>
           <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
+        </div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button
+            v-if="b.status !== 'CANCELLED' && onlineEnabled && canPayOnline(b.payment?.status || b.paymentStatus)"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === b.id"
+            @click="payPackage(b.id)"
+          >
+            {{ t('booking.payNow') }}
+          </button>
+          <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelPackage(b.id)">
+            {{ t('booking.cancel') }}
+          </button>
         </div>
       </div>
     </section>

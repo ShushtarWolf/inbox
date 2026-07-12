@@ -34,6 +34,9 @@ function bookingStatusLabel(status: string) {
   return t(`booking.status.${status}`)
 }
 
+const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const paying = ref(false)
+
 function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
@@ -41,8 +44,22 @@ function paymentStatusLabel(status: string) {
 async function cancelBooking() {
   if (!booking.value || booking.value.status === 'CANCELLED') return
   if (!confirm(t('booking.confirmCancel'))) return
-  await $fetch(`/api/bookings/${booking.value.id}/cancel`, { method: 'PATCH' })
+  const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/bookings/${booking.value.id}/cancel`, { method: 'PATCH' })
+  if (result.refund?.walletCredited) {
+    alert(t('booking.refundToWallet'))
+  }
   await refresh()
+}
+
+async function payBooking(useWallet = false) {
+  if (!booking.value) return
+  paying.value = true
+  try {
+    await startCheckout({ bookingId: booking.value.id, useWallet })
+    await refresh()
+  } finally {
+    paying.value = false
+  }
 }
 
 async function loadReplacementSlots() {
@@ -105,7 +122,17 @@ async function submitReview() {
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${booking.payment?.method || booking.paymentMethod || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
+      <p class="text-xs text-brand-gray-600">{{ $t('booking.cancelRefundNote') }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
+        <button
+          v-if="onlineEnabled && canPayOnline(booking.payment?.status || booking.paymentStatus)"
+          type="button"
+          class="btn-primary"
+          :disabled="paying"
+          @click="payBooking()"
+        >
+          {{ paying ? $t('common.loading') : $t('booking.payNow') }}
+        </button>
         <button type="button" class="btn-ghost" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>
       </div>

@@ -58,11 +58,7 @@ export default defineNuxtConfig({
     strategy: 'prefix_except_default',
     lazy: true,
     langDir: 'locales',
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'inbox_locale',
-      redirectOn: 'root',
-    },
+    detectBrowserLanguage: false,
   },
 
   routeRules: {
@@ -126,6 +122,15 @@ export default defineNuxtConfig({
     devOptions: { enabled: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' },
   },
 
+  nitro: {
+    storage: {
+      cache: { driver: 'memory' },
+      ...(process.env.REDIS_URL
+        ? { redis: { driver: 'redis', url: process.env.REDIS_URL } }
+        : {}),
+    },
+  },
+
   runtimeConfig: {
     oauth: {
       google: {
@@ -136,6 +141,7 @@ export default defineNuxtConfig({
     },
     public: {
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
+      paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',

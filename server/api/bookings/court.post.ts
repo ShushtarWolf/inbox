@@ -1,3 +1,6 @@
+import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { computeBookingPrice } from '#shared/courtPricing.ts'
+
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = await readBody<{ slotId?: string }>(event)
@@ -13,6 +16,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+  const bookingAmount = computeBookingPrice(
+    slot.price,
+    slot.court.pricingJson,
+    slot.date,
+    slot.startTime,
+  )
+  const paymentFields = initialPlatformPaymentFields(bookingAmount)
   const booking = await prisma.$transaction(async (tx) => {
     if (staleCancelledBooking) {
       await tx.booking.delete({ where: { id: staleCancelledBooking.id } })
@@ -23,7 +33,7 @@ export default defineEventHandler(async (event) => {
         userId: user.id,
         guestName: dbUser.name,
         guestMobile: dbUser.phone,
-        paymentStatus: 'PAY_AT_CLUB',
+        paymentStatus: paymentFields.paymentStatus,
         source: 'PLATFORM',
         status: 'CONFIRMED',
       },
@@ -31,9 +41,7 @@ export default defineEventHandler(async (event) => {
     await tx.payment.create({
       data: {
         bookingId: b.id,
-        amount: slot.price,
-        method: 'CASH',
-        status: 'PAY_AT_CLUB',
+        ...paymentFields.payment,
       },
     })
     await tx.reservationEvent.create({
@@ -65,5 +73,5 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return { id: booking.id, paymentStatus: 'PAY_AT_CLUB' }
+  return { id: booking.id, paymentStatus: paymentFields.paymentStatus }
 })

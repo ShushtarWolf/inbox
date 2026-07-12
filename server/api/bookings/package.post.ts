@@ -1,3 +1,5 @@
+import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = await readBody<{ packageId?: string; days?: string[]; times?: string[] }>(event)
@@ -22,13 +24,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const price = Math.max(0, pkg.price - (pkg.discount || 0))
+  const paymentFields = initialPlatformPaymentFields(price)
   const booking = await prisma.packageBooking.create({
     data: {
       packageId: pkg.id,
       athleteId: user.id,
       price,
       status: 'CONFIRMED',
-      paymentStatus: 'PAY_AT_CLUB',
+      paymentStatus: paymentFields.paymentStatus,
       daysJson: body.days?.length ? JSON.stringify(body.days) : pkg.daysJson,
       timesJson: body.times?.length ? JSON.stringify(body.times) : null,
     },
@@ -37,9 +40,7 @@ export default defineEventHandler(async (event) => {
   await prisma.payment.create({
     data: {
       packageBookingId: booking.id,
-      amount: price,
-      method: 'CASH',
-      status: 'PAY_AT_CLUB',
+      ...paymentFields.payment,
     },
   })
 

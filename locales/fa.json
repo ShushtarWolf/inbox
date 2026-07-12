@@ -48,7 +48,8 @@
     "bookings": "رزروها",
     "notifications": "اعلان‌ها",
     "profile": "پروفایل",
-    "overview": "خلاصه"
+    "overview": "خلاصه",
+    "wallet": "کیف پول"
   },
   "home": {
     "title": "رزرو زمین و مربی",
@@ -169,7 +170,11 @@
     "owner": "پنل مالک باشگاه"
   },
   "athlete": {
-    "nextBookingFallback": "رزروی در پیش ندارید"
+    "nextBookingFallback": "رزروی در پیش ندارید",
+    "walletTitle": "کیف پول",
+    "walletEmpty": "تراکنشی ثبت نشده",
+    "walletCredit": "واریز",
+    "walletDebit": "برداشت"
   },
   "coach": {
     "today": "امروز",
@@ -252,8 +257,14 @@
       "PAY_AT_CLUB": "پرداخت در باشگاه",
       "PENDING_AT_CLUB": "پرداخت در باشگاه",
       "PENDING_ONLINE": "در انتظار پرداخت",
-      "NOT_PAID": "پرداخت‌نشده"
+      "NOT_PAID": "پرداخت‌نشده",
+      "REFUNDED": "بازپرداخت‌شده"
     },
+    "payNow": "پرداخت آنلاین",
+    "payWithWallet": "پرداخت از کیف پول",
+    "walletBalance": "موجودی کیف پول",
+    "refundToWallet": "مبلغ به کیف پول شما بازگردانده شد",
+    "cancelRefundNote": "در صورت پرداخت آنلاین، مبلغ به کیف پول یا درگاه بازگردانده می‌شود",
     "viewBookings": "مشاهده رزروها",
     "errors": {
       "startTimeTooSoon": "زمان انتخاب‌شده برای رزرو خیلی نزدیک است. لطفاً سانس بعدی را انتخاب کنید.",

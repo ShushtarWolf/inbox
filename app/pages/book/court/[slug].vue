@@ -13,8 +13,12 @@ const { fetchErrorMessage } = useFetchError()
 const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
 const selectedSlot = ref<string | null>(typeof route.query.slot === 'string' ? route.query.slot : null)
 const done = ref(false)
+const createdBookingId = ref<string | null>(null)
+const paying = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
+const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 
 const { data: slots, pending, error, refresh } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: date.value })),
@@ -62,7 +66,8 @@ async function confirm() {
     return
   }
   try {
-    await $fetch('/api/bookings/court', { method: 'POST', body: { slotId: selectedSlot.value } })
+    const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', { method: 'POST', body: { slotId: selectedSlot.value } })
+    createdBookingId.value = result.id
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = t('booking.successCourt')
@@ -98,6 +103,36 @@ async function joinWaitlist() {
   }
 }
 
+async function payNow() {
+  if (!createdBookingId.value) return
+  paying.value = true
+  try {
+    await startCheckout({ bookingId: createdBookingId.value })
+    feedbackTone.value = 'success'
+    feedback.value = t('booking.payNow')
+  } catch (error: unknown) {
+    feedbackTone.value = 'error'
+    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+  } finally {
+    paying.value = false
+  }
+}
+
+async function payWithWallet() {
+  if (!createdBookingId.value) return
+  paying.value = true
+  try {
+    await startCheckout({ bookingId: createdBookingId.value, useWallet: true })
+    feedbackTone.value = 'success'
+    feedback.value = t('booking.payWithWallet')
+  } catch (error: unknown) {
+    feedbackTone.value = 'error'
+    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+  } finally {
+    paying.value = false
+  }
+}
+
 onMounted(() => {
   fetchAuth()
   syncBookingQuery()
@@ -123,8 +158,22 @@ onMounted(() => {
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCourt') }}</p>
       <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
       <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
-      <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
-      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block">{{ t('booking.viewBookings') }}</NuxtLink>
+      <p v-if="!onlineEnabled" class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
+      <div v-else class="mt-2 space-y-2">
+        <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">
+          {{ paying ? t('common.loading') : t('booking.payNow') }}
+        </button>
+        <button
+          v-if="(wallet?.balance || 0) > 0"
+          type="button"
+          class="btn-ghost w-full"
+          :disabled="paying"
+          @click="payWithWallet"
+        >
+          {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
+        </button>
+      </div>
+      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-ghost mt-2 inline-block">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
 
     <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">

@@ -1,3 +1,5 @@
+import { cancelCourtBooking } from '../../utils/cancellations'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
@@ -8,29 +10,24 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: true, court: true },
+    include: { booking: { include: { payment: true } }, court: true },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
-  await prisma.$transaction(async (tx) => {
-    if (slot.booking) {
-      await tx.booking.update({
-        where: { id: slot.booking.id },
-        data: { status: 'CANCELLED', comments: body.reason, cancelledAt: new Date() },
-      })
-      await tx.reservationEvent.create({
-        data: {
-          bookingId: slot.booking.id,
-          type: 'CANCELLED',
-          metadataJson: JSON.stringify({ reason: body.reason || 'owner-cancel' }),
-        },
-      })
-    }
-    await tx.slot.update({
+  if (slot.booking) {
+    await cancelCourtBooking({
+      bookingId: slot.booking.id,
+      slotId: slot.id,
+      reason: body.reason || 'owner-cancel',
+      paymentId: slot.booking.payment?.id,
+      userId: slot.booking.userId,
+    })
+  } else {
+    await prisma.slot.update({
       where: { id: slot.id },
       data: { displayStatus: 'FREE' },
     })
-  })
+  }
 
   await notifyWaitlistForFreedSlot({
     clubId: club.id,

@@ -49,7 +49,8 @@
     "bookings": "Bookings",
     "notifications": "Notifications",
     "profile": "Profile",
-    "overview": "Overview"
+    "overview": "Overview",
+    "wallet": "Wallet"
   },
   "home": {
     "title": "Book courts & coaches",
@@ -170,7 +171,11 @@
     "owner": "Club owner dashboard"
   },
   "athlete": {
-    "nextBookingFallback": "No upcoming booking"
+    "nextBookingFallback": "No upcoming booking",
+    "walletTitle": "Wallet",
+    "walletEmpty": "No transactions yet",
+    "walletCredit": "Credit",
+    "walletDebit": "Debit"
   },
   "coach": {
     "today": "Today",
@@ -253,8 +258,14 @@
       "PAY_AT_CLUB": "Pay at club",
       "PENDING_AT_CLUB": "Pay at club",
       "PENDING_ONLINE": "Payment pending",
-      "NOT_PAID": "Not paid"
+      "NOT_PAID": "Not paid",
+      "REFUNDED": "Refunded"
     },
+    "payNow": "Pay online",
+    "payWithWallet": "Pay with wallet",
+    "walletBalance": "Wallet balance",
+    "refundToWallet": "Amount refunded to your wallet",
+    "cancelRefundNote": "If you paid online, the amount is refunded to your wallet or payment gateway",
     "viewBookings": "View my bookings",
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
