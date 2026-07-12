@@ -1,4 +1,4 @@
-import { cancelPackageBooking } from '../../utils/cancellations'
+import { cancelPackageBooking } from '../../../utils/cancellations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
