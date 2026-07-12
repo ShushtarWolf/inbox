@@ -110,18 +110,6 @@ def esc(text: str) -> str:
     return html.escape(text, quote=True)
 
 
-def table_rows(rows: list[tuple], *, milestone_col: int | None = None) -> str:
-    out = []
-    for i, row in enumerate(rows):
-        cells = list(row)
-        is_milestone = len(cells) > 2 and cells[-1] is True
-        if is_milestone:
-            cells = cells[:-1]
-        tr_class = "milestone" if is_milestone else ("alt" if i % 2 else "")
-        tds = "".join(f"<td>{esc(str(c))}</td>" for c in cells)
-        out.append(f'<tr class="{tr_class}">{tds}</tr>')
-    return "\n".join(out)
-
 
 def task_table(rows: list[tuple]) -> str:
     body = []
@@ -141,15 +129,8 @@ def task_table(rows: list[tuple]) -> str:
     return "\n".join(body)
 
 
-def build_html() -> str:
-    vazir = VAZIR_WOFF2.as_uri()
-    outfit = OUTFIT_WOFF2.as_uri()
-    logo = LOGO.as_uri()
-
-    month_blocks = []
-    for m in MONTHS:
-        month_blocks.append(
-            f"""
+def render_month(m: dict) -> str:
+    return f"""
 <section class="month">
   <div class="month-head">
     <h2>{esc(m["title"])}</h2>
@@ -167,7 +148,12 @@ def build_html() -> str:
   </table>
   <p class="month-out">{esc(m["output"])}</p>
 </section>"""
-        )
+
+
+def build_html() -> str:
+    vazir = VAZIR_WOFF2.as_uri()
+    outfit = OUTFIT_WOFF2.as_uri()
+    logo = LOGO.as_uri()
 
     milestone_rows = []
     for item in MILESTONES:
@@ -200,7 +186,7 @@ def build_html() -> str:
 
     @page {{
       size: A4;
-      margin: 14mm 12mm 16mm;
+      margin: 11mm 10mm 12mm;
     }}
 
     * {{ box-sizing: border-box; }}
@@ -208,21 +194,39 @@ def build_html() -> str:
     body {{
       margin: 0;
       font-family: 'Vazirmatn', 'Outfit', system-ui, sans-serif;
-      font-size: 10.5pt;
-      line-height: 1.55;
+      font-size: 10pt;
+      line-height: 1.45;
       color: {C["navy"]};
       background: {C["white"]};
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }}
 
+    .page {{
+      break-after: page;
+      page-break-after: always;
+    }}
+
+    .page:last-child {{
+      break-after: auto;
+      page-break-after: auto;
+    }}
+
+    .page-num {{
+      margin-top: 6px;
+      font-size: 8pt;
+      color: {C["gray500"]};
+      text-align: left;
+      direction: ltr;
+      font-family: 'Outfit', sans-serif;
+    }}
+
     .cover {{
       background: linear-gradient(145deg, {C["cream"]} 0%, {C["white"]} 55%);
       border: 1px solid {C["gray200"]};
-      border-radius: 16px;
-      padding: 22px 24px 20px;
-      margin-bottom: 22px;
-      page-break-after: avoid;
+      border-radius: 14px;
+      padding: 16px 18px 14px;
+      margin-bottom: 12px;
     }}
 
     .cover-top {{
@@ -248,16 +252,16 @@ def build_html() -> str:
     }}
 
     h1 {{
-      margin: 0 0 6px;
-      font-size: 21pt;
+      margin: 0 0 4px;
+      font-size: 19pt;
       font-weight: 700;
       color: {C["primaryDark"]};
       line-height: 1.25;
     }}
 
     .subtitle {{
-      margin: 0 0 10px;
-      font-size: 11.5pt;
+      margin: 0 0 8px;
+      font-size: 10.5pt;
       color: {C["gray500"]};
     }}
 
@@ -279,18 +283,17 @@ def build_html() -> str:
     .pill strong {{ color: {C["primary"]}; }}
 
     .intro {{
-      margin: 0 0 18px;
-      padding: 12px 14px;
+      margin: 0 0 12px;
+      padding: 10px 12px;
       background: {C["cream"]};
       border-right: 4px solid {C["gold"]};
       border-radius: 10px;
-      font-size: 10pt;
+      font-size: 9.5pt;
       color: {C["gray500"]};
     }}
 
     .month {{
-      margin-bottom: 20px;
-      break-inside: avoid-page;
+      margin-bottom: 0;
     }}
 
     .month-head {{
@@ -305,7 +308,7 @@ def build_html() -> str:
 
     h2 {{
       margin: 0;
-      font-size: 13pt;
+      font-size: 12pt;
       font-weight: 700;
       color: {C["primaryDark"]};
     }}
@@ -321,9 +324,9 @@ def build_html() -> str:
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      font-size: 9.5pt;
+      font-size: 9pt;
       border: 1px solid {C["gray200"]};
-      border-radius: 10px;
+      border-radius: 8px;
       overflow: hidden;
     }}
 
@@ -332,12 +335,12 @@ def build_html() -> str:
       color: {C["white"]};
       font-weight: 600;
       text-align: right;
-      padding: 8px 10px;
+      padding: 6px 8px;
       border-bottom: 1px solid {C["primaryDark"]};
     }}
 
     tbody td {{
-      padding: 7px 10px;
+      padding: 5px 8px;
       vertical-align: top;
       border-bottom: 1px solid {C["gray200"]};
     }}
@@ -352,102 +355,107 @@ def build_html() -> str:
     td.num {{ width: 28px; text-align: center; color: {C["primary"]}; font-weight: 700; }}
     td.deadline {{ width: 68px; white-space: nowrap; font-weight: 600; }}
     td.effort {{ width: 92px; color: {C["primaryDark"]}; }}
-    td.note {{ color: {C["gray500"]}; font-size: 9pt; }}
-    td.check {{ width: 28px; text-align: center; color: {C["gray500"]}; }}
+    td.note {{ color: {C["gray500"]}; font-size: 8.5pt; }}
+    td.check {{ width: 24px; text-align: center; color: {C["gray500"]}; }}
 
     .month-out {{
-      margin: 8px 2px 0;
-      font-size: 9.5pt;
+      margin: 6px 2px 0;
+      font-size: 9pt;
       color: {C["gray500"]};
-      font-style: normal;
     }}
-
-    .page-break {{ page-break-before: always; }}
 
     h3 {{
-      margin: 0 0 10px;
-      font-size: 12pt;
+      margin: 0 0 8px;
+      font-size: 11pt;
       color: {C["primaryDark"]};
       border-bottom: 1px solid {C["gray200"]};
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }}
 
-    .section {{ margin-bottom: 18px; }}
+    .section {{ margin-bottom: 12px; }}
 
     .footer-note {{
-      margin-top: 16px;
-      font-size: 8.5pt;
+      margin-top: 10px;
+      font-size: 8pt;
       color: {C["gray500"]};
       text-align: center;
     }}
   </style>
 </head>
 <body>
-  <div class="cover">
-    <div class="cover-top">
-      <img class="logo" src="{logo}" alt="inbox" />
-      <span class="brand-tag">inbox · shushzerv</span>
+  <div class="page">
+    <div class="cover">
+      <div class="cover-top">
+        <img class="logo" src="{logo}" alt="inbox" />
+        <span class="brand-tag">inbox · shushzerv</span>
+      </div>
+      <h1>برنامه ۳ ماهه تا لانچ</h1>
+      <p class="subtitle">از پایلوت تا اولین رزرو واقعی (خارج از تست بهناز)</p>
+      <div class="meta">
+        <span class="pill"><strong>شروع:</strong> ۱۳ تیر ۱۴۰۵</span>
+        <span class="pill"><strong>پایان هدف:</strong> ۵ مهر ۱۴۰۵</span>
+        <span class="pill"><strong>توسعه:</strong> ~۱۸۰–۲۲۰ ساعت</span>
+      </div>
     </div>
-    <h1>برنامه ۳ ماهه تا لانچ</h1>
-    <p class="subtitle">از پایلوت تا اولین رزرو واقعی (خارج از تست بهناز)</p>
-    <div class="meta">
-      <span class="pill"><strong>شروع:</strong> ۱۳ تیر ۱۴۰۵</span>
-      <span class="pill"><strong>پایان هدف:</strong> ۵ مهر ۱۴۰۵</span>
-      <span class="pill"><strong>توسعه:</strong> ~۱۸۰–۲۲۰ ساعت</span>
+    <p class="intro">
+      <strong>رزرو واقعی</strong> = ورزشکار/باشگاه خارج از دایره تست داخلی بهناز، با پرداخت زرین‌پال و SMS تأیید.
+    </p>
+    {render_month(MONTHS[0])}
+    <p class="page-num">1 / 4</p>
+  </div>
+
+  <div class="page">
+    {render_month(MONTHS[1])}
+    <p class="page-num">2 / 4</p>
+  </div>
+
+  <div class="page">
+    {render_month(MONTHS[2])}
+    <div class="section" style="margin-top: 12px;">
+      <h3>Milestone‌ها</h3>
+      <table>
+        <thead><tr><th>هدف</th><th>مهلت</th><th>☐</th></tr></thead>
+        <tbody>
+          {''.join(milestone_rows)}
+        </tbody>
+      </table>
     </div>
+    <p class="page-num">3 / 4</p>
   </div>
 
-  <p class="intro">
-    <strong>رزرو واقعی</strong> = ورزشکار/باشگاه خارج از دایره تست داخلی بهناز، با پرداخت زرین‌پال و SMS تأیید.
-  </p>
-
-  {''.join(month_blocks)}
-
-  <div class="page-break"></div>
-
-  <div class="section">
-    <h3>Milestone‌ها</h3>
-    <table>
-      <thead><tr><th>هدف</th><th>مهلت</th><th>☐</th></tr></thead>
-      <tbody>
-        {''.join(milestone_rows)}
-      </tbody>
-    </table>
+  <div class="page">
+    <div class="section">
+      <h3>جمع‌بندی زمان توسعه</h3>
+      <table>
+        <thead><tr><th>بخش</th><th>زمان</th></tr></thead>
+        <tbody>
+          {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(a)}</td><td>{esc(b)}</td></tr>' for i,(a,b) in enumerate(SUMMARY))}
+        </tbody>
+      </table>
+    </div>
+    <div class="section">
+      <h3>بودجه ۳ ماهه (قابل تکمیل)</h3>
+      <table>
+        <thead><tr><th>قلم</th><th>ماه ۱</th><th>ماه ۲</th><th>ماه ۳</th><th>جمع</th></tr></thead>
+        <tbody>
+          {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(r)}</td><td></td><td></td><td></td><td></td></tr>' for i,r in enumerate(["VPS + دامنه","SMS","Cursor","حقوق توسعه","تبلیغ","حقوقی / اینماد","جمع"]))}
+        </tbody>
+      </table>
+    </div>
+    <div class="section">
+      <h3>درآمد هدف (قابل تکمیل)</h3>
+      <table>
+        <thead><tr><th>ماه</th><th>باشگاه فعال</th><th>رزرو</th><th>درآمد (ت.)</th></tr></thead>
+        <tbody>
+          <tr><td>۱ (تست)</td><td>۱</td><td>۰</td><td>۰</td></tr>
+          <tr class="alt"><td>۲</td><td></td><td></td><td></td></tr>
+          <tr><td>۳</td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footer-note">inbox brand book · Vazirmatn + Outfit · coach red #C41E1E · cream #F4EFE9</p>
+    <p class="page-num">4 / 4</p>
   </div>
-
-  <div class="section">
-    <h3>جمع‌بندی زمان توسعه</h3>
-    <table>
-      <thead><tr><th>بخش</th><th>زمان</th></tr></thead>
-      <tbody>
-        {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(a)}</td><td>{esc(b)}</td></tr>' for i,(a,b) in enumerate(SUMMARY))}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h3>بودجه ۳ ماهه (قابل تکمیل)</h3>
-    <table>
-      <thead><tr><th>قلم</th><th>ماه ۱</th><th>ماه ۲</th><th>ماه ۳</th><th>جمع</th></tr></thead>
-      <tbody>
-        {''.join(f'<tr class="{"alt" if i%2 else ""}"><td>{esc(r)}</td><td></td><td></td><td></td><td></td></tr>' for i,r in enumerate(["VPS + دامنه","SMS","Cursor","حقوق توسعه","تبلیغ","حقوقی / اینماد","جمع"]))}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h3>درآمد هدف (قابل تکمیل)</h3>
-    <table>
-      <thead><tr><th>ماه</th><th>باشگاه فعال</th><th>رزرو</th><th>درآمد (ت.)</th></tr></thead>
-      <tbody>
-        <tr><td>۱ (تست)</td><td>۱</td><td>۰</td><td>۰</td></tr>
-        <tr class="alt"><td>۲</td><td></td><td></td><td></td></tr>
-        <tr><td>۳</td><td></td><td></td><td></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <p class="footer-note">inbox brand book · Vazirmatn + Outfit · coach red #C41E1E · cream #F4EFE9</p>
 </body>
 </html>"""
 
