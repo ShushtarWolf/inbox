@@ -17,6 +17,7 @@ const allNavItems = [
   { path: '/owner/packages', labelKey: 'owner.packages', icon: 'package_2' },
   { path: '/owner/crm', labelKey: 'owner.crm', icon: 'groups' },
   { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'diversity_3' },
+  { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
   { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
   { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
 ] as const

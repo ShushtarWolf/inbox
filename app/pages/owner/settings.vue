@@ -350,6 +350,7 @@ async function save() {
               <p class="font-bold">{{ localizedField(court, 'nameFa', 'nameEn') }}</p>
               <p class="text-xs text-brand-gray-600">
                 {{ court.openHour ?? form.openHour }}:00 – {{ court.closeHour ?? form.closeHour }}:00
+                · {{ t('owner.settingsPage.courtPrice') }}: {{ court.price.toLocaleString() }}
               </p>
             </div>
             <button type="button" class="btn-ghost text-xs" @click="startEditCourt(court)">{{ t('common.edit') }}</button>
@@ -432,6 +433,14 @@ async function save() {
             {{ t('upload.addPhoto') }}
           </button>
         </div>
+      </div>
+
+      <div v-if="isOwner" class="ios-card p-6 md:col-span-2">
+        <h2 class="font-bold">{{ t('owner.settingsPage.workersSection') }}</h2>
+        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.workersSectionHint') }}</p>
+        <NuxtLink :to="localePath('/owner/workers')" class="btn-secondary mt-4 inline-flex">
+          {{ t('owner.settingsPage.manageWorkers') }}
+        </NuxtLink>
       </div>
 
       <div v-if="isOwner" class="ios-card p-6 md:col-span-2">

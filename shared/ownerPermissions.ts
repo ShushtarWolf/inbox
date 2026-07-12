@@ -33,6 +33,7 @@ export const OWNER_NAV_PERMISSIONS: Record<string, OwnerPermission | 'finance'> 
   '/owner/packages': 'calendar',
   '/owner/crm': 'crm',
   '/owner/coaches': 'team',
+  '/owner/workers': 'team',
   '/owner/support': 'settings',
   '/owner/settings': 'settings',
 }
