@@ -2,6 +2,8 @@
 buildCommand = "npm run build"
 
 [deploy]
+preDeployCommand = "npx prisma migrate deploy"
 startCommand = "node scripts/start-production.mjs"
 healthcheckPath = "/api/health"
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"

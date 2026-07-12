@@ -9,7 +9,9 @@ if (!dbUrl) {
 
 const env = { ...process.env, DATABASE_URL: dbUrl }
 
-execSync('npx prisma migrate deploy', { stdio: 'inherit', env })
+if (process.env.SKIP_MIGRATE !== 'true') {
+  execSync('npx prisma migrate deploy', { stdio: 'inherit', env })
+}
 
 if (process.env.SEED_ON_EMPTY === 'true') {
   const prisma = new PrismaClient({ datasourceUrl: dbUrl })
