@@ -30,12 +30,21 @@ export default defineEventHandler(async (event) => {
     days?: string[]
     times?: string[]
     dayTimes?: Record<string, DayTimeRange>
+    startDate?: string
+    finishDate?: string
     comments?: string
     slotId?: string
     equipmentId?: string
     paymentMethod?: string
     paymentStatus?: string
   }>(event)
+
+  if (!body.startDate || !body.finishDate) {
+    throw createError({ statusCode: 400, statusMessage: 'Start and finish dates are required' })
+  }
+  if (body.finishDate < body.startDate) {
+    throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
+  }
 
   let equipmentPrice = 0
   if (body.equipmentId) {
@@ -63,6 +72,8 @@ export default defineEventHandler(async (event) => {
       guestMobile: body.guestMobile || '',
       daysJson: JSON.stringify(body.days || []),
       timesJson: storedJson,
+      startDate: body.startDate,
+      finishDate: body.finishDate,
       comments: body.comments,
       coachId: body.coachId || null,
       equipmentId: body.equipmentId || null,
@@ -80,9 +91,11 @@ export default defineEventHandler(async (event) => {
       slotsCreated = await generateRecurringCourtSlots({
         clubId: club.id,
         courtId: slot.courtId,
-        anchorDate: slot.date,
+        anchorDate: body.startDate,
         weekdays: body.days!,
         dayTimes: expanded,
+        startDate: body.startDate,
+        finishDate: body.finishDate,
         displayStatus: 'TEAM',
         guestInfo: {
           guestName: body.guestName || '',

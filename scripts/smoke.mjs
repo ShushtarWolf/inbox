@@ -105,6 +105,13 @@ async function main() {
         startTime: availability.slots[1].startTime,
       }),
     })
+    await check('/api/payments/checkout', {
+      method: 'POST',
+      session: 'athlete',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ coachSessionId: createdCoachSession.id }),
+    })
+    console.log('ok  coach session checkout')
   }
 
   await check('/api/owner/contacts?segment=vip', { session: 'owner' })
@@ -128,6 +135,8 @@ async function main() {
         guestFamily: 'Season',
         guestMobile: '09120000099',
         slotId: seasonSlot.id,
+        startDate: seasonSlot.date,
+        finishDate: dateOffset(56),
         days: [weekday],
         times: [seasonSlot.startTime.slice(0, 5)],
       }),
@@ -151,6 +160,8 @@ async function main() {
         guestFamily: 'Package',
         guestMobile: '09120000098',
         slotId: packageSlot.id,
+        startDate: packageSlot.date,
+        finishDate: dateOffset(84),
         days: [weekday],
         times: [packageSlot.startTime.slice(0, 5)],
       }),
@@ -159,7 +170,7 @@ async function main() {
       throw new Error('package reserve did not create recurring slots')
     }
   }
-  await check('/api/owner/sms', {
+  const smsResult = await check('/api/owner/sms', {
     method: 'POST',
     session: 'owner',
     headers: { 'content-type': 'application/json' },
@@ -169,6 +180,10 @@ async function main() {
       campaignName: 'Smoke campaign',
     }),
   })
+  if (!smsResult.provider || !smsResult.note?.includes('log')) {
+    throw new Error('owner SMS did not route through log provider')
+  }
+  console.log('ok  owner SMS log provider')
 
   await check('/api/waitlist', {
     method: 'POST',

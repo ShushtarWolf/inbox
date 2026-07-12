@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
 import {
-  countRecurringSessionsByDay,
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
   hasValidDayTimes,
@@ -42,8 +41,6 @@ interface OwnerCalendarSlot {
 }
 
 type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | null
-
-const RECURRING_WEEKS = 8
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
@@ -86,6 +83,8 @@ const seasonForm = reactive({
 
 const packageForm = reactive({
   coachId: '',
+  startDate: '',
+  finishDate: '',
   days: ['Sun'] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
   equipmentId: '',
@@ -295,14 +294,21 @@ const seasonSessionCount = computed(() => {
     seasonForm.finishDate,
   )
 })
-const packageSessionCount = computed(() =>
-  countRecurringSessionsByDay(
+const packageDateRangeInvalid = computed(() =>
+  Boolean(packageForm.startDate && packageForm.finishDate && packageForm.finishDate < packageForm.startDate),
+)
+const packageDatesValid = computed(() =>
+  Boolean(packageForm.startDate && packageForm.finishDate && !packageDateRangeInvalid.value),
+)
+const packageSessionCount = computed(() => {
+  if (!packageDatesValid.value) return 0
+  return countRecurringSessionsByDayInRange(
     packageForm.dayTimes,
     packageForm.days,
-    selectedSlotFull.value?.date || date.value,
-    RECURRING_WEEKS,
-  ),
-)
+    packageForm.startDate,
+    packageForm.finishDate,
+  )
+})
 const seasonSessionLabel = computed(() => {
   if (!seasonSessionCount.value || !seasonForm.days.length || !seasonDatesValid.value) return ''
   const dayLabels = seasonForm.days.map((day) => t(`owner.weekdays.${day}`)).join(locale.value === 'fa' ? ' و ' : ' & ')
@@ -315,11 +321,12 @@ const seasonSessionLabel = computed(() => {
   })
 })
 const packageSessionLabel = computed(() => {
-  if (!packageSessionCount.value || !packageForm.days.length) return ''
+  if (!packageSessionCount.value || !packageForm.days.length || !packageDatesValid.value) return ''
   const dayLabels = packageForm.days.map((day) => t(`owner.weekdays.${day}`)).join(locale.value === 'fa' ? ' و ' : ' & ')
   return t('owner.seasonPage.sessionCountLabel', {
     count: packageSessionCount.value,
-    weeks: RECURRING_WEEKS,
+    start: formatDate(packageForm.startDate),
+    end: formatDate(packageForm.finishDate),
     days: dayLabels,
     timeRange: t('owner.seasonPage.perDayTimes'),
   })
@@ -401,6 +408,8 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = fullSlot.booking?.comments || ''
   packageForm.coachId = fullSlot.booking?.coachId || ''
+  packageForm.startDate = ''
+  packageForm.finishDate = ''
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.equipmentId = equipmentIds[0] || ''
@@ -573,7 +582,7 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
-  if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !guestFieldsValid()) return
+  if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
@@ -584,6 +593,8 @@ async function doPackageReserve() {
         guestFamily: form.guestFamily,
         guestMobile: form.guestMobile,
         coachId: packageForm.coachId,
+        startDate: packageForm.startDate,
+        finishDate: packageForm.finishDate,
         days: packageForm.days,
         dayTimes: packageForm.dayTimes,
         comments: packageForm.comments,
@@ -1172,6 +1183,14 @@ const legend = [
                 <AppFormField :label="t('owner.guestMobile')" required>
                   <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
                 </AppFormField>
+                <AppFormField :label="t('owner.packagesPage.dateRange')" required>
+                  <AppDateRangeInput
+                    v-model:start="packageForm.startDate"
+                    v-model:end="packageForm.finishDate"
+                    :invalid="packageDateRangeInvalid"
+                    :invalid-message="t('owner.packagesPage.dateRangeInvalid')"
+                  />
+                </AppFormField>
                 <div>
                   <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
                   <div class="flex flex-wrap gap-2">
@@ -1218,7 +1237,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
