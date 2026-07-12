@@ -670,7 +670,7 @@ const legend = [
 </script>
 
 <template>
-  <div class="tail-page-stack">
+  <div class="tail-page-stack" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
     <section class="calendar-shell overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-venus-sm" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
@@ -762,28 +762,32 @@ const legend = [
           </div>
         </div>
       </div>
+    </section>
 
+    <Teleport to="body">
       <div
         v-if="selectedSlotIds.length"
-        class="calendar-selection-bar border-t border-brand-gray-100 bg-white px-4 py-4 sm:px-5"
+        class="calendar-selection-bar"
+        role="region"
+        :aria-label="t('owner.selectionBar.title')"
       >
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="min-w-0">
+        <div class="calendar-selection-bar-inner">
+          <div class="min-w-0 flex-1">
             <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
-            <p v-if="selectionCourt" class="mt-1 text-sm font-bold text-brand-navy">
+            <p v-if="selectionCourt" class="mt-0.5 truncate text-sm font-bold text-brand-navy">
               {{ localizedField(selectionCourt, 'nameFa', 'nameEn') }} · {{ formattedDate }}
             </p>
-            <div class="mt-2 flex flex-wrap gap-2">
+            <div class="mt-2 flex gap-2 overflow-x-auto pb-0.5">
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
-                class="neo-badge bg-brand-lavender text-brand-navy"
+                class="neo-badge shrink-0 bg-brand-lavender text-brand-navy"
               >
                 <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
               </span>
             </div>
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="calendar-selection-bar-actions">
             <button type="button" class="btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
               {{ t('owner.reserve') }}
             </button>
@@ -796,7 +800,7 @@ const legend = [
           </div>
         </div>
       </div>
-    </section>
+    </Teleport>
 
     <aside class="tail-card-grid-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div class="ios-card p-5">
@@ -1266,10 +1270,59 @@ const legend = [
 }
 
 .calendar-selection-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  box-shadow: 0 -4px 12px rgba(16, 24, 40, 0.08);
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+  z-index: 45;
+  border-top: 1px solid #e4e7ec;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -8px 24px rgba(16, 24, 40, 0.12);
+  padding: 0.85rem 1rem calc(0.85rem + var(--sz-safe-bottom));
+}
+
+.calendar-selection-bar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+.calendar-selection-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.calendar-page-has-selection {
+  padding-bottom: calc(9rem + var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+}
+
+@media (min-width: 1024px) {
+  .calendar-selection-bar {
+    inset-inline-start: 290px;
+    inset-inline-end: 0;
+    bottom: 0;
+    padding: 1rem 2rem;
+  }
+
+  .calendar-selection-bar-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 auto;
+    max-width: none;
+  }
+
+  .calendar-selection-bar-actions {
+    flex-wrap: nowrap;
+    shrink: 0;
+  }
+
+  .calendar-page-has-selection {
+    padding-bottom: 6rem;
+  }
 }
 
 .calendar-slot-time {
