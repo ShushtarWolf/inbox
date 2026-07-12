@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   countRecurringSessions,
   countRecurringSessionsByDay,
+  countRecurringSessionsByDayInRange,
   expandDayTimeRanges,
   hasValidDayTimes,
   parseSeasonTimesJson,
@@ -39,6 +40,14 @@ describe('countRecurringSessionsByDay', () => {
     }
     const count = countRecurringSessionsByDay(dayTimes, ['Mon', 'Wed'], '2025-07-07')
     expect(count).toBe(8 * 2 + 8 * 2)
+  })
+})
+
+describe('countRecurringSessionsByDayInRange', () => {
+  it('counts sessions within an explicit date range', () => {
+    const dayTimes = { Mon: { start: '10:00', end: '12:00' } }
+    const count = countRecurringSessionsByDayInRange(dayTimes, ['Mon'], '2025-07-07', '2025-07-21')
+    expect(count).toBe(3 * 2)
   })
 })
 

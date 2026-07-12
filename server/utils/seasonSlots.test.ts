@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datesForWeekdays, hourFromTime } from './seasonSlots'
+import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seasonSlots'
 
 describe('datesForWeekdays', () => {
   it('returns dates matching weekdays from anchor', () => {
@@ -10,6 +10,13 @@ describe('datesForWeekdays', () => {
 
   it('returns empty for unknown days', () => {
     expect(datesForWeekdays('2026-07-06', [], 2)).toEqual([])
+  })
+})
+
+describe('datesForWeekdaysInRange', () => {
+  it('returns matching weekdays between start and finish dates', () => {
+    const dates = datesForWeekdaysInRange('2026-07-06', '2026-07-20', ['Mon', 'Wed'])
+    expect(dates).toEqual(['2026-07-06', '2026-07-08', '2026-07-13', '2026-07-15', '2026-07-20'])
   })
 })
 

@@ -4,7 +4,8 @@
   },
   "calendar": {
     "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "today": "Today"
   },
   "common": {
     "add": "Add",
@@ -521,6 +522,7 @@
     "packages": "Packages",
     "crm": "CRM",
     "coaches": "Coaches",
+    "workers": "Workers",
     "support": "Support",
     "settings": "Settings",
     "legend": "Color legend",
@@ -792,7 +794,38 @@
       "courtImage": "Court image",
       "courtFacilities": "Court facilities",
       "useClubHours": "Use club default hours",
-      "confirmDeleteCourt": "Delete this court?"
+      "confirmDeleteCourt": "Delete this court?",
+      "basePriceHint": "Default price for hours without a custom time band.",
+      "pricingTimeline": "Timeline pricing",
+      "pricingTimelineHint": "Set different prices for peak or quiet hours.",
+      "pricingTimelineEmpty": "Only the base price applies. Add a time band for specific hours.",
+      "addTimeBand": "Add time band",
+      "bandPrice": "Band price",
+      "lastSecondDiscount": "Last-second booking discount",
+      "lastSecondDiscountHint": "Apply this discount when a booking is made within the hours before start.",
+      "hoursBeforeStart": "Hours before start",
+      "discountPercent": "Discount %",
+      "offPeakDiscount": "Off-peak discount",
+      "offPeakDiscountHint": "Apply this discount during quiet hours on listed slot prices.",
+      "workersSection": "Workers",
+      "workersSectionHint": "Manage club staff with working hours, contact details, and dashboard access.",
+      "manageWorkers": "Manage workers"
+    },
+    "workersPage": {
+      "subtitle": "Add workers with contact details, working hours, and optional login credentials.",
+      "addWorker": "Add worker",
+      "addTitle": "Add worker",
+      "editTitle": "Edit worker",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "mobile": "Mobile number",
+      "emergencyMobile": "Emergency number",
+      "emergency": "Emergency",
+      "emailHint": "Login email (optional — creates dashboard access)",
+      "workingHours": "Working hours",
+      "noSchedule": "No schedule set",
+      "hasLogin": "Has login",
+      "confirmDelete": "Remove this worker?"
     },
     "supportPage": {
       "operations": "Operations help",

@@ -233,6 +233,7 @@ model Club {
   segments    ContactSegment[]
   reminders   ReminderRule[]
   memberships StaffMembership[]
+  workers     ClubWorker[]
   application ClubApplication?
 }
 
@@ -245,6 +246,7 @@ model Court {
   openHour  Int?
   closeHour Int?
   facilitiesJson String?
+  pricingJson    String?
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -309,6 +311,8 @@ model SeasonBooking {
   guestMobile    String
   daysJson       String
   timesJson      String
+  startDate      String?
+  finishDate     String?
   comments       String?
   equipmentId    String?
   equipmentPrice Int      @default(0)
@@ -686,6 +690,28 @@ model StaffMembership {
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId String?
   coach   Coach? @relation("MembershipCoach", fields: [coachId], references: [id], onDelete: SetNull)
+  worker  ClubWorker?
 
   @@unique([userId, clubId, role])
+}
+
+model ClubWorker {
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  mobile           String
+  emergencyMobile  String?
+  email            String?
+  role             StaffRole @default(FRONT_DESK)
+  workingHoursJson String?
+  permissionsJson  String?
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  membershipId String? @unique
+  membership   StaffMembership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([clubId, active])
 }

@@ -1,5 +1,6 @@
-import { datesForWeekdays, hourFromTime } from './seasonSlots'
+import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seasonSlots'
 import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
 
@@ -24,6 +25,8 @@ export async function generateRecurringCourtSlots(opts: {
   times?: string[]
   dayTimes?: Record<string, string[]>
   weeks?: number
+  startDate?: string
+  finishDate?: string
   displayStatus?: 'RESERVED' | 'TEAM' | 'PENDING'
   guestInfo?: RecurringGuestInfo
 }) {
@@ -33,18 +36,13 @@ export async function generateRecurringCourtSlots(opts: {
   })
   if (!court) throw createError({ statusCode: 404, statusMessage: 'Court not found' })
 
-  const dates = datesForWeekdays(opts.anchorDate, opts.weekdays, opts.weeks ?? 8)
+  const dates = opts.startDate && opts.finishDate
+    ? datesForWeekdaysInRange(opts.startDate, opts.finishDate, opts.weekdays)
+    : datesForWeekdays(opts.anchorDate, opts.weekdays, opts.weeks ?? 8)
   const status = opts.displayStatus ?? 'RESERVED'
   const guest = opts.guestInfo
   const paymentMethod = guest?.paymentMethod || 'CASH'
   const paymentStatus = guest?.paymentStatus || 'PAY_AT_CLUB'
-  const sessionAmount = guest
-    ? calculateSessionTotal({
-        courtPrice: court.price,
-        equipmentPrices: guest.equipmentPrice ? [guest.equipmentPrice] : [],
-        coachPrice: guest.coachSessionPrice || 0,
-      })
-    : court.price
   const equipmentItems = guest?.equipmentId
     ? await prisma.equipment.findMany({
         where: { id: guest.equipmentId, clubId: opts.clubId },
@@ -65,6 +63,14 @@ export async function generateRecurringCourtSlots(opts: {
       const startTime = formatHour(hour)
       const duration = court.club.defaultSessionDurationMinutes || 60
       const endTime = duration === 60 ? hourEnd(hour) : addMinutes(startTime, duration)
+      const slotPrice = computeListedSlotPrice(court.price, startTime, court.pricingJson)
+      const sessionAmount = guest
+        ? calculateSessionTotal({
+            courtPrice: slotPrice,
+            equipmentPrices: guest.equipmentPrice ? [guest.equipmentPrice] : [],
+            coachPrice: guest.coachSessionPrice || 0,
+          })
+        : slotPrice
       const existing = await prisma.slot.findFirst({
         where: { courtId: court.id, date, startTime, displayStatus: { not: 'CANCELLED' } },
         include: { booking: true },
@@ -85,7 +91,7 @@ export async function generateRecurringCourtSlots(opts: {
             date,
             startTime,
             endTime,
-            price: court.price,
+            price: slotPrice,
             displayStatus: status,
           },
         })

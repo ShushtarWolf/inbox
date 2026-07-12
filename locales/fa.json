@@ -4,7 +4,8 @@
   },
   "calendar": {
     "prevMonth": "ماه قبل",
-    "nextMonth": "ماه بعد"
+    "nextMonth": "ماه بعد",
+    "today": "امروز"
   },
   "common": {
     "add": "افزودن",
@@ -520,6 +521,7 @@
     "packages": "پکیج‌ها",
     "crm": "CRM",
     "coaches": "مربیان",
+    "workers": "کارکنان",
     "support": "پشتیبانی",
     "settings": "تنظیمات",
     "legend": "راهنمای رنگ‌ها",
@@ -785,7 +787,38 @@
       "courtImage": "تصویر زمین",
       "courtFacilities": "امکانات زمین",
       "useClubHours": "استفاده از ساعت پیش‌فرض باشگاه",
-      "confirmDeleteCourt": "این زمین حذف شود؟"
+      "confirmDeleteCourt": "این زمین حذف شود؟",
+      "basePriceHint": "قیمت پایه برای ساعاتی که بازه زمانی تعریف نشده است.",
+      "pricingTimeline": "قیمت‌گذاری زمانی",
+      "pricingTimelineHint": "برای ساعات شلوغ یا آرام، قیمت جداگانه تعریف کنید.",
+      "pricingTimelineEmpty": "فقط قیمت پایه اعمال می‌شود. برای ساعات خاص، یک بازه اضافه کنید.",
+      "addTimeBand": "افزودن بازه زمانی",
+      "bandPrice": "قیمت این بازه",
+      "lastSecondDiscount": "تخفیف رزرو لحظه آخر",
+      "lastSecondDiscountHint": "اگر رزرو در چند ساعت قبل از شروع انجام شود، این درصد تخفیف اعمال می‌شود.",
+      "hoursBeforeStart": "ساعت قبل از شروع",
+      "discountPercent": "درصد تخفیف",
+      "offPeakDiscount": "تخفیف ساعات خلوت",
+      "offPeakDiscountHint": "در این بازه زمانی، درصد تخفیف روی قیمت سانس اعمال می‌شود.",
+      "workersSection": "کارکنان",
+      "workersSectionHint": "مدیریت پرسنل باشگاه با ساعات کاری، اطلاعات تماس و دسترسی به داشبورد.",
+      "manageWorkers": "مدیریت کارکنان"
+    },
+    "workersPage": {
+      "subtitle": "کارکنان را با اطلاعات تماس، ساعات کاری و در صورت نیاز دسترسی ورود اضافه کنید.",
+      "addWorker": "افزودن کارمند",
+      "addTitle": "افزودن کارمند",
+      "editTitle": "ویرایش کارمند",
+      "firstName": "نام",
+      "lastName": "نام خانوادگی",
+      "mobile": "شماره موبایل",
+      "emergencyMobile": "شماره اضطراری",
+      "emergency": "اضطراری",
+      "emailHint": "ایمیل ورود (اختیاری — دسترسی به داشبورد ایجاد می‌کند)",
+      "workingHours": "ساعات کاری",
+      "noSchedule": "برنامه‌ای تنظیم نشده",
+      "hasLogin": "دارای ورود",
+      "confirmDelete": "این کارمند حذف شود؟"
     },
     "supportPage": {
       "operations": "راهنمای عملیات",
@@ -801,7 +834,7 @@
       "title": "رزرو فصلی",
       "startTime": "ساعت شروع",
       "endTime": "ساعت پایان",
-      "sessionCountLabel": "{count} سانس در {weeks} هفته ({days}، {timeRange})",
+      "sessionCountLabel": "{count} سانس از {start} تا {end} ({days}، {timeRange})",
       "perDayTimes": "ساعت جدا برای هر روز",
       "selectWeekdays": "روزهای هفته را انتخاب کنید تا ساعت سانس را تنظیم کنید"
     },

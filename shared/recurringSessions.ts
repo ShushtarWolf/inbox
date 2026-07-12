@@ -58,6 +58,18 @@ export function countRecurringSessionDates(weekdays: string[], anchorDate: strin
   return dateCount
 }
 
+export function countRecurringSessionDatesInRange(weekdays: string[], startDate: string, finishDate: string): number {
+  const wanted = new Set(weekdays.map((day) => DAY_MAP[day]).filter((value) => value !== undefined))
+  if (!wanted.size || !startDate || !finishDate || finishDate < startDate) return 0
+  const start = new Date(`${startDate}T12:00:00Z`)
+  const end = new Date(`${finishDate}T12:00:00Z`)
+  let dateCount = 0
+  for (let day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+    if (wanted.has(day.getUTCDay())) dateCount += 1
+  }
+  return dateCount
+}
+
 export function countRecurringSessions(
   weekdays: string[],
   startTime: string,
@@ -83,6 +95,23 @@ export function countRecurringSessionsByDay(
     const times = expanded[day]
     if (!times?.length) continue
     total += countRecurringSessionDates([day], anchorDate, weeks) * times.length
+  }
+  return total
+}
+
+export function countRecurringSessionsByDayInRange(
+  dayTimes: Record<string, DayTimeRange>,
+  weekdays: string[],
+  startDate: string,
+  finishDate: string,
+  stepMinutes = 60,
+): number {
+  const expanded = expandDayTimeRanges(dayTimes, stepMinutes)
+  let total = 0
+  for (const day of weekdays) {
+    const times = expanded[day]
+    if (!times?.length) continue
+    total += countRecurringSessionDatesInRange([day], startDate, finishDate) * times.length
   }
   return total
 }
