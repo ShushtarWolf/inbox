@@ -1,4 +1,4 @@
-import { assertDateNotInPast } from '../../utils/reservations'
+import { assertDateNotInPast } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')

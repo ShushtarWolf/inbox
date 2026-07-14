@@ -1,4 +1,4 @@
-import { assertSlotBookable } from '../../utils/reservations'
+import { assertSlotBookable } from '../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
