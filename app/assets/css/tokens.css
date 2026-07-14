@@ -30,4 +30,5 @@
   --sz-slot-pending: #4a1420;
   --sz-slot-cancel: #a3a39f;
   --sz-slot-closed: #52524f;
+  --sz-slot-blocked: #a3a39f;
 }

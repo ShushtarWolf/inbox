@@ -58,6 +58,7 @@ export const palette = {
     PENDING: '#4A1420',
     CANCELLED: '#A3A39F',
     CLOSED: '#52524F',
+    BLOCKED: '#A3A39F',
   },
 } as const
 

@@ -11,6 +11,7 @@ export function slotStatusLabel(status: SlotDisplayStatus, locale = 'fa') {
     PENDING: 'در انتظار',
     CANCELLED: 'کنسل',
     CLOSED: 'بسته',
+    BLOCKED: 'مسدود',
   }
   const en: Record<SlotDisplayStatus, string> = {
     FREE: 'Free',
@@ -20,6 +21,7 @@ export function slotStatusLabel(status: SlotDisplayStatus, locale = 'fa') {
     PENDING: 'Pending',
     CANCELLED: 'Cancelled',
     CLOSED: 'Closed',
+    BLOCKED: 'Blocked',
   }
   return locale === 'en' ? en[status] : fa[status]
 }

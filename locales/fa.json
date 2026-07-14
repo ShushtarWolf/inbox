@@ -559,6 +559,10 @@
     "reserve": "رزرو",
     "free": "رایگان",
     "cancel": "لغو",
+    "block": "مسدود",
+    "unblock": "رفع مسدودیت",
+    "blockFormTitle": "مسدود کردن سانس",
+    "confirmBlock": "ثبت مسدودیت",
     "hour": "ساعت",
     "seasonReserve": "رزرو فصلی",
     "packageReserve": "رزرو پکیج",
@@ -626,7 +630,8 @@
       "FREE": "آزاد",
       "CANCELLED": "لغو شده",
       "PENDING": "در انتظار",
-      "CLOSED": "بسته"
+      "CLOSED": "بسته",
+      "BLOCKED": "مسدود"
     },
     "financeCards": {
       "revenue": "درآمد",

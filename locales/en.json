@@ -560,6 +560,10 @@
     "reserve": "Reserve",
     "free": "Free",
     "cancel": "Cancel",
+    "block": "Block",
+    "unblock": "Unblock",
+    "blockFormTitle": "Block slot",
+    "confirmBlock": "Confirm block",
     "hour": "Hour",
     "seasonReserve": "Season reserve",
     "packageReserve": "Package reserve",
@@ -627,7 +631,8 @@
       "FREE": "Free",
       "CANCELLED": "Cancelled",
       "PENDING": "Pending",
-      "CLOSED": "Closed"
+      "CLOSED": "Closed",
+      "BLOCKED": "Blocked"
     },
     "financeCards": {
       "revenue": "Revenue",

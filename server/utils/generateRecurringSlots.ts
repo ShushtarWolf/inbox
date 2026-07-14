@@ -77,6 +77,7 @@ export async function generateRecurringCourtSlots(opts: {
         where: { courtId: court.id, date, startTime, displayStatus: { not: 'CANCELLED' } },
         include: { booking: true },
       })
+      if (existing && (existing.displayStatus === 'BLOCKED' || existing.displayStatus === 'CLOSED')) continue
       if (existing && existing.displayStatus !== 'FREE' && !existing.booking) continue
 
       let slotId: string

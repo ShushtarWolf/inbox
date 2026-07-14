@@ -41,7 +41,7 @@ interface OwnerCalendarSlot {
   booking?: OwnerCalendarBooking | null
 }
 
-type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | null
+type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | null
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
@@ -149,6 +149,10 @@ const canBatchReserve = computed(() =>
 const canBatchCancel = computed(() =>
   selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => Boolean(slot.booking)),
 )
+const canBatchBlock = computed(() =>
+  selectedSlotsFull.value.length > 0
+    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
+)
 const courtPrice = computed(() => {
   if (batchMode.value && activePanel.value === 'reserve') {
     return selectedSlotsFull.value.reduce((sum, slot) => sum + (slot.price ?? 0), 0)
@@ -192,6 +196,7 @@ function slotClass(status: string) {
     PENDING: 'slot-pending',
     CANCELLED: 'slot-cancel',
     CLOSED: 'slot-closed',
+    BLOCKED: 'slot-blocked',
   }
   return map[status] || 'slot-free'
 }
@@ -232,6 +237,7 @@ function resetPanels() {
 }
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
+  if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
   return 'reserve'
 }
@@ -388,6 +394,12 @@ function openSelectionCancel() {
   activePanel.value = 'cancel'
 }
 
+function openSelectionBlock() {
+  if (!canBatchBlock.value || !selectedSlotsFull.value.length) return
+  openSlot(selectedSlotsFull.value[0], { keepSelection: true })
+  activePanel.value = 'block'
+}
+
 function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
   if (!slot) return
   const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
@@ -449,6 +461,10 @@ function openEquipmentForm() {
   activePanel.value = 'equipment'
 }
 
+function openBlockForm() {
+  activePanel.value = 'block'
+}
+
 function closeMenu() {
   showMenu.value = false
   resetPanels()
@@ -507,6 +523,12 @@ function slotsForCancel() {
   return []
 }
 
+function slotsForBlock() {
+  if (batchMode.value && activePanel.value === 'block') return selectedSlotsFull.value
+  if (selectedSlotFull.value) return [selectedSlotFull.value]
+  return []
+}
+
 async function doReserve() {
   const targets = slotsForReserve()
   if (!targets.length || saving.value || !canSubmitReserve()) return
@@ -550,6 +572,51 @@ async function doCancel() {
         body: { slotId: slot.id, reason: cancelReason.value },
       })
     }
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doBlock() {
+  const targets = slotsForBlock()
+  if (!targets.length || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    const slotIds = targets.map((slot) => slot.id)
+    await $fetch('/api/owner/block', {
+      method: 'POST',
+      body: {
+        slotIds,
+        guestName: form.guestName,
+        guestFamily: form.guestFamily,
+        guestMobile: form.guestMobile,
+        comments: form.comments,
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doUnblock() {
+  const targets = slotsForBlock()
+  if (!targets.length || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/unblock', {
+      method: 'POST',
+      body: { slotIds: targets.map((slot) => slot.id) },
+    })
     closeMenu()
     await refresh()
   } catch {
@@ -655,11 +722,20 @@ function reserveMenuLabel() {
 }
 
 function canCancelSlot() {
-  return Boolean(selectedSlot.value?.booking)
+  return Boolean(selectedSlot.value?.booking) && selectedSlot.value?.displayStatus !== 'BLOCKED'
+}
+
+function canBlockSlot() {
+  if (batchMode.value) return canBatchBlock.value
+  return selectedSlot.value?.displayStatus === 'FREE' || selectedSlot.value?.displayStatus === 'BLOCKED'
+}
+
+function canUnblockSlot() {
+  return selectedSlot.value?.displayStatus === 'BLOCKED'
 }
 
 function canReserveSlot() {
-  return selectedSlot.value?.displayStatus !== 'CLOSED'
+  return selectedSlot.value?.displayStatus !== 'CLOSED' && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
 function slotStatusSummary() {
@@ -734,6 +810,7 @@ const legend = [
   { status: 'CANCELLED', color: palette.slotDisplay.CANCELLED },
   { status: 'PENDING', color: palette.slotDisplay.PENDING },
   { status: 'CLOSED', color: palette.slotDisplay.CLOSED },
+  { status: 'BLOCKED', color: palette.slotDisplay.BLOCKED },
 ]
 </script>
 
@@ -859,6 +936,9 @@ const legend = [
             <button type="button" class="btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
               {{ t('owner.reserve') }}
             </button>
+            <button type="button" class="btn-ghost" :disabled="!canBatchBlock" @click="openSelectionBlock">
+              {{ t('owner.block') }}
+            </button>
             <button type="button" class="btn-ghost" :disabled="!canBatchCancel" @click="openSelectionCancel">
               {{ t('owner.cancel') }}
             </button>
@@ -913,6 +993,7 @@ const legend = [
             </div>
           </div>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
+          <button v-if="canBlockSlot()" type="button" :class="menuButtonClass('block')" @click="openBlockForm">{{ t('owner.block') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
@@ -1057,6 +1138,63 @@ const legend = [
             >
               {{ t('owner.cancelBooking') }}
             </button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'block'" class="venus-modal-panel">
+          <div class="venus-modal-panel-header">
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.blockFormTitle') }}</h3>
+            </div>
+          </div>
+          <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doBlock">
+            <div class="venus-form-grid">
+              <AppFormField :label="t('owner.guestName')" field-id="owner-block-guest-name">
+                <input
+                  id="owner-block-guest-name"
+                  v-model="form.guestName"
+                  class="neo-input"
+                  autocomplete="given-name"
+                >
+              </AppFormField>
+              <AppFormField :label="t('owner.guestFamily')" field-id="owner-block-guest-family">
+                <input
+                  id="owner-block-guest-family"
+                  v-model="form.guestFamily"
+                  class="neo-input"
+                  autocomplete="family-name"
+                >
+              </AppFormField>
+            </div>
+            <AppFormField :label="t('owner.guestMobile')" field-id="owner-block-guest-mobile">
+              <input
+                id="owner-block-guest-mobile"
+                v-model="form.guestMobile"
+                dir="ltr"
+                class="neo-input tabular-nums"
+                autocomplete="tel"
+                inputmode="tel"
+              >
+            </AppFormField>
+            <AppFormField :label="t('owner.comments')" field-id="owner-block-comments">
+              <textarea id="owner-block-comments" v-model="form.comments" class="neo-textarea" rows="3" />
+            </AppFormField>
+          </form>
+          <div class="venus-modal-footer">
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button v-if="canUnblockSlot()" type="button" class="btn-ghost w-full" :disabled="saving" @click="doUnblock">
+              {{ saving ? t('common.loading') : t('owner.unblock') }}
+            </button>
+            <button v-if="canBlockSlot() || canUnblockSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doBlock">
+              {{ saving ? t('common.loading') : (canUnblockSlot() ? t('common.save') : t('owner.confirmBlock')) }}
+            </button>
+            <button type="button" class="btn-ghost w-full" @click="activePanel = null">{{ t('common.back') }}</button>
           </div>
         </div>
 
@@ -1520,6 +1658,11 @@ const legend = [
 
 :deep(.slot-closed) {
   background: var(--sz-slot-closed);
+  color: #fff;
+}
+
+:deep(.slot-blocked) {
+  background: var(--sz-slot-blocked);
   color: #fff;
 }
 

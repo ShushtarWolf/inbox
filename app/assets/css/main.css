@@ -392,6 +392,7 @@
   .slot-pending { @apply rounded-lg bg-amber-400 font-medium text-brand-navy; }
   .slot-cancel { @apply rounded-lg bg-brand-gray-300 font-medium text-brand-gray-600 line-through; }
   .slot-closed { @apply rounded-lg bg-brand-gray-700 font-medium text-white; }
+  .slot-blocked { @apply rounded-lg bg-brand-gray-400 font-medium text-white; }
 
   /* ── Loading / skeleton (TailAdmin lazy load) ── */
   .material-symbols-rounded {

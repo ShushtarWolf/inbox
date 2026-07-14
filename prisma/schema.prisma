@@ -21,6 +21,7 @@ enum SlotDisplayStatus {
   PENDING
   CANCELLED
   CLOSED
+  BLOCKED
 }
 
 enum BookingStatus {

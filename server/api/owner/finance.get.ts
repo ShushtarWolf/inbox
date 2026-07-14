@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   const totalReservationCount = bookings.length + coachSessions.length
   const cancelledCount = bookings.filter((booking) => booking.status === 'CANCELLED').length + coachSessions.filter((session) => session.status === 'CANCELLED').length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
-  const bookableSlots = courts.reduce((sum, court) => sum + court.slots.filter((slot) => slot.displayStatus !== 'CLOSED').length, 0)
+  const bookableSlots = courts.reduce((sum, court) => sum + court.slots.filter((slot) => slot.displayStatus !== 'CLOSED' && slot.displayStatus !== 'BLOCKED').length, 0)
   const usedSlots = courts.reduce((sum, court) => sum + court.slots.filter((slot) => slot.displayStatus !== 'FREE').length, 0)
   const activeContacts = contacts.filter((contact) => contact.inactiveDays < 7).length
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
