@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
     if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
-      const errorCode = user && !user.passwordHash ? 'oauth' : 'invalid'
+      const errorCode = user && !user.passwordHash ? 'useGoogle' : 'invalid'
       return sendRedirect(event, `${base}/login?error=${errorCode}`)
     }
 

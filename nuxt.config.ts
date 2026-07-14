@@ -2,6 +2,9 @@ import { fileURLToPath } from 'node:url'
 
 const PWA_RESET_VERSION = '4'
 
+const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
+const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-02',
   devtools: { enabled: false },
@@ -136,7 +139,7 @@ export default defineNuxtConfig({
       google: {
         clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID || '',
         clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET || '',
-        redirectURL: process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || '',
+        redirectURL: googleRedirectUrl,
       },
     },
     public: {

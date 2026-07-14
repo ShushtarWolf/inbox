@@ -479,7 +479,8 @@
     "resetSuccess": "Password updated. Redirecting to login…",
     "passwordMismatch": "Passwords do not match.",
     "google": "Continue with Google",
-    "useGoogle": "This account uses Google sign-in. Please use the Google button."
+    "useGoogle": "This account uses Google sign-in. Please use the Google button.",
+    "googleFailed": "Google sign-in failed. Please try again."
   },
   "upload": {
     "choose": "Choose image",

@@ -26,6 +26,6 @@ export default defineOAuthGoogleEventHandler({
     const locale = getCookie(event, 'oauth_locale') === 'en' ? 'en' : 'fa'
     deleteCookie(event, 'oauth_locale')
     const base = locale === 'en' ? '/en' : ''
-    return sendRedirect(event, `${base}/login?error=oauth`)
+    return sendRedirect(event, `${base}/login?error=google`)
   },
 })

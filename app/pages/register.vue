@@ -74,9 +74,7 @@ async function submit() {
     <button type="button" class="btn-primary w-full" :disabled="submitting || !name.trim() || !email.trim() || !password.trim()" @click="submit">
       {{ submitting ? t('common.loading') : t('auth.register') }}
     </button>
-    <button type="button" class="btn-secondary w-full" @click="startGoogleSignIn(returnTo)">
-      {{ t('auth.google') }}
-    </button>
+    <AppGoogleSignInButton @click="startGoogleSignIn(returnTo)" />
     <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">
       {{ t('auth.login') }}
     </NuxtLink>
