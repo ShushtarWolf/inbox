@@ -145,10 +145,7 @@ export default defineNuxtConfig({
     public: {
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
-      bugReportsEnabled:
-        process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED === 'true'
-        || process.env.PAYMENTS_MODE === 'test'
-        || process.env.NODE_ENV !== 'production',
+      bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',
