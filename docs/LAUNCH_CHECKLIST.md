@@ -15,9 +15,10 @@ Status as of July 2026. Re-verify before each production release.
 - [ ] Google OAuth client created; `NUXT_OAUTH_GOOGLE_*` vars set; redirect URI `https://<domain>/auth/google`
 - [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Railway (when ready to send live email)
 - [x] Login page no longer pre-fills demo credentials
-- [x] Demo seed gated behind `SEED_DEMO_DATA=true` (production default: sports catalog only)
-- [x] Demo cleanup script: `CONFIRM=yes node scripts/cleanup-demo-accounts.mjs`
-- [ ] Demo passwords removed from production (unset `SEED_DEMO_DATA`; run cleanup script if demo accounts present)
+- [x] Demo seed gated behind `SEED_DEMO_DATA=true` (default: sports catalog only, even in dev)
+- [x] Demo cleanup runs automatically on production startup
+- [x] Demo login/registration blocked in production (`*@inbox.local`)
+- [x] Demo passwords removed from production (unset `SEED_DEMO_DATA`; auto-cleanup on deploy)
 - [ ] Postgres backup verified (`pg_dump`)
 
 ## Automated QA

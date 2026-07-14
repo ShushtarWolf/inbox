@@ -89,7 +89,7 @@ curl -X POST https://shushzerv-production.up.railway.app/api/admin/clubs/CLUB_ID
 docker compose up -d
 cp .env.example .env
 npm run db:migrate
-FORCE_SEED_RESET=true npm run db:seed   # demo data
+FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed   # demo data (local only)
 npm run dev
 ```
 

@@ -44,13 +44,11 @@ if (process.env.SEED_ON_EMPTY === 'true') {
 {
   const prisma = new PrismaClient({ datasourceUrl: dbUrl })
   try {
-    const demoUsers = await prisma.user.count({
-      where: { email: { endsWith: '@inbox.local' } },
-    })
-    if (demoUsers > 0) {
-      console.warn(
-        `[start-production] WARNING: ${demoUsers} demo account(s) (*@inbox.local) found in production. ` +
-          'Run scripts/cleanup-demo-accounts.mjs with CONFIRM=yes to remove them.',
+    const { cleanupDemoAccounts } = await import('./lib/cleanup-demo-accounts.mjs')
+    const { deleted, emails } = await cleanupDemoAccounts(prisma)
+    if (deleted > 0) {
+      console.log(
+        `[start-production] Removed ${deleted} demo account(s): ${emails.join(', ')}. Real users were kept.`,
       )
     }
   } finally {

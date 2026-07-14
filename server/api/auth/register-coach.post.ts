@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
   if (!name || !email || password.length < 6 || !clubId) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
+  rejectDemoEmailInProduction(email)
 
   const club = await prisma.club.findFirst({ where: { id: clubId, status: 'ACTIVE' } })
   if (!club) {

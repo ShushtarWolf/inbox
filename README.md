@@ -38,7 +38,7 @@ Railway runs [`scripts/start-production.mjs`](scripts/start-production.mjs) whic
 | `SEED_ON_EMPTY=true` | Run seed only when the database has zero users (first deploy) |
 | `FORCE_SEED_RESET=true` | Wipe and reseed — **dev/local only**; never set in production |
 
-Production seed creates the sports catalog only (no demo accounts). Demo passwords (`demo1234`) must never be used in production.
+Production seed creates the sports catalog only (no demo accounts). For local demo data, run `SEED_DEMO_DATA=true npm run db:seed` or `npm run db:seed:demo`. Demo passwords (`demo1234`) must never be used in production.
 
 ### Database migrations
 
@@ -58,13 +58,15 @@ See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](d
 
 ## Demo accounts (local development only)
 
+Requires `SEED_DEMO_DATA=true` (or `npm run db:seed:demo`):
+
 | Role | Email | Password |
 |------|-------|----------|
 | Athlete | `athlete@inbox.local` | `demo1234` |
 | Coach | `coach@inbox.local` | `demo1234` |
 | Club owner | `owner@inbox.local` | `demo1234` |
 
-Run `FORCE_SEED_RESET=true npm run db:seed` to wipe and recreate demo data locally.
+Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recreate demo data locally.
 
 ## Routes
 

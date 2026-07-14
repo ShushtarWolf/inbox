@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Remove demo accounts (*@inbox.local). Requires CONFIRM=yes to execute. */
 import { PrismaClient } from '@prisma/client'
+import { cleanupDemoAccounts } from './lib/cleanup-demo-accounts.mjs'
 
 if (process.env.CONFIRM !== 'yes') {
   console.error('Refusing to run without CONFIRM=yes')
@@ -11,22 +12,16 @@ if (process.env.CONFIRM !== 'yes') {
 const prisma = new PrismaClient()
 
 try {
-  const demoUsers = await prisma.user.findMany({
-    where: { email: { endsWith: '@inbox.local' } },
-    select: { id: true, email: true },
-  })
+  const { deleted, emails } = await cleanupDemoAccounts(prisma)
 
-  if (demoUsers.length === 0) {
+  if (deleted === 0) {
     console.log('No demo accounts found.')
     process.exit(0)
   }
 
-  console.log(`Found ${demoUsers.length} demo account(s):`)
-  for (const u of demoUsers) console.log(`  - ${u.email}`)
-
-  const ids = demoUsers.map((u) => u.id)
-  const deleted = await prisma.user.deleteMany({ where: { id: { in: ids } } })
-  console.log(`Deleted ${deleted.count} demo account(s).`)
+  console.log(`Found ${emails.length} demo account(s):`)
+  for (const email of emails) console.log(`  - ${email}`)
+  console.log(`Deleted ${deleted} demo account(s). Real users were kept.`)
 } finally {
   await prisma.$disconnect()
 }

@@ -14,6 +14,7 @@
     "db:migrate": "node scripts/check-db.mjs && prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:demo": "SEED_DEMO_DATA=true prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
     "smoke": "node scripts/smoke.mjs",

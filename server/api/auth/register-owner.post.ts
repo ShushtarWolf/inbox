@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!name || !email || password.length < 6 || !clubNameFa || !city) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
+  rejectDemoEmailInProduction(email)
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {

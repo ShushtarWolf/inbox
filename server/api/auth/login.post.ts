@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   if (!normalized || !password) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
+  rejectDemoEmailInProduction(normalized)
   const user = await prisma.user.findUnique({
     where: { email: normalized },
     include: { coachProfile: { select: { photo: true } } },

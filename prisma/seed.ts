@@ -120,11 +120,11 @@ async function main() {
     await prisma.sport.deleteMany()
   }
 
-  const seedDemo = !isProduction || process.env.SEED_DEMO_DATA === 'true'
+  const seedDemo = process.env.SEED_DEMO_DATA === 'true'
   await ensureSports()
 
   if (!seedDemo) {
-    console.log('Production seed complete: sports catalog only (no demo users).')
+    console.log('Seed complete: sports catalog only (no demo users). Set SEED_DEMO_DATA=true for demo data.')
     return
   }
 

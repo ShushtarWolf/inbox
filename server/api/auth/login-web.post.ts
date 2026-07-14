@@ -18,6 +18,10 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, `${base}/login?error=invalid`)
   }
 
+  if (process.env.NODE_ENV === 'production' && isDemoEmail(normalized)) {
+    return sendRedirect(event, `${base}/login?error=invalid`)
+  }
+
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
     if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
