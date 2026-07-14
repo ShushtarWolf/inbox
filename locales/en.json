@@ -222,7 +222,7 @@
     "descriptionPlaceholder": "What happened? What did you expect?",
     "descriptionTooShort": "Please add at least 10 characters.",
     "email": "Your email (optional)",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "you{'@'}example.com",
     "screenshot": "Screenshot (optional)",
     "submit": "Send report",
     "success": "Thanks — your report was submitted.",

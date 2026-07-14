@@ -221,7 +221,7 @@
     "descriptionPlaceholder": "چه اتفاقی افتاد؟ چه انتظاری داشتید؟",
     "descriptionTooShort": "حداقل ۱۰ کاراکتر بنویسید.",
     "email": "ایمیل شما (اختیاری)",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "you{'@'}example.com",
     "screenshot": "اسکرین‌شات (اختیاری)",
     "submit": "ارسال گزارش",
     "success": "ممنون — گزارش شما ثبت شد.",
