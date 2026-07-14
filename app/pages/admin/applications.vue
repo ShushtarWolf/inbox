@@ -97,9 +97,14 @@ watch(secret, (value) => {
   <div class="mx-auto min-h-screen max-w-4xl p-4 pt-8">
     <div class="mb-6 flex items-center justify-between gap-4">
       <h1 class="font-display text-xl font-bold">{{ t('admin.title') }}</h1>
-      <button v-if="secret" type="button" class="text-sm font-bold text-brand-navy underline" @click="clearSecret">
-        {{ t('admin.logout') }}
-      </button>
+      <div class="flex items-center gap-3">
+        <NuxtLink to="/admin/bug-reports" class="text-sm font-bold text-brand-navy underline">
+          {{ t('bugReport.adminTitle') }}
+        </NuxtLink>
+        <button v-if="secret" type="button" class="text-sm font-bold text-brand-navy underline" @click="clearSecret">
+          {{ t('admin.logout') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="!secret" class="ios-card mx-auto max-w-sm p-6 venus-form-stack">

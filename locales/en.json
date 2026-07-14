@@ -214,6 +214,37 @@
     "approveSuccess": "Club approved and owner notified by email.",
     "tempPassword": "Temporary password"
   },
+  "bugReport": {
+    "button": "Report a bug",
+    "title": "Report a bug",
+    "hint": "Describe what went wrong. A screenshot helps us fix it faster.",
+    "description": "Description",
+    "descriptionPlaceholder": "What happened? What did you expect?",
+    "descriptionTooShort": "Please add at least 10 characters.",
+    "email": "Your email (optional)",
+    "emailPlaceholder": "you@example.com",
+    "screenshot": "Screenshot (optional)",
+    "submit": "Send report",
+    "success": "Thanks — your report was submitted.",
+    "adminTitle": "Bug reports",
+    "adminEmpty": "No bug reports yet",
+    "adminDate": "Submitted",
+    "adminReporter": "Reporter",
+    "adminPage": "Page URL",
+    "adminUserAgent": "Browser",
+    "adminDetail": "Bug report details",
+    "markResolved": "Mark resolved",
+    "reopen": "Reopen",
+    "status": {
+      "open": "Open",
+      "resolved": "Resolved"
+    },
+    "filter": {
+      "all": "All",
+      "open": "Open",
+      "resolved": "Resolved"
+    }
+  },
   "booking": {
     "payAtClub": "Pay at club",
     "confirm": "Confirm booking",

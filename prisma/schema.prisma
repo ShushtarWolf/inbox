@@ -134,6 +134,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   notifications   Notification[]
   wallet          Wallet?
+  bugReports      BugReport[]
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -198,6 +199,28 @@ enum ApplicationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum BugReportStatus {
+  OPEN
+  RESOLVED
+}
+
+model BugReport {
+  id            String          @id @default(cuid())
+  description   String
+  screenshotUrl String?
+  pageUrl       String
+  userAgent     String?
+  reporterEmail String?
+  status        BugReportStatus @default(OPEN)
+  createdAt     DateTime        @default(now())
+  resolvedAt    DateTime?
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
 }
 
 model ClubApplication {

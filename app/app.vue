@@ -13,6 +13,7 @@ useHead({
 <template>
   <AppRouteProgress />
   <PwaInstallBanner />
+  <AppBugReportButton />
   <NuxtLayout>
     <NuxtPage
       :transition="{

@@ -213,6 +213,37 @@
     "approveSuccess": "باشگاه تأیید شد و به مدیر ایمیل ارسال شد.",
     "tempPassword": "رمز موقت"
   },
+  "bugReport": {
+    "button": "گزارش باگ",
+    "title": "گزارش باگ",
+    "hint": "مشکل را توضیح دهید. اسکرین‌شات به ما کمک می‌کند سریع‌تر رفع کنیم.",
+    "description": "توضیحات",
+    "descriptionPlaceholder": "چه اتفاقی افتاد؟ چه انتظاری داشتید؟",
+    "descriptionTooShort": "حداقل ۱۰ کاراکتر بنویسید.",
+    "email": "ایمیل شما (اختیاری)",
+    "emailPlaceholder": "you@example.com",
+    "screenshot": "اسکرین‌شات (اختیاری)",
+    "submit": "ارسال گزارش",
+    "success": "ممنون — گزارش شما ثبت شد.",
+    "adminTitle": "گزارش‌های باگ",
+    "adminEmpty": "هنوز گزارشی ثبت نشده",
+    "adminDate": "تاریخ",
+    "adminReporter": "گزارش‌دهنده",
+    "adminPage": "آدرس صفحه",
+    "adminUserAgent": "مرورگر",
+    "adminDetail": "جزئیات گزارش",
+    "markResolved": "علامت‌گذاری حل‌شده",
+    "reopen": "بازگشایی",
+    "status": {
+      "open": "باز",
+      "resolved": "حل‌شده"
+    },
+    "filter": {
+      "all": "همه",
+      "open": "باز",
+      "resolved": "حل‌شده"
+    }
+  },
   "booking": {
     "payAtClub": "پرداخت در باشگاه",
     "confirm": "تأیید رزرو",
