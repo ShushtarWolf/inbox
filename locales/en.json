@@ -86,13 +86,7 @@
     "coachSectionBody": "For private training and better weekly planning",
     "seeAll": "See all",
     "clubCta": "Book",
-    "coachCta": "Book coach",
-    "utilityFastTitle": "Fast",
-    "utilityFastBody": "Book in a few taps",
-    "utilityLocaleTitle": "Bilingual",
-    "utilityLocaleBody": "Persian and English",
-    "utilityPwaTitle": "Installable",
-    "utilityPwaBody": "App-like experience on mobile"
+    "coachCta": "Book coach"
   },
   "clubs": {
     "title": "Clubs",

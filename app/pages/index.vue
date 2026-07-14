@@ -387,24 +387,6 @@ function handleHeroSportIconError() {
         </NuxtLink>
       </div>
     </section>
-
-    <section class="grid gap-3 sm:grid-cols-3">
-      <div class="venus-stat-card">
-        <AppIcon name="bolt" size="sm" class="mx-auto text-brand-primary" />
-        <p class="mt-2 text-sm font-bold text-brand-navy">{{ t('home.utilityFastTitle') }}</p>
-        <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.utilityFastBody') }}</p>
-      </div>
-      <div class="venus-stat-card">
-        <AppIcon name="translate" size="sm" class="mx-auto text-brand-primary" />
-        <p class="mt-2 text-sm font-bold text-brand-navy">{{ t('home.utilityLocaleTitle') }}</p>
-        <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.utilityLocaleBody') }}</p>
-      </div>
-      <div class="venus-stat-card">
-        <AppIcon name="install_mobile" size="sm" class="mx-auto text-brand-primary" />
-        <p class="mt-2 text-sm font-bold text-brand-navy">{{ t('home.utilityPwaTitle') }}</p>
-        <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.utilityPwaBody') }}</p>
-      </div>
-    </section>
   </div>
   </AppAsyncState>
 </template>
