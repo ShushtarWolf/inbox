@@ -146,9 +146,6 @@ const canBatchReserve = computed(() =>
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
     && !selectedSlotsFull.value.some(slotIsInPast),
 )
-const canBatchCancel = computed(() =>
-  selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => Boolean(slot.booking)),
-)
 const canBatchBlock = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
@@ -386,12 +383,6 @@ function openSelectionReserve() {
   if (!canBatchReserve.value || !selectedSlotsFull.value.length) return
   openSlot(selectedSlotsFull.value[0], { keepSelection: true })
   activePanel.value = 'reserve'
-}
-
-function openSelectionCancel() {
-  if (!canBatchCancel.value || !selectedSlotsFull.value.length) return
-  openSlot(selectedSlotsFull.value[0], { keepSelection: true })
-  activePanel.value = 'cancel'
 }
 
 function openSelectionBlock() {
@@ -938,9 +929,6 @@ const legend = [
             </button>
             <button type="button" class="btn-ghost" :disabled="!canBatchBlock" @click="openSelectionBlock">
               {{ t('owner.block') }}
-            </button>
-            <button type="button" class="btn-ghost" :disabled="!canBatchCancel" @click="openSelectionCancel">
-              {{ t('owner.cancel') }}
             </button>
             <button type="button" class="btn-ghost" @click="clearSelection">
               {{ t('owner.selectionBar.clear') }}
