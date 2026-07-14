@@ -28,3 +28,4 @@ prisma/dev.db-journal
 !.vscode/extensions.json
 
 .cache
+.liara-secrets.env
