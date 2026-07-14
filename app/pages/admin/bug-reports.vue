@@ -44,9 +44,14 @@ async function loadReports() {
     const query = statusFilter.value !== 'ALL' ? `?status=${statusFilter.value}` : ''
     const data = await adminFetch<{ reports: BugReport[] }>(`/api/admin/bug-reports${query}`)
     reports.value = data.reports
-  } catch {
-    loadError.value = t('admin.invalidSecret')
-    clearSecret()
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number })?.statusCode
+    if (status === 403) {
+      loadError.value = t('admin.invalidSecret')
+      clearSecret()
+    } else {
+      loadError.value = t('common.error')
+    }
   } finally {
     pending.value = false
   }
