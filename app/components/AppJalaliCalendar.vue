@@ -6,8 +6,10 @@ const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
 
 const props = withDefaults(defineProps<{
   mode?: 'single' | 'range'
+  minDate?: string
 }>(), {
   mode: 'single',
+  minDate: '',
 })
 
 const emit = defineEmits<{
@@ -101,6 +103,7 @@ function isRangeEnd(cell: { iso: string | null }) {
 }
 
 function selectDay(iso: string) {
+  if (props.minDate && iso < props.minDate) return
   if (props.mode === 'range') {
     if (!model.value || rangeEnd.value) {
       model.value = iso
@@ -128,8 +131,13 @@ function isSelected(cell: { iso: string | null }) {
   return cell.iso === model.value
 }
 
+function isDisabled(cell: { iso: string | null }) {
+  return Boolean(cell.iso && props.minDate && cell.iso < props.minDate)
+}
+
 function cellClass(cell: { iso: string | null }) {
   if (!cell.iso) return ''
+  if (isDisabled(cell)) return 'jalali-calendar-day-disabled'
   if (props.mode === 'range' && isInRange(cell.iso)) {
     if (isRangeStart(cell) || isRangeEnd(cell)) return 'jalali-calendar-day-selected'
     return 'jalali-calendar-day-in-range'
@@ -171,6 +179,7 @@ function cellClass(cell: { iso: string | null }) {
           type="button"
           class="jalali-calendar-day"
           :class="cellClass(cell)"
+          :disabled="isDisabled(cell)"
           @click="selectDay(cell.iso!)"
         >
           {{ formatNumber(cell.day) }}
@@ -242,5 +251,15 @@ function cellClass(cell: { iso: string | null }) {
 .jalali-calendar-day-in-range {
   background: color-mix(in srgb, var(--sz-accent) 18%, transparent);
   color: var(--sz-navy);
+}
+
+.jalali-calendar-day-disabled {
+  cursor: not-allowed;
+  color: var(--sz-border);
+  opacity: 0.45;
+}
+
+.jalali-calendar-day-disabled:hover {
+  background: transparent;
 }
 </style>

@@ -142,7 +142,7 @@ onMounted(() => {
 <template>
   <div class="venus-page-stack">
     <PageHeaderNav :title="t('home.bookCourt')" :home-to="localePath('/')" :back-to="localePath(`/clubs/${slug}`)" />
-    <AppDateInput v-model="date" />
+    <AppDateInput v-model="date" :min-date="today()" />
     <div v-if="club" class="ios-card p-4 text-sm">
       <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
       <p class="mt-1 text-brand-gray-600">

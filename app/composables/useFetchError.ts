@@ -8,6 +8,8 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
 
   const errorKeyMap: Record<string, string> = {
     BOOKING_TOO_SOON: 'booking.errors.startTimeTooSoon',
+    SLOT_IN_PAST: 'booking.errors.slotInPast',
+    DATE_IN_PAST: 'owner.errors.startDateInPast',
     'Start time is too soon': 'booking.errors.startTimeTooSoon',
     'Coach is not available at this time': 'booking.errors.coachUnavailable',
     'This session time is already booked': 'booking.errors.sessionTaken',

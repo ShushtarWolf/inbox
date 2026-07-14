@@ -3,6 +3,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
+import { assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -24,6 +25,10 @@ export default defineEventHandler(async (event) => {
     include: { booking: true },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
+
+  if (!slot.booking) {
+    assertSlotBookable(slot.date, slot.startTime)
+  }
 
   const paymentMethod = (body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'
   const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'

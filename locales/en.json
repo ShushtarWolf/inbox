@@ -263,6 +263,7 @@
     "viewBookings": "View my bookings",
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
+      "slotInPast": "This time slot has already passed and cannot be booked.",
       "coachUnavailable": "Coach is not available at this time.",
       "sessionTaken": "This session time is already booked.",
       "coachNotBookable": "This coach is not accepting bookings right now.",
@@ -576,6 +577,10 @@
     "confirmReserve": "Confirm reservation",
     "paymentStatusLabel": "Payment status",
     "guestRequired": "Guest name, family name, and mobile are required.",
+    "errors": {
+      "slotInPast": "This time slot has already passed and cannot be reserved.",
+      "startDateInPast": "Start date cannot be in the past."
+    },
     "reserveRedirect": {
       "title": "Reserve from calendar",
       "body": "Season and package reservations are created from a slot on the owner calendar. Open the calendar, tap a slot, then choose the reserve option you need.",

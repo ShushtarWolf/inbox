@@ -1,4 +1,4 @@
-import { addOneHour, canManageReservation } from '../../utils/reservations'
+import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 
@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!availability) {
     throw createError({ statusCode: 409, statusMessage: 'Coach is not available at this time' })
   }
+  assertSlotBookable(body.date, body.startTime)
   if (!canManageReservation(body.date, body.startTime, coach.club?.rescheduleWindowHours ?? 24)) {
     throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
   }

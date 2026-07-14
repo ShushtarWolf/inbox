@@ -1,3 +1,5 @@
+import { assertSlotBookable } from '../../utils/reservations'
+
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
   const userId = session?.user?.id
@@ -20,6 +22,8 @@ export default defineEventHandler(async (event) => {
   if (!club || !club.waitlistEnabled) {
     throw createError({ statusCode: 404, statusMessage: 'Waitlist is not available' })
   }
+
+  assertSlotBookable(body.date, body.startTime)
 
   const entry = await prisma.waitlistEntry.create({
     data: {

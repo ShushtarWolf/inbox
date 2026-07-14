@@ -1,5 +1,6 @@
 import { addOneHour } from '../../../utils/reservations'
 import { findCoachByIdOrSlug } from '../../../utils/coaches'
+import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -7,6 +8,10 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const date = (query.date as string) || todayDateStr()
+
+  if (isPastDate(date)) {
+    return { date, slots: [], sessionPrice: 0 }
+  }
 
   const coachRecord = await findCoachByIdOrSlug(id)
   if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
@@ -31,7 +36,7 @@ export default defineEventHandler(async (event) => {
     const endHour = Number(window.endTime.split(':')[0] || 0)
     for (let hour = startHour; hour < endHour; hour++) {
       const startTime = `${String(hour).padStart(2, '0')}:00`
-      if (!takenTimes.has(startTime)) {
+      if (!takenTimes.has(startTime) && !isSlotStartInPast(date, startTime)) {
         slots.push({ startTime, endTime: addOneHour(startTime) })
       }
     }

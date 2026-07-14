@@ -1,5 +1,6 @@
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
+import { assertDateNotInPast } from '../../utils/reservations'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 
 function resolveDayTimes(
@@ -45,6 +46,7 @@ export default defineEventHandler(async (event) => {
   if (body.finishDate < body.startDate) {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
+  assertDateNotInPast(body.startDate)
 
   let equipmentPrice = 0
   if (body.equipmentId) {

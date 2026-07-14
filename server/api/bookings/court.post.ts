@@ -1,5 +1,6 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
+import { assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -14,6 +15,8 @@ export default defineEventHandler(async (event) => {
   if (!slot || slot.displayStatus !== 'FREE' || (slot.booking && !staleCancelledBooking)) {
     throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
   }
+
+  assertSlotBookable(slot.date, slot.startTime)
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
   const bookingAmount = computeBookingPrice(

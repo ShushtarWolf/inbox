@@ -140,7 +140,7 @@ async function submitReview() {
 
     <div v-if="booking.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
-      <AppDateInput v-model="rescheduleDate" />
+      <AppDateInput v-model="rescheduleDate" :min-date="today()" />
       <div v-if="replacementSlots?.length" class="space-y-2">
         <button
           v-for="slot in replacementSlots"

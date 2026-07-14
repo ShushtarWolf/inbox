@@ -231,7 +231,7 @@ function paymentStatusLabel(status: string) {
       <div class="venus-modal-shell venus-modal-shell-simple">
         <div class="venus-modal-panel">
           <div class="venus-modal-panel-body venus-form-stack">
-            <AppDateInput v-model="rescheduleDate" />
+            <AppDateInput v-model="rescheduleDate" :min-date="today()" />
             <div class="max-h-64 space-y-2 overflow-auto">
               <button
                 v-for="slot in replacementSlots"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addOneHour, canManageReservation, diffHours, toDateTime } from './reservations'
+import { minutesUntilSlotStart } from '#shared/localDate.ts'
 
 describe('toDateTime', () => {
   it('parses date and time into a Date', () => {
@@ -40,5 +41,16 @@ describe('canManageReservation', () => {
     const date = soon.toISOString().slice(0, 10)
     const time = `${String(soon.getHours()).padStart(2, '0')}:00`
     expect(canManageReservation(date, time, 12)).toBe(false)
+  })
+
+  it('blocks past slots', () => {
+    expect(canManageReservation('2020-01-01', '10:00', 0)).toBe(false)
+  })
+})
+
+describe('minutesUntilSlotStart integration', () => {
+  it('uses Tehran timezone consistently with canManageReservation', () => {
+    const minutes = minutesUntilSlotStart('2099-01-01', '10:00')
+    expect(minutes).toBeGreaterThan(0)
   })
 })

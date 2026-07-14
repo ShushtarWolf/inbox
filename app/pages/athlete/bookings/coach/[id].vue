@@ -96,7 +96,7 @@ async function rescheduleSession() {
 
     <div v-if="session.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
       <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
-      <AppDateInput v-model="rescheduleDate" />
+      <AppDateInput v-model="rescheduleDate" :min-date="today()" />
       <select v-model="startTime" class="neo-input" dir="ltr">
         <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">
           {{ formatTimeRange(slot.startTime, slot.endTime) }} — {{ formatCurrency(availability?.sessionPrice || session.price) }}

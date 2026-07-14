@@ -1,3 +1,5 @@
+import { assertDateNotInPast } from '../../utils/reservations'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   if (event.method === 'GET') {
@@ -23,6 +25,7 @@ export default defineEventHandler(async (event) => {
     timesJson?: string
     equipmentId?: string
   }>(event)
+  if (body.startDate) assertDateNotInPast(body.startDate)
   return prisma.packageDraft.create({
     data: {
       clubId: club.id,

@@ -1,3 +1,5 @@
+import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const clubSlug = query.club as string
@@ -7,6 +9,8 @@ export default defineEventHandler(async (event) => {
   const club = await prisma.club.findUnique({ where: { slug: clubSlug } })
   if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })
 
+  if (isPastDate(date)) return []
+
   await ensureSlotsForDate(club.id, date)
 
   const slots = await prisma.slot.findMany({
@@ -14,5 +18,5 @@ export default defineEventHandler(async (event) => {
     include: { court: { include: { sport: true } } },
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })
-  return slots
+  return slots.filter((slot) => !isSlotStartInPast(slot.date, slot.startTime))
 })

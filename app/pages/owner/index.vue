@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
+import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
@@ -141,7 +142,9 @@ const selectionCourt = computed(() =>
 )
 const batchMode = computed(() => selectedSlotIds.value.length > 1 && showMenu.value)
 const canBatchReserve = computed(() =>
-  selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
+  selectedSlotsFull.value.length > 0
+    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
+    && !selectedSlotsFull.value.some(slotIsInPast),
 )
 const canBatchCancel = computed(() =>
   selectedSlotsFull.value.length > 0 && selectedSlotsFull.value.every((slot) => Boolean(slot.booking)),
@@ -282,8 +285,11 @@ const packageEquipmentPrice = computed(() => sumEquipmentIds(packageForm.equipme
 const seasonDateRangeInvalid = computed(() =>
   Boolean(seasonForm.startDate && seasonForm.finishDate && seasonForm.finishDate < seasonForm.startDate),
 )
+const seasonStartInPast = computed(() =>
+  Boolean(seasonForm.startDate && isPastDate(seasonForm.startDate)),
+)
 const seasonDatesValid = computed(() =>
-  Boolean(seasonForm.startDate && seasonForm.finishDate && !seasonDateRangeInvalid.value),
+  Boolean(seasonForm.startDate && seasonForm.finishDate && !seasonDateRangeInvalid.value && !seasonStartInPast.value),
 )
 const seasonSessionCount = computed(() => {
   if (!seasonDatesValid.value) return 0
@@ -297,8 +303,11 @@ const seasonSessionCount = computed(() => {
 const packageDateRangeInvalid = computed(() =>
   Boolean(packageForm.startDate && packageForm.finishDate && packageForm.finishDate < packageForm.startDate),
 )
+const packageStartInPast = computed(() =>
+  Boolean(packageForm.startDate && isPastDate(packageForm.startDate)),
+)
 const packageDatesValid = computed(() =>
-  Boolean(packageForm.startDate && packageForm.finishDate && !packageDateRangeInvalid.value),
+  Boolean(packageForm.startDate && packageForm.finishDate && !packageDateRangeInvalid.value && !packageStartInPast.value),
 )
 const packageSessionCount = computed(() => {
   if (!packageDatesValid.value) return 0
@@ -697,9 +706,16 @@ function guestFieldsValid() {
   return Boolean(form.guestName.trim() && form.guestFamily.trim() && form.guestMobile.trim())
 }
 
+function slotIsInPast(slot: OwnerCalendarSlot) {
+  const slotDate = slot.date || date.value
+  return isSlotStartInPast(slotDate, slot.startTime)
+}
+
 function canSubmitReserve() {
   if (saving.value) return false
-  return guestFieldsValid()
+  if (!guestFieldsValid()) return false
+  if (isNewReservation() && slotsForReserve().some(slotIsInPast)) return false
+  return true
 }
 
 function reserveFormTitle() {
@@ -1030,6 +1046,7 @@ const legend = [
               :equipment-price="reserveEquipmentPrice"
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="isNewReservation() && slotsForReserve().some(slotIsInPast)" class="text-xs font-medium text-red-600">{{ t('owner.errors.slotInPast') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button type="button" class="btn-primary w-full" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
@@ -1096,8 +1113,8 @@ const legend = [
                   <AppDateRangeInput
                     v-model:start="seasonForm.startDate"
                     v-model:end="seasonForm.finishDate"
-                    :invalid="seasonDateRangeInvalid"
-                    :invalid-message="t('owner.packagesPage.dateRangeInvalid')"
+                    :invalid="seasonDateRangeInvalid || seasonStartInPast"
+                    :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
                   />
                 </AppFormField>
                 <div>
@@ -1187,8 +1204,8 @@ const legend = [
                   <AppDateRangeInput
                     v-model:start="packageForm.startDate"
                     v-model:end="packageForm.finishDate"
-                    :invalid="packageDateRangeInvalid"
-                    :invalid-message="t('owner.packagesPage.dateRangeInvalid')"
+                    :invalid="packageDateRangeInvalid || packageStartInPast"
+                    :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
                   />
                 </AppFormField>
                 <div>

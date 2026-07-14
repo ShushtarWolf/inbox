@@ -1,4 +1,4 @@
-import { addOneHour, canManageReservation } from '../../../utils/reservations'
+import { addOneHour, canManageReservation, assertSlotBookable } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -20,6 +20,11 @@ export default defineEventHandler(async (event) => {
     item.dayOfWeek === dayOfWeek && item.startTime <= body.startTime! && item.endTime > body.startTime!,
   )
   if (!allowed) throw createError({ statusCode: 409, statusMessage: 'Coach is not available at this time' })
+
+  assertSlotBookable(body.date, body.startTime)
+  if (!canManageReservation(body.date, body.startTime, session.coach.club?.rescheduleWindowHours ?? 24)) {
+    throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
+  }
 
   const existing = await prisma.coachSession.findFirst({
     where: { coachId: session.coachId, date: body.date, startTime: body.startTime, status: { not: 'CANCELLED' }, id: { not: id } },

@@ -7,15 +7,18 @@ const props = withDefaults(defineProps<{
   label?: string
   showFormattedHint?: boolean
   useCalendar?: boolean
+  minDate?: string
 }>(), {
   showFormattedHint: true,
   useCalendar: true,
+  minDate: '',
 })
 
 const { t, locale } = useI18n()
 const { formatDate, formatNumber } = useFormatters()
 
 const isFa = computed(() => locale.value === 'fa')
+const effectiveMinDate = computed(() => props.minDate || '')
 
 const jalaliYear = ref(1404)
 const jalaliMonth = ref(1)
@@ -47,7 +50,8 @@ function syncJalaliFromModel() {
 function syncModelFromJalali() {
   const maxDay = jalaaliDaysInMonth(jalaliYear.value, jalaliMonth.value)
   if (jalaliDay.value > maxDay) jalaliDay.value = maxDay
-  const next = jalaaliToIso(jalaliYear.value, jalaliMonth.value, jalaliDay.value)
+  let next = jalaaliToIso(jalaliYear.value, jalaliMonth.value, jalaliDay.value)
+  if (effectiveMinDate.value && next < effectiveMinDate.value) next = effectiveMinDate.value
   if (next !== model.value) model.value = next
 }
 
@@ -61,7 +65,7 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
       <slot name="label">{{ label || t('common.date') }}</slot>
     </span>
 
-    <AppJalaliCalendar v-if="isFa && useCalendar" v-model="model" />
+    <AppJalaliCalendar v-if="isFa && useCalendar" v-model="model" :min-date="effectiveMinDate" />
 
     <div v-else-if="isFa" class="flex flex-wrap items-center gap-1">
       <select
@@ -94,6 +98,7 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
       type="date"
       dir="ltr"
       class="neo-input tabular-nums"
+      :min="effectiveMinDate || undefined"
     >
 
     <p v-if="formattedHint" class="text-xs text-brand-gray-600" dir="auto">{{ formattedHint }}</p>

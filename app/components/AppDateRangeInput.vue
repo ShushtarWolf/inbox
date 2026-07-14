@@ -7,14 +7,18 @@ const props = withDefaults(defineProps<{
   endLabel?: string
   invalid?: boolean
   invalidMessage?: string
+  minDate?: string
 }>(), {
   invalid: false,
+  minDate: '',
 })
 
 const { t, locale } = useI18n()
 const { formatDate } = useFormatters()
+const { today } = useLocalDate()
 
 const isFa = computed(() => locale.value === 'fa')
+const effectiveMinDate = computed(() => props.minDate || today())
 
 const startLabelText = computed(() => props.startLabel || t('owner.packagesPage.startDate'))
 const endLabelText = computed(() => props.endLabel || t('owner.packagesPage.finishDate'))
@@ -45,6 +49,7 @@ const calendarStart = computed({
         v-model="calendarStart"
         v-model:range-end="end"
         mode="range"
+        :min-date="effectiveMinDate"
       />
       <p v-if="rangeHint" class="text-xs text-brand-gray-600" dir="auto">{{ rangeHint }}</p>
     </template>
@@ -56,6 +61,7 @@ const calendarStart = computed({
           type="date"
           dir="ltr"
           class="neo-input tabular-nums"
+          :min="effectiveMinDate"
         >
       </label>
       <label class="block space-y-1">
@@ -65,6 +71,7 @@ const calendarStart = computed({
           type="date"
           dir="ltr"
           class="neo-input tabular-nums"
+          :min="start || effectiveMinDate"
         >
       </label>
     </template>

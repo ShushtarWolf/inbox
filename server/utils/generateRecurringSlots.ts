@@ -2,6 +2,7 @@ import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seaso
 import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
+import { isSlotStartInPast } from '#shared/localDate.ts'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
 
 export type RecurringGuestInfo = {
@@ -61,6 +62,7 @@ export async function generateRecurringCourtSlots(opts: {
       const closeHour = court.closeHour ?? court.club.closeHour
       if (hour < openHour || hour >= closeHour) continue
       const startTime = formatHour(hour)
+      if (isSlotStartInPast(date, startTime)) continue
       const duration = court.club.defaultSessionDurationMinutes || 60
       const endTime = duration === 60 ? hourEnd(hour) : addMinutes(startTime, duration)
       const slotPrice = computeListedSlotPrice(court.price, startTime, court.pricingJson)

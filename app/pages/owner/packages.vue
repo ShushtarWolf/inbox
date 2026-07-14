@@ -6,6 +6,7 @@ import {
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
+import { isPastDate } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -119,12 +120,19 @@ function removeDraftPlayer(index: number) {
 const dateRangeInvalid = computed(() =>
   Boolean(form.startDate && form.finishDate && form.finishDate < form.startDate),
 )
+const startDateInPast = computed(() =>
+  Boolean(form.startDate && isPastDate(form.startDate)),
+)
 
 const scheduleValid = computed(() => hasValidDayTimes(form.dayTimes, form.days))
 
 async function create() {
   if (dateRangeInvalid.value) {
     createError.value = t('owner.packagesPage.dateRangeInvalid')
+    return
+  }
+  if (startDateInPast.value) {
+    createError.value = t('owner.errors.startDateInPast')
     return
   }
   saving.value = true
@@ -245,8 +253,8 @@ const rentalEquipments = computed(() =>
       <AppDateRangeInput
         v-model:start="form.startDate"
         v-model:end="form.finishDate"
-        :invalid="dateRangeInvalid"
-        :invalid-message="t('owner.packagesPage.dateRangeInvalid')"
+        :invalid="dateRangeInvalid || startDateInPast"
+        :invalid-message="startDateInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
       />
       <AppFormField :label="t('owner.packagesPage.capacity')">
         <input v-model.number="form.capacity" type="number" min="1" class="neo-input">
