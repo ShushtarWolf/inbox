@@ -7,7 +7,7 @@
     "dev": "TMPDIR=/tmp nuxt dev",
     "predev": "node scripts/check-db.mjs",
     "preview": "nuxt preview --port 3000",
-    "start": "node .output/server/index.mjs",
+    "start": "node scripts/start-production.mjs",
     "start:production": "node scripts/start-production.mjs",
     "postinstall": "nuxt prepare && node -e \"const fs=require('fs');const {execSync}=require('child_process');if(fs.existsSync('prisma/schema.prisma'))execSync('npx prisma generate',{stdio:'inherit'});else console.log('[postinstall] prisma schema not present yet — skipping generate')\"",
     "db:push": "prisma db push",

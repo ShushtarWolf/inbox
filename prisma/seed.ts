@@ -83,6 +83,8 @@ async function ensureSports() {
 }
 
 async function main() {
+  await ensureSports()
+
   const forceReset = process.env.FORCE_SEED_RESET === 'true'
   const isProduction = process.env.NODE_ENV === 'production'
   const userCount = await prisma.user.count()
@@ -121,7 +123,6 @@ async function main() {
   }
 
   const seedDemo = process.env.SEED_DEMO_DATA === 'true'
-  await ensureSports()
 
   if (!seedDemo) {
     console.log('Seed complete: sports catalog only (no demo users). Set SEED_DEMO_DATA=true for demo data.')

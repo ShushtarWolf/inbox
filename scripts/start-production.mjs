@@ -9,32 +9,53 @@ if (!dbUrl) {
 
 const env = { ...process.env, DATABASE_URL: dbUrl }
 
+function run(command, label) {
+  console.log(`[start-production] ${label}`)
+  execSync(command, { stdio: 'inherit', env })
+}
+
 // Recover from a previously failed slot unique-index migration in production.
 try {
-  execSync('npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint', {
-    stdio: 'inherit',
-    env,
-  })
+  run(
+    'npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint',
+    'Checking for failed slot migration to resolve…',
+  )
 } catch {
   // No failed migration to resolve.
 }
 
 if (process.env.SKIP_MIGRATE !== 'true') {
-  execSync('npx prisma migrate deploy', { stdio: 'inherit', env })
+  run('npx prisma migrate deploy', 'Applying database migrations…')
+} else {
+  console.log('[start-production] SKIP_MIGRATE=true — skipping migrations')
 }
+
+async function ensureCatalog() {
+  const prisma = new PrismaClient({ datasourceUrl: dbUrl })
+  try {
+    const sportCount = await prisma.sport.count()
+    if (sportCount > 0) {
+      console.log('[start-production] Sports catalog present')
+      return
+    }
+    console.log('[start-production] Sports catalog empty — seeding catalog')
+    run('npx prisma db seed', 'Seeding sports catalog…')
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+await ensureCatalog()
 
 if (process.env.SEED_ON_EMPTY === 'true') {
   const prisma = new PrismaClient({ datasourceUrl: dbUrl })
   try {
     const userCount = await prisma.user.count()
     if (userCount === 0) {
-      console.log('[start-production] Empty database — running seed (SEED_ON_EMPTY=true)')
-      execSync('npx prisma db seed', {
-        stdio: 'inherit',
-        env: { ...env, NODE_ENV: 'production' },
-      })
+      console.log('[start-production] Empty database — running full seed (SEED_ON_EMPTY=true)')
+      run('npx prisma db seed', 'Seeding empty database…')
     } else {
-      console.log('[start-production] Database has data — skipping seed')
+      console.log('[start-production] Database has users — skipping full seed')
     }
   } finally {
     await prisma.$disconnect()
@@ -56,4 +77,4 @@ if (process.env.SEED_ON_EMPTY === 'true') {
   }
 }
 
-execSync('node .output/server/index.mjs', { stdio: 'inherit', env })
+run('node .output/server/index.mjs', 'Starting server…')
