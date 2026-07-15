@@ -522,6 +522,10 @@
     "failed": "بارگذاری انجام نشد. دوباره تلاش کنید."
   },
   "register": {
+    "rolePickerLabel": "نوع حساب",
+    "roleAthlete": "ورزشکار",
+    "roleOwner": "مدیر باشگاه",
+    "roleCoach": "مربی",
     "athleteSubtitle": "برای رزرو زمین، مربی و پکیج حساب ورزشکار بسازید.",
     "ownerTitle": "ثبت‌نام باشگاه",
     "ownerSubtitle": "حساب مدیر و پروفایل باشگاه را یکجا بسازید.",

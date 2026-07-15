@@ -1,5 +1,6 @@
 <script setup lang="ts">
-await navigateTo('/register/owner', { redirectCode: 301 })
+const localePath = useLocalePath()
+await navigateTo(localePath('/register/owner'), { redirectCode: 301 })
 </script>
 
 <template>

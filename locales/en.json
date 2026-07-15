@@ -523,6 +523,10 @@
     "failed": "Upload failed. Please try again."
   },
   "register": {
+    "rolePickerLabel": "Account type",
+    "roleAthlete": "Athlete",
+    "roleOwner": "Club owner",
+    "roleCoach": "Coach",
     "athleteSubtitle": "Create an athlete account to book courts, coaches, and packages.",
     "ownerTitle": "Register your club",
     "ownerSubtitle": "Create your owner account and club profile in one step.",

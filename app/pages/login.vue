@@ -40,9 +40,6 @@ const error = computed(() => {
     <AppGoogleSignInButton @click="startGoogleSignIn(returnTo)" />
     <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm font-bold text-brand-navy underline">{{ t('auth.forgotPassword') }}</NuxtLink>
     <NuxtLink :to="localePath({ path: '/register', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">{{ t('auth.register') }}</NuxtLink>
-    <div class="space-y-1 text-center text-xs text-brand-gray-600">
-      <NuxtLink :to="localePath('/register/owner')" class="block font-bold text-brand-navy underline">{{ t('register.ownerLink') }}</NuxtLink>
-      <NuxtLink :to="localePath('/register/coach')" class="block font-bold text-brand-navy underline">{{ t('register.coachLink') }}</NuxtLink>
-    </div>
+    <RegisterRolePicker class="mt-2" />
   </form>
 </template>

@@ -60,6 +60,7 @@ async function submit() {
 <template>
   <div class="mx-auto max-w-lg venus-form-stack pt-8">
     <h1 class="font-display text-xl font-bold">{{ t('register.coachTitle') }}</h1>
+    <RegisterRolePicker active="coach" class="mt-4" />
     <p class="text-sm text-brand-gray-600">{{ t('register.coachSubtitle') }}</p>
 
     <AppFormField :label="t('auth.name')" required>
