@@ -34,7 +34,8 @@
     "analyze": "nuxi analyze",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:db": "node scripts/check-db.mjs",
-    "fix:domain": "node scripts/fix-liara-domain.mjs"
+    "fix:domain": "node scripts/fix-liara-domain.mjs",
+    "setup:cloudflare": "node scripts/setup-cloudflare-tunnel.mjs"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"
