@@ -165,10 +165,26 @@ async function main() {
     targets.push(merged)
   }
 
+  const recreate = process.env.LIARA_RECREATE_DOMAIN === 'true'
+
   for (const domain of targets) {
-    const id = domain._id
+    let id = domain._id
     const name = domain.name
+    const projectId = domain.project?.project_id || domain.project?.projectId || 'inbox'
     console.log(`\n[fix-liara-domain] Repairing ${name}…`)
+
+    if (recreate) {
+      // Re-binding the domain fixes Liara edge when port 80 speaks TLS
+      // (Cloudflare 400: "plain HTTP request was sent to HTTPS port").
+      console.log(`  Recreating domain binding for ${name} (LIARA_RECREATE_DOMAIN=true)…`)
+      const del = await api(token, 'DELETE', `/v1/domains/${id}`)
+      console.log('  DELETE', del.status)
+      await sleep(2000)
+      const add = await api(token, 'POST', '/v1/domains', { name, project: projectId })
+      console.log('  ADD', add.status, JSON.stringify(add.json).slice(0, 200))
+      id = add.json.domain?._id || id
+      await sleep(1500)
+    }
 
     // Re-provision TLS certificate
     const ssl = await api(token, 'POST', '/v1/domains/provision-ssl-certs', { domain: name })
@@ -188,6 +204,10 @@ async function main() {
       }
     }
   }
+
+  // Restart app so reverse-proxy picks up cert/domain rebind
+  const restart = await api(token, 'POST', '/v1/projects/inbox/actions/restart', {})
+  console.log('\n[fix-liara-domain] restart inbox', restart.status)
 
   console.log('\n[fix-liara-domain] Polling cert status…')
   for (let i = 0; i < 10; i++) {

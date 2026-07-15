@@ -4,18 +4,24 @@
 
 You are seeing **Liara’s own edge**, which is powered by Cloudflare. It does **not** mean your domain is correctly set up on a Cloudflare account.
 
-Today’s public DNS still shows:
+Public DNS:
 
 ```text
 inboxs.ir → NS ns1.liara.zone / ns2.liara.zone
 inboxs.ir → A  185.208.181.133   (Liara Iran edge)
 ```
 
-| URL you open | What happens |
-|--------------|--------------|
-| `http://inboxs.ir` | Port 80 is TLS-only → Cloudflare **400** “plain HTTP request was sent to HTTPS port” |
-| `https://inboxs.ir` from Iran ISP | Often works |
-| `https://inboxs.ir` with VPN / abroad | TLS handshake **reset** (site won’t load) |
+| URL you open | Expected after repair |
+|--------------|------------------------|
+| `http://inboxs.ir` | **301 → https://inboxs.ir/** (`server: Liara`) — not CF 400 |
+| `https://inboxs.ir` from Iran ISP | **200** app HTML |
+| `https://inboxs.ir` with VPN / abroad | Still blocked on Liara Iran IP — use Cloudflare Tunnel below |
+
+If HTTP 400 returns again, rebind the domain:
+
+```bash
+LIARA_API_TOKEN=… LIARA_RECREATE_DOMAIN=true npm run fix:domain
+```
 
 **Do not** “fix” this by pointing Cloudflare (orange cloud) at `185.208.181.133` with **SSL = Flexible**. Flexible sends **plain HTTP** to the origin; Liara’s port 80 speaks **HTTPS**, so you get this same 400 from Cloudflare again.
 
