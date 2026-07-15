@@ -42,6 +42,13 @@ function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
 
+function bookingStatusBadgeClass(status: string) {
+  if (status === 'CONFIRMED') return 'tail-badge-success'
+  if (status === 'CANCELLED') return 'tail-badge-danger'
+  if (status === 'PENDING' || status === 'PENDING_ONLINE' || status === 'PENDING_AT_CLUB') return 'tail-badge-warning'
+  return 'tail-badge-gray'
+}
+
 async function cancelSession() {
   if (!session.value || session.value.status === 'CANCELLED') return
   if (!confirm(t('booking.confirmCancel'))) return
@@ -74,13 +81,12 @@ async function rescheduleSession() {
     <PageHeaderNav
       :title="localizedField(session.coach, 'nameFa', 'nameEn')"
       :subtitle="`${formatIsoDate(session.date)} · ${formatTimeRange(session.startTime)}`"
-      :home-to="localePath('/')"
-      :back-to="localePath('/athlete/bookings')"
+      :show-actions="false"
     />
 
     <div class="ios-card space-y-2 p-4">
       <div class="flex flex-wrap gap-2 text-xs">
-        <span class="neo-badge">{{ bookingStatusLabel(session.status) }}</span>
+        <span class="neo-badge" :class="bookingStatusBadgeClass(session.status)">{{ bookingStatusLabel(session.status) }}</span>
         <span class="neo-badge bg-white">{{ paymentStatusLabel(session.payment?.status || session.paymentStatus) }}</span>
       </div>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ session.id }}</bdi></p>

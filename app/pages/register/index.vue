@@ -3,12 +3,12 @@ import { sanitizeReturnTo } from '#shared/returnTo.ts'
 
 definePageMeta({ middleware: 'guest' })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { fetch: refreshAuth, dashboardPathForRole } = useAuth()
-const { startGoogleSignIn } = useGoogleAuth()
+const { startGoogleSignIn, googleAuthEnabled } = useGoogleAuth()
 
 const name = ref('')
 const email = ref('')
@@ -40,11 +40,10 @@ async function submit() {
   try {
     const user = await $fetch<{ role: string }>('/api/auth/register', {
       method: 'POST',
-      body: { name: name.value, email: email.value, password: password.value, locale: locale.value },
+      body: { name: name.value, email: email.value, password: password.value, locale: 'fa' },
     })
     await refreshAuth()
-    const urlLocale = locale.value === 'en' ? 'en' : 'fa'
-    const safeReturnTo = sanitizeReturnTo(returnTo.value, urlLocale)
+    const safeReturnTo = sanitizeReturnTo(returnTo.value, 'fa')
     if (safeReturnTo) {
       await redirectTo(safeReturnTo)
       return
@@ -68,20 +67,20 @@ async function submit() {
     <h1 class="font-display text-xl font-bold">{{ t('auth.register') }}</h1>
     <RegisterRolePicker active="athlete" class="mt-4" />
     <p class="text-sm font-bold text-brand-gray-600">{{ t('register.athleteSubtitle') }}</p>
-    <AppFormField :label="t('auth.name')">
-      <input v-model="name" class="neo-input" autocomplete="name" />
+    <AppFormField field-id="register-name" :label="t('auth.name')">
+      <input id="register-name" v-model="name" class="neo-input" autocomplete="name" />
     </AppFormField>
-    <AppFormField :label="t('auth.email')">
-      <input v-model="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+    <AppFormField field-id="register-email" :label="t('auth.email')">
+      <input id="register-email" v-model="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
     </AppFormField>
-    <AppFormField :label="t('auth.password')">
-      <input v-model="password" type="password" class="neo-input" autocomplete="new-password" />
+    <AppFormField field-id="register-password" :label="t('auth.password')">
+      <input id="register-password" v-model="password" type="password" class="neo-input" autocomplete="new-password" />
     </AppFormField>
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
     <button type="button" class="btn-primary w-full" :disabled="submitting || !name.trim() || !email.trim() || !password.trim()" @click="submit">
       {{ submitting ? t('common.loading') : t('auth.register') }}
     </button>
-    <AppGoogleSignInButton @click="startGoogleSignIn(returnTo)" />
+    <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo)" />
     <NuxtLink :to="localePath({ path: '/login', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">
       {{ t('auth.login') }}
     </NuxtLink>

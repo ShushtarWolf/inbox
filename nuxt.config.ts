@@ -54,11 +54,10 @@ export default defineNuxtConfig({
     bundle: { optimizeTranslationDirective: false },
     locales: [
       { code: 'fa', language: 'fa-IR', name: 'فارسی', dir: 'rtl', file: 'fa.json' },
-      { code: 'en', language: 'en-US', name: 'English', dir: 'ltr', file: 'en.json' },
     ],
     defaultLocale: 'fa',
-    strategy: 'prefix_except_default',
-    lazy: true,
+    strategy: 'no_prefix',
+    lazy: false,
     langDir: 'locales',
     detectBrowserLanguage: false,
   },
@@ -145,6 +144,9 @@ export default defineNuxtConfig({
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
+      googleAuthEnabled: Boolean(
+        process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID && process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
+      ),
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',

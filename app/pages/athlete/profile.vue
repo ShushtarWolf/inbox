@@ -2,7 +2,6 @@
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE' , ssr: false})
 
 const { user, fetch } = useAuth()
-const localePath = useLocalePath()
 const name = ref('')
 const phone = ref('')
 const avatarUrl = ref('')
@@ -25,7 +24,7 @@ async function save() {
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="$t('nav.profile')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
+    <PageHeaderNav :title="$t('nav.profile')" :show-actions="false" />
     <AppImageUpload v-model="avatarUrl" :label="$t('register.profilePhoto')" />
     <input v-model="name" :placeholder="$t('common.name')" class="neo-input" />
     <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="neo-input tabular-nums" />

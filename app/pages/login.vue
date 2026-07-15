@@ -4,7 +4,7 @@ definePageMeta({ middleware: 'guest' })
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { startGoogleSignIn } = useGoogleAuth()
+const { startGoogleSignIn, googleAuthEnabled } = useGoogleAuth()
 
 const email = ref('')
 const password = ref('')
@@ -27,17 +27,17 @@ const error = computed(() => {
 <template>
   <form class="mx-auto max-w-sm venus-form-stack pt-8" method="post" action="/api/auth/login-web">
     <h1 class="font-display text-xl font-bold">{{ t('auth.login') }}</h1>
-    <AppFormField :label="t('auth.email')">
-      <input v-model="email" name="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+    <AppFormField field-id="login-email" :label="t('auth.email')">
+      <input id="login-email" v-model="email" name="email" type="email" dir="ltr" class="neo-input" autocomplete="email" />
     </AppFormField>
-    <AppFormField :label="t('auth.password')">
-      <input v-model="password" name="password" type="password" class="neo-input" autocomplete="current-password" />
+    <AppFormField field-id="login-password" :label="t('auth.password')">
+      <input id="login-password" v-model="password" name="password" type="password" class="neo-input" autocomplete="current-password" />
     </AppFormField>
     <input type="hidden" name="locale" :value="locale" />
     <input type="hidden" name="returnTo" :value="returnTo" />
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
     <button type="submit" class="btn-primary w-full">{{ t('auth.login') }}</button>
-    <AppGoogleSignInButton @click="startGoogleSignIn(returnTo)" />
+    <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo)" />
     <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm font-bold text-brand-navy underline">{{ t('auth.forgotPassword') }}</NuxtLink>
     <NuxtLink :to="localePath({ path: '/register', query: returnTo ? { returnTo } : {} })" class="block text-center text-sm font-bold text-brand-navy underline">{{ t('auth.register') }}</NuxtLink>
     <RegisterRolePicker class="mt-2" />

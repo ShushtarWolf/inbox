@@ -95,7 +95,7 @@ async function send() {
                 <span class="tail-badge-gray">{{ campaignStatusLabel(campaign.status) }}</span>
               </div>
               <p class="mt-1 text-xs text-brand-gray-500">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
-              <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.delivered', { delivered: campaign.delivered, total: campaign.total }) }}</p>
+              <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.logged', { logged: campaign.logged ?? campaign.delivered, total: campaign.total }) }}</p>
             </div>
           </div>
         </div>

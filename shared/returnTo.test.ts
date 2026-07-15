@@ -26,16 +26,17 @@ describe('sanitizeReturnTo', () => {
     expect(sanitizeReturnTo('/en/login')).toBeNull()
   })
 
-  it('normalizes locale prefix for en', () => {
-    expect(sanitizeReturnTo('/athlete', 'en')).toBe('/en/athlete')
-    expect(sanitizeReturnTo('/en/athlete', 'en')).toBe('/en/athlete')
+  it('strips legacy en prefix for FA-only launch', () => {
+    expect(sanitizeReturnTo('/athlete', 'en')).toBe('/athlete')
+    expect(sanitizeReturnTo('/en/athlete', 'en')).toBe('/athlete')
+    expect(sanitizeReturnTo('/en/athlete', 'fa')).toBe('/athlete')
   })
 })
 
 describe('roleDashboardPath', () => {
-  it('returns role-specific dashboards', () => {
+  it('returns role-specific dashboards without en prefix', () => {
     expect(roleDashboardPath('CLUB_ADMIN')).toBe('/owner')
-    expect(roleDashboardPath('COACH', 'en')).toBe('/en/coach')
+    expect(roleDashboardPath('COACH', 'en')).toBe('/coach')
     expect(roleDashboardPath('ATHLETE')).toBe('/athlete')
   })
 })

@@ -46,6 +46,11 @@ export function zarinpalProvider(): PaymentService {
       }
     },
     async confirm(providerRef) {
+      const mode = getPaymentsMode()
+      if (mode === 'live') {
+        // Fail closed: never fake PAID success in live without a real IPG verify
+        throw createError({ statusCode: 501, statusMessage: 'Zarinpal live confirm not implemented' })
+      }
       const payment = await prisma.payment.findFirst({ where: { provider: 'zarinpal', providerRef } })
       if (!payment) throw createError({ statusCode: 404, statusMessage: 'Payment not found' })
       const updated = await prisma.payment.update({
@@ -55,6 +60,10 @@ export function zarinpalProvider(): PaymentService {
       return toPaymentIntent(updated)
     },
     async refund(paymentId) {
+      const mode = getPaymentsMode()
+      if (mode === 'live') {
+        throw createError({ statusCode: 501, statusMessage: 'Zarinpal live refund not implemented' })
+      }
       const payment = await prisma.payment.update({
         where: { id: paymentId },
         data: { status: 'REFUNDED' },

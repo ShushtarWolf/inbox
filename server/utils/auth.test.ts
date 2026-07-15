@@ -10,8 +10,8 @@ describe('postLoginRedirectPath', () => {
     expect(postLoginRedirectPath({ role: 'ATHLETE', locale: 'fa' }, 'fa', 'https://evil.com')).toBe('/athlete')
   })
 
-  it('localizes dashboard for en locale', () => {
-    expect(postLoginRedirectPath({ role: 'COACH', locale: 'en' }, 'en')).toBe('/en/coach')
+  it('always uses FA-unprefixed dashboards (FA-only launch)', () => {
+    expect(postLoginRedirectPath({ role: 'COACH', locale: 'en' }, 'en')).toBe('/coach')
     expect(postLoginRedirectPath({ role: 'CLUB_ADMIN', locale: 'fa' })).toBe('/owner')
   })
 })

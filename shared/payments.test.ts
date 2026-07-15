@@ -29,6 +29,12 @@ describe('resolvePaymentProvider', () => {
     process.env.PAYMENT_PROVIDER = 'zarinpal'
     expect(resolvePaymentProvider()).toBe('zarinpal')
   })
+
+  it('honors explicit provider even when mode is pay_at_club', () => {
+    process.env.PAYMENTS_MODE = 'pay_at_club'
+    expect(resolvePaymentProvider('zarinpal')).toBe('zarinpal')
+    expect(resolvePaymentProvider('log')).toBe('log')
+  })
 })
 
 describe('getPaymentsMode', () => {

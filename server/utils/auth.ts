@@ -5,11 +5,13 @@ import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#sha
 
 export function postLoginRedirectPath(
   user: { role: string; locale?: string | null },
-  locale?: string,
+  _locale?: string,
   returnTo?: string,
 ) {
-  const resolvedLocale = locale === 'en' || user.locale === 'en' ? 'en' : 'fa'
-  return resolvePostLoginPath(user.role, resolvedLocale, returnTo)
+  // FA-only launch: always resolve to unprefixed Persian paths
+  void user.locale
+  void _locale
+  return resolvePostLoginPath(user.role, 'fa', returnTo)
 }
 
 export function toSessionUser(user: {

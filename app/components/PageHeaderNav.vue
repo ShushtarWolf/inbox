@@ -4,10 +4,13 @@ const props = withDefaults(defineProps<{
   subtitle?: string
   homeTo?: string
   backTo?: string
+  /** When false, only the title/subtitle render (dashboard shell already provides Back/Home). */
+  showActions?: boolean
 }>(), {
   subtitle: '',
   homeTo: '/',
   backTo: '',
+  showActions: true,
 })
 
 const { t } = useI18n()
@@ -34,7 +37,7 @@ function goBack() {
       <p v-if="subtitle" class="venus-page-subtitle"><bdi dir="ltr" class="tabular-nums">{{ subtitle }}</bdi></p>
     </div>
 
-    <div class="flex shrink-0 items-center gap-2">
+    <div v-if="showActions" class="flex shrink-0 items-center gap-2">
       <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
         <span class="inline-flex items-center gap-1.5">
           <AppIcon name="arrow_back" size="sm" />

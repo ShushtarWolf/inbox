@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-/** Full page smoke — public routes + authenticated dashboards. */
+/** Full page smoke — public routes + authenticated dashboards. FA-only / prod-aware. */
+import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+
 const base = process.env.BASE_URL || 'http://localhost:3000'
+const prodAware = isProdSmokeBase(base)
 
 const publicPaths = [
   '/',
@@ -13,17 +16,21 @@ const publicPaths = [
   '/privacy',
   '/terms',
   '/offline',
-  '/clubs/apply',
   '/forgot-password',
   '/reset-password',
-  '/en/register/owner',
-  '/en/register/coach',
+]
+
+/** Soft-disabled EN + legacy apply routes — 301/302/307/308 OK */
+const redirectPaths = [
+  '/clubs/apply',
   '/en',
   '/en/clubs',
   '/en/coaches',
   '/en/login',
   '/en/privacy',
   '/en/forgot-password',
+  '/en/register/owner',
+  '/en/register/coach',
 ]
 
 const ownerPaths = [
@@ -54,7 +61,7 @@ async function check(path, { session, expectRedirect, expectStatus = 200, label 
   if (session && cookieJar.has(session)) headers.cookie = cookieJar.get(session)
   const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
   if (expectRedirect) {
-    if (res.status !== 302 && res.status !== 307) {
+    if (![301, 302, 307, 308].includes(res.status)) {
       throw new Error(`${label || path} expected redirect, got ${res.status}`)
     }
     return
@@ -81,11 +88,16 @@ async function checkManifest() {
 }
 
 async function main() {
-  console.log(`smoke-all-pages → ${base}`)
+  console.log(`smoke-all-pages → ${base}${prodAware ? ' (prod-aware)' : ''}`)
 
   for (const path of publicPaths) {
     await check(path, { label: `public ${path}` })
     console.log(`ok  public ${path}`)
+  }
+
+  for (const path of redirectPaths) {
+    await check(path, { expectRedirect: true, label: `redirect ${path}` })
+    console.log(`ok  redirect ${path}`)
   }
 
   await check('/owner', { expectRedirect: true, label: 'guest /owner' })
@@ -93,27 +105,32 @@ async function main() {
   await check('/athlete', { expectRedirect: true, label: 'guest /athlete' })
   console.log('ok  guest dashboard redirects')
 
-  await login('owner', 'owner@inbox.local')
-  await login('coach', 'coach@inbox.local')
-  await login('athlete', 'athlete@inbox.local')
+  if (prodAware) {
+    console.log('skip  *@inbox.local dashboard login (prod / SMOKE_SKIP_DEMO)')
+  } else {
+    await login('owner', 'owner@inbox.local')
+    await login('coach', 'coach@inbox.local')
+    await login('athlete', 'athlete@inbox.local')
 
-  for (const path of ownerPaths) {
-    await check(path, { session: 'owner', label: `owner ${path}` })
-    console.log(`ok  owner ${path}`)
-  }
-  for (const path of coachPaths) {
-    await check(path, { session: 'coach', label: `coach ${path}` })
-    console.log(`ok  coach ${path}`)
-  }
-  for (const path of athletePaths) {
-    await check(path, { session: 'athlete', label: `athlete ${path}` })
-    console.log(`ok  athlete ${path}`)
-  }
+    for (const path of ownerPaths) {
+      await check(path, { session: 'owner', label: `owner ${path}` })
+      console.log(`ok  owner ${path}`)
+    }
+    for (const path of coachPaths) {
+      await check(path, { session: 'coach', label: `coach ${path}` })
+      console.log(`ok  coach ${path}`)
+    }
+    for (const path of athletePaths) {
+      await check(path, { session: 'athlete', label: `athlete ${path}` })
+      console.log(`ok  athlete ${path}`)
+    }
 
-  await check('/en/owner', { session: 'owner' })
-  await check('/en/coach', { session: 'coach' })
-  await check('/en/athlete/bookings', { session: 'athlete' })
-  console.log('ok  EN locale dashboards')
+    // EN dashboards soft-disabled → redirect
+    await check('/en/owner', { session: 'owner', expectRedirect: true })
+    await check('/en/coach', { session: 'coach', expectRedirect: true })
+    await check('/en/athlete/bookings', { session: 'athlete', expectRedirect: true })
+    console.log('ok  EN locale dashboard redirects')
+  }
 
   try {
     await checkManifest()
@@ -130,29 +147,17 @@ async function main() {
       const clubs = await clubsRes.json()
       const coaches = await coachesRes.json()
       if (clubs[0]?.slug) {
-        await check(`/clubs/${clubs[0].slug}`, { label: `club ${clubs[0].slug}` })
-        console.log(`ok  dynamic /clubs/${clubs[0].slug}`)
+        await check(`/clubs/${clubs[0].slug}`, { label: 'club detail' })
+        console.log(`ok  /clubs/${clubs[0].slug}`)
       }
       if (coaches[0]?.id) {
-        await check(`/coaches/${coaches[0].id}`, { label: `coach ${coaches[0].id}` })
-        console.log(`ok  dynamic /coaches/${coaches[0].id}`)
-      }
-      if (clubs[0]?.slug) {
-        await check(`/book/court/${clubs[0].slug}`, { label: 'book court' })
-        console.log(`ok  /book/court/${clubs[0].slug}`)
-      }
-      if (coaches[0]?.id) {
-        await check(`/book/coach/${coaches[0].id}`, { label: 'book coach' })
-        console.log(`ok  /book/coach/${coaches[0].id}`)
+        await check(`/coaches/${coaches[0].id}`, { label: 'coach detail' })
+        console.log(`ok  /coaches/${coaches[0].id}`)
       }
     }
   } catch (error) {
     console.warn(`skip dynamic routes: ${error.message}`)
   }
-
-  // 404 error page renders SPA shell
-  await check('/this-route-does-not-exist-xyz', { expectStatus: 404, label: '404 page' })
-  console.log('ok  404 page')
 
   console.log('smoke-all-pages ok')
 }

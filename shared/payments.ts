@@ -50,14 +50,21 @@ export function getPaymentsMode(): PaymentsMode {
   return 'pay_at_club'
 }
 
+/**
+ * Resolve which payment provider to use.
+ * When `explicit` is set (e.g. stored payment.provider on refund/callback),
+ * honor it even if current mode is pay_at_club — so historical IPG rows
+ * still hit the correct adapter.
+ */
 export function resolvePaymentProvider(explicit?: string): PaymentProvider {
-  const mode = getPaymentsMode()
-  if (mode === 'pay_at_club') return 'pay_at_club'
-  const configured = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined
   if (explicit && ['zarinpal', 'idpay', 'log', 'pay_at_club'].includes(explicit)) {
     return explicit as PaymentProvider
   }
-  if (configured && ['zarinpal', 'idpay', 'log'].includes(configured)) return configured
+  const mode = getPaymentsMode()
+  if (mode === 'pay_at_club') return 'pay_at_club'
+  const configured = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined
+  if (configured && ['zarinpal', 'idpay', 'log', 'pay_at_club'].includes(configured)) return configured
   if (mode === 'test') return 'log'
+  // live: zarinpal stub (fail-closed until credentials + live adapter)
   return 'zarinpal'
 }

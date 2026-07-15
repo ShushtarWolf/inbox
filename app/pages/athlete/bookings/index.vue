@@ -130,20 +130,31 @@ function bookingStatusLabel(status: string) {
 function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
+
+function bookingStatusBadgeClass(status: string) {
+  if (status === 'CONFIRMED') return 'tail-badge-success'
+  if (status === 'CANCELLED') return 'tail-badge-danger'
+  if (status === 'PENDING' || status === 'PENDING_ONLINE' || status === 'PENDING_AT_CLUB') return 'tail-badge-warning'
+  return 'tail-badge-gray'
+}
+
+const hasAnyBookings = computed(() =>
+  Boolean(data.value?.courtBookings?.length || data.value?.coachSessions?.length || data.value?.packageBookings?.length),
+)
 </script>
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="$t('nav.bookings')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
+    <PageHeaderNav :title="$t('nav.bookings')" :show-actions="false" />
 
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
+    <AppAsyncState :pending="pending" :error="error" :empty="Boolean(data) && !hasAnyBookings" skeleton-variant="table">
     <section v-if="data?.courtBookings?.length" class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
       <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
         <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(b.slot.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(b.slot.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
-          <span class="neo-badge">{{ bookingStatusLabel(b.status) }}</span>
+          <span class="neo-badge" :class="bookingStatusBadgeClass(b.status)">{{ bookingStatusLabel(b.status) }}</span>
           <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
@@ -174,7 +185,7 @@ function paymentStatusLabel(status: string) {
         <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(s.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
-          <span class="neo-badge">{{ bookingStatusLabel(s.status) }}</span>
+          <span class="neo-badge" :class="bookingStatusBadgeClass(s.status)">{{ bookingStatusLabel(s.status) }}</span>
           <span class="neo-badge bg-white">{{ paymentStatusLabel(s.payment?.status || s.paymentStatus) }}</span>
         </div>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
@@ -202,7 +213,7 @@ function paymentStatusLabel(status: string) {
         <p class="font-bold">{{ b.package.title }}</p>
         <p class="text-sm text-brand-gray-600">{{ localizedField(b.package.club, 'nameFa', 'nameEn') }}</p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
-          <span class="neo-badge">{{ bookingStatusLabel(b.status) }}</span>
+          <span class="neo-badge" :class="bookingStatusBadgeClass(b.status)">{{ bookingStatusLabel(b.status) }}</span>
           <span class="neo-badge bg-white">{{ paymentStatusLabel(b.payment?.status || b.paymentStatus) }}</span>
         </div>
         <div class="mt-2 flex flex-wrap gap-2">
@@ -222,9 +233,11 @@ function paymentStatusLabel(status: string) {
       </div>
     </section>
 
-    <div v-if="!data?.courtBookings?.length && !data?.coachSessions?.length && !data?.packageBookings?.length" class="ios-card p-4 text-sm text-brand-gray-600">
-      {{ t('booking.emptyState') }}
-    </div>
+    <template #empty>
+      <div class="ios-card p-4 text-sm text-brand-gray-600">
+        {{ t('booking.emptyState') }}
+      </div>
+    </template>
     </AppAsyncState>
 
     <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
