@@ -180,8 +180,8 @@ async function main() {
       campaignName: 'Smoke campaign',
     }),
   })
-  if (!smsResult.provider || !smsResult.note?.includes('log')) {
-    throw new Error('owner SMS did not route through log provider')
+  if (!smsResult.provider || !(smsResult.note?.includes('log') || smsResult.note?.includes('dry-run'))) {
+    throw new Error('owner SMS did not route through log/dry-run provider')
   }
   console.log('ok  owner SMS log provider')
 

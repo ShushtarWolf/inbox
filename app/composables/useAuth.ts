@@ -28,7 +28,6 @@ type AuthUser = {
 }
 
 export function useAuth() {
-  const { locale, setLocale } = useI18n()
   const localePath = useLocalePath()
   const { user: sessionUser, loggedIn, fetch: refreshSession, clear, ready } = useUserSession()
   const profile = useState<AuthUser | null>('auth-profile', () => null)
@@ -43,7 +42,7 @@ export function useAuth() {
     if (!current) return ''
     const faName = current.name?.trim()
     const enName = current.nameEn?.trim()
-    if (locale.value === 'en') return enName || faName || current.email.split('@')[0] || ''
+    // FA-only launch: prefer Persian name
     return faName || enName || current.email.split('@')[0] || ''
   })
 
@@ -59,17 +58,8 @@ export function useAuth() {
 
   const profilePath = computed(() => {
     if (!user.value) return localePath('/login')
-    return localePath(profilePathForRole(user.value.role, locale.value === 'en' ? 'en' : 'fa'))
+    return localePath(profilePathForRole(user.value.role, 'fa'))
   })
-
-  async function alignLocaleWithUrl() {
-    if (!import.meta.client) return
-    const route = useRoute()
-    const urlLocale = route.path === '/en' || route.path.startsWith('/en/') ? 'en' : 'fa'
-    if (locale.value !== urlLocale) {
-      await setLocale(urlLocale)
-    }
-  }
 
   async function fetch() {
     pending.value = true
@@ -77,7 +67,6 @@ export function useAuth() {
       await refreshSession()
       const data = await requestFetch<{ user: AuthUser | null }>('/api/auth/me')
       profile.value = data.user
-      await alignLocaleWithUrl()
     } catch {
       profile.value = null
     } finally {
@@ -92,7 +81,6 @@ export function useAuth() {
     })
     profile.value = data
     await refreshSession()
-    await alignLocaleWithUrl()
     if (data.redirectTo) {
       await navigateTo(data.redirectTo)
     }
@@ -120,6 +108,6 @@ export function useAuth() {
     logout,
     loggedIn,
     ready,
-    dashboardPathForRole: (role: string) => dashboardPathForRole(role, locale.value === 'en' ? 'en' : 'fa'),
+    dashboardPathForRole: (role: string) => dashboardPathForRole(role, 'fa'),
   }
 }

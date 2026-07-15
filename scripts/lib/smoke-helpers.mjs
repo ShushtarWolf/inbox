@@ -44,7 +44,8 @@ export async function fetchPage(base, path, { jar, session, expectStatus = 200, 
   if (session && jar?.has(session)) headers.cookie = jar.get(session)
   const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
   if (expectRedirect) {
-    if (res.status !== 302 && res.status !== 307) {
+    const ok = [301, 302, 307, 308].includes(res.status)
+    if (!ok) {
       throw new Error(`${path} expected redirect, got ${res.status}`)
     }
     return { res, html: '' }
@@ -54,6 +55,17 @@ export async function fetchPage(base, path, { jar, session, expectStatus = 200, 
   }
   const html = await res.text()
   return { res, html }
+}
+
+/** True when BASE_URL points at production (or smoke is asked to skip demo logins). */
+export function isProdSmokeBase(base = process.env.BASE_URL || '') {
+  if (process.env.SMOKE_SKIP_DEMO === '1') return true
+  try {
+    const host = new URL(base).hostname
+    return host === 'inboxs.ir' || host.endsWith('.liara.run')
+  } catch {
+    return false
+  }
 }
 
 export function assertSpaShell(html, label) {

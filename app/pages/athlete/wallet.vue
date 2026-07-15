@@ -2,14 +2,13 @@
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { t } = useI18n()
-const localePath = useLocalePath()
 const { formatCurrency } = useFormatters()
 const { data, pending, error } = await useAuthedFetch('/api/wallet')
 </script>
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="t('athlete.walletTitle')" :home-to="localePath('/')" :back-to="localePath('/athlete')" />
+    <PageHeaderNav :title="t('athlete.walletTitle')" :show-actions="false" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <div class="ios-card space-y-3 p-4">

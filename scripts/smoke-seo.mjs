@@ -1,21 +1,29 @@
 #!/usr/bin/env node
-/** SEO & basic accessibility smoke — meta tags, lang, manifest. */
+/** SEO & basic accessibility smoke — meta tags, lang, manifest. FA-only launch aware. */
 import { extractHtmlLang, extractMeta, fetchPage } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 
-const pages = [
-  { path: '/', locale: 'fa', expectLang: 'fa' },
-  { path: '/clubs', locale: 'fa', expectLang: 'fa' },
-  { path: '/en', locale: 'en', expectLang: 'en' },
-  { path: '/en/clubs', locale: 'en', expectLang: 'en' },
-  { path: '/login', locale: 'fa', expectLang: 'fa' },
+const faPages = [
+  { path: '/', expectLang: 'fa' },
+  { path: '/clubs', expectLang: 'fa' },
+  { path: '/login', expectLang: 'fa' },
+  { path: '/privacy', expectLang: 'fa' },
+  { path: '/terms', expectLang: 'fa' },
 ]
+
+async function assertRedirect(path, { allowed = [301, 302, 307, 308] } = {}) {
+  const res = await fetch(`${base}${path}`, { redirect: 'manual' })
+  if (!allowed.includes(res.status)) {
+    throw new Error(`${path} expected redirect (${allowed.join('/')}), got ${res.status}`)
+  }
+  console.log(`ok  ${path} → ${res.status} ${res.headers.get('location') || ''}`)
+}
 
 async function main() {
   console.log(`smoke-seo → ${base}`)
 
-  for (const page of pages) {
+  for (const page of faPages) {
     const { html } = await fetchPage(base, page.path)
     const lang = extractHtmlLang(html)
     if (!lang || !lang.startsWith(page.expectLang)) {
@@ -35,12 +43,26 @@ async function main() {
     console.log(`ok  ${page.path} lang/viewport/description`)
   }
 
+  // Soft-disabled EN routes must redirect (FA-only launch)
+  await assertRedirect('/en')
+  await assertRedirect('/en/clubs')
+
   // Terms page has brand/title content
   const { html: termsHtml } = await fetchPage(base, '/terms')
   if (!termsHtml.includes('<title') && !termsHtml.includes('inbox')) {
     throw new Error('/terms missing title or brand')
   }
+  // Legal emails must render as real addresses, not vue-i18n escape litter
+  if (termsHtml.includes("{'@'}") || termsHtml.includes('{"@"}')) {
+    throw new Error('/terms still contains unescaped email markup')
+  }
   console.log('ok  /terms has page content')
+
+  const { html: privacyHtml } = await fetchPage(base, '/privacy')
+  if (privacyHtml.includes("{'@'}") || privacyHtml.includes('{"@"}')) {
+    throw new Error('/privacy still contains unescaped email markup')
+  }
+  console.log('ok  /privacy email rendering')
 
   // PWA manifest
   const manifestRes = await fetch(`${base}/manifest.webmanifest`)
@@ -65,14 +87,20 @@ async function main() {
   if (!sitemap.ok) throw new Error('sitemap.xml not found')
   const sitemapText = await sitemap.text()
   if (!sitemapText.includes('<urlset')) throw new Error('sitemap.xml invalid')
-  console.log('ok  sitemap.xml present')
+  if (sitemapText.includes('/en/')) {
+    throw new Error('sitemap.xml still lists /en URLs')
+  }
+  console.log('ok  sitemap.xml present (FA-only)')
 
-  // Login page basic a11y — form inputs
+  // Login page basic a11y — form inputs + labels
   const { html: loginHtml } = await fetchPage(base, '/login')
   const lang = extractHtmlLang(loginHtml)
   if (!lang) throw new Error('/login missing html lang attribute')
   if (!loginHtml.includes('type="email"') && !loginHtml.includes('type="password"')) {
     console.warn('warn  /login form inputs not detected in SSR HTML')
+  }
+  if (!loginHtml.includes('id="login-email"') || !loginHtml.includes('for="login-email"')) {
+    console.warn('warn  /login email label wiring not detected in SSR HTML')
   }
   console.log('ok  /login lang attribute')
 

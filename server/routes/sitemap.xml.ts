@@ -22,11 +22,6 @@ export default defineEventHandler(async (event) => {
     '/register',
     '/privacy',
     '/terms',
-    '/en',
-    '/en/clubs',
-    '/en/coaches',
-    '/en/login',
-    '/en/privacy',
   ]
 
   const [clubs, coaches] = await Promise.all([
@@ -46,12 +41,10 @@ export default defineEventHandler(async (event) => {
     ...staticPaths.map((path) => urlEntry(path)),
     ...clubs.flatMap((club) => [
       urlEntry(`/clubs/${club.slug}`),
-      urlEntry(`/en/clubs/${club.slug}`),
       urlEntry(`/book/court/${club.slug}`, 'weekly', '0.7'),
     ]),
     ...coaches.flatMap((coach) => [
       urlEntry(`/coaches/${coach.id}`),
-      urlEntry(`/en/coaches/${coach.id}`),
       urlEntry(`/book/coach/${coach.id}`, 'weekly', '0.7'),
     ]),
   ]

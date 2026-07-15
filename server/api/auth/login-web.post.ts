@@ -9,32 +9,33 @@ export default defineEventHandler(async (event) => {
   const password = form.get('password')?.toString()
   const locale = form.get('locale')?.toString()
   const returnTo = form.get('returnTo')?.toString()
+  void locale
 
   const normalized = email?.trim().toLowerCase()
-  const base = locale === 'en' ? '/en' : ''
+  // FA-only launch: never redirect to /en/*
   const stamp = `ts=${Date.now()}`
 
   if (!normalized || !password) {
-    return sendRedirect(event, `${base}/login?error=invalid`)
+    return sendRedirect(event, `/login?error=invalid`)
   }
 
   if (process.env.NODE_ENV === 'production' && isDemoEmail(normalized)) {
-    return sendRedirect(event, `${base}/login?error=invalid`)
+    return sendRedirect(event, `/login?error=invalid`)
   }
 
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
     if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
       const errorCode = user && !user.passwordHash ? 'useGoogle' : 'invalid'
-      return sendRedirect(event, `${base}/login?error=${errorCode}`)
+      return sendRedirect(event, `/login?error=${errorCode}`)
     }
 
     await setUserSession(event, { user: toSessionUser(user) })
 
-    const target = postLoginRedirectPath(user, locale, returnTo)
+    const target = postLoginRedirectPath(user, 'fa', returnTo)
     const separator = target.includes('?') ? '&' : '?'
     return sendRedirect(event, `${target}${separator}${stamp}`)
   } catch {
-    return sendRedirect(event, `${base}/login?error=server`)
+    return sendRedirect(event, `/login?error=server`)
   }
 })

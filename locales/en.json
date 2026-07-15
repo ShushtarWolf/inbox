@@ -722,11 +722,7 @@
       "spotsRemaining": "{count} spots remaining",
       "weekdays": "Weekdays",
       "equipmentPlaceholder": "Equipment (optional)",
-      "saveStub": "Save package",
-      "packageLevel": "Package level",
-      "players": "Players",
-      "addPlayer": "Add player",
-      "spotsRemaining": "{count} spots remaining"
+      "saveStub": "Save package"
     },
     "crmPage": {
       "name": "Name",
@@ -734,20 +730,21 @@
       "stats": {
         "contacts": "Contacts",
         "activeThisMonth": "Active this month",
-        "smsSent": "SMS sent",
+        "smsSent": "SMS logged (dry-run, no real send)",
         "campaigns": "Campaigns"
       },
       "pushSms": "Push SMS",
-      "smsLogged": "SMS logged (no gateway in v1)",
+      "smsLogged": "SMS logged (dry-run — no live gateway)",
       "recentCampaigns": "Recent campaigns",
       "allRecipients": "All recipients",
       "campaignName": "Campaign name",
       "reactivation": "Reactivation",
       "noShowRisk": "No-show risk",
       "reminders": "Reminders",
-      "logOnlyNote": "This flow only records a campaign log in MVP. It does not send a real SMS.",
+      "logOnlyNote": "This flow only records a campaign log / dry-run. It does not send a real SMS to phones.",
       "remindersInfo": "Reminder rules are shown here for visibility only. Automated delivery is not active in this MVP.",
-      "delivered": "{delivered}/{total} delivered",
+      "delivered": "{delivered}/{total} logged (no real delivery)",
+      "logged": "{logged}/{total} logged (dry-run)",
       "vip": "VIP",
       "visitCount": "{count} visits",
       "segments": {
@@ -899,7 +896,7 @@
       "operations": "Operations help",
       "calendarHelp": "Use the owner calendar to create, update, and cancel court reservations. Closed slots are hidden from direct reserve actions.",
       "paymentHelp": "Finance shows saved reservation and payment records. Payment state is informational unless a reservation is updated from the calendar.",
-      "crmHelp": "CRM campaigns and reminders are visible in the dashboard, but outbound SMS is still log-only in this MVP.",
+      "crmHelp": "CRM campaigns and reminders are visible in the dashboard, but outbound SMS is dry-run / log-only and is not delivered to real phones.",
       "contactTitle": "Club support contacts",
       "contactNote": "These contacts come from the active club profile. Add or update them in the data layer before exposing more advanced support tooling."
     },

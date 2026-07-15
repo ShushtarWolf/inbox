@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /** Dashboard route smoke — run with server up: BASE_URL=http://localhost:3000 node scripts/smoke-dashboard.mjs */
+import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+
 const base = process.env.BASE_URL || 'http://localhost:3000'
+const prodAware = isProdSmokeBase(base)
 const cookieJar = new Map()
 
 async function login(session, email) {
@@ -16,11 +19,17 @@ async function login(session, email) {
   }
 }
 
-async function checkHtml(path, session, { allowRedirect } = {}) {
+async function checkHtml(path, session, { allowRedirect, expectRedirect } = {}) {
   const headers = {}
   if (cookieJar.has(session)) headers.cookie = cookieJar.get(session)
   const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
-  if (allowRedirect && (res.status === 302 || res.status === 307)) {
+  if (expectRedirect) {
+    if (![301, 302, 307, 308].includes(res.status)) {
+      throw new Error(`${path} expected redirect, got ${res.status}`)
+    }
+    return
+  }
+  if (allowRedirect && [301, 302, 307, 308].includes(res.status)) {
     const location = res.headers.get('location') || ''
     if (!location.includes('/login')) {
       throw new Error(`${path} unexpected redirect → ${location}`)
@@ -31,9 +40,17 @@ async function checkHtml(path, session, { allowRedirect } = {}) {
 }
 
 async function main() {
+  console.log(`smoke-dashboard → ${base}${prodAware ? ' (prod-aware)' : ''}`)
+
   await checkHtml('/owner', 'guest', { allowRedirect: true })
   await checkHtml('/coach', 'guest', { allowRedirect: true })
   await checkHtml('/athlete', 'guest', { allowRedirect: true })
+
+  if (prodAware) {
+    console.log('skip  *@inbox.local dashboard login (prod / SMOKE_SKIP_DEMO)')
+    console.log('dashboard smoke ok')
+    return
+  }
 
   await login('owner', 'owner@inbox.local')
   await login('coach', 'coach@inbox.local')
@@ -47,9 +64,9 @@ async function main() {
   for (const path of coachPaths) await checkHtml(path, 'coach')
   for (const path of athletePaths) await checkHtml(path, 'athlete')
 
-  await checkHtml('/en/owner', 'owner')
-  await checkHtml('/en/coach', 'coach')
-  await checkHtml('/en/athlete/bookings', 'athlete')
+  await checkHtml('/en/owner', 'owner', { expectRedirect: true })
+  await checkHtml('/en/coach', 'coach', { expectRedirect: true })
+  await checkHtml('/en/athlete/bookings', 'athlete', { expectRedirect: true })
 
   console.log('dashboard smoke ok')
 }

@@ -55,6 +55,6 @@ export default defineEventHandler(async (event) => {
     campaign,
     recipientCount: recipientContacts.length,
     provider: 'log',
-    note: 'SMS logged via provider — no live gateway in v1',
+    note: 'SMS dry-run logged — no live gateway; queued-for-gateway when adapter is ready',
   }
 })

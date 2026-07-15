@@ -1,4 +1,4 @@
-export type SmsProviderName = 'log'
+export type SmsProviderName = 'log' | 'live'
 
 export type SmsMode = 'log' | 'live'
 
@@ -37,12 +37,24 @@ export function getSmsMode(): SmsMode {
   return process.env.SMS_PROVIDER === 'live' ? 'live' : 'log'
 }
 
+/**
+ * Resolve SMS provider name.
+ * Live gateway is not registered in this phase — always fall back to `log`
+ * (fail closed / dry-run) until a live adapter is plugged in behind the registry.
+ */
 export function resolveSmsProvider(): SmsProviderName {
-  const configured = process.env.SMS_PROVIDER as SmsProviderName | undefined
-  if (configured === 'log') return 'log'
+  // Keep structured pipe ready; no live adapter yet → always log
   return 'log'
 }
 
 export function isSmsEnabled(): boolean {
+  // Dry-run/log pipeline is always available; live gateways still require SMS_ENABLED + adapter
   return process.env.SMS_ENABLED === 'true' || getSmsMode() === 'log'
 }
+
+/** Recipient statuses used by CRM campaign rows (never claim real phone delivery). */
+export const SMS_RECIPIENT_STATUS = {
+  logged: 'logged',
+  scheduled: 'scheduled',
+  queued: 'queued-for-gateway',
+} as const

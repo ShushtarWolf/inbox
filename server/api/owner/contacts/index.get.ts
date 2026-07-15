@@ -27,8 +27,11 @@ export default defineEventHandler(async (event) => {
   })
   const allContacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const allCampaigns = await prisma.campaign.findMany({ where: { clubId: club.id }, include: { recipients: true } })
-  const smsSent = allCampaigns.reduce(
-    (sum, campaign) => sum + campaign.recipients.filter((recipient) => recipient.status === 'delivered').length,
+  const smsLogged = allCampaigns.reduce(
+    (sum, campaign) =>
+      sum + campaign.recipients.filter((recipient) =>
+        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+      ).length,
     0,
   )
 
@@ -36,7 +39,8 @@ export default defineEventHandler(async (event) => {
     stats: {
       totalContacts: allContacts.length,
       activeThisMonth: allContacts.filter((contact) => contact.inactiveDays < 30).length,
-      smsSent,
+      smsSent: smsLogged,
+      smsLogged,
       campaigns: allCampaigns.length,
     },
     contacts,
@@ -58,7 +62,12 @@ export default defineEventHandler(async (event) => {
       channel: campaign.channel,
       sentAt: campaign.sentAt,
       segmentName: campaign.segment?.name || null,
-      delivered: campaign.recipients.filter((recipient) => recipient.status === 'delivered').length,
+      delivered: campaign.recipients.filter((recipient) =>
+        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+      ).length,
+      logged: campaign.recipients.filter((recipient) =>
+        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+      ).length,
       total: campaign.recipients.length,
     })),
     reminders,

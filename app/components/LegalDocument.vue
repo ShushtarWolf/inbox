@@ -5,7 +5,7 @@ const props = defineProps<{
   sectionsKey: string
 }>()
 
-const { t, tm } = useI18n()
+const { t, tm, rt } = useI18n()
 
 type LegalSection = { title: string; paragraphs: string[] }
 
@@ -21,8 +21,8 @@ const sections = computed(() => {
     <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t(introKey) }}</p>
     <section v-for="(section, idx) in sections" :key="idx" class="mt-6">
-      <h2>{{ section.title }}</h2>
-      <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ para }}</p>
+      <h2>{{ rt(section.title) }}</h2>
+      <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ rt(para) }}</p>
     </section>
     <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
   </div>

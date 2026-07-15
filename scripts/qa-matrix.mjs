@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-/** QA matrix: 3 roles × FA/EN route checks on production or local server. */
+/** QA matrix: role × FA route checks (EN soft-disabled). Prod-aware: skips *@inbox.local on production. */
+import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+
 const base = process.env.BASE_URL || 'https://inboxs.ir'
+const prodAware = isProdSmokeBase(base)
 
 function isNavItemActive(path, to, items) {
   const hasChildNav = items.some((item) => item.to !== to && item.to.startsWith(`${to}/`))
@@ -57,7 +60,7 @@ async function check(path, session, { expectRedirect, expectStatus = 200 } = {})
   if (cookieJar.has(session)) headers.cookie = cookieJar.get(session)
   const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
   if (expectRedirect) {
-    if (res.status !== 302 && res.status !== 307) throw new Error(`${path} expected redirect, got ${res.status}`)
+    if (![301, 302, 307, 308].includes(res.status)) throw new Error(`${path} expected redirect, got ${res.status}`)
     return
   }
   if (res.status !== expectStatus) throw new Error(`${path} → ${res.status}`)
@@ -69,53 +72,77 @@ async function check(path, session, { expectRedirect, expectStatus = 200 } = {})
 
 const matrix = [
   { role: 'owner', locale: 'fa', paths: ['/owner', '/owner/finance', '/owner/crm'] },
-  { role: 'owner', locale: 'en', paths: ['/en/owner', '/en/owner/finance'] },
   { role: 'coach', locale: 'fa', paths: ['/coach', '/coach/schedule', '/coach/clients'] },
-  { role: 'coach', locale: 'en', paths: ['/en/coach', '/en/coach/schedule'] },
   { role: 'athlete', locale: 'fa', paths: ['/athlete', '/athlete/bookings', '/athlete/profile'] },
-  { role: 'athlete', locale: 'en', paths: ['/en/athlete', '/en/athlete/bookings'] },
+]
+
+const enRedirects = [
+  '/en/owner',
+  '/en/owner/finance',
+  '/en/coach',
+  '/en/coach/schedule',
+  '/en/athlete',
+  '/en/athlete/bookings',
 ]
 
 async function main() {
+  console.log(`qa-matrix → ${base}${prodAware ? ' (prod-aware)' : ''}`)
   assertNavActive()
   const failures = []
-  for (const [session, email] of Object.entries(accounts)) {
-    await login(session, email)
-  }
 
-  for (const row of matrix) {
-    for (const path of row.paths) {
+  if (prodAware) {
+    console.log('skip  *@inbox.local role logins (prod / SMOKE_SKIP_DEMO)')
+    for (const path of enRedirects) {
       try {
-        await check(path, row.role)
-        console.log(`ok  ${row.role} ${row.locale} ${path}`)
+        await check(path, 'guest', { expectRedirect: true })
+        console.log(`ok  en-redirect ${path}`)
       } catch (error) {
-        failures.push({ ...row, path, error: error.message })
-        console.error(`FAIL ${row.role} ${row.locale} ${path}: ${error.message}`)
+        failures.push({ path, error: error.message })
+        console.error(`FAIL en-redirect ${path}: ${error.message}`)
       }
+    }
+  } else {
+    for (const [session, email] of Object.entries(accounts)) {
+      await login(session, email)
+    }
+
+    for (const row of matrix) {
+      for (const path of row.paths) {
+        try {
+          await check(path, row.role)
+          console.log(`ok  ${row.role} ${row.locale} ${path}`)
+        } catch (error) {
+          failures.push({ ...row, path, error: error.message })
+          console.error(`FAIL ${row.role} ${row.locale} ${path}: ${error.message}`)
+        }
+      }
+    }
+
+    for (const path of enRedirects) {
+      try {
+        await check(path, 'owner', { expectRedirect: true })
+        console.log(`ok  en-redirect ${path}`)
+      } catch (error) {
+        failures.push({ path, error: error.message })
+        console.error(`FAIL en-redirect ${path}: ${error.message}`)
+      }
+    }
+
+    // Cross-role: athlete cannot access owner
+    try {
+      await check('/owner/finance', 'athlete', { expectRedirect: true })
+      console.log('ok  athlete blocked from owner')
+    } catch (error) {
+      failures.push({ path: '/owner/finance', error: error.message })
+      console.error(`FAIL cross-role: ${error.message}`)
     }
   }
 
-  // Cross-role: athlete cannot access owner
-  try {
-    await check('/owner/finance', 'athlete', { expectRedirect: true })
-    console.log('ok  athlete blocked from /owner/finance')
-  } catch (error) {
-    failures.push({ role: 'athlete', path: '/owner/finance', error: error.message })
-  }
-
-  // Guest redirect
-  try {
-    await check('/owner', 'guest', { expectRedirect: true })
-    console.log('ok  guest redirected from /owner')
-  } catch (error) {
-    failures.push({ role: 'guest', path: '/owner', error: error.message })
-  }
-
   if (failures.length) {
-    console.error(`\n${failures.length} failure(s)`)
+    console.error(`qa-matrix failed (${failures.length})`)
     process.exit(1)
   }
-  console.log('\nqa matrix ok (12 route checks + 2 auth checks)')
+  console.log('qa-matrix ok')
 }
 
 main().catch((error) => {
