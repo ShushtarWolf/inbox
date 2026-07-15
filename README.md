@@ -52,7 +52,7 @@ npm run db:migrate:deploy # production: apply pending migrations only
 
 Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
 
-**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`.
+**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`. For VPN / outside-Iran access, set `CLOUDFLARE_TUNNEL_TOKEN` (see [docs/VPN_ACCESS.md](docs/VPN_ACCESS.md)).
 
 Deploy from repo root:
 
@@ -60,7 +60,7 @@ Deploy from repo root:
 liara deploy --app inbox
 ```
 
-See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md).
+See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/VPN_ACCESS.md](docs/VPN_ACCESS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md).
 
 ## Demo accounts (local development only)
 

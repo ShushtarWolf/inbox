@@ -27,6 +27,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
 | `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` |
+| `CLOUDFLARE_TUNNEL_TOKEN` | For VPN / abroad | Cloudflare Tunnel token so `inboxs.ir` is reachable outside Iran — see [VPN_ACCESS.md](./VPN_ACCESS.md) |
 
 ## Database backup (PostgreSQL)
 
@@ -57,13 +58,17 @@ Production start sequence (`scripts/start-production.mjs`):
 
 1. `prisma migrate deploy`
 2. Conditional seed if `SEED_ON_EMPTY=true` and zero users
-3. Start Nuxt server
+3. Cleanup demo `@inbox.local` accounts (production)
+4. If `CLOUDFLARE_TUNNEL_TOKEN` is set: start `cloudflared` (VPN / international access)
+5. Start Nuxt server on port 3000
 
 Deploy from repo:
 
 ```bash
 liara deploy --app inbox
 ```
+
+VPN / abroad access: Liara’s Iran edge IP often blocks foreign TLS. Use Cloudflare Tunnel — full steps in [VPN_ACCESS.md](./VPN_ACCESS.md).
 
 ## Admin provisioning
 

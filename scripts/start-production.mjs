@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { PrismaClient } from '@prisma/client'
 
 const dbUrl = process.env.DATABASE_URL
@@ -56,4 +56,44 @@ if (process.env.SEED_ON_EMPTY === 'true') {
   }
 }
 
-execSync('node .output/server/index.mjs', { stdio: 'inherit', env })
+/**
+ * Optional Cloudflare Tunnel: Liara Iran edge drops TLS from abroad/VPN.
+ * When CLOUDFLARE_TUNNEL_TOKEN is set, cloudflared dials out to Cloudflare
+ * so inboxs.ir is reachable worldwide (see docs/VPN_ACCESS.md).
+ */
+let tunnelChild = null
+const tunnelToken = process.env.CLOUDFLARE_TUNNEL_TOKEN?.trim()
+if (tunnelToken) {
+  const { ensureCloudflared } = await import('./ensure-cloudflared.mjs')
+  const binary = await ensureCloudflared()
+  console.log('[start-production] Starting Cloudflare Tunnel for global/VPN access…')
+  tunnelChild = spawn(binary, ['tunnel', '--no-autoupdate', 'run', '--token', tunnelToken], {
+    stdio: 'inherit',
+    env,
+  })
+  tunnelChild.on('exit', (code, signal) => {
+    console.error(`[cloudflared] exited code=${code} signal=${signal}`)
+  })
+} else {
+  console.log(
+    '[start-production] CLOUDFLARE_TUNNEL_TOKEN not set — public access uses Liara Iran edge only (VPN/abroad may fail). See docs/VPN_ACCESS.md',
+  )
+}
+
+const server = spawn('node', ['.output/server/index.mjs'], {
+  stdio: 'inherit',
+  env,
+})
+
+function shutdown(signal) {
+  if (tunnelChild && !tunnelChild.killed) tunnelChild.kill(signal)
+  if (server && !server.killed) server.kill(signal)
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
+
+server.on('exit', (code) => {
+  if (tunnelChild && !tunnelChild.killed) tunnelChild.kill('SIGTERM')
+  process.exit(code ?? 1)
+})
