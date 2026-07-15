@@ -147,8 +147,8 @@ export default defineNuxtConfig({
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       sentryDsn: process.env.SENTRY_DSN || '',
-      sentryEnvironment: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || 'development',
-      sentryRelease: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',
+      sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+      sentryRelease: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',
     },
     session: {
       name: 'inbox-session',

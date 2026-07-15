@@ -31,7 +31,7 @@ Set `NUXT_SESSION_PASSWORD` in production (minimum 32 characters). The app will 
 
 ### Production deploy
 
-Railway runs [`scripts/start-production.mjs`](scripts/start-production.mjs) which applies the schema and starts the server. By default **no seed runs on deploy**.
+Liara runs [`scripts/start-production.mjs`](scripts/start-production.mjs) via `liara.json` (`npm run start:production`). By default **no seed runs on deploy**.
 
 | Env var | Purpose |
 |---------|---------|
@@ -52,7 +52,13 @@ npm run db:migrate:deploy # production: apply pending migrations only
 
 Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
 
-**Railway env vars:** `DATABASE_URL` (Postgres connection string), `NUXT_SESSION_PASSWORD`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`.
+**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`.
+
+Deploy from repo root:
+
+```bash
+liara deploy --app inbox
+```
 
 See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md).
 

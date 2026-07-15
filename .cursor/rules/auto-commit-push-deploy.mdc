@@ -1,0 +1,20 @@
+---
+description: Automatically ship completed chat-driven changes
+alwaysApply: true
+---
+
+# Auto Ship Changes
+
+When making code changes in this repository, automatically finish the workflow
+without waiting for an extra prompt from the user:
+
+1. Commit the relevant completed changes with a concise commit message.
+2. Push the current branch to its remote.
+3. Deploy the updated code to Liara (`inbox` app).
+
+Guardrails:
+- Apply this only after a coherent, user-requested change is complete.
+- Do not commit or deploy partial work, exploratory edits, or broken code on purpose.
+- If commit, push, or Liara deployment is blocked by missing auth, failing checks,
+  or an ambiguous target environment/service, stop and ask the user.
+- Production host is Liara only (`inbox` app, `inboxs.ir`). Do not deploy to Railway.

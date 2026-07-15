@@ -1,12 +1,14 @@
 # Operations Runbook — inbox
 
+Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the Liara `inbox-db` service.
+
 ## Environment variables (production)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string (Railway: reference `${{Postgres.DATABASE_URL}}`) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (Liara database service) |
 | `NUXT_SESSION_PASSWORD` | Yes | Session encryption secret (min 32 chars, not demo fallback) |
-| `NUXT_PUBLIC_SITE_URL` | Yes (prod) | Public URL for password reset and booking confirmation links |
+| `NUXT_PUBLIC_SITE_URL` | Yes (prod) | Public URL for password reset and booking confirmation links (`https://inboxs.ir`) |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default), `test`, or `live` |
@@ -17,25 +19,25 @@
 | `SMTP_PASS` | If email | SMTP password |
 | `SMTP_FROM` | If email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
 | `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
-| `S3_ENDPOINT` | For uploads | Railway bucket S3 endpoint |
+| `S3_ENDPOINT` | For uploads | S3-compatible object storage endpoint |
 | `S3_BUCKET` | For uploads | Bucket name |
 | `S3_ACCESS_KEY` | For uploads | Bucket access key |
 | `S3_SECRET_KEY` | For uploads | Bucket secret key |
 | `S3_PUBLIC_URL` | For uploads | Public base URL for uploaded images |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
-| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://your-domain.com/auth/google` |
+| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` |
 
 ## Database backup (PostgreSQL)
 
 ### Backup
 
 ```bash
-# From Railway Postgres service shell or with public URL
+# From Liara database shell or with connection string
 pg_dump "$DATABASE_URL" -Fc -f inbox-backup-$(date +%Y%m%d).dump
 ```
 
-Railway dashboard: Postgres service → Backups (if enabled on plan).
+Liara dashboard: `inbox-db` → Backups (if enabled on plan).
 
 ### Restore
 
@@ -47,8 +49,8 @@ pg_restore -d "$DATABASE_URL" --clean --if-exists inbox-backup-YYYYMMDD.dump
 
 ## Deploy rollback
 
-1. Railway dashboard → `shushzerv` service → Deployments
-2. Select last successful deployment → Redeploy
+1. Liara dashboard → `inbox` app → Releases
+2. Select last successful release → Rollback
 3. If schema migration caused issues: restore DB backup, then redeploy previous build
 
 Production start sequence (`scripts/start-production.mjs`):
@@ -56,6 +58,12 @@ Production start sequence (`scripts/start-production.mjs`):
 1. `prisma migrate deploy`
 2. Conditional seed if `SEED_ON_EMPTY=true` and zero users
 3. Start Nuxt server
+
+Deploy from repo:
+
+```bash
+liara deploy --app inbox
+```
 
 ## Admin provisioning
 
@@ -69,7 +77,7 @@ Production start sequence (`scripts/start-production.mjs`):
 ### Create coach or club owner (API)
 
 ```bash
-curl -X POST https://shushzerv-production.up.railway.app/api/admin/provision \
+curl -X POST https://inboxs.ir/api/admin/provision \
   -H "Content-Type: application/json" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   -d '{"type":"CLUB_ADMIN","email":"owner@club.ir","name":"Club Owner","clubName":"My Club"}'
@@ -78,7 +86,7 @@ curl -X POST https://shushzerv-production.up.railway.app/api/admin/provision \
 ### Approve club application
 
 ```bash
-curl -X POST https://shushzerv-production.up.railway.app/api/admin/clubs/CLUB_ID/approve \
+curl -X POST https://inboxs.ir/api/admin/clubs/CLUB_ID/approve \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   -d '{"ownerEmail":"owner@club.ir"}'
 ```

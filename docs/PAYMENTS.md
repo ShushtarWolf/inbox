@@ -45,7 +45,7 @@ All cancel endpoints (`/api/bookings/[id]/cancel`, coach, package, owner) call `
 
 ## Go-live checklist
 
-1. Set `PAYMENTS_MODE=live` on Railway
+1. Set `PAYMENTS_MODE=live` on Liara
 2. Configure merchant credentials
 3. Register webhook URL with IPG
 4. Test cancel refund flow (gateway + wallet fallback)

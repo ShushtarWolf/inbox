@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** QA matrix: 3 roles × FA/EN route checks on production or local server. */
-const base = process.env.BASE_URL || 'https://shushzerv-production.up.railway.app'
+const base = process.env.BASE_URL || 'https://inboxs.ir'
 
 function isNavItemActive(path, to, items) {
   const hasChildNav = items.some((item) => item.to !== to && item.to.startsWith(`${to}/`))

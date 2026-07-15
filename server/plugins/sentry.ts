@@ -6,8 +6,8 @@ export default defineNitroPlugin((nitroApp) => {
 
   Sentry.init({
     dsn,
-    environment: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV || 'development',
-    release: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA,
+    environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+    release: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA,
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0,
   })
 
