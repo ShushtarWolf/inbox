@@ -9,6 +9,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] `NUXT_SESSION_PASSWORD` set (32+ chars) on Liara
 - [x] `DATABASE_URL` points to Liara Postgres (`inbox-db`)
 - [x] `NUXT_PUBLIC_SITE_URL=https://inboxs.ir` on Liara
+- [ ] `CLOUDFLARE_TUNNEL_TOKEN` set + `inboxs.ir` DNS on Cloudflare (VPN / abroad access — [VPN_ACCESS.md](./VPN_ACCESS.md))
 - [x] `SEED_ON_EMPTY` removed / set to `false` after first deploy
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
 - [x] `PAYMENTS_MODE=pay_at_club` (no live IPG until business approval)
