@@ -16,3 +16,7 @@ eslint.config.*
 **/*.test.ts
 **/*.spec.ts
 .liara-secrets.env
+# Large local demo/media — keep deploy archives under Liara upload limits
+public/demo
+public/videos
+tmp-logo-inspect
