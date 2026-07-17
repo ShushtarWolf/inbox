@@ -1,4 +1,4 @@
-import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../utils/otp'
+import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-request')
