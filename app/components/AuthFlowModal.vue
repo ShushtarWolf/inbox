@@ -159,7 +159,7 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-primary w-full py-3" @click="goRole">
             {{ t('auth.register') }}
           </button>
-          <button type="button" class="btn-secondary w-full py-3" @click="goLogin">
+          <button type="button" class="btn-canva-login w-full py-3" @click="goLogin">
             {{ t('auth.login') }}
           </button>
           <AppGoogleSignInButton

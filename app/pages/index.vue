@@ -11,15 +11,21 @@ const sport = ref<string | undefined>(undefined)
 const heroSlide = ref(0)
 
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
+if (!sport.value && sports.value?.length) {
+  sport.value = sports.value[0]?.slug
+}
+
 const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs', {
   query: computed(() => ({
     sport: sport.value,
   })),
+  watch: [sport],
 })
 const { data: coaches, pending: coachesPending } = await useFetch('/api/coaches', {
   query: computed(() => ({
     sport: sport.value,
   })),
+  watch: [sport],
 })
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value || coachesPending.value)
@@ -99,7 +105,7 @@ function prevHero() {
 
 watch(sports, (list) => {
   if (!sport.value && list?.length) sport.value = list[0]?.slug
-}, { immediate: true })
+})
 </script>
 
 <template>

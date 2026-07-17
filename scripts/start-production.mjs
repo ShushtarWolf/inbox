@@ -14,14 +14,17 @@ function run(command, label) {
   execSync(command, { stdio: 'inherit', env })
 }
 
-// Recover from a previously failed slot unique-index migration in production.
+// Recover only if that migration is marked failed (ignore P3012 when it is already applied).
 try {
-  run(
-    'npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint',
-    'Checking for failed slot migration to resolve…',
-  )
+  const status = execSync('npx prisma migrate status', { encoding: 'utf8', env })
+  if (status.includes('20250711160000_slot_unique_constraint') && /failed/i.test(status)) {
+    run(
+      'npx prisma migrate resolve --rolled-back 20250711160000_slot_unique_constraint',
+      'Resolving failed slot migration…',
+    )
+  }
 } catch {
-  // No failed migration to resolve.
+  // Status/resolve best-effort; migrate deploy below is the source of truth.
 }
 
 if (process.env.SKIP_MIGRATE !== 'true') {
