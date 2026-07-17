@@ -5,7 +5,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { user, fetch: fetchAuth, firstName } = useAuth()
-const { openGate, openLogin } = useAuthFlow()
+const { openGate, openLogin, openRegister } = useAuthFlow()
 
 const sport = ref<string | undefined>(undefined)
 const heroSlide = ref(0)
@@ -15,12 +15,8 @@ if (!sport.value && sports.value?.length) {
   sport.value = sports.value[0]?.slug
 }
 
-const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs', {
-  query: computed(() => ({
-    sport: sport.value,
-  })),
-  watch: [sport],
-})
+/** Unfiltered clubs so Canva rails (suggestions / tennis / padel) stay populated. */
+const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 const { data: coaches, pending: coachesPending } = await useFetch('/api/coaches', {
   query: computed(() => ({
     sport: sport.value,
@@ -38,8 +34,11 @@ const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 const suggestedClubs = computed(() => clubs.value?.slice(0, 6) || [])
 const tennisClubs = computed(() => {
   const list = clubs.value || []
-  const tennis = list.filter((club) => club.sports?.includes('tennis'))
-  return (tennis.length ? tennis : list).slice(0, 6)
+  return list.filter((club) => club.sports?.includes('tennis')).slice(0, 6)
+})
+const padelClubs = computed(() => {
+  const list = clubs.value || []
+  return list.filter((club) => club.sports?.includes('padel')).slice(0, 6)
 })
 const highlightedCoaches = computed(() => coaches.value?.slice(0, 6) || [])
 
@@ -52,7 +51,7 @@ const heroSlides = computed(() => [
   {
     title: t('home.bookCourt'),
     body: t('home.bookCourtHint'),
-    image: tennisClubs.value[0]?.image || suggestedClubs.value[1]?.image || '/placeholders/club.svg',
+    image: tennisClubs.value[0]?.image || padelClubs.value[0]?.image || '/placeholders/club.svg',
   },
   {
     title: t('home.findCoach'),
@@ -190,7 +189,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/clubs')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div class="canva-rail">
+        <div v-if="suggestedClubs.length" class="canva-rail">
           <NuxtLink
             v-for="club in suggestedClubs"
             :key="club.id"
@@ -205,6 +204,7 @@ watch(sports, (list) => {
             </div>
           </NuxtLink>
         </div>
+        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
       <section class="space-y-3">
@@ -215,7 +215,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'tennis')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div class="canva-rail">
+        <div v-if="tennisClubs.length" class="canva-rail">
           <NuxtLink
             v-for="club in tennisClubs"
             :key="`tennis-${club.id}`"
@@ -230,6 +230,33 @@ watch(sports, (list) => {
             </div>
           </NuxtLink>
         </div>
+        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+      </section>
+
+      <section class="space-y-3">
+        <div class="flex items-end justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
+            <p class="text-xs text-brand-gray-600">{{ t('home.clubSectionBody') }}</p>
+          </div>
+          <NuxtLink :to="bookingLink('/clubs', 'padel')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
+        </div>
+        <div v-if="padelClubs.length" class="canva-rail">
+          <NuxtLink
+            v-for="club in padelClubs"
+            :key="`padel-${club.id}`"
+            :to="localePath(`/book/court/${club.slug}`)"
+            class="canva-venue-card"
+          >
+            <img :src="club.image || '/placeholders/club.svg'" alt="" />
+            <div class="canva-venue-card-body">
+              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
+              <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
+            </div>
+          </NuxtLink>
+        </div>
+        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
       <section class="space-y-3">
@@ -240,7 +267,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/coaches')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div class="canva-rail">
+        <div v-if="highlightedCoaches.length" class="canva-rail">
           <NuxtLink
             v-for="coach in highlightedCoaches"
             :key="coach.id"
@@ -255,14 +282,15 @@ watch(sports, (list) => {
             </div>
           </NuxtLink>
         </div>
+        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
       <section v-if="!user" class="rounded-xl border border-brand-gray-200 bg-white p-4 text-center shadow-venus-sm">
         <p class="text-sm font-bold text-brand-navy">{{ t('auth.gateTitle') }}</p>
         <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
         <div class="mt-4 flex gap-2">
-          <button type="button" class="btn-primary flex-1" @click="openGate()">{{ t('auth.register') }}</button>
-          <button type="button" class="btn-secondary flex-1" @click="openLogin()">{{ t('auth.login') }}</button>
+          <button type="button" class="btn-primary flex-1" @click="openRegister()">{{ t('auth.register') }}</button>
+          <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.login') }}</button>
         </div>
       </section>
     </div>

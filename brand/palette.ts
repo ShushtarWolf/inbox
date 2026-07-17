@@ -1,67 +1,68 @@
 /**
- * Venus Dashboard Builder 2021 design tokens.
+ * inbox brand book — shushzerv palette
+ * 55% cream · 25% gray · 17% coach red · 3% gold
+ * Kept in sync with server/utils/palette.ts and app/assets/css/tokens.css
  */
 export const palette = {
   brand: {
-    primary: '#4318FF',
-    primaryDark: '#1B2559',
-    primaryLight: '#868CFF',
-    primarySoft: 'rgba(67, 24, 255, 0.08)',
-    cream: '#F4F7FE',
-    accent: '#6AD2FF',
-    accentDark: '#3965FF',
-    accentSoft: 'rgba(106, 210, 255, 0.16)',
-    lavender: '#E9EDF7',
-    mint: '#01B574',
-    sky: '#6AD2FF',
+    primary: '#C41E1E',
+    primaryDark: '#4A1420',
+    primaryLight: '#D63A3A',
+    primarySoft: '#C41E1E1A',
+    gold: '#B68A3B',
+    goldDark: '#9A7530',
+    goldSoft: '#B68A3B24',
+    cream: '#F4EFE9',
+    accent: '#B68A3B',
+    accentDark: '#9A7530',
+    accentSoft: '#B68A3B24',
+    lavender: '#E8E6E2',
+    mint: '#6B1F28',
+    sky: '#B68A3B',
     white: '#FFFFFF',
-    navy: '#2B3674',
-    surface: ['#4318FF', '#6AD2FF', '#01B574', '#FFB547'] as const,
+    navy: '#2C2C2A',
+    surface: ['#C41E1E', '#B68A3B', '#6B1F28', '#4A1420'] as const,
   },
   gray: {
-    50: '#F4F7FE',
-    100: '#E9EDF7',
-    200: '#E0E5F2',
-    300: '#C7D0E8',
-    400: '#A3AED0',
-    500: '#8F9BBA',
-    600: '#707EAE',
-    700: '#4A5568',
-    800: '#2B3674',
-    900: '#1B2559',
+    50: '#F4EFE9',
+    100: '#E8E6E2',
+    200: '#D4D2CE',
+    300: '#C0BEBA',
+    400: '#A3A39F',
+    500: '#6B6B67',
+    600: '#52524F',
+    700: '#3D3D3A',
+    800: '#2C2C2A',
+    900: '#1A1A18',
   },
   semantic: {
-    success: '#01B574',
-    danger: '#EE5D50',
-    warning: '#FFB547',
-    info: '#3965FF',
+    success: '#2E7D4F',
+    danger: '#C41E1E',
+    warning: '#B68A3B',
+    info: '#6B1F28',
   },
   schedule: {
-    platformBooking: '#4318FF',
-    clubBooking: '#3965FF',
-    openSlot: '#E9EDF7',
-    class: '#6AD2FF',
-    blocked: '#A3AED0',
-    match: '#01B574',
-    tournament: '#FFB547',
-    session: '#868CFF',
+    platformBooking: '#C41E1E',
+    clubBooking: '#4A1420',
+    openSlot: '#E8E6E2',
+    class: '#B68A3B',
+    blocked: '#A3A39F',
+    match: '#6B1F28',
+    tournament: '#B68A3B',
+    session: '#D63A3A',
+  },
+  slotDisplay: {
+    FREE: '#E8E6E2',
+    RESERVED: '#C41E1E',
+    PUBLIC: '#B68A3B',
+    TEAM: '#6B1F28',
+    PENDING: '#4A1420',
+    CANCELLED: '#A3A39F',
+    CLOSED: '#52524F',
+    BLOCKED: '#A3A39F',
   },
 } as const
 
 export const BRAND_PRIMARY = palette.brand.primary
 export const BRAND_ACCENT = palette.brand.accent
 export const BRAND_CREAM = palette.brand.cream
-
-/** @deprecated Use BRAND_PRIMARY — kept for gradual migration */
-export const DEFAULT_SPORT_COLOR = BRAND_PRIMARY
-
-export function brandSurface(index: number) {
-  const tones = palette.brand.surface
-  return tones[index % tones.length]!
-}
-
-/** @deprecated No per-sport colors — returns brand primary for any sport key. */
-export const SPORT_COLORS: Record<string, string> = new Proxy(
-  {},
-  { get: () => BRAND_PRIMARY },
-)

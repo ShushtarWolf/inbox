@@ -28,6 +28,10 @@ const submitting = ref(false)
 
 const returnTo = computed(() => typeof route.query.returnTo === 'string' ? route.query.returnTo : '')
 
+onMounted(() => {
+  openRegister({ returnTo: returnTo.value, role: 'CLUB_ADMIN' })
+})
+
 async function submit() {
   submitting.value = true
   error.value = ''

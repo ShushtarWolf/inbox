@@ -25,6 +25,10 @@ const { data: clubs } = await useFetch<Array<{ id: string; nameFa: string; nameE
 
 const returnTo = computed(() => typeof route.query.returnTo === 'string' ? route.query.returnTo : '')
 
+onMounted(() => {
+  openRegister({ returnTo: returnTo.value, role: 'COACH' })
+})
+
 async function submit() {
   submitting.value = true
   error.value = ''
