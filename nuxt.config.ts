@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
-const PWA_RESET_VERSION = '4'
+const PWA_RESET_VERSION = '5'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
