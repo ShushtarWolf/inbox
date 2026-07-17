@@ -2,6 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
+const { openGate } = useAuthFlow()
 
 async function handleLogout() {
   await logout()
@@ -30,12 +31,12 @@ onMounted(() => {
     <AppTopBar :nav="nav">
       <template #actions>
         <template v-if="!user">
-          <NuxtLink :to="localePath('/login')" class="btn-primary px-4 py-2 text-xs">
+          <button type="button" class="btn-primary px-4 py-2 text-xs" @click="openGate()">
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="login" size="sm" />
-              {{ t('nav.login') }}
+              {{ t('auth.loginRegister') }}
             </span>
-          </NuxtLink>
+          </button>
         </template>
         <template v-else>
           <AppUserShortcut
@@ -64,5 +65,6 @@ onMounted(() => {
       <NuxtLink :to="localePath('/terms')" class="px-2 hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
     </footer>
     <AppBottomNav :items="nav" />
+    <AuthFlowModal />
   </div>
 </template>

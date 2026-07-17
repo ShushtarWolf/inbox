@@ -115,7 +115,8 @@ model User {
   nameEn        String?
   role          Role     @default(ATHLETE)
   locale        String   @default("fa")
-  phone         String?
+  phone         String?  @unique
+  phoneVerifiedAt DateTime?
   avatarUrl     String?
   oauthProvider String?
   oauthSubject  String?
@@ -137,6 +138,22 @@ model User {
   bugReports      BugReport[]
 
   @@unique([oauthProvider, oauthSubject])
+}
+
+model PhoneOtp {
+  id          String    @id @default(cuid())
+  phone       String
+  codeHash    String
+  purpose     String
+  role        String?
+  payloadJson String?
+  attempts    Int       @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
 }
 
 model Wallet {

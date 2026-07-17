@@ -245,7 +245,45 @@
     @apply grid shrink-0 gap-3 sm:grid-cols-2;
   }
   .venus-modal-title-bar {
-    @apply flex shrink-0 items-center justify-between gap-3 border-b border-brand-gray-200 bg-white px-5 py-4;
+    @apply flex shrink-0 items-center justify-between gap-3 border-b border-brand-gray-200 bg-brand-cream px-5 py-4;
+  }
+
+  /* ── Canva auth / home language ── */
+  .canva-auth-sheet {
+    @apply relative overflow-hidden bg-brand-cream;
+  }
+  .canva-auth-accent {
+    @apply h-1.5 w-full bg-brand-primary;
+  }
+  .canva-auth-header {
+    @apply flex items-center justify-between px-4 py-3;
+  }
+  .canva-role-card {
+    @apply flex w-full items-center gap-3 rounded-xl border border-brand-gray-200 bg-white px-4 py-3 text-start shadow-venus-sm transition hover:border-brand-primary/40;
+  }
+  .canva-hero {
+    @apply relative overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+  }
+  .canva-hero-media {
+    @apply absolute inset-0 h-full w-full object-cover opacity-55;
+  }
+  .canva-hero-content {
+    @apply relative z-10 flex min-h-[220px] flex-col justify-end gap-2 p-5;
+  }
+  .canva-search-row {
+    @apply grid gap-2 rounded-xl border border-brand-gray-200 bg-white p-3 shadow-venus-sm sm:grid-cols-[1.2fr_0.9fr_0.9fr_auto];
+  }
+  .canva-rail {
+    @apply flex gap-3 overflow-x-auto pb-1;
+  }
+  .canva-venue-card {
+    @apply relative block h-40 w-36 shrink-0 overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+  }
+  .canva-venue-card img {
+    @apply absolute inset-0 h-full w-full object-cover opacity-70;
+  }
+  .canva-venue-card-body {
+    @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-3 text-center;
   }
   .venus-card-grid,
   .tail-card-grid {

@@ -7,6 +7,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const { fetch: refreshAuth } = useAuth()
+const { openRegister } = useAuthFlow()
 
 const name = ref('')
 const email = ref('')
@@ -70,6 +71,10 @@ async function submit() {
     <h1 class="font-display text-xl font-bold">{{ t('register.ownerTitle') }}</h1>
     <RegisterRolePicker active="owner" class="mt-4" />
     <p class="text-sm text-brand-gray-600">{{ t('register.ownerSubtitle') }}</p>
+    <button type="button" class="btn-primary w-full" @click="openRegister({ returnTo, role: 'CLUB_ADMIN' })">
+      {{ t('auth.registerWithPhone') }}
+    </button>
+    <p class="text-center text-xs font-bold text-brand-gray-600">{{ t('auth.emailPasswordFallback') }}</p>
 
     <AppFormField :label="t('auth.name')" required>
       <input v-model="name" class="neo-input" autocomplete="name" required />
