@@ -25,7 +25,9 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `KAVENEGAR_SENDER` | Optional | Kavenegar sender line |
 | `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` on Liara to hide coach nav/URLs/APIs (Behnaz pilot) |
 | `PILOT_NO_COACH` | Pilot | Server-only coach gate without rebuild (optional alongside public flag) |
-| `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
+| `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
+| `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
+| `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |
 | `S3_ENDPOINT` | For uploads | S3-compatible object storage endpoint |
 | `S3_BUCKET` | For uploads | Bucket name |
 | `S3_ACCESS_KEY` | For uploads | Bucket access key |
@@ -61,7 +63,51 @@ SMTP failures are soft-fail: booking and auth flows never hard-fail on mail erro
 
 Set SMTP vars in the Liara dashboard when ready for live mail. Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env — do not flip live from this runbook without an explicit ops step.
 
-## Google OAuth (sign-in)
+## Sentry (error tracking)
+
+Optional. When `SENTRY_DSN` is **unset**, both plugins no-op and the app runs normally. When set, Nitro captures server errors and the Vue client SDK captures browser/Vue errors. Cookies, `Authorization`, and `x-admin-secret` are scrubbed before send (`sendDefaultPii: false`). Prod trace sample rates: server `0.1`, client `0.05`.
+
+### Create a Sentry project
+
+1. Open [Sentry](https://sentry.io/) → create (or open) an organization.
+2. **Projects** → **Create Project** → platform **Node.js** (or Vue) — one project is enough; the same DSN works for server + client.
+3. Copy the **DSN** (looks like `https://…@….ingest.sentry.io/…`). Never commit it.
+4. Optional: Settings → Projects → [project] → Client Keys to rotate later.
+
+### Local `.env`
+
+```bash
+# Optional — leave commented for no-op
+# SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+# SENTRY_ENVIRONMENT=development
+# GIT_COMMIT_SHA=local-dev
+```
+
+Restart `npm run dev` after changing these (client reads DSN via Nuxt `runtimeConfig.public`).
+
+### Production (Liara `inbox` app)
+
+Set in the Liara dashboard (never commit real values):
+
+| Variable | Value |
+|----------|-------|
+| `SENTRY_DSN` | Project DSN from Sentry |
+| `SENTRY_ENVIRONMENT` | `production` |
+| `GIT_COMMIT_SHA` | Optional deploy SHA / release label |
+
+Redeploy or restart the app after setting env so both server and client pick up the DSN.
+
+### Verify checklist
+
+1. **Unset DSN:** `npm run sentry:status` → `sentryEnabled: false`. App boots; `/admin/sentry` shows DSN not set; POST test returns no-op.
+2. **Set DSN locally:** put a real project DSN in `.env` (do not commit), restart, `npm run sentry:status` → `sentryEnabled: true`.
+3. **Server capture:**  
+   `curl -X POST -H "x-admin-secret: $ADMIN_PROVISION_SECRET" http://localhost:3000/api/admin/sentry-test`  
+   → `sentryEnabled: true` + `eventId`. Confirm in Sentry → Issues (`SentryTestError` / tag `source=admin-sentry-test`).
+4. **Client capture:** open `/admin/sentry` (admin secret) → **Test client capture**, or DevTools: `useNuxtApp().$sentryCaptureTest()`. Confirm a client-side event in Sentry.
+5. **Prod (Liara):** set env vars above → redeploy → same curl against `https://inboxs.ir` with prod `ADMIN_PROVISION_SECRET`, or use `/admin/sentry`. Status endpoint never returns the DSN.
+
+The test route is **not** public: missing/invalid `x-admin-secret` → `403`. Do not expose an ungated error endpoint.
 
 Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, and a redirect URL are **unset**, the app fails closed: the Google button is hidden and `GET /auth/google` redirects to `/login?error=google` (FA copy via `auth.googleFailed`). Do not commit real secrets; set Liara env in the dashboard when enabling prod.
 

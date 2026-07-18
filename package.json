@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "sms:status": "node scripts/sms-status.mjs",
     "email:status": "node scripts/email-status.mjs",
+    "sentry:status": "node scripts/sentry-status.mjs",
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "smoke:pages": "node scripts/smoke-all-pages.mjs",

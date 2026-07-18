@@ -14,7 +14,12 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] `PAYMENTS_MODE=pay_at_club` remains (pay at club only; Zarinpal live still not implemented — do not set `live` until a real IPG adapter ships)
 - [ ] Behnaz pilot: `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara (`inbox` app) — hides coach nav/URLs/APIs; also set `PILOT_NO_COACH=true` if server-only gate needed without rebuild
 - [ ] Live SMS/OTP when ready: `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` on Liara (optional `KAVENEGAR_TEMPLATE` / `KAVENEGAR_SENDER`); until then SMS stays log/dry-run
-- [ ] `SENTRY_DSN` set for production error tracking (Liara env vars) — keep unchecked until verified on Liara
+- [ ] `SENTRY_DSN` + `SENTRY_ENVIRONMENT=production` on Liara — keep unchecked until verified:
+  - Create Sentry project; copy DSN (never commit). See docs/OPERATIONS.md → "Sentry (error tracking)"
+  - Local unset: `npm run sentry:status` → `sentryEnabled: false`; app works
+  - Local set: restart after `.env` DSN; `POST /api/admin/sentry-test` with `x-admin-secret` → event in Sentry
+  - Client: `/admin/sentry` → Test client capture (or `$sentryCaptureTest()`)
+  - Prod: same admin test against `https://inboxs.ir` after Liara env + redeploy
 - [ ] Object storage bucket created; `S3_*` vars set on Liara app — keep unchecked until verified
 - [ ] Google OAuth — keep unchecked until verified on Liara:
   - Console: Web client; JS origins `http://localhost:3000` + `https://inboxs.ir`; redirect URIs `http://localhost:3000/auth/google` + `https://inboxs.ir/auth/google`

@@ -252,6 +252,23 @@
     "emailHasSmtpHost": "هاست SMTP تنظیم شده",
     "smsTitle": "سلامت پیامک",
     "smsSubtitle": "حالت ارائه‌دهنده، وجود اعتبارنامه، و صف کمپین‌های زمان‌بندی‌شده",
+    "sentryTitle": "Sentry",
+    "sentrySubtitle": "وضعیت ردیابی خطا و ارسال آزمایشی امن (نیاز به رمز ادمین)",
+    "sentryPage": {
+      "statusTitle": "پیکربندی",
+      "enabled": "SENTRY_DSN تنظیم شده",
+      "environment": "محیط",
+      "release": "نسخه (release)",
+      "testTitle": "تأیید ثبت خطا",
+      "testHint": "یک خطای آزمایشی برچسب‌دار می‌فرستد. نیاز به ADMIN_PROVISION_SECRET. هرگز DSN واقعی را commit نکنید.",
+      "triggerServer": "آزمایش سرور",
+      "triggerClient": "آزمایش کلاینت",
+      "sending": "در حال ارسال…",
+      "clientDisabled": "Sentry کلاینت فعال نیست (DSN خالی است یا پس از تنظیم باید صفحه را رفرش کنید)",
+      "clientSent": "رویداد آزمایشی کلاینت در صف — Issues را در Sentry ببینید",
+      "yes": "بله",
+      "no": "خیر"
+    },
     "smsPage": {
       "provider": "ارائه‌دهنده",
       "enabled": "SMS_ENABLED",
@@ -336,6 +353,7 @@
       "applications": "درخواست‌ها",
       "bugReports": "باگ‌ها",
       "sms": "پیامک",
+      "sentry": "Sentry",
       "provision": "ایجاد مدیر"
     },
     "metrics": {

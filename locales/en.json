@@ -253,6 +253,23 @@
     "emailHasSmtpHost": "SMTP host set",
     "smsTitle": "SMS health",
     "smsSubtitle": "Provider mode, credentials presence, and scheduled CRM queue",
+    "sentryTitle": "Sentry",
+    "sentrySubtitle": "Error tracking status and safe test captures (admin secret required)",
+    "sentryPage": {
+      "statusTitle": "Configuration",
+      "enabled": "SENTRY_DSN set",
+      "environment": "Environment",
+      "release": "Release",
+      "testTitle": "Verify capture",
+      "testHint": "Sends a tagged test exception. Requires ADMIN_PROVISION_SECRET. Never commit a real DSN.",
+      "triggerServer": "Test server capture",
+      "triggerClient": "Test client capture",
+      "sending": "Sending…",
+      "clientDisabled": "Client Sentry not initialized (SENTRY_DSN unset or page needs reload after setting DSN)",
+      "clientSent": "Client test event queued — check Sentry → Issues",
+      "yes": "yes",
+      "no": "no"
+    },
     "smsPage": {
       "provider": "Provider",
       "enabled": "SMS_ENABLED",
@@ -337,6 +354,7 @@
       "applications": "Applications",
       "bugReports": "Bugs",
       "sms": "SMS",
+      "sentry": "Sentry",
       "provision": "Provision"
     },
     "metrics": {

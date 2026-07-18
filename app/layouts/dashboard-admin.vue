@@ -18,6 +18,7 @@ const nav = computed(() => [
   { to: localePath('/admin/applications'), label: t('admin.nav.applications'), icon: 'assignment' },
   { to: localePath('/admin/bug-reports'), label: t('admin.nav.bugReports'), icon: 'bug_report' },
   { to: localePath('/admin/sms'), label: t('admin.nav.sms'), icon: 'sms' },
+  { to: localePath('/admin/sentry'), label: t('admin.nav.sentry'), icon: 'monitoring' },
   { to: localePath('/admin/provision'), label: t('admin.nav.provision'), icon: 'person_add' },
 ])
 
