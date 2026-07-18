@@ -3,6 +3,7 @@ import { hashSecret, verifySecret } from './password'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { sendSms } from './sms/service'
+import { renderOtpSms } from './sms/templates'
 
 export type OtpPurpose = 'login' | 'register'
 export type OtpRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
@@ -52,7 +53,7 @@ export async function createAndSendPhoneOtp(opts: {
     },
   })
 
-  const body = `کد تایید inbox: ${code}`
+  const body = renderOtpSms(code)
   let debugFallback = false
   try {
     await sendSms({ to: phone, body })
@@ -66,7 +67,7 @@ export async function createAndSendPhoneOtp(opts: {
   return {
     phone,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
-    /** Returned only while SMS is log/dry-run, or after a non-prod live SMS failure. */
+    /** Returned only while SMS is log/dry-run, or after a non-prod live SMS failure. Never when live send succeeds. */
     debugCode: resolveSmsProvider() === 'log' || debugFallback ? code : undefined,
   }
 }

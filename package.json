@@ -17,6 +17,7 @@
     "db:seed:demo": "SEED_DEMO_DATA=true prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
+    "sms:status": "node scripts/sms-status.mjs",
     "smoke": "node scripts/smoke.mjs",
     "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "smoke:pages": "node scripts/smoke-all-pages.mjs",

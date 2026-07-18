@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getSmsMode, isSmsEnabled, resolveSmsProvider } from './sms'
+import { getSmsMode, isSmsEnabled, resolveSmsProvider, recipientStatusForSmsResult } from './sms'
 
 const ENV_KEYS = ['SMS_PROVIDER', 'SMS_ENABLED', 'KAVENEGAR_API_KEY'] as const
 
@@ -69,5 +69,13 @@ describe('isSmsEnabled', () => {
   it('is enabled in log mode', () => {
     clearSmsEnv()
     expect(isSmsEnabled()).toBe(true)
+  })
+})
+
+describe('recipientStatusForSmsResult', () => {
+  it('maps sent/logged/queued honestly', () => {
+    expect(recipientStatusForSmsResult({ sent: true, logged: true })).toBe('sent')
+    expect(recipientStatusForSmsResult({ sent: false, logged: true })).toBe('logged')
+    expect(recipientStatusForSmsResult({ sent: false, logged: false })).toBe('queued-for-gateway')
   })
 })

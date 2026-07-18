@@ -162,7 +162,7 @@ npm run smoke:dashboard  # dashboard HTML routes (needs server running)
 node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to production)
 ```
 
-### Provider architecture (stub only)
+### Provider architecture
 
 - **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Live gateways not implemented.
-- **SMS:** `SMS_PROVIDER=log` (default dry-run). Set `SMS_ENABLED=true`, `SMS_PROVIDER=live`, and `KAVENEGAR_API_KEY` for live OTP via Kavenegar (`KAVENEGAR_TEMPLATE` optional for Verify Lookup).
+- **SMS:** `SMS_PROVIDER=log` (default dry-run; OTP returns `debugCode`). Live Kavenegar when `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` are set. Optional `KAVENEGAR_TEMPLATE` (Verify Lookup) and `KAVENEGAR_SENDER`. Check with `npm run sms:status`. Process due CRM campaigns: `POST /api/admin/sms/process-scheduled`.

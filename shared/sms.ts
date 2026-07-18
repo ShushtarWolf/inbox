@@ -58,9 +58,16 @@ export function isSmsEnabled(): boolean {
   return process.env.SMS_ENABLED === 'true' || getSmsMode() === 'log'
 }
 
-/** Recipient statuses used by CRM campaign rows (never claim real phone delivery). */
+/** Recipient statuses used by CRM campaign rows (never claim phone delivery unless live send succeeded). */
 export const SMS_RECIPIENT_STATUS = {
+  sent: 'sent',
   logged: 'logged',
   scheduled: 'scheduled',
   queued: 'queued-for-gateway',
 } as const
+
+export function recipientStatusForSmsResult(result: SmsResult): string {
+  if (result.sent) return SMS_RECIPIENT_STATUS.sent
+  if (result.logged) return SMS_RECIPIENT_STATUS.logged
+  return SMS_RECIPIENT_STATUS.queued
+}

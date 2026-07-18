@@ -61,10 +61,14 @@ async function sendViaKavenegar(to: string, body: string) {
     })
   }
 
-  return kavenegarRequest('sms/send.json', {
+  const params: Record<string, string> = {
     receptor: to,
     message: body,
-  })
+  }
+  const sender = process.env.KAVENEGAR_SENDER?.trim()
+  if (sender) params.sender = sender
+
+  return kavenegarRequest('sms/send.json', params)
 }
 
 export function kavenegarSmsProvider(): SmsProvider {
@@ -108,10 +112,14 @@ export function kavenegarSmsProvider(): SmsProvider {
       }
 
       const receptors = opts.recipients.map((r) => r.phone).join(',')
-      const result = await kavenegarRequest('sms/send.json', {
+      const params: Record<string, string> = {
         receptor: receptors,
         message: opts.body,
-      })
+      }
+      const sender = process.env.KAVENEGAR_SENDER?.trim()
+      if (sender) params.sender = sender
+
+      const result = await kavenegarRequest('sms/send.json', params)
       if (opts.clubId) {
         await prisma.smsLog.create({
           data: {

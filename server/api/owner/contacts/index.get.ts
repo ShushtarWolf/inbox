@@ -30,7 +30,10 @@ export default defineEventHandler(async (event) => {
   const smsLogged = allCampaigns.reduce(
     (sum, campaign) =>
       sum + campaign.recipients.filter((recipient) =>
-        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+        recipient.status === 'sent'
+        || recipient.status === 'logged'
+        || recipient.status === 'delivered'
+        || recipient.status === 'queued-for-gateway',
       ).length,
     0,
   )
@@ -63,10 +66,16 @@ export default defineEventHandler(async (event) => {
       sentAt: campaign.sentAt,
       segmentName: campaign.segment?.name || null,
       delivered: campaign.recipients.filter((recipient) =>
-        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+        recipient.status === 'sent'
+        || recipient.status === 'logged'
+        || recipient.status === 'delivered'
+        || recipient.status === 'queued-for-gateway',
       ).length,
       logged: campaign.recipients.filter((recipient) =>
-        recipient.status === 'logged' || recipient.status === 'delivered' || recipient.status === 'queued-for-gateway',
+        recipient.status === 'sent'
+        || recipient.status === 'logged'
+        || recipient.status === 'delivered'
+        || recipient.status === 'queued-for-gateway',
       ).length,
       total: campaign.recipients.length,
     })),
