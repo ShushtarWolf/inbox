@@ -90,4 +90,17 @@ describe('getStorageStatus', () => {
     expect(status.storageMode).toBe('local')
     expect(status.warnings.some((w) => w.includes('Partial S3'))).toBe(true)
   })
+
+  it('warns in production when S3 is unset (ephemeral local disk)', () => {
+    const previous = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    for (const key of keys) delete process.env[key]
+    try {
+      const status = getStorageStatus()
+      expect(status.storageMode).toBe('local')
+      expect(status.warnings.some((w) => w.includes('ephemeral'))).toBe(true)
+    } finally {
+      process.env.NODE_ENV = previous
+    }
+  })
 })

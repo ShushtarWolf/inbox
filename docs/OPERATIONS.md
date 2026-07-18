@@ -83,7 +83,7 @@ Limits (always enforced): JPEG/PNG/WebP only, max **5 MB**.
 
 | Mode | When | Behavior |
 |------|------|----------|
-| `local` | Any of the five `S3_*` vars missing | Writes under `public/uploads/…`; returns `/uploads/…` paths (works on localhost) |
+| `local` | Any of the five `S3_*` vars missing | Writes under `public/uploads/…`; returns `/uploads/…` paths (localhost OK). Partial config warns and stays local. In `NODE_ENV=production`, status also warns that local disk is **ephemeral** — set all five `S3_*` on Liara. |
 | `s3` | All five set | `PutObject` with `forcePathStyle: true`; returned URL is `{S3_PUBLIC_URL}/{key}` |
 
 ACL: PutObject tries `ACL: public-read` first. If the provider rejects ACLs (common on some S3-compatible / Liara setups), the upload retries **without** ACL. Make the Liara bucket **public** so objects remain readable via `S3_PUBLIC_URL`.

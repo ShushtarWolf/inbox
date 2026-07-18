@@ -160,6 +160,22 @@ async function main() {
       throw new Error('email-status includes password fields')
     }
     console.log('ok  email-status has no SMTP_PASS')
+
+    const { res: storageRes, data: storage } = await apiFetch(base, '/api/admin/storage-status', {
+      headers: { 'x-admin-secret': adminSecret },
+    })
+    if (!storageRes.ok) throw new Error(`storage-status → ${storageRes.status}`)
+    const storageJson = JSON.stringify(storage)
+    if (/"S3_ACCESS_KEY"\s*:|"S3_SECRET_KEY"\s*:|"accessKey"\s*:|"secretKey"\s*:/.test(storageJson)) {
+      throw new Error('storage-status leaked S3 credential fields')
+    }
+    if ('S3_ACCESS_KEY' in storage || 'S3_SECRET_KEY' in storage || 'accessKey' in storage || 'secretKey' in storage) {
+      throw new Error('storage-status includes credential fields')
+    }
+    if (storage.storageMode !== 's3' && storage.storageMode !== 'local') {
+      throw new Error(`storage-status unexpected storageMode: ${storage.storageMode}`)
+    }
+    console.log(`ok  storage-status mode=${storage.storageMode} (no keys)`)
   }
 
   // OTP: wrong code rejected; coach role blocked in pilot

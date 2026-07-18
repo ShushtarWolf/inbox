@@ -89,6 +89,13 @@ export function getStorageStatus() {
     }
   }
 
+  // Liara (and similar) app disks are ephemeral — prod must use object storage.
+  if (!s3Ready && process.env.NODE_ENV === 'production') {
+    warnings.push(
+      'Production local uploads are ephemeral — set all five S3_* vars (S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, S3_PUBLIC_URL)',
+    )
+  }
+
   return {
     storageMode: s3Ready ? 's3' as const : 'local' as const,
     s3Configured: s3Ready,

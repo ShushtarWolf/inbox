@@ -69,6 +69,12 @@ if (publicUrl) {
   }
 }
 
+if (!s3Configured && process.env.NODE_ENV === 'production') {
+  warnings.push(
+    'Production local uploads are ephemeral — set all five S3_* vars (S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, S3_PUBLIC_URL)',
+  )
+}
+
 console.log(JSON.stringify({
   storageMode: s3Configured ? 's3' : 'local',
   s3Configured,
