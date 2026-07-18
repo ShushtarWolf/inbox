@@ -83,8 +83,6 @@ async function ensureSports() {
 }
 
 async function main() {
-  await ensureSports()
-
   const forceReset = process.env.FORCE_SEED_RESET === 'true'
   const isProduction = process.env.NODE_ENV === 'production'
   const userCount = await prisma.user.count()
@@ -121,6 +119,8 @@ async function main() {
     await prisma.user.deleteMany()
     await prisma.sport.deleteMany()
   }
+
+  await ensureSports()
 
   const seedDemo = process.env.SEED_DEMO_DATA === 'true'
 
@@ -716,5 +716,8 @@ async function main() {
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
   .finally(() => prisma.$disconnect())

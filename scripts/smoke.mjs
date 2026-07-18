@@ -41,6 +41,9 @@ async function main() {
   await check('/api/health')
   await check('/api/sports')
   const clubs = await check('/api/clubs?city=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&verified=true&sort=rank')
+  if (!Array.isArray(clubs) || !clubs[0]?.slug) {
+    throw new Error(`Expected seeded Tehran clubs, got: ${JSON.stringify(clubs)}`)
+  }
   const club = await check(`/api/clubs/${clubs[0].slug}`)
   await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
   const coaches = await check('/api/coaches?verified=true&sort=rank')
