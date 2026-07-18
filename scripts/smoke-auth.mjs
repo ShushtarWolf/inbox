@@ -137,7 +137,18 @@ async function main() {
   console.log('ok  athlete blocked from owner finance API')
 
   const { res: ownerFinance } = await apiFetch(base, '/api/owner/finance', { jar, session: 'owner' })
-  if (!ownerFinance.ok) throw new Error(`owner finance expected 200, got ${ownerFinance.status}`)
+  if (ownerFinance.status === 404 && adminSecret) {
+    // Stale local DB: demo owner exists but has no staff membership
+    console.log('note  owner finance 404 (no club) — provisioning temporary owner')
+    const owner = await provisionOwner(base, adminSecret)
+    ownerEmail = owner.email
+    ownerPassword = owner.password
+    await login(base, jar, 'owner', ownerEmail, ownerPassword)
+    const retry = await apiFetch(base, '/api/owner/finance', { jar, session: 'owner' })
+    if (!retry.res.ok) throw new Error(`owner finance expected 200 after provision, got ${retry.res.status}`)
+  } else if (!ownerFinance.ok) {
+    throw new Error(`owner finance expected 200, got ${ownerFinance.status}`)
+  }
   console.log('ok  owner can access finance API')
 
   if (!pilotNoCoach && !skipDemo) {
@@ -213,6 +224,17 @@ async function main() {
   }
   console.log('ok  /login?error=google shows googleFailed UX')
 
+  // Provider error callback must fail-closed (not restart OAuth)
+  const providerErr = await fetch(`${base}/auth/google?error=access_denied`, { redirect: 'manual' })
+  const providerLoc = providerErr.headers.get('location') || ''
+  if (![301, 302, 303, 307, 308].includes(providerErr.status)) {
+    throw new Error(`/auth/google?error= expected redirect, got ${providerErr.status}`)
+  }
+  if (!providerLoc.includes('error=google')) {
+    throw new Error(`/auth/google?error=access_denied expected /login?error=google, got ${providerLoc}`)
+  }
+  console.log('ok  /auth/google?error=access_denied → login?error=google')
+
   if (googleLoc.includes('error=google')) {
     const loginPage = await fetch(`${base}/login`)
     if (!loginPage.ok) throw new Error(`/login expected 200, got ${loginPage.status}`)
@@ -249,17 +271,14 @@ async function main() {
     }
     const loginPage = await fetch(`${base}/login`)
     const loginHtml = await loginPage.text()
-    // After google-enabled fix, button should appear when enabled. Older builds may hide it — soft-warn then.
-    if (!loginHtml.includes('btn-google') && !loginHtml.includes('ادامه با گوگل')) {
-      if (runtimeEnabled) {
-        console.warn('warn  Google OAuth configured but button missing on /login (needs google-enabled UI deploy)')
-      } else {
-        throw new Error('Google OAuth configured but button missing on /login')
-      }
-    } else {
-      console.log('ok  Google OAuth configured (button visible, /auth/google → Google)')
+    if (!loginHtml.includes('btn-google') && !loginHtml.includes('ادامه با گوگل') && !loginHtml.includes('Continue with Google')) {
+      throw new Error('Google OAuth configured but button missing on /login')
     }
+    console.log('ok  Google OAuth configured (button visible, /auth/google → Google)')
     if (runtimeEnabled) console.log('ok  /api/auth/google-enabled agrees OAuth is on')
+    if (!googleLoc.includes('redirect_uri=')) {
+      throw new Error('/auth/google → Google missing redirect_uri')
+    }
   } else {
     throw new Error(`unexpected /auth/google Location: ${googleStatus} ${googleLoc}`)
   }

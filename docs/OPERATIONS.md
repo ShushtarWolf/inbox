@@ -36,7 +36,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `S3_REGION` | Optional | Default `us-east-1` (Liara-compatible) |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
-| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (required with client id/secret; fail-closed if missing) |
+| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (preferred; else derived from `NUXT_PUBLIC_SITE_URL`) |
 
 ## Email (SMTP)
 
@@ -164,7 +164,7 @@ Redeploy or restart the app after setting env so both server and client pick up 
 
 The test route is **not** public: missing/invalid `x-admin-secret` → `403`. Do not expose an ungated error endpoint.
 
-Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, and a redirect URL are **unset**, the app fails closed: the Google button is hidden and `GET /auth/google` redirects to `/login?error=google` (FA copy via `auth.googleFailed`). Do not commit real secrets; set Liara env in the dashboard when enabling prod.
+Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, and a redirect URL (explicit or via `NUXT_PUBLIC_SITE_URL`) are **unset**, the app fails closed: the Google button is hidden and `GET /auth/google` redirects to `/login?error=google` (FA copy via `auth.googleFailed`). Provider errors (`?error=access_denied`) also land on that page. Do not commit real secrets; set Liara env in the dashboard when enabling prod.
 
 ### Google Cloud Console
 

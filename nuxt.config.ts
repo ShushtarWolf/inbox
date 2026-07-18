@@ -141,6 +141,8 @@ export default defineNuxtConfig({
       },
     },
     public: {
+      // Used at runtime for OAuth redirect fallback and email/sitemap links.
+      siteUrl: siteUrl || process.env.NUXT_PUBLIC_SITE_URL || '',
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
       // Behnaz pilot: hide coach discovery/register UX (coach model + APIs stay).
       pilotNoCoach:
@@ -148,6 +150,7 @@ export default defineNuxtConfig({
         || process.env.PILOT_NO_COACH === 'true',
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
+      // Build-time hint only — UI prefers /api/auth/google-enabled at runtime (Liara).
       googleAuthEnabled: Boolean(
         process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID
         && process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET
