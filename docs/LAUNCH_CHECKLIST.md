@@ -20,7 +20,12 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Local set: restart after `.env` DSN; `POST /api/admin/sentry-test` with `x-admin-secret` → event in Sentry
   - Client: `/admin/sentry` → Test client capture (or `$sentryCaptureTest()`)
   - Prod: same admin test against `https://inboxs.ir` after Liara env + redeploy
-- [ ] Object storage bucket created; `S3_*` vars set on Liara app — keep unchecked until verified
+- [ ] Object storage (Liara bucket) — keep unchecked until verified:
+  - Create public bucket + access key in Liara Object Storage. See docs/OPERATIONS.md → "Object storage (S3 / Liara)"
+  - Liara `inbox` app env: `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_PUBLIC_URL` (e.g. `https://{bucket}.storage.iran.liara.space`)
+  - Local unset: `npm run storage:status` → `storageMode: "local"`; uploads write to `public/uploads`
+  - Limits: JPEG/PNG/WebP, max 5 MB (guest oversized → 400)
+  - Prod: after env + redeploy, upload avatar/gallery on `https://inboxs.ir` — URL uses `S3_PUBLIC_URL`; `/admin` shows storage mode `s3` (never prints keys)
 - [ ] Google OAuth — keep unchecked until verified on Liara:
   - Console: Web client; JS origins `http://localhost:3000` + `https://inboxs.ir`; redirect URIs `http://localhost:3000/auth/google` + `https://inboxs.ir/auth/google`
   - Liara env: `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL=https://inboxs.ir/auth/google`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`

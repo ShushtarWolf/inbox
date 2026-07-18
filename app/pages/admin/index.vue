@@ -21,6 +21,17 @@ type Overview = {
     note: string
     warnings: string[]
   }
+  storage?: {
+    storageMode: 's3' | 'local'
+    s3Configured: boolean
+    hasEndpoint: boolean
+    hasBucket: boolean
+    hasPublicUrl: boolean
+    bucket: string | null
+    publicUrlHost: string | null
+    note: string
+    warnings: string[]
+  }
 }
 
 type PilotClub = {
@@ -213,6 +224,32 @@ watch(secret, (value) => {
           </ul>
           <ul v-if="data.email.warnings.length" class="mt-2 space-y-1 text-xs text-amber-700">
             <li v-for="(w, i) in data.email.warnings" :key="i">{{ w }}</li>
+          </ul>
+        </section>
+
+        <section v-if="data.storage" class="tail-card space-y-2">
+          <h2 class="tail-section-title">{{ t('admin.storageOpsTitle') }}</h2>
+          <p class="text-sm text-brand-gray-600">{{ data.storage.note }}</p>
+          <ul class="space-y-1 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.storageMode') }}</span>
+              <strong dir="ltr">{{ data.storage.storageMode }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.storageS3Configured') }}</span>
+              <strong dir="ltr">{{ data.storage.s3Configured ? t('admin.smsPage.yes') : t('admin.smsPage.no') }}</strong>
+            </li>
+            <li v-if="data.storage.bucket" class="flex justify-between gap-2">
+              <span>{{ t('admin.storageBucket') }}</span>
+              <strong dir="ltr">{{ data.storage.bucket }}</strong>
+            </li>
+            <li v-if="data.storage.publicUrlHost" class="flex justify-between gap-2">
+              <span>{{ t('admin.storagePublicHost') }}</span>
+              <strong dir="ltr">{{ data.storage.publicUrlHost }}</strong>
+            </li>
+          </ul>
+          <ul v-if="data.storage.warnings.length" class="mt-2 space-y-1 text-xs text-amber-700">
+            <li v-for="(w, i) in data.storage.warnings" :key="i">{{ w }}</li>
           </ul>
         </section>
       </div>

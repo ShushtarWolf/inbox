@@ -28,11 +28,12 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
 | `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
 | `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |
-| `S3_ENDPOINT` | For uploads | S3-compatible object storage endpoint |
-| `S3_BUCKET` | For uploads | Bucket name |
-| `S3_ACCESS_KEY` | For uploads | Bucket access key |
-| `S3_SECRET_KEY` | For uploads | Bucket secret key |
-| `S3_PUBLIC_URL` | For uploads | Public base URL for uploaded images |
+| `S3_ENDPOINT` | For uploads (prod) | S3-compatible endpoint (Liara: `https://storage.iran.liara.space`) |
+| `S3_BUCKET` | For uploads (prod) | Bucket name |
+| `S3_ACCESS_KEY` | For uploads (prod) | Bucket access key (never commit) |
+| `S3_SECRET_KEY` | For uploads (prod) | Bucket secret key (never commit) |
+| `S3_PUBLIC_URL` | For uploads (prod) | Public base URL (Liara: `https://{bucket}.storage.iran.liara.space`) |
+| `S3_REGION` | Optional | Default `us-east-1` (Liara-compatible) |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
 | `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (required with client id/secret; fail-closed if missing) |
@@ -62,6 +63,60 @@ SMTP failures are soft-fail: booking and auth flows never hard-fail on mail erro
 ### Production (Liara `inbox` app)
 
 Set SMTP vars in the Liara dashboard when ready for live mail. Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env — do not flip live from this runbook without an explicit ops step.
+
+## Object storage (S3 / Liara)
+
+Uploads (avatars, club gallery, guest registration photos) go through `uploadImage` in `server/utils/storage.ts`, used by:
+
+- `POST /api/uploads` — authenticated (owner/coach/athlete folders)
+- `POST /api/uploads/guest` — rate-limited guest uploads (register owner/coach)
+
+Limits (always enforced): JPEG/PNG/WebP only, max **5 MB**.
+
+| Mode | When | Behavior |
+|------|------|----------|
+| `local` | Any of the five `S3_*` vars missing | Writes under `public/uploads/…`; returns `/uploads/…` paths (works on localhost) |
+| `s3` | All five set | `PutObject` with `forcePathStyle: true`; returned URL is `{S3_PUBLIC_URL}/{key}` |
+
+ACL: PutObject tries `ACL: public-read` first. If the provider rejects ACLs (common on some S3-compatible / Liara setups), the upload retries **without** ACL. Make the Liara bucket **public** so objects remain readable via `S3_PUBLIC_URL`.
+
+### Create a Liara bucket (inboxs.ir)
+
+1. Liara dashboard → **Object Storage** → create a bucket (e.g. `inbox-uploads`).
+2. Set bucket access to **public** (required for direct image URLs in the app).
+3. Create an access key for the bucket; copy endpoint, bucket name, access key, secret key.
+4. Public URL form: `https://{bucket}.storage.iran.liara.space` (confirm in bucket settings if your region differs).
+
+### Local `.env`
+
+Leave all `S3_*` commented for local disk uploads:
+
+```bash
+# S3 unset → local public/uploads
+# npm run storage:status  → storageMode: "local"
+```
+
+### Production (Liara `inbox` app)
+
+Set in the Liara dashboard (never commit real values):
+
+| Variable | Example |
+|----------|---------|
+| `S3_ENDPOINT` | `https://storage.iran.liara.space` |
+| `S3_BUCKET` | `inbox-uploads` |
+| `S3_ACCESS_KEY` | from Liara key |
+| `S3_SECRET_KEY` | from Liara key |
+| `S3_PUBLIC_URL` | `https://inbox-uploads.storage.iran.liara.space` |
+
+Optional: `S3_REGION=us-east-1` (default in code). Redeploy/restart after setting env.
+
+### Verify checklist
+
+1. **Local (no S3):** `npm run storage:status` → `storageMode: "local"`. Upload a photo on register or `/owner/settings` gallery — file appears under `public/uploads/` and loads via `/uploads/…`.
+2. **Type/size:** guest upload of a non-image or >5 MB → `400` (also covered by `npm run smoke:security`).
+3. **Partial S3:** setting only some `S3_*` vars → status warns and stays `local`.
+4. **S3 ready:** all five set → `storageMode: "s3"`; status shows `bucket` + `publicUrlHost` only (never keys). Admin: `GET /api/admin/storage-status` with `x-admin-secret`, or `/admin` overview.
+5. **Prod:** after Liara env + redeploy, upload an avatar/gallery image on `https://inboxs.ir` and confirm the returned URL starts with `S3_PUBLIC_URL` and loads in the browser.
 
 ## Sentry (error tracking)
 

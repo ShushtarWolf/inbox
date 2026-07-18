@@ -1,4 +1,5 @@
 import { getEmailStatus } from '../../utils/email'
+import { getStorageStatus } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
   ])
 
   const email = getEmailStatus()
+  const storage = getStorageStatus()
 
   return {
     clubs: {
@@ -94,6 +96,18 @@ export default defineEventHandler(async (event) => {
       hasSmtpHost: email.hasSmtpHost,
       note: email.note,
       warnings: email.warnings,
+    },
+    /** Safe storage ops — never includes S3 access/secret keys. */
+    storage: {
+      storageMode: storage.storageMode,
+      s3Configured: storage.s3Configured,
+      hasEndpoint: storage.hasEndpoint,
+      hasBucket: storage.hasBucket,
+      hasPublicUrl: storage.hasPublicUrl,
+      bucket: storage.bucket,
+      publicUrlHost: storage.publicUrlHost,
+      note: storage.note,
+      warnings: storage.warnings,
     },
   }
 })
