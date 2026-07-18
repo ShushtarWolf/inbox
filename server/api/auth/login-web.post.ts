@@ -1,5 +1,6 @@
 import { toSessionUser, postLoginRedirectPath, touchLastLogin } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
+import { demoAuthAllowed, isDemoEmail } from '../../utils/demo'
 import { readFormData } from 'h3'
 
 export default defineEventHandler(async (event) => {
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, `/login?error=invalid`)
   }
 
-  if (process.env.NODE_ENV === 'production' && isDemoEmail(normalized)) {
+  if (process.env.NODE_ENV === 'production' && isDemoEmail(normalized) && !demoAuthAllowed()) {
     return sendRedirect(event, `/login?error=invalid`)
   }
 
