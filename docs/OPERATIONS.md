@@ -223,14 +223,29 @@ New Google users are upserted as role `ATHLETE`. `oauth_return_to` cookie (sanit
 
 ## Database backup (PostgreSQL)
 
-### Backup
+Production DB: Liara service **`inbox-db`**. Preferred path is Liara managed backups (verified 2026-07-19).
+
+### Backup (Liara — preferred)
 
 ```bash
-# From Liara database shell or with connection string
-pg_dump "$DATABASE_URL" -Fc -f inbox-backup-$(date +%Y%m%d).dump
+# List existing backups (hourly / daily / manual)
+liara db backup list --name inbox-db
+
+# Create an on-demand backup (appears under manual/)
+liara db backup create --name inbox-db
+
+# Download a named backup locally if needed
+liara db backup download --name inbox-db
 ```
 
-Liara dashboard: `inbox-db` → Backups (if enabled on plan).
+Liara dashboard: `inbox-db` → Backups (same artifacts as CLI). Plan includes scheduled hourly + daily dumps.
+
+### Backup (pg_dump — optional / local)
+
+```bash
+# Needs client tools + a reachable DATABASE_URL (not the internal inbox-db hostname)
+pg_dump "$DATABASE_URL" -Fc -f inbox-backup-$(date +%Y%m%d).dump
+```
 
 ### Restore
 

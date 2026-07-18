@@ -44,7 +44,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] Demo cleanup runs automatically on production startup
 - [x] Demo login/registration blocked in production (`*@inbox.local`)
 - [x] Demo passwords removed from production (unset `SEED_DEMO_DATA`; auto-cleanup on deploy)
-- [ ] Postgres backup verified (`pg_dump`) — keep unchecked until verified
+- [x] Postgres backup verified (`inbox-db`): Liara hourly/daily backups present; manual `liara db backup create --name inbox-db` succeeded (`manual/2026-07-19T01-45-22-….dump.tar.gz`). See docs/OPERATIONS.md → "Database backup"
 
 ## Automated QA
 
