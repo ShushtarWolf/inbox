@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { toSessionUser } from './auth'
+import { toSessionUser, touchLastLogin } from './auth'
 
 type GoogleProfile = {
   sub: string
@@ -49,4 +49,5 @@ export async function upsertGoogleUser(profile: GoogleProfile, locale?: string) 
 
 export async function signInOAuthUser(event: H3Event, user: { id: string; email: string; name: string; nameEn?: string | null; role: string; locale: string }) {
   await setUserSession(event, { user: toSessionUser(user) })
+  await touchLastLogin(user.id)
 }

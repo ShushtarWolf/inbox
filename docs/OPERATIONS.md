@@ -71,22 +71,35 @@ liara deploy --app inbox
 
 1. Ensure Postgres is running (`docker compose up -d` or equivalent) and `DATABASE_URL` is set in `.env`
 2. Set `ADMIN_PROVISION_SECRET` in `.env` (same value used for `x-admin-secret` on APIs)
-3. `npm run dev` → open **http://localhost:3000/admin**
-4. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
-5. Console sections: Overview · Clubs · Users · Bookings · Applications · Bug reports · Provision (CLUB_ADMIN)
+3. `npm run db:migrate` then `npm run db:seed` (sports catalog; avoid `FORCE_SEED_RESET` unless you re-seed sports)
+4. `npm run dev` → open **http://localhost:3000/admin**
+5. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
+6. Console sections: Overview (pilot checklist) · Clubs · Users · Bookings · Applications · Bug reports · Provision (CLUB_ADMIN)
+
+### Provision Behnaz’s club (preferred local path)
+
+One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22). No coach required.
+
+1. `/admin/provision` → owner email, name, club name (e.g. Behnaz’s club)
+2. Copy the temporary password from the success panel (do not commit secrets)
+3. Log in at `/login` as the owner → optionally `/owner/setup` (profile, hours, courts/pricing; coaches optional)
+4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
+5. Public catalog: `/clubs` · book: `/book/court/{slug}` (athlete account needed to complete a booking)
+
+Optional env for coach-hidden pilot UX: `NUXT_PUBLIC_PILOT_NO_COACH=true`
 
 ### Review club applications
 
-1. Open `/admin/applications`
+1. Open `/admin/applications` (create a pending application there, or use Provision instead)
 2. Approve with the owner login email (or reject)
-3. New owners receive a welcome email with login URL and temporary password
+3. New owners receive a welcome email with login URL and temporary password (email may be log-only locally)
 
 ### Create club owner (UI or API)
 
 Preferred: `/admin/provision` (CLUB_ADMIN only in the UI).
 
 ```bash
-curl -X POST https://inboxs.ir/api/admin/provision \
+curl -X POST http://localhost:3000/api/admin/provision \
   -H "Content-Type: application/json" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   -d '{"type":"CLUB_ADMIN","email":"owner@club.ir","name":"Club Owner","clubName":"My Club"}'
@@ -95,7 +108,7 @@ curl -X POST https://inboxs.ir/api/admin/provision \
 ### Approve club application
 
 ```bash
-curl -X POST https://inboxs.ir/api/admin/clubs/APPLICATION_ID/approve \
+curl -X POST http://localhost:3000/api/admin/clubs/APPLICATION_ID/approve \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   -d '{"ownerEmail":"owner@club.ir"}'
 ```

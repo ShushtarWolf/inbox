@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
   }
   await setUserSession(event, { user: toSessionUser(user) })
+  await touchLastLogin(user.id)
   const redirectTo = postLoginRedirectPath(user, locale, returnTo)
   const { coachProfile, ...rest } = user
   return {

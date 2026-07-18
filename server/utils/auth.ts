@@ -32,6 +32,18 @@ export function toSessionUser(user: {
   }
 }
 
+/** Best-effort stamp for ops readiness (e.g. pilot checklist). */
+export async function touchLastLogin(userId: string) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    })
+  } catch {
+    // Do not block login if the column is missing on a stale local DB.
+  }
+}
+
 export async function requireUser(event: H3Event) {
   const session = await getUserSession(event)
   if (!session?.user) {

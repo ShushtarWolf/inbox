@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     }
     await prisma.user.update({
       where: { id: user.id },
-      data: { phoneVerifiedAt: new Date() },
+      data: { phoneVerifiedAt: new Date(), lastLoginAt: new Date() },
     })
     await setUserSession(event, { user: toSessionUser(user) })
     return {

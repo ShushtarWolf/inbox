@@ -121,6 +121,7 @@ model User {
   oauthProvider String?
   oauthSubject  String?
   disabledAt    DateTime?
+  lastLoginAt   DateTime?
   createdAt     DateTime @default(now())
 
   ownedClubs      Club[]           @relation("ClubOwner")

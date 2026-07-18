@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
         status: 'ACTIVE',
         openHour: 8,
         closeHour: 22,
+        priceFrom: 600000,
       },
     })
 
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
         nameEn: 'Court 1',
         clubId: club.id,
         sportId: sport.id,
+        price: 600000,
       },
     })
 
@@ -98,6 +100,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     clubId: result.club.id,
+    clubSlug: result.club.slug,
     ownerEmail: result.user.email,
     temporaryPassword: isNewUser ? tempPassword : undefined,
   }

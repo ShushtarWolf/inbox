@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
 
 const email = ref('')
@@ -9,7 +10,14 @@ const name = ref('')
 const clubName = ref('')
 const submitting = ref(false)
 const formError = ref('')
-const result = ref<{ email: string; temporaryPassword: string; role: string } | null>(null)
+const result = ref<{
+  email: string
+  temporaryPassword: string
+  role: string
+  clubId?: string | null
+  clubSlug?: string | null
+  clubName?: string | null
+} | null>(null)
 
 async function submit() {
   if (!secret.value) return
@@ -21,7 +29,14 @@ async function submit() {
   }
   submitting.value = true
   try {
-    const data = await adminFetch<{ email: string; temporaryPassword: string; role: string }>(
+    const data = await adminFetch<{
+      email: string
+      temporaryPassword: string
+      role: string
+      clubId?: string | null
+      clubSlug?: string | null
+      clubName?: string | null
+    }>(
       '/api/admin/provision',
       {
         method: 'POST',
@@ -73,12 +88,22 @@ async function submit() {
         <input v-model="clubName" type="text" class="neo-input" :placeholder="t('admin.clubNameOptional')" />
       </AppFormField>
       <p v-if="formError" class="venus-alert-error">{{ formError }}</p>
-      <div v-if="result" class="venus-alert-success text-sm">
+      <div v-if="result" class="venus-alert-success space-y-1 text-sm">
         <p>{{ t('admin.provisionSuccess') }}</p>
         <p dir="ltr">{{ result.email }}</p>
         <p dir="ltr">
           {{ t('admin.tempPassword') }}: <strong>{{ result.temporaryPassword }}</strong>
         </p>
+        <p v-if="result.clubSlug" class="text-xs">
+          {{ t('admin.provisionNextSteps', { slug: result.clubSlug }) }}
+        </p>
+        <NuxtLink
+          v-if="result.clubId"
+          :to="localePath(`/admin/clubs/${result.clubId}`)"
+          class="inline-block text-xs font-bold underline"
+        >
+          {{ t('admin.clubDetails') }}
+        </NuxtLink>
       </div>
       <button type="button" class="btn-primary w-full" :disabled="submitting" @click="submit">
         {{ submitting ? t('common.loading') : t('admin.provisionSubmit') }}

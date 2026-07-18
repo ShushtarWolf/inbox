@@ -110,6 +110,7 @@ export default defineEventHandler(async (event) => {
   })
 
   await setUserSession(event, { user: toSessionUser(result.user) })
+  await touchLastLogin(result.user.id)
   return {
     id: result.user.id,
     email: result.user.email,

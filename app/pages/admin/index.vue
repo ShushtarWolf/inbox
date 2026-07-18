@@ -15,7 +15,23 @@ type Overview = {
   bugReports: { open: number }
 }
 
+type PilotClub = {
+  id: string
+  slug: string
+  nameFa: string
+  nameEn: string
+  status: string
+  courtCount: number
+  openHour: number
+  closeHour: number
+  bookable: boolean
+  ownerEmail: string | null
+  ownerLastLoginAt: string | null
+  checks: { id: string; ok: boolean }[]
+}
+
 const data = ref<Overview | null>(null)
+const pilotClubs = ref<PilotClub[]>([])
 const pending = ref(false)
 const loadError = ref('')
 
@@ -24,7 +40,12 @@ async function load() {
   pending.value = true
   loadError.value = ''
   try {
-    data.value = await adminFetch<Overview>('/api/admin/overview')
+    const [overview, checklist] = await Promise.all([
+      adminFetch<Overview>('/api/admin/overview'),
+      adminFetch<{ clubs: PilotClub[] }>('/api/admin/pilot-checklist'),
+    ])
+    data.value = overview
+    pilotClubs.value = checklist.clubs
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 403) {
@@ -36,6 +57,10 @@ async function load() {
   } finally {
     pending.value = false
   }
+}
+
+function checkLabel(id: string) {
+  return t(`admin.pilotChecks.${id}`)
 }
 
 watch(secret, (value) => {
@@ -63,6 +88,50 @@ watch(secret, (value) => {
           <AppTailStatCard :label="t('admin.metrics.bookings')" :value="formatNumber(data.bookings.total)" icon="event" />
           <AppTailStatCard :label="t('admin.metrics.paidRevenue')" :value="formatCurrency(data.payments.paidAmount)" icon="payments" />
         </div>
+
+        <section class="tail-card space-y-3">
+          <div class="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 class="tail-section-title">{{ t('admin.pilotChecklistTitle') }}</h2>
+              <p class="mt-1 text-xs text-brand-gray-500">{{ t('admin.pilotChecklistSubtitle') }}</p>
+            </div>
+            <NuxtLink :to="localePath('/admin/provision')" class="text-xs font-bold text-brand-navy underline">
+              {{ t('admin.nav.provision') }}
+            </NuxtLink>
+          </div>
+          <div v-if="pilotClubs.length === 0" class="text-sm text-brand-gray-600">
+            {{ t('admin.pilotChecklistEmpty') }}
+          </div>
+          <ul v-else class="space-y-3">
+            <li v-for="club in pilotClubs" :key="club.id" class="rounded-lg border border-brand-gray-100 p-3">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <NuxtLink :to="localePath(`/admin/clubs/${club.id}`)" class="font-bold underline">
+                    {{ club.nameFa }}
+                  </NuxtLink>
+                  <p class="text-xs text-brand-gray-500" dir="ltr">{{ club.slug }} · {{ club.ownerEmail || '—' }}</p>
+                </div>
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-bold"
+                  :class="club.bookable ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'"
+                >
+                  {{ club.bookable ? t('admin.pilotBookable') : t('admin.pilotNotBookable') }}
+                </span>
+              </div>
+              <ul class="mt-2 grid gap-1 sm:grid-cols-2">
+                <li
+                  v-for="check in club.checks"
+                  :key="check.id"
+                  class="flex items-center gap-2 text-xs"
+                  :class="check.ok ? 'text-green-700' : 'text-amber-700'"
+                >
+                  <span aria-hidden="true">{{ check.ok ? '✓' : '○' }}</span>
+                  <span>{{ checkLabel(check.id) }}</span>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </section>
 
         <div class="tail-card-grid-3">
           <div class="tail-card">

@@ -1,4 +1,4 @@
-import { toSessionUser, postLoginRedirectPath } from '../../utils/auth'
+import { toSessionUser, postLoginRedirectPath, touchLastLogin } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
 import { readFormData } from 'h3'
 
@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
     }
 
     await setUserSession(event, { user: toSessionUser(user) })
+    await touchLastLogin(user.id)
 
     const target = postLoginRedirectPath(user, 'fa', returnTo)
     const separator = target.includes('?') ? '&' : '?'

@@ -24,8 +24,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const tempPassword = randomBytes(12).toString('base64url')
+  const defaultCourtPrice = 600000
 
-  const user = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
         email,
@@ -41,46 +42,57 @@ export default defineEventHandler(async (event) => {
       await tx.coach.create({
         data: { nameFa: name, nameEn: name, city: 'تهران', sportId: sport.id, userId: created.id },
       })
+      return { user: created, club: null as null | { id: string; slug: string; nameFa: string } }
     }
-    if (type === 'CLUB_ADMIN') {
-      const sport = await tx.sport.findFirstOrThrow({ where: { slug: 'padel' } })
-      const clubName = body.clubName?.trim() || name
-      const club = await tx.club.create({
+
+    const sport = await tx.sport.findFirstOrThrow({ where: { slug: 'padel' } })
+    const clubName = body.clubName?.trim() || name
+    const club = await tx.club.create({
+      data: {
+        slug: `club-${created.id.slice(-8)}`,
+        nameFa: clubName,
+        nameEn: clubName,
+        addressFa: 'تهران',
+        addressEn: 'Tehran',
+        city: 'تهران',
+        ownerId: created.id,
+        status: 'ACTIVE',
+        openHour: 8,
+        closeHour: 22,
+        priceFrom: defaultCourtPrice,
+      },
+    })
+    for (let i = 1; i <= 2; i++) {
+      await tx.court.create({
         data: {
-          slug: `club-${created.id.slice(-8)}`,
-          nameFa: clubName,
-          nameEn: clubName,
-          addressFa: 'تهران',
-          addressEn: 'Tehran',
-          city: 'تهران',
-          ownerId: created.id,
-          openHour: 8,
-          closeHour: 22,
-        },
-      })
-      for (let i = 1; i <= 2; i++) {
-        await tx.court.create({
-          data: { nameFa: `زمین ${i}`, nameEn: `Court ${i}`, clubId: club.id, sportId: sport.id },
-        })
-      }
-      await tx.staffMembership.create({
-        data: {
-          userId: created.id,
+          nameFa: `زمین ${i}`,
+          nameEn: `Court ${i}`,
           clubId: club.id,
-          role: 'OWNER',
-          permissionsJson: JSON.stringify(['calendar', 'finance', 'crm', 'team', 'settings']),
-          active: true,
-          isPrimary: true,
+          sportId: sport.id,
+          price: defaultCourtPrice,
         },
       })
     }
-    return created
+    await tx.staffMembership.create({
+      data: {
+        userId: created.id,
+        clubId: club.id,
+        role: 'OWNER',
+        permissionsJson: JSON.stringify(['calendar', 'finance', 'crm', 'team', 'settings']),
+        active: true,
+        isPrimary: true,
+      },
+    })
+    return { user: created, club: { id: club.id, slug: club.slug, nameFa: club.nameFa } }
   })
 
   return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
+    id: result.user.id,
+    email: result.user.email,
+    role: result.user.role,
     temporaryPassword: tempPassword,
+    clubId: result.club?.id ?? null,
+    clubSlug: result.club?.slug ?? null,
+    clubName: result.club?.nameFa ?? null,
   }
 })
