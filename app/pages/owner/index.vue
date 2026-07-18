@@ -49,6 +49,7 @@ const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
+const { pilotNoCoach } = usePilotFlags()
 const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
 
 const date = ref(today())
@@ -126,9 +127,11 @@ const scheduleTimeOptions = computed(() => {
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() =>
-  (staffData.value?.staff || [])
-    .filter((member: { coach?: { id: string; sessionPrice?: number } | null }) => member.coach)
-    .map((member: { coach: { id: string; nameFa: string; nameEn: string; sessionPrice: number } }) => member.coach),
+  pilotNoCoach.value
+    ? []
+    : (staffData.value?.staff || [])
+        .filter((member: { coach?: { id: string; sessionPrice?: number } | null }) => member.coach)
+        .map((member: { coach: { id: string; nameFa: string; nameEn: string; sessionPrice: number } }) => member.coach),
 )
 const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
@@ -437,7 +440,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = fullSlot.booking?.comments || ''
-  packageForm.coachId = fullSlot.booking?.coachId || ''
+  packageForm.coachId = pilotNoCoach.value ? '' : (fullSlot.booking?.coachId || '')
   packageForm.startDate = ''
   packageForm.finishDate = ''
   packageForm.days = [anchorDay]
@@ -743,7 +746,7 @@ async function doPackageReserve() {
         guestName: form.guestName,
         guestFamily: form.guestFamily,
         guestMobile: form.guestMobile,
-        coachId: packageForm.coachId,
+        coachId: pilotNoCoach.value ? undefined : (packageForm.coachId || undefined),
         startDate: packageForm.startDate,
         finishDate: packageForm.finishDate,
         days: packageForm.days,
@@ -827,7 +830,7 @@ function canMarkUnpaid() {
 }
 
 function canShowCoachReserve() {
-  return canReserveSlot() && clubCoaches.value.length > 0
+  return !pilotNoCoach.value && canReserveSlot() && clubCoaches.value.length > 0
 }
 
 function slotStatusSummary() {
@@ -1444,7 +1447,7 @@ const legend = [
           <div class="venus-modal-panel-body">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
               <div class="min-w-0 flex-1 venus-form-stack">
-                <AppFormField :label="t('owner.packagePage.coachPlaceholder')">
+                <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
                   <select v-model="packageForm.coachId" class="neo-select">
                     <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
                     <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">
