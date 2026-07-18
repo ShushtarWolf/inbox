@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register')
-  const body = await readBody<{ name?: string; email?: string; password?: string; locale?: string }>(event)
+  const body = await readBody<{ name?: string; email?: string; password?: string; locale?: string; returnTo?: string }>(event)
   const name = body.name?.trim()
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
@@ -11,9 +11,6 @@ export default defineEventHandler(async (event) => {
   rejectDemoEmailInProduction(email)
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
-    if (!existing.passwordHash && existing.oauthProvider) {
-      throw createError({ statusCode: 409, statusMessage: 'Use Google sign-in for this account' })
-    }
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
   }
 
@@ -28,5 +25,12 @@ export default defineEventHandler(async (event) => {
   })
 
   await setUserSession(event, { user: toSessionUser(user) })
-  return { id: user.id, email: user.email, name: user.name, role: user.role, locale: user.locale }
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    locale: user.locale,
+    redirectTo: postLoginRedirectPath(user, body.locale, body.returnTo),
+  }
 })

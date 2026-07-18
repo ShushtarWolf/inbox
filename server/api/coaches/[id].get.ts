@@ -3,6 +3,7 @@ import { parseJsonArray, reviewSummary } from '../../utils/catalog'
 import { slugify } from '../../utils/slug'
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
 

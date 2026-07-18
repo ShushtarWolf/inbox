@@ -3,6 +3,7 @@ import { findCoachByIdOrSlug } from '../../../utils/coaches'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
 

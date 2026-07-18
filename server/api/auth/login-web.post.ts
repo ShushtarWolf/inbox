@@ -25,9 +25,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
+    // Same error for missing user, wrong password, or Google-only accounts (no enumeration).
     if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
-      const errorCode = user && !user.passwordHash ? 'useGoogle' : 'invalid'
-      return sendRedirect(event, `/login?error=${errorCode}`)
+      return sendRedirect(event, `/login?error=invalid`)
     }
     if (user.disabledAt) {
       return sendRedirect(event, `/login?error=disabled`)

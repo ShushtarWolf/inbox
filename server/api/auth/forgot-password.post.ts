@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { siteUrl } from '../../utils/email'
+import { isEmailConfigured, siteUrl } from '../../utils/email'
 import { sendNotification } from '../../utils/notify'
 
 function hashToken(token: string) {
@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:forgot-password')
   const { email } = await readBody<{ email?: string }>(event)
   const normalized = email?.trim().toLowerCase()
+
+  let debugResetUrl: string | undefined
 
   if (normalized) {
     const user = await prisma.user.findUnique({ where: { email: normalized } })
@@ -26,8 +28,12 @@ export default defineEventHandler(async (event) => {
         template: 'PASSWORD_RESET',
         data: { resetUrl },
       })
+      // Mirror OTP debugCode: expose reset link only when SMTP email is not live.
+      if (!isEmailConfigured() && process.env.NODE_ENV !== 'production') {
+        debugResetUrl = resetUrl
+      }
     }
   }
 
-  return { ok: true }
+  return { ok: true, debugResetUrl }
 })

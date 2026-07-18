@@ -53,13 +53,21 @@ export async function createAndSendPhoneOtp(opts: {
   })
 
   const body = `کد تایید inbox: ${code}`
-  await sendSms({ to: phone, body })
+  let debugFallback = false
+  try {
+    await sendSms({ to: phone, body })
+  } catch (err) {
+    // Pilot/local: keep OTP usable if live SMS is misconfigured. Never expose debugCode in production.
+    if (process.env.NODE_ENV === 'production') throw err
+    console.warn('[otp] SMS send failed — enabling debugCode for local recovery', err)
+    debugFallback = true
+  }
 
   return {
     phone,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
-    /** Returned only while SMS runs in dry-run/log mode so QA can complete the flow. */
-    debugCode: resolveSmsProvider() === 'log' ? code : undefined,
+    /** Returned only while SMS is log/dry-run, or after a non-prod live SMS failure. */
+    debugCode: resolveSmsProvider() === 'log' || debugFallback ? code : undefined,
   }
 }
 

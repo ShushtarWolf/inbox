@@ -15,8 +15,9 @@ export default defineEventHandler(async (event) => {
     where: { email: normalized },
     include: { coachProfile: { select: { photo: true } } },
   })
+  // Same message for missing user, wrong password, or Google-only accounts (no enumeration).
   if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
-    throw createError({ statusCode: 401, statusMessage: user && !user.passwordHash ? 'Use Google sign-in for this account' : 'Invalid credentials' })
+    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
   }
   if (user.disabledAt) {
     throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
