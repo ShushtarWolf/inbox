@@ -158,10 +158,10 @@ async function finish() {
           <input v-model="profile.phone" dir="ltr" class="neo-input tabular-nums" />
         </AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('owner.settings.openHour')">
+          <AppFormField :label="t('owner.settingsPage.openHour')">
             <input v-model.number="profile.openHour" type="number" min="0" max="23" class="neo-input" dir="ltr" />
           </AppFormField>
-          <AppFormField :label="t('owner.settings.closeHour')">
+          <AppFormField :label="t('owner.settingsPage.closeHour')">
             <input v-model.number="profile.closeHour" type="number" min="1" max="24" class="neo-input" dir="ltr" />
           </AppFormField>
         </div>
@@ -185,7 +185,7 @@ async function finish() {
         <AppFormField :label="t('owner.courtNameEn')">
           <input v-model="newCourt.nameEn" dir="ltr" class="neo-input" />
         </AppFormField>
-        <AppFormField :label="t('owner.settings.courtPrice')">
+        <AppFormField :label="t('owner.settingsPage.courtPrice')">
           <input v-model.number="newCourt.price" type="number" min="1" step="1000" class="neo-input" dir="ltr" />
         </AppFormField>
         <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">
