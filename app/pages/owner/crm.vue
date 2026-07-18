@@ -7,9 +7,17 @@ const selectedSegment = ref('all')
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/contacts', {
   query: computed(() => ({ segment: selectedSegment.value === 'all' ? undefined : selectedSegment.value })),
 })
-useOwnerClubRefresh(refresh)
+const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch('/api/owner/sms-status')
+useOwnerClubRefresh(() => {
+  refresh()
+  refreshSmsStatus()
+})
 const sms = reactive({ message: '', recipient: 'all', campaignName: '', schedule: '' })
 const feedback = ref('')
+
+const liveSms = computed(() =>
+  Boolean(smsStatus.value?.live || smsStatus.value?.resolvedProvider === 'live' || data.value?.sms?.live),
+)
 
 const builtInSegments = new Set(['all', 'vip', 'inactive', 'atRisk'])
 
@@ -28,16 +36,48 @@ function triggerTypeLabel(type: string) {
   return t(`owner.crmPage.triggerType.${type}` as 'owner.crmPage.triggerType.booking_upcoming')
 }
 
+function campaignResultLabel(campaign: {
+  sent?: number
+  logged?: number
+  queued?: number
+  delivered?: number
+  total: number
+}) {
+  const sent = campaign.sent ?? 0
+  const logged = campaign.logged ?? 0
+  const queued = campaign.queued ?? 0
+  const total = campaign.total
+  // Never claim live delivery for logged-only recipients.
+  if (sent > 0 || queued > 0) {
+    return t('owner.crmPage.sent', { sent: sent + queued, total })
+  }
+  return t('owner.crmPage.logged', { logged: logged || campaign.delivered || 0, total })
+}
+
 async function send() {
-  await $fetch('/api/owner/sms', {
+  const result = await $fetch<{
+    log?: { sent?: boolean, logged?: boolean }
+    provider?: string
+    campaign?: { status?: string }
+  }>('/api/owner/sms', {
     method: 'POST',
     body: {
       ...sms,
       segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
     },
   })
-  feedback.value = t('owner.crmPage.smsLogged')
+  if (result.campaign?.status === 'SCHEDULED') {
+    feedback.value = t('owner.crmPage.smsScheduled')
+  } else if (result.log?.sent) {
+    feedback.value = t('owner.crmPage.smsSentFeedback')
+  } else if (result.log?.logged) {
+    feedback.value = t('owner.crmPage.smsLogged')
+  } else {
+    // Fail closed: do not claim a live send without provider confirmation.
+    feedback.value = t('owner.crmPage.smsLogged')
+  }
   refresh()
+  refreshSmsStatus()
 }
 </script>
 
@@ -48,7 +88,11 @@ async function send() {
         <div class="tail-card-grid-4">
           <AppTailStatCard :label="t('owner.crmPage.stats.contacts')" :value="data?.stats?.totalContacts || 0" icon="groups" />
           <AppTailStatCard :label="t('owner.crmPage.stats.activeThisMonth')" :value="data?.stats?.activeThisMonth || 0" icon="person_check" />
-          <AppTailStatCard :label="t('owner.crmPage.stats.smsSent')" :value="data?.stats?.smsSent || 0" icon="sms" />
+          <AppTailStatCard
+            :label="liveSms ? t('owner.crmPage.stats.smsSentLive') : t('owner.crmPage.stats.smsSent')"
+            :value="data?.stats?.smsSent || 0"
+            icon="sms"
+          />
           <AppTailStatCard :label="t('owner.crmPage.stats.campaigns')" :value="data?.stats?.campaigns || 0" icon="campaign" />
         </div>
 
@@ -95,7 +139,7 @@ async function send() {
                 <span class="tail-badge-gray">{{ campaignStatusLabel(campaign.status) }}</span>
               </div>
               <p class="mt-1 text-xs text-brand-gray-500">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
-              <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.logged', { logged: campaign.logged ?? campaign.delivered, total: campaign.total }) }}</p>
+              <p class="text-xs text-brand-gray-500">{{ campaignResultLabel(campaign) }}</p>
             </div>
           </div>
         </div>
@@ -104,7 +148,9 @@ async function send() {
       <div class="tail-page-stack">
         <div class="tail-card">
           <h2 class="tail-section-title mb-2">{{ t('owner.crmPage.pushSms') }}</h2>
-          <p class="mb-4 text-sm text-brand-gray-500">{{ t('owner.crmPage.logOnlyNote') }}</p>
+          <p class="mb-4 text-sm text-brand-gray-500">
+            {{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}
+          </p>
           <div class="tail-form-stack">
             <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="tail-input" />
             <select v-model="sms.recipient" class="tail-select">

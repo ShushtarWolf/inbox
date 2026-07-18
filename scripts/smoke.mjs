@@ -115,6 +115,14 @@ async function main() {
   }
 
   await check('/api/owner/contacts?segment=vip', { session: 'owner' })
+  const smsStatus = await check('/api/owner/sms-status', { session: 'owner' })
+  if (!smsStatus.resolvedProvider || !['log', 'live'].includes(smsStatus.resolvedProvider)) {
+    throw new Error('owner sms-status did not return resolvedProvider')
+  }
+  if (Boolean(smsStatus.live) !== (smsStatus.resolvedProvider === 'live')) {
+    throw new Error('owner sms-status live flag inconsistent with resolvedProvider')
+  }
+  console.log(`ok  owner sms-status (${smsStatus.resolvedProvider})`)
   await check('/api/owner/finance', { session: 'owner' })
   await check('/api/owner/staff', { session: 'owner' })
   await check('/api/owner/calendar', { session: 'owner' })
@@ -180,10 +188,20 @@ async function main() {
       campaignName: 'Smoke campaign',
     }),
   })
-  if (!smsResult.provider || !(smsResult.note?.includes('log') || smsResult.note?.includes('dry-run'))) {
-    throw new Error('owner SMS did not route through log/dry-run provider')
+  if (!smsResult.provider || !['log', 'live'].includes(smsResult.provider)) {
+    throw new Error('owner SMS did not return a resolved provider')
   }
-  console.log('ok  owner SMS log provider')
+  if (smsResult.provider === 'log') {
+    if (!(smsResult.note?.includes('log') || smsResult.note?.includes('dry-run')) || smsResult.log?.sent) {
+      throw new Error('owner SMS log mode claimed a live send')
+    }
+    console.log('ok  owner SMS log provider')
+  } else {
+    if (!smsResult.log?.sent && !smsResult.note?.toLowerCase?.().includes('live')) {
+      throw new Error('owner SMS live mode did not report a send/queue')
+    }
+    console.log('ok  owner SMS live provider')
+  }
 
   await check('/api/waitlist', {
     method: 'POST',

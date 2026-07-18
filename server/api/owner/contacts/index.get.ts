@@ -1,3 +1,21 @@
+import { resolveSmsProvider } from '#shared/sms.ts'
+
+function isSentStatus(status: string) {
+  return status === 'sent'
+}
+
+function isLoggedStatus(status: string) {
+  return status === 'logged' || status === 'delivered'
+}
+
+function isQueuedStatus(status: string) {
+  return status === 'queued-for-gateway'
+}
+
+function isOutreachStatus(status: string) {
+  return isSentStatus(status) || isLoggedStatus(status) || isQueuedStatus(status)
+}
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'crm')
   const query = getQuery(event)
@@ -27,23 +45,33 @@ export default defineEventHandler(async (event) => {
   })
   const allContacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const allCampaigns = await prisma.campaign.findMany({ where: { clubId: club.id }, include: { recipients: true } })
-  const smsLogged = allCampaigns.reduce(
-    (sum, campaign) =>
-      sum + campaign.recipients.filter((recipient) =>
-        recipient.status === 'sent'
-        || recipient.status === 'logged'
-        || recipient.status === 'delivered'
-        || recipient.status === 'queued-for-gateway',
-      ).length,
+  const smsSent = allCampaigns.reduce(
+    (sum, campaign) => sum + campaign.recipients.filter((recipient) => isSentStatus(recipient.status)).length,
     0,
   )
+  const smsLogged = allCampaigns.reduce(
+    (sum, campaign) => sum + campaign.recipients.filter((recipient) => isLoggedStatus(recipient.status)).length,
+    0,
+  )
+  const smsQueued = allCampaigns.reduce(
+    (sum, campaign) => sum + campaign.recipients.filter((recipient) => isQueuedStatus(recipient.status)).length,
+    0,
+  )
+  const provider = resolveSmsProvider()
+  const live = provider === 'live'
 
   return {
+    sms: {
+      resolvedProvider: provider,
+      live,
+    },
     stats: {
       totalContacts: allContacts.length,
       activeThisMonth: allContacts.filter((contact) => contact.inactiveDays < 30).length,
-      smsSent: smsLogged,
+      // Card value follows effective mode: live shows sent/queued only; log shows dry-run logged volume.
+      smsSent: live ? smsSent + smsQueued : smsLogged + smsSent + smsQueued,
       smsLogged,
+      smsQueued,
       campaigns: allCampaigns.length,
     },
     contacts,
@@ -58,27 +86,25 @@ export default defineEventHandler(async (event) => {
         count: contacts.length,
       })),
     ],
-    campaigns: campaigns.map((campaign) => ({
-      id: campaign.id,
-      name: campaign.name,
-      status: campaign.status,
-      channel: campaign.channel,
-      sentAt: campaign.sentAt,
-      segmentName: campaign.segment?.name || null,
-      delivered: campaign.recipients.filter((recipient) =>
-        recipient.status === 'sent'
-        || recipient.status === 'logged'
-        || recipient.status === 'delivered'
-        || recipient.status === 'queued-for-gateway',
-      ).length,
-      logged: campaign.recipients.filter((recipient) =>
-        recipient.status === 'sent'
-        || recipient.status === 'logged'
-        || recipient.status === 'delivered'
-        || recipient.status === 'queued-for-gateway',
-      ).length,
-      total: campaign.recipients.length,
-    })),
+    campaigns: campaigns.map((campaign) => {
+      const sent = campaign.recipients.filter((recipient) => isSentStatus(recipient.status)).length
+      const logged = campaign.recipients.filter((recipient) => isLoggedStatus(recipient.status)).length
+      const queued = campaign.recipients.filter((recipient) => isQueuedStatus(recipient.status)).length
+      return {
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        channel: campaign.channel,
+        sentAt: campaign.sentAt,
+        segmentName: campaign.segment?.name || null,
+        sent,
+        queued,
+        // Keep `delivered` as a non-delivery outreach count for older UI; never imply phone delivery.
+        delivered: campaign.recipients.filter((recipient) => isOutreachStatus(recipient.status)).length,
+        logged,
+        total: campaign.recipients.length,
+      }
+    }),
     reminders,
   }
 })

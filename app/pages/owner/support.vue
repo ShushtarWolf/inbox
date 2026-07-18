@@ -4,7 +4,15 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
-useOwnerClubRefresh(refresh)
+const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch('/api/owner/sms-status')
+useOwnerClubRefresh(() => {
+  refresh()
+  refreshSmsStatus()
+})
+
+const liveSms = computed(() =>
+  Boolean(smsStatus.value?.live || smsStatus.value?.resolvedProvider === 'live'),
+)
 </script>
 
 <template>
@@ -17,7 +25,7 @@ useOwnerClubRefresh(refresh)
       <div class="mt-3 space-y-2 text-sm text-brand-gray-600">
         <p>{{ t('owner.supportPage.calendarHelp') }}</p>
         <p>{{ t('owner.supportPage.paymentHelp') }}</p>
-        <p>{{ t('owner.supportPage.crmHelp') }}</p>
+        <p>{{ liveSms ? t('owner.supportPage.crmHelpLive') : t('owner.supportPage.crmHelp') }}</p>
       </div>
     </div>
 
