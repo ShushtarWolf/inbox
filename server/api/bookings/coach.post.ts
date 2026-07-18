@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
   await notifyBookingConfirmed({
     userId: user.id,
     email: athlete?.email,
+    phone: athlete?.phone,
     kind: 'coach',
     clubName: coach.club?.nameEn || coach.club?.nameFa || coach.nameEn || coach.nameFa,
     clubId: coach.clubId || undefined,

@@ -1,3 +1,4 @@
+import { resolveSmsProvider } from '#shared/sms.ts'
 import { createInAppNotification, sendNotification } from './notify'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
@@ -5,6 +6,7 @@ export type BookingNotifyKind = 'court' | 'coach' | 'package'
 type BookingNotifyOpts = {
   userId: string
   email?: string | null
+  phone?: string | null
   clubName: string
   date: string
   startTime: string
@@ -12,6 +14,8 @@ type BookingNotifyOpts = {
   bookingId?: string
   clubId?: string
 }
+
+type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID'
 
 function kindLabel(kind: BookingNotifyKind) {
   if (kind === 'coach') return 'Coach session'
@@ -29,7 +33,7 @@ async function safeInApp(opts: Parameters<typeof createInAppNotification>[0]) {
 
 async function safeEmail(
   email: string | null | undefined,
-  template: 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID',
+  template: BookingSmsTemplate,
   data: Record<string, unknown>,
 ) {
   if (!email) return
@@ -40,9 +44,40 @@ async function safeEmail(
   }
 }
 
-/** Booking created (platform creates as CONFIRMED). In-app always; email when address present. */
+/** Live SMS only — log mode skips (no fake sent). Soft-fail so booking flows never break. */
+async function safeSms(
+  phone: string | null | undefined,
+  template: BookingSmsTemplate,
+  data: Record<string, unknown>,
+  clubId?: string,
+) {
+  if (!phone) return
+  if (resolveSmsProvider() !== 'live') {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[bookingNotify:sms:skip]', template, phone)
+    }
+    return
+  }
+  try {
+    await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
+  } catch (err) {
+    console.error('[bookingNotify:sms]', template, err)
+  }
+}
+
+function bookingNotifyData(opts: BookingNotifyOpts) {
+  return {
+    kind: opts.kind,
+    clubName: opts.clubName,
+    date: opts.date,
+    startTime: opts.startTime,
+  }
+}
+
+/** Booking created (platform creates as CONFIRMED). In-app always; email/SMS when address/phone present. */
 export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
   const label = kindLabel(opts.kind)
+  const data = bookingNotifyData(opts)
   await safeInApp({
     userId: opts.userId,
     type: 'BOOKING_CONFIRMED',
@@ -56,16 +91,13 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
       startTime: opts.startTime,
     },
   })
-  await safeEmail(opts.email, 'BOOKING_CONFIRMED', {
-    kind: opts.kind,
-    clubName: opts.clubName,
-    date: opts.date,
-    startTime: opts.startTime,
-  })
+  await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
+  await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
 }
 
 export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?: string }) {
   const label = kindLabel(opts.kind)
+  const data = bookingNotifyData(opts)
   await safeInApp({
     userId: opts.userId,
     type: 'BOOKING_CANCELLED',
@@ -80,17 +112,14 @@ export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?
       reason: opts.reason,
     },
   })
-  await safeEmail(opts.email, 'BOOKING_CANCELLED', {
-    kind: opts.kind,
-    clubName: opts.clubName,
-    date: opts.date,
-    startTime: opts.startTime,
-  })
+  await safeEmail(opts.email, 'BOOKING_CANCELLED', data)
+  await safeSms(opts.phone, 'BOOKING_CANCELLED', data, opts.clubId)
 }
 
 /** Pay-at-club (or other) marked paid — notify the linked athlete when present. */
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabel(opts.kind)
+  const data = bookingNotifyData(opts)
   await safeInApp({
     userId: opts.userId,
     type: 'BOOKING_PAID',
@@ -104,10 +133,6 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
       startTime: opts.startTime,
     },
   })
-  await safeEmail(opts.email, 'BOOKING_PAID', {
-    kind: opts.kind,
-    clubName: opts.clubName,
-    date: opts.date,
-    startTime: opts.startTime,
-  })
+  await safeEmail(opts.email, 'BOOKING_PAID', data)
+  await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
 }

@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
   await notifyBookingConfirmed({
     userId: user.id,
     email: athlete?.email,
+    phone: athlete?.phone,
     kind: 'package',
     clubName: pkg.club.nameEn || pkg.club.nameFa,
     clubId: pkg.clubId,

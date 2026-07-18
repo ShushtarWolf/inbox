@@ -124,6 +124,7 @@ export default defineEventHandler(async (event) => {
       await notifyBookingPaid({
         userId: slot.booking.userId,
         email: slot.booking.user?.email,
+        phone: slot.booking.user?.phone,
         kind: 'court',
         clubName: club.nameEn || club.nameFa,
         clubId: club.id,

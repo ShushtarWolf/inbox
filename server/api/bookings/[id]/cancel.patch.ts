@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
   await notifyBookingCancelled({
     userId: user.id,
     email: booking.user?.email,
+    phone: booking.user?.phone,
     kind: 'court',
     clubName: booking.slot.court.club.nameEn || booking.slot.court.club.nameFa,
     clubId: booking.slot.court.clubId,

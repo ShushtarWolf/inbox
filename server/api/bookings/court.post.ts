@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
   await notifyBookingConfirmed({
     userId: user.id,
     email: dbUser.email,
+    phone: dbUser.phone,
     kind: 'court',
     clubName: slot.court.club.nameEn || slot.court.club.nameFa,
     clubId: slot.court.clubId,

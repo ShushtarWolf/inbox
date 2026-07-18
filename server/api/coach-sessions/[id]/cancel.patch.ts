@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
   await notifyBookingCancelled({
     userId: user.id,
     email: session.athlete?.email,
+    phone: session.athlete?.phone,
     kind: 'coach',
     clubName: session.coach.club?.nameEn || session.coach.club?.nameFa || session.coach.nameEn || session.coach.nameFa,
     clubId: session.coach.clubId || undefined,
