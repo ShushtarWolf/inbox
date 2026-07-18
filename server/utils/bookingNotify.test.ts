@@ -31,6 +31,18 @@ const baseOpts = {
   clubId: 'club-1',
 }
 
+const guestOnlyOpts = {
+  userId: null,
+  email: null,
+  phone: '09129876543',
+  clubName: 'Behnaz Club',
+  date: '2026-07-21',
+  startTime: '14:00',
+  kind: 'court' as const,
+  bookingId: 'booking-guest-1',
+  clubId: 'club-behnaz',
+}
+
 describe('bookingNotify SMS', () => {
   beforeEach(() => {
     createInAppNotification.mockResolvedValue(undefined)
@@ -98,5 +110,46 @@ describe('bookingNotify SMS', () => {
 
     await expect(notifyBookingConfirmed(baseOpts)).resolves.toBeUndefined()
     expect(createInAppNotification).toHaveBeenCalled()
+  })
+
+  it('guest-only phone: SMS without userId (skip in-app)', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+
+    await notifyBookingConfirmed(guestOnlyOpts)
+    await notifyBookingCancelled({ ...guestOnlyOpts, reason: 'owner-cancel' })
+    await notifyBookingPaid(guestOnlyOpts)
+
+    expect(createInAppNotification).not.toHaveBeenCalled()
+    const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
+    expect(smsCalls).toHaveLength(3)
+    for (const call of smsCalls) {
+      expect(call[0]).toMatchObject({
+        channel: 'sms',
+        to: '09129876543',
+        clubId: 'club-behnaz',
+      })
+    }
+    expect(smsCalls.map((call) => call[0].template)).toEqual([
+      'BOOKING_CONFIRMED',
+      'BOOKING_CANCELLED',
+      'BOOKING_PAID',
+    ])
+  })
+
+  it('guest-only phone: log mode reaches safeSms skip with guest number (no fake sent)', async () => {
+    resolveSmsProvider.mockReturnValue('log')
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await notifyBookingConfirmed(guestOnlyOpts)
+
+    expect(createInAppNotification).not.toHaveBeenCalled()
+    const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
+    expect(smsCalls).toHaveLength(0)
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms:skip]',
+      'BOOKING_CONFIRMED',
+      '09129876543',
+    )
+    logSpy.mockRestore()
   })
 })

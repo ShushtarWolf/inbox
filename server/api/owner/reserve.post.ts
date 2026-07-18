@@ -5,7 +5,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { notifyBookingPaid } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, notifyBookingPaid } from '../../utils/bookingNotify'
 import { assertSlotBookable } from '../../utils/reservations'
 import { creditWallet } from '../../utils/wallet'
 
@@ -120,22 +120,25 @@ export default defineEventHandler(async (event) => {
       })
     })
 
-    if (becomingPaid && slot.booking.userId) {
-      await notifyBookingPaid({
-        userId: slot.booking.userId,
-        email: slot.booking.user?.email,
-        phone: slot.booking.user?.phone,
-        kind: 'court',
-        clubName: club.nameEn || club.nameFa,
-        clubId: club.id,
-        bookingId: slot.booking.id,
-        date: slot.date,
-        startTime: slot.startTime,
-      })
+    if (becomingPaid) {
+      const phone = slot.booking.user?.phone || body.guestMobile || slot.booking.guestMobile
+      if (slot.booking.userId || phone) {
+        await notifyBookingPaid({
+          userId: slot.booking.userId,
+          email: slot.booking.user?.email,
+          phone,
+          kind: 'court',
+          clubName: club.nameEn || club.nameFa,
+          clubId: club.id,
+          bookingId: slot.booking.id,
+          date: slot.date,
+          startTime: slot.startTime,
+        })
+      }
     }
   } else {
-    await prisma.$transaction(async (tx) => {
-      const createdBooking = await tx.booking.create({
+    const createdBooking = await prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.create({
         data: {
           slotId: slot.id,
           guestName: body.guestName,
@@ -148,10 +151,10 @@ export default defineEventHandler(async (event) => {
           paymentStatus,
         },
       })
-      await syncBookingEquipments(tx, createdBooking.id, equipmentItems)
+      await syncBookingEquipments(tx, booking.id, equipmentItems)
       await tx.payment.create({
         data: {
-          bookingId: createdBooking.id,
+          bookingId: booking.id,
           amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
@@ -160,7 +163,7 @@ export default defineEventHandler(async (event) => {
       })
       await tx.reservationEvent.create({
         data: {
-          bookingId: createdBooking.id,
+          bookingId: booking.id,
           type: 'CREATED',
           metadataJson: JSON.stringify({ source: 'owner-calendar' }),
         },
@@ -169,7 +172,25 @@ export default defineEventHandler(async (event) => {
         where: { id: slot.id },
         data: { displayStatus },
       })
+      return booking
     })
+
+    const phone = body.guestMobile || null
+    if (phone) {
+      const notifyBase = {
+        phone,
+        kind: 'court' as const,
+        clubName: club.nameEn || club.nameFa,
+        clubId: club.id,
+        bookingId: createdBooking.id,
+        date: slot.date,
+        startTime: slot.startTime,
+      }
+      await notifyBookingConfirmed(notifyBase)
+      if (paymentStatus === 'PAID') {
+        await notifyBookingPaid(notifyBase)
+      }
+    }
   }
   return { ok: true, amount: totalAmount, paymentStatus, paymentMethod }
 })

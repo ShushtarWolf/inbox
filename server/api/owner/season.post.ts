@@ -1,5 +1,6 @@
 import { getPaymentsMode } from '#shared/payments.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
+import { notifyBookingConfirmed } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
 import { assertDateNotInPast } from '../../utils/reservations'
@@ -20,6 +21,14 @@ function resolveDayTimes(
     return { storedJson: JSON.stringify(mapped), expanded: expandDayTimeRanges(mapped) }
   }
   return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
+}
+
+function firstScheduleTime(expanded: Record<string, string[]>, times?: string[]) {
+  if (times?.length) return times[0]
+  for (const dayTimes of Object.values(expanded)) {
+    if (dayTimes?.length) return dayTimes[0]
+  }
+  return ''
 }
 
 export default defineEventHandler(async (event) => {
@@ -104,6 +113,19 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
+  }
+
+  const phone = body.guestMobile?.trim() || null
+  if (phone) {
+    await notifyBookingConfirmed({
+      phone,
+      kind: 'court',
+      clubName: club.nameEn || club.nameFa,
+      clubId: club.id,
+      bookingId: record.id,
+      date: body.startDate,
+      startTime: firstScheduleTime(expanded, body.times),
+    })
   }
 
   return { ...record, slotsCreated }

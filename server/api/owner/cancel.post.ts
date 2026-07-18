@@ -24,11 +24,12 @@ export default defineEventHandler(async (event) => {
       paymentId: slot.booking.payment?.id,
       userId: slot.booking.userId,
     })
-    if (slot.booking.userId) {
+    const phone = slot.booking.user?.phone || slot.booking.guestMobile
+    if (slot.booking.userId || phone) {
       await notifyBookingCancelled({
         userId: slot.booking.userId,
         email: slot.booking.user?.email,
-        phone: slot.booking.user?.phone,
+        phone,
         kind: 'court',
         clubName: club.nameEn || club.nameFa,
         clubId: club.id,

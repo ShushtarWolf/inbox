@@ -4,7 +4,8 @@ import { createInAppNotification, sendNotification } from './notify'
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
 
 type BookingNotifyOpts = {
-  userId: string
+  /** When absent (desk walk-in / guest-only), in-app is skipped; SMS/email still run if phone/email present. */
+  userId?: string | null
   email?: string | null
   phone?: string | null
   clubName: string
@@ -53,9 +54,8 @@ async function safeSms(
 ) {
   if (!phone) return
   if (resolveSmsProvider() !== 'live') {
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug('[bookingNotify:sms:skip]', template, phone)
-    }
+    // Log mode: no send (no fake sent). Always log phone so desk guest paths are auditable.
+    console.log('[bookingNotify:sms:skip]', template, phone)
     return
   }
   try {
@@ -74,23 +74,25 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
   }
 }
 
-/** Booking created (platform creates as CONFIRMED). In-app always; email/SMS when address/phone present. */
+/** Booking created (platform creates as CONFIRMED). In-app when userId; email/SMS when address/phone present. */
 export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
   const label = kindLabel(opts.kind)
   const data = bookingNotifyData(opts)
-  await safeInApp({
-    userId: opts.userId,
-    type: 'BOOKING_CONFIRMED',
-    title: 'Booking confirmed',
-    body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime}`,
-    metadata: {
-      kind: opts.kind,
-      clubId: opts.clubId,
-      bookingId: opts.bookingId,
-      date: opts.date,
-      startTime: opts.startTime,
-    },
-  })
+  if (opts.userId) {
+    await safeInApp({
+      userId: opts.userId,
+      type: 'BOOKING_CONFIRMED',
+      title: 'Booking confirmed',
+      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime}`,
+      metadata: {
+        kind: opts.kind,
+        clubId: opts.clubId,
+        bookingId: opts.bookingId,
+        date: opts.date,
+        startTime: opts.startTime,
+      },
+    })
+  }
   await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
   await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
 }
@@ -98,41 +100,45 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
 export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?: string }) {
   const label = kindLabel(opts.kind)
   const data = bookingNotifyData(opts)
-  await safeInApp({
-    userId: opts.userId,
-    type: 'BOOKING_CANCELLED',
-    title: 'Booking cancelled',
-    body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} was cancelled`,
-    metadata: {
-      kind: opts.kind,
-      clubId: opts.clubId,
-      bookingId: opts.bookingId,
-      date: opts.date,
-      startTime: opts.startTime,
-      reason: opts.reason,
-    },
-  })
+  if (opts.userId) {
+    await safeInApp({
+      userId: opts.userId,
+      type: 'BOOKING_CANCELLED',
+      title: 'Booking cancelled',
+      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} was cancelled`,
+      metadata: {
+        kind: opts.kind,
+        clubId: opts.clubId,
+        bookingId: opts.bookingId,
+        date: opts.date,
+        startTime: opts.startTime,
+        reason: opts.reason,
+      },
+    })
+  }
   await safeEmail(opts.email, 'BOOKING_CANCELLED', data)
   await safeSms(opts.phone, 'BOOKING_CANCELLED', data, opts.clubId)
 }
 
-/** Pay-at-club (or other) marked paid — notify the linked athlete when present. */
+/** Pay-at-club (or other) marked paid — notify linked athlete and/or guest phone. */
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabel(opts.kind)
   const data = bookingNotifyData(opts)
-  await safeInApp({
-    userId: opts.userId,
-    type: 'BOOKING_PAID',
-    title: 'Payment received',
-    body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} marked paid`,
-    metadata: {
-      kind: opts.kind,
-      clubId: opts.clubId,
-      bookingId: opts.bookingId,
-      date: opts.date,
-      startTime: opts.startTime,
-    },
-  })
+  if (opts.userId) {
+    await safeInApp({
+      userId: opts.userId,
+      type: 'BOOKING_PAID',
+      title: 'Payment received',
+      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} marked paid`,
+      metadata: {
+        kind: opts.kind,
+        clubId: opts.clubId,
+        bookingId: opts.bookingId,
+        date: opts.date,
+        startTime: opts.startTime,
+      },
+    })
+  }
   await safeEmail(opts.email, 'BOOKING_PAID', data)
   await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
 }
