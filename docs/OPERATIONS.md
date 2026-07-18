@@ -18,11 +18,11 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SMTP_USER` | For live email | SMTP username |
 | `SMTP_PASS` | For live email | SMTP password (never commit; never returned by admin APIs) |
 | `SMTP_FROM` | For live email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
-| `SMS_ENABLED` | For live SMS | `true` to allow live sends (OTP + CRM); default stays log/dry-run |
+| `SMS_ENABLED` | For live SMS | `true` to allow live sends (OTP + CRM + desk guest); default stays log/dry-run |
 | `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
-| `KAVENEGAR_TEMPLATE` | Optional | Kavenegar Verify Lookup template for OTP |
-| `KAVENEGAR_SENDER` | Optional | Kavenegar sender line |
+| `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify` with `%token%`). Without it, OTP uses free-text `sms/send`. |
+| `KAVENEGAR_SENDER` | Required for free-text sends | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است` (OTP 502 on prod). Needed for CRM + booking notify + OTP without template. |
 | `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` on Liara to hide coach nav/URLs/APIs (Behnaz pilot) |
 | `PILOT_NO_COACH` | Pilot | Server-only coach gate without rebuild (optional alongside public flag) |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |

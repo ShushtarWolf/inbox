@@ -56,7 +56,8 @@ export async function createAndSendPhoneOtp(opts: {
   const body = renderOtpSms(code)
   let debugFallback = false
   try {
-    await sendSms({ to: phone, body })
+    // purpose=otp enables Kavenegar Verify Lookup when KAVENEGAR_TEMPLATE is set
+    await sendSms({ to: phone, body, purpose: 'otp' })
   } catch (err) {
     // Pilot/local: keep OTP usable if live SMS is misconfigured. Never expose debugCode in production.
     if (process.env.NODE_ENV === 'production') {

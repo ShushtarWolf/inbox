@@ -990,6 +990,7 @@
       },
       "campaignStatus": {
         "SENT": "Sent",
+        "LOGGED": "Logged (no real delivery)",
         "SCHEDULED": "Scheduled",
         "DRAFT": "Draft"
       },

@@ -1,5 +1,6 @@
 import { notifyBookingCancelled } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
+import { normalizeIranPhone } from '#shared/phone.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -24,7 +25,8 @@ export default defineEventHandler(async (event) => {
       paymentId: slot.booking.payment?.id,
       userId: slot.booking.userId,
     })
-    const phone = slot.booking.user?.phone || slot.booking.guestMobile
+    const rawGuest = slot.booking.guestMobile
+    const phone = slot.booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
     if (slot.booking.userId || phone) {
       await notifyBookingCancelled({
         userId: slot.booking.userId,

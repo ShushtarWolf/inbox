@@ -46,11 +46,12 @@ export async function sendNotification(opts: {
   if (opts.channel === 'sms' && isSmsEnabled()) {
     try {
       const body = renderSmsTemplate(opts.template, opts.data)
-      return await sendSms({ to: opts.to, body, clubId: opts.clubId })
+      return await sendSms({ to: opts.to, body, clubId: opts.clubId, purpose: 'notify' })
     } catch (err) {
       console.error('[notify:sms]', opts.template, opts.to, err)
       console.log('[notify:log]', 'sms', opts.template, opts.to, opts.data)
-      return { sent: false, logged: true }
+      // Live failure: do not claim dry-run success — callers must treat as not delivered.
+      return { sent: false, logged: false }
     }
   }
 

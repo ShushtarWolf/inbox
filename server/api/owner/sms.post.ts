@@ -116,6 +116,6 @@ export default defineEventHandler(async (event) => {
     provider,
     note: live
       ? 'SMS sent via live Kavenegar gateway'
-      : 'SMS dry-run logged — set SMS_ENABLED=true, SMS_PROVIDER=live, and KAVENEGAR_API_KEY for live CRM sends',
+      : 'SMS dry-run logged — set SMS_ENABLED=true, SMS_PROVIDER=live, KAVENEGAR_API_KEY, and a valid KAVENEGAR_SENDER (and/or KAVENEGAR_TEMPLATE for OTP) for live CRM sends',
   }
 })

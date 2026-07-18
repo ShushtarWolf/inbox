@@ -20,6 +20,15 @@ function getApiKey(): string | undefined {
   return key || undefined
 }
 
+function mapKavenegarFailure(message: string | undefined, httpFallback: string) {
+  const raw = message || httpFallback || 'unknown error'
+  // Surface the most common Iran launch misconfig clearly.
+  if (/ارسال کننده نامعتبر|sender/i.test(raw)) {
+    return 'Kavenegar SMS failed: invalid sender — set a panel-approved KAVENEGAR_SENDER, or use KAVENEGAR_TEMPLATE for OTP Verify Lookup'
+  }
+  return `Kavenegar SMS failed: ${raw}`
+}
+
 async function kavenegarRequest(path: string, params: Record<string, string>) {
   const apiKey = getApiKey()
   if (!apiKey) {
@@ -45,7 +54,7 @@ async function kavenegarRequest(path: string, params: Record<string, string>) {
     console.error('[sms:kavenegar] failed', { httpStatus: res.status, apiStatus: status, message: data?.return?.message })
     throw createError({
       statusCode: 502,
-      statusMessage: `Kavenegar SMS failed: ${data?.return?.message || res.statusText || 'unknown error'}`,
+      statusMessage: mapKavenegarFailure(data?.return?.message, res.statusText),
     })
   }
 
@@ -55,12 +64,16 @@ async function kavenegarRequest(path: string, params: Record<string, string>) {
   }
 }
 
-async function sendViaKavenegar(to: string, body: string) {
+/**
+ * Send via Kavenegar.
+ * Verify Lookup is OTP-only (requires purpose=otp + KAVENEGAR_TEMPLATE + 6-digit token).
+ * Never route CRM/notify bodies through verify/lookup just because they contain digits.
+ */
+async function sendViaKavenegar(to: string, body: string, purpose?: string) {
   const template = process.env.KAVENEGAR_TEMPLATE?.trim()
   const token = extractOtpToken(body)
 
-  // Prefer Verify Lookup for OTP when a panel-approved template is configured.
-  if (template && token) {
+  if (purpose === 'otp' && template && token) {
     return kavenegarRequest('verify/lookup.json', {
       receptor: to,
       token,
@@ -82,7 +95,7 @@ export function kavenegarSmsProvider(): SmsProvider {
   const provider: SmsProvider = {
     name: 'live',
     async send(opts) {
-      const result = await sendViaKavenegar(opts.to, opts.body)
+      const result = await sendViaKavenegar(opts.to, opts.body, opts.purpose)
       if (opts.clubId) {
         await prisma.smsLog.create({
           data: {
@@ -95,29 +108,7 @@ export function kavenegarSmsProvider(): SmsProvider {
       return { sent: true, logged: Boolean(opts.clubId), providerRef: result.providerRef }
     },
     async sendBulk(opts) {
-      const template = process.env.KAVENEGAR_TEMPLATE?.trim()
-      const token = extractOtpToken(opts.body)
-
-      if (template && token) {
-        let lastRef = `kavenegar-bulk-${Date.now()}`
-        for (const recipient of opts.recipients) {
-          const result = await sendViaKavenegar(recipient.phone, opts.body)
-          lastRef = result.providerRef
-        }
-        if (opts.clubId) {
-          await prisma.smsLog.create({
-            data: {
-              clubId: opts.clubId,
-              message: opts.body,
-              recipient: `${opts.recipients.length} contacts`,
-              segmentName: opts.segmentName,
-              campaignName: opts.campaignName,
-            },
-          })
-        }
-        return { sent: true, logged: Boolean(opts.clubId), providerRef: lastRef }
-      }
-
+      // CRM/campaign traffic always uses sms/send — never Verify Lookup.
       const receptors = opts.recipients.map((r) => r.phone).join(',')
       const params: Record<string, string> = {
         receptor: receptors,

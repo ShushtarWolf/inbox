@@ -33,13 +33,24 @@ const hasKey = Boolean(process.env.KAVENEGAR_API_KEY?.trim())
 const enabled = process.env.SMS_ENABLED === 'true'
 const resolved = wantsLive && enabled && hasKey ? 'live' : 'log'
 
+const hasTemplate = Boolean(process.env.KAVENEGAR_TEMPLATE?.trim())
+const hasSender = Boolean(process.env.KAVENEGAR_SENDER?.trim())
+const warnings = []
+if (resolved === 'live' && !hasTemplate && !hasSender) {
+  warnings.push('Neither KAVENEGAR_TEMPLATE nor KAVENEGAR_SENDER — OTP via sms/send often fails with invalid sender')
+}
+if (resolved === 'live' && !hasTemplate && hasSender) {
+  warnings.push('KAVENEGAR_TEMPLATE unset — prefer Verify Lookup template for OTP')
+}
+
 console.log(JSON.stringify({
   resolvedProvider: resolved,
   SMS_PROVIDER: process.env.SMS_PROVIDER || '(unset → log)',
   SMS_ENABLED: process.env.SMS_ENABLED || '(unset)',
   hasKavenegarApiKey: hasKey,
-  hasKavenegarTemplate: Boolean(process.env.KAVENEGAR_TEMPLATE?.trim()),
-  hasKavenegarSender: Boolean(process.env.KAVENEGAR_SENDER?.trim()),
+  hasKavenegarTemplate: hasTemplate,
+  hasKavenegarSender: hasSender,
+  warnings,
   note: resolved === 'live'
     ? 'Live Kavenegar — OTP will not return debugCode; real SMS will send'
     : 'Safe log mode — OTP returns debugCode; no gateway calls',

@@ -23,9 +23,12 @@ export interface SmsRecipient {
   contactId?: string
 }
 
+/** Why this SMS is being sent — OTP may use Kavenegar Verify Lookup; CRM/notify never should. */
+export type SmsPurpose = 'otp' | 'notify' | 'campaign'
+
 export interface SmsProvider {
   readonly name: SmsProviderName
-  send(opts: { to: string; body: string; clubId?: string }): Promise<SmsResult>
+  send(opts: { to: string; body: string; clubId?: string; purpose?: SmsPurpose }): Promise<SmsResult>
   sendBulk(opts: {
     recipients: SmsRecipient[]
     body: string

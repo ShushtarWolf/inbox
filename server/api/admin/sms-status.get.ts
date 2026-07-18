@@ -4,6 +4,8 @@ import { resolveSmsProvider, getSmsMode, isSmsEnabled } from '#shared/sms.ts'
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const hasKey = Boolean(process.env.KAVENEGAR_API_KEY?.trim())
+  const hasTemplate = Boolean(process.env.KAVENEGAR_TEMPLATE?.trim())
+  const hasSender = Boolean(process.env.KAVENEGAR_SENDER?.trim())
   const provider = resolveSmsProvider()
   const smsMode = getSmsMode()
   const smsEnabledFlag = process.env.SMS_ENABLED === 'true'
@@ -29,6 +31,16 @@ export default defineEventHandler(async (event) => {
   if (smsMode === 'live' && smsEnabledFlag && !hasKey) {
     warnings.push('Live mode requested but KAVENEGAR_API_KEY is missing — staying in log mode')
   }
+  if (provider === 'live' && !hasTemplate && !hasSender) {
+    warnings.push(
+      'Live SMS with neither KAVENEGAR_TEMPLATE nor KAVENEGAR_SENDER — OTP uses sms/send and often fails with invalid sender; set a panel-approved sender or Verify Lookup template',
+    )
+  }
+  if (provider === 'live' && !hasTemplate && hasSender) {
+    warnings.push(
+      'KAVENEGAR_TEMPLATE unset — OTP uses free-text sms/send (requires a valid KAVENEGAR_SENDER). Prefer a panel-approved Verify Lookup template for OTP.',
+    )
+  }
 
   return {
     ok: true,
@@ -37,8 +49,8 @@ export default defineEventHandler(async (event) => {
     smsEnabledFlag,
     isSmsEnabled: isSmsEnabled(),
     hasKavenegarApiKey: hasKey,
-    hasKavenegarTemplate: Boolean(process.env.KAVENEGAR_TEMPLATE?.trim()),
-    hasKavenegarSender: Boolean(process.env.KAVENEGAR_SENDER?.trim()),
+    hasKavenegarTemplate: hasTemplate,
+    hasKavenegarSender: hasSender,
     pendingScheduled,
     dueNow,
     warnings,

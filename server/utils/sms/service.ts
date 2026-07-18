@@ -23,7 +23,12 @@ export function getSmsService(): SmsProvider {
   return service
 }
 
-export async function sendSms(opts: { to: string; body: string; clubId?: string }) {
+export async function sendSms(opts: {
+  to: string
+  body: string
+  clubId?: string
+  purpose?: 'otp' | 'notify' | 'campaign'
+}) {
   return getSmsService().send(opts)
 }
 

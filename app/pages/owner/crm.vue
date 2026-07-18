@@ -29,6 +29,10 @@ function segmentLabel(segment: { id: string, name: string }) {
 }
 
 function campaignStatusLabel(status: string) {
+  // Pipeline status SENT after dry-run must not read as phone delivery.
+  if (status === 'SENT' && !liveSms.value) {
+    return t('owner.crmPage.campaignStatus.LOGGED')
+  }
   return t(`owner.crmPage.campaignStatus.${status}` as 'owner.crmPage.campaignStatus.SENT')
 }
 

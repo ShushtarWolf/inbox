@@ -1,5 +1,6 @@
 import { getPaymentsMode } from '#shared/payments.ts'
 import { isPaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   calculateSessionTotal,
   loadEquipmentForBooking,
@@ -20,6 +21,12 @@ function resolveDeskPaymentMethod(
   return 'CASH'
 }
 
+/** Prefer normalized 09… for SMS; fall back to trimmed raw for storage. */
+function resolveGuestMobile(raw?: string | null) {
+  if (!raw?.trim()) return undefined
+  return normalizeIranPhone(raw) || raw.trim()
+}
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
@@ -34,6 +41,7 @@ export default defineEventHandler(async (event) => {
     equipmentIds?: string[]
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
+  const guestMobile = resolveGuestMobile(body.guestMobile)
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
@@ -95,7 +103,7 @@ export default defineEventHandler(async (event) => {
         data: {
           guestName: body.guestName,
           guestFamily: body.guestFamily,
-          guestMobile: body.guestMobile,
+          guestMobile,
           paymentMethod,
           comments: body.comments,
           paymentStatus,
@@ -126,7 +134,7 @@ export default defineEventHandler(async (event) => {
     })
 
     if (becomingPaid) {
-      const phone = slot.booking.user?.phone || body.guestMobile || slot.booking.guestMobile
+      const phone = slot.booking.user?.phone || guestMobile || slot.booking.guestMobile
       if (slot.booking.userId || phone) {
         await notifyBookingPaid({
           userId: slot.booking.userId,
@@ -148,7 +156,7 @@ export default defineEventHandler(async (event) => {
           slotId: slot.id,
           guestName: body.guestName,
           guestFamily: body.guestFamily,
-          guestMobile: body.guestMobile,
+          guestMobile,
           paymentMethod,
           comments: body.comments,
           source: 'CLUB',
@@ -180,7 +188,7 @@ export default defineEventHandler(async (event) => {
       return booking
     })
 
-    const phone = body.guestMobile || null
+    const phone = guestMobile || null
     if (phone) {
       const notifyBase = {
         phone,
