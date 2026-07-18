@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /** QA matrix: role × FA route checks (EN soft-disabled). Prod-aware: skips *@inbox.local on production. */
-import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+import { demoLoginsBlocked, isProdSmokeBase } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'https://inboxs.ir'
-const prodAware = isProdSmokeBase(base)
 
 function isNavItemActive(path, to, items) {
   const hasChildNav = items.some((item) => item.to !== to && item.to.startsWith(`${to}/`))
@@ -86,6 +85,7 @@ const enRedirects = [
 ]
 
 async function main() {
+  const prodAware = isProdSmokeBase(base) || await demoLoginsBlocked(base)
   console.log(`qa-matrix → ${base}${prodAware ? ' (prod-aware)' : ''}`)
   assertNavActive()
   const failures = []

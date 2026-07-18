@@ -29,6 +29,14 @@ export default defineEventHandler(async (event) => {
   const tempPassword = randomBytes(12).toString('base64url')
   const defaultCourtPrice = 600000
 
+  const padel = await prisma.sport.findFirst({ where: { slug: 'padel' } })
+  if (!padel) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Sport catalog not seeded (missing padel)',
+    })
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
@@ -41,14 +49,12 @@ export default defineEventHandler(async (event) => {
       },
     })
     if (type === 'COACH') {
-      const sport = await tx.sport.findFirstOrThrow({ where: { slug: 'padel' } })
       await tx.coach.create({
-        data: { nameFa: name, nameEn: name, city: 'تهران', sportId: sport.id, userId: created.id },
+        data: { nameFa: name, nameEn: name, city: 'تهران', sportId: padel.id, userId: created.id },
       })
       return { user: created, club: null as null | { id: string; slug: string; nameFa: string } }
     }
 
-    const sport = await tx.sport.findFirstOrThrow({ where: { slug: 'padel' } })
     const clubName = body.clubName?.trim() || name
     const club = await tx.club.create({
       data: {
@@ -71,7 +77,7 @@ export default defineEventHandler(async (event) => {
           nameFa: `زمین ${i}`,
           nameEn: `Court ${i}`,
           clubId: club.id,
-          sportId: sport.id,
+          sportId: padel.id,
           price: defaultCourtPrice,
         },
       })

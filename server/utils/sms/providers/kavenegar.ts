@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import type { SmsProvider } from '#shared/sms.ts'
 import { registerSmsProvider } from '../registry'
 
@@ -30,7 +31,13 @@ async function kavenegarRequest(path: string, params: Record<string, string>) {
     url.searchParams.set(key, value)
   }
 
-  const res = await fetch(url.toString(), { method: 'GET' })
+  let res: Response
+  try {
+    res = await fetch(url.toString(), { method: 'GET' })
+  } catch (err) {
+    console.error('[sms:kavenegar] network error', err instanceof Error ? err.message : 'unknown')
+    throw createError({ statusCode: 502, statusMessage: 'Kavenegar SMS unreachable' })
+  }
   const data = (await res.json().catch(() => null)) as KavenegarResponse | null
   const status = data?.return?.status
 

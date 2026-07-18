@@ -104,4 +104,15 @@ describe('kavenegarSmsProvider', () => {
     const calledUrl = String(fetchMock.mock.calls[0]![0])
     expect(calledUrl).toContain('/sms/send.json')
   })
+
+  it('maps network failures to 502 without leaking the raw error', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed')) as unknown as typeof fetch
+
+    await expect(
+      getRegisteredSmsProvider('live')!.send({
+        to: '09121234567',
+        body: 'کد تایید inbox: 123456',
+      }),
+    ).rejects.toMatchObject({ statusCode: 502, statusMessage: 'Kavenegar SMS unreachable' })
+  })
 })

@@ -113,6 +113,73 @@ export function isProdSmokeBase(base = process.env.BASE_URL || '') {
   }
 }
 
+function stamp() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+}
+
+/**
+ * Detect whether *@inbox.local demo logins are blocked (production NODE_ENV).
+ * Does not weaken the demo gate — callers should provision real users instead.
+ */
+export async function demoLoginsBlocked(base) {
+  const res = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'athlete@inbox.local', password: 'wrong-password-probe' }),
+  })
+  if (res.status === 403) {
+    const body = await res.json().catch(() => ({}))
+    return /demo/i.test(body.statusMessage || body.message || '')
+  }
+  return false
+}
+
+/** Provision a temporary CLUB_ADMIN (+ club) via admin secret for smoke runs. */
+export async function provisionOwner(base, adminSecret, overrides = {}) {
+  if (!adminSecret) throw new Error('ADMIN_PROVISION_SECRET required to provision smoke owner')
+  const id = stamp()
+  const email = overrides.email || `smoke-owner-${id}@example.com`
+  const { res, data } = await apiFetch(base, '/api/admin/provision', {
+    method: 'POST',
+    headers: { 'x-admin-secret': adminSecret },
+    body: {
+      type: 'CLUB_ADMIN',
+      email,
+      name: overrides.name || 'Smoke Owner',
+      clubName: overrides.clubName || `Smoke Club ${id}`,
+      locale: 'en',
+    },
+  })
+  if (!res.ok) throw new Error(`provision owner → ${res.status}`)
+  return { email, password: data.temporaryPassword, ...data }
+}
+
+/** Register a temporary ATHLETE for smoke runs (works when demo emails are blocked). */
+export async function registerAthlete(base, jar, session = 'athlete', overrides = {}) {
+  const id = stamp()
+  const email = overrides.email || `smoke-athlete-${id}@example.com`
+  const password = overrides.password || 'demo1234'
+  const { res, data } = await apiFetch(base, '/api/auth/register', {
+    jar,
+    session,
+    method: 'POST',
+    body: {
+      name: overrides.name || 'Smoke Athlete',
+      email,
+      password,
+      locale: 'en',
+    },
+  })
+  if (!res.ok) throw new Error(`register athlete → ${res.status}`)
+  return { email, password, ...data }
+}
+
+/** True when runtime public config has pilotNoCoach. */
+export async function isPilotNoCoachRuntime(base) {
+  const { html } = await fetchPage(base, '/')
+  return /pilotNoCoach["']?\s*:\s*true/.test(html)
+}
+
 export function assertSpaShell(html, label) {
   if (!html.includes('__nuxt') && !html.includes('<!DOCTYPE')) {
     throw new Error(`${label} missing SPA shell`)
