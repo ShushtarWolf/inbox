@@ -1,4 +1,4 @@
-import { countsTowardRevenue } from '#shared/bookingPayment.ts'
+import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
@@ -33,15 +33,34 @@ export default defineEventHandler(async (event) => {
   const contacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const waitlistEntries = await prisma.waitlistEntry.findMany({ where: { clubId: club.id } })
   const courts = await prisma.court.findMany({ where: { clubId: club.id }, include: { slots: true } })
-  const paidBookings = bookings.filter((booking) => countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus)).length
-  const paidSessions = coachSessions.filter((session) => countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus)).length
+
+  function paymentStatusOf(item: { payment?: { status?: string } | null; paymentStatus?: string }) {
+    return item.payment?.status || item.paymentStatus || 'PAY_AT_CLUB'
+  }
+
+  function amountOfBooking(booking: (typeof bookings)[number]) {
+    return booking.payment?.amount || booking.slot.price
+  }
+
+  function amountOfSession(session: (typeof coachSessions)[number]) {
+    return session.payment?.amount || session.price
+  }
+
+  const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
+  const activeSessions = coachSessions.filter((session) => session.status !== 'CANCELLED')
+  const paidBookings = activeBookings.filter((booking) => countsTowardRevenue(booking.status, paymentStatusOf(booking)))
+  const paidSessions = activeSessions.filter((session) => countsTowardRevenue(session.status, paymentStatusOf(session)))
+  const unpaidBookings = activeBookings.filter((booking) => isUnpaidPaymentStatus(paymentStatusOf(booking)))
+  const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
+
   const revenue =
-    bookings
-      .filter((booking) => countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus))
-      .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0)
-    + coachSessions
-      .filter((session) => countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus))
-      .reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
+    paidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
+    + paidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
+  const unpaidAmount =
+    unpaidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
+    + unpaidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
+  const unpaid = unpaidBookings.length + unpaidSessions.length
+
   const totalReservationCount = bookings.length + coachSessions.length
   const cancelledCount = bookings.filter((booking) => booking.status === 'CANCELLED').length + coachSessions.filter((session) => session.status === 'CANCELLED').length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -60,48 +79,101 @@ export default defineEventHandler(async (event) => {
     weekLabels.push(key)
     const dayRevenue =
       bookings
-        .filter((booking) => booking.slot.date === key && countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus))
-        .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slot.price), 0)
+        .filter((booking) => booking.slot.date === key && countsTowardRevenue(booking.status, paymentStatusOf(booking)))
+        .reduce((sum, booking) => sum + amountOfBooking(booking), 0)
       + coachSessions
-        .filter((session) => session.date === key && countsTowardRevenue(session.status, session.payment?.status || session.paymentStatus))
-        .reduce((sum, session) => sum + (session.payment?.amount || session.price), 0)
+        .filter((session) => session.date === key && countsTowardRevenue(session.status, paymentStatusOf(session)))
+        .reduce((sum, session) => sum + amountOfSession(session), 0)
     weeklyRevenue.push(dayRevenue)
   }
 
-  const paymentTotals = { IPG: 0, CASH: 0, NOT_PAID: 0 }
-  for (const booking of bookings) {
-    const method = booking.payment?.method || booking.paymentMethod || 'NOT_PAID'
-    const bucket = method === 'IPG' ? 'IPG' : method === 'CASH' ? 'CASH' : 'NOT_PAID'
-    paymentTotals[bucket] += 1
+  // Status-first buckets for pay-at-club clarity (not method-only).
+  const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
+  for (const booking of activeBookings) {
+    const status = paymentStatusOf(booking)
+    if (isUnpaidPaymentStatus(status)) {
+      paymentTotals.UNPAID += 1
+      continue
+    }
+    if (status === 'PAID') {
+      const method = booking.payment?.method || booking.paymentMethod || 'CASH'
+      if (method === 'IPG') paymentTotals.PAID_IPG += 1
+      else paymentTotals.PAID_CASH += 1
+    }
   }
-  for (const session of coachSessions) {
-    const method = session.payment?.method || 'NOT_PAID'
-    const bucket = method === 'IPG' ? 'IPG' : method === 'CASH' ? 'CASH' : 'NOT_PAID'
-    paymentTotals[bucket] += 1
+  for (const session of activeSessions) {
+    const status = paymentStatusOf(session)
+    if (isUnpaidPaymentStatus(status)) {
+      paymentTotals.UNPAID += 1
+      continue
+    }
+    if (status === 'PAID') {
+      const method = session.payment?.method || 'CASH'
+      if (method === 'IPG') paymentTotals.PAID_IPG += 1
+      else paymentTotals.PAID_CASH += 1
+    }
   }
-  const paymentCount = paymentTotals.IPG + paymentTotals.CASH + paymentTotals.NOT_PAID
+  const paymentCount = paymentTotals.PAID_CASH + paymentTotals.PAID_IPG + paymentTotals.UNPAID
   const paymentBreakdown = {
-    IPG: paymentCount ? Math.round((paymentTotals.IPG / paymentCount) * 100) : 0,
-    CASH: paymentCount ? Math.round((paymentTotals.CASH / paymentCount) * 100) : 0,
-    NOT_PAID: paymentCount ? Math.round((paymentTotals.NOT_PAID / paymentCount) * 100) : 0,
+    PAID_CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
+    PAID_IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
+    UNPAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
+    // Legacy keys kept for older clients / smoke scripts.
+    IPG: paymentCount ? Math.round((paymentTotals.PAID_IPG / paymentCount) * 100) : 0,
+    CASH: paymentCount ? Math.round((paymentTotals.PAID_CASH / paymentCount) * 100) : 0,
+    NOT_PAID: paymentCount ? Math.round((paymentTotals.UNPAID / paymentCount) * 100) : 0,
   }
 
   const funnel = {
     views: totalReservationCount + waitlistEntries.length,
     initiated: totalReservationCount + waitlistEntries.length,
     confirmed: bookings.filter((booking) => booking.status === 'CONFIRMED').length + coachSessions.filter((session) => session.status === 'CONFIRMED').length,
-    paid: paidBookings + paidSessions,
+    paid: paidBookings.length + paidSessions.length,
   }
   const today = todayDateStr()
   const bookingsToday = bookings.filter((b) => b.slot.date === today).length
     + coachSessions.filter((s) => s.date === today).length
 
+  const transactions = [
+    ...bookings.map((booking) => ({
+      id: booking.id,
+      guestName: booking.guestName || booking.user?.name || 'Guest',
+      guestMobile: booking.guestMobile || booking.user?.phone || null,
+      paymentMethod: booking.payment?.method || booking.paymentMethod,
+      paymentStatus: paymentStatusOf(booking),
+      amount: amountOfBooking(booking),
+      bookingStatus: booking.status,
+      kind: 'court' as const,
+      reservationLabel: `${booking.slot.date} · ${booking.slot.startTime}`,
+      equipmentSummary: booking.bookingEquipments
+        .map((item) => item.equipment.nameFa)
+        .join(', ') || null,
+      unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
+    })),
+    ...coachSessions.map((session) => ({
+      id: session.id,
+      guestName: session.athlete.name,
+      guestMobile: session.athlete.phone || null,
+      paymentMethod: session.payment?.method || null,
+      paymentStatus: paymentStatusOf(session),
+      amount: amountOfSession(session),
+      bookingStatus: session.status,
+      kind: 'coach' as const,
+      reservationLabel: `${session.date} · ${session.startTime}`,
+      coachName: session.coach.nameFa,
+      unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(session)),
+    })),
+  ]
+    .sort((a, b) => Number(b.unpaid) - Number(a.unpaid))
+    .slice(0, 50)
+
   return {
     stats: {
       revenue,
+      unpaidAmount,
+      unpaid,
       bookingsToday,
-      pending: bookings.filter((b) => b.status === 'PENDING').length,
-      paidRate: totalReservationCount ? Math.round(((paidBookings + paidSessions) / totalReservationCount) * 100) : 0,
+      paidRate: totalReservationCount ? Math.round(((paidBookings.length + paidSessions.length) / totalReservationCount) * 100) : 0,
       utilization: bookableSlots ? Math.round((usedSlots / bookableSlots) * 100) : 0,
       ltv,
       churnRisk,
@@ -111,34 +183,7 @@ export default defineEventHandler(async (event) => {
     weeklyRevenue,
     weekLabels,
     paymentBreakdown,
-    transactions: [
-      ...bookings.map((booking) => ({
-        id: booking.id,
-        guestName: booking.guestName || booking.user?.name || 'Guest',
-        guestMobile: booking.guestMobile || booking.user?.phone || null,
-        paymentMethod: booking.payment?.method || booking.paymentMethod,
-        paymentStatus: booking.payment?.status || booking.paymentStatus,
-        amount: booking.payment?.amount || booking.slot.price,
-        bookingStatus: booking.status,
-        kind: 'court',
-        reservationLabel: `${booking.slot.date} · ${booking.slot.startTime}`,
-        equipmentSummary: booking.bookingEquipments
-          .map((item) => item.equipment.nameFa)
-          .join(', ') || null,
-      })),
-      ...coachSessions.map((session) => ({
-        id: session.id,
-        guestName: session.athlete.name,
-        guestMobile: session.athlete.phone || null,
-        paymentMethod: session.payment?.method || null,
-        paymentStatus: session.payment?.status || session.paymentStatus,
-        amount: session.payment?.amount || session.price,
-        bookingStatus: session.status,
-        kind: 'coach',
-        reservationLabel: `${session.date} · ${session.startTime}`,
-        coachName: session.coach.nameFa,
-      })),
-    ].slice(0, 50),
+    transactions,
     segments: {
       activeContacts,
       churnRisk,

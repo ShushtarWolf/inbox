@@ -33,9 +33,13 @@ const nav = computed(() => {
   const permissions = parsePermissions(membership?.permissionsJson)
   const isOwner = role === 'OWNER'
 
+  // Soft-hide Coaches for zero-coach / no-coach pilot clubs (backend stays).
+  const coachCount = membership?.club?._count?.coaches ?? 0
+
   return allNavItems
     .filter((item) => {
       if (item.path === '/owner/workers' && !isOwner) return false
+      if (item.path === '/owner/coaches' && coachCount === 0) return false
       return canAccessOwnerNav(item.path, permissions, isOwner)
     })
     .map((item) => ({

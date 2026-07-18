@@ -18,11 +18,13 @@ type AuthUser = {
   memberships?: Array<{
     role: string
     isPrimary: boolean
+    permissionsJson?: string | null
     club: {
       id: string
       slug: string
       nameFa: string
       nameEn: string
+      _count?: { coaches?: number }
     }
   }>
 }

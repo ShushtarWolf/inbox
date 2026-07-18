@@ -1,4 +1,29 @@
 import { sendBulkSms } from '../../utils/sms/service'
+import { getRegisteredSmsProvider } from '../../utils/sms/registry'
+import { logSmsProvider } from '../../utils/sms/providers/log'
+
+/** Owner CRM campaigns stay dry-run until CRM_SMS_LIVE=true (OTP/auth SMS unchanged). */
+function crmSmsLiveEnabled() {
+  return process.env.CRM_SMS_LIVE === 'true' || process.env.CRM_SMS_LIVE === '1'
+}
+
+async function sendCrmCampaignSms(opts: {
+  recipients: Array<{ phone: string; name?: string; contactId?: string }>
+  body: string
+  clubId?: string
+  campaignName?: string
+  segmentName?: string
+}) {
+  if (crmSmsLiveEnabled()) {
+    return sendBulkSms(opts)
+  }
+  logSmsProvider()
+  const logProvider = getRegisteredSmsProvider('log')
+  if (!logProvider) {
+    return { sent: false, logged: true, providerRef: `log-fallback-${Date.now()}` }
+  }
+  return logProvider.sendBulk(opts)
+}
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'crm')
@@ -29,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const smsResult = body.schedule
     ? { sent: false, logged: true }
-    : await sendBulkSms({
+    : await sendCrmCampaignSms({
         recipients: recipientContacts
           .filter((contact) => contact.mobile)
           .map((contact) => ({ phone: contact.mobile, name: contact.name, contactId: contact.id })),
@@ -49,12 +74,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const live = crmSmsLiveEnabled()
   return {
     ok: true,
     log: smsResult,
     campaign,
     recipientCount: recipientContacts.length,
-    provider: 'log',
-    note: 'SMS dry-run logged — no live gateway; queued-for-gateway when adapter is ready',
+    provider: live ? 'live' : 'log',
+    note: live
+      ? 'SMS sent via live gateway'
+      : 'SMS dry-run logged — no live gateway; set CRM_SMS_LIVE=true when ready',
   }
 })

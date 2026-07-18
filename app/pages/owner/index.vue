@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
+import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import {
   countRecurringSessionsByDayInRange,
@@ -216,17 +217,29 @@ function slotLabel(slot: OwnerCalendarSlot | null | undefined) {
   return fullName || statusLabel(slot.displayStatus)
 }
 
+function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot?.booking) return null
+  return slot.booking.payment?.status || slot.booking.paymentStatus || null
+}
+
 function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot || slot.displayStatus === 'FREE')
+  if (!slot || slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED')
     return ''
 
-  if (slot.booking?.guestMobile)
-    return slot.booking.guestMobile
+  return slot.booking?.guestMobile || ''
+}
 
-  if (slot.booking?.paymentStatus)
-    return t(`booking.paymentStatus.${slot.booking.paymentStatus}`)
+function slotPaymentBadge(slot: OwnerCalendarSlot | null | undefined) {
+  const status = slotPaymentStatus(slot)
+  if (!status || slot?.displayStatus === 'FREE' || slot?.displayStatus === 'BLOCKED')
+    return ''
+  return t(`booking.paymentStatus.${status}`)
+}
 
-  return ''
+function slotPaymentBadgeClass(slot: OwnerCalendarSlot | null | undefined) {
+  const status = slotPaymentStatus(slot)
+  if (!status) return ''
+  return isUnpaidPaymentStatus(status) ? 'calendar-slot-pay-unpaid' : 'calendar-slot-pay-paid'
 }
 
 function resetPanels() {
@@ -572,6 +585,37 @@ async function doCancel() {
   }
 }
 
+/** One-click cash collection for pay-at-club desk ops. */
+async function doMarkPaid() {
+  const slot = selectedSlotFull.value
+  const booking = slot?.booking
+  if (!slot || !booking || !canMarkPaid() || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/reserve', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        guestName: booking.guestName || form.guestName,
+        guestFamily: booking.guestFamily || form.guestFamily,
+        guestMobile: booking.guestMobile || form.guestMobile,
+        paymentMethod: 'CASH',
+        paymentStatus: 'PAID',
+        comments: booking.comments || form.comments,
+        equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
+        displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+      },
+    })
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
 async function doBlock() {
   const targets = slotsForBlock()
   if (!targets.length || saving.value) return
@@ -729,15 +773,25 @@ function canReserveSlot() {
   return selectedSlot.value?.displayStatus !== 'CLOSED' && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
+function canMarkPaid() {
+  if (batchMode.value || !selectedSlotFull.value?.booking) return false
+  if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
+  const status = slotPaymentStatus(selectedSlotFull.value)
+  return isUnpaidPaymentStatus(status)
+}
+
+function canShowCoachReserve() {
+  return canReserveSlot() && clubCoaches.value.length > 0
+}
+
 function slotStatusSummary() {
-  if (!selectedSlot.value) return ''
-  if (selectedSlot.value.booking?.paymentStatus) {
-    return t(`booking.paymentStatus.${selectedSlot.value.booking.paymentStatus}`)
-  }
-  if (selectedSlot.value.booking?.guestMobile) {
-    return selectedSlot.value.booking.guestMobile
-  }
-  return ''
+  const slot = selectedSlotFull.value || selectedSlot.value
+  if (!slot) return ''
+  const parts: string[] = []
+  const pay = slotPaymentStatus(slot)
+  if (pay) parts.push(t(`booking.paymentStatus.${pay}`))
+  if (slot.booking?.guestMobile) parts.push(slot.booking.guestMobile)
+  return parts.join(' · ')
 }
 
 function slotGuestName() {
@@ -893,6 +947,11 @@ const legend = [
                 <bdi dir="ltr" class="calendar-slot-time tabular-nums">{{ formatTimeRange(cellSlot(court.id, hour)!.startTime, cellSlot(court.id, hour)!.endTime) }}</bdi>
                 <span class="calendar-slot-title">{{ slotLabel(cellSlot(court.id, hour)) }}</span>
                 <bdi v-if="slotMeta(cellSlot(court.id, hour))" dir="ltr" class="calendar-slot-meta tabular-nums">{{ slotMeta(cellSlot(court.id, hour)) }}</bdi>
+                <span
+                  v-if="slotPaymentBadge(cellSlot(court.id, hour))"
+                  class="calendar-slot-pay"
+                  :class="slotPaymentBadgeClass(cellSlot(court.id, hour))"
+                >{{ slotPaymentBadge(cellSlot(court.id, hour)) }}</span>
               </button>
             </div>
           </div>
@@ -980,11 +1039,18 @@ const legend = [
               </span>
             </div>
           </div>
+          <button
+            v-if="canMarkPaid()"
+            type="button"
+            class="neo-menu-item neo-menu-item-paid"
+            :disabled="saving"
+            @click="doMarkPaid"
+          >{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</button>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canBlockSlot()" type="button" :class="menuButtonClass('block')" @click="openBlockForm">{{ t('owner.block') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
-          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
+          <button v-if="canShowCoachReserve()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
           <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
           <button type="button" :class="menuButtonClass('equipment')" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
           <button type="button" class="neo-menu-item border-b-0" @click="closeMenu">{{ t('common.close') }}</button>
@@ -1118,6 +1184,15 @@ const legend = [
             <p v-if="isNewReservation() && slotsForReserve().some(slotIsInPast)" class="text-xs font-medium text-red-600">{{ t('owner.errors.slotInPast') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button type="button" class="btn-primary w-full" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
+            <button
+              v-if="isEditingBooking() && canMarkPaid()"
+              type="button"
+              class="btn-primary w-full"
+              :disabled="saving"
+              @click="doMarkPaid"
+            >
+              {{ saving ? t('common.loading') : t('owner.markPaidCash') }}
+            </button>
             <button
               v-if="isEditingBooking() && canCancelSlot()"
               type="button"
@@ -1594,6 +1669,37 @@ const legend = [
   font-size: 0.72rem;
   line-height: 1.4;
   opacity: 0.78;
+}
+
+.calendar-slot-pay {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-slot-pay-unpaid {
+  background: rgba(255, 251, 235, 0.95);
+  color: #b45309;
+}
+
+.calendar-slot-pay-paid {
+  background: rgba(236, 253, 245, 0.95);
+  color: #047857;
+}
+
+.neo-menu-item-paid {
+  color: #047857;
+  font-weight: 800;
 }
 
 .calendar-legend-item {

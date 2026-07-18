@@ -46,3 +46,8 @@ export function isPaymentPayableOnline(status: string): boolean {
 export function countsTowardRevenue(bookingStatus: string, paymentStatus: string): boolean {
   return bookingStatus !== 'CANCELLED' && paymentStatus === 'PAID'
 }
+
+/** Pay-at-club / pending statuses that still need collection at the desk. */
+export function isUnpaidPaymentStatus(status: string | null | undefined): boolean {
+  return ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID'].includes(status || '')
+}

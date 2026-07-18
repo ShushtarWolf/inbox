@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
+import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
 const { user } = useAuth()
+const config = useRuntimeConfig()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
 useOwnerClubRefresh(refresh)
@@ -19,6 +21,8 @@ const isOwner = computed(() => activeMembership.value?.role === 'OWNER')
 const canReports = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:reports'))
 const canTransactions = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:transactions'))
 const canPayouts = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:payouts'))
+const payAtClubMode = computed(() => (config.public.paymentsMode || 'pay_at_club') === 'pay_at_club')
+const showPayouts = computed(() => canPayouts.value && !payAtClubMode.value)
 
 function formatWeekLabel(iso?: string) {
   if (!iso) return ''
@@ -34,12 +38,8 @@ function barHeightPx(amount: number) {
   return Math.max(12, Math.round((amount / maxWeeklyRevenue.value) * chartAreaHeight))
 }
 
-function statLabel(key: string) {
-  return t(`owner.financeCards.${key}`)
-}
-
 function formatStatValue(key: string, val: unknown) {
-  if (key === 'revenue' || key === 'ltv') return formatCurrency(Number(val))
+  if (key === 'revenue' || key === 'ltv' || key === 'unpaidAmount') return formatCurrency(Number(val))
   const suffix = ['paidRate', 'utilization', 'noShowRate'].includes(key) ? '%' : ''
   return `${formatNumber(val)}${suffix}`
 }
@@ -51,17 +51,25 @@ function bookingStatusLabel(status: string) {
 function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
+
+function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
+  if (typeof tx.unpaid === 'boolean') return tx.unpaid
+  return tx.bookingStatus !== 'CANCELLED' && isUnpaidPaymentStatus(tx.paymentStatus)
+}
 </script>
 
 <template>
   <div class="tail-page-stack">
-    <h1 class="tail-page-title">{{ $t('owner.finance') }}</h1>
+    <div>
+      <h1 class="tail-page-title">{{ $t('owner.finance') }}</h1>
+      <p class="mt-1 text-sm font-bold text-brand-gray-600">{{ t('owner.financePage.subtitle') }}</p>
+    </div>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div v-if="canReports" class="tail-card-grid-4">
         <AppTailStatCard
           v-for="(val, key) in data?.stats"
           :key="key"
-          :label="statLabel(String(key))"
+          :label="t(`owner.financeCards.${String(key)}`)"
           :value="formatStatValue(String(key), val)"
           icon="payments"
         />
@@ -99,18 +107,19 @@ function paymentStatusLabel(status: string) {
         </div>
         <div class="tail-card">
           <h2 class="tail-section-title mb-4">{{ t('owner.financePage.paymentBreakdown') }}</h2>
+          <p class="mb-3 text-xs font-medium text-brand-gray-500">{{ t('owner.financePage.paymentBreakdownHint') }}</p>
           <div class="space-y-3 text-sm">
             <div class="flex items-center justify-between">
-              <span class="text-brand-gray-600">{{ t('owner.paymentMethods.IPG') }}</span>
-              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.IPG || 0 }}%</span>
+              <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.PAID_CASH') }}</span>
+              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.PAID_CASH ?? data?.paymentBreakdown?.CASH ?? 0 }}%</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-brand-gray-600">{{ t('owner.paymentMethods.CASH') }}</span>
-              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.CASH || 0 }}%</span>
+              <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.PAID_IPG') }}</span>
+              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.PAID_IPG ?? data?.paymentBreakdown?.IPG ?? 0 }}%</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-brand-gray-600">{{ t('owner.paymentMethods.NOT_PAID') }}</span>
-              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.NOT_PAID || 0 }}%</span>
+              <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.UNPAID') }}</span>
+              <span class="font-semibold text-amber-700">{{ data?.paymentBreakdown?.UNPAID ?? data?.paymentBreakdown?.NOT_PAID ?? 0 }}%</span>
             </div>
           </div>
         </div>
@@ -148,7 +157,7 @@ function paymentStatusLabel(status: string) {
           </tr>
         </thead>
         <tbody v-if="data?.transactions?.length">
-          <tr v-for="tx in data?.transactions" :key="tx.id">
+          <tr v-for="tx in data?.transactions" :key="tx.id" :class="isTxUnpaid(tx) ? 'bg-amber-50/80' : ''">
             <td>
               <p class="font-semibold text-brand-navy">{{ t(`owner.financeTable.kind.${tx.kind}`) }}</p>
               <p class="text-xs text-brand-gray-500">{{ tx.reservationLabel }}</p>
@@ -160,10 +169,15 @@ function paymentStatusLabel(status: string) {
             </td>
             <td>
               <p>{{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }}</p>
-              <p class="text-xs text-brand-gray-500">{{ paymentStatusLabel(tx.paymentStatus) }}</p>
+              <p class="text-xs font-semibold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-gray-500'">
+                {{ paymentStatusLabel(tx.paymentStatus) }}
+              </p>
             </td>
             <td><span class="tail-badge-gray">{{ bookingStatusLabel(tx.bookingStatus) }}</span></td>
-            <td class="font-semibold text-brand-primary">{{ formatCurrency(tx.amount) }}</td>
+            <td class="font-semibold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">
+              {{ formatCurrency(tx.amount) }}
+              <span v-if="isTxUnpaid(tx)" class="mt-0.5 block text-[10px] font-bold uppercase tracking-wide">{{ t('owner.financeTable.collectAtClub') }}</span>
+            </td>
           </tr>
         </tbody>
         <tbody v-else>
@@ -173,9 +187,13 @@ function paymentStatusLabel(status: string) {
         </tbody>
       </AppTailTable>
 
-      <div v-if="canPayouts" class="tail-card">
+      <div v-if="showPayouts" class="tail-card">
         <h2 class="tail-section-title mb-2">{{ t('owner.financePage.payoutsTitle') }}</h2>
         <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPlaceholder') }}</p>
+      </div>
+      <div v-else-if="canPayouts && payAtClubMode" class="tail-card">
+        <h2 class="tail-section-title mb-2">{{ t('owner.financePage.payoutsTitle') }}</h2>
+        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPayAtClub') }}</p>
       </div>
     </AppAsyncState>
   </div>

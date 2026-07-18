@@ -651,7 +651,8 @@
     "calendarSubtitle": "Stay organized and track court availability for {date}",
     "legendHint": "Slot colors follow the same soft scheduling style as the calendar.",
     "quickNotes": "Quick notes",
-    "quickNotesBody": "Select free slots on one court, then reserve or cancel from the action bar. Tap an occupied slot to view or edit its booking.",
+    "quickNotesBody": "Select free slots → Reserve (walk-in). On unpaid bookings, use Mark paid (cash). Cancel frees the court.",
+    "markPaidCash": "Mark paid (cash)",
     "activeClub": "Active club",
     "setupTitle": "Club setup",
     "setupSubtitle": "Complete your club profile and courts.",
@@ -721,11 +722,19 @@
       "Sat": "Sat"
     },
     "financePage": {
-      "weeklyChart": "Weekly revenue",
-      "paymentBreakdown": "Payment methods",
-      "chartEmpty": "No revenue recorded for the past 7 days yet.",
+      "subtitle": "Collected cash vs still unpaid (pay at club).",
+      "weeklyChart": "Weekly collected revenue",
+      "paymentBreakdown": "Paid vs unpaid",
+      "paymentBreakdownHint": "Percent of active bookings by collection status.",
+      "breakdown": {
+        "PAID_CASH": "Paid · cash",
+        "PAID_IPG": "Paid · online",
+        "UNPAID": "Unpaid · collect at club"
+      },
+      "chartEmpty": "No collected revenue for the past 7 days yet.",
       "payoutsTitle": "Payout settings",
-      "payoutsPlaceholder": "Payout account configuration will be available in a future release."
+      "payoutsPlaceholder": "Payout account configuration will be available in a future release.",
+      "payoutsPayAtClub": "Pay-at-club mode: guests pay at the desk. Online payouts are not used."
     },
     "guestName": "Guest name",
     "guestFamily": "Guest family",
@@ -749,7 +758,9 @@
       "BLOCKED": "Blocked"
     },
     "financeCards": {
-      "revenue": "Revenue",
+      "revenue": "Collected",
+      "unpaidAmount": "Unpaid amount",
+      "unpaid": "Unpaid bookings",
       "bookingsToday": "Bookings today",
       "pending": "Pending",
       "paidRate": "Paid rate",
@@ -763,6 +774,7 @@
       "guest": "Guest",
       "payment": "Payment",
       "status": "Status",
+      "collectAtClub": "Collect at club",
       "kind": {
         "court": "Court booking",
         "coach": "Coach session"
