@@ -165,4 +165,4 @@ node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to productio
 ### Provider architecture (stub only)
 
 - **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Live gateways not implemented.
-- **SMS:** `SMS_PROVIDER=log` (default). CRM and notify route through `getSmsService()` — no live gateway or OTP auth.
+- **SMS:** `SMS_PROVIDER=log` (default dry-run). Set `SMS_ENABLED=true`, `SMS_PROVIDER=live`, and `KAVENEGAR_API_KEY` for live OTP via Kavenegar (`KAVENEGAR_TEMPLATE` optional for Verify Lookup).

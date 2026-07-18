@@ -2,12 +2,14 @@ import type { SmsProvider } from '#shared/sms.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { getRegisteredSmsProvider } from './registry'
 import { logSmsProvider } from './providers/log'
+import { kavenegarSmsProvider } from './providers/kavenegar'
 
 let bootstrapped = false
 
 function bootstrapProviders() {
   if (bootstrapped) return
   logSmsProvider()
+  kavenegarSmsProvider()
   bootstrapped = true
 }
 
