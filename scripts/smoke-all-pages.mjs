@@ -46,6 +46,7 @@ const adminPaths = [
   '/admin/bookings',
   '/admin/applications',
   '/admin/bug-reports',
+  '/admin/sms',
   '/admin/provision',
 ]
 

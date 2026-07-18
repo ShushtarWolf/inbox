@@ -165,4 +165,4 @@ node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to productio
 ### Provider architecture
 
 - **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Live gateways not implemented.
-- **SMS:** `SMS_PROVIDER=log` (default dry-run; OTP returns `debugCode`). Live Kavenegar when `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` are set. Optional `KAVENEGAR_TEMPLATE` (Verify Lookup) and `KAVENEGAR_SENDER`. Check with `npm run sms:status`. Process due CRM campaigns: `POST /api/admin/sms/process-scheduled`.
+- **SMS:** `SMS_PROVIDER=log` (default dry-run; OTP returns `debugCode`). Live Kavenegar when `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` are set. Optional `KAVENEGAR_TEMPLATE` (Verify Lookup) and `KAVENEGAR_SENDER`. Check with `npm run sms:status` or `/admin/sms`. Process due CRM campaigns: button on `/admin/sms` or `POST /api/admin/sms/process-scheduled`.

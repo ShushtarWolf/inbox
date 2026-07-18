@@ -176,6 +176,9 @@ watch(secret, (value) => {
                 <span>{{ t('admin.metrics.pendingPayments') }}</span>
                 <strong dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</strong>
               </li>
+              <li>
+                <NuxtLink :to="localePath('/admin/sms')" class="underline">{{ t('admin.nav.sms') }}</NuxtLink>
+              </li>
             </ul>
             <NuxtLink :to="localePath('/admin/provision')" class="mt-4 inline-block text-sm font-bold text-brand-navy underline">
               {{ t('admin.nav.provision') }}
