@@ -246,6 +246,10 @@
     "applicationsTitle": "درخواست‌های باشگاه",
     "applicationsSubtitle": "تأیید یا رد درخواست‌های ثبت‌نام باشگاه",
     "bugReportsSubtitle": "پیگیری گزارش‌های باگ کاربران",
+    "emailOpsTitle": "ارسال ایمیل",
+    "emailMode": "حالت ایمیل",
+    "emailConfigured": "ایمیل زنده پیکربندی شده",
+    "emailHasSmtpHost": "هاست SMTP تنظیم شده",
     "smsTitle": "سلامت پیامک",
     "smsSubtitle": "حالت ارائه‌دهنده، وجود اعتبارنامه، و صف کمپین‌های زمان‌بندی‌شده",
     "smsPage": {

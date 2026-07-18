@@ -31,12 +31,16 @@ export async function notifyWaitlistForFreedSlot(opts: {
         metadata: { clubId: opts.clubId, date: opts.date, startTime: opts.startTime },
       })
       if (entry.user?.email) {
-        await sendNotification({
-          channel: 'email',
-          to: entry.user.email,
-          template: 'WAITLIST_SLOT_AVAILABLE',
-          data: { date: opts.date, startTime: opts.startTime },
-        })
+        try {
+          await sendNotification({
+            channel: 'email',
+            to: entry.user.email,
+            template: 'WAITLIST_SLOT_AVAILABLE',
+            data: { date: opts.date, startTime: opts.startTime },
+          })
+        } catch (err) {
+          console.error('[waitlistNotify:email]', err)
+        }
       }
       await prisma.waitlistEntry.update({
         where: { id: entry.id },

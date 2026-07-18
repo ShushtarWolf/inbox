@@ -13,6 +13,14 @@ type Overview = {
   payments: { count: number; totalAmount: number; paidCount: number; paidAmount: number; pendingCount: number }
   applications: { pending: number }
   bugReports: { open: number }
+  email?: {
+    emailConfigured: boolean
+    emailMode: 'log' | 'live'
+    emailEnabledFlag: boolean
+    hasSmtpHost: boolean
+    note: string
+    warnings: string[]
+  }
 }
 
 type PilotClub = {
@@ -185,6 +193,28 @@ watch(secret, (value) => {
             </NuxtLink>
           </div>
         </div>
+
+        <section v-if="data.email" class="tail-card space-y-2">
+          <h2 class="tail-section-title">{{ t('admin.emailOpsTitle') }}</h2>
+          <p class="text-sm text-brand-gray-600">{{ data.email.note }}</p>
+          <ul class="space-y-1 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.emailMode') }}</span>
+              <strong dir="ltr">{{ data.email.emailMode }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.emailConfigured') }}</span>
+              <strong dir="ltr">{{ data.email.emailConfigured ? t('admin.smsPage.yes') : t('admin.smsPage.no') }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.emailHasSmtpHost') }}</span>
+              <strong dir="ltr">{{ data.email.hasSmtpHost ? t('admin.smsPage.yes') : t('admin.smsPage.no') }}</strong>
+            </li>
+          </ul>
+          <ul v-if="data.email.warnings.length" class="mt-2 space-y-1 text-xs text-amber-700">
+            <li v-for="(w, i) in data.email.warnings" :key="i">{{ w }}</li>
+          </ul>
+        </section>
       </div>
     </AppAsyncState>
   </div>

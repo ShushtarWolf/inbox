@@ -1,3 +1,5 @@
+import { getEmailStatus } from '../../utils/email'
+
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
 
@@ -52,6 +54,8 @@ export default defineEventHandler(async (event) => {
     prisma.bugReport.count({ where: { status: 'OPEN' } }),
   ])
 
+  const email = getEmailStatus()
+
   return {
     clubs: {
       total: clubsTotal,
@@ -82,5 +86,14 @@ export default defineEventHandler(async (event) => {
     },
     applications: { pending: applicationsPending },
     bugReports: { open: bugReportsOpen },
+    /** Safe email ops — never includes SMTP_PASS. */
+    email: {
+      emailConfigured: email.emailConfigured,
+      emailMode: email.emailMode,
+      emailEnabledFlag: email.emailEnabledFlag,
+      hasSmtpHost: email.hasSmtpHost,
+      note: email.note,
+      warnings: email.warnings,
+    },
   }
 })

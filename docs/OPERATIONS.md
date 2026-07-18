@@ -12,12 +12,12 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default / current prod), `test`, or `live`. Keep `pay_at_club` — Zarinpal live is not implemented yet |
-| `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only) |
-| `SMTP_HOST` | If email | SMTP server hostname |
-| `SMTP_PORT` | If email | SMTP port (typically 587 or 465) |
-| `SMTP_USER` | If email | SMTP username |
-| `SMTP_PASS` | If email | SMTP password |
-| `SMTP_FROM` | If email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
+| `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only — no SMTP required) |
+| `SMTP_HOST` | For live email | SMTP server hostname (required with `EMAIL_ENABLED=true`) |
+| `SMTP_PORT` | For live email | SMTP port (typically 587 or 465; default 587) |
+| `SMTP_USER` | For live email | SMTP username |
+| `SMTP_PASS` | For live email | SMTP password (never commit; never returned by admin APIs) |
+| `SMTP_FROM` | For live email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
 | `SMS_ENABLED` | For live SMS | `true` to allow live sends (OTP + CRM); default stays log/dry-run |
 | `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
@@ -34,6 +34,32 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
 | `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (required with client id/secret; fail-closed if missing) |
+
+## Email (SMTP)
+
+Log-by-default. Localhost and CI need **no** real SMTP when `EMAIL_ENABLED` is unset or `false` — password reset, booking confirm/cancel/paid, waitlist, and club-approval emails succeed and write `[notify:log]` / `[email:log]` lines.
+
+Live send only when **both** are set:
+
+| Variable | Value |
+|----------|-------|
+| `EMAIL_ENABLED` | `true` |
+| `SMTP_HOST` | your SMTP hostname |
+| `SMTP_PORT` | `587` or `465` (optional; default 587) |
+| `SMTP_USER` / `SMTP_PASS` | SMTP credentials |
+| `SMTP_FROM` | e.g. `inbox <noreply@inboxs.ir>` |
+
+SMTP failures are soft-fail: booking and auth flows never hard-fail on mail errors.
+
+### Ops visibility
+
+- Admin overview (`/admin`) shows email mode (`log` \| `live`) and `emailConfigured` (host set + `EMAIL_ENABLED`) — never `SMTP_PASS`
+- `GET /api/admin/email-status` (header `x-admin-secret`) — same safe snapshot
+- Local: `npm run email:status`
+
+### Production (Liara `inbox` app)
+
+Set SMTP vars in the Liara dashboard when ready for live mail. Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env — do not flip live from this runbook without an explicit ops step.
 
 ## Google OAuth (sign-in)
 
@@ -144,7 +170,7 @@ One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22).
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book: `/book/court/{slug}` (athlete account needed to complete a booking)
 
-Pilot (Behnaz): set `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara when ready (optional `PILOT_NO_COACH=true` for server-only gate). Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Do not flip Liara env from this runbook without an explicit ops step.
+Pilot (Behnaz): set `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara when ready (optional `PILOT_NO_COACH=true` for server-only gate). Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
 
 ### Review club applications
 

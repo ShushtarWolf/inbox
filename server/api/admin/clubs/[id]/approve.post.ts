@@ -87,16 +87,21 @@ export default defineEventHandler(async (event) => {
     return { club, user: user! }
   })
 
-  await sendNotification({
-    channel: 'email',
-    to: result.user.email,
-    template: 'CLUB_APPROVED',
-    data: {
-      clubName: application.clubName,
-      loginUrl: `${siteUrl()}/login`,
-      tempPassword: isNewUser ? tempPassword : undefined,
-    },
-  })
+  // Fail soft — SMTP errors must not undo approval.
+  try {
+    await sendNotification({
+      channel: 'email',
+      to: result.user.email,
+      template: 'CLUB_APPROVED',
+      data: {
+        clubName: application.clubName,
+        loginUrl: `${siteUrl()}/login`,
+        tempPassword: isNewUser ? tempPassword : undefined,
+      },
+    })
+  } catch (err) {
+    console.error('[admin:club-approve:email]', err)
+  }
 
   return {
     clubId: result.club.id,

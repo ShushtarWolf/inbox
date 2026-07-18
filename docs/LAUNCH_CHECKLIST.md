@@ -22,7 +22,12 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Verify local fail-closed (vars unset): no Google button; `GET /auth/google` → `/login?error=google` (FA message)
   - Verify local optional (vars set): button visible; `/auth/google` redirects to Google
   - Verify prod: button on `https://inboxs.ir/login` → sign-in → ATHLETE session; error path `/login?error=google`
-- [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Liara (when ready to send live email) — keep unchecked until verified
+- [ ] Live email when ready — keep unchecked until verified on Liara:
+  - Liara env: `EMAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT` (587/465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (e.g. `inbox <noreply@inboxs.ir>`)
+  - Until then leave `EMAIL_ENABLED` unset/`false` — flows log only; no SMTP required for local/CI
+  - Verify log mode: `npm run email:status` → `emailMode: "log"`, `emailConfigured: false`
+  - Verify live: `/admin` overview shows email mode `live` + configured yes; or `GET /api/admin/email-status` (never exposes `SMTP_PASS`)
+  - Smoke: forgot-password and a booking confirm still succeed if SMTP is down (soft-fail)
 - [x] Login page no longer pre-fills demo credentials
 - [x] Demo seed gated behind `SEED_DEMO_DATA=true` (default: sports catalog only, even in dev)
 - [x] Demo cleanup runs automatically on production startup

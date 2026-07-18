@@ -247,6 +247,10 @@
     "applicationsTitle": "Club applications",
     "applicationsSubtitle": "Approve or reject club signup applications",
     "bugReportsSubtitle": "Triage user-submitted bug reports",
+    "emailOpsTitle": "Email delivery",
+    "emailMode": "Email mode",
+    "emailConfigured": "Live email configured",
+    "emailHasSmtpHost": "SMTP host set",
     "smsTitle": "SMS health",
     "smsSubtitle": "Provider mode, credentials presence, and scheduled CRM queue",
     "smsPage": {

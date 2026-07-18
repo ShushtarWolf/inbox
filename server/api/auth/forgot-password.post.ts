@@ -22,12 +22,17 @@ export default defineEventHandler(async (event) => {
         data: { userId: user.id, tokenHash: hashToken(token), expiresAt },
       })
       const resetUrl = `${siteUrl()}/reset-password?token=${token}`
-      await sendNotification({
-        channel: 'email',
-        to: normalized,
-        template: 'PASSWORD_RESET',
-        data: { resetUrl },
-      })
+      // Fail soft — SMTP errors must not break auth.
+      try {
+        await sendNotification({
+          channel: 'email',
+          to: normalized,
+          template: 'PASSWORD_RESET',
+          data: { resetUrl },
+        })
+      } catch (err) {
+        console.error('[auth:forgot-password:email]', err)
+      }
       // Mirror OTP debugCode: expose reset link only when SMTP email is not live.
       if (!isEmailConfigured() && process.env.NODE_ENV !== 'production') {
         debugResetUrl = resetUrl
