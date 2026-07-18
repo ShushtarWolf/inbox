@@ -45,11 +45,16 @@ function mergeSetCookies(jar, session, setCookies) {
 }
 
 export async function login(base, jar, session, email, password = 'demo1234') {
-  const res = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
+  let res
+  for (let attempt = 0; attempt < 2; attempt++) {
+    res = await fetch(`${base}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    if (res.status !== 429 || attempt === 1) break
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
   if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
   const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
   mergeSetCookies(jar, session, setCookies)

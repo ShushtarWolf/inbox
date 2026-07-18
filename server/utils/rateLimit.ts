@@ -1,8 +1,8 @@
 import type { H3Event } from 'h3'
 import { checkRateLimitBucket } from '#shared/rateLimitBucket.ts'
 
-const WINDOW_MS = 60_000
-const MAX_REQUESTS = 15
+const WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000
+const MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX) || 15
 
 async function rateLimitStorage() {
   try {

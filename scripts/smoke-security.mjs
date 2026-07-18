@@ -233,8 +233,9 @@ async function main() {
   }
 
   // Rate-limit bursts last — they poison the shared IP bucket for ~60s
+  const burstLimit = Math.max(25, (Number(process.env.RATE_LIMIT_MAX) || 15) + 10)
   let otpRateLimited = false
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < burstLimit; i++) {
     const res = await fetch(`${base}/api/auth/otp/request`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -249,7 +250,7 @@ async function main() {
   console.log('ok  OTP request rate limit returns 429')
 
   let rateLimited = false
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < burstLimit; i++) {
     const res = await fetch(`${base}/api/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
