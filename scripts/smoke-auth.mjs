@@ -95,6 +95,41 @@ async function main() {
   }
   console.log('ok  logout clears session')
 
+  // Google OAuth: fail-closed when unset; redirect to Google when configured
+  const googleRes = await fetch(`${base}/auth/google`, { redirect: 'manual' })
+  const googleLoc = googleRes.headers.get('location') || ''
+  const googleStatus = googleRes.status
+  if (![301, 302, 303, 307, 308].includes(googleStatus)) {
+    throw new Error(`/auth/google expected redirect, got ${googleStatus}`)
+  }
+
+  const loginWithGoogleError = await fetch(`${base}/login?error=google`)
+  if (!loginWithGoogleError.ok) throw new Error(`/login?error=google expected 200, got ${loginWithGoogleError.status}`)
+  const errorHtml = await loginWithGoogleError.text()
+  if (!errorHtml.includes('ورود با گوگل انجام نشد') && !errorHtml.includes('Google sign-in failed')) {
+    throw new Error('/login?error=google missing FA/EN googleFailed message')
+  }
+  console.log('ok  /login?error=google shows googleFailed UX')
+
+  if (googleLoc.includes('error=google')) {
+    const loginPage = await fetch(`${base}/login`)
+    if (!loginPage.ok) throw new Error(`/login expected 200, got ${loginPage.status}`)
+    const loginHtml = await loginPage.text()
+    if (loginHtml.includes('btn-google') || loginHtml.includes('ادامه با گوگل') || loginHtml.includes('Continue with Google')) {
+      throw new Error('Google button visible while OAuth is unset (expected fail-closed)')
+    }
+    console.log('ok  Google OAuth fail-closed (button hidden, /auth/google → login?error=google)')
+  } else if (/accounts\.google\.com|google\.com\/o\/oauth2|googleapis\.com/.test(googleLoc)) {
+    const loginPage = await fetch(`${base}/login`)
+    const loginHtml = await loginPage.text()
+    if (!loginHtml.includes('btn-google') && !loginHtml.includes('ادامه با گوگل')) {
+      throw new Error('Google OAuth configured but button missing on /login')
+    }
+    console.log('ok  Google OAuth configured (button visible, /auth/google → Google)')
+  } else {
+    throw new Error(`unexpected /auth/google Location: ${googleStatus} ${googleLoc}`)
+  }
+
   console.log('smoke-auth ok')
 }
 

@@ -97,10 +97,10 @@ async function submitEmailLogin() {
     <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo || undefined)" />
 
     <div class="space-y-2 border-t border-brand-gray-200 pt-4">
-      <button type="button" class="btn-secondary w-full py-3" @click="openLogin({ returnTo })">
+      <button type="button" class="btn-secondary w-full py-3" @click="openLogin({ returnTo: returnTo || undefined })">
         {{ t('auth.loginWithPhone') }}
       </button>
-      <button type="button" class="btn-ghost w-full" @click="openRegister({ returnTo })">
+      <button type="button" class="btn-ghost w-full" @click="openRegister({ returnTo: returnTo || undefined })">
         {{ t('auth.register') }}
       </button>
     </div>

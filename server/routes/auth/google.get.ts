@@ -5,7 +5,8 @@ function isGoogleOAuthConfigured() {
   const config = useRuntimeConfig()
   const clientId = config.oauth?.google?.clientId
   const clientSecret = config.oauth?.google?.clientSecret
-  return Boolean(clientId && clientSecret)
+  const redirectURL = config.oauth?.google?.redirectURL
+  return Boolean(clientId && clientSecret && redirectURL)
 }
 
 const oauthHandler = defineOAuthGoogleEventHandler({

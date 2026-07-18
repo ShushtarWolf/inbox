@@ -1,3 +1,5 @@
+import { sanitizeReturnTo } from '#shared/returnTo.ts'
+
 export function useGoogleAuth() {
   const config = useRuntimeConfig()
   const returnToCookie = useCookie<string | null>('oauth_return_to', { sameSite: 'lax', maxAge: 600 })
@@ -9,7 +11,8 @@ export function useGoogleAuth() {
     if (!googleAuthEnabled.value) {
       return navigateTo('/login?error=google')
     }
-    returnToCookie.value = returnTo || null
+    const safeReturnTo = sanitizeReturnTo(returnTo, 'fa')
+    returnToCookie.value = safeReturnTo || null
     localeCookie.value = 'fa'
     return navigateTo('/auth/google', { external: true })
   }

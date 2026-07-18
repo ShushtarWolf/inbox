@@ -149,7 +149,9 @@ export default defineNuxtConfig({
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       googleAuthEnabled: Boolean(
-        process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID && process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
+        process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID
+        && process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET
+        && googleRedirectUrl,
       ),
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',

@@ -117,10 +117,10 @@ async function submit() {
     <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo || undefined)" />
 
     <div class="space-y-2 border-t border-brand-gray-200 pt-4">
-      <button type="button" class="btn-secondary w-full py-3" @click="openRegister({ returnTo, role: 'ATHLETE' })">
+      <button type="button" class="btn-secondary w-full py-3" @click="openRegister({ returnTo: returnTo || undefined, role: 'ATHLETE' })">
         {{ t('auth.registerWithPhone') }}
       </button>
-      <button type="button" class="btn-ghost w-full" @click="openLogin({ returnTo })">
+      <button type="button" class="btn-ghost w-full" @click="openLogin({ returnTo: returnTo || undefined })">
         {{ t('auth.login') }}
       </button>
     </div>

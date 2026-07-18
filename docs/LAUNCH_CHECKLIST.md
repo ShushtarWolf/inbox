@@ -16,7 +16,12 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [ ] Live SMS/OTP when ready: `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` on Liara (optional `KAVENEGAR_TEMPLATE` / `KAVENEGAR_SENDER`); until then SMS stays log/dry-run
 - [ ] `SENTRY_DSN` set for production error tracking (Liara env vars) — keep unchecked until verified on Liara
 - [ ] Object storage bucket created; `S3_*` vars set on Liara app — keep unchecked until verified
-- [ ] Google OAuth client created; `NUXT_OAUTH_GOOGLE_*` vars set; redirect URI `https://inboxs.ir/auth/google` — keep unchecked until verified
+- [ ] Google OAuth — keep unchecked until verified on Liara:
+  - Console: Web client; JS origins `http://localhost:3000` + `https://inboxs.ir`; redirect URIs `http://localhost:3000/auth/google` + `https://inboxs.ir/auth/google`
+  - Liara env: `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL=https://inboxs.ir/auth/google`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`
+  - Verify local fail-closed (vars unset): no Google button; `GET /auth/google` → `/login?error=google` (FA message)
+  - Verify local optional (vars set): button visible; `/auth/google` redirects to Google
+  - Verify prod: button on `https://inboxs.ir/login` → sign-in → ATHLETE session; error path `/login?error=google`
 - [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Liara (when ready to send live email) — keep unchecked until verified
 - [x] Login page no longer pre-fills demo credentials
 - [x] Demo seed gated behind `SEED_DEMO_DATA=true` (default: sports catalog only, even in dev)

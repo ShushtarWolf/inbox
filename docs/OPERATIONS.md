@@ -33,7 +33,58 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `S3_PUBLIC_URL` | For uploads | Public base URL for uploaded images |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
-| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` |
+| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (required with client id/secret; fail-closed if missing) |
+
+## Google OAuth (sign-in)
+
+Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, and a redirect URL are **unset**, the app fails closed: the Google button is hidden and `GET /auth/google` redirects to `/login?error=google` (FA copy via `auth.googleFailed`). Do not commit real secrets; set Liara env in the dashboard when enabling prod.
+
+### Google Cloud Console
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → select (or create) the project for inbox.
+2. **APIs & Services** → **OAuth consent screen** → configure (External or Internal). App name: inbox. Add scopes `email`, `profile`, `openid` if prompted.
+3. **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID**.
+4. Application type: **Web application**.
+5. **Authorized JavaScript origins** (exact, no trailing slash):
+   - `http://localhost:3000`
+   - `https://inboxs.ir`
+6. **Authorized redirect URIs**:
+   - `http://localhost:3000/auth/google`
+   - `https://inboxs.ir/auth/google`
+7. Create → copy **Client ID** and **Client secret** (never commit them).
+
+### Local `.env`
+
+```bash
+NUXT_PUBLIC_SITE_URL=http://localhost:3000
+NUXT_OAUTH_GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+NUXT_OAUTH_GOOGLE_CLIENT_SECRET=GOCSPX-...
+NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://localhost:3000/auth/google
+```
+
+Restart `npm run dev` after changing these. Smoke: `npm run smoke:auth` — with vars unset expects fail-closed; with vars set expects redirect toward Google.
+
+### Production (Liara `inbox` app)
+
+Set the same four vars (do not set from this runbook automatically):
+
+| Variable | Value |
+|----------|-------|
+| `NUXT_PUBLIC_SITE_URL` | `https://inboxs.ir` |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | from Console |
+| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | from Console |
+| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | `https://inboxs.ir/auth/google` |
+
+Redeploy or restart after env change. Verify: login page shows Google button → completes OAuth → new users land as `ATHLETE`; failure shows `/login?error=google`.
+
+### Behavior reference
+
+| Condition | UI | `/auth/google` |
+|-----------|----|----------------|
+| Client id/secret/redirect unset | Button hidden | → `/login?error=google` |
+| All set | Button on login/register/auth modal | → Google consent, then session + `returnTo` |
+
+New Google users are upserted as role `ATHLETE`. `oauth_return_to` cookie (sanitized) restores post-login path.
 
 ## Database backup (PostgreSQL)
 
