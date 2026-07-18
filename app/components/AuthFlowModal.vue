@@ -24,11 +24,17 @@ const error = ref('')
 const debugCode = ref('')
 const maskedPhone = ref('')
 
-const roles: Array<{ id: AuthFlowRole; title: string; body: string; icon: string }> = [
+const { pilotNoCoach } = usePilotFlags()
+
+const allRoles: Array<{ id: AuthFlowRole; title: string; body: string; icon: string }> = [
   { id: 'ATHLETE', title: 'register.roleAthlete', body: 'auth.roleAthleteHint', icon: 'sports_tennis' },
   { id: 'COACH', title: 'register.roleCoach', body: 'auth.roleCoachHint', icon: 'fitness_center' },
   { id: 'CLUB_ADMIN', title: 'register.roleOwner', body: 'auth.roleOwnerHint', icon: 'apartment' },
 ]
+
+const roles = computed(() =>
+  pilotNoCoach.value ? allRoles.filter((item) => item.id !== 'COACH') : allRoles,
+)
 
 const title = computed(() => {
   if (step.value === 'gate') return t('auth.gateTitle')

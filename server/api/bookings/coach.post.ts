@@ -3,6 +3,7 @@ import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const user = await requireUser(event)
   const body = await readBody<{ coachId?: string; date?: string; startTime?: string }>(event)
   if (!body.coachId || !body.date || !body.startTime) {

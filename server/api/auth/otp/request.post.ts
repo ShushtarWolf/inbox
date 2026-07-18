@@ -14,6 +14,10 @@ export default defineEventHandler(async (event) => {
   const purpose = body.purpose === 'login' ? 'login' : 'register'
   const role = body.role === 'COACH' || body.role === 'CLUB_ADMIN' ? body.role : 'ATHLETE'
 
+  if (purpose === 'register' && role === 'COACH') {
+    assertCoachProductEnabled(event)
+  }
+
   if (purpose === 'register') {
     const name = body.name?.trim()
     if (!name) {

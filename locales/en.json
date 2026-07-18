@@ -53,7 +53,7 @@
     "wallet": "Wallet"
   },
   "home": {
-    "title": "Book courts & coaches",
+    "title": "Book courts",
     "subtitle": "Padel & tennis — pay at club",
     "bookCourt": "Book court",
     "findCoach": "Find coach",
@@ -62,7 +62,7 @@
     "eyebrow": "App home",
     "welcome": "Hi, {name}",
     "guestName": "Athlete",
-    "heroBody": "Book courts, find coaches, and jump into the main flows without the clutter of a website landing page.",
+    "heroBody": "Book courts and jump into the main flows without the clutter of a website landing page.",
     "bookCourtHint": "Clubs and open slots for your selected sport",
     "findCoachHint": "Available coaches for private sessions and training",
     "heroSearchWhere": "Where to play",

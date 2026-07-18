@@ -142,6 +142,10 @@ export default defineNuxtConfig({
     },
     public: {
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
+      // Behnaz pilot: hide coach discovery/register UX (coach model + APIs stay).
+      pilotNoCoach:
+        process.env.NUXT_PUBLIC_PILOT_NO_COACH === 'true'
+        || process.env.PILOT_NO_COACH === 'true',
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       googleAuthEnabled: Boolean(

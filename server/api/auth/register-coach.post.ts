@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   await enforceRateLimit(event, 'auth:register-coach')
   const body = await readBody<{
     name?: string

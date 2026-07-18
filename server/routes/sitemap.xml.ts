@@ -1,3 +1,5 @@
+import { isPilotNoCoach } from '../../shared/pilot'
+
 function siteUrl() {
   return (process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 }
@@ -14,28 +16,31 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'content-type', 'application/xml; charset=utf-8')
   setHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
 
+  const pilotNoCoach = isPilotNoCoach()
+
   const staticPaths = [
     '/',
     '/clubs',
-    '/coaches',
+    ...(pilotNoCoach ? [] : ['/coaches']),
     '/login',
     '/register',
     '/privacy',
     '/terms',
   ]
 
-  const [clubs, coaches] = await Promise.all([
-    prisma.club.findMany({
-      where: { status: 'ACTIVE' },
-      select: { slug: true },
-      take: 500,
-    }),
-    prisma.coach.findMany({
-      where: { isBookable: true },
-      select: { id: true },
-      take: 500,
-    }),
-  ])
+  const clubs = await prisma.club.findMany({
+    where: { status: 'ACTIVE' },
+    select: { slug: true },
+    take: 500,
+  })
+
+  const coaches = pilotNoCoach
+    ? []
+    : await prisma.coach.findMany({
+        where: { isBookable: true },
+        select: { id: true },
+        take: 500,
+      })
 
   const urls = [
     ...staticPaths.map((path) => urlEntry(path)),

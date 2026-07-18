@@ -8,12 +8,17 @@ defineProps<{
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
+const { pilotNoCoach } = usePilotFlags()
 
-const roles: Array<{ id: RegisterRole; labelKey: string; path: string }> = [
+const allRoles: Array<{ id: RegisterRole; labelKey: string; path: string }> = [
   { id: 'athlete', labelKey: 'register.roleAthlete', path: '/register' },
   { id: 'owner', labelKey: 'register.roleOwner', path: '/register/owner' },
   { id: 'coach', labelKey: 'register.roleCoach', path: '/register/coach' },
 ]
+
+const roles = computed(() =>
+  pilotNoCoach.value ? allRoles.filter((item) => item.id !== 'coach') : allRoles,
+)
 
 function roleLink(path: string) {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : ''

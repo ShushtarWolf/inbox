@@ -126,6 +126,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (role === 'COACH') {
+    assertCoachProductEnabled(event)
     const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({

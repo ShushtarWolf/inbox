@@ -13,6 +13,13 @@ const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 
 const { data: pkg, pending, error } = await useFetch(`/api/packages/${id}`)
+const { pilotNoCoach } = usePilotFlags()
+
+const packageBackTo = computed(() => {
+  if (pilotNoCoach.value) return localePath('/clubs')
+  if (pkg.value?.coach) return localePath(`/coaches/${pkg.value.coach.id}`)
+  return localePath('/coaches')
+})
 
 watch(pkg, (value) => {
   if (value?.days?.length && !selectedDays.value.length) {
@@ -55,7 +62,7 @@ async function confirm() {
         :title="pkg.title"
         :subtitle="localizedField(pkg.club, 'nameFa', 'nameEn')"
         :home-to="localePath('/')"
-        :back-to="localePath(pkg.coach ? `/coaches/${pkg.coach.id}` : '/coaches')"
+        :back-to="packageBackTo"
       />
 
       <div class="ios-card p-4 space-y-2">

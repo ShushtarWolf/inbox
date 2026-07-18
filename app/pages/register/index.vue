@@ -12,10 +12,12 @@ const returnTo = computed(() => {
   return typeof value === 'string' ? value : ''
 })
 
+const { pilotNoCoach } = usePilotFlags()
+
 onMounted(() => {
   const role = route.query.role
   if (role === 'owner') openRegister({ returnTo: returnTo.value, role: 'CLUB_ADMIN' })
-  else if (role === 'coach') openRegister({ returnTo: returnTo.value, role: 'COACH' })
+  else if (role === 'coach' && !pilotNoCoach.value) openRegister({ returnTo: returnTo.value, role: 'COACH' })
   else if (role === 'athlete') openRegister({ returnTo: returnTo.value, role: 'ATHLETE' })
   else openRegister({ returnTo: returnTo.value })
 })
