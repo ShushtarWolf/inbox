@@ -10,6 +10,8 @@ export type NotifyTemplate =
   | 'WAITLIST_SLOT_AVAILABLE'
   | 'PASSWORD_RESET'
   | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
+  | 'BOOKING_PAID'
   | 'CLUB_APPROVED'
 
 export async function sendNotification(opts: {

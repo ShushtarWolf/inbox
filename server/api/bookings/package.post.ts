@@ -1,4 +1,5 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { notifyBookingConfirmed } from '../../utils/bookingNotify'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -45,19 +46,16 @@ export default defineEventHandler(async (event) => {
   })
 
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
-  if (athlete?.email) {
-    await sendNotification({
-      channel: 'email',
-      to: athlete.email,
-      template: 'BOOKING_CONFIRMED',
-      data: {
-        kind: 'package',
-        clubName: pkg.club.nameEn || pkg.club.nameFa,
-        date: pkg.startDate || '',
-        startTime: pkg.title,
-      },
-    })
-  }
+  await notifyBookingConfirmed({
+    userId: user.id,
+    email: athlete?.email,
+    kind: 'package',
+    clubName: pkg.club.nameEn || pkg.club.nameFa,
+    clubId: pkg.clubId,
+    bookingId: booking.id,
+    date: pkg.startDate || '',
+    startTime: pkg.title,
+  })
 
   return booking
 })

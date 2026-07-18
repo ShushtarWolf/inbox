@@ -1,6 +1,7 @@
-import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
-import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { notifyBookingConfirmed } from '../../utils/bookingNotify'
+import { findCoachByIdOrSlug } from '../../utils/coaches'
+import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -66,19 +67,16 @@ export default defineEventHandler(async (event) => {
   })
 
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
-  if (athlete?.email) {
-    await sendNotification({
-      channel: 'email',
-      to: athlete.email,
-      template: 'BOOKING_CONFIRMED',
-      data: {
-        kind: 'coach',
-        clubName: coach.club?.nameEn || coach.club?.nameFa || coach.nameEn || coach.nameFa,
-        date: body.date,
-        startTime: body.startTime,
-      },
-    })
-  }
+  await notifyBookingConfirmed({
+    userId: user.id,
+    email: athlete?.email,
+    kind: 'coach',
+    clubName: coach.club?.nameEn || coach.club?.nameFa || coach.nameEn || coach.nameFa,
+    clubId: coach.clubId || undefined,
+    bookingId: session.id,
+    date: body.date,
+    startTime: body.startTime,
+  })
 
   return session
 })

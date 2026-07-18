@@ -25,11 +25,35 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
       const date = String(data.date || '')
       const time = String(data.startTime || '')
       const kind = String(data.kind || 'court')
-      const label = kind === 'coach' ? 'Coach session' : 'Court booking'
+      const label = kind === 'coach' ? 'Coach session' : kind === 'package' ? 'Package booking' : 'Court booking'
       return {
         subject: `Booking confirmed — ${clubName}`,
         text: `${label} confirmed at ${clubName}\nDate: ${date}\nTime: ${time}\n\nPayment: pay at club on arrival.`,
         html: `<p><strong>${esc(label)} confirmed</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}</p><p>Payment: pay at club on arrival.</p>`,
+      }
+    }
+    case 'BOOKING_CANCELLED': {
+      const clubName = String(data.clubName || 'Club')
+      const date = String(data.date || '')
+      const time = String(data.startTime || '')
+      const kind = String(data.kind || 'court')
+      const label = kind === 'coach' ? 'Coach session' : kind === 'package' ? 'Package booking' : 'Court booking'
+      return {
+        subject: `Booking cancelled — ${clubName}`,
+        text: `${label} at ${clubName} was cancelled.\nDate: ${date}\nTime: ${time}`,
+        html: `<p><strong>${esc(label)} cancelled</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}</p>`,
+      }
+    }
+    case 'BOOKING_PAID': {
+      const clubName = String(data.clubName || 'Club')
+      const date = String(data.date || '')
+      const time = String(data.startTime || '')
+      const kind = String(data.kind || 'court')
+      const label = kind === 'coach' ? 'Coach session' : kind === 'package' ? 'Package booking' : 'Court booking'
+      return {
+        subject: `Payment received — ${clubName}`,
+        text: `${label} at ${clubName} has been marked paid.\nDate: ${date}\nTime: ${time}`,
+        html: `<p><strong>Payment received</strong> for ${esc(label)} at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}</p>`,
       }
     }
     case 'WAITLIST_SLOT_AVAILABLE': {

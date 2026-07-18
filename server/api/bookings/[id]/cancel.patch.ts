@@ -1,12 +1,13 @@
-import { canManageReservation } from '../../../utils/reservations'
+import { notifyBookingCancelled } from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
+import { canManageReservation } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const booking = await prisma.booking.findFirst({
     where: { id, userId: user.id },
-    include: { slot: { include: { court: { include: { club: true } } } }, payment: true },
+    include: { slot: { include: { court: { include: { club: true } } } }, payment: true, user: true },
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
   if (booking.status === 'CANCELLED') return { ok: true }
@@ -21,6 +22,18 @@ export default defineEventHandler(async (event) => {
     reason: 'athlete-cancel',
     paymentId: booking.payment?.id,
     userId: booking.userId,
+  })
+
+  await notifyBookingCancelled({
+    userId: user.id,
+    email: booking.user?.email,
+    kind: 'court',
+    clubName: booking.slot.court.club.nameEn || booking.slot.court.club.nameFa,
+    clubId: booking.slot.court.clubId,
+    bookingId: booking.id,
+    date: booking.slot.date,
+    startTime: booking.slot.startTime,
+    reason: 'athlete-cancel',
   })
 
   await notifyWaitlistForFreedSlot({

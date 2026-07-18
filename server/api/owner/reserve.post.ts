@@ -5,6 +5,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
+import { notifyBookingPaid } from '../../utils/bookingNotify'
 import { assertSlotBookable } from '../../utils/reservations'
 import { creditWallet } from '../../utils/wallet'
 
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: { include: { payment: true } } },
+    include: { booking: { include: { payment: true, user: true } } },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
@@ -49,6 +50,11 @@ export default defineEventHandler(async (event) => {
     slot.booking?.payment?.method || slot.booking?.paymentMethod,
   )
   const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
+  const previousPaid = Boolean(
+    slot.booking
+    && (isPaidPaymentStatus(slot.booking.payment?.status) || isPaidPaymentStatus(slot.booking.paymentStatus)),
+  )
+  const becomingPaid = paymentStatus === 'PAID' && !previousPaid
   const equipmentIds = [...new Set(body.equipmentIds || [])]
   const equipmentItems = await loadEquipmentForBooking(club.id, equipmentIds)
   const totalAmount = calculateSessionTotal({
@@ -113,6 +119,19 @@ export default defineEventHandler(async (event) => {
         data: { displayStatus },
       })
     })
+
+    if (becomingPaid && slot.booking.userId) {
+      await notifyBookingPaid({
+        userId: slot.booking.userId,
+        email: slot.booking.user?.email,
+        kind: 'court',
+        clubName: club.nameEn || club.nameFa,
+        clubId: club.id,
+        bookingId: slot.booking.id,
+        date: slot.date,
+        startTime: slot.startTime,
+      })
+    }
   } else {
     await prisma.$transaction(async (tx) => {
       const createdBooking = await tx.booking.create({

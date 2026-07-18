@@ -1,5 +1,6 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
+import { notifyBookingConfirmed } from '../../utils/bookingNotify'
 import { assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -62,19 +63,16 @@ export default defineEventHandler(async (event) => {
     return b
   })
 
-  if (dbUser.email) {
-    await sendNotification({
-      channel: 'email',
-      to: dbUser.email,
-      template: 'BOOKING_CONFIRMED',
-      data: {
-        kind: 'court',
-        clubName: slot.court.club.nameEn || slot.court.club.nameFa,
-        date: slot.date,
-        startTime: slot.startTime,
-      },
-    })
-  }
+  await notifyBookingConfirmed({
+    userId: user.id,
+    email: dbUser.email,
+    kind: 'court',
+    clubName: slot.court.club.nameEn || slot.court.club.nameFa,
+    clubId: slot.court.clubId,
+    bookingId: booking.id,
+    date: slot.date,
+    startTime: slot.startTime,
+  })
 
   return { id: booking.id, paymentStatus: paymentFields.paymentStatus }
 })
