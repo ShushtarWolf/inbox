@@ -39,6 +39,7 @@ const ownerPaths = [
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
 const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
+const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 const adminPaths = [
   '/admin',
   '/admin/clubs',
