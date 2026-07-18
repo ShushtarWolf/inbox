@@ -14,6 +14,7 @@ const feedbackTone = ref<'success' | 'error'>('success')
 
 const { data: pkg, pending, error } = await useFetch(`/api/packages/${id}`)
 const { pilotNoCoach } = usePilotFlags()
+const { onlineEnabled } = useCheckout()
 
 const packageBackTo = computed(() => {
   if (pilotNoCoach.value) return localePath('/clubs')
@@ -98,6 +99,11 @@ async function confirm() {
           {{ t('nav.profile') }}
         </NuxtLink>
       </p>
+      <div v-if="done && !onlineEnabled" class="ios-card space-y-1 p-4 text-center">
+        <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
+        <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(Math.max(0, pkg.price - (pkg.discount || 0))) }) }}</p>
+      </div>
 
       <button
         v-if="!done"
@@ -109,7 +115,7 @@ async function confirm() {
         {{ pkg.isFull ? t('booking.packageFull') : t('booking.packageConfirm') }}
       </button>
       <NuxtLink v-else :to="localePath('/athlete/bookings')" class="btn-primary block text-center">
-        {{ t('nav.bookings') }}
+        {{ t('booking.viewBookings') }}
       </NuxtLink>
     </div>
   </AppAsyncState>

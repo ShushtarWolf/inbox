@@ -28,14 +28,15 @@ const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
-const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
 const {
   bookingStatusLabel,
   paymentStatusLabel,
   bookingStatusBadgeClass,
   paymentStatusBadgeClass,
   isPayAtClubStatus,
+  paidHonestyNote,
 } = useBookingLabels()
+const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
 const rescheduleTarget = ref<CourtBooking | null>(null)
@@ -190,6 +191,7 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           <span class="neo-badge" :class="paymentStatusBadgeClass(paymentOf(b))">{{ paymentStatusLabel(paymentOf(b)) }}</span>
         </div>
         <p v-if="b.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p v-if="b.status !== 'CANCELLED' && paidHonestyNote(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(b)) }}</p>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex flex-wrap gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
@@ -231,6 +233,7 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           <span class="neo-badge" :class="paymentStatusBadgeClass(paymentOf(s))">{{ paymentStatusLabel(paymentOf(s)) }}</span>
         </div>
         <p v-if="s.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(s))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p v-if="s.status !== 'CANCELLED' && paidHonestyNote(paymentOf(s))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(s)) }}</p>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
         <div class="mt-2 flex flex-wrap gap-2">
           <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
@@ -268,6 +271,8 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           <span class="neo-badge" :class="bookingStatusBadgeClass(b.status)">{{ bookingStatusLabel(b.status) }}</span>
           <span class="neo-badge" :class="paymentStatusBadgeClass(paymentOf(b))">{{ paymentStatusLabel(paymentOf(b)) }}</span>
         </div>
+        <p v-if="b.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p v-if="b.status !== 'CANCELLED' && paidHonestyNote(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(b)) }}</p>
         <div class="mt-2 flex flex-wrap gap-2">
           <button
             v-if="b.status !== 'CANCELLED' && onlineEnabled && canPayOnline(paymentOf(b))"

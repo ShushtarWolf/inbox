@@ -53,6 +53,7 @@ const {
   paymentStatusBadgeClass,
   isPayAtClubStatus,
   cancelRefundNote,
+  paidHonestyNote,
 } = useBookingLabels()
 const paymentStatus = computed(() => session.value?.payment?.status || session.value?.paymentStatus)
 const actionError = ref('')
@@ -105,6 +106,9 @@ async function rescheduleSession() {
       </div>
       <p v-if="session.status !== 'CANCELLED' && isPayAtClubStatus(paymentStatus)" class="text-sm text-brand-gray-600">
         {{ $t('booking.payAtClubDetail') }}
+      </p>
+      <p v-if="session.status !== 'CANCELLED' && paidHonestyNote(paymentStatus)" class="text-sm text-brand-gray-600">
+        {{ paidHonestyNote(paymentStatus) }}
       </p>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ session.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(session.payment?.amount || session.price) }}</p>

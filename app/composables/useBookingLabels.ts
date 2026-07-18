@@ -40,6 +40,12 @@ export function useBookingLabels() {
     return payAtClubMode.value ? t('booking.cancelRefundNotePayAtClub') : t('booking.cancelRefundNote')
   }
 
+  /** Honest note when status is PAID under pay-at-club (desk/wallet — not IPG success). */
+  function paidHonestyNote(paymentStatus?: string | null) {
+    if (paymentStatus !== 'PAID' || !payAtClubMode.value) return ''
+    return t('booking.paidAtClubNote')
+  }
+
   return {
     payAtClubMode,
     bookingStatusLabel,
@@ -48,5 +54,6 @@ export function useBookingLabels() {
     paymentStatusBadgeClass,
     isPayAtClubStatus,
     cancelRefundNote,
+    paidHonestyNote,
   }
 }

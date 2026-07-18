@@ -15,6 +15,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'This session time is already booked': 'booking.errors.sessionTaken',
     'Coach is not bookable': 'booking.errors.coachNotBookable',
     'Coach not found': 'booking.errors.coachNotFound',
+    'Online checkout is disabled; pay at the club or use wallet balance': 'booking.checkoutDisabled',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

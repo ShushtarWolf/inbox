@@ -39,6 +39,7 @@ const {
   paymentStatusBadgeClass,
   isPayAtClubStatus,
   cancelRefundNote,
+  paidHonestyNote,
 } = useBookingLabels()
 const paying = ref(false)
 const actionError = ref('')
@@ -139,6 +140,9 @@ async function submitReview() {
       </p>
       <p v-if="booking.status !== 'CANCELLED' && isPayAtClubStatus(paymentStatus)" class="text-sm font-bold">
         {{ $t('booking.payAtClubAmount', { amount: formatCurrency(booking.payment?.amount || booking.slot.price) }) }}
+      </p>
+      <p v-if="booking.status !== 'CANCELLED' && paidHonestyNote(paymentStatus)" class="text-sm text-brand-gray-600">
+        {{ paidHonestyNote(paymentStatus) }}
       </p>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ booking.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>

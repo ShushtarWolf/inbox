@@ -11,6 +11,7 @@ const {
   bookingStatusBadgeClass,
   paymentStatusBadgeClass,
   isPayAtClubStatus,
+  paidHonestyNote,
 } = useBookingLabels()
 const { data, pending, error } = useAuthedFetch('/api/bookings/mine')
 
@@ -67,6 +68,7 @@ const nextPaymentStatus = computed(() => {
             <span class="neo-badge" :class="paymentStatusBadgeClass(nextPaymentStatus)">{{ paymentStatusLabel(nextPaymentStatus) }}</span>
           </div>
           <p v-if="isPayAtClubStatus(nextPaymentStatus)" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+          <p v-if="paidHonestyNote(nextPaymentStatus)" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(nextPaymentStatus) }}</p>
           <NuxtLink :to="nextDetailTo" class="mt-3 inline-block text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
         </template>
         <p v-else class="mt-2 ios-card border-dashed p-3 text-sm text-brand-gray-600">{{ $t('athlete.nextBookingFallback') }}</p>

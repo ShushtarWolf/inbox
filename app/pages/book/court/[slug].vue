@@ -127,7 +127,7 @@ async function payWithWallet() {
   try {
     await startCheckout({ bookingId: createdBookingId.value, useWallet: true })
     feedbackTone.value = 'success'
-    feedback.value = t('booking.payWithWallet')
+    feedback.value = t('booking.walletPaidSuccess')
   } catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
