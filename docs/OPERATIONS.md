@@ -11,13 +11,20 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_PUBLIC_SITE_URL` | Yes (prod) | Public URL for password reset and booking confirmation links (`https://inboxs.ir`) |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
-| `PAYMENTS_MODE` | No | `pay_at_club` (default), `test`, or `live` |
+| `PAYMENTS_MODE` | No | `pay_at_club` (default / current prod), `test`, or `live`. Keep `pay_at_club` — Zarinpal live is not implemented yet |
 | `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only) |
 | `SMTP_HOST` | If email | SMTP server hostname |
 | `SMTP_PORT` | If email | SMTP port (typically 587 or 465) |
 | `SMTP_USER` | If email | SMTP username |
 | `SMTP_PASS` | If email | SMTP password |
 | `SMTP_FROM` | If email | From address (e.g. `inbox <noreply@yourdomain.com>`) |
+| `SMS_ENABLED` | For live SMS | `true` to allow live sends (OTP + CRM); default stays log/dry-run |
+| `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
+| `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
+| `KAVENEGAR_TEMPLATE` | Optional | Kavenegar Verify Lookup template for OTP |
+| `KAVENEGAR_SENDER` | Optional | Kavenegar sender line |
+| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` on Liara to hide coach nav/URLs/APIs (Behnaz pilot) |
+| `PILOT_NO_COACH` | Pilot | Server-only coach gate without rebuild (optional alongside public flag) |
 | `SENTRY_DSN` | No | Server + client error tracking when set (uses `@sentry/node` / `@sentry/vue`) |
 | `S3_ENDPOINT` | For uploads | S3-compatible object storage endpoint |
 | `S3_BUCKET` | For uploads | Bucket name |
@@ -86,7 +93,7 @@ One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22).
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book: `/book/court/{slug}` (athlete account needed to complete a booking)
 
-Optional env for coach-hidden pilot UX: `NUXT_PUBLIC_PILOT_NO_COACH=true`
+Pilot (Behnaz): set `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara when ready (optional `PILOT_NO_COACH=true` for server-only gate). Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Do not flip Liara env from this runbook without an explicit ops step.
 
 ### Review club applications
 

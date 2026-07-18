@@ -11,18 +11,19 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] `NUXT_PUBLIC_SITE_URL=https://inboxs.ir` on Liara
 - [x] `SEED_ON_EMPTY` removed / set to `false` after first deploy
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
-- [x] `PAYMENTS_MODE=pay_at_club` (no live IPG until business approval)
+- [x] `PAYMENTS_MODE=pay_at_club` remains (pay at club only; Zarinpal live still not implemented — do not set `live` until a real IPG adapter ships)
 - [ ] Behnaz pilot: `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara (`inbox` app) — hides coach nav/URLs/APIs; also set `PILOT_NO_COACH=true` if server-only gate needed without rebuild
-- [ ] `SENTRY_DSN` set for production error tracking (Liara env vars)
-- [ ] Object storage bucket created; `S3_*` vars set on Liara app
-- [ ] Google OAuth client created; `NUXT_OAUTH_GOOGLE_*` vars set; redirect URI `https://inboxs.ir/auth/google`
-- [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Liara (when ready to send live email)
+- [ ] Live SMS/OTP when ready: `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` on Liara (optional `KAVENEGAR_TEMPLATE` / `KAVENEGAR_SENDER`); until then SMS stays log/dry-run
+- [ ] `SENTRY_DSN` set for production error tracking (Liara env vars) — keep unchecked until verified on Liara
+- [ ] Object storage bucket created; `S3_*` vars set on Liara app — keep unchecked until verified
+- [ ] Google OAuth client created; `NUXT_OAUTH_GOOGLE_*` vars set; redirect URI `https://inboxs.ir/auth/google` — keep unchecked until verified
+- [ ] `EMAIL_ENABLED=true` + SMTP vars configured on Liara (when ready to send live email) — keep unchecked until verified
 - [x] Login page no longer pre-fills demo credentials
 - [x] Demo seed gated behind `SEED_DEMO_DATA=true` (default: sports catalog only, even in dev)
 - [x] Demo cleanup runs automatically on production startup
 - [x] Demo login/registration blocked in production (`*@inbox.local`)
 - [x] Demo passwords removed from production (unset `SEED_DEMO_DATA`; auto-cleanup on deploy)
-- [ ] Postgres backup verified (`pg_dump`)
+- [ ] Postgres backup verified (`pg_dump`) — keep unchecked until verified
 
 ## Automated QA
 
