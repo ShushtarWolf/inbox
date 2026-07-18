@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
   if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
     throw createError({ statusCode: 401, statusMessage: user && !user.passwordHash ? 'Use Google sign-in for this account' : 'Invalid credentials' })
   }
+  if (user.disabledAt) {
+    throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+  }
   await setUserSession(event, { user: toSessionUser(user) })
   const redirectTo = postLoginRedirectPath(user, locale, returnTo)
   const { coachProfile, ...rest } = user

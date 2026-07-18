@@ -42,6 +42,10 @@ export async function requireUser(event: H3Event) {
     await clearUserSession(event)
     throw createError({ statusCode: 401, statusMessage: 'Session expired' })
   }
+  if (dbUser.disabledAt) {
+    await clearUserSession(event)
+    throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+  }
   return {
     id: dbUser.id,
     email: dbUser.email,

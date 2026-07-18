@@ -51,6 +51,14 @@ async function main() {
   }
   console.log('ok  admin provision rejects wrong secret')
 
+  const adminOverviewWrong = await fetch(`${base}/api/admin/overview`, {
+    headers: { 'x-admin-secret': 'definitely-wrong-secret' },
+  })
+  if (adminOverviewWrong.status !== 403) {
+    throw new Error(`admin overview wrong secret expected 403, got ${adminOverviewWrong.status}`)
+  }
+  console.log('ok  admin overview rejects wrong secret')
+
   // XSS in page search — HTML should not contain unescaped script tag from URL
   const { html: clubsHtml } = await fetchPage(base, `/clubs?city=${encodeURIComponent(xssPayload)}`)
   if (clubsHtml.includes('<script>alert("xss")</script>')) {

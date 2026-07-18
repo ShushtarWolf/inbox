@@ -120,6 +120,7 @@ model User {
   avatarUrl     String?
   oauthProvider String?
   oauthSubject  String?
+  disabledAt    DateTime?
   createdAt     DateTime @default(now())
 
   ownedClubs      Club[]           @relation("ClubOwner")

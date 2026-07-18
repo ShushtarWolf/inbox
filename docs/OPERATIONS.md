@@ -67,14 +67,23 @@ liara deploy --app inbox
 
 ## Admin provisioning
 
-### Review club applications (web UI)
+### Open the platform admin console (local)
 
-1. Open `/admin/applications` on the production site
-2. Enter `ADMIN_PROVISION_SECRET`
-3. Review pending applications and approve with the owner login email
-4. New owners receive a welcome email with login URL and temporary password
+1. Ensure Postgres is running (`docker compose up -d` or equivalent) and `DATABASE_URL` is set in `.env`
+2. Set `ADMIN_PROVISION_SECRET` in `.env` (same value used for `x-admin-secret` on APIs)
+3. `npm run dev` → open **http://localhost:3000/admin**
+4. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
+5. Console sections: Overview · Clubs · Users · Bookings · Applications · Bug reports · Provision (CLUB_ADMIN)
 
-### Create coach or club owner (API)
+### Review club applications
+
+1. Open `/admin/applications`
+2. Approve with the owner login email (or reject)
+3. New owners receive a welcome email with login URL and temporary password
+
+### Create club owner (UI or API)
+
+Preferred: `/admin/provision` (CLUB_ADMIN only in the UI).
 
 ```bash
 curl -X POST https://inboxs.ir/api/admin/provision \
@@ -86,10 +95,12 @@ curl -X POST https://inboxs.ir/api/admin/provision \
 ### Approve club application
 
 ```bash
-curl -X POST https://inboxs.ir/api/admin/clubs/CLUB_ID/approve \
+curl -X POST https://inboxs.ir/api/admin/clubs/APPLICATION_ID/approve \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   -d '{"ownerEmail":"owner@club.ir"}'
 ```
+
+(`APPLICATION_ID` is the club application id, not the club id.)
 
 ## Local development
 

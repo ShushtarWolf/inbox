@@ -39,7 +39,15 @@ const ownerPaths = [
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
 const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
-const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/notifications', '/athlete/profile']
+const adminPaths = [
+  '/admin',
+  '/admin/clubs',
+  '/admin/users',
+  '/admin/bookings',
+  '/admin/applications',
+  '/admin/bug-reports',
+  '/admin/provision',
+]
 
 const cookieJar = new Map()
 
@@ -104,6 +112,18 @@ async function main() {
   await check('/coach', { expectRedirect: true, label: 'guest /coach' })
   await check('/athlete', { expectRedirect: true, label: 'guest /athlete' })
   console.log('ok  guest dashboard redirects')
+
+  for (const path of adminPaths) {
+    await check(path, { label: `admin ${path}` })
+    console.log(`ok  admin ${path}`)
+  }
+
+  // Admin APIs require secret
+  const adminOverview = await fetch(`${base}/api/admin/overview`)
+  if (adminOverview.status !== 403 && adminOverview.status !== 503) {
+    throw new Error(`admin overview without secret expected 403/503, got ${adminOverview.status}`)
+  }
+  console.log('ok  admin overview requires secret')
 
   if (prodAware) {
     console.log('skip  *@inbox.local dashboard login (prod / SMOKE_SKIP_DEMO)')

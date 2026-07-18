@@ -16,6 +16,7 @@ export default defineCachedEventHandler(async (event) => {
   const sort = (query.sort as string | undefined) || 'rank'
 
   const where = {
+    status: 'ACTIVE' as const,
     ...(sport ? { courts: { some: { sport: { slug: sport } } } } : {}),
     ...(city ? { city } : {}),
     ...(district ? { district } : {}),

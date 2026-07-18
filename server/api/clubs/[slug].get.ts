@@ -27,7 +27,7 @@ export default defineCachedEventHandler(async (event) => {
       },
     },
   })
-  if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })
+  if (!club || club.status !== 'ACTIVE') throw createError({ statusCode: 404, statusMessage: 'Club not found' })
 
   const today = todayDateStr()
 

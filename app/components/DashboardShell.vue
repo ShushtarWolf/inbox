@@ -6,9 +6,14 @@ const props = withDefaults(defineProps<{
   items: NavItem[]
   wide?: boolean
   darkNav?: boolean
+  logoutLabel?: string
+  customLogout?: () => void | Promise<void>
+  hideUser?: boolean
 }>(), {
   wide: false,
   darkNav: false,
+  logoutLabel: '',
+  hideUser: false,
 })
 
 const { t } = useI18n()
@@ -18,8 +23,14 @@ const open = ref(false)
 const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
 
 async function handleLogout() {
+  if (props.customLogout) {
+    await props.customLogout()
+    return
+  }
   await logout()
 }
+
+const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 
 const mainClass = computed(() => {
   return props.wide ? 'w-full px-4 py-5 lg:px-8 lg:py-8' : 'mx-auto w-full max-w-lg px-4 py-5 lg:max-w-4xl lg:px-6 lg:py-8'
@@ -38,7 +49,7 @@ onMounted(() => {
   if (import.meta.client) {
     document.addEventListener('keydown', onKeydown)
   }
-  if (!displayName.value) fetchAuth()
+  if (!props.hideUser && !displayName.value) fetchAuth()
 })
 
 onUnmounted(() => {
@@ -87,7 +98,7 @@ function goBack() {
           <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
           <div class="flex min-w-0 items-center gap-2">
             <AppUserShortcut
-              v-if="displayName"
+              v-if="displayName && !hideUser"
               :to="profilePath"
               :name="displayName"
               :avatar-url="avatarUrl"
@@ -96,7 +107,7 @@ function goBack() {
               class="sm:hidden"
             />
             <AppUserShortcut
-              v-if="displayName"
+              v-if="displayName && !hideUser"
               :to="profilePath"
               :name="displayName"
               :avatar-url="avatarUrl"
@@ -112,7 +123,7 @@ function goBack() {
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
               <span class="inline-flex items-center gap-1.5">
                 <AppIcon name="logout" size="sm" />
-                {{ t('nav.logout') }}
+                {{ resolvedLogoutLabel }}
               </span>
             </button>
           </div>
@@ -135,7 +146,7 @@ function goBack() {
           </NuxtLink>
         </div>
         <AppUserShortcut
-          v-if="displayName"
+          v-if="displayName && !hideUser"
           :to="profilePath"
           :name="displayName"
           :avatar-url="avatarUrl"
@@ -144,7 +155,7 @@ function goBack() {
         <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
           <span class="inline-flex items-center gap-1.5">
             <AppIcon name="logout" size="sm" />
-            {{ t('nav.logout') }}
+            {{ resolvedLogoutLabel }}
           </span>
         </button>
       </div>

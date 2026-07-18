@@ -24,6 +24,9 @@ export default defineEventHandler(async (event) => {
     if (!user) {
       throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
     }
+    if (user.disabledAt) {
+      throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+    }
     await prisma.user.update({
       where: { id: user.id },
       data: { phoneVerifiedAt: new Date() },

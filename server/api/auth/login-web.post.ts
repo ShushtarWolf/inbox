@@ -29,6 +29,9 @@ export default defineEventHandler(async (event) => {
       const errorCode = user && !user.passwordHash ? 'useGoogle' : 'invalid'
       return sendRedirect(event, `/login?error=${errorCode}`)
     }
+    if (user.disabledAt) {
+      return sendRedirect(event, `/login?error=disabled`)
+    }
 
     await setUserSession(event, { user: toSessionUser(user) })
 
