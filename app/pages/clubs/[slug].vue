@@ -75,16 +75,6 @@ const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
       </div>
     </section>
 
-    <section v-if="club.coaches?.length" class="ios-card p-4">
-      <h2 class="mb-3 font-bold">{{ t('owner.coaches') }}</h2>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <NuxtLink v-for="coach in club.coaches" :key="coach.id" :to="localePath(`/coaches/${coach.id}`)" class="ios-card p-3">
-          <p class="font-bold">{{ localizedField(coach, 'nameFa', 'nameEn') }}</p>
-          <p class="text-xs text-brand-gray-600">{{ localizedField(coach, 'headlineFa', 'headlineEn') }}</p>
-        </NuxtLink>
-      </div>
-    </section>
-
     <section class="ios-card p-4">
       <h2 class="mb-3 font-bold">{{ t('clubs.map') }}</h2>
       <p class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>

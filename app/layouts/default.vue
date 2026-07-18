@@ -13,10 +13,10 @@ const nav = computed(() => {
     ? localePath('/login')
     : dashboardPathForRole(user.value.role)
 
+  // Pilot: court booking is primary; coaches stay reachable via /coaches but off the main nav.
   return [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
-    { to: localePath('/coaches'), label: t('nav.coaches'), icon: 'person' },
     { to: meTarget, label: t('nav.me'), icon: 'account_circle' },
   ]
 })

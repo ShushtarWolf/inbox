@@ -14,6 +14,7 @@ const date = ref(typeof route.query.date === 'string' ? route.query.date : today
 const selectedSlot = ref<string | null>(typeof route.query.slot === 'string' ? route.query.slot : null)
 const done = ref(false)
 const createdBookingId = ref<string | null>(null)
+const bookedPrice = ref<number | null>(null)
 const paying = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
@@ -66,8 +67,10 @@ async function confirm() {
     return
   }
   try {
+    const selected = slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
     const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', { method: 'POST', body: { slotId: selectedSlot.value } })
     createdBookingId.value = result.id
+    bookedPrice.value = selected?.price ?? null
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = t('booking.successCourt')
@@ -158,7 +161,11 @@ onMounted(() => {
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCourt') }}</p>
       <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
       <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
-      <p v-if="!onlineEnabled" class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
+      <template v-if="!onlineEnabled">
+        <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
+        <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+      </template>
       <div v-else class="mt-2 space-y-2">
         <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">
           {{ paying ? t('common.loading') : t('booking.payNow') }}
@@ -173,7 +180,8 @@ onMounted(() => {
           {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
         </button>
       </div>
-      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-ghost mt-2 inline-block">{{ t('booking.viewBookings') }}</NuxtLink>
+      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
+      <NuxtLink :to="localePath('/clubs')" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
     </div>
 
     <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">

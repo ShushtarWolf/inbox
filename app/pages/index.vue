@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
-
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
@@ -17,14 +15,8 @@ if (!sport.value && sports.value?.length) {
 
 /** Unfiltered clubs so Canva rails (suggestions / tennis / padel) stay populated. */
 const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
-const { data: coaches, pending: coachesPending } = await useFetch('/api/coaches', {
-  query: computed(() => ({
-    sport: sport.value,
-  })),
-  watch: [sport],
-})
 
-const pagePending = computed(() => sportsPending.value || clubsPending.value || coachesPending.value)
+const pagePending = computed(() => sportsPending.value || clubsPending.value)
 
 onMounted(() => {
   if (!user.value) fetchAuth()
@@ -40,7 +32,6 @@ const padelClubs = computed(() => {
   const list = clubs.value || []
   return list.filter((club) => club.sports?.includes('padel')).slice(0, 6)
 })
-const highlightedCoaches = computed(() => coaches.value?.slice(0, 6) || [])
 
 const heroSlides = computed(() => [
   {
@@ -52,11 +43,6 @@ const heroSlides = computed(() => [
     title: t('home.bookCourt'),
     body: t('home.bookCourtHint'),
     image: tennisClubs.value[0]?.image || padelClubs.value[0]?.image || '/placeholders/club.svg',
-  },
-  {
-    title: t('home.findCoach'),
-    body: t('home.findCoachHint'),
-    image: highlightedCoaches.value[0]?.photo || '/placeholders/coach.svg',
   },
 ])
 
@@ -72,15 +58,7 @@ const heroSearchDate = computed(() => {
   }).format(new Date())
 })
 
-function specialtyLabel(value: string) {
-  return translateCoachSpecialty(t, value)
-}
-
-function formatSpecialties(values?: string[]) {
-  return values?.slice(0, 2).map(specialtyLabel).join(' · ') || t('home.coachSessionsLabel')
-}
-
-function bookingLink(path: '/clubs' | '/coaches', querySport?: string) {
+function bookingLink(path: '/clubs', querySport?: string) {
   return localePath({
     path,
     query: (querySport || sport.value) ? { sport: querySport || sport.value } : {},
@@ -252,32 +230,6 @@ watch(sports, (list) => {
             <div class="canva-venue-card-body">
               <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
               <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
-              <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
-            </div>
-          </NuxtLink>
-        </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
-      </section>
-
-      <section class="space-y-3">
-        <div class="flex items-end justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-bold text-brand-primary">{{ t('home.coachSectionTitle') }}</h2>
-            <p class="text-xs text-brand-gray-600">{{ t('home.coachSectionBody') }}</p>
-          </div>
-          <NuxtLink :to="bookingLink('/coaches')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
-        </div>
-        <div v-if="highlightedCoaches.length" class="canva-rail">
-          <NuxtLink
-            v-for="coach in highlightedCoaches"
-            :key="coach.id"
-            :to="localePath(`/book/coach/${coach.id}`)"
-            class="canva-venue-card"
-          >
-            <img :src="coach.photo || '/placeholders/coach.svg'" alt="" />
-            <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(coach, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ formatSpecialties(coach.specialties) }}</p>
               <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>

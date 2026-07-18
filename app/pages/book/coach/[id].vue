@@ -151,9 +151,11 @@ onMounted(() => {
       </div>
     </AppAsyncState>
 
-    <div v-if="done" class="ios-card p-4 text-center">
+    <div v-if="done" class="ios-card space-y-2 p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
-      <p class="mt-1 text-sm">{{ t('booking.payAtClub') }}</p>
+      <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
   </div>
 </template>

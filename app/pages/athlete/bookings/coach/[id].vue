@@ -45,15 +45,29 @@ function paymentStatusLabel(status: string) {
 function bookingStatusBadgeClass(status: string) {
   if (status === 'CONFIRMED') return 'tail-badge-success'
   if (status === 'CANCELLED') return 'tail-badge-danger'
-  if (status === 'PENDING' || status === 'PENDING_ONLINE' || status === 'PENDING_AT_CLUB') return 'tail-badge-warning'
+  if (status === 'PENDING') return 'tail-badge-warning'
   return 'tail-badge-gray'
 }
+
+const {
+  paymentStatusBadgeClass,
+  isPayAtClubStatus,
+  cancelRefundNote,
+} = useBookingLabels()
+const paymentStatus = computed(() => session.value?.payment?.status || session.value?.paymentStatus)
+const actionError = ref('')
+const { fetchErrorMessage } = useFetchError()
 
 async function cancelSession() {
   if (!session.value || session.value.status === 'CANCELLED') return
   if (!confirm(t('booking.confirmCancel'))) return
-  await $fetch(`/api/coach-sessions/${session.value.id}/cancel`, { method: 'PATCH' })
-  await refresh()
+  actionError.value = ''
+  try {
+    await $fetch(`/api/coach-sessions/${session.value.id}/cancel`, { method: 'PATCH' })
+    await refresh()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('booking.actionFailed'))
+  }
 }
 
 async function loadAvailability() {
@@ -87,13 +101,18 @@ async function rescheduleSession() {
     <div class="ios-card space-y-2 p-4">
       <div class="flex flex-wrap gap-2 text-xs">
         <span class="neo-badge" :class="bookingStatusBadgeClass(session.status)">{{ bookingStatusLabel(session.status) }}</span>
-        <span class="neo-badge bg-white">{{ paymentStatusLabel(session.payment?.status || session.paymentStatus) }}</span>
+        <span class="neo-badge" :class="paymentStatusBadgeClass(paymentStatus)">{{ paymentStatusLabel(paymentStatus) }}</span>
       </div>
+      <p v-if="session.status !== 'CANCELLED' && isPayAtClubStatus(paymentStatus)" class="text-sm text-brand-gray-600">
+        {{ $t('booking.payAtClubDetail') }}
+      </p>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ session.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(session.payment?.amount || session.price) }}</p>
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${session.payment?.method || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.cancellationWindowHours || 24) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.rescheduleWindowHours || 24) }} {{ $t('booking.rescheduleWindow') }}</p>
+      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote() }}</p>
+      <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
       <div v-if="session.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button type="button" class="btn-ghost" @click="cancelSession">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadAvailability">{{ $t('booking.reschedule') }}</button>

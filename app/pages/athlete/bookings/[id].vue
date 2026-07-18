@@ -30,40 +30,45 @@ watch(rescheduleDate, () => {
   if (booking.value && booking.value.status !== 'CANCELLED') refreshSlots()
 })
 
-function bookingStatusLabel(status: string) {
-  return t(`booking.status.${status}`)
-}
-
 const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const {
+  bookingStatusLabel,
+  paymentStatusLabel,
+  bookingStatusBadgeClass,
+  paymentStatusBadgeClass,
+  isPayAtClubStatus,
+  cancelRefundNote,
+} = useBookingLabels()
 const paying = ref(false)
+const actionError = ref('')
+const { fetchErrorMessage } = useFetchError()
 
-function paymentStatusLabel(status: string) {
-  return t(`booking.paymentStatus.${status}`)
-}
-
-function bookingStatusBadgeClass(status: string) {
-  if (status === 'CONFIRMED') return 'tail-badge-success'
-  if (status === 'CANCELLED') return 'tail-badge-danger'
-  if (status === 'PENDING' || status === 'PENDING_ONLINE' || status === 'PENDING_AT_CLUB') return 'tail-badge-warning'
-  return 'tail-badge-gray'
-}
+const paymentStatus = computed(() => booking.value?.payment?.status || booking.value?.paymentStatus)
 
 async function cancelBooking() {
   if (!booking.value || booking.value.status === 'CANCELLED') return
   if (!confirm(t('booking.confirmCancel'))) return
-  const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/bookings/${booking.value.id}/cancel`, { method: 'PATCH' })
-  if (result.refund?.walletCredited) {
-    alert(t('booking.refundToWallet'))
+  actionError.value = ''
+  try {
+    const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/bookings/${booking.value.id}/cancel`, { method: 'PATCH' })
+    if (result.refund?.walletCredited) {
+      alert(t('booking.refundToWallet'))
+    }
+    await refresh()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('booking.actionFailed'))
   }
-  await refresh()
 }
 
 async function payBooking(useWallet = false) {
   if (!booking.value) return
   paying.value = true
+  actionError.value = ''
   try {
     await startCheckout({ bookingId: booking.value.id, useWallet })
     await refresh()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('booking.actionFailed'))
   } finally {
     paying.value = false
   }
@@ -76,12 +81,17 @@ async function loadReplacementSlots() {
 
 async function rescheduleBooking() {
   if (!booking.value || !rescheduleSlotId.value) return
-  await $fetch(`/api/bookings/${booking.value.id}/reschedule`, {
-    method: 'PATCH',
-    body: { slotId: rescheduleSlotId.value },
-  })
-  rescheduleSlotId.value = ''
-  await refresh()
+  actionError.value = ''
+  try {
+    await $fetch(`/api/bookings/${booking.value.id}/reschedule`, {
+      method: 'PATCH',
+      body: { slotId: rescheduleSlotId.value },
+    })
+    rescheduleSlotId.value = ''
+    await refresh()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('booking.actionFailed'))
+  }
 }
 
 const reviewRating = ref(5)
@@ -121,17 +131,24 @@ async function submitReview() {
     <div class="ios-card space-y-2 p-4">
       <div class="flex flex-wrap gap-2 text-xs">
         <span class="neo-badge" :class="bookingStatusBadgeClass(booking.status)">{{ bookingStatusLabel(booking.status) }}</span>
-        <span class="neo-badge bg-white">{{ paymentStatusLabel(booking.payment?.status || booking.paymentStatus) }}</span>
+        <span class="neo-badge" :class="paymentStatusBadgeClass(paymentStatus)">{{ paymentStatusLabel(paymentStatus) }}</span>
       </div>
+      <p v-if="booking.status !== 'CANCELLED' && isPayAtClubStatus(paymentStatus)" class="text-sm text-brand-gray-600">
+        {{ $t('booking.payAtClubDetail') }}
+      </p>
+      <p v-if="booking.status !== 'CANCELLED' && isPayAtClubStatus(paymentStatus)" class="text-sm font-bold">
+        {{ $t('booking.payAtClubAmount', { amount: formatCurrency(booking.payment?.amount || booking.slot.price) }) }}
+      </p>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ booking.id }}</bdi></p>
       <p class="text-sm font-bold">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${booking.payment?.method || booking.paymentMethod || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
-      <p class="text-xs text-brand-gray-600">{{ $t('booking.cancelRefundNote') }}</p>
+      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote() }}</p>
+      <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button
-          v-if="onlineEnabled && canPayOnline(booking.payment?.status || booking.paymentStatus)"
+          v-if="onlineEnabled && canPayOnline(paymentStatus)"
           type="button"
           class="btn-primary"
           :disabled="paying"

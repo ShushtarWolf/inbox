@@ -86,7 +86,7 @@
     "seeAll": "دیدن همه",
     "clubCta": "رزرو",
     "coachCta": "رزرو مربی",
-    "heroSlideTitle": "Check this box!",
+    "heroSlideTitle": "رزرو زمین بعدی",
     "suggestionsTitle": "پیشنهاد ما",
     "suggestionsBody": "بهترین‌های انتخاب‌شده توسط inbox",
     "tennisTitle": "زمین تنیس",
@@ -172,10 +172,16 @@
   },
   "athlete": {
     "nextBookingFallback": "رزروی در پیش ندارید",
+    "bookCourtCta": "رزرو زمین",
+    "browseClubsCta": "مشاهده باشگاه‌ها",
+    "nextBookingTitle": "رزرو بعدی",
     "walletTitle": "کیف پول",
     "walletEmpty": "تراکنشی ثبت نشده",
     "walletCredit": "واریز",
-    "walletDebit": "برداشت"
+    "walletDebit": "برداشت",
+    "walletHistoryTitle": "تاریخچه",
+    "walletTopUpUnavailable": "شارژ آنلاین فعلاً فعال نیست. موجودی برای بازپرداخت و اعتبار ناشی از لغو رزرو است.",
+    "walletRefundsOnly": "فقط بازپرداخت و اعتبار"
   },
   "coach": {
     "today": "امروز",
@@ -331,6 +337,8 @@
   },
   "booking": {
     "payAtClub": "پرداخت در باشگاه",
+    "payAtClubDetail": "هنگام حضور در باشگاه پرداخت کنید. پرداخت آنلاین برای این رزرو فعال نیست.",
+    "payAtClubAmount": "مبلغ قابل پرداخت در باشگاه: {amount}",
     "confirm": "تأیید رزرو",
     "cancel": "لغو",
     "confirmCancel": "این رزرو لغو شود؟ این کار قابل بازگشت نیست.",
@@ -356,6 +364,7 @@
     "reschedule": "جابه‌جایی",
     "actionFailed": "انجام این عملیات ممکن نشد.",
     "emptyState": "هنوز رزروی ندارید.",
+    "emptyStateCta": "باشگاه را پیدا کنید و زمین رزرو کنید",
     "reservationId": "شناسه رزرو",
     "status": {
       "CONFIRMED": "تایید شده",
@@ -368,14 +377,17 @@
       "PENDING_AT_CLUB": "پرداخت در باشگاه",
       "PENDING_ONLINE": "در انتظار پرداخت",
       "NOT_PAID": "پرداخت‌نشده",
-      "REFUNDED": "بازپرداخت‌شده"
+      "REFUNDED": "بازپرداخت‌شده",
+      "FAILED": "پرداخت ناموفق"
     },
     "payNow": "پرداخت آنلاین",
     "payWithWallet": "پرداخت از کیف پول",
     "walletBalance": "موجودی کیف پول",
     "refundToWallet": "مبلغ به کیف پول شما بازگردانده شد",
     "cancelRefundNote": "در صورت پرداخت آنلاین، مبلغ به کیف پول یا درگاه بازگردانده می‌شود",
+    "cancelRefundNotePayAtClub": "در صورت لغو به‌موقع، رزرو آزاد می‌شود. پرداخت آنلاینی انجام نشده است.",
     "viewBookings": "مشاهده رزروها",
+    "bookAgain": "رزرو زمین دیگر",
     "errors": {
       "startTimeTooSoon": "زمان انتخاب‌شده برای رزرو خیلی نزدیک است. لطفاً سانس بعدی را انتخاب کنید.",
       "slotInPast": "این سانس گذشته است و قابل رزرو نیست.",

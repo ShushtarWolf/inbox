@@ -86,7 +86,13 @@
     "coachSectionBody": "For private training and better weekly planning",
     "seeAll": "See all",
     "clubCta": "Book",
-    "coachCta": "Book coach"
+    "coachCta": "Book coach",
+    "heroSlideTitle": "Book your next court",
+    "suggestionsTitle": "Suggested for you",
+    "suggestionsBody": "Quick picks to start booking",
+    "tennisTitle": "Tennis",
+    "padelTitle": "Padel",
+    "bookNow": "Book now"
   },
   "clubs": {
     "title": "Clubs",
@@ -167,10 +173,16 @@
   },
   "athlete": {
     "nextBookingFallback": "No upcoming booking",
+    "bookCourtCta": "Book a court",
+    "browseClubsCta": "Browse clubs",
+    "nextBookingTitle": "Next booking",
     "walletTitle": "Wallet",
     "walletEmpty": "No transactions yet",
     "walletCredit": "Credit",
-    "walletDebit": "Debit"
+    "walletDebit": "Debit",
+    "walletHistoryTitle": "History",
+    "walletTopUpUnavailable": "Online top-up is not available yet. This balance is for refunds and credits from cancelled bookings.",
+    "walletRefundsOnly": "Refunds & credits only"
   },
   "coach": {
     "today": "Today",
@@ -326,6 +338,8 @@
   },
   "booking": {
     "payAtClub": "Pay at club",
+    "payAtClubDetail": "Pay when you arrive at the club. Online payment is not available for this booking.",
+    "payAtClubAmount": "Amount due at club: {amount}",
     "confirm": "Confirm booking",
     "cancel": "Cancel",
     "confirmCancel": "Cancel this booking? This cannot be undone.",
@@ -351,6 +365,7 @@
     "reschedule": "Reschedule",
     "actionFailed": "This action could not be completed.",
     "emptyState": "You do not have any bookings yet.",
+    "emptyStateCta": "Find a club and book a court",
     "reservationId": "Reservation ID",
     "status": {
       "CONFIRMED": "Confirmed",
@@ -363,14 +378,17 @@
       "PENDING_AT_CLUB": "Pay at club",
       "PENDING_ONLINE": "Payment pending",
       "NOT_PAID": "Not paid",
-      "REFUNDED": "Refunded"
+      "REFUNDED": "Refunded",
+      "FAILED": "Payment failed"
     },
     "payNow": "Pay online",
     "payWithWallet": "Pay with wallet",
     "walletBalance": "Wallet balance",
     "refundToWallet": "Amount refunded to your wallet",
     "cancelRefundNote": "If you paid online, the amount is refunded to your wallet or payment gateway",
+    "cancelRefundNotePayAtClub": "If you cancel in time, the reservation is released. No online payment was taken.",
     "viewBookings": "View my bookings",
+    "bookAgain": "Book another court",
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
       "slotInPast": "This time slot has already passed and cannot be booked.",
