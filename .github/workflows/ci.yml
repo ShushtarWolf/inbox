@@ -46,7 +46,7 @@ jobs:
       - run: npx nuxt prepare
       - run: npx prisma generate
       - run: npm run db:migrate:deploy
-      - run: FORCE_SEED_RESET=true npm run db:seed
+      - run: FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed
       - run: npm run check:i18n
       - run: npm run build
       - run: npm test
