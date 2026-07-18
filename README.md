@@ -158,6 +158,7 @@ npm run check:db    # verify DATABASE_URL is PostgreSQL
 npm run db:reset    # reset + seed
 npm run build       # production build
 npm run smoke       # API smoke (needs server running)
+npm run smoke:pilot # Behnaz pilot happy path (needs server + ADMIN_PROVISION_SECRET)
 npm run smoke:dashboard  # dashboard HTML routes (needs server running)
 node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to production)
 ```

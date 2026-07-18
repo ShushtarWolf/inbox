@@ -1,7 +1,47 @@
 /** Shared helpers for smoke / integration scripts. */
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+/** Load `.env` into process.env without overwriting existing keys. */
+export function loadDotEnv(filePath = resolve(process.cwd(), '.env')) {
+  if (!existsSync(filePath)) return
+  for (const line of readFileSync(filePath, 'utf8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eq = trimmed.indexOf('=')
+    if (eq <= 0) continue
+    const key = trimmed.slice(0, eq).trim()
+    let value = trimmed.slice(eq + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (!(key in process.env)) process.env[key] = value
+  }
+}
 
 export function createCookieJar() {
   return new Map()
+}
+
+function mergeSetCookies(jar, session, setCookies) {
+  if (!jar || !session || !setCookies?.length) return
+  const merged = new Map()
+  const previous = jar.get(session)
+  if (previous) {
+    for (const item of previous.split('; ')) {
+      const [key, ...rest] = item.split('=')
+      if (key) merged.set(key, rest.join('='))
+    }
+  }
+  for (const entry of setCookies) {
+    const [pair] = entry.split(';')
+    const [key, ...rest] = pair.split('=')
+    if (key) merged.set(key, rest.join('='))
+  }
+  jar.set(session, [...merged.entries()].map(([key, value]) => `${key}=${value}`).join('; '))
 }
 
 export async function login(base, jar, session, email, password = 'demo1234') {
@@ -12,23 +52,28 @@ export async function login(base, jar, session, email, password = 'demo1234') {
   })
   if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
   const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
-  if (setCookies.length) {
-    jar.set(session, setCookies.map((entry) => entry.split(';')[0]).join('; '))
-  }
+  mergeSetCookies(jar, session, setCookies)
   return res.json()
 }
 
 export async function apiFetch(base, path, { jar, session, method = 'GET', body, headers = {}, expectStatus } = {}) {
   const reqHeaders = new Headers(headers)
+  if (body !== undefined && !reqHeaders.has('content-type')) {
+    reqHeaders.set('content-type', 'application/json')
+  }
   if (session && jar?.has(session)) {
     reqHeaders.set('cookie', jar.get(session))
   }
   const res = await fetch(`${base}${path}`, {
     method,
     headers: reqHeaders,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
     redirect: 'manual',
   })
+  if (session && jar) {
+    const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
+    mergeSetCookies(jar, session, setCookies)
+  }
   if (expectStatus !== undefined && res.status !== expectStatus) {
     throw new Error(`${path} expected ${expectStatus}, got ${res.status}`)
   }

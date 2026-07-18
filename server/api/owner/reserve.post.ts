@@ -61,9 +61,14 @@ export default defineEventHandler(async (event) => {
     courtPrice: slot.price,
     equipmentPrices: equipmentItems.map((item) => (item.category === 'CLUB' ? 0 : item.price)),
   })
-  const displayStatus = (body.displayStatus as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC' | undefined)
-    || slot.displayStatus
-    || 'RESERVED'
+  // FREE is truthy — never keep FREE when creating/updating a desk booking unless explicitly set.
+  const allowedDisplay = new Set(['RESERVED', 'TEAM', 'PENDING', 'PUBLIC'])
+  const requestedDisplay = typeof body.displayStatus === 'string' ? body.displayStatus : undefined
+  const displayStatus = (
+    requestedDisplay && allowedDisplay.has(requestedDisplay)
+      ? requestedDisplay
+      : (!slot.booking || slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus)
+  ) as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC'
   const provider = getPaymentsMode() === 'pay_at_club' ? 'pay_at_club' : undefined
 
   if (slot.booking) {

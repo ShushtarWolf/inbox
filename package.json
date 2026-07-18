@@ -25,6 +25,7 @@
     "smoke:security": "node scripts/smoke-security.mjs",
     "smoke:seo": "node scripts/smoke-seo.mjs",
     "smoke:performance": "node scripts/smoke-performance.mjs",
+    "smoke:pilot": "node scripts/smoke-pilot.mjs",
     "smoke:ci": "node scripts/ci-smoke.mjs",
     "test:e2e:ci": "node scripts/ci-e2e.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
