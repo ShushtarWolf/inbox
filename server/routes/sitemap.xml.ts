@@ -1,5 +1,3 @@
-import { isPilotNoCoach } from '../../shared/pilot'
-
 function siteUrl() {
   return (process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 }
@@ -16,7 +14,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'content-type', 'application/xml; charset=utf-8')
   setHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
 
-  const pilotNoCoach = isPilotNoCoach()
+  const pilotNoCoach = isCoachProductDisabled(event)
 
   const staticPaths = [
     '/',

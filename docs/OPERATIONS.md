@@ -23,8 +23,8 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
 | `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify` with `%token%`). Without it, OTP uses free-text `sms/send`. |
 | `KAVENEGAR_SENDER` | Required for free-text sends | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است` (OTP 502 on prod). Needed for CRM + booking notify + OTP without template. |
-| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` on Liara to hide coach nav/URLs/APIs (Behnaz pilot) |
-| `PILOT_NO_COACH` | Pilot | Server-only coach gate without rebuild (optional alongside public flag) |
+| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` to hide coach nav/URLs in the client (runtime override; rebuild only if baked payload is wrong) |
+| `PILOT_NO_COACH` | Pilot | Prefer this for Behnaz: server-only coach API/sitemap gate without rebuild |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
 | `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
 | `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |
@@ -279,7 +279,7 @@ One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22).
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book: `/book/court/{slug}` (athlete account needed to complete a booking)
 
-Pilot (Behnaz): set `NUXT_PUBLIC_PILOT_NO_COACH=true` on Liara when ready (optional `PILOT_NO_COACH=true` for server-only gate). Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
+Pilot (Behnaz): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
 
 ### Review club applications
 

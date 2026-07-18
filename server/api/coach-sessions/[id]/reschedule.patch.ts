@@ -1,6 +1,7 @@
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const body = await readBody<{ date?: string; startTime?: string }>(event)

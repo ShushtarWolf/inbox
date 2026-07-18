@@ -3,6 +3,7 @@ import { cancelCoachSession } from '../../../utils/cancellations'
 import { canManageReservation } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const session = await prisma.coachSession.findFirst({

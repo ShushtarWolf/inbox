@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const user = await requireRole(event, 'COACH')
   const coach = await prisma.coach.findUnique({
     where: { userId: user.id },

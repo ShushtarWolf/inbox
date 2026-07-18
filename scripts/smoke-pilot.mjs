@@ -253,7 +253,7 @@ async function main() {
     )
     console.log('ok  owner calendar has no coach reserve UI')
   } else {
-    console.log('skip pilot no-coach (NUXT_PUBLIC_PILOT_NO_COACH not true on server)')
+    console.log('skip pilot no-coach (pilotNoCoach not true on server)')
   }
 
   console.log('smoke-pilot ok')

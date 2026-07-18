@@ -1,4 +1,5 @@
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const { club } = await requireOwnerClub(event, 'team')
   const id = getRouterParam(event, 'id')
   const membership = await prisma.staffMembership.findFirst({
