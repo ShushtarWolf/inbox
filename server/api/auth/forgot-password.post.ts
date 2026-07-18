@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { isEmailConfigured, siteUrl } from '../../utils/email'
+import { getEmailMode, isEmailConfigured, siteUrl } from '../../utils/email'
 import { sendNotification } from '../../utils/notify'
 
 function hashToken(token: string) {
@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:forgot-password')
   const { email } = await readBody<{ email?: string }>(event)
   const normalized = email?.trim().toLowerCase()
+  // Safe public mode — no secrets; UI uses this to avoid "email sent" traps in log mode.
+  const emailMode = getEmailMode()
 
   let debugResetUrl: string | undefined
 
@@ -22,7 +24,7 @@ export default defineEventHandler(async (event) => {
         data: { userId: user.id, tokenHash: hashToken(token), expiresAt },
       })
       const resetUrl = `${siteUrl()}/reset-password?token=${token}`
-      // Fail soft — SMTP errors must not break auth.
+      // Fail soft — SMTP errors / log mode must not break auth (always ok: true).
       try {
         await sendNotification({
           channel: 'email',
@@ -40,5 +42,5 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { ok: true, debugResetUrl }
+  return { ok: true, emailMode, debugResetUrl }
 })

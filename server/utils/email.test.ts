@@ -85,4 +85,21 @@ describe('email utils', () => {
     })
     expect(result).toEqual({ sent: false, reason: 'send_error' })
   })
+
+  it('getEmailStatus never includes SMTP_PASS even when set', async () => {
+    process.env.EMAIL_ENABLED = 'true'
+    process.env.SMTP_HOST = 'smtp.example.com'
+    process.env.SMTP_USER = 'user'
+    process.env.SMTP_PASS = 'super-secret-pass'
+    process.env.SMTP_FROM = 'inbox <noreply@example.com>'
+    const { getEmailStatus } = await import('./email')
+    const status = getEmailStatus()
+    const json = JSON.stringify(status)
+    expect(json).not.toContain('super-secret-pass')
+    expect(json).not.toMatch(/SMTP_PASS/)
+    expect(status).not.toHaveProperty('SMTP_PASS')
+    expect(status).not.toHaveProperty('pass')
+    expect(status.emailMode).toBe('live')
+    expect(status.hasSmtpUser).toBe(true)
+  })
 })

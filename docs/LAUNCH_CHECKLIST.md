@@ -36,6 +36,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Liara env: `EMAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT` (587/465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (e.g. `inbox <noreply@inboxs.ir>`)
   - Until then leave `EMAIL_ENABLED` unset/`false` — flows log only; no SMTP required for local/CI
   - Verify log mode: `npm run email:status` → `emailMode: "log"`, `emailConfigured: false`
+  - Forgot-password UX in log mode: FA copy prefers phone OTP; does not claim “email sent” without recovery
   - Verify live: `/admin` overview shows email mode `live` + configured yes; or `GET /api/admin/email-status` (never exposes `SMTP_PASS`)
   - Smoke: forgot-password and a booking confirm still succeed if SMTP is down (soft-fail)
 - [x] Login page no longer pre-fills demo credentials

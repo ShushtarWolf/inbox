@@ -42,6 +42,8 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 
 Log-by-default. Localhost and CI need **no** real SMTP when `EMAIL_ENABLED` is unset or `false` — password reset, booking confirm/cancel/paid, waitlist, and club-approval emails succeed and write `[notify:log]` / `[email:log]` lines.
 
+**FA launch:** Prefer phone OTP for sign-in/recovery. Forgot-password always returns `ok: true` (soft-fail). When email mode is `log`, the UI does **not** claim “email sent” — it tells users to use mobile + SMS code. Live SMTP soft-fails on send errors the same way (auth never hard-fails).
+
 Live send only when **both** are set:
 
 | Variable | Value |
@@ -57,12 +59,18 @@ SMTP failures are soft-fail: booking and auth flows never hard-fail on mail erro
 ### Ops visibility
 
 - Admin overview (`/admin`) shows email mode (`log` \| `live`) and `emailConfigured` (host set + `EMAIL_ENABLED`) — never `SMTP_PASS`
-- `GET /api/admin/email-status` (header `x-admin-secret`) — same safe snapshot
+- `GET /api/admin/email-status` (header `x-admin-secret`) — same safe snapshot (never returns `SMTP_PASS`)
 - Local: `npm run email:status`
 
-### Production (Liara `inbox` app)
+### Production (Liara `inbox` app) — live email checklist
 
-Set SMTP vars in the Liara dashboard when ready for live mail. Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env — do not flip live from this runbook without an explicit ops step.
+Only enable when ops explicitly asks to go live (do not flip from this runbook casually):
+
+1. Set in Liara dashboard: `EMAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT` (587/465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and ensure `NUXT_PUBLIC_SITE_URL=https://inboxs.ir` for reset links
+2. Confirm `/admin` or `GET /api/admin/email-status` → `emailMode: "live"`, `emailConfigured: true` (response must not contain `SMTP_PASS`)
+3. Soft-fail check: with bad SMTP, `POST /api/auth/forgot-password` still returns `{ ok: true }`
+
+Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env.
 
 ## Object storage (S3 / Liara)
 

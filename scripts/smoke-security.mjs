@@ -132,7 +132,7 @@ async function main() {
     console.log(`ok  online checkout blocked (${checkout.res.status})`)
   }
 
-  // SMS status must not leak secrets
+  // SMS + email status must not leak secrets
   if (adminSecret) {
     const { res: smsRes, data: sms } = await apiFetch(base, '/api/admin/sms-status', {
       headers: { 'x-admin-secret': adminSecret },
@@ -147,6 +147,19 @@ async function main() {
       throw new Error('sms-status includes API key fields')
     }
     console.log('ok  sms-status has no secret material')
+
+    const { res: emailRes, data: email } = await apiFetch(base, '/api/admin/email-status', {
+      headers: { 'x-admin-secret': adminSecret },
+    })
+    if (!emailRes.ok) throw new Error(`email-status → ${emailRes.status}`)
+    const emailJson = JSON.stringify(email)
+    if (/"SMTP_PASS"\s*:|"smtpPass"\s*:|"pass"\s*:/.test(emailJson)) {
+      throw new Error('email-status leaked SMTP_PASS / pass field')
+    }
+    if ('SMTP_PASS' in email || 'smtpPass' in email || 'pass' in email) {
+      throw new Error('email-status includes password fields')
+    }
+    console.log('ok  email-status has no SMTP_PASS')
   }
 
   // OTP: wrong code rejected; coach role blocked in pilot
