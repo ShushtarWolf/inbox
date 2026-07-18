@@ -5,7 +5,9 @@ import { execSync } from 'node:child_process'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const APP_DIR = path.join(ROOT, 'app')
-const LOCALES = ['fa', 'en']
+// FA-only launch: nuxt i18n loads only fa.json. Keep en.json for future re-enable,
+// but do not require key parity in CI.
+const LOCALES = ['fa']
 
 function walk(dir, ext = '.vue') {
   const out = []

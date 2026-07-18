@@ -40,7 +40,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#C41E1E' },
-        { name: 'description', content: "inbox — every court's a box; your game's in the inbox." },
+        { name: 'description', content: 'inbox — رزرو زمین پدل و تنیس' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
@@ -82,11 +82,12 @@ export default defineNuxtConfig({
     disable: process.env.NUXT_PUBLIC_ENABLE_PWA !== 'true',
     minify: false,
     registerType: 'autoUpdate',
+    // PWA stays off unless NUXT_PUBLIC_ENABLE_PWA=true; FA copy ready when enabled.
     manifest: {
       id: '/',
-      name: 'inbox — Sports Booking',
+      name: 'inbox — رزرو زمین',
       short_name: 'inbox',
-      description: "every court's a box; your game's in the inbox.",
+      description: 'پدل و تنیس — رزرو زمین و باشگاه در inbox',
       lang: 'fa',
       dir: 'rtl',
       theme_color: '#C41E1E',

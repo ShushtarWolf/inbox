@@ -90,4 +90,4 @@ Run `node scripts/qa-matrix.mjs` against staging URL.
 
 - [ ] Merge `cursor/booking-mvp-hardening` → `main`
 - [ ] Monitor Liara deploy logs + Sentry
-- [x] Replace placeholder legal contact emails (`privacy@inbox.ir`, `support@inbox.ir`)
+- [x] Legal contact emails use production domain (`privacy@inboxs.ir`, `support@inboxs.ir`)

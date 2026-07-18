@@ -4,10 +4,7 @@ export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
   if (!config.public.enablePwa) return
 
-  const { locale } = useI18n()
-
   function syncPwaMeta() {
-    const isFa = locale.value === 'fa'
     const themeColor = '#C41E1E'
     const backgroundColor = '#F4EFE9'
 
@@ -17,8 +14,8 @@ export default defineNuxtPlugin(() => {
     const manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
     if (manifestLink) {
       const url = new URL(manifestLink.href, window.location.origin)
-      url.searchParams.set('lang', isFa ? 'fa' : 'en')
-      url.searchParams.set('dir', isFa ? 'rtl' : 'ltr')
+      url.searchParams.set('lang', 'fa')
+      url.searchParams.set('dir', 'rtl')
       manifestLink.href = url.toString()
     }
 
@@ -26,5 +23,5 @@ export default defineNuxtPlugin(() => {
     document.documentElement.style.setProperty('--sz-bg', backgroundColor)
   }
 
-  watch(locale, syncPwaMeta, { immediate: true })
+  syncPwaMeta()
 })

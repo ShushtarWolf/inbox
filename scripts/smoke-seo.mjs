@@ -56,24 +56,36 @@ async function main() {
   if (termsHtml.includes("{'@'}") || termsHtml.includes('{"@"}')) {
     throw new Error('/terms still contains unescaped email markup')
   }
+  if (termsHtml.includes('@inbox.ir') || !termsHtml.includes('support@inboxs.ir')) {
+    throw new Error('/terms must use support@inboxs.ir (not inbox.ir)')
+  }
   console.log('ok  /terms has page content')
 
   const { html: privacyHtml } = await fetchPage(base, '/privacy')
   if (privacyHtml.includes("{'@'}") || privacyHtml.includes('{"@"}')) {
     throw new Error('/privacy still contains unescaped email markup')
   }
+  if (privacyHtml.includes('@inbox.ir') || !privacyHtml.includes('privacy@inboxs.ir')) {
+    throw new Error('/privacy must use privacy@inboxs.ir (not inbox.ir)')
+  }
   console.log('ok  /privacy email rendering')
 
-  // PWA manifest
+  // PWA manifest (optional — off unless NUXT_PUBLIC_ENABLE_PWA=true)
   const manifestRes = await fetch(`${base}/manifest.webmanifest`)
   if (manifestRes.ok) {
     const manifest = await manifestRes.json()
     if (!manifest.name || !manifest.short_name) {
       throw new Error('manifest missing name fields')
     }
-    console.log('ok  PWA manifest present')
+    if (String(manifest.name).includes('Sports Booking') || String(manifest.description || '').includes("every court's")) {
+      throw new Error('manifest still has English Sports Booking copy — use FA for FA-only launch')
+    }
+    if (manifest.lang && !String(manifest.lang).startsWith('fa')) {
+      throw new Error(`manifest lang should be fa, got ${manifest.lang}`)
+    }
+    console.log('ok  PWA manifest present (FA)')
   } else {
-    console.warn('skip  PWA manifest not available')
+    console.warn('skip  PWA manifest not available (NUXT_PUBLIC_ENABLE_PWA unset)')
   }
 
   // robots.txt and sitemap — required for SEO
