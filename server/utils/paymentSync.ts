@@ -1,13 +1,7 @@
-import type { PaymentMethod, PaymentStatus, Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
+import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
-
-function resolveParentPaymentMethod(method: PaymentMethod, status: PaymentStatus): PaymentMethod | undefined {
-  if (status === 'PAID' && method === 'IPG') return 'IPG'
-  if (status === 'PAID' && method === 'CASH') return 'CASH'
-  if (status === 'REFUNDED') return method
-  return undefined
-}
 
 export async function syncPaymentToParent(paymentId: string, db: DbClient = prisma) {
   const payment = await db.payment.findUnique({ where: { id: paymentId } })

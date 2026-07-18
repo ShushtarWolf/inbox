@@ -165,6 +165,15 @@ onMounted(() => {
         <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
         <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
         <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+        <button
+          v-if="(wallet?.balance || 0) > 0"
+          type="button"
+          class="btn-ghost mt-2 w-full"
+          :disabled="paying"
+          @click="payWithWallet"
+        >
+          {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
+        </button>
       </template>
       <div v-else class="mt-2 space-y-2">
         <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">

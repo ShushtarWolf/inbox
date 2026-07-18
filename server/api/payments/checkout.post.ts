@@ -118,7 +118,28 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (existingPayment && isPaymentPayableOnline(existingPayment.status) && isOnlinePaymentsEnabled()) {
+  if (!isOnlinePaymentsEnabled()) {
+    if (existingPayment) {
+      return {
+        paymentId: existingPayment.id,
+        mode: getPaymentsMode(),
+        intent: {
+          id: existingPayment.id,
+          amount: existingPayment.amount,
+          currency: PAYMENT_CURRENCY,
+          status: existingPayment.status,
+          provider: existingPayment.provider as PaymentProvider,
+          providerRef: existingPayment.providerRef || undefined,
+        },
+      }
+    }
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Online checkout is disabled; pay at the club or use wallet balance',
+    })
+  }
+
+  if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     await prisma.payment.delete({ where: { id: existingPayment.id } })
     existingPayment = null
     amount = payableAmount

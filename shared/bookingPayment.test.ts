@@ -1,5 +1,14 @@
-import { describe, expect, it, afterEach } from 'vitest'
-import { countsTowardRevenue, initialPlatformPaymentFields, isOnlinePaymentsEnabled, isPaymentPayableOnline, isPaymentRefundable } from './bookingPayment.ts'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  countsTowardRevenue,
+  initialPlatformPaymentFields,
+  isOnlinePaymentsEnabled,
+  isPaymentPayableOnline,
+  isPaymentRefundable,
+  isUnpaidPaymentStatus,
+  isWalletPayableStatus,
+  resolveParentPaymentMethod,
+} from './bookingPayment.ts'
 
 describe('isOnlinePaymentsEnabled', () => {
   const original = process.env.PAYMENTS_MODE
@@ -59,9 +68,44 @@ describe('payment helpers', () => {
     expect(isPaymentPayableOnline('PAID')).toBe(false)
   })
 
+  it('detects unpaid desk statuses', () => {
+    expect(isUnpaidPaymentStatus('PAY_AT_CLUB')).toBe(true)
+    expect(isUnpaidPaymentStatus('PENDING_AT_CLUB')).toBe(true)
+    expect(isUnpaidPaymentStatus('PAID')).toBe(false)
+  })
+
+  it('allows wallet settle for unpaid desk statuses', () => {
+    expect(isWalletPayableStatus('PAY_AT_CLUB')).toBe(true)
+    expect(isWalletPayableStatus('PAID')).toBe(false)
+  })
+
   it('counts only paid non-cancelled bookings toward revenue', () => {
     expect(countsTowardRevenue('CONFIRMED', 'PAID')).toBe(true)
     expect(countsTowardRevenue('CANCELLED', 'PAID')).toBe(false)
     expect(countsTowardRevenue('CONFIRMED', 'PAY_AT_CLUB')).toBe(false)
+  })
+})
+
+describe('resolveParentPaymentMethod (payment sync)', () => {
+  it('maps cash desk mark-paid onto booking.paymentMethod', () => {
+    expect(resolveParentPaymentMethod('CASH', 'PAID')).toBe('CASH')
+  })
+
+  it('maps wallet checkout method PAID onto booking.paymentMethod', () => {
+    expect(resolveParentPaymentMethod('PAID', 'PAID')).toBe('PAID')
+  })
+
+  it('maps IPG paid onto booking.paymentMethod', () => {
+    expect(resolveParentPaymentMethod('IPG', 'PAID')).toBe('IPG')
+  })
+
+  it('keeps method on refund', () => {
+    expect(resolveParentPaymentMethod('CASH', 'REFUNDED')).toBe('CASH')
+    expect(resolveParentPaymentMethod('PAID', 'REFUNDED')).toBe('PAID')
+  })
+
+  it('does not set parent method while still unpaid', () => {
+    expect(resolveParentPaymentMethod('CASH', 'PAY_AT_CLUB')).toBeUndefined()
+    expect(resolveParentPaymentMethod('NOT_PAID', 'PENDING_ONLINE')).toBeUndefined()
   })
 })

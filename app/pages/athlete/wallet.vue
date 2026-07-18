@@ -4,6 +4,13 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 const { t } = useI18n()
 const { formatCurrency, formatDate } = useFormatters()
 const { data, pending, error } = await useAuthedFetch('/api/wallet')
+
+function txLabel(tx: { type?: string; amount: number }) {
+  if (tx.type === 'REFUND_CREDIT') return t('athlete.walletTypeRefund')
+  if (tx.type === 'PAYMENT_DEBIT') return t('athlete.walletTypePayment')
+  if (tx.type === 'ADJUSTMENT') return t('athlete.walletTypeAdjustment')
+  return tx.amount > 0 ? t('athlete.walletCredit') : t('athlete.walletDebit')
+}
 </script>
 
 <template>
@@ -23,7 +30,7 @@ const { data, pending, error } = await useAuthedFetch('/api/wallet')
         <div v-if="data?.transactions?.length" class="space-y-2">
           <div v-for="tx in data.transactions" :key="tx.id" class="ios-card p-3 text-sm">
             <div class="flex items-center justify-between gap-2">
-              <span class="font-bold">{{ tx.amount > 0 ? t('athlete.walletCredit') : t('athlete.walletDebit') }}</span>
+              <span class="font-bold">{{ txLabel(tx) }}</span>
               <span :class="tx.amount > 0 ? 'text-brand-primary' : 'text-brand-gray-600'">{{ formatCurrency(Math.abs(tx.amount)) }}</span>
             </div>
             <p class="mt-1 text-xs text-brand-gray-600" dir="auto">{{ formatDate(tx.createdAt) }}</p>

@@ -23,9 +23,14 @@ export function useCheckout() {
     return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(paymentStatus || '')
   }
 
+  /** Wallet debit works in pay_at_club (refund credits) and in online modes. */
+  function canPayWithWallet(paymentStatus?: string | null) {
+    return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(paymentStatus || '')
+  }
+
   function isPaid(paymentStatus?: string | null) {
     return paymentStatus === 'PAID'
   }
 
-  return { onlineEnabled, startCheckout, canPayOnline, isPaid }
+  return { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet, isPaid }
 }

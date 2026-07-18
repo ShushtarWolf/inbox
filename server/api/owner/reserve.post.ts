@@ -1,9 +1,23 @@
+import { getPaymentsMode } from '#shared/payments.ts'
+import { isPaidPaymentStatus } from '#shared/bookingPayment.ts'
 import {
   calculateSessionTotal,
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
 import { assertSlotBookable } from '../../utils/reservations'
+import { creditWallet } from '../../utils/wallet'
+
+function resolveDeskPaymentMethod(
+  requested: string | undefined,
+  previousMethod?: string | null,
+): 'IPG' | 'CASH' {
+  const mode = getPaymentsMode()
+  if (mode === 'pay_at_club') return 'CASH'
+  if (requested === 'IPG' || requested === 'CASH') return requested
+  if (previousMethod === 'IPG' || previousMethod === 'CASH') return previousMethod
+  return 'CASH'
+}
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -22,7 +36,7 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: true },
+    include: { booking: { include: { payment: true } } },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
@@ -30,7 +44,10 @@ export default defineEventHandler(async (event) => {
     assertSlotBookable(slot.date, slot.startTime)
   }
 
-  const paymentMethod = (body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'
+  const paymentMethod = resolveDeskPaymentMethod(
+    body.paymentMethod,
+    slot.booking?.payment?.method || slot.booking?.paymentMethod,
+  )
   const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
   const equipmentIds = [...new Set(body.equipmentIds || [])]
   const equipmentItems = await loadEquipmentForBooking(club.id, equipmentIds)
@@ -41,9 +58,27 @@ export default defineEventHandler(async (event) => {
   const displayStatus = (body.displayStatus as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC' | undefined)
     || slot.displayStatus
     || 'RESERVED'
+  const provider = getPaymentsMode() === 'pay_at_club' ? 'pay_at_club' : undefined
 
   if (slot.booking) {
+    const previousPayment = slot.booking.payment
+    const wasWalletPaid = Boolean(
+      previousPayment
+      && isPaidPaymentStatus(previousPayment.status)
+      && previousPayment.method === 'PAID'
+      && paymentStatus !== 'PAID'
+      && slot.booking.userId,
+    )
+
     await prisma.$transaction(async (tx) => {
+      if (wasWalletPaid && previousPayment && slot.booking?.userId) {
+        await creditWallet(slot.booking.userId, previousPayment.amount, {
+          paymentId: previousPayment.id,
+          bookingId: slot.booking.id,
+          note: 'Wallet payment reversed (marked unpaid at club)',
+        }, tx)
+      }
+
       await tx.booking.update({
         where: { id: slot.booking!.id },
         data: {
@@ -63,12 +98,14 @@ export default defineEventHandler(async (event) => {
           amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
+          ...(provider ? { provider } : {}),
         },
         create: {
           bookingId: slot.booking!.id,
           amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
+          ...(provider ? { provider } : {}),
         },
       })
       await tx.slot.update({
@@ -98,6 +135,7 @@ export default defineEventHandler(async (event) => {
           amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
+          ...(provider ? { provider } : {}),
         },
       })
       await tx.reservationEvent.create({
@@ -113,5 +151,5 @@ export default defineEventHandler(async (event) => {
       })
     })
   }
-  return { ok: true, amount: totalAmount }
+  return { ok: true, amount: totalAmount, paymentStatus, paymentMethod }
 })

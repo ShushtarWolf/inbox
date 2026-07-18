@@ -111,7 +111,7 @@ async function rescheduleSession() {
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${session.payment?.method || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.cancellationWindowHours || 24) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(session.coach.club?.rescheduleWindowHours || 24) }} {{ $t('booking.rescheduleWindow') }}</p>
-      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote() }}</p>
+      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote(paymentStatus) }}</p>
       <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
       <div v-if="session.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button type="button" class="btn-ghost" @click="cancelSession">{{ $t('booking.cancel') }}</button>

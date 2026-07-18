@@ -10,7 +10,7 @@ export function payAtClubProvider(): PaymentService {
       const payment = await prisma.payment.create({
         data: {
           amount: input.amount,
-          method: 'NOT_PAID',
+          method: 'CASH',
           status: 'PAY_AT_CLUB',
           provider: 'pay_at_club',
           idempotencyKey: input.idempotencyKey,
@@ -26,7 +26,7 @@ export function payAtClubProvider(): PaymentService {
           id: payment.id,
           amount: payment.amount,
           currency: PAYMENT_CURRENCY,
-          status: 'PAY_AT_CLUB',
+          status: 'PAY_AT_CLUB' as const,
           provider: 'pay_at_club',
         },
       }

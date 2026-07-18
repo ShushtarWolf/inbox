@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
-import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import {
   countRecurringSessionsByDayInRange,
@@ -48,6 +48,8 @@ const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
+const { public: { paymentsMode } } = useRuntimeConfig()
+const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
 
 const date = ref(today())
 const showDatePicker = ref(false)
@@ -418,7 +420,10 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.guestName = isFree ? '' : (fullSlot.booking?.guestName || '')
   form.guestFamily = isFree ? '' : (fullSlot.booking?.guestFamily || '')
   form.guestMobile = isFree ? '' : (fullSlot.booking?.guestMobile || '')
-  form.paymentMethod = isFree ? 'CASH' : (fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH')
+  const existingMethod = fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH'
+  form.paymentMethod = isFree
+    ? 'CASH'
+    : (existingMethod === 'IPG' && !payAtClubMode.value ? 'IPG' : 'CASH')
   form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB')
   form.comments = isFree ? '' : (fullSlot.booking?.comments || '')
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
@@ -607,6 +612,41 @@ async function doMarkPaid() {
         displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
       },
     })
+    form.paymentMethod = 'CASH'
+    form.paymentStatus = 'PAID'
+    closeMenu()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+/** Reverse a mistaken cash mark (or wallet-paid mark) back to unpaid. */
+async function doMarkUnpaid() {
+  const slot = selectedSlotFull.value
+  const booking = slot?.booking
+  if (!slot || !booking || !canMarkUnpaid() || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/reserve', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        guestName: booking.guestName || form.guestName,
+        guestFamily: booking.guestFamily || form.guestFamily,
+        guestMobile: booking.guestMobile || form.guestMobile,
+        paymentMethod: 'CASH',
+        paymentStatus: 'PAY_AT_CLUB',
+        comments: booking.comments || form.comments,
+        equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
+        displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+      },
+    })
+    form.paymentMethod = 'CASH'
+    form.paymentStatus = 'PAY_AT_CLUB'
     closeMenu()
     await refresh()
   } catch {
@@ -778,6 +818,12 @@ function canMarkPaid() {
   if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
   const status = slotPaymentStatus(selectedSlotFull.value)
   return isUnpaidPaymentStatus(status)
+}
+
+function canMarkUnpaid() {
+  if (batchMode.value || !selectedSlotFull.value?.booking) return false
+  if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
+  return isPaidPaymentStatus(slotPaymentStatus(selectedSlotFull.value))
 }
 
 function canShowCoachReserve() {
@@ -1046,6 +1092,13 @@ const legend = [
             :disabled="saving"
             @click="doMarkPaid"
           >{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</button>
+          <button
+            v-if="canMarkUnpaid()"
+            type="button"
+            class="neo-menu-item neo-menu-item-unpaid"
+            :disabled="saving"
+            @click="doMarkUnpaid"
+          >{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</button>
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canBlockSlot()" type="button" :class="menuButtonClass('block')" @click="openBlockForm">{{ t('owner.block') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
@@ -1154,7 +1207,7 @@ const legend = [
             </AppFormField>
             <AppFormField :label="t('owner.paymentMethod')" field-id="owner-reserve-payment-method">
               <select id="owner-reserve-payment-method" v-model="form.paymentMethod" class="neo-select">
-                <option value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
+                <option v-if="!payAtClubMode" value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
                 <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
               </select>
             </AppFormField>
@@ -1192,6 +1245,15 @@ const legend = [
               @click="doMarkPaid"
             >
               {{ saving ? t('common.loading') : t('owner.markPaidCash') }}
+            </button>
+            <button
+              v-if="isEditingBooking() && canMarkUnpaid()"
+              type="button"
+              class="btn-ghost w-full text-amber-700"
+              :disabled="saving"
+              @click="doMarkUnpaid"
+            >
+              {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
             </button>
             <button
               v-if="isEditingBooking() && canCancelSlot()"
@@ -1699,6 +1761,11 @@ const legend = [
 
 .neo-menu-item-paid {
   color: #047857;
+  font-weight: 800;
+}
+
+.neo-menu-item-unpaid {
+  color: #b45309;
   font-weight: 800;
 }
 

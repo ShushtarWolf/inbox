@@ -30,7 +30,8 @@ watch(rescheduleDate, () => {
   if (booking.value && booking.value.status !== 'CANCELLED') refreshSlots()
 })
 
-const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
+const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 const {
   bookingStatusLabel,
   paymentStatusLabel,
@@ -144,7 +145,7 @@ async function submitReview() {
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${booking.payment?.method || booking.paymentMethod || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
-      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote() }}</p>
+      <p class="text-xs text-brand-gray-600">{{ cancelRefundNote(paymentStatus) }}</p>
       <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button
@@ -155,6 +156,15 @@ async function submitReview() {
           @click="payBooking()"
         >
           {{ paying ? $t('common.loading') : $t('booking.payNow') }}
+        </button>
+        <button
+          v-if="canPayWithWallet(paymentStatus) && (wallet?.balance || 0) > 0"
+          type="button"
+          class="btn-ghost"
+          :disabled="paying"
+          @click="payBooking(true)"
+        >
+          {{ paying ? $t('common.loading') : `${$t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
         </button>
         <button type="button" class="btn-ghost" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
         <button type="button" class="btn-primary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>

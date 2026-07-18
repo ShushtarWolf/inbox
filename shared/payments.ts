@@ -3,6 +3,7 @@ export const PAYMENT_CURRENCY = 'IRR' as const
 export type PaymentProvider = 'pay_at_club' | 'zarinpal' | 'idpay' | 'log'
 
 export type PaymentIntentStatus =
+  | 'PAY_AT_CLUB'
   | 'PENDING_AT_CLUB'
   | 'PENDING_ONLINE'
   | 'PAID'

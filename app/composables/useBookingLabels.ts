@@ -35,7 +35,8 @@ export function useBookingLabels() {
     return status === 'PAY_AT_CLUB' || status === 'PENDING_AT_CLUB'
   }
 
-  function cancelRefundNote() {
+  function cancelRefundNote(paymentStatus?: string | null) {
+    if (paymentStatus === 'PAID') return t('booking.cancelRefundNotePaid')
     return payAtClubMode.value ? t('booking.cancelRefundNotePayAtClub') : t('booking.cancelRefundNote')
   }
 

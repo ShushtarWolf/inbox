@@ -1,7 +1,8 @@
+import { getPaymentsMode } from '#shared/payments.ts'
+import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
 import { assertDateNotInPast } from '../../utils/reservations'
-import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 
 function resolveDayTimes(
   dayTimes?: Record<string, DayTimeRange>,
@@ -94,7 +95,9 @@ export default defineEventHandler(async (event) => {
           guestFamily: body.guestFamily || '',
           guestMobile: body.guestMobile || '',
           comments: body.comments,
-          paymentMethod: (body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH',
+          paymentMethod: getPaymentsMode() === 'pay_at_club'
+            ? 'CASH'
+            : ((body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'),
           paymentStatus: body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB',
           equipmentId: body.equipmentId,
           equipmentPrice,

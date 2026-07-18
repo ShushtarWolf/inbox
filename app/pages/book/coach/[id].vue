@@ -5,6 +5,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const id = route.params.id as string
 const { user, fetch: fetchAuth } = useAuth()
+const { onlineEnabled } = useCheckout()
 const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
@@ -15,6 +16,7 @@ const done = ref(false)
 const joiningWaitlist = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
+const bookedPrice = ref<number | null>(null)
 
 const { data: coach } = await useFetch(`/api/coaches/${id}`)
 const { data: availability, pending, error } = await useFetch(`/api/coaches/${id}/availability`, {
@@ -69,6 +71,7 @@ async function confirm() {
       method: 'POST',
       body: { coachId: id, date: date.value, startTime: startTime.value },
     })
+    bookedPrice.value = availability.value?.sessionPrice || coach.value?.sessionPrice || null
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = t('booking.successCoach')
@@ -153,8 +156,12 @@ onMounted(() => {
 
     <div v-if="done" class="ios-card space-y-2 p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
-      <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
-      <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+      <template v-if="!onlineEnabled">
+        <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
+        <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+        <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+      </template>
+      <p v-else class="text-sm text-brand-gray-600">{{ t('booking.payNow') }}</p>
       <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
   </div>

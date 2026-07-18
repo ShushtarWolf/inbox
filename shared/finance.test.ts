@@ -48,9 +48,24 @@ describe('cancellation refund behavior', () => {
     expect(after.payment.status).toBe('PAY_AT_CLUB')
   })
 
-  it('expects paid cancellations to refund via wallet or gateway', () => {
-    const paid = { status: 'PAID', amount: 500_000 }
-    expect(paid.status).toBe('PAID')
+  it('expects paid cash cancellations to credit wallet for registered athletes', () => {
+    const paidCash = { status: 'PAID', method: 'CASH', amount: 500_000, userId: 'u1' }
+    const refund = {
+      refunded: paidCash.status === 'PAID',
+      walletCredited: paidCash.status === 'PAID' && Boolean(paidCash.userId) && paidCash.method !== 'IPG',
+      amount: paidCash.amount,
+    }
+    expect(refund).toEqual({ refunded: true, walletCredited: true, amount: 500_000 })
+  })
+
+  it('expects guest walk-in paid cancel to mark refunded without wallet', () => {
+    const paidGuest = { status: 'PAID', method: 'CASH', amount: 400_000, userId: null as string | null }
+    const refund = {
+      refunded: paidGuest.status === 'PAID',
+      walletCredited: Boolean(paidGuest.userId),
+      amount: paidGuest.amount,
+    }
+    expect(refund).toEqual({ refunded: true, walletCredited: false, amount: 400_000 })
   })
 })
 

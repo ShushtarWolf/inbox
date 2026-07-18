@@ -23,11 +23,12 @@ interface CourtBooking {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatTimeRange, formatHours, formatIsoDate } = useFormatters()
+const { formatCurrency, formatTimeRange, formatHours, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
-const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
+const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
 const {
   bookingStatusLabel,
   paymentStatusLabel,
@@ -201,6 +202,15 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           >
             {{ t('booking.payNow') }}
           </button>
+          <button
+            v-if="b.status !== 'CANCELLED' && canPayWithWallet(paymentOf(b)) && (wallet?.balance || 0) > 0"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === b.id"
+            @click="payBooking(b.id, true)"
+          >
+            {{ t('booking.payWithWallet') }}
+          </button>
           <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="openReschedule(b)">
             {{ t('booking.reschedule') }}
           </button>
@@ -233,6 +243,15 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           >
             {{ t('booking.payNow') }}
           </button>
+          <button
+            v-if="s.status !== 'CANCELLED' && canPayWithWallet(paymentOf(s)) && (wallet?.balance || 0) > 0"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === s.id"
+            @click="payCoach(s.id, true)"
+          >
+            {{ t('booking.payWithWallet') }}
+          </button>
           <button v-if="s.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelCoach(s.id)">
             {{ t('booking.cancel') }}
           </button>
@@ -258,6 +277,15 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
             @click="payPackage(b.id)"
           >
             {{ t('booking.payNow') }}
+          </button>
+          <button
+            v-if="b.status !== 'CANCELLED' && canPayWithWallet(paymentOf(b)) && (wallet?.balance || 0) > 0"
+            type="button"
+            class="text-xs font-bold text-brand-primary"
+            :disabled="payingId === b.id"
+            @click="payPackage(b.id, true)"
+          >
+            {{ t('booking.payWithWallet') }}
           </button>
           <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelPackage(b.id)">
             {{ t('booking.cancel') }}

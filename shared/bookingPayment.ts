@@ -51,3 +51,29 @@ export function countsTowardRevenue(bookingStatus: string, paymentStatus: string
 export function isUnpaidPaymentStatus(status: string | null | undefined): boolean {
   return ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID'].includes(status || '')
 }
+
+export function isPaidPaymentStatus(status: string | null | undefined): boolean {
+  return status === 'PAID'
+}
+
+/**
+ * Map Payment.method onto Booking.paymentMethod after a status change.
+ * Wallet checkouts use method `PAID`; cash desk uses `CASH`; IPG uses `IPG`.
+ */
+export function resolveParentPaymentMethod(
+  method: string,
+  status: string,
+): 'IPG' | 'CASH' | 'PAID' | 'NOT_PAID' | undefined {
+  if (status === 'PAID') {
+    if (method === 'IPG' || method === 'CASH' || method === 'PAID') return method
+  }
+  if (status === 'REFUNDED') {
+    if (method === 'IPG' || method === 'CASH' || method === 'PAID' || method === 'NOT_PAID') return method
+  }
+  return undefined
+}
+
+/** Desk / athlete statuses that can still be settled from wallet balance. */
+export function isWalletPayableStatus(status: string | null | undefined): boolean {
+  return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(status || '')
+}
