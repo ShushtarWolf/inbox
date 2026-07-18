@@ -5,6 +5,7 @@ import { defaultPermissionsForRole, normalizePermissions } from '#shared/ownerPe
 const validRoles = new Set<StaffRole>(['MANAGER', 'ANALYST', 'FRONT_DESK', 'COACH'])
 
 export default defineEventHandler(async (event) => {
+  assertCoachProductEnabled(event)
   const { club } = await requireOwnerClub(event, 'team')
   const body = await readBody<{ email?: string; role?: StaffRole; name?: string; permissions?: string[] }>(event)
   const email = body.email?.trim().toLowerCase()

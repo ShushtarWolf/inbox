@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
   if (!type || !email || !name || !['COACH', 'CLUB_ADMIN'].includes(type)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
+  if (type === 'COACH') {
+    assertCoachProductEnabled(event)
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {

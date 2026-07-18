@@ -2,6 +2,8 @@ const BLOCKED = [
   /^\/coaches(\/|$)/,
   /^\/book\/coach(\/|$)/,
   /^\/register\/coach(\/|$)/,
+  /^\/owner\/coaches(\/|$)/,
+  /^\/coach(\/|$)/,
 ]
 
 function stripLocale(path: string) {

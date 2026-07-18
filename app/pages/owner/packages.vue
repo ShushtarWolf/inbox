@@ -12,6 +12,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { formatCurrency, formatIsoDate } = useFormatters()
+const { pilotNoCoach } = usePilotFlags()
 const { data: staffData } = await useAuthedFetch('/api/owner/staff')
 const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
 const { data: settingsData } = await useAuthedFetch('/api/owner/settings')
@@ -23,9 +24,11 @@ const saving = ref(false)
 const createError = ref('')
 
 const clubCoaches = computed(() =>
-  (staffData.value?.staff || [])
-    .filter((member: { coach?: { id: string } | null }) => member.coach)
-    .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
+  pilotNoCoach.value
+    ? []
+    : (staffData.value?.staff || [])
+        .filter((member: { coach?: { id: string } | null }) => member.coach)
+        .map((member: { coach: { id: string; nameFa: string; nameEn: string } }) => member.coach),
 )
 
 const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
@@ -146,7 +149,7 @@ async function create() {
         price: form.price,
         discount: form.discount,
         level: form.level,
-        coachId: form.coachId || undefined,
+        coachId: pilotNoCoach.value ? undefined : (form.coachId || undefined),
         comment: form.comment,
         startDate: form.startDate || undefined,
         finishDate: form.finishDate || undefined,
@@ -194,7 +197,7 @@ const rentalEquipments = computed(() =>
         class="venus-widget-card min-w-[10rem] px-4 py-4"
       >
         <p class="font-bold text-brand-primary">{{ p.title }}</p>
-        <p v-if="coachName(p.coachId)" class="mt-1 text-xs text-brand-gray-600">{{ coachName(p.coachId) }}</p>
+        <p v-if="!pilotNoCoach && coachName(p.coachId)" class="mt-1 text-xs text-brand-gray-600">{{ coachName(p.coachId) }}</p>
         <p v-if="p.level" class="mt-1 text-xs text-brand-gray-600">{{ '★'.repeat(p.level) }}</p>
         <p class="mt-2 text-sm font-bold">{{ formatCurrency(p.price) }}</p>
         <p v-if="packageSchedule(p)" class="mt-1 text-xs text-brand-gray-600">{{ packageSchedule(p) }}</p>
@@ -210,7 +213,7 @@ const rentalEquipments = computed(() =>
       <AppFormField :label="t('owner.packagesPage.title')" required>
         <input v-model="form.title" class="neo-input">
       </AppFormField>
-      <AppFormField :label="t('owner.packagesPage.coachPlaceholder')">
+      <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagesPage.coachPlaceholder')">
         <select v-model="form.coachId" class="neo-select">
           <option value="">{{ t('owner.packagesPage.coachPlaceholder') }}</option>
           <option v-for="c in clubCoaches" :key="c.id" :value="c.id">{{ localizedField(c, 'nameFa', 'nameEn') }}</option>
