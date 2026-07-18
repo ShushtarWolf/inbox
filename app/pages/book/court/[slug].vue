@@ -159,6 +159,15 @@ onMounted(() => {
 
     <div v-if="done" class="ios-card space-y-2 p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCourt') }}</p>
+      <p
+        v-if="!user?.phone?.trim()"
+        class="text-sm text-brand-gray-600"
+      >
+        {{ t('booking.noPhoneSmsNote') }}
+        <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">
+          {{ t('nav.profile') }}
+        </NuxtLink>
+      </p>
       <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
       <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
       <template v-if="!onlineEnabled">

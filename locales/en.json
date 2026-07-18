@@ -185,7 +185,8 @@
     "walletTypeAdjustment": "Adjustment",
     "walletHistoryTitle": "History",
     "walletTopUpUnavailable": "Online top-up is not available yet. This balance is for refunds and credits from cancelled bookings.",
-    "walletRefundsOnly": "Refunds & credits only"
+    "walletRefundsOnly": "Refunds & credits only",
+    "addMobileForSms": "Add a mobile number to receive booking SMS."
   },
   "coach": {
     "today": "Today",
@@ -440,6 +441,7 @@
     "cancelRefundNotePayAtClub": "Pay at the club on arrival. Unpaid cancellations release the court; paid cash bookings credit your wallet.",
     "viewBookings": "View my bookings",
     "bookAgain": "Book another court",
+    "noPhoneSmsNote": "No mobile on your profile — booking SMS won't be sent. Your booking is still confirmed.",
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
       "slotInPast": "This time slot has already passed and cannot be booked.",

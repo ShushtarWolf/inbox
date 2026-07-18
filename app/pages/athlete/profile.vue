@@ -28,6 +28,7 @@ async function save() {
     <AppImageUpload v-model="avatarUrl" :label="$t('register.profilePhoto')" />
     <input v-model="name" :placeholder="$t('common.name')" class="neo-input" />
     <input v-model="phone" dir="ltr" :placeholder="$t('common.mobile')" class="neo-input tabular-nums" />
+    <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ $t('athlete.addMobileForSms') }}</p>
     <button type="button" class="btn-primary w-full" @click="save">{{ $t('common.save') }}</button>
   </div>
 </template>

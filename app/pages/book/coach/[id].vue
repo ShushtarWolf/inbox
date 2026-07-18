@@ -156,6 +156,15 @@ onMounted(() => {
 
     <div v-if="done" class="ios-card space-y-2 p-4 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
+      <p
+        v-if="!user?.phone?.trim()"
+        class="text-sm text-brand-gray-600"
+      >
+        {{ t('booking.noPhoneSmsNote') }}
+        <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">
+          {{ t('nav.profile') }}
+        </NuxtLink>
+      </p>
       <template v-if="!onlineEnabled">
         <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
         <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>

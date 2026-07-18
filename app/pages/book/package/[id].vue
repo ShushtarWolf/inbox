@@ -89,6 +89,15 @@ async function confirm() {
       </section>
 
       <p v-if="feedback" :class="feedbackTone === 'success' ? 'text-green-700' : 'venus-alert-error'">{{ feedback }}</p>
+      <p
+        v-if="done && !user?.phone?.trim()"
+        class="text-sm text-brand-gray-600"
+      >
+        {{ t('booking.noPhoneSmsNote') }}
+        <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">
+          {{ t('nav.profile') }}
+        </NuxtLink>
+      </p>
 
       <button
         v-if="!done"
