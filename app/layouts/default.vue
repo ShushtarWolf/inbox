@@ -58,6 +58,13 @@ onMounted(() => {
       <slot />
     </main>
     <footer class="mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 lg:max-w-6xl lg:pb-4">
+      <p class="mb-2">
+        <span class="font-bold text-brand-navy">{{ t('contact.us') }}</span>
+        ·
+        <a href="mailto:info@inboxs.ir" class="px-1 hover:text-brand-primary" dir="ltr">info@inboxs.ir</a>
+        ·
+        <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">09124777927</a>
+      </p>
       <NuxtLink :to="localePath('/privacy')" class="px-2 hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
       ·
       <NuxtLink :to="localePath('/clubs/apply')" class="px-2 hover:text-brand-primary">{{ t('clubs.applyLink') }}</NuxtLink>
