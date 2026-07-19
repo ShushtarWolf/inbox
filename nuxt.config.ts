@@ -160,6 +160,11 @@ export default defineNuxtConfig({
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',
+      // Public contact details for Enamad / legal pages (override on Liara as needed).
+      contactAddress: process.env.NUXT_PUBLIC_CONTACT_ADDRESS || '',
+      contactLandline: process.env.NUXT_PUBLIC_CONTACT_LANDLINE || '',
+      contactMobile: process.env.NUXT_PUBLIC_CONTACT_MOBILE || '09124777927',
+      contactEmail: process.env.NUXT_PUBLIC_CONTACT_EMAIL || 'info@inboxs.ir',
     },
     session: {
       name: 'inbox-session',

@@ -126,6 +126,9 @@ onMounted(() => {
     <div v-if="coach" class="ios-card p-4 text-sm">
       <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
       <p class="mt-1 text-brand-gray-600">{{ formatHours(coach.club?.rescheduleWindowHours || 24) }} {{ t('booking.rescheduleWindow') }}</p>
+      <NuxtLink :to="localePath('/cancellation')" class="mt-2 inline-block text-xs font-bold text-brand-primary underline">
+        {{ t('legal.cancellation') }}
+      </NuxtLink>
     </div>
     <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
       {{ feedback }}
@@ -142,6 +145,18 @@ onMounted(() => {
           <span class="font-bold text-brand-navy">{{ formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0) }}</span>
         </div>
       </div>
+
+      <BookingCostSummary
+        v-if="!done && (availability?.sessionPrice || coach?.sessionPrice)"
+        :lines="[
+          { label: t('booking.costService'), amount: formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0) },
+          { label: t('booking.costPlatformFee'), amount: t('booking.costPlatformFeeZero'), muted: true },
+        ]"
+        :total-label="t('booking.costTotal')"
+        :total-amount="formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0)"
+        :payment-note="t('booking.costPayAtClubNote')"
+        :cancel-note="t('booking.costCancelHint')"
+      />
 
       <div
         v-if="!done"

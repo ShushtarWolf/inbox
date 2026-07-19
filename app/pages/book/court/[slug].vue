@@ -27,6 +27,19 @@ const { data: slots, pending, error, refresh } = await useFetch('/api/slots/avai
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
 const joiningWaitlist = ref(false)
 
+const selectedSlotRow = computed(() =>
+  slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value) || null,
+)
+
+const costLines = computed(() => {
+  const price = selectedSlotRow.value?.price
+  if (price == null) return []
+  return [
+    { label: t('booking.costService'), amount: formatCurrency(price) },
+    { label: t('booking.costPlatformFee'), amount: t('booking.costPlatformFeeZero'), muted: true },
+  ]
+})
+
 function syncBookingQuery() {
   router.replace({
     query: {
@@ -151,6 +164,9 @@ onMounted(() => {
       <p class="mt-1 text-brand-gray-600">
         {{ formatHours(club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }} · {{ formatHours(club.rescheduleWindowHours) }} {{ t('booking.rescheduleWindow') }}
       </p>
+      <NuxtLink :to="localePath('/cancellation')" class="mt-2 inline-block text-xs font-bold text-brand-primary underline">
+        {{ t('legal.cancellation') }}
+      </NuxtLink>
     </div>
 
     <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
@@ -221,6 +237,14 @@ onMounted(() => {
         <p class="font-bold">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
       </button>
+      <BookingCostSummary
+        v-if="selectedSlotRow && costLines.length"
+        :lines="costLines"
+        :total-label="t('booking.costTotal')"
+        :total-amount="formatCurrency(selectedSlotRow.price || 0)"
+        :payment-note="t('booking.costPayAtClubNote')"
+        :cancel-note="t('booking.costCancelHint')"
+      />
       <button
         v-if="slots?.length"
         type="button"

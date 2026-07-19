@@ -418,6 +418,13 @@
     "payAtClub": "Pay at club",
     "payAtClubDetail": "Pay when you arrive at the club. Online payment is not available for this booking.",
     "payAtClubAmount": "Amount due at club: {amount}",
+    "costSummaryTitle": "Cost summary (pre-invoice)",
+    "costService": "Service amount",
+    "costPlatformFee": "inbox platform fee",
+    "costPlatformFeeZero": "0",
+    "costTotal": "Total due",
+    "costPayAtClubNote": "Pay on arrival at the club; online gateway payment is not enabled for this booking.",
+    "costCancelHint": "Cancellation & refunds: ",
     "confirm": "Confirm booking",
     "cancel": "Cancel",
     "confirmCancel": "Cancel this booking? This cannot be undone.",
@@ -486,17 +493,154 @@
     "thanks": "Thanks for your review!"
   },
   "contact": {
-    "us": "Contact us"
+    "us": "Contact us",
+    "title": "Contact us",
+    "intro": "For support, booking follow-up, or legal questions, reach inbox using the channels below.",
+    "addressLabel": "Address",
+    "addressDefault": "Tehran, Iran (postal details for formal correspondence are provided via support email)",
+    "landlineLabel": "Landline",
+    "mobileLabel": "Mobile",
+    "mobileDefault": "09124777927",
+    "emailLabel": "Email",
+    "emailDefault": "info@inboxs.ir",
+    "hoursLabel": "Response hours",
+    "hours": "Daily 9:00–18:00 (except official holidays)"
   },
   "legal": {
     "privacy": "Privacy",
     "terms": "Terms",
+    "about": "About us",
+    "pricing": "Pricing",
+    "complaints": "Complaints",
+    "cancellation": "Cancellation & refunds",
+    "contact": "Contact",
     "privacyTitle": "Privacy Policy",
     "termsTitle": "Terms of Service",
+    "aboutTitle": "About inbox",
+    "aboutIntro": "inbox is an online sports booking platform that connects athletes with clubs and coaches.",
+    "pricingTitle": "Pricing and fees",
+    "pricingIntro": "On inbox, sports service prices are set by clubs or coaches. This page explains what costs you may owe.",
+    "complaintsTitle": "File a complaint",
+    "complaintsIntro": "If you are unhappy with inbox or the booking process, you can submit a complaint using the channels below.",
+    "cancellationTitle": "Cancellation and refund policy",
+    "cancellationIntro": "This page explains general cancellation and refund rules on inbox. Each club’s exact window is shown on that club’s booking page.",
     "lastUpdated": "Last updated: July 2026",
     "disclaimer": "This document is provided for transparency. Clubs operating on inbox may have additional policies. For legal advice specific to your jurisdiction, consult qualified counsel.",
     "privacyIntro": "inbox (“we”, “us”) operates a sports court and coach booking platform. This policy explains what personal data we collect, why we use it, and the choices you have.",
     "termsIntro": "By creating an account or making a booking through inbox, you agree to these Terms of Service. If you do not agree, please do not use the platform.",
+    "aboutSections": [
+      {
+        "title": "1. Who we are",
+        "paragraphs": [
+          "inbox provides software for discovering clubs, booking courts, and (when enabled) coach sessions.",
+          "The platform operator is responsible for the software, accounts, and technical support; each club independently operates its facilities and on-site services."
+        ]
+      },
+      {
+        "title": "2. What we offer",
+        "paragraphs": [
+          "Club discovery, available capacity, online reservations, booking status tracking, and owner tools for clubs.",
+          "Payment is currently usually “pay at club” unless otherwise stated."
+        ]
+      },
+      {
+        "title": "3. Transparency and trust",
+        "paragraphs": [
+          "Slot prices appear on the club/booking page. Club cancellation rules are visible before you confirm.",
+          "Use the site footer links for contact, complaints, platform pricing, and terms."
+        ]
+      }
+    ],
+    "pricingSections": [
+      {
+        "title": "1. Athlete pricing",
+        "paragraphs": [
+          "Court, coach, and package prices are set by the club or coach and shown on the relevant page.",
+          "Before you confirm, a cost summary (service amount + platform fee if any + total due) is displayed.",
+          "We do not currently charge a separate athlete platform fee at checkout; the shown amount is what you pay at the club unless stated otherwise."
+        ]
+      },
+      {
+        "title": "2. Extra costs",
+        "paragraphs": [
+          "Equipment, extra guests, or other on-site services apply only if the club announces them in the booking flow or on site.",
+          "Taxes or lawful surcharges, when applicable, follow the club’s disclosure."
+        ]
+      },
+      {
+        "title": "3. Club commercial terms",
+        "paragraphs": [
+          "Club commercial terms (free pilot, subscription, or commission) are agreed separately with inbox and do not change athlete booking prices unless explicitly stated.",
+          "For club partnership inquiries, contact support{'@'}inboxs.ir."
+        ]
+      },
+      {
+        "title": "4. Payment",
+        "paragraphs": [
+          "Default method: pay on arrival at the club. Online gateway payment is announced separately if enabled.",
+          "Wallet credit applies only to amounts recorded as deposits/refunds in the system."
+        ]
+      }
+    ],
+    "complaintsSections": [
+      {
+        "title": "1. How to complain",
+        "paragraphs": [
+          "Complaints email: complaints{'@'}inboxs.ir — use subject “Complaint” and include booking ID, date, and a description.",
+          "You may also email support{'@'}inboxs.ir or use the contact page.",
+          "Support mobile: 09124777927"
+        ]
+      },
+      {
+        "title": "2. What we review",
+        "paragraphs": [
+          "Platform technical issues, price/slot display errors, account access, and follow-up on bookings recorded in inbox.",
+          "On-site service quality, facilities, or cash disputes should first go to the club; inbox can help escalate when needed."
+        ]
+      },
+      {
+        "title": "3. Response time",
+        "paragraphs": [
+          "We aim for an initial reply within 3 business days. Complex cases may take longer.",
+          "Outcomes are shared by email or SMS when a phone number is available."
+        ]
+      }
+    ],
+    "cancellationSections": [
+      {
+        "title": "1. Cancellation window",
+        "paragraphs": [
+          "Each club sets its own cancellation and reschedule window; it is shown on that club’s booking page.",
+          "Cancellations after the window may be refused or incur penalties/non-refund per club policy."
+        ]
+      },
+      {
+        "title": "2. Unpaid (pay-at-club) bookings",
+        "paragraphs": [
+          "If you have not paid at the club yet, an on-time cancellation usually releases the slot with no charge.",
+          "No-shows without cancellation may limit future bookings per club rules."
+        ]
+      },
+      {
+        "title": "3. Paid bookings or wallet credit",
+        "paragraphs": [
+          "On-time cancellation of a booking marked paid in the system usually credits your inbox wallet unless club or payment-provider rules require otherwise.",
+          "If online gateway payment is enabled, refunds may follow the provider’s rules."
+        ]
+      },
+      {
+        "title": "4. Packages and season bookings",
+        "paragraphs": [
+          "Package or recurring reservations may have stricter rules stated in the package terms or club agreement."
+        ]
+      },
+      {
+        "title": "5. Disputes",
+        "paragraphs": [
+          "Start with the club; for platform follow-up use the complaints page or support{'@'}inboxs.ir."
+        ]
+      }
+    ],
     "privacySections": [
       {
         "title": "1. Who we are",
@@ -608,35 +752,45 @@
         ]
       },
       {
-        "title": "5. Payments",
+        "title": "5. Cancellation and refunds",
         "paragraphs": [
-          "Unless online payment is explicitly enabled for your club, payment is made at the club (“pay at club”). inbox may record payment method and status for operational tracking.",
-          "Prices, taxes, refunds, and receipts are determined by the club unless otherwise stated at checkout.",
-          "When online payments are enabled in the future, additional payment-provider terms may apply."
+          "Each club’s cancellation and reschedule window is shown on the booking page and applies in addition to these terms.",
+          "Unpaid pay-at-club bookings: an on-time cancellation usually frees the slot with no charge.",
+          "Paid bookings or wallet credit: on-time cancellation usually credits your inbox wallet unless club or gateway rules require otherwise.",
+          "Full details are on the Cancellation & refunds page and the Complaints page."
         ]
       },
       {
-        "title": "6. Club policies",
+        "title": "6. Payments",
+        "paragraphs": [
+          "Unless online payment is explicitly enabled for your club, payment is made at the club (“pay at club”). inbox may record payment method and status for operational tracking.",
+          "Prices, taxes, refunds, and receipts are determined by the club unless otherwise stated at checkout.",
+          "When online payments are enabled in the future, additional payment-provider terms may apply.",
+          "Before you confirm a booking, the service amount and total due are shown clearly. Athlete platform fees are currently zero unless stated otherwise."
+        ]
+      },
+      {
+        "title": "7. Club policies",
         "paragraphs": [
           "Each club may publish cancellation windows, no-show rules, equipment fees, and conduct requirements. Club rules apply in addition to these terms.",
           "Disputes about service quality, refunds, or facility conditions should first be directed to the relevant club."
         ]
       },
       {
-        "title": "7. Acceptable use",
+        "title": "8. Acceptable use",
         "paragraphs": [
           "You may not misuse the platform, attempt unauthorized access, scrape data at scale, interfere with other users, or provide false booking information.",
           "Club staff must use owner tools only for legitimate club operations and comply with applicable messaging and privacy laws when contacting athletes."
         ]
       },
       {
-        "title": "8. Intellectual property",
+        "title": "9. Intellectual property",
         "paragraphs": [
           "inbox branding, software, and content we provide are protected by applicable intellectual-property laws. You receive a limited license to use the service for personal or authorized club purposes."
         ]
       },
       {
-        "title": "9. Disclaimers and liability",
+        "title": "10. Disclaimers and liability",
         "paragraphs": [
           "The service is provided “as is” to the extent permitted by law. We do not guarantee uninterrupted access or that every listing is error-free.",
           "To the maximum extent permitted by law, inbox is not liable for indirect or consequential damages arising from club services, injuries at facilities, or third-party actions.",
@@ -644,21 +798,22 @@
         ]
       },
       {
-        "title": "10. Changes",
+        "title": "11. Changes",
         "paragraphs": [
           "We may modify these terms. Continued use after changes are posted constitutes acceptance of the updated terms."
         ]
       },
       {
-        "title": "11. Governing law",
+        "title": "12. Governing law",
         "paragraphs": [
           "These terms are governed by the laws applicable to the operator of inbox in its principal place of business, without regard to conflict-of-law rules. Courts with competent jurisdiction may hear disputes unless mandatory consumer protections require otherwise."
         ]
       },
       {
-        "title": "12. Contact",
+        "title": "13. Contact",
         "paragraphs": [
-          "Support and legal inquiries: support{'@'}inboxs.ir"
+          "Support and legal inquiries: support{'@'}inboxs.ir",
+          "Complaints: complaints{'@'}inboxs.ir — or the Complaints page on the site."
         ]
       }
     ]

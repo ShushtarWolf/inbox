@@ -73,6 +73,18 @@ async function confirm() {
         <p v-if="pkg.startDate" class="text-sm text-brand-gray-600">{{ pkg.startDate }} — {{ pkg.finishDate }}</p>
       </div>
 
+      <BookingCostSummary
+        v-if="!done"
+        :lines="[
+          { label: t('booking.costService'), amount: formatCurrency(Math.max(0, pkg.price - (pkg.discount || 0))) },
+          { label: t('booking.costPlatformFee'), amount: t('booking.costPlatformFeeZero'), muted: true },
+        ]"
+        :total-label="t('booking.costTotal')"
+        :total-amount="formatCurrency(Math.max(0, pkg.price - (pkg.discount || 0)))"
+        :payment-note="t('booking.costPayAtClubNote')"
+        :cancel-note="t('booking.costCancelHint')"
+      />
+
       <section v-if="pkg.days?.length" class="ios-card p-4">
         <h2 class="mb-2 font-bold">{{ t('booking.packageDays') }}</h2>
         <div class="flex flex-wrap gap-2">

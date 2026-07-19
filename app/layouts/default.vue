@@ -65,11 +65,23 @@ onMounted(() => {
         ·
         <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">09124777927</a>
       </p>
-      <NuxtLink :to="localePath('/privacy')" class="px-2 hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
-      ·
-      <NuxtLink :to="localePath('/clubs/apply')" class="px-2 hover:text-brand-primary">{{ t('clubs.applyLink') }}</NuxtLink>
-      ·
-      <NuxtLink :to="localePath('/terms')" class="px-2 hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
+      <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+        <NuxtLink :to="localePath('/about')" class="px-1.5 hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/contact')" class="px-1.5 hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/pricing')" class="px-1.5 hover:text-brand-primary">{{ t('legal.pricing') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/complaints')" class="px-1.5 hover:text-brand-primary">{{ t('legal.complaints') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/cancellation')" class="px-1.5 hover:text-brand-primary">{{ t('legal.cancellation') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/privacy')" class="px-1.5 hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/terms')" class="px-1.5 hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
+        ·
+        <NuxtLink :to="localePath('/clubs/apply')" class="px-1.5 hover:text-brand-primary">{{ t('clubs.applyLink') }}</NuxtLink>
+      </div>
     </footer>
     <AppBottomNav :items="nav" />
     <AuthFlowModal />

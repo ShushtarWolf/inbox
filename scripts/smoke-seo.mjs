@@ -10,6 +10,11 @@ const faPages = [
   { path: '/login', expectLang: 'fa' },
   { path: '/privacy', expectLang: 'fa' },
   { path: '/terms', expectLang: 'fa' },
+  { path: '/about', expectLang: 'fa' },
+  { path: '/contact', expectLang: 'fa' },
+  { path: '/pricing', expectLang: 'fa' },
+  { path: '/complaints', expectLang: 'fa' },
+  { path: '/cancellation', expectLang: 'fa' },
 ]
 
 async function assertRedirect(path, { allowed = [301, 302, 307, 308] } = {}) {

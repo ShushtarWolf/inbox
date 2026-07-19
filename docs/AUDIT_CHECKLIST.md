@@ -9,6 +9,11 @@
 | `/reset-password` | `app/pages/reset-password.vue` | — | — | — | — | OK |
 | `/privacy` | `app/pages/privacy.vue` | — | — | — | — | OK |
 | `/terms` | `app/pages/terms.vue` | — | — | — | — | OK |
+| `/about` | `app/pages/about.vue` | — | — | — | — | OK |
+| `/contact` | `app/pages/contact.vue` | — | — | — | — | OK |
+| `/pricing` | `app/pages/pricing.vue` | — | — | — | — | OK |
+| `/complaints` | `app/pages/complaints.vue` | — | — | — | — | OK |
+| `/cancellation` | `app/pages/cancellation.vue` | — | — | — | — | OK |
 | `/clubs/apply` | `app/pages/clubs/apply.vue` | — | — | — | — | OK |
 | `/owner/setup` | `app/pages/owner/setup.vue` | — | — | — | wizard | OK |
 | `/clubs` | `app/pages/clubs/index.vue` | English amenity labels | — | km suffix | hardcoded amenities | Fixed |

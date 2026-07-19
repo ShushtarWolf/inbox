@@ -22,6 +22,11 @@ export default defineEventHandler(async (event) => {
     ...(pilotNoCoach ? [] : ['/coaches']),
     '/login',
     '/register',
+    '/about',
+    '/contact',
+    '/pricing',
+    '/complaints',
+    '/cancellation',
     '/privacy',
     '/terms',
   ]

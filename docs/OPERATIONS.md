@@ -9,6 +9,10 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `DATABASE_URL` | Yes | PostgreSQL connection string (Liara database service) |
 | `NUXT_SESSION_PASSWORD` | Yes | Session encryption secret (min 32 chars, not demo fallback) |
 | `NUXT_PUBLIC_SITE_URL` | Yes (prod) | Public URL for password reset and booking confirmation links (`https://inboxs.ir`) |
+| `NUXT_PUBLIC_CONTACT_ADDRESS` | Enamad | Physical address shown on `/contact` (set before Enamad review) |
+| `NUXT_PUBLIC_CONTACT_LANDLINE` | Enamad | Landline shown on `/contact` when set |
+| `NUXT_PUBLIC_CONTACT_MOBILE` | No | Defaults to `09124777927` |
+| `NUXT_PUBLIC_CONTACT_EMAIL` | No | Defaults to `info@inboxs.ir` |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default / current prod), `test`, or `live`. Keep `pay_at_club` — Zarinpal live is not implemented yet |
