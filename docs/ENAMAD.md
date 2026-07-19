@@ -49,6 +49,8 @@ NUXT_PUBLIC_ENAMAD_VERIFY_FILE=1234567.txt
 4. Open `https://inboxs.ir/1234567.txt` — should return empty 200 text/plain.
 5. Confirm file upload in Enamad panel.
 
+(Implemented via server middleware matching that exact path — not a catch-all route.)
+
 ### C) Temporary homepage title
 
 1. Enamad gives a phrase to put as the site title.
