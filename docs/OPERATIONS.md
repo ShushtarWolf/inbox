@@ -262,6 +262,42 @@ pg_restore -d "$DATABASE_URL" --clean --if-exists inbox-backup-YYYYMMDD.dump
 
 **Warning:** restore replaces data. Take a fresh backup before restore.
 
+## Production data wipe (clubs + users)
+
+Use when prod must be empty but healthy (new signups/applications still allowed). **Never** run `FORCE_SEED_RESET=true` + `SEED_DEMO_DATA=true` on production — that recreates `*@inbox.local` demo junk.
+
+### Keep vs delete
+
+| Keep | Delete |
+|------|--------|
+| `Sport` catalog (padel/tennis/…) | All `User`, `Club`, bookings/payments/waitlists/reviews/CRM/media/slots/courts/coaches |
+| Static assets (`public/hero/*`, `public/brand/*`, placeholders, icons) | Applications, OTPs, wallets/notifications, package bookings, workers |
+| Liara env vars, S3 buckets (orphaned objects OK) | — |
+
+### Procedure
+
+1. Backup first: `liara db backup create --name inbox-db` then `liara db backup list --name inbox-db` (confirm a new `manual/…` entry).
+2. Count before (users/clubs/bookings/sports) against prod `DATABASE_URL` (do not print the URL).
+3. Run the one-shot wipe (transaction + FK order; re-upserts sports; no demo seed):
+
+```bash
+# Against prod DATABASE_URL only — never commit the URL
+CONFIRM=WIPE_ALL_USERS_AND_CLUBS ALLOW_PROD_WIPE=yes NODE_ENV=production \
+  node scripts/wipe-prod-catalog.mjs
+```
+
+4. Count after: users=0, clubs=0, bookings=0, sports≥1.
+5. Smoke: `GET /api/health`, `/`, `/clubs`, `/login`, `/register`, hero `/hero/*.jpg` → 200; empty `/clubs` OK.
+
+No deploy required for a remote DB wipe. Deploy only if you change the wipe script/docs and need them on the server.
+
+### Re-provision Behnaz (after wipe)
+
+1. Open `https://inboxs.ir/admin` with `ADMIN_PROVISION_SECRET` (do not commit the secret).
+2. Use **`/admin/provision`**: owner email, name, club name → creates `CLUB_ADMIN` + `ACTIVE` club + courts.
+3. Owner logs in at `/login`; optional `/owner/setup` for hours/pricing.
+4. Confirm public `/clubs` lists the new club.
+
 ## Deploy rollback
 
 1. Liara dashboard → `inbox` app → Releases

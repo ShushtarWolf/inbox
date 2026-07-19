@@ -45,6 +45,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] Demo login/registration blocked in production (`*@inbox.local`)
 - [x] Demo passwords removed from production (unset `SEED_DEMO_DATA`; auto-cleanup on deploy)
 - [x] Postgres backup verified (`inbox-db`): Liara hourly/daily backups present; manual `liara db backup create --name inbox-db` succeeded (`manual/2026-07-19T01-45-22-….dump.tar.gz`). See docs/OPERATIONS.md → "Database backup"
+- [x] Prod catalog wipe (2026-07-19): all users/clubs wiped; sports kept; static `/hero` assets kept. Re-provision clubs via `/admin/provision` (e.g. Behnaz). See docs/OPERATIONS.md → "Production data wipe"
 
 ## Automated QA
 

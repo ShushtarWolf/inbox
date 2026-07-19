@@ -39,6 +39,7 @@
     "analyze": "nuxi analyze",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:db": "node scripts/check-db.mjs",
+    "db:wipe-catalog": "node scripts/wipe-prod-catalog.mjs",
     "fix:domain": "node scripts/fix-liara-domain.mjs"
   },
   "prisma": {
