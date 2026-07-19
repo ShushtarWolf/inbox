@@ -18,10 +18,6 @@ const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 
-onMounted(() => {
-  if (!user.value) fetchAuth()
-})
-
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 const suggestedClubs = computed(() => clubs.value?.slice(0, 6) || [])
 const tennisClubs = computed(() => {
@@ -37,16 +33,25 @@ const heroSlides = computed(() => [
   {
     title: t('home.heroSlideTitle'),
     body: t('home.heroBody'),
-    image: suggestedClubs.value[0]?.image || '/placeholders/club.svg',
+    image: '/hero/inbox-brand-court.jpg',
   },
   {
     title: t('home.bookCourt'),
     body: t('home.bookCourtHint'),
-    image: tennisClubs.value[0]?.image || padelClubs.value[0]?.image || '/placeholders/club.svg',
+    image: '/hero/tennis-court.jpg',
+  },
+  {
+    title: t('home.padelTitle'),
+    body: t('home.clubSectionBody'),
+    image: '/hero/padel-court.jpg',
   },
 ])
 
 const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
+
+onMounted(() => {
+  if (!user.value) fetchAuth()
+})
 
 const heroSearchDate = computed(() => {
   return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
@@ -89,7 +94,11 @@ watch(sports, (list) => {
   <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
     <div class="tail-page-stack animate-fade-in tail-stagger">
       <section class="canva-hero">
-        <img :src="activeHero?.image" alt="" class="canva-hero-media" />
+        <img
+          :src="activeHero?.image"
+          alt=""
+          class="canva-hero-media"
+        />
         <div class="canva-hero-content">
           <div class="flex items-start justify-between gap-3">
             <button
