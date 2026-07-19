@@ -502,7 +502,7 @@
     "mobileLabel": "Mobile",
     "mobileDefault": "09124777927",
     "emailLabel": "Email",
-    "emailDefault": "info@inboxs.ir",
+    "emailDefault": "info{'@'}inboxs.ir",
     "hoursLabel": "Response hours",
     "hours": "Daily 9:00–18:00 (except official holidays)"
   },

@@ -504,7 +504,7 @@
     "mobileLabel": "تلفن همراه",
     "mobileDefault": "09124777927",
     "emailLabel": "ایمیل",
-    "emailDefault": "info@inboxs.ir",
+    "emailDefault": "info{'@'}inboxs.ir",
     "hoursLabel": "ساعات پاسخ‌گویی",
     "hours": "همه‌روزه ۹ تا ۱۸ (به‌جز تعطیلات رسمی)"
   },
