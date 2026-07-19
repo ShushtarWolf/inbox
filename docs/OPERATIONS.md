@@ -2,6 +2,8 @@
 
 Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the Liara `inbox-db` service.
 
+> **Outbound access note:** Some cloud CI agents outside Iran cannot complete TLS handshakes to `inboxs.ir` / `*.liara.run` (connection reset). That is a network path issue, not an app outage — verify prod from an Iran-capable network or the Liara console.
+
 ## Environment variables (production)
 
 | Variable | Required | Description |
@@ -176,6 +178,7 @@ Redeploy or restart the app after setting env so both server and client pick up 
    → `sentryEnabled: true` + `eventId`. Confirm in Sentry → Issues (`SentryTestError` / tag `source=admin-sentry-test`).
 4. **Client capture:** open `/admin/sentry` (admin secret) → **Test client capture**, or DevTools: `useNuxtApp().$sentryCaptureTest()`. Confirm a client-side event in Sentry.
 5. **Prod (Liara):** set env vars above → redeploy → same curl against `https://inboxs.ir` with prod `ADMIN_PROVISION_SECRET`, or use `/admin/sentry`. Status endpoint never returns the DSN.
+6. If curl to `inboxs.ir` fails with TLS reset from your runner, verify from an Iran network or Liara logs — the DSN can still be set in the dashboard beforehand.
 
 The test route is **not** public: missing/invalid `x-admin-secret` → `403`. Do not expose an ungated error endpoint.
 

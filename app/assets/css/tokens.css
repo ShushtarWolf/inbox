@@ -8,7 +8,7 @@
   --sz-bg-glass: rgba(255, 255, 255, 0.7);
   --sz-border: rgba(44, 44, 42, 0.08);
   --sz-text: #2c2c2a;
-  --sz-text-secondary: #6b6b67;
+  --sz-text-secondary: #52524f;
   --sz-accent: #c41e1e;
   --sz-accent-dark: #4a1420;
   --sz-accent-light: #d63a3a;
@@ -17,7 +17,7 @@
   --sz-gold-dark: #9a7530;
   --sz-gold-soft: rgba(182, 138, 59, 0.14);
   --sz-navy: #2c2c2a;
-  --sz-secondary: #6b6b67;
+  --sz-secondary: #52524f;
   --sz-card-shadow: 0 4px 24px rgba(44, 44, 42, 0.08);
   --sz-card-radius: 0.75rem;
   --sz-input-radius: 0.5rem;

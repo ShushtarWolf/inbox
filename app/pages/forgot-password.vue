@@ -5,6 +5,12 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { openLogin } = useAuthFlow()
 
+usePageSeo({
+  title: () => t('seo.forgotPasswordTitle'),
+  description: () => t('seo.forgotPasswordDescription'),
+  path: '/forgot-password',
+})
+
 const email = ref('')
 const submitted = ref(false)
 const error = ref('')

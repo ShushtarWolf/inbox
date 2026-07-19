@@ -1,18 +1,29 @@
 #!/usr/bin/env node
-/** Full page smoke — public routes + authenticated dashboards. FA-only / prod-aware. */
-import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+/** Full page smoke — public routes + authenticated dashboards. FA-only / prod / pilot aware. */
+import {
+  createCookieJar,
+  demoLoginsBlocked,
+  isPilotNoCoachRuntime,
+  isProdSmokeBase,
+  loadDotEnv,
+  login as helperLogin,
+  provisionOwner,
+  registerAthlete,
+} from './lib/smoke-helpers.mjs'
+
+loadDotEnv()
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 const prodAware = isProdSmokeBase(base)
+const adminSecret = process.env.ADMIN_PROVISION_SECRET || ''
+const cookieJar = createCookieJar()
 
-const publicPaths = [
+const publicPathsBase = [
   '/',
   '/clubs',
-  '/coaches',
   '/login',
   '/register',
   '/register/owner',
-  '/register/coach',
   '/privacy',
   '/terms',
   '/about',
@@ -26,7 +37,7 @@ const publicPaths = [
 ]
 
 /** Soft-disabled EN + legacy apply routes — 301/302/307/308 OK */
-const redirectPaths = [
+const redirectPathsBase = [
   '/clubs/apply',
   '/en',
   '/en/clubs',
@@ -38,9 +49,9 @@ const redirectPaths = [
   '/en/register/coach',
 ]
 
-const ownerPaths = [
+const ownerPathsBase = [
   '/owner', '/owner/finance', '/owner/equipments', '/owner/packages',
-  '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings',
+  '/owner/crm', '/owner/support', '/owner/settings',
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
 const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
@@ -56,19 +67,8 @@ const adminPaths = [
   '/admin/provision',
 ]
 
-const cookieJar = new Map()
-
-async function login(session, email) {
-  const res = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'demo1234' }),
-  })
-  if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
-  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
-  if (setCookies.length) {
-    cookieJar.set(session, setCookies.map((entry) => entry.split(';')[0]).join('; '))
-  }
+async function login(session, email, password = 'demo1234') {
+  await helperLogin(base, cookieJar, session, email, password)
 }
 
 async function check(path, { session, expectRedirect, expectStatus = 200, label } = {}) {
@@ -103,7 +103,17 @@ async function checkManifest() {
 }
 
 async function main() {
-  console.log(`smoke-all-pages → ${base}${prodAware ? ' (prod-aware)' : ''}`)
+  const pilotNoCoach = await isPilotNoCoachRuntime(base)
+  console.log(`smoke-all-pages → ${base}${prodAware ? ' (prod-aware)' : ''}${pilotNoCoach ? ' (pilot)' : ''}`)
+
+  const publicPaths = [
+    ...publicPathsBase,
+    ...(!pilotNoCoach ? ['/coaches', '/register/coach'] : []),
+  ]
+  const redirectPaths = [
+    ...redirectPathsBase,
+    ...(pilotNoCoach ? ['/coaches', '/register/coach', '/book/coach/x', '/coach'] : []),
+  ]
 
   for (const path of publicPaths) {
     await check(path, { label: `public ${path}` })
@@ -116,8 +126,10 @@ async function main() {
   }
 
   await check('/owner', { expectRedirect: true, label: 'guest /owner' })
-  await check('/coach', { expectRedirect: true, label: 'guest /coach' })
   await check('/athlete', { expectRedirect: true, label: 'guest /athlete' })
+  if (!pilotNoCoach) {
+    await check('/coach', { expectRedirect: true, label: 'guest /coach' })
+  }
   console.log('ok  guest dashboard redirects')
 
   for (const path of adminPaths) {
@@ -125,7 +137,6 @@ async function main() {
     console.log(`ok  admin ${path}`)
   }
 
-  // Admin APIs require secret
   const adminOverview = await fetch(`${base}/api/admin/overview`)
   if (adminOverview.status !== 403 && adminOverview.status !== 503) {
     throw new Error(`admin overview without secret expected 403/503, got ${adminOverview.status}`)
@@ -135,28 +146,66 @@ async function main() {
   if (prodAware) {
     console.log('skip  *@inbox.local dashboard login (prod / SMOKE_SKIP_DEMO)')
   } else {
-    await login('owner', 'owner@inbox.local')
-    await login('coach', 'coach@inbox.local')
-    await login('athlete', 'athlete@inbox.local')
+    const skipDemo = await demoLoginsBlocked(base)
+    if (skipDemo) {
+      if (!adminSecret) {
+        console.log('skip  dashboard login (demo blocked and no ADMIN_PROVISION_SECRET)')
+      } else {
+        await registerAthlete(base, cookieJar, 'athlete')
+        const provisioned = await provisionOwner(base, adminSecret)
+        await login('owner', provisioned.email, provisioned.temporaryPassword)
+        console.log('ok  provisioned athlete + owner (demo blocked)')
 
-    for (const path of ownerPaths) {
-      await check(path, { session: 'owner', label: `owner ${path}` })
-      console.log(`ok  owner ${path}`)
-    }
-    for (const path of coachPaths) {
-      await check(path, { session: 'coach', label: `coach ${path}` })
-      console.log(`ok  coach ${path}`)
-    }
-    for (const path of athletePaths) {
-      await check(path, { session: 'athlete', label: `athlete ${path}` })
-      console.log(`ok  athlete ${path}`)
-    }
+        const ownerPaths = [...ownerPathsBase]
+        for (const path of ownerPaths) {
+          await check(path, { session: 'owner', label: `owner ${path}` })
+          console.log(`ok  owner ${path}`)
+        }
+        if (pilotNoCoach) {
+          await check('/owner/coaches', { session: 'owner', expectRedirect: true, label: 'owner /owner/coaches' })
+          console.log('ok  owner /owner/coaches redirects (pilot)')
+        }
+        for (const path of athletePaths) {
+          await check(path, { session: 'athlete', label: `athlete ${path}` })
+          console.log(`ok  athlete ${path}`)
+        }
+        await check('/en/owner', { session: 'owner', expectRedirect: true })
+        await check('/en/athlete/bookings', { session: 'athlete', expectRedirect: true })
+        console.log('ok  EN locale dashboard redirects')
+      }
+    } else {
+      await login('owner', 'owner@inbox.local')
+      await login('athlete', 'athlete@inbox.local')
+      if (!pilotNoCoach) await login('coach', 'coach@inbox.local')
 
-    // EN dashboards soft-disabled → redirect
-    await check('/en/owner', { session: 'owner', expectRedirect: true })
-    await check('/en/coach', { session: 'coach', expectRedirect: true })
-    await check('/en/athlete/bookings', { session: 'athlete', expectRedirect: true })
-    console.log('ok  EN locale dashboard redirects')
+      const ownerPaths = [...ownerPathsBase]
+      if (!pilotNoCoach) ownerPaths.push('/owner/coaches')
+
+      for (const path of ownerPaths) {
+        await check(path, { session: 'owner', label: `owner ${path}` })
+        console.log(`ok  owner ${path}`)
+      }
+      if (pilotNoCoach) {
+        await check('/owner/coaches', { session: 'owner', expectRedirect: true, label: 'owner /owner/coaches' })
+        console.log('ok  owner /owner/coaches redirects (pilot)')
+      } else {
+        for (const path of coachPaths) {
+          await check(path, { session: 'coach', label: `coach ${path}` })
+          console.log(`ok  coach ${path}`)
+        }
+      }
+      for (const path of athletePaths) {
+        await check(path, { session: 'athlete', label: `athlete ${path}` })
+        console.log(`ok  athlete ${path}`)
+      }
+
+      await check('/en/owner', { session: 'owner', expectRedirect: true })
+      await check('/en/athlete/bookings', { session: 'athlete', expectRedirect: true })
+      if (!pilotNoCoach) {
+        await check('/en/coach', { session: 'coach', expectRedirect: true })
+      }
+      console.log('ok  EN locale dashboard redirects')
+    }
   }
 
   try {
@@ -166,20 +215,23 @@ async function main() {
     console.warn(`skip manifest: ${error.message}`)
   }
 
-  // Dynamic routes from seeded data
   try {
     const clubsRes = await fetch(`${base}/api/clubs`)
-    const coachesRes = await fetch(`${base}/api/coaches`)
-    if (clubsRes.ok && coachesRes.ok) {
+    if (clubsRes.ok) {
       const clubs = await clubsRes.json()
-      const coaches = await coachesRes.json()
       if (clubs[0]?.slug) {
         await check(`/clubs/${clubs[0].slug}`, { label: 'club detail' })
         console.log(`ok  /clubs/${clubs[0].slug}`)
       }
-      if (coaches[0]?.id) {
-        await check(`/coaches/${coaches[0].id}`, { label: 'coach detail' })
-        console.log(`ok  /coaches/${coaches[0].id}`)
+    }
+    if (!pilotNoCoach) {
+      const coachesRes = await fetch(`${base}/api/coaches`)
+      if (coachesRes.ok) {
+        const coaches = await coachesRes.json()
+        if (coaches[0]?.id) {
+          await check(`/coaches/${coaches[0].id}`, { label: 'coach detail' })
+          console.log(`ok  /coaches/${coaches[0].id}`)
+        }
       }
     }
   } catch (error) {

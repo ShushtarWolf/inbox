@@ -197,6 +197,17 @@ export function extractMeta(html, name) {
   return match?.[1] || null
 }
 
+export function extractMetaProperty(html, property) {
+  const match = html.match(new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'))
+    || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["']`, 'i'))
+  return match?.[1] || null
+}
+
+export function extractTitle(html) {
+  const match = html.match(/<title[^>]*>([^<]*)<\/title>/i)
+  return match?.[1]?.trim() || null
+}
+
 export function extractHtmlLang(html) {
   const match = html.match(/<html[^>]+lang=["']([^"']+)["']/i)
   return match?.[1] || null

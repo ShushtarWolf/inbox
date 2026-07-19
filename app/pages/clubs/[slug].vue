@@ -7,6 +7,17 @@ const { formatCurrency } = useFormatters()
 const slug = route.params.slug as string
 
 const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
+
+usePageSeo({
+  title: () => club.value
+    ? t('seo.clubTitle', { name: localizedField(club.value, 'nameFa', 'nameEn') })
+    : t('seo.clubsTitle'),
+  description: () => club.value
+    ? t('seo.clubDescription', { name: localizedField(club.value, 'nameFa', 'nameEn') })
+    : t('seo.clubsDescription'),
+  image: () => club.value?.image || '/brand/inbox-og.svg',
+  path: () => `/clubs/${slug}`,
+})
 </script>
 
 <template>

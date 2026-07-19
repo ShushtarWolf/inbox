@@ -13,17 +13,22 @@ const sections = computed(() => {
   const raw = tm(props.sectionsKey) as LegalSection[] | LegalSection
   return Array.isArray(raw) ? raw : []
 })
+
+usePageSeo({
+  title: () => t(props.titleKey),
+  description: () => t(props.introKey),
+})
 </script>
 
 <template>
   <div class="prose prose-sm mx-auto max-w-2xl px-4 py-8">
     <h1>{{ t(titleKey) }}</h1>
-    <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
+    <p class="text-sm text-brand-gray-700">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t(introKey) }}</p>
     <section v-for="(section, idx) in sections" :key="idx" class="mt-6">
       <h2>{{ rt(section.title) }}</h2>
       <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ rt(para) }}</p>
     </section>
-    <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
+    <p class="mt-8 text-sm text-brand-gray-700">{{ t('legal.disclaimer') }}</p>
   </div>
 </template>

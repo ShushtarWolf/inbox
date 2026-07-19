@@ -28,7 +28,7 @@ function goHome() {
   <div class="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
     <p class="text-6xl font-bold text-brand-red">{{ error.statusCode || 500 }}</p>
     <h1 class="mt-4 text-xl font-bold text-brand-navy">{{ title }}</h1>
-    <p class="mt-2 text-brand-muted">{{ message }}</p>
+    <p class="mt-2 text-brand-gray-700">{{ message }}</p>
     <button type="button" class="btn-primary mt-8" @click="goHome">{{ t('errors.goHome') }}</button>
   </div>
 </template>

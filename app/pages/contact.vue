@@ -30,12 +30,18 @@ const landlineTel = computed(() => {
   if (digits.startsWith('0')) return `+98${digits.slice(1)}`
   return digits
 })
+
+usePageSeo({
+  title: () => t('seo.contactTitle'),
+  description: () => t('seo.contactDescription'),
+  path: '/contact',
+})
 </script>
 
 <template>
   <div class="prose prose-sm mx-auto max-w-2xl px-4 py-8">
     <h1>{{ t('contact.title') }}</h1>
-    <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
+    <p class="text-sm text-brand-gray-700">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t('contact.intro') }}</p>
 
     <dl class="mt-6 not-prose space-y-4 text-sm">
@@ -90,6 +96,6 @@ const landlineTel = computed(() => {
     <div class="mt-6 not-prose flex justify-center">
       <EnamadBadge />
     </div>
-    <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
+    <p class="mt-8 text-sm text-brand-gray-700">{{ t('legal.disclaimer') }}</p>
   </div>
 </template>

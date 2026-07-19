@@ -5,6 +5,13 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatDistanceKm } = useFormatters()
+
+usePageSeo({
+  title: () => t('seo.clubsTitle'),
+  description: () => t('seo.clubsDescription'),
+  path: '/clubs',
+})
+
 const showMoreFilters = ref(false)
 const showMap = ref(false)
 const locating = ref(false)
