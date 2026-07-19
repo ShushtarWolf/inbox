@@ -165,6 +165,14 @@ export default defineNuxtConfig({
       contactLandline: process.env.NUXT_PUBLIC_CONTACT_LANDLINE || '',
       contactMobile: process.env.NUXT_PUBLIC_CONTACT_MOBILE || '09124777927',
       contactEmail: process.env.NUXT_PUBLIC_CONTACT_EMAIL || 'info@inboxs.ir',
+      contactOwnerName: process.env.NUXT_PUBLIC_CONTACT_OWNER_NAME || '',
+      contactPostalCode: process.env.NUXT_PUBLIC_CONTACT_POSTAL_CODE || '',
+      // Enamad post-signup: set these on Liara without a code change.
+      enamadMetaContent: process.env.NUXT_PUBLIC_ENAMAD_META_CONTENT || '',
+      enamadVerifyFile: process.env.NUXT_PUBLIC_ENAMAD_VERIFY_FILE || '',
+      enamadTitleOverride: process.env.NUXT_PUBLIC_ENAMAD_TITLE_OVERRIDE || '',
+      enamadId: process.env.NUXT_PUBLIC_ENAMAD_ID || '',
+      enamadCode: process.env.NUXT_PUBLIC_ENAMAD_CODE || '',
     },
     session: {
       name: 'inbox-session',

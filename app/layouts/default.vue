@@ -65,6 +65,9 @@ onMounted(() => {
         ·
         <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">09124777927</a>
       </p>
+      <div class="mb-2 flex justify-center">
+        <EnamadBadge />
+      </div>
       <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
         <NuxtLink :to="localePath('/about')" class="px-1.5 hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
         ·

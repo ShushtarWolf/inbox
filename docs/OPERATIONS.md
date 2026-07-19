@@ -13,6 +13,9 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_PUBLIC_CONTACT_LANDLINE` | Enamad | Landline shown on `/contact` when set |
 | `NUXT_PUBLIC_CONTACT_MOBILE` | No | Defaults to `09124777927` |
 | `NUXT_PUBLIC_CONTACT_EMAIL` | No | Defaults to `info@inboxs.ir` |
+| `NUXT_PUBLIC_CONTACT_OWNER_NAME` | Enamad | Operator name on `/contact` and `/about` |
+| `NUXT_PUBLIC_CONTACT_POSTAL_CODE` | Enamad | Postal code on `/contact` |
+| `NUXT_PUBLIC_ENAMAD_*` | After signup | See [docs/ENAMAD.md](./ENAMAD.md) for meta/file/title/badge |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
 | `PAYMENTS_MODE` | No | `pay_at_club` (default / current prod), `test`, or `live`. Keep `pay_at_club` — Zarinpal live is not implemented yet |

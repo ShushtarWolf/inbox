@@ -3,9 +3,11 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
 
+const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
 const address = computed(() =>
   String(config.public.contactAddress || '').trim() || t('contact.addressDefault'),
 )
+const postalCode = computed(() => String(config.public.contactPostalCode || '').trim())
 const landline = computed(() => String(config.public.contactLandline || '').trim())
 const mobile = computed(() =>
   String(config.public.contactMobile || '').trim() || t('contact.mobileDefault'),
@@ -37,9 +39,17 @@ const landlineTel = computed(() => {
     <p>{{ t('contact.intro') }}</p>
 
     <dl class="mt-6 not-prose space-y-4 text-sm">
+      <div v-if="ownerName" class="ios-card space-y-1 p-4">
+        <dt class="font-bold text-brand-navy">{{ t('contact.ownerLabel') }}</dt>
+        <dd class="text-brand-gray-700">{{ ownerName }}</dd>
+      </div>
+
       <div class="ios-card space-y-1 p-4">
         <dt class="font-bold text-brand-navy">{{ t('contact.addressLabel') }}</dt>
         <dd class="text-brand-gray-700">{{ address }}</dd>
+        <dd v-if="postalCode" class="text-brand-gray-600" dir="ltr">
+          {{ t('contact.postalCodeLabel') }}: {{ postalCode }}
+        </dd>
       </div>
 
       <div v-if="landline" class="ios-card space-y-1 p-4">
@@ -62,6 +72,7 @@ const landlineTel = computed(() => {
           <a :href="`mailto:${email}`" class="block text-brand-primary" dir="ltr">{{ email }}</a>
           <a href="mailto:support@inboxs.ir" class="block text-brand-primary" dir="ltr">support@inboxs.ir</a>
           <a href="mailto:privacy@inboxs.ir" class="block text-brand-primary" dir="ltr">privacy@inboxs.ir</a>
+          <a href="mailto:complaints@inboxs.ir" class="block text-brand-primary" dir="ltr">complaints@inboxs.ir</a>
         </dd>
       </div>
 
@@ -76,6 +87,9 @@ const landlineTel = computed(() => {
         {{ t('legal.complaints') }}
       </NuxtLink>
     </p>
+    <div class="mt-6 not-prose flex justify-center">
+      <EnamadBadge />
+    </div>
     <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
   </div>
 </template>
