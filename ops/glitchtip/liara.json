@@ -1,0 +1,8 @@
+{
+  "app": "inbox-glitchtip",
+  "platform": "docker",
+  "port": 8000,
+  "build": {
+    "location": "iran"
+  }
+}
