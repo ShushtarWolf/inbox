@@ -60,7 +60,9 @@ Deploy from repo root:
 liara deploy --app inbox
 ```
 
-See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md).
+See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md), [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md).
+
+Report security issues privately — see [SECURITY.md](SECURITY.md).
 
 ## Demo accounts (local development only)
 
@@ -143,7 +145,7 @@ To verify offline locally: enable PWA, load the app once online, then go offline
 
 ## Brand assets
 
-Original assets in `public/brand`, `public/icons`, `brand/palette.ts`. Planning doodles in `planning/doodles/`.
+Original assets in `public/brand`, `public/icons`, `brand/palette.ts`.
 
 ## Scripts
 

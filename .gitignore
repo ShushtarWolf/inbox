@@ -29,3 +29,9 @@ prisma/dev.db-journal
 
 .cache
 .liara-secrets.env
+
+# Local planning artifacts (doodles, HTML prototypes, PDFs)
+planning/
+
+# Shell / editor temp junk
+sh-thd-*
