@@ -40,8 +40,8 @@ const roles = computed(() =>
 )
 
 const title = computed(() => {
-  if (step.value === 'gate') return t('auth.gateTitle')
   if (step.value === 'role') return t('auth.roleTitle')
+  if (step.value === 'login' && loginMode.value === 'password') return t('auth.loginToInbox')
   if (step.value === 'login') return t('auth.loginToInbox')
   if (step.value === 'otp') return t('auth.otpTitle')
   if (role.value === 'COACH') return t('auth.registerCoachTitle')
@@ -69,7 +69,7 @@ function handleClose() {
 
 function goGate() {
   resetForm()
-  step.value = 'gate'
+  goLogin()
 }
 
 function goRole() {
@@ -195,21 +195,50 @@ watch(open, (isOpen) => {
       <div class="space-y-4 px-5 pb-6 pt-2">
         <h2 class="text-center text-lg font-bold text-brand-navy">{{ title }}</h2>
 
-        <template v-if="step === 'gate'">
-          <button type="button" class="btn-primary w-full py-3" @click="goRole">
-            {{ t('auth.register') }}
-          </button>
-          <button type="button" class="btn-canva-login w-full py-3" @click="goLogin">
-            {{ t('auth.emailPasswordFallback') }}
-          </button>
-          <button type="button" class="btn-secondary w-full py-3" @click="goPhoneLogin">
-            {{ t('auth.loginWithPhone') }}
+        <template v-if="step === 'login' && loginMode === 'password'">
+          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
+          <AppFormField field-id="auth-identifier" :label="t('auth.emailOrPhone')">
+            <input
+              id="auth-identifier"
+              v-model="identifier"
+              dir="ltr"
+              class="neo-input"
+              autocomplete="username"
+            />
+          </AppFormField>
+          <AppFormField field-id="auth-password" :label="t('auth.password')">
+            <input
+              id="auth-password"
+              v-model="password"
+              type="password"
+              class="neo-input"
+              autocomplete="current-password"
+            />
+          </AppFormField>
+          <p v-if="error" class="venus-alert-error">{{ error }}</p>
+          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="submitPasswordLogin">
+            {{ pending ? t('common.loading') : t('auth.login') }}
           </button>
           <AppGoogleSignInButton
             v-if="googleAuthEnabled"
             class="w-full"
             @click="startGoogleSignIn(returnTo || undefined)"
           />
+          <NuxtLink
+            :to="localePath('/forgot-password')"
+            class="block text-center text-sm font-bold text-brand-navy underline"
+            @click="handleClose"
+          >
+            {{ t('auth.forgotPassword') }}
+          </NuxtLink>
+          <div class="space-y-2 border-t border-brand-gray-200 pt-4">
+            <button type="button" class="btn-secondary w-full py-3" @click="goPhoneLogin">
+              {{ t('auth.loginWithPhone') }}
+            </button>
+            <button type="button" class="btn-ghost w-full" @click="goRole">
+              {{ t('auth.register') }}
+            </button>
+          </div>
         </template>
 
         <template v-else-if="step === 'role'">
@@ -229,7 +258,9 @@ watch(open, (isOpen) => {
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ t(item.body) }}</p>
             </div>
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goGate">{{ t('common.back') }}</button>
+          <button type="button" class="btn-ghost w-full" @click="goLogin">
+            {{ t('common.back') }}
+          </button>
         </template>
 
         <template v-else-if="step === 'register'">
@@ -266,38 +297,6 @@ watch(open, (isOpen) => {
           </button>
         </template>
 
-        <template v-else-if="step === 'login' && loginMode === 'password'">
-          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
-          <AppFormField field-id="auth-identifier" :label="t('auth.emailOrPhone')">
-            <input
-              id="auth-identifier"
-              v-model="identifier"
-              dir="ltr"
-              class="neo-input"
-              autocomplete="username"
-            />
-          </AppFormField>
-          <AppFormField field-id="auth-password" :label="t('auth.password')">
-            <input
-              id="auth-password"
-              v-model="password"
-              type="password"
-              class="neo-input"
-              autocomplete="current-password"
-            />
-          </AppFormField>
-          <p v-if="error" class="venus-alert-error">{{ error }}</p>
-          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="submitPasswordLogin">
-            {{ pending ? t('common.loading') : t('auth.login') }}
-          </button>
-          <button type="button" class="btn-secondary w-full py-3" @click="goPhoneLogin">
-            {{ t('auth.loginWithPhone') }}
-          </button>
-          <button type="button" class="btn-ghost w-full" @click="goGate()">
-            {{ t('common.back') }}
-          </button>
-        </template>
-
         <template v-else-if="step === 'login'">
           <p class="text-center text-sm text-brand-gray-600">{{ t('auth.phoneLoginHint') }}</p>
           <AppFormField field-id="auth-phone-login" :label="t('common.mobile')">
@@ -318,7 +317,7 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-secondary w-full py-3" @click="goLogin">
             {{ t('auth.emailPasswordFallback') }}
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goGate()">
+          <button type="button" class="btn-ghost w-full" @click="goLogin">
             {{ t('common.back') }}
           </button>
         </template>

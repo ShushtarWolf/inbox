@@ -1,6 +1,5 @@
 export type AuthFlowStep =
   | 'closed'
-  | 'gate'
   | 'role'
   | 'register'
   | 'login'
@@ -19,10 +18,7 @@ export function useAuthFlow() {
   const returnTo = useState('auth-flow-return-to', () => '')
 
   function openGate(opts?: { returnTo?: string }) {
-    returnTo.value = opts?.returnTo || ''
-    loginMode.value = 'password'
-    step.value = 'gate'
-    open.value = true
+    openLogin(opts)
   }
 
   function openLogin(opts?: { returnTo?: string; mode?: AuthFlowLoginMode }) {
