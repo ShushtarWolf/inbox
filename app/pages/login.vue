@@ -13,6 +13,12 @@ const password = ref('')
 const submitting = ref(false)
 const formError = ref('')
 
+usePageSeo({
+  title: () => t('seo.loginTitle'),
+  description: () => t('seo.loginDescription'),
+  path: '/login',
+})
+
 const returnTo = computed(() => {
   const value = route.query.returnTo
   return typeof value === 'string' ? value : ''

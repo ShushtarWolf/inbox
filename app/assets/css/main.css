@@ -274,7 +274,11 @@
     @apply relative overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
   }
   .canva-hero-media {
-    @apply absolute inset-0 h-full w-full object-cover opacity-55;
+    @apply absolute inset-0 h-full w-full object-cover opacity-45;
+  }
+  .canva-hero::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-navy/90 via-brand-navy/55 to-brand-navy/25;
   }
   .canva-hero-content {
     @apply relative z-10 flex min-h-[220px] flex-col justify-end gap-2 p-5;
@@ -289,7 +293,11 @@
     @apply relative block h-40 w-36 shrink-0 overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
   }
   .canva-venue-card img {
-    @apply absolute inset-0 h-full w-full object-cover opacity-70;
+    @apply absolute inset-0 h-full w-full object-cover opacity-55;
+  }
+  .canva-venue-card::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/55 to-brand-navy/20;
   }
   .canva-venue-card-body {
     @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-3 text-center;

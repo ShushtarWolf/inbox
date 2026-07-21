@@ -20,6 +20,8 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Local set: restart after `.env` DSN; `POST /api/admin/sentry-test` with `x-admin-secret` → event in Sentry
   - Client: `/admin/sentry` → Test client capture (or `$sentryCaptureTest()`)
   - Prod: same admin test against `https://inboxs.ir` after Liara env + redeploy
+  - **Note:** Cloud agents outside Iran often cannot reach `inboxs.ir` (TLS reset). Set the DSN in the Liara dashboard, redeploy, then verify from an Iran-capable network with:
+    `curl -s -H "x-admin-secret: $ADMIN_PROVISION_SECRET" https://inboxs.ir/api/admin/sentry-status`
 - [ ] Object storage (Liara bucket) — keep unchecked until verified:
   - Create public bucket + access key in Liara Object Storage. See docs/OPERATIONS.md → "Object storage (S3 / Liara)"
   - Liara `inbox` app env: `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_PUBLIC_URL` (e.g. `https://{bucket}.storage.iran.liara.space`)
@@ -62,8 +64,14 @@ Manual staging check:
 ```bash
 BASE_URL=https://inboxs.ir npm run smoke
 BASE_URL=https://inboxs.ir npm run smoke:pages
+BASE_URL=https://inboxs.ir npm run smoke:performance
+BASE_URL=https://inboxs.ir npm run smoke:dashboard
 npm run qa:matrix
 ```
+
+`smoke`, `smoke:pages`, `smoke:performance`, and `smoke:dashboard` auto-detect `pilotNoCoach` and skip/redirect coach routes when the Behnaz pilot flag is on. Prefer `npm run smoke:pilot` for the dedicated pilot happy path.
+
+> **Reachability:** Some CI/cloud runners outside Iran cannot complete TLS to Liara `*.ir` / `*.liara.run` hosts (connection reset during handshake). Run the prod smoke commands from an Iran-capable network or SSH jump host if that happens.
 
 ## Manual QA matrix
 

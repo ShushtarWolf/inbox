@@ -27,6 +27,7 @@ describe('brandbook palette', () => {
 
   it('uses warm gray text scale', () => {
     expect(palette.gray[800]).toBe('#2C2C2A')
-    expect(palette.gray[500]).toBe('#6B6B67')
+    expect(palette.gray[500]).toBe('#52524F')
+    expect(palette.gray[600]).toBe('#3D3D3A')
   })
 })

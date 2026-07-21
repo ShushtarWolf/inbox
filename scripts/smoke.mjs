@@ -1,7 +1,20 @@
 #!/usr/bin/env node
-/** Smoke test — run after `npm run dev` or against BASE_URL */
+/** Smoke test — run after `npm run dev` or against BASE_URL. Pilot + demo-gate aware. */
+import {
+  createCookieJar,
+  demoLoginsBlocked,
+  isPilotNoCoachRuntime,
+  loadDotEnv,
+  login,
+  provisionOwner,
+  registerAthlete,
+} from './lib/smoke-helpers.mjs'
+
+loadDotEnv()
+
 const base = process.env.BASE_URL || 'http://localhost:3000'
-const cookieJar = new Map()
+const adminSecret = process.env.ADMIN_PROVISION_SECRET || ''
+const cookieJar = createCookieJar()
 const oneDayMs = 24 * 60 * 60 * 1000
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -33,11 +46,16 @@ async function check(path, opts = {}) {
     }
     cookieJar.set(opts.session, [...merged.entries()].map(([key, value]) => `${key}=${value}`).join('; '))
   }
-  return res.json()
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) return res.json()
+  return res.text()
 }
 
 async function main() {
   const futureDate = dateOffset(2)
+  const pilotNoCoach = await isPilotNoCoachRuntime(base)
+  if (pilotNoCoach) console.log('note  pilotNoCoach=true — skipping coach booking paths')
+
   await check('/api/health')
   await check('/api/sports')
   const clubs = await check('/api/clubs?city=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&verified=true&sort=rank')
@@ -46,27 +64,37 @@ async function main() {
   }
   const club = await check(`/api/clubs/${clubs[0].slug}`)
   await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
-  const coaches = await check('/api/coaches?verified=true&sort=rank')
-  await check(`/api/coaches/${coaches[0].id}`)
-  let availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${futureDate}`)
+
+  let coaches = []
+  let availability = { slots: [] }
   let coachDate = futureDate
-  for (let offset = 3; offset < 8 && availability.slots.length < 2; offset++) {
-    coachDate = dateOffset(offset)
-    availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${coachDate}`)
+  if (pilotNoCoach) {
+    const coachRes = await fetch(`${base}/api/coaches?verified=true&sort=rank`)
+    if (coachRes.status !== 404) {
+      throw new Error(`pilot coaches API expected 404, got ${coachRes.status}`)
+    }
+    console.log('ok  coaches API gated (404)')
+  } else {
+    coaches = await check('/api/coaches?verified=true&sort=rank')
+    await check(`/api/coaches/${coaches[0].id}`)
+    availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${futureDate}`)
+    for (let offset = 3; offset < 8 && availability.slots.length < 2; offset++) {
+      coachDate = dateOffset(offset)
+      availability = await check(`/api/coaches/${coaches[0].id}/availability?date=${coachDate}`)
+    }
   }
 
-  await check('/api/auth/login', {
-    method: 'POST',
-    session: 'athlete',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'athlete@inbox.local', password: 'demo1234' }),
-  })
-  await check('/api/auth/login', {
-    method: 'POST',
-    session: 'owner',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'owner@inbox.local', password: 'demo1234' }),
-  })
+  const skipDemo = await demoLoginsBlocked(base)
+  if (skipDemo) {
+    if (!adminSecret) throw new Error('ADMIN_PROVISION_SECRET required when demo logins are blocked')
+    await registerAthlete(base, cookieJar, 'athlete')
+    const provisioned = await provisionOwner(base, adminSecret)
+    await login(base, cookieJar, 'owner', provisioned.email, provisioned.temporaryPassword)
+    console.log('ok  provisioned athlete + owner (demo blocked)')
+  } else {
+    await login(base, cookieJar, 'athlete', 'athlete@inbox.local')
+    await login(base, cookieJar, 'owner', 'owner@inbox.local')
+  }
 
   const slots = await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
   if (slots.length >= 2) {
@@ -88,7 +116,7 @@ async function main() {
     })
   }
 
-  if (availability.slots.length >= 2) {
+  if (!pilotNoCoach && availability.slots.length >= 2) {
     const createdCoachSession = await check('/api/bookings/coach', {
       method: 'POST',
       session: 'athlete',
@@ -222,7 +250,7 @@ async function main() {
   await check('/api/auth/forgot-password', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'athlete@inbox.local' }),
+    body: JSON.stringify({ email: skipDemo ? 'nobody@example.com' : 'athlete@inbox.local' }),
   })
   await check('/api/notifications', { session: 'athlete' })
 

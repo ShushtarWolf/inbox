@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 /** SEO & basic accessibility smoke — meta tags, lang, manifest. FA-only launch aware. */
-import { extractHtmlLang, extractMeta, fetchPage } from './lib/smoke-helpers.mjs'
+import { extractHtmlLang, extractMeta, extractMetaProperty, extractTitle, fetchPage } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 
 const faPages = [
-  { path: '/', expectLang: 'fa' },
-  { path: '/clubs', expectLang: 'fa' },
-  { path: '/login', expectLang: 'fa' },
-  { path: '/privacy', expectLang: 'fa' },
-  { path: '/terms', expectLang: 'fa' },
-  { path: '/about', expectLang: 'fa' },
-  { path: '/contact', expectLang: 'fa' },
-  { path: '/pricing', expectLang: 'fa' },
-  { path: '/complaints', expectLang: 'fa' },
-  { path: '/cancellation', expectLang: 'fa' },
+  { path: '/', expectLang: 'fa', titleIncludes: 'رزرو' },
+  { path: '/clubs', expectLang: 'fa', titleIncludes: 'باشگاه' },
+  { path: '/login', expectLang: 'fa', titleIncludes: 'ورود' },
+  { path: '/privacy', expectLang: 'fa', titleIncludes: 'حریم' },
+  { path: '/terms', expectLang: 'fa', titleIncludes: 'شرایط' },
+  { path: '/about', expectLang: 'fa', titleIncludes: 'درباره' },
+  { path: '/contact', expectLang: 'fa', titleIncludes: 'تماس' },
+  { path: '/pricing', expectLang: 'fa', titleIncludes: 'قیمت' },
+  { path: '/complaints', expectLang: 'fa', titleIncludes: 'شکایات' },
+  { path: '/cancellation', expectLang: 'fa', titleIncludes: 'لغو' },
 ]
 
 async function assertRedirect(path, { allowed = [301, 302, 307, 308] } = {}) {
@@ -45,19 +45,30 @@ async function main() {
       throw new Error(`${page.path} missing description meta`)
     }
 
-    console.log(`ok  ${page.path} lang/viewport/description`)
+    const title = extractTitle(html)
+    if (!title || title === 'inbox') {
+      throw new Error(`${page.path} missing unique title (got ${title || 'empty'})`)
+    }
+    if (page.titleIncludes && !title.includes(page.titleIncludes)) {
+      throw new Error(`${page.path} title "${title}" missing "${page.titleIncludes}"`)
+    }
+
+    const ogTitle = extractMetaProperty(html, 'og:title')
+    const ogDescription = extractMetaProperty(html, 'og:description')
+    if (!ogTitle || !ogDescription) {
+      throw new Error(`${page.path} missing Open Graph title/description`)
+    }
+
+    console.log(`ok  ${page.path} lang/viewport/description/title/og`)
   }
 
-  // Soft-disabled EN routes must redirect (FA-only launch)
   await assertRedirect('/en')
   await assertRedirect('/en/clubs')
 
-  // Terms page has brand/title content
   const { html: termsHtml } = await fetchPage(base, '/terms')
   if (!termsHtml.includes('<title') && !termsHtml.includes('inbox')) {
     throw new Error('/terms missing title or brand')
   }
-  // Legal emails must render as real addresses, not vue-i18n escape litter
   if (termsHtml.includes("{'@'}") || termsHtml.includes('{"@"}')) {
     throw new Error('/terms still contains unescaped email markup')
   }
@@ -75,7 +86,6 @@ async function main() {
   }
   console.log('ok  /privacy email rendering')
 
-  // PWA manifest (optional — off unless NUXT_PUBLIC_ENABLE_PWA=true)
   const manifestRes = await fetch(`${base}/manifest.webmanifest`)
   if (manifestRes.ok) {
     const manifest = await manifestRes.json()
@@ -93,7 +103,6 @@ async function main() {
     console.warn('skip  PWA manifest not available (NUXT_PUBLIC_ENABLE_PWA unset)')
   }
 
-  // robots.txt and sitemap — required for SEO
   const robots = await fetch(`${base}/robots.txt`)
   if (!robots.ok) throw new Error('robots.txt not found')
   const robotsText = await robots.text()
@@ -109,7 +118,6 @@ async function main() {
   }
   console.log('ok  sitemap.xml present (FA-only)')
 
-  // Login page basic a11y — form inputs + labels
   const { html: loginHtml } = await fetchPage(base, '/login')
   const lang = extractHtmlLang(loginHtml)
   if (!lang) throw new Error('/login missing html lang attribute')
@@ -121,7 +129,6 @@ async function main() {
   }
   console.log('ok  /login lang attribute')
 
-  // Favicon
   const favicon = await fetch(`${base}/favicon.svg`)
   if (!favicon.ok) throw new Error('favicon.svg missing')
   console.log('ok  favicon.svg present')

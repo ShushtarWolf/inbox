@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="inbox">
+  <rect width="1200" height="630" fill="#F4EFE9"/>
+  <rect x="0" y="0" width="1200" height="12" fill="#C41E1E"/>
+  <rect x="72" y="210" width="120" height="120" rx="24" fill="#C41E1E"/>
+  <circle cx="132" cy="270" r="28" fill="#F4EFE9"/>
+  <text x="220" y="290" fill="#2C2C2A" font-family="Arial, sans-serif" font-size="72" font-weight="700">inbox</text>
+  <text x="72" y="420" fill="#52524F" font-family="Arial, sans-serif" font-size="36">121H 2EÌF ~/D H *FÌ3</text>
+</svg>

@@ -27,6 +27,17 @@ const { data: slots, pending, error, refresh } = await useFetch('/api/slots/avai
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
 const joiningWaitlist = ref(false)
 
+usePageSeo({
+  title: () => club.value
+    ? t('seo.bookCourtTitle', { name: localizedField(club.value, 'nameFa', 'nameEn') })
+    : t('home.bookCourt'),
+  description: () => club.value
+    ? t('seo.bookCourtDescription', { name: localizedField(club.value, 'nameFa', 'nameEn') })
+    : t('seo.clubsDescription'),
+  image: () => club.value?.image || '/brand/inbox-og.svg',
+  path: () => `/book/court/${slug}`,
+})
+
 const selectedSlotRow = computed(() =>
   slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value) || null,
 )

@@ -88,6 +88,13 @@ function prevHero() {
 watch(sports, (list) => {
   if (!sport.value && list?.length) sport.value = list[0]?.slug
 })
+
+usePageSeo({
+  title: () => t('seo.homeTitle'),
+  description: () => t('seo.homeDescription'),
+  image: '/brand/inbox-og.svg',
+  path: '/',
+})
 </script>
 
 <template>
@@ -120,20 +127,23 @@ watch(sports, (list) => {
 
           <div class="mt-auto space-y-2 pt-10">
             <h1 class="max-w-xs text-3xl font-bold leading-none">{{ activeHero?.title }}</h1>
-            <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
+            <p class="max-w-sm text-sm text-white">{{ activeHero?.body }}</p>
           </div>
 
           <div class="mt-4 flex items-center justify-between">
             <button type="button" class="rounded-full bg-white/15 p-2 backdrop-blur" :aria-label="t('calendar.prevMonth')" @click="prevHero">
               <AppIcon name="chevron_right" size="sm" />
             </button>
-            <div class="flex gap-1.5">
+            <div class="flex gap-1.5" role="tablist" :aria-label="t('home.heroSlidesLabel')">
               <button
                 v-for="(_, index) in heroSlides"
                 :key="index"
                 type="button"
-                class="h-1.5 w-1.5 rounded-full"
-                :class="index === heroSlide ? 'bg-white' : 'bg-white/40'"
+                role="tab"
+                class="h-2.5 w-2.5 rounded-full border border-white"
+                :class="index === heroSlide ? 'bg-white' : 'bg-transparent'"
+                :aria-label="t('home.heroSlideDot', { n: index + 1 })"
+                :aria-selected="index === heroSlide"
                 @click="heroSlide = index"
               />
             </div>
@@ -146,18 +156,23 @@ watch(sports, (list) => {
 
       <section class="canva-search-row">
         <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhere') }}</p>
+          <p class="text-[11px] font-bold text-brand-gray-700">{{ t('home.heroSearchWhere') }}</p>
           <NuxtLink :to="bookingLink('/clubs')" class="mt-1 block truncate text-sm font-bold text-brand-navy">
             {{ t('home.heroSearchWhereHint') }}
           </NuxtLink>
         </div>
         <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhen') }}</p>
+          <p class="text-[11px] font-bold text-brand-gray-700">{{ t('home.heroSearchWhen') }}</p>
           <p class="mt-1 truncate text-sm font-bold text-brand-navy">{{ heroSearchDate }}</p>
         </div>
         <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.sportsTitle') }}</p>
-          <select v-model="sport" class="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-brand-navy outline-none">
+          <label class="text-[11px] font-bold text-brand-gray-700" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
+          <select
+            id="home-sport-select"
+            v-model="sport"
+            class="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-brand-navy outline-none"
+            :aria-label="t('home.sportsTitle')"
+          >
             <option v-for="s in sports" :key="s.slug" :value="s.slug">
               {{ localizedField(s, 'nameFa', 'nameEn') }}
             </option>
@@ -172,7 +187,7 @@ watch(sports, (list) => {
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.suggestionsTitle') }}</h2>
-            <p class="text-xs text-brand-gray-600">{{ t('home.suggestionsBody') }}</p>
+            <p class="text-xs text-brand-gray-700">{{ t('home.suggestionsBody') }}</p>
           </div>
           <NuxtLink :to="bookingLink('/clubs')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
@@ -183,22 +198,22 @@ watch(sports, (list) => {
             :to="localePath(`/book/court/${club.slug}`)"
             class="canva-venue-card"
           >
-            <img :src="club.image || '/placeholders/club.svg'" alt="" />
+            <img :src="club.image || '/placeholders/club.svg'" :alt="localizedField(club, 'nameFa', 'nameEn')" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
+              <p class="text-sm font-bold text-white">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <p class="text-[11px] font-medium text-white">{{ clubMeta(club) }}</p>
               <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+        <p v-else class="text-sm text-brand-gray-700">{{ t('common.empty') }}</p>
       </section>
 
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.tennisTitle') }}</h2>
-            <p class="text-xs text-brand-gray-600">{{ t('home.clubSectionBody') }}</p>
+            <p class="text-xs text-brand-gray-700">{{ t('home.clubSectionBody') }}</p>
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'tennis')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
@@ -209,22 +224,22 @@ watch(sports, (list) => {
             :to="localePath(`/book/court/${club.slug}`)"
             class="canva-venue-card"
           >
-            <img :src="club.image || '/placeholders/club.svg'" alt="" />
+            <img :src="club.image || '/placeholders/club.svg'" :alt="localizedField(club, 'nameFa', 'nameEn')" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
+              <p class="text-sm font-bold text-white">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <p class="text-[11px] font-medium text-white">{{ clubMeta(club) }}</p>
               <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+        <p v-else class="text-sm text-brand-gray-700">{{ t('common.empty') }}</p>
       </section>
 
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
-            <p class="text-xs text-brand-gray-600">{{ t('home.clubSectionBody') }}</p>
+            <p class="text-xs text-brand-gray-700">{{ t('home.clubSectionBody') }}</p>
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'padel')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
@@ -235,20 +250,20 @@ watch(sports, (list) => {
             :to="localePath(`/book/court/${club.slug}`)"
             class="canva-venue-card"
           >
-            <img :src="club.image || '/placeholders/club.svg'" alt="" />
+            <img :src="club.image || '/placeholders/club.svg'" :alt="localizedField(club, 'nameFa', 'nameEn')" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
+              <p class="text-sm font-bold text-white">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <p class="text-[11px] font-medium text-white">{{ clubMeta(club) }}</p>
               <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
+        <p v-else class="text-sm text-brand-gray-700">{{ t('common.empty') }}</p>
       </section>
 
       <section v-if="!user" class="rounded-xl border border-brand-gray-200 bg-white p-4 text-center shadow-venus-sm">
         <p class="text-sm font-bold text-brand-navy">{{ t('auth.gateTitle') }}</p>
-        <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
+        <p class="mt-1 text-xs text-brand-gray-700">{{ t('home.roleTileGuest') }}</p>
         <div class="mt-4 flex gap-2">
           <button type="button" class="btn-primary flex-1" @click="openRegister()">{{ t('auth.register') }}</button>
           <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.login') }}</button>
