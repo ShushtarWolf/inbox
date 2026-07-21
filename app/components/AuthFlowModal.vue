@@ -200,7 +200,10 @@ watch(open, (isOpen) => {
             {{ t('auth.register') }}
           </button>
           <button type="button" class="btn-canva-login w-full py-3" @click="goLogin">
-            {{ t('auth.login') }}
+            {{ t('auth.emailPasswordFallback') }}
+          </button>
+          <button type="button" class="btn-secondary w-full py-3" @click="goPhoneLogin">
+            {{ t('auth.loginWithPhone') }}
           </button>
           <AppGoogleSignInButton
             v-if="googleAuthEnabled"

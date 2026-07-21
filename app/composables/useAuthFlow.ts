@@ -20,6 +20,7 @@ export function useAuthFlow() {
 
   function openGate(opts?: { returnTo?: string }) {
     returnTo.value = opts?.returnTo || ''
+    loginMode.value = 'password'
     step.value = 'gate'
     open.value = true
   }

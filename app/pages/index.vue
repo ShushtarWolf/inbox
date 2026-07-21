@@ -249,9 +249,9 @@ watch(sports, (list) => {
       <section v-if="!user" class="rounded-xl border border-brand-gray-200 bg-white p-4 text-center shadow-venus-sm">
         <p class="text-sm font-bold text-brand-navy">{{ t('auth.gateTitle') }}</p>
         <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
-        <div class="mt-4 flex gap-2">
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
           <button type="button" class="btn-primary flex-1" @click="openRegister()">{{ t('auth.register') }}</button>
-          <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.login') }}</button>
+          <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.emailPasswordFallback') }}</button>
         </div>
       </section>
     </div>

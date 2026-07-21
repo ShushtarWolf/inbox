@@ -59,16 +59,15 @@ export async function createAndSendPhoneOtp(opts: {
     // purpose=otp enables Kavenegar Verify Lookup when KAVENEGAR_TEMPLATE is set
     await sendSms({ to: phone, body, purpose: 'otp' })
   } catch (err) {
-    // Pilot/local: keep OTP usable if live SMS is misconfigured. Never expose debugCode in production.
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[otp] SMS send failed', err instanceof Error ? err.message : 'unknown')
+    console.error('[otp] SMS send failed', err instanceof Error ? err.message : 'unknown')
+    if (process.env.NODE_ENV !== 'production' || resolveSmsProvider() === 'log' || process.env.SMS_OTP_DEBUG_FALLBACK === 'true') {
+      debugFallback = true
+    } else {
       throw createError({
         statusCode: 502,
         statusMessage: 'SMS delivery failed',
       })
     }
-    console.warn('[otp] SMS send failed — enabling debugCode for local recovery', err)
-    debugFallback = true
   }
 
   return {
