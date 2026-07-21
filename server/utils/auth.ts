@@ -1,7 +1,25 @@
 import type { H3Event } from 'h3'
-import type { Role } from '@prisma/client'
+import type { Role, User } from '@prisma/client'
 import { resolvePostLoginPath } from '#shared/returnTo.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+
+export async function findUserForPasswordLogin(identifier: string) {
+  const trimmed = identifier.trim()
+  const phone = normalizeIranPhone(trimmed)
+  if (phone) {
+    return prisma.user.findUnique({
+      where: { phone },
+      include: { coachProfile: { select: { photo: true } } },
+    })
+  }
+  return prisma.user.findUnique({
+    where: { email: trimmed.toLowerCase() },
+    include: { coachProfile: { select: { photo: true } } },
+  })
+}
+
+export type PasswordLoginUser = User & { coachProfile: { photo: string | null } | null }
 
 export function postLoginRedirectPath(
   user: { role: string; locale?: string | null },

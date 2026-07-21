@@ -56,21 +56,21 @@ async function submitEmailLogin() {
     <div class="text-center">
       <img src="/brand/inbox-logo-mark.svg" alt="" class="mx-auto h-12 w-12" />
       <h1 class="mt-3 font-display text-xl font-bold">{{ t('auth.loginToInbox') }}</h1>
-      <p class="mt-1 text-sm text-brand-gray-600">{{ t('auth.emailPasswordHint') }}</p>
+      <p class="mt-1 text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
     </div>
 
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
 
     <form class="venus-form-stack" @submit.prevent="submitEmailLogin">
-      <AppFormField field-id="login-email" :label="t('auth.email')" required>
+      <AppFormField field-id="login-email" :label="t('auth.emailOrPhone')" required>
         <input
           id="login-email"
           v-model="email"
           name="email"
-          type="email"
+          type="text"
           dir="ltr"
           class="neo-input"
-          autocomplete="email"
+          autocomplete="username"
           required
         />
       </AppFormField>

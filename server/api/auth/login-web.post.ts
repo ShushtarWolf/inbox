@@ -1,6 +1,7 @@
-import { toSessionUser, postLoginRedirectPath, touchLastLogin } from '../../utils/auth'
+import { findUserForPasswordLogin, toSessionUser, postLoginRedirectPath, touchLastLogin } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
 import { demoAuthAllowed, isDemoEmail } from '../../utils/demo'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { readFormData } from 'h3'
 
 export default defineEventHandler(async (event) => {
@@ -12,20 +13,25 @@ export default defineEventHandler(async (event) => {
   const returnTo = form.get('returnTo')?.toString()
   void locale
 
-  const normalized = email?.trim().toLowerCase()
+  const identifier = email?.trim()
   // FA-only launch: never redirect to /en/*
   const stamp = `ts=${Date.now()}`
 
-  if (!normalized || !password) {
+  if (!identifier || !password) {
     return sendRedirect(event, `/login?error=invalid`)
   }
 
-  if (process.env.NODE_ENV === 'production' && isDemoEmail(normalized) && !demoAuthAllowed()) {
+  if (
+    !normalizeIranPhone(identifier)
+    && process.env.NODE_ENV === 'production'
+    && isDemoEmail(identifier.toLowerCase())
+    && !demoAuthAllowed()
+  ) {
     return sendRedirect(event, `/login?error=invalid`)
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email: normalized } })
+    const user = await findUserForPasswordLogin(identifier)
     // Same error for missing user, wrong password, or Google-only accounts (no enumeration).
     if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
       return sendRedirect(event, `/login?error=invalid`)

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { hashSecret } from '../../utils/password'
 
 export default defineEventHandler(async (event) => {
@@ -8,11 +9,13 @@ export default defineEventHandler(async (event) => {
     email?: string
     name?: string
     clubName?: string
+    phone?: string
     locale?: string
   }>(event)
 
   const type = body.type
   const email = body.email?.trim().toLowerCase()
+  const phone = body.phone ? normalizeIranPhone(body.phone) : null
   const name = body.name?.trim()
   if (!type || !email || !name || !['COACH', 'CLUB_ADMIN'].includes(type)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
@@ -24,6 +27,12 @@ export default defineEventHandler(async (event) => {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
+  }
+  if (phone) {
+    const phoneTaken = await prisma.user.findUnique({ where: { phone } })
+    if (phoneTaken) {
+      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+    }
   }
 
   const tempPassword = randomBytes(12).toString('base64url')
@@ -46,6 +55,7 @@ export default defineEventHandler(async (event) => {
         role: type,
         passwordHash: hashSecret(tempPassword),
         locale: body.locale === 'en' ? 'en' : 'fa',
+        ...(phone ? { phone, phoneVerifiedAt: new Date() } : {}),
       },
     })
     if (type === 'COACH') {
@@ -98,6 +108,7 @@ export default defineEventHandler(async (event) => {
   return {
     id: result.user.id,
     email: result.user.email,
+    phone: result.user.phone,
     role: result.user.role,
     temporaryPassword: tempPassword,
     clubId: result.club?.id ?? null,

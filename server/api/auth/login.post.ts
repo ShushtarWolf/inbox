@@ -1,3 +1,5 @@
+import { normalizeIranPhone } from '#shared/phone.ts'
+
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:login')
   const { email, password, returnTo, locale } = await readBody<{
@@ -6,15 +8,15 @@ export default defineEventHandler(async (event) => {
     returnTo?: string
     locale?: string
   }>(event)
-  const normalized = email?.trim().toLowerCase()
-  if (!normalized || !password) {
+  const identifier = email?.trim()
+  if (!identifier || !password) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
-  rejectDemoEmailInProduction(normalized)
-  const user = await prisma.user.findUnique({
-    where: { email: normalized },
-    include: { coachProfile: { select: { photo: true } } },
-  })
+  const normalizedEmail = identifier.toLowerCase()
+  if (!normalizeIranPhone(identifier)) {
+    rejectDemoEmailInProduction(normalizedEmail)
+  }
+  const user = await findUserForPasswordLogin(identifier)
   // Same message for missing user, wrong password, or Google-only accounts (no enumeration).
   if (!user || !user.passwordHash || !verifySecret(password, user.passwordHash)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
