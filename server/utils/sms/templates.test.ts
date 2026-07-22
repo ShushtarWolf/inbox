@@ -12,4 +12,28 @@ describe('SMS templates', () => {
     expect(renderSmsTemplate('CLUB_APPROVED', { clubName: 'Behnaz' })).toContain('Behnaz')
     expect(renderSmsTemplate('CAMPAIGN', { message: 'سلام باشگاه' })).toBe('سلام باشگاه')
   })
+
+  it('includes club + date/time in booking and waitlist templates', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '10:00',
+      }),
+    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00')
+    expect(
+      renderSmsTemplate('BOOKING_CANCELLED', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '10:00',
+      }),
+    ).toContain('رزرو لغو شد «بهناز»')
+    expect(
+      renderSmsTemplate('WAITLIST_SLOT_AVAILABLE', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '18:00',
+      }),
+    ).toBe('نوبت آزاد شد «بهناز» — 1404/01/01 ساعت 18:00. سریع رزرو کنید')
+  })
 })

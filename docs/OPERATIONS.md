@@ -116,6 +116,18 @@ Until live cutover: leave `SMS_ENABLED` unset/`false` — OTP uses log/dry-run a
 5. Owner phone (User.phone or Club.phone on provisioned club) → OTP login → `/owner`.
 6. Booking notify/CRM SMS soft-fail must not 500 booking endpoints.
 
+### Transactional SMS (court booking MVP)
+
+Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR_API_KEY`; free-text needs `KAVENEGAR_SENDER`). Check mode via `/admin/sms`, `GET /api/admin/sms-status`, or `npm run sms:status` (`smsMode` / `resolvedProvider`: `live` vs `log`).
+
+| Event | Path | Notes |
+|-------|------|--------|
+| Booking confirmed | `bookingNotify.notifyBookingConfirmed` | Athlete court book + owner desk reserve |
+| Booking cancelled | `bookingNotify.notifyBookingCancelled` | Athlete cancel + owner cancel (registered or guest phone) |
+| Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
+
+Log mode: booking/waitlist SMS are skipped and logged (`[bookingNotify:sms:skip]` / `[waitlistNotify:sms:skip]`) — no fake gateway send. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
+
 ## Object storage (S3 / Liara)
 
 Uploads (avatars, club gallery, guest registration photos) go through `uploadImage` in `server/utils/storage.ts`, used by:

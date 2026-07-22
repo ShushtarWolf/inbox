@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     warnings,
     note:
       provider === 'live'
-        ? 'Live Kavenegar — OTP will not return debugCode; real SMS sends'
-        : 'Safe log mode — OTP returns debugCode; no gateway calls',
+        ? 'Live Kavenegar — OTP + booking/waitlist transactional SMS (and CRM); OTP will not return debugCode'
+        : 'Safe log mode — OTP returns debugCode; booking/waitlist SMS skipped (logged); no gateway calls',
   }
 })

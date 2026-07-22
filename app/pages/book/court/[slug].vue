@@ -97,6 +97,7 @@ async function confirm() {
 async function joinWaitlist() {
   joiningWaitlist.value = true
   const window = waitlistWindow()
+  const selected = slots.value?.find((slot: { id: string; courtId?: string }) => slot.id === selectedSlot.value)
   try {
     await $fetch('/api/waitlist', {
       method: 'POST',
@@ -105,6 +106,7 @@ async function joinWaitlist() {
         date: date.value,
         startTime: window.startTime,
         endTime: window.endTime,
+        courtId: selected?.courtId,
         guestName: user.value?.name,
         guestMobile: user.value?.phone,
       },
