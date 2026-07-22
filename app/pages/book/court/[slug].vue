@@ -16,6 +16,7 @@ const done = ref(false)
 const createdBookingId = ref<string | null>(null)
 const bookedPrice = ref<number | null>(null)
 const paying = ref(false)
+const confirming = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
@@ -71,7 +72,7 @@ function waitlistWindow() {
 }
 
 async function confirm() {
-  if (!selectedSlot.value) return
+  if (!selectedSlot.value || confirming.value) return
   if (!user.value) {
     await navigateTo(localePath({
       path: '/login',
@@ -79,6 +80,7 @@ async function confirm() {
     }))
     return
   }
+  confirming.value = true
   try {
     const selected = slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
     const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', { method: 'POST', body: { slotId: selectedSlot.value } })
@@ -91,6 +93,8 @@ async function confirm() {
   } catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+  } finally {
+    confirming.value = false
   }
 }
 
@@ -251,10 +255,10 @@ onMounted(() => {
         v-if="slots?.length"
         type="button"
         class="btn-primary venus-sticky-action w-full lg:w-full"
-        :disabled="!selectedSlot"
+        :disabled="!selectedSlot || confirming"
         @click="confirm"
       >
-        {{ t('booking.confirm') }}
+        {{ confirming ? t('common.loading') : t('booking.confirm') }}
       </button>
     </div>
     </AppAsyncState>

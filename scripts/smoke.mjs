@@ -137,10 +137,12 @@ async function main() {
   if (freeSlots.length >= 1) {
     const seasonSlot = freeSlots[0]
     const weekday = DAY_NAMES[new Date(`${seasonSlot.date}T12:00:00Z`).getUTCDay()]
-    const seasonResult = await check('/api/owner/season', {
+    const seasonRes = await fetch(`${base}/api/owner/season`, {
       method: 'POST',
-      session: 'owner',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        cookie: cookieJar.get('owner') || '',
+      },
       body: JSON.stringify({
         guestName: 'Smoke',
         guestFamily: 'Season',
@@ -152,9 +154,10 @@ async function main() {
         times: [seasonSlot.startTime.slice(0, 5)],
       }),
     })
-    if (!seasonResult.slotsCreated || seasonResult.slotsCreated < 1) {
-      throw new Error('season reserve did not create recurring slots')
+    if (seasonRes.status !== 403) {
+      throw new Error(`season reserve expected 403 (MVP disabled), got ${seasonRes.status}`)
     }
+    console.log('ok  season reserve disabled (403)')
   }
 
   const packageDate = dateOffset(28)
@@ -162,10 +165,12 @@ async function main() {
   const packageSlot = (packageCalendar.slots || []).find((slot) => slot.displayStatus === 'FREE')
   if (packageSlot) {
     const weekday = DAY_NAMES[new Date(`${packageSlot.date}T12:00:00Z`).getUTCDay()]
-    const packageResult = await check('/api/owner/package-reserve', {
+    const packageRes = await fetch(`${base}/api/owner/package-reserve`, {
       method: 'POST',
-      session: 'owner',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        cookie: cookieJar.get('owner') || '',
+      },
       body: JSON.stringify({
         guestName: 'Smoke',
         guestFamily: 'Package',
@@ -177,9 +182,10 @@ async function main() {
         times: [packageSlot.startTime.slice(0, 5)],
       }),
     })
-    if (!packageResult.slotsCreated || packageResult.slotsCreated < 1) {
-      throw new Error('package reserve did not create recurring slots')
+    if (packageRes.status !== 403) {
+      throw new Error(`package reserve expected 403 (MVP disabled), got ${packageRes.status}`)
     }
+    console.log('ok  package reserve disabled (403)')
   }
   const smsResult = await check('/api/owner/sms', {
     method: 'POST',

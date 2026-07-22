@@ -114,6 +114,43 @@ async function main() {
   assert(reservedSlot?.booking?.guestMobile === guestMobile, 'desk reserve missing guestMobile')
   console.log('ok  desk reserve (guestMobile, RESERVED)')
 
+  // Season/package recurring reserve must stay disabled for court-booking MVP
+  const { res: seasonRes } = await apiFetch(base, '/api/owner/season', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: {
+      guestName: 'Pilot',
+      guestFamily: 'Season',
+      guestMobile,
+      slotId: freeSlot.id,
+      startDate: reserveDate,
+      finishDate: dateOffset(60),
+      days: ['Mon'],
+      times: [freeSlot.startTime.slice(0, 5)],
+    },
+    expectStatus: 403,
+  })
+  assert(seasonRes.status === 403, `season reserve expected 403, got ${seasonRes.status}`)
+  const { res: packageRes } = await apiFetch(base, '/api/owner/package-reserve', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: {
+      guestName: 'Pilot',
+      guestFamily: 'Package',
+      guestMobile,
+      slotId: freeSlot.id,
+      startDate: reserveDate,
+      finishDate: dateOffset(60),
+      days: ['Mon'],
+      times: [freeSlot.startTime.slice(0, 5)],
+    },
+    expectStatus: 403,
+  })
+  assert(packageRes.status === 403, `package reserve expected 403, got ${packageRes.status}`)
+  console.log('ok  season/package reserve disabled (403)')
+
   // Notify path: mark paid with guestMobile only (no userId) — must not 500 in log SMS mode
   const { res: paidRes, data: paid } = await apiFetch(base, '/api/owner/reserve', {
     jar,

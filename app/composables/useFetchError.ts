@@ -10,6 +10,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     BOOKING_TOO_SOON: 'booking.errors.startTimeTooSoon',
     SLOT_IN_PAST: 'booking.errors.slotInPast',
     DATE_IN_PAST: 'owner.errors.startDateInPast',
+    'Slot not available': 'booking.errors.slotNotAvailable',
     'Start time is too soon': 'booking.errors.startTimeTooSoon',
     'Coach is not available at this time': 'booking.errors.coachUnavailable',
     'This session time is already booked': 'booking.errors.sessionTaken',

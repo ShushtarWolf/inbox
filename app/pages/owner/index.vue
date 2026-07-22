@@ -462,10 +462,12 @@ function openCommentsForm() {
 }
 
 function openSeasonForm() {
+  if (!canShowSeasonReserve()) return
   activePanel.value = 'season'
 }
 
 function openPackageForm() {
+  if (!canShowCoachReserve()) return
   activePanel.value = 'package'
 }
 
@@ -705,6 +707,7 @@ async function doUnblock() {
 }
 
 async function doSeasonReserve() {
+  if (!canShowSeasonReserve()) return
   if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
@@ -736,6 +739,7 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
+  if (!canShowCoachReserve()) return
   if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
@@ -816,6 +820,11 @@ function canReserveSlot() {
   return selectedSlot.value?.displayStatus !== 'CLOSED' && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
+/** Court-booking MVP: season/package recurring reserve hidden (API also rejects). */
+function canShowSeasonReserve() {
+  return false
+}
+
 function canMarkPaid() {
   if (batchMode.value || !selectedSlotFull.value?.booking) return false
   if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
@@ -830,7 +839,7 @@ function canMarkUnpaid() {
 }
 
 function canShowCoachReserve() {
-  return !pilotNoCoach.value && canReserveSlot() && clubCoaches.value.length > 0
+  return false
 }
 
 function slotStatusSummary() {
@@ -1105,7 +1114,7 @@ const legend = [
           <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
           <button v-if="canBlockSlot()" type="button" :class="menuButtonClass('block')" @click="openBlockForm">{{ t('owner.block') }}</button>
           <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
-          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
+          <button v-if="canShowSeasonReserve()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
           <button v-if="canShowCoachReserve()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
           <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
           <button type="button" :class="menuButtonClass('equipment')" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>

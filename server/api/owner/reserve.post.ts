@@ -7,6 +7,7 @@ import {
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
 import { notifyBookingConfirmed, notifyBookingPaid } from '../../utils/bookingNotify'
+import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { creditWallet } from '../../utils/wallet'
 
@@ -50,6 +51,10 @@ export default defineEventHandler(async (event) => {
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
   if (!slot.booking) {
+    // Desk create: only FREE slots — never silently overwrite BLOCKED/RESERVED/etc.
+    if (slot.displayStatus !== 'FREE') {
+      throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
+    }
     assertSlotBookable(slot.date, slot.startTime)
   }
 
@@ -150,43 +155,51 @@ export default defineEventHandler(async (event) => {
       }
     }
   } else {
-    const createdBooking = await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.create({
-        data: {
-          slotId: slot.id,
-          guestName: body.guestName,
-          guestFamily: body.guestFamily,
-          guestMobile,
-          paymentMethod,
-          comments: body.comments,
-          source: 'CLUB',
-          status: 'CONFIRMED',
-          paymentStatus,
-        },
+    let createdBooking
+    try {
+      createdBooking = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.slot.updateMany({
+          where: { id: slot.id, displayStatus: 'FREE' },
+          data: { displayStatus },
+        })
+        if (claimed.count !== 1) {
+          throw new SlotNotAvailableError()
+        }
+        const booking = await tx.booking.create({
+          data: {
+            slotId: slot.id,
+            guestName: body.guestName,
+            guestFamily: body.guestFamily,
+            guestMobile,
+            paymentMethod,
+            comments: body.comments,
+            source: 'CLUB',
+            status: 'CONFIRMED',
+            paymentStatus,
+          },
+        })
+        await syncBookingEquipments(tx, booking.id, equipmentItems)
+        await tx.payment.create({
+          data: {
+            bookingId: booking.id,
+            amount: totalAmount,
+            method: paymentMethod,
+            status: paymentStatus,
+            ...(provider ? { provider } : {}),
+          },
+        })
+        await tx.reservationEvent.create({
+          data: {
+            bookingId: booking.id,
+            type: 'CREATED',
+            metadataJson: JSON.stringify({ source: 'owner-calendar' }),
+          },
+        })
+        return booking
       })
-      await syncBookingEquipments(tx, booking.id, equipmentItems)
-      await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          amount: totalAmount,
-          method: paymentMethod,
-          status: paymentStatus,
-          ...(provider ? { provider } : {}),
-        },
-      })
-      await tx.reservationEvent.create({
-        data: {
-          bookingId: booking.id,
-          type: 'CREATED',
-          metadataJson: JSON.stringify({ source: 'owner-calendar' }),
-        },
-      })
-      await tx.slot.update({
-        where: { id: slot.id },
-        data: { displayStatus },
-      })
-      return booking
-    })
+    } catch (error: unknown) {
+      rethrowSlotConflict(error)
+    }
 
     const phone = guestMobile || null
     if (phone) {

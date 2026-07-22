@@ -1,4 +1,5 @@
 import { getPaymentsMode } from '#shared/payments.ts'
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { notifyBookingConfirmed } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
@@ -32,6 +33,12 @@ function firstScheduleTime(expanded: Record<string, string[]>, times?: string[])
 }
 
 export default defineEventHandler(async (event) => {
+  if (!isRecurringReserveEnabled()) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'RECURRING_RESERVE_DISABLED',
+    })
+  }
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     guestName?: string
@@ -100,7 +107,7 @@ export default defineEventHandler(async (event) => {
       where: { id: body.slotId, court: { clubId: club.id } },
     })
     if (slot) {
-      slotsCreated = await generateRecurringCourtSlots({
+      const result = await generateRecurringCourtSlots({
         clubId: club.id,
         courtId: slot.courtId,
         anchorDate: body.startDate,
@@ -124,6 +131,7 @@ export default defineEventHandler(async (event) => {
           paymentStatus: body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB',
         },
       })
+      slotsCreated = result.created
     }
   }
 

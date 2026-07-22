@@ -1,6 +1,7 @@
 import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seasonSlots'
 import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
+import { canClaimExistingSlotForRecurring } from '#shared/recurringReserve.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
@@ -51,6 +52,7 @@ export async function generateRecurringCourtSlots(opts: {
       })
     : []
   let created = 0
+  let skipped = 0
 
   for (const date of dates) {
     await ensureSlotsForDate(opts.clubId, date)
@@ -77,8 +79,12 @@ export async function generateRecurringCourtSlots(opts: {
         where: { courtId: court.id, date, startTime, displayStatus: { not: 'CANCELLED' } },
         include: { booking: true },
       })
-      if (existing && (existing.displayStatus === 'BLOCKED' || existing.displayStatus === 'CLOSED')) continue
-      if (existing && existing.displayStatus !== 'FREE' && !existing.booking) continue
+
+      // Never overwrite PLATFORM/live bookings or non-FREE desk holds.
+      if (!canClaimExistingSlotForRecurring(existing)) {
+        skipped += 1
+        continue
+      }
 
       let slotId: string
       if (existing) {
@@ -102,72 +108,46 @@ export async function generateRecurringCourtSlots(opts: {
       }
 
       if (guest) {
-        if (existing?.booking) {
-          await prisma.$transaction(async (tx) => {
-            await tx.booking.update({
-              where: { id: existing.booking!.id },
-              data: {
-                guestName: guest.guestName,
-                guestFamily: guest.guestFamily,
-                guestMobile: guest.guestMobile,
-                comments: guest.comments,
-                coachId: guest.coachId || null,
-                paymentMethod,
-                paymentStatus,
-                status: 'CONFIRMED',
-                source: 'CLUB',
-              },
-            })
-            await syncBookingEquipments(tx, existing.booking!.id, equipmentItems)
-            await tx.payment.upsert({
-              where: { bookingId: existing.booking!.id },
-              update: { amount: sessionAmount, method: paymentMethod, status: paymentStatus },
-              create: {
-                bookingId: existing.booking!.id,
-                amount: sessionAmount,
-                method: paymentMethod,
-                status: paymentStatus,
-              },
-            })
+        const staleCancelled = existing?.booking?.status === 'CANCELLED' ? existing.booking : null
+        await prisma.$transaction(async (tx) => {
+          if (staleCancelled) {
+            await tx.booking.delete({ where: { id: staleCancelled.id } })
+          }
+          const booking = await tx.booking.create({
+            data: {
+              slotId,
+              guestName: guest.guestName,
+              guestFamily: guest.guestFamily,
+              guestMobile: guest.guestMobile,
+              comments: guest.comments,
+              coachId: guest.coachId || null,
+              paymentMethod,
+              paymentStatus,
+              status: 'CONFIRMED',
+              source: 'CLUB',
+            },
           })
-        } else {
-          await prisma.$transaction(async (tx) => {
-            const booking = await tx.booking.create({
-              data: {
-                slotId,
-                guestName: guest.guestName,
-                guestFamily: guest.guestFamily,
-                guestMobile: guest.guestMobile,
-                comments: guest.comments,
-                coachId: guest.coachId || null,
-                paymentMethod,
-                paymentStatus,
-                status: 'CONFIRMED',
-                source: 'CLUB',
-              },
-            })
-            await syncBookingEquipments(tx, booking.id, equipmentItems)
-            await tx.payment.create({
-              data: {
-                bookingId: booking.id,
-                amount: sessionAmount,
-                method: paymentMethod,
-                status: paymentStatus,
-              },
-            })
-            await tx.reservationEvent.create({
-              data: {
-                bookingId: booking.id,
-                type: 'CREATED',
-                metadataJson: JSON.stringify({ source: 'owner-recurring' }),
-              },
-            })
+          await syncBookingEquipments(tx, booking.id, equipmentItems)
+          await tx.payment.create({
+            data: {
+              bookingId: booking.id,
+              amount: sessionAmount,
+              method: paymentMethod,
+              status: paymentStatus,
+            },
           })
-        }
+          await tx.reservationEvent.create({
+            data: {
+              bookingId: booking.id,
+              type: 'CREATED',
+              metadataJson: JSON.stringify({ source: 'owner-recurring' }),
+            },
+          })
+        })
       }
 
       created += 1
     }
   }
-  return created
+  return { created, skipped }
 }

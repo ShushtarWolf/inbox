@@ -479,6 +479,7 @@
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
       "slotInPast": "This time slot has already passed and cannot be booked.",
+      "slotNotAvailable": "This slot is not available.",
       "coachUnavailable": "Coach is not available at this time.",
       "sessionTaken": "This session time is already booked.",
       "coachNotBookable": "This coach is not accepting bookings right now.",

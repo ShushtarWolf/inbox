@@ -7,7 +7,9 @@ export default defineEventHandler(async (event) => {
   if (!clubSlug) throw createError({ statusCode: 400, statusMessage: 'club required' })
 
   const club = await prisma.club.findUnique({ where: { slug: clubSlug } })
-  if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })
+  if (!club || club.status !== 'ACTIVE') {
+    throw createError({ statusCode: 404, statusMessage: 'Club not found' })
+  }
 
   if (isPastDate(date)) return []
 
