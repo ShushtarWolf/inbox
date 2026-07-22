@@ -67,6 +67,7 @@ async function requestOtp() {
     if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400) error.value = t('auth.invalidPhone')
     else if (status === 429) error.value = t('errors.rateLimited')
+    else if (status === 503 || status === 500) error.value = t('auth.otpServerUnavailable')
     else error.value = t('auth.otpSendFailed')
   } finally {
     submitting.value = false

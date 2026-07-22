@@ -849,6 +849,7 @@
     "otpSentHint": "Enter the SMS code sent to {phone}.",
     "otpLogModeHint": "SMS is in test/log mode (no live delivery). Enter the code for {phone}.",
     "otpSendFailed": "Could not send the code. Please try again.",
+    "otpServerUnavailable": "Service temporarily unavailable (database or SMS). Please try again shortly.",
     "otpVerifyFailed": "Could not verify the code. Please try again.",
     "invalidOtp": "The verification code is incorrect.",
     "invalidPhone": "The phone number is invalid.",

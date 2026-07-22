@@ -46,14 +46,22 @@ export function getSmsMode(): SmsMode {
 /**
  * Resolve SMS provider name.
  * Live (Kavenegar) only when explicitly enabled and configured; otherwise fail closed to `log`.
+ * For OTP in non-production: if live is requested but neither TEMPLATE nor SENDER is set,
+ * stay on `log` so localhost auth works without a Kavenegar line.
  */
 export function resolveSmsProvider(): SmsProviderName {
   const provider = (process.env.SMS_PROVIDER || '').toLowerCase()
   const wantsLive = provider === 'live' || provider === 'kavenegar'
-  if (wantsLive && process.env.SMS_ENABLED === 'true' && process.env.KAVENEGAR_API_KEY?.trim()) {
-    return 'live'
+  const apiKey = process.env.KAVENEGAR_API_KEY?.trim()
+  if (!(wantsLive && process.env.SMS_ENABLED === 'true' && apiKey)) {
+    return 'log'
   }
-  return 'log'
+  const hasTemplate = Boolean(process.env.KAVENEGAR_TEMPLATE?.trim())
+  const hasSender = Boolean(process.env.KAVENEGAR_SENDER?.trim())
+  if (!hasTemplate && !hasSender && process.env.NODE_ENV !== 'production') {
+    return 'log'
+  }
+  return 'live'
 }
 
 export function isSmsEnabled(): boolean {

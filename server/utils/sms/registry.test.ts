@@ -26,9 +26,11 @@ describe('sms registry', () => {
     process.env.SMS_PROVIDER = 'live'
     process.env.SMS_ENABLED = 'true'
     process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.KAVENEGAR_SENDER = '1000xxxx'
     expect(resolveSmsProvider()).toBe('live')
     delete process.env.SMS_PROVIDER
     delete process.env.SMS_ENABLED
     delete process.env.KAVENEGAR_API_KEY
+    delete process.env.KAVENEGAR_SENDER
   })
 })
