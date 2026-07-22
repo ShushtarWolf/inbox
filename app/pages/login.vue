@@ -4,14 +4,17 @@ definePageMeta({ middleware: 'guest' })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { login } = useAuth()
-const { startGoogleSignIn, googleAuthEnabled } = useGoogleAuth()
-const { openLogin, openRegister } = useAuthFlow()
+const { fetch: fetchAuth } = useAuth()
+const { openRegister, openLogin } = useAuthFlow()
 
-const email = ref('')
-const password = ref('')
+const phone = ref('')
+const code = ref('')
+const step = ref<'phone' | 'otp'>('phone')
 const submitting = ref(false)
 const formError = ref('')
+const debugCode = ref('')
+const maskedPhone = ref('')
+const smsMode = ref<'log' | 'live'>('log')
 
 const returnTo = computed(() => {
   const value = route.query.returnTo
@@ -21,7 +24,7 @@ const returnTo = computed(() => {
 const queryError = computed(() => {
   if (route.query.error === 'invalid' || route.query.error === 'useGoogle') return t('auth.invalidCredentials')
   if (route.query.error === 'disabled') return t('auth.accountDisabled')
-  if (route.query.error === 'google' || route.query.error === 'oauth') return t('auth.googleFailed')
+  if (route.query.error === 'google' || route.query.error === 'oauth') return t('auth.loginFailed')
   if (route.query.error === 'server') return t('auth.loginFailed')
   if (route.query.error === 'session') return t('auth.sessionExpired')
   return ''
@@ -29,25 +32,70 @@ const queryError = computed(() => {
 
 const error = computed(() => formError.value || queryError.value)
 
-async function submitEmailLogin() {
+async function requestOtp() {
   formError.value = ''
-  if (!email.value.trim() || !password.value) {
-    formError.value = t('auth.invalidCredentials')
+  if (!phone.value.trim()) {
+    formError.value = t('auth.invalidPhone')
     return
   }
   submitting.value = true
   try {
-    await login(email.value.trim(), password.value, returnTo.value || undefined)
+    const data = await $fetch<{ phone: string; debugCode?: string; smsMode?: 'log' | 'live' }>('/api/auth/otp/request', {
+      method: 'POST',
+      body: { phone: phone.value, purpose: 'login' },
+    })
+    maskedPhone.value = data.phone
+    debugCode.value = data.debugCode || ''
+    code.value = data.debugCode || ''
+    smsMode.value = data.smsMode === 'live' ? 'live' : 'log'
+    step.value = 'otp'
   } catch (err: unknown) {
     const status = err && typeof err === 'object' && 'statusCode' in err
       ? (err as { statusCode?: number }).statusCode
       : undefined
-    if (status === 403) formError.value = t('auth.accountDisabled')
+    if (status === 404) formError.value = t('auth.phoneNotFound')
+    else if (status === 400) formError.value = t('auth.invalidPhone')
     else if (status === 429) formError.value = t('errors.rateLimited')
-    else formError.value = t('auth.invalidCredentials')
+    else if (status === 502) formError.value = t('auth.otpSendFailed')
+    else formError.value = t('auth.otpSendFailed')
   } finally {
     submitting.value = false
   }
+}
+
+async function verifyOtp() {
+  formError.value = ''
+  submitting.value = true
+  try {
+    const data = await $fetch<{ redirectTo?: string }>('/api/auth/otp/verify', {
+      method: 'POST',
+      body: {
+        phone: maskedPhone.value || phone.value,
+        code: code.value,
+        purpose: 'login',
+        returnTo: returnTo.value || undefined,
+      },
+    })
+    await fetchAuth()
+    await navigateTo(data.redirectTo || localePath('/athlete'))
+  } catch (err: unknown) {
+    const status = err && typeof err === 'object' && 'statusCode' in err
+      ? (err as { statusCode?: number }).statusCode
+      : undefined
+    if (status === 400) formError.value = t('auth.invalidOtp')
+    else if (status === 403) formError.value = t('auth.accountDisabled')
+    else if (status === 429) formError.value = t('errors.rateLimited')
+    else formError.value = t('auth.otpVerifyFailed')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function backToPhone() {
+  step.value = 'phone'
+  formError.value = ''
+  code.value = ''
+  debugCode.value = ''
 }
 </script>
 
@@ -56,52 +104,73 @@ async function submitEmailLogin() {
     <div class="text-center">
       <img src="/brand/inbox-logo-mark.svg" alt="" class="mx-auto h-12 w-12" />
       <h1 class="mt-3 font-display text-xl font-bold">{{ t('auth.loginToInbox') }}</h1>
-      <p class="mt-1 text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
+      <p class="mt-1 text-sm text-brand-gray-600">{{ t('auth.phoneLoginHint') }}</p>
     </div>
 
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
 
-    <form class="venus-form-stack" @submit.prevent="submitEmailLogin">
-      <AppFormField field-id="login-email" :label="t('auth.emailOrPhone')" required>
+    <form v-if="step === 'phone'" class="venus-form-stack" @submit.prevent="requestOtp">
+      <AppFormField field-id="login-phone" :label="t('common.mobile')" required>
         <input
-          id="login-email"
-          v-model="email"
-          name="email"
-          type="text"
+          id="login-phone"
+          v-model="phone"
+          name="phone"
+          type="tel"
           dir="ltr"
+          inputmode="tel"
           class="neo-input"
-          autocomplete="username"
-          required
-        />
-      </AppFormField>
-      <AppFormField field-id="login-password" :label="t('auth.password')" required>
-        <input
-          id="login-password"
-          v-model="password"
-          name="password"
-          type="password"
-          class="neo-input"
-          autocomplete="current-password"
+          placeholder="09xxxxxxxxx"
+          autocomplete="tel"
           required
         />
       </AppFormField>
       <button type="submit" class="btn-primary w-full py-3" :disabled="submitting">
-        {{ submitting ? t('common.loading') : t('auth.login') }}
+        {{ submitting ? t('common.loading') : t('auth.continueConfirm') }}
       </button>
     </form>
 
-    <NuxtLink :to="localePath('/forgot-password')" class="block text-center text-sm font-bold text-brand-navy underline">
-      {{ t('auth.forgotPassword') }}
-    </NuxtLink>
-
-    <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo || undefined)" />
+    <form v-else class="venus-form-stack" @submit.prevent="verifyOtp">
+      <p class="text-center text-sm text-brand-gray-600">
+        {{ smsMode === 'live' ? t('auth.otpSentHint', { phone: maskedPhone }) : t('auth.otpLogModeHint', { phone: maskedPhone }) }}
+      </p>
+      <AppFormField field-id="login-otp" :label="t('auth.otpCode')" required>
+        <input
+          id="login-otp"
+          v-model="code"
+          name="otp"
+          type="text"
+          dir="ltr"
+          inputmode="numeric"
+          maxlength="6"
+          class="neo-input text-center tracking-[0.35em]"
+          autocomplete="one-time-code"
+          required
+        />
+      </AppFormField>
+      <p v-if="debugCode" class="rounded-lg bg-brand-primary-soft px-3 py-2 text-center text-xs font-bold text-brand-primary">
+        {{ t('auth.debugOtpHint', { code: debugCode }) }}
+      </p>
+      <button type="submit" class="btn-primary w-full py-3" :disabled="submitting">
+        {{ submitting ? t('common.loading') : t('auth.continueConfirm') }}
+      </button>
+      <button type="button" class="btn-ghost w-full" :disabled="submitting" @click="requestOtp">
+        {{ t('auth.resendOtp') }}
+      </button>
+      <button type="button" class="btn-ghost w-full" @click="backToPhone">
+        {{ t('common.back') }}
+      </button>
+    </form>
 
     <div class="space-y-2 border-t border-brand-gray-200 pt-4">
-      <button type="button" class="btn-secondary w-full py-3" @click="openLogin({ returnTo: returnTo || undefined, mode: 'phone' })">
-        {{ t('auth.loginWithPhone') }}
-      </button>
-      <button type="button" class="btn-ghost w-full" @click="openRegister({ returnTo: returnTo || undefined })">
+      <button type="button" class="btn-secondary w-full py-3" @click="openRegister({ returnTo: returnTo || undefined })">
         {{ t('auth.register') }}
+      </button>
+      <button
+        type="button"
+        class="btn-ghost w-full text-xs"
+        @click="openLogin({ returnTo: returnTo || undefined, mode: 'password' })"
+      >
+        {{ t('auth.ownerPasswordFallback') }}
       </button>
     </div>
   </div>

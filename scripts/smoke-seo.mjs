@@ -109,15 +109,12 @@ async function main() {
   }
   console.log('ok  sitemap.xml present (FA-only)')
 
-  // Login page basic a11y — form inputs + labels
+  // Login page basic a11y — phone OTP inputs
   const { html: loginHtml } = await fetchPage(base, '/login')
   const lang = extractHtmlLang(loginHtml)
   if (!lang) throw new Error('/login missing html lang attribute')
-  if (!loginHtml.includes('type="email"') && !loginHtml.includes('type="password"')) {
-    console.warn('warn  /login form inputs not detected in SSR HTML')
-  }
-  if (!loginHtml.includes('id="login-email"') || !loginHtml.includes('for="login-email"')) {
-    console.warn('warn  /login email label wiring not detected in SSR HTML')
+  if (!loginHtml.includes('login-phone') && !loginHtml.includes('type="tel"')) {
+    console.warn('warn  /login phone input not detected in SSR HTML')
   }
   console.log('ok  /login lang attribute')
 

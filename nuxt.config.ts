@@ -151,12 +151,9 @@ export default defineNuxtConfig({
         || process.env.PILOT_NO_COACH === 'true',
       paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
-      // Build-time hint only — UI prefers /api/auth/google-enabled at runtime (Liara).
-      googleAuthEnabled: Boolean(
-        process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID
-        && process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET
-        && googleRedirectUrl,
-      ),
+      // Iran MVP: Google OAuth is hidden from product UI (phone OTP is primary).
+      // Keep false even if OAuth env is set; routes remain fail-closed when unset.
+      googleAuthEnabled: false,
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',

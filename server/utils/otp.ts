@@ -2,6 +2,8 @@ import { randomInt } from 'node:crypto'
 import { hashSecret, verifySecret } from './password'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
+import { findUserForPhoneOtp, isPhoneRegistered } from './phoneAuth'
+import { enforceOtpSendPhoneLimit } from './rateLimit'
 import { sendSms } from './sms/service'
 import { renderOtpSms } from './sms/templates'
 
@@ -26,11 +28,14 @@ export async function createAndSendPhoneOtp(opts: {
     throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { phone } })
-  if (opts.purpose === 'login' && !existingUser) {
-    throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
-  }
-  if (opts.purpose === 'register' && existingUser) {
+  await enforceOtpSendPhoneLimit(phone)
+
+  if (opts.purpose === 'login') {
+    const match = await findUserForPhoneOtp(phone)
+    if (!match) {
+      throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
+    }
+  } else if (await isPhoneRegistered(phone)) {
     throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
   }
 
@@ -70,11 +75,14 @@ export async function createAndSendPhoneOtp(opts: {
     }
   }
 
+  const smsMode = resolveSmsProvider()
   return {
     phone,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
     /** Returned only while SMS is log/dry-run, or after a non-prod live SMS failure. Never when live send succeeds. */
-    debugCode: resolveSmsProvider() === 'log' || debugFallback ? code : undefined,
+    debugCode: smsMode === 'log' || debugFallback ? code : undefined,
+    /** Client may show soft copy when SMS is dry-run (never claim live delivery). */
+    smsMode,
   }
 }
 

@@ -13,7 +13,13 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
 - [x] `PAYMENTS_MODE=pay_at_club` remains (pay at club only; Zarinpal live still not implemented — do not set `live` until a real IPG adapter ships)
 - [x] Behnaz pilot: coach UX off on prod (`pilotNoCoach` in client payload; `/coaches` → `/clubs`; coach discovery APIs 404). Prefer `PILOT_NO_COACH=true` on Liara (server-only, no rebuild). Optional `NUXT_PUBLIC_PILOT_NO_COACH=true` if client flag needs a runtime override / rebuild.
-- [ ] Live SMS/OTP when ready: `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` on Liara; also set a panel-approved `KAVENEGAR_SENDER` and/or `KAVENEGAR_TEMPLATE` (Verify Lookup recommended for OTP — missing both → Kavenegar “invalid sender” and OTP 502); until then SMS stays log/dry-run
+- [ ] Live SMS/OTP when ready (primary auth for athletes + club owners) — Liara `inbox` app:
+  - `SMS_ENABLED=true`
+  - `SMS_PROVIDER=kavenegar` (or `live`)
+  - `KAVENEGAR_API_KEY`
+  - `KAVENEGAR_TEMPLATE` (Verify Lookup preferred for OTP) and/or `KAVENEGAR_SENDER` (free-text / CRM)
+  - Until then SMS stays log/dry-run; UI shows `otpLogModeHint` / `debugOtpHint` (never claim live SMS)
+  - See docs/OPERATIONS.md → "SMS auth (Kavenegar OTP)"
 - [ ] `SENTRY_DSN` + `SENTRY_ENVIRONMENT=production` on Liara — keep unchecked until verified:
   - Create Sentry project; copy DSN (never commit). See docs/OPERATIONS.md → "Sentry (error tracking)"
   - Local unset: `npm run sentry:status` → `sentryEnabled: false`; app works
@@ -26,12 +32,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Local unset: `npm run storage:status` → `storageMode: "local"`; uploads write to `public/uploads`
   - Limits: JPEG/PNG/WebP, max 5 MB (guest oversized → 400)
   - Prod: after env + redeploy, upload avatar/gallery on `https://inboxs.ir` — URL uses `S3_PUBLIC_URL`; `/admin` shows storage mode `s3` (never prints keys)
-- [ ] Google OAuth — keep unchecked until verified on Liara:
-  - Console: Web client; JS origins `http://localhost:3000` + `https://inboxs.ir`; redirect URIs `http://localhost:3000/auth/google` + `https://inboxs.ir/auth/google`
-  - Liara env: `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL=https://inboxs.ir/auth/google`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`
-  - Verify local fail-closed (vars unset): no Google button; `GET /auth/google` → `/login?error=google` (FA message)
-  - Verify local optional (vars set): button visible; `/auth/google` redirects to Google
-  - Verify prod: button on `https://inboxs.ir/login` → sign-in → ATHLETE session; error path `/login?error=google`
+- [x] Google OAuth retired from product UI (phone OTP primary). Keep `NUXT_OAUTH_GOOGLE_*` unset on Liara. `/auth/google` fail-closed when unset; no Google button on login/register.
 - [ ] Live email when ready — keep unchecked until verified on Liara:
   - Liara env: `EMAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT` (587/465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (e.g. `inbox <noreply@inboxs.ir>`)
   - Until then leave `EMAIL_ENABLED` unset/`false` — flows log only; no SMTP required for local/CI
@@ -39,6 +40,7 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
   - Forgot-password UX in log mode: FA copy prefers phone OTP; does not claim “email sent” without recovery
   - Verify live: `/admin` overview shows email mode `live` + configured yes; or `GET /api/admin/email-status` (never exposes `SMTP_PASS`)
   - Smoke: forgot-password and a booking confirm still succeed if SMTP is down (soft-fail)
+- [x] Login/register are phone-OTP primary (athlete email/password register → 410)
 - [x] Login page no longer pre-fills demo credentials
 - [x] Demo seed gated behind `SEED_DEMO_DATA=true` (default: sports catalog only, even in dev)
 - [x] Demo cleanup runs automatically on production startup

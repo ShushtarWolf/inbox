@@ -1,4 +1,5 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 
 export default defineEventHandler(async (event) => {
@@ -24,6 +25,10 @@ export default defineEventHandler(async (event) => {
   const name = body.name?.trim()
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
+  const phone = body.phone ? normalizeIranPhone(body.phone) : null
+  if (body.phone?.trim() && !phone) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
+  }
   const clubNameFa = body.clubNameFa?.trim() || body.clubNameEn?.trim()
   const clubNameEn = body.clubNameEn?.trim() || clubNameFa
   const city = body.city?.trim()
@@ -38,6 +43,12 @@ export default defineEventHandler(async (event) => {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
+  }
+  if (phone) {
+    const phoneTaken = await prisma.user.findUnique({ where: { phone } })
+    if (phoneTaken) {
+      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+    }
   }
 
   const sport = await prisma.sport.findFirstOrThrow({
@@ -55,7 +66,8 @@ export default defineEventHandler(async (event) => {
         role: 'CLUB_ADMIN',
         passwordHash: hashSecret(password),
         locale,
-        phone: body.phone?.trim() || null,
+        phone,
+        phoneVerifiedAt: phone ? new Date() : null,
         avatarUrl: body.avatarUrl?.trim() || null,
       },
     })
@@ -72,7 +84,7 @@ export default defineEventHandler(async (event) => {
         status: 'ACTIVE',
         image: body.clubImage?.trim() || null,
         credentialsJson: body.credentialUrls?.length ? JSON.stringify(body.credentialUrls) : null,
-        phone: body.phone?.trim() || null,
+        phone,
       },
     })
 

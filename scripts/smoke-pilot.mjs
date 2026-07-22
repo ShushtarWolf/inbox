@@ -13,6 +13,7 @@ import {
   fetchPage,
   loadDotEnv,
   login,
+  registerAthlete,
 } from './lib/smoke-helpers.mjs'
 
 loadDotEnv()
@@ -48,7 +49,6 @@ async function main() {
   const jar = createCookieJar()
   const id = stamp()
   const ownerEmail = `pilot-owner-${id}@example.com`
-  const athleteEmail = `pilot-athlete-${id}@example.com`
   const guestMobile = '09121112233'
 
   const health = await apiFetch(base, '/api/health')
@@ -158,21 +158,10 @@ async function main() {
   assert(smsPage.status === 200, `/admin/sms → ${smsPage.status}`)
   console.log('ok  /admin/sms page')
 
-  // --- 4. Athlete register → find club → book → /athlete/bookings ---
-  const { res: regRes, data: athlete } = await apiFetch(base, '/api/auth/register', {
-    jar,
-    session: 'athlete',
-    method: 'POST',
-    body: {
-      name: 'Pilot Athlete',
-      email: athleteEmail,
-      password: 'demo1234',
-      locale: 'en',
-    },
-  })
-  assert(regRes.ok, `athlete register → ${regRes.status}`)
+  // --- 4. Athlete register (phone OTP) → find club → book → /athlete/bookings ---
+  const athlete = await registerAthlete(base, jar, 'athlete', { name: 'Pilot Athlete' })
   assert(athlete.role === 'ATHLETE', 'register role is not ATHLETE')
-  console.log('ok  athlete register')
+  console.log('ok  athlete register (OTP)')
 
   const { res: clubRes, data: club } = await apiFetch(base, `/api/clubs/${provision.clubSlug}`)
   assert(clubRes.ok, `find club → ${clubRes.status}`)

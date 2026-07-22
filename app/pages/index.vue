@@ -251,7 +251,7 @@ watch(sports, (list) => {
         <p class="mt-1 text-xs text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
         <div class="mt-4 flex flex-col gap-2 sm:flex-row">
           <button type="button" class="btn-primary flex-1" @click="openRegister()">{{ t('auth.register') }}</button>
-          <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.emailPasswordFallback') }}</button>
+          <button type="button" class="btn-canva-login flex-1" @click="openLogin()">{{ t('auth.loginWithPhone') }}</button>
         </div>
       </section>
     </div>

@@ -1,6 +1,4 @@
-import { getGoogleOAuthStatus } from '../../utils/googleOAuth'
-
-/** Public probe: is Google OAuth configured? Never returns secrets. */
-export default defineEventHandler((event) => {
-  return { enabled: getGoogleOAuthStatus(event).enabled }
+/** Public probe: Google sign-in is hidden for Iran MVP (phone OTP). Never returns secrets. */
+export default defineEventHandler(() => {
+  return { enabled: false }
 })

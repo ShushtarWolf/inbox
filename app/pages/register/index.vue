@@ -1,21 +1,22 @@
 <script setup lang="ts">
-import { sanitizeReturnTo } from '#shared/returnTo.ts'
-
 definePageMeta({ middleware: 'guest' })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { fetch: refreshAuth } = useAuth()
-const { startGoogleSignIn, googleAuthEnabled } = useGoogleAuth()
+const { fetch: fetchAuth } = useAuth()
 const { openRegister, openLogin } = useAuthFlow()
 const { pilotNoCoach } = usePilotFlags()
 
 const name = ref('')
-const email = ref('')
-const password = ref('')
+const phone = ref('')
+const code = ref('')
+const step = ref<'form' | 'otp'>('form')
 const error = ref('')
 const submitting = ref(false)
+const debugCode = ref('')
+const maskedPhone = ref('')
+const smsMode = ref<'log' | 'live'>('log')
 
 const returnTo = computed(() => {
   const value = route.query.returnTo
@@ -33,38 +34,67 @@ onMounted(() => {
   }
 })
 
-async function submit() {
+async function requestOtp() {
   error.value = ''
-  if (!name.value.trim() || !email.value.trim()) {
+  if (!name.value.trim()) {
     error.value = t('auth.registerFailed')
     return
   }
-  if (password.value.length < 6) {
-    error.value = t('auth.passwordTooShort')
+  if (!phone.value.trim()) {
+    error.value = t('auth.invalidPhone')
     return
   }
   submitting.value = true
   try {
-    const result = await $fetch<{ redirectTo?: string }>('/api/auth/register', {
+    const data = await $fetch<{ phone: string; debugCode?: string; smsMode?: 'log' | 'live' }>('/api/auth/otp/request', {
       method: 'POST',
       body: {
+        phone: phone.value,
+        purpose: 'register',
+        role: 'ATHLETE',
         name: name.value.trim(),
-        email: email.value.trim(),
-        password: password.value,
-        locale: locale.value,
       },
     })
-    await refreshAuth()
-    const safeReturnTo = sanitizeReturnTo(returnTo.value, locale.value === 'en' ? 'en' : 'fa')
-    await navigateTo(safeReturnTo || result.redirectTo || localePath('/athlete'))
+    maskedPhone.value = data.phone
+    debugCode.value = data.debugCode || ''
+    code.value = data.debugCode || ''
+    smsMode.value = data.smsMode === 'live' ? 'live' : 'log'
+    step.value = 'otp'
   } catch (err: unknown) {
     const status = err && typeof err === 'object' && 'statusCode' in err
       ? (err as { statusCode?: number }).statusCode
       : undefined
-    if (status === 409) error.value = t('auth.emailTaken')
+    if (status === 409) error.value = t('auth.phoneTaken')
+    else if (status === 400) error.value = t('auth.invalidPhone')
     else if (status === 429) error.value = t('errors.rateLimited')
-    else if (status === 403) error.value = t('auth.demoUnavailable')
-    else error.value = t('auth.registerFailed')
+    else error.value = t('auth.otpSendFailed')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function verifyOtp() {
+  error.value = ''
+  submitting.value = true
+  try {
+    const data = await $fetch<{ redirectTo?: string }>('/api/auth/otp/verify', {
+      method: 'POST',
+      body: {
+        phone: maskedPhone.value || phone.value,
+        code: code.value,
+        purpose: 'register',
+        returnTo: returnTo.value || undefined,
+      },
+    })
+    await fetchAuth()
+    await navigateTo(data.redirectTo || localePath('/athlete'))
+  } catch (err: unknown) {
+    const status = err && typeof err === 'object' && 'statusCode' in err
+      ? (err as { statusCode?: number }).statusCode
+      : undefined
+    if (status === 400) error.value = t('auth.invalidOtp')
+    else if (status === 429) error.value = t('errors.rateLimited')
+    else error.value = t('auth.otpVerifyFailed')
   } finally {
     submitting.value = false
   }
@@ -83,45 +113,61 @@ async function submit() {
 
     <p v-if="error" class="venus-alert-error">{{ error }}</p>
 
-    <form class="venus-form-stack" @submit.prevent="submit">
-      <AppFormField field-id="register-name" :label="t('auth.name')" required>
+    <form v-if="step === 'form'" class="venus-form-stack" @submit.prevent="requestOtp">
+      <AppFormField field-id="register-name" :label="t('auth.fullName')" required>
         <input id="register-name" v-model="name" class="neo-input" autocomplete="name" required />
       </AppFormField>
-      <AppFormField field-id="register-email" :label="t('auth.email')" required>
+      <AppFormField field-id="register-phone" :label="t('common.mobile')" required>
         <input
-          id="register-email"
-          v-model="email"
-          type="email"
+          id="register-phone"
+          v-model="phone"
+          type="tel"
           dir="ltr"
+          inputmode="tel"
           class="neo-input"
-          autocomplete="email"
-          required
-        />
-      </AppFormField>
-      <AppFormField field-id="register-password" :label="t('auth.password')" required>
-        <input
-          id="register-password"
-          v-model="password"
-          type="password"
-          class="neo-input"
-          autocomplete="new-password"
-          minlength="6"
+          placeholder="09xxxxxxxxx"
+          autocomplete="tel"
           required
         />
       </AppFormField>
       <button type="submit" class="btn-primary w-full py-3" :disabled="submitting">
-        {{ submitting ? t('common.loading') : t('auth.register') }}
+        {{ submitting ? t('common.loading') : t('auth.continueConfirm') }}
       </button>
     </form>
 
-    <AppGoogleSignInButton v-if="googleAuthEnabled" @click="startGoogleSignIn(returnTo || undefined)" />
+    <form v-else class="venus-form-stack" @submit.prevent="verifyOtp">
+      <p class="text-center text-sm text-brand-gray-600">
+        {{ smsMode === 'live' ? t('auth.otpSentHint', { phone: maskedPhone }) : t('auth.otpLogModeHint', { phone: maskedPhone }) }}
+      </p>
+      <AppFormField field-id="register-otp" :label="t('auth.otpCode')" required>
+        <input
+          id="register-otp"
+          v-model="code"
+          dir="ltr"
+          inputmode="numeric"
+          maxlength="6"
+          class="neo-input text-center tracking-[0.35em]"
+          autocomplete="one-time-code"
+          required
+        />
+      </AppFormField>
+      <p v-if="debugCode" class="rounded-lg bg-brand-primary-soft px-3 py-2 text-center text-xs font-bold text-brand-primary">
+        {{ t('auth.debugOtpHint', { code: debugCode }) }}
+      </p>
+      <button type="submit" class="btn-primary w-full py-3" :disabled="submitting">
+        {{ submitting ? t('common.loading') : t('auth.continueConfirm') }}
+      </button>
+      <button type="button" class="btn-ghost w-full" :disabled="submitting" @click="requestOtp">
+        {{ t('auth.resendOtp') }}
+      </button>
+    </form>
 
     <div class="space-y-2 border-t border-brand-gray-200 pt-4">
-      <button type="button" class="btn-secondary w-full py-3" @click="openRegister({ returnTo: returnTo || undefined, role: 'ATHLETE' })">
-        {{ t('auth.registerWithPhone') }}
-      </button>
       <button type="button" class="btn-ghost w-full" @click="openLogin({ returnTo: returnTo || undefined })">
         {{ t('auth.login') }}
+      </button>
+      <button type="button" class="btn-ghost w-full text-xs" @click="openRegister({ returnTo: returnTo || undefined, role: 'CLUB_ADMIN' })">
+        {{ t('auth.registerOwnerTitle') }}
       </button>
     </div>
   </div>

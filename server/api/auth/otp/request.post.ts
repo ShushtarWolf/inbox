@@ -46,5 +46,6 @@ export default defineEventHandler(async (event) => {
     phone: result.phone,
     expiresIn: result.expiresIn,
     debugCode: result.debugCode,
+    smsMode: result.smsMode,
   }
 })

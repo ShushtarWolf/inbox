@@ -79,6 +79,7 @@ export default defineEventHandler(async (event) => {
         openHour: 8,
         closeHour: 22,
         priceFrom: defaultCourtPrice,
+        ...(phone ? { phone } : {}),
       },
     })
     for (let i = 1; i <= 2; i++) {

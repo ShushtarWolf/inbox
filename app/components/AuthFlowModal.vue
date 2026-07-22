@@ -5,7 +5,6 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const { fetch: fetchAuth, login } = useAuth()
-const { startGoogleSignIn, googleAuthEnabled } = useGoogleAuth()
 const {
   open,
   step,
@@ -26,6 +25,7 @@ const pending = ref(false)
 const error = ref('')
 const debugCode = ref('')
 const maskedPhone = ref('')
+const smsMode = ref<'log' | 'live'>('log')
 
 const { pilotNoCoach } = usePilotFlags()
 
@@ -41,12 +41,17 @@ const roles = computed(() =>
 
 const title = computed(() => {
   if (step.value === 'role') return t('auth.roleTitle')
-  if (step.value === 'login' && loginMode.value === 'password') return t('auth.loginToInbox')
+  if (step.value === 'login' && loginMode.value === 'password') return t('auth.ownerPasswordTitle')
   if (step.value === 'login') return t('auth.loginToInbox')
   if (step.value === 'otp') return t('auth.otpTitle')
   if (role.value === 'COACH') return t('auth.registerCoachTitle')
   if (role.value === 'CLUB_ADMIN') return t('auth.registerOwnerTitle')
   return t('auth.registerAthleteTitle')
+})
+
+const otpHint = computed(() => {
+  if (smsMode.value === 'live') return t('auth.otpSentHint', { phone: maskedPhone.value })
+  return t('auth.otpLogModeHint', { phone: maskedPhone.value })
 })
 
 function resetForm() {
@@ -59,6 +64,7 @@ function resetForm() {
   error.value = ''
   debugCode.value = ''
   maskedPhone.value = ''
+  smsMode.value = 'log'
   pending.value = false
 }
 
@@ -69,7 +75,7 @@ function handleClose() {
 
 function goGate() {
   resetForm()
-  goLogin()
+  goPhoneLogin()
 }
 
 function goRole() {
@@ -83,10 +89,11 @@ function selectRole(next: AuthFlowRole) {
   step.value = 'register'
 }
 
-function goLogin() {
+function goPasswordLogin() {
   purpose.value = 'login'
   loginMode.value = 'password'
   step.value = 'login'
+  error.value = ''
 }
 
 function goPhoneLogin() {
@@ -121,7 +128,7 @@ async function requestOtp() {
   error.value = ''
   pending.value = true
   try {
-    const data = await $fetch<{ phone: string; debugCode?: string }>('/api/auth/otp/request', {
+    const data = await $fetch<{ phone: string; debugCode?: string; smsMode?: 'log' | 'live' }>('/api/auth/otp/request', {
       method: 'POST',
       body: {
         phone: phone.value,
@@ -134,12 +141,14 @@ async function requestOtp() {
     maskedPhone.value = data.phone
     debugCode.value = data.debugCode || ''
     code.value = data.debugCode || ''
+    smsMode.value = data.smsMode === 'live' ? 'live' : 'log'
     step.value = 'otp'
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400) error.value = t('auth.invalidPhone')
+    else if (status === 429) error.value = t('errors.rateLimited')
     else error.value = t('auth.otpSendFailed')
   } finally {
     pending.value = false
@@ -196,7 +205,7 @@ watch(open, (isOpen) => {
         <h2 class="text-center text-lg font-bold text-brand-navy">{{ title }}</h2>
 
         <template v-if="step === 'login' && loginMode === 'password'">
-          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
+          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.ownerPasswordHint') }}</p>
           <AppFormField field-id="auth-identifier" :label="t('auth.emailOrPhone')">
             <input
               id="auth-identifier"
@@ -219,11 +228,6 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="submitPasswordLogin">
             {{ pending ? t('common.loading') : t('auth.login') }}
           </button>
-          <AppGoogleSignInButton
-            v-if="googleAuthEnabled"
-            class="w-full"
-            @click="startGoogleSignIn(returnTo || undefined)"
-          />
           <NuxtLink
             :to="localePath('/forgot-password')"
             class="block text-center text-sm font-bold text-brand-navy underline"
@@ -258,7 +262,7 @@ watch(open, (isOpen) => {
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ t(item.body) }}</p>
             </div>
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goLogin">
+          <button type="button" class="btn-ghost w-full" @click="goGate">
             {{ t('common.back') }}
           </button>
         </template>
@@ -314,17 +318,17 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="requestOtp">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="btn-secondary w-full py-3" @click="goLogin">
-            {{ t('auth.emailPasswordFallback') }}
+          <button type="button" class="btn-ghost w-full text-xs" @click="goPasswordLogin">
+            {{ t('auth.ownerPasswordFallback') }}
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goLogin">
-            {{ t('common.back') }}
+          <button type="button" class="btn-ghost w-full" @click="goRole">
+            {{ t('auth.register') }}
           </button>
         </template>
 
         <template v-else-if="step === 'otp'">
           <p class="text-center text-sm text-brand-gray-600">
-            {{ t('auth.otpSentHint', { phone: maskedPhone }) }}
+            {{ otpHint }}
           </p>
           <AppFormField field-id="auth-otp" :label="t('auth.otpCode')">
             <input

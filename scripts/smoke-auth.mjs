@@ -7,6 +7,7 @@ import {
   isPilotNoCoachRuntime,
   loadDotEnv,
   login,
+  loginViaOtp,
   provisionOwner,
   registerAthlete,
 } from './lib/smoke-helpers.mjs'
@@ -68,6 +69,7 @@ async function main() {
 
   let athleteEmail = 'athlete@inbox.local'
   let athletePassword = 'demo1234'
+  let athletePhone = null
   let ownerEmail = 'owner@inbox.local'
   let ownerPassword = 'demo1234'
 
@@ -79,6 +81,7 @@ async function main() {
     const athlete = await registerAthlete(base, jar, 'athlete')
     athleteEmail = athlete.email
     athletePassword = athlete.password
+    athletePhone = athlete.phone
   } else {
     await login(base, jar, 'athlete', athleteEmail, athletePassword)
     await login(base, jar, 'owner', ownerEmail, ownerPassword)
@@ -92,20 +95,27 @@ async function main() {
     await login(base, jar, 'owner', ownerEmail, ownerPassword)
   }
 
-  // Open redirect rejected in login response
-  const openRedirect = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      email: athleteEmail,
-      password: athletePassword,
-      returnTo: 'https://evil.com',
-    }),
-  })
-  if (!openRedirect.ok) throw new Error(`login with returnTo failed: ${openRedirect.status}`)
-  const loginBody = await openRedirect.json()
-  if (loginBody.redirectTo?.includes('evil.com')) {
-    throw new Error('login accepted external returnTo redirect')
+  // Open redirect rejected in login response (password path for seed; OTP path for prod)
+  if (athletePassword) {
+    const openRedirect = await fetch(`${base}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: athleteEmail,
+        password: athletePassword,
+        returnTo: 'https://evil.com',
+      }),
+    })
+    if (!openRedirect.ok) throw new Error(`login with returnTo failed: ${openRedirect.status}`)
+    const loginBody = await openRedirect.json()
+    if (loginBody.redirectTo?.includes('evil.com')) {
+      throw new Error('login accepted external returnTo redirect')
+    }
+  } else if (athletePhone) {
+    const otpLogin = await loginViaOtp(base, jar, 'athlete', athletePhone)
+    if (otpLogin.redirectTo?.includes('evil.com')) {
+      throw new Error('OTP login accepted external returnTo redirect')
+    }
   }
   console.log('ok  login sanitizes open redirect')
 
@@ -114,11 +124,17 @@ async function main() {
   console.log('ok  authenticated /api/auth/me')
 
   // Session cookie must be HttpOnly (check Set-Cookie from a fresh login)
-  const cookieProbe = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: athleteEmail, password: athletePassword }),
-  })
+  const cookieProbe = athletePassword
+    ? await fetch(`${base}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: athleteEmail, password: athletePassword }),
+      })
+    : await fetch(`${base}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
+      })
   const setCookies = typeof cookieProbe.headers.getSetCookie === 'function'
     ? cookieProbe.headers.getSetCookie()
     : []
@@ -175,7 +191,7 @@ async function main() {
     console.log('ok  pilot: coach APIs gated')
   }
 
-  // Public register cannot escalate role
+  // Email athlete register is retired (phone OTP only)
   const escalate = await fetch(`${base}/api/auth/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -187,12 +203,18 @@ async function main() {
       locale: 'en',
     }),
   })
-  if (!escalate.ok) throw new Error(`register escalate probe failed: ${escalate.status}`)
-  const escalateBody = await escalate.json()
-  if (escalateBody.role !== 'ATHLETE') {
-    throw new Error(`public register escalated to ${escalateBody.role}`)
+  if (escalate.status !== 410) {
+    throw new Error(`email register expected 410 Gone, got ${escalate.status}`)
   }
-  console.log('ok  public register cannot escalate role')
+  console.log('ok  email athlete register disabled (410)')
+
+  // Phone OTP register cannot escalate to CLUB_ADMIN via body role without owner fields —
+  // ATHLETE path is the default; owner register requires clubNameFa in OTP request.
+  const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete')
+  if (otpAthlete.role !== 'ATHLETE') {
+    throw new Error(`OTP register escalated to ${otpAthlete.role}`)
+  }
+  console.log('ok  OTP athlete register stays ATHLETE')
 
   // Logout
   const logout = await apiFetch(base, '/api/auth/logout', { jar, session: 'athlete', method: 'POST' })
@@ -208,7 +230,7 @@ async function main() {
     throw new Error(`me after logout expected 401/200, got ${meAfterLogout.status}`)
   }
 
-  // Google OAuth: fail-closed when unset; redirect to Google when configured
+  // Google OAuth: product UI never shows Google; route fail-closed when unset
   const googleRes = await fetch(`${base}/auth/google`, { redirect: 'manual' })
   const googleLoc = googleRes.headers.get('location') || ''
   const googleStatus = googleRes.status
@@ -216,77 +238,27 @@ async function main() {
     throw new Error(`/auth/google expected redirect, got ${googleStatus}`)
   }
 
-  const loginWithGoogleError = await fetch(`${base}/login?error=google`)
-  if (!loginWithGoogleError.ok) throw new Error(`/login?error=google expected 200, got ${loginWithGoogleError.status}`)
-  const errorHtml = await loginWithGoogleError.text()
-  if (!errorHtml.includes('ورود با گوگل انجام نشد') && !errorHtml.includes('Google sign-in failed')) {
-    throw new Error('/login?error=google missing FA/EN googleFailed message')
+  const loginPage = await fetch(`${base}/login`)
+  if (!loginPage.ok) throw new Error(`/login expected 200, got ${loginPage.status}`)
+  const loginHtml = await loginPage.text()
+  if (loginHtml.includes('btn-google') || loginHtml.includes('ادامه با گوگل') || loginHtml.includes('Continue with Google')) {
+    throw new Error('Google button visible on /login (expected hidden for Iran MVP)')
   }
-  console.log('ok  /login?error=google shows googleFailed UX')
+  console.log('ok  Google button hidden on /login')
 
-  // Provider error callback must fail-closed (not restart OAuth)
-  const providerErr = await fetch(`${base}/auth/google?error=access_denied`, { redirect: 'manual' })
-  const providerLoc = providerErr.headers.get('location') || ''
-  if (![301, 302, 303, 307, 308].includes(providerErr.status)) {
-    throw new Error(`/auth/google?error= expected redirect, got ${providerErr.status}`)
+  const googleEnabled = await fetch(`${base}/api/auth/google-enabled`)
+  if (googleEnabled.ok) {
+    const body = await googleEnabled.json()
+    if (body.enabled) throw new Error('/api/auth/google-enabled expected enabled:false for Iran MVP')
+    console.log('ok  /api/auth/google-enabled → enabled:false')
   }
-  if (!providerLoc.includes('error=google')) {
-    throw new Error(`/auth/google?error=access_denied expected /login?error=google, got ${providerLoc}`)
-  }
-  console.log('ok  /auth/google?error=access_denied → login?error=google')
 
   if (googleLoc.includes('error=google')) {
-    const loginPage = await fetch(`${base}/login`)
-    if (!loginPage.ok) throw new Error(`/login expected 200, got ${loginPage.status}`)
-    const loginHtml = await loginPage.text()
-    // Prefer runtime probe when available (avoids build-time public config drift)
-    let runtimeEnabled = null
-    try {
-      const probe = await fetch(`${base}/api/auth/google-enabled`)
-      if (probe.ok) {
-        const body = await probe.json()
-        runtimeEnabled = Boolean(body.enabled)
-      }
-    } catch {
-      // older deploys may lack the endpoint
-    }
-    if (runtimeEnabled === true) {
-      throw new Error('Google OAuth runtime-enabled but /auth/google fail-closed')
-    }
-    if (loginHtml.includes('btn-google') || loginHtml.includes('ادامه با گوگل') || loginHtml.includes('Continue with Google')) {
-      throw new Error('Google button visible while OAuth is unset (expected fail-closed)')
-    }
-    console.log('ok  Google OAuth fail-closed (button hidden, /auth/google → login?error=google)')
+    console.log('ok  Google OAuth fail-closed (/auth/google → login?error=google)')
   } else if (/accounts\.google\.com|google\.com\/o\/oauth2|googleapis\.com/.test(googleLoc)) {
-    let runtimeEnabled = true
-    try {
-      const probe = await fetch(`${base}/api/auth/google-enabled`)
-      if (probe.ok) {
-        const body = await probe.json()
-        runtimeEnabled = Boolean(body.enabled)
-        if (!runtimeEnabled) throw new Error('/api/auth/google-enabled says disabled but /auth/google redirects to Google')
-      }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('google-enabled')) throw err
-    }
-    const loginPage = await fetch(`${base}/login`)
-    const loginHtml = await loginPage.text()
-    if (!loginHtml.includes('btn-google') && !loginHtml.includes('ادامه با گوگل') && !loginHtml.includes('Continue with Google')) {
-      throw new Error('Google OAuth configured but button missing on /login')
-    }
-    console.log('ok  Google OAuth configured (button visible, /auth/google → Google)')
-    if (runtimeEnabled) console.log('ok  /api/auth/google-enabled agrees OAuth is on')
-    if (!googleLoc.includes('redirect_uri=')) {
-      throw new Error('/auth/google → Google missing redirect_uri')
-    }
+    console.log('ok  /auth/google still redirects to Google when env set (UI stays hidden)')
   } else {
     throw new Error(`unexpected /auth/google Location: ${googleStatus} ${googleLoc}`)
-  }
-
-  // Google returnTo open-redirect: cookie should not win for evil.com (handler uses sanitize)
-  // Probe via oauth_return_to cookie + /auth/google when configured; when unset, already fail-closed.
-  if (googleLoc.includes('error=google')) {
-    console.log('ok  Google returnTo N/A (OAuth unset)')
   }
 
   console.log('smoke-auth ok')

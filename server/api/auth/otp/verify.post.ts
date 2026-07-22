@@ -2,6 +2,9 @@ import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { phoneToSyntheticEmail } from '#shared/phone.ts'
 import { uniqueClubSlug } from '../../../utils/slug'
 import { consumePhoneOtp } from '../../../utils/otp'
+import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
+import { enforceOtpVerifyPhoneLimit } from '../../../utils/rateLimit'
+import { normalizeIranPhone } from '#shared/phone.ts'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-verify')
@@ -12,6 +15,11 @@ export default defineEventHandler(async (event) => {
     returnTo?: string
   }>(event)
 
+  const normalizedPhone = normalizeIranPhone(body.phone || '')
+  if (normalizedPhone) {
+    await enforceOtpVerifyPhoneLimit(normalizedPhone)
+  }
+
   const purpose = body.purpose === 'login' ? 'login' : 'register'
   const consumed = await consumePhoneOtp({
     phoneRaw: body.phone || '',
@@ -20,16 +28,21 @@ export default defineEventHandler(async (event) => {
   })
 
   if (purpose === 'login') {
-    const user = await prisma.user.findUnique({ where: { phone: consumed.phone } })
-    if (!user) {
+    const match = await findUserForPhoneOtp(consumed.phone)
+    if (!match) {
       throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
     }
+    const { user, linkPhone, phone } = match
     if (user.disabledAt) {
       throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
     }
     await prisma.user.update({
       where: { id: user.id },
-      data: { phoneVerifiedAt: new Date(), lastLoginAt: new Date() },
+      data: {
+        ...(linkPhone ? { phone } : {}),
+        phoneVerifiedAt: new Date(),
+        lastLoginAt: new Date(),
+      },
     })
     await setUserSession(event, { user: toSessionUser(user) })
     return {
@@ -38,7 +51,7 @@ export default defineEventHandler(async (event) => {
       name: user.name,
       role: user.role,
       locale: user.locale,
-      phone: user.phone,
+      phone,
       redirectTo: postLoginRedirectPath(user, user.locale, body.returnTo),
     }
   }

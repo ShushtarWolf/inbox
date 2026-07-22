@@ -79,6 +79,43 @@ Only enable when ops explicitly asks to go live (do not flip from this runbook c
 
 Until then leave `EMAIL_ENABLED` unset/`false`. Verify with `/admin` or `npm run email:status` against a shell that has the same env.
 
+## SMS auth (Kavenegar OTP) — Iran MVP go-live
+
+Primary sign-in for **ATHLETE** and **CLUB_ADMIN** is phone OTP (Iranian mobile `09…` / `+98…`). Email/password athlete registration is disabled (`POST /api/auth/register` → `410`). Google OAuth is hidden from product UI. Soft-fail for booking CRM SMS must not break booking APIs; auth OTP failures return clear FA errors (UI maps `400`/`429`/`502`).
+
+### Liara env vars (`inbox` app)
+
+Set in the Liara dashboard when cutting over live OTP (never commit secrets):
+
+| Variable | Value | Notes |
+|----------|-------|--------|
+| `SMS_ENABLED` | `true` | Required for live sends |
+| `SMS_PROVIDER` | `kavenegar` or `live` | Both resolve to Kavenegar |
+| `KAVENEGAR_API_KEY` | from Kavenegar panel | Required with the two above |
+| `KAVENEGAR_TEMPLATE` | e.g. `inbox-verify` | **Preferred for OTP** — panel-approved Verify Lookup template with `%token%` |
+| `KAVENEGAR_SENDER` | approved line | Required for free-text `sms/send` (CRM + booking notify + OTP without template) |
+
+Optional rate-limit tuning (defaults are fine for MVP):
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `OTP_PHONE_SEND_MAX` | `3` | Max OTP sends per phone per window |
+| `OTP_PHONE_SEND_WINDOW_MS` | `600000` | 10 minutes |
+| `OTP_PHONE_VERIFY_MAX` | `10` | Max verify attempts per phone per window |
+| `OTP_PHONE_VERIFY_WINDOW_MS` | `600000` | 10 minutes |
+| `REDIS_URL` | unset | IP + phone buckets use Redis when set (multi-instance) |
+
+Until live cutover: leave `SMS_ENABLED` unset/`false` — OTP uses log/dry-run and returns `debugCode` + `smsMode: "log"`. UI must not claim live SMS delivery in log mode (`auth.otpLogModeHint` / `auth.debugOtpHint`). Check `/admin/sms` or `npm run sms:status`.
+
+### Verify checklist
+
+1. `npm run sms:status` (or `GET /api/admin/sms-status`) → `resolvedProvider: "log"` until keys are set; `"live"` after cutover.
+2. Request OTP with a valid IR mobile → `200` + normalized `09…` phone; log mode includes `debugCode`.
+3. Wrong OTP → `400` + FA `auth.invalidOtp` in UI.
+4. Correct OTP register ATHLETE → session + `/athlete`.
+5. Owner phone (User.phone or Club.phone on provisioned club) → OTP login → `/owner`.
+6. Booking notify/CRM SMS soft-fail must not 500 booking endpoints.
+
 ## Object storage (S3 / Liara)
 
 Uploads (avatars, club gallery, guest registration photos) go through `uploadImage` in `server/utils/storage.ts`, used by:
@@ -179,9 +216,13 @@ Redeploy or restart the app after setting env so both server and client pick up 
 
 The test route is **not** public: missing/invalid `x-admin-secret` → `403`. Do not expose an ungated error endpoint.
 
-Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`, and a redirect URL (explicit or via `NUXT_PUBLIC_SITE_URL`) are **unset**, the app fails closed: the Google button is hidden and `GET /auth/google` redirects to `/login?error=google` (FA copy via `auth.googleFailed`). Provider errors (`?error=access_denied`) also land on that page. Do not commit real secrets; set Liara env in the dashboard when enabling prod.
+## Google OAuth (retired from product UI)
 
-### Google Cloud Console
+Iran MVP uses phone OTP. Login/register UI does **not** show Google. `GET /api/auth/google-enabled` always returns `{ enabled: false }`. Keep OAuth env **unset** on Liara unless you intentionally revive the flow later.
+
+When `NUXT_OAUTH_GOOGLE_*` are **unset**, `GET /auth/google` fails closed → `/login?error=google` (generic login error copy on `/login`; product pages do not advertise Google). Do not commit real secrets.
+
+### Google Cloud Console (legacy — do not enable for MVP)
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) → select (or create) the project for inbox.
 2. **APIs & Services** → **OAuth consent screen** → configure (External or Internal). App name: inbox. Add scopes `email`, `profile`, `openid` if prompted.
@@ -195,38 +236,24 @@ Optional. When `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`,
    - `https://inboxs.ir/auth/google`
 7. Create → copy **Client ID** and **Client secret** (never commit them).
 
-### Local `.env`
+### Local `.env` (legacy)
 
 ```bash
-NUXT_PUBLIC_SITE_URL=http://localhost:3000
-NUXT_OAUTH_GOOGLE_CLIENT_ID=....apps.googleusercontent.com
-NUXT_OAUTH_GOOGLE_CLIENT_SECRET=GOCSPX-...
-NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://localhost:3000/auth/google
+# Leave unset for Iran MVP
+# NUXT_OAUTH_GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+# NUXT_OAUTH_GOOGLE_CLIENT_SECRET=GOCSPX-...
+# NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://localhost:3000/auth/google
 ```
 
-Restart `npm run dev` after changing these. Smoke: `npm run smoke:auth` — with vars unset expects fail-closed; with vars set expects redirect toward Google.
+Smoke: `npm run smoke:auth` expects no Google button on `/login` and fail-closed `/auth/google` when unset.
 
-### Production (Liara `inbox` app)
-
-Set the same four vars (do not set from this runbook automatically):
-
-| Variable | Value |
-|----------|-------|
-| `NUXT_PUBLIC_SITE_URL` | `https://inboxs.ir` |
-| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | from Console |
-| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | from Console |
-| `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | `https://inboxs.ir/auth/google` |
-
-Redeploy or restart after env change. Verify: login page shows Google button → completes OAuth → new users land as `ATHLETE`; failure shows `/login?error=google`.
-
-### Behavior reference
+### Behavior reference (MVP)
 
 | Condition | UI | `/auth/google` |
 |-----------|----|----------------|
-| Client id/secret/redirect unset | Button hidden | → `/login?error=google` |
-| All set | Button on login/register/auth modal | → Google consent, then session + `returnTo` |
+| Always (MVP) | No Google button | Fail-closed when unset; do not advertise in product |
 
-New Google users are upserted as role `ATHLETE`. `oauth_return_to` cookie (sanitized) restores post-login path.
+Prefer phone OTP. Do not set Google OAuth on Liara for the Iran MVP.
 
 ## Database backup (PostgreSQL)
 

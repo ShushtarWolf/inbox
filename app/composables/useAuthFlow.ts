@@ -14,7 +14,7 @@ export function useAuthFlow() {
   const step = useState<AuthFlowStep>('auth-flow-step', () => 'closed')
   const role = useState<AuthFlowRole>('auth-flow-role', () => 'ATHLETE')
   const purpose = useState<'login' | 'register'>('auth-flow-purpose', () => 'login')
-  const loginMode = useState<AuthFlowLoginMode>('auth-flow-login-mode', () => 'password')
+  const loginMode = useState<AuthFlowLoginMode>('auth-flow-login-mode', () => 'phone')
   const returnTo = useState('auth-flow-return-to', () => '')
 
   function openGate(opts?: { returnTo?: string }) {
@@ -24,7 +24,7 @@ export function useAuthFlow() {
   function openLogin(opts?: { returnTo?: string; mode?: AuthFlowLoginMode }) {
     returnTo.value = opts?.returnTo || ''
     purpose.value = 'login'
-    loginMode.value = opts?.mode || 'password'
+    loginMode.value = opts?.mode || 'phone'
     step.value = 'login'
     open.value = true
   }
@@ -46,7 +46,7 @@ export function useAuthFlow() {
   function close() {
     open.value = false
     step.value = 'closed'
-    loginMode.value = 'password'
+    loginMode.value = 'phone'
   }
 
   return {
