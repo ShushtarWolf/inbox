@@ -12,7 +12,7 @@ describe('payment registry', () => {
     zarinpalProvider()
   })
 
-  it('registers all stub providers', () => {
+  it('registers built-in providers', () => {
     const names = listPaymentProviders()
     expect(names).toContain('pay_at_club')
     expect(names).toContain('log')

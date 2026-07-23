@@ -11,7 +11,12 @@ Production: **Liara** (`inbox` app) at `https://inboxs.ir` (fallback: `https://i
 - [x] `NUXT_PUBLIC_SITE_URL=https://inboxs.ir` on Liara
 - [x] `SEED_ON_EMPTY` removed / set to `false` after first deploy
 - [x] `ADMIN_PROVISION_SECRET` set for club provisioning
-- [x] `PAYMENTS_MODE=pay_at_club` remains (pay at club only; Zarinpal live still not implemented — do not set `live` until a real IPG adapter ships)
+- [ ] Online payments (Zarinpal) — keep unchecked until keys verified; see docs/PAYMENTS.md:
+  - Local: `PAYMENTS_MODE=test` (no secrets → `/payments/test-gateway`; optional sandbox merchant)
+  - Liara live only after manual verify: `PAYMENTS_MODE=live`, `ZARINPAL_MERCHANT_ID`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`
+  - Optional refunds: `ZARINPAL_ACCESS_TOKEN` (else cancel credits wallet)
+  - Do **not** set `live` until book→pay→PAID, NOK not PAID, idempotent callback, and cancel refund path are verified
+  - `pay_at_club` remains supported for desk walk-ins / rollback (online CTA hidden)
 - [x] Behnaz pilot: coach UX off on prod (`pilotNoCoach` in client payload; `/coaches` → `/clubs`; coach discovery APIs 404). Prefer `PILOT_NO_COACH=true` on Liara (server-only, no rebuild). Optional `NUXT_PUBLIC_PILOT_NO_COACH=true` if client flag needs a runtime override / rebuild.
 - [ ] Live SMS/OTP when ready (primary auth for athletes + club owners) — Liara `inbox` app:
   - `SMS_ENABLED=true`

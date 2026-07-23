@@ -42,6 +42,9 @@ export function logPaymentProvider(): PaymentService {
       const payment = await prisma.payment.findFirst({ where: { provider: 'log', providerRef } })
         || await prisma.payment.findUnique({ where: { id: providerRef } })
       if (!payment) throw createError({ statusCode: 404, statusMessage: 'Payment not found' })
+      if (payment.status === 'PAID' || payment.status === 'REFUNDED') {
+        return toPaymentIntent(payment)
+      }
       const updated = await prisma.payment.update({
         where: { id: payment.id },
         data: { status: 'PAID' },

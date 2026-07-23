@@ -18,7 +18,10 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_PUBLIC_ENAMAD_*` | After signup | See [docs/ENAMAD.md](./ENAMAD.md) for meta/file/title/badge |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
-| `PAYMENTS_MODE` | No | `pay_at_club` (default / current prod), `test`, or `live`. Keep `pay_at_club` — Zarinpal live is not implemented yet |
+| `PAYMENTS_MODE` | No | `pay_at_club` (desk-only), `test` (local/sandbox), or `live` (Zarinpal). Do **not** set `live` until merchant keys verified — see docs/PAYMENTS.md |
+| `PAYMENT_PROVIDER` | No | Default `zarinpal` when mode is `test`/`live`; `log` for API-only tests |
+| `ZARINPAL_MERCHANT_ID` | For live/sandbox IPG | Zarinpal merchant UUID (never commit) |
+| `ZARINPAL_ACCESS_TOKEN` | For live gateway refunds | Optional; without it cancel uses wallet fallback |
 | `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only — no SMTP required) |
 | `SMTP_HOST` | For live email | SMTP server hostname (required with `EMAIL_ENABLED=true`) |
 | `SMTP_PORT` | For live email | SMTP port (typically 587 or 465; default 587) |

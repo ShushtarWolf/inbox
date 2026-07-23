@@ -39,9 +39,29 @@ const {
 const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
+const paymentFlash = ref('')
+const paymentFlashTone = ref<'success' | 'error'>('success')
 const rescheduleTarget = ref<CourtBooking | null>(null)
 const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
+
+const route = useRoute()
+watch(
+  () => route.query.payment,
+  (value) => {
+    if (value === 'success') {
+      paymentFlashTone.value = 'success'
+      paymentFlash.value = t('booking.paymentSuccess')
+    } else if (value === 'cancelled') {
+      paymentFlashTone.value = 'error'
+      paymentFlash.value = t('booking.paymentCancelled')
+    } else if (value === 'error') {
+      paymentFlashTone.value = 'error'
+      paymentFlash.value = t('booking.paymentError')
+    }
+  },
+  { immediate: true },
+)
 
 const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('/api/slots/available', {
   query: computed(() => ({
@@ -67,9 +87,11 @@ async function cancel(id: string) {
   if (!confirm(t('booking.confirmCancel'))) return
   actionError.value = ''
   try {
-    const result = await $fetch<{ refund?: { walletCredited?: boolean } }>(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
+    const result = await $fetch<{ refund?: { walletCredited?: boolean; refunded?: boolean } }>(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
     if (result.refund?.walletCredited) {
       alert(t('booking.refundToWallet'))
+    } else if (result.refund?.refunded) {
+      alert(t('booking.refundToGateway'))
     }
     refresh()
   } catch (err: unknown) {
@@ -178,6 +200,13 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
 
     <NuxtLink :to="localePath('/clubs')" class="btn-ghost block text-center text-sm">{{ t('athlete.bookCourtCta') }}</NuxtLink>
 
+    <p
+      v-if="paymentFlash"
+      class="ios-card p-3 text-sm"
+      :class="paymentFlashTone === 'success' ? 'text-brand-primary' : 'text-red-600'"
+    >
+      {{ paymentFlash }}
+    </p>
     <p v-if="actionError" class="ios-card p-3 text-sm text-red-600">{{ actionError }}</p>
 
     <AppAsyncState :pending="pending" :error="error" :empty="Boolean(data) && !hasAnyBookings" skeleton-variant="table">

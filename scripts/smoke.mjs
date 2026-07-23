@@ -239,12 +239,32 @@ async function main() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ slotId: slots[0].id }),
     })
-    await check('/api/payments/checkout', {
+    const checkout = await check('/api/payments/checkout', {
       method: 'POST',
       session: 'athlete',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ bookingId: booking.id }),
     })
+    // When online (test/live), exercise callback confirm + idempotent second hit without real IPG secrets.
+    const providerRef = checkout?.intent?.providerRef
+    const provider = checkout?.intent?.provider
+    if (providerRef && provider && provider !== 'pay_at_club' && checkout?.intent?.status === 'PENDING_ONLINE') {
+      const okPath = `/payments/callback/${provider}?Authority=${encodeURIComponent(providerRef)}&Status=OK`
+      const first = await fetch(`${base}${okPath}`, { redirect: 'manual' })
+      if (![302, 303].includes(first.status)) {
+        throw new Error(`payment callback expected redirect, got ${first.status}`)
+      }
+      const loc = first.headers.get('location') || ''
+      if (!/payment=success/.test(loc)) {
+        throw new Error(`payment callback success redirect missing: ${loc}`)
+      }
+      // Idempotent double-hit
+      const second = await fetch(`${base}${okPath}`, { redirect: 'manual' })
+      if (![302, 303].includes(second.status)) {
+        throw new Error(`payment callback re-hit expected redirect, got ${second.status}`)
+      }
+      console.log('ok  online payment callback verify (idempotent)')
+    }
     await check(`/api/bookings/${booking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
   }
 

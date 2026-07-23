@@ -65,7 +65,7 @@ export function resolvePaymentProvider(explicit?: string): PaymentProvider {
   if (mode === 'pay_at_club') return 'pay_at_club'
   const configured = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined
   if (configured && ['zarinpal', 'idpay', 'log', 'pay_at_club'].includes(configured)) return configured
-  if (mode === 'test') return 'log'
-  // live: zarinpal stub (fail-closed until credentials + live adapter)
+  // test + live default to Zarinpal (real adapter; simulate gateway when no merchant id).
+  // Set PAYMENT_PROVIDER=log for API-only tests without redirect.
   return 'zarinpal'
 }

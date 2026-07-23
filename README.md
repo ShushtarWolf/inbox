@@ -52,7 +52,7 @@ npm run db:migrate:deploy # production: apply pending migrations only
 
 Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
 
-**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club`.
+**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club` until Zarinpal keys verified (then `live` — see docs/PAYMENTS.md).
 
 Deploy from repo root:
 
@@ -167,5 +167,5 @@ node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to productio
 
 ### Provider architecture
 
-- **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Live gateways not implemented.
+- **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=zarinpal|log`. Real Zarinpal adapter (sandbox or local test-gateway). Do not set `live` until keys verified — see docs/PAYMENTS.md.
 - **SMS:** `SMS_PROVIDER=log` (default dry-run; OTP returns `debugCode`). Live Kavenegar when `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` are set. Optional `KAVENEGAR_TEMPLATE` (Verify Lookup) and `KAVENEGAR_SENDER`. Check with `npm run sms:status` or `/admin/sms`. Process due CRM campaigns: button on `/admin/sms` or `POST /api/admin/sms/process-scheduled`.

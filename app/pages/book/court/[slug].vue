@@ -88,7 +88,7 @@ async function confirm() {
     bookedPrice.value = selected?.price ?? null
     done.value = true
     feedbackTone.value = 'success'
-    feedback.value = t('booking.successCourt')
+    feedback.value = onlineEnabled.value ? t('booking.successCourtOnline') : t('booking.successCourt')
     refresh()
   } catch (error: unknown) {
     feedbackTone.value = 'error'
@@ -180,7 +180,7 @@ onMounted(() => {
     </div>
 
     <div v-if="done" class="ios-card space-y-2 p-4 text-center">
-      <p class="font-bold text-brand-primary">✓ {{ t('booking.successCourt') }}</p>
+      <p class="font-bold text-brand-primary">✓ {{ onlineEnabled ? t('booking.successCourtOnline') : t('booking.successCourt') }}</p>
       <p
         v-if="!user?.phone?.trim()"
         class="text-sm text-brand-gray-600"
@@ -248,7 +248,7 @@ onMounted(() => {
         :lines="costLines"
         :total-label="t('booking.costTotal')"
         :total-amount="formatCurrency(selectedSlotRow.price || 0)"
-        :payment-note="t('booking.costPayAtClubNote')"
+        :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
         :cancel-note="t('booking.costCancelHint')"
       />
       <button
