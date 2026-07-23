@@ -443,6 +443,11 @@
     "courtsSection": "Courts",
     "coachSection": "Coach",
     "packageSection": "Packages",
+    "packageDisabled": {
+      "title": "Packages are not available",
+      "body": "This launch supports court booking only. Book a court from the clubs list.",
+      "cta": "Clubs"
+    },
     "packageConfirm": "Book package",
     "packageConfirmed": "Package booking confirmed",
     "packageFailed": "Could not book this package.",
@@ -1029,7 +1034,12 @@
     },
     "reserveRedirect": {
       "title": "Reserve from calendar",
-      "body": "Season and package reservations are created from a slot on the owner calendar. Open the calendar, tap a slot, then choose the reserve option you need.",
+      "body": "Season and package reserve are disabled in this launch. Use the owner calendar for court bookings.",
+      "cta": "Open calendar"
+    },
+    "packagesDisabled": {
+      "title": "Packages are not available yet",
+      "body": "This launch supports court booking only. Season and packages come later.",
       "cta": "Open calendar"
     },
     "clockSelector": "Time",
@@ -1156,6 +1166,10 @@
       "smsLogged": "SMS logged (dry-run — no live gateway)",
       "smsSentFeedback": "SMS sent/queued via live gateway",
       "smsScheduled": "Campaign scheduled — not sent yet",
+      "smsFailed": "Could not send SMS. Please try again.",
+      "emptyContacts": "No contacts yet.",
+      "emptyCampaigns": "No campaigns yet.",
+      "emptyReminders": "No reminder rules.",
       "recentCampaigns": "Recent campaigns",
       "allRecipients": "All recipients",
       "campaignName": "Campaign name",

@@ -1,7 +1,14 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { notifyBookingConfirmed } from '../../utils/bookingNotify'
 
 export default defineEventHandler(async (event) => {
+  if (!isRecurringReserveEnabled()) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'RECURRING_RESERVE_DISABLED',
+    })
+  }
   const user = await requireUser(event)
   const body = await readBody<{ packageId?: string; days?: string[]; times?: string[] }>(event)
   if (!body.packageId) {

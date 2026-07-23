@@ -18,7 +18,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_PUBLIC_ENAMAD_*` | After signup | See [docs/ENAMAD.md](./ENAMAD.md) for meta/file/title/badge |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
-| `PAYMENTS_MODE` | No | `pay_at_club` (desk-only), `test` (local/sandbox), or `live` (Zarinpal). Do **not** set `live` until merchant keys verified — see docs/PAYMENTS.md |
+| `PAYMENTS_MODE` | No | `pay_at_club` (desk-only), `test` (local/sandbox), or `live` (Zarinpal). Synced to client Pay CTA at runtime (also accepts `NUXT_PUBLIC_PAYMENTS_MODE`). Do **not** set `live` until merchant keys verified — see docs/PAYMENTS.md |
 | `PAYMENT_PROVIDER` | No | Default `zarinpal` when mode is `test`/`live`; `log` for API-only tests |
 | `ZARINPAL_MERCHANT_ID` | For live/sandbox IPG | Zarinpal merchant UUID (never commit) |
 | `ZARINPAL_ACCESS_TOKEN` | For live gateway refunds | Optional; without it cancel uses wallet fallback |
@@ -33,8 +33,8 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
 | `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify` with `%token%`). Without it, OTP uses free-text `sms/send`. |
 | `KAVENEGAR_SENDER` | Required for free-text sends | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است` (OTP 502 on prod). Needed for CRM + booking notify + OTP without template. |
-| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | `true` to hide coach nav/URLs in the client (runtime override; rebuild only if baked payload is wrong) |
-| `PILOT_NO_COACH` | Pilot | Prefer this for Behnaz: server-only coach API/sitemap gate without rebuild |
+| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional; `PILOT_NO_COACH` alone is synced to client at runtime via Nitro plugin |
+| `PILOT_NO_COACH` | Pilot | Prefer this for Behnaz: server-only coach API/sitemap gate; also drives client redirects at runtime |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
 | `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
 | `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |

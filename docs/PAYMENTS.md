@@ -34,7 +34,7 @@ Liara **live** (set only after keys verified — never commit secrets):
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `PAYMENTS_MODE` | Yes | `live` |
+| `PAYMENTS_MODE` | Yes | `live` (or `test` on Liara for sandbox). Runtime-synced to client; optional `NUXT_PUBLIC_PAYMENTS_MODE` mirror |
 | `PAYMENT_PROVIDER` | No | defaults to `zarinpal` |
 | `ZARINPAL_MERCHANT_ID` | Yes | Merchant UUID from Zarinpal panel |
 | `ZARINPAL_ACCESS_TOKEN` | For gateway refunds | Personal access token (panel → sessions). Without it, cancel still credits **wallet** as safe fallback |

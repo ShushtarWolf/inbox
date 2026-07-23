@@ -59,29 +59,34 @@ function campaignResultLabel(campaign: {
 }
 
 async function send() {
-  const result = await $fetch<{
-    log?: { sent?: boolean, logged?: boolean }
-    provider?: string
-    campaign?: { status?: string }
-  }>('/api/owner/sms', {
-    method: 'POST',
-    body: {
-      ...sms,
-      segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
-    },
-  })
-  if (result.campaign?.status === 'SCHEDULED') {
-    feedback.value = t('owner.crmPage.smsScheduled')
-  } else if (result.log?.sent) {
-    feedback.value = t('owner.crmPage.smsSentFeedback')
-  } else if (result.log?.logged) {
-    feedback.value = t('owner.crmPage.smsLogged')
-  } else {
-    // Fail closed: do not claim a live send without provider confirmation.
-    feedback.value = t('owner.crmPage.smsLogged')
+  feedback.value = ''
+  try {
+    const result = await $fetch<{
+      log?: { sent?: boolean, logged?: boolean }
+      provider?: string
+      campaign?: { status?: string }
+    }>('/api/owner/sms', {
+      method: 'POST',
+      body: {
+        ...sms,
+        segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
+      },
+    })
+    if (result.campaign?.status === 'SCHEDULED') {
+      feedback.value = t('owner.crmPage.smsScheduled')
+    } else if (result.log?.sent) {
+      feedback.value = t('owner.crmPage.smsSentFeedback')
+    } else if (result.log?.logged) {
+      feedback.value = t('owner.crmPage.smsLogged')
+    } else {
+      // Fail closed: do not claim a live send without provider confirmation.
+      feedback.value = t('owner.crmPage.smsLogged')
+    }
+    refresh()
+    refreshSmsStatus()
+  } catch {
+    feedback.value = t('owner.crmPage.smsFailed')
   }
-  refresh()
-  refreshSmsStatus()
 }
 </script>
 
@@ -102,7 +107,7 @@ async function send() {
 
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="segment in data?.segments"
+            v-for="segment in data?.segments || []"
             :key="segment.id"
             type="button"
             class="tail-pill"
@@ -121,13 +126,16 @@ async function send() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in data?.contacts" :key="c.id">
+            <tr v-if="!(data?.contacts?.length)">
+              <td colspan="2" class="text-sm text-brand-gray-500">{{ t('owner.crmPage.emptyContacts') }}</td>
+            </tr>
+            <tr v-for="c in data?.contacts || []" :key="c.id">
               <td>
                 <p class="font-semibold text-brand-navy">{{ c.name }}</p>
-                <p class="text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits }) }}</p>
+                <p class="text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit || '—' }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits || 0 }) }}</p>
               </td>
               <td>
-                <p><bdi dir="ltr" class="tabular-nums">{{ c.mobile }}</bdi></p>
+                <p><bdi dir="ltr" class="tabular-nums">{{ c.mobile || '—' }}</bdi></p>
                 <p class="text-xs text-brand-gray-500">{{ c.lifetimeValue }}</p>
               </td>
             </tr>
@@ -136,8 +144,9 @@ async function send() {
 
         <div class="tail-card">
           <h2 class="tail-section-title mb-4">{{ t('owner.crmPage.recentCampaigns') }}</h2>
+          <p v-if="!(data?.campaigns?.length)" class="text-sm text-brand-gray-500">{{ t('owner.crmPage.emptyCampaigns') }}</p>
           <div class="space-y-3 text-sm">
-            <div v-for="campaign in data?.campaigns" :key="campaign.id" class="tail-widget-card-accent">
+            <div v-for="campaign in data?.campaigns || []" :key="campaign.id" class="tail-widget-card-accent">
               <div class="flex items-center justify-between gap-3">
                 <p class="font-semibold text-brand-navy">{{ campaign.name }}</p>
                 <span class="tail-badge-gray">{{ campaignStatusLabel(campaign.status) }}</span>
@@ -173,8 +182,9 @@ async function send() {
         <div class="tail-card">
           <h2 class="tail-section-title mb-2">{{ t('owner.crmPage.reminders') }}</h2>
           <p class="mb-4 text-sm text-brand-gray-500">{{ t('owner.crmPage.remindersInfo') }}</p>
+          <p v-if="!(data?.reminders?.length)" class="text-sm text-brand-gray-500">{{ t('owner.crmPage.emptyReminders') }}</p>
           <div class="space-y-3 text-sm">
-            <div v-for="rule in data?.reminders" :key="rule.id" class="tail-widget-card-accent">
+            <div v-for="rule in data?.reminders || []" :key="rule.id" class="tail-widget-card-accent">
               <p class="font-semibold text-brand-navy">{{ rule.name }}</p>
               <p class="text-xs text-brand-gray-500">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
             </div>

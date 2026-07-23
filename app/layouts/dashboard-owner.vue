@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { canAccessOwnerNav, parsePermissions } from '#shared/ownerPermissions.ts'
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -41,6 +42,8 @@ const nav = computed(() => {
     .filter((item) => {
       if (item.path === '/owner/workers' && !isOwner) return false
       if (item.path === '/owner/coaches' && (pilotNoCoach.value || coachCount === 0)) return false
+      // Court-booking MVP: package drafts UI stays off with recurring reserve.
+      if (item.path === '/owner/packages' && !isRecurringReserveEnabled()) return false
       return canAccessOwnerNav(item.path, permissions, isOwner)
     })
     .map((item) => ({

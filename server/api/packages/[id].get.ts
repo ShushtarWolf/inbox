@@ -1,3 +1,4 @@
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { parseJsonArray } from '../../utils/catalog'
 
 function parseTimesJson(value: string | null | undefined) {
@@ -11,6 +12,9 @@ function parseTimesJson(value: string | null | undefined) {
 }
 
 export default defineEventHandler(async (event) => {
+  if (!isRecurringReserveEnabled()) {
+    throw createError({ statusCode: 404, statusMessage: 'Package not found' })
+  }
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
 

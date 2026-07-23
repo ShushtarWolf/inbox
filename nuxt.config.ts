@@ -146,10 +146,15 @@ export default defineNuxtConfig({
       siteUrl: siteUrl || process.env.NUXT_PUBLIC_SITE_URL || '',
       enablePwa: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true',
       // Behnaz pilot: hide coach discovery/register UX (coach model + APIs stay).
+      // Prefer PILOT_NO_COACH on Liara; NUXT_PUBLIC_ also works. Nitro plugin syncs at runtime.
       pilotNoCoach:
         process.env.NUXT_PUBLIC_PILOT_NO_COACH === 'true'
         || process.env.PILOT_NO_COACH === 'true',
-      paymentsMode: process.env.PAYMENTS_MODE || 'pay_at_club',
+      // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
+      paymentsMode:
+        process.env.NUXT_PUBLIC_PAYMENTS_MODE
+        || process.env.PAYMENTS_MODE
+        || 'pay_at_club',
       bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       // Iran MVP: Google OAuth is hidden from product UI (phone OTP is primary).
       // Keep false even if OAuth env is set; routes remain fail-closed when unset.

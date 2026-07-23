@@ -60,7 +60,7 @@ Deploy from repo root:
 liara deploy --app inbox
 ```
 
-See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md), [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md).
+See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) (Behnaz MVP go-live + FA QA matrix), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md), [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md).
 
 Report security issues privately — see [SECURITY.md](SECURITY.md).
 

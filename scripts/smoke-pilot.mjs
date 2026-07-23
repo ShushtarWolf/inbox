@@ -151,6 +151,22 @@ async function main() {
   assert(packageRes.status === 403, `package reserve expected 403, got ${packageRes.status}`)
   console.log('ok  season/package reserve disabled (403)')
 
+  const { res: ownerPackagesCreate } = await apiFetch(base, '/api/owner/packages', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: { title: 'Should fail' },
+    expectStatus: 403,
+  })
+  assert(ownerPackagesCreate.status === 403, `owner packages create expected 403, got ${ownerPackagesCreate.status}`)
+  const { res: packagesPage } = await fetchPage(base, '/owner/packages', {
+    jar,
+    session: 'owner',
+    expectStatus: 200,
+  })
+  assert(packagesPage.status === 200, `/owner/packages → ${packagesPage.status}`)
+  console.log('ok  packages UI/API disabled (stub + 403 create)')
+
   // Notify path: mark paid with guestMobile only (no userId) — must not 500 in log SMS mode
   const { res: paidRes, data: paid } = await apiFetch(base, '/api/owner/reserve', {
     jar,

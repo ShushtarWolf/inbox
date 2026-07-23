@@ -1,14 +1,23 @@
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { assertDateNotInPast } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   if (event.method === 'GET') {
+    // MVP: empty list so leftover UI cannot invent drafts; create stays 403.
+    if (!isRecurringReserveEnabled()) return []
     return prisma.packageDraft.findMany({
       where: { clubId: club.id },
       include: {
         coach: true,
         _count: { select: { bookings: true, players: true } },
       },
+    })
+  }
+  if (!isRecurringReserveEnabled()) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'RECURRING_RESERVE_DISABLED',
     })
   }
   const body = await readBody<{

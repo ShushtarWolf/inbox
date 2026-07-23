@@ -1,4 +1,12 @@
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
+
 export default defineEventHandler(async (event) => {
+  if (!isRecurringReserveEnabled()) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'RECURRING_RESERVE_DISABLED',
+    })
+  }
   const { club } = await requireOwnerClub(event, 'calendar')
   const packageId = getRouterParam(event, 'id')
   const playerId = getRouterParam(event, 'playerId')
