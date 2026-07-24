@@ -1,0 +1,19 @@
+---
+description: LOCKED Canva public/athlete/owner phone-frame fidelity — never reintroduce soft TailAdmin look
+alwaysApply: true
+---
+
+# Canva Phone Frames — LOCKED
+
+Apply on public / athlete / owner **375px** Canva frames. Never reintroduce soft TailAdmin look.
+
+1. **No pills** — No `rounded-full` / pill chips or CTAs unless Canva itself is pill.
+2. **Radius** — Prefer `border-radius: 0` or **2px max** on chrome, search, cards, login, primary CTAs.
+3. **No shared soft buttons** — Do not use `btn-primary` / `rounded-lg` for Canva login/search/card CTAs; use frame-specific square classes.
+4. **RTL align** — Use `text-start` / `justify-start` for right-aligned copy; never `text-end` for “align right”.
+5. **Chrome** — Logo on RIGHT, login/action on LEFT; full-bleed flush with artboard edges; tight gap to hero (not `space-y-6` separate band).
+6. **Hero titles** — Force `text-white` (global `h1` navy is a bug).
+7. **Search** — Single-line placeholders; white field group + separate square red CTA; inset separators; no label+value stack.
+8. **No approximation** — List every region from the Canva frame; match sides, corners, alignment, hierarchy.
+9. **Done gate** — Hard refresh localhost at **375px** width; self-check against LOCKED + slice checklist before claiming done.
+10. **No screenshot** — Use nearest approved sibling frame + LOCKED; do not invent soft TailAdmin look.
