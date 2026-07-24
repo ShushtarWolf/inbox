@@ -355,25 +355,40 @@
   .canva-hero-dot-idle {
     @apply bg-white/45;
   }
-  /* Canva p1: search bar — soft square corners, field dividers */
+  /* Canva p1 search: white 3-cell bar + separate sharp red CTA (single-line placeholders) */
   .canva-search-row {
-    @apply grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-0 rounded-sm border border-brand-gray-200 bg-white p-2.5 shadow-venus-sm sm:p-3;
+    @apply flex items-stretch gap-2;
+  }
+  .canva-search-fields {
+    @apply grid min-w-0 flex-1 grid-cols-[1fr_1.35fr_1fr] items-center bg-white;
+    border-radius: 0;
   }
   .canva-search-field {
-    @apply relative px-2 sm:px-3;
+    @apply relative flex min-w-0 items-center px-3 py-3.5;
   }
   .canva-search-field + .canva-search-field::before {
     content: '';
-    @apply absolute inset-y-1 start-0 w-px bg-brand-gray-200;
+    position: absolute;
+    inset-inline-start: 0;
+    top: 22%;
+    bottom: 22%;
+    width: 1px;
+    background: #d4d0ca;
   }
-  .canva-search-label {
-    @apply text-[10px] font-bold text-brand-gray-600 sm:text-[11px];
+  .canva-search-placeholder {
+    @apply w-full truncate border-0 bg-transparent p-0 text-center text-xs font-medium outline-none sm:text-sm;
+    color: #9a9690;
+    appearance: none;
   }
-  .canva-search-value {
-    @apply mt-0.5 text-xs font-bold text-brand-navy sm:text-sm;
+  .canva-search-placeholder-filled {
+    @apply font-semibold text-brand-navy;
+  }
+  select.canva-search-placeholder {
+    cursor: pointer;
   }
   .canva-search-cta {
-    @apply inline-flex items-center justify-center rounded-sm bg-brand-primary px-4 py-2.5 text-xs font-semibold text-white shadow-venus-sm transition hover:brightness-110;
+    @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-5 text-sm font-semibold text-white transition hover:brightness-110;
+    border-radius: 0;
   }
   .canva-rail {
     @apply flex gap-3 overflow-x-auto pb-1;
@@ -944,8 +959,7 @@
   }
 
   .canva-public-main .canva-search-row {
-    border-radius: 0.125rem;
-    box-shadow: 0 4px 24px rgba(44, 44, 42, 0.08);
+    box-shadow: none;
   }
 
   .canva-public-footer {

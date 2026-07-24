@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
@@ -49,16 +49,6 @@ const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlide
 
 onMounted(() => {
   if (!user.value) fetchAuth()
-})
-
-const heroSearchDate = computed(() => {
-  return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
-    calendar: locale.value === 'fa' ? 'persian' : 'gregory',
-    numberingSystem: locale.value === 'fa' ? 'arabext' : undefined,
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date())
 })
 
 function bookingLink(path: '/clubs', querySport?: string) {
@@ -154,26 +144,31 @@ function prevHero() {
       </section>
 
       <section class="canva-search-row">
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.sportsTitle') }}</p>
-          <select v-model="sport" class="canva-search-value w-full border-0 bg-transparent p-0 outline-none">
-            <option value="">{{ t('home.sportsTitle') }}</option>
-            <option v-for="s in sports" :key="s.slug" :value="s.slug">
-              {{ localizedField(s, 'nameFa', 'nameEn') }}
-            </option>
-          </select>
+        <div class="canva-search-fields">
+          <div class="canva-search-field">
+            <select
+              v-model="sport"
+              class="canva-search-placeholder"
+              :class="{ 'canva-search-placeholder-filled': sport }"
+            >
+              <option value="">{{ t('home.sportsTitle') }}</option>
+              <option v-for="s in sports" :key="s.slug" :value="s.slug">
+                {{ localizedField(s, 'nameFa', 'nameEn') }}
+              </option>
+            </select>
+          </div>
+          <div class="canva-search-field canva-search-field-wide">
+            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+              {{ t('home.heroSearchWhereHint') }}
+            </NuxtLink>
+          </div>
+          <div class="canva-search-field">
+            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+              {{ t('home.heroSearchWhen') }}
+            </NuxtLink>
+          </div>
         </div>
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.heroSearchWhere') }}</p>
-          <NuxtLink :to="bookingLink('/clubs')" class="canva-search-value block truncate">
-            {{ t('home.heroSearchWhereHint') }}
-          </NuxtLink>
-        </div>
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.heroSearchWhen') }}</p>
-          <p class="canva-search-value truncate">{{ heroSearchDate }}</p>
-        </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta shrink-0 whitespace-nowrap">
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>

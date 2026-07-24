@@ -2,17 +2,14 @@
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { firstName, displayName, user, fetch: fetchAuth } = useAuth()
 
-const sport = ref<string | undefined>(undefined)
+const sport = ref('')
 
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
-if (!sport.value && sports.value?.length) {
-  sport.value = sports.value[0]?.slug
-}
 
 const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
@@ -27,16 +24,6 @@ const tennisClubs = computed(() => {
 const padelClubs = computed(() => {
   const list = clubs.value || []
   return list.filter((club: { sports?: string[] }) => club.sports?.includes('padel')).slice(0, 3)
-})
-
-const heroSearchDate = computed(() => {
-  return new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : 'en-US', {
-    calendar: locale.value === 'fa' ? 'persian' : 'gregory',
-    numberingSystem: locale.value === 'fa' ? 'arabext' : undefined,
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date())
 })
 
 function bookingLink(path: '/clubs', querySport?: string) {
@@ -64,10 +51,6 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
 onMounted(() => {
   if (!user.value) fetchAuth()
 })
-
-watch(sports, (list) => {
-  if (!sport.value && list?.length) sport.value = list[0]?.slug
-})
 </script>
 
 <template>
@@ -80,25 +63,31 @@ watch(sports, (list) => {
 
     <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
       <section class="canva-search-row">
-        <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhere') }}</p>
-          <NuxtLink :to="bookingLink('/clubs')" class="mt-1 block truncate text-sm font-bold text-brand-navy">
-            {{ t('home.heroSearchWhereHint') }}
-          </NuxtLink>
+        <div class="canva-search-fields">
+          <div class="canva-search-field">
+            <select
+              v-model="sport"
+              class="canva-search-placeholder"
+              :class="{ 'canva-search-placeholder-filled': sport }"
+            >
+              <option value="">{{ t('home.sportsTitle') }}</option>
+              <option v-for="s in sports" :key="s.slug" :value="s.slug">
+                {{ localizedField(s, 'nameFa', 'nameEn') }}
+              </option>
+            </select>
+          </div>
+          <div class="canva-search-field canva-search-field-wide">
+            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+              {{ t('home.heroSearchWhereHint') }}
+            </NuxtLink>
+          </div>
+          <div class="canva-search-field">
+            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+              {{ t('home.heroSearchWhen') }}
+            </NuxtLink>
+          </div>
         </div>
-        <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhen') }}</p>
-          <p class="mt-1 truncate text-sm font-bold text-brand-navy">{{ heroSearchDate }}</p>
-        </div>
-        <div>
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.sportsTitle') }}</p>
-          <select v-model="sport" class="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-brand-navy outline-none">
-            <option v-for="s in sports" :key="s.slug" :value="s.slug">
-              {{ localizedField(s, 'nameFa', 'nameEn') }}
-            </option>
-          </select>
-        </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="btn-primary px-4 py-2 text-xs">
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>
