@@ -1,54 +1,32 @@
 <script setup lang="ts">
+/** Canva p25: personalized athlete home inside phone shell (not public layout). */
+definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
+
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
-const { openGate } = useAuthFlow()
+const { firstName, displayName, user, fetch: fetchAuth } = useAuth()
 
-const sport = ref<string>('')
-const heroSlide = ref(0)
+const sport = ref<string | undefined>(undefined)
 
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
+if (!sport.value && sports.value?.length) {
+  sport.value = sports.value[0]?.slug
+}
 
-/** Unfiltered clubs so Canva rails (suggestions / tennis / padel) stay populated. */
 const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
+const greetName = computed(() => firstName.value || displayName.value || t('home.guestName'))
 
-const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
-/** Canva home frames show three square tiles per rail. */
 const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
 const tennisClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('tennis')).slice(0, 3)
+  return list.filter((club: { sports?: string[] }) => club.sports?.includes('tennis')).slice(0, 3)
 })
 const padelClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('padel')).slice(0, 3)
-})
-
-const heroSlides = computed(() => [
-  {
-    title: t('home.heroSlideTitle'),
-    body: t('home.heroBody'),
-    image: '/hero/tennis-court.jpg',
-  },
-  {
-    title: t('home.bookCourt'),
-    body: t('home.bookCourtHint'),
-    image: '/hero/padel-court.jpg',
-  },
-  {
-    title: t('home.padelTitle'),
-    body: t('home.clubSectionBody'),
-    image: '/hero/fitness-venue.jpg',
-  },
-])
-
-const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
-
-onMounted(() => {
-  if (!user.value) fetchAuth()
+  return list.filter((club: { sports?: string[] }) => club.sports?.includes('padel')).slice(0, 3)
 })
 
 const heroSearchDate = computed(() => {
@@ -62,10 +40,9 @@ const heroSearchDate = computed(() => {
 })
 
 function bookingLink(path: '/clubs', querySport?: string) {
-  const sportQuery = querySport || sport.value || undefined
   return localePath({
     path,
-    query: sportQuery ? { sport: sportQuery } : {},
+    query: (querySport || sport.value) ? { sport: querySport || sport.value } : {},
   })
 }
 
@@ -84,96 +61,44 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   return '/hero/fitness-venue.jpg'
 }
 
-function nextHero() {
-  heroSlide.value = (heroSlide.value + 1) % heroSlides.value.length
-}
+onMounted(() => {
+  if (!user.value) fetchAuth()
+})
 
-function prevHero() {
-  heroSlide.value = (heroSlide.value - 1 + heroSlides.value.length) % heroSlides.value.length
-}
+watch(sports, (list) => {
+  if (!sport.value && list?.length) sport.value = list[0]?.slug
+})
 </script>
 
 <template>
-  <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
-    <div class="tail-page-stack animate-fade-in tail-stagger">
-      <!-- Canva chrome: cream header with red logo + login (above hero) -->
-      <header class="canva-home-chrome">
-        <button
-          v-if="!user"
-          type="button"
-          class="btn-primary px-3 py-1.5 text-xs"
-          @click="openGate()"
-        >
-          {{ t('auth.loginRegister') }}
-        </button>
-        <NuxtLink
-          v-else
-          :to="dashboardPathForRole(user.role)"
-          class="rounded-lg bg-brand-primary-soft px-3 py-1.5 text-xs font-bold text-brand-primary"
-        >
-          {{ t('home.welcome', { name: firstNameOrGuest }) }}
-        </NuxtLink>
-        <div class="flex items-center gap-2">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
-        </div>
-      </header>
+  <div class="venus-page-stack">
+    <section class="pt-5">
+      <p class="text-sm font-bold text-brand-primary">{{ t('athlete.homePromo') }}</p>
+      <h1 class="mt-2 text-2xl font-bold text-brand-navy">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
+      <p class="mt-1 text-sm text-brand-gray-600">{{ t('athlete.homePickCourt') }}</p>
+    </section>
 
-      <section class="canva-hero canva-hero-home">
-        <img
-          :src="activeHero?.image"
-          alt=""
-          class="canva-hero-media canva-hero-media-bw"
-        />
-        <div class="canva-hero-scrim" aria-hidden="true" />
-        <div class="canva-hero-content canva-hero-home-content">
-          <div class="space-y-2">
-            <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
-            <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
-          </div>
-
-          <div class="mt-5 flex items-center justify-between">
-            <button type="button" class="canva-hero-arrow" :aria-label="t('calendar.prevMonth')" @click="prevHero">
-              <AppIcon name="chevron_right" size="md" />
-            </button>
-            <div class="flex gap-2">
-              <button
-                v-for="(_, index) in heroSlides"
-                :key="index"
-                type="button"
-                class="canva-hero-dot"
-                :class="index === heroSlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
-                @click="heroSlide = index"
-              />
-            </div>
-            <button type="button" class="canva-hero-arrow" :aria-label="t('calendar.nextMonth')" @click="nextHero">
-              <AppIcon name="chevron_left" size="md" />
-            </button>
-          </div>
-        </div>
-      </section>
-
+    <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
       <section class="canva-search-row">
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.sportsTitle') }}</p>
-          <select v-model="sport" class="canva-search-value w-full border-0 bg-transparent p-0 outline-none">
-            <option value="">{{ t('home.sportsTitle') }}</option>
+        <div>
+          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhere') }}</p>
+          <NuxtLink :to="bookingLink('/clubs')" class="mt-1 block truncate text-sm font-bold text-brand-navy">
+            {{ t('home.heroSearchWhereHint') }}
+          </NuxtLink>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.heroSearchWhen') }}</p>
+          <p class="mt-1 truncate text-sm font-bold text-brand-navy">{{ heroSearchDate }}</p>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('home.sportsTitle') }}</p>
+          <select v-model="sport" class="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-brand-navy outline-none">
             <option v-for="s in sports" :key="s.slug" :value="s.slug">
               {{ localizedField(s, 'nameFa', 'nameEn') }}
             </option>
           </select>
         </div>
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.heroSearchWhere') }}</p>
-          <NuxtLink :to="bookingLink('/clubs')" class="canva-search-value block truncate">
-            {{ t('home.heroSearchWhereHint') }}
-          </NuxtLink>
-        </div>
-        <div class="canva-search-field min-w-0">
-          <p class="canva-search-label">{{ t('home.heroSearchWhen') }}</p>
-          <p class="canva-search-value truncate">{{ heroSearchDate }}</p>
-        </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="btn-primary shrink-0 whitespace-nowrap px-4 py-2.5 text-xs">
+        <NuxtLink :to="bookingLink('/clubs')" class="btn-primary px-4 py-2 text-xs">
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>
@@ -184,10 +109,7 @@ function prevHero() {
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.suggestionsTitle') }}</h2>
             <p class="text-xs text-brand-gray-600">{{ t('home.suggestionsBody') }}</p>
           </div>
-          <NuxtLink :to="bookingLink('/clubs')" class="inline-flex items-center gap-0.5 text-xs font-medium text-brand-gray-600">
-            {{ t('home.seeAll') }}
-            <AppIcon name="chevron_left" size="sm" />
-          </NuxtLink>
+          <NuxtLink :to="bookingLink('/clubs')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
         <div v-if="suggestedClubs.length" class="canva-venue-grid">
           <NuxtLink
@@ -215,10 +137,7 @@ function prevHero() {
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.tennisTitle') }}</h2>
             <p class="text-xs text-brand-gray-600">{{ t('home.clubSectionBody') }}</p>
           </div>
-          <NuxtLink :to="bookingLink('/clubs', 'tennis')" class="inline-flex items-center gap-0.5 text-xs font-medium text-brand-gray-600">
-            {{ t('home.seeAll') }}
-            <AppIcon name="chevron_left" size="sm" />
-          </NuxtLink>
+          <NuxtLink :to="bookingLink('/clubs', 'tennis')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
         <div v-if="tennisClubs.length" class="canva-venue-grid">
           <NuxtLink
@@ -246,10 +165,7 @@ function prevHero() {
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
             <p class="text-xs text-brand-gray-600">{{ t('home.clubSectionBody') }}</p>
           </div>
-          <NuxtLink :to="bookingLink('/clubs', 'padel')" class="inline-flex items-center gap-0.5 text-xs font-medium text-brand-gray-600">
-            {{ t('home.seeAll') }}
-            <AppIcon name="chevron_left" size="sm" />
-          </NuxtLink>
+          <NuxtLink :to="bookingLink('/clubs', 'padel')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
         <div v-if="padelClubs.length" class="canva-venue-grid">
           <NuxtLink
@@ -270,6 +186,6 @@ function prevHero() {
         </div>
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
-    </div>
-  </AppAsyncState>
+    </AppAsyncState>
+  </div>
 </template>

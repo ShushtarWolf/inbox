@@ -314,37 +314,88 @@
   .canva-hero-media {
     @apply absolute inset-0 h-full w-full object-cover opacity-55;
   }
+  /* Canva home hero: B&W court photo with readable white type */
+  .canva-hero-media-bw {
+    opacity: 0.92;
+    filter: grayscale(1) contrast(1.08);
+  }
+  .canva-hero-scrim {
+    @apply pointer-events-none absolute inset-0 z-[1];
+    background: linear-gradient(180deg, rgba(20, 18, 16, 0.15) 0%, rgba(20, 18, 16, 0.55) 100%);
+  }
   .canva-hero-content {
     @apply relative z-10 flex min-h-[220px] flex-col justify-end gap-2 p-5;
   }
+  .canva-home-chrome {
+    @apply flex items-center justify-between gap-3;
+  }
+  .canva-hero-home-content {
+    @apply justify-end;
+    min-height: 13.5rem;
+  }
+  .canva-hero-title {
+    @apply max-w-xs text-3xl font-bold leading-none text-white;
+  }
+  .canva-hero-arrow {
+    @apply inline-flex items-center justify-center p-1 text-white transition hover:text-white/80;
+  }
+  .canva-hero-dot {
+    @apply h-2 w-2 rounded-full transition;
+  }
+  .canva-hero-dot-active {
+    @apply bg-brand-primary;
+  }
+  .canva-hero-dot-idle {
+    @apply bg-white/45;
+  }
+  /* Canva p1: compact horizontal search (ورزش / کجا / تاریخ + CTA) */
   .canva-search-row {
-    @apply grid gap-2 rounded-xl border border-brand-gray-200 bg-white p-3 shadow-venus-sm sm:grid-cols-[1.2fr_0.9fr_0.9fr_auto];
+    @apply grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-0 rounded-xl border border-brand-gray-200 bg-white p-2.5 shadow-venus-sm sm:p-3;
+  }
+  .canva-search-field {
+    @apply relative px-2 sm:px-3;
+  }
+  .canva-search-field + .canva-search-field::before {
+    content: '';
+    @apply absolute inset-y-1 start-0 w-px bg-brand-gray-200;
+  }
+  .canva-search-label {
+    @apply text-[10px] font-bold text-brand-gray-600 sm:text-[11px];
+  }
+  .canva-search-value {
+    @apply mt-0.5 text-xs font-bold text-brand-navy sm:text-sm;
   }
   .canva-rail {
     @apply flex gap-3 overflow-x-auto pb-1;
   }
-  /* Canva home: 3 square venue tiles with maroon wash + centered CTA */
+  /* Canva home: 3 square venue tiles — photo, name, meta, CTA */
   .canva-venue-grid {
     @apply grid grid-cols-3 gap-2 sm:gap-3;
   }
   .canva-venue-card {
-    @apply relative block aspect-square w-full overflow-hidden rounded-lg bg-[#3a1424] text-white shadow-venus-sm;
+    @apply relative block aspect-[3/4] w-full overflow-hidden rounded-xl bg-[#2a1818] text-white shadow-venus-sm sm:aspect-square;
   }
   .canva-venue-card img {
     @apply absolute inset-0 h-full w-full object-cover;
-    opacity: 0.55;
-    filter: saturate(0.55) contrast(1.05);
+    opacity: 0.7;
+    filter: brightness(0.72) saturate(0.85);
   }
   .canva-venue-card::after {
     content: '';
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(180deg, rgba(58, 20, 36, 0.35) 0%, rgba(58, 20, 36, 0.72) 100%);
+    background: linear-gradient(180deg, rgba(20, 12, 12, 0.2) 0%, rgba(20, 12, 12, 0.78) 100%);
   }
   .canva-venue-card-body {
-    @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-2 text-center sm:gap-2.5 sm:p-3;
+    @apply relative z-10 flex h-full flex-col items-center justify-between gap-2 p-2.5 text-center sm:gap-2.5 sm:p-3;
+  }
+  .canva-venue-card-copy {
+    @apply mt-auto flex w-full flex-col items-center gap-1;
   }
   .canva-venue-card-title {
-    @apply line-clamp-2 text-[11px] font-bold leading-tight sm:text-sm;
+    @apply line-clamp-2 text-sm font-bold leading-tight sm:text-base;
+  }
+  .canva-venue-card-meta {
+    @apply line-clamp-2 text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
   }
   .canva-venue-card-cta {
     @apply inline-flex items-center justify-center rounded-md bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
@@ -367,6 +418,10 @@
   .canva-sport-chip-idle {
     @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/30;
   }
+  .canva-phone-shell {
+    width: 100%;
+    max-width: var(--sz-phone-width);
+  }
   .canva-dash-hero {
     @apply relative -mx-4 overflow-hidden bg-brand-primary px-4 pb-9 pt-7 text-white shadow-venus-sm sm:-mx-0 sm:rounded-2xl;
     background-image:
@@ -376,8 +431,47 @@
     background-size: auto, auto, 160px 160px;
     background-blend-mode: normal, normal, soft-light;
   }
+  .canva-dash-hero-stats {
+    @apply mt-5 grid grid-cols-3 gap-2;
+  }
+  .canva-dash-stat {
+    @apply rounded-xl bg-white/15 px-2 py-2.5 text-center backdrop-blur-sm;
+  }
+  .canva-dash-stat-value {
+    @apply text-base font-bold tabular-nums leading-none;
+  }
+  .canva-dash-stat-label {
+    @apply mt-1 text-[10px] font-medium text-white/80;
+  }
   .canva-dash-menu {
     @apply relative z-[1] -mt-5 space-y-1 rounded-2xl border border-brand-gray-200/80 bg-white p-2 shadow-venus-sm;
+  }
+  .canva-more-grid {
+    @apply grid grid-cols-3 gap-3 p-4;
+  }
+  .canva-more-tile {
+    @apply flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-brand-gray-200 bg-white px-2 text-center text-xs font-bold text-brand-navy shadow-venus-sm transition hover:border-brand-primary/40 hover:text-brand-primary;
+  }
+  .canva-more-tile-icon {
+    @apply flex h-11 w-11 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary;
+  }
+  .canva-view-tabs {
+    @apply flex gap-1 rounded-xl bg-brand-cream p-1;
+  }
+  .canva-view-tab {
+    @apply flex-1 rounded-lg px-3 py-2 text-center text-sm font-bold text-brand-gray-600 transition;
+  }
+  .canva-view-tab-active {
+    @apply bg-white text-brand-primary shadow-venus-sm;
+  }
+  .canva-overview-kpi {
+    @apply rounded-2xl border border-brand-gray-200/80 bg-white p-4 text-center shadow-venus-sm;
+  }
+  .canva-overview-bar {
+    @apply h-2 overflow-hidden rounded-full bg-brand-cream;
+  }
+  .canva-overview-bar-fill {
+    @apply h-full rounded-full bg-brand-primary;
   }
   .canva-dash-menu-item {
     @apply flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-60;
@@ -494,19 +588,79 @@
     @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white/95 px-3 py-3 shadow-tail-lg backdrop-blur;
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
   }
-  @media (min-width: 1024px) {
-    .canva-selection-bar {
-      bottom: 0;
-    }
-  }
   .canva-selection-bar-inner {
-    @apply mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-end;
+    @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 sm:flex-row sm:items-end;
   }
   .canva-error-brand {
     @apply mx-auto mb-2 h-14 w-auto max-w-[10rem];
   }
   .canva-page-hero-title {
     @apply font-display text-2xl font-bold text-white;
+  }
+  .canva-fav-card {
+    @apply relative overflow-hidden rounded-2xl shadow-venus-sm;
+    min-height: 11.5rem;
+  }
+  .canva-fav-card-media {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+  .canva-fav-card-wash {
+    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10;
+  }
+  .canva-fav-card-body {
+    @apply relative z-[1] flex h-full min-h-[11.5rem] flex-col justify-end p-4;
+  }
+  .canva-history-status {
+    @apply shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold;
+  }
+  .canva-history-status-done {
+    @apply bg-emerald-50 text-emerald-700;
+  }
+  .canva-history-status-pending {
+    @apply bg-amber-50 text-amber-800;
+  }
+  .canva-history-status-cancelled {
+    @apply bg-red-50 text-brand-primary;
+  }
+  .canva-legal-footer {
+    @apply flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 pt-2 text-[10px] font-medium text-brand-gray-500;
+  }
+  .canva-photo-hero {
+    @apply relative -mx-4 overflow-hidden text-white sm:-mx-0 sm:rounded-2xl;
+    min-height: 11rem;
+  }
+  .canva-photo-hero-media {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+  .canva-photo-hero-wash {
+    @apply absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20;
+  }
+  .canva-photo-hero-body {
+    @apply relative z-[1] flex min-h-[11rem] flex-col justify-end px-4 pb-5 pt-10;
+  }
+  .canva-promo-strip {
+    @apply absolute inset-x-0 top-0 z-[2] bg-brand-primary/95 px-3 py-1.5 text-center text-[11px] font-bold text-white;
+  }
+  .canva-finance-period {
+    @apply flex gap-1 rounded-xl bg-brand-cream p-1;
+  }
+  .canva-finance-period-btn {
+    @apply flex-1 rounded-lg px-3 py-2 text-center text-xs font-bold text-brand-gray-600 transition;
+  }
+  .canva-finance-period-active {
+    @apply bg-white text-brand-primary shadow-venus-sm;
+  }
+  .canva-overview-month {
+    @apply grid grid-cols-7 gap-1 text-center;
+  }
+  .canva-overview-month-day {
+    @apply flex aspect-square items-center justify-center rounded-lg text-xs font-bold text-brand-navy transition;
+  }
+  .canva-overview-month-day-active {
+    @apply bg-brand-primary text-white;
+  }
+  .canva-overview-month-day-today:not(.canva-overview-month-day-active) {
+    @apply ring-1 ring-brand-primary/40;
   }
   .venus-card-grid,
   .tail-card-grid {
@@ -755,4 +909,38 @@
 .venus-route-progress-bar,
 .tail-route-progress-bar {
   @apply h-full w-1/4 rounded-full bg-brand-primary animate-venus-progress;
+}
+
+/* Canva mobile artboard feel (≤430px): cream shell, full-bleed hero — desktop stays wide */
+@media (max-width: 430px) {
+  .canva-public-main {
+    max-width: none;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.65rem;
+    padding-bottom: 1rem;
+    background: var(--sz-bg);
+  }
+
+  .canva-public-main .canva-hero-home {
+    margin-inline: -0.75rem;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .canva-public-main .canva-hero-home-content {
+    min-height: 15rem;
+    padding: 1.25rem 1rem 1.15rem;
+  }
+
+  .canva-public-main .canva-search-row {
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 24px rgba(44, 44, 42, 0.08);
+  }
+
+  .canva-public-footer {
+    max-width: none;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
 }
