@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import type { NavItem } from '#shared/nav.ts'
+import { isNavItemActive, type NavItem } from '#shared/nav.ts'
 
+const NuxtLink = resolveComponent('NuxtLink')
 const localePath = useLocalePath()
+const route = useRoute()
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   nav?: NavItem[]
   maxWidthClass?: string
 }>(), {
   nav: () => [],
   maxWidthClass: 'max-w-6xl',
 })
+
+function isActive(to: string) {
+  return isNavItemActive(route.path, to, props.nav)
+}
 </script>
 
 <template>
@@ -22,17 +28,19 @@ withDefaults(defineProps<{
           </div>
           <span class="font-display text-lg font-semibold text-brand-navy">{{ $t('brand.name') }}</span>
         </NuxtLink>
-        <nav v-if="nav.length" class="hidden lg:flex items-center gap-2">
-          <NuxtLink
+        <nav v-if="nav.length" class="hidden items-center gap-2 lg:flex">
+          <component
+            :is="item.action ? 'button' : NuxtLink"
             v-for="item in nav"
-            :key="item.to"
-            :to="item.to"
-            class="neo-pill neo-pill-inactive gap-1.5"
-            active-class="neo-pill-active"
+            :key="item.to + item.label"
+            v-bind="item.action ? { type: 'button' } : { to: item.to }"
+            class="neo-pill gap-1.5"
+            :class="!item.action && isActive(item.to) ? 'neo-pill-active' : 'neo-pill-inactive'"
+            @click="item.action?.()"
           >
             <AppIcon v-if="item.icon" :name="item.icon" size="sm" />
             {{ item.label }}
-          </NuxtLink>
+          </component>
         </nav>
       </div>
       <div class="flex items-center gap-3">

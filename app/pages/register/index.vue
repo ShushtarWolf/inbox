@@ -17,8 +17,11 @@ onMounted(async () => {
     openRegister({ returnTo: returnTo.value || undefined, role: 'CLUB_ADMIN' })
   } else if (role === 'coach' && !pilotNoCoach.value) {
     openRegister({ returnTo: returnTo.value || undefined, role: 'COACH' })
-  } else {
+  } else if (role === 'athlete') {
     openRegister({ returnTo: returnTo.value || undefined, role: 'ATHLETE' })
+  } else {
+    // Bare /register opens the role picker (athlete vs owner), matching Canva gate → role.
+    openRegister({ returnTo: returnTo.value || undefined })
   }
   await navigateTo(localePath('/'))
 })

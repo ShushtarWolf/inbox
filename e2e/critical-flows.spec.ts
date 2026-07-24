@@ -9,6 +9,7 @@ test('guest homepage loads clubs link', async ({ page }) => {
 
 test('athlete can login via phone OTP and view bookings', async ({ page }) => {
   await page.goto('/login')
+  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
   await page.locator('#login-phone').fill('09121234567')
   await page.locator('button[type="submit"]').click()
   await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
@@ -22,6 +23,7 @@ test('athlete can login via phone OTP and view bookings', async ({ page }) => {
 
 test('owner can login via phone OTP and view finance', async ({ page }) => {
   await page.goto('/login')
+  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
   await page.locator('#login-phone').fill('09124445566')
   await page.locator('button[type="submit"]').click()
   await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })

@@ -64,7 +64,18 @@
   .btn-ghost:hover {
     @apply border-brand-primary/30 bg-brand-primary-soft text-brand-primary;
   }
-  .btn-coral { @apply btn-primary; }
+  .btn-coral {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-venus-sm transition-all duration-200;
+  }
+  .btn-coral:hover:not(:disabled) {
+    @apply bg-brand-primary-dark shadow-md;
+  }
+  .btn-coral:active:not(:disabled) {
+    @apply scale-[0.98];
+  }
+  .btn-coral:disabled {
+    @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 opacity-100 shadow-none;
+  }
   .btn-outline {
     @apply inline-flex items-center justify-center rounded-lg border border-brand-gray-300 bg-white px-4 py-2 text-sm font-medium text-brand-gray-700 transition hover:bg-brand-gray-50;
   }
@@ -292,10 +303,10 @@
     @apply flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold transition;
   }
   .canva-gate-btn-primary {
-    @apply canva-gate-btn bg-brand-primary text-white shadow-venus-sm hover:brightness-110;
+    @apply flex w-full items-center justify-center rounded-xl bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
   }
   .canva-gate-btn-secondary {
-    @apply canva-gate-btn border border-brand-gray-300 bg-white/90 text-brand-navy backdrop-blur-sm hover:border-brand-primary/40;
+    @apply flex w-full items-center justify-center rounded-xl border border-brand-gray-300 bg-white/90 px-4 py-3.5 text-sm font-bold text-brand-navy backdrop-blur-sm transition hover:border-brand-primary/40;
   }
   .canva-hero {
     @apply relative overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
@@ -358,16 +369,21 @@
     @apply rounded-xl border px-4 py-3 text-sm font-bold shadow-venus-sm;
   }
   .canva-flash-success {
-    @apply canva-flash border-emerald-200 bg-emerald-50 text-emerald-800;
+    @apply rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-venus-sm;
   }
   .canva-flash-error {
-    @apply canva-flash border-red-200 bg-red-50 text-red-700;
+    @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 shadow-venus-sm;
   }
   .canva-club-switcher {
     @apply mb-4 flex items-center gap-3 rounded-xl border border-brand-gray-200 bg-white p-3 shadow-venus-sm;
   }
   .canva-result-sheet {
-    @apply canva-auth-sheet rounded-xl border border-brand-gray-200 shadow-venus-sm;
+    @apply relative isolate overflow-hidden rounded-xl border border-brand-gray-200 bg-brand-cream shadow-venus-sm;
+    background-image:
+      url('/brand/canva-auth-pattern.svg'),
+      linear-gradient(180deg, rgba(250, 246, 240, 0.92), rgba(250, 246, 240, 0.96));
+    background-size: 220px 220px, auto;
+    background-repeat: repeat, no-repeat;
   }
   .venus-card-grid,
   .tail-card-grid {

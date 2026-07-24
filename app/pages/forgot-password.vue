@@ -1,11 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'guest' })
 
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { openLogin } = useAuthFlow()
 
 onMounted(async () => {
-  openLogin()
+  openLogin({ notice: t('auth.resetPreferPhoneHint') })
   await navigateTo(localePath('/'))
 })
 </script>

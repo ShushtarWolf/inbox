@@ -95,22 +95,24 @@ onUnmounted(() => {
             class="w-full overflow-hidden rounded-xl border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
             :class="[
               maxWidthClass || 'max-w-md',
-              patterned ? 'canva-auth-sheet bg-transparent' : 'bg-brand-cream',
+              patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
             ]"
             @click.stop
           >
-            <div v-if="title" class="venus-modal-title-bar">
-              <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
-              <button
-                type="button"
-                class="btn-ghost px-3 py-1.5 text-xs"
-                :aria-label="$t('common.close')"
-                @click="close"
-              >
-                {{ $t('common.close') }}
-              </button>
+            <div class="relative z-[1]">
+              <div v-if="title" class="venus-modal-title-bar">
+                <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
+                <button
+                  type="button"
+                  class="btn-ghost px-3 py-1.5 text-xs"
+                  :aria-label="$t('common.close')"
+                  @click="close"
+                >
+                  {{ $t('common.close') }}
+                </button>
+              </div>
+              <slot />
             </div>
-            <slot />
           </div>
         </div>
       </div>

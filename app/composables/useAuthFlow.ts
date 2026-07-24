@@ -14,22 +14,25 @@ export function useAuthFlow() {
   const role = useState<AuthFlowRole>('auth-flow-role', () => 'ATHLETE')
   const purpose = useState<'login' | 'register'>('auth-flow-purpose', () => 'login')
   const returnTo = useState('auth-flow-return-to', () => '')
+  const notice = useState('auth-flow-notice', () => '')
 
-  function openGate(opts?: { returnTo?: string }) {
+  function openGate(opts?: { returnTo?: string; notice?: string }) {
     returnTo.value = opts?.returnTo || ''
+    notice.value = opts?.notice || ''
     purpose.value = 'login'
     step.value = 'gate'
     open.value = true
   }
 
-  function openLogin(opts?: { returnTo?: string }) {
+  function openLogin(opts?: { returnTo?: string; notice?: string }) {
     returnTo.value = opts?.returnTo || ''
+    notice.value = opts?.notice || ''
     purpose.value = 'login'
     step.value = 'login'
     open.value = true
   }
 
-  function openRegister(opts?: { returnTo?: string; role?: AuthFlowRole }) {
+  function openRegister(opts?: { returnTo?: string; role?: AuthFlowRole; notice?: string }) {
     const { pilotNoCoach } = usePilotFlags()
     const requestedRole = opts?.role || 'ATHLETE'
     // Pilot: coach signup is not offered — fall back to role picker (athlete/owner).
@@ -37,6 +40,7 @@ export function useAuthFlow() {
     const skipRolePicker = Boolean(opts?.role) && !(pilotNoCoach.value && opts?.role === 'COACH')
 
     returnTo.value = opts?.returnTo || ''
+    notice.value = opts?.notice || ''
     purpose.value = 'register'
     role.value = safeRole
     step.value = skipRolePicker ? 'register' : 'role'
@@ -46,6 +50,7 @@ export function useAuthFlow() {
   function close() {
     open.value = false
     step.value = 'closed'
+    notice.value = ''
   }
 
   return {
@@ -54,6 +59,7 @@ export function useAuthFlow() {
     role,
     purpose,
     returnTo,
+    notice,
     openGate,
     openLogin,
     openRegister,

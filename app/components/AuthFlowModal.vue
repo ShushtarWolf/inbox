@@ -11,6 +11,7 @@ const {
   role,
   purpose,
   returnTo,
+  notice,
   close,
 } = useAuthFlow()
 
@@ -155,8 +156,8 @@ watch(open, (isOpen) => {
 </script>
 
 <template>
-  <AppModal :open="open" max-width-class="max-w-sm" @close="handleClose">
-    <div class="canva-auth-sheet">
+  <AppModal :open="open" patterned max-width-class="max-w-sm" @close="handleClose">
+    <div class="relative z-[1]">
       <div class="canva-auth-accent" />
       <div class="canva-auth-header">
         <button type="button" class="text-xs font-bold text-brand-gray-600" @click="handleClose">
@@ -171,6 +172,9 @@ watch(open, (isOpen) => {
 
       <div class="canva-auth-body">
         <h2 class="text-center text-lg font-bold text-brand-navy">{{ title }}</h2>
+        <p v-if="notice" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-900">
+          {{ notice }}
+        </p>
 
         <template v-if="step === 'gate'">
           <p class="text-center text-sm text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
@@ -204,7 +208,7 @@ watch(open, (isOpen) => {
           </button>
         </template>
 
-        <template v-else-if="step === 'register'">
+        <form v-else-if="step === 'register'" class="space-y-4" @submit.prevent="requestOtp">
           <AppFormField
             field-id="auth-name"
             :label="role === 'CLUB_ADMIN' ? t('auth.ownerContactName') : t('auth.fullName')"
@@ -230,19 +234,19 @@ watch(open, (isOpen) => {
             />
           </AppFormField>
           <p v-if="error" class="venus-alert-error">{{ error }}</p>
-          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="requestOtp">
+          <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
           <button type="button" class="btn-ghost w-full" @click="goRole()">
             {{ t('common.back') }}
           </button>
-        </template>
+        </form>
 
-        <template v-else-if="step === 'login'">
+        <form v-else-if="step === 'login'" class="space-y-4" @submit.prevent="requestOtp">
           <p class="text-center text-sm text-brand-gray-600">{{ t('auth.phoneLoginHint') }}</p>
-          <AppFormField field-id="auth-phone-login" :label="t('common.mobile')">
+          <AppFormField field-id="login-phone" :label="t('common.mobile')">
             <input
-              id="auth-phone-login"
+              id="login-phone"
               v-model="phone"
               dir="ltr"
               inputmode="tel"
@@ -252,7 +256,7 @@ watch(open, (isOpen) => {
             />
           </AppFormField>
           <p v-if="error" class="venus-alert-error">{{ error }}</p>
-          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="requestOtp">
+          <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
           <button type="button" class="btn-ghost w-full" @click="goRole">
@@ -261,15 +265,15 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-ghost w-full" @click="goGate">
             {{ t('common.back') }}
           </button>
-        </template>
+        </form>
 
-        <template v-else-if="step === 'otp'">
+        <form v-else-if="step === 'otp'" class="space-y-4" @submit.prevent="verifyOtp">
           <p class="text-center text-sm text-brand-gray-600">
             {{ otpHint }}
           </p>
-          <AppFormField field-id="auth-otp" :label="t('auth.otpCode')">
+          <AppFormField field-id="login-otp" :label="t('auth.otpCode')">
             <input
-              id="auth-otp"
+              id="login-otp"
               v-model="code"
               dir="ltr"
               inputmode="numeric"
@@ -282,13 +286,13 @@ watch(open, (isOpen) => {
             {{ t('auth.debugOtpHint', { code: debugCode }) }}
           </p>
           <p v-if="error" class="venus-alert-error">{{ error }}</p>
-          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="verifyOtp">
+          <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
           <button type="button" class="btn-ghost w-full" :disabled="pending" @click="requestOtp">
             {{ t('auth.resendOtp') }}
           </button>
-        </template>
+        </form>
       </div>
     </div>
   </AppModal>

@@ -97,6 +97,10 @@ async function confirm() {
 }
 
 async function joinWaitlist() {
+  if (!user.value) {
+    openLogin({ returnTo: route.fullPath })
+    return
+  }
   joiningWaitlist.value = true
   const window = waitlistWindow()
   const selected = slots.value?.find((slot: { id: string; courtId?: string }) => slot.id === selectedSlot.value)
@@ -230,10 +234,10 @@ onMounted(() => {
         <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
       </button>
       <BookingCostSummary
-        v-if="selectedSlotPrice && costLines.length"
+        v-if="selectedSlotProp && costLines.length"
         :lines="costLines"
         :total-label="t('booking.costTotal')"
-        :total-amount="formatCurrency(selectedSlotPrice.price || 0)"
+        :total-amount="formatCurrency(selectedSlotProp.price || 0)"
         :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
         :cancel-note="t('booking.costCancelHint')"
       />

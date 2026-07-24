@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatCurrency } = useFormatters()
 const { openGate } = useAuthFlow()
-const { user } = useAuth()
+const { user, dashboardPathForRole } = useAuth()
 
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const sort = ref((route.query.sort as string) || 'rank')
@@ -84,7 +84,11 @@ function priceLine(club: { priceFrom?: number | null; priceTo?: number | null })
       >
         {{ t('auth.loginRegister') }}
       </button>
-      <NuxtLink v-else :to="localePath('/athlete')" class="rounded-lg bg-brand-primary-soft px-3 py-1.5 text-xs font-bold text-brand-primary">
+      <NuxtLink
+        v-else
+        :to="dashboardPathForRole(user.role)"
+        class="rounded-lg bg-brand-primary-soft px-3 py-1.5 text-xs font-bold text-brand-primary"
+      >
         {{ t('nav.me') }}
       </NuxtLink>
       <div class="flex items-center gap-2">
