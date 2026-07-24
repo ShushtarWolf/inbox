@@ -96,12 +96,16 @@ function prevHero() {
 <template>
   <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
     <div class="tail-page-stack animate-fade-in tail-stagger">
-      <!-- Canva chrome: cream header with red logo + login (above hero) -->
+      <!-- Canva chrome: logo right, login left (RTL start/end) -->
       <header class="canva-home-chrome">
+        <div class="flex items-center gap-2">
+          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+          <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
+        </div>
         <button
           v-if="!user"
           type="button"
-          class="btn-primary px-3 py-1.5 text-xs"
+          class="canva-home-login"
           @click="openGate()"
         >
           {{ t('auth.loginRegister') }}
@@ -109,14 +113,10 @@ function prevHero() {
         <NuxtLink
           v-else
           :to="dashboardPathForRole(user.role)"
-          class="rounded-lg bg-brand-primary-soft px-3 py-1.5 text-xs font-bold text-brand-primary"
+          class="canva-home-login canva-home-login-soft"
         >
           {{ t('home.welcome', { name: firstNameOrGuest }) }}
         </NuxtLink>
-        <div class="flex items-center gap-2">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
-        </div>
       </header>
 
       <section class="canva-hero canva-hero-home">
@@ -173,7 +173,7 @@ function prevHero() {
           <p class="canva-search-label">{{ t('home.heroSearchWhen') }}</p>
           <p class="canva-search-value truncate">{{ heroSearchDate }}</p>
         </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="btn-primary shrink-0 whitespace-nowrap px-4 py-2.5 text-xs">
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta shrink-0 whitespace-nowrap">
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>
