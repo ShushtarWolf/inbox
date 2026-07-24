@@ -89,15 +89,18 @@ watch(secret, (value) => {
 
 <template>
   <div class="tail-page-stack">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 class="tail-page-title">{{ t('admin.overviewTitle') }}</h1>
-        <p class="mt-1 text-sm text-brand-gray-600">{{ t('admin.overviewSubtitle') }}</p>
+    <section class="canva-dash-hero">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="text-xs text-white/80">{{ t('admin.consoleTitle') }}</p>
+          <h1 class="mt-1 text-2xl font-bold">{{ t('admin.overviewTitle') }}</h1>
+          <p class="mt-1 text-sm text-white/85">{{ t('admin.overviewSubtitle') }}</p>
+        </div>
+        <button type="button" class="rounded-lg bg-white px-3 py-2 text-xs font-bold text-brand-primary" :disabled="pending" @click="load">
+          {{ t('common.retry') }}
+        </button>
       </div>
-      <button type="button" class="btn-secondary text-xs" :disabled="pending" @click="load">
-        {{ t('common.retry') }}
-      </button>
-    </div>
+    </section>
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="stat-grid">
       <div v-if="data" class="space-y-6">

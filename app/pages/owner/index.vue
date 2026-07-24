@@ -1077,7 +1077,7 @@ const legend = [
       </div>
     </aside>
 
-    <AppModal :open="showMenu" :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
+    <AppModal :open="showMenu" patterned :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
       <div class="venus-modal-shell">
         <div class="neo-modal-menu venus-modal-menu" :class="{ 'max-lg:hidden': activePanel }">
           <div v-if="selectedSlot" class="border-b border-brand-gray-100 px-4 py-3 text-sm">

@@ -36,33 +36,40 @@ async function markAllRead() {
 </script>
 
 <template>
-  <div class="tail-page-stack">
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="tail-page-title">{{ t('notifications.title') }}</h1>
-      <button
-        v-if="data?.unreadCount"
-        type="button"
-        class="text-sm font-bold text-brand-navy underline"
-        @click="markAllRead"
-      >
-        {{ t('notifications.markAllRead') }}
-      </button>
-    </div>
+  <div class="venus-page-stack">
+    <section class="canva-dash-hero">
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <p class="text-xs text-white/80">{{ t('notifications.title') }}</p>
+          <h1 class="mt-1 text-2xl font-bold">
+            {{ data?.unreadCount ? t('notifications.unreadCount', { count: data.unreadCount }) : t('notifications.title') }}
+          </h1>
+        </div>
+        <button
+          v-if="data?.unreadCount"
+          type="button"
+          class="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur"
+          @click="markAllRead"
+        >
+          {{ t('notifications.markAllRead') }}
+        </button>
+      </div>
+    </section>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <div v-if="!data?.notifications.length" class="ios-card p-6 text-center text-sm text-brand-gray-600">
+      <div v-if="!data?.notifications.length" class="canva-panel text-center text-sm text-brand-gray-600">
         {{ t('notifications.empty') }}
       </div>
       <ul v-else class="space-y-2">
         <li
           v-for="item in data.notifications"
           :key="item.id"
-          class="ios-card p-4"
-          :class="{ 'bg-brand-lavender/30': !item.readAt }"
+          class="canva-list-card"
+          :class="{ 'border-brand-primary/40 bg-brand-primary-soft/40': !item.readAt }"
         >
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="font-bold">{{ item.title }}</p>
+              <p class="font-bold text-brand-navy">{{ item.title }}</p>
               <p class="mt-1 text-sm text-brand-gray-700">{{ item.body }}</p>
               <p class="mt-2 text-xs text-brand-gray-500 tabular-nums" dir="ltr">
                 {{ new Date(item.createdAt).toLocaleString() }}
@@ -71,7 +78,7 @@ async function markAllRead() {
             <button
               v-if="!item.readAt"
               type="button"
-              class="shrink-0 text-xs font-bold text-brand-navy underline"
+              class="shrink-0 text-xs font-bold text-brand-primary"
               :disabled="marking === item.id"
               @click="markRead(item.id)"
             >

@@ -25,10 +25,15 @@ function goHome() {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
-    <p class="text-6xl font-bold text-brand-red">{{ error.statusCode || 500 }}</p>
-    <h1 class="mt-4 text-xl font-bold text-brand-navy">{{ title }}</h1>
-    <p class="mt-2 text-brand-muted">{{ message }}</p>
-    <button type="button" class="btn-primary mt-8" @click="goHome">{{ t('errors.goHome') }}</button>
+  <div class="flex min-h-dvh items-center justify-center bg-brand-cream px-4 py-16">
+    <div class="canva-result-sheet w-full max-w-sm p-6 text-center">
+      <div class="relative z-[1] space-y-3">
+        <img src="/brand/inbox-logo-mark.svg" alt="" class="mx-auto h-12 w-12" />
+        <p class="text-5xl font-bold text-brand-primary">{{ error.statusCode || 500 }}</p>
+        <h1 class="text-xl font-bold text-brand-navy">{{ title }}</h1>
+        <p class="text-sm text-brand-gray-600">{{ message }}</p>
+        <button type="button" class="btn-primary mt-4 w-full" @click="goHome">{{ t('errors.goHome') }}</button>
+      </div>
+    </div>
   </div>
 </template>

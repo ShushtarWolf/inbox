@@ -196,24 +196,28 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="$t('nav.bookings')" :show-actions="false" />
-
-    <NuxtLink :to="localePath('/clubs')" class="btn-ghost block text-center text-sm">{{ t('athlete.bookCourtCta') }}</NuxtLink>
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ $t('nav.bookings') }}</p>
+      <h1 class="mt-1 text-2xl font-bold">{{ $t('nav.bookings') }}</h1>
+      <NuxtLink :to="localePath('/clubs')" class="mt-4 inline-flex rounded-lg bg-white px-4 py-2 text-xs font-bold text-brand-primary">
+        {{ t('athlete.bookCourtCta') }}
+      </NuxtLink>
+    </section>
 
     <p
       v-if="paymentFlash"
-      class="ios-card p-3 text-sm"
-      :class="paymentFlashTone === 'success' ? 'text-brand-primary' : 'text-red-600'"
+      class="text-sm"
+      :class="paymentFlashTone === 'success' ? 'canva-flash-success' : 'canva-flash-error'"
     >
       {{ paymentFlash }}
     </p>
-    <p v-if="actionError" class="ios-card p-3 text-sm text-red-600">{{ actionError }}</p>
+    <p v-if="actionError" class="canva-flash-error">{{ actionError }}</p>
 
     <AppAsyncState :pending="pending" :error="error" :empty="Boolean(data) && !hasAnyBookings" skeleton-variant="table">
     <section v-if="data?.courtBookings?.length" class="space-y-2">
-      <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.courtsSection') }}</h2>
-      <div v-for="b in data.courtBookings" :key="b.id" class="ios-card p-3">
-        <p class="font-bold">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
+      <h2 class="text-sm font-bold text-brand-primary">{{ t('booking.courtsSection') }}</h2>
+      <div v-for="b in data.courtBookings" :key="b.id" class="canva-list-card">
+        <p class="font-bold text-brand-navy">{{ localizedField(b.slot.court.club, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(b.slot.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(b.slot.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="neo-badge" :class="bookingStatusBadgeClass(b.status)">{{ bookingStatusLabel(b.status) }}</span>
@@ -222,12 +226,12 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
         <p v-if="b.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
         <p v-if="b.status !== 'CANCELLED' && paidHonestyNote(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(b)) }}</p>
         <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(b.slot.court.club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }}</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <NuxtLink :to="localePath(`/athlete/bookings/${b.id}`)" class="btn-primary px-3 py-1.5 text-xs">{{ t('common.detail') }}</NuxtLink>
           <button
             v-if="b.status !== 'CANCELLED' && onlineEnabled && canPayOnline(paymentOf(b))"
             type="button"
-            class="text-xs font-bold text-brand-primary"
+            class="btn-secondary px-3 py-1.5 text-xs"
             :disabled="payingId === b.id"
             @click="payBooking(b.id)"
           >
@@ -236,16 +240,16 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
           <button
             v-if="b.status !== 'CANCELLED' && canPayWithWallet(paymentOf(b)) && (wallet?.balance || 0) > 0"
             type="button"
-            class="text-xs font-bold text-brand-primary"
+            class="btn-ghost px-3 py-1.5 text-xs"
             :disabled="payingId === b.id"
             @click="payBooking(b.id, true)"
           >
             {{ t('booking.payWithWallet') }}
           </button>
-          <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="openReschedule(b)">
+          <button v-if="b.status !== 'CANCELLED'" type="button" class="btn-ghost px-3 py-1.5 text-xs" @click="openReschedule(b)">
             {{ t('booking.reschedule') }}
           </button>
-          <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancel(b.id)">
+          <button v-if="b.status !== 'CANCELLED'" type="button" class="btn-ghost px-3 py-1.5 text-xs" @click="cancel(b.id)">
             {{ $t('booking.cancel') }}
           </button>
         </div>
@@ -253,38 +257,26 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
     </section>
 
     <section v-if="data?.coachSessions?.length" class="space-y-2">
-      <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.coachSection') }}</h2>
-      <div v-for="s in data.coachSessions" :key="s.id" class="ios-card p-3">
-        <p class="font-bold">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
+      <h2 class="text-sm font-bold text-brand-primary">{{ t('booking.coachSection') }}</h2>
+      <div v-for="s in data.coachSessions" :key="s.id" class="canva-list-card">
+        <p class="font-bold text-brand-navy">{{ localizedField(s.coach, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm" dir="auto">{{ formatIsoDate(s.date) }} <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime) }}</bdi></p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="neo-badge" :class="bookingStatusBadgeClass(s.status)">{{ bookingStatusLabel(s.status) }}</span>
           <span class="neo-badge" :class="paymentStatusBadgeClass(paymentOf(s))">{{ paymentStatusLabel(paymentOf(s)) }}</span>
         </div>
-        <p v-if="s.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(s))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
-        <p v-if="s.status !== 'CANCELLED' && paidHonestyNote(paymentOf(s))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(s)) }}</p>
-        <p class="mt-2 text-xs text-brand-gray-600">{{ formatHours(s.coach.club?.cancellationWindowHours || 24) }} {{ t('booking.cancellationWindow') }}</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="text-xs font-bold text-brand-primary">{{ t('common.detail') }}</NuxtLink>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <NuxtLink :to="localePath(`/athlete/bookings/coach/${s.id}`)" class="btn-primary px-3 py-1.5 text-xs">{{ t('common.detail') }}</NuxtLink>
           <button
             v-if="s.status !== 'CANCELLED' && onlineEnabled && canPayOnline(paymentOf(s))"
             type="button"
-            class="text-xs font-bold text-brand-primary"
+            class="btn-secondary px-3 py-1.5 text-xs"
             :disabled="payingId === s.id"
             @click="payCoach(s.id)"
           >
             {{ t('booking.payNow') }}
           </button>
-          <button
-            v-if="s.status !== 'CANCELLED' && canPayWithWallet(paymentOf(s)) && (wallet?.balance || 0) > 0"
-            type="button"
-            class="text-xs font-bold text-brand-primary"
-            :disabled="payingId === s.id"
-            @click="payCoach(s.id, true)"
-          >
-            {{ t('booking.payWithWallet') }}
-          </button>
-          <button v-if="s.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelCoach(s.id)">
+          <button v-if="s.status !== 'CANCELLED'" type="button" class="btn-ghost px-3 py-1.5 text-xs" @click="cancelCoach(s.id)">
             {{ t('booking.cancel') }}
           </button>
         </div>
@@ -292,36 +284,25 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
     </section>
 
     <section v-if="data?.packageBookings?.length" class="space-y-2">
-      <h2 class="text-sm font-bold text-brand-gray-600">{{ t('booking.packageSection') }}</h2>
-      <div v-for="b in data.packageBookings" :key="b.id" class="ios-card p-3">
-        <p class="font-bold">{{ b.package.title }}</p>
+      <h2 class="text-sm font-bold text-brand-primary">{{ t('booking.packageSection') }}</h2>
+      <div v-for="b in data.packageBookings" :key="b.id" class="canva-list-card">
+        <p class="font-bold text-brand-navy">{{ b.package.title }}</p>
         <p class="text-sm text-brand-gray-600">{{ localizedField(b.package.club, 'nameFa', 'nameEn') }}</p>
         <div class="mt-2 flex flex-wrap gap-2 text-xs">
           <span class="neo-badge" :class="bookingStatusBadgeClass(b.status)">{{ bookingStatusLabel(b.status) }}</span>
           <span class="neo-badge" :class="paymentStatusBadgeClass(paymentOf(b))">{{ paymentStatusLabel(paymentOf(b)) }}</span>
         </div>
-        <p v-if="b.status !== 'CANCELLED' && isPayAtClubStatus(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
-        <p v-if="b.status !== 'CANCELLED' && paidHonestyNote(paymentOf(b))" class="mt-2 text-xs text-brand-gray-600">{{ paidHonestyNote(paymentOf(b)) }}</p>
-        <div class="mt-2 flex flex-wrap gap-2">
+        <div class="mt-3 flex flex-wrap gap-2">
           <button
             v-if="b.status !== 'CANCELLED' && onlineEnabled && canPayOnline(paymentOf(b))"
             type="button"
-            class="text-xs font-bold text-brand-primary"
+            class="btn-secondary px-3 py-1.5 text-xs"
             :disabled="payingId === b.id"
             @click="payPackage(b.id)"
           >
             {{ t('booking.payNow') }}
           </button>
-          <button
-            v-if="b.status !== 'CANCELLED' && canPayWithWallet(paymentOf(b)) && (wallet?.balance || 0) > 0"
-            type="button"
-            class="text-xs font-bold text-brand-primary"
-            :disabled="payingId === b.id"
-            @click="payPackage(b.id, true)"
-          >
-            {{ t('booking.payWithWallet') }}
-          </button>
-          <button v-if="b.status !== 'CANCELLED'" type="button" class="text-xs font-bold text-brand-gray-600" @click="cancelPackage(b.id)">
+          <button v-if="b.status !== 'CANCELLED'" type="button" class="btn-ghost px-3 py-1.5 text-xs" @click="cancelPackage(b.id)">
             {{ t('booking.cancel') }}
           </button>
         </div>
@@ -329,24 +310,26 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
     </section>
 
     <template #empty>
-      <div class="ios-card space-y-3 p-4 text-center text-sm text-brand-gray-600">
-        <p>{{ t('booking.emptyState') }}</p>
-        <NuxtLink :to="localePath('/clubs')" class="btn-primary inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
+      <div class="canva-result-sheet p-6 text-center">
+        <div class="canva-auth-body relative z-[1]">
+          <p class="font-bold text-brand-navy">{{ t('booking.emptyState') }}</p>
+          <NuxtLink :to="localePath('/clubs')" class="btn-primary mt-4 inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
+        </div>
       </div>
     </template>
     </AppAsyncState>
 
-    <AppModal :open="Boolean(rescheduleTarget)" :title="t('booking.reschedule')" @close="closeReschedule">
-      <div class="venus-modal-shell venus-modal-shell-simple">
-        <div class="venus-modal-panel">
-          <div class="venus-modal-panel-body venus-form-stack">
+    <AppModal :open="Boolean(rescheduleTarget)" patterned :title="t('booking.reschedule')" @close="closeReschedule">
+      <div class="venus-modal-shell venus-modal-shell-simple bg-transparent">
+        <div class="venus-modal-panel bg-transparent">
+          <div class="venus-modal-panel-body venus-form-stack relative z-[1]">
             <AppDateInput v-model="rescheduleDate" :min-date="today()" />
             <div class="max-h-64 space-y-2 overflow-auto">
               <button
                 v-for="slot in replacementSlots"
                 :key="slot.id"
                 type="button"
-                class="neo-input text-start text-sm"
+                class="neo-input bg-white/95 text-start text-sm"
                 :class="rescheduleSlotId === slot.id ? 'neo-pill-active' : ''"
                 @click="rescheduleSlotId = slot.id"
               >
@@ -354,7 +337,7 @@ function paymentOf(item: { payment?: { status?: string } | null, paymentStatus?:
               </button>
             </div>
           </div>
-          <div class="venus-modal-footer">
+          <div class="venus-modal-footer relative z-[1] border-brand-gray-200/60 bg-transparent">
             <div class="flex gap-3">
               <button type="button" class="btn-primary flex-1" :disabled="!rescheduleSlotId" @click="rescheduleCourt">{{ t('booking.confirm') }}</button>
               <button type="button" class="btn-ghost flex-1" @click="closeReschedule">{{ t('common.close') }}</button>

@@ -71,8 +71,11 @@ onMounted(() => fetchAuth())
 
 <template>
   <DashboardShell :title="t('dashboard.owner')" :items="nav" :wide="true" :dark-nav="true">
-    <div v-if="memberships.length > 1" class="mb-4 flex items-center justify-end gap-2 rtl:justify-start">
-      <label class="flex items-center gap-2 text-xs font-bold text-brand-gray-600">
+    <div v-if="memberships.length > 1" class="canva-club-switcher">
+      <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
+        <AppIcon name="apartment" size="sm" />
+      </span>
+      <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-brand-gray-600">
         <span>{{ t('owner.activeClub') }}</span>
         <select v-model="selectedClubId" class="neo-select">
           <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">

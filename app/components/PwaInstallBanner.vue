@@ -44,19 +44,21 @@ onBeforeUnmount(() => {
 <template>
   <div
     v-if="canInstall && shouldShow"
-    class="tail-card fixed inset-x-4 z-50 mx-auto max-w-md shadow-tail-lg"
+    class="canva-result-sheet fixed inset-x-4 z-50 mx-auto max-w-md shadow-tail-lg"
     style="bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 1rem)"
   >
-    <div class="mb-2 flex items-center gap-3">
-      <img src="/brand/inbox-logo-mark.svg" alt="" class="h-10 w-10" />
-      <div>
-        <p class="font-semibold text-brand-navy">{{ t('pwa.installTitle') }}</p>
-        <p class="text-xs text-brand-gray-500">{{ t('pwa.installBody') }}</p>
+    <div class="relative z-[1] p-4">
+      <div class="mb-2 flex items-center gap-3">
+        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-10 w-10" />
+        <div>
+          <p class="font-semibold text-brand-navy">{{ t('pwa.installTitle') }}</p>
+          <p class="text-xs text-brand-gray-600">{{ t('pwa.installBody') }}</p>
+        </div>
       </div>
-    </div>
-    <div class="flex gap-2">
-      <button type="button" class="btn-primary flex-1" @click="install">{{ t('pwa.installButton') }}</button>
-      <button type="button" class="btn-ghost" @click="dismiss">{{ t('pwa.dismissButton') }}</button>
+      <div class="flex gap-2">
+        <button type="button" class="btn-primary flex-1" @click="install">{{ t('pwa.installButton') }}</button>
+        <button type="button" class="btn-ghost" @click="dismiss">{{ t('pwa.dismissButton') }}</button>
+      </div>
     </div>
   </div>
 </template>

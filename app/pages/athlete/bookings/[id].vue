@@ -125,12 +125,12 @@ async function submitReview() {
   <div class="tail-page-stack">
     <AppAsyncState :pending="pending" :error="error" :empty="!booking" skeleton-variant="default">
   <div v-if="booking" class="space-y-4">
-    <PageHeaderNav
-      :title="localizedField(booking.slot.court.club, 'nameFa', 'nameEn')"
-      :subtitle="`${formatIsoDate(booking.slot.date)} · ${formatTimeRange(booking.slot.startTime)}`"
-      :show-actions="false"
-    />
-    <div class="ios-card space-y-2 p-4">
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ $t('common.detail') }}</p>
+      <h1 class="mt-1 text-2xl font-bold">{{ localizedField(booking.slot.court.club, 'nameFa', 'nameEn') }}</h1>
+      <p class="mt-1 text-sm text-white/85">{{ formatIsoDate(booking.slot.date) }} · {{ formatTimeRange(booking.slot.startTime) }}</p>
+    </section>
+    <div class="canva-panel space-y-2">
       <div class="flex flex-wrap gap-2 text-xs">
         <span class="neo-badge" :class="bookingStatusBadgeClass(booking.status)">{{ bookingStatusLabel(booking.status) }}</span>
         <span class="neo-badge" :class="paymentStatusBadgeClass(paymentStatus)">{{ paymentStatusLabel(paymentStatus) }}</span>
@@ -145,12 +145,12 @@ async function submitReview() {
         {{ paidHonestyNote(paymentStatus) }}
       </p>
       <p class="text-xs text-brand-gray-600">{{ $t('booking.reservationId') }}: <bdi dir="ltr" class="tabular-nums">{{ booking.id }}</bdi></p>
-      <p class="text-sm font-bold">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>
+      <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(booking.payment?.amount || booking.slot.price) }}</p>
       <p class="text-sm text-brand-gray-600">{{ $t('owner.paymentMethod') }}: {{ $t(`owner.paymentMethods.${booking.payment?.method || booking.paymentMethod || 'NOT_PAID'}`) }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.cancellationWindowHours) }} {{ $t('booking.cancellationWindow') }}</p>
       <p class="text-sm text-brand-gray-600">{{ formatHours(booking.slot.court.club.rescheduleWindowHours) }} {{ $t('booking.rescheduleWindow') }}</p>
       <p class="text-xs text-brand-gray-600">{{ cancelRefundNote(paymentStatus) }}</p>
-      <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+      <p v-if="actionError" class="canva-flash-error">{{ actionError }}</p>
       <div v-if="booking.status !== 'CANCELLED'" class="flex flex-wrap gap-2 pt-2">
         <button
           v-if="onlineEnabled && canPayOnline(paymentStatus)"
@@ -164,19 +164,19 @@ async function submitReview() {
         <button
           v-if="canPayWithWallet(paymentStatus) && (wallet?.balance || 0) > 0"
           type="button"
-          class="btn-ghost"
+          class="btn-secondary"
           :disabled="paying"
           @click="payBooking(true)"
         >
           {{ paying ? $t('common.loading') : `${$t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
         </button>
         <button type="button" class="btn-ghost" @click="cancelBooking">{{ $t('booking.cancel') }}</button>
-        <button type="button" class="btn-primary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>
+        <button type="button" class="btn-secondary" @click="loadReplacementSlots">{{ $t('booking.reschedule') }}</button>
       </div>
     </div>
 
-    <div v-if="booking.status !== 'CANCELLED'" class="ios-card space-y-3 p-4">
-      <h2 class="font-bold">{{ $t('booking.reschedule') }}</h2>
+    <div v-if="booking.status !== 'CANCELLED'" class="canva-panel space-y-3">
+      <h2 class="font-bold text-brand-primary">{{ $t('booking.reschedule') }}</h2>
       <AppDateInput v-model="rescheduleDate" :min-date="today()" />
       <div v-if="replacementSlots?.length" class="space-y-2">
         <button
@@ -194,8 +194,8 @@ async function submitReview() {
       <button type="button" class="btn-primary w-full" :disabled="!rescheduleSlotId" @click="rescheduleBooking">{{ $t('booking.confirm') }}</button>
     </div>
 
-    <div v-if="canReview && !reviewDone" class="ios-card venus-form-stack p-4">
-      <h2 class="font-bold">{{ $t('reviews.submitTitle') }}</h2>
+    <div v-if="canReview && !reviewDone" class="canva-panel venus-form-stack">
+      <h2 class="font-bold text-brand-primary">{{ $t('reviews.submitTitle') }}</h2>
       <AppFormField :label="$t('reviews.ratingLabel')">
         <input v-model.number="reviewRating" type="number" min="1" max="5" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
@@ -204,7 +204,7 @@ async function submitReview() {
       </AppFormField>
       <button type="button" class="btn-primary w-full" :disabled="reviewSubmitting || !reviewBody" @click="submitReview">{{ $t('reviews.submit') }}</button>
     </div>
-    <p v-else-if="reviewDone" class="text-sm text-brand-primary">{{ $t('reviews.thanks') }}</p>
+    <p v-else-if="reviewDone" class="canva-flash-success">{{ $t('reviews.thanks') }}</p>
   </div>
     </AppAsyncState>
   </div>

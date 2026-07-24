@@ -92,6 +92,13 @@ async function send() {
 
 <template>
   <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+    <section class="canva-dash-hero mb-6">
+      <p class="text-xs text-white/80">{{ t('owner.crm') }}</p>
+      <h1 class="mt-1 text-2xl font-bold">{{ t('owner.crm') }}</h1>
+      <p class="mt-1 text-sm text-white/85">
+        {{ liveSms ? t('owner.crmPage.smsSentFeedback') : t('owner.crmPage.smsLogged') }}
+      </p>
+    </section>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <div class="tail-page-stack xl:col-span-1">
         <div class="tail-card-grid-4">

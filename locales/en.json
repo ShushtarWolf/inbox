@@ -214,7 +214,8 @@
     "title": "Notifications",
     "empty": "No notifications yet",
     "markRead": "Mark read",
-    "markAllRead": "Mark all read"
+    "markAllRead": "Mark all read",
+    "unreadCount": "{count} unread"
   },
   "admin": {
     "title": "Club applications",

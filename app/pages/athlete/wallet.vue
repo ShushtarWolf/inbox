@@ -15,29 +15,32 @@ function txLabel(tx: { type?: string; amount: number }) {
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="t('athlete.walletTitle')" :show-actions="false" />
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ t('athlete.walletTitle') }}</p>
+      <p class="mt-2 text-3xl font-bold">{{ formatCurrency(data?.balance || 0) }}</p>
+      <p class="mt-1 text-sm text-white/85">{{ t('athlete.walletRefundsOnly') }}</p>
+    </section>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <div class="ios-card space-y-3 p-4">
-        <p class="text-sm text-brand-gray-600">{{ t('booking.walletBalance') }}</p>
-        <p class="text-2xl font-bold">{{ formatCurrency(data?.balance || 0) }}</p>
-        <p class="text-xs font-bold text-brand-gray-600">{{ t('athlete.walletRefundsOnly') }}</p>
+      <div class="canva-panel space-y-2">
         <p class="text-sm text-brand-gray-600">{{ t('athlete.walletTopUpUnavailable') }}</p>
       </div>
 
       <div class="space-y-2">
-        <h2 class="text-sm font-bold text-brand-gray-600">{{ t('athlete.walletHistoryTitle') }}</h2>
+        <h2 class="text-sm font-bold text-brand-primary">{{ t('athlete.walletHistoryTitle') }}</h2>
         <div v-if="data?.transactions?.length" class="space-y-2">
-          <div v-for="tx in data.transactions" :key="tx.id" class="ios-card p-3 text-sm">
+          <div v-for="tx in data.transactions" :key="tx.id" class="canva-list-card text-sm">
             <div class="flex items-center justify-between gap-2">
-              <span class="font-bold">{{ txLabel(tx) }}</span>
-              <span :class="tx.amount > 0 ? 'text-brand-primary' : 'text-brand-gray-600'">{{ formatCurrency(Math.abs(tx.amount)) }}</span>
+              <span class="font-bold text-brand-navy">{{ txLabel(tx) }}</span>
+              <span class="font-bold" :class="tx.amount > 0 ? 'text-brand-primary' : 'text-brand-gray-600'">
+                {{ formatCurrency(Math.abs(tx.amount)) }}
+              </span>
             </div>
             <p class="mt-1 text-xs text-brand-gray-600" dir="auto">{{ formatDate(tx.createdAt) }}</p>
             <p v-if="tx.note" class="mt-1 text-brand-gray-600">{{ tx.note }}</p>
           </div>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('athlete.walletEmpty') }}</p>
+        <p v-else class="canva-panel text-sm text-brand-gray-600">{{ t('athlete.walletEmpty') }}</p>
       </div>
     </AppAsyncState>
   </div>

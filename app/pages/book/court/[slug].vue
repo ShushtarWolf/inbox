@@ -5,6 +5,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const slug = route.params.slug as string
 const { user, fetch: fetchAuth } = useAuth()
+const { openLogin } = useAuthFlow()
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
@@ -74,10 +75,7 @@ function waitlistWindow() {
 async function confirm() {
   if (!selectedSlot.value || confirming.value) return
   if (!user.value) {
-    await navigateTo(localePath({
-      path: '/login',
-      query: { returnTo: route.fullPath },
-    }))
+    openLogin({ returnTo: route.fullPath })
     return
   }
   confirming.value = true
@@ -163,10 +161,13 @@ onMounted(() => {
 
 <template>
   <div class="venus-page-stack">
-    <PageHeaderNav :title="t('home.bookCourt')" :home-to="localePath('/')" :back-to="localePath(`/clubs/${slug}`)" />
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ t('home.bookCourt') }}</p>
+      <h1 class="mt-1 text-2xl font-bold">{{ localizedField(club, 'nameFa', 'nameEn') || t('home.bookCourt') }}</h1>
+    </section>
     <AppDateInput v-model="date" :min-date="today()" />
-    <div v-if="club" class="ios-card p-4 text-sm">
-      <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
+    <div v-if="club" class="canva-panel text-sm">
+      <p class="font-bold text-brand-navy">{{ t('booking.cancellationPolicy') }}</p>
       <p class="mt-1 text-brand-gray-600">
         {{ formatHours(club.cancellationWindowHours) }} {{ t('booking.cancellationWindow') }} · {{ formatHours(club.rescheduleWindowHours) }} {{ t('booking.rescheduleWindow') }}
       </p>
@@ -175,60 +176,45 @@ onMounted(() => {
       </NuxtLink>
     </div>
 
-    <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
+    <div v-if="feedback && !done" :class="feedbackTone === 'success' ? 'canva-flash-success' : 'canva-flash-error'">
       {{ feedback }}
     </div>
 
-    <div v-if="done" class="ios-card space-y-2 p-4 text-center">
-      <p class="font-bold text-brand-primary">✓ {{ onlineEnabled ? t('booking.successCourtOnline') : t('booking.successCourt') }}</p>
-      <p
-        v-if="!user?.phone?.trim()"
-        class="text-sm text-brand-gray-600"
-      >
-        {{ t('booking.noPhoneSmsNote') }}
-        <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">
-          {{ t('nav.profile') }}
-        </NuxtLink>
-      </p>
-      <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-      <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
-      <template v-if="!onlineEnabled">
-        <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
-        <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
-        <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
-        <button
-          v-if="(wallet?.balance || 0) > 0"
-          type="button"
-          class="btn-ghost mt-2 w-full"
-          :disabled="paying"
-          @click="payWithWallet"
-        >
-          {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
-        </button>
-      </template>
-      <div v-else class="mt-2 space-y-2">
-        <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">
-          {{ paying ? t('common.loading') : t('booking.payNow') }}
-        </button>
-        <button
-          v-if="(wallet?.balance || 0) > 0"
-          type="button"
-          class="btn-ghost w-full"
-          :disabled="paying"
-          @click="payWithWallet"
-        >
-          {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
-        </button>
+    <div v-if="done" class="canva-result-sheet p-5 text-center">
+      <div class="relative z-[1] space-y-2 px-1 pb-2 pt-2">
+        <p class="text-lg font-bold text-brand-primary">✓ {{ onlineEnabled ? t('booking.successCourtOnline') : t('booking.successCourt') }}</p>
+        <p v-if="!user?.phone?.trim()" class="text-sm text-brand-gray-600">
+          {{ t('booking.noPhoneSmsNote') }}
+          <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">{{ t('nav.profile') }}</NuxtLink>
+        </p>
+        <p class="text-sm font-bold text-brand-navy">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+        <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
+        <template v-if="!onlineEnabled">
+          <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
+          <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
+          <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+          <button v-if="(wallet?.balance || 0) > 0" type="button" class="btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
+            {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
+          </button>
+        </template>
+        <div v-else class="mt-2 space-y-2">
+          <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">
+            {{ paying ? t('common.loading') : t('booking.payNow') }}
+          </button>
+          <button v-if="(wallet?.balance || 0) > 0" type="button" class="btn-secondary w-full" :disabled="paying" @click="payWithWallet">
+            {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
+          </button>
+        </div>
+        <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
+        <NuxtLink :to="localePath('/clubs')" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
       </div>
-      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
-      <NuxtLink :to="localePath('/clubs')" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
     </div>
 
     <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">
     <div class="venus-booking-slots">
-      <div v-if="!slots?.length" class="ios-card space-y-2 p-4 text-center">
-        <p class="font-bold">{{ t('booking.noSlots') }}</p>
-        <button type="button" class="btn-ghost w-full" @click="joinWaitlist">
+      <div v-if="!slots?.length" class="canva-panel space-y-2 text-center">
+        <p class="font-bold text-brand-navy">{{ t('booking.noSlots') }}</p>
+        <button type="button" class="btn-secondary w-full" @click="joinWaitlist">
           {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
         </button>
       </div>
@@ -236,18 +222,18 @@ onMounted(() => {
         v-for="s in slots"
         :key="s.id"
         type="button"
-        class="ios-card w-full p-3 text-start"
-        :class="selectedSlot === s.id ? 'ring-2 ring-brand-primary' : ''"
+        class="canva-list-card w-full text-start"
+        :class="selectedSlot === s.id ? 'border-brand-primary ring-2 ring-brand-primary/30' : ''"
         @click="selectedSlot = s.id"
       >
-        <p class="font-bold">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
+        <p class="font-bold text-brand-navy">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
         <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
       </button>
       <BookingCostSummary
-        v-if="selectedSlotRow && costLines.length"
+        v-if="selectedSlotPrice && costLines.length"
         :lines="costLines"
         :total-label="t('booking.costTotal')"
-        :total-amount="formatCurrency(selectedSlotRow.price || 0)"
+        :total-amount="formatCurrency(selectedSlotPrice.price || 0)"
         :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
         :cancel-note="t('booking.costCancelHint')"
       />
