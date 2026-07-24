@@ -7,9 +7,12 @@ const props = withDefaults(defineProps<{
   items: NavItem[]
   maxWidthClass?: string
   dark?: boolean
+  /** Show on all breakpoints instead of hiding on lg (phone-shell chrome). */
+  alwaysVisible?: boolean
 }>(), {
   maxWidthClass: 'max-w-lg',
   dark: false,
+  alwaysVisible: false,
 })
 
 const route = useRoute()
@@ -30,10 +33,11 @@ function isActive(to: string) {
 
 <template>
   <nav
-    class="fixed inset-x-0 bottom-0 z-50 border-t pb-[var(--sz-safe-bottom)] shadow-venus-sm lg:hidden"
-    :class="dark
-      ? 'border-white/10 bg-brand-primary-dark'
-      : 'border-brand-gray-200 bg-white'"
+    class="fixed inset-x-0 bottom-0 z-50 border-t pb-[var(--sz-safe-bottom)] shadow-venus-sm"
+    :class="[
+      alwaysVisible ? '' : 'lg:hidden',
+      dark ? 'border-white/10 bg-brand-primary-dark' : 'border-brand-gray-200 bg-white',
+    ]"
   >
     <div
       class="mx-auto"

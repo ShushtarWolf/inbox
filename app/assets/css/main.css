@@ -357,7 +357,10 @@
     @apply -mt-4 space-y-2 rounded-xl border border-brand-gray-200 bg-white p-2 shadow-venus-sm;
   }
   .canva-dash-menu-item {
-    @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary;
+    @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .canva-dash-menu-item-active {
+    @apply bg-brand-primary-soft text-brand-primary;
   }
   .canva-panel {
     @apply rounded-xl border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm;
@@ -377,6 +380,12 @@
   .canva-club-switcher {
     @apply mb-4 flex items-center gap-3 rounded-xl border border-brand-gray-200 bg-white p-3 shadow-venus-sm;
   }
+  .canva-empty-state {
+    @apply flex flex-col items-center gap-2 rounded-xl border border-dashed border-brand-gray-300 bg-brand-cream px-4 py-10 text-center;
+  }
+  .canva-empty-state-icon {
+    @apply venus-icon-wrap venus-icon-wrap-lg bg-brand-gray-100 text-brand-gray-400;
+  }
   .canva-result-sheet {
     @apply relative isolate overflow-hidden rounded-xl border border-brand-gray-200 bg-brand-cream shadow-venus-sm;
     background-image:
@@ -385,8 +394,25 @@
     background-size: 220px 220px, auto;
     background-repeat: repeat, no-repeat;
   }
+  .canva-sheet-dialog {
+    @apply mt-auto max-h-[90dvh] rounded-t-2xl sm:mt-0 sm:max-h-none sm:rounded-xl;
+  }
   .canva-date-pill {
     @apply inline-flex items-center gap-2 rounded-xl border border-brand-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm;
+  }
+  .canva-date-strip {
+    @apply flex gap-2 overflow-x-auto pb-1;
+    scroll-snap-type: x proximity;
+  }
+  .canva-date-strip-item {
+    @apply flex w-14 shrink-0 scroll-mx-1 flex-col items-center gap-1 rounded-2xl border border-brand-gray-200 bg-white px-2 py-2.5 text-brand-gray-600 shadow-venus-sm transition hover:border-brand-primary/40;
+    scroll-snap-align: center;
+  }
+  .canva-date-strip-item-active {
+    @apply border-brand-primary bg-brand-primary text-white shadow-md hover:border-brand-primary;
+  }
+  .canva-date-strip-item-today:not(.canva-date-strip-item-active) {
+    @apply border-brand-gold/70 text-brand-primary;
   }
   .canva-court-chip {
     @apply shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition;

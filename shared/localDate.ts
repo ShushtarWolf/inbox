@@ -29,6 +29,16 @@ function parseTimeMinutes(time: string) {
   return hours * 60 + (minutes || 0)
 }
 
+/** Adds (or subtracts) whole days to a YYYY-MM-DD date string, returning a YYYY-MM-DD string. */
+export function addDaysToIsoDate(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number)
+  const shifted = new Date(Date.UTC(year, month - 1, day) + days * 86400000)
+  const yyyy = shifted.getUTCFullYear()
+  const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(shifted.getUTCDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 export function daysBetweenCalendarDates(from: string, to: string) {
   const [fromYear, fromMonth, fromDay] = from.split('-').map(Number)
   const [toYear, toMonth, toDay] = to.split('-').map(Number)

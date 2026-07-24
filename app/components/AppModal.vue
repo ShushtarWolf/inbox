@@ -4,6 +4,8 @@ const props = defineProps<{
   title?: string
   maxWidthClass?: string
   patterned?: boolean
+  /** Dock to the bottom edge as a Canva-style action sheet on narrow viewports. */
+  sheet?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -85,22 +87,29 @@ onUnmounted(() => {
         role="presentation"
         @click.self="close"
       >
-        <div class="flex flex-1 items-center justify-center py-2 sm:py-4">
+        <div
+          class="flex flex-1 justify-center py-2 sm:py-4"
+          :class="sheet ? 'items-end sm:items-center' : 'items-center'"
+        >
           <div
             ref="dialogRef"
             role="dialog"
             aria-modal="true"
             :aria-label="title"
             tabindex="-1"
-            class="w-full overflow-hidden rounded-xl border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
+            class="w-full overflow-hidden border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
             :class="[
               maxWidthClass || 'max-w-md',
               patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
+              sheet ? 'canva-sheet-dialog' : 'rounded-xl',
             ]"
             @click.stop
           >
             <div class="relative z-[1]">
-              <div v-if="title" class="venus-modal-title-bar">
+              <div v-if="sheet" class="flex justify-center pt-2.5" aria-hidden="true">
+                <span class="h-1 w-10 rounded-full bg-brand-gray-300" />
+              </div>
+              <div v-if="title" class="venus-modal-title-bar" :class="sheet ? 'border-transparent bg-transparent' : ''">
                 <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
                 <button
                   type="button"

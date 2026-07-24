@@ -5,6 +5,7 @@ import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { user } = useAuth()
 const config = useRuntimeConfig()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
@@ -64,6 +65,14 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
       <h1 class="canva-page-hero-title">{{ $t('owner.finance') }}</h1>
       <p class="mt-1 text-sm text-white/85">{{ t('owner.financePage.subtitle') }}</p>
+      <NuxtLink
+        :to="localePath('/owner/finance/report')"
+        class="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-white/25"
+      >
+        <AppIcon name="insights" size="sm" />
+        {{ t('owner.financePage.advancedReport') }}
+        <AppIcon name="chevron_left" size="sm" />
+      </NuxtLink>
     </section>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div v-if="canReports" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

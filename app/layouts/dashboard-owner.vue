@@ -19,20 +19,6 @@ const primaryNavItems = [
   { path: '/owner', labelKey: 'owner.more', icon: 'apps' },
 ] as const
 
-/** Full side-nav list for desktop drawer. */
-const allSideNavItems = [
-  { path: '/owner', labelKey: 'owner.more', icon: 'apps' },
-  { path: '/owner/calendar', labelKey: 'owner.calendar', icon: 'calendar_month' },
-  { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
-  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'inventory_2' },
-  { path: '/owner/packages', labelKey: 'owner.packages', icon: 'package_2' },
-  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'groups' },
-  { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'diversity_3' },
-  { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
-  { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
-  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
-] as const
-
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
   return memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
@@ -63,14 +49,6 @@ const bottomNav = computed(() =>
   })),
 )
 
-const sideNav = computed(() =>
-  filterNav(allSideNavItems).map((item) => ({
-    to: localePath(item.path),
-    label: t(item.labelKey),
-    icon: item.icon,
-  })),
-)
-
 const memberships = computed(() => user.value?.memberships || [])
 
 watchEffect(() => {
@@ -91,10 +69,10 @@ onMounted(() => fetchAuth())
   <DashboardShell
     :title="t('dashboard.owner')"
     :items="bottomNav"
-    :side-items="sideNav"
     :wide="true"
     :dark-nav="false"
     hide-mobile-header
+    phone-shell
   >
     <div v-if="memberships.length > 1" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">

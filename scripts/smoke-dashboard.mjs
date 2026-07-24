@@ -56,7 +56,7 @@ async function main() {
   await login('coach', 'coach@inbox.local')
   await login('athlete', 'athlete@inbox.local')
 
-  const ownerPaths = ['/owner', '/owner/calendar', '/owner/finance', '/owner/equipments', '/owner/packages', '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings']
+  const ownerPaths = ['/owner', '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/packages', '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings']
   const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
   const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 

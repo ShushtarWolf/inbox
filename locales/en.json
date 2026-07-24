@@ -971,6 +971,7 @@
   "owner": {
     "calendar": "Today's calendar",
     "calendarShort": "Calendar",
+    "today": "Today",
     "more": "More",
     "finance": "Finance",
     "equipments": "Equipment",
@@ -981,6 +982,9 @@
     "support": "Support",
     "settings": "Settings",
     "legend": "Color legend",
+    "emptyCourtsTitle": "No courts yet",
+    "emptySlotsTitle": "No sessions for this day",
+    "emptySlotsBody": "Try another day or add courts in setup.",
     "dashboardEyebrow": "Club owner",
     "calendarSubtitle": "Stay organized and track court availability for {date}",
     "legendHint": "The side bar color shows each slot's status.",
@@ -1078,6 +1082,11 @@
         "UNPAID": "Unpaid · collect at club"
       },
       "chartEmpty": "No collected revenue for the past 7 days yet.",
+      "advancedReport": "Advanced report",
+      "todayRevenue": "Today's revenue",
+      "vsYesterday": "vs yesterday",
+      "bookingsCount": "Bookings",
+      "reportsLocked": "You don't have access to reports.",
       "payoutsTitle": "Payout settings",
       "payoutsPlaceholder": "Payout account configuration will be available in a future release.",
       "payoutsPayAtClub": "Pay-at-club mode: guests pay at the desk. Online payouts are not used."
@@ -1209,6 +1218,28 @@
         "booking_upcoming": "Upcoming booking",
         "inactive_customer": "Inactive customer"
       }
+    },
+    "smsWizard": {
+      "openCta": "New campaign",
+      "step1Title": "Compose message",
+      "step2Title": "Review & send",
+      "next": "Next",
+      "reviewCampaign": "Campaign",
+      "reviewRecipients": "Recipients",
+      "reviewSchedule": "Schedule",
+      "reviewMessage": "Message",
+      "noSchedule": "Send immediately",
+      "successTitle": "Campaign submitted"
+    },
+    "playerDetail": {
+      "visits": "Visits",
+      "ltv": "Lifetime value",
+      "inactiveDays": "Inactive days",
+      "noShowCount": "No-shows",
+      "lastVisit": "Last visit",
+      "consentYes": "SMS consent given",
+      "consentNo": "No SMS consent",
+      "recentCampaigns": "Recent campaigns"
     },
     "roles": {
       "CLUB_ADMIN": "Club admin",

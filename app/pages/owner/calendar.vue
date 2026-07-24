@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { palette } from '#shared/palette.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
@@ -194,6 +194,20 @@ const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 const monthLabel = computed(() => formatMonth(currentDate.value))
 
+const dateStripDays = computed(() => {
+  const centerOffset = 3
+  return Array.from({ length: 7 }, (_, index) => {
+    const iso = addDaysToIsoDate(date.value, index - centerOffset)
+    const cellDate = new Date(`${iso}T12:00:00`)
+    return {
+      iso,
+      dayNumber: formatDayNumber(cellDate),
+      weekday: formatWeekday(cellDate),
+      isToday: iso === today(),
+    }
+  })
+})
+
 function closeDatePicker() {
   showDatePicker.value = false
 }
@@ -284,6 +298,32 @@ function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
 function menuButtonClass(panel: ActivePanel) {
   const base = 'neo-menu-item'
   return activePanel.value === panel ? `${base} neo-menu-item-active` : base
+}
+
+function menuItemClass(panel: ActivePanel) {
+  const base = 'canva-dash-menu-item'
+  return activePanel.value === panel ? `${base} canva-dash-menu-item-active` : base
+}
+
+const menuIconMap: Record<string, { icon: string; wrap: string }> = {
+  markPaid: { icon: 'payments', wrap: 'bg-emerald-50 text-emerald-700' },
+  markUnpaid: { icon: 'undo', wrap: 'bg-amber-50 text-amber-800' },
+  cancel: { icon: 'event_busy', wrap: 'bg-red-50 text-red-600' },
+  block: { icon: 'block', wrap: 'bg-brand-gray-100 text-brand-gray-600' },
+  reserve: { icon: 'event_available', wrap: 'bg-brand-primary-soft text-brand-primary' },
+  season: { icon: 'event_repeat', wrap: 'bg-brand-primary-soft text-brand-primary' },
+  package: { icon: 'sports', wrap: 'bg-brand-primary-soft text-brand-primary' },
+  comments: { icon: 'chat', wrap: 'bg-brand-lavender text-brand-navy' },
+  equipment: { icon: 'inventory_2', wrap: 'bg-brand-lavender text-brand-navy' },
+  close: { icon: 'close', wrap: 'bg-brand-gray-100 text-brand-gray-600' },
+}
+
+function menuIcon(key: string) {
+  return menuIconMap[key]?.icon || 'circle'
+}
+
+function menuIconWrap(key: string) {
+  return menuIconMap[key]?.wrap || 'bg-brand-gray-100 text-brand-gray-600'
 }
 
 function defaultDayRange(fullSlot: { startTime: string; endTime: string }): DayTimeRange {
@@ -951,39 +991,57 @@ const legend = [
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
     <section class="canva-panel overflow-visible p-0" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-4 py-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div ref="datePickerRef" class="relative">
-            <button
-              type="button"
-              class="canva-date-pill"
-              :aria-expanded="showDatePicker"
-              @click.stop="showDatePicker = !showDatePicker"
-            >
-              <AppIcon name="calendar_month" size="sm" />
-              <span>{{ weekdayLabel }}</span>
-              <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi>
-              <span>{{ monthLabel }}</span>
-            </button>
+        <div class="flex items-center justify-between gap-3">
+          <p class="min-w-0 truncate text-sm font-bold text-brand-navy">{{ monthLabel }} · {{ weekdayLabel }} <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi></p>
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="neo-badge hidden sm:inline-flex">{{ t('common.courtsCount', { count: formatNumber(courts.length) }) }}</span>
+            <div ref="datePickerRef" class="relative">
+              <button
+                type="button"
+                class="canva-date-pill h-9 w-9 justify-center p-0"
+                :aria-expanded="showDatePicker"
+                :aria-label="t('common.date')"
+                @click.stop="showDatePicker = !showDatePicker"
+              >
+                <AppIcon name="calendar_month" size="sm" />
+              </button>
 
-            <div v-if="showDatePicker" class="absolute z-20 mt-2 start-0">
-              <AppJalaliCalendar
-                v-if="locale === 'fa'"
-                v-model="date"
-                @select="closeDatePicker"
-              />
-              <label v-else class="canva-panel block p-4">
-                <span class="mb-2 block text-sm font-bold text-brand-navy">{{ t('common.date') }}</span>
-                <input
+              <div v-if="showDatePicker" class="absolute z-20 mt-2 end-0">
+                <AppJalaliCalendar
+                  v-if="locale === 'fa'"
                   v-model="date"
-                  type="date"
-                  dir="ltr"
-                  class="neo-input tabular-nums"
-                  @change="closeDatePicker"
-                >
-              </label>
+                  @select="closeDatePicker"
+                />
+                <label v-else class="canva-panel block p-4">
+                  <span class="mb-2 block text-sm font-bold text-brand-navy">{{ t('common.date') }}</span>
+                  <input
+                    v-model="date"
+                    type="date"
+                    dir="ltr"
+                    class="neo-input tabular-nums"
+                    @change="closeDatePicker"
+                  >
+                </label>
+              </div>
             </div>
           </div>
-          <span class="neo-badge">{{ t('common.courtsCount', { count: formatNumber(courts.length) }) }}</span>
+        </div>
+
+        <div class="canva-date-strip mt-3">
+          <button
+            v-for="day in dateStripDays"
+            :key="day.iso"
+            type="button"
+            class="canva-date-strip-item"
+            :class="[
+              date === day.iso ? 'canva-date-strip-item-active' : '',
+              day.isToday ? 'canva-date-strip-item-today' : '',
+            ]"
+            @click="date = day.iso"
+          >
+            <span class="text-[10px] font-bold uppercase tracking-wide">{{ day.isToday ? t('owner.today') : day.weekday }}</span>
+            <bdi dir="ltr" class="tabular-nums text-base font-bold">{{ day.dayNumber }}</bdi>
+          </button>
         </div>
 
         <div v-if="courts.length" class="canva-rail mt-4 gap-2 pb-0">
@@ -1000,12 +1058,12 @@ const legend = [
         </div>
       </div>
 
-      <div v-if="!courts.length" class="px-4 py-10 text-center text-sm font-bold text-brand-gray-600">
-        {{ t('common.empty') }}
+      <div v-if="!courts.length" class="px-3 py-3">
+        <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" icon="stadium" />
       </div>
 
-      <div v-else-if="!activeCourtSlots.length" class="px-4 py-10 text-center text-sm font-bold text-brand-gray-600">
-        {{ t('common.empty') }}
+      <div v-else-if="!activeCourtSlots.length" class="px-3 py-3">
+        <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" icon="event_busy" />
       </div>
 
       <div v-else class="space-y-2 px-3 py-3 sm:px-4">
@@ -1091,10 +1149,10 @@ const legend = [
       <p class="mt-4 text-xs leading-5 text-brand-gray-500">{{ t('owner.quickNotesBody') }}</p>
     </aside>
 
-    <AppModal :open="showMenu" patterned :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
+    <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
       <div class="venus-modal-shell">
-        <div class="neo-modal-menu venus-modal-menu" :class="{ 'max-lg:hidden': activePanel }">
-          <div v-if="selectedSlot" class="border-b border-brand-gray-100 px-4 py-3 text-sm">
+        <div class="neo-modal-menu venus-modal-menu space-y-1 !p-2" :class="{ 'max-lg:hidden': activePanel }">
+          <div v-if="selectedSlot" class="mb-1 rounded-lg border-b border-brand-gray-100 px-3 py-3 text-sm">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
@@ -1111,25 +1169,55 @@ const legend = [
           <button
             v-if="canMarkPaid()"
             type="button"
-            class="neo-menu-item neo-menu-item-paid"
+            class="canva-dash-menu-item"
             :disabled="saving"
             @click="doMarkPaid"
-          >{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</button>
+          >
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('markPaid')"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
+          </button>
           <button
             v-if="canMarkUnpaid()"
             type="button"
-            class="neo-menu-item neo-menu-item-unpaid"
+            class="canva-dash-menu-item"
             :disabled="saving"
             @click="doMarkUnpaid"
-          >{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</button>
-          <button v-if="canCancelSlot()" type="button" :class="menuButtonClass('cancel')" @click="openCancelForm">{{ t('owner.cancel') }}</button>
-          <button v-if="canBlockSlot()" type="button" :class="menuButtonClass('block')" @click="openBlockForm">{{ t('owner.block') }}</button>
-          <button v-if="canReserveSlot()" type="button" :class="menuButtonClass('reserve')" @click="openReserveForm">{{ reserveMenuLabel() }}</button>
-          <button v-if="canShowSeasonReserve()" type="button" :class="menuButtonClass('season')" @click="openSeasonForm">{{ t('owner.seasonReserve') }}</button>
-          <button v-if="canShowCoachReserve()" type="button" :class="menuButtonClass('package')" @click="openPackageForm">{{ t('owner.reserveWithCoach') }}</button>
-          <button type="button" :class="menuButtonClass('comments')" @click="openCommentsForm">{{ t('owner.comments') }}</button>
-          <button type="button" :class="menuButtonClass('equipment')" @click="openEquipmentForm">{{ t('owner.equipments') }}</button>
-          <button type="button" class="neo-menu-item border-b-0" @click="closeMenu">{{ t('common.close') }}</button>
+          >
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('markUnpaid')"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
+          </button>
+          <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('cancel')"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
+          </button>
+          <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.block') }}</span>
+          </button>
+          <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
+          </button>
+          <button v-if="canShowSeasonReserve()" type="button" :class="menuItemClass('season')" @click="openSeasonForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('season')"><AppIcon :name="menuIcon('season')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.seasonReserve') }}</span>
+          </button>
+          <button v-if="canShowCoachReserve()" type="button" :class="menuItemClass('package')" @click="openPackageForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('package')"><AppIcon :name="menuIcon('package')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.reserveWithCoach') }}</span>
+          </button>
+          <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.comments') }}</span>
+          </button>
+          <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
+          </button>
+          <button type="button" class="canva-dash-menu-item" @click="closeMenu">
+            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('close')"><AppIcon :name="menuIcon('close')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
+          </button>
         </div>
 
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">

@@ -972,6 +972,7 @@
   "owner": {
     "calendar": "تقویم امروز",
     "calendarShort": "تقویم",
+    "today": "امروز",
     "more": "بیشتر",
     "finance": "مالی",
     "equipments": "تجهیزات",
@@ -982,6 +983,9 @@
     "support": "پشتیبانی",
     "settings": "تنظیمات",
     "legend": "راهنمای رنگ‌ها",
+    "emptyCourtsTitle": "هنوز زمینی ثبت نشده",
+    "emptySlotsTitle": "برای این روز سانسی نیست",
+    "emptySlotsBody": "روز دیگری را امتحان کنید یا زمین جدید در بخش راه‌اندازی اضافه کنید.",
     "dashboardEyebrow": "باشگاه‌دار",
     "calendarSubtitle": "برنامه‌ریزی و پیگیری سانس‌های آزاد برای {date}",
     "legendHint": "رنگ نوار کناری وضعیت هر سانس را نشان می‌دهد.",
@@ -1079,6 +1083,11 @@
         "UNPAID": "پرداخت‌نشده · وصول در باشگاه"
       },
       "chartEmpty": "هنوز درآمد وصول‌شده‌ای برای هفت روز گذشته ثبت نشده است.",
+      "advancedReport": "گزارش پیشرفته",
+      "todayRevenue": "درآمد امروز",
+      "vsYesterday": "نسبت به دیروز",
+      "bookingsCount": "رزروها",
+      "reportsLocked": "شما به گزارش‌ها دسترسی ندارید.",
       "payoutsTitle": "تنظیمات تسویه",
       "payoutsPlaceholder": "پیکربندی حساب تسویه در نسخه‌های بعدی اضافه می‌شود.",
       "payoutsPayAtClub": "حالت پرداخت در باشگاه: مهمان در میز پرداخت می‌کند. درگاه و تسویه آنلاین فعلاً فعال نیست."
@@ -1208,6 +1217,28 @@
         "booking_upcoming": "یادآور رزرو آینده",
         "inactive_customer": "بازگشت مشتری غیرفعال"
       }
+    },
+    "smsWizard": {
+      "openCta": "کمپین جدید",
+      "step1Title": "نوشتن پیام",
+      "step2Title": "بازبینی و ارسال",
+      "next": "بعدی",
+      "reviewCampaign": "نام کمپین",
+      "reviewRecipients": "مخاطبان",
+      "reviewSchedule": "زمان‌بندی",
+      "reviewMessage": "متن پیام",
+      "noSchedule": "ارسال فوری",
+      "successTitle": "کمپین ثبت شد"
+    },
+    "playerDetail": {
+      "visits": "تعداد بازدید",
+      "ltv": "ارزش طول عمر",
+      "inactiveDays": "روزهای غیرفعال",
+      "noShowCount": "عدم حضورها",
+      "lastVisit": "آخرین بازدید",
+      "consentYes": "رضایت دریافت پیامک دارد",
+      "consentNo": "رضایت دریافت پیامک ندارد",
+      "recentCampaigns": "کمپین‌های اخیر"
     },
     "roles": {
       "CLUB_ADMIN": "مدیر باشگاه",
