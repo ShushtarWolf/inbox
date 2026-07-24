@@ -59,29 +59,31 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
 </script>
 
 <template>
-  <div class="tail-page-stack">
-    <div>
-      <h1 class="tail-page-title">{{ $t('owner.finance') }}</h1>
-      <p class="mt-1 text-sm font-bold text-brand-gray-600">{{ t('owner.financePage.subtitle') }}</p>
-    </div>
+  <div class="venus-page-stack">
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
+      <h1 class="canva-page-hero-title">{{ $t('owner.finance') }}</h1>
+      <p class="mt-1 text-sm text-white/85">{{ t('owner.financePage.subtitle') }}</p>
+    </section>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
-      <div v-if="canReports" class="tail-card-grid-4">
-        <AppTailStatCard
+      <div v-if="canReports" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div
           v-for="(val, key) in data?.stats"
           :key="key"
-          :label="t(`owner.financeCards.${String(key)}`)"
-          :value="formatStatValue(String(key), val)"
-          icon="payments"
-        />
+          class="canva-panel"
+        >
+          <p class="text-xs font-bold text-brand-gray-500">{{ t(`owner.financeCards.${String(key)}`) }}</p>
+          <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatStatValue(String(key), val) }}</p>
+        </div>
       </div>
 
-      <div v-if="canReports" class="tail-card-grid-3">
-        <div class="tail-card lg:col-span-2">
-          <h2 class="tail-section-title mb-4">{{ t('owner.financePage.weeklyChart') }}</h2>
-          <div v-if="isChartEmpty" class="tail-chart-empty">
+      <div v-if="canReports" class="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+        <div class="canva-panel">
+          <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.weeklyChart') }}</h2>
+          <div v-if="isChartEmpty" class="mt-4 rounded-xl border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500">
             {{ t('owner.financePage.chartEmpty') }}
           </div>
-          <div v-else class="rounded-lg border border-brand-gray-200 bg-brand-gray-50 px-3 pb-2 pt-4">
+          <div v-else class="mt-4 rounded-xl border border-brand-gray-200 bg-brand-cream px-3 pb-2 pt-4">
             <div class="mb-2 flex items-center justify-between text-[10px] font-medium text-brand-gray-500">
               <span>{{ formatCurrency(maxWeeklyRevenue) }}</span>
               <span>{{ formatCurrency(0) }}</span>
@@ -96,7 +98,7 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
                   <bdi>{{ formatCurrency(amount) }}</bdi>
                 </span>
                 <div
-                  class="tail-chart-bar w-full max-w-[2.5rem]"
+                  class="w-full max-w-[2.5rem] rounded-t-md bg-brand-primary"
                   :style="{ height: `${barHeightPx(amount)}px` }"
                   :title="`${formatWeekLabel(data?.weekLabels?.[index])} — ${formatCurrency(amount)}`"
                 />
@@ -105,95 +107,93 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
             </div>
           </div>
         </div>
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-4">{{ t('owner.financePage.paymentBreakdown') }}</h2>
-          <p class="mb-3 text-xs font-medium text-brand-gray-500">{{ t('owner.financePage.paymentBreakdownHint') }}</p>
+        <div class="canva-panel">
+          <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.paymentBreakdown') }}</h2>
+          <p class="mb-3 mt-1 text-xs text-brand-gray-500">{{ t('owner.financePage.paymentBreakdownHint') }}</p>
           <div class="space-y-3 text-sm">
             <div class="flex items-center justify-between">
               <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.PAID_CASH') }}</span>
-              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.PAID_CASH ?? data?.paymentBreakdown?.CASH ?? 0 }}%</span>
+              <span class="font-bold text-brand-navy">{{ data?.paymentBreakdown?.PAID_CASH ?? data?.paymentBreakdown?.CASH ?? 0 }}%</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.PAID_IPG') }}</span>
-              <span class="font-semibold text-brand-navy">{{ data?.paymentBreakdown?.PAID_IPG ?? data?.paymentBreakdown?.IPG ?? 0 }}%</span>
+              <span class="font-bold text-brand-navy">{{ data?.paymentBreakdown?.PAID_IPG ?? data?.paymentBreakdown?.IPG ?? 0 }}%</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-brand-gray-600">{{ t('owner.financePage.breakdown.UNPAID') }}</span>
-              <span class="font-semibold text-amber-700">{{ data?.paymentBreakdown?.UNPAID ?? data?.paymentBreakdown?.NOT_PAID ?? 0 }}%</span>
+              <span class="font-bold text-amber-700">{{ data?.paymentBreakdown?.UNPAID ?? data?.paymentBreakdown?.NOT_PAID ?? 0 }}%</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="canReports" class="tail-card-grid-3">
-        <div class="tail-card lg:col-span-2">
-          <h2 class="tail-section-title mb-4">{{ t('owner.funnelTitle') }}</h2>
-          <div class="tail-card-grid-4">
-            <AppTailStatCard :label="t('owner.funnel.views')" :value="formatNumber(data?.funnel?.views || 0)" icon="visibility" />
-            <AppTailStatCard :label="t('owner.funnel.initiated')" :value="formatNumber(data?.funnel?.initiated || 0)" icon="touch_app" />
-            <AppTailStatCard :label="t('owner.funnel.confirmed')" :value="formatNumber(data?.funnel?.confirmed || 0)" icon="check_circle" />
-            <AppTailStatCard :label="t('owner.funnel.paid')" :value="formatNumber(data?.funnel?.paid || 0)" icon="payments" />
+      <div v-if="canReports" class="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+        <div class="canva-panel">
+          <h2 class="mb-3 text-base font-bold text-brand-navy">{{ t('owner.funnelTitle') }}</h2>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-xl border border-brand-gray-200 bg-brand-cream p-3">
+              <p class="text-xs text-brand-gray-500">{{ t('owner.funnel.views') }}</p>
+              <p class="mt-1 font-bold text-brand-navy">{{ formatNumber(data?.funnel?.views || 0) }}</p>
+            </div>
+            <div class="rounded-xl border border-brand-gray-200 bg-brand-cream p-3">
+              <p class="text-xs text-brand-gray-500">{{ t('owner.funnel.initiated') }}</p>
+              <p class="mt-1 font-bold text-brand-navy">{{ formatNumber(data?.funnel?.initiated || 0) }}</p>
+            </div>
+            <div class="rounded-xl border border-brand-gray-200 bg-brand-cream p-3">
+              <p class="text-xs text-brand-gray-500">{{ t('owner.funnel.confirmed') }}</p>
+              <p class="mt-1 font-bold text-brand-navy">{{ formatNumber(data?.funnel?.confirmed || 0) }}</p>
+            </div>
+            <div class="rounded-xl border border-brand-gray-200 bg-brand-cream p-3">
+              <p class="text-xs text-brand-gray-500">{{ t('owner.funnel.paid') }}</p>
+              <p class="mt-1 font-bold text-brand-navy">{{ formatNumber(data?.funnel?.paid || 0) }}</p>
+            </div>
           </div>
         </div>
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-4">{{ t('owner.segmentsTitle') }}</h2>
+        <div class="canva-panel">
+          <h2 class="mb-3 text-base font-bold text-brand-navy">{{ t('owner.segmentsTitle') }}</h2>
           <div class="space-y-3 text-sm">
-            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.activeContacts') }}</span><span class="font-semibold">{{ formatNumber(data?.segments?.activeContacts || 0) }}</span></div>
-            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.churnRisk') }}</span><span class="font-semibold">{{ formatNumber(data?.segments?.churnRisk || 0) }}</span></div>
-            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.waitlist') }}</span><span class="font-semibold">{{ formatNumber(data?.segments?.waitlist || 0) }}</span></div>
-            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.cancellations') }}</span><span class="font-semibold">{{ formatNumber(data?.segments?.cancellations || 0) }}</span></div>
+            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.activeContacts') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.activeContacts || 0) }}</span></div>
+            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.churnRisk') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.churnRisk || 0) }}</span></div>
+            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.waitlist') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.waitlist || 0) }}</span></div>
+            <div class="flex items-center justify-between"><span class="text-brand-gray-600">{{ t('owner.segmentCards.cancellations') }}</span><span class="font-bold">{{ formatNumber(data?.segments?.cancellations || 0) }}</span></div>
           </div>
         </div>
       </div>
 
-      <AppTailTable v-if="canTransactions" :title="t('owner.financeTable.reservation')">
-        <thead>
-          <tr>
-            <th>{{ t('owner.financeTable.reservation') }}</th>
-            <th>{{ t('owner.financeTable.guest') }}</th>
-            <th>{{ t('owner.financeTable.payment') }}</th>
-            <th>{{ t('owner.financeTable.status') }}</th>
-            <th>{{ t('owner.financeCards.revenue') }}</th>
-          </tr>
-        </thead>
-        <tbody v-if="data?.transactions?.length">
-          <tr v-for="tx in data?.transactions" :key="tx.id" :class="isTxUnpaid(tx) ? 'bg-amber-50/80' : ''">
-            <td>
-              <p class="font-semibold text-brand-navy">{{ t(`owner.financeTable.kind.${tx.kind}`) }}</p>
-              <p class="text-xs text-brand-gray-500">{{ tx.reservationLabel }}</p>
-              <p v-if="tx.coachName" class="text-xs text-brand-gray-500">{{ tx.coachName }}</p>
-            </td>
-            <td>
-              <p class="font-semibold text-brand-navy">{{ tx.guestName }}</p>
-              <p v-if="tx.guestMobile" class="text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ tx.guestMobile }}</bdi></p>
-            </td>
-            <td>
-              <p>{{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }}</p>
-              <p class="text-xs font-semibold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-gray-500'">
-                {{ paymentStatusLabel(tx.paymentStatus) }}
-              </p>
-            </td>
-            <td><span class="tail-badge-gray">{{ bookingStatusLabel(tx.bookingStatus) }}</span></td>
-            <td class="font-semibold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">
-              {{ formatCurrency(tx.amount) }}
-              <span v-if="isTxUnpaid(tx)" class="mt-0.5 block text-[10px] font-bold uppercase tracking-wide">{{ t('owner.financeTable.collectAtClub') }}</span>
-            </td>
-          </tr>
-        </tbody>
-        <tbody v-else>
-          <tr>
-            <td colspan="5" class="py-8 text-center text-brand-gray-500">{{ t('common.empty') }}</td>
-          </tr>
-        </tbody>
-      </AppTailTable>
-
-      <div v-if="showPayouts" class="tail-card">
-        <h2 class="tail-section-title mb-2">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPlaceholder') }}</p>
+      <div v-if="canTransactions" class="canva-panel space-y-3">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financeTable.reservation') }}</h2>
+        <div v-if="data?.transactions?.length" class="space-y-2">
+          <div
+            v-for="tx in data?.transactions"
+            :key="tx.id"
+            class="canva-list-card"
+            :class="isTxUnpaid(tx) ? 'border-amber-200 bg-amber-50/60' : ''"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-bold text-brand-navy">{{ t(`owner.financeTable.kind.${tx.kind}`) }} · {{ tx.reservationLabel }}</p>
+                <p class="mt-0.5 text-sm text-brand-gray-600">{{ tx.guestName }} <bdi v-if="tx.guestMobile" dir="ltr" class="tabular-nums">· {{ tx.guestMobile }}</bdi></p>
+                <p class="mt-1 text-xs text-brand-gray-500">
+                  {{ t(`owner.paymentMethods.${tx.paymentMethod || 'NOT_PAID'}`) }} · {{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}
+                </p>
+              </div>
+              <div class="text-end">
+                <p class="font-bold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">{{ formatCurrency(tx.amount) }}</p>
+                <p v-if="isTxUnpaid(tx)" class="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">{{ t('owner.financeTable.collectAtClub') }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p v-else class="rounded-xl border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
       </div>
-      <div v-else-if="canPayouts && payAtClubMode" class="tail-card">
-        <h2 class="tail-section-title mb-2">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPayAtClub') }}</p>
+
+      <div v-if="showPayouts" class="canva-panel">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
+        <p class="mt-2 text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPlaceholder') }}</p>
+      </div>
+      <div v-else-if="canPayouts && payAtClubMode" class="canva-panel">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
+        <p class="mt-2 text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPayAtClub') }}</p>
       </div>
     </AppAsyncState>
   </div>

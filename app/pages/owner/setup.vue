@@ -120,7 +120,7 @@ async function finish() {
   finishError.value = ''
   try {
     await $fetch('/api/owner/setup/complete', { method: 'POST' })
-    await navigateTo(localePath('/owner'))
+    await navigateTo(localePath('/owner/calendar'))
   } catch {
     finishError.value = t('owner.setupNotBookable')
   } finally {

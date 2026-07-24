@@ -84,7 +84,7 @@ Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recr
 
 **Coach:** `/coach` · `/coach/schedule` · `/coach/clients` · `/coach/profile`
 
-**Owner:** `/owner` (calendar) · `/owner/finance` · `/owner/equipments` · `/owner/packages` · `/owner/crm` · `/owner/coaches` · `/owner/support` · `/owner/settings`
+**Owner:** `/owner` (home/more) · `/owner/calendar` · `/owner/finance` · `/owner/equipments` · `/owner/packages` · `/owner/crm` · `/owner/coaches` · `/owner/support` · `/owner/settings`
 
 Reserve sub-routes redirect to calendar guidance pages: `/owner/reserve/season` · `/owner/reserve/package` (season/package reserve opens from a calendar slot modal)
 

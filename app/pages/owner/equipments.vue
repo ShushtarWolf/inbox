@@ -108,20 +108,23 @@ async function deleteItem(item: EquipmentItem) {
 
 <template>
   <div class="venus-page-stack">
-    <h1 class="font-display text-xl font-bold">{{ t('owner.equipments') }}</h1>
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
+      <h1 class="canva-page-hero-title">{{ t('owner.equipments') }}</h1>
+    </section>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       <div
         v-for="cat in categories"
         :key="cat.key"
-        class="ios-card p-4"
+        class="canva-panel"
       >
         <div class="mb-2 flex items-center justify-between gap-2">
-          <h3 class="font-bold">{{ t(cat.labelKey) }}</h3>
+          <h3 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h3>
           <button type="button" class="text-xs font-bold text-brand-primary" @click="openAdd(cat.key)">{{ t('common.add') }}</button>
         </div>
         <ul class="space-y-1 text-sm">
-          <li v-for="e in grouped[cat.key]" :key="e.id" class="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-brand-cream/50">
+          <li v-for="e in grouped[cat.key]" :key="e.id" class="flex items-center justify-between gap-2 rounded-lg px-1 py-1.5 hover:bg-brand-cream/80">
             <span>
               {{ localizedField(e, 'nameFa', 'nameEn') }}
               <span class="text-xs text-brand-gray-600">· {{ formatEquipmentPrice(e) }}</span>
@@ -137,7 +140,7 @@ async function deleteItem(item: EquipmentItem) {
     </div>
     </AppAsyncState>
 
-    <AppModal :open="showModal" :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
+    <AppModal :open="showModal" patterned :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
       <div class="venus-modal-shell venus-modal-shell-simple">
         <div class="venus-modal-panel">
           <div class="venus-modal-panel-body venus-form-stack">

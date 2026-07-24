@@ -29,7 +29,7 @@ function assertNavActive() {
   const checks = [
     [!isNavItemActive('/owner/finance', '/owner', ownerNav), 'owner root not active on finance'],
     [isNavItemActive('/owner/finance', '/owner/finance', ownerNav), 'finance active on finance'],
-    [isNavItemActive('/owner', '/owner', ownerNav), 'calendar active on root'],
+    [isNavItemActive('/owner', '/owner', ownerNav), 'more/home active on root'],
     [!isNavItemActive('/athlete/bookings/abc', '/athlete', athleteNav), 'athlete overview not active on booking detail'],
     [isNavItemActive('/athlete/bookings/abc', '/athlete/bookings', athleteNav), 'bookings active on detail'],
   ]

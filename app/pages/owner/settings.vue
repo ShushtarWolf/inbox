@@ -5,7 +5,6 @@ import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson,
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
-const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatHours } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
@@ -248,11 +247,14 @@ async function save() {
 
 <template>
   <div class="mx-auto max-w-2xl space-y-4">
-    <PageHeaderNav :title="t('owner.settings')" :home-to="localePath('/')" :back-to="localePath('/owner')" />
+    <section class="canva-dash-hero">
+      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
+      <h1 class="canva-page-hero-title">{{ t('owner.settings') }}</h1>
+    </section>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <form class="grid gap-4 md:grid-cols-2" @submit.prevent="save">
-      <div class="ios-card p-6 md:col-span-2">
+      <div class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.clubProfile') }}</h2>
         <div class="mt-3 grid gap-3 sm:grid-cols-2">
           <label class="block text-sm">
@@ -293,7 +295,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="ios-card p-6 md:col-span-2">
+      <div class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.sessionDurations') }}</h2>
         <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.sessionDurationsHint') }}</p>
         <div class="mt-3 flex flex-wrap gap-2">
@@ -318,7 +320,7 @@ async function save() {
         </label>
       </div>
 
-      <div class="ios-card p-6 md:col-span-2">
+      <div class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.amenities') }}</h2>
         <div class="mt-3 flex flex-wrap gap-2">
           <button
@@ -334,7 +336,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="ios-card p-6 md:col-span-2">
+      <div class="canva-panel md:col-span-2">
         <div class="flex items-center justify-between gap-2">
           <h2 class="font-bold">{{ t('owner.settingsPage.courtsSection') }}</h2>
           <button type="button" class="btn-secondary text-sm" @click="startCreateCourt">{{ t('owner.settingsPage.addCourt') }}</button>
@@ -369,7 +371,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="ios-card p-6">
+      <div class="canva-panel">
         <h2 class="font-bold">{{ t('owner.settingsPage.operations') }}</h2>
         <div class="mt-3 space-y-3 text-sm">
           <div class="grid grid-cols-2 gap-2">
@@ -403,7 +405,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="ios-card p-6">
+      <div class="canva-panel">
         <h2 class="font-bold">{{ t('owner.settingsPage.contacts') }}</h2>
         <div class="mt-3 space-y-3 text-sm">
           <label class="block">
@@ -417,7 +419,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="ios-card p-6 md:col-span-2">
+      <div class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('register.clubGallery') }}</h2>
         <div class="mt-3 flex flex-wrap gap-2">
           <div v-for="item in data?.club?.media || []" :key="item.id">
@@ -435,12 +437,12 @@ async function save() {
         </div>
       </div>
 
-      <div v-if="isOwner" class="ios-card p-6 md:col-span-2">
+      <div v-if="isOwner" class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.workersSection') }}</h2>
         <OwnerWorkersPanel embedded />
       </div>
 
-      <div v-if="isOwner" class="ios-card p-6 md:col-span-2">
+      <div v-if="isOwner" class="canva-panel md:col-span-2">
         <h2 class="font-bold">{{ t('owner.settingsPage.staffAccess') }}</h2>
         <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
         <p v-if="staffError" class="mt-3 text-sm text-red-600">{{ staffError }}</p>

@@ -28,6 +28,7 @@ export const ALL_OWNER_PERMISSIONS: OwnerPermission[] = [
 
 export const OWNER_NAV_PERMISSIONS: Record<string, OwnerPermission | 'finance'> = {
   '/owner': 'calendar',
+  '/owner/calendar': 'calendar',
   '/owner/finance': 'finance',
   '/owner/equipments': 'calendar',
   '/owner/packages': 'calendar',

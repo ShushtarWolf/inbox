@@ -13,7 +13,7 @@ const localePath = useLocalePath()
   <div class="mx-auto max-w-lg space-y-4 py-8">
     <h1 class="font-display text-xl font-bold">{{ t('owner.packagesDisabled.title') }}</h1>
     <p class="text-sm text-brand-gray-600">{{ t('owner.packagesDisabled.body') }}</p>
-    <NuxtLink :to="localePath('/owner')" class="btn-primary inline-block">
+    <NuxtLink :to="localePath('/owner/calendar')" class="btn-primary inline-block">
       {{ t('owner.packagesDisabled.cta') }}
     </NuxtLink>
   </div>

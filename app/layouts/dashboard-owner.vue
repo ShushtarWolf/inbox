@@ -11,8 +11,18 @@ const ownerClubVersion = ref(0)
 
 provide('ownerClubVersion', ownerClubVersion)
 
-const allNavItems = [
-  { path: '/owner', labelKey: 'owner.calendar', icon: 'calendar_month' },
+/** Primary Canva bottom-nav tabs (mobile-first). Extra destinations live on /owner home. */
+const primaryNavItems = [
+  { path: '/owner/calendar', labelKey: 'owner.calendarShort', icon: 'calendar_month' },
+  { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
+  { path: '/owner', labelKey: 'owner.more', icon: 'apps' },
+] as const
+
+/** Full side-nav list for desktop drawer. */
+const allSideNavItems = [
+  { path: '/owner', labelKey: 'owner.more', icon: 'apps' },
+  { path: '/owner/calendar', labelKey: 'owner.calendar', icon: 'calendar_month' },
   { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'inventory_2' },
   { path: '/owner/packages', labelKey: 'owner.packages', icon: 'package_2' },
@@ -28,30 +38,38 @@ const activeMembership = computed(() => {
   return memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
 })
 
-const nav = computed(() => {
+function filterNav<T extends { path: string }>(items: readonly T[]) {
   const membership = activeMembership.value
   const role = membership?.role
   const permissions = parsePermissions(membership?.permissionsJson)
   const isOwner = role === 'OWNER'
-
-  // Soft-hide Coaches when unused, or always in PILOT_NO_COACH (backend stays).
   const { pilotNoCoach } = usePilotFlags()
   const coachCount = membership?.club?._count?.coaches ?? 0
 
-  return allNavItems
-    .filter((item) => {
-      if (item.path === '/owner/workers' && !isOwner) return false
-      if (item.path === '/owner/coaches' && (pilotNoCoach.value || coachCount === 0)) return false
-      // Court-booking MVP: package drafts UI stays off with recurring reserve.
-      if (item.path === '/owner/packages' && !isRecurringReserveEnabled()) return false
-      return canAccessOwnerNav(item.path, permissions, isOwner)
-    })
-    .map((item) => ({
-      to: localePath(item.path),
-      label: t(item.labelKey),
-      icon: item.icon,
-    }))
-})
+  return items.filter((item) => {
+    if (item.path === '/owner') return true
+    if (item.path === '/owner/workers' && !isOwner) return false
+    if (item.path === '/owner/coaches' && (pilotNoCoach.value || coachCount === 0)) return false
+    if (item.path === '/owner/packages' && !isRecurringReserveEnabled()) return false
+    return canAccessOwnerNav(item.path, permissions, isOwner)
+  })
+}
+
+const bottomNav = computed(() =>
+  filterNav(primaryNavItems).map((item) => ({
+    to: localePath(item.path),
+    label: t(item.labelKey),
+    icon: item.icon,
+  })),
+)
+
+const sideNav = computed(() =>
+  filterNav(allSideNavItems).map((item) => ({
+    to: localePath(item.path),
+    label: t(item.labelKey),
+    icon: item.icon,
+  })),
+)
 
 const memberships = computed(() => user.value?.memberships || [])
 
@@ -70,7 +88,14 @@ onMounted(() => fetchAuth())
 </script>
 
 <template>
-  <DashboardShell :title="t('dashboard.owner')" :items="nav" :wide="true" :dark-nav="true">
+  <DashboardShell
+    :title="t('dashboard.owner')"
+    :items="bottomNav"
+    :side-items="sideNav"
+    :wide="true"
+    :dark-nav="false"
+    hide-mobile-header
+  >
     <div v-if="memberships.length > 1" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
         <AppIcon name="apartment" size="sm" />

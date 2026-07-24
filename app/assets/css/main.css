@@ -385,6 +385,60 @@
     background-size: 220px 220px, auto;
     background-repeat: repeat, no-repeat;
   }
+  .canva-date-pill {
+    @apply inline-flex items-center gap-2 rounded-xl border border-brand-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm;
+  }
+  .canva-court-chip {
+    @apply shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition;
+  }
+  .canva-court-chip-active {
+    @apply bg-brand-primary text-white;
+  }
+  .canva-court-chip-idle {
+    @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/40;
+  }
+  .canva-slot-row {
+    @apply relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-brand-gray-200 bg-white px-3 py-3 text-start shadow-venus-sm transition hover:border-brand-primary/30;
+  }
+  .canva-slot-row-selected {
+    @apply border-brand-primary ring-2 ring-brand-primary/25;
+  }
+  .canva-slot-status-bar {
+    @apply absolute inset-y-0 start-0 w-1.5;
+  }
+  .canva-slot-pay-chip {
+    @apply shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold;
+  }
+  .canva-slot-pay-paid {
+    @apply bg-emerald-50 text-emerald-700;
+  }
+  .canva-slot-pay-unpaid {
+    @apply bg-amber-50 text-amber-800;
+  }
+  .canva-legend-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-brand-gray-200 bg-brand-cream px-2.5 py-1 text-xs font-bold text-brand-navy;
+  }
+  .canva-legend-dot {
+    @apply h-2.5 w-2.5 rounded-full;
+  }
+  .canva-selection-bar {
+    @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white/95 px-3 py-3 shadow-tail-lg backdrop-blur;
+    bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+  }
+  @media (min-width: 1024px) {
+    .canva-selection-bar {
+      bottom: 0;
+    }
+  }
+  .canva-selection-bar-inner {
+    @apply mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-end;
+  }
+  .canva-error-brand {
+    @apply mx-auto mb-2 h-14 w-auto max-w-[10rem];
+  }
+  .canva-page-hero-title {
+    @apply font-display text-2xl font-bold text-white;
+  }
   .venus-card-grid,
   .tail-card-grid {
     @apply grid gap-5;
