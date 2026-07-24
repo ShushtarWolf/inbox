@@ -73,7 +73,7 @@ const menu = computed(() => [
         :to="item.to"
         class="canva-dash-menu-item"
       >
-        <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
+        <span class="canva-dash-menu-icon">
           <AppIcon :name="item.icon" size="sm" />
         </span>
         <span class="flex-1">{{ item.label }}</span>

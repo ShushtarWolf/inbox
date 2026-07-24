@@ -301,8 +301,8 @@ function menuButtonClass(panel: ActivePanel) {
 }
 
 function menuItemClass(panel: ActivePanel) {
-  const base = 'canva-dash-menu-item'
-  return activePanel.value === panel ? `${base} canva-dash-menu-item-active` : base
+  const base = 'canva-action-row'
+  return activePanel.value === panel ? `${base} canva-action-row-active` : base
 }
 
 const menuIconMap: Record<string, { icon: string; wrap: string }> = {
@@ -1059,11 +1059,11 @@ const legend = [
       </div>
 
       <div v-if="!courts.length" class="px-3 py-3">
-        <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" icon="stadium" />
+        <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
       </div>
 
       <div v-else-if="!activeCourtSlots.length" class="px-3 py-3">
-        <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" icon="event_busy" />
+        <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
       </div>
 
       <div v-else class="space-y-2 px-3 py-3 sm:px-4">
@@ -1169,53 +1169,53 @@ const legend = [
           <button
             v-if="canMarkPaid()"
             type="button"
-            class="canva-dash-menu-item"
+            class="canva-action-row"
             :disabled="saving"
             @click="doMarkPaid"
           >
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('markPaid')"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
           </button>
           <button
             v-if="canMarkUnpaid()"
             type="button"
-            class="canva-dash-menu-item"
+            class="canva-action-row"
             :disabled="saving"
             @click="doMarkUnpaid"
           >
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('markUnpaid')"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
           </button>
           <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('cancel')"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
           </button>
           <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.block') }}</span>
           </button>
           <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
           </button>
           <button v-if="canShowSeasonReserve()" type="button" :class="menuItemClass('season')" @click="openSeasonForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('season')"><AppIcon :name="menuIcon('season')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('season')"><AppIcon :name="menuIcon('season')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.seasonReserve') }}</span>
           </button>
           <button v-if="canShowCoachReserve()" type="button" :class="menuItemClass('package')" @click="openPackageForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('package')"><AppIcon :name="menuIcon('package')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('package')"><AppIcon :name="menuIcon('package')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.reserveWithCoach') }}</span>
           </button>
           <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.comments') }}</span>
           </button>
           <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
           </button>
-          <button type="button" class="canva-dash-menu-item" @click="closeMenu">
-            <span class="venus-icon-wrap venus-icon-wrap-sm" :class="menuIconWrap('close')"><AppIcon :name="menuIcon('close')" size="sm" /></span>
+          <button type="button" class="canva-action-row" @click="closeMenu">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('close')"><AppIcon :name="menuIcon('close')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
           </button>
         </div>

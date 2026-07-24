@@ -106,10 +106,10 @@ onUnmounted(() => {
             @click.stop
           >
             <div class="relative z-[1]">
-              <div v-if="sheet" class="flex justify-center pt-2.5" aria-hidden="true">
-                <span class="h-1 w-10 rounded-full bg-brand-gray-300" />
+              <div v-if="sheet" class="flex justify-center pt-3" aria-hidden="true">
+                <span class="canva-sheet-handle" />
               </div>
-              <div v-if="title" class="venus-modal-title-bar" :class="sheet ? 'border-transparent bg-transparent' : ''">
+              <div v-if="title" class="venus-modal-title-bar" :class="sheet ? 'border-transparent bg-transparent pt-1' : ''">
                 <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
                 <button
                   type="button"

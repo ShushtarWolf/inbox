@@ -19,14 +19,15 @@ const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
-const suggestedClubs = computed(() => clubs.value?.slice(0, 6) || [])
+/** Canva home frames show three square tiles per rail. */
+const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
 const tennisClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('tennis')).slice(0, 6)
+  return list.filter((club) => club.sports?.includes('tennis')).slice(0, 3)
 })
 const padelClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('padel')).slice(0, 6)
+  return list.filter((club) => club.sports?.includes('padel')).slice(0, 3)
 })
 
 const heroSlides = computed(() => [
@@ -68,13 +69,6 @@ function bookingLink(path: '/clubs', querySport?: string) {
     path,
     query: (querySport || sport.value) ? { sport: querySport || sport.value } : {},
   })
-}
-
-function clubMeta(club: { city?: string; rating?: number; sports?: string[] }) {
-  const sportSlug = club.sports?.[0]
-  const sportName = sports.value?.find((item) => item.slug === sportSlug)
-  const label = sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('home.sportsLabel')
-  return `${club.city || 'تهران'} | ${label} | ${(club.rating ?? 4.5).toFixed(1)}`
 }
 
 function nextHero() {
@@ -176,7 +170,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/clubs')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div v-if="suggestedClubs.length" class="canva-rail">
+        <div v-if="suggestedClubs.length" class="canva-venue-grid">
           <NuxtLink
             v-for="club in suggestedClubs"
             :key="club.id"
@@ -185,9 +179,8 @@ watch(sports, (list) => {
           >
             <img :src="club.image || '/placeholders/club.svg'" alt="" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
-              <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
+              <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <span class="canva-venue-card-cta">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
@@ -202,7 +195,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'tennis')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div v-if="tennisClubs.length" class="canva-rail">
+        <div v-if="tennisClubs.length" class="canva-venue-grid">
           <NuxtLink
             v-for="club in tennisClubs"
             :key="`tennis-${club.id}`"
@@ -211,9 +204,8 @@ watch(sports, (list) => {
           >
             <img :src="club.image || '/placeholders/club.svg'" alt="" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
-              <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
+              <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <span class="canva-venue-card-cta">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
@@ -228,7 +220,7 @@ watch(sports, (list) => {
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'padel')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div v-if="padelClubs.length" class="canva-rail">
+        <div v-if="padelClubs.length" class="canva-venue-grid">
           <NuxtLink
             v-for="club in padelClubs"
             :key="`padel-${club.id}`"
@@ -237,9 +229,8 @@ watch(sports, (list) => {
           >
             <img :src="club.image || '/placeholders/club.svg'" alt="" />
             <div class="canva-venue-card-body">
-              <p class="text-sm font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-              <p class="text-[10px] text-white/85">{{ clubMeta(club) }}</p>
-              <span class="btn-primary px-3 py-1 text-[11px]">{{ t('home.bookNow') }}</span>
+              <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+              <span class="canva-venue-card-cta">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>

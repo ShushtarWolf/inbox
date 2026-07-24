@@ -60,6 +60,11 @@ function isActive(to: string) {
         ]"
         @click="item.action?.()"
       >
+        <span
+          v-if="!item.action && isActive(item.to) && !dark"
+          class="absolute inset-x-4 top-0 h-0.5 rounded-full bg-brand-primary"
+          aria-hidden="true"
+        />
         <AppIcon :name="item.icon || 'circle'" size="sm" :filled="!item.action && isActive(item.to)" />
         {{ item.label }}
         <span v-if="item.badge" class="absolute end-2 top-2 rounded-full bg-brand-primary px-1 text-[9px] font-medium text-white">{{ item.badge }}</span>

@@ -323,14 +323,31 @@
   .canva-rail {
     @apply flex gap-3 overflow-x-auto pb-1;
   }
+  /* Canva home: 3 square venue tiles with maroon wash + centered CTA */
+  .canva-venue-grid {
+    @apply grid grid-cols-3 gap-2 sm:gap-3;
+  }
   .canva-venue-card {
-    @apply relative block h-40 w-36 shrink-0 overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+    @apply relative block aspect-square w-full overflow-hidden rounded-lg bg-[#3a1424] text-white shadow-venus-sm;
   }
   .canva-venue-card img {
-    @apply absolute inset-0 h-full w-full object-cover opacity-70;
+    @apply absolute inset-0 h-full w-full object-cover;
+    opacity: 0.55;
+    filter: saturate(0.55) contrast(1.05);
+  }
+  .canva-venue-card::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(180deg, rgba(58, 20, 36, 0.35) 0%, rgba(58, 20, 36, 0.72) 100%);
   }
   .canva-venue-card-body {
-    @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-3 text-center;
+    @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-2 text-center sm:gap-2.5 sm:p-3;
+  }
+  .canva-venue-card-title {
+    @apply line-clamp-2 text-[11px] font-bold leading-tight sm:text-sm;
+  }
+  .canva-venue-card-cta {
+    @apply inline-flex items-center justify-center rounded-md bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
   }
   .canva-court-card {
     @apply relative block min-h-[7.5rem] overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
@@ -351,19 +368,28 @@
     @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/30;
   }
   .canva-dash-hero {
-    @apply relative -mx-4 overflow-hidden bg-brand-primary px-4 pb-8 pt-6 text-white shadow-venus-sm sm:-mx-0 sm:rounded-xl;
+    @apply relative -mx-4 overflow-hidden bg-brand-primary px-4 pb-9 pt-7 text-white shadow-venus-sm sm:-mx-0 sm:rounded-2xl;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.16), transparent 42%),
+      radial-gradient(ellipse at bottom right, rgba(0, 0, 0, 0.12), transparent 48%),
+      url('/brand/canva-auth-pattern.svg');
+    background-size: auto, auto, 160px 160px;
+    background-blend-mode: normal, normal, soft-light;
   }
   .canva-dash-menu {
-    @apply -mt-4 space-y-2 rounded-xl border border-brand-gray-200 bg-white p-2 shadow-venus-sm;
+    @apply relative z-[1] -mt-5 space-y-1 rounded-2xl border border-brand-gray-200/80 bg-white p-2 shadow-venus-sm;
   }
   .canva-dash-menu-item {
-    @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-60;
+    @apply flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-60;
   }
   .canva-dash-menu-item-active {
     @apply bg-brand-primary-soft text-brand-primary;
   }
+  .canva-dash-menu-icon {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary;
+  }
   .canva-panel {
-    @apply rounded-xl border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm;
+    @apply rounded-2xl border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm;
   }
   .canva-list-card {
     @apply rounded-xl border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm transition hover:border-brand-primary/30;
@@ -381,13 +407,21 @@
     @apply mb-4 flex items-center gap-3 rounded-xl border border-brand-gray-200 bg-white p-3 shadow-venus-sm;
   }
   .canva-empty-state {
-    @apply flex flex-col items-center gap-2 rounded-xl border border-dashed border-brand-gray-300 bg-brand-cream px-4 py-10 text-center;
+    @apply relative flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-dashed border-brand-gray-300 px-4 py-12 text-center;
+    background-color: var(--sz-bg);
+    background-image:
+      linear-gradient(180deg, rgba(244, 239, 233, 0.94), rgba(244, 239, 233, 0.9)),
+      url('/brand/canva-auth-pattern.svg');
+    background-size: auto, 140px 140px;
   }
   .canva-empty-state-icon {
-    @apply venus-icon-wrap venus-icon-wrap-lg bg-brand-gray-100 text-brand-gray-400;
+    @apply relative z-[1] flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white text-brand-primary shadow-venus-sm;
+  }
+  .canva-empty-state-icon img {
+    @apply h-10 w-10 object-contain;
   }
   .canva-result-sheet {
-    @apply relative isolate overflow-hidden rounded-xl border border-brand-gray-200 bg-brand-cream shadow-venus-sm;
+    @apply relative isolate overflow-hidden rounded-2xl border border-brand-gray-200 bg-brand-cream shadow-venus-sm;
     background-image:
       url('/brand/canva-auth-pattern.svg'),
       linear-gradient(180deg, rgba(250, 246, 240, 0.92), rgba(250, 246, 240, 0.96));
@@ -395,7 +429,16 @@
     background-repeat: repeat, no-repeat;
   }
   .canva-sheet-dialog {
-    @apply mt-auto max-h-[90dvh] rounded-t-2xl sm:mt-0 sm:max-h-none sm:rounded-xl;
+    @apply mt-auto max-h-[90dvh] rounded-t-3xl sm:mt-0 sm:max-h-none sm:rounded-2xl;
+  }
+  .canva-sheet-handle {
+    @apply h-1.5 w-12 rounded-full bg-brand-gray-300;
+  }
+  .canva-action-row {
+    @apply flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3.5 text-start text-sm font-bold text-brand-navy transition hover:border-brand-gray-200 hover:bg-white/80;
+  }
+  .canva-action-row-active {
+    @apply border-brand-primary/20 bg-brand-primary-soft text-brand-primary;
   }
   .canva-date-pill {
     @apply inline-flex items-center gap-2 rounded-xl border border-brand-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm;
@@ -405,32 +448,32 @@
     scroll-snap-type: x proximity;
   }
   .canva-date-strip-item {
-    @apply flex w-14 shrink-0 scroll-mx-1 flex-col items-center gap-1 rounded-2xl border border-brand-gray-200 bg-white px-2 py-2.5 text-brand-gray-600 shadow-venus-sm transition hover:border-brand-primary/40;
+    @apply flex w-[3.35rem] shrink-0 scroll-mx-1 flex-col items-center gap-0.5 rounded-[1.15rem] border border-brand-gray-200 bg-white px-1.5 py-2.5 text-brand-gray-600 shadow-venus-sm transition hover:border-brand-primary/40;
     scroll-snap-align: center;
   }
   .canva-date-strip-item-active {
     @apply border-brand-primary bg-brand-primary text-white shadow-md hover:border-brand-primary;
   }
   .canva-date-strip-item-today:not(.canva-date-strip-item-active) {
-    @apply border-brand-gold/70 text-brand-primary;
+    @apply border-brand-gold text-brand-primary ring-1 ring-brand-gold/40;
   }
   .canva-court-chip {
-    @apply shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition;
+    @apply shrink-0 rounded-full px-4 py-2 text-xs font-bold transition;
   }
   .canva-court-chip-active {
-    @apply bg-brand-primary text-white;
+    @apply bg-brand-primary text-white shadow-sm;
   }
   .canva-court-chip-idle {
     @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/40;
   }
   .canva-slot-row {
-    @apply relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-brand-gray-200 bg-white px-3 py-3 text-start shadow-venus-sm transition hover:border-brand-primary/30;
+    @apply relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-brand-gray-200/90 bg-white px-3.5 py-3.5 text-start shadow-venus-sm transition hover:border-brand-primary/35;
   }
   .canva-slot-row-selected {
-    @apply border-brand-primary ring-2 ring-brand-primary/25;
+    @apply border-brand-primary bg-brand-primary-soft/40 ring-2 ring-brand-primary/20;
   }
   .canva-slot-status-bar {
-    @apply absolute inset-y-0 start-0 w-1.5;
+    @apply absolute inset-y-0 start-0 w-2 rounded-s-2xl;
   }
   .canva-slot-pay-chip {
     @apply shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold;
