@@ -426,13 +426,60 @@
     @apply inline-flex items-center justify-center self-center rounded-sm bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
   }
   .canva-court-card {
-    @apply relative block min-h-[7.5rem] overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+    @apply relative block min-h-[8.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
+    border-radius: 0;
   }
   .canva-court-card img {
-    @apply absolute inset-0 h-full w-full object-cover opacity-65;
+    @apply absolute inset-0 h-full w-full object-cover;
+    opacity: 0.72;
+    filter: brightness(0.7) saturate(0.9);
+  }
+  .canva-court-card::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(90deg, rgba(20, 12, 12, 0.55) 0%, rgba(20, 12, 12, 0.35) 45%, rgba(20, 12, 12, 0.7) 100%);
   }
   .canva-court-card-body {
-    @apply relative z-10 flex h-full min-h-[7.5rem] items-center justify-between gap-3 p-4;
+    @apply relative z-10 flex h-full min-h-[8.5rem] items-center justify-between gap-3 p-4;
+  }
+  .canva-court-card-copy {
+    @apply min-w-0 flex-1 text-end;
+  }
+  .canva-court-card-title {
+    @apply truncate text-base font-bold text-brand-primary sm:text-lg;
+  }
+  .canva-court-card-rating {
+    @apply mt-1 inline-flex items-center justify-end gap-1 text-xs font-bold text-white;
+  }
+  .canva-court-card-star {
+    color: #c9a227;
+  }
+  .canva-court-card-meta {
+    @apply mt-1 text-[11px] font-medium leading-snug text-white/90;
+  }
+  .canva-court-card-price {
+    @apply mt-1 text-xs font-bold text-white;
+  }
+  .canva-court-card-cta {
+    @apply inline-flex shrink-0 items-center justify-center self-center bg-brand-primary px-3 py-2 text-xs font-bold text-white;
+    border-radius: 0;
+  }
+  /* Clubs list: rectangular sport chips (not pills) */
+  .canva-clubs-chip {
+    @apply inline-flex items-center justify-center px-4 py-2 text-xs font-bold transition;
+    border-radius: 0;
+  }
+  .canva-clubs-chip-active {
+    @apply bg-[#c9a227] text-white;
+  }
+  .canva-clubs-chip-idle {
+    @apply bg-[#e8e4de] text-brand-navy;
+  }
+  .canva-clubs-sort {
+    @apply relative inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-bold text-brand-gray-600;
+  }
+  .canva-clubs-sort-select {
+    @apply absolute inset-0 cursor-pointer opacity-0;
   }
   .canva-sport-chip {
     @apply inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold transition;
