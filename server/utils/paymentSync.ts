@@ -113,7 +113,11 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
   }
 }
 
-export async function confirmPaymentAndSync(providerRef: string, providerName?: string) {
+export async function confirmPaymentAndSync(
+  providerRef: string,
+  providerName?: string,
+  opts?: { refNum?: string },
+) {
   const before = await prisma.payment.findFirst({
     where: {
       providerRef,
@@ -123,7 +127,7 @@ export async function confirmPaymentAndSync(providerRef: string, providerName?: 
   const previousStatus = before?.status || ''
 
   const service = getPaymentService(providerName)
-  const intent = await service.confirm(providerRef)
+  const intent = await service.confirm(providerRef, opts)
   await syncPaymentToParent(intent.id)
   if (intent.status === 'PAID') {
     await notifyPaidIfNeeded(intent.id, previousStatus)

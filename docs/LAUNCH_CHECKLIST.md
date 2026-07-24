@@ -38,17 +38,16 @@ Out of scope for this launch: coach product, matchmaking, Google OAuth, season/p
 
 Until these are set, OTP stays log/dry-run (`debugCode`) — **not** production-safe.
 
-### Online IPG (Zarinpal) — required if online pay is in launch
+### Online IPG (SEP / سامان) — required if online pay is in launch
 
 | Variable | Value |
 |----------|--------|
 | `PAYMENTS_MODE` | `test` first (or `live` only after verify) — synced to client Pay CTA at runtime |
-| `PAYMENT_PROVIDER` | omit (defaults `zarinpal`) or `zarinpal` |
-| `ZARINPAL_MERCHANT_ID` | merchant UUID (sandbox for test; live for live) |
-| `ZARINPAL_ACCESS_TOKEN` | optional; without it cancel credits wallet |
-| Callback | `https://inboxs.ir/payments/callback/zarinpal` |
+| `PAYMENT_PROVIDER` | omit (defaults `sep`) or `sep` |
+| `SEP_TERMINAL_ID` | numeric terminal from SEP merchant panel |
+| Callback | `https://inboxs.ir/payments/callback/sep` |
 
-Local without merchant: `PAYMENTS_MODE=test` → `/payments/test-gateway`.  
+Local without terminal: `PAYMENTS_MODE=test` → `/payments/test-gateway`.  
 Desk fallback: `PAYMENTS_MODE=pay_at_club` hides online CTA (walk-ins OK).
 
 ### Keep unset for MVP
@@ -92,7 +91,7 @@ Run locally in log/test mode where noted. **After you deploy to Liara with secre
 |---|--------|--------------------|---------------------------|
 | 1 | Owner SMS login | Log mode: OTP `debugCode` → `/owner` | Live OTP SMS → `/owner` |
 | 2 | Athlete SMS register/login | Log OTP → `/athlete` | Live OTP → `/athlete` |
-| 3 | Book court → online pay → `PAID` → SMS confirm | `PAYMENTS_MODE=test` → test-gateway OK → `PAID`; SMS skipped/logged | Live Zarinpal + live SMS confirm |
+| 3 | Book court → online pay → `PAID` → SMS confirm | `PAYMENTS_MODE=test` → test-gateway OK → `PAID`; SMS skipped/logged | Live SEP + live SMS confirm |
 | 4 | Cancel → SMS + slot `FREE` | Cancel API frees slot; SMS skip/log | Live cancel SMS; slot free on calendar |
 | 5 | Waitlist OK or off | Join when enabled; 404 when off | Same on prod club setting |
 | 6 | Season/package hidden | No packages nav; `/owner/packages` stub; season/package APIs `403` | Same |
@@ -128,7 +127,7 @@ Prefer `smoke:pilot` over broad `npm run smoke` on wiped pilot prod.
 
 - [ ] You deploy to Liara after secrets are filled
 - [ ] Re-run section 4 live column on `https://inboxs.ir`
-- [ ] Monitor Liara logs for Kavenegar / Zarinpal errors
+- [ ] Monitor Liara logs for Kavenegar / SEP errors
 - [ ] Optional later: Sentry, S3 uploads, SMTP, Enamad
 
 Historical / full ops notes remain in [OPERATIONS.md](./OPERATIONS.md). Older long checklist items (S3, email, Enamad) are deferred unless needed for this court launch.

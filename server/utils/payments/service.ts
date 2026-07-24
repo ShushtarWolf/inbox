@@ -3,14 +3,14 @@ import { resolvePaymentProvider } from '#shared/payments.ts'
 import { getRegisteredPaymentProvider } from './registry'
 import { logPaymentProvider } from './providers/log'
 import { payAtClubProvider } from './providers/pay_at_club'
-import { zarinpalProvider } from './providers/zarinpal'
+import { sepProvider } from './providers/sep'
 
 let bootstrapped = false
 
 function bootstrapProviders() {
   if (bootstrapped) return
   payAtClubProvider()
-  zarinpalProvider()
+  sepProvider()
   logPaymentProvider()
   bootstrapped = true
 }

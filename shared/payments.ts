@@ -1,6 +1,11 @@
 export const PAYMENT_CURRENCY = 'IRR' as const
 
-export type PaymentProvider = 'pay_at_club' | 'zarinpal' | 'idpay' | 'log'
+export type PaymentProvider = 'pay_at_club' | 'sep' | 'idpay' | 'log'
+
+export interface PaymentConfirmOptions {
+  /** SEP bank RefNum from callback (required for live verify). */
+  refNum?: string
+}
 
 export type PaymentIntentStatus =
   | 'PAY_AT_CLUB'
@@ -39,7 +44,7 @@ export interface PaymentCreateInput {
 export interface PaymentService {
   readonly name: PaymentProvider
   createIntent(input: PaymentCreateInput): Promise<CheckoutSession>
-  confirm(providerRef: string): Promise<PaymentIntent>
+  confirm(providerRef: string, opts?: PaymentConfirmOptions): Promise<PaymentIntent>
   refund(paymentId: string): Promise<PaymentIntent>
   getStatus(paymentId: string): Promise<PaymentIntent>
   verifyWebhook?(_payload: unknown): boolean
@@ -58,14 +63,14 @@ export function getPaymentsMode(): PaymentsMode {
  * still hit the correct adapter.
  */
 export function resolvePaymentProvider(explicit?: string): PaymentProvider {
-  if (explicit && ['zarinpal', 'idpay', 'log', 'pay_at_club'].includes(explicit)) {
+  if (explicit && ['sep', 'idpay', 'log', 'pay_at_club'].includes(explicit)) {
     return explicit as PaymentProvider
   }
   const mode = getPaymentsMode()
   if (mode === 'pay_at_club') return 'pay_at_club'
   const configured = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined
-  if (configured && ['zarinpal', 'idpay', 'log', 'pay_at_club'].includes(configured)) return configured
-  // test + live default to Zarinpal (real adapter; simulate gateway when no merchant id).
+  if (configured && ['sep', 'idpay', 'log', 'pay_at_club'].includes(configured)) return configured
+  // test + live default to SEP (real adapter; simulate gateway when no terminal id).
   // Set PAYMENT_PROVIDER=log for API-only tests without redirect.
-  return 'zarinpal'
+  return 'sep'
 }

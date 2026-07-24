@@ -14,16 +14,16 @@ describe('resolvePaymentProvider', () => {
     expect(resolvePaymentProvider()).toBe('pay_at_club')
   })
 
-  it('returns zarinpal in test mode by default', () => {
+  it('returns sep in test mode by default', () => {
     process.env.PAYMENTS_MODE = 'test'
     delete process.env.PAYMENT_PROVIDER
-    expect(resolvePaymentProvider()).toBe('zarinpal')
+    expect(resolvePaymentProvider()).toBe('sep')
   })
 
-  it('returns zarinpal in live mode by default', () => {
+  it('returns sep in live mode by default', () => {
     process.env.PAYMENTS_MODE = 'live'
     delete process.env.PAYMENT_PROVIDER
-    expect(resolvePaymentProvider()).toBe('zarinpal')
+    expect(resolvePaymentProvider()).toBe('sep')
   })
 
   it('respects PAYMENT_PROVIDER=log in test mode', () => {
@@ -34,13 +34,13 @@ describe('resolvePaymentProvider', () => {
 
   it('respects PAYMENT_PROVIDER override in test mode', () => {
     process.env.PAYMENTS_MODE = 'test'
-    process.env.PAYMENT_PROVIDER = 'zarinpal'
-    expect(resolvePaymentProvider()).toBe('zarinpal')
+    process.env.PAYMENT_PROVIDER = 'sep'
+    expect(resolvePaymentProvider()).toBe('sep')
   })
 
   it('honors explicit provider even when mode is pay_at_club', () => {
     process.env.PAYMENTS_MODE = 'pay_at_club'
-    expect(resolvePaymentProvider('zarinpal')).toBe('zarinpal')
+    expect(resolvePaymentProvider('sep')).toBe('sep')
     expect(resolvePaymentProvider('log')).toBe('log')
   })
 })

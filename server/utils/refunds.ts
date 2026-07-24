@@ -10,7 +10,7 @@ export interface RefundResult {
 }
 
 function isOnlineGatewayPayment(payment: { method: string; provider: string }) {
-  return payment.method === 'IPG' && ['log', 'zarinpal', 'idpay'].includes(payment.provider)
+  return payment.method === 'IPG' && ['log', 'sep', 'idpay'].includes(payment.provider)
 }
 
 export async function refundPaymentForCancellation(options: {

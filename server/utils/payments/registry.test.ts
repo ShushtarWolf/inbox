@@ -1,22 +1,22 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { resolvePaymentProvider } from '#shared/payments.ts'
-import { getRegisteredPaymentProvider, listPaymentProviders, registerPaymentProvider } from './registry'
+import { getRegisteredPaymentProvider, listPaymentProviders } from './registry'
 import { payAtClubProvider } from './providers/pay_at_club'
 import { logPaymentProvider } from './providers/log'
-import { zarinpalProvider } from './providers/zarinpal'
+import { sepProvider } from './providers/sep'
 
 describe('payment registry', () => {
   beforeEach(() => {
     payAtClubProvider()
     logPaymentProvider()
-    zarinpalProvider()
+    sepProvider()
   })
 
   it('registers built-in providers', () => {
     const names = listPaymentProviders()
     expect(names).toContain('pay_at_club')
     expect(names).toContain('log')
-    expect(names).toContain('zarinpal')
+    expect(names).toContain('sep')
   })
 
   it('resolves pay_at_club in default mode', () => {

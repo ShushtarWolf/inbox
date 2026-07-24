@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Local test IPG stand-in when PAYMENTS_MODE=test and ZARINPAL_MERCHANT_ID is unset.
+ * Local test IPG stand-in when PAYMENTS_MODE=test and SEP_TERMINAL_ID is unset.
  * Never used in live mode.
  */
 definePageMeta({ layout: false, ssr: true })
@@ -10,8 +10,10 @@ const { t, locale } = useI18n()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const { formatCurrency } = useFormatters()
 
-const provider = computed(() => String(route.query.provider || 'zarinpal'))
-const authority = computed(() => String(route.query.Authority || route.query.ref || ''))
+const provider = computed(() => String(route.query.provider || 'sep'))
+const authority = computed(() => String(
+  route.query.ResNum || route.query.Authority || route.query.ref || '',
+))
 const amount = computed(() => {
   const n = Number(route.query.amount || 0)
   return Number.isFinite(n) ? n : 0
@@ -21,8 +23,8 @@ const allowed = computed(() => paymentsMode === 'test' && Boolean(authority.valu
 
 function callbackUrl(status: 'OK' | 'NOK') {
   const q = new URLSearchParams({
-    Authority: authority.value,
-    Status: status,
+    ResNum: authority.value,
+    State: status,
   })
   return `/payments/callback/${encodeURIComponent(provider.value)}?${q.toString()}`
 }
