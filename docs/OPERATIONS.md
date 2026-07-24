@@ -333,6 +333,19 @@ CONFIRM=WIPE_ALL_USERS_AND_CLUBS ALLOW_PROD_WIPE=yes NODE_ENV=production \
 
 No deploy required for a remote DB wipe. Deploy only if you change the wipe script/docs and need them on the server.
 
+### Pilot reset (wipe + single club owner)
+
+Preferred when the app can reach the DB (Liara): wipe catalog and create one `CLUB_ADMIN` in one call.
+
+```bash
+curl -X POST https://inboxs.ir/api/admin/reset-pilot \
+  -H "Content-Type: application/json" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
+  -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"09124777927","name":"بهناز","clubName":"باشگاه بهناز"}'
+```
+
+Then set `AUTH_OTP_BYPASS_PHONES=09124777927` on Liara so that phone logs in without SMS OTP (enter phone → continue → owner dashboard).
+
 ### Re-provision Behnaz (after wipe)
 
 1. Open `https://inboxs.ir/admin` with `ADMIN_PROVISION_SECRET` (do not commit the secret).

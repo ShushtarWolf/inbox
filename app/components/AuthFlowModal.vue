@@ -96,7 +96,13 @@ async function requestOtp() {
   error.value = ''
   pending.value = true
   try {
-    const data = await $fetch<{ phone: string; debugCode?: string; smsMode?: 'log' | 'live' }>('/api/auth/otp/request', {
+    const data = await $fetch<{
+      phone: string
+      debugCode?: string
+      smsMode?: 'log' | 'live' | 'bypass'
+      bypass?: boolean
+      redirectTo?: string
+    }>('/api/auth/otp/request', {
       method: 'POST',
       body: {
         phone: phone.value,
@@ -104,8 +110,17 @@ async function requestOtp() {
         role: purpose.value === 'register' ? role.value : undefined,
         name: purpose.value === 'register' ? name.value : undefined,
         clubNameFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? clubNameFa.value : undefined,
+        returnTo: returnTo.value || (typeof route.query.returnTo === 'string' ? route.query.returnTo : ''),
       },
     })
+
+    if (data.bypass) {
+      await fetchAuth()
+      handleClose()
+      await navigateTo(data.redirectTo || localePath('/'))
+      return
+    }
+
     maskedPhone.value = data.phone
     debugCode.value = data.debugCode || ''
     code.value = data.debugCode || ''
