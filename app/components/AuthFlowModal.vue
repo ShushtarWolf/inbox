@@ -4,21 +4,18 @@ import type { AuthFlowRole } from '~/composables/useAuthFlow'
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { fetch: fetchAuth, login } = useAuth()
+const { fetch: fetchAuth } = useAuth()
 const {
   open,
   step,
   role,
   purpose,
-  loginMode,
   returnTo,
   close,
 } = useAuthFlow()
 
 const name = ref('')
 const phone = ref('')
-const identifier = ref('')
-const password = ref('')
 const clubNameFa = ref('')
 const code = ref('')
 const pending = ref(false)
@@ -40,11 +37,10 @@ const roles = computed(() =>
 )
 
 const title = computed(() => {
+  if (step.value === 'gate') return t('auth.gateTitle')
   if (step.value === 'role') return t('auth.roleTitle')
-  if (step.value === 'login' && loginMode.value === 'password') return t('auth.ownerPasswordTitle')
   if (step.value === 'login') return t('auth.loginToInbox')
   if (step.value === 'otp') return t('auth.otpTitle')
-  if (role.value === 'COACH') return t('auth.registerCoachTitle')
   if (role.value === 'CLUB_ADMIN') return t('auth.registerOwnerTitle')
   return t('auth.registerAthleteTitle')
 })
@@ -57,8 +53,6 @@ const otpHint = computed(() => {
 function resetForm() {
   name.value = ''
   phone.value = ''
-  identifier.value = ''
-  password.value = ''
   clubNameFa.value = ''
   code.value = ''
   error.value = ''
@@ -75,10 +69,18 @@ function handleClose() {
 
 function goGate() {
   resetForm()
-  goPhoneLogin()
+  purpose.value = 'login'
+  step.value = 'gate'
+}
+
+function goLogin() {
+  resetForm()
+  purpose.value = 'login'
+  step.value = 'login'
 }
 
 function goRole() {
+  resetForm()
   purpose.value = 'register'
   step.value = 'role'
 }
@@ -87,41 +89,6 @@ function selectRole(next: AuthFlowRole) {
   role.value = next
   purpose.value = 'register'
   step.value = 'register'
-}
-
-function goPasswordLogin() {
-  purpose.value = 'login'
-  loginMode.value = 'password'
-  step.value = 'login'
-  error.value = ''
-}
-
-function goPhoneLogin() {
-  purpose.value = 'login'
-  loginMode.value = 'phone'
-  step.value = 'login'
-  error.value = ''
-}
-
-async function submitPasswordLogin() {
-  error.value = ''
-  if (!identifier.value.trim() || !password.value) {
-    error.value = t('auth.invalidCredentials')
-    return
-  }
-  pending.value = true
-  try {
-    const resolvedReturnTo = returnTo.value || (typeof route.query.returnTo === 'string' ? route.query.returnTo : '')
-    await login(identifier.value.trim(), password.value, resolvedReturnTo || undefined)
-    handleClose()
-  } catch (err: unknown) {
-    const status = (err as { statusCode?: number })?.statusCode
-    if (status === 403) error.value = t('auth.accountDisabled')
-    else if (status === 429) error.value = t('errors.rateLimited')
-    else error.value = t('auth.invalidCredentials')
-  } finally {
-    pending.value = false
-  }
 }
 
 async function requestOtp() {
@@ -202,48 +169,17 @@ watch(open, (isOpen) => {
         <span class="w-8" />
       </div>
 
-      <div class="space-y-4 px-5 pb-6 pt-2">
+      <div class="canva-auth-body">
         <h2 class="text-center text-lg font-bold text-brand-navy">{{ title }}</h2>
 
-        <template v-if="step === 'login' && loginMode === 'password'">
-          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.ownerPasswordHint') }}</p>
-          <AppFormField field-id="auth-identifier" :label="t('auth.emailOrPhone')">
-            <input
-              id="auth-identifier"
-              v-model="identifier"
-              dir="ltr"
-              class="neo-input"
-              autocomplete="username"
-            />
-          </AppFormField>
-          <AppFormField field-id="auth-password" :label="t('auth.password')">
-            <input
-              id="auth-password"
-              v-model="password"
-              type="password"
-              class="neo-input"
-              autocomplete="current-password"
-            />
-          </AppFormField>
-          <p v-if="error" class="venus-alert-error">{{ error }}</p>
-          <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="submitPasswordLogin">
-            {{ pending ? t('common.loading') : t('auth.login') }}
+        <template v-if="step === 'gate'">
+          <p class="text-center text-sm text-brand-gray-600">{{ t('home.roleTileGuest') }}</p>
+          <button type="button" class="canva-gate-btn-primary" @click="goRole">
+            {{ t('auth.register') }}
           </button>
-          <NuxtLink
-            :to="localePath('/forgot-password')"
-            class="block text-center text-sm font-bold text-brand-navy underline"
-            @click="handleClose"
-          >
-            {{ t('auth.forgotPassword') }}
-          </NuxtLink>
-          <div class="space-y-2 border-t border-brand-gray-200 pt-4">
-            <button type="button" class="btn-secondary w-full py-3" @click="goPhoneLogin">
-              {{ t('auth.loginWithPhone') }}
-            </button>
-            <button type="button" class="btn-ghost w-full" @click="goRole">
-              {{ t('auth.register') }}
-            </button>
-          </div>
+          <button type="button" class="canva-gate-btn-secondary" @click="goLogin">
+            {{ t('auth.login') }}
+          </button>
         </template>
 
         <template v-else-if="step === 'role'">
@@ -273,14 +209,14 @@ watch(open, (isOpen) => {
             field-id="auth-name"
             :label="role === 'CLUB_ADMIN' ? t('auth.ownerContactName') : t('auth.fullName')"
           >
-            <input id="auth-name" v-model="name" class="neo-input" autocomplete="name" />
+            <input id="auth-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" />
           </AppFormField>
           <AppFormField
             v-if="role === 'CLUB_ADMIN'"
             field-id="auth-club"
             :label="t('register.clubNameFa')"
           >
-            <input id="auth-club" v-model="clubNameFa" class="neo-input" />
+            <input id="auth-club" v-model="clubNameFa" class="neo-input bg-white/95" />
           </AppFormField>
           <AppFormField field-id="auth-phone" :label="t('common.mobile')">
             <input
@@ -288,7 +224,7 @@ watch(open, (isOpen) => {
               v-model="phone"
               dir="ltr"
               inputmode="tel"
-              class="neo-input"
+              class="neo-input bg-white/95"
               placeholder="09xxxxxxxxx"
               autocomplete="tel"
             />
@@ -310,7 +246,7 @@ watch(open, (isOpen) => {
               v-model="phone"
               dir="ltr"
               inputmode="tel"
-              class="neo-input"
+              class="neo-input bg-white/95"
               placeholder="09xxxxxxxxx"
               autocomplete="tel"
             />
@@ -319,11 +255,11 @@ watch(open, (isOpen) => {
           <button type="button" class="btn-primary w-full py-3" :disabled="pending" @click="requestOtp">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="btn-ghost w-full text-xs" @click="goPasswordLogin">
-            {{ t('auth.ownerPasswordFallback') }}
-          </button>
           <button type="button" class="btn-ghost w-full" @click="goRole">
             {{ t('auth.register') }}
+          </button>
+          <button type="button" class="btn-ghost w-full" @click="goGate">
+            {{ t('common.back') }}
           </button>
         </template>
 
@@ -338,7 +274,7 @@ watch(open, (isOpen) => {
               dir="ltr"
               inputmode="numeric"
               maxlength="6"
-              class="neo-input text-center tracking-[0.35em]"
+              class="neo-input bg-white/95 text-center tracking-[0.35em]"
               autocomplete="one-time-code"
             />
           </AppFormField>

@@ -260,15 +260,42 @@
   /* ── Canva auth / home language ── */
   .canva-auth-sheet {
     @apply relative overflow-hidden bg-brand-cream;
+    background-color: var(--sz-bg);
+    background-image:
+      linear-gradient(180deg, rgba(244, 239, 233, 0.92) 0%, rgba(244, 239, 233, 0.88) 100%),
+      url('/brand/canva-auth-pattern.svg');
+    background-size: auto, 120px 120px;
+    background-repeat: repeat;
+  }
+  .canva-auth-sheet::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at top right, rgba(196, 30, 30, 0.07), transparent 45%),
+      radial-gradient(ellipse at bottom left, rgba(182, 138, 59, 0.08), transparent 40%);
   }
   .canva-auth-accent {
-    @apply h-1.5 w-full bg-brand-primary;
+    @apply relative z-[1] h-1.5 w-full bg-brand-primary;
   }
   .canva-auth-header {
-    @apply flex items-center justify-between px-4 py-3;
+    @apply relative z-[1] flex items-center justify-between px-4 py-3;
+  }
+  .canva-auth-body {
+    @apply relative z-[1] space-y-4 px-5 pb-6 pt-2;
   }
   .canva-role-card {
-    @apply flex w-full items-center gap-3 rounded-xl border border-brand-gray-200 bg-white px-4 py-3 text-start shadow-venus-sm transition hover:border-brand-primary/40;
+    @apply flex w-full items-center gap-3 rounded-xl border border-brand-gray-200/80 bg-white/90 px-4 py-3 text-start shadow-venus-sm backdrop-blur-sm transition hover:border-brand-primary/40;
+  }
+  .canva-gate-btn {
+    @apply flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold transition;
+  }
+  .canva-gate-btn-primary {
+    @apply canva-gate-btn bg-brand-primary text-white shadow-venus-sm hover:brightness-110;
+  }
+  .canva-gate-btn-secondary {
+    @apply canva-gate-btn border border-brand-gray-300 bg-white/90 text-brand-navy backdrop-blur-sm hover:border-brand-primary/40;
   }
   .canva-hero {
     @apply relative overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
@@ -293,6 +320,33 @@
   }
   .canva-venue-card-body {
     @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-3 text-center;
+  }
+  .canva-court-card {
+    @apply relative block min-h-[7.5rem] overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+  }
+  .canva-court-card img {
+    @apply absolute inset-0 h-full w-full object-cover opacity-65;
+  }
+  .canva-court-card-body {
+    @apply relative z-10 flex h-full min-h-[7.5rem] items-center justify-between gap-3 p-4;
+  }
+  .canva-sport-chip {
+    @apply inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold transition;
+  }
+  .canva-sport-chip-active {
+    @apply bg-[#f5c518] text-brand-navy;
+  }
+  .canva-sport-chip-idle {
+    @apply border border-brand-gray-300 bg-white text-brand-gray-600 hover:border-brand-primary/30;
+  }
+  .canva-dash-hero {
+    @apply relative -mx-4 overflow-hidden bg-brand-primary px-4 pb-8 pt-6 text-white shadow-venus-sm sm:-mx-0 sm:rounded-xl;
+  }
+  .canva-dash-menu {
+    @apply -mt-4 space-y-2 rounded-xl border border-brand-gray-200 bg-white p-2 shadow-venus-sm;
+  }
+  .canva-dash-menu-item {
+    @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-bold text-brand-navy transition hover:bg-brand-primary-soft hover:text-brand-primary;
   }
   .venus-card-grid,
   .tail-card-grid {

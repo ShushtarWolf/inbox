@@ -919,18 +919,15 @@ const legend = [
 
 <template>
   <div class="tail-page-stack" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
+    <section class="canva-dash-hero sm:rounded-xl">
+      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
+      <h1 class="mt-1 font-display text-2xl font-bold">{{ t('owner.calendar') }}</h1>
+      <p class="mt-1 text-sm text-white/85">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
+    </section>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
     <section class="calendar-shell overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-venus-sm" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-5 py-5 sm:px-7">
-        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p class="mb-1 text-xs font-bold text-brand-gray-600" :class="locale === 'en' ? 'tracking-[0.24em]' : ''">{{ t('owner.dashboardEyebrow') }}</p>
-            <h1 class="font-display text-2xl font-bold text-brand-navy">{{ t('owner.calendar') }}</h1>
-            <p class="mt-1 text-sm font-bold text-brand-gray-600">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
-          </div>
-        </div>
-
-        <div class="mt-5 flex" :class="locale === 'fa' ? 'justify-start' : 'justify-end'">
+        <div class="flex" :class="locale === 'fa' ? 'justify-start' : 'justify-end'">
           <div ref="datePickerRef" class="relative">
             <button
               type="button"

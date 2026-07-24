@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { NavItem } from '#shared/nav.ts'
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
@@ -8,17 +10,29 @@ async function handleLogout() {
   await logout()
 }
 
-const nav = computed(() => {
-  const meTarget = !user.value
-    ? localePath('/login')
-    : dashboardPathForRole(user.value.role)
-
+const nav = computed((): NavItem[] => {
   // Court booking is primary; coach discovery is off main nav (and gated by pilotNoCoach).
-  return [
+  const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
-    { to: meTarget, label: t('nav.me'), icon: 'account_circle' },
   ]
+
+  if (!user.value) {
+    items.push({
+      to: localePath('/'),
+      label: t('nav.me'),
+      icon: 'account_circle',
+      action: () => openGate(),
+    })
+  } else {
+    items.push({
+      to: dashboardPathForRole(user.value.role),
+      label: t('nav.me'),
+      icon: 'account_circle',
+    })
+  }
+
+  return items
 })
 
 onMounted(() => {
@@ -87,6 +101,5 @@ onMounted(() => {
       </div>
     </footer>
     <AppBottomNav :items="nav" />
-    <AuthFlowModal />
   </div>
 </template>

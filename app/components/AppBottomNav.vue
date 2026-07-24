@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { isNavItemActive, type NavItem } from '#shared/nav.ts'
 
+const NuxtLink = resolveComponent('NuxtLink')
+
 const props = withDefaults(defineProps<{
   items: NavItem[]
   maxWidthClass?: string
@@ -40,22 +42,24 @@ function isActive(to: string) {
         scrollLayout ? 'flex overflow-x-auto' : ['grid', columnsClass],
       ]"
     >
-      <NuxtLink
+      <component
+        :is="item.action ? 'button' : NuxtLink"
         v-for="item in items"
-        :key="item.to"
-        :to="item.to"
+        :key="item.to + item.label"
+        v-bind="item.action ? { type: 'button' } : { to: item.to }"
         class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-medium transition-colors"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
-          isActive(item.to)
+          !item.action && isActive(item.to)
             ? (dark ? 'text-brand-gold' : 'text-brand-primary')
             : (dark ? 'text-white/70' : 'text-brand-gray-500'),
         ]"
+        @click="item.action?.()"
       >
-        <AppIcon :name="item.icon || 'circle'" size="sm" :filled="isActive(item.to)" />
+        <AppIcon :name="item.icon || 'circle'" size="sm" :filled="!item.action && isActive(item.to)" />
         {{ item.label }}
         <span v-if="item.badge" class="absolute end-2 top-2 rounded-full bg-brand-primary px-1 text-[9px] font-medium text-white">{{ item.badge }}</span>
-      </NuxtLink>
+      </component>
     </div>
   </nav>
 </template>

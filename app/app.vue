@@ -29,4 +29,5 @@ useHead(() => ({
       }"
     />
   </NuxtLayout>
+  <AuthFlowModal />
 </template>

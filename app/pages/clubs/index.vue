@@ -4,213 +4,153 @@ const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatDistanceKm } = useFormatters()
-const showMoreFilters = ref(false)
-const showMap = ref(false)
-const locating = ref(false)
-const selectedMapClubSlug = ref<string | null>(null)
+const { formatCurrency } = useFormatters()
+const { openGate } = useAuthFlow()
+const { user } = useAuth()
 
-const filters = reactive({
-  city: (route.query.city as string) || '',
-  amenity: (route.query.amenity as string) || '',
-  sort: (route.query.sort as string) || 'rank',
-  verified: route.query.verified === 'true',
-  minPrice: (route.query.minPrice as string) || '',
-})
+const sportFilter = ref<string>((route.query.sport as string) || '')
+const sort = ref((route.query.sort as string) || 'rank')
 
 const query = computed(() => ({
-  sport: route.query.sport as string | undefined,
-  city: filters.city || undefined,
-  amenity: filters.amenity || undefined,
-  sort: filters.sort,
-  verified: filters.verified ? 'true' : undefined,
-  minPrice: filters.minPrice || undefined,
-  lat: route.query.lat as string | undefined,
-  lng: route.query.lng as string | undefined,
-  radiusKm: route.query.radiusKm as string | undefined,
+  sport: sportFilter.value || undefined,
+  sort: sort.value,
+  city: route.query.city as string | undefined,
 }))
 
-const { data: clubs, pending, error } = await useFetch('/api/clubs', {
-  query,
+const { data: clubs, pending, error } = await useFetch('/api/clubs', { query })
+const { data: sports } = await useFetch('/api/sports')
+
+const sportChips = computed(() => [
+  { value: '', label: t('clubs.sportAll') },
+  { value: 'tennis', label: t('home.tennisTitle') },
+  { value: 'padel', label: t('home.padelTitle') },
+])
+
+const listTitle = computed(() => {
+  if (sportFilter.value === 'tennis') return t('clubs.tennisCourtsTitle')
+  if (sportFilter.value === 'padel') return t('clubs.padelCourtsTitle')
+  return t('clubs.courtsTitle')
 })
 
-const cityOptions = [
-  { value: 'تهران', key: 'tehran' },
-  { value: 'اصفهان', key: 'isfahan' },
-  { value: 'شیراز', key: 'shiraz' },
-] as const
-const amenityOptions = ['Parking', 'Cafe', 'Locker room', 'Shower', 'Pro shop', 'Kids area'] as const
-
-function cityLabel(key: 'tehran' | 'isfahan' | 'shiraz') {
-  return t(`clubs.cityOptions.${key}`)
-}
-
-function amenityLabel(value: string) {
-  return t(`clubs.amenityOptions.${value}` as 'clubs.amenityOptions.Parking')
-}
-
-const clubsWithCoordinates = computed(() => {
-  return (clubs.value || []).filter((club) => typeof club.lat === 'number' && typeof club.lng === 'number')
-})
-
-watch(clubsWithCoordinates, (mapClubs) => {
-  if (!mapClubs.length) {
-    selectedMapClubSlug.value = null
-    return
-  }
-
-  if (!selectedMapClubSlug.value || !mapClubs.some((club) => club.slug === selectedMapClubSlug.value)) {
-    selectedMapClubSlug.value = mapClubs[0]?.slug || null
-  }
-}, { immediate: true })
-
-const selectedMapClub = computed(() => {
-  return clubsWithCoordinates.value.find((club) => club.slug === selectedMapClubSlug.value) || clubsWithCoordinates.value[0] || null
-})
-
-const selectedMapEmbedUrl = computed(() => {
-  if (!selectedMapClub.value) return null
-
-  const lat = selectedMapClub.value.lat as number
-  const lng = selectedMapClub.value.lng as number
-  const latDelta = 0.018
-  const lngDelta = 0.026
-  const bbox = [
-    (lng - lngDelta).toFixed(6),
-    (lat - latDelta).toFixed(6),
-    (lng + lngDelta).toFixed(6),
-    (lat + latDelta).toFixed(6),
-  ].join('%2C')
-
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lng.toFixed(6)}`
-})
-
-async function syncRoute(extra: Record<string, string | undefined> = {}) {
+async function setSport(value: string) {
+  sportFilter.value = value
   await router.replace({
     query: {
       ...route.query,
-      city: filters.city || undefined,
-      amenity: filters.amenity || undefined,
-      sort: filters.sort || undefined,
-      verified: filters.verified ? 'true' : undefined,
-      minPrice: filters.minPrice || undefined,
-      ...extra,
+      sport: value || undefined,
+      sort: sort.value || undefined,
     },
   })
 }
 
-async function useNearby() {
-  if (!navigator.geolocation) return
-  locating.value = true
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    locating.value = false
-    await syncRoute({
-      lat: String(position.coords.latitude),
-      lng: String(position.coords.longitude),
-      radiusKm: '15',
-    })
-  }, () => {
-    locating.value = false
+async function setSort(value: string) {
+  sort.value = value
+  await router.replace({
+    query: {
+      ...route.query,
+      sport: sportFilter.value || undefined,
+      sort: value || undefined,
+    },
   })
+}
+
+function clubMeta(club: { city?: string; rating?: number; sports?: string[] }) {
+  const sportSlug = club.sports?.[0]
+  const sportName = sports.value?.find((item) => item.slug === sportSlug)
+  const label = sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('home.sportsLabel')
+  return `${club.city || 'تهران'} | ${label} | ${(club.rating ?? 4.5).toFixed(1)}`
+}
+
+function priceLine(club: { priceFrom?: number | null; priceTo?: number | null }) {
+  if (club.priceFrom == null && club.priceTo == null) return ''
+  if (club.priceFrom != null && club.priceTo != null && club.priceFrom !== club.priceTo) {
+    return t('clubs.sessionPriceRange', {
+      from: formatCurrency(club.priceFrom),
+      to: formatCurrency(club.priceTo),
+    })
+  }
+  return t('clubs.sessionPriceFrom', { price: formatCurrency(club.priceFrom ?? club.priceTo ?? 0) })
 }
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <PageHeaderNav :title="t('clubs.title')" :home-to="localePath('/')" />
-
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="neo-pill neo-pill-inactive" @click="showMap = !showMap">{{ t('clubs.mapView') }}</button>
-      <button type="button" class="neo-pill neo-pill-inactive" @click="showMoreFilters = !showMoreFilters">{{ t('clubs.moreFilters') }}</button>
-    </div>
-
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="neo-pill neo-pill-inactive" :class="filters.city === '' ? 'neo-pill-active' : ''" @click="filters.city = ''; syncRoute()">{{ t('clubs.allCities') }}</button>
-      <button v-for="city in cityOptions" :key="city.value" type="button" class="neo-pill neo-pill-inactive" :class="filters.city === city.value ? 'neo-pill-active' : ''" @click="filters.city = city.value; syncRoute()">
-        {{ cityLabel(city.key) }}
-      </button>
-      <button type="button" class="neo-pill neo-pill-inactive" @click="useNearby">{{ locating ? t('common.loading') : t('clubs.nearby') }}</button>
-    </div>
-
-    <div v-if="showMoreFilters" class="ios-card space-y-3 p-4">
-      <div class="grid gap-3 lg:grid-cols-4">
-        <select v-model="filters.amenity" class="neo-select" @change="syncRoute()">
-          <option value="">{{ t('clubs.allAmenities') }}</option>
-          <option v-for="option in amenityOptions" :key="option" :value="option">{{ amenityLabel(option) }}</option>
-        </select>
-        <select v-model="filters.sort" class="neo-select" @change="syncRoute()">
-          <option value="rank">{{ t('clubs.sort.rank') }}</option>
-          <option value="rating">{{ t('clubs.sort.rating') }}</option>
-          <option value="price">{{ t('clubs.sort.price') }}</option>
-          <option value="nearby">{{ t('clubs.sort.nearby') }}</option>
-        </select>
-        <input v-model="filters.minPrice" type="number" class="neo-select" :placeholder="t('clubs.minPrice')" @change="syncRoute()" />
-        <label class="flex items-center gap-2 neo-select">
-          <input v-model="filters.verified" type="checkbox" @change="syncRoute()" />
-          {{ t('clubs.verifiedOnly') }}
-        </label>
-      </div>
-    </div>
-
-    <div v-if="showMap" class="ios-card space-y-3 p-4">
-      <p class="text-sm font-bold">{{ t('clubs.mapView') }}</p>
-      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
-        <div class="overflow-hidden rounded-venus border border-brand-gray-100 bg-brand-lavender shadow-venus">
-          <div class="relative min-h-[320px]">
-            <iframe
-              v-if="selectedMapEmbedUrl"
-              :src="selectedMapEmbedUrl"
-              class="absolute inset-0 h-full w-full border-0"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              :title="t('clubs.mapView')"
-            />
-            <div v-else class="flex h-[320px] items-center justify-center px-6 text-center text-sm text-brand-gray-600">
-              {{ t('common.empty') }}
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <button
-            v-for="club in clubsWithCoordinates"
-            :key="`${club.id}-map`"
-            type="button"
-            class="w-full ios-card p-3 text-start text-sm transition"
-            :class="selectedMapClubSlug === club.slug ? 'border-brand-primary bg-brand-primary/5' : 'border-brand-gray-100 bg-white'"
-            @click="selectedMapClubSlug = club.slug"
-          >
-            <p class="font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-            <p class="text-brand-gray-600">{{ club.city }}<span v-if="club.distanceKm != null"> · {{ formatDistanceKm(club.distanceKm) }}</span></p>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <AppAsyncState :pending="pending" :error="error" :empty="!clubs?.length" skeleton-variant="table">
-    <div class="grid gap-4 lg:grid-cols-2">
-      <NuxtLink
-        v-for="club in clubs"
-        :key="club.id"
-        :to="localePath(`/clubs/${club.slug}`)"
-        class="ios-card flex gap-3 overflow-hidden"
+  <div class="tail-page-stack animate-fade-in">
+    <header class="flex items-center justify-between gap-3">
+      <button
+        v-if="!user"
+        type="button"
+        class="btn-primary px-3 py-1.5 text-xs"
+        @click="openGate()"
       >
-        <img :src="club.image || '/placeholders/club.svg'" alt="" class="h-24 w-24 object-cover lg:h-full lg:w-40" />
-        <div class="flex flex-1 flex-col justify-center py-2 pe-3">
-          <div class="flex items-center gap-2">
-            <p class="font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-            <span v-if="club.verified" class="neo-badge">{{ t('clubs.verified') }}</span>
-          </div>
-          <p class="text-xs text-brand-gray-600">{{ club.city }} · ⭐ {{ club.rating }} · {{ club.reviewCount }} {{ t('clubs.reviews') }}</p>
-          <p class="mt-1 text-sm font-bold text-brand-primary">
-            {{ formatCurrency(club.priceFrom) }}<span v-if="club.priceTo"> - {{ formatCurrency(club.priceTo) }}</span>
-          </p>
-          <p class="mt-1 text-xs text-brand-gray-600">{{ club.amenityPreview.map(amenityLabel).join(' · ') }}</p>
-          <p v-if="club.distanceKm != null" class="mt-1 text-xs text-brand-gray-600">{{ t('clubs.distance') }}: {{ formatDistanceKm(club.distanceKm) }}</p>
-        </div>
-        <span class="self-center neo-badge">{{ t('home.clubCta') }}</span>
+        {{ t('auth.loginRegister') }}
+      </button>
+      <NuxtLink v-else :to="localePath('/athlete')" class="rounded-lg bg-brand-primary-soft px-3 py-1.5 text-xs font-bold text-brand-primary">
+        {{ t('nav.me') }}
       </NuxtLink>
+      <div class="flex items-center gap-2">
+        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+        <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
+      </div>
+    </header>
+
+    <section class="canva-hero">
+      <img src="/hero/tennis-court.jpg" alt="" class="canva-hero-media" />
+      <div class="canva-hero-content">
+        <h1 class="max-w-xs text-3xl font-bold leading-none">{{ t('home.heroSlideTitle') }}</h1>
+        <p class="max-w-sm text-sm text-white/90">{{ t('home.heroBody') }}</p>
+      </div>
+    </section>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="chip in sportChips"
+          :key="chip.value || 'all'"
+          type="button"
+          class="canva-sport-chip"
+          :class="sportFilter === chip.value ? 'canva-sport-chip-active' : 'canva-sport-chip-idle'"
+          @click="setSport(chip.value)"
+        >
+          {{ chip.label }}
+        </button>
+      </div>
+      <select
+        :value="sort"
+        class="rounded-full border border-brand-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy"
+        @change="setSort(($event.target as HTMLSelectElement).value)"
+      >
+        <option value="rank">{{ t('clubs.sort.rank') }}</option>
+        <option value="rating">{{ t('clubs.sort.rating') }}</option>
+        <option value="price">{{ t('clubs.sort.price') }}</option>
+      </select>
     </div>
-    </AppAsyncState>
+
+    <section class="space-y-3">
+      <div>
+        <h2 class="text-lg font-bold text-brand-primary">{{ listTitle }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ t('home.suggestionsBody') }}</p>
+      </div>
+
+      <AppAsyncState :pending="pending" :error="error" :empty="!clubs?.length" skeleton-variant="table">
+        <div class="space-y-3">
+          <NuxtLink
+            v-for="club in clubs"
+            :key="club.id"
+            :to="localePath(`/book/court/${club.slug}`)"
+            class="canva-court-card"
+          >
+            <img :src="club.image || '/placeholders/club.svg'" alt="" />
+            <div class="canva-court-card-body">
+              <span class="btn-primary shrink-0 px-3 py-1.5 text-xs">{{ t('home.bookNow') }}</span>
+              <div class="min-w-0 flex-1 text-end">
+                <p class="truncate text-base font-bold">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+                <p class="mt-0.5 text-[11px] text-white/85">{{ clubMeta(club) }}</p>
+                <p v-if="priceLine(club)" class="mt-1 text-xs font-bold text-[#ffb4b4]">{{ priceLine(club) }}</p>
+              </div>
+            </div>
+          </NuxtLink>
+        </div>
+      </AppAsyncState>
+    </section>
   </div>
 </template>

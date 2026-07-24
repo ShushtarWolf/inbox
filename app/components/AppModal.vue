@@ -80,7 +80,7 @@ onUnmounted(() => {
     <Transition name="venus-modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-brand-navy/55 p-4 pb-[max(1rem,var(--sz-safe-bottom))] sm:p-6"
+        class="fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
         role="presentation"
         @click.self="close"
       >
