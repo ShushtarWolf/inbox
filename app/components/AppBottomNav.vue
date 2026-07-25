@@ -17,6 +17,8 @@ const props = withDefaults(defineProps<{
 
 const route = useRoute()
 
+const linkItems = computed(() => props.items.filter((item) => !item.action))
+
 const scrollLayout = computed(() => props.items.length > 5)
 
 const columnsClass = computed(() => {
@@ -27,7 +29,7 @@ const columnsClass = computed(() => {
 })
 
 function isActive(to: string) {
-  return isNavItemActive(route.path, to, props.items)
+  return isNavItemActive(route.path, to, linkItems.value)
 }
 </script>
 

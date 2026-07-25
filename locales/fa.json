@@ -1068,7 +1068,8 @@
     "currentBooking": "رزرو فعلی",
     "selectionBar": {
       "title": "ساعات انتخاب‌شده",
-      "clear": "پاک کردن انتخاب"
+      "clear": "پاک کردن انتخاب",
+      "multiSelect": "انتخاب چندتایی"
     },
     "slotActions": "عملیات سانس",
     "reserveFormTitle": "فرم رزرو",

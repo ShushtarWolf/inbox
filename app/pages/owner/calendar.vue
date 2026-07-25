@@ -10,6 +10,7 @@ import {
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
+import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -56,9 +57,11 @@ const date = ref(today())
 const showDatePicker = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const activeCourtId = ref<string | null>(null)
+const calendarView = ref<'today' | 'overview'>('today')
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const selectedSlotIds = ref<string[]>([])
 const selectionCourtId = ref<string | null>(null)
+const multiSelectMode = ref(false)
 const showMenu = ref(false)
 const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
@@ -141,6 +144,37 @@ const activeCourtSlots = computed(() => {
     .sort((a: OwnerCalendarSlot, b: OwnerCalendarSlot) => a.startTime.localeCompare(b.startTime)) as OwnerCalendarSlot[]
 })
 
+const overviewStats = computed(() => {
+  const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
+  const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
+  const free = bookable.filter((slot) => slot.displayStatus === 'FREE')
+  const reserved = bookable.filter((slot) =>
+    slot.displayStatus === 'RESERVED' || slot.displayStatus === 'PENDING' || Boolean(slot.booking),
+  )
+  const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
+  const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
+  const perCourt = courts.value.map((court: { id: string; nameFa: string; nameEn: string }) => {
+    const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
+    const used = courtSlots.filter((slot) => slot.displayStatus !== 'FREE').length
+    const pct = courtSlots.length ? Math.round((used / courtSlots.length) * 100) : 0
+    return {
+      id: court.id,
+      name: localizedField(court, 'nameFa', 'nameEn'),
+      pct,
+      total: courtSlots.length,
+      used,
+    }
+  })
+  return {
+    freePct,
+    reservedPct,
+    bookingsToday: reserved.length,
+    bookable: bookable.length,
+    free: free.length,
+    perCourt,
+  }
+})
+
 const scheduleTimeOptions = computed(() => {
   const court = courts.value.find((item: { id: string }) => item.id === selectedSlotFull.value?.courtId)
   const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
@@ -149,6 +183,45 @@ const scheduleTimeOptions = computed(() => {
   return buildHourlyOptions(open, close, step)
 })
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
+const { user } = useAuth()
+const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
+const clubCalendarTitle = computed(() => {
+  const memberships = user.value?.memberships || []
+  const membership = memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
+  if (membership?.club) return localizedField(membership.club, 'nameFa', 'nameEn')
+  return t('owner.calendar')
+})
+const clubHeroImage = computed(() => {
+  const memberships = user.value?.memberships || []
+  const membership = memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
+  return membership?.club?.image || '/hero/tennis-court.jpg'
+})
+
+const overviewMonthLabel = computed(() => {
+  const j = isoToJalaali(date.value)
+  return `${PERSIAN_MONTHS[j.jm - 1]} ${formatNumber(j.jy)}`
+})
+
+const overviewMonthWeekdays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const
+
+const overviewMonthCells = computed(() => {
+  const j = isoToJalaali(date.value)
+  const daysInMonth = jalaaliDaysInMonth(j.jy, j.jm)
+  const [gy, gm, gd] = jalaaliToIso(j.jy, j.jm, 1).split('-').map(Number)
+  const weekday = new Date(gy, gm - 1, gd).getDay()
+  const leadingBlanks = (weekday + 1) % 7
+  const cells: Array<{ day: number | null; iso: string | null }> = []
+  for (let i = 0; i < leadingBlanks; i++) cells.push({ day: null, iso: null })
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({ day, iso: jalaaliToIso(j.jy, j.jm, day) })
+  }
+  return cells
+})
+
+function selectOverviewDay(iso: string) {
+  date.value = iso
+  calendarView.value = 'today'
+}
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() =>
   pilotNoCoach.value
@@ -431,6 +504,12 @@ function clearSelection() {
   selectionCourtId.value = null
 }
 
+function toggleMultiSelectMode() {
+  multiSelectMode.value = !multiSelectMode.value
+  if (!multiSelectMode.value) clearSelection()
+  if (multiSelectMode.value) closeMenu()
+}
+
 function isSlotSelected(slot: OwnerCalendarSlot) {
   return selectedSlotIds.value.includes(slot.id)
 }
@@ -458,7 +537,12 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openSlot(fullSlot)
     return
   }
-  toggleFreeSlot(fullSlot)
+  // Multi-select only while already selecting free slots; first tap opens desk sheet.
+  if (selectedSlotIds.value.length > 0 || multiSelectMode.value) {
+    toggleFreeSlot(fullSlot)
+    return
+  }
+  openSlot(fullSlot)
 }
 
 function openSelectionReserve() {
@@ -548,7 +632,7 @@ function closeMenu() {
   resetPanels()
   cancelReason.value = ''
   actionError.value = ''
-  clearSelection()
+  if (!multiSelectMode.value) clearSelection()
 }
 
 function backToMenu() {
@@ -629,7 +713,9 @@ async function doReserve() {
         },
       })
     }
+    multiSelectMode.value = false
     closeMenu()
+    clearSelection()
     await refresh()
   } catch {
     actionError.value = t('common.error')
@@ -983,13 +1069,102 @@ const legend = [
 
 <template>
   <div class="venus-page-stack" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
-    <section class="canva-dash-hero">
-      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-      <h1 class="mt-1 font-display text-2xl font-bold">{{ t('owner.calendar') }}</h1>
-      <p class="mt-1 text-sm text-white/85">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
+    <section class="canva-photo-hero">
+      <img :src="clubHeroImage" alt="" class="canva-photo-hero-media" />
+      <div class="canva-photo-hero-wash" />
+      <p class="canva-promo-strip">{{ t('owner.calendarPromo') }}</p>
+      <div class="canva-photo-hero-body">
+        <h1 class="font-display text-2xl font-bold">{{ clubCalendarTitle }}</h1>
+        <p class="mt-1 text-sm text-white/85">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
+        <div class="canva-view-tabs mt-4 !bg-white/15">
+          <button
+            type="button"
+            class="canva-view-tab !text-white/80"
+            :class="calendarView === 'today' ? 'canva-view-tab-active !bg-white !text-brand-primary' : ''"
+            @click="calendarView = 'today'"
+          >
+            {{ t('owner.today') }}
+          </button>
+          <button
+            type="button"
+            class="canva-view-tab !text-white/80"
+            :class="calendarView === 'overview' ? 'canva-view-tab-active !bg-white !text-brand-primary' : ''"
+            @click="calendarView = 'overview'"
+          >
+            {{ t('owner.overview') }}
+          </button>
+        </div>
+      </div>
     </section>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
-    <section class="canva-panel overflow-visible p-0" :class="locale === 'en' ? 'calendar-latin' : ''">
+    <section v-if="calendarView === 'overview'" class="space-y-3">
+      <div class="grid grid-cols-3 gap-2">
+        <div class="canva-overview-kpi">
+          <p class="text-2xl font-bold text-brand-navy">{{ formatNumber(overviewStats.free) }}</p>
+          <p class="mt-1 text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewFreeSlots') }}</p>
+        </div>
+        <div class="canva-overview-kpi">
+          <p class="text-2xl font-bold text-brand-primary">{{ formatNumber(overviewStats.reservedPct) }}%</p>
+          <p class="mt-1 text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewReservedPct') }}</p>
+        </div>
+        <div class="canva-overview-kpi">
+          <p class="text-2xl font-bold text-brand-navy">{{ formatNumber(overviewStats.bookingsToday) }}</p>
+          <p class="mt-1 text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewBookingsToday') }}</p>
+        </div>
+      </div>
+
+      <div class="canva-panel space-y-3">
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.overviewPerCourt') }}</h2>
+        <CanvaEmptyState v-if="!overviewStats.perCourt.length" :title="t('owner.emptyCourtsTitle')" doodle="bench" />
+        <div v-for="court in overviewStats.perCourt" :key="court.id" class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2 text-xs font-bold">
+            <span class="text-brand-navy">{{ court.name }}</span>
+            <span class="tabular-nums text-brand-primary">{{ formatNumber(court.pct) }}%</span>
+          </div>
+          <div class="canva-overview-bar">
+            <div class="canva-overview-bar-fill" :style="{ width: `${court.pct}%` }" />
+          </div>
+          <p class="text-[10px] text-brand-gray-500">
+            {{ t('owner.overviewCourtSlots', { used: formatNumber(court.used), total: formatNumber(court.total) }) }}
+          </p>
+        </div>
+      </div>
+
+      <aside class="canva-panel">
+        <div class="mt-0 flex flex-wrap gap-2">
+          <div v-for="item in legend" :key="item.status" class="canva-legend-chip">
+            <span class="canva-legend-dot" :style="{ background: item.color }" />
+            {{ statusLabel(item.status) }}
+          </div>
+        </div>
+      </aside>
+
+      <div class="canva-panel space-y-3">
+        <h2 class="text-sm font-bold text-brand-navy">{{ overviewMonthLabel }}</h2>
+        <div class="canva-overview-month text-[10px] font-bold text-brand-gray-500">
+          <span v-for="wd in overviewMonthWeekdays" :key="wd">{{ wd }}</span>
+        </div>
+        <div class="canva-overview-month">
+          <button
+            v-for="(cell, index) in overviewMonthCells"
+            :key="`${cell.iso || 'blank'}-${index}`"
+            type="button"
+            class="canva-overview-month-day"
+            :class="[
+              cell.iso === date ? 'canva-overview-month-day-active' : '',
+              cell.iso === today() ? 'canva-overview-month-day-today' : '',
+              !cell.iso ? 'pointer-events-none opacity-0' : '',
+            ]"
+            :disabled="!cell.iso"
+            @click="cell.iso && selectOverviewDay(cell.iso)"
+          >
+            <bdi v-if="cell.day" dir="ltr" class="tabular-nums">{{ formatNumber(cell.day) }}</bdi>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section v-else class="canva-panel overflow-visible p-0" :class="locale === 'en' ? 'calendar-latin' : ''">
       <div class="border-b border-brand-gray-100 px-4 py-4">
         <div class="flex items-center justify-between gap-3">
           <p class="min-w-0 truncate text-sm font-bold text-brand-navy">{{ monthLabel }} · {{ weekdayLabel }} <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi></p>
@@ -1044,16 +1219,27 @@ const legend = [
           </button>
         </div>
 
-        <div v-if="courts.length" class="canva-rail mt-4 gap-2 pb-0">
+        <div v-if="courts.length" class="mt-4 flex flex-wrap items-center gap-2">
+          <div class="canva-rail min-w-0 flex-1 gap-2 pb-0">
+            <button
+              v-for="court in courts"
+              :key="court.id"
+              type="button"
+              class="canva-court-chip"
+              :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+              @click="activeCourtId = court.id"
+            >
+              {{ localizedField(court, 'nameFa', 'nameEn') }}
+            </button>
+          </div>
           <button
-            v-for="court in courts"
-            :key="court.id"
             type="button"
-            class="canva-court-chip"
-            :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
-            @click="activeCourtId = court.id"
+            class="shrink-0 border border-brand-gray-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-navy"
+            style="border-radius: var(--sz-canva-radius);"
+            :class="multiSelectMode ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : ''"
+            @click="toggleMultiSelectMode"
           >
-            {{ localizedField(court, 'nameFa', 'nameEn') }}
+            {{ t('owner.selectionBar.multiSelect') }}
           </button>
         </div>
       </div>
@@ -1066,7 +1252,7 @@ const legend = [
         <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
       </div>
 
-      <div v-else class="space-y-2 px-3 py-3 sm:px-4">
+      <div v-else class="space-y-1.5 px-3 py-3 sm:px-4">
         <p v-if="activeCourt" class="px-1 text-xs font-bold text-brand-gray-500">
           {{ localizedField(activeCourt, 'nameFa', 'nameEn') }}
         </p>
@@ -1101,12 +1287,12 @@ const legend = [
 
     <Teleport to="body">
       <div
-        v-if="selectedSlotIds.length"
+        v-if="calendarView === 'today' && selectedSlotIds.length"
         class="canva-selection-bar"
         role="region"
         :aria-label="t('owner.selectionBar.title')"
       >
-        <div class="canva-selection-bar-inner">
+        <div class="canva-selection-bar-inner canva-phone-shell">
           <div class="min-w-0 flex-1">
             <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
             <p v-if="selectionCourt" class="mt-0.5 truncate text-sm font-bold text-brand-navy">
@@ -1123,13 +1309,13 @@ const legend = [
             </div>
           </div>
           <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <button type="button" class="btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
+            <button type="button" class="canva-gate-btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
               {{ t('owner.reserve') }}
             </button>
-            <button type="button" class="btn-ghost" :disabled="!canBatchBlock" @click="openSelectionBlock">
+            <button type="button" class="canva-gate-btn-secondary" :disabled="!canBatchBlock" @click="openSelectionBlock">
               {{ t('owner.block') }}
             </button>
-            <button type="button" class="btn-ghost" @click="clearSelection">
+            <button type="button" class="canva-gate-btn-secondary" @click="clearSelection(); multiSelectMode = false">
               {{ t('owner.selectionBar.clear') }}
             </button>
           </div>
@@ -1137,7 +1323,7 @@ const legend = [
       </div>
     </Teleport>
 
-    <aside class="canva-panel">
+    <aside v-if="calendarView === 'today'" class="canva-panel">
       <h2 class="text-base font-bold text-brand-navy">{{ t('owner.legend') }}</h2>
       <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.legendHint') }}</p>
       <div class="mt-3 flex flex-wrap gap-2">
@@ -1149,7 +1335,9 @@ const legend = [
       <p class="mt-4 text-xs leading-5 text-brand-gray-500">{{ t('owner.quickNotesBody') }}</p>
     </aside>
 
-    <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="max-w-4xl" @close="closeMenu">
+    <OwnerLegalFooter />
+
+    <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
       <div class="venus-modal-shell">
         <div class="neo-modal-menu venus-modal-menu space-y-1 !p-2" :class="{ 'max-lg:hidden': activePanel }">
           <div v-if="selectedSlot" class="mb-1 rounded-lg border-b border-brand-gray-100 px-3 py-3 text-sm">
@@ -1166,6 +1354,23 @@ const legend = [
               </span>
             </div>
           </div>
+          <!-- Canva primary order: detail cues · walk-in reserve · block · note -->
+          <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
+          </button>
+          <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.block') }}</span>
+          </button>
+          <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.comments') }}</span>
+          </button>
+          <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
+          </button>
           <button
             v-if="canMarkPaid()"
             type="button"
@@ -1190,14 +1395,6 @@ const legend = [
             <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
           </button>
-          <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.block') }}</span>
-          </button>
-          <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
-          </button>
           <button v-if="canShowSeasonReserve()" type="button" :class="menuItemClass('season')" @click="openSeasonForm">
             <span class="canva-dash-menu-icon" :class="menuIconWrap('season')"><AppIcon :name="menuIcon('season')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.seasonReserve') }}</span>
@@ -1205,14 +1402,6 @@ const legend = [
           <button v-if="canShowCoachReserve()" type="button" :class="menuItemClass('package')" @click="openPackageForm">
             <span class="canva-dash-menu-icon" :class="menuIconWrap('package')"><AppIcon :name="menuIcon('package')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.reserveWithCoach') }}</span>
-          </button>
-          <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.comments') }}</span>
-          </button>
-          <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
           </button>
           <button type="button" class="canva-action-row" @click="closeMenu">
             <span class="canva-dash-menu-icon" :class="menuIconWrap('close')"><AppIcon :name="menuIcon('close')" size="sm" /></span>
@@ -1249,12 +1438,10 @@ const legend = [
               </select>
             </AppFormField>
           </div>
-          <div class="venus-modal-footer">
+          <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <div class="flex gap-3">
-              <button type="button" class="btn-primary flex-1" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
-              <button type="button" class="btn-ghost flex-1" @click="activePanel = null">{{ t('common.back') }}</button>
-            </div>
+            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
+            <button type="button" class="canva-gate-btn-secondary" @click="activePanel = null">{{ t('common.back') }}</button>
           </div>
         </div>
 
@@ -1347,11 +1534,11 @@ const legend = [
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="isNewReservation() && slotsForReserve().some(slotIsInPast)" class="text-xs font-medium text-red-600">{{ t('owner.errors.slotInPast') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
-              class="btn-primary w-full"
+              class="canva-gate-btn-primary"
               :disabled="saving"
               @click="doMarkPaid"
             >
@@ -1360,7 +1547,7 @@ const legend = [
             <button
               v-if="isEditingBooking() && canMarkUnpaid()"
               type="button"
-              class="btn-ghost w-full text-amber-700"
+              class="canva-gate-btn-secondary text-amber-700"
               :disabled="saving"
               @click="doMarkUnpaid"
             >
@@ -1369,7 +1556,7 @@ const legend = [
             <button
               v-if="isEditingBooking() && canCancelSlot()"
               type="button"
-              class="btn-ghost w-full"
+              class="canva-gate-btn-secondary"
               @click="openCancelForm"
             >
               {{ t('owner.cancelBooking') }}
@@ -1424,13 +1611,13 @@ const legend = [
           </form>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button v-if="canUnblockSlot()" type="button" class="btn-ghost w-full" :disabled="saving" @click="doUnblock">
+            <button v-if="canUnblockSlot()" type="button" class="canva-gate-btn-secondary" :disabled="saving" @click="doUnblock">
               {{ saving ? t('common.loading') : t('owner.unblock') }}
             </button>
-            <button v-if="canBlockSlot() || canUnblockSlot()" type="button" class="btn-primary w-full" :disabled="saving" @click="doBlock">
+            <button v-if="canBlockSlot() || canUnblockSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving" @click="doBlock">
               {{ saving ? t('common.loading') : (canUnblockSlot() ? t('common.save') : t('owner.confirmBlock')) }}
             </button>
-            <button type="button" class="btn-ghost w-full" @click="activePanel = null">{{ t('common.back') }}</button>
+            <button type="button" class="canva-gate-btn-secondary" @click="activePanel = null">{{ t('common.back') }}</button>
           </div>
         </div>
 
@@ -1453,7 +1640,7 @@ const legend = [
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="btn-primary w-full" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -1536,7 +1723,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -1628,7 +1815,7 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
 
@@ -1655,7 +1842,7 @@ const legend = [
               :equipment-price="reserveEquipmentPrice"
             />
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="btn-primary w-full" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="saving" @click="saveEquipmentSelection">{{ saving ? t('common.loading') : t('common.save') }}</button>
           </div>
         </div>
       </div>

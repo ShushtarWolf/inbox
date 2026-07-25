@@ -1,22 +1,26 @@
 <script setup lang="ts">
+import type { NavItem } from '#shared/nav.ts'
 import { canAccessOwnerNav, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+const router = useRouter()
 const { user, fetch: fetchAuth } = useAuth()
 const { localizedField } = useLocalizedField()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const ownerClubVersion = ref(0)
+const moreOpen = ref(false)
 
 provide('ownerClubVersion', ownerClubVersion)
+provide('ownerMoreOpen', moreOpen)
 
-/** Primary Canva bottom-nav tabs (mobile-first). Extra destinations live on /owner home. */
+/** Primary Canva bottom-nav tabs. «بیشتر» opens a sheet grid (not /owner hub). */
 const primaryNavItems = [
   { path: '/owner/calendar', labelKey: 'owner.calendarShort', icon: 'calendar_month' },
   { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
   { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
-  { path: '/owner', labelKey: 'owner.more', icon: 'apps' },
 ] as const
 
 const activeMembership = computed(() => {
@@ -33,7 +37,6 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
   const coachCount = membership?.club?._count?.coaches ?? 0
 
   return items.filter((item) => {
-    if (item.path === '/owner') return true
     if (item.path === '/owner/workers' && !isOwner) return false
     if (item.path === '/owner/coaches' && (pilotNoCoach.value || coachCount === 0)) return false
     if (item.path === '/owner/packages' && !isRecurringReserveEnabled()) return false
@@ -41,13 +44,20 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
   })
 }
 
-const bottomNav = computed(() =>
-  filterNav(primaryNavItems).map((item) => ({
+const bottomNav = computed((): NavItem[] => {
+  const items: NavItem[] = filterNav(primaryNavItems).map((item) => ({
     to: localePath(item.path),
     label: t(item.labelKey),
     icon: item.icon,
-  })),
-)
+  }))
+  items.push({
+    to: '#more',
+    label: t('owner.more'),
+    icon: 'apps',
+    action: () => { moreOpen.value = true },
+  })
+  return items
+})
 
 const memberships = computed(() => user.value?.memberships || [])
 
@@ -61,6 +71,19 @@ watchEffect(() => {
 watch(selectedClubId, () => {
   ownerClubVersion.value += 1
 })
+
+watch(() => route.query.more, (value) => {
+  if (value === '1' || value === 'true') moreOpen.value = true
+}, { immediate: true })
+
+function closeMore() {
+  moreOpen.value = false
+  if (route.query.more) {
+    const query = { ...route.query }
+    delete query.more
+    router.replace({ path: route.path, query })
+  }
+}
 
 onMounted(() => fetchAuth())
 </script>
@@ -88,5 +111,6 @@ onMounted(() => fetchAuth())
       </label>
     </div>
     <slot />
+    <OwnerMoreSheet :open="moreOpen" @close="closeMore" />
   </DashboardShell>
 </template>

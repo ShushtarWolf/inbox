@@ -1068,7 +1068,8 @@
     "currentBooking": "Current booking",
     "selectionBar": {
       "title": "Selected hours",
-      "clear": "Clear selection"
+      "clear": "Clear selection",
+      "multiSelect": "Multi-select"
     },
     "slotActions": "Session actions",
     "reserveFormTitle": "Reservation form",

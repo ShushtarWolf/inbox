@@ -31,6 +31,8 @@ const courtSaving = ref(false)
 const courtError = ref('')
 const editingCourtId = ref<string | null>(null)
 const showCourtForm = ref(false)
+const deleteCourtId = ref<string | null>(null)
+const deletePending = ref(false)
 
 const form = reactive({
   nameFa: '',
@@ -165,19 +167,34 @@ async function saveCourt(body: Record<string, unknown>) {
   }
 }
 
-async function deleteCourt(id: string) {
-  if (!confirm(t('owner.settingsPage.confirmDeleteCourt'))) return
+function requestDeleteCourt(id: string) {
+  deleteCourtId.value = id
+}
+
+function closeDeleteCourt() {
+  if (deletePending.value) return
+  deleteCourtId.value = null
+}
+
+async function confirmDeleteCourt() {
+  if (!deleteCourtId.value) return
+  deletePending.value = true
   courtSaving.value = true
   courtError.value = ''
   try {
-    await $fetch(`/api/owner/courts/${id}`, { method: 'DELETE' })
-    editingCourtId.value = null
-    showCourtForm.value = false
+    await $fetch(`/api/owner/courts/${deleteCourtId.value}`, { method: 'DELETE' })
+    if (editingCourtId.value === deleteCourtId.value) {
+      editingCourtId.value = null
+      showCourtForm.value = false
+    }
+    deleteCourtId.value = null
     await refreshCourts()
     await refresh()
   } catch {
     courtError.value = t('common.error')
+    deleteCourtId.value = null
   } finally {
+    deletePending.value = false
     courtSaving.value = false
   }
 }
@@ -366,7 +383,7 @@ async function save() {
             :saving="courtSaving"
             @save="saveCourt"
             @cancel="showCourtForm = false; editingCourtId = null"
-            @delete="deleteCourt"
+            @delete="requestDeleteCourt"
           />
         </div>
       </div>
@@ -517,5 +534,19 @@ async function save() {
       </div>
     </form>
     </AppAsyncState>
+
+    <CanvaConfirmSheet
+      :open="Boolean(deleteCourtId)"
+      :title="t('owner.settingsPage.confirmDeleteCourt')"
+      :body="t('owner.settingsPage.confirmDeleteCourt')"
+      :confirm-label="t('booking.confirmYes')"
+      :dismiss-label="t('booking.confirmNo')"
+      :pending="deletePending"
+      danger
+      @confirm="confirmDeleteCourt"
+      @close="closeDeleteCourt"
+    />
+
+    <OwnerLegalFooter />
   </div>
 </template>
