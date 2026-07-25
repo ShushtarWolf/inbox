@@ -1,5 +1,5 @@
 import { getPaymentService } from '../../../utils/payments/service'
-import { syncPaymentToParent } from '../../../utils/paymentSync'
+import { confirmPaymentAndSync } from '../../../utils/paymentSync'
 
 export default defineEventHandler(async (event) => {
   const providerName = getRouterParam(event, 'provider')
@@ -17,8 +17,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, skipped: true }
   }
 
-  const intent = await service.confirm(body.providerRef)
-  await syncPaymentToParent(intent.id)
-
-  return { ok: true, paymentId: intent.id }
+  // Same path as browser callback — idempotent confirm + parent sync + paid notify.
+  const intent = await confirmPaymentAndSync(body.providerRef, providerName)
+  return { ok: true, paymentId: intent.id, status: intent.status }
 })

@@ -1,6 +1,7 @@
 export function useCheckout() {
   const { public: { paymentsMode } } = useRuntimeConfig()
   const onlineEnabled = computed(() => paymentsMode !== 'pay_at_club')
+  const isTestPayments = computed(() => paymentsMode === 'test')
 
   async function startCheckout(body: {
     bookingId?: string
@@ -20,17 +21,17 @@ export function useCheckout() {
 
   function canPayOnline(paymentStatus?: string | null) {
     if (!onlineEnabled.value) return false
-    return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(paymentStatus || '')
+    return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(paymentStatus || '')
   }
 
   /** Wallet debit works in pay_at_club (refund credits) and in online modes. */
   function canPayWithWallet(paymentStatus?: string | null) {
-    return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(paymentStatus || '')
+    return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(paymentStatus || '')
   }
 
   function isPaid(paymentStatus?: string | null) {
     return paymentStatus === 'PAID'
   }
 
-  return { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet, isPaid }
+  return { onlineEnabled, isTestPayments, startCheckout, canPayOnline, canPayWithWallet, isPaid }
 }

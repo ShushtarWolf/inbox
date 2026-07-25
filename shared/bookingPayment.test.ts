@@ -63,19 +63,22 @@ describe('payment helpers', () => {
     expect(isPaymentRefundable('PAY_AT_CLUB')).toBe(false)
   })
 
-  it('detects payable online statuses', () => {
+  it('detects payable online statuses including FAILED for retry', () => {
     expect(isPaymentPayableOnline('PENDING_ONLINE')).toBe(true)
+    expect(isPaymentPayableOnline('FAILED')).toBe(true)
     expect(isPaymentPayableOnline('PAID')).toBe(false)
   })
 
-  it('detects unpaid desk statuses', () => {
+  it('detects unpaid desk statuses including FAILED', () => {
     expect(isUnpaidPaymentStatus('PAY_AT_CLUB')).toBe(true)
     expect(isUnpaidPaymentStatus('PENDING_AT_CLUB')).toBe(true)
+    expect(isUnpaidPaymentStatus('FAILED')).toBe(true)
     expect(isUnpaidPaymentStatus('PAID')).toBe(false)
   })
 
-  it('allows wallet settle for unpaid desk statuses', () => {
+  it('allows wallet settle for unpaid and failed statuses', () => {
     expect(isWalletPayableStatus('PAY_AT_CLUB')).toBe(true)
+    expect(isWalletPayableStatus('FAILED')).toBe(true)
     expect(isWalletPayableStatus('PAID')).toBe(false)
   })
 

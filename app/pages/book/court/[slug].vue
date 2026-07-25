@@ -21,7 +21,8 @@ const paying = ref(false)
 const confirming = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
-const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
+const lastPaymentStatus = ref<string | null>(null)
+const { onlineEnabled, isTestPayments, startCheckout, canPayOnline } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 const { smsPhase, multiReady } = useSmsCapability()
 
@@ -110,20 +111,21 @@ async function confirm() {
       body: { slotId: selectedSlot.value },
     })
     createdBookingId.value = result.id
+    lastPaymentStatus.value = result.paymentStatus
     bookedPrice.value = selected?.price ?? null
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = onlineEnabled.value ? t('booking.successCourtOnline') : t('booking.successCourt')
     refresh()
 
-    // FLOW-A: online → SEP checkout; pay_at_club stays on success sheet.
+    // Online modes: auto-redirect to IPG / test-gateway; pay_at_club stays on success sheet.
     if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
       paying.value = true
       try {
         await startCheckout({ bookingId: result.id })
       } catch (checkoutError: unknown) {
         feedbackTone.value = 'error'
-        feedback.value = fetchErrorMessage(checkoutError, t('booking.actionFailed'))
+        feedback.value = fetchErrorMessage(checkoutError, t('booking.paymentError'))
       } finally {
         paying.value = false
       }
@@ -240,16 +242,22 @@ onMounted(() => {
         <p class="text-sm font-bold text-brand-navy">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
         <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>
         <template v-if="!onlineEnabled">
-          <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
-          <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
-          <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+          <p class="mt-1 text-sm font-bold text-start">{{ t('booking.payAtClub') }}</p>
+          <p class="text-sm text-brand-gray-600 text-start">{{ t('booking.payAtClubDetail') }}</p>
+          <p v-if="bookedPrice != null" class="text-sm font-bold text-start">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
           <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
             {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
           </button>
         </template>
         <div v-else class="mt-2 space-y-2">
+          <p class="text-sm font-bold text-brand-navy text-start">{{ t('booking.payNow') }}</p>
+          <p class="text-sm text-brand-gray-600 text-start">
+            {{ isTestPayments ? t('booking.onlinePayTestHint') : t('booking.onlinePayHint') }}
+          </p>
+          <p v-if="bookedPrice != null" class="text-sm font-bold text-start">{{ t('booking.payOnlineAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+          <p v-if="feedbackTone === 'error'" class="canva-flash-error text-start">{{ feedback }}</p>
           <button type="button" class="canva-gate-btn-primary w-full" :disabled="paying" @click="payNow">
-            {{ paying ? t('common.loading') : t('booking.payNow') }}
+            {{ paying ? t('common.loading') : (lastPaymentStatus === 'FAILED' ? t('booking.payRetry') : t('booking.payNow')) }}
           </button>
           <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payWithWallet">
             {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})

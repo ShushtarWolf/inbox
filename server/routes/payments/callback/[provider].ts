@@ -1,30 +1,5 @@
 import { confirmPaymentAndSync, markPaymentFailedAndSync } from '../../../utils/paymentSync'
-
-function pickString(...vals: unknown[]): string | undefined {
-  for (const v of vals) {
-    if (v == null) continue
-    const s = String(v).trim()
-    if (s) return s
-  }
-  return undefined
-}
-
-/**
- * Normalize SEP / test-gateway query+body fields.
- * SEP typically POSTs: ResNum, RefNum, State=OK|Canceled|…
- * Test gateway may send Authority/ResNum + Status/State.
- */
-function readPaymentCallbackFields(
-  query: Record<string, unknown>,
-  body?: Record<string, unknown>,
-) {
-  const src = { ...query, ...(body || {}) }
-  return {
-    providerRef: pickString(src.ResNum, src.resNum, src.Authority, src.authority, src.ref),
-    refNum: pickString(src.RefNum, src.refNum),
-    statusRaw: String(src.State || src.state || src.Status || src.status || '').toUpperCase(),
-  }
-}
+import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
 
 /**
  * IPG return URL (GET or POST).
@@ -50,7 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // User cancelled / bank declined — never mark PAID.
-  if (statusRaw && statusRaw !== 'OK') {
+  if (!isPaymentCallbackOk(statusRaw)) {
     try {
       await markPaymentFailedAndSync(providerRef, provider)
     } catch (err) {

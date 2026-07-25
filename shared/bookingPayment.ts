@@ -40,16 +40,17 @@ export function isPaymentRefundable(status: string): boolean {
 }
 
 export function isPaymentPayableOnline(status: string): boolean {
-  return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(status)
+  // FAILED must be retriable (test-gateway NOK / bank decline) — new checkout intent replaces the row.
+  return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(status)
 }
 
 export function countsTowardRevenue(bookingStatus: string, paymentStatus: string): boolean {
   return bookingStatus !== 'CANCELLED' && paymentStatus === 'PAID'
 }
 
-/** Pay-at-club / pending statuses that still need collection at the desk. */
+/** Pay-at-club / pending / failed statuses that still need collection at the desk. */
 export function isUnpaidPaymentStatus(status: string | null | undefined): boolean {
-  return ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID'].includes(status || '')
+  return ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID', 'FAILED'].includes(status || '')
 }
 
 export function isPaidPaymentStatus(status: string | null | undefined): boolean {
@@ -75,5 +76,5 @@ export function resolveParentPaymentMethod(
 
 /** Desk / athlete statuses that can still be settled from wallet balance. */
 export function isWalletPayableStatus(status: string | null | undefined): boolean {
-  return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'].includes(status || '')
+  return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(status || '')
 }

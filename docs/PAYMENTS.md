@@ -54,10 +54,12 @@ Server IP (آدرس آی‌پی سرور سایت) is the public A record for `i
 4. Return: `POST|GET /payments/callback/sep` with `ResNum`, `RefNum`, `State=OK|…`
 5. `State=OK` → provider `confirm` (VerifyTransaction) → `PAID` + parent sync + `notifyBookingPaid` (SMS soft-fail)
 6. Non-OK / verify failure → `FAILED` (never left `PAID` incorrectly). Double callback is idempotent (`2` / already `PAID`)
+7. Athlete can **retry** after `FAILED` (Pay online creates a new intent). Desk **mark paid (cash)** still works for unpaid/`FAILED` rows
+8. `/athlete/payments` lists real `Payment` rows (paid, pending, failed, pay_at_club / cash / wallet)
 
 ## Desk collection
 
-Owner **Mark paid (cash)** remains for walk-ins (`pay_at_club` or unpaid desk rows). Public athlete flow offers online pay when `PAYMENTS_MODE` ≠ `pay_at_club`.
+Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PENDING_ONLINE` / `FAILED`). Public athlete flow offers **پرداخت آنلاین** when `PAYMENTS_MODE` is `test` or `live` (not when `pay_at_club`).
 
 ## Cancellation refunds
 
@@ -75,7 +77,7 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 ## Webhooks
 
-`POST /api/payments/webhook/[provider]` — optional; browser callback is the primary path for SEP. Idempotent confirm + parent sync.
+`POST /api/payments/webhook/[provider]` — optional; browser callback is the primary path for SEP. Uses the same `confirmPaymentAndSync` path (idempotent confirm + parent sync + paid notify).
 
 ## `pay_at_club` migration note
 
@@ -86,10 +88,11 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 Do **not** set `PAYMENTS_MODE=live` until all pass:
 
 - [ ] Test-gateway: book → pay → `PAID`
-- [ ] Cancel / NOK → booking **not** `PAID`
+- [ ] Cancel / NOK → booking **not** `PAID`; Pay online retry works after `FAILED`
 - [ ] Double-hit callback (same ResNum) → still one `PAID`, no error storm
 - [ ] Cancel paid online → gateway reverse **or** wallet fallback per env
 - [ ] Confirm SMS soft-fails independently (booking still succeeds if SMS down)
 - [ ] `SEP_TERMINAL_ID` set on Liara only — never in git
 - [ ] Callback URL `https://inboxs.ir/payments/callback/sep` matches panel / request payload
-- [ ] Unit tests: `npm test` (includes SEP client + provider resolution)
+- [ ] Unit tests: `npm test` (includes SEP client + provider resolution + callback field parsing)
+- [ ] `/athlete/payments` shows the new payment row after book/pay
