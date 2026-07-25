@@ -1,3 +1,5 @@
+const FARSI_CHARS = /[\u0600-\u06FF]/
+
 export function fetchErrorMessage(error: unknown, fallback: string, translate?: (key: string) => string) {
   let raw = ''
   if (error && typeof error === 'object' && 'data' in error) {
@@ -17,10 +19,24 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Coach is not bookable': 'booking.errors.coachNotBookable',
     'Coach not found': 'booking.errors.coachNotFound',
     'Online checkout is disabled; pay at the club or use wallet balance': 'booking.checkoutDisabled',
+    'Booking not found': 'booking.errors.bookingNotFound',
+    'Court not found': 'booking.errors.courtNotFound',
+    'Club not found': 'booking.errors.clubNotFound',
+    'Club is not ready for public booking': 'booking.errors.clubNotBookable',
+    'Cancellation window has passed': 'booking.errors.cancellationWindowPassed',
+    'Insufficient wallet balance': 'booking.errors.insufficientWallet',
+    'Package not found': 'booking.errors.packageNotFound',
+    'Package is full': 'booking.packageFull',
+    'Invalid waitlist request': 'booking.errors.waitlistInvalid',
+    'Invalid credentials': 'auth.invalidCredentials',
+    'Invalid OTP': 'auth.invalidOtp',
+    'Invalid phone': 'auth.invalidPhone',
+    'Invalid or expired token': 'auth.resetFailed',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)
-  return raw
+  // FA-only product: never surface an untranslated (English) server message.
+  return FARSI_CHARS.test(raw) ? raw : fallback
 }
 
 export function useFetchError() {

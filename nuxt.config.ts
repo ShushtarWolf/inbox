@@ -50,16 +50,18 @@ export default defineNuxtConfig({
   },
 
   i18n: {
-    restructureDir: false,
-    bundle: { optimizeTranslationDirective: false },
+    // FA-only product. Files live in `i18n/locales` (module default layout).
+    restructureDir: 'i18n',
+    langDir: 'locales',
     locales: [
       { code: 'fa', language: 'fa-IR', name: 'فارسی', dir: 'rtl', file: 'fa.json' },
     ],
     defaultLocale: 'fa',
     strategy: 'no_prefix',
-    lazy: false,
-    langDir: 'locales',
     detectBrowserLanguage: false,
+    // Messages are always lazy in v10; preload keeps them present on first paint
+    // so `t()` can never fall back to rendering raw key paths.
+    experimental: { preload: true },
   },
 
   routeRules: {

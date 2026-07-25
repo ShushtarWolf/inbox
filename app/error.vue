@@ -14,9 +14,13 @@ const title = computed(() => {
   return t('errors.genericTitle')
 })
 
+const FARSI_CHARS = /[\u0600-\u06FF]/
+
 const message = computed(() => {
   if (props.error.statusCode === 404) return t('errors.notFoundBody')
-  return props.error.statusMessage || props.error.message || t('errors.genericBody')
+  // FA-only product: server/runtime messages are English, so only show Farsi ones.
+  const raw = props.error.statusMessage || props.error.message || ''
+  return FARSI_CHARS.test(raw) ? raw : t('errors.genericBody')
 })
 
 function goHome() {

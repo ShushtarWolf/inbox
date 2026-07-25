@@ -571,14 +571,14 @@ async function main() {
   const vipSegment = await prisma.contactSegment.create({
     data: {
       clubId: ownerClub.id,
-      name: 'VIP',
+      name: 'وی‌آی‌پی',
       filterJson: json({ minVisits: 5 }),
     },
   })
   const winbackSegment = await prisma.contactSegment.create({
     data: {
       clubId: ownerClub.id,
-      name: 'Needs reactivation',
+      name: 'نیازمند بازگشت',
       filterJson: json({ inactiveDays: 7 }),
     },
   })
@@ -586,9 +586,9 @@ async function main() {
   const campaign = await prisma.campaign.create({
     data: {
       clubId: ownerClub.id,
-      name: 'Evening Padel Pack',
+      name: 'پکیج پدل عصرگاهی',
       channel: 'SMS',
-      template: 'Book this week and get 10% off after 6pm.',
+      template: 'این هفته رزرو کنید و بعد از ساعت ۱۸ ده درصد تخفیف بگیرید.',
       status: 'SENT',
       segmentId: vipSegment.id,
       sentAt: new Date(),
@@ -605,8 +605,8 @@ async function main() {
 
   await prisma.reminderRule.createMany({
     data: [
-      { clubId: ownerClub.id, name: 'Upcoming booking reminder', triggerType: 'booking_upcoming', offsetHours: 4, template: 'Remember your booking today.' },
-      { clubId: ownerClub.id, name: 'Win-back after inactivity', triggerType: 'inactive_customer', offsetHours: 0, template: 'We miss you. Your next court is waiting.' },
+      { clubId: ownerClub.id, name: 'یادآوری رزرو پیش‌رو', triggerType: 'booking_upcoming', offsetHours: 4, template: 'یادتان باشد امروز رزرو دارید.' },
+      { clubId: ownerClub.id, name: 'بازگشت پس از بی‌فعالیتی', triggerType: 'inactive_customer', offsetHours: 0, template: 'جای شما خالی است؛ زمین بعدی منتظر شماست.' },
     ],
   })
 
@@ -670,18 +670,18 @@ async function main() {
         targetType: 'COACH',
         coachId: sara.id,
         authorUserId: athlete.id,
-        authorName: 'Ali',
+        authorName: 'علی',
         rating: 5,
-        title: 'Great session',
-        body: 'Clear drills and actionable feedback.',
+        title: 'جلسه عالی',
+        body: 'تمرین‌ها شفاف بود و بازخوردها کاربردی.',
         isVerified: true,
       },
       {
         targetType: 'COACH',
         coachId: reza.id,
-        authorName: 'Mina',
+        authorName: 'مینا',
         rating: 4,
-        body: 'Professional and punctual.',
+        body: 'حرفه‌ای و وقت‌شناس.',
         isVerified: false,
       },
     ],

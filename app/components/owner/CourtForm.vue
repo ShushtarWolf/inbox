@@ -109,8 +109,8 @@ function submit() {
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtSport') }}</span>
         <select v-model="form.sportSlug" class="neo-select">
-          <option value="padel">Padel</option>
-          <option value="tennis">Tennis</option>
+          <option value="padel">{{ t('clubs.sportPadel') }}</option>
+          <option value="tennis">{{ t('clubs.sportTennis') }}</option>
         </select>
       </label>
     </div>

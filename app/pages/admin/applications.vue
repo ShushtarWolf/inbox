@@ -241,8 +241,8 @@ watch(statusFilter, () => {
       </AppFormField>
       <AppFormField :label="t('admin.sport')">
         <select v-model="createForm.sport" class="neo-input" style="border-radius: 2px;">
-          <option value="padel">padel</option>
-          <option value="tennis">tennis</option>
+          <option value="padel">{{ t('clubs.sportPadel') }}</option>
+          <option value="tennis">{{ t('clubs.sportTennis') }}</option>
         </select>
       </AppFormField>
       <p v-if="createError" class="venus-alert-error text-start">{{ createError }}</p>

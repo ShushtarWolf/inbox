@@ -1,18 +1,40 @@
 #!/usr/bin/env node
 /** Full page smoke — public routes + authenticated dashboards. FA-only / prod-aware. */
-import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+import fs from 'node:fs'
+import path from 'node:path'
+import { isProdSmokeBase, isPilotNoCoachRuntime } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 const prodAware = isProdSmokeBase(base)
 
+const ROOT = path.resolve(import.meta.dirname, '..')
+const faMessages = JSON.parse(fs.readFileSync(path.join(ROOT, 'i18n', 'locales', 'fa.json'), 'utf8'))
+const namespaceRe = new RegExp(`\\b(?:${Object.keys(faMessages).join('|')})(?:\\.[A-Za-z][A-Za-z0-9_]*)+`, 'g')
+
+/** Visible text only — script/style payloads legitimately contain key paths. */
+function visibleText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+}
+
+/** Raw `t()` key paths reaching the user mean FA messages failed to resolve. */
+function findRawI18nKeys(html) {
+  const leaked = new Set()
+  for (const match of visibleText(html).matchAll(namespaceRe)) {
+    const resolved = match[0].split('.').reduce((acc, part) => (acc == null ? acc : acc[part]), faMessages)
+    if (resolved !== undefined) leaked.add(match[0])
+  }
+  return [...leaked]
+}
+
 const publicPaths = [
   '/',
   '/clubs',
-  '/coaches',
   '/login',
   '/register',
   '/register/owner',
-  '/register/coach',
   '/privacy',
   '/terms',
   '/about',
@@ -24,6 +46,9 @@ const publicPaths = [
   '/forgot-password',
   '/reset-password',
 ]
+
+/** Coach discovery is public only when the coach product is enabled. */
+const coachPublicPaths = ['/coaches', '/register/coach']
 
 /** Soft-disabled EN + legacy apply routes — 301/302/307/308 OK */
 const redirectPaths = [
@@ -39,10 +64,12 @@ const redirectPaths = [
 ]
 
 const ownerPaths = [
-  '/owner', '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/packages',
+  '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/packages',
   '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings',
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
+/** Dashboard entry points that forward to their real landing page. */
+const ownerRedirectPaths = ['/owner']
 const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
 const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 const adminPaths = [
@@ -51,7 +78,6 @@ const adminPaths = [
   '/admin/users',
   '/admin/bookings',
   '/admin/applications',
-  '/admin/bug-reports',
   '/admin/sms',
   '/admin/provision',
 ]
@@ -88,6 +114,10 @@ async function check(path, { session, expectRedirect, expectStatus = 200, label 
   if (!html.includes('__nuxt') && !html.includes('<!DOCTYPE')) {
     throw new Error(`${label || path} missing SPA shell`)
   }
+  const leakedKeys = findRawI18nKeys(html)
+  if (leakedKeys.length) {
+    throw new Error(`${label || path} rendered raw i18n keys: ${leakedKeys.join(', ')}`)
+  }
 }
 
 async function checkManifest() {
@@ -105,8 +135,16 @@ async function checkManifest() {
 async function main() {
   console.log(`smoke-all-pages → ${base}${prodAware ? ' (prod-aware)' : ''}`)
 
+  const pilotNoCoach = await isPilotNoCoachRuntime(base)
+  if (pilotNoCoach) console.log('note  pilotNoCoach=true — coach routes expected to redirect')
+
   for (const path of publicPaths) {
     await check(path, { label: `public ${path}` })
+    console.log(`ok  public ${path}`)
+  }
+
+  for (const path of coachPublicPaths) {
+    await check(path, { expectRedirect: pilotNoCoach, label: `public ${path}` })
     console.log(`ok  public ${path}`)
   }
 
@@ -139,12 +177,16 @@ async function main() {
     await login('coach', 'coach@inbox.local')
     await login('athlete', 'athlete@inbox.local')
 
+    for (const path of ownerRedirectPaths) {
+      await check(path, { session: 'owner', expectRedirect: true, label: `owner ${path}` })
+      console.log(`ok  owner ${path}`)
+    }
     for (const path of ownerPaths) {
-      await check(path, { session: 'owner', label: `owner ${path}` })
+      await check(path, { session: 'owner', expectRedirect: pilotNoCoach && path === '/owner/coaches', label: `owner ${path}` })
       console.log(`ok  owner ${path}`)
     }
     for (const path of coachPaths) {
-      await check(path, { session: 'coach', label: `coach ${path}` })
+      await check(path, { session: 'coach', expectRedirect: pilotNoCoach, label: `coach ${path}` })
       console.log(`ok  coach ${path}`)
     }
     for (const path of athletePaths) {
@@ -178,7 +220,7 @@ async function main() {
         console.log(`ok  /clubs/${clubs[0].slug}`)
       }
       if (coaches[0]?.id) {
-        await check(`/coaches/${coaches[0].id}`, { label: 'coach detail' })
+        await check(`/coaches/${coaches[0].id}`, { expectRedirect: pilotNoCoach, label: 'coach detail' })
         console.log(`ok  /coaches/${coaches[0].id}`)
       }
     }

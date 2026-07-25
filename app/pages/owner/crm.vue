@@ -33,6 +33,11 @@ function segmentLabel(segment: { id: string, name: string }) {
   return segment.name
 }
 
+const selectedSegmentLabel = computed(() => {
+  const segment = data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)
+  return segment ? segmentLabel(segment) : undefined
+})
+
 function campaignStatusLabel(status: string) {
   // Pipeline status SENT after dry-run must not read as phone delivery.
   if (status === 'SENT' && !liveSms.value) {
@@ -111,7 +116,8 @@ async function send() {
       method: 'POST',
       body: {
         ...sms,
-        segmentName: data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)?.name,
+        // Store the Farsi label: campaign history renders this string verbatim.
+        segmentName: selectedSegmentLabel.value,
       },
     })
     if (result.campaign?.status === 'SCHEDULED') {
