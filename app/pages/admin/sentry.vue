@@ -10,6 +10,7 @@ type SentryStatus = {
   sentryEnabled: boolean
   environment: string
   release: string | null
+  noteCode?: 'enabled' | 'unset'
   note: string
 }
 
@@ -18,6 +19,7 @@ type SentryTestResult = {
   sentryEnabled: boolean
   eventId: string | null
   environment?: string
+  noteCode?: 'unset_noop' | 'captured'
   note: string
 }
 
@@ -29,6 +31,19 @@ const serverError = ref('')
 const serverBusy = ref(false)
 const clientEventId = ref<string | null>(null)
 const clientNote = ref('')
+const clientWasNoop = ref(false)
+
+const isUnset = computed(() => status.value !== null && !status.value.sentryEnabled)
+
+function statusNote(s: SentryStatus) {
+  if (s.noteCode === 'enabled' || s.sentryEnabled) return t('admin.sentryPage.noteEnabled')
+  return t('admin.sentryPage.noteUnset')
+}
+
+function serverResultNote(r: SentryTestResult) {
+  if (r.noteCode === 'captured' || (r.sentryEnabled && r.eventId)) return t('admin.sentryPage.resultCaptured')
+  return t('admin.sentryPage.resultUnsetNoop')
+}
 
 async function load() {
   if (!secret.value) return
@@ -74,12 +89,19 @@ async function triggerServer() {
 function triggerClient() {
   clientEventId.value = null
   clientNote.value = ''
-  if (typeof $sentryCaptureTest !== 'function') {
+  clientWasNoop.value = false
+  if (isUnset.value || typeof $sentryCaptureTest !== 'function') {
+    clientWasNoop.value = true
     clientNote.value = t('admin.sentryPage.clientDisabled')
     return
   }
   const id = $sentryCaptureTest()
-  clientEventId.value = id ?? null
+  if (!id) {
+    clientWasNoop.value = true
+    clientNote.value = t('admin.sentryPage.clientDisabled')
+    return
+  }
+  clientEventId.value = id
   clientNote.value = t('admin.sentryPage.clientSent')
 }
 
@@ -99,52 +121,114 @@ watch(secret, (value) => {
         <h1 class="tail-page-title">{{ t('admin.sentryTitle') }}</h1>
         <p class="mt-1 text-sm text-brand-gray-600">{{ t('admin.sentrySubtitle') }}</p>
       </div>
-      <button type="button" class="btn-secondary text-xs" :disabled="pending" @click="load">
+      <button
+        type="button"
+        class="border border-brand-gray-300 bg-white px-3 py-2 text-xs font-bold text-brand-navy transition hover:border-brand-primary/40 disabled:opacity-60"
+        style="border-radius: 2px;"
+        :disabled="pending"
+        @click="load"
+      >
         {{ t('common.retry') }}
       </button>
     </div>
 
-    <p v-if="loadError" class="text-sm text-red-600" role="alert">{{ loadError }}</p>
+    <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="default">
+      <div v-if="status" class="space-y-6">
+        <!-- Honest empty / unset banner -->
+        <div
+          class="border p-3 text-sm font-bold"
+          style="border-radius: 2px;"
+          :class="isUnset
+            ? 'border-amber-200 bg-amber-50 text-amber-900'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-900'"
+        >
+          <span
+            class="me-2 inline-block px-2 py-0.5 text-xs"
+            style="border-radius: 2px;"
+            :class="isUnset ? 'bg-amber-100' : 'bg-emerald-100'"
+          >
+            {{ isUnset ? t('admin.sentryPage.badgeUnset') : t('admin.sentryPage.badgeEnabled') }}
+          </span>
+          {{ isUnset ? t('admin.sentryPage.emptyBanner') : t('admin.sentryPage.enabledBanner') }}
+        </div>
 
-    <section v-if="status" class="space-y-3 text-sm">
-      <h2 class="font-medium text-brand-gray-900">{{ t('admin.sentryPage.statusTitle') }}</h2>
-      <dl class="grid gap-2 sm:grid-cols-2">
-        <div>
-          <dt class="text-brand-gray-500">{{ t('admin.sentryPage.enabled') }}</dt>
-          <dd>{{ yesNo(status.sentryEnabled) }}</dd>
-        </div>
-        <div>
-          <dt class="text-brand-gray-500">{{ t('admin.sentryPage.environment') }}</dt>
-          <dd>{{ status.environment }}</dd>
-        </div>
-        <div class="sm:col-span-2">
-          <dt class="text-brand-gray-500">{{ t('admin.sentryPage.release') }}</dt>
-          <dd class="font-mono text-xs">{{ status.release || '—' }}</dd>
-        </div>
-      </dl>
-      <p class="text-brand-gray-600">{{ status.note }}</p>
-    </section>
+        <section
+          class="space-y-3 border border-brand-gray-200 bg-white p-4"
+          style="border-radius: 2px;"
+        >
+          <h2 class="tail-section-title">{{ t('admin.sentryPage.statusTitle') }}</h2>
+          <p class="text-sm text-brand-gray-600">{{ statusNote(status) }}</p>
+          <ul class="space-y-2 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.sentryPage.enabled') }}</span>
+              <strong dir="ltr">{{ yesNo(status.sentryEnabled) }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.sentryPage.environment') }}</span>
+              <strong dir="ltr">{{ status.environment }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.sentryPage.release') }}</span>
+              <strong class="font-mono text-xs" dir="ltr">{{ status.release || '—' }}</strong>
+            </li>
+          </ul>
+          <p class="text-xs text-brand-gray-500">{{ t('admin.sentryPage.dsnNeverShown') }}</p>
+        </section>
 
-    <section class="space-y-3 text-sm">
-      <h2 class="font-medium text-brand-gray-900">{{ t('admin.sentryPage.testTitle') }}</h2>
-      <p class="text-brand-gray-600">{{ t('admin.sentryPage.testHint') }}</p>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="btn-primary text-xs" :disabled="serverBusy" @click="triggerServer">
-          {{ serverBusy ? t('admin.sentryPage.sending') : t('admin.sentryPage.triggerServer') }}
-        </button>
-        <button type="button" class="btn-secondary text-xs" @click="triggerClient">
-          {{ t('admin.sentryPage.triggerClient') }}
-        </button>
+        <section
+          class="space-y-3 border border-brand-gray-200 bg-white p-4"
+          style="border-radius: 2px;"
+        >
+          <h2 class="tail-section-title">{{ t('admin.sentryPage.testTitle') }}</h2>
+          <p class="text-sm text-brand-gray-600">
+            {{ isUnset ? t('admin.sentryPage.testHintUnset') : t('admin.sentryPage.testHint') }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="bg-brand-primary px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-brand-gray-300 disabled:text-brand-gray-600"
+              style="border-radius: 2px;"
+              :disabled="serverBusy"
+              @click="triggerServer"
+            >
+              {{ serverBusy ? t('admin.sentryPage.sending') : t('admin.sentryPage.triggerServer') }}
+            </button>
+            <button
+              type="button"
+              class="border border-brand-gray-300 bg-white px-4 py-2 text-xs font-bold text-brand-navy transition hover:border-brand-primary/40"
+              style="border-radius: 2px;"
+              @click="triggerClient"
+            >
+              {{ t('admin.sentryPage.triggerClient') }}
+            </button>
+          </div>
+          <p v-if="serverError" class="venus-alert-error text-start" role="alert">{{ serverError }}</p>
+          <div
+            v-if="serverResult"
+            class="border p-3 text-sm"
+            style="border-radius: 2px;"
+            :class="serverResult.sentryEnabled && serverResult.eventId
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-amber-200 bg-amber-50 text-amber-900'"
+            role="status"
+          >
+            <p>{{ serverResultNote(serverResult) }}</p>
+            <p v-if="serverResult.eventId" class="mt-1 font-mono text-xs" dir="ltr">{{ serverResult.eventId }}</p>
+          </div>
+          <div
+            v-if="clientNote"
+            class="border p-3 text-sm"
+            style="border-radius: 2px;"
+            :class="clientWasNoop
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-900'"
+            role="status"
+          >
+            <p>{{ clientNote }}</p>
+            <p v-if="clientEventId" class="mt-1 font-mono text-xs" dir="ltr">{{ clientEventId }}</p>
+          </div>
+        </section>
       </div>
-      <p v-if="serverError" class="text-red-600" role="alert">{{ serverError }}</p>
-      <p v-if="serverResult" class="text-brand-gray-700">
-        {{ serverResult.note }}
-        <span v-if="serverResult.eventId" class="mt-1 block font-mono text-xs">{{ serverResult.eventId }}</span>
-      </p>
-      <p v-if="clientNote" class="text-brand-gray-700">
-        {{ clientNote }}
-        <span v-if="clientEventId" class="mt-1 block font-mono text-xs">{{ clientEventId }}</span>
-      </p>
-    </section>
+    </AppAsyncState>
   </div>
 </template>

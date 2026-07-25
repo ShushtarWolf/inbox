@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
     sentryEnabled: dsnSet,
     environment,
     release,
+    noteCode: dsnSet ? 'enabled' : 'unset',
     note: dsnSet
       ? 'SENTRY_DSN is set — server + client plugins will init (client needs rebuild/restart to pick up public runtimeConfig)'
       : 'SENTRY_DSN unset — both plugins no-op; app runs normally',

@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/node'
 /**
  * Capture a tagged test exception. Requires x-admin-secret.
  * Safe when DSN is unset (reports no-op; does not throw).
+ * Never returns the DSN.
  */
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -13,6 +14,7 @@ export default defineEventHandler(async (event) => {
       ok: true,
       sentryEnabled: false,
       eventId: null,
+      noteCode: 'unset_noop',
       note: 'SENTRY_DSN unset — no event sent (Sentry is a no-op)',
     }
   }
@@ -30,6 +32,7 @@ export default defineEventHandler(async (event) => {
     sentryEnabled: true,
     eventId,
     environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+    noteCode: 'captured',
     note: 'Test exception captured — check Sentry → Issues within ~1 minute',
   }
 })
