@@ -81,6 +81,7 @@ const {
   paidHonestyNote,
 } = useBookingLabels()
 const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
+const { pilotNoCoach } = usePilotFlags()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
 const paymentFlash = ref('')
@@ -282,34 +283,36 @@ const historyItems = computed((): HistoryItem[] => {
       raw: b,
     })
   }
-  for (const s of (data.value?.coachSessions || []) as CoachSession[]) {
-    items.push({
-      id: s.id,
-      kind: 'coach',
-      status: s.status,
-      date: s.date,
-      title: localizedField(s.coach, 'nameFa', 'nameEn'),
-      timeLabel: formatTimeRange(s.startTime),
-      price: s.payment?.amount || s.price || 0,
-      paymentStatus: paymentOf(s),
-      equipmentLines: [],
-      raw: s,
-    })
-  }
-  for (const b of (data.value?.packageBookings || []) as PackageBooking[]) {
-    items.push({
-      id: b.id,
-      kind: 'package',
-      status: b.status,
-      date: today(),
-      title: b.package.title,
-      timeLabel: localizedField(b.package.club, 'nameFa', 'nameEn'),
-      price: b.payment?.amount || b.package.price || 0,
-      paymentStatus: paymentOf(b),
-      slug: b.package.club.slug,
-      equipmentLines: [],
-      raw: b,
-    })
+  if (!pilotNoCoach.value) {
+    for (const s of (data.value?.coachSessions || []) as CoachSession[]) {
+      items.push({
+        id: s.id,
+        kind: 'coach',
+        status: s.status,
+        date: s.date,
+        title: localizedField(s.coach, 'nameFa', 'nameEn'),
+        timeLabel: formatTimeRange(s.startTime),
+        price: s.payment?.amount || s.price || 0,
+        paymentStatus: paymentOf(s),
+        equipmentLines: [],
+        raw: s,
+      })
+    }
+    for (const b of (data.value?.packageBookings || []) as PackageBooking[]) {
+      items.push({
+        id: b.id,
+        kind: 'package',
+        status: b.status,
+        date: today(),
+        title: b.package.title,
+        timeLabel: localizedField(b.package.club, 'nameFa', 'nameEn'),
+        price: b.payment?.amount || b.package.price || 0,
+        paymentStatus: paymentOf(b),
+        slug: b.package.club.slug,
+        equipmentLines: [],
+        raw: b,
+      })
+    }
   }
   return items
 })

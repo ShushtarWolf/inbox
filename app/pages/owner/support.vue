@@ -10,7 +10,9 @@ useOwnerClubRefresh(() => {
 })
 
 const liveSms = computed(() =>
-  smsStatus.value?.smsPhase === 'MULTI' || Boolean(smsStatus.value?.multiReady),
+  smsStatus.value?.smsMode === 'live'
+  && smsStatus.value?.smsPhase === 'MULTI'
+  && Boolean(smsStatus.value?.multiReady),
 )
 </script>
 

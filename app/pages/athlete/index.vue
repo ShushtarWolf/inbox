@@ -6,7 +6,8 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 const { displayName, avatarUrl, initials, firstName, user, logout, fetch: fetchAuth } = useAuth()
 const { formatCurrency, formatNumber } = useFormatters()
-const { multiReady } = useSmsCapability()
+const { smsLive } = useSmsCapability()
+const { pilotNoCoach } = usePilotFlags()
 const { data, pending } = useAuthedFetch('/api/bookings/mine')
 
 onMounted(() => {
@@ -16,11 +17,12 @@ onMounted(() => {
 const phone = computed(() => user.value?.phone || '')
 
 const addMobileHint = computed(() =>
-  multiReady.value ? t('athlete.addMobileForSmsMulti') : t('athlete.addMobileForSmsSingle'),
+  smsLive.value ? t('athlete.addMobileForSmsMulti') : t('athlete.addMobileForSmsSingle'),
 )
 
 const bookingCount = computed(() => {
   const courts = data.value?.courtBookings?.length || 0
+  if (pilotNoCoach.value) return courts
   const coaches = data.value?.coachSessions?.length || 0
   const packages = data.value?.packageBookings?.length || 0
   return courts + coaches + packages
@@ -30,6 +32,7 @@ const spendTotal = computed(() => {
   const court = (data.value?.courtBookings || []).reduce((sum: number, b: { payment?: { amount?: number } | null; slot?: { price?: number } }) => {
     return sum + (b.payment?.amount || b.slot?.price || 0)
   }, 0)
+  if (pilotNoCoach.value) return court
   const coach = (data.value?.coachSessions || []).reduce((sum: number, s: { payment?: { amount?: number } | null; price?: number }) => {
     return sum + (s.payment?.amount || s.price || 0)
   }, 0)
@@ -57,6 +60,7 @@ const ratingDisplay = computed(() => '—')
 
 const menu = computed(() => [
   { to: localePath('/athlete/profile'), label: t('athlete.editProfile'), icon: 'manage_accounts', danger: false },
+  { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet', danger: false },
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card', danger: false },
   { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications', danger: false },
   { to: localePath('/contact'), label: t('athlete.support'), icon: 'support_agent', danger: false },

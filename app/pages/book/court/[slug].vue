@@ -24,7 +24,7 @@ const feedbackTone = ref<'success' | 'error'>('success')
 const lastPaymentStatus = ref<string | null>(null)
 const { onlineEnabled, isTestPayments, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
-const { smsPhase, multiReady } = useSmsCapability()
+const { smsLive, multiReady } = useSmsCapability()
 
 const { data: slots, pending, error, refresh } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: date.value })),
@@ -233,7 +233,7 @@ onMounted(() => {
           {{ multiReady ? t('booking.noPhoneSmsNote') : t('booking.noPhoneSmsNoteSingle') }}
           <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">{{ t('nav.profile') }}</NuxtLink>
         </p>
-        <p v-else-if="smsPhase === 'SINGLE'" class="text-sm text-brand-gray-600">
+        <p v-else-if="!smsLive" class="text-sm text-brand-gray-600">
           {{ t('booking.smsDeliveryNoteSingle') }}
         </p>
         <p v-else class="text-sm text-brand-gray-600">

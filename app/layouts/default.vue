@@ -94,7 +94,7 @@ onMounted(() => {
         <span class="text-brand-gray-300" aria-hidden="true">·</span>
         <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
         <span class="text-brand-gray-300" aria-hidden="true">·</span>
-        <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('owner.support') }}</NuxtLink>
+        <NuxtLink :to="localePath('/privacy')" class="hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
         <span class="text-brand-gray-300" aria-hidden="true">·</span>
         <NuxtLink :to="localePath('/terms')" class="hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
       </nav>

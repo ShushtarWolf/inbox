@@ -4,7 +4,7 @@ definePageMeta({ layout: 'default' })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
-const { multiReady, smsPhase } = useSmsCapability()
+const { smsPhase, smsLive } = useSmsCapability()
 
 const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
 const address = computed(() => String(config.public.contactAddress || '').trim())
@@ -19,6 +19,13 @@ const enamadReady = computed(() =>
 
 const paymentsMode = computed(() => String(config.public.paymentsMode || 'pay_at_club').trim())
 const ipgLive = computed(() => paymentsMode.value === 'live')
+const ipgTest = computed(() => paymentsMode.value === 'test')
+
+function ipgReadinessCopy() {
+  if (ipgLive.value) return t('contact.ipgReadyLive')
+  if (ipgTest.value) return t('contact.ipgReadyTest')
+  return t('contact.ipgReadyPayAtClub')
+}
 
 const mobileTel = computed(() => {
   if (!mobile.value) return ''
@@ -133,7 +140,7 @@ useHead({
       <div class="space-y-1 text-sm">
         <p class="font-bold text-brand-navy">{{ t('contact.smsReadinessLabel') }}</p>
         <p class="text-brand-gray-700">
-          {{ multiReady ? t('contact.smsReadyMulti') : t('contact.smsReadySingle') }}
+          {{ smsLive ? t('contact.smsReadyMulti') : t('contact.smsReadySingle') }}
           <span class="ms-1 text-xs text-brand-gray-500" dir="ltr">({{ smsPhase }})</span>
         </p>
       </div>
@@ -141,7 +148,7 @@ useHead({
       <div class="space-y-1 text-sm">
         <p class="font-bold text-brand-navy">{{ t('contact.ipgReadinessLabel') }}</p>
         <p class="text-brand-gray-700">
-          {{ ipgLive ? t('contact.ipgReadyLive') : t('contact.ipgReadyPayAtClub') }}
+          {{ ipgReadinessCopy() }}
           <span class="ms-1 text-xs text-brand-gray-500" dir="ltr">({{ paymentsMode }})</span>
         </p>
       </div>
