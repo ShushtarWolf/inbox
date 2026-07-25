@@ -254,7 +254,16 @@ watch(secret, (value) => {
         </div>
 
         <section v-if="data.email" class="tail-card space-y-2">
-          <h2 class="tail-section-title">{{ t('admin.emailOpsTitle') }}</h2>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="tail-section-title">{{ t('admin.emailOpsTitle') }}</h2>
+            <span
+              class="px-2 py-1 text-xs font-bold"
+              style="border-radius: 2px;"
+              :class="data.email.emailConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'"
+            >
+              {{ data.email.emailConfigured ? t('admin.statusLive') : t('admin.statusLog') }}
+            </span>
+          </div>
           <p class="text-sm text-brand-gray-600">{{ data.email.note }}</p>
           <ul class="space-y-1 text-sm">
             <li class="flex justify-between gap-2">
@@ -276,7 +285,16 @@ watch(secret, (value) => {
         </section>
 
         <section v-if="data.storage" class="tail-card space-y-2">
-          <h2 class="tail-section-title">{{ t('admin.storageOpsTitle') }}</h2>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="tail-section-title">{{ t('admin.storageOpsTitle') }}</h2>
+            <span
+              class="px-2 py-1 text-xs font-bold"
+              style="border-radius: 2px;"
+              :class="data.storage.s3Configured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'"
+            >
+              {{ data.storage.s3Configured ? t('admin.statusS3') : t('admin.statusLocal') }}
+            </span>
+          </div>
           <p class="text-sm text-brand-gray-600">{{ data.storage.note }}</p>
           <ul class="space-y-1 text-sm">
             <li class="flex justify-between gap-2">
