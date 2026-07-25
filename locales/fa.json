@@ -292,10 +292,17 @@
     "approve": "تأیید",
     "reject": "رد",
     "rejectConfirm": "این درخواست رد شود؟",
+    "rejectConfirmNamed": "درخواست «{name}» رد شود؟",
     "approveTitle": "تأیید درخواست باشگاه",
+    "applicationStatus": {
+      "PENDING": "در انتظار",
+      "APPROVED": "تأیید شده",
+      "REJECTED": "رد شده"
+    },
     "ownerEmail": "ایمیل ورود مدیر",
     "owner": "مالک",
     "approveSuccess": "باشگاه تأیید شد و به مدیر ایمیل ارسال شد.",
+    "approveConflict": "این ایمیل از قبل با نقش دیگری ثبت شده است.",
     "tempPassword": "رمز موقت",
     "overviewTitle": "نمای کلی",
     "overviewSubtitle": "وضعیت باشگاه‌ها، کاربران، رزروها و پرداخت‌ها",

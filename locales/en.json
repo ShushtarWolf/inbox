@@ -293,10 +293,17 @@
     "approve": "Approve",
     "reject": "Reject",
     "rejectConfirm": "Reject this application?",
+    "rejectConfirmNamed": "Reject application “{name}”?",
     "approveTitle": "Approve club application",
+    "applicationStatus": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
     "ownerEmail": "Owner login email",
     "owner": "Owner",
     "approveSuccess": "Club approved and owner notified by email.",
+    "approveConflict": "That email already exists with a different role.",
     "tempPassword": "Temporary password",
     "overviewTitle": "Overview",
     "overviewSubtitle": "Clubs, users, bookings, and payments at a glance",
