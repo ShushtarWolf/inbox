@@ -142,6 +142,7 @@
     "addressLabel": "آدرس",
     "contactLabel": "تماس",
     "bookingSummary": "{date} · {times}",
+    "selectSlotToContinue": "برای ادامه یک سانس را انتخاب کنید",
     "sort": {
       "rank": "بهترین انتخاب",
       "rating": "بیشترین امتیاز",

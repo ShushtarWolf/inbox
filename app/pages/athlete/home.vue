@@ -104,7 +104,7 @@ onMounted(() => {
           <NuxtLink
             v-for="club in suggestedClubs"
             :key="club.id"
-            :to="localePath(`/book/court/${club.slug}`)"
+            :to="localePath(`/clubs/${club.slug}`)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
@@ -132,7 +132,7 @@ onMounted(() => {
           <NuxtLink
             v-for="club in tennisClubs"
             :key="`tennis-${club.id}`"
-            :to="localePath(`/book/court/${club.slug}`)"
+            :to="localePath(`/clubs/${club.slug}`)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
@@ -160,7 +160,7 @@ onMounted(() => {
           <NuxtLink
             v-for="club in padelClubs"
             :key="`padel-${club.id}`"
-            :to="localePath(`/book/court/${club.slug}`)"
+            :to="localePath(`/clubs/${club.slug}`)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />

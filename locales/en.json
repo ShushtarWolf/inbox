@@ -143,6 +143,7 @@
     "addressLabel": "Address",
     "contactLabel": "Contact",
     "bookingSummary": "{date} · {times}",
+    "selectSlotToContinue": "Select a time slot to continue",
     "sort": {
       "rank": "Best match",
       "rating": "Highest rated",

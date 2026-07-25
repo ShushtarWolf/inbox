@@ -13,6 +13,7 @@ const { fetchErrorMessage } = useFetchError()
 
 const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
 const selectedSlot = ref<string | null>(typeof route.query.slot === 'string' ? route.query.slot : null)
+const selectedCourtId = ref<string | null>(typeof route.query.court === 'string' ? route.query.court : null)
 const done = ref(false)
 const createdBookingId = ref<string | null>(null)
 const bookedPrice = ref<number | null>(null)
@@ -29,12 +30,22 @@ const { data: slots, pending, error, refresh } = await useFetch('/api/slots/avai
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
 const joiningWaitlist = ref(false)
 
-const selectedSlotRow = computed(() =>
-  slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value) || null,
+const visibleSlots = computed(() => {
+  const list = slots.value || []
+  if (!selectedCourtId.value) return list
+  return list.filter((slot: { courtId?: string; court?: { id?: string } }) =>
+    slot.courtId === selectedCourtId.value || slot.court?.id === selectedCourtId.value,
+  )
+})
+
+const selectedSlotProp = computed(() =>
+  visibleSlots.value.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
+  || slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
+  || null,
 )
 
 const costLines = computed(() => {
-  const price = selectedSlotRow.value?.price
+  const price = selectedSlotProp.value?.price
   if (price == null) return []
   return [
     { label: t('booking.costService'), amount: formatCurrency(price) },
@@ -48,6 +59,7 @@ function syncBookingQuery() {
       ...route.query,
       date: date.value || undefined,
       slot: selectedSlot.value || undefined,
+      court: selectedCourtId.value || undefined,
     },
   })
 }
@@ -56,8 +68,19 @@ watch(date, () => {
   syncBookingQuery()
 })
 
-watch(selectedSlot, () => {
+watch(selectedSlot, (slotId) => {
+  const row = slots.value?.find((slot: { id: string; courtId?: string; court?: { id?: string } }) => slot.id === slotId)
+  if (row) {
+    selectedCourtId.value = row.courtId || row.court?.id || selectedCourtId.value
+  }
   syncBookingQuery()
+})
+
+watch(visibleSlots, (list) => {
+  if (!selectedSlot.value) return
+  if (!list.some((slot: { id: string }) => slot.id === selectedSlot.value)) {
+    selectedSlot.value = null
+  }
 })
 
 function waitlistWindow() {
@@ -65,7 +88,7 @@ function waitlistWindow() {
   if (selected) {
     return { startTime: selected.startTime, endTime: selected.endTime }
   }
-  const first = slots.value?.[0]
+  const first = visibleSlots.value[0] || slots.value?.[0]
   if (first) {
     return { startTime: first.startTime, endTime: first.endTime }
   }
@@ -81,13 +104,29 @@ async function confirm() {
   confirming.value = true
   try {
     const selected = slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
-    const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', { method: 'POST', body: { slotId: selectedSlot.value } })
+    const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', {
+      method: 'POST',
+      body: { slotId: selectedSlot.value },
+    })
     createdBookingId.value = result.id
     bookedPrice.value = selected?.price ?? null
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = onlineEnabled.value ? t('booking.successCourtOnline') : t('booking.successCourt')
     refresh()
+
+    // FLOW-A: online → SEP checkout; pay_at_club stays on success sheet.
+    if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
+      paying.value = true
+      try {
+        await startCheckout({ bookingId: result.id })
+      } catch (checkoutError: unknown) {
+        feedbackTone.value = 'error'
+        feedback.value = fetchErrorMessage(checkoutError, t('booking.actionFailed'))
+      } finally {
+        paying.value = false
+      }
+    }
   } catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
@@ -112,7 +151,7 @@ async function joinWaitlist() {
         date: date.value,
         startTime: window.startTime,
         endTime: window.endTime,
-        courtId: selected?.courtId,
+        courtId: selected?.courtId || selectedCourtId.value || undefined,
         guestName: user.value?.name,
         guestMobile: user.value?.phone,
       },
@@ -215,42 +254,42 @@ onMounted(() => {
     </div>
 
     <AppAsyncState v-else :pending="pending" :error="error" skeleton-variant="default">
-    <div class="venus-booking-slots">
-      <div v-if="!slots?.length" class="canva-panel space-y-2 text-center">
-        <p class="font-bold text-brand-navy">{{ t('booking.noSlots') }}</p>
-        <button type="button" class="btn-secondary w-full" @click="joinWaitlist">
-          {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
+      <div class="venus-booking-slots">
+        <div v-if="!visibleSlots.length" class="canva-panel space-y-2 text-center">
+          <p class="font-bold text-brand-navy">{{ t('booking.noSlots') }}</p>
+          <button type="button" class="btn-secondary w-full" @click="joinWaitlist">
+            {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
+          </button>
+        </div>
+        <button
+          v-for="s in visibleSlots"
+          :key="s.id"
+          type="button"
+          class="canva-list-card w-full text-start"
+          :class="selectedSlot === s.id ? 'border-brand-primary ring-2 ring-brand-primary/30' : ''"
+          @click="selectedSlot = s.id"
+        >
+          <p class="font-bold text-brand-navy">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
+          <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
+        </button>
+        <BookingCostSummary
+          v-if="selectedSlotProp && costLines.length"
+          :lines="costLines"
+          :total-label="t('booking.costTotal')"
+          :total-amount="formatCurrency(selectedSlotProp.price || 0)"
+          :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
+          :cancel-note="t('booking.costCancelHint')"
+        />
+        <button
+          v-if="visibleSlots.length"
+          type="button"
+          class="btn-primary venus-sticky-action w-full lg:w-full"
+          :disabled="!selectedSlot || confirming"
+          @click="confirm"
+        >
+          {{ confirming ? t('common.loading') : t('booking.confirm') }}
         </button>
       </div>
-      <button
-        v-for="s in slots"
-        :key="s.id"
-        type="button"
-        class="canva-list-card w-full text-start"
-        :class="selectedSlot === s.id ? 'border-brand-primary ring-2 ring-brand-primary/30' : ''"
-        @click="selectedSlot = s.id"
-      >
-        <p class="font-bold text-brand-navy">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
-        <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
-      </button>
-      <BookingCostSummary
-        v-if="selectedSlotProp && costLines.length"
-        :lines="costLines"
-        :total-label="t('booking.costTotal')"
-        :total-amount="formatCurrency(selectedSlotProp.price || 0)"
-        :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
-        :cancel-note="t('booking.costCancelHint')"
-      />
-      <button
-        v-if="slots?.length"
-        type="button"
-        class="btn-primary venus-sticky-action w-full lg:w-full"
-        :disabled="!selectedSlot || confirming"
-        @click="confirm"
-      >
-        {{ confirming ? t('common.loading') : t('booking.confirm') }}
-      </button>
-    </div>
     </AppAsyncState>
   </div>
 </template>

@@ -226,7 +226,7 @@ function prevHero() {
           <NuxtLink
             v-for="club in clubs"
             :key="club.id"
-            :to="localePath(`/book/court/${club.slug}`)"
+            :to="localePath(`/clubs/${club.slug}`)"
             class="canva-court-card"
           >
             <img :src="clubImage(club)" alt="" />
