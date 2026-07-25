@@ -22,6 +22,26 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // Reduce FSEvents pressure on macOS (EMFILE crashes were taking the local
+  // dev server down). Polling is enabled by scripts/dev-stable.mjs; these
+  // ignores still help when running plain `npm run dev`.
+  vite: {
+    server: {
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/.nuxt/**',
+          '**/.output/**',
+          '**/.inbox-dev/**',
+          '**/coverage/**',
+          '**/test-results/**',
+          '**/playwright-report/**',
+        ],
+      },
+    },
+  },
+
   app: {
     head: {
       title: 'inbox',
@@ -157,7 +177,6 @@ export default defineNuxtConfig({
         process.env.NUXT_PUBLIC_PAYMENTS_MODE
         || process.env.PAYMENTS_MODE
         || 'pay_at_club',
-      bugReportsEnabled: process.env.NUXT_PUBLIC_BUG_REPORTS_ENABLED !== 'false',
       // Iran MVP: Google OAuth is hidden from product UI (phone OTP is primary).
       // Keep false even if OAuth env is set; routes remain fail-closed when unset.
       googleAuthEnabled: false,

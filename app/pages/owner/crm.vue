@@ -39,7 +39,6 @@ const selectedSegmentLabel = computed(() => {
 })
 
 function campaignStatusLabel(status: string) {
-  // Pipeline status SENT after dry-run must not read as phone delivery.
   if (status === 'SENT' && !liveSms.value) {
     return t('owner.crmPage.campaignStatus.LOGGED')
   }
@@ -61,7 +60,6 @@ function campaignResultLabel(campaign: {
   const logged = campaign.logged ?? 0
   const queued = campaign.queued ?? 0
   const total = campaign.total
-  // Never claim live delivery for logged-only recipients.
   if (sent > 0 || queued > 0) {
     return t('owner.crmPage.sent', { sent: sent + queued, total })
   }
@@ -76,6 +74,13 @@ function recipientLabel(value: string) {
     atRisk: t('owner.crmPage.noShowRisk'),
   }
   return map[value] || value
+}
+
+function contactBadge(c: { segment?: string; totalVisits?: number; risk?: string }) {
+  if (c.risk === 'atRisk' || selectedSegment.value === 'atRisk') return t('owner.crmPage.noShowRisk')
+  if (c.segment === 'vip' || selectedSegment.value === 'vip') return t('owner.crmPage.vip')
+  if ((c.totalVisits || 0) === 0) return t('owner.crmPage.reactivation')
+  return ''
 }
 
 function openWizard() {
@@ -116,18 +121,13 @@ async function send() {
       method: 'POST',
       body: {
         ...sms,
-        // Store the Farsi label: campaign history renders this string verbatim.
         segmentName: selectedSegmentLabel.value,
       },
     })
-    if (result.campaign?.status === 'SCHEDULED') {
-      feedback.value = t('owner.crmPage.smsScheduled')
-    } else if (result.log?.sent) {
-      feedback.value = t('owner.crmPage.smsSentFeedback')
-    } else if (result.log?.logged) {
-      feedback.value = t('owner.crmPage.smsLogged')
+    const delivered = Boolean(result?.log?.sent) || result?.campaign?.status === 'SENT'
+    if (liveSms.value && delivered) {
+      feedback.value = t('owner.crmPage.smsSentOk')
     } else {
-      // Fail closed: do not claim a live send without provider confirmation.
       feedback.value = t('owner.crmPage.smsLogged')
     }
     refresh()
@@ -142,114 +142,107 @@ async function send() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
-      <section class="canva-dash-hero">
-        <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-        <h1 class="canva-page-hero-title">{{ t('owner.crm') }}</h1>
-        <p class="mt-1 text-sm text-white/85">
-          {{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}
-        </p>
-      </section>
+  <div class="venus-page-stack pb-24">
+    <header class="flex items-center justify-between gap-3">
+      <NuxtLink :to="localePath('/owner/calendar?more=1')" class="text-brand-navy" :aria-label="t('common.back')">
+        <AppIcon name="arrow_forward" size="sm" />
+      </NuxtLink>
+      <h1 class="flex-1 text-start text-lg font-bold text-brand-navy">{{ t('owner.crm') }}</h1>
+    </header>
 
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="canva-panel">
-          <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.stats.contacts') }}</p>
-          <p class="mt-1 text-xl font-bold text-brand-navy">{{ data?.stats?.totalContacts || 0 }}</p>
+    <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+      <p class="text-xs text-brand-gray-500">
+        {{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}
+      </p>
+
+      <div class="canva-crm-stats">
+        <div class="canva-crm-stat">
+          <p class="canva-crm-stat-value">{{ data?.stats?.totalContacts || 0 }}</p>
+          <p class="canva-crm-stat-label">{{ t('owner.crmPage.stats.contacts') }}</p>
         </div>
-        <div class="canva-panel">
-          <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
-          <p class="mt-1 text-xl font-bold text-brand-navy">{{ data?.stats?.activeThisMonth || 0 }}</p>
+        <div class="canva-crm-stat">
+          <p class="canva-crm-stat-value">{{ data?.stats?.activeThisMonth || 0 }}</p>
+          <p class="canva-crm-stat-label">{{ t('owner.crmPage.stats.activeThisMonth') }}</p>
         </div>
-        <div class="canva-panel">
-          <p class="text-xs text-brand-gray-500">{{ liveSms ? t('owner.crmPage.stats.smsSentLive') : t('owner.crmPage.stats.smsSent') }}</p>
-          <p class="mt-1 text-xl font-bold text-brand-navy">{{ data?.stats?.smsSent || 0 }}</p>
-        </div>
-        <div class="canva-panel">
-          <p class="text-xs text-brand-gray-500">{{ t('owner.crmPage.stats.campaigns') }}</p>
-          <p class="mt-1 text-xl font-bold text-brand-navy">{{ data?.stats?.campaigns || 0 }}</p>
+        <div class="canva-crm-stat">
+          <p class="canva-crm-stat-value">{{ data?.stats?.smsSent || 0 }}</p>
+          <p class="canva-crm-stat-label">{{ liveSms ? t('owner.crmPage.stats.smsSentLive') : t('owner.crmPage.stats.smsSent') }}</p>
         </div>
       </div>
 
-      <div class="canva-rail gap-2">
+      <div class="canva-underline-tabs overflow-x-auto">
         <button
           v-for="segment in data?.segments || []"
           :key="segment.id"
           type="button"
-          class="canva-court-chip"
-          :class="selectedSegment === segment.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+          class="canva-underline-tab shrink-0 whitespace-nowrap"
+          :class="selectedSegment === segment.id ? 'canva-underline-tab-active' : ''"
           @click="selectedSegment = segment.id"
         >
-          {{ segmentLabel(segment) }} ({{ segment.count }})
+          {{ segmentLabel(segment) }}
         </button>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div class="space-y-4">
-          <div class="canva-panel space-y-2">
-            <h2 class="text-base font-bold text-brand-navy">{{ $t('owner.crm') }}</h2>
-            <CanvaEmptyState v-if="!(data?.contacts?.length)" :title="t('owner.crmPage.emptyContacts')" icon="group" />
-            <NuxtLink
-              v-for="c in data?.contacts || []"
-              :key="c.id"
-              :to="localePath(`/owner/crm/${c.id}`)"
-              class="canva-list-card block"
-            >
-              <p class="font-bold text-brand-navy">{{ c.name }}</p>
-              <p class="mt-1 text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ c.mobile || '—' }}</bdi></p>
-              <p class="mt-1 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.lastVisit || '—' }}</bdi> · {{ t('owner.crmPage.visitCount', { count: c.totalVisits || 0 }) }} · {{ c.lifetimeValue }}</p>
-            </NuxtLink>
+      <div class="space-y-0">
+        <CanvaEmptyState v-if="!(data?.contacts?.length)" :title="t('owner.crmPage.emptyContacts')" icon="group" />
+        <NuxtLink
+          v-for="c in data?.contacts || []"
+          :key="c.id"
+          :to="localePath(`/owner/crm/${c.id}`)"
+          class="canva-contact-row"
+        >
+          <div class="min-w-0 flex-1 text-start">
+            <p class="font-bold text-brand-navy">{{ c.name }}</p>
+            <p class="mt-0.5 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.mobile || '—' }}</bdi></p>
           </div>
+          <span
+            v-if="contactBadge(c)"
+            class="shrink-0 bg-brand-primary-soft px-2 py-1 text-[10px] font-bold text-brand-primary"
+            style="border-radius: var(--sz-canva-radius);"
+          >{{ contactBadge(c) }}</span>
+        </NuxtLink>
+      </div>
 
-          <div class="canva-panel space-y-3">
-            <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.recentCampaigns') }}</h2>
-            <CanvaEmptyState v-if="!(data?.campaigns?.length)" :title="t('owner.crmPage.emptyCampaigns')" icon="campaign" />
-            <div v-for="campaign in data?.campaigns || []" :key="campaign.id" class="canva-list-card">
-              <div class="flex items-center justify-between gap-3">
-                <p class="font-bold text-brand-navy">{{ campaign.name }}</p>
-                <span class="neo-badge">{{ campaignStatusLabel(campaign.status) }}</span>
-              </div>
-              <p class="mt-1 text-xs text-brand-gray-500">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
-              <p class="text-xs text-brand-gray-500">{{ campaignResultLabel(campaign) }}</p>
-            </div>
+      <div class="canva-panel space-y-3">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.recentCampaigns') }}</h2>
+        <CanvaEmptyState v-if="!(data?.campaigns?.length)" :title="t('owner.crmPage.emptyCampaigns')" icon="campaign" />
+        <div v-for="campaign in data?.campaigns || []" :key="campaign.id" class="canva-list-card">
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-bold text-brand-navy">{{ campaign.name }}</p>
+            <span class="canva-history-status canva-history-status-pending">{{ campaignStatusLabel(campaign.status) }}</span>
           </div>
+          <p class="mt-1 text-xs text-brand-gray-500">{{ campaign.segmentName || t('owner.crmPage.allRecipients') }}</p>
+          <p class="text-xs text-brand-gray-500">{{ campaignResultLabel(campaign) }}</p>
         </div>
+      </div>
 
-        <div class="space-y-4">
-          <div class="canva-panel">
-            <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.pushSms') }}</h2>
-            <p class="mb-4 mt-1 text-sm text-brand-gray-500">
-              {{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}
-            </p>
-            <button type="button" class="btn-primary w-full" @click="openWizard">
-              <span class="inline-flex items-center gap-1.5">
-                <AppIcon name="add_circle" size="sm" />
-                {{ t('owner.smsWizard.openCta') }}
-              </span>
-            </button>
-          </div>
-
-          <div class="canva-panel space-y-3">
-            <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.reminders') }}</h2>
-            <p class="text-sm text-brand-gray-500">{{ t('owner.crmPage.remindersInfo') }}</p>
-            <CanvaEmptyState v-if="!(data?.reminders?.length)" :title="t('owner.crmPage.emptyReminders')" icon="notifications_off" />
-            <div v-for="rule in data?.reminders || []" :key="rule.id" class="canva-list-card">
-              <p class="font-bold text-brand-navy">{{ rule.name }}</p>
-              <p class="mt-1 text-xs text-brand-gray-500">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
-            </div>
-          </div>
+      <div class="canva-panel space-y-3">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.reminders') }}</h2>
+        <p class="text-sm text-brand-gray-500">{{ t('owner.crmPage.remindersInfo') }}</p>
+        <CanvaEmptyState v-if="!(data?.reminders?.length)" :title="t('owner.crmPage.emptyReminders')" icon="notifications_off" />
+        <div v-for="rule in data?.reminders || []" :key="rule.id" class="canva-list-card">
+          <p class="font-bold text-brand-navy">{{ rule.name }}</p>
+          <p class="mt-1 text-xs text-brand-gray-500">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
         </div>
       </div>
     </AppAsyncState>
 
-    <AppModal :open="wizardOpen" patterned sheet :title="t('owner.crmPage.pushSms')" @close="closeWizard">
+    <div class="fixed inset-x-0 z-[40] px-4" style="bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 0.75rem);">
+      <div class="mx-auto canva-phone-shell">
+        <button type="button" class="canva-black-cta" @click="openWizard">
+          {{ t('owner.smsWizard.openCta') }}
+        </button>
+      </div>
+    </div>
+
+    <AppModal :open="wizardOpen" patterned sheet :title="t('owner.crmPage.pushSms')" max-width-class="canva-phone-shell" @close="closeWizard">
       <CanvaSuccessSheet
         v-if="wizardStep === 3"
         :title="t('owner.smsWizard.successTitle')"
         :body="feedback"
       >
         <template #cta>
-          <button type="button" class="btn-primary w-full" @click="closeWizard">{{ t('common.close') }}</button>
+          <button type="button" class="canva-gate-btn-primary" @click="closeWizard">{{ t('common.close') }}</button>
         </template>
       </CanvaSuccessSheet>
 
@@ -258,10 +251,13 @@ async function send() {
           <span class="canva-court-chip" :class="wizardStep === 1 ? 'canva-court-chip-active' : 'canva-court-chip-idle'">1</span>
           <span class="h-px flex-1 bg-brand-gray-200" />
           <span class="canva-court-chip" :class="wizardStep === 2 ? 'canva-court-chip-active' : 'canva-court-chip-idle'">2</span>
+          <span class="h-px flex-1 bg-brand-gray-200" />
+          <span class="canva-court-chip canva-court-chip-idle">3</span>
         </div>
 
         <div v-if="wizardStep === 1" class="venus-form-stack">
           <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.smsWizard.step1Title') }}</h3>
+          <p class="text-xs text-brand-gray-500">{{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}</p>
           <input v-model="sms.campaignName" :placeholder="t('owner.crmPage.campaignName')" class="neo-input" />
           <select v-model="sms.recipient" class="neo-select">
             <option value="all">{{ t('owner.crmPage.allRecipients') }}</option>
@@ -271,7 +267,7 @@ async function send() {
           </select>
           <input v-model="sms.schedule" type="datetime-local" dir="ltr" class="neo-input tabular-nums">
           <textarea v-model="sms.message" class="neo-input min-h-24" rows="4" />
-          <button type="button" class="btn-primary" :disabled="!canProceedCompose" @click="goToReview">{{ t('owner.smsWizard.next') }}</button>
+          <button type="button" class="canva-gate-btn-primary" :disabled="!canProceedCompose" @click="goToReview">{{ t('owner.smsWizard.next') }}</button>
         </div>
 
         <div v-else-if="wizardStep === 2" class="venus-form-stack">
@@ -296,8 +292,8 @@ async function send() {
           </div>
           <p v-if="feedback" class="canva-flash-error">{{ feedback }}</p>
           <div class="flex gap-3">
-            <button type="button" class="btn-primary flex-1" :disabled="sending" @click="send">{{ sending ? t('common.loading') : t('common.send') }}</button>
-            <button type="button" class="btn-ghost flex-1" :disabled="sending" @click="backToCompose">{{ t('common.back') }}</button>
+            <button type="button" class="canva-gate-btn-primary flex-1" :disabled="sending" @click="send">{{ sending ? t('common.loading') : t('common.send') }}</button>
+            <button type="button" class="canva-gate-btn-secondary flex-1" :disabled="sending" @click="backToCompose">{{ t('common.back') }}</button>
           </div>
         </div>
       </div>

@@ -476,7 +476,7 @@ function onMonthSelect() {
             <button
               v-if="item.kind === 'court' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
               type="button"
-              class="btn-secondary px-3 py-1.5 text-xs"
+              class="canva-gate-btn-secondary px-3 py-1.5 text-xs"
               :disabled="payingId === item.id"
               @click="payBooking(item.id)"
             >{{ t('booking.payNow') }}</button>
@@ -490,14 +490,14 @@ function onMonthSelect() {
             <button
               v-if="item.kind === 'coach' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
               type="button"
-              class="btn-secondary px-3 py-1.5 text-xs"
+              class="canva-gate-btn-secondary px-3 py-1.5 text-xs"
               :disabled="payingId === item.id"
               @click="payCoach(item.id)"
             >{{ t('booking.payNow') }}</button>
             <button
               v-if="item.kind === 'package' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
               type="button"
-              class="btn-secondary px-3 py-1.5 text-xs"
+              class="canva-gate-btn-secondary px-3 py-1.5 text-xs"
               :disabled="payingId === item.id"
               @click="payPackage(item.id)"
             >{{ t('booking.payNow') }}</button>
@@ -519,7 +519,7 @@ function onMonthSelect() {
             <NuxtLink
               v-if="item.status === 'CANCELLED' || historyStatus(item) === 'done'"
               :to="rebookTo(item)"
-              class="btn-primary px-3 py-1.5 text-xs"
+              class="canva-gate-btn-primary px-3 py-1.5 text-xs"
             >{{ t('athlete.historyRebook') }}</NuxtLink>
           </div>
         </article>
@@ -529,7 +529,7 @@ function onMonthSelect() {
         <div class="canva-result-sheet p-6 text-center">
           <div class="canva-auth-body relative z-[1]">
             <p class="font-bold text-brand-navy">{{ t('booking.emptyState') }}</p>
-            <NuxtLink :to="localePath('/athlete/home')" class="btn-primary mt-4 inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
+            <NuxtLink :to="localePath('/athlete/home')" class="canva-gate-btn-primary mt-4 inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
           </div>
         </div>
       </template>
@@ -563,13 +563,13 @@ function onMonthSelect() {
         </div>
         <button
           type="button"
-          class="canva-gate-btn-primary"
+          class="canva-gate-canva-gate-btn-primary"
           :disabled="!rescheduleSlotId || reschedulePending"
           @click="rescheduleCourt"
         >
           {{ reschedulePending ? t('common.loading') : t('booking.confirmReschedule') }}
         </button>
-        <button type="button" class="canva-gate-btn-secondary" :disabled="reschedulePending" @click="closeReschedule">
+        <button type="button" class="canva-gate-canva-gate-btn-secondary" :disabled="reschedulePending" @click="closeReschedule">
           {{ t('common.close') }}
         </button>
       </div>

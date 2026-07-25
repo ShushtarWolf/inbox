@@ -1,3 +1,5 @@
+import { isAuthProtectedPath } from '#shared/returnTo.ts'
+
 export default defineNuxtPlugin(() => {
   if (!import.meta.client) return
 
@@ -14,11 +16,20 @@ export default defineNuxtPlugin(() => {
       const route = useRoute()
       if (route.path.endsWith('/login')) return
 
+      // Always drop stale client auth
+      profile.value = null
+      ownerClubId.value = null
+      try {
+        await clear()
+      } catch {
+        // ignore clear failures
+      }
+
+      // Public catalog (home/clubs/book): stay on page — no session modal
+      if (!isAuthProtectedPath(route.path)) return
+
       handlingUnauthorized = true
       try {
-        profile.value = null
-        ownerClubId.value = null
-        await clear()
         await navigateTo(localePath({
           path: '/login',
           query: {

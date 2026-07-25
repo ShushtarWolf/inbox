@@ -187,14 +187,14 @@ async function confirmDelete() {
   <div :class="embedded ? '' : 'venus-page-stack'">
     <div v-if="!embedded" class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="font-display text-xl font-bold">{{ t('owner.workers') }}</h1>
-      <button type="button" class="btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
+      <button type="button" class="canva-gate-btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
     <p v-if="!embedded" class="text-sm text-brand-gray-600">{{ t('owner.workersPage.subtitle') }}</p>
     <p v-if="!embedded" class="text-xs text-brand-gray-500">{{ t('owner.workersPage.coachesNote') }}</p>
 
     <div v-if="embedded" class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.workersSectionHint') }}</p>
-      <button type="button" class="btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
+      <button type="button" class="canva-gate-btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
@@ -300,7 +300,7 @@ async function confirmDelete() {
             <div class="flex gap-3">
               <button
                 type="button"
-                class="btn-primary flex-1"
+                class="canva-gate-btn-primary flex-1"
                 :disabled="saving || !form.firstName.trim() || !form.lastName.trim() || !form.mobile.trim()"
                 @click="saveWorker"
               >

@@ -11,7 +11,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }))
   }
   if (user.value?.role !== role) {
-    if (user.value?.role === 'CLUB_ADMIN') return navigateTo(localePath('/owner'))
+    if (user.value?.role === 'CLUB_ADMIN') return navigateTo(localePath('/owner/calendar'))
     if (user.value?.role === 'COACH') return navigateTo(localePath('/coach'))
     return navigateTo(localePath('/athlete'))
   }

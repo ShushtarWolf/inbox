@@ -27,8 +27,6 @@ const maskedPhone = ref('')
 const smsMode = ref<'log' | 'live'>('log')
 const smsPhase = ref<'SINGLE' | 'MULTI'>('SINGLE')
 
-const { pilotNoCoach } = usePilotFlags()
-
 const { data: smsCapability } = await useFetch<{
   smsPhase?: 'SINGLE' | 'MULTI'
   smsMode?: 'log' | 'live'
@@ -46,13 +44,11 @@ watch(
 
 const allRoles: Array<{ id: AuthFlowRole; title: string; body: string; icon: string }> = [
   { id: 'ATHLETE', title: 'register.roleAthlete', body: 'auth.roleAthleteHint', icon: 'sports_tennis' },
-  { id: 'COACH', title: 'register.roleCoach', body: 'auth.roleCoachHint', icon: 'fitness_center' },
   { id: 'CLUB_ADMIN', title: 'register.roleOwner', body: 'auth.roleOwnerHint', icon: 'apartment' },
 ]
 
-const roles = computed(() =>
-  pilotNoCoach.value ? allRoles.filter((item) => item.id !== 'COACH') : allRoles,
-)
+/** Product exclusion: Coach role is never offered in AuthFlow (SMS-only athlete/owner). */
+const roles = computed(() => allRoles)
 
 const title = computed(() => {
   if (step.value === 'gate') return t('auth.gateTitle')
@@ -236,7 +232,7 @@ watch(
 
       <div class="canva-auth-body">
         <h2 class="text-center text-lg font-bold text-brand-navy">{{ title }}</h2>
-        <p v-if="notice" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-900">
+        <p v-if="notice" class="border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-900" style="border-radius: var(--sz-canva-radius);">
           {{ notice }}
         </p>
 
@@ -267,7 +263,7 @@ watch(
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ t(item.body) }}</p>
             </div>
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goGate">
+          <button type="button" class="canva-gate-btn-secondary" @click="goGate">
             {{ t('common.back') }}
           </button>
         </template>
@@ -302,7 +298,7 @@ watch(
           <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goRole()">
+          <button type="button" class="canva-gate-btn-secondary" @click="goRole()">
             {{ t('common.back') }}
           </button>
         </form>
@@ -331,10 +327,10 @@ watch(
           >
             {{ t('auth.forgotPassword') }}
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goRole">
+          <button type="button" class="canva-gate-btn-secondary" @click="goRole">
             {{ t('auth.register') }}
           </button>
-          <button type="button" class="btn-ghost w-full" @click="goGate">
+          <button type="button" class="canva-gate-btn-secondary" @click="goGate">
             {{ t('common.back') }}
           </button>
         </form>
@@ -362,7 +358,7 @@ watch(
           <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="btn-ghost w-full" :disabled="pending" @click="requestOtp">
+          <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="requestOtp">
             {{ t('auth.resendOtp') }}
           </button>
         </form>

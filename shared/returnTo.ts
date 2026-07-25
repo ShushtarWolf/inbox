@@ -3,7 +3,7 @@ const LOCALE_PREFIX = /^\/en(?=\/|$)/
 export function roleDashboardPath(role: string, _locale: 'fa' | 'en' = 'fa') {
   // FA-only: ignore locale prefix
   void _locale
-  if (role === 'CLUB_ADMIN') return '/owner'
+  if (role === 'CLUB_ADMIN') return '/owner/calendar'
   if (role === 'COACH') return '/coach'
   return '/athlete'
 }
@@ -42,6 +42,16 @@ export function sanitizeReturnTo(value: unknown, _locale: 'fa' | 'en' = 'fa') {
   if (normalized === '/register' || normalized === '/en/register') return null
 
   return normalized
+}
+
+/** True for athlete/owner/admin/coach areas that must force re-login on 401. */
+export function isAuthProtectedPath(path: string) {
+  return (
+    path.includes('/athlete')
+    || path.includes('/owner')
+    || path.includes('/admin')
+    || path.includes('/coach')
+  )
 }
 
 export function resolvePostLoginPath(role: string, locale: 'fa' | 'en' = 'fa', returnTo?: string) {

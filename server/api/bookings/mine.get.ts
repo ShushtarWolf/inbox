@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
       slot: { include: { court: { include: { club: true, sport: true } } } },
       coach: true,
       payment: true,
+      bookingEquipments: { include: { equipment: true } },
     },
     orderBy: { createdAt: 'desc' },
   })

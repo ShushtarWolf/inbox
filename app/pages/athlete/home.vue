@@ -55,14 +55,30 @@ onMounted(() => {
 
 <template>
   <div class="venus-page-stack">
-    <section class="pt-5">
-      <p class="text-sm font-bold text-brand-primary">{{ t('athlete.homePromo') }}</p>
-      <h1 class="mt-2 text-2xl font-bold text-brand-navy">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
-      <p class="mt-1 text-sm text-brand-gray-600">{{ t('athlete.homePickCourt') }}</p>
+    <section class="canva-photo-hero canva-photo-hero-curve -mx-4 sm:-mx-0">
+      <img src="/hero/fitness-venue.jpg" alt="" class="canva-photo-hero-media" style="filter: grayscale(0.55) brightness(0.72);" />
+      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-top">
+        <span class="font-display text-base font-bold tracking-wide text-white">INBOX</span>
+        <NuxtLink :to="localePath('/athlete')" class="text-white" :aria-label="t('nav.profile')">
+          <AppIcon name="person" size="sm" />
+        </NuxtLink>
+      </div>
+      <div class="canva-promo-badge">
+        <span class="canva-promo-badge-pct">۲۰٪</span>
+        <span class="canva-promo-badge-label">{{ t('athlete.homePromoShort') }}</span>
+      </div>
+      <div class="canva-photo-hero-body !min-h-[10.5rem]">
+        <h1 class="canva-page-hero-title text-2xl">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
+        <p class="mt-1 text-sm text-white/85">{{ t('athlete.homePickCourt') }}</p>
+      </div>
     </section>
 
     <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
       <section class="canva-search-row">
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta-icon" :aria-label="t('home.searchWithFilters')">
+          <AppIcon name="search" size="sm" />
+        </NuxtLink>
         <div class="canva-search-fields">
           <div class="canva-search-field">
             <select
@@ -87,9 +103,6 @@ onMounted(() => {
             </NuxtLink>
           </div>
         </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-          {{ t('home.searchWithFilters') }}
-        </NuxtLink>
       </section>
 
       <section class="space-y-3">

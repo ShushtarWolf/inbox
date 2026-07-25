@@ -24,6 +24,7 @@ type AuthUser = {
       slug: string
       nameFa: string
       nameEn: string
+      image?: string | null
       _count?: { coaches?: number }
     }
   }>

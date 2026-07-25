@@ -42,8 +42,9 @@ async function handleLogout() {
 
 const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 
+/** Phone shell: edge-to-edge content (no cream chrome gap above heroes). */
 const mainClass = computed(() => {
-  if (props.phoneShell) return 'mx-auto w-full max-w-md px-4 py-5'
+  if (props.phoneShell) return 'canva-phone-shell mx-auto px-4 pb-5 pt-0'
   return props.wide ? 'w-full px-4 py-5 lg:px-8 lg:py-8' : 'mx-auto w-full max-w-lg px-4 py-5 lg:max-w-4xl lg:px-6 lg:py-8'
 })
 
@@ -79,8 +80,14 @@ const compactHeaderClass = computed(() => {
 
 const dashboardRoot = computed(() => {
   const pool = drawerItems.value
-  const home = pool.find((item) => item.to === localePath('/owner') || item.to.endsWith('/owner'))
-  return home?.to || pool[0]?.to || localePath('/')
+  const ownerCal = pool.find((item) => item.to.includes('/owner/calendar'))
+  if (ownerCal) return ownerCal.to
+  const athleteHub = pool.find((item) => {
+    const path = item.to.replace(/\/$/, '')
+    return path.endsWith('/athlete') || path === localePath('/athlete')
+  })
+  if (athleteHub) return athleteHub.to
+  return pool.find((item) => !item.action)?.to || localePath('/')
 })
 const isDashboardRoot = computed(() => route.path === dashboardRoot.value)
 
@@ -114,14 +121,17 @@ function goBack() {
 
 <template>
   <div :class="rootClass">
-    <div v-if="open" :class="backdropClass" role="presentation" @click="open = false" />
+    <!-- Phone shell: Canva frames have no sidebar / cream chrome — bottom nav only. -->
+    <template v-if="!phoneShell">
+      <div v-if="open" :class="backdropClass" role="presentation" @click="open = false" />
 
-    <div :class="[drawerWrapClass, drawerStateClass]">
-      <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />
-    </div>
+      <div :class="[drawerWrapClass, drawerStateClass]">
+        <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />
+      </div>
+    </template>
 
     <div class="min-w-0 flex-1 bg-brand-cream">
-      <header v-if="!hideMobileHeader" :class="glassHeaderClass">
+      <header v-if="!phoneShell && !hideMobileHeader" :class="glassHeaderClass">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">
@@ -171,7 +181,7 @@ function goBack() {
           </div>
         </div>
       </header>
-      <div v-else :class="compactHeaderClass">
+      <div v-else-if="!phoneShell" :class="compactHeaderClass">
         <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
           <AppIcon name="menu" size="sm" />
         </button>
@@ -216,6 +226,11 @@ function goBack() {
       </main>
     </div>
 
-    <AppBottomNav :items="items" :dark="darkNav" max-width-class="max-w-lg" :always-visible="phoneShell" />
+    <AppBottomNav
+      :items="items"
+      :dark="darkNav"
+      :max-width-class="phoneShell ? 'canva-phone-shell' : 'max-w-lg'"
+      :always-visible="phoneShell"
+    />
   </div>
 </template>

@@ -199,7 +199,7 @@ async function confirmDelete() {
           <div class="venus-modal-footer">
             <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
             <div class="flex gap-3">
-              <button type="button" class="btn-primary flex-1" :disabled="saving || !modalName.trim()" @click="saveItem">
+              <button type="button" class="canva-gate-canva-gate-btn-primary flex-1" :disabled="saving || !modalName.trim()" @click="saveItem">
                 {{ saving ? t('common.loading') : t('common.save') }}
               </button>
               <button type="button" class="btn-ghost flex-1" @click="closeModal">{{ t('common.close') }}</button>

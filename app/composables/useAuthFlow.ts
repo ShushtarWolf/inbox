@@ -33,11 +33,10 @@ export function useAuthFlow() {
   }
 
   function openRegister(opts?: { returnTo?: string; role?: AuthFlowRole; notice?: string }) {
-    const { pilotNoCoach } = usePilotFlags()
     const requestedRole = opts?.role || 'ATHLETE'
-    // Pilot: coach signup is not offered — fall back to role picker (athlete/owner).
-    const safeRole = pilotNoCoach.value && requestedRole === 'COACH' ? 'ATHLETE' : requestedRole
-    const skipRolePicker = Boolean(opts?.role) && !(pilotNoCoach.value && opts?.role === 'COACH')
+    // Product exclusion: Coach signup is never offered — fall back to athlete/owner picker.
+    const safeRole = requestedRole === 'COACH' ? 'ATHLETE' : requestedRole
+    const skipRolePicker = Boolean(opts?.role) && opts?.role !== 'COACH'
 
     returnTo.value = opts?.returnTo || ''
     notice.value = opts?.notice || ''

@@ -42,37 +42,43 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] lg:pb-0">
-    <AppTopBar :nav="nav">
-      <template #actions>
-        <template v-if="!user">
-          <button type="button" class="btn-primary px-4 py-2 text-xs" @click="openGate()">
-            <span class="inline-flex items-center gap-1.5">
-              <AppIcon name="login" size="sm" />
-              {{ t('auth.loginRegister') }}
-            </span>
-          </button>
+    <div class="hidden min-[431px]:block">
+      <AppTopBar :nav="nav">
+        <template #actions>
+          <template v-if="!user">
+            <button
+              type="button"
+              class="btn-primary inline-flex px-4 py-2 text-xs"
+              @click="openGate()"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="login" size="sm" />
+                {{ t('auth.loginRegister') }}
+              </span>
+            </button>
+          </template>
+          <template v-else>
+            <AppUserShortcut
+              :to="profilePath"
+              :name="displayName"
+              :avatar-url="avatarUrl"
+              :initials="initials"
+            />
+            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+              <span class="inline-flex items-center gap-1.5">
+                <AppIcon name="logout" size="sm" />
+                {{ t('nav.logout') }}
+              </span>
+            </button>
+          </template>
         </template>
-        <template v-else>
-          <AppUserShortcut
-            :to="profilePath"
-            :name="displayName"
-            :avatar-url="avatarUrl"
-            :initials="initials"
-          />
-          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
-            <span class="inline-flex items-center gap-1.5">
-              <AppIcon name="logout" size="sm" />
-              {{ t('nav.logout') }}
-            </span>
-          </button>
-        </template>
-      </template>
-    </AppTopBar>
-    <main class="app-shell-main mx-auto w-full max-w-lg flex-1 px-4 py-5 lg:max-w-6xl lg:px-6 lg:py-8">
+      </AppTopBar>
+    </div>
+    <main class="app-shell-main canva-public-main mx-auto w-full max-w-lg flex-1 px-4 py-5 lg:max-w-6xl lg:px-6 lg:py-8">
       <slot />
     </main>
-    <footer class="mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 lg:max-w-6xl lg:pb-4">
-      <p class="mb-2">
+    <footer class="canva-public-footer mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 lg:max-w-6xl lg:pb-4">
+      <p class="mb-2 hidden min-[431px]:block">
         <span class="font-bold text-brand-navy">{{ t('contact.us') }}</span>
         ·
         <a href="mailto:info@inboxs.ir" class="px-1 hover:text-brand-primary" dir="ltr">info@inboxs.ir</a>
@@ -82,7 +88,17 @@ onMounted(() => {
       <div class="mb-2 flex justify-center">
         <EnamadBadge />
       </div>
-      <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+      <!-- Canva p1 slim strip (mobile); fat link row stays desktop -->
+      <nav class="canva-legal-footer min-[431px]:hidden" :aria-label="t('legal.about')">
+        <NuxtLink :to="localePath('/about')" class="hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
+        <span class="text-brand-gray-300" aria-hidden="true">·</span>
+        <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
+        <span class="text-brand-gray-300" aria-hidden="true">·</span>
+        <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('owner.support') }}</NuxtLink>
+        <span class="text-brand-gray-300" aria-hidden="true">·</span>
+        <NuxtLink :to="localePath('/terms')" class="hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
+      </nav>
+      <div class="hidden flex-wrap items-center justify-center gap-x-1 gap-y-1 min-[431px]:flex">
         <NuxtLink :to="localePath('/about')" class="px-1.5 hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
         ·
         <NuxtLink :to="localePath('/contact')" class="px-1.5 hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>

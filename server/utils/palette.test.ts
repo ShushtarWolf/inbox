@@ -18,11 +18,13 @@ describe('brandbook palette', () => {
     expect(palette.brand.primarySoft).toBe('#C41E1E1A')
   })
 
-  it('maps calendar slot colors to brand book', () => {
+  it('maps calendar slot colors to Canva status bars', () => {
     expect(palette.slotDisplay.RESERVED).toBe('#C41E1E')
-    expect(palette.slotDisplay.PUBLIC).toBe('#B68A3B')
-    expect(palette.slotDisplay.TEAM).toBe('#6B1F28')
+    expect(palette.slotDisplay.PUBLIC).toBe('#C41E1E')
+    expect(palette.slotDisplay.TEAM).toBe('#C41E1E')
     expect(palette.slotDisplay.FREE).toBe('#E8E6E2')
+    expect(palette.slotDisplay.PENDING).toBe('#E8B84A')
+    expect(palette.slotDisplay.BLOCKED).toBe('#1A1A18')
   })
 
   it('uses warm gray text scale', () => {

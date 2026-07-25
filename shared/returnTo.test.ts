@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeReturnTo, roleDashboardPath, resolvePostLoginPath } from './returnTo'
+import { sanitizeReturnTo, roleDashboardPath, resolvePostLoginPath, isAuthProtectedPath } from './returnTo'
 
 describe('sanitizeReturnTo', () => {
   it('accepts safe internal paths', () => {
@@ -35,7 +35,7 @@ describe('sanitizeReturnTo', () => {
 
 describe('roleDashboardPath', () => {
   it('returns role-specific dashboards without en prefix', () => {
-    expect(roleDashboardPath('CLUB_ADMIN')).toBe('/owner')
+    expect(roleDashboardPath('CLUB_ADMIN')).toBe('/owner/calendar')
     expect(roleDashboardPath('COACH', 'en')).toBe('/coach')
     expect(roleDashboardPath('ATHLETE')).toBe('/athlete')
   })
@@ -48,5 +48,15 @@ describe('resolvePostLoginPath', () => {
 
   it('falls back to dashboard when returnTo is invalid', () => {
     expect(resolvePostLoginPath('ATHLETE', 'fa', '//evil')).toBe('/athlete')
+  })
+})
+
+describe('isAuthProtectedPath', () => {
+  it('marks dashboards protected and public catalog free', () => {
+    expect(isAuthProtectedPath('/athlete')).toBe(true)
+    expect(isAuthProtectedPath('/owner/calendar')).toBe(true)
+    expect(isAuthProtectedPath('/clubs/padel-zone-tehran')).toBe(false)
+    expect(isAuthProtectedPath('/')).toBe(false)
+    expect(isAuthProtectedPath('/book/court/x')).toBe(false)
   })
 })

@@ -1056,15 +1056,18 @@ function confirmReserveLabel() {
 }
 
 const legend = [
-  { status: 'TEAM', color: palette.slotDisplay.TEAM },
-  { status: 'PUBLIC', color: palette.slotDisplay.PUBLIC },
-  { status: 'RESERVED', color: palette.slotDisplay.RESERVED },
   { status: 'FREE', color: palette.slotDisplay.FREE },
-  { status: 'CANCELLED', color: palette.slotDisplay.CANCELLED },
+  { status: 'RESERVED', color: palette.slotDisplay.RESERVED },
   { status: 'PENDING', color: palette.slotDisplay.PENDING },
-  { status: 'CLOSED', color: palette.slotDisplay.CLOSED },
   { status: 'BLOCKED', color: palette.slotDisplay.BLOCKED },
 ]
+
+function slotBarColor(status: string) {
+  if (status === 'PENDING') return palette.slotDisplay.PENDING
+  if (status === 'BLOCKED' || status === 'CLOSED' || status === 'CANCELLED') return palette.slotDisplay.BLOCKED
+  if (status === 'FREE') return palette.slotDisplay.FREE
+  return palette.slotDisplay.RESERVED
+}
 </script>
 
 <template>
@@ -1072,30 +1075,36 @@ const legend = [
     <section class="canva-photo-hero">
       <img :src="clubHeroImage" alt="" class="canva-photo-hero-media" />
       <div class="canva-photo-hero-wash" />
-      <p class="canva-promo-strip">{{ t('owner.calendarPromo') }}</p>
-      <div class="canva-photo-hero-body">
-        <h1 class="font-display text-2xl font-bold">{{ clubCalendarTitle }}</h1>
-        <p class="mt-1 text-sm text-white/85">{{ t('owner.calendarSubtitle', { date: formattedDate }) }}</p>
-        <div class="canva-view-tabs mt-4 !bg-white/15">
-          <button
-            type="button"
-            class="canva-view-tab !text-white/80"
-            :class="calendarView === 'today' ? 'canva-view-tab-active !bg-white !text-brand-primary' : ''"
-            @click="calendarView = 'today'"
-          >
-            {{ t('owner.today') }}
-          </button>
-          <button
-            type="button"
-            class="canva-view-tab !text-white/80"
-            :class="calendarView === 'overview' ? 'canva-view-tab-active !bg-white !text-brand-primary' : ''"
-            @click="calendarView = 'overview'"
-          >
-            {{ t('owner.overview') }}
-          </button>
-        </div>
+      <div class="canva-promo-badge" aria-hidden="true">
+        <span class="canva-promo-badge-pct">۲۰٪</span>
+        <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
+      </div>
+      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8">
+        <p class="font-display text-lg font-bold text-white">INBOX</p>
       </div>
     </section>
+
+    <div class="canva-cal-sheet -mx-4 sm:mx-0">
+      <h1 class="text-start text-base font-bold text-brand-navy">{{ clubCalendarTitle }}</h1>
+      <div class="canva-view-tabs mt-3">
+        <button
+          type="button"
+          class="canva-view-tab"
+          :class="calendarView === 'today' ? 'canva-view-tab-active' : ''"
+          @click="calendarView = 'today'"
+        >
+          {{ t('owner.today') }}
+        </button>
+        <button
+          type="button"
+          class="canva-view-tab"
+          :class="calendarView === 'overview' ? 'canva-view-tab-active' : ''"
+          @click="calendarView = 'overview'"
+        >
+          {{ t('owner.overview') }}
+        </button>
+      </div>
+
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
     <section v-if="calendarView === 'overview'" class="space-y-3">
       <div class="grid grid-cols-3 gap-2">
@@ -1130,12 +1139,10 @@ const legend = [
         </div>
       </div>
 
-      <aside class="canva-panel">
-        <div class="mt-0 flex flex-wrap gap-2">
-          <div v-for="item in legend" :key="item.status" class="canva-legend-chip">
-            <span class="canva-legend-dot" :style="{ background: item.color }" />
-            {{ statusLabel(item.status) }}
-          </div>
+      <aside class="canva-legend-row px-1">
+        <div v-for="item in legend" :key="item.status" class="canva-legend-item">
+          <span class="canva-legend-swatch" :style="{ background: item.color }" />
+          {{ statusLabel(item.status) }}
         </div>
       </aside>
 
@@ -1164,98 +1171,52 @@ const legend = [
       </div>
     </section>
 
-    <section v-else class="canva-panel overflow-visible p-0" :class="locale === 'en' ? 'calendar-latin' : ''">
-      <div class="border-b border-brand-gray-100 px-4 py-4">
-        <div class="flex items-center justify-between gap-3">
-          <p class="min-w-0 truncate text-sm font-bold text-brand-navy">{{ monthLabel }} · {{ weekdayLabel }} <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi></p>
-          <div class="flex shrink-0 items-center gap-2">
-            <span class="neo-badge hidden sm:inline-flex">{{ t('common.courtsCount', { count: formatNumber(courts.length) }) }}</span>
-            <div ref="datePickerRef" class="relative">
-              <button
-                type="button"
-                class="canva-date-pill h-9 w-9 justify-center p-0"
-                :aria-expanded="showDatePicker"
-                :aria-label="t('common.date')"
-                @click.stop="showDatePicker = !showDatePicker"
-              >
-                <AppIcon name="calendar_month" size="sm" />
-              </button>
+    <section v-else class="space-y-3" :class="locale === 'en' ? 'calendar-latin' : ''">
+      <p class="canva-cal-date-line text-start">
+        <span class="canva-cal-date-dot" aria-hidden="true" />
+        {{ weekdayLabel }}، <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi> {{ monthLabel }}
+      </p>
 
-              <div v-if="showDatePicker" class="absolute z-20 mt-2 end-0">
-                <AppJalaliCalendar
-                  v-if="locale === 'fa'"
-                  v-model="date"
-                  @select="closeDatePicker"
-                />
-                <label v-else class="canva-panel block p-4">
-                  <span class="mb-2 block text-sm font-bold text-brand-navy">{{ t('common.date') }}</span>
-                  <input
-                    v-model="date"
-                    type="date"
-                    dir="ltr"
-                    class="neo-input tabular-nums"
-                    @change="closeDatePicker"
-                  >
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="canva-date-strip mt-3">
+      <div v-if="courts.length" class="flex flex-wrap items-center gap-2">
+        <div class="canva-rail min-w-0 flex-1 gap-2 pb-0">
           <button
-            v-for="day in dateStripDays"
-            :key="day.iso"
+            v-for="court in courts"
+            :key="court.id"
             type="button"
-            class="canva-date-strip-item"
-            :class="[
-              date === day.iso ? 'canva-date-strip-item-active' : '',
-              day.isToday ? 'canva-date-strip-item-today' : '',
-            ]"
-            @click="date = day.iso"
+            class="canva-court-chip"
+            :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+            @click="activeCourtId = court.id"
           >
-            <span class="text-[10px] font-bold uppercase tracking-wide">{{ day.isToday ? t('owner.today') : day.weekday }}</span>
-            <bdi dir="ltr" class="tabular-nums text-base font-bold">{{ day.dayNumber }}</bdi>
+            {{ localizedField(court, 'nameFa', 'nameEn') }}
           </button>
         </div>
+        <button
+          type="button"
+          class="shrink-0 border border-brand-gray-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-navy"
+          style="border-radius: var(--sz-canva-radius);"
+          :class="multiSelectMode ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : ''"
+          @click="toggleMultiSelectMode"
+        >
+          {{ t('owner.selectionBar.multiSelect') }}
+        </button>
+      </div>
 
-        <div v-if="courts.length" class="mt-4 flex flex-wrap items-center gap-2">
-          <div class="canva-rail min-w-0 flex-1 gap-2 pb-0">
-            <button
-              v-for="court in courts"
-              :key="court.id"
-              type="button"
-              class="canva-court-chip"
-              :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
-              @click="activeCourtId = court.id"
-            >
-              {{ localizedField(court, 'nameFa', 'nameEn') }}
-            </button>
-          </div>
-          <button
-            type="button"
-            class="shrink-0 border border-brand-gray-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-navy"
-            style="border-radius: var(--sz-canva-radius);"
-            :class="multiSelectMode ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : ''"
-            @click="toggleMultiSelectMode"
-          >
-            {{ t('owner.selectionBar.multiSelect') }}
-          </button>
+      <div class="canva-legend-row">
+        <div v-for="item in legend" :key="item.status" class="canva-legend-item">
+          <span class="canva-legend-swatch" :style="{ background: item.color }" />
+          {{ statusLabel(item.status) }}
         </div>
       </div>
 
-      <div v-if="!courts.length" class="px-3 py-3">
+      <div v-if="!courts.length">
         <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
       </div>
 
-      <div v-else-if="!activeCourtSlots.length" class="px-3 py-3">
+      <div v-else-if="!activeCourtSlots.length">
         <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
       </div>
 
-      <div v-else class="space-y-1.5 px-3 py-3 sm:px-4">
-        <p v-if="activeCourt" class="px-1 text-xs font-bold text-brand-gray-500">
-          {{ localizedField(activeCourt, 'nameFa', 'nameEn') }}
-        </p>
+      <div v-else class="space-y-1.5">
         <button
           v-for="slot in activeCourtSlots"
           :key="slot.id"
@@ -1265,22 +1226,11 @@ const legend = [
             slotClass(slot.displayStatus),
             isSlotSelected(slot) ? 'canva-slot-row-selected' : '',
           ]"
+          :style="{ background: slotBarColor(slot.displayStatus) }"
           @click="handleSlotClick(slot)"
         >
-          <span class="canva-slot-status-bar" :style="{ background: legend.find(l => l.status === slot.displayStatus)?.color || palette.slotDisplay.FREE }" />
-          <div class="min-w-0 flex-1 text-start">
-            <div class="flex flex-wrap items-center gap-2">
-              <bdi dir="ltr" class="text-sm font-bold tabular-nums text-brand-navy">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
-              <span class="text-xs font-bold text-brand-gray-500">{{ statusLabel(slot.displayStatus) }}</span>
-            </div>
-            <p class="mt-0.5 truncate text-sm font-bold text-brand-navy">{{ slotLabel(slot) }}</p>
-            <bdi v-if="slotMeta(slot)" dir="ltr" class="mt-0.5 block text-xs tabular-nums text-brand-gray-500">{{ slotMeta(slot) }}</bdi>
-          </div>
-          <span
-            v-if="slotPaymentBadge(slot)"
-            class="canva-slot-pay-chip"
-            :class="slotPaymentBadgeClass(slot)"
-          >{{ slotPaymentBadge(slot) }}</span>
+          <span class="canva-slot-name min-w-0 flex-1 truncate text-start">{{ slotLabel(slot) }}</span>
+          <bdi dir="ltr" class="canva-slot-time shrink-0 tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
         </button>
       </div>
     </section>
@@ -1302,7 +1252,8 @@ const legend = [
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
-                class="neo-badge shrink-0 bg-brand-primary-soft text-brand-primary"
+                class="shrink-0 bg-brand-primary-soft px-2 py-0.5 text-xs font-bold text-brand-primary"
+                style="border-radius: var(--sz-canva-radius);"
               >
                 <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
               </span>
@@ -1323,24 +1274,12 @@ const legend = [
       </div>
     </Teleport>
 
-    <aside v-if="calendarView === 'today'" class="canva-panel">
-      <h2 class="text-base font-bold text-brand-navy">{{ t('owner.legend') }}</h2>
-      <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.legendHint') }}</p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <div v-for="item in legend" :key="item.status" class="canva-legend-chip">
-          <span class="canva-legend-dot" :style="{ background: item.color }" />
-          {{ statusLabel(item.status) }}
-        </div>
-      </div>
-      <p class="mt-4 text-xs leading-5 text-brand-gray-500">{{ t('owner.quickNotesBody') }}</p>
-    </aside>
-
     <OwnerLegalFooter />
 
     <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
       <div class="venus-modal-shell">
-        <div class="neo-modal-menu venus-modal-menu space-y-1 !p-2" :class="{ 'max-lg:hidden': activePanel }">
-          <div v-if="selectedSlot" class="mb-1 rounded-lg border-b border-brand-gray-100 px-3 py-3 text-sm">
+        <div class="space-y-1 !p-2" :class="{ 'max-lg:hidden': activePanel }">
+          <div v-if="selectedSlot" class="mb-1 border-b border-brand-gray-100 px-3 py-3 text-sm" style="border-radius: var(--sz-canva-radius);">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
@@ -1348,27 +1287,28 @@ const legend = [
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
-                class="rounded bg-brand-lavender px-2 py-0.5 text-xs font-bold text-brand-navy"
+                class="bg-brand-lavender px-2 py-0.5 text-xs font-bold text-brand-navy"
+                style="border-radius: var(--sz-canva-radius);"
               >
                 <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
               </span>
             </div>
           </div>
-          <!-- Canva primary order: detail cues · walk-in reserve · block · note -->
+          <!-- Canva primary order: walk-in reserve · block · note (no coach / season / package) -->
           <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
           </button>
           <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('block')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.block') }}</span>
           </button>
           <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.comments') }}</span>
           </button>
           <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
           </button>
           <button
@@ -1378,7 +1318,7 @@ const legend = [
             :disabled="saving"
             @click="doMarkPaid"
           >
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
           </button>
           <button
@@ -1388,27 +1328,18 @@ const legend = [
             :disabled="saving"
             @click="doMarkUnpaid"
           >
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
           </button>
           <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
           </button>
-          <button v-if="canShowSeasonReserve()" type="button" :class="menuItemClass('season')" @click="openSeasonForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('season')"><AppIcon :name="menuIcon('season')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.seasonReserve') }}</span>
-          </button>
-          <button v-if="canShowCoachReserve()" type="button" :class="menuItemClass('package')" @click="openPackageForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('package')"><AppIcon :name="menuIcon('package')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.reserveWithCoach') }}</span>
-          </button>
           <button type="button" class="canva-action-row" @click="closeMenu">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('close')"><AppIcon :name="menuIcon('close')" size="sm" /></span>
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('close')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('close')" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
           </button>
         </div>
-
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
@@ -1848,6 +1779,7 @@ const legend = [
       </div>
     </AppModal>
     </AppAsyncState>
+    </div>
   </div>
 </template>
 

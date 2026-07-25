@@ -243,19 +243,19 @@ onMounted(() => {
           <p class="mt-1 text-sm font-bold">{{ t('booking.payAtClub') }}</p>
           <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
           <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
-          <button v-if="(wallet?.balance || 0) > 0" type="button" class="btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
+          <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
             {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
           </button>
         </template>
         <div v-else class="mt-2 space-y-2">
-          <button type="button" class="btn-primary w-full" :disabled="paying" @click="payNow">
+          <button type="button" class="canva-gate-btn-primary w-full" :disabled="paying" @click="payNow">
             {{ paying ? t('common.loading') : t('booking.payNow') }}
           </button>
-          <button v-if="(wallet?.balance || 0) > 0" type="button" class="btn-secondary w-full" :disabled="paying" @click="payWithWallet">
+          <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payWithWallet">
             {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
           </button>
         </div>
-        <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
+        <NuxtLink :to="localePath('/athlete/bookings')" class="canva-gate-btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
         <NuxtLink :to="localePath('/clubs')" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
       </div>
     </div>
@@ -264,7 +264,7 @@ onMounted(() => {
       <div class="venus-booking-slots">
         <div v-if="!visibleSlots.length" class="canva-panel space-y-2 text-center">
           <p class="font-bold text-brand-navy">{{ t('booking.noSlots') }}</p>
-          <button type="button" class="btn-secondary w-full" @click="joinWaitlist">
+          <button type="button" class="canva-gate-btn-secondary w-full" @click="joinWaitlist">
             {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
           </button>
         </div>
@@ -290,7 +290,7 @@ onMounted(() => {
         <button
           v-if="visibleSlots.length"
           type="button"
-          class="btn-primary venus-sticky-action w-full lg:w-full"
+          class="canva-gate-btn-primary venus-sticky-action w-full lg:w-full"
           :disabled="!selectedSlot || confirming"
           @click="confirm"
         >

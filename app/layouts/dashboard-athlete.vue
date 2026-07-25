@@ -1,20 +1,25 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { data: notifications } = await useAuthedFetch('/api/notifications', { lazy: true })
-const unread = computed(() => notifications.value?.unreadCount || 0)
 
+/** Canva p22 bottom nav (RTL visual R→L): خانه · رزرو من · علاقه‌مندی · پروفایل */
 const nav = computed(() => [
-  { to: localePath('/athlete'), label: t('nav.overview'), icon: 'dashboard' },
-  { to: localePath('/athlete/bookings'), label: t('nav.bookings'), icon: 'confirmation_number' },
-  { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet' },
-  { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications', badge: unread.value || undefined },
-  { to: localePath('/athlete/profile'), label: t('nav.profile'), icon: 'person' },
+  { to: localePath('/athlete/home'), label: t('nav.home'), icon: 'home' },
+  { to: localePath('/athlete/bookings'), label: t('nav.myBookings'), icon: 'confirmation_number' },
+  { to: localePath('/athlete/favorites'), label: t('nav.favorites'), icon: 'favorite' },
+  { to: localePath('/athlete'), label: t('nav.profile'), icon: 'person' },
 ])
 </script>
 
 <template>
-  <DashboardShell :title="t('dashboard.athlete')" :items="nav" :dark-nav="true">
+  <DashboardShell
+    :title="t('dashboard.athlete')"
+    :items="nav"
+    :dark-nav="false"
+    hide-mobile-header
+    phone-shell
+    hide-user
+  >
     <slot />
   </DashboardShell>
 </template>

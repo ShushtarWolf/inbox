@@ -53,12 +53,12 @@ export const palette = {
   slotDisplay: {
     FREE: '#E8E6E2',
     RESERVED: '#C41E1E',
-    PUBLIC: '#B68A3B',
-    TEAM: '#6B1F28',
-    PENDING: '#4A1420',
+    PUBLIC: '#C41E1E',
+    TEAM: '#C41E1E',
+    PENDING: '#E8B84A',
     CANCELLED: '#A3A39F',
-    CLOSED: '#52524F',
-    BLOCKED: '#A3A39F',
+    CLOSED: '#1A1A18',
+    BLOCKED: '#1A1A18',
   },
 } as const
 

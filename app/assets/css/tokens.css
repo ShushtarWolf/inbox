@@ -23,6 +23,11 @@
   --sz-input-radius: 0.5rem;
   --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
   --sz-tab-bar-height: 4.5rem;
+  /* Canva artboard: inbox website 375 × 812px */
+  --sz-phone-width: 375px;
+  /* LOCKED: Canva chrome/search/cards/login/CTAs — 0 preferred, 2px max (never pill) */
+  --sz-canva-radius: 0;
+  --sz-canva-radius-max: 2px;
   --sz-slot-free: #e8e6e2;
   --sz-slot-reserved: #c41e1e;
   --sz-slot-public: #b68a3b;
