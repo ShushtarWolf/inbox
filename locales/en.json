@@ -626,17 +626,22 @@
     "intro": "For support, booking follow-up, or legal questions, reach inbox using the channels below.",
     "ownerLabel": "Operator / responsible person",
     "addressLabel": "Address",
-    "addressDefault": "Tehran, Iran",
     "addressPendingNote": "Exact postal address for Enamad is not set in server env yet.",
     "postalCodeLabel": "Postal code",
     "landlineLabel": "Landline",
     "landlinePendingNote": "Landline for Enamad is not set in server env yet.",
     "mobileLabel": "Mobile",
-    "mobileDefault": "09124777927",
     "emailLabel": "Email",
-    "emailDefault": "info{'@'}inboxs.ir",
     "hoursLabel": "Response hours",
-    "hours": "Daily 9:00–18:00 (except official holidays)"
+    "hours": "Daily 9:00–18:00 (except official holidays)",
+    "readinessTitle": "Trust readiness (Enamad / SMS / IPG)",
+    "enamadPendingNote": "Enamad seal is not installed yet — set ID and Code after panel approval.",
+    "smsReadinessLabel": "SMS",
+    "smsReadySingle": "Approved number(s) in the Kavenegar panel only — do not claim delivery to every Iranian mobile.",
+    "smsReadyMulti": "SMS delivery to user mobiles is enabled.",
+    "ipgReadinessLabel": "Online payments (IPG)",
+    "ipgReadyPayAtClub": "Default: pay at club. Online gateway (SEP) is not announced as publicly live.",
+    "ipgReadyLive": "Online gateway payments are enabled."
   },
   "legal": {
     "privacy": "Privacy",
@@ -788,7 +793,7 @@
           "Account data: name, email address, phone number, preferred language, and password (stored as a one-way hash).",
           "Booking data: club, court or coach, date and time, guest details you provide, equipment selections, comments, and booking status.",
           "Payment records: when pay-at-club is enabled, we store payment method and status metadata supplied by the club or athlete; we do not store full card numbers.",
-          "Communications: password-reset requests, in-app notifications, and optional SMS or email logs initiated by clubs.",
+          "Communications: password-reset requests, in-app notifications; SMS only when Kavenegar config allows it and may be limited to panel-approved numbers (not claimed for every mobile).",
           "Technical data: server logs, IP address, browser type, and error reports when error tracking is enabled."
         ]
       },
