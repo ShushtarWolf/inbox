@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/workers')
 useOwnerClubRefresh(refresh)
 const { formatTimeRange } = useFormatters()
@@ -190,7 +191,7 @@ async function confirmDelete() {
       <button type="button" class="canva-gate-btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
     <p v-if="!embedded" class="text-sm text-brand-gray-600">{{ t('owner.workersPage.subtitle') }}</p>
-    <p v-if="!embedded" class="text-xs text-brand-gray-500">{{ t('owner.workersPage.coachesNote') }}</p>
+    <p v-if="!embedded && !pilotNoCoach" class="text-xs text-brand-gray-500 text-start">{{ t('owner.workersPage.coachesNote') }}</p>
 
     <div v-if="embedded" class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.workersSectionHint') }}</p>

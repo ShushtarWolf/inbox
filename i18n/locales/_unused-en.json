@@ -1435,7 +1435,7 @@
       "coaches": "coaches",
       "contacts": "Club contacts",
       "staffAccess": "Platform staff login",
-      "staffAccessHint": "Manage dashboard login access for invited coaches and managers — separate from on-site workers.",
+      "staffAccessHint": "Manage dashboard login access for invited managers and staff — separate from the on-site workers roster.",
       "ownerPermissionsReadonly": "Owners have full access and cannot be edited here.",
       "sessionDurations": "Session durations",
       "sessionDurationsHint": "Choose allowed session lengths. The default drives the calendar slot grid.",
@@ -1469,7 +1469,7 @@
       "manageWorkers": "Manage workers"
     },
     "workersPage": {
-      "subtitle": "Add club workers hired on-site. This is separate from coaches, who are invited to the platform.",
+      "subtitle": "Add on-site club workers (reception, security, and similar roles).",
       "coachesNote": "Coaches (مربی) are invited separately. Workers (کارکنان) are recorded here for your internal roster only.",
       "addWorker": "Add worker",
       "addTitle": "Add worker",

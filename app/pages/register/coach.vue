@@ -3,14 +3,10 @@ definePageMeta({ middleware: 'guest' })
 
 const localePath = useLocalePath()
 const { openRegister } = useAuthFlow()
-const { pilotNoCoach } = usePilotFlags()
 
 onMounted(async () => {
-  if (pilotNoCoach.value) {
-    openRegister({ role: 'ATHLETE' })
-  } else {
-    openRegister({ role: 'COACH' })
-  }
+  // Product exclusion: coach signup never opens — fall back to athlete register.
+  openRegister({ role: 'ATHLETE' })
   await navigateTo(localePath('/'))
 })
 </script>

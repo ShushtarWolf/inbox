@@ -7,6 +7,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const { localizedField } = useLocalizedField()
 const { formatHours } = useFormatters()
+const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
@@ -15,6 +16,12 @@ const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
 const { data: staffData, refresh: refreshStaff } = await useAuthedFetch('/api/owner/staff', {
   immediate: false,
   watch: false,
+})
+/** Court-booking MVP: hide coach roster rows from staff-access UI. */
+const staffMembers = computed(() => {
+  const list = staffData.value?.staff || []
+  if (!pilotNoCoach.value) return list
+  return list.filter((member: { role?: string }) => member.role !== 'COACH')
 })
 const staffSaving = ref<Record<string, boolean>>({})
 const staffError = ref('')
@@ -417,7 +424,10 @@ async function save() {
           </label>
           <p class="text-brand-gray-600">
             <span class="font-bold">{{ t('owner.settingsPage.inventory') }}:</span>
-            {{ data?.counts?.courts || 0 }} {{ t('owner.settingsPage.courts') }} · {{ data?.counts?.coaches || 0 }} {{ t('owner.settingsPage.coaches') }}
+            {{ data?.counts?.courts || 0 }} {{ t('owner.settingsPage.courts') }}
+            <template v-if="!pilotNoCoach">
+              · {{ data?.counts?.coaches || 0 }} {{ t('owner.settingsPage.coaches') }}
+            </template>
           </p>
         </div>
       </div>
@@ -465,10 +475,10 @@ async function save() {
         <p v-if="staffError" class="mt-3 text-sm text-red-600">{{ staffError }}</p>
         <p v-if="staffSuccess" class="mt-3 text-sm text-green-700">{{ staffSuccess }}</p>
         <ul class="mt-4 space-y-3">
-          <li v-for="member in staffData?.staff || []" :key="member.id" class="ios-card p-4">
+          <li v-for="member in staffMembers" :key="member.id" class="ios-card p-4">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p class="font-bold">{{ member.coach ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
+                <p class="font-bold">{{ (!pilotNoCoach && member.coach) ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
                 <p class="text-xs text-brand-gray-600">
                   <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ staffRoleLabel(member.role) }}</span>
                   <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></span>
