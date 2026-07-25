@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** Canva p46: amenities + rental / sell / services sections. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
@@ -38,6 +39,8 @@ const modalName = ref('')
 const modalPrice = ref(0)
 const saving = ref(false)
 const modalError = ref('')
+const deleteTarget = ref<EquipmentItem | null>(null)
+const deletePending = ref(false)
 
 function formatEquipmentPrice(item: EquipmentItem) {
   if (item.category === 'CLUB' || !item.price) return t('owner.free')
@@ -95,13 +98,26 @@ async function saveItem() {
   }
 }
 
-async function deleteItem(item: EquipmentItem) {
-  if (!confirm(t('owner.equipmentsPage.confirmDelete'))) return
+async function requestDelete(item: EquipmentItem) {
+  deleteTarget.value = item
+}
+
+function closeDelete() {
+  if (deletePending.value) return
+  deleteTarget.value = null
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  deletePending.value = true
   try {
-    await $fetch(`/api/owner/equipments/${item.id}`, { method: 'DELETE' })
+    await $fetch(`/api/owner/equipments/${deleteTarget.value.id}`, { method: 'DELETE' })
+    deleteTarget.value = null
     await refresh()
   } catch {
     // silent — user can retry
+  } finally {
+    deletePending.value = false
   }
 }
 </script>
@@ -111,34 +127,60 @@ async function deleteItem(item: EquipmentItem) {
     <section class="canva-dash-hero">
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
       <h1 class="canva-page-hero-title">{{ t('owner.equipments') }}</h1>
+      <p class="mt-1 text-sm text-white/85">{{ t('owner.equipmentsPage.subtitle') }}</p>
     </section>
+
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
-    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <div
-        v-for="cat in categories"
+      <!-- Amenities (CLUB) as chips — Canva p46 -->
+      <section class="canva-panel space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.equipmentsPage.amenities') }}</h2>
+          <button type="button" class="text-xs font-bold text-brand-primary" @click="openAdd('CLUB')">{{ t('common.add') }}</button>
+        </div>
+        <div v-if="grouped.CLUB.length" class="flex flex-wrap gap-2">
+          <button
+            v-for="e in grouped.CLUB"
+            :key="e.id"
+            type="button"
+            class="canva-court-chip canva-court-chip-idle"
+            @click="openEdit(e)"
+          >
+            {{ localizedField(e, 'nameFa', 'nameEn') }}
+          </button>
+        </div>
+        <p v-else class="text-xs text-brand-gray-600">{{ t('common.empty') }}</p>
+      </section>
+
+      <section
+        v-for="cat in categories.filter((c) => c.key !== 'CLUB')"
         :key="cat.key"
-        class="canva-panel"
+        class="canva-panel space-y-3"
       >
-        <div class="mb-2 flex items-center justify-between gap-2">
-          <h3 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h3>
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h2>
           <button type="button" class="text-xs font-bold text-brand-primary" @click="openAdd(cat.key)">{{ t('common.add') }}</button>
         </div>
         <ul class="space-y-1 text-sm">
-          <li v-for="e in grouped[cat.key]" :key="e.id" class="flex items-center justify-between gap-2 rounded-lg px-1 py-1.5 hover:bg-brand-cream/80">
+          <li
+            v-for="e in grouped[cat.key]"
+            :key="e.id"
+            class="flex items-center justify-between gap-2 rounded-lg px-1 py-2 hover:bg-brand-cream/80"
+          >
             <span>
               {{ localizedField(e, 'nameFa', 'nameEn') }}
               <span class="text-xs text-brand-gray-600">· {{ formatEquipmentPrice(e) }}</span>
             </span>
-            <span class="flex shrink-0 gap-1">
+            <span class="flex shrink-0 gap-2">
               <button type="button" class="text-xs text-brand-gray-600" @click="openEdit(e)">{{ t('common.edit') }}</button>
-              <button type="button" class="text-xs text-red-600" @click="deleteItem(e)">{{ t('common.delete') }}</button>
+              <button type="button" class="text-xs text-red-600" @click="requestDelete(e)">{{ t('common.delete') }}</button>
             </span>
           </li>
           <li v-if="!grouped[cat.key].length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</li>
         </ul>
-      </div>
-    </div>
+      </section>
     </AppAsyncState>
+
+    <OwnerLegalFooter />
 
     <AppModal :open="showModal" patterned :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
       <div class="venus-modal-shell venus-modal-shell-simple">
@@ -166,5 +208,17 @@ async function deleteItem(item: EquipmentItem) {
         </div>
       </div>
     </AppModal>
+
+    <CanvaConfirmSheet
+      :open="Boolean(deleteTarget)"
+      :title="t('common.delete')"
+      :body="t('owner.equipmentsPage.confirmDelete')"
+      :confirm-label="t('common.delete')"
+      :dismiss-label="t('common.close')"
+      :pending="deletePending"
+      danger
+      @confirm="confirmDelete"
+      @close="closeDelete"
+    />
   </div>
 </template>

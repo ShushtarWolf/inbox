@@ -156,13 +156,29 @@ async function saveWorker() {
   }
 }
 
-async function removeWorker(worker: WorkerItem) {
-  if (!confirm(t('owner.workersPage.confirmDelete'))) return
+const deleteTarget = ref<WorkerItem | null>(null)
+const deletePending = ref(false)
+
+function requestDelete(worker: WorkerItem) {
+  deleteTarget.value = worker
+}
+
+function closeDelete() {
+  if (deletePending.value) return
+  deleteTarget.value = null
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  deletePending.value = true
   try {
-    await $fetch(`/api/owner/workers/${worker.id}`, { method: 'DELETE' })
+    await $fetch(`/api/owner/workers/${deleteTarget.value.id}`, { method: 'DELETE' })
+    deleteTarget.value = null
     await refresh()
   } catch {
     // silent
+  } finally {
+    deletePending.value = false
   }
 }
 </script>
@@ -203,7 +219,7 @@ async function removeWorker(worker: WorkerItem) {
             </div>
             <div class="flex shrink-0 gap-2">
               <button type="button" class="text-xs text-brand-gray-600" @click="openEdit(worker)">{{ t('common.edit') }}</button>
-              <button type="button" class="text-xs text-red-600" @click="removeWorker(worker)">{{ t('common.delete') }}</button>
+              <button type="button" class="text-xs text-red-600" @click="requestDelete(worker)">{{ t('common.delete') }}</button>
             </div>
           </div>
         </li>
@@ -296,5 +312,17 @@ async function removeWorker(worker: WorkerItem) {
         </div>
       </div>
     </AppModal>
+
+    <CanvaConfirmSheet
+      :open="Boolean(deleteTarget)"
+      :title="t('common.delete')"
+      :body="t('owner.workersPage.confirmDelete')"
+      :confirm-label="t('common.delete')"
+      :dismiss-label="t('common.close')"
+      :pending="deletePending"
+      danger
+      @confirm="confirmDelete"
+      @close="closeDelete"
+    />
   </div>
 </template>
