@@ -35,6 +35,29 @@ export function initialPlatformPaymentFields(amount: number): {
   }
 }
 
+/**
+ * After an IPG cancel: credit inbox wallet when there is no real bank reverse
+ * (PAYMENTS_MODE=test, or simulated SEP ResNum / metadata).
+ */
+export function shouldCreditWalletAfterGatewayRefund(payment: {
+  providerRef?: string | null
+  metadataJson?: string | null
+}): boolean {
+  if (getPaymentsMode() !== 'live') return true
+  let meta: Record<string, unknown> = {}
+  if (payment.metadataJson) {
+    try {
+      meta = JSON.parse(payment.metadataJson) as Record<string, unknown>
+    } catch {
+      meta = {}
+    }
+  }
+  if (meta.simulated || meta.simulatedRefund) return true
+  const ref = payment.providerRef || ''
+  if (ref.startsWith('SIM') || ref.startsWith('sep-test-')) return true
+  return false
+}
+
 export function isPaymentRefundable(status: string): boolean {
   return status === 'PAID'
 }

@@ -1,4 +1,4 @@
-import { isPaymentRefundable } from '#shared/bookingPayment.ts'
+import { isPaymentRefundable, shouldCreditWalletAfterGatewayRefund } from '#shared/bookingPayment.ts'
 import { creditWallet } from './wallet'
 import { syncPaymentToParent } from './paymentSync'
 import { getPaymentService } from './payments/service'
@@ -27,18 +27,26 @@ export async function refundPaymentForCancellation(options: {
   let walletCredited = false
 
   if (isOnlineGatewayPayment(payment)) {
+    let gatewayRefunded = false
     try {
       const service = getPaymentService(payment.provider)
       await service.refund(payment.id)
+      gatewayRefunded = true
     } catch {
-      if (options.userId) {
-        await creditWallet(options.userId, payment.amount, {
-          paymentId: payment.id,
-          bookingId: options.bookingId,
-          note: options.reason,
-        })
-        walletCredited = true
-      }
+      // Live reverse failed (or provider error) — fall back to wallet when possible.
+    }
+
+    const creditWalletInsteadOfBank =
+      Boolean(options.userId)
+      && (!gatewayRefunded || shouldCreditWalletAfterGatewayRefund(payment))
+
+    if (creditWalletInsteadOfBank && options.userId) {
+      await creditWallet(options.userId, payment.amount, {
+        paymentId: payment.id,
+        bookingId: options.bookingId,
+        note: options.reason,
+      })
+      walletCredited = true
     }
   } else if (options.userId) {
     await creditWallet(options.userId, payment.amount, {
