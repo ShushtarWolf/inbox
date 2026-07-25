@@ -1,9 +1,11 @@
 <script setup lang="ts">
+/** Admin unlock gate — secret-header console (NO CANVA phone frame). Clean FA ops UI. */
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
 
 useHead({
+  title: () => t('admin.consoleTitle'),
   meta: [{ name: 'robots', content: 'noindex, nofollow' }],
 })
 
@@ -62,31 +64,58 @@ function lockAdmin() {
 </script>
 
 <template>
-  <div v-if="!secret" class="mx-auto min-h-screen max-w-md p-4 pt-12">
-    <div class="mb-6 text-center">
-      <p class="text-xs font-medium uppercase tracking-wider text-brand-gray-500">inbox</p>
-      <h1 class="mt-1 font-display text-xl font-bold text-brand-navy">{{ t('admin.consoleTitle') }}</h1>
-      <p class="mt-2 text-sm text-brand-gray-600">{{ t('admin.secretPrompt') }}</p>
-      <p class="mt-1 text-xs text-brand-gray-500">{{ t('admin.secretHint') }}</p>
-    </div>
-    <div class="border border-brand-gray-200 bg-white p-6 venus-form-stack" style="border-radius: 2px;">
-      <AppFormField :label="t('admin.secretLabel')">
-        <input
-          v-model="secretInput"
-          type="password"
-          class="neo-input"
-          dir="ltr"
-          autocomplete="current-password"
-          :disabled="verifying"
-          @keyup.enter="submitSecret"
-        />
-      </AppFormField>
-      <p v-if="gateMessage" class="venus-alert-error">{{ gateMessage }}</p>
-      <button type="button" class="btn-primary w-full" :disabled="verifying" @click="submitSecret">
-        {{ verifying ? t('common.loading') : t('admin.enter') }}
-      </button>
+  <div
+    v-if="!secret"
+    class="flex min-h-dvh flex-col bg-brand-gray-50"
+  >
+    <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
+      <!-- Brand -->
+      <div class="mb-6 flex items-center justify-center gap-2">
+        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
+        <span class="font-display text-lg font-bold tracking-wide text-brand-navy">INBOX</span>
+      </div>
+
+      <!-- Title + ops card -->
+      <div
+        class="border border-brand-gray-200 bg-white p-5 shadow-sm"
+        style="border-radius: 2px;"
+      >
+        <h1 class="text-start text-lg font-bold text-brand-navy">{{ t('admin.consoleTitle') }}</h1>
+        <p class="mt-1 text-start text-sm text-brand-gray-600">{{ t('admin.secretPrompt') }}</p>
+
+        <form class="mt-5 space-y-3" @submit.prevent="submitSecret">
+          <AppFormField field-id="admin-secret" :label="t('admin.secretLabel')">
+            <input
+              id="admin-secret"
+              v-model="secretInput"
+              type="password"
+              class="neo-input"
+              style="border-radius: 2px;"
+              dir="ltr"
+              autocomplete="current-password"
+              :disabled="verifying"
+            />
+          </AppFormField>
+
+          <p v-if="gateMessage" class="venus-alert-error text-start" role="alert">{{ gateMessage }}</p>
+
+          <button
+            type="submit"
+            class="inline-flex w-full items-center justify-center bg-brand-primary px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-brand-gray-300 disabled:text-brand-gray-600"
+            style="border-radius: 2px;"
+            :disabled="verifying"
+          >
+            {{ verifying ? t('common.loading') : t('admin.enter') }}
+          </button>
+        </form>
+
+        <p class="mt-4 text-start text-xs leading-relaxed text-brand-gray-500">
+          {{ t('admin.secretHint') }}
+        </p>
+      </div>
     </div>
   </div>
+
   <DashboardShell
     v-else
     :title="t('admin.consoleTitle')"

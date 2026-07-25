@@ -279,7 +279,7 @@
     "secretRequired": "کلید مدیریت الزامی است",
     "secretNotConfigured": "کنسول مدیریت روی سرور پیکربندی نشده است (ADMIN_PROVISION_SECRET).",
     "invalidSecret": "کلید مدیریت نامعتبر است",
-    "enter": "ادامه",
+    "enter": "ورود به کنسول",
     "logout": "قفل مدیریت",
     "noApplications": "درخواستی ثبت نشده",
     "clubName": "باشگاه",

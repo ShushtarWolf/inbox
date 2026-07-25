@@ -280,7 +280,7 @@
     "secretRequired": "Admin secret is required",
     "secretNotConfigured": "Admin console is not configured on the server (ADMIN_PROVISION_SECRET).",
     "invalidSecret": "Invalid admin secret",
-    "enter": "Continue",
+    "enter": "Enter console",
     "logout": "Lock admin",
     "noApplications": "No applications yet",
     "clubName": "Club",
