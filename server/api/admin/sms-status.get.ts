@@ -51,6 +51,13 @@ export default defineEventHandler(async (event) => {
   return {
     ok: true,
     smsPhase,
+    multiReady: smsPhase === 'MULTI',
+    multiReadyChecks: {
+      liveProvider: provider === 'live',
+      smsEnabled: smsEnabledFlag,
+      hasApiKey: hasKey,
+      hasTemplateOrSender: hasTemplate || hasSender,
+    },
     resolvedProvider: provider,
     smsMode,
     smsEnabledFlag,

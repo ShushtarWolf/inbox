@@ -8,6 +8,13 @@ const { formatNumber } = useFormatters()
 type SmsStatus = {
   ok: boolean
   smsPhase: 'SINGLE' | 'MULTI'
+  multiReady?: boolean
+  multiReadyChecks?: {
+    liveProvider: boolean
+    smsEnabled: boolean
+    hasApiKey: boolean
+    hasTemplateOrSender: boolean
+  }
   resolvedProvider: 'log' | 'live'
   smsMode: 'log' | 'live'
   smsEnabledFlag: boolean
@@ -111,6 +118,40 @@ watch(secret, (value) => {
         >
           {{ status.smsPhase === 'MULTI' ? t('admin.smsPage.phaseMultiBanner') : t('admin.smsPage.phaseSingleBanner') }}
         </div>
+
+        <section class="tail-card space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="tail-section-title">{{ t('admin.smsPage.multiReadyTitle') }}</h2>
+            <span
+              class="px-2 py-1 text-xs font-bold"
+              style="border-radius: 2px;"
+              :class="status.multiReady
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-amber-100 text-amber-900'"
+            >
+              {{ status.multiReady ? t('admin.smsPage.multiReadyYes') : t('admin.smsPage.multiReadyNo') }}
+            </span>
+          </div>
+          <ul class="space-y-2 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.checkLiveProvider') }}</span>
+              <strong dir="ltr">{{ yesNo(status.multiReadyChecks?.liveProvider ?? status.resolvedProvider === 'live') }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.checkSmsEnabled') }}</span>
+              <strong dir="ltr">{{ yesNo(status.multiReadyChecks?.smsEnabled ?? status.smsEnabledFlag) }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.checkApiKey') }}</span>
+              <strong dir="ltr">{{ yesNo(status.multiReadyChecks?.hasApiKey ?? status.hasKavenegarApiKey) }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.checkTemplateOrSender') }}</span>
+              <strong dir="ltr">{{ yesNo(status.multiReadyChecks?.hasTemplateOrSender ?? (status.hasKavenegarTemplate || status.hasKavenegarSender)) }}</strong>
+            </li>
+          </ul>
+        </section>
+
         <div class="tail-card-grid-4">
           <AppTailStatCard
             :label="t('admin.smsPage.smsPhase')"

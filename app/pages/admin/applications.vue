@@ -25,6 +25,8 @@ const approving = ref(false)
 const approveError = ref('')
 const approveResult = ref<{ temporaryPassword?: string; ownerEmail?: string; clubSlug?: string } | null>(null)
 const rejectingId = ref<string | null>(null)
+const rejectTarget = ref<Application | null>(null)
+const rejectPending = ref(false)
 
 const createForm = reactive({
   clubName: '',
@@ -122,15 +124,28 @@ async function confirmApprove() {
   }
 }
 
-async function rejectApplication(app: Application) {
-  if (!confirm(t('admin.rejectConfirm'))) return
-  rejectingId.value = app.id
+async function requestReject(app: Application) {
+  rejectTarget.value = app
+}
+
+function closeReject() {
+  if (rejectPending.value) return
+  rejectTarget.value = null
+}
+
+async function confirmReject() {
+  if (!rejectTarget.value) return
+  rejectPending.value = true
+  rejectingId.value = rejectTarget.value.id
   try {
-    await adminFetch(`/api/admin/clubs/${app.id}/reject`, { method: 'POST' })
+    await adminFetch(`/api/admin/clubs/${rejectTarget.value.id}/reject`, { method: 'POST' })
+    rejectTarget.value = null
     await loadApplications()
   } catch {
     loadError.value = t('common.error')
+    rejectTarget.value = null
   } finally {
+    rejectPending.value = false
     rejectingId.value = null
   }
 }
@@ -213,7 +228,7 @@ watch(secret, (value) => {
                     type="button"
                     class="btn-secondary text-xs text-red-700"
                     :disabled="rejectingId === app.id"
-                    @click="rejectApplication(app)"
+                    @click="requestReject(app)"
                   >
                     {{ t('admin.reject') }}
                   </button>
@@ -247,5 +262,17 @@ watch(secret, (value) => {
         </div>
       </div>
     </AppModal>
+
+    <CanvaConfirmSheet
+      :open="Boolean(rejectTarget)"
+      :title="t('admin.reject')"
+      :body="t('admin.rejectConfirm')"
+      :confirm-label="t('admin.reject')"
+      :dismiss-label="t('common.close')"
+      :pending="rejectPending"
+      danger
+      @confirm="confirmReject"
+      @close="closeReject"
+    />
   </div>
 </template>

@@ -12,7 +12,6 @@ type Overview = {
   bookings: { total: number; confirmed: number; cancelled: number; pending: number; today: number }
   payments: { count: number; totalAmount: number; paidCount: number; paidAmount: number; pendingCount: number }
   applications: { pending: number }
-  bugReports: { open: number }
   email?: {
     emailConfigured: boolean
     emailMode: 'log' | 'live'
@@ -51,20 +50,35 @@ type PilotClub = {
 
 const data = ref<Overview | null>(null)
 const pilotClubs = ref<PilotClub[]>([])
+const smsPhase = ref<'SINGLE' | 'MULTI' | null>(null)
+const smsMultiReady = ref(false)
 const pending = ref(false)
 const loadError = ref('')
+
+const consoleLinks = computed(() => [
+  { to: localePath('/admin/clubs'), label: t('admin.nav.clubs') },
+  { to: localePath('/admin/users'), label: t('admin.nav.users') },
+  { to: localePath('/admin/bookings'), label: t('admin.nav.bookings') },
+  { to: localePath('/admin/applications'), label: t('admin.nav.applications') },
+  { to: localePath('/admin/sms'), label: t('admin.nav.sms') },
+  { to: localePath('/admin/sentry'), label: t('admin.nav.sentry') },
+  { to: localePath('/admin/provision'), label: t('admin.nav.provision') },
+])
 
 async function load() {
   if (!secret.value) return
   pending.value = true
   loadError.value = ''
   try {
-    const [overview, checklist] = await Promise.all([
+    const [overview, checklist, sms] = await Promise.all([
       adminFetch<Overview>('/api/admin/overview'),
       adminFetch<{ clubs: PilotClub[] }>('/api/admin/pilot-checklist'),
+      adminFetch<{ smsPhase: 'SINGLE' | 'MULTI'; multiReady?: boolean }>('/api/admin/sms-status'),
     ])
     data.value = overview
     pilotClubs.value = checklist.clubs
+    smsPhase.value = sms.smsPhase
+    smsMultiReady.value = Boolean(sms.multiReady)
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 403) {
@@ -104,6 +118,41 @@ watch(secret, (value) => {
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="stat-grid">
       <div v-if="data" class="space-y-6">
+        <div class="tail-card flex flex-wrap gap-2">
+          <NuxtLink
+            v-for="link in consoleLinks"
+            :key="link.to"
+            :to="link.to"
+            class="border border-brand-gray-200 bg-brand-gray-50 px-3 py-1.5 text-xs font-bold text-brand-navy hover:border-brand-primary/40"
+            style="border-radius: 2px;"
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </div>
+
+        <section
+          v-if="smsPhase"
+          class="tail-card space-y-2"
+          :class="smsMultiReady ? 'border-emerald-200' : 'border-amber-200'"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="tail-section-title">{{ t('admin.nav.sms') }}</h2>
+            <span
+              class="px-2 py-1 text-xs font-bold"
+              style="border-radius: 2px;"
+              :class="smsMultiReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'"
+            >
+              {{ smsPhase }} · {{ smsMultiReady ? t('admin.smsPage.multiReadyYes') : t('admin.smsPage.multiReadyNo') }}
+            </span>
+          </div>
+          <p class="text-sm text-brand-gray-600">
+            {{ smsMultiReady ? t('admin.smsPage.phaseMultiBanner') : t('admin.smsPage.phaseSingleBanner') }}
+          </p>
+          <NuxtLink :to="localePath('/admin/sms')" class="inline-block text-sm font-bold text-brand-navy underline">
+            {{ t('admin.viewAll') }}
+          </NuxtLink>
+        </section>
+
         <div class="tail-card-grid-4">
           <AppTailStatCard :label="t('admin.metrics.clubs')" :value="formatNumber(data.clubs.total)" icon="stadium" />
           <AppTailStatCard :label="t('admin.metrics.users')" :value="formatNumber(data.users.total)" icon="group" />
@@ -185,10 +234,6 @@ watch(secret, (value) => {
               <li class="flex justify-between gap-2">
                 <NuxtLink :to="localePath('/admin/applications')" class="underline">{{ t('admin.metrics.pendingApplications') }}</NuxtLink>
                 <strong dir="ltr">{{ formatNumber(data.applications.pending) }}</strong>
-              </li>
-              <li class="flex justify-between gap-2">
-                <NuxtLink :to="localePath('/admin/bug-reports')" class="underline">{{ t('admin.metrics.openBugs') }}</NuxtLink>
-                <strong dir="ltr">{{ formatNumber(data.bugReports.open) }}</strong>
               </li>
               <li class="flex justify-between gap-2">
                 <span>{{ t('admin.metrics.bookingsToday') }}</span>
