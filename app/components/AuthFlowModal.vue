@@ -95,6 +95,12 @@ function handleClose() {
   close()
 }
 
+async function goForgotPassword() {
+  resetForm()
+  close()
+  await navigateTo(localePath('/forgot-password'))
+}
+
 function goGate() {
   resetForm()
   purpose.value = 'login'
@@ -314,6 +320,13 @@ watch(
           <p v-if="error" class="venus-alert-error">{{ error }}</p>
           <button type="submit" class="btn-primary w-full py-3" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
+          </button>
+          <button
+            type="button"
+            class="block w-full text-center text-xs font-bold text-brand-primary underline"
+            @click="goForgotPassword"
+          >
+            {{ t('auth.forgotPassword') }}
           </button>
           <button type="button" class="btn-ghost w-full" @click="goRole">
             {{ t('auth.register') }}
