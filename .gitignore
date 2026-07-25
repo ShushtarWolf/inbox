@@ -20,6 +20,7 @@ prisma/dev.db-journal
 
 # logs
 *.log
+.inbox-dev/
 
 # os / editor
 .DS_Store
@@ -32,6 +33,13 @@ prisma/dev.db-journal
 
 # Local planning artifacts (doodles, HTML prototypes, PDFs)
 planning/
+
+# Local Canva exports (large images; do not commit)
+canva-reference/pages/
+canva-reference/contact-sheets/
+canva-reference/comparisons/
+canva-reference/*.zip
+!canva-reference/README.md
 
 # Shell / editor temp junk
 sh-thd-*
