@@ -31,7 +31,13 @@ export type SmsPurpose = 'otp' | 'notify' | 'campaign'
 
 export interface SmsProvider {
   readonly name: SmsProviderName
-  send(opts: { to: string; body: string; clubId?: string; purpose?: SmsPurpose }): Promise<SmsResult>
+  send(opts: {
+    to: string
+    body: string
+    clubId?: string
+    purpose?: SmsPurpose
+    template?: string
+  }): Promise<SmsResult>
   sendBulk(opts: {
     recipients: SmsRecipient[]
     body: string
@@ -100,7 +106,7 @@ const SMS_NOTE_EN: Record<SmsStatusSnapshot['noteCode'], string> = {
   single_partial:
     'SINGLE — live path partial; do not claim any-IR delivery until template/sender + key + SMS_ENABLED are all ready',
   single_log:
-    'SINGLE — safe log mode; OTP returns debugCode; booking/waitlist SMS skipped (logged); no gateway calls',
+    'SINGLE — safe log mode; OTP returns debugCode; booking SMS dry-run logged (body + SmsLog, not sent); no gateway calls',
 }
 
 export function getSmsMode(): SmsMode {

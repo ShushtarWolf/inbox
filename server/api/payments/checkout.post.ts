@@ -4,7 +4,7 @@ import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/booking
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
-import { syncPaymentToParent } from '../../utils/paymentSync'
+import { notifyPaymentPaidIfNeeded, syncPaymentToParent } from '../../utils/paymentSync'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
 export default defineEventHandler(async (event) => {
@@ -84,6 +84,7 @@ export default defineEventHandler(async (event) => {
     if (!canCoverBookingWithWallet(balance, payableAmount)) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
+    const previousStatus = existingPayment?.status || ''
     const payment = await prisma.$transaction(async (tx) => {
       await debitWallet(user.id, payableAmount, {
         bookingId: body.bookingId,
@@ -110,6 +111,7 @@ export default defineEventHandler(async (event) => {
       })
     })
     await syncPaymentToParent(payment.id)
+    await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
       paymentId: payment.id,
       mode: getPaymentsMode(),

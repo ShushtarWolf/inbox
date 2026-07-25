@@ -5,13 +5,15 @@ export function logSmsProvider(): SmsProvider {
   const provider: SmsProvider = {
     name: 'log',
     async send(opts) {
-      console.log('[sms:log]', opts.to, opts.body.slice(0, 80))
+      const tag = opts.template || opts.purpose || 'sms'
+      console.log('[sms:log]', tag, opts.to, opts.body)
       if (opts.clubId) {
         await prisma.smsLog.create({
           data: {
             clubId: opts.clubId,
             message: opts.body,
             recipient: opts.to,
+            campaignName: opts.template || undefined,
           },
         })
       }

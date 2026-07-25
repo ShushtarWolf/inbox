@@ -1,6 +1,6 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
-import { notifyBookingConfirmed } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
     email: dbUser.email,
     phone: dbUser.phone,
     kind: 'court',
-    clubName: slot.court.club.nameEn || slot.court.club.nameFa,
+    clubName: clubNotifyName(slot.court.club),
     clubId: slot.court.clubId,
     bookingId: booking.id,
     date: slot.date,

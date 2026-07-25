@@ -46,7 +46,13 @@ export async function sendNotification(opts: {
   if (opts.channel === 'sms' && isSmsEnabled()) {
     try {
       const body = renderSmsTemplate(opts.template, opts.data)
-      return await sendSms({ to: opts.to, body, clubId: opts.clubId, purpose: 'notify' })
+      return await sendSms({
+        to: opts.to,
+        body,
+        clubId: opts.clubId,
+        purpose: 'notify',
+        template: opts.template,
+      })
     } catch (err) {
       console.error('[notify:sms]', opts.template, opts.to, err)
       console.log('[notify:log]', 'sms', opts.template, opts.to, opts.data)

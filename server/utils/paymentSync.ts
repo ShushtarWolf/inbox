@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
-import { notifyBookingPaid } from './bookingNotify'
+import { normalizeIranPhone } from '#shared/phone.ts'
+import { clubNotifyName, notifyBookingPaid } from './bookingNotify'
 import { getPaymentService } from './payments/service'
 import { creditWalletForTopUpPayment } from './wallet'
 
@@ -70,12 +71,14 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
   try {
     if (payment.booking) {
       const b = payment.booking
+      const rawGuest = b.guestMobile
+      const phone = b.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
       await notifyBookingPaid({
         userId: b.userId,
         email: b.user?.email,
-        phone: b.user?.phone || b.guestMobile,
+        phone,
         kind: 'court',
-        clubName: b.slot.court.club.nameEn || b.slot.court.club.nameFa,
+        clubName: clubNotifyName(b.slot.court.club),
         clubId: b.slot.court.clubId,
         bookingId: b.id,
         date: b.slot.date,
@@ -90,7 +93,7 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
         email: s.athlete?.email,
         phone: s.athlete?.phone,
         kind: 'coach',
-        clubName: s.coach.club?.nameEn || s.coach.club?.nameFa || 'Club',
+        clubName: clubNotifyName(s.coach.club || {}),
         clubId: s.coach.clubId,
         bookingId: s.id,
         date: s.date,
@@ -105,7 +108,7 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
         email: p.athlete?.email,
         phone: p.athlete?.phone,
         kind: 'package',
-        clubName: p.package.club.nameEn || p.package.club.nameFa,
+        clubName: clubNotifyName(p.package.club),
         clubId: p.package.clubId,
         bookingId: p.id,
         date: '',
@@ -115,6 +118,11 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
   } catch (err) {
     console.error('[paymentSync:notifyPaid]', paymentId, err)
   }
+}
+
+/** Notify athlete/guest when a payment newly becomes PAID (wallet checkout, online callback, etc.). */
+export async function notifyPaymentPaidIfNeeded(paymentId: string, previousStatus: string) {
+  return notifyPaidIfNeeded(paymentId, previousStatus)
 }
 
 export async function confirmPaymentAndSync(

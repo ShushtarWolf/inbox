@@ -1,5 +1,5 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
-import { notifyBookingConfirmed } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
 import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     email: athlete?.email,
     phone: athlete?.phone,
     kind: 'coach',
-    clubName: coach.club?.nameEn || coach.club?.nameFa || coach.nameEn || coach.nameFa,
+    clubName: clubNotifyName(coach.club || { nameFa: coach.nameFa, nameEn: coach.nameEn }),
     clubId: coach.clubId || undefined,
     bookingId: session.id,
     date: body.date,

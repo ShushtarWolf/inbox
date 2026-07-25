@@ -28,6 +28,8 @@ export async function sendSms(opts: {
   body: string
   clubId?: string
   purpose?: 'otp' | 'notify' | 'campaign'
+  /** Optional audit tag (e.g. BOOKING_CONFIRMED) stored on SmsLog.campaignName in log mode. */
+  template?: string
 }) {
   return getSmsService().send(opts)
 }

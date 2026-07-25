@@ -1,6 +1,6 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
-import { notifyBookingConfirmed } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
 
 export default defineEventHandler(async (event) => {
   if (!isRecurringReserveEnabled()) {
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
     email: athlete?.email,
     phone: athlete?.phone,
     kind: 'package',
-    clubName: pkg.club.nameEn || pkg.club.nameFa,
+    clubName: clubNotifyName(pkg.club),
     clubId: pkg.clubId,
     bookingId: booking.id,
     date: pkg.startDate || '',

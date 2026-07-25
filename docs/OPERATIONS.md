@@ -125,11 +125,25 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 
 | Event | Path | Notes |
 |-------|------|--------|
-| Booking confirmed | `bookingNotify.notifyBookingConfirmed` | Athlete court book + owner desk reserve |
+| Booking confirmed | `bookingNotify.notifyBookingConfirmed` | Athlete court book + owner desk reserve (guest phone) |
 | Booking cancelled | `bookingNotify.notifyBookingCancelled` | Athlete cancel + owner cancel (registered or guest phone) |
+| Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback |
 | Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
 
-Log mode: booking/waitlist SMS are skipped and logged (`[bookingNotify:sms:skip]` / `[waitlistNotify:sms:skip]`) — no fake gateway send. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
+Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
+
+### Live reservation SMS cutover (later — do not enable now)
+
+When Kavenegar free-text sender is approved:
+
+```bash
+SMS_ENABLED=true
+SMS_PROVIDER=live   # or kavenegar
+KAVENEGAR_API_KEY=…
+KAVENEGAR_SENDER=…  # panel-approved; required for booking free-text
+```
+
+OTP is separate: needs `KAVENEGAR_TEMPLATE` (Verify Lookup) — do **not** claim OTP works until the site template is approved. Verify with `npm run sms:status` → `resolvedProvider: "live"` and `smsPhase: "MULTI"`.
 
 ## Object storage (S3 / Liara)
 

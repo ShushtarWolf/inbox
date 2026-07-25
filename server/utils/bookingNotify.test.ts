@@ -14,6 +14,7 @@ vi.mock('#shared/sms.ts', () => ({
 }))
 
 import {
+  clubNotifyName,
   notifyBookingCancelled,
   notifyBookingConfirmed,
   notifyBookingPaid,
@@ -23,7 +24,7 @@ const baseOpts = {
   userId: 'user-1',
   email: 'athlete@inbox.local',
   phone: '09121234567',
-  clubName: 'Test Club',
+  clubName: 'باشگاه تست',
   date: '2026-07-20',
   startTime: '10:00',
   kind: 'court' as const,
@@ -35,7 +36,7 @@ const guestOnlyOpts = {
   userId: null,
   email: null,
   phone: '09129876543',
-  clubName: 'Behnaz Club',
+  clubName: 'بهناز',
   date: '2026-07-21',
   startTime: '14:00',
   kind: 'court' as const,
@@ -43,10 +44,18 @@ const guestOnlyOpts = {
   clubId: 'club-behnaz',
 }
 
+describe('clubNotifyName', () => {
+  it('prefers Persian name', () => {
+    expect(clubNotifyName({ nameFa: 'بهناز', nameEn: 'Behnaz' })).toBe('بهناز')
+    expect(clubNotifyName({ nameFa: null, nameEn: 'Behnaz' })).toBe('Behnaz')
+    expect(clubNotifyName({})).toBe('باشگاه')
+  })
+})
+
 describe('bookingNotify SMS', () => {
   beforeEach(() => {
     createInAppNotification.mockResolvedValue(undefined)
-    sendNotification.mockResolvedValue({ sent: true })
+    sendNotification.mockResolvedValue({ sent: false, logged: true })
     resolveSmsProvider.mockReturnValue('log')
   })
 
@@ -56,6 +65,7 @@ describe('bookingNotify SMS', () => {
 
   it('attempts SMS when provider is live and phone is present', async () => {
     resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
 
     await notifyBookingConfirmed(baseOpts)
     await notifyBookingCancelled({ ...baseOpts, reason: 'test' })
@@ -77,19 +87,51 @@ describe('bookingNotify SMS', () => {
     }
   })
 
-  it('skips SMS when provider is log (no fake sent)', async () => {
+  it('dry-runs SMS in log mode (auditable body, no live claim)', async () => {
     resolveSmsProvider.mockReturnValue('log')
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     await notifyBookingConfirmed(baseOpts)
     await notifyBookingCancelled(baseOpts)
     await notifyBookingPaid(baseOpts)
 
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(0)
+    expect(smsCalls).toHaveLength(3)
+    expect(smsCalls.every((call) => call[0].template.startsWith('BOOKING_'))).toBe(true)
     // In-app + email still run
     expect(createInAppNotification).toHaveBeenCalledTimes(3)
     const emailCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'email')
     expect(emailCalls).toHaveLength(3)
+
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_CONFIRMED',
+      '09121234567',
+      expect.stringContaining('رزرو تایید شد'),
+    )
+    logSpy.mockRestore()
+  })
+
+  it('uses Persian in-app titles/bodies', async () => {
+    await notifyBookingConfirmed(baseOpts)
+    expect(createInAppNotification).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BOOKING_CONFIRMED',
+      title: 'رزرو تایید شد',
+      body: expect.stringContaining('باشگاه تست'),
+    }))
+
+    await notifyBookingCancelled(baseOpts)
+    expect(createInAppNotification).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BOOKING_CANCELLED',
+      title: 'رزرو لغو شد',
+    }))
+
+    await notifyBookingPaid(baseOpts)
+    expect(createInAppNotification).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BOOKING_PAID',
+      title: 'پرداخت ثبت شد',
+    }))
   })
 
   it('skips SMS when phone is missing even if live', async () => {
@@ -114,6 +156,7 @@ describe('bookingNotify SMS', () => {
 
   it('guest-only phone: SMS without userId (skip in-app)', async () => {
     resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
 
     await notifyBookingConfirmed(guestOnlyOpts)
     await notifyBookingCancelled({ ...guestOnlyOpts, reason: 'owner-cancel' })
@@ -136,7 +179,7 @@ describe('bookingNotify SMS', () => {
     ])
   })
 
-  it('guest-only phone: log mode reaches safeSms skip with guest number (no fake sent)', async () => {
+  it('guest-only phone: log mode audits guest number + Persian body', async () => {
     resolveSmsProvider.mockReturnValue('log')
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
@@ -144,11 +187,13 @@ describe('bookingNotify SMS', () => {
 
     expect(createInAppNotification).not.toHaveBeenCalled()
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(0)
+    expect(smsCalls).toHaveLength(1)
     expect(logSpy).toHaveBeenCalledWith(
-      '[bookingNotify:sms:skip]',
+      '[bookingNotify:sms]',
+      'log',
       'BOOKING_CONFIRMED',
       '09129876543',
+      expect.stringContaining('بهناز'),
     )
     logSpy.mockRestore()
   })

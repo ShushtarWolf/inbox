@@ -1,7 +1,7 @@
 import { getPaymentsMode } from '#shared/payments.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { notifyBookingConfirmed } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
 import { assertDateNotInPast } from '../../utils/reservations'
@@ -128,7 +128,7 @@ export default defineEventHandler(async (event) => {
     await notifyBookingConfirmed({
       phone,
       kind: 'court',
-      clubName: club.nameEn || club.nameFa,
+      clubName: clubNotifyName(club),
       clubId: club.id,
       bookingId: record.id,
       date: body.startDate,

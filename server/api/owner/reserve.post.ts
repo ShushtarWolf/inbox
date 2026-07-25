@@ -6,7 +6,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { notifyBookingConfirmed, notifyBookingPaid } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { creditWallet } from '../../utils/wallet'
@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
           email: slot.booking.user?.email,
           phone,
           kind: 'court',
-          clubName: club.nameEn || club.nameFa,
+          clubName: clubNotifyName(club),
           clubId: club.id,
           bookingId: slot.booking.id,
           date: slot.date,
@@ -206,7 +206,7 @@ export default defineEventHandler(async (event) => {
       const notifyBase = {
         phone,
         kind: 'court' as const,
-        clubName: club.nameEn || club.nameFa,
+        clubName: clubNotifyName(club),
         clubId: club.id,
         bookingId: createdBooking.id,
         date: slot.date,

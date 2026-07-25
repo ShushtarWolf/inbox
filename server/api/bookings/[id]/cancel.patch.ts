@@ -1,4 +1,4 @@
-import { notifyBookingCancelled } from '../../../utils/bookingNotify'
+import { notifyBookingCancelled, clubNotifyName } from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
 import { canManageReservation } from '../../../utils/reservations'
 
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     email: booking.user?.email,
     phone: booking.user?.phone,
     kind: 'court',
-    clubName: booking.slot.court.club.nameEn || booking.slot.court.club.nameFa,
+    clubName: clubNotifyName(booking.slot.court.club),
     clubId: booking.slot.court.clubId,
     bookingId: booking.id,
     date: booking.slot.date,

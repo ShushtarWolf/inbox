@@ -434,7 +434,7 @@
       "no": "خیر",
       "noteMulti": "فاز MULTI — کاوه‌نگار زنده آماده است (کلید + قالب/فرستنده + SMS_ENABLED).",
       "noteSinglePartial": "فاز SINGLE — مسیر live ناقص است؛ تا آماده شدن همه چک‌ها ادعای ارسال به هر موبایل نکنید.",
-      "noteSingleLog": "فاز SINGLE — حالت لاگ امن؛ OTP فقط debugCode؛ پیامک رزرو/لیست‌انتظار ارسال واقعی نمی‌شود.",
+      "noteSingleLog": "فاز SINGLE — حالت لاگ امن؛ OTP فقط debugCode؛ پیامک رزرو با متن کامل لاگ می‌شود و ارسال واقعی نمی‌شود.",
       "warningCodes": {
         "live_without_enabled": "SMS_PROVIDER روی live است ولی SMS_ENABLED=true نیست — در حالت لاگ می‌مانید.",
         "live_without_api_key": "حالت live خواسته شده ولی KAVENEGAR_API_KEY نیست — در حالت لاگ می‌مانید.",

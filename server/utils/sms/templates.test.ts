@@ -20,14 +20,21 @@ describe('SMS templates', () => {
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00')
+    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
     expect(
       renderSmsTemplate('BOOKING_CANCELLED', {
         clubName: 'بهناز',
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toContain('رزرو لغو شد «بهناز»')
+    ).toBe('رزرو لغو شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
+    expect(
+      renderSmsTemplate('BOOKING_PAID', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '10:00',
+      }),
+    ).toBe('پرداخت رزرو ثبت شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
     expect(
       renderSmsTemplate('WAITLIST_SLOT_AVAILABLE', {
         clubName: 'بهناز',

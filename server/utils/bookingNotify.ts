@@ -1,5 +1,6 @@
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { createInAppNotification, sendNotification } from './notify'
+import { renderSmsTemplate } from './sms/templates'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
 
@@ -18,10 +19,15 @@ type BookingNotifyOpts = {
 
 type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID'
 
-function kindLabel(kind: BookingNotifyKind) {
-  if (kind === 'coach') return 'Coach session'
-  if (kind === 'package') return 'Package booking'
-  return 'Court booking'
+function kindLabelFa(kind: BookingNotifyKind) {
+  if (kind === 'coach') return 'جلسه مربی'
+  if (kind === 'package') return 'رزرو پکیج'
+  return 'رزرو زمین'
+}
+
+/** Prefer Persian club name for FA product SMS / in-app. */
+export function clubNotifyName(club: { nameFa?: string | null; nameEn?: string | null }) {
+  return (club.nameFa || club.nameEn || '').trim() || 'باشگاه'
 }
 
 async function safeInApp(opts: Parameters<typeof createInAppNotification>[0]) {
@@ -45,7 +51,12 @@ async function safeEmail(
   }
 }
 
-/** Live SMS only — log mode skips (no fake sent). Soft-fail so booking flows never break. */
+/**
+ * Soft-fail SMS so booking flows never break.
+ * Log mode: still renders Persian body, logs template+phone+body for QA, and routes through
+ * the log SMS provider (SmsLog row when clubId is set) — never claims live delivery.
+ * Live mode: same path → Kavenegar when env is unlocked.
+ */
 async function safeSms(
   phone: string | null | undefined,
   template: BookingSmsTemplate,
@@ -53,11 +64,10 @@ async function safeSms(
   clubId?: string,
 ) {
   if (!phone) return
-  if (resolveSmsProvider() !== 'live') {
-    // Log mode: no send (no fake sent). Always log phone so desk guest paths are auditable.
-    console.log('[bookingNotify:sms:skip]', template, phone)
-    return
-  }
+  const mode = resolveSmsProvider()
+  const body = renderSmsTemplate(template, data)
+  // Always audit intended payload (QA without live Kavenegar).
+  console.log('[bookingNotify:sms]', mode, template, phone, body)
   try {
     await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
   } catch (err) {
@@ -74,16 +84,21 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
   }
 }
 
+function whenLine(opts: BookingNotifyOpts) {
+  const when = [opts.date, opts.startTime].filter(Boolean).join(' ')
+  return when || '—'
+}
+
 /** Booking created (platform creates as CONFIRMED). In-app when userId; email/SMS when address/phone present. */
 export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
-  const label = kindLabel(opts.kind)
+  const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
   if (opts.userId) {
     await safeInApp({
       userId: opts.userId,
       type: 'BOOKING_CONFIRMED',
-      title: 'Booking confirmed',
-      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime}`,
+      title: 'رزرو تایید شد',
+      body: `${label} در «${opts.clubName}» — ${whenLine(opts)}`,
       metadata: {
         kind: opts.kind,
         clubId: opts.clubId,
@@ -98,14 +113,14 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
 }
 
 export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?: string }) {
-  const label = kindLabel(opts.kind)
+  const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
   if (opts.userId) {
     await safeInApp({
       userId: opts.userId,
       type: 'BOOKING_CANCELLED',
-      title: 'Booking cancelled',
-      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} was cancelled`,
+      title: 'رزرو لغو شد',
+      body: `${label} در «${opts.clubName}» — ${whenLine(opts)} لغو شد`,
       metadata: {
         kind: opts.kind,
         clubId: opts.clubId,
@@ -120,16 +135,16 @@ export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?
   await safeSms(opts.phone, 'BOOKING_CANCELLED', data, opts.clubId)
 }
 
-/** Pay-at-club (or other) marked paid — notify linked athlete and/or guest phone. */
+/** Pay-at-club / wallet / online verified — notify linked athlete and/or guest phone. */
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
-  const label = kindLabel(opts.kind)
+  const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
   if (opts.userId) {
     await safeInApp({
       userId: opts.userId,
       type: 'BOOKING_PAID',
-      title: 'Payment received',
-      body: `${label} at ${opts.clubName} — ${opts.date} ${opts.startTime} marked paid`,
+      title: 'پرداخت ثبت شد',
+      body: `${label} در «${opts.clubName}» — ${whenLine(opts)} پرداخت شد`,
       metadata: {
         kind: opts.kind,
         clubId: opts.clubId,
