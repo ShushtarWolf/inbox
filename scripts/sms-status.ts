@@ -40,7 +40,10 @@ console.log(JSON.stringify({
   hasKavenegarTemplate: snapshot.hasKavenegarTemplate,
   hasKavenegarSender: snapshot.hasKavenegarSender,
   hasOtpBypassConfigured: snapshot.hasOtpBypassConfigured,
+  warningCodes: snapshot.warningCodes,
   warnings: snapshot.warnings,
+  nextActionCodes: snapshot.nextActionCodes,
   nextActions: snapshot.nextActions,
+  noteCode: snapshot.noteCode,
   note: snapshot.note,
 }, null, 2))

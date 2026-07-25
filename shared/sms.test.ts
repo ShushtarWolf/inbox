@@ -127,6 +127,8 @@ describe('getSmsStatusSnapshot', () => {
     expect(snap.smsPhase).toBe('SINGLE')
     expect(snap.multiReady).toBe(false)
     expect(snap.hasOtpBypassConfigured).toBe(false)
+    expect(snap.warningCodes).toContain('phase_single')
+    expect(snap.nextActionCodes.length).toBeGreaterThan(0)
     expect(snap.nextActions.length).toBeGreaterThan(0)
     expect(snap.warnings.some((w) => w.includes('SINGLE'))).toBe(true)
     expect(JSON.stringify(snap)).not.toMatch(/test-key|0912/)
@@ -140,12 +142,14 @@ describe('getSmsStatusSnapshot', () => {
     const snap = getSmsStatusSnapshot()
     expect(snap.smsPhase).toBe('MULTI')
     expect(snap.multiReady).toBe(true)
+    expect(snap.noteCode).toBe('multi')
     expect(snap.multiReadyChecks).toEqual({
       liveProvider: true,
       smsEnabled: true,
       hasApiKey: true,
       hasTemplateOrSender: true,
     })
+    expect(snap.warningCodes).not.toContain('phase_single')
     expect(snap.note).toContain('MULTI')
   })
 
@@ -155,6 +159,7 @@ describe('getSmsStatusSnapshot', () => {
     const snap = getSmsStatusSnapshot()
     expect(snap.hasOtpBypassConfigured).toBe(true)
     expect(JSON.stringify(snap)).not.toContain('0912')
+    expect(snap.warningCodes).toContain('otp_bypass_configured')
     expect(snap.warnings.some((w) => w.includes('AUTH_OTP_BYPASS_PHONES'))).toBe(true)
   })
 })
