@@ -22,7 +22,7 @@ const confirming = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 const lastPaymentStatus = ref<string | null>(null)
-const { onlineEnabled, isTestPayments, startCheckout, canPayOnline } = useCheckout()
+const { onlineEnabled, isTestPayments, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 const { smsPhase, multiReady } = useSmsCapability()
 
@@ -245,7 +245,7 @@ onMounted(() => {
           <p class="mt-1 text-sm font-bold text-start">{{ t('booking.payAtClub') }}</p>
           <p class="text-sm text-brand-gray-600 text-start">{{ t('booking.payAtClubDetail') }}</p>
           <p v-if="bookedPrice != null" class="text-sm font-bold text-start">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
-          <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
+          <button v-if="canCoverWithWallet(wallet?.balance, bookedPrice, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
             {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
           </button>
         </template>
@@ -259,7 +259,7 @@ onMounted(() => {
           <button type="button" class="canva-gate-btn-primary w-full" :disabled="paying" @click="payNow">
             {{ paying ? t('common.loading') : (lastPaymentStatus === 'FAILED' ? t('booking.payRetry') : t('booking.payNow')) }}
           </button>
-          <button v-if="(wallet?.balance || 0) > 0" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payWithWallet">
+          <button v-if="canCoverWithWallet(wallet?.balance, bookedPrice, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payWithWallet">
             {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
           </button>
         </div>

@@ -1,4 +1,5 @@
 import type { Prisma, WalletTransactionType } from '@prisma/client'
+import { canCoverBookingWithWallet, shouldCreditTopUp } from '#shared/walletTopUp.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -45,6 +46,52 @@ export async function creditWallet(
     },
   })
   return updated
+}
+
+/**
+ * Credit wallet after a verified top-up Payment. Idempotent on paymentId + TOPUP_CREDIT.
+ * Safe to call on double callback when previousStatus was already PAID.
+ */
+export async function creditWalletForTopUpPayment(
+  paymentId: string,
+  previousStatus: string,
+  db: DbClient = prisma,
+) {
+  const payment = await db.payment.findUnique({ where: { id: paymentId } })
+  const existing = payment
+    ? await db.walletTransaction.findFirst({
+        where: { paymentId: payment.id, type: 'TOPUP_CREDIT' },
+      })
+    : null
+
+  if (!shouldCreditTopUp({
+    previousStatus,
+    purpose: payment?.purpose,
+    status: payment?.status,
+    userId: payment?.userId,
+    alreadyCredited: Boolean(existing),
+  }) || !payment?.userId) {
+    return {
+      credited: false,
+      reason: previousStatus === 'PAID'
+        ? 'already_paid' as const
+        : existing
+          ? 'already_credited' as const
+          : 'not_topup_paid' as const,
+    }
+  }
+
+  await creditWallet(payment.userId, payment.amount, {
+    type: 'TOPUP_CREDIT',
+    paymentId: payment.id,
+    note: 'Wallet top-up',
+  }, db)
+  return { credited: true, reason: 'ok' as const }
+}
+
+/** True when checkout may debit wallet for the full amount (MVP: no split). */
+export function canDebitWalletForFullAmount(balance: number, amount: number): boolean {
+  return canCoverBookingWithWallet(balance, amount)
 }
 
 export async function debitWallet(

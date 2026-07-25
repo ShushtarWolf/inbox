@@ -2,12 +2,16 @@ import type { Prisma } from '@prisma/client'
 import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 import { notifyBookingPaid } from './bookingNotify'
 import { getPaymentService } from './payments/service'
+import { creditWalletForTopUpPayment } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
 export async function syncPaymentToParent(paymentId: string, db: DbClient = prisma) {
   const payment = await db.payment.findUnique({ where: { id: paymentId } })
   if (!payment) return
+
+  // Top-up has no booking/coach/package parent.
+  if (payment.purpose === 'topup') return
 
   const paymentMethod = resolveParentPaymentMethod(payment.method, payment.status)
 
@@ -130,6 +134,11 @@ export async function confirmPaymentAndSync(
   const intent = await service.confirm(providerRef, opts)
   await syncPaymentToParent(intent.id)
   if (intent.status === 'PAID') {
+    try {
+      await creditWalletForTopUpPayment(intent.id, previousStatus)
+    } catch (err) {
+      console.error('[paymentSync:topUpCredit]', intent.id, err)
+    }
     await notifyPaidIfNeeded(intent.id, previousStatus)
   }
   return intent

@@ -38,6 +38,10 @@ export interface PaymentCreateInput {
   bookingId?: string
   coachSessionId?: string
   packageBookingId?: string
+  /** Athlete who owns a wallet top-up (no booking parent). */
+  userId?: string
+  /** booking (default) | topup */
+  purpose?: 'booking' | 'topup'
   idempotencyKey: string
 }
 

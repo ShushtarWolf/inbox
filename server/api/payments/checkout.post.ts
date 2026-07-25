@@ -2,9 +2,10 @@ import { randomBytes } from 'node:crypto'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
 import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
+import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
 import { syncPaymentToParent } from '../../utils/paymentSync'
-import { debitWallet } from '../../utils/wallet'
+import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -79,6 +80,10 @@ export default defineEventHandler(async (event) => {
   const payableAmount = existingPayment?.amount || amount
 
   if (body.useWallet && payableAmount > 0) {
+    const balance = await getWalletBalance(user.id)
+    if (!canCoverBookingWithWallet(balance, payableAmount)) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+    }
     const payment = await prisma.$transaction(async (tx) => {
       await debitWallet(user.id, payableAmount, {
         bookingId: body.bookingId,

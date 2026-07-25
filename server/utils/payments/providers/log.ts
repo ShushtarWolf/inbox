@@ -10,6 +10,7 @@ export function logPaymentProvider(): PaymentService {
     name: 'log',
     async createIntent(input) {
       const providerRef = `log-test-${randomBytes(8).toString('hex')}`
+      const purpose = input.purpose === 'topup' ? 'topup' : 'booking'
       const payment = await prisma.payment.create({
         data: {
           amount: input.amount,
@@ -18,10 +19,12 @@ export function logPaymentProvider(): PaymentService {
           provider: 'log',
           providerRef,
           idempotencyKey: input.idempotencyKey,
+          purpose,
+          userId: purpose === 'topup' ? input.userId : undefined,
           bookingId: input.bookingId,
           coachSessionId: input.coachSessionId,
           packageBookingId: input.packageBookingId,
-          metadataJson: JSON.stringify({ logged: true }),
+          metadataJson: JSON.stringify({ logged: true, purpose }),
         },
       })
       console.log('[payment:log]', providerRef, input.amount)

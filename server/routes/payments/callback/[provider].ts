@@ -1,6 +1,16 @@
 import { confirmPaymentAndSync, markPaymentFailedAndSync } from '../../../utils/paymentSync'
 import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
 
+function redirectForPayment(
+  payment: { purpose?: string | null } | null | undefined,
+  outcome: 'success' | 'cancelled' | 'error',
+) {
+  if (payment?.purpose === 'topup') {
+    return `/athlete/wallet?payment=${outcome}`
+  }
+  return `/athlete/bookings?payment=${outcome}`
+}
+
 /**
  * IPG return URL (GET or POST).
  * SEP: ResNum + RefNum + State
@@ -24,6 +34,14 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/athlete/bookings?payment=error')
   }
 
+  const paymentRow = await prisma.payment.findFirst({
+    where: {
+      providerRef,
+      provider,
+    },
+    select: { purpose: true },
+  })
+
   // User cancelled / bank declined — never mark PAID.
   if (!isPaymentCallbackOk(statusRaw)) {
     try {
@@ -31,12 +49,12 @@ export default defineEventHandler(async (event) => {
     } catch (err) {
       console.error('[payments:callback:fail]', provider, providerRef, err)
     }
-    return sendRedirect(event, '/athlete/bookings?payment=cancelled')
+    return sendRedirect(event, redirectForPayment(paymentRow, 'cancelled'))
   }
 
   try {
     await confirmPaymentAndSync(providerRef, provider, refNum ? { refNum } : undefined)
-    return sendRedirect(event, '/athlete/bookings?payment=success')
+    return sendRedirect(event, redirectForPayment(paymentRow, 'success'))
   } catch (err) {
     console.error('[payments:callback:confirm]', provider, providerRef, err)
     try {
@@ -44,6 +62,6 @@ export default defineEventHandler(async (event) => {
     } catch {
       // ignore secondary failure
     }
-    return sendRedirect(event, '/athlete/bookings?payment=error')
+    return sendRedirect(event, redirectForPayment(paymentRow, 'error'))
   }
 })

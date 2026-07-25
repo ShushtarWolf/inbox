@@ -91,7 +91,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
                 <p class="font-bold text-brand-navy">
-                  {{ row.title || t('home.bookCourt') }}
+                  {{ row.kind === 'topup' ? t('athlete.walletTypeTopUp') : (row.title || t('home.bookCourt')) }}
                   <span v-if="row.club" class="font-medium text-brand-gray-600">
                     · {{ localizedField(row.club, 'nameFa', 'nameEn') }}
                   </span>

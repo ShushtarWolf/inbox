@@ -105,6 +105,7 @@ enum WalletTransactionType {
   REFUND_CREDIT
   PAYMENT_DEBIT
   ADJUSTMENT
+  TOPUP_CREDIT
 }
 
 model User {
@@ -137,6 +138,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   notifications   Notification[]
   wallet          Wallet?
+  payments        Payment[]
   bugReports      BugReport[]
 
   @@unique([oauthProvider, oauthSubject])
@@ -688,16 +690,22 @@ model Payment {
   provider       String        @default("pay_at_club")
   providerRef    String?
   idempotencyKey String?       @unique
+  /** booking (default) | topup — top-up rows have userId and no booking parent. */
+  purpose        String        @default("booking")
   metadataJson   String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  userId            String?
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   bookingId         String?          @unique
   booking           Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   coachSessionId    String?          @unique
   coachSession      CoachSession?    @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
   packageBookingId  String?          @unique
   packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
 }
 
 model ContactSegment {

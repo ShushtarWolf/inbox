@@ -38,7 +38,7 @@ watch(rescheduleDate, () => {
   }
 })
 
-const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
+const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 const {
   bookingStatusLabel,
@@ -201,7 +201,7 @@ async function submitReview() {
               {{ paying ? $t('common.loading') : $t('booking.payNow') }}
             </button>
             <button
-              v-if="canPayWithWallet(paymentStatus) && (wallet?.balance || 0) > 0"
+              v-if="canCoverWithWallet(wallet?.balance, booking.payment?.amount || booking.slot.price, paymentStatus)"
               type="button"
               class="canva-gate-btn-secondary"
               :disabled="paying"

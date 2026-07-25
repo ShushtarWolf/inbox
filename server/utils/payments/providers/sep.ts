@@ -53,6 +53,7 @@ export function sepProvider(): PaymentService {
       // Local/CI without secrets: simulated ResNum + in-app test gateway.
       if (!tid) {
         const providerRef = `SIM${randomBytes(12).toString('hex')}`
+        const purpose = input.purpose === 'topup' ? 'topup' : 'booking'
         const payment = await prisma.payment.create({
           data: {
             amount: input.amount,
@@ -61,10 +62,12 @@ export function sepProvider(): PaymentService {
             provider: 'sep',
             providerRef,
             idempotencyKey: input.idempotencyKey,
+            purpose,
+            userId: purpose === 'topup' ? input.userId : undefined,
             bookingId: input.bookingId,
             coachSessionId: input.coachSessionId,
             packageBookingId: input.packageBookingId,
-            metadataJson: JSON.stringify({ simulated: true }),
+            metadataJson: JSON.stringify({ simulated: true, purpose }),
           },
         })
         const redirectUrl = `${siteUrl().replace(/\/$/, '')}/payments/test-gateway?provider=sep&ResNum=${encodeURIComponent(providerRef)}&amount=${payment.amount}`
@@ -86,6 +89,7 @@ export function sepProvider(): PaymentService {
       // ResNum must be unique per attempt; use our payment id after create is not possible
       // before token — generate a stable merchant reference first.
       const resNum = `INB${randomBytes(10).toString('hex')}`
+      const purpose = input.purpose === 'topup' ? 'topup' : 'booking'
 
       const requested = await sepRequestToken({
         terminalId: tid,
@@ -102,12 +106,15 @@ export function sepProvider(): PaymentService {
           provider: 'sep',
           providerRef: resNum,
           idempotencyKey: input.idempotencyKey,
+          purpose,
+          userId: purpose === 'topup' ? input.userId : undefined,
           bookingId: input.bookingId,
           coachSessionId: input.coachSessionId,
           packageBookingId: input.packageBookingId,
           metadataJson: JSON.stringify({
             token: requested.token,
             sepStatus: requested.status,
+            purpose,
           }),
         },
       })

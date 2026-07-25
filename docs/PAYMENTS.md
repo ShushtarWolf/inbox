@@ -57,6 +57,17 @@ Server IP (آدرس آی‌پی سرور سایت) is the public A record for `i
 7. Athlete can **retry** after `FAILED` (Pay online creates a new intent). Desk **mark paid (cash)** still works for unpaid/`FAILED` rows
 8. `/athlete/payments` lists real `Payment` rows (paid, pending, failed, pay_at_club / cash / wallet)
 
+## Wallet top-up
+
+Athletes can fund the wallet via the **same** online pipeline as court checkout (`PAYMENTS_MODE=test|live`):
+
+1. `POST /api/wallet/topup` `{ amount }` → `Payment` with `purpose=topup` + `userId`
+2. Redirect to SEP or `/payments/test-gateway`
+3. Callback OK → verify → `PAID` → idempotent `TOPUP_CREDIT` wallet row
+4. Spend: wallet must cover the **full** booking amount (`useWallet`) — no split with IPG
+
+Rejected when `PAYMENTS_MODE=pay_at_club`. Refunds still credit wallet on cancel (unchanged).
+
 ## Desk collection
 
 Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PENDING_ONLINE` / `FAILED`). Public athlete flow offers **پرداخت آنلاین** when `PAYMENTS_MODE` is `test` or `live` (not when `pay_at_club`).

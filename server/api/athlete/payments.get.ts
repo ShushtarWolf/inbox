@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
         { booking: { userId: user.id } },
         { coachSession: { athleteId: user.id } },
         { packageBooking: { athleteId: user.id } },
+        { purpose: 'topup', userId: user.id },
       ],
     },
     include: {
@@ -70,21 +71,25 @@ export default defineEventHandler(async (event) => {
 
   return {
     payments: payments.map((payment) => {
-      const kind = payment.bookingId
-        ? 'court'
-        : payment.coachSessionId
-          ? 'coach'
-          : payment.packageBookingId
-            ? 'package'
-            : 'other'
+      const kind = payment.purpose === 'topup'
+        ? 'topup'
+        : payment.bookingId
+          ? 'court'
+          : payment.coachSessionId
+            ? 'coach'
+            : payment.packageBookingId
+              ? 'package'
+              : 'other'
       const club = payment.booking?.slot.court.club
         || payment.coachSession?.coach.club
         || payment.packageBooking?.package.club
         || null
-      const title = payment.booking?.slot.court.nameFa
-        || payment.coachSession?.coach.nameFa
-        || payment.packageBooking?.package.title
-        || null
+      const title = payment.purpose === 'topup'
+        ? null
+        : payment.booking?.slot.court.nameFa
+          || payment.coachSession?.coach.nameFa
+          || payment.packageBooking?.package.title
+          || null
       const date = payment.booking?.slot.date
         || payment.coachSession?.date
         || null

@@ -80,7 +80,7 @@ const {
   isPayAtClubStatus,
   paidHonestyNote,
 } = useBookingLabels()
-const { onlineEnabled, startCheckout, canPayOnline, canPayWithWallet } = useCheckout()
+const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
 const paymentFlash = ref('')
@@ -481,7 +481,7 @@ function onMonthSelect() {
               @click="payBooking(item.id)"
             >{{ t('booking.payNow') }}</button>
             <button
-              v-if="item.kind === 'court' && item.status !== 'CANCELLED' && canPayWithWallet(item.paymentStatus) && (wallet?.balance || 0) > 0"
+              v-if="item.kind === 'court' && item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
               type="button"
               class="btn-ghost px-3 py-1.5 text-xs"
               :disabled="payingId === item.id"

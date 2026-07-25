@@ -1,3 +1,5 @@
+import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
+
 export function useCheckout() {
   const { public: { paymentsMode } } = useRuntimeConfig()
   const onlineEnabled = computed(() => paymentsMode !== 'pay_at_club')
@@ -29,9 +31,27 @@ export function useCheckout() {
     return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(paymentStatus || '')
   }
 
+  /** MVP: wallet must cover the full amount — no split with online. */
+  function canCoverWithWallet(
+    balance: number | null | undefined,
+    amount: number | null | undefined,
+    paymentStatus?: string | null,
+  ) {
+    if (!canPayWithWallet(paymentStatus)) return false
+    return canCoverBookingWithWallet(Number(balance || 0), Number(amount || 0))
+  }
+
   function isPaid(paymentStatus?: string | null) {
     return paymentStatus === 'PAID'
   }
 
-  return { onlineEnabled, isTestPayments, startCheckout, canPayOnline, canPayWithWallet, isPaid }
+  return {
+    onlineEnabled,
+    isTestPayments,
+    startCheckout,
+    canPayOnline,
+    canPayWithWallet,
+    canCoverWithWallet,
+    isPaid,
+  }
 }
