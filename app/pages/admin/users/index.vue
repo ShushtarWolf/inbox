@@ -100,7 +100,14 @@ watch([roleFilter, disabledFilter], () => {
       <AppFormField :label="t('admin.searchUsers')" class="min-w-[12rem] flex-1">
         <input v-model="search" type="search" class="neo-input" dir="ltr" @keyup.enter="load" />
       </AppFormField>
-      <button type="button" class="btn-secondary" @click="load">{{ t('admin.search') }}</button>
+      <button
+        type="button"
+        class="border border-brand-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-brand-navy transition hover:border-brand-primary/40"
+        style="border-radius: 2px;"
+        @click="load"
+      >
+        {{ t('admin.search') }}
+      </button>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -108,25 +115,31 @@ watch([roleFilter, disabledFilter], () => {
         v-for="option in (['ALL', 'CLUB_ADMIN', 'ATHLETE', 'COACH'] as const)"
         :key="option"
         type="button"
-        class="neo-pill text-xs"
-        :class="roleFilter === option ? 'neo-pill-active' : ''"
+        class="border px-3 py-1.5 text-xs font-bold transition"
+        style="border-radius: 2px;"
+        :class="roleFilter === option
+          ? 'border-brand-primary bg-brand-primary text-white'
+          : 'border-brand-gray-200 bg-brand-gray-50 text-brand-navy hover:border-brand-primary/40'"
         @click="roleFilter = option"
       >
-        {{ option === 'ALL' ? t('bugReport.filter.all') : t(`admin.roles.${option}`) }}
+        {{ option === 'ALL' ? t('common.all') : t(`admin.roles.${option}`) }}
       </button>
     </div>
 
     <div class="flex flex-wrap gap-2">
       <button
         v-for="option in ([
-          { value: 'ALL', label: t('bugReport.filter.all') },
+          { value: 'ALL', label: t('common.all') },
           { value: 'false', label: t('admin.userActive') },
           { value: 'true', label: t('admin.userDisabled') },
         ] as const)"
         :key="option.value"
         type="button"
-        class="neo-pill text-xs"
-        :class="disabledFilter === option.value ? 'neo-pill-active' : ''"
+        class="border px-3 py-1.5 text-xs font-bold transition"
+        style="border-radius: 2px;"
+        :class="disabledFilter === option.value
+          ? 'border-brand-primary bg-brand-primary text-white'
+          : 'border-brand-gray-200 bg-brand-gray-50 text-brand-navy hover:border-brand-primary/40'"
         @click="disabledFilter = option.value"
       >
         {{ option.label }}
@@ -163,6 +176,7 @@ watch([roleFilter, disabledFilter], () => {
               <td class="p-3">
                 <select
                   class="neo-select text-xs"
+                  style="border-radius: 2px;"
                   :value="user.role"
                   :disabled="updatingId === user.id"
                   @change="setRole(user, ($event.target as HTMLSelectElement).value as UserRow['role'])"
@@ -174,7 +188,8 @@ watch([roleFilter, disabledFilter], () => {
               </td>
               <td class="p-3">
                 <span
-                  class="rounded-full px-2 py-0.5 text-xs font-bold"
+                  class="px-2 py-0.5 text-xs font-bold"
+                  style="border-radius: 2px;"
                   :class="user.disabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'"
                 >
                   {{ user.disabled ? t('admin.userDisabled') : t('admin.userActive') }}
@@ -183,8 +198,9 @@ watch([roleFilter, disabledFilter], () => {
               <td class="p-3 whitespace-nowrap">
                 <button
                   type="button"
-                  class="btn-secondary text-xs"
-                  :class="user.disabled ? '' : 'text-red-700'"
+                  class="border border-brand-gray-300 bg-white px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style="border-radius: 2px;"
+                  :class="user.disabled ? 'text-brand-navy hover:border-brand-primary/40' : 'text-red-700 hover:border-red-300'"
                   :disabled="updatingId === user.id"
                   @click="setDisabled(user, !user.disabled)"
                 >
