@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getSmsMode, isSmsEnabled, resolveSmsProvider, resolveSmsPhase, recipientStatusForSmsResult } from './sms'
+import {
+  getSmsMode,
+  getSmsStatusSnapshot,
+  isSmsEnabled,
+  resolveSmsProvider,
+  resolveSmsPhase,
+  recipientStatusForSmsResult,
+} from './sms'
 
 const ENV_KEYS = [
   'SMS_PROVIDER',
@@ -7,6 +14,7 @@ const ENV_KEYS = [
   'KAVENEGAR_API_KEY',
   'KAVENEGAR_TEMPLATE',
   'KAVENEGAR_SENDER',
+  'AUTH_OTP_BYPASS_PHONES',
   'NODE_ENV',
 ] as const
 
@@ -105,6 +113,49 @@ describe('resolveSmsPhase', () => {
     process.env.NODE_ENV = 'production'
     expect(resolveSmsProvider()).toBe('live')
     expect(resolveSmsPhase()).toBe('SINGLE')
+  })
+})
+
+describe('getSmsStatusSnapshot', () => {
+  afterEach(() => {
+    clearSmsEnv()
+  })
+
+  it('reports SINGLE + nextActions in log mode without secrets', () => {
+    clearSmsEnv()
+    const snap = getSmsStatusSnapshot()
+    expect(snap.smsPhase).toBe('SINGLE')
+    expect(snap.multiReady).toBe(false)
+    expect(snap.hasOtpBypassConfigured).toBe(false)
+    expect(snap.nextActions.length).toBeGreaterThan(0)
+    expect(snap.warnings.some((w) => w.includes('SINGLE'))).toBe(true)
+    expect(JSON.stringify(snap)).not.toMatch(/test-key|0912/)
+  })
+
+  it('reports MULTI when fully ready', () => {
+    process.env.SMS_PROVIDER = 'live'
+    process.env.SMS_ENABLED = 'true'
+    process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
+    const snap = getSmsStatusSnapshot()
+    expect(snap.smsPhase).toBe('MULTI')
+    expect(snap.multiReady).toBe(true)
+    expect(snap.multiReadyChecks).toEqual({
+      liveProvider: true,
+      smsEnabled: true,
+      hasApiKey: true,
+      hasTemplateOrSender: true,
+    })
+    expect(snap.note).toContain('MULTI')
+  })
+
+  it('flags OTP bypass without returning MSISDNs', () => {
+    clearSmsEnv()
+    process.env.AUTH_OTP_BYPASS_PHONES = '09121234567,09129876543'
+    const snap = getSmsStatusSnapshot()
+    expect(snap.hasOtpBypassConfigured).toBe(true)
+    expect(JSON.stringify(snap)).not.toContain('0912')
+    expect(snap.warnings.some((w) => w.includes('AUTH_OTP_BYPASS_PHONES'))).toBe(true)
   })
 })
 

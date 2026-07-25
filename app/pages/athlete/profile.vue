@@ -3,11 +3,16 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const { t } = useI18n()
 const { user, fetch, displayName, avatarUrl: authAvatar, initials } = useAuth()
+const { multiReady } = useSmsCapability()
 const name = ref('')
 const phone = ref('')
 const avatarUrl = ref('')
 const saving = ref(false)
 const saved = ref(false)
+
+const addMobileHint = computed(() =>
+  multiReady.value ? t('athlete.addMobileForSmsMulti') : t('athlete.addMobileForSmsSingle'),
+)
 
 onMounted(async () => {
   await fetch()
@@ -55,7 +60,7 @@ async function save() {
       <AppFormField :label="t('common.mobile')">
         <input v-model="phone" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
-      <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ t('athlete.addMobileForSms') }}</p>
+      <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ addMobileHint }}</p>
       <p v-if="saved" class="text-sm font-bold text-emerald-700">{{ t('common.saved') }}</p>
       <button type="button" class="btn-primary w-full" :disabled="saving" @click="save">
         {{ saving ? t('common.loading') : t('common.save') }}

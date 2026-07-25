@@ -1,15 +1,17 @@
-import { resolveSmsProvider, getSmsMode, resolveSmsPhase } from '#shared/sms.ts'
+import { getSmsStatusSnapshot } from '#shared/sms.ts'
 
 /** Owner-safe SMS mode — no API keys, templates, or message bodies. */
 export default defineEventHandler(async (event) => {
   // Mode is club-wide infra (no PII); any active club admin may read it.
   await requireOwnerClub(event)
-  const provider = resolveSmsProvider()
+  const snapshot = getSmsStatusSnapshot()
   return {
     ok: true,
-    smsPhase: resolveSmsPhase(),
-    resolvedProvider: provider,
-    smsMode: getSmsMode(),
-    live: provider === 'live',
+    smsPhase: snapshot.smsPhase,
+    multiReady: snapshot.multiReady,
+    resolvedProvider: snapshot.resolvedProvider,
+    smsMode: snapshot.smsMode,
+    /** Prefer multiReady for claims; kept for older clients. */
+    live: snapshot.multiReady,
   }
 })

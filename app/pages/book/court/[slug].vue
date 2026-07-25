@@ -23,6 +23,7 @@ const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 const { onlineEnabled, startCheckout, canPayOnline } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
+const { smsPhase, multiReady } = useSmsCapability()
 
 const { data: slots, pending, error, refresh } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: date.value })),
@@ -227,8 +228,14 @@ onMounted(() => {
       <div class="relative z-[1] space-y-2 px-1 pb-2 pt-2">
         <p class="text-lg font-bold text-brand-primary">✓ {{ onlineEnabled ? t('booking.successCourtOnline') : t('booking.successCourt') }}</p>
         <p v-if="!user?.phone?.trim()" class="text-sm text-brand-gray-600">
-          {{ t('booking.noPhoneSmsNote') }}
+          {{ multiReady ? t('booking.noPhoneSmsNote') : t('booking.noPhoneSmsNoteSingle') }}
           <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">{{ t('nav.profile') }}</NuxtLink>
+        </p>
+        <p v-else-if="smsPhase === 'SINGLE'" class="text-sm text-brand-gray-600">
+          {{ t('booking.smsDeliveryNoteSingle') }}
+        </p>
+        <p v-else class="text-sm text-brand-gray-600">
+          {{ t('booking.smsDeliveryNoteMulti') }}
         </p>
         <p class="text-sm font-bold text-brand-navy">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
         <p v-if="club" class="text-sm text-brand-gray-600">{{ localizedField(club, 'addressFa', 'addressEn') }}</p>

@@ -150,6 +150,9 @@ async function requestOtp() {
 
     if (data.bypass) {
       await fetchAuth()
+      notice.value = t('auth.otpBypassNotice')
+      pending.value = false
+      await new Promise((resolve) => setTimeout(resolve, 900))
       handleClose()
       await navigateTo(data.redirectTo || localePath('/'))
       return
@@ -353,6 +356,7 @@ watch(
           </AppFormField>
           <p v-if="debugCode" class="rounded-lg bg-brand-primary-soft px-3 py-2 text-center text-xs font-bold text-brand-primary">
             {{ t('auth.debugOtpHint', { code: debugCode }) }}
+            <span class="mt-1 block font-medium text-brand-navy/80">{{ t('auth.debugOtpDevOnly') }}</span>
           </p>
           <p v-if="error" class="venus-alert-error">{{ error }}</p>
           <button type="submit" class="btn-primary w-full py-3" :disabled="pending">

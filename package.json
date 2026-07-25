@@ -17,7 +17,7 @@
     "db:seed:demo": "SEED_DEMO_DATA=true prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
-    "sms:status": "node scripts/sms-status.mjs",
+    "sms:status": "node --import tsx scripts/sms-status.ts",
     "email:status": "node scripts/email-status.mjs",
     "sentry:status": "node scripts/sentry-status.mjs",
     "storage:status": "node scripts/storage-status.mjs",

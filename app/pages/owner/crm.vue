@@ -21,7 +21,7 @@ const wizardOpen = ref(false)
 const wizardStep = ref<1 | 2 | 3>(1)
 
 const liveSms = computed(() =>
-  Boolean(smsStatus.value?.live || smsStatus.value?.resolvedProvider === 'live' || data.value?.sms?.live),
+  smsStatus.value?.smsPhase === 'MULTI' || Boolean(smsStatus.value?.multiReady),
 )
 
 const builtInSegments = new Set(['all', 'vip', 'inactive', 'atRisk'])

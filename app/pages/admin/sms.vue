@@ -22,9 +22,11 @@ type SmsStatus = {
   hasKavenegarApiKey: boolean
   hasKavenegarTemplate: boolean
   hasKavenegarSender: boolean
+  hasOtpBypassConfigured?: boolean
   pendingScheduled: number
   dueNow: number
   warnings: string[]
+  nextActions?: string[]
   note: string
 }
 
@@ -211,12 +213,23 @@ watch(secret, (value) => {
               <span>{{ t('admin.smsPage.pendingScheduled') }}</span>
               <strong dir="ltr">{{ formatNumber(status.pendingScheduled) }}</strong>
             </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.hasOtpBypass') }}</span>
+              <strong dir="ltr">{{ yesNo(Boolean(status.hasOtpBypassConfigured)) }}</strong>
+            </li>
           </ul>
 
           <div v-if="status.warnings?.length" class="rounded-lg border border-amber-200 bg-amber-50 p-3">
             <p class="text-xs font-bold text-amber-900">{{ t('admin.smsPage.warnings') }}</p>
             <ul class="mt-2 space-y-1 text-xs text-amber-800" dir="ltr">
               <li v-for="(warning, idx) in status.warnings" :key="idx">{{ warning }}</li>
+            </ul>
+          </div>
+
+          <div v-if="status.nextActions?.length" class="rounded-lg border border-brand-primary/20 bg-brand-primary-soft/40 p-3">
+            <p class="text-xs font-bold text-brand-navy">{{ t('admin.smsPage.nextActions') }}</p>
+            <ul class="mt-2 list-disc space-y-1 pe-4 text-xs text-brand-navy" dir="ltr">
+              <li v-for="(action, idx) in status.nextActions" :key="idx">{{ action }}</li>
             </ul>
           </div>
         </section>

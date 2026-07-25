@@ -6,6 +6,7 @@ const localePath = useLocalePath()
 const id = route.params.id as string
 const { user, fetch: fetchAuth } = useAuth()
 const { onlineEnabled } = useCheckout()
+const { smsPhase, multiReady } = useSmsCapability()
 const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
@@ -175,10 +176,13 @@ onMounted(() => {
         v-if="!user?.phone?.trim()"
         class="text-sm text-brand-gray-600"
       >
-        {{ t('booking.noPhoneSmsNote') }}
+        {{ multiReady ? t('booking.noPhoneSmsNote') : t('booking.noPhoneSmsNoteSingle') }}
         <NuxtLink :to="localePath('/athlete/profile')" class="font-bold text-brand-primary underline">
           {{ t('nav.profile') }}
         </NuxtLink>
+      </p>
+      <p v-else-if="smsPhase === 'SINGLE'" class="text-sm text-brand-gray-600">
+        {{ t('booking.smsDeliveryNoteSingle') }}
       </p>
       <template v-if="!onlineEnabled">
         <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
