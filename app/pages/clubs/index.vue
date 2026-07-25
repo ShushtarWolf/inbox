@@ -4,7 +4,7 @@ const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatNumber } = useFormatters()
 const { openGate } = useAuthFlow()
 const { user, dashboardPathForRole, firstName } = useAuth()
 
@@ -35,6 +35,7 @@ const listTitle = computed(() => {
   return t('clubs.courtsTitle')
 })
 
+/* Canva Court list (p2) hero matches home slide copy, including placeholder title */
 const heroSlides = computed(() => [
   {
     title: t('home.heroSlideTitle'),
@@ -77,26 +78,36 @@ async function setSort(value: string) {
   })
 }
 
-function clubMeta(club: { city?: string; sports?: string[] }) {
+function sportCourtLabel(club: { sports?: string[] }) {
+  if (club.sports?.includes('tennis')) return t('clubs.sportCourtTennis')
+  if (club.sports?.includes('padel')) return t('clubs.sportCourtPadel')
   const sportSlug = club.sports?.[0]
   const sportName = sports.value?.find((item) => item.slug === sportSlug)
-  const label = sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('home.sportsLabel')
-  return `${club.city || 'تهران'} | ${label}`
+  return sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('clubs.sportCourtGeneric')
+}
+
+function clubMeta(club: { city?: string; sports?: string[] }) {
+  return `${club.city || 'تهران'} | ${sportCourtLabel(club)}`
 }
 
 function clubRating(club: { rating?: number | null }) {
   return (club.rating ?? 4.5).toFixed(1)
 }
 
+/** Canva: «هزینه هر سانس: ۳۰۰ الی ۴۵۰ هزار تومان» */
+function toThousand(value: number) {
+  return formatNumber(Math.round(value / 1000))
+}
+
 function priceLine(club: { priceFrom?: number | null; priceTo?: number | null }) {
   if (club.priceFrom == null && club.priceTo == null) return ''
   if (club.priceFrom != null && club.priceTo != null && club.priceFrom !== club.priceTo) {
     return t('clubs.sessionPriceRange', {
-      from: formatCurrency(club.priceFrom),
-      to: formatCurrency(club.priceTo),
+      from: toThousand(club.priceFrom),
+      to: toThousand(club.priceTo),
     })
   }
-  return t('clubs.sessionPriceFrom', { price: formatCurrency(club.priceFrom ?? club.priceTo ?? 0) })
+  return t('clubs.sessionPriceFrom', { price: toThousand(club.priceFrom ?? club.priceTo ?? 0) })
 }
 
 function clubImage(club: { image?: string | null; sports?: string[] }) {
@@ -117,7 +128,7 @@ function prevHero() {
 
 <template>
   <div class="tail-page-stack animate-fade-in">
-    <!-- Canva chrome: logo right, square login left -->
+    <!-- Canva Court list: logo RIGHT, square login LEFT -->
     <header class="canva-home-chrome">
       <div class="flex items-center gap-2">
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
@@ -174,8 +185,8 @@ function prevHero() {
       </div>
     </section>
 
-    <!-- Rectangular sport chips, right-grouped -->
-    <div class="flex justify-end gap-2">
+    <!-- Rectangular short chips, right-grouped (justify-start in RTL) -->
+    <div class="canva-clubs-chip-row">
       <button
         v-for="chip in sportChips"
         :key="chip.value || 'all'"
@@ -189,10 +200,11 @@ function prevHero() {
     </div>
 
     <section class="space-y-3">
-      <div class="flex items-end justify-between gap-3">
-        <div>
-          <h2 class="text-lg font-bold text-brand-primary">{{ listTitle }}</h2>
-          <p class="text-xs text-brand-gray-600">{{ t('home.suggestionsBody') }}</p>
+      <!-- Title+subtitle RIGHT, «مرتب سازی» LEFT — not in chip row -->
+      <div class="canva-clubs-section-head">
+        <div class="canva-clubs-section-copy">
+          <h2 class="canva-clubs-section-title">{{ listTitle }}</h2>
+          <p class="canva-clubs-section-subtitle">{{ t('home.suggestionsBody') }}</p>
         </div>
         <label class="canva-clubs-sort">
           <span>{{ t('clubs.sortLabel') }}</span>
@@ -227,6 +239,12 @@ function prevHero() {
                   {{ clubRating(club) }}
                 </p>
                 <p class="canva-court-card-meta">{{ clubMeta(club) }}</p>
+                <p
+                  v-if="localizedField(club, 'descriptionFa', 'descriptionEn')"
+                  class="canva-court-card-desc"
+                >
+                  {{ localizedField(club, 'descriptionFa', 'descriptionEn') }}
+                </p>
                 <p v-if="priceLine(club)" class="canva-court-card-price">{{ priceLine(club) }}</p>
               </div>
               <span class="canva-court-card-cta">{{ t('home.bookNow') }}</span>

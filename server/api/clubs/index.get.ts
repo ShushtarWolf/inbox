@@ -55,6 +55,8 @@ export default defineCachedEventHandler(async (event) => {
       priceFrom: club.priceFrom,
       priceTo: club.priceTo,
       image: club.image,
+      descriptionFa: club.descriptionFa,
+      descriptionEn: club.descriptionEn,
       amenities,
       amenityPreview: amenities.slice(0, 3),
       verified: Boolean(club.verifiedAt),

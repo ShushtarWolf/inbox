@@ -91,8 +91,10 @@
   .btn-secondary:disabled {
     @apply cursor-not-allowed opacity-60;
   }
+  /* Canva OAuth blue login — square (replaces btn-primary / rounded-lg on Canva frames) */
   .btn-canva-login {
-    @apply inline-flex items-center justify-center rounded-lg bg-[#2F6FED] px-5 py-2.5 text-sm font-semibold text-white shadow-venus-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center bg-[#2F6FED] px-5 py-2.5 text-sm font-semibold text-white shadow-venus-sm transition-all duration-200;
+    border-radius: var(--sz-canva-radius);
   }
   .btn-canva-login:hover:not(:disabled) {
     @apply brightness-110;
@@ -268,7 +270,24 @@
     @apply flex shrink-0 items-center justify-between gap-3 border-b border-brand-gray-200 bg-brand-cream px-5 py-4;
   }
 
-  /* ── Canva auth / home language ── */
+  /*
+   * ── Canva phone primitives (LOCKED — never reintroduce soft TailAdmin) ──
+   *
+   * LOCKED checklist → CSS enforcement:
+   * 1. No pills          → canva-chip / *-chip use --sz-canva-radius (not rounded-full)
+   * 2. Radius 0–2px      → --sz-canva-radius / --sz-canva-radius-max on chrome/search/cards/CTAs
+   * 3. No btn-primary    → use canva-cta | canva-home-login | canva-search-cta | *-card-cta | btn-canva-login
+   * 4. RTL align right   → text-start / justify-start on card copy (never text-end)
+   * 5. Chrome flush      → canva-home-chrome (+ canva-public-main bleed); tight gap to hero
+   * 6. Hero titles white → canva-hero-title / canva-page-hero-title force color #fff
+   * 7. Search            → canva-search-row/fields/cta (white group + square red CTA, single-line)
+   * 8–10. Process        → frame regions / 375px self-check / sibling frames (agent workflow)
+   *
+   * REPLACES (do not use these on Canva phone frames):
+   *   btn-primary / rounded-lg  →  .canva-cta | .canva-home-login | .canva-search-cta | .canva-*-card-cta | .btn-canva-login
+   *   rounded-full / neo-pill   →  .canva-chip | .canva-clubs-chip | .canva-sport-chip | .canva-court-chip
+   */
+
   .canva-auth-sheet {
     @apply relative overflow-hidden bg-brand-cream;
     background-color: var(--sz-bg);
@@ -297,24 +316,51 @@
     @apply relative z-[1] space-y-4 px-5 pb-6 pt-2;
   }
   .canva-role-card {
-    @apply flex w-full items-center gap-3 rounded-xl border border-brand-gray-200/80 bg-white/90 px-4 py-3 text-start shadow-venus-sm backdrop-blur-sm transition hover:border-brand-primary/40;
+    @apply flex w-full items-center gap-3 border border-brand-gray-200/80 bg-white/90 px-4 py-3 text-start shadow-venus-sm backdrop-blur-sm transition hover:border-brand-primary/40;
+    border-radius: var(--sz-canva-radius-max);
   }
+  /* Square gate CTAs — replaces btn-primary on auth gate */
   .canva-gate-btn {
-    @apply flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold transition;
+    @apply flex w-full items-center justify-center px-4 py-3.5 text-sm font-bold transition;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-gate-btn-primary {
-    @apply flex w-full items-center justify-center rounded-xl bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
+    @apply flex w-full items-center justify-center bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-gate-btn-secondary {
-    @apply flex w-full items-center justify-center rounded-xl border border-brand-gray-300 bg-white/90 px-4 py-3.5 text-sm font-bold text-brand-navy backdrop-blur-sm transition hover:border-brand-primary/40;
+    @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white/90 px-4 py-3.5 text-sm font-bold text-brand-navy backdrop-blur-sm transition hover:border-brand-primary/40;
+    border-radius: var(--sz-canva-radius);
   }
+
+  /* Generic square CTA — replaces btn-primary on Canva frames */
+  .canva-cta {
+    @apply inline-flex items-center justify-center bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-cta:disabled {
+    @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 opacity-100;
+  }
+
+  /* Rectangular chip — replaces rounded-full / neo-pill on Canva frames */
+  .canva-chip {
+    @apply inline-flex shrink-0 items-center justify-center px-3 py-1.5 text-xs font-bold transition;
+    border-radius: var(--sz-canva-radius);
+  }
+
   .canva-hero {
-    @apply relative overflow-hidden rounded-xl bg-brand-navy text-white shadow-venus-sm;
+    @apply relative overflow-hidden bg-brand-navy text-white shadow-venus-sm;
+    border-radius: var(--sz-canva-radius-max);
+  }
+  /* Full-bleed home hero: flush corners (overrides canva-hero soft radius) */
+  .canva-hero-home {
+    border-radius: var(--sz-canva-radius);
+    box-shadow: none;
   }
   .canva-hero-media {
     @apply absolute inset-0 h-full w-full object-cover opacity-55;
   }
-  /* Canva home hero: B&W court photo with readable white type */
+  /* B&W hero helper */
   .canva-hero-media-bw {
     opacity: 0.92;
     filter: grayscale(1) contrast(1.08);
@@ -324,32 +370,37 @@
     background: linear-gradient(180deg, rgba(20, 18, 16, 0.15) 0%, rgba(20, 18, 16, 0.55) 100%);
   }
   .canva-hero-content {
-    @apply relative z-10 flex min-h-[220px] flex-col justify-end gap-2 p-5;
+    @apply relative z-10 flex min-h-[220px] flex-col justify-end gap-2 p-5 text-start;
   }
+  /* LOCKED #5: logo RIGHT / action LEFT via DOM order + RTL flex; flush via public-main bleed */
   .canva-home-chrome {
     @apply flex items-center justify-between gap-3;
   }
-  /* Chrome sits tight above hero (Canva top band, not a separate spaced block) */
+  /* Chrome sits tight above hero (not a space-y-6 separate band) */
   .tail-page-stack > .canva-home-chrome + .canva-hero-home {
     margin-top: 0.5rem;
   }
-  /* Canva: rectangular (barely rounded) login — not pill / rounded-lg */
+  /* Square login — replaces btn-primary / rounded-lg / rounded-full */
   .canva-home-login {
-    @apply inline-flex items-center justify-center rounded-sm bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white shadow-venus-sm transition hover:brightness-110;
+    @apply inline-flex items-center justify-center bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white shadow-venus-sm transition hover:brightness-110;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-home-login-soft {
     @apply bg-brand-primary-soft text-brand-primary shadow-none hover:brightness-100;
   }
   .canva-hero-home-content {
-    @apply justify-end;
+    @apply justify-end text-start;
     min-height: 13.5rem;
   }
+  /* LOCKED #6: force white — global h1 navy must not win */
   .canva-hero-title {
-    @apply max-w-xs text-3xl font-bold leading-none text-white;
+    @apply max-w-xs text-3xl font-bold leading-none;
+    color: #fff !important;
   }
   .canva-hero-arrow {
     @apply inline-flex items-center justify-center p-1 text-white transition hover:text-white/80;
   }
+  /* Carousel dots are circular in Canva — exception to pill ban */
   .canva-hero-dot {
     @apply h-2 w-2 rounded-full transition;
   }
@@ -359,13 +410,14 @@
   .canva-hero-dot-idle {
     @apply bg-white/45;
   }
-  /* Canva p1 search: white 3-cell bar + separate sharp red CTA (single-line placeholders) */
+
+  /* LOCKED #7: white field group + separate square red CTA; single-line placeholders */
   .canva-search-row {
     @apply flex items-stretch gap-2;
   }
   .canva-search-fields {
     @apply grid min-w-0 flex-1 grid-cols-[1fr_1.35fr_1fr] items-center bg-white;
-    border-radius: 0;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-search-field {
     @apply relative flex min-w-0 items-center px-3 py-3.5;
@@ -383,6 +435,8 @@
     @apply w-full truncate border-0 bg-transparent p-0 text-center text-xs font-medium outline-none sm:text-sm;
     color: #9a9690;
     appearance: none;
+    white-space: nowrap;
+    line-height: 1.25;
   }
   .canva-search-placeholder-filled {
     @apply font-semibold text-brand-navy;
@@ -392,17 +446,20 @@
   }
   .canva-search-cta {
     @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-5 text-sm font-semibold text-white transition hover:brightness-110;
-    border-radius: 0;
+    border-radius: var(--sz-canva-radius);
   }
+
   .canva-rail {
     @apply flex gap-3 overflow-x-auto pb-1;
   }
-  /* Canva home: square venue tiles, sharp corners, centered copy + CTA */
+
+  /* Sharp venue tiles + square CTAs */
   .canva-venue-grid {
     @apply grid grid-cols-3 gap-2 sm:gap-3;
   }
   .canva-venue-card {
-    @apply relative block aspect-square w-full overflow-hidden rounded-sm bg-[#2a1818] text-white shadow-venus-sm;
+    @apply relative block aspect-square w-full overflow-hidden bg-[#2a1818] text-white shadow-venus-sm;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-venue-card img {
     @apply absolute inset-0 h-full w-full object-cover;
@@ -427,11 +484,14 @@
     @apply line-clamp-2 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
   }
   .canva-venue-card-cta {
-    @apply inline-flex items-center justify-center self-center rounded-sm bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
+    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
+    border-radius: var(--sz-canva-radius);
   }
+
+  /* Sharp court cards — RTL copy uses text-start (not text-end) */
   .canva-court-card {
-    @apply relative block min-h-[8.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
-    border-radius: 0;
+    @apply relative block min-h-[10.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-court-card img {
     @apply absolute inset-0 h-full w-full object-cover;
@@ -444,13 +504,13 @@
     background: linear-gradient(90deg, rgba(20, 12, 12, 0.55) 0%, rgba(20, 12, 12, 0.35) 45%, rgba(20, 12, 12, 0.7) 100%);
   }
   .canva-court-card-body {
-    @apply relative z-10 flex h-full min-h-[8.5rem] items-center justify-between gap-3 p-4;
+    @apply relative z-10 flex h-full min-h-[10.5rem] items-center justify-between gap-3 p-4;
   }
   .canva-court-card-copy {
     @apply min-w-0 flex-1 text-start;
   }
   .canva-court-card-title {
-    @apply truncate text-base font-bold text-brand-primary sm:text-lg;
+    @apply truncate text-start text-base font-bold text-brand-primary sm:text-lg;
   }
   .canva-court-card-rating {
     @apply mt-1 inline-flex items-center justify-start gap-1 text-xs font-bold text-white;
@@ -459,26 +519,58 @@
     color: #c9a227;
   }
   .canva-court-card-meta {
-    @apply mt-1 text-[11px] font-medium leading-snug text-white/90;
+    @apply mt-1 text-start text-[11px] font-medium leading-snug text-white/90;
+  }
+  .canva-court-card-desc {
+    @apply mt-1.5 line-clamp-2 text-start text-[11px] font-medium leading-snug text-white/85;
   }
   .canva-court-card-price {
-    @apply mt-1 text-xs font-bold text-white;
+    @apply mt-1.5 text-start text-xs font-bold text-white;
   }
   .canva-court-card-cta {
     @apply inline-flex shrink-0 items-center justify-center self-center bg-brand-primary px-3 py-2 text-xs font-bold text-white;
-    border-radius: 0;
+    border-radius: var(--sz-canva-radius);
   }
-  /* Clubs list: rectangular sport chips (not pills) */
+
+  /*
+   * Clubs list (/clubs) — Canva Page 2 «Court list» regions (LOCKED):
+   *   1 chrome (logo RIGHT / square login LEFT)
+   *   2 hero B&W + white title + arrows/dots
+   *   3 chips همه|تنیس|پدل (mustard active, gray idle, rectangular)
+   *   4 section: title/subtitle RIGHT (text-start), «مرتب سازی» LEFT (plain, not pill)
+   *   5 court cards: copy RIGHT (red title · gold ★ · meta · desc · price) / CTA LEFT
+   *   6 legal strip + bottom nav (layout)
+   *
+   *   [ CTA LEFT ] .......... [ text block RIGHT: red title · gold ★ · white meta/desc/price ]
+   */
+  .canva-clubs-chip-row {
+    /* LOCKED #4: right-group chips → justify-start (RTL main-start = right) */
+    @apply flex justify-start gap-2;
+  }
   .canva-clubs-chip {
-    @apply inline-flex items-center justify-center px-4 py-2 text-xs font-bold transition;
-    border-radius: 0;
+    @apply inline-flex items-center justify-center px-3.5 py-2 text-xs font-bold transition;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-clubs-chip-active {
+    /* Mustard active — not pill / not brand-primary red */
     @apply bg-[#c9a227] text-white;
   }
   .canva-clubs-chip-idle {
     @apply bg-[#e8e4de] text-brand-navy;
   }
+  .canva-clubs-section-head {
+    @apply flex items-end justify-between gap-3;
+  }
+  .canva-clubs-section-copy {
+    @apply min-w-0 flex-1 text-start;
+  }
+  .canva-clubs-section-title {
+    @apply text-lg font-bold text-brand-primary;
+  }
+  .canva-clubs-section-subtitle {
+    @apply text-xs text-brand-gray-600;
+  }
+  /* Plain text control — not a pill select in the chip row */
   .canva-clubs-sort {
     @apply relative inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-bold text-brand-gray-600;
   }
@@ -486,7 +578,8 @@
     @apply absolute inset-0 cursor-pointer opacity-0;
   }
   .canva-sport-chip {
-    @apply inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold transition;
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold transition;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-sport-chip-active {
     @apply bg-[#f5c518] text-brand-navy;
@@ -628,7 +721,8 @@
     @apply border-brand-gold text-brand-primary ring-1 ring-brand-gold/40;
   }
   .canva-court-chip {
-    @apply shrink-0 rounded-full px-4 py-2 text-xs font-bold transition;
+    @apply shrink-0 px-4 py-2 text-xs font-bold transition;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-court-chip-active {
     @apply bg-brand-primary text-white shadow-sm;
@@ -646,7 +740,8 @@
     @apply absolute inset-y-0 start-0 w-2 rounded-s-2xl;
   }
   .canva-slot-pay-chip {
-    @apply shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold;
+    @apply shrink-0 px-2 py-0.5 text-[10px] font-bold;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-slot-pay-paid {
     @apply bg-emerald-50 text-emerald-700;
@@ -655,8 +750,10 @@
     @apply bg-amber-50 text-amber-800;
   }
   .canva-legend-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-brand-gray-200 bg-brand-cream px-2.5 py-1 text-xs font-bold text-brand-navy;
+    @apply inline-flex items-center gap-1.5 border border-brand-gray-200 bg-brand-cream px-2.5 py-1 text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
   }
+  /* Status color dots stay circular (indicator, not CTA/chip) */
   .canva-legend-dot {
     @apply h-2.5 w-2.5 rounded-full;
   }
@@ -671,10 +768,12 @@
     @apply mx-auto mb-2 h-14 w-auto max-w-[10rem];
   }
   .canva-page-hero-title {
-    @apply font-display text-2xl font-bold text-white;
+    @apply font-display text-2xl font-bold;
+    color: #fff !important;
   }
   .canva-fav-card {
-    @apply relative overflow-hidden rounded-2xl shadow-venus-sm;
+    @apply relative overflow-hidden shadow-venus-sm;
+    border-radius: var(--sz-canva-radius);
     min-height: 11.5rem;
   }
   .canva-fav-card-media {
@@ -684,10 +783,11 @@
     @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10;
   }
   .canva-fav-card-body {
-    @apply relative z-[1] flex h-full min-h-[11.5rem] flex-col justify-end p-4;
+    @apply relative z-[1] flex h-full min-h-[11.5rem] flex-col justify-end p-4 text-start;
   }
   .canva-history-status {
-    @apply shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold;
+    @apply shrink-0 px-2.5 py-1 text-[10px] font-bold;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-history-status-done {
     @apply bg-emerald-50 text-emerald-700;
@@ -702,7 +802,8 @@
     @apply flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 pt-2 text-[10px] font-medium text-brand-gray-500;
   }
   .canva-photo-hero {
-    @apply relative -mx-4 overflow-hidden text-white sm:-mx-0 sm:rounded-2xl;
+    @apply relative -mx-4 overflow-hidden text-white sm:-mx-0;
+    border-radius: var(--sz-canva-radius);
     min-height: 11rem;
   }
   .canva-photo-hero-media {
@@ -712,8 +813,193 @@
     @apply absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20;
   }
   .canva-photo-hero-body {
-    @apply relative z-[1] flex min-h-[11rem] flex-col justify-end px-4 pb-5 pt-10;
+    @apply relative z-[1] flex min-h-[11rem] flex-col justify-end px-4 pb-5 pt-10 text-start;
   }
+
+  /*
+   * Club detail (/clubs/[slug]) — Canva frame regions (LOCKED):
+   *   1 gallery (full-bleed, arrows, red dots)
+   *   2 title RIGHT + fav/share LEFT · location · gold ★ · description
+   *   3 امکانات rectangular chips
+   *   4 انتخاب تاریخ و زمان (calendar | courts+slots) + square CTA
+   *   5 اطلاعات بیشتر (copy RIGHT / map LEFT)
+   *   6 نظر ورزشکاران
+   * No ios-card / neo-pill / btn-primary / dashboard grid.
+   */
+  .canva-club-detail {
+    @apply text-start;
+  }
+  .canva-club-gallery {
+    @apply relative overflow-hidden bg-brand-navy;
+    border-radius: var(--sz-canva-radius);
+    min-height: 13.5rem;
+    aspect-ratio: 16 / 10;
+  }
+  .canva-club-gallery-media {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+  .canva-club-gallery-arrow {
+    @apply absolute top-1/2 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center text-white;
+  }
+  .canva-club-gallery-arrow-start {
+    inset-inline-start: 0.35rem;
+  }
+  .canva-club-gallery-arrow-end {
+    inset-inline-end: 0.35rem;
+  }
+  .canva-club-gallery-dots {
+    @apply absolute inset-x-0 bottom-3 z-[2] flex justify-center gap-2;
+  }
+  .canva-club-detail-body {
+    @apply space-y-5 pt-4;
+  }
+  .canva-club-detail-head {
+    @apply flex items-start justify-between gap-3;
+  }
+  .canva-club-detail-head-copy {
+    @apply min-w-0 flex-1 text-start;
+  }
+  /* Red title on cream — not navy global h1 */
+  .canva-club-detail-name {
+    @apply text-2xl font-bold leading-tight text-brand-primary;
+  }
+  .canva-club-detail-rating-line {
+    @apply mt-1 flex flex-wrap items-center justify-start gap-1.5 text-sm font-medium text-brand-navy;
+  }
+  .canva-club-detail-icon-actions {
+    @apply flex shrink-0 items-center gap-1;
+  }
+  .canva-club-detail-icon-btn {
+    @apply inline-flex h-10 w-10 items-center justify-center text-brand-navy transition hover:text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-detail-desc {
+    @apply text-sm leading-relaxed text-brand-gray-600;
+  }
+  .canva-club-detail-section {
+    @apply space-y-2 text-start;
+  }
+  .canva-club-detail-section-title {
+    @apply text-base font-bold text-brand-primary;
+  }
+  .canva-club-detail-cta {
+    @apply w-full px-4 py-3.5 text-sm font-bold;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-detail-link {
+    @apply inline-flex text-sm font-bold text-brand-primary;
+  }
+
+  /* Booking panel */
+  .canva-club-book {
+    @apply grid gap-3 bg-white p-3 sm:grid-cols-2;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #e8e4de;
+  }
+  .canva-club-book-cal {
+    @apply text-start;
+  }
+  .canva-club-cal-nav {
+    @apply mb-2 flex items-center justify-between gap-2;
+  }
+  .canva-club-cal-nav-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #e8e4de;
+    background: var(--sz-bg);
+  }
+  .canva-club-cal-month {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-club-cal-weekdays {
+    @apply grid grid-cols-7 gap-0.5 text-center text-[10px] font-bold text-brand-primary;
+  }
+  .canva-club-cal-grid {
+    @apply mt-1 grid grid-cols-7 gap-0.5;
+  }
+  .canva-club-cal-day {
+    @apply flex aspect-square items-center justify-center text-xs font-semibold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-cal-day-empty {
+    @apply pointer-events-none;
+  }
+  .canva-club-cal-day-active {
+    @apply bg-brand-primary text-white;
+  }
+  .canva-club-cal-day-disabled {
+    @apply cursor-not-allowed opacity-35;
+  }
+  .canva-club-book-slots-label {
+    @apply mb-1.5 text-xs font-bold text-brand-navy;
+  }
+  .canva-club-court-num {
+    @apply inline-flex h-9 w-9 items-center justify-center text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #d4d0ca;
+    background: #fff;
+  }
+  .canva-club-court-num-active {
+    @apply border-brand-primary bg-brand-primary text-white;
+  }
+  .canva-club-slot-grid {
+    @apply mt-3 grid grid-cols-3 gap-1.5;
+  }
+  .canva-club-slot {
+    @apply px-1 py-2 text-center text-[11px] font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #e8e4de;
+    background: #f4efe9;
+  }
+  .canva-club-slot-active {
+    /* Canva selected slots are green */
+    background: #2f9e44;
+    border-color: #2f9e44;
+    color: #fff;
+  }
+  .canva-club-book-footer {
+    @apply mt-3 space-y-2;
+  }
+  .canva-club-book-summary {
+    @apply text-xs font-medium text-brand-gray-600;
+  }
+
+  /* More info: copy start (right) / map end (left) via RTL flex */
+  .canva-club-more {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-stretch;
+  }
+  .canva-club-more-copy {
+    @apply flex min-w-0 flex-1 flex-col gap-3 text-start;
+  }
+  .canva-club-more-label {
+    @apply text-xs font-bold text-brand-primary;
+  }
+  .canva-club-more-value {
+    @apply mt-0.5 text-sm text-brand-navy;
+  }
+  .canva-club-more-map {
+    @apply w-full shrink-0 sm:w-[48%];
+  }
+  .canva-club-more-map-frame {
+    @apply h-36 w-full border-0;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-more-map-empty {
+    @apply flex h-36 items-center justify-center bg-[#e8e4de] text-xs font-bold text-brand-gray-600;
+    border-radius: var(--sz-canva-radius);
+  }
+
+  .canva-club-reviews {
+    @apply space-y-3 border-y border-brand-gray-200 py-1;
+  }
+  .canva-club-review {
+    @apply border-b border-brand-gray-200 py-3 text-start last:border-b-0;
+  }
+  .canva-club-reviews-empty {
+    @apply flex min-h-[5.5rem] items-center justify-center bg-[#e8e4de] px-3 text-center text-xs font-medium text-brand-gray-600;
+    border-radius: var(--sz-canva-radius);
+  }
+
   .canva-promo-strip {
     @apply absolute inset-x-0 top-0 z-[2] bg-brand-primary/95 px-3 py-1.5 text-center text-[11px] font-bold text-white;
   }
@@ -1007,6 +1293,13 @@
     margin-inline: -0.75rem;
     border-radius: 0;
     box-shadow: none;
+  }
+
+  .canva-public-main .canva-club-gallery,
+  .canva-public-main .canva-club-detail-hero,
+  .canva-public-main .canva-photo-hero {
+    margin-inline: -0.75rem;
+    border-radius: 0;
   }
 
   .canva-public-main .tail-page-stack > .canva-home-chrome + .canva-hero-home {
