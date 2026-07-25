@@ -191,26 +191,55 @@ async function main() {
     console.log('ok  pilot: coach APIs gated')
   }
 
-  // Email athlete register is retired (phone OTP only)
+  // Password athlete register (MVP while SMS OTP is gated)
+  const stamp = Date.now()
+  const pwPhone = `0912${String(stamp).slice(-7)}`
+  const pwJar = createCookieJar()
+  const pwRegister = await apiFetch(base, '/api/auth/register', {
+    jar: pwJar,
+    session: 'pw-athlete',
+    method: 'POST',
+    body: {
+      name: 'Password Athlete',
+      phone: pwPhone,
+      password: 'demo1234',
+    },
+  })
+  if (!pwRegister.res.ok) throw new Error(`password register expected 200, got ${pwRegister.res.status}`)
+  if (pwRegister.data.role !== 'ATHLETE') {
+    throw new Error(`password register escalated to ${pwRegister.data.role}`)
+  }
+  console.log('ok  password athlete register without live SMS')
+
+  const pwLoginPhone = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: pwPhone, password: 'demo1234' }),
+  })
+  if (!pwLoginPhone.ok) throw new Error(`phone password login expected 200, got ${pwLoginPhone.status}`)
+  console.log('ok  login with phone + password')
+
+  // Body role cannot escalate athlete password register to CLUB_ADMIN
   const escalate = await fetch(`${base}/api/auth/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       name: 'Escalator',
-      email: `escalate-${Date.now()}@example.com`,
+      email: `escalate-${stamp}@example.com`,
       password: 'demo1234',
       role: 'CLUB_ADMIN',
       locale: 'en',
     }),
   })
-  if (escalate.status !== 410) {
-    throw new Error(`email register expected 410 Gone, got ${escalate.status}`)
+  if (!escalate.ok) throw new Error(`athlete register expected 200, got ${escalate.status}`)
+  const escalateBody = await escalate.json()
+  if (escalateBody.role !== 'ATHLETE') {
+    throw new Error(`password register escalated to ${escalateBody.role}`)
   }
-  console.log('ok  email athlete register disabled (410)')
+  console.log('ok  password register stays ATHLETE (ignores role escalation)')
 
-  // Phone OTP register cannot escalate to CLUB_ADMIN via body role without owner fields —
-  // ATHLETE path is the default; owner register requires clubNameFa in OTP request.
-  const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete')
+  // Phone OTP register path still works in log mode (debugCode)
+  const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete', { viaOtp: true })
   if (otpAthlete.role !== 'ATHLETE') {
     throw new Error(`OTP register escalated to ${otpAthlete.role}`)
   }

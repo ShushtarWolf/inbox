@@ -12,9 +12,15 @@ export function useSmsCapability() {
     data.value?.smsPhase === 'MULTI' ? 'MULTI' : 'SINGLE',
   )
 
+  const smsMode = computed<'log' | 'live'>(() =>
+    data.value?.smsMode === 'live' || data.value?.resolvedProvider === 'live' ? 'live' : 'log',
+  )
+
+  const smsLive = computed(() => smsMode.value === 'live' && smsPhase.value === 'MULTI')
+
   const multiReady = computed(() =>
     Boolean(data.value?.multiReady) || smsPhase.value === 'MULTI',
   )
 
-  return { data, pending, error, refresh, smsPhase, multiReady }
+  return { data, pending, error, refresh, smsPhase, smsMode, smsLive, multiReady }
 }

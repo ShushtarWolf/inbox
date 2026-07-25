@@ -1,5 +1,5 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
-import { normalizeIranPhone } from '#shared/phone.ts'
+import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 
 export default defineEventHandler(async (event) => {
@@ -20,22 +20,27 @@ export default defineEventHandler(async (event) => {
     clubImage?: string
     galleryUrls?: string[]
     credentialUrls?: string[]
+    returnTo?: string
   }>(event)
 
   const name = body.name?.trim()
-  const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
-  const phone = body.phone ? normalizeIranPhone(body.phone) : null
-  if (body.phone?.trim() && !phone) {
+  const identity = resolvePasswordRegisterIdentity({
+    phone: body.phone,
+    email: body.email,
+  })
+  if (body.phone?.trim() && !identity?.phone) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
   }
+  const email = identity?.email
+  const phone = identity?.phone || null
   const clubNameFa = body.clubNameFa?.trim() || body.clubNameEn?.trim()
   const clubNameEn = body.clubNameEn?.trim() || clubNameFa
-  const city = body.city?.trim()
+  const city = body.city?.trim() || 'تهران'
   const addressFa = body.addressFa?.trim() || city
   const addressEn = body.addressEn?.trim() || city
 
-  if (!name || !email || password.length < 6 || !clubNameFa || !city) {
+  if (!name || !email || !isPasswordLongEnough(password) || !clubNameFa) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
@@ -67,7 +72,7 @@ export default defineEventHandler(async (event) => {
         passwordHash: hashSecret(password),
         locale,
         phone,
-        phoneVerifiedAt: phone ? new Date() : null,
+        phoneVerifiedAt: null,
         avatarUrl: body.avatarUrl?.trim() || null,
       },
     })
@@ -130,6 +135,6 @@ export default defineEventHandler(async (event) => {
     role: result.user.role,
     locale: result.user.locale,
     clubId: result.club.id,
-    redirectTo: postLoginRedirectPath(result.user, locale),
+    redirectTo: postLoginRedirectPath(result.user, locale, body.returnTo),
   }
 })

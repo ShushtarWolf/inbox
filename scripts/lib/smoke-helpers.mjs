@@ -182,38 +182,55 @@ export async function provisionOwner(base, adminSecret, overrides = {}) {
   return { email, password: data.temporaryPassword, ...data }
 }
 
-/** Register a temporary ATHLETE via phone OTP (email register is retired). */
+/** Register a temporary ATHLETE via password (OTP remains available when SMS is live). */
 export async function registerAthlete(base, jar, session = 'athlete', overrides = {}) {
   const id = stamp()
   const digits = String(id).replace(/\D/g, '').slice(-7).padStart(7, '0')
   const phone = overrides.phone || `0912${digits}`
   const name = overrides.name || 'Smoke Athlete'
+  const password = overrides.password || `Smoke${id.slice(0, 8)}!`
 
-  const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
-    method: 'POST',
-    body: {
-      phone,
-      purpose: 'register',
-      role: 'ATHLETE',
-      name,
-    },
-  })
-  if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}`)
-  const code = reqData.debugCode
-  if (!code) throw new Error('otp request athlete missing debugCode (expected in log SMS mode)')
+  if (overrides.viaOtp) {
+    const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
+      method: 'POST',
+      body: {
+        phone,
+        purpose: 'register',
+        role: 'ATHLETE',
+        name,
+      },
+    })
+    if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}`)
+    const code = reqData.debugCode
+    if (!code) throw new Error('otp request athlete missing debugCode (expected in log SMS mode)')
 
-  const { res, data } = await apiFetch(base, '/api/auth/otp/verify', {
+    const { res, data } = await apiFetch(base, '/api/auth/otp/verify', {
+      jar,
+      session,
+      method: 'POST',
+      body: {
+        phone: reqData.phone || phone,
+        code,
+        purpose: 'register',
+      },
+    })
+    if (!res.ok) throw new Error(`otp verify athlete → ${res.status}`)
+    return { email: data.email, phone: data.phone || phone, password: null, ...data }
+  }
+
+  const { res, data } = await apiFetch(base, '/api/auth/register', {
     jar,
     session,
     method: 'POST',
     body: {
-      phone: reqData.phone || phone,
-      code,
-      purpose: 'register',
+      name,
+      phone,
+      password,
+      ...(overrides.email ? { email: overrides.email } : {}),
     },
   })
-  if (!res.ok) throw new Error(`otp verify athlete → ${res.status}`)
-  return { email: data.email, phone: data.phone || phone, password: null, ...data }
+  if (!res.ok) throw new Error(`password register athlete → ${res.status}`)
+  return { email: data.email, phone: data.phone || phone, password, ...data }
 }
 
 /** True when runtime public config has pilotNoCoach. */
