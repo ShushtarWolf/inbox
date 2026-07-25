@@ -82,7 +82,14 @@ watch(statusFilter, () => {
       <AppFormField :label="t('common.name')" class="min-w-[12rem] flex-1">
         <input v-model="search" type="search" class="neo-input" :placeholder="t('admin.searchClubs')" @keyup.enter="load" />
       </AppFormField>
-      <button type="button" class="btn-secondary" @click="load">{{ t('admin.search') }}</button>
+      <button
+        type="button"
+        class="border border-brand-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-brand-navy transition hover:border-brand-primary/40"
+        style="border-radius: 2px;"
+        @click="load"
+      >
+        {{ t('admin.search') }}
+      </button>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -90,11 +97,14 @@ watch(statusFilter, () => {
         v-for="option in (['ALL', 'ACTIVE', 'PENDING', 'SUSPENDED'] as const)"
         :key="option"
         type="button"
-        class="neo-pill text-xs"
-        :class="statusFilter === option ? 'neo-pill-active' : ''"
+        class="border px-3 py-1.5 text-xs font-bold transition"
+        style="border-radius: 2px;"
+        :class="statusFilter === option
+          ? 'border-brand-primary bg-brand-primary text-white'
+          : 'border-brand-gray-200 bg-brand-gray-50 text-brand-navy hover:border-brand-primary/40'"
         @click="statusFilter = option"
       >
-        {{ option === 'ALL' ? t('bugReport.filter.all') : t(`admin.clubStatus.${option.toLowerCase()}`) }}
+        {{ option === 'ALL' ? t('common.all') : t(`admin.clubStatus.${option.toLowerCase()}`) }}
       </button>
     </div>
 
@@ -130,7 +140,8 @@ watch(statusFilter, () => {
               </td>
               <td class="p-3">
                 <span
-                  class="rounded-full px-2 py-0.5 text-xs font-bold"
+                  class="px-2 py-0.5 text-xs font-bold"
+                  style="border-radius: 2px;"
                   :class="{
                     'bg-green-100 text-green-800': club.status === 'ACTIVE',
                     'bg-amber-100 text-amber-800': club.status === 'PENDING',
@@ -146,7 +157,8 @@ watch(statusFilter, () => {
                   <button
                     v-if="club.status !== 'ACTIVE'"
                     type="button"
-                    class="btn-primary text-xs"
+                    class="bg-brand-primary px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-brand-gray-300 disabled:text-brand-gray-600"
+                    style="border-radius: 2px;"
                     :disabled="updatingId === club.id"
                     @click="setStatus(club, 'ACTIVE')"
                   >
@@ -155,7 +167,8 @@ watch(statusFilter, () => {
                   <button
                     v-if="club.status === 'ACTIVE'"
                     type="button"
-                    class="btn-secondary text-xs text-red-700"
+                    class="border border-brand-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 transition hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    style="border-radius: 2px;"
                     :disabled="updatingId === club.id"
                     @click="setStatus(club, 'SUSPENDED')"
                   >
@@ -164,7 +177,8 @@ watch(statusFilter, () => {
                   <button
                     v-if="club.status === 'SUSPENDED'"
                     type="button"
-                    class="btn-secondary text-xs"
+                    class="border border-brand-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy transition hover:border-brand-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                    style="border-radius: 2px;"
                     :disabled="updatingId === club.id"
                     @click="setStatus(club, 'PENDING')"
                   >

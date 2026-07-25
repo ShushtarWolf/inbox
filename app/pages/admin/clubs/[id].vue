@@ -100,7 +100,8 @@ watch(() => route.params.id, () => {
             <p class="mt-1 text-sm text-brand-gray-600">{{ club.city }}{{ club.district ? ` · ${club.district}` : '' }}</p>
           </div>
           <span
-            class="rounded-full px-3 py-1 text-xs font-bold"
+            class="px-3 py-1 text-xs font-bold"
+            style="border-radius: 2px;"
             :class="{
               'bg-green-100 text-green-800': club.status === 'ACTIVE',
               'bg-amber-100 text-amber-800': club.status === 'PENDING',
@@ -115,7 +116,8 @@ watch(() => route.params.id, () => {
           <button
             v-if="club.status !== 'ACTIVE'"
             type="button"
-            class="btn-primary text-xs"
+            class="bg-brand-primary px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-brand-gray-300 disabled:text-brand-gray-600"
+            style="border-radius: 2px;"
             :disabled="updating"
             @click="setStatus('ACTIVE')"
           >
@@ -124,7 +126,8 @@ watch(() => route.params.id, () => {
           <button
             v-if="club.status === 'ACTIVE'"
             type="button"
-            class="btn-secondary text-xs text-red-700"
+            class="border border-brand-gray-300 bg-white px-4 py-2 text-xs font-bold text-red-700 transition hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+            style="border-radius: 2px;"
             :disabled="updating"
             @click="setStatus('SUSPENDED')"
           >
@@ -133,7 +136,8 @@ watch(() => route.params.id, () => {
           <button
             v-if="club.status === 'SUSPENDED'"
             type="button"
-            class="btn-secondary text-xs"
+            class="border border-brand-gray-300 bg-white px-4 py-2 text-xs font-bold text-brand-navy transition hover:border-brand-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+            style="border-radius: 2px;"
             :disabled="updating"
             @click="setStatus('PENDING')"
           >
