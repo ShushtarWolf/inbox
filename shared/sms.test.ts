@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getSmsMode, isSmsEnabled, resolveSmsProvider, recipientStatusForSmsResult } from './sms'
+import { getSmsMode, isSmsEnabled, resolveSmsProvider, resolveSmsPhase, recipientStatusForSmsResult } from './sms'
 
 const ENV_KEYS = [
   'SMS_PROVIDER',
@@ -69,6 +69,42 @@ describe('resolveSmsProvider', () => {
     process.env.KAVENEGAR_SENDER = '1000xxxx'
     delete process.env.SMS_ENABLED
     expect(resolveSmsProvider()).toBe('log')
+  })
+})
+
+describe('resolveSmsPhase', () => {
+  afterEach(() => {
+    clearSmsEnv()
+  })
+
+  it('is SINGLE in default log mode', () => {
+    clearSmsEnv()
+    expect(resolveSmsPhase()).toBe('SINGLE')
+  })
+
+  it('is MULTI when live + key + template', () => {
+    process.env.SMS_PROVIDER = 'live'
+    process.env.SMS_ENABLED = 'true'
+    process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
+    expect(resolveSmsPhase()).toBe('MULTI')
+  })
+
+  it('is MULTI when live + key + sender', () => {
+    process.env.SMS_PROVIDER = 'live'
+    process.env.SMS_ENABLED = 'true'
+    process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.KAVENEGAR_SENDER = '1000xxxx'
+    expect(resolveSmsPhase()).toBe('MULTI')
+  })
+
+  it('stays SINGLE in production live without template/sender', () => {
+    process.env.SMS_PROVIDER = 'live'
+    process.env.SMS_ENABLED = 'true'
+    process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.NODE_ENV = 'production'
+    expect(resolveSmsProvider()).toBe('live')
+    expect(resolveSmsPhase()).toBe('SINGLE')
   })
 })
 

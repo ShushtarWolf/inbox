@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto'
 import { hashSecret, verifySecret } from './password'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { resolveSmsProvider } from '#shared/sms.ts'
+import { resolveSmsProvider, resolveSmsPhase } from '#shared/sms.ts'
 import { findUserForPhoneOtp, isPhoneRegistered } from './phoneAuth'
 import { enforceOtpSendPhoneLimit } from './rateLimit'
 import { sendSms } from './sms/service'
@@ -83,6 +83,7 @@ export async function createAndSendPhoneOtp(opts: {
     debugCode: smsMode === 'log' || debugFallback ? code : undefined,
     /** Client may show soft copy when SMS is dry-run (never claim live delivery). */
     smsMode,
+    smsPhase: resolveSmsPhase(),
   }
 }
 

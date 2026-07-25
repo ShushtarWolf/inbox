@@ -1,4 +1,4 @@
-import { resolveSmsProvider, getSmsMode } from '#shared/sms.ts'
+import { resolveSmsProvider, getSmsMode, resolveSmsPhase } from '#shared/sms.ts'
 
 /** Owner-safe SMS mode — no API keys, templates, or message bodies. */
 export default defineEventHandler(async (event) => {
@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
   const provider = resolveSmsProvider()
   return {
     ok: true,
+    smsPhase: resolveSmsPhase(),
     resolvedProvider: provider,
     smsMode: getSmsMode(),
     live: provider === 'live',

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AuthFlowRole } from '~/composables/useAuthFlow'
+import { isAuthProtectedPath } from '#shared/returnTo.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -24,8 +25,24 @@ const error = ref('')
 const debugCode = ref('')
 const maskedPhone = ref('')
 const smsMode = ref<'log' | 'live'>('log')
+const smsPhase = ref<'SINGLE' | 'MULTI'>('SINGLE')
 
 const { pilotNoCoach } = usePilotFlags()
+
+const { data: smsCapability } = await useFetch<{
+  smsPhase?: 'SINGLE' | 'MULTI'
+  smsMode?: 'log' | 'live'
+}>('/api/auth/sms-capability', { lazy: true })
+
+watch(
+  smsCapability,
+  (cap) => {
+    if (!cap) return
+    if (cap.smsPhase === 'MULTI' || cap.smsPhase === 'SINGLE') smsPhase.value = cap.smsPhase
+    if (cap.smsMode === 'live' || cap.smsMode === 'log') smsMode.value = cap.smsMode
+  },
+  { immediate: true },
+)
 
 const allRoles: Array<{ id: AuthFlowRole; title: string; body: string; icon: string }> = [
   { id: 'ATHLETE', title: 'register.roleAthlete', body: 'auth.roleAthleteHint', icon: 'sports_tennis' },
@@ -46,8 +63,17 @@ const title = computed(() => {
   return t('auth.registerAthleteTitle')
 })
 
+const phoneLoginHint = computed(() =>
+  smsPhase.value === 'MULTI' ? t('auth.phoneLoginHintMulti') : t('auth.phoneLoginHintSingle'),
+)
+
 const otpHint = computed(() => {
-  if (smsMode.value === 'live') return t('auth.otpSentHint', { phone: maskedPhone.value })
+  if (smsMode.value === 'live' && smsPhase.value === 'MULTI') {
+    return t('auth.otpSentHint', { phone: maskedPhone.value })
+  }
+  if (smsMode.value === 'live' && smsPhase.value === 'SINGLE') {
+    return t('auth.otpSingleLiveHint', { phone: maskedPhone.value })
+  }
   return t('auth.otpLogModeHint', { phone: maskedPhone.value })
 })
 
@@ -59,7 +85,8 @@ function resetForm() {
   error.value = ''
   debugCode.value = ''
   maskedPhone.value = ''
-  smsMode.value = 'log'
+  smsMode.value = smsCapability.value?.smsMode === 'live' ? 'live' : 'log'
+  smsPhase.value = smsCapability.value?.smsPhase === 'MULTI' ? 'MULTI' : 'SINGLE'
   pending.value = false
 }
 
@@ -100,6 +127,7 @@ async function requestOtp() {
       phone: string
       debugCode?: string
       smsMode?: 'log' | 'live' | 'bypass'
+      smsPhase?: 'SINGLE' | 'MULTI'
       bypass?: boolean
       redirectTo?: string
     }>('/api/auth/otp/request', {
@@ -125,6 +153,7 @@ async function requestOtp() {
     debugCode.value = data.debugCode || ''
     code.value = data.debugCode || ''
     smsMode.value = data.smsMode === 'live' ? 'live' : 'log'
+    smsPhase.value = data.smsPhase === 'MULTI' ? 'MULTI' : 'SINGLE'
     step.value = 'otp'
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
@@ -168,6 +197,17 @@ async function verifyOtp() {
 watch(open, (isOpen) => {
   if (!isOpen) resetForm()
 })
+
+// Dismiss leftover session notice when user navigates to a public page (e.g. club detail)
+watch(
+  () => route.fullPath,
+  (next, prev) => {
+    if (!open.value || !notice.value || next === prev) return
+    const path = next.split('?')[0] || next
+    if (path.endsWith('/login')) return
+    if (!isAuthProtectedPath(path)) handleClose()
+  },
+)
 </script>
 
 <template>
@@ -224,6 +264,7 @@ watch(open, (isOpen) => {
         </template>
 
         <form v-else-if="step === 'register'" class="space-y-4" @submit.prevent="requestOtp">
+          <p class="text-center text-sm text-brand-gray-600">{{ phoneLoginHint }}</p>
           <AppFormField
             field-id="auth-name"
             :label="role === 'CLUB_ADMIN' ? t('auth.ownerContactName') : t('auth.fullName')"
@@ -258,7 +299,7 @@ watch(open, (isOpen) => {
         </form>
 
         <form v-else-if="step === 'login'" class="space-y-4" @submit.prevent="requestOtp">
-          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.phoneLoginHint') }}</p>
+          <p class="text-center text-sm text-brand-gray-600">{{ phoneLoginHint }}</p>
           <AppFormField field-id="login-phone" :label="t('common.mobile')">
             <input
               id="login-phone"

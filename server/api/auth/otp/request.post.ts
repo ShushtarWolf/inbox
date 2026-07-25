@@ -1,4 +1,5 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { resolveSmsPhase } from '#shared/sms.ts'
 import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
 import { isOtpBypassPhone } from '../../../utils/otpBypass'
 import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
       phone,
       bypass: true,
       smsMode: 'bypass' as const,
+      smsPhase: resolveSmsPhase(),
       redirectTo: postLoginRedirectPath(user, user.locale, body.returnTo),
     }
   }
@@ -81,5 +83,6 @@ export default defineEventHandler(async (event) => {
     expiresIn: result.expiresIn,
     debugCode: result.debugCode,
     smsMode: result.smsMode,
+    smsPhase: result.smsPhase,
   }
 })

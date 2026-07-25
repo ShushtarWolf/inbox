@@ -2,6 +2,9 @@ export type SmsProviderName = 'log' | 'live'
 
 export type SmsMode = 'log' | 'live'
 
+/** Product SMS capability claim — SINGLE = trial/log/partial; MULTI = live ready for any IR mobile. */
+export type SmsPhase = 'SINGLE' | 'MULTI'
+
 export type SmsTemplate =
   | 'WAITLIST_SLOT_AVAILABLE'
   | 'PASSWORD_RESET'
@@ -67,6 +70,22 @@ export function resolveSmsProvider(): SmsProviderName {
 export function isSmsEnabled(): boolean {
   // Dry-run/log pipeline is always available; live gateways require SMS_ENABLED + API key
   return process.env.SMS_ENABLED === 'true' || getSmsMode() === 'log'
+}
+
+/**
+ * SINGLE: log mode, missing live gate, or live without template/sender — do not claim any-IR delivery.
+ * MULTI: live Kavenegar with key + SMS_ENABLED + (template or sender) — may claim OTP to any valid IR mobile.
+ */
+export function resolveSmsPhase(): SmsPhase {
+  const provider = resolveSmsProvider()
+  const hasKey = Boolean(process.env.KAVENEGAR_API_KEY?.trim())
+  const hasTemplate = Boolean(process.env.KAVENEGAR_TEMPLATE?.trim())
+  const hasSender = Boolean(process.env.KAVENEGAR_SENDER?.trim())
+  const enabled = process.env.SMS_ENABLED === 'true'
+  if (provider === 'live' && enabled && hasKey && (hasTemplate || hasSender)) {
+    return 'MULTI'
+  }
+  return 'SINGLE'
 }
 
 /** Recipient statuses used by CRM campaign rows (never claim phone delivery unless live send succeeded). */

@@ -7,6 +7,7 @@ const { formatNumber } = useFormatters()
 
 type SmsStatus = {
   ok: boolean
+  smsPhase: 'SINGLE' | 'MULTI'
   resolvedProvider: 'log' | 'live'
   smsMode: 'log' | 'live'
   smsEnabledFlag: boolean
@@ -102,7 +103,20 @@ watch(secret, (value) => {
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="stat-grid">
       <div v-if="status" class="space-y-6">
+        <div
+          class="rounded-lg border p-3 text-sm font-bold"
+          :class="status.smsPhase === 'MULTI'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            : 'border-amber-200 bg-amber-50 text-amber-900'"
+        >
+          {{ status.smsPhase === 'MULTI' ? t('admin.smsPage.phaseMultiBanner') : t('admin.smsPage.phaseSingleBanner') }}
+        </div>
         <div class="tail-card-grid-4">
+          <AppTailStatCard
+            :label="t('admin.smsPage.smsPhase')"
+            :value="status.smsPhase"
+            icon="sms"
+          />
           <AppTailStatCard
             :label="t('admin.smsPage.provider')"
             :value="status.resolvedProvider"
@@ -118,17 +132,16 @@ watch(secret, (value) => {
             :value="formatNumber(status.dueNow)"
             icon="schedule"
           />
-          <AppTailStatCard
-            :label="t('admin.smsPage.pendingScheduled')"
-            :value="formatNumber(status.pendingScheduled)"
-            icon="pending"
-          />
         </div>
 
         <section class="tail-card space-y-3">
           <h2 class="tail-section-title">{{ t('admin.smsPage.healthTitle') }}</h2>
           <p class="text-sm text-brand-gray-600">{{ status.note }}</p>
           <ul class="space-y-2 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.smsPhase') }}</span>
+              <strong dir="ltr">{{ status.smsPhase }}</strong>
+            </li>
             <li class="flex justify-between gap-2">
               <span>{{ t('admin.smsPage.smsMode') }}</span>
               <strong dir="ltr">{{ status.smsMode }}</strong>
@@ -152,6 +165,10 @@ watch(secret, (value) => {
             <li class="flex justify-between gap-2">
               <span>{{ t('admin.smsPage.hasSender') }}</span>
               <strong dir="ltr">{{ yesNo(status.hasKavenegarSender) }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.smsPage.pendingScheduled') }}</span>
+              <strong dir="ltr">{{ formatNumber(status.pendingScheduled) }}</strong>
             </li>
           </ul>
 

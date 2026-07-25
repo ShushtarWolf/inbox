@@ -1,4 +1,4 @@
-import { resolveSmsProvider, getSmsMode, isSmsEnabled } from '#shared/sms.ts'
+import { resolveSmsProvider, getSmsMode, isSmsEnabled, resolveSmsPhase } from '#shared/sms.ts'
 
 /** Safe SMS diagnostics — never returns API keys or message bodies. */
 export default defineEventHandler(async (event) => {
@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
   const provider = resolveSmsProvider()
   const smsMode = getSmsMode()
   const smsEnabledFlag = process.env.SMS_ENABLED === 'true'
+  const smsPhase = resolveSmsPhase()
   const now = new Date()
 
   const [pendingScheduled, dueNow] = await Promise.all([
@@ -41,9 +42,15 @@ export default defineEventHandler(async (event) => {
       'KAVENEGAR_TEMPLATE unset — OTP uses free-text sms/send (requires a valid KAVENEGAR_SENDER). Prefer a panel-approved Verify Lookup template for OTP.',
     )
   }
+  if (smsPhase === 'SINGLE') {
+    warnings.push(
+      'SMS phase SINGLE — UI must not claim delivery to any Iranian number; trial/approved-number or log/bypass only',
+    )
+  }
 
   return {
     ok: true,
+    smsPhase,
     resolvedProvider: provider,
     smsMode,
     smsEnabledFlag,
@@ -55,8 +62,10 @@ export default defineEventHandler(async (event) => {
     dueNow,
     warnings,
     note:
-      provider === 'live'
-        ? 'Live Kavenegar — OTP + booking/waitlist transactional SMS (and CRM); OTP will not return debugCode'
-        : 'Safe log mode — OTP returns debugCode; booking/waitlist SMS skipped (logged); no gateway calls',
+      smsPhase === 'MULTI'
+        ? 'MULTI — live Kavenegar ready (key + template/sender + SMS_ENABLED); OTP/notify may claim any valid IR mobile used in-product'
+        : provider === 'live'
+          ? 'SINGLE — live path partial; do not claim any-IR delivery until template/sender + key + SMS_ENABLED are all ready'
+          : 'SINGLE — safe log mode; OTP returns debugCode; booking/waitlist SMS skipped (logged); no gateway calls',
   }
 })
