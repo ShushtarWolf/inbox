@@ -1,7 +1,9 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
+import { BEHNAZ_COURT_1_COVER } from '#shared/behnazClubPhotos.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 import { catalogCounts, wipeCatalog } from '../../utils/wipeCatalog'
+import { applyBehnazCourt1Photos } from '../../utils/behnazClubPhotos'
 
 const WIPE_CONFIRM = 'WIPE_ALL_USERS_AND_CLUBS'
 const DEFAULT_OWNER_PHONE = '09124777927'
@@ -80,6 +82,7 @@ export default defineEventHandler(async (event) => {
         closeHour: 22,
         priceFrom: DEFAULT_COURT_PRICE,
         phone,
+        image: BEHNAZ_COURT_1_COVER,
       },
     })
 
@@ -91,6 +94,7 @@ export default defineEventHandler(async (event) => {
           clubId: club.id,
           sportId: padel.id,
           price: DEFAULT_COURT_PRICE,
+          ...(i === 1 ? { image: BEHNAZ_COURT_1_COVER } : {}),
         },
       })
     }
@@ -108,6 +112,8 @@ export default defineEventHandler(async (event) => {
 
     return { user, club }
   })
+
+  await applyBehnazCourt1Photos(prisma, created.club.id)
 
   const after = await catalogCounts()
 

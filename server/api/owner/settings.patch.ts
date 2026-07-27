@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
   if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp?.trim() || null
   if (body.image !== undefined) {
     const value = body.image?.trim() || null
-    if (value && !/^https?:\/\/.+/i.test(value) && !value.startsWith('/uploads/')) {
+    if (value && !/^https?:\/\/.+/i.test(value) && !value.startsWith('/uploads/') && !value.startsWith('/demo/')) {
       throw createError({ statusCode: 400, statusMessage: 'image must be a valid URL' })
     }
     data.image = value
