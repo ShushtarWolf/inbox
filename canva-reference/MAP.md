@@ -28,8 +28,9 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `home page (8).png` | `/athlete/home` | `overlays/athlete-home.jpg` |
 | `home page (6).png` | `/athlete/favorites` | `overlays/favorites.jpg` |
 | `home page (5).png` | `/athlete` hub menu | capture: `localhost/app-athlete-hub.png` |
-| `home page (12).png` / bookings cards | `/athlete/bookings` | capture only |
+| `home page (7).png` | `/athlete/bookings` history | capture only |
 | `home page (10|15).png` | `/owner/calendar` today | `overlays/owner-calendar.jpg` |
+| `home page (12).png` | `/owner/calendar` walk-in reserve sheet | — |
 | `home page (14).png` | `/owner/calendar` overview tab | — |
 | `جزییات بازیکن.png` | `/owner/finance` (+ txn sheet) | `overlays/owner-finance.jpg` |
 | `گزارش پیشرفته.png` | `/owner/finance/report` | `overlays/finance-report.jpg` |
@@ -87,8 +88,8 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **product**: Wallet row kept (pay infrastructure); Canva list omits it.
 
 ### Athlete profile + notifications + bookings
-- **ok-enough**: Square panels / CTAs; bookings calendar + cards / inline cancel–rebook–pay.
-- **visual (remaining)**: History card density vs `(12)`; avatar may be `rounded-full` (matches hub circle).
+- **ok-enough**: Square panels / CTAs; bookings calendar + cards / inline cancel–rebook–pay. History source of truth is `(7)` (not `(12)` — that frame is owner walk-in reserve).
+- **visual (remaining)**: History card density vs `(7)`; avatar may be `rounded-full` (matches hub circle).
 
 ### `/owner/equipments` vs `(20)`/`(21)`
 - **ok-enough**: Square gray amenity chips + price bars; green **+ افزودن** on section start (left in RTL); edit sheet black **ذخیره**.

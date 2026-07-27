@@ -71,9 +71,14 @@ onMounted(() => {
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
         <span class="font-display text-base font-bold tracking-wide text-white">INBOX</span>
-        <NuxtLink :to="localePath('/athlete')" class="text-white" :aria-label="t('nav.profile')">
-          <AppIcon name="person" size="sm" />
-        </NuxtLink>
+        <div class="flex items-center gap-3 text-white">
+          <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
+          <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
+            <AppIcon name="person" size="sm" />
+          </NuxtLink>
+        </div>
       </div>
       <div class="canva-promo-badge">
         <span class="canva-promo-badge-pct">۲۰٪</span>

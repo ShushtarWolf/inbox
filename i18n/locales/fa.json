@@ -150,6 +150,10 @@
     "slotLegendSelected": "انتخاب شده",
     "slotLegendFree": "آزاد",
     "selectSlotToContinue": "برای ادامه یک سانس را انتخاب کنید",
+    "sessionRateBand": "هزینه هر سانس {label}: {price} هزار تومان است.",
+    "sessionRateSingle": "هزینه هر سانس: {price} هزار تومان است.",
+    "sessionRateRangeNote": "هزینه هر سانس: {from} الی {to} هزار تومان است.",
+    "sessionDurationNote": "مدت زمان هر سانس {minutes} دقیقه است.",
     "sort": {
       "rank": "بهترین انتخاب",
       "rating": "بیشترین امتیاز",
@@ -281,6 +285,7 @@
     "favoritesBrowseClubs": "مشاهده باشگاه‌ها",
     "favoritesBookIt": "رزرو آن",
     "homePickCourt": "زمین بازی‌ات رو انتخاب کن",
+    "notifications": "اعلان‌ها",
     "historyTitle": "تاریخچه رزروها",
     "historySort": "مرتب سازی",
     "historyAtTime": "ساعت",

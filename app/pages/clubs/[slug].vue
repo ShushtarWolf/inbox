@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import { parseCourtPricingJson } from '#shared/courtPricing.ts'
 
 const route = useRoute()
 const { t, te } = useI18n()
@@ -190,6 +191,102 @@ const rentalEquipment = computed(() => {
   if (!list.length) return null
   const racket = list.find((e) => /راکت|racket/i.test(`${e.nameFa} ${e.nameEn}`))
   return racket || list[0] || null
+})
+
+/** Canva (3): rate footnotes under slot grid — only from real pricing, never invent a second band. */
+function toThousand(value: number) {
+  return formatNumber(Math.round(value / 1000))
+}
+
+const selectedCourt = computed(() => {
+  if (!selectedCourtId.value) return courts.value[0]
+  return courts.value.find((c) => c.id === selectedCourtId.value) || courts.value[0]
+})
+
+const pricingFootnotes = computed(() => {
+  if (!club.value) return [] as string[]
+  const notes: string[] = []
+  const court = selectedCourt.value as { price?: number; pricingJson?: string | null } | undefined
+  const bands = court ? (parseCourtPricingJson(court.pricingJson).timeBands || []) : []
+  const distinctBandPrices = [...new Set(bands.map((b) => b.price))]
+
+  if (bands.length >= 2 && distinctBandPrices.length >= 2) {
+    const labeledBands = bands
+      .map((band) => {
+        const label = localizedField(band, 'labelFa', 'labelEn') || band.labelFa || band.labelEn
+        return label ? { label, price: band.price } : null
+      })
+      .filter((row): row is { label: string; price: number } => row != null)
+    if (labeledBands.length >= 2 && new Set(labeledBands.map((b) => b.price)).size >= 2) {
+      for (const row of labeledBands) {
+        notes.push(t('clubs.sessionRateBand', { label: row.label, price: toThousand(row.price) }))
+      }
+    } else {
+      notes.push(t('clubs.sessionRateRangeNote', {
+        from: toThousand(Math.min(...distinctBandPrices)),
+        to: toThousand(Math.max(...distinctBandPrices)),
+      }))
+    }
+  } else if (bands.length === 1 && bands[0]) {
+    notes.push(t('clubs.sessionRateSingle', { price: toThousand(bands[0].price) }))
+  } else {
+    const clubPricing = (club.value.pricing || []) as Array<{
+      labelFa?: string
+      labelEn?: string
+      from?: number
+      to?: number
+      price?: number
+    }>
+    const labeled = clubPricing
+      .map((row) => {
+        const label = localizedField(row, 'labelFa', 'labelEn') || row.labelFa || row.labelEn
+        const price = typeof row.price === 'number'
+          ? row.price
+          : typeof row.from === 'number'
+            ? row.from
+            : null
+        return label && price != null ? { label, price } : null
+      })
+      .filter((row): row is { label: string; price: number } => row != null)
+    const distinctLabeled = [...new Set(labeled.map((row) => row.price))]
+
+    if (labeled.length >= 2 && distinctLabeled.length >= 2) {
+      for (const row of labeled) {
+        notes.push(t('clubs.sessionRateBand', { label: row.label, price: toThousand(row.price) }))
+      }
+    } else {
+      const slotPrices = [
+        ...new Set(
+          courtSlots.value
+            .map((s) => s.price)
+            .filter((p): p is number => typeof p === 'number' && p >= 0),
+        ),
+      ]
+      if (slotPrices.length === 1) {
+        notes.push(t('clubs.sessionRateSingle', { price: toThousand(slotPrices[0]!) }))
+      } else if (slotPrices.length >= 2) {
+        notes.push(t('clubs.sessionRateRangeNote', {
+          from: toThousand(Math.min(...slotPrices)),
+          to: toThousand(Math.max(...slotPrices)),
+        }))
+      } else {
+        const price = court?.price ?? club.value.priceFrom
+        const priceTo = club.value.priceTo
+        if (price != null && priceTo != null && priceTo !== price) {
+          notes.push(t('clubs.sessionRateRangeNote', {
+            from: toThousand(price),
+            to: toThousand(priceTo),
+          }))
+        } else if (price != null) {
+          notes.push(t('clubs.sessionRateSingle', { price: toThousand(price) }))
+        }
+      }
+    }
+  }
+
+  const minutes = (club.value as { defaultSessionDurationMinutes?: number }).defaultSessionDurationMinutes ?? 60
+  notes.push(t('clubs.sessionDurationNote', { minutes: formatNumber(minutes) }))
+  return notes
 })
 
 function openConfirmSheet() {
@@ -471,6 +568,9 @@ async function shareClub() {
                   {{ t('common.empty') }}
                 </p>
               </div>
+              <ul v-if="pricingFootnotes.length" class="mt-2 space-y-0.5 text-[11px] leading-snug text-brand-gray-600">
+                <li v-for="(note, idx) in pricingFootnotes" :key="idx">{{ note }}</li>
+              </ul>
             </div>
           </div>
 
