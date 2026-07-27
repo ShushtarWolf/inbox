@@ -88,6 +88,8 @@ export default defineNuxtConfig({
     '/**': {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        'X-Frame-Options': 'SAMEORIGIN',
       },
     },
     '/_nuxt/**': {

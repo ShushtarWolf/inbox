@@ -37,7 +37,8 @@
     "hoursShort": "{count} ساعت",
     "distanceKm": "{count} کیلومتر",
     "courtsCount": "{count} زمین",
-    "datePickerHint": "انتخابگر میلادی — نمایش به‌صورت {date}"
+    "datePickerHint": "انتخابگر میلادی — نمایش به‌صورت {date}",
+    "carouselSlide": "اسلاید {current} از {total}"
   },
   "nav": {
     "home": "خانه",

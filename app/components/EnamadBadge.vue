@@ -27,6 +27,8 @@ const imgSrc = computed(
       :src="imgSrc"
       :alt="$t('legal.enamad')"
       class="h-16 w-16 object-contain"
+      loading="lazy"
+      decoding="async"
       referrerpolicy="origin"
       v-bind="{ code: enamadCode }"
     >

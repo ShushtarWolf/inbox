@@ -37,6 +37,7 @@
     "distanceKm": "{count} km",
     "courtsCount": "{count} courts",
     "datePickerHint": "Gregorian picker — shown as {date} in your locale",
+    "carouselSlide": "Slide {current} of {total}",
     "next": "Next"
   },
   "nav": {

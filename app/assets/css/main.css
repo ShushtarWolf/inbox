@@ -400,14 +400,19 @@
   .canva-hero-arrow {
     @apply inline-flex items-center justify-center p-1 text-white transition hover:text-white/80;
   }
-  /* Carousel dots are circular in Canva — exception to pill ban */
+  /* Carousel dots are circular in Canva — exception to pill ban.
+     Button is 44×44 for PSI touch targets; ::after keeps the 8px visual dot. */
   .canva-hero-dot {
-    @apply h-2 w-2 rounded-full transition;
+    @apply relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-transparent transition;
   }
-  .canva-hero-dot-active {
+  .canva-hero-dot::after {
+    content: '';
+    @apply h-2 w-2 rounded-full;
+  }
+  .canva-hero-dot-active::after {
     @apply bg-brand-primary;
   }
-  .canva-hero-dot-idle {
+  .canva-hero-dot-idle::after {
     @apply bg-white/45;
   }
 
@@ -433,7 +438,8 @@
   }
   .canva-search-placeholder {
     @apply w-full truncate border-0 bg-transparent p-0 text-center text-xs font-medium outline-none sm:text-sm;
-    color: #9a9690;
+    /* brand-gray-500 — muted on white, ≥4.5:1 for PSI contrast */
+    color: #6b6b67;
     appearance: none;
     white-space: nowrap;
     line-height: 1.25;

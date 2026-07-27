@@ -223,6 +223,8 @@ async function shareClub() {
             type="button"
             class="canva-hero-dot"
             :class="index === gallerySlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
+            :aria-label="t('common.carouselSlide', { current: index + 1, total: gallerySlides.length })"
+            :aria-current="index === gallerySlide ? 'true' : undefined"
             @click="gallerySlide = index"
           />
         </div>

@@ -150,6 +150,8 @@ function prevHero() {
               type="button"
               class="canva-hero-dot"
               :class="index === heroSlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
+              :aria-label="t('common.carouselSlide', { current: index + 1, total: heroSlides.length })"
+              :aria-current="index === heroSlide ? 'true' : undefined"
               @click="heroSlide = index"
             />
           </div>
