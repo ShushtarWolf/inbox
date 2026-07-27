@@ -50,7 +50,8 @@ export default defineNuxtConfig({
           key: 'inbox-pwa-reset',
           type: 'text/javascript',
           tagPosition: 'head',
-          children: `(function(){try{var v='${PWA_RESET_VERSION}';var k='inbox-sw-reset';if(localStorage.getItem(k)===v)return;localStorage.setItem(k,v);var reload=function(){location.reload()};var purge=function(){if(!('caches' in window))return Promise.resolve();return caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})};if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister()}))}).then(purge).then(reload).catch(reload)}else{purge().then(reload).catch(reload)}}catch(e){}})();`,
+          // `textContent` (not `children`) — Unhead was emitting `children` as a dead attribute.
+          textContent: `(function(){try{var v='${PWA_RESET_VERSION}';var k='inbox-sw-reset';if(localStorage.getItem(k)===v)return;localStorage.setItem(k,v);var reload=function(){location.reload()};var purge=function(){if(!('caches' in window))return Promise.resolve();return caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})};if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(reg){return reg.unregister()}))}).then(purge).then(reload).catch(reload)}else{purge().then(reload).catch(reload)}}catch(e){}})();`,
         },
       ],
       link: [
