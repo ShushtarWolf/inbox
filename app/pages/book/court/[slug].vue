@@ -10,7 +10,7 @@ const localePath = useLocalePath()
 const slug = String(route.params.slug || '')
 
 const query: Record<string, string> = {}
-for (const key of ['date', 'slot', 'slots', 'court'] as const) {
+for (const key of ['date', 'slot', 'slots', 'court', 'time'] as const) {
   const raw = route.query[key]
   if (typeof raw === 'string' && raw) query[key] = raw
   else if (Array.isArray(raw) && raw.length) {

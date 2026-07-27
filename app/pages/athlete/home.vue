@@ -8,6 +8,7 @@ const { localizedField } = useLocalizedField()
 const { firstName, displayName, user, fetch: fetchAuth } = useAuth()
 
 const sport = ref('')
+const city = ref('')
 
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
 
@@ -15,6 +16,14 @@ const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 const greetName = computed(() => firstName.value || displayName.value || t('home.guestName'))
+
+const cityOptions = computed(() => {
+  const set = new Set<string>()
+  for (const club of clubs.value || []) {
+    if (club.city) set.add(club.city)
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'fa'))
+})
 
 const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
 const tennisClubs = computed(() => {
@@ -27,10 +36,12 @@ const padelClubs = computed(() => {
 })
 
 function bookingLink(path: '/clubs', querySport?: string) {
-  return localePath({
-    path,
-    query: (querySport || sport.value) ? { sport: querySport || sport.value } : {},
-  })
+  const sportQuery = querySport || sport.value || undefined
+  const cityQuery = city.value || undefined
+  const query: Record<string, string> = {}
+  if (sportQuery) query.sport = sportQuery
+  if (cityQuery) query.city = cityQuery
+  return localePath({ path, query })
 }
 
 function clubMeta(club: { city?: string; rating?: number | null; sports?: string[] }) {
@@ -76,7 +87,7 @@ onMounted(() => {
 
     <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
       <section class="canva-search-row">
-        <div class="canva-search-fields">
+        <div class="canva-search-fields canva-search-fields-2">
           <div class="canva-search-field">
             <label class="sr-only" for="athlete-home-sport-select">{{ t('home.sportsTitle') }}</label>
             <select
@@ -92,14 +103,16 @@ onMounted(() => {
             </select>
           </div>
           <div class="canva-search-field canva-search-field-wide">
-            <span class="canva-search-placeholder block truncate">
-              {{ t('home.heroSearchWhereHint') }}
-            </span>
-          </div>
-          <div class="canva-search-field">
-            <span class="canva-search-placeholder block truncate">
-              {{ t('home.heroSearchWhen') }}
-            </span>
+            <label class="sr-only" for="athlete-home-city-select">{{ t('home.heroSearchWhere') }}</label>
+            <select
+              id="athlete-home-city-select"
+              v-model="city"
+              class="canva-search-placeholder"
+              :class="{ 'canva-search-placeholder-filled': city }"
+            >
+              <option value="">{{ t('home.heroSearchWhereHint') }}</option>
+              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
+            </select>
           </div>
         </div>
         <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">

@@ -22,14 +22,15 @@ function parseQueryCsv(raw: unknown): string[] {
   return []
 }
 
-/** Deep-link handoff from legacy `/book/court/:slug?date&slot&court`. */
+/** Deep-link handoff from legacy `/book/court/:slug?date&slot&court` and athlete rebook. */
 const deepLinkDate = typeof route.query.date === 'string' && route.query.date ? route.query.date : null
 const deepLinkCourt = typeof route.query.court === 'string' && route.query.court ? route.query.court : null
 const deepLinkSlotIds = [
   ...parseQueryCsv(route.query.slot),
   ...parseQueryCsv(route.query.slots),
 ]
-const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0)
+const deepLinkTimes = parseQueryCsv(route.query.time).map((t) => t.slice(0, 5))
+const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0 || deepLinkTimes.length > 0)
 let suppressSlotClear = deepLinkSlotsPending.value
 
 const gallerySlide = ref(0)
@@ -115,10 +116,23 @@ watch(
   (list) => {
     if (!deepLinkSlotsPending.value || !list) return
     const available = list as ClubSlot[]
-    const valid = deepLinkSlotIds.filter((id) => {
+    const isFree = (slot: ClubSlot) => !(slot.displayStatus && slot.displayStatus !== 'FREE')
+    let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
-      return Boolean(slot && !(slot.displayStatus && slot.displayStatus !== 'FREE'))
+      return Boolean(slot && isFree(slot))
     })
+    // Rebook fallback: match free slots by clock time when prior slot id is gone.
+    if (!valid.length && deepLinkTimes.length) {
+      valid = available
+        .filter((s) => {
+          if (!isFree(s)) return false
+          const start = (s.startTime || '').slice(0, 5)
+          if (!deepLinkTimes.includes(start)) return false
+          if (!selectedCourtId.value) return true
+          return s.courtId === selectedCourtId.value || s.court?.id === selectedCourtId.value
+        })
+        .map((s) => s.id)
+    }
     if (valid.length) {
       selectedSlotIds.value = valid
       confirmOpen.value = true

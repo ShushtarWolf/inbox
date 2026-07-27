@@ -449,6 +449,9 @@
     @apply grid min-w-0 flex-1 grid-cols-[1fr_1.35fr_1fr] items-center bg-white;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-search-fields-2 {
+    grid-template-columns: 1fr 1.35fr;
+  }
   .canva-search-field {
     @apply relative flex min-w-0 items-center px-2.5 py-3 sm:px-3 sm:py-3.5;
   }

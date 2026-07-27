@@ -14,10 +14,12 @@ interface CourtBooking {
     equipment?: { nameFa?: string; nameEn?: string } | null
   }>
   slot: {
+    id: string
     date: string
     startTime: string
     price?: number
     court: {
+      id: string
       nameFa?: string
       nameEn?: string
       image?: string | null
@@ -373,8 +375,25 @@ function historyStatusClass(item: HistoryItem) {
 }
 
 function rebookTo(item: HistoryItem) {
-  if (item.slug) return localePath(`/clubs/${item.slug}`)
-  return localePath('/clubs')
+  if (!item.slug) return localePath('/clubs')
+  /** Club detail hydrates from `date` / `slot` / `court` / `time` (legacy book redirect + rebook). */
+  const todayIso = today()
+  const priorDate = item.date || ''
+  const date = priorDate && priorDate >= todayIso ? priorDate : todayIso
+  const query: Record<string, string> = { date }
+  const courtId = item.raw?.slot?.court?.id
+  if (courtId) query.court = courtId
+  const slotId = item.raw?.slot?.id
+  const startTime = item.raw?.slot?.startTime?.slice(0, 5)
+  // Same-day rebook can reuse the prior slot id when still FREE.
+  if (priorDate >= todayIso && slotId) {
+    query.slot = slotId
+  }
+  else if (startTime) {
+    // Past booking: match free slot(s) with the same clock time on the new date.
+    query.time = startTime
+  }
+  return localePath({ path: `/clubs/${item.slug}`, query })
 }
 
 function canCancel(item: HistoryItem) {

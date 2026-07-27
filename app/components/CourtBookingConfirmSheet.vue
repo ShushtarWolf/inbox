@@ -49,7 +49,6 @@ const {
 } = useCourtBooking()
 
 const wantRacket = ref(false)
-const discountCode = ref('')
 
 const racketItem = computed(() => props.rentalEquipment || null)
 
@@ -70,6 +69,7 @@ const costLines = computed(() => {
     })
   }
   if (wantRacket.value && racketItem.value) {
+    // Qty is always 1: BookingEquipment is unique per (booking, equipment).
     const name = localizedField(racketItem.value, 'nameFa', 'nameEn')
     lines.push({
       label: t('booking.confirmLineEquipment', { name, qty: formatNumber(1) }),
@@ -90,7 +90,6 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetBookingState()
     wantRacket.value = false
-    discountCode.value = ''
   }
 })
 
@@ -174,14 +173,15 @@ async function submit() {
           </div>
 
           <div v-if="racketItem" class="canva-confirm-book-equip">
-            <label class="flex cursor-pointer items-center justify-start gap-3 text-start">
-              <input v-model="wantRacket" type="checkbox" class="canva-confirm-book-check" />
-              <span class="flex-1 text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
+            <label class="flex cursor-pointer items-center justify-between gap-3 text-start">
+              <span class="flex min-w-0 items-center gap-3">
+                <input v-model="wantRacket" type="checkbox" class="canva-confirm-book-check" />
+                <span class="text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
+              </span>
+              <span class="shrink-0 font-bold tabular-nums text-brand-navy" dir="ltr">
+                {{ formatCurrency(racketItem.price) }}
+              </span>
             </label>
-            <div v-if="wantRacket" class="mt-2 flex items-center justify-between gap-3 text-sm text-brand-navy">
-              <span class="tabular-nums">{{ formatNumber(1) }} {{ t('booking.equipmentUnit') }}</span>
-              <span class="font-bold tabular-nums" dir="ltr">{{ formatCurrency(racketItem.price) }}</span>
-            </div>
           </div>
 
           <div class="canva-confirm-book-costs text-start">
@@ -192,19 +192,6 @@ async function submit() {
             >
               <span class="text-brand-gray-600">{{ line.label }}</span>
               <span class="shrink-0 font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(line.amount) }}</span>
-            </div>
-
-            <div class="canva-confirm-book-discount">
-              <label class="sr-only" for="confirm-discount">{{ t('booking.discountCode') }}</label>
-              <input
-                id="confirm-discount"
-                v-model="discountCode"
-                type="text"
-                class="canva-confirm-book-discount-input"
-                :placeholder="t('booking.discountPlaceholder')"
-                disabled
-              >
-              <span class="canva-confirm-book-discount-note">{{ t('booking.discountUnavailable') }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-brand-gray-200 pt-2 text-sm font-bold text-brand-navy">
