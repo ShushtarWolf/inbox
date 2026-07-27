@@ -81,7 +81,9 @@ onMounted(() => {
         </NuxtLink>
         <div class="canva-search-fields">
           <div class="canva-search-field">
+            <label class="sr-only" for="athlete-home-sport-select">{{ t('home.sportsTitle') }}</label>
             <select
+              id="athlete-home-sport-select"
               v-model="sport"
               class="canva-search-placeholder"
               :class="{ 'canva-search-placeholder-filled': sport }"
@@ -93,14 +95,14 @@ onMounted(() => {
             </select>
           </div>
           <div class="canva-search-field canva-search-field-wide">
-            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+            <span class="canva-search-placeholder block truncate">
               {{ t('home.heroSearchWhereHint') }}
-            </NuxtLink>
+            </span>
           </div>
           <div class="canva-search-field">
-            <NuxtLink :to="bookingLink('/clubs')" class="canva-search-placeholder block truncate">
+            <span class="canva-search-placeholder block truncate">
               {{ t('home.heroSearchWhen') }}
-            </NuxtLink>
+            </span>
           </div>
         </div>
       </section>
