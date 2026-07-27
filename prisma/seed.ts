@@ -516,6 +516,7 @@ async function main() {
     { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const, price: 0 },
     { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const, price: 0 },
     { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const, price: 0 },
+    { nameFa: 'راکت', nameEn: 'Racket', category: 'RENTAL' as const, price: 50000 },
     { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const, price: 50000 },
     { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const, price: 30000 },
     { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const, price: 150000 },

@@ -11,6 +11,11 @@ export default defineCachedEventHandler(async (event) => {
       owner: { select: { name: true } },
       media: { orderBy: { sortOrder: 'asc' } },
       reviews: { orderBy: { publishedAt: 'desc' }, take: 6 },
+      equipment: {
+        where: { category: 'RENTAL' },
+        orderBy: { nameFa: 'asc' },
+        select: { id: true, nameFa: true, nameEn: true, category: true, price: true },
+      },
       coaches: {
         where: { isBookable: true },
         take: 4,

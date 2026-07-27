@@ -1106,6 +1106,57 @@
     border-radius: var(--sz-canva-radius);
   }
 
+  /* Court booking confirm sheet — Canva home page (4) */
+  .canva-confirm-book {
+    @apply text-start;
+  }
+  .canva-confirm-book-title {
+    @apply text-sm font-bold;
+    color: #2f9e44;
+  }
+  .canva-confirm-book-date {
+    @apply text-base font-bold text-brand-primary;
+  }
+  .canva-confirm-book-time {
+    @apply inline-flex min-w-[4.5rem] items-center justify-center bg-[#ebe7e1] px-3 py-2 text-sm font-bold tabular-nums text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-book-dot {
+    @apply inline-block h-2 w-2 shrink-0 rounded-none bg-brand-navy;
+  }
+  .canva-confirm-book-equip {
+    @apply border border-brand-gray-200 bg-white/80 px-3 py-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-book-check {
+    @apply h-5 w-5 shrink-0 appearance-none border-2 border-brand-primary bg-white checked:bg-brand-primary;
+    border-radius: var(--sz-canva-radius);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.7rem;
+  }
+  .canva-confirm-book-check:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 8.5L6.5 12L13 4' stroke='white' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+  }
+  .canva-confirm-book-costs {
+    @apply space-y-2 bg-[#f3efe9] px-3 py-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-book-discount {
+    @apply space-y-1 pt-1;
+  }
+  .canva-confirm-book-discount-input {
+    @apply w-full border border-brand-gray-300 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-book-discount-note {
+    @apply block text-[11px] font-medium text-brand-gray-600;
+  }
+  .canva-confirm-book-cta {
+    @apply px-4 py-3.5 text-sm font-bold;
+    border-radius: var(--sz-canva-radius);
+  }
+
   .canva-promo-strip {
     @apply absolute inset-x-0 top-0 z-[2] bg-brand-primary/95 px-3 py-1.5 text-center text-[11px] font-bold text-white;
   }

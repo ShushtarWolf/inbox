@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * Deep-link / fallback court booking page.
+ * Primary UX is the confirm sheet on `/clubs/[slug]` — keep this route for
+ * shared links and older bookmarks.
+ */
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -10,27 +15,43 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
-
-const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
-const selectedSlot = ref<string | null>(typeof route.query.slot === 'string' ? route.query.slot : null)
-const selectedCourtId = ref<string | null>(typeof route.query.court === 'string' ? route.query.court : null)
-const done = ref(false)
-const createdBookingId = ref<string | null>(null)
-const bookedPrice = ref<number | null>(null)
-const paying = ref(false)
-const confirming = ref(false)
-const feedback = ref('')
-const feedbackTone = ref<'success' | 'error'>('success')
-const lastPaymentStatus = ref<string | null>(null)
-const { onlineEnabled, isTestPayments, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
+const {
+  confirming,
+  paying,
+  feedback,
+  feedbackTone,
+  lastPaymentStatus,
+  bookedTotal,
+  done,
+  onlineEnabled,
+  createCourtBookings,
+  payBooking,
+  payBookingWithWallet,
+  primaryCtaLabel,
+} = useCourtBooking()
+const { canCoverWithWallet, isTestPayments } = useCheckout()
 const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
 const { smsLive, multiReady } = useSmsCapability()
+
+function parseSlotQuery(): string[] {
+  const raw = route.query.slot
+  if (Array.isArray(raw)) return raw.filter((v): v is string => typeof v === 'string' && Boolean(v))
+  if (typeof raw === 'string' && raw.includes(',')) return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  if (typeof raw === 'string' && raw) return [raw]
+  const multi = route.query.slots
+  if (typeof multi === 'string' && multi) return multi.split(',').map((s) => s.trim()).filter(Boolean)
+  return []
+}
+
+const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
+const selectedSlotIds = ref<string[]>(parseSlotQuery())
+const selectedCourtId = ref<string | null>(typeof route.query.court === 'string' ? route.query.court : null)
+const joiningWaitlist = ref(false)
 
 const { data: slots, pending, error, refresh } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: date.value })),
 })
 const { data: club } = await useFetch(`/api/clubs/${slug}`)
-const joiningWaitlist = ref(false)
 
 const visibleSlots = computed(() => {
   const list = slots.value || []
@@ -40,53 +61,70 @@ const visibleSlots = computed(() => {
   )
 })
 
-const selectedSlotProp = computed(() =>
-  visibleSlots.value.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
-  || slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
-  || null,
+const selectedSlotProps = computed(() =>
+  selectedSlotIds.value
+    .map((id) =>
+      visibleSlots.value.find((slot: { id: string }) => slot.id === id)
+      || slots.value?.find((slot: { id: string }) => slot.id === id),
+    )
+    .filter(Boolean) as Array<{ id: string; price?: number; startTime: string; endTime?: string }>,
 )
 
 const costLines = computed(() => {
-  const price = selectedSlotProp.value?.price
-  if (price == null) return []
-  return [
-    { label: t('booking.costService'), amount: formatCurrency(price) },
-    { label: t('booking.costPlatformFee'), amount: t('booking.costPlatformFeeZero'), muted: true },
-  ]
+  if (!selectedSlotProps.value.length) return []
+  const lines = selectedSlotProps.value.map((slot) => ({
+    label: t('booking.costService'),
+    amount: formatCurrency(slot.price || 0),
+  }))
+  lines.push({ label: t('booking.costPlatformFee'), amount: t('booking.costPlatformFeeZero') })
+  return lines
 })
+
+const totalPrice = computed(() =>
+  selectedSlotProps.value.reduce((sum, slot) => sum + Number(slot.price || 0), 0),
+)
 
 function syncBookingQuery() {
   router.replace({
     query: {
       ...route.query,
       date: date.value || undefined,
-      slot: selectedSlot.value || undefined,
+      slot: selectedSlotIds.value.length ? selectedSlotIds.value.join(',') : undefined,
       court: selectedCourtId.value || undefined,
     },
   })
 }
 
 watch(date, () => {
+  selectedSlotIds.value = []
   syncBookingQuery()
 })
 
-watch(selectedSlot, (slotId) => {
-  const row = slots.value?.find((slot: { id: string; courtId?: string; court?: { id?: string } }) => slot.id === slotId)
-  if (row) {
-    selectedCourtId.value = row.courtId || row.court?.id || selectedCourtId.value
+watch(selectedSlotIds, () => {
+  const first = selectedSlotIds.value[0]
+  if (first) {
+    const row = slots.value?.find((slot: { id: string; courtId?: string; court?: { id?: string } }) => slot.id === first)
+    if (row) {
+      selectedCourtId.value = row.courtId || row.court?.id || selectedCourtId.value
+    }
   }
   syncBookingQuery()
-})
+}, { deep: true })
 
 watch(visibleSlots, (list) => {
-  if (!selectedSlot.value) return
-  if (!list.some((slot: { id: string }) => slot.id === selectedSlot.value)) {
-    selectedSlot.value = null
-  }
+  selectedSlotIds.value = selectedSlotIds.value.filter((id) => list.some((slot: { id: string }) => slot.id === id))
 })
 
+function toggleSlot(id: string) {
+  if (selectedSlotIds.value.includes(id)) {
+    selectedSlotIds.value = selectedSlotIds.value.filter((x) => x !== id)
+    return
+  }
+  selectedSlotIds.value = [...selectedSlotIds.value, id]
+}
+
 function waitlistWindow() {
-  const selected = slots.value?.find((slot: { id: string }) => slot.id === selectedSlot.value)
+  const selected = selectedSlotProps.value[0]
   if (selected) {
     return { startTime: selected.startTime, endTime: selected.endTime }
   }
@@ -98,44 +136,11 @@ function waitlistWindow() {
 }
 
 async function confirm() {
-  if (!selectedSlot.value || confirming.value) return
-  if (!user.value) {
-    openLogin({ returnTo: route.fullPath })
-    return
-  }
-  confirming.value = true
-  try {
-    const selected = slots.value?.find((slot: { id: string; price?: number }) => slot.id === selectedSlot.value)
-    const result = await $fetch<{ id: string; paymentStatus: string }>('/api/bookings/court', {
-      method: 'POST',
-      body: { slotId: selectedSlot.value },
-    })
-    createdBookingId.value = result.id
-    lastPaymentStatus.value = result.paymentStatus
-    bookedPrice.value = selected?.price ?? null
-    done.value = true
-    feedbackTone.value = 'success'
-    feedback.value = onlineEnabled.value ? t('booking.successCourtOnline') : t('booking.successCourt')
-    refresh()
-
-    // Online modes: auto-redirect to IPG / test-gateway; pay_at_club stays on success sheet.
-    if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
-      paying.value = true
-      try {
-        await startCheckout({ bookingId: result.id })
-      } catch (checkoutError: unknown) {
-        feedbackTone.value = 'error'
-        feedback.value = fetchErrorMessage(checkoutError, t('booking.paymentError'))
-      } finally {
-        paying.value = false
-      }
-    }
-  } catch (error: unknown) {
-    feedbackTone.value = 'error'
-    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
-  } finally {
-    confirming.value = false
-  }
+  const result = await createCourtBookings({
+    slotIds: selectedSlotIds.value,
+    returnTo: route.fullPath,
+  })
+  if (result) refresh()
 }
 
 async function joinWaitlist() {
@@ -145,7 +150,6 @@ async function joinWaitlist() {
   }
   joiningWaitlist.value = true
   const window = waitlistWindow()
-  const selected = slots.value?.find((slot: { id: string; courtId?: string }) => slot.id === selectedSlot.value)
   try {
     await $fetch('/api/waitlist', {
       method: 'POST',
@@ -154,48 +158,20 @@ async function joinWaitlist() {
         date: date.value,
         startTime: window.startTime,
         endTime: window.endTime,
-        courtId: selected?.courtId || selectedCourtId.value || undefined,
+        courtId: selectedCourtId.value || undefined,
         guestName: user.value?.name,
         guestMobile: user.value?.phone,
       },
     })
     feedbackTone.value = 'success'
     feedback.value = t('booking.waitlistJoined')
-  } catch (error: unknown) {
+  }
+  catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
-  } finally {
+  }
+  finally {
     joiningWaitlist.value = false
-  }
-}
-
-async function payNow() {
-  if (!createdBookingId.value) return
-  paying.value = true
-  try {
-    await startCheckout({ bookingId: createdBookingId.value })
-    feedbackTone.value = 'success'
-    feedback.value = t('booking.payNow')
-  } catch (error: unknown) {
-    feedbackTone.value = 'error'
-    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
-  } finally {
-    paying.value = false
-  }
-}
-
-async function payWithWallet() {
-  if (!createdBookingId.value) return
-  paying.value = true
-  try {
-    await startCheckout({ bookingId: createdBookingId.value, useWallet: true })
-    feedbackTone.value = 'success'
-    feedback.value = t('booking.walletPaidSuccess')
-  } catch (error: unknown) {
-    feedbackTone.value = 'error'
-    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
-  } finally {
-    paying.value = false
   }
 }
 
@@ -211,6 +187,9 @@ onMounted(() => {
     <section class="canva-dash-hero">
       <p class="text-xs text-white/80">{{ t('home.bookCourt') }}</p>
       <h1 class="mt-1 text-2xl font-bold">{{ localizedField(club, 'nameFa', 'nameEn') || t('home.bookCourt') }}</h1>
+      <NuxtLink :to="localePath(`/clubs/${slug}`)" class="mt-2 inline-block text-xs font-bold text-white underline">
+        {{ t('booking.openClubConfirm') }}
+      </NuxtLink>
     </section>
     <AppDateInput v-model="date" :min-date="today()" />
     <div v-if="club" class="canva-panel text-sm">
@@ -245,8 +224,8 @@ onMounted(() => {
         <template v-if="!onlineEnabled">
           <p class="mt-1 text-sm font-bold text-start">{{ t('booking.payAtClub') }}</p>
           <p class="text-sm text-brand-gray-600 text-start">{{ t('booking.payAtClubDetail') }}</p>
-          <p v-if="bookedPrice != null" class="text-sm font-bold text-start">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
-          <button v-if="canCoverWithWallet(wallet?.balance, bookedPrice, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payWithWallet">
+          <p v-if="bookedTotal != null" class="text-sm font-bold text-start">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedTotal) }) }}</p>
+          <button v-if="canCoverWithWallet(wallet?.balance, bookedTotal, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary mt-2 w-full" :disabled="paying" @click="payBookingWithWallet()">
             {{ paying ? t('common.loading') : `${t('booking.payWithWallet')} (${formatCurrency(wallet?.balance || 0)})` }}
           </button>
         </template>
@@ -255,17 +234,17 @@ onMounted(() => {
           <p class="text-sm text-brand-gray-600 text-start">
             {{ isTestPayments ? t('booking.onlinePayTestHint') : t('booking.onlinePayHint') }}
           </p>
-          <p v-if="bookedPrice != null" class="text-sm font-bold text-start">{{ t('booking.payOnlineAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+          <p v-if="bookedTotal != null" class="text-sm font-bold text-start">{{ t('booking.payOnlineAmount', { amount: formatCurrency(bookedTotal) }) }}</p>
           <p v-if="feedbackTone === 'error'" class="canva-flash-error text-start">{{ feedback }}</p>
-          <button type="button" class="canva-gate-btn-primary w-full" :disabled="paying" @click="payNow">
+          <button type="button" class="canva-gate-btn-primary w-full" :disabled="paying" @click="payBooking()">
             {{ paying ? t('common.loading') : (lastPaymentStatus === 'FAILED' ? t('booking.payRetry') : t('booking.payNow')) }}
           </button>
-          <button v-if="canCoverWithWallet(wallet?.balance, bookedPrice, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payWithWallet">
+          <button v-if="canCoverWithWallet(wallet?.balance, bookedTotal, lastPaymentStatus || 'PENDING_ONLINE')" type="button" class="canva-gate-btn-secondary w-full" :disabled="paying" @click="payBookingWithWallet()">
             {{ t('booking.payWithWallet') }} ({{ formatCurrency(wallet?.balance || 0) }})
           </button>
         </div>
         <NuxtLink :to="localePath('/athlete/bookings')" class="canva-gate-btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
-        <NuxtLink :to="localePath('/clubs')" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
+        <NuxtLink :to="localePath(`/clubs/${slug}`)" class="btn-ghost mt-1 inline-block w-full">{{ t('booking.bookAgain') }}</NuxtLink>
       </div>
     </div>
 
@@ -282,17 +261,17 @@ onMounted(() => {
           :key="s.id"
           type="button"
           class="canva-list-card w-full text-start"
-          :class="selectedSlot === s.id ? 'border-brand-primary ring-2 ring-brand-primary/30' : ''"
-          @click="selectedSlot = s.id"
+          :class="selectedSlotIds.includes(s.id) ? 'border-brand-primary ring-2 ring-brand-primary/30' : ''"
+          @click="toggleSlot(s.id)"
         >
           <p class="font-bold text-brand-navy">{{ localizedField(s.court, 'nameFa', 'nameEn') }}</p>
           <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi> · {{ formatCurrency(s.price) }}</p>
         </button>
         <BookingCostSummary
-          v-if="selectedSlotProp && costLines.length"
-          :lines="costLines"
+          v-if="selectedSlotProps.length && costLines.length"
+          :lines="costLines.map((line, idx) => ({ ...line, muted: idx === costLines.length - 1 }))"
           :total-label="t('booking.costTotal')"
-          :total-amount="formatCurrency(selectedSlotProp.price || 0)"
+          :total-amount="formatCurrency(totalPrice)"
           :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.costPayAtClubNote')"
           :cancel-note="t('booking.costCancelHint')"
         />
@@ -300,10 +279,10 @@ onMounted(() => {
           v-if="visibleSlots.length"
           type="button"
           class="canva-gate-btn-primary venus-sticky-action w-full lg:w-full"
-          :disabled="!selectedSlot || confirming"
+          :disabled="!selectedSlotIds.length || confirming"
           @click="confirm"
         >
-          {{ confirming ? t('common.loading') : t('booking.confirm') }}
+          {{ confirming ? t('common.loading') : primaryCtaLabel }}
         </button>
       </div>
     </AppAsyncState>

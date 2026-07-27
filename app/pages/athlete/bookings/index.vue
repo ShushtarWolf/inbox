@@ -350,8 +350,8 @@ function historyStatusClass(item: HistoryItem) {
 }
 
 function rebookTo(item: HistoryItem) {
-  if (item.slug) return localePath(`/book/court/${item.slug}`)
-  return localePath('/athlete/home')
+  if (item.slug) return localePath(`/clubs/${item.slug}`)
+  return localePath('/clubs')
 }
 
 function onMonthSelect() {

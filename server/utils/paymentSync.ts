@@ -24,6 +24,30 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
         ...(paymentMethod ? { paymentMethod } : {}),
       },
     })
+
+    // Multi-slot group: when the primary (combined) payment settles, mirror status onto siblings.
+    if (payment.metadataJson && payment.status === 'PAID') {
+      try {
+        const meta = JSON.parse(payment.metadataJson) as { groupSiblingBookingIds?: string[] }
+        const siblingIds = meta.groupSiblingBookingIds || []
+        for (const siblingId of siblingIds) {
+          await db.booking.update({
+            where: { id: siblingId },
+            data: {
+              paymentStatus: 'PAID',
+              ...(paymentMethod ? { paymentMethod } : {}),
+            },
+          })
+          await db.payment.updateMany({
+            where: { bookingId: siblingId },
+            data: { status: 'PAID', method: payment.method },
+          })
+        }
+      }
+      catch {
+        // ignore malformed metadata
+      }
+    }
   }
 
   if (payment.coachSessionId) {

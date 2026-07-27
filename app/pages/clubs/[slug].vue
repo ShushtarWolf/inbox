@@ -3,9 +3,8 @@ import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '
 
 const route = useRoute()
 const { t, te } = useI18n()
-const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatNumber } = useFormatters()
+const { formatNumber } = useFormatters()
 const { today } = useLocalDate()
 const slug = route.params.slug as string
 
@@ -17,6 +16,7 @@ const gallerySlide = ref(0)
 const selectedDate = ref(today())
 const selectedCourtId = ref<string | null>(null)
 const selectedSlotIds = ref<string[]>([])
+const confirmOpen = ref(false)
 
 const { data: slots } = await useFetch('/api/slots/available', {
   query: computed(() => ({ club: slug, date: selectedDate.value })),
@@ -77,28 +77,58 @@ const courtSlots = computed(() => {
   )
 })
 
+const selectedSlots = computed(() => {
+  const list = courtSlots.value as Array<{
+    id: string
+    startTime: string
+    endTime?: string
+    price?: number
+  }>
+  return selectedSlotIds.value
+    .map((id) => list.find((s) => s.id === id))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+})
+
 const bookingSummary = computed(() => {
   if (!selectedSlotIds.value.length) return ''
-  const picked = courtSlots.value.filter((s: { id: string }) => selectedSlotIds.value.includes(s.id))
+  const picked = selectedSlots.value
   if (!picked.length) return ''
-  const times = picked.map((s: { startTime: string }) => s.startTime).join('، ')
+  const times = picked.map((s) => s.startTime).join('، ')
   const j = isoToJalaali(selectedDate.value)
   const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]}`
   return t('clubs.bookingSummary', { date: dateLabel, times })
 })
 
-const continueTo = computed(() => {
-  const slot = selectedSlotIds.value[0]
-  return localePath({
-    path: `/book/court/${slug}`,
-    query: {
-      date: selectedDate.value || undefined,
-      slot: slot || undefined,
-      court: selectedCourtId.value || undefined,
-    },
-  })
+const selectedCourtLabel = computed(() => {
+  if (!club.value || !selectedCourtId.value) return ''
+  const idx = courts.value.findIndex((c) => c.id === selectedCourtId.value)
+  if (idx < 0) return ''
+  return t('booking.courtNumber', { n: formatNumber(idx + 1) })
 })
 
+const sportLabel = computed(() => {
+  const court = courts.value.find((c) => c.id === selectedCourtId.value) || courts.value[0]
+  const sportKey = (court as { sport?: { slug?: string } } | undefined)?.sport?.slug
+  if (sportKey === 'padel') return t('clubs.sportCourtPadel')
+  if (sportKey === 'tennis') return t('clubs.sportCourtTennis')
+  return t('clubs.sportCourtGeneric')
+})
+
+const rentalEquipment = computed(() => {
+  const list = (club.value as { equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number }> } | null)?.equipment || []
+  if (!list.length) return null
+  const racket = list.find((e) => /راکت|racket/i.test(`${e.nameFa} ${e.nameEn}`))
+  return racket || list[0] || null
+})
+
+function openConfirmSheet() {
+  if (!selectedSlotIds.value.length) return
+  confirmOpen.value = true
+}
+
+function onConfirmSuccess() {
+  selectedSlotIds.value = []
+}
 const mapEmbedSrc = computed(() => {
   const coords = club.value?.coordinates
   if (!coords) return ''
@@ -351,18 +381,12 @@ async function shareClub() {
           <div class="canva-club-book-footer">
             <p v-if="bookingSummary" class="canva-club-book-summary">{{ bookingSummary }}</p>
             <p v-else class="canva-club-book-summary text-brand-gray-600">{{ t('clubs.selectSlotToContinue') }}</p>
-            <NuxtLink
-              v-if="selectedSlotIds.length"
-              :to="continueTo"
-              class="canva-cta canva-club-detail-cta"
-            >
-              {{ t('auth.continueConfirm') }}
-            </NuxtLink>
             <button
-              v-else
               type="button"
-              class="canva-cta canva-club-detail-cta opacity-50"
-              disabled
+              class="canva-cta canva-club-detail-cta"
+              :class="{ 'opacity-50': !selectedSlotIds.length }"
+              :disabled="!selectedSlotIds.length"
+              @click="openConfirmSheet"
             >
               {{ t('auth.continueConfirm') }}
             </button>
@@ -424,6 +448,20 @@ async function shareClub() {
           </div>
         </section>
       </div>
+
+      <CourtBookingConfirmSheet
+        :open="confirmOpen"
+        :club-name="localizedField(club, 'nameFa', 'nameEn')"
+        :location-line="locationLine"
+        :sport-label="sportLabel"
+        :rating-display="ratingDisplay"
+        :date="selectedDate"
+        :court-label="selectedCourtLabel"
+        :slots="selectedSlots"
+        :rental-equipment="rentalEquipment"
+        @close="confirmOpen = false"
+        @success="onConfirmSuccess"
+      />
     </div>
   </AppAsyncState>
 </template>
