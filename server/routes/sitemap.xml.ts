@@ -47,10 +47,7 @@ export default defineEventHandler(async (event) => {
 
   const urls = [
     ...staticPaths.map((path) => urlEntry(path)),
-    ...clubs.flatMap((club) => [
-      urlEntry(`/clubs/${club.slug}`),
-      urlEntry(`/book/court/${club.slug}`, 'weekly', '0.7'),
-    ]),
+    ...clubs.map((club) => urlEntry(`/clubs/${club.slug}`)),
     ...coaches.flatMap((coach) => [
       urlEntry(`/coaches/${coach.id}`),
       urlEntry(`/book/coach/${coach.id}`, 'weekly', '0.7'),

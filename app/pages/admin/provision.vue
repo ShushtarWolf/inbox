@@ -195,11 +195,11 @@ function resetForm() {
             </NuxtLink>
             <NuxtLink
               v-if="result.clubSlug"
-              :to="localePath(`/book/court/${result.clubSlug}`)"
+              :to="localePath(`/clubs/${result.clubSlug}`)"
               class="text-xs font-bold text-brand-navy underline"
               dir="ltr"
             >
-              /book/court/{{ result.clubSlug }}
+              /clubs/{{ result.clubSlug }}
             </NuxtLink>
             <button
               type="button"

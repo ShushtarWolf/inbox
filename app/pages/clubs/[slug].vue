@@ -12,9 +12,29 @@ const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
 
+function parseQueryCsv(raw: unknown): string[] {
+  if (typeof raw === 'string') {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+  if (Array.isArray(raw)) {
+    return raw.flatMap((v) => (typeof v === 'string' ? v.split(',') : [])).map((s) => s.trim()).filter(Boolean)
+  }
+  return []
+}
+
+/** Deep-link handoff from legacy `/book/court/:slug?date&slot&court`. */
+const deepLinkDate = typeof route.query.date === 'string' && route.query.date ? route.query.date : null
+const deepLinkCourt = typeof route.query.court === 'string' && route.query.court ? route.query.court : null
+const deepLinkSlotIds = [
+  ...parseQueryCsv(route.query.slot),
+  ...parseQueryCsv(route.query.slots),
+]
+const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0)
+let suppressSlotClear = deepLinkSlotsPending.value
+
 const gallerySlide = ref(0)
-const selectedDate = ref(today())
-const selectedCourtId = ref<string | null>(null)
+const selectedDate = ref(deepLinkDate || today())
+const selectedCourtId = ref<string | null>(deepLinkCourt)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 
@@ -54,10 +74,7 @@ const courts = computed(() => club.value?.courts || [])
 watch(
   courts,
   (list) => {
-    if (!list.length) {
-      selectedCourtId.value = null
-      return
-    }
+    if (!list.length) return
     if (!selectedCourtId.value || !list.some((c) => c.id === selectedCourtId.value)) {
       selectedCourtId.value = list[0]!.id
     }
@@ -66,10 +83,12 @@ watch(
 )
 
 watch(selectedDate, () => {
+  if (suppressSlotClear) return
   selectedSlotIds.value = []
 })
 
 watch(selectedCourtId, () => {
+  if (suppressSlotClear) return
   selectedSlotIds.value = []
 })
 
@@ -90,6 +109,27 @@ const courtSlots = computed(() => {
     s.courtId === selectedCourtId.value || s.court?.id === selectedCourtId.value,
   )
 })
+
+watch(
+  () => slots.value,
+  (list) => {
+    if (!deepLinkSlotsPending.value || !list) return
+    const available = list as ClubSlot[]
+    const valid = deepLinkSlotIds.filter((id) => {
+      const slot = available.find((s) => s.id === id)
+      return Boolean(slot && !(slot.displayStatus && slot.displayStatus !== 'FREE'))
+    })
+    if (valid.length) {
+      selectedSlotIds.value = valid
+      confirmOpen.value = true
+    }
+    deepLinkSlotsPending.value = false
+    nextTick(() => {
+      suppressSlotClear = false
+    })
+  },
+  { immediate: true },
+)
 
 function isSlotBooked(slot: ClubSlot) {
   return Boolean(slot.displayStatus && slot.displayStatus !== 'FREE')

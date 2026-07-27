@@ -20,6 +20,8 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 |---|---|---|
 | `home page.png`, `home page (2).png` | `/` public home | `overlays/public-home.jpg` |
 | `Court list.png` | `/clubs` | `overlays/clubs-list.jpg` |
+| `home page (3).png` | `/clubs/[slug]` club detail (slots + calendar) | — |
+| `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | — |
 | `login_sign up.png` | AuthFlow **gate** (`/login`) | capture: `localhost/app-auth-gate.png` |
 | `4.png` | AuthFlow **role** picker | — |
 | `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | — |
@@ -37,6 +39,13 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `home page (20).png` / `(21).png` | `/owner/equipments` (+ edit sheet) | — |
 | `home page (29).png` | `/owner/support` | — |
 
+### Routing notes (post Prompts 1–9 cleanup)
+
+- **Primary court book UX** = `/clubs/[slug]` + confirm sheet (`(3)` / `(4)`). Do not send athletes through a standalone book page.
+- **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
+- **Athlete booking detail** `/athlete/bookings/[id]` (and coach variant) → `/athlete/bookings?booking=` / `?coachSession=` (list is primary; detail is deep-link only).
+- **Coach / package** stay pilot-gated (`/book/coach`, `/book/package`, `/coaches`, …).
+
 ## Severity legend
 
 - **blocker** — wrong screen / missing primary regions / broken flow
@@ -44,16 +53,23 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **copy** — placeholder / wrong labels
 - **ok-enough** — same job, minor polish
 
-## Gap summary (after 375px LOCKED sweep)
+## Gap summary (after Prompts 1–9 + cleanup)
+
+### Fixed blockers (product / flow)
+
+- Court booking lived on orphan `/book/court` → **fixed**: confirm sheet on club detail; legacy route redirects.
+- Athlete booking detail as separate primary surface → **fixed**: redirect to history list + query highlight.
+- Coach/package in primary court MVP paths → **fixed**: pilot middleware (+ `/book/package`); soft landings when reached.
+- AuthFlow Canva gate / role / sheets square CTAs; CRM SMS schedule sheet shipped in prior prompts.
 
 ### Public home `/`
 - **ok-enough**: Logo R / login L, hero rails, square red **جستجو** CTA + white field group (LOCKED search).
 - **copy**: Live FA hero uses real marketing (`رزرو زمین، راحت و سریع`). Canva artboard + AuthFlow gate still show shared placeholder **“Check this box!”** — keep that string on AuthFlow only for frame parity; do not put it back on `/`.
-- **visual (kept on purpose)**: Public bottom nav / escape chrome even when Canva artboard omits them.
+- **visual (remaining)**: Public bottom nav / escape chrome even when Canva artboard omits them.
 
-### `/clubs`
-- **ok-enough**: Hero + court cards + book CTA; sport chips tightened (`gap-1.5` / smaller pad) vs denser prior pass.
-- **visual (kept)**: App bottom nav; Canva list frame often full-bleed without it.
+### `/clubs` + club detail `(3)` / confirm `(4)`
+- **ok-enough**: List hero + cards; detail calendar/slots + square confirm sheet CTAs.
+- **visual (remaining)**: Pixel polish vs Canva overlays (spacing, gallery chrome); app bottom nav vs full-bleed Canva.
 
 ### Auth gate
 - **product**: No Google (intentional). Square gate CTAs + Athlete/Owner only.
@@ -61,7 +77,7 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 
 ### `/athlete/home` vs `(8)`
 - **ok-enough**: Photo hero + curve + ۲۰٪ badge + greeting + text **جستجو** search row + 3 rails.
-- **visual**: Bottom-nav labels may still differ from icon-only Canva variants.
+- **visual (remaining)**: Bottom-nav labels may still differ from icon-only Canva variants.
 
 ### `/athlete/favorites` vs `(6)`
 - **ok-enough**: Photo header + sport chips + rich cards / empty + browse CTA.
@@ -70,18 +86,19 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **ok-enough**: Red curved hero, **circular** avatar (Canva), square stats, menu list.
 - **product**: Wallet row kept (pay infrastructure); Canva list omits it.
 
-### Athlete profile + notifications
-- **ok-enough**: Square `canva-panel` / `canva-black-cta`; no `btn-primary` / `rounded-xl` on Canva surfaces. Avatar may be `rounded-full` (matches hub circle).
+### Athlete profile + notifications + bookings
+- **ok-enough**: Square panels / CTAs; bookings calendar + cards / inline cancel–rebook–pay.
+- **visual (remaining)**: History card density vs `(12)`; avatar may be `rounded-full` (matches hub circle).
 
 ### `/owner/equipments` vs `(20)`/`(21)`
 - **ok-enough**: Square gray amenity chips + price bars; green **+ افزودن** on section start (left in RTL); edit sheet black **ذخیره**.
-- **visual**: No red dash-hero band (Canva is title + subtitle only).
+- **visual (remaining)**: No red dash-hero band (Canva is title + subtitle only).
 
 ### `/owner/support` vs `(29)`
 - **ok-enough**: Text ops guide + contact lines on cream; no soft TailAdmin cards / red hero band.
 
 ### `/owner/calendar` / finance / CRM
-- Prior passes; re-check only if regressing LOCKED radius.
+- Prior passes; **visual (remaining)** only if diverging from `(15)` / `(10)` slot color bars or new frames.
 
 ## Chrome consistency (product rule)
 
@@ -99,11 +116,12 @@ Components: `CanvaPublicChrome.vue`, `CanvaSubpageHeader.vue`, `CanvaAthleteChro
 
 **Do not** strip bottom nav / logo / back to “match Canva” if that strands the user.
 
-## Recommended fix order (remaining)
+## Recommended fix order (remaining — visual only)
 
 1. Owner calendar chrome + slot color bars (if still diverging from `(15)` / `(10)`)
-2. Finance / CRM polish only if new frames land
-3. Re-capture overlays after UI changes
+2. Club detail / confirm sheet pixel polish vs `(3)` / `(4)` overlays
+3. Finance / CRM polish only if new frames land
+4. Re-capture overlays after UI changes
 
 ## How to re-compare cheaply
 

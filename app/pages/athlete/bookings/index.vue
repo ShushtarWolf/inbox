@@ -135,6 +135,10 @@ function selectDay(iso: string) {
 }
 
 const route = useRoute()
+const highlightBookingId = computed(() =>
+  typeof route.query.booking === 'string' ? route.query.booking : '',
+)
+
 watch(
   () => route.query.payment,
   (value) => {
@@ -287,6 +291,22 @@ const historyItems = computed((): HistoryItem[] => {
   // Court MVP Canva frame: coach/package history never listed here.
   return items
 })
+
+watch(
+  [historyItems, highlightBookingId],
+  async () => {
+    const id = highlightBookingId.value
+    if (!id) return
+    const item = historyItems.value.find((row) => row.id === id)
+    if (!item) return
+    monthAnchor.value = item.date
+    selectedDayIso.value = item.date
+    await nextTick()
+    if (!import.meta.client) return
+    document.getElementById(`booking-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  },
+  { immediate: true },
+)
 
 const visibleHistory = computed(() => historyItems.value)
 
@@ -449,6 +469,7 @@ function dateLine(item: HistoryItem) {
       <div v-else class="space-y-3">
         <article
           v-for="item in filteredItems"
+          :id="`booking-${item.id}`"
           :key="`${item.kind}-${item.id}`"
           class="canva-history-card"
         >

@@ -404,7 +404,7 @@ One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22).
 2. Copy the temporary password from the success panel (do not commit secrets)
 3. Log in at `/login` as the owner → optionally `/owner/setup` (profile, hours, courts/pricing; coaches optional)
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
-5. Public catalog: `/clubs` · book: `/book/court/{slug}` (athlete account needed to complete a booking)
+5. Public catalog: `/clubs` · book on club detail: `/clubs/{slug}` (athlete account needed to complete a booking). Legacy `/book/court/{slug}` redirects there.
 
 Pilot (Behnaz): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
 

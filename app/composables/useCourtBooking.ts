@@ -1,6 +1,6 @@
 /**
- * Shared court booking + checkout used by club-detail confirm sheet
- * and `/book/court` deep-link fallback.
+ * Shared court booking + checkout used by club-detail confirm sheet.
+ * Legacy `/book/court/:slug` redirects to `/clubs/:slug` (query preserved).
  */
 export function useCourtBooking() {
   const { t } = useI18n()

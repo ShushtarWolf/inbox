@@ -473,7 +473,7 @@
     "provisionAnother": "ایجاد حساب دیگر",
     "copyTempPassword": "کپی رمز موقت",
     "copied": "کپی شد",
-    "provisionNextSteps": "بعدی: ورود مالک → /owner/setup (اختیاری) → کاتالوگ /clubs و /book/court/{slug}.",
+    "provisionNextSteps": "بعدی: ورود مالک → /owner/setup (اختیاری) → کاتالوگ /clubs و /clubs/{slug}.",
     "createApplicationTitle": "ثبت درخواست",
     "createApplicationHint": "میانبر عملیاتی برای مسیر تأیید (مثل بهناز). برای ساخت یک‌مرحله‌ای مالک+باشگاه از «ایجاد مدیر» استفاده کنید.",
     "createApplicationSubmit": "ثبت درخواست در انتظار",

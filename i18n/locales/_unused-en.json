@@ -429,7 +429,7 @@
     "provisionAnother": "Provision another",
     "copyTempPassword": "Copy temporary password",
     "copied": "Copied",
-    "provisionNextSteps": "Next: owner logs in → /owner/setup (optional polish) → catalog /clubs and /book/court/{slug}.",
+    "provisionNextSteps": "Next: owner logs in → /owner/setup (optional polish) → catalog /clubs and /clubs/{slug}.",
     "createApplicationTitle": "Create application",
     "createApplicationHint": "Ops shortcut for the approve path (e.g. Behnaz). Prefer Provision for a one-step club + owner.",
     "createApplicationSubmit": "Create pending application",

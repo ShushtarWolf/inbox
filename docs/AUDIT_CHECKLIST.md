@@ -17,16 +17,16 @@
 | `/clubs/apply` | `app/pages/clubs/apply.vue` | — | — | — | — | OK |
 | `/owner/setup` | `app/pages/owner/setup.vue` | — | — | — | wizard | OK |
 | `/clubs` | `app/pages/clubs/index.vue` | English amenity labels | — | km suffix | hardcoded amenities | Fixed |
-| `/clubs/[slug]` | `app/pages/clubs/[slug].vue` | — | — | — | — | OK |
+| `/clubs/[slug]` | `app/pages/clubs/[slug].vue` | — | — | confirm sheet | primary book UX | OK |
 | `/coaches` | `app/pages/coaches/index.vue` | English specialty labels | — | — | hardcoded specialties | Fixed |
 | `/coaches/[id]` | `app/pages/coaches/[id].vue` | — | — | — | — | OK |
-| `/book/court/[slug]` | `app/pages/book/court/[slug].vue` | UTC date, native date, `h` suffix | — | time range bidi | `any` catch | Fixed |
-| `/book/coach/[id]` | `app/pages/book/coach/[id].vue` | UTC date, native date, `h` suffix | — | time in select | `any` catch | Fixed |
+| `/book/court/[slug]` | `app/pages/book/court/[slug].vue` | — | — | redirect→`/clubs/[slug]` | deep-link only | OK |
+| `/book/coach/[id]` | `app/pages/book/coach/[id].vue` | UTC date, native date, `h` suffix | — | time in select | pilot-gated | Fixed |
 | `/athlete` | `app/pages/athlete/index.vue` | — | — | — | — | OK (has loading) |
 | `/athlete/profile` | `app/pages/athlete/profile.vue` | — | — | — | — | OK |
-| `/athlete/bookings` | `app/pages/athlete/bookings/index.vue` | UTC date, modal UX | — | time bidi | `any` types | Fixed |
-| `/athlete/bookings/[id]` | `app/pages/athlete/bookings/[id].vue` | UTC date, `h` suffix | — | IDs/times | — | Fixed |
-| `/athlete/bookings/coach/[id]` | `app/pages/athlete/bookings/coach/[id].vue` | UTC date, `h` suffix | — | time select | — | Fixed |
+| `/athlete/bookings` | `app/pages/athlete/bookings/index.vue` | UTC date, modal UX | — | time bidi | `?booking=` highlight | Fixed |
+| `/athlete/bookings/[id]` | `app/pages/athlete/bookings/[id].vue` | — | — | redirect→list+query | deep-link only | OK |
+| `/athlete/bookings/coach/[id]` | `app/pages/athlete/bookings/coach/[id].vue` | — | — | redirect→list+query | deep-link only | OK |
 | `/coach` | `app/pages/coach/index.vue` | — | — | — | — | OK |
 | `/coach/schedule` | `app/pages/coach/schedule.vue` | — | — | — | — | OK |
 | `/coach/clients` | `app/pages/coach/clients.vue` | — | — | — | — | OK |

@@ -394,7 +394,7 @@ watch(statusFilter, () => {
               {{ t('admin.tempPassword') }}: <strong>{{ approveResult.temporaryPassword }}</strong>
             </p>
             <p v-if="approveResult.ownerEmail" class="mt-1 text-xs" dir="ltr">{{ approveResult.ownerEmail }}</p>
-            <p v-if="approveResult.clubSlug" class="mt-1 text-xs" dir="ltr">/book/court/{{ approveResult.clubSlug }}</p>
+            <p v-if="approveResult.clubSlug" class="mt-1 text-xs" dir="ltr">/clubs/{{ approveResult.clubSlug }}</p>
           </div>
           <button type="button" class="canva-gate-btn-primary" @click="closeApprove">
             {{ t('common.close') }}

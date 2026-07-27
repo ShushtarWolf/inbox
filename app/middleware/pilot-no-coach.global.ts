@@ -1,6 +1,7 @@
 const BLOCKED = [
   /^\/coaches(\/|$)/,
   /^\/book\/coach(\/|$)/,
+  /^\/book\/package(\/|$)/,
   /^\/register\/coach(\/|$)/,
   /^\/owner\/coaches(\/|$)/,
   /^\/coach(\/|$)/,

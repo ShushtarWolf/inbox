@@ -78,7 +78,9 @@ Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recr
 
 ## Routes
 
-**Public:** `/` · `/clubs` · `/coaches` · `/book/court/:slug` · `/book/coach/:id`
+**Public:** `/` · `/clubs` · `/clubs/:slug` (court booking) · `/coaches` · `/book/coach/:id` (coach product; pilot-gated)
+
+Legacy: `/book/court/:slug` → redirect to `/clubs/:slug` (+ query)
 
 **Athlete:** `/athlete` · `/athlete/bookings` · `/athlete/profile`
 
