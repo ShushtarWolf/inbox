@@ -131,7 +131,7 @@ async function finish() {
 
 <template>
   <div class="mx-auto max-w-lg space-y-4">
-    <h1 class="tail-page-title">{{ t('owner.setupTitle') }}</h1>
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.setupTitle')" />
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
     <p class="text-xs text-brand-gray-500">{{ t('owner.setupNoCoachHint') }}</p>
 

@@ -2,8 +2,6 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
-const { openGate } = useAuthFlow()
 
 const sport = ref<string>('')
 const heroSlide = ref(0)
@@ -15,7 +13,6 @@ const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 
-const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 /** Canva home frames show three square tiles per rail. */
 const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
 const tennisClubs = computed(() => {
@@ -46,10 +43,6 @@ const heroSlides = computed(() => [
 ])
 
 const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
-
-onMounted(() => {
-  if (!user.value) fetchAuth()
-})
 
 function bookingLink(path: '/clubs', querySport?: string) {
   const sportQuery = querySport || sport.value || undefined
@@ -86,28 +79,7 @@ function prevHero() {
 <template>
   <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
     <div class="tail-page-stack animate-fade-in tail-stagger">
-      <!-- Canva chrome: logo right, login left (RTL start/end) -->
-      <header class="canva-home-chrome">
-        <div class="flex items-center gap-2">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
-        </div>
-        <button
-          v-if="!user"
-          type="button"
-          class="canva-home-login"
-          @click="openGate()"
-        >
-          {{ t('auth.loginRegister') }}
-        </button>
-        <NuxtLink
-          v-else
-          :to="dashboardPathForRole(user.role)"
-          class="canva-home-login canva-home-login-soft"
-        >
-          {{ t('home.welcome', { name: firstNameOrGuest }) }}
-        </NuxtLink>
-      </header>
+      <CanvaPublicChrome />
 
       <section class="canva-hero canva-hero-home">
         <img

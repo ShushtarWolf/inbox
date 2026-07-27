@@ -84,6 +84,22 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **ok-enough**: Stats 12/12/12, filters, list badges, “کمپین پیامکی جدید”.
 - **product**: Canva SMS wizard explicitly says MVP log-only — align with SINGLE/MULTI honesty.
 
+## Chrome consistency (product rule)
+
+Phone frames in Canva often omit shared chrome. **Live app must keep escape hatches** even when a Canva artboard does not show them:
+
+| Surface | Required chrome |
+|---------|-----------------|
+| Public (≤430px) | `CanvaPublicChrome` — INBOX logo → home, login / welcome; funnel pages also pass `backTo` |
+| Athlete primary tabs | Bottom nav + (home/favorites/bookings) logo or `CanvaAthleteChrome` + profile shortcut |
+| Athlete secondary | `CanvaSubpageHeader` → `/athlete` (notifications, wallet, payments, profile) |
+| Owner primary tabs | Bottom nav (calendar / finance / settings / more) |
+| Owner More destinations | `CanvaSubpageHeader` → `/owner/calendar?more=1` |
+
+Components: `CanvaPublicChrome.vue`, `CanvaSubpageHeader.vue`, `CanvaAthleteChrome.vue`.
+
+**Do not** strip bottom nav / logo / back to “match Canva” if that strands the user.
+
 ## Recommended fix order (highest impact)
 
 1. Owner calendar chrome + slot color bars (match `home page (15)` / `(10)`)

@@ -18,6 +18,7 @@ const liveSms = computed(() =>
 
 <template>
   <div class="venus-page-stack">
+    <CanvaSubpageHeader to="/owner/calendar?more=1" />
     <section class="canva-dash-hero">
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
       <h1 class="canva-page-hero-title">{{ t('owner.support') }}</h1>

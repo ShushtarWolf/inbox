@@ -5,7 +5,6 @@ import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
-const localePath = useLocalePath()
 const { user } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
@@ -58,12 +57,7 @@ function downloadReport() {
 
 <template>
   <div class="venus-page-stack">
-    <header class="flex items-center gap-3">
-      <NuxtLink :to="localePath('/owner/finance')" class="text-brand-navy" :aria-label="t('common.back')">
-        <AppIcon name="arrow_forward" size="sm" />
-      </NuxtLink>
-      <h1 class="flex-1 text-start text-lg font-bold text-brand-navy">{{ t('owner.financePage.advancedReport') }}</h1>
-    </header>
+    <CanvaSubpageHeader to="/owner/finance" :title="t('owner.financePage.advancedReport')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <CanvaEmptyState v-if="!canReports" :title="t('owner.financePage.reportsLocked')" icon="lock" />

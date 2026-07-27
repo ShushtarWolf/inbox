@@ -145,12 +145,7 @@ async function send() {
 
 <template>
   <div class="venus-page-stack pb-24">
-    <header class="flex items-center justify-between gap-3">
-      <NuxtLink :to="localePath('/owner/calendar?more=1')" class="text-brand-navy" :aria-label="t('common.back')">
-        <AppIcon name="arrow_forward" size="sm" />
-      </NuxtLink>
-      <h1 class="flex-1 text-start text-lg font-bold text-brand-navy">{{ t('owner.crm') }}</h1>
-    </header>
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.crm')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <p class="text-xs text-brand-gray-500">

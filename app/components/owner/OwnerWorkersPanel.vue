@@ -186,8 +186,8 @@ async function confirmDelete() {
 
 <template>
   <div :class="embedded ? '' : 'venus-page-stack'">
-    <div v-if="!embedded" class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="font-display text-xl font-bold">{{ t('owner.workers') }}</h1>
+    <CanvaSubpageHeader v-if="!embedded" to="/owner/calendar?more=1" :title="t('owner.workers')" />
+    <div v-if="!embedded" class="flex flex-wrap items-center justify-end gap-3">
       <button type="button" class="canva-gate-btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
     <p v-if="!embedded" class="text-sm text-brand-gray-600">{{ t('owner.workersPage.subtitle') }}</p>

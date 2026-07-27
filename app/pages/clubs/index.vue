@@ -5,8 +5,6 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber } = useFormatters()
-const { openGate } = useAuthFlow()
-const { user, dashboardPathForRole, firstName } = useAuth()
 
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const sort = ref((route.query.sort as string) || 'rank')
@@ -20,8 +18,6 @@ const query = computed(() => ({
 
 const { data: clubs, pending, error } = await useFetch('/api/clubs', { query })
 const { data: sports } = await useFetch('/api/sports')
-
-const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 
 const sportChips = computed(() => [
   { value: '', label: t('clubs.sportAll') },
@@ -128,28 +124,7 @@ function prevHero() {
 
 <template>
   <div class="tail-page-stack animate-fade-in">
-    <!-- Canva Court list: logo RIGHT, square login LEFT -->
-    <header class="canva-home-chrome">
-      <div class="flex items-center gap-2">
-        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-        <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
-      </div>
-      <button
-        v-if="!user"
-        type="button"
-        class="canva-home-login"
-        @click="openGate()"
-      >
-        {{ t('auth.loginRegister') }}
-      </button>
-      <NuxtLink
-        v-else
-        :to="dashboardPathForRole(user.role)"
-        class="canva-home-login canva-home-login-soft"
-      >
-        {{ t('home.welcome', { name: firstNameOrGuest }) }}
-      </NuxtLink>
-    </header>
+    <CanvaPublicChrome />
 
     <section class="canva-hero canva-hero-home">
       <img

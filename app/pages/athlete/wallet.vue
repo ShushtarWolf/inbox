@@ -105,6 +105,7 @@ watch(
 
 <template>
   <div class="venus-page-stack">
+    <CanvaSubpageHeader to="/athlete" :title="t('athlete.walletTitle')" />
     <section class="canva-dash-hero">
       <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
       <p class="mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>

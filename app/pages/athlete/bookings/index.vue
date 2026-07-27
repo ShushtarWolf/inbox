@@ -361,7 +361,8 @@ function onMonthSelect() {
 
 <template>
   <div class="venus-page-stack">
-    <section class="pt-5">
+    <CanvaAthleteChrome />
+    <section class="pt-2">
       <div class="flex items-center justify-between gap-3">
         <div class="relative">
           <button

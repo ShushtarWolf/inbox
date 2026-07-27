@@ -205,7 +205,8 @@ async function shareClub() {
 
 <template>
   <AppAsyncState :pending="pending" :error="error" :empty="!club" skeleton-variant="default">
-    <div v-if="club" class="canva-club-detail">
+    <div v-if="club" class="canva-club-detail space-y-3">
+      <CanvaPublicChrome back-to="/clubs" />
       <!-- 1. Gallery: full-bleed, arrows, red active dots -->
       <section class="canva-club-gallery">
         <img :src="activeGallery" alt="" class="canva-club-gallery-media" />

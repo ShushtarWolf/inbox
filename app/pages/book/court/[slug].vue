@@ -207,6 +207,7 @@ onMounted(() => {
 
 <template>
   <div class="venus-page-stack">
+    <CanvaPublicChrome :back-to="`/clubs/${slug}`" />
     <section class="canva-dash-hero">
       <p class="text-xs text-white/80">{{ t('home.bookCourt') }}</p>
       <h1 class="mt-1 text-2xl font-bold">{{ localizedField(club, 'nameFa', 'nameEn') || t('home.bookCourt') }}</h1>
