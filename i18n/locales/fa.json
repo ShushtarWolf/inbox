@@ -285,7 +285,9 @@
     "historyStatusCancelled": "لغو شده",
     "historyCancel": "لغو کردن",
     "historyRebook": "رزرو مجدد",
-    "historyEmptyMonth": "در این ماه رزروی نیست"
+    "historyEmptyMonth": "در این ماه رزروی نیست",
+    "historyEquipmentQty": "{qty} عدد {name}",
+    "historyCourtQty": "{qty} زمین",
   },
   "coach": {
     "today": "امروز",

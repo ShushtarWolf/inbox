@@ -858,18 +858,127 @@
     @apply relative z-[1] flex h-full min-h-[11.5rem] flex-col justify-end p-4 text-start;
   }
   .canva-history-status {
-    @apply shrink-0 px-2.5 py-1 text-[10px] font-bold;
+    @apply ms-1 inline text-[11px] font-bold;
     border-radius: var(--sz-canva-radius);
   }
   .canva-history-status-done {
-    @apply bg-emerald-50 text-emerald-700;
+    @apply bg-transparent text-emerald-600;
   }
   .canva-history-status-pending {
-    @apply bg-amber-50 text-amber-800;
+    @apply bg-transparent text-amber-700;
   }
   .canva-history-status-cancelled {
-    @apply bg-red-50 text-brand-primary;
+    @apply bg-transparent text-brand-primary;
   }
+
+  /* Athlete bookings — Canva home page (7) */
+  .canva-history-cal {
+    @apply bg-white p-3;
+    border-radius: var(--sz-canva-radius-max);
+    border: 1px solid #e8e4de;
+  }
+  .canva-history-cal-layout {
+    @apply flex items-stretch gap-2;
+  }
+  .canva-history-cal-times {
+    @apply flex w-14 shrink-0 flex-col items-stretch justify-center gap-1.5;
+  }
+  .canva-history-time-chip {
+    @apply bg-brand-primary px-1 py-1.5 text-center text-[10px] font-bold tabular-nums text-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-cal-grid-wrap {
+    @apply min-w-0 flex-1;
+  }
+  .canva-history-cal-nav {
+    @apply mb-2 flex items-center justify-between gap-2;
+  }
+  .canva-history-cal-nav-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #e8e4de;
+  }
+  .canva-history-cal-month {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-history-cal-weekdays {
+    @apply grid grid-cols-7 gap-0.5 text-center text-[10px] font-bold text-brand-primary;
+  }
+  .canva-history-cal-grid {
+    @apply mt-1 grid grid-cols-7 gap-0.5;
+  }
+  .canva-history-cal-day {
+    @apply relative flex aspect-square flex-col items-center justify-center text-xs font-semibold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-cal-day-empty {
+    @apply pointer-events-none;
+  }
+  .canva-history-cal-day-active {
+    @apply bg-brand-primary text-white;
+  }
+  .canva-history-cal-day-dotted:not(.canva-history-cal-day-active) {
+    @apply font-bold;
+  }
+  .canva-history-cal-dot {
+    @apply absolute bottom-1 h-1 w-1 bg-brand-primary;
+    border-radius: 0;
+  }
+  .canva-history-cal-day-active .canva-history-cal-dot {
+    @apply bg-white;
+  }
+  .canva-history-head {
+    @apply flex items-center justify-between gap-3 pt-1;
+  }
+  .canva-history-title {
+    @apply text-xl font-bold text-brand-primary text-start;
+  }
+  .canva-history-sort {
+    @apply inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600;
+  }
+  .canva-history-card {
+    @apply bg-white p-3;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #e8e4de;
+  }
+  .canva-history-card-main {
+    @apply flex items-stretch gap-2.5;
+  }
+  .canva-history-card-thumb {
+    @apply h-16 w-16 shrink-0 object-cover;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-card-title {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-history-card-meta {
+    @apply mt-0.5 text-xs text-brand-gray-600;
+  }
+  .canva-history-card-price {
+    @apply mt-1 text-sm font-bold text-brand-navy;
+  }
+  .canva-history-card-meta-row {
+    @apply mt-1 flex flex-wrap gap-2;
+  }
+  .canva-history-meta-chip {
+    @apply text-[11px] font-bold text-brand-gray-600;
+  }
+  .canva-history-card-actions {
+    @apply flex w-[5.5rem] shrink-0 flex-col items-stretch justify-center gap-1.5;
+  }
+  .canva-history-btn-cancel {
+    @apply bg-brand-primary px-2 py-2 text-center text-[11px] font-bold text-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-btn-rebook {
+    @apply bg-emerald-600 px-2 py-2 text-center text-[11px] font-bold text-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-btn-secondary {
+    @apply border border-brand-gray-300 bg-white px-2 py-1.5 text-center text-[10px] font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+
   .canva-legal-footer {
     @apply flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 pt-2 text-[10px] font-medium text-brand-gray-500;
   }
