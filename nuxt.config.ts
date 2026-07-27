@@ -183,6 +183,8 @@ export default defineNuxtConfig({
       sentryDsn: process.env.SENTRY_DSN || '',
       sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       sentryRelease: process.env.GIT_COMMIT_SHA || process.env.GITHUB_SHA || '',
+      // Microsoft Clarity (session replay / heatmaps). Set on Liara only; client plugin loads in production.
+      clarityId: process.env.NUXT_PUBLIC_CLARITY_ID || '',
       // Public contact details for Enamad / legal pages (override on Liara as needed).
       contactAddress: process.env.NUXT_PUBLIC_CONTACT_ADDRESS || '',
       contactLandline: process.env.NUXT_PUBLIC_CONTACT_LANDLINE || '',
