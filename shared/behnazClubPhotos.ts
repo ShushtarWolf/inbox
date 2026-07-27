@@ -1,20 +1,41 @@
-/** Static Court 1 photos for باشگاه بهناز (pilot). Served from public/demo/clubs. */
-export const BEHNAZ_COURT_1_PHOTOS = [
-  {
-    url: '/demo/clubs/behnaz-court-1-1.webp',
-    captionFa: 'زمین ۱ — نمای ۱',
-    captionEn: 'Court 1 — view 1',
-  },
-  {
-    url: '/demo/clubs/behnaz-court-1-2.webp',
-    captionFa: 'زمین ۱ — نمای ۲',
-    captionEn: 'Court 1 — view 2',
-  },
-  {
-    url: '/demo/clubs/behnaz-court-1-3.webp',
-    captionFa: 'زمین ۱ — نمای ۳',
-    captionEn: 'Court 1 — view 3',
-  },
-] as const
+/** Static court photos for باشگاه بهناز (pilot). Served from public/demo/clubs. */
 
-export const BEHNAZ_COURT_1_COVER = BEHNAZ_COURT_1_PHOTOS[0].url
+export type BehnazCourtPhoto = {
+  url: string
+  captionFa: string
+  captionEn: string
+}
+
+function courtPhotos(court: 1 | 2 | 3): BehnazCourtPhoto[] {
+  return [1, 2, 3].map((view) => ({
+    url: `/demo/clubs/behnaz-court-${court}-${view}.webp`,
+    captionFa: `زمین ${court} — نمای ${view}`,
+    captionEn: `Court ${court} — view ${view}`,
+  }))
+}
+
+export const BEHNAZ_COURT_1_PHOTOS = courtPhotos(1)
+export const BEHNAZ_COURT_2_PHOTOS = courtPhotos(2)
+export const BEHNAZ_COURT_3_PHOTOS = courtPhotos(3)
+
+export const BEHNAZ_COURT_PHOTOS = {
+  1: BEHNAZ_COURT_1_PHOTOS,
+  2: BEHNAZ_COURT_2_PHOTOS,
+  3: BEHNAZ_COURT_3_PHOTOS,
+} as const
+
+export const BEHNAZ_ALL_COURT_PHOTOS: BehnazCourtPhoto[] = [
+  ...BEHNAZ_COURT_1_PHOTOS,
+  ...BEHNAZ_COURT_2_PHOTOS,
+  ...BEHNAZ_COURT_3_PHOTOS,
+]
+
+export const BEHNAZ_COURT_1_COVER = BEHNAZ_COURT_1_PHOTOS[0]!.url
+export const BEHNAZ_COURT_2_COVER = BEHNAZ_COURT_2_PHOTOS[0]!.url
+export const BEHNAZ_COURT_3_COVER = BEHNAZ_COURT_3_PHOTOS[0]!.url
+
+export const BEHNAZ_COURT_COVERS = {
+  1: BEHNAZ_COURT_1_COVER,
+  2: BEHNAZ_COURT_2_COVER,
+  3: BEHNAZ_COURT_3_COVER,
+} as const

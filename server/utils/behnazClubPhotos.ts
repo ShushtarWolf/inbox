@@ -1,27 +1,41 @@
-import { BEHNAZ_COURT_1_COVER, BEHNAZ_COURT_1_PHOTOS } from '#shared/behnazClubPhotos.ts'
+import {
+  BEHNAZ_ALL_COURT_PHOTOS,
+  BEHNAZ_COURT_1_COVER,
+  BEHNAZ_COURT_COVERS,
+} from '#shared/behnazClubPhotos.ts'
 
 type Db = typeof prisma
 
-/** Attach Court 1 cover + gallery photos to a club (idempotent by URL). */
-export async function applyBehnazCourt1Photos(db: Db, clubId: string) {
+function findCourt(
+  courts: Array<{ id: string; nameEn: string; nameFa: string }>,
+  n: 1 | 2 | 3,
+) {
+  return (
+    courts.find((c) => c.nameEn === `Court ${n}` || c.nameFa === `زمین ${n}`)
+    || null
+  )
+}
+
+/** Attach court covers + full gallery for باشگاه بهناز (idempotent by URL). */
+export async function applyBehnazCourtPhotos(db: Db, clubId: string) {
   const courts = await db.court.findMany({
     where: { clubId },
     orderBy: { nameEn: 'asc' },
   })
-  const court1 =
-    courts.find((c) => c.nameEn === 'Court 1' || c.nameFa === 'زمین 1')
-    || courts[0]
-    || null
 
   await db.club.update({
     where: { id: clubId },
     data: { image: BEHNAZ_COURT_1_COVER },
   })
 
-  if (court1) {
+  const courtIds: Partial<Record<1 | 2 | 3, string>> = {}
+  for (const n of [1, 2, 3] as const) {
+    const court = findCourt(courts, n)
+    if (!court) continue
+    courtIds[n] = court.id
     await db.court.update({
-      where: { id: court1.id },
-      data: { image: BEHNAZ_COURT_1_COVER },
+      where: { id: court.id },
+      data: { image: BEHNAZ_COURT_COVERS[n] },
     })
   }
 
@@ -33,7 +47,7 @@ export async function applyBehnazCourt1Photos(db: Db, clubId: string) {
   let sortOrder = existing.reduce((max, m) => Math.max(max, m.sortOrder), -1) + 1
 
   const created: string[] = []
-  for (const photo of BEHNAZ_COURT_1_PHOTOS) {
+  for (const photo of BEHNAZ_ALL_COURT_PHOTOS) {
     if (existingUrls.has(photo.url)) continue
     await db.clubMedia.create({
       data: {
@@ -51,8 +65,11 @@ export async function applyBehnazCourt1Photos(db: Db, clubId: string) {
   return {
     clubId,
     cover: BEHNAZ_COURT_1_COVER,
-    courtId: court1?.id ?? null,
+    courtIds,
     mediaAdded: created,
-    mediaSkipped: BEHNAZ_COURT_1_PHOTOS.filter((p) => existingUrls.has(p.url)).map((p) => p.url),
+    mediaSkipped: BEHNAZ_ALL_COURT_PHOTOS.filter((p) => existingUrls.has(p.url)).map((p) => p.url),
   }
 }
+
+/** @deprecated Prefer applyBehnazCourtPhotos */
+export const applyBehnazCourt1Photos = applyBehnazCourtPhotos

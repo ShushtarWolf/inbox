@@ -1,9 +1,9 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
-import { BEHNAZ_COURT_1_COVER } from '#shared/behnazClubPhotos.ts'
+import { BEHNAZ_COURT_COVERS, BEHNAZ_COURT_1_COVER } from '#shared/behnazClubPhotos.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 import { catalogCounts, wipeCatalog } from '../../utils/wipeCatalog'
-import { applyBehnazCourt1Photos } from '../../utils/behnazClubPhotos'
+import { applyBehnazCourtPhotos } from '../../utils/behnazClubPhotos'
 
 const WIPE_CONFIRM = 'WIPE_ALL_USERS_AND_CLUBS'
 const DEFAULT_OWNER_PHONE = '09124777927'
@@ -86,7 +86,8 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    for (let i = 1; i <= 2; i++) {
+    for (let i = 1; i <= 3; i++) {
+      const cover = BEHNAZ_COURT_COVERS[i as 1 | 2 | 3]
       await tx.court.create({
         data: {
           nameFa: `زمین ${i}`,
@@ -94,7 +95,7 @@ export default defineEventHandler(async (event) => {
           clubId: club.id,
           sportId: padel.id,
           price: DEFAULT_COURT_PRICE,
-          ...(i === 1 ? { image: BEHNAZ_COURT_1_COVER } : {}),
+          image: cover,
         },
       })
     }
@@ -113,7 +114,7 @@ export default defineEventHandler(async (event) => {
     return { user, club }
   })
 
-  await applyBehnazCourt1Photos(prisma, created.club.id)
+  await applyBehnazCourtPhotos(prisma, created.club.id)
 
   const after = await catalogCounts()
 
