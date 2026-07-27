@@ -14,6 +14,10 @@ export default defineEventHandler(async (event) => {
     name?: string
     clubNameFa?: string
     city?: string
+    addressFa?: string
+    sport?: string
+    courtCount?: number | string
+    credentialUrls?: string[]
     returnTo?: string
   }>(event)
 
@@ -73,6 +77,10 @@ export default defineEventHandler(async (event) => {
           name: body.name?.trim(),
           clubNameFa: body.clubNameFa?.trim(),
           city: body.city?.trim() || 'تهران',
+          addressFa: body.addressFa?.trim(),
+          sport: body.sport,
+          courtCount: body.courtCount,
+          credentialUrls: Array.isArray(body.credentialUrls) ? body.credentialUrls.filter(Boolean) : undefined,
         }
       : undefined,
   })

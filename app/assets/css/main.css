@@ -317,7 +317,32 @@
   }
   .canva-role-card {
     @apply flex w-full items-center gap-3 border border-brand-gray-200/80 bg-white/90 px-4 py-3 text-start shadow-venus-sm backdrop-blur-sm transition hover:border-brand-primary/40;
-    border-radius: var(--sz-canva-radius-max);
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-role-card-active {
+    @apply border-brand-primary/50 bg-brand-primary-soft/40;
+  }
+  .canva-role-check {
+    @apply order-first h-5 w-5 shrink-0 border-2 border-brand-gray-300 bg-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-role-check-on {
+    @apply border-brand-primary bg-brand-primary;
+    box-shadow: inset 0 0 0 2px #fff;
+  }
+  .canva-auth-upload {
+    @apply flex items-center gap-3 border border-dashed border-brand-gray-300 bg-white/90 px-3 py-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-auth-upload-btn {
+    @apply shrink-0 cursor-pointer bg-brand-gray-100 px-3 py-2 text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-auth-welcome {
+    @apply space-y-1 py-4 text-center;
+  }
+  .canva-auth-welcome-title {
+    @apply text-lg font-bold leading-snug text-emerald-600;
   }
   /* Square gate CTAs — replaces btn-primary on auth gate */
   .canva-gate-btn {
@@ -329,7 +354,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-gate-btn-secondary {
-    @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white/90 px-4 py-3.5 text-sm font-bold text-brand-navy backdrop-blur-sm transition hover:border-brand-primary/40;
+    @apply flex w-full items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary backdrop-blur-sm transition hover:bg-brand-primary-soft;
     border-radius: var(--sz-canva-radius);
   }
 

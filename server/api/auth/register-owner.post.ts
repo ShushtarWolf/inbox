@@ -1,6 +1,12 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
 import { uniqueClubSlug } from '../../utils/slug'
+import {
+  normalizeOwnerCourtCount,
+  normalizeOwnerSport,
+  ownerSetupHandoff,
+  sportSlugsForOwner,
+} from '../../utils/ownerOnboarding'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-owner')
@@ -16,6 +22,7 @@ export default defineEventHandler(async (event) => {
     addressFa?: string
     addressEn?: string
     sport?: string
+    courtCount?: number | string
     avatarUrl?: string
     clubImage?: string
     galleryUrls?: string[]
@@ -23,7 +30,9 @@ export default defineEventHandler(async (event) => {
     returnTo?: string
   }>(event)
 
-  const name = body.name?.trim()
+  const clubNameFa = body.clubNameFa?.trim() || body.clubNameEn?.trim()
+  const clubNameEn = body.clubNameEn?.trim() || clubNameFa
+  const name = body.name?.trim() || clubNameFa
   const password = body.password ?? ''
   const identity = resolvePasswordRegisterIdentity({
     phone: body.phone,
@@ -34,11 +43,12 @@ export default defineEventHandler(async (event) => {
   }
   const email = identity?.email
   const phone = identity?.phone || null
-  const clubNameFa = body.clubNameFa?.trim() || body.clubNameEn?.trim()
-  const clubNameEn = body.clubNameEn?.trim() || clubNameFa
   const city = body.city?.trim() || 'تهران'
   const addressFa = body.addressFa?.trim() || city
-  const addressEn = body.addressEn?.trim() || city
+  const addressEn = body.addressEn?.trim() || addressFa
+  const sportKey = normalizeOwnerSport(body.sport)
+  const courtCount = normalizeOwnerCourtCount(body.courtCount)
+  const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
 
   if (!name || !email || !isPasswordLongEnough(password) || !clubNameFa) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
@@ -56,10 +66,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const sport = await prisma.sport.findFirstOrThrow({
-    where: { slug: body.sport === 'tennis' ? 'tennis' : 'padel' },
+  const sportSlugs = sportSlugsForOwner(sportKey)
+  const sports = await prisma.sport.findMany({
+    where: { slug: { in: sportSlugs } },
   })
-  const slug = await uniqueClubSlug(clubNameEn || clubNameFa!)
+  const sportBySlug = Object.fromEntries(sports.map((s) => [s.slug, s]))
+  for (const slug of sportSlugs) {
+    if (!sportBySlug[slug]) {
+      throw createError({ statusCode: 500, statusMessage: `Sport missing: ${slug}` })
+    }
+  }
+
+  const clubSlug = await uniqueClubSlug(clubNameEn || clubNameFa!)
   const locale = body.locale === 'en' ? 'en' : 'fa'
 
   const result = await prisma.$transaction(async (tx) => {
@@ -79,7 +97,7 @@ export default defineEventHandler(async (event) => {
 
     const club = await tx.club.create({
       data: {
-        slug,
+        slug: clubSlug,
         nameFa: clubNameFa!,
         nameEn: clubNameEn!,
         addressFa: addressFa!,
@@ -93,14 +111,18 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    await tx.court.create({
-      data: {
-        nameFa: 'زمین ۱',
-        nameEn: 'Court 1',
-        clubId: club.id,
-        sportId: sport.id,
-      },
-    })
+    for (let index = 0; index < courtCount; index++) {
+      const slug = sportSlugs[index % sportSlugs.length]!
+      const sport = sportBySlug[slug]!
+      await tx.court.create({
+        data: {
+          nameFa: `زمین ${index + 1}`,
+          nameEn: `Court ${index + 1}`,
+          clubId: club.id,
+          sportId: sport.id,
+        },
+      })
+    }
 
     await tx.staffMembership.create({
       data: {
@@ -128,6 +150,12 @@ export default defineEventHandler(async (event) => {
 
   await setUserSession(event, { user: toSessionUser(result.user) })
   await touchLastLogin(result.user.id)
+
+  const redirectBase = postLoginRedirectPath(result.user, locale, body.returnTo)
+  const redirectTo = setupHandoff
+    ? `/owner/setup?handoff=${setupHandoff}`
+    : redirectBase
+
   return {
     id: result.user.id,
     email: result.user.email,
@@ -135,6 +163,7 @@ export default defineEventHandler(async (event) => {
     role: result.user.role,
     locale: result.user.locale,
     clubId: result.club.id,
-    redirectTo: postLoginRedirectPath(result.user, locale, body.returnTo),
+    setupHandoff,
+    redirectTo,
   }
 })

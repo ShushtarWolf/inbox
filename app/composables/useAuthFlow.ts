@@ -5,11 +5,14 @@ export type AuthFlowStep =
   | 'register'
   | 'login'
   | 'otp'
+  | 'welcome'
 
 /** Password is the MVP launch path; OTP remains for live SMS cutover. */
 export type AuthFlowChannel = 'password' | 'otp'
 
 export type AuthFlowRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
+
+export type AuthWelcomeVariant = 'athlete' | 'owner' | 'login'
 
 export function useAuthFlow() {
   const open = useState('auth-flow-open', () => false)
@@ -19,6 +22,8 @@ export function useAuthFlow() {
   const channel = useState<AuthFlowChannel>('auth-flow-channel', () => 'password')
   const returnTo = useState('auth-flow-return-to', () => '')
   const notice = useState('auth-flow-notice', () => '')
+  const welcomeVariant = useState<AuthWelcomeVariant>('auth-flow-welcome', () => 'login')
+  const pendingRedirect = useState('auth-flow-pending-redirect', () => '')
 
   function openGate(opts?: { returnTo?: string; notice?: string }) {
     returnTo.value = opts?.returnTo || ''
@@ -63,6 +68,7 @@ export function useAuthFlow() {
     step.value = 'closed'
     channel.value = 'password'
     notice.value = ''
+    pendingRedirect.value = ''
   }
 
   return {
@@ -73,6 +79,8 @@ export function useAuthFlow() {
     channel,
     returnTo,
     notice,
+    welcomeVariant,
+    pendingRedirect,
     openGate,
     openLogin,
     openRegister,

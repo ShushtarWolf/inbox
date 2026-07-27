@@ -3,11 +3,14 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const { formatCurrency } = useFormatters()
 const step = ref(1)
 const saving = ref(false)
 const saveError = ref('')
 const finishError = ref('')
+
+const handoffBoth = computed(() => route.query.handoff === 'sport-both')
 
 const profile = reactive({
   nameFa: '',
@@ -133,6 +136,13 @@ async function finish() {
   <div class="mx-auto max-w-lg space-y-4">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.setupTitle')" />
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
+    <p
+      v-if="handoffBoth"
+      class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+      style="border-radius: var(--sz-canva-radius);"
+    >
+      {{ t('owner.setupHandoffBoth') }}
+    </p>
     <p class="text-xs text-brand-gray-500">{{ t('owner.setupNoCoachHint') }}</p>
 
     <ol class="flex gap-2 text-xs font-bold">

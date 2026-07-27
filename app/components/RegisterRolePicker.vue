@@ -26,13 +26,13 @@ function roleLink(path: string) {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2" role="tablist" :aria-label="t('register.rolePickerLabel')">
+  <div class="grid grid-cols-2 gap-2" role="tablist" :aria-label="t('register.rolePickerLabel')">
     <NuxtLink
       v-for="role in roles"
       :key="role.id"
       :to="roleLink(role.path)"
-      class="neo-pill min-w-0 flex-1 text-center text-xs sm:text-sm"
-      :class="active === role.id ? 'neo-pill-active' : 'neo-pill-inactive'"
+      class="canva-court-chip text-center text-xs sm:text-sm"
+      :class="active === role.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
       role="tab"
       :aria-selected="active === role.id"
     >
