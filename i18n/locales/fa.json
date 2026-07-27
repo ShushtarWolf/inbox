@@ -1410,9 +1410,9 @@
       "stats": {
         "contacts": "مخاطبین",
         "activeThisMonth": "فعال این ماه",
-        "smsSent": "پیامک ثبت‌شده (بدون ارسال واقعی)",
-        "smsSentLive": "پیامک ارسال/صف‌شده",
-        "campaigns": "کمپین"
+        "smsSent": "پیامک ارسالی",
+        "smsSentLive": "پیامک ارسالی",
+        "campaigns": "کمپین‌ها"
       },
       "pushSms": "ارسال پیامک",
       "smsLogged": "پیامک ثبت شد (بدون ارسال واقعی — dry-run)",
@@ -1454,16 +1454,29 @@
       }
     },
     "smsWizard": {
+      "title": "کمپین پیامکی جدید",
       "openCta": "کمپین جدید",
       "step1Title": "نوشتن پیام",
-      "step2Title": "بازبینی و ارسال",
-      "next": "بعدی",
+      "step2Title": "جزئیات کمپین",
+      "next": "تایید و ادامه",
+      "confirm": "ثبت کمپین",
+      "edit": "ویرایش",
+      "campaignNamePlaceholder": "مثلا یادآوری تخفیف تابستانه",
+      "messagePlaceholder": "متن پیامک را اینجا بنویس ...",
       "reviewCampaign": "نام کمپین",
       "reviewRecipients": "مخاطبان",
-      "reviewSchedule": "زمان‌بندی",
-      "reviewMessage": "متن پیام",
+      "reviewSchedule": "زمان ارسال",
+      "reviewMessage": "متن پیامک",
+      "scheduleHour": "ساعت",
+      "scheduleDay": "روز",
+      "scheduleMonth": "ماه",
+      "scheduleYear": "سال",
+      "scheduleHint": "ساعت را انتخاب کنید تا زمان‌بندی شود؛ بدون ساعت = ارسال فوری. زمان‌بندی فقط ثبت می‌شود تا ادمین پردازش کند.",
+      "sendNowOption": "فوری",
+      "scheduleAt": "{date} . ساعت {time}",
       "noSchedule": "ارسال فوری",
-      "successTitle": "کمپین ثبت شد"
+      "successTitle": "کمپین پیامکی با موفقیت ثبت شد",
+      "successCta": "متوجه شدم"
     },
     "playerDetail": {
       "visits": "تعداد بازدید",

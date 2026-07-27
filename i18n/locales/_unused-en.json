@@ -1308,8 +1308,8 @@
       "stats": {
         "contacts": "Contacts",
         "activeThisMonth": "Active this month",
-        "smsSent": "SMS logged (dry-run, no real send)",
-        "smsSentLive": "SMS sent/queued",
+        "smsSent": "SMS sent",
+        "smsSentLive": "SMS sent",
         "campaigns": "Campaigns"
       },
       "pushSms": "Push SMS",
@@ -1352,16 +1352,29 @@
       }
     },
     "smsWizard": {
+      "title": "New SMS campaign",
       "openCta": "New campaign",
       "step1Title": "Compose message",
-      "step2Title": "Review & send",
-      "next": "Next",
+      "step2Title": "Campaign details",
+      "next": "Confirm & continue",
+      "confirm": "Save campaign",
+      "edit": "Edit",
+      "campaignNamePlaceholder": "e.g. Summer discount reminder",
+      "messagePlaceholder": "Write the SMS text here...",
       "reviewCampaign": "Campaign",
       "reviewRecipients": "Recipients",
-      "reviewSchedule": "Schedule",
-      "reviewMessage": "Message",
+      "reviewSchedule": "Send time",
+      "reviewMessage": "SMS text",
+      "scheduleHour": "Hour",
+      "scheduleDay": "Day",
+      "scheduleMonth": "Month",
+      "scheduleYear": "Year",
+      "scheduleHint": "Pick an hour to schedule; leave hour empty for immediate send. Scheduling only stores the campaign until admin processing.",
+      "sendNowOption": "Now",
+      "scheduleAt": "{date} . {time}",
       "noSchedule": "Send immediately",
-      "successTitle": "Campaign submitted"
+      "successTitle": "SMS campaign saved successfully",
+      "successCta": "Got it"
     },
     "playerDetail": {
       "visits": "Visits",
