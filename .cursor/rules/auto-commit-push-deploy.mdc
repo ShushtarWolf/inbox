@@ -10,11 +10,14 @@ without waiting for an extra prompt from the user:
 
 1. Commit the relevant completed changes with a concise commit message.
 2. Push the current branch to its remote.
-3. Deploy the updated code to Liara (`inbox` app).
+
+Do **not** deploy to Liara (or any host) unless the user explicitly asks to deploy
+in that chat.
 
 Guardrails:
 - Apply this only after a coherent, user-requested change is complete.
-- Do not commit or deploy partial work, exploratory edits, or broken code on purpose.
-- If commit, push, or Liara deployment is blocked by missing auth, failing checks,
-  or an ambiguous target environment/service, stop and ask the user.
-- Production host is Liara only (`inbox` app, `inboxs.ir`). Do not deploy to Railway.
+- Do not commit partial work, exploratory edits, or broken code on purpose.
+- If commit or push is blocked by missing auth, failing checks, or an ambiguous
+  target, stop and ask the user.
+- When the user does ask to deploy: production host is Liara only (`inbox` app,
+  `inboxs.ir`). Do not deploy to Railway.
