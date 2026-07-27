@@ -751,50 +751,62 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-court-chip-active {
-    @apply bg-brand-navy text-white shadow-sm;
+    @apply bg-[#1A1A18] text-white shadow-none;
   }
   .canva-court-chip-idle {
     @apply border-0 bg-[#eceae6] text-brand-gray-600 hover:bg-[#e0ddd7];
   }
   /* Canva full-width color status bars (not grey cards + thin stripe) */
+  .canva-slot-list {
+    @apply flex flex-col gap-1.5;
+  }
   .canva-slot-row {
-    @apply relative flex w-full items-center justify-between gap-3 overflow-hidden px-3.5 py-3 text-start transition;
+    @apply relative flex w-full items-center justify-between gap-3 overflow-hidden px-3.5 py-3.5 text-start transition;
     border-radius: var(--sz-canva-radius);
     border: 0 !important;
     box-shadow: none !important;
+    min-height: 2.75rem;
   }
   .canva-slot-row-selected {
-    @apply ring-2 ring-brand-navy/35;
+    outline: 2px solid #2c2c2a;
+    outline-offset: 1px;
   }
   .canva-slot-row.slot-free {
-    background: #E8E6E2;
+    background: #E8E6E2 !important;
     color: #2C2C2A;
   }
   .canva-slot-row.slot-reserved,
   .canva-slot-row.slot-public,
   .canva-slot-row.slot-team {
-    background: #C41E1E;
+    background: #C41E1E !important;
     color: #fff;
   }
   .canva-slot-row.slot-pending {
-    background: #E8B84A;
+    background: #E8B84A !important;
     color: #2C2C2A;
   }
   .canva-slot-row.slot-blocked,
   .canva-slot-row.slot-closed,
   .canva-slot-row.slot-cancel {
-    background: #1A1A18;
+    background: #1A1A18 !important;
     color: #fff;
   }
   .canva-slot-row .canva-slot-time,
   .canva-slot-row .canva-slot-name {
-    @apply text-sm font-bold;
+    @apply text-sm font-bold leading-none;
   }
   .canva-slot-row.slot-free .canva-slot-time,
   .canva-slot-row.slot-free .canva-slot-name,
   .canva-slot-row.slot-pending .canva-slot-time,
   .canva-slot-row.slot-pending .canva-slot-name {
     color: inherit;
+  }
+  .canva-cal-multi-btn {
+    @apply shrink-0 border border-brand-gray-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-cal-multi-btn-active {
+    @apply border-brand-navy bg-brand-navy text-white;
   }
   .canva-slot-status-bar {
     @apply hidden;
@@ -1182,7 +1194,8 @@
     @apply text-sm font-bold text-brand-navy;
   }
   .canva-cal-date-dot {
-    @apply me-1 inline-block h-1.5 w-1.5 rounded-full bg-brand-navy align-middle;
+    @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-legend-row {
     @apply flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5;

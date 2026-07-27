@@ -1216,6 +1216,7 @@
     "free": "رایگان",
     "cancel": "لغو",
     "block": "مسدود",
+    "slotBlockedLabel": "مسدود است",
     "unblock": "رفع مسدودیت",
     "blockFormTitle": "مسدود کردن سانس",
     "confirmBlock": "ثبت مسدودیت",

@@ -47,7 +47,7 @@ type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'e
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatNumber, formatCurrency } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const { pilotNoCoach } = usePilotFlags()
@@ -325,12 +325,17 @@ function cellSlot(courtId: string, hour: string) {
 
 function slotLabel(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
-
-  if (slot.displayStatus === 'FREE')
-    return t('owner.status.FREE')
-
+  // Canva free bars show time only — no «آزاد» label in the bar.
+  if (slot.displayStatus === 'FREE') return ''
+  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
+    return t('owner.slotBlockedLabel')
+  }
   const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
   return fullName || statusLabel(slot.displayStatus)
+}
+
+function slotTimeLabel(slot: OwnerCalendarSlot) {
+  return formatTimeLabel(slot.startTime)
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -672,6 +677,17 @@ function isEditingBooking() {
 }
 
 const editableSlotStatuses = ['RESERVED', 'PUBLIC', 'TEAM', 'PENDING'] as const
+/** Desk status picker — court MVP: no coach-ish TEAM/PUBLIC session types when pilotNoCoach. */
+const deskSlotStatuses = computed(() => {
+  if (pilotNoCoach.value) return ['RESERVED', 'PENDING'] as const
+  return editableSlotStatuses
+})
+
+watch(deskSlotStatuses, (allowed) => {
+  if (!(allowed as readonly string[]).includes(form.displayStatus)) {
+    form.displayStatus = 'RESERVED'
+  }
+})
 
 function slotsForReserve() {
   if (batchMode.value && activePanel.value === 'reserve') return selectedSlotsFull.value
@@ -1180,21 +1196,20 @@ function slotBarColor(status: string) {
       <div v-if="courts.length" class="flex flex-wrap items-center gap-2">
         <div class="canva-rail min-w-0 flex-1 gap-2 pb-0">
           <button
-            v-for="court in courts"
+            v-for="(court, idx) in courts"
             :key="court.id"
             type="button"
             class="canva-court-chip"
             :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
             @click="activeCourtId = court.id"
           >
-            {{ localizedField(court, 'nameFa', 'nameEn') }}
+            {{ t('booking.courtNumber', { n: formatNumber(idx + 1) }) }}
           </button>
         </div>
         <button
           type="button"
-          class="shrink-0 border border-brand-gray-300 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-navy"
-          style="border-radius: var(--sz-canva-radius);"
-          :class="multiSelectMode ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : ''"
+          class="canva-cal-multi-btn"
+          :class="multiSelectMode ? 'canva-cal-multi-btn-active' : ''"
           @click="toggleMultiSelectMode"
         >
           {{ t('owner.selectionBar.multiSelect') }}
@@ -1216,7 +1231,7 @@ function slotBarColor(status: string) {
         <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
       </div>
 
-      <div v-else class="space-y-1.5">
+      <div v-else class="canva-slot-list">
         <button
           v-for="slot in activeCourtSlots"
           :key="slot.id"
@@ -1229,8 +1244,9 @@ function slotBarColor(status: string) {
           :style="{ background: slotBarColor(slot.displayStatus) }"
           @click="handleSlotClick(slot)"
         >
-          <span class="canva-slot-name min-w-0 flex-1 truncate text-start">{{ slotLabel(slot) }}</span>
-          <bdi dir="ltr" class="canva-slot-time shrink-0 tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+          <!-- Canva RTL bars: name at start (right), start-time at end (left) -->
+          <span v-if="slotLabel(slot)" class="canva-slot-name min-w-0 flex-1 truncate text-start">{{ slotLabel(slot) }}</span>
+          <bdi dir="ltr" class="canva-slot-time ms-auto shrink-0 tabular-nums">{{ slotTimeLabel(slot) }}</bdi>
         </button>
       </div>
     </section>
@@ -1429,7 +1445,7 @@ function slotBarColor(status: string) {
             </AppFormField>
             <AppFormField v-if="isEditingBooking()" :label="t('owner.slotStatusLabel')" field-id="owner-reserve-slot-status">
               <select id="owner-reserve-slot-status" v-model="form.displayStatus" class="neo-select">
-                <option v-for="status in editableSlotStatuses" :key="status" :value="status">
+                <option v-for="status in deskSlotStatuses" :key="status" :value="status">
                   {{ statusLabel(status) }}
                 </option>
               </select>
