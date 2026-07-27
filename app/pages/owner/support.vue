@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** Canva home page (29): ops guide + club contact — no soft TailAdmin cards. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 const { t } = useI18n()
@@ -18,30 +19,30 @@ const liveSms = computed(() =>
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" />
-    <section class="canva-dash-hero">
-      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-      <h1 class="canva-page-hero-title">{{ t('owner.support') }}</h1>
-    </section>
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.support')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <div class="canva-panel">
-        <h2 class="font-bold text-brand-navy">{{ t('owner.supportPage.operations') }}</h2>
-        <div class="mt-3 space-y-2 text-sm text-brand-gray-600">
-          <p>{{ t('owner.supportPage.calendarHelp') }}</p>
-          <p>{{ t('owner.supportPage.paymentHelp') }}</p>
-          <p>{{ liveSms ? t('owner.supportPage.crmHelpLive') : t('owner.supportPage.crmHelp') }}</p>
-        </div>
-      </div>
+      <section class="space-y-3 text-start">
+        <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.operations') }}</h2>
+        <ul class="list-disc space-y-2 pe-4 text-sm text-brand-navy marker:text-brand-gray-400">
+          <li>{{ t('owner.supportPage.calendarHelp') }}</li>
+          <li>{{ t('owner.supportPage.paymentHelp') }}</li>
+          <li>{{ liveSms ? t('owner.supportPage.crmHelpLive') : t('owner.supportPage.crmHelp') }}</li>
+        </ul>
+      </section>
 
-      <div class="canva-panel">
-        <h2 class="font-bold text-brand-navy">{{ t('owner.supportPage.contactTitle') }}</h2>
-        <div class="mt-3 space-y-2 text-sm">
-          <p><span class="font-bold">{{ t('common.mobile') }}:</span> <bdi dir="ltr" class="tabular-nums">{{ data?.club?.phone || t('common.empty') }}</bdi></p>
-          <p><span class="font-bold">{{ t('common.whatsapp') }}:</span> <bdi dir="ltr" class="tabular-nums">{{ data?.club?.whatsapp || t('common.empty') }}</bdi></p>
-          <p class="text-brand-gray-600">{{ t('owner.supportPage.contactNote') }}</p>
-        </div>
-      </div>
+      <section class="space-y-2 text-start">
+        <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.contactTitle') }}</h2>
+        <p class="text-sm text-brand-navy">
+          <span class="font-bold">{{ t('common.mobile') }}:</span>
+          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.phone || t('common.empty') }}</bdi>
+        </p>
+        <p class="text-sm text-brand-navy">
+          <span class="font-bold">{{ t('common.whatsapp') }}:</span>
+          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.whatsapp || t('common.empty') }}</bdi>
+        </p>
+        <p class="text-xs text-brand-gray-500">{{ t('owner.supportPage.contactNote') }}</p>
+      </section>
     </AppAsyncState>
   </div>
 </template>

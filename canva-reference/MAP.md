@@ -25,8 +25,8 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | — |
 | `home page (8).png` | `/athlete/home` | `overlays/athlete-home.jpg` |
 | `home page (6).png` | `/athlete/favorites` | `overlays/favorites.jpg` |
+| `home page (5).png` | `/athlete` hub menu | capture: `localhost/app-athlete-hub.png` |
 | `home page (12).png` / bookings cards | `/athlete/bookings` | capture only |
-| `home page (22)` / hub-like | `/athlete` profile hub | capture only |
 | `home page (10|15).png` | `/owner/calendar` today | `overlays/owner-calendar.jpg` |
 | `home page (14).png` | `/owner/calendar` overview tab | — |
 | `جزییات بازیکن.png` | `/owner/finance` (+ txn sheet) | `overlays/owner-finance.jpg` |
@@ -34,6 +34,8 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `home page (18).png` | `/owner/crm` | `overlays/owner-crm.jpg` |
 | `کمپین پیامکی جدید*.png` | CRM SMS wizard sheet | — |
 | `افزودن زمین.png` | owner add-court / settings court form | — |
+| `home page (20).png` / `(21).png` | `/owner/equipments` (+ edit sheet) | — |
+| `home page (29).png` | `/owner/support` | — |
 
 ## Severity legend
 
@@ -42,47 +44,44 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **copy** — placeholder / wrong labels
 - **ok-enough** — same job, minor polish
 
-## Gap summary (after 375px capture compare)
+## Gap summary (after 375px LOCKED sweep)
 
 ### Public home `/`
-- **visual**: App adds red top promo strip + public bottom nav not in Canva home frame.
-- **visual**: Search CTA taller / different field chrome vs Canva single-line group.
-- **copy**: Hero still uses Canva placeholder “Check this box!” (both sides).
-- **ok-enough**: Logo R / login L, hero, rails, square-ish red CTAs present.
+- **ok-enough**: Logo R / login L, hero rails, square red **جستجو** CTA + white field group (LOCKED search).
+- **copy**: Live FA hero uses real marketing (`رزرو زمین، راحت و سریع`). Canva artboard + AuthFlow gate still show shared placeholder **“Check this box!”** — keep that string on AuthFlow only for frame parity; do not put it back on `/`.
+- **visual (kept on purpose)**: Public bottom nav / escape chrome even when Canva artboard omits them.
 
 ### `/clubs`
-- **ok-enough**: Hero + court cards + book CTA align.
-- **visual**: App bottom nav; Canva frame often full public page without it.
-- **visual**: Sport chips / sort denser in app than Canva list frame.
+- **ok-enough**: Hero + court cards + book CTA; sport chips tightened (`gap-1.5` / smaller pad) vs denser prior pass.
+- **visual (kept)**: App bottom nav; Canva list frame often full-bleed without it.
 
 ### Auth gate
-- **blocker/product conflict**: Canva gate shows **Login with Google**; product rule is SMS-only / Google hard-off. Keep SMS-only; treat Google as intentional product deviation unless user re-enables.
-- **visual**: Gate square CTAs vs soft modal chrome still diverge from LOCKED in places.
+- **product**: No Google (intentional). Square gate CTAs + Athlete/Owner only.
+- **copy**: Gate tagline stays Canva “Check this box!” for auth sheets.
 
-### `/athlete/home`
-- **visual**: Canva has photo hero + curved cut + 20% badge; app is flatter text header.
-- **visual**: Bottom nav labels differ (Canva sometimes icon-only).
-- **ok-enough**: Greeting + search + 3 rails + book CTAs.
+### `/athlete/home` vs `(8)`
+- **ok-enough**: Photo hero + curve + ۲۰٪ badge + greeting + text **جستجو** search row + 3 rails.
+- **visual**: Bottom-nav labels may still differ from icon-only Canva variants.
 
-### `/athlete/favorites`
-- **visual**: Canva rich photo header + yellow chip active; app emptier / simpler when no favorites.
-- **flow**: Empty state must match Canva empty, not blank TailAdmin.
+### `/athlete/favorites` vs `(6)`
+- **ok-enough**: Photo header + sport chips + rich cards / empty + browse CTA.
 
-### `/owner/calendar`
-- **blocker visual**: Biggest gap — Canva = photo header + Today/Overview tabs + full-width color status bars (red/yellow/black/grey). App = club switcher + day bubbles + court chips + grey free cards.
-- **visual**: Bottom nav icons/order close but not identical (finance icon).
+### `/athlete` hub vs `(5)`
+- **ok-enough**: Red curved hero, **circular** avatar (Canva), square stats, menu list.
+- **product**: Wallet row kept (pay infrastructure); Canva list omits it.
 
-### `/owner/finance`
-- **visual**: Canva black income hero card + method bar + 7-day chart; app panel stack is flatter.
-- **ok-enough**: Day/month idea + stats present.
+### Athlete profile + notifications
+- **ok-enough**: Square `canva-panel` / `canva-black-cta`; no `btn-primary` / `rounded-xl` on Canva surfaces. Avatar may be `rounded-full` (matches hub circle).
 
-### `/owner/finance/report`
-- **ok-enough**: Signal cards + LTV row + download CTA exist.
-- **visual**: Funnel chart area empty in Canva too; polish cards/radius.
+### `/owner/equipments` vs `(20)`/`(21)`
+- **ok-enough**: Square gray amenity chips + price bars; green **+ افزودن** on section start (left in RTL); edit sheet black **ذخیره**.
+- **visual**: No red dash-hero band (Canva is title + subtitle only).
 
-### `/owner/crm`
-- **ok-enough**: Stats 12/12/12, filters, list badges, “کمپین پیامکی جدید”.
-- **product**: Canva SMS wizard explicitly says MVP log-only — align with SINGLE/MULTI honesty.
+### `/owner/support` vs `(29)`
+- **ok-enough**: Text ops guide + contact lines on cream; no soft TailAdmin cards / red hero band.
+
+### `/owner/calendar` / finance / CRM
+- Prior passes; re-check only if regressing LOCKED radius.
 
 ## Chrome consistency (product rule)
 
@@ -100,14 +99,11 @@ Components: `CanvaPublicChrome.vue`, `CanvaSubpageHeader.vue`, `CanvaAthleteChro
 
 **Do not** strip bottom nav / logo / back to “match Canva” if that strands the user.
 
-## Recommended fix order (highest impact)
+## Recommended fix order (remaining)
 
-1. Owner calendar chrome + slot color bars (match `home page (15)` / `(10)`)
-2. Athlete home hero band (match `home page (8)`)
-3. Public home search row + remove/hide chrome Canva doesn’t show at 375
-4. Favorites filled-card composition (`home page (6)`)
-5. Auth gate (no Google) + role/OTP frames `4–16`
-6. Finance / CRM / report polish
+1. Owner calendar chrome + slot color bars (if still diverging from `(15)` / `(10)`)
+2. Finance / CRM polish only if new frames land
+3. Re-capture overlays after UI changes
 
 ## How to re-compare cheaply
 

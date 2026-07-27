@@ -118,9 +118,6 @@ function prevHero() {
       </section>
 
       <section class="canva-search-row">
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta-icon" :aria-label="t('home.searchWithFilters')">
-          <AppIcon name="search" size="sm" />
-        </NuxtLink>
         <div class="canva-search-fields">
           <div class="canva-search-field">
             <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
@@ -147,6 +144,9 @@ function prevHero() {
             </span>
           </div>
         </div>
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+          {{ t('home.searchWithFilters') }}
+        </NuxtLink>
       </section>
 
       <section class="space-y-3">

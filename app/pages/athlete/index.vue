@@ -76,7 +76,7 @@ async function handleLogout() {
   <div class="venus-page-stack">
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
-        <div class="flex h-16 w-16 items-center justify-center overflow-hidden border-2 border-white/40 bg-white/15 text-lg font-bold" style="border-radius: var(--sz-canva-radius);">
+        <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
           <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover" />
           <span v-else>{{ initials }}</span>
         </div>

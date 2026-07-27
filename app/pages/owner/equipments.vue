@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Canva p46: amenities + rental / sell / services sections. */
+/** Canva home page (20)/(21): amenities chips + rental/sell/services bars; square +افزودن. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
@@ -19,7 +19,7 @@ interface EquipmentItem {
 }
 
 const categories: { key: EquipmentCategory; labelKey: string }[] = [
-  { key: 'CLUB', labelKey: 'owner.equipmentsPage.club' },
+  { key: 'CLUB', labelKey: 'owner.equipmentsPage.amenities' },
   { key: 'RENTAL', labelKey: 'owner.equipmentsPage.rental' },
   { key: 'SELL', labelKey: 'owner.equipmentsPage.sell' },
   { key: 'SERVICE', labelKey: 'owner.equipmentsPage.services' },
@@ -124,57 +124,41 @@ async function confirmDelete() {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" />
-    <section class="canva-dash-hero">
-      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-      <h1 class="canva-page-hero-title">{{ t('owner.equipments') }}</h1>
-      <p class="mt-1 text-sm text-white/85">{{ t('owner.equipmentsPage.subtitle') }}</p>
-    </section>
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.equipments')" />
+    <p class="text-sm text-brand-gray-600">{{ t('owner.equipmentsPage.tapToEdit') }}</p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
-      <!-- Amenities (CLUB) as chips — Canva p46 -->
-      <section class="canva-panel space-y-3">
+      <section
+        v-for="cat in categories"
+        :key="cat.key"
+        class="space-y-3 border-b border-brand-gray-200 pb-4 last:border-b-0"
+      >
         <div class="flex items-center justify-between gap-2">
-          <h2 class="font-bold text-brand-navy">{{ t('owner.equipmentsPage.amenities') }}</h2>
-          <button type="button" class="text-xs font-bold text-brand-primary" @click="openAdd('CLUB')">{{ t('common.add') }}</button>
+          <h2 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h2>
+          <button type="button" class="canva-equip-add" @click="openAdd(cat.key)">
+            {{ t('owner.equipmentsPage.addLink') }}
+          </button>
         </div>
-        <div v-if="grouped.CLUB.length" class="flex flex-wrap gap-2">
+
+        <div v-if="cat.key === 'CLUB'" class="flex flex-wrap gap-2">
           <button
             v-for="e in grouped.CLUB"
             :key="e.id"
             type="button"
-            class="canva-court-chip canva-court-chip-idle"
+            class="canva-equip-chip"
             @click="openEdit(e)"
           >
             {{ localizedField(e, 'nameFa', 'nameEn') }}
           </button>
+          <p v-if="!grouped.CLUB.length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</p>
         </div>
-        <p v-else class="text-xs text-brand-gray-600">{{ t('common.empty') }}</p>
-      </section>
 
-      <section
-        v-for="cat in categories.filter((c) => c.key !== 'CLUB')"
-        :key="cat.key"
-        class="canva-panel space-y-3"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h2>
-          <button type="button" class="text-xs font-bold text-brand-primary" @click="openAdd(cat.key)">{{ t('common.add') }}</button>
-        </div>
-        <ul class="space-y-1 text-sm">
-          <li
-            v-for="e in grouped[cat.key]"
-            :key="e.id"
-            class="flex items-center justify-between gap-2 rounded-lg px-1 py-2 hover:bg-brand-cream/80"
-          >
-            <span>
-              {{ localizedField(e, 'nameFa', 'nameEn') }}
-              <span class="text-xs text-brand-gray-600">· {{ formatEquipmentPrice(e) }}</span>
-            </span>
-            <span class="flex shrink-0 gap-2">
-              <button type="button" class="text-xs text-brand-gray-600" @click="openEdit(e)">{{ t('common.edit') }}</button>
-              <button type="button" class="text-xs text-red-600" @click="requestDelete(e)">{{ t('common.delete') }}</button>
-            </span>
+        <ul v-else class="space-y-2">
+          <li v-for="e in grouped[cat.key]" :key="e.id">
+            <button type="button" class="canva-equip-row" @click="openEdit(e)">
+              <span class="font-bold text-brand-navy">{{ localizedField(e, 'nameFa', 'nameEn') }}</span>
+              <span class="shrink-0 text-xs tabular-nums text-brand-gray-600">{{ formatEquipmentPrice(e) }}</span>
+            </button>
           </li>
           <li v-if="!grouped[cat.key].length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</li>
         </ul>
@@ -183,30 +167,40 @@ async function confirmDelete() {
 
     <OwnerLegalFooter />
 
-    <AppModal :open="showModal" patterned :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')" @close="closeModal">
-      <div class="venus-modal-shell venus-modal-shell-simple">
-        <div class="venus-modal-panel">
-          <div class="venus-modal-panel-body venus-form-stack">
-            <label class="block text-sm">
-              <span class="mb-1 block font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.itemName') }}</span>
-              <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'">
-            </label>
-            <label v-if="modalCategory !== 'CLUB'" class="block text-sm">
-              <span class="mb-1 block font-bold text-brand-gray-600">{{ t('owner.equipmentsPage.price') }}</span>
-              <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums">
-              <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</span>
-            </label>
-          </div>
-          <div class="venus-modal-footer">
-            <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
-            <div class="flex gap-3">
-              <button type="button" class="canva-gate-canva-gate-btn-primary flex-1" :disabled="saving || !modalName.trim()" @click="saveItem">
-                {{ saving ? t('common.loading') : t('common.save') }}
-              </button>
-              <button type="button" class="btn-ghost flex-1" @click="closeModal">{{ t('common.close') }}</button>
-            </div>
-          </div>
-        </div>
+    <AppModal
+      :open="showModal"
+      patterned
+      :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')"
+      @close="closeModal"
+    >
+      <div class="venus-form-stack p-4">
+        <AppFormField :label="t('owner.equipmentsPage.itemName')">
+          <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'" />
+        </AppFormField>
+        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.price')">
+          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums" />
+          <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</p>
+        </AppFormField>
+        <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
+        <button
+          type="button"
+          class="canva-black-cta"
+          :disabled="saving || !modalName.trim()"
+          @click="saveItem"
+        >
+          {{ saving ? t('common.loading') : t('common.save') }}
+        </button>
+        <button type="button" class="canva-gate-btn-secondary" @click="closeModal">
+          {{ t('common.close') }}
+        </button>
+        <button
+          v-if="editing"
+          type="button"
+          class="text-xs font-bold text-red-600"
+          @click="requestDelete(editing); closeModal()"
+        >
+          {{ t('common.delete') }}
+        </button>
       </div>
     </AppModal>
 

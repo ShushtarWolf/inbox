@@ -49,7 +49,8 @@ async function markAllRead() {
         <button
           v-if="data?.unreadCount"
           type="button"
-          class="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur"
+          class="bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur"
+          style="border-radius: var(--sz-canva-radius);"
           @click="markAllRead"
         >
           {{ t('notifications.markAllRead') }}
