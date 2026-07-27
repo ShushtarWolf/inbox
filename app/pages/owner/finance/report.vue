@@ -5,11 +5,19 @@ import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
-const { user } = useAuth()
+const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
+const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance', {
+  key: 'owner-finance-report',
+})
 useOwnerClubRefresh(refresh)
 const { formatCurrency, formatNumber } = useFormatters()
+const { pilotNoCoach } = usePilotFlags()
+
+onMounted(() => {
+  fetchAuth()
+  refresh()
+})
 
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
@@ -18,6 +26,8 @@ const activeMembership = computed(() => {
 const permissions = computed(() => parsePermissions(activeMembership.value?.permissionsJson))
 const isOwner = computed(() => activeMembership.value?.role === 'OWNER')
 const canReports = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:reports'))
+const reportsGatePending = computed(() => Boolean(user.value) && !(user.value?.memberships?.length))
+const showReports = computed(() => canReports.value || reportsGatePending.value)
 
 function bookingStatusLabel(status: string) {
   return t(`booking.status.${status}`)
@@ -32,17 +42,72 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
   return tx.bookingStatus !== 'CANCELLED' && isUnpaidPaymentStatus(tx.paymentStatus)
 }
 
+function metricOrDash(value: number | null | undefined) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
+  return formatNumber(Number(value))
+}
+
+const segments = computed(() => data.value?.segments)
+const stats = computed(() => data.value?.stats)
+
+/** Canva signals — map to segments / stats; never invent. */
+const signalCards = computed(() => [
+  {
+    key: 'activeAudience',
+    label: t('owner.financeCards.activeAudience'),
+    value: metricOrDash(segments.value?.activeContacts),
+    danger: false,
+  },
+  {
+    key: 'churnRisk',
+    label: t('owner.financeCards.churnAtRisk'),
+    value: metricOrDash(segments.value?.churnRisk ?? stats.value?.churnRisk),
+    danger: true,
+  },
+  {
+    key: 'waitlist',
+    label: t('owner.financeCards.waitlist'),
+    value: metricOrDash(segments.value?.waitlist),
+    danger: false,
+  },
+  {
+    key: 'cancelsMonth',
+    label: t('owner.financeCards.cancelsThisMonth'),
+    value: metricOrDash(segments.value?.cancellationsThisMonth ?? segments.value?.cancellations),
+    danger: false,
+  },
+])
+
+const avgLtvLabel = computed(() => {
+  const value = stats.value?.ltv
+  if (value === null || value === undefined) return '—'
+  return formatCurrency(value)
+})
+
+const noShowRateLabel = computed(() => {
+  const value = stats.value?.noShowRate
+  if (value === null || value === undefined) return '—'
+  return `${formatNumber(value)}٪`
+})
+
+const visibleTransactions = computed(() => {
+  const list = data.value?.transactions || []
+  if (!pilotNoCoach.value) return list
+  return list.filter((tx: { kind?: string }) => tx.kind !== 'coach')
+})
+
 function downloadReport() {
   if (!import.meta.client || !data.value) return
   const rows = [
     ['metric', 'value'],
+    ['activeContacts', String(data.value.segments?.activeContacts ?? '')],
+    ['churnRisk', String(data.value.segments?.churnRisk ?? data.value.stats?.churnRisk ?? '')],
+    ['waitlist', String(data.value.segments?.waitlist ?? '')],
+    ['cancellationsThisMonth', String(data.value.segments?.cancellationsThisMonth ?? data.value.segments?.cancellations ?? '')],
+    ['ltv', String(data.value.stats?.ltv || 0)],
+    ['noShowRate', String(data.value.stats?.noShowRate || 0)],
     ['revenue', String(data.value.stats?.revenue || 0)],
     ['unpaid', String(data.value.stats?.unpaid || 0)],
-    ['paidRate', String(data.value.stats?.paidRate || 0)],
-    ['utilization', String(data.value.stats?.utilization || 0)],
-    ['ltv', String(data.value.stats?.ltv || 0)],
-    ['churnRisk', String(data.value.stats?.churnRisk || 0)],
-    ['noShowRate', String(data.value.stats?.noShowRate || 0)],
   ]
   const csv = rows.map((r) => r.join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
@@ -60,27 +125,20 @@ function downloadReport() {
     <CanvaSubpageHeader to="/owner/finance" :title="t('owner.financePage.advancedReport')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
-      <CanvaEmptyState v-if="!canReports" :title="t('owner.financePage.reportsLocked')" icon="lock" />
+      <CanvaEmptyState v-if="!showReports && !reportsGatePending" :title="t('owner.financePage.reportsLocked')" icon="lock" />
 
-      <template v-else>
+      <template v-else-if="showReports">
         <section>
           <h2 class="mb-2 text-start text-sm font-bold text-brand-navy">{{ t('owner.financePage.customerSignals') }}</h2>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div class="canva-panel text-center !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.unpaid') }}</p>
-              <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(data?.stats?.unpaid || 0) }}</p>
-            </div>
-            <div class="canva-panel text-center !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.paidRate') }}</p>
-              <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(data?.stats?.paidRate || 0) }}%</p>
-            </div>
-            <div class="canva-panel text-center !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.utilization') }}</p>
-              <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(data?.stats?.utilization || 0) }}%</p>
-            </div>
-            <div class="canva-panel text-center !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.noShowRate') }}</p>
-              <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(data?.stats?.noShowRate || 0) }}%</p>
+          <div class="canva-finance-signal-grid">
+            <div v-for="card in signalCards" :key="card.key" class="canva-finance-signal-card">
+              <p class="canva-finance-chip-label">{{ card.label }}</p>
+              <p
+                class="mt-1 text-xl font-bold tabular-nums"
+                :class="card.danger && card.value !== '—' ? 'text-brand-primary' : 'text-brand-navy'"
+              >
+                {{ card.value }}
+              </p>
             </div>
           </div>
         </section>
@@ -88,26 +146,24 @@ function downloadReport() {
         <section>
           <h2 class="mb-2 text-start text-sm font-bold text-brand-navy">{{ t('owner.financePage.ltvTitle') }}</h2>
           <div class="grid grid-cols-2 gap-2">
-            <div class="canva-panel !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.churnRisk') }}</p>
-              <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(data?.stats?.churnRisk || 0) }}%</p>
+            <div class="canva-finance-signal-card text-start">
+              <p class="canva-finance-chip-label">{{ t('owner.financeCards.avgLtv') }}</p>
+              <p class="mt-1 text-lg font-bold text-brand-navy">{{ avgLtvLabel }}</p>
             </div>
-            <div class="canva-panel !p-3">
-              <p class="text-[10px] font-bold text-brand-gray-500">{{ t('owner.financeCards.ltv') }}</p>
-              <p class="mt-1 text-lg font-bold text-brand-navy">{{ formatCurrency(data?.stats?.ltv || 0) }}</p>
+            <div class="canva-finance-signal-card text-start">
+              <p class="canva-finance-chip-label">{{ t('owner.financeCards.noShowRate') }}</p>
+              <p class="mt-1 text-xl font-bold text-brand-navy">{{ noShowRateLabel }}</p>
             </div>
           </div>
         </section>
 
         <section>
           <h2 class="mb-2 text-start text-sm font-bold text-brand-navy">{{ t('owner.financePage.funnelTitle') }}</h2>
-          <div class="canva-panel flex min-h-[7rem] items-center justify-center text-center text-xs text-brand-gray-500">
-            <div>
-              <p>{{ t('owner.financePage.funnelPlaceholder') }}</p>
-              <p class="mt-2 font-bold text-brand-navy">
-                {{ formatNumber(data?.funnel?.confirmed || 0) }} / {{ formatNumber(data?.funnel?.total || 0) }}
-              </p>
-            </div>
+          <div class="canva-finance-funnel-empty">
+            <p>{{ t('owner.financePage.funnelPlaceholder') }}</p>
+            <p v-if="data?.funnel" class="mt-2 text-sm font-bold text-brand-navy">
+              {{ formatNumber(data.funnel.confirmed || 0) }} / {{ formatNumber(data.funnel.total || 0) }}
+            </p>
           </div>
         </section>
 
@@ -115,26 +171,26 @@ function downloadReport() {
           {{ t('owner.financePage.downloadReport') }}
         </button>
 
-        <div class="canva-panel space-y-3">
-          <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financeTable.reservation') }}</h2>
-          <CanvaEmptyState v-if="!(data?.transactions?.length)" :title="t('common.empty')" icon="receipt_long" />
+        <div class="space-y-3">
+          <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
+          <CanvaEmptyState v-if="!visibleTransactions.length" :title="t('common.empty')" icon="receipt_long" />
           <div v-else class="space-y-2">
             <div
-              v-for="tx in data?.transactions"
+              v-for="tx in visibleTransactions"
               :key="tx.id"
-              class="canva-list-card"
+              class="canva-finance-tx-card"
               :class="isTxUnpaid(tx) ? 'border-amber-200 bg-amber-50/60' : ''"
             >
-              <div class="flex flex-wrap items-start justify-between gap-2">
-                <div class="min-w-0 text-start">
-                  <p class="font-bold text-brand-navy">{{ t(`owner.financeTable.kind.${tx.kind}`) }} · {{ tx.reservationLabel }}</p>
-                  <p class="mt-0.5 text-sm text-brand-gray-600">{{ tx.guestName }}</p>
-                  <p class="mt-1 text-xs text-brand-gray-500">
-                    {{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}
-                  </p>
-                </div>
-                <p class="font-bold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">{{ formatCurrency(tx.amount) }}</p>
+              <div class="min-w-0 flex-1 text-start">
+                <p class="text-sm font-bold text-brand-navy">{{ tx.reservationLabel }}</p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+                <p class="mt-1 text-[11px] text-brand-gray-500">
+                  {{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}
+                </p>
               </div>
+              <p class="shrink-0 font-bold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">
+                {{ formatCurrency(tx.amount) }}
+              </p>
             </div>
           </div>
         </div>

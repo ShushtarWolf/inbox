@@ -1,4 +1,5 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { isoToJalaali, jalaaliToIso } from '#shared/jalali.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
@@ -62,7 +63,6 @@ export default defineEventHandler(async (event) => {
   const unpaid = unpaidBookings.length + unpaidSessions.length
 
   const totalReservationCount = bookings.length + coachSessions.length
-  const cancelledCount = bookings.filter((booking) => booking.status === 'CANCELLED').length + coachSessions.filter((session) => session.status === 'CANCELLED').length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
   const bookableSlots = courts.reduce((sum, court) => sum + court.slots.filter((slot) => slot.displayStatus !== 'CLOSED' && slot.displayStatus !== 'BLOCKED').length, 0)
   const usedSlots = courts.reduce((sum, court) => sum + court.slots.filter((slot) => slot.displayStatus !== 'FREE').length, 0)
@@ -129,10 +129,35 @@ export default defineEventHandler(async (event) => {
     initiated: totalReservationCount + waitlistEntries.length,
     confirmed: bookings.filter((booking) => booking.status === 'CONFIRMED').length + coachSessions.filter((session) => session.status === 'CONFIRMED').length,
     paid: paidBookings.length + paidSessions.length,
+    total: totalReservationCount,
   }
   const today = todayDateStr()
-  const bookingsToday = bookings.filter((b) => b.slot.date === today).length
-    + coachSessions.filter((s) => s.date === today).length
+  const jToday = isoToJalaali(today)
+  const monthStart = jalaaliToIso(jToday.jy, jToday.jm, 1)
+
+  const [bookingsTodayCount, sessionsTodayCount, noShowsTodayBookings, noShowsTodaySessions, cancelsMonthBookings, cancelsMonthSessions] = await Promise.all([
+    prisma.booking.count({ where: { slot: { court: { clubId: club.id }, date: today } } }),
+    prisma.coachSession.count({ where: { coach: { clubId: club.id }, date: today } }),
+    prisma.booking.count({ where: { noShowAt: { not: null }, slot: { court: { clubId: club.id }, date: today } } }),
+    prisma.coachSession.count({ where: { noShowAt: { not: null }, coach: { clubId: club.id }, date: today } }),
+    prisma.booking.count({
+      where: {
+        status: 'CANCELLED',
+        slot: { court: { clubId: club.id }, date: { gte: monthStart, lte: today } },
+      },
+    }),
+    prisma.coachSession.count({
+      where: {
+        status: 'CANCELLED',
+        coach: { clubId: club.id },
+        date: { gte: monthStart, lte: today },
+      },
+    }),
+  ])
+
+  const bookingsToday = bookingsTodayCount + sessionsTodayCount
+  const noShowsToday = noShowsTodayBookings + noShowsTodaySessions
+  const cancellationsThisMonth = cancelsMonthBookings + cancelsMonthSessions
 
   const transactions = [
     ...bookings.map((booking) => ({
@@ -144,7 +169,7 @@ export default defineEventHandler(async (event) => {
       amount: amountOfBooking(booking),
       bookingStatus: booking.status,
       kind: 'court' as const,
-      reservationLabel: `${booking.slot.date} · ${booking.slot.startTime}`,
+      reservationLabel: `${booking.slot.court.nameFa} · ${booking.slot.startTime} · ${booking.slot.date}`,
       equipmentSummary: booking.bookingEquipments
         .map((item) => item.equipment.nameFa)
         .join(', ') || null,
@@ -173,6 +198,8 @@ export default defineEventHandler(async (event) => {
       unpaidAmount,
       unpaid,
       bookingsToday,
+      noShowsToday,
+      noShowCount,
       paidRate: totalReservationCount ? Math.round(((paidBookings.length + paidSessions.length) / totalReservationCount) * 100) : 0,
       utilization: bookableSlots ? Math.round((usedSlots / bookableSlots) * 100) : 0,
       ltv,
@@ -188,7 +215,8 @@ export default defineEventHandler(async (event) => {
       activeContacts,
       churnRisk,
       waitlist: waitlistEntries.length,
-      cancellations: cancelledCount,
+      cancellations: cancellationsThisMonth,
+      cancellationsThisMonth,
     },
   }
 })
