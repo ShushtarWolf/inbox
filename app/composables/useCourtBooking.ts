@@ -35,6 +35,7 @@ export function useCourtBooking() {
   async function createCourtBookings(opts: {
     slotIds: string[]
     equipmentIds?: string[]
+    discountCode?: string
     returnTo?: string
   }) {
     const slotIds = [...new Set(opts.slotIds.filter(Boolean))]
@@ -53,12 +54,15 @@ export function useCourtBooking() {
         paymentStatus: string
         bookingIds?: string[]
         totalAmount?: number
+        discountAmount?: number
+        discountCode?: string | null
       }>('/api/bookings/court', {
         method: 'POST',
         body: {
           slotIds,
           slotId: slotIds[0],
           equipmentIds: opts.equipmentIds?.length ? opts.equipmentIds : undefined,
+          discountCode: opts.discountCode || undefined,
         },
       })
 

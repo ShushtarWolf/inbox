@@ -6,6 +6,11 @@ import {
   sumEquipmentPrices,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
+import {
+  discountPaymentMetadata,
+  redeemDiscountCode,
+  resolveDiscountForBooking,
+} from '../../utils/discountCodes'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 
@@ -15,6 +20,7 @@ export default defineEventHandler(async (event) => {
     slotId?: string
     slotIds?: string[]
     equipmentIds?: string[]
+    discountCode?: string
   }>(event)
 
   const slotIds = [...new Set(
@@ -65,7 +71,14 @@ export default defineEventHandler(async (event) => {
     slot.date,
     slot.startTime,
   ))
-  const totalAmount = slotAmounts.reduce((sum, n) => sum + n, 0) + equipmentTotal
+  const subtotal = slotAmounts.reduce((sum, n) => sum + n, 0) + equipmentTotal
+  const discount = await resolveDiscountForBooking({
+    code: body.discountCode,
+    clubId,
+    subtotal,
+  })
+  const totalAmount = discount ? discount.total : subtotal
+  const discountAmount = discount?.discountAmount || 0
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
 
@@ -75,17 +88,29 @@ export default defineEventHandler(async (event) => {
 
   try {
     await prisma.$transaction(async (tx) => {
+      let remainingDiscount = discountAmount
       for (let i = 0; i < orderedSlots.length; i++) {
         const slot = orderedSlots[i]!
         const isPrimary = i === 0
         // Online multi-slot: charge the combined total on the primary payment so one
         // gateway checkout covers the sheet total; siblings are amount 0 + linked.
-        // Pay-at-club: each booking keeps its own desk amount (+ equipment on primary).
+        // Pay-at-club: each booking keeps its own desk amount (+ equipment on primary),
+        // with percent discount applied across lines (primary first).
         const groupOnPrimary = orderedSlots.length > 1 && isOnlinePaymentsEnabled()
-        const amount = isPrimary
-          ? (groupOnPrimary ? totalAmount : slotAmounts[i]! + equipmentTotal)
-          : (groupOnPrimary ? 0 : slotAmounts[i]!)
+        let amount: number
+        if (groupOnPrimary) {
+          amount = isPrimary ? totalAmount : 0
+        }
+        else {
+          const base = isPrimary ? slotAmounts[i]! + equipmentTotal : slotAmounts[i]!
+          const cut = Math.min(base, remainingDiscount)
+          remainingDiscount -= cut
+          amount = base - cut
+        }
         const paymentFields = initialPlatformPaymentFields(amount)
+        const discountMeta = isPrimary && discount
+          ? discountPaymentMetadata(discount)
+          : null
 
         const staleCancelledBooking = slot.displayStatus === 'FREE' && slot.booking?.status === 'CANCELLED'
           ? slot.booking
@@ -119,10 +144,14 @@ export default defineEventHandler(async (event) => {
           paymentStatus = paymentFields.paymentStatus
         }
 
+        const basePaymentMeta = discountMeta ? { ...discountMeta } : {}
         await tx.payment.create({
           data: {
             bookingId: booking.id,
             ...paymentFields.payment,
+            ...(Object.keys(basePaymentMeta).length
+              ? { metadataJson: JSON.stringify(basePaymentMeta) }
+              : {}),
           },
         })
 
@@ -139,18 +168,36 @@ export default defineEventHandler(async (event) => {
               source: 'platform',
               groupSize: orderedSlots.length,
               isPrimary,
+              ...(discount && isPrimary
+                ? { discountCode: discount.code, discountAmount: discount.discountAmount }
+                : {}),
             }),
           },
         })
       }
 
+      if (discount) {
+        await redeemDiscountCode(tx, discount.id)
+      }
+
       // Link sibling payments to primary for post-pay sync (online multi only).
       if (orderedSlots.length > 1 && isOnlinePaymentsEnabled() && primaryBookingId) {
         const siblingIds = bookingIds.slice(1)
+        const primaryPayment = await tx.payment.findUniqueOrThrow({ where: { bookingId: primaryBookingId } })
+        let existingMeta: Record<string, unknown> = {}
+        if (primaryPayment.metadataJson) {
+          try {
+            existingMeta = JSON.parse(primaryPayment.metadataJson) as Record<string, unknown>
+          }
+          catch {
+            existingMeta = {}
+          }
+        }
         await tx.payment.update({
           where: { bookingId: primaryBookingId },
           data: {
             metadataJson: JSON.stringify({
+              ...existingMeta,
               groupPrimaryBookingId: primaryBookingId,
               groupSiblingBookingIds: siblingIds,
             }),
@@ -192,5 +239,7 @@ export default defineEventHandler(async (event) => {
     paymentStatus,
     bookingIds,
     totalAmount,
+    discountAmount,
+    discountCode: discount?.code || null,
   }
 })

@@ -646,6 +646,7 @@ async function shareClub() {
 
       <CourtBookingConfirmSheet
         :open="confirmOpen"
+        :club-id="club.id"
         :club-name="localizedField(club, 'nameFa', 'nameEn')"
         :location-line="locationLine"
         :sport-label="sportLabel"

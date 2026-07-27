@@ -313,6 +313,7 @@ model Club {
   memberships StaffMembership[]
   workers     ClubWorker[]
   application ClubApplication?
+  discountCodes DiscountCode[]
 }
 
 model Court {
@@ -707,6 +708,27 @@ model Payment {
   packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose, createdAt])
+}
+
+/** Platform or club-scoped percent codes athletes apply on court confirm. */
+model DiscountCode {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  labelFa          String?
+  labelEn          String?
+  percent          Int
+  active           Boolean   @default(true)
+  maxRedemptions   Int?
+  redemptionCount  Int       @default(0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  /** null = platform-wide; set = only that club. */
+  clubId String?
+  club   Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([active, clubId])
 }
 
 model ContactSegment {

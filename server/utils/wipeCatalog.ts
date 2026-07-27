@@ -52,6 +52,7 @@ export async function wipeCatalog() {
       await tx.packageDraft.deleteMany()
       await tx.seasonBooking.deleteMany()
       await tx.booking.deleteMany()
+      await tx.discountCode.deleteMany()
       await tx.coachSession.deleteMany()
       await tx.coachAvailability.deleteMany()
       await tx.slot.deleteMany()

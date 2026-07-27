@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
+import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
 
 export type ConfirmSlot = {
   id: string
@@ -17,6 +18,7 @@ export type ConfirmEquipment = {
 
 const props = defineProps<{
   open: boolean
+  clubId?: string
   clubName: string
   locationLine?: string
   sportLabel?: string
@@ -36,6 +38,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { formatCurrency, formatNumber, formatWeekday } = useFormatters()
 const { localizedField } = useLocalizedField()
+const { fetchErrorMessage } = useFetchError()
 const {
   confirming,
   paying,
@@ -49,6 +52,14 @@ const {
 } = useCourtBooking()
 
 const wantRacket = ref(false)
+const discountInput = ref('')
+const discountApplying = ref(false)
+const discountError = ref('')
+const appliedDiscount = ref<{
+  code: string
+  percent: number
+  discountAmount: number
+} | null>(null)
 
 const racketItem = computed(() => props.rentalEquipment || null)
 
@@ -79,7 +90,14 @@ const costLines = computed(() => {
   return lines
 })
 
-const totalAmount = computed(() => costLines.value.reduce((sum, line) => sum + line.amount, 0))
+const subtotalAmount = computed(() => costLines.value.reduce((sum, line) => sum + line.amount, 0))
+
+const discountAmount = computed(() => {
+  if (!appliedDiscount.value) return 0
+  return applyDiscountPercent(subtotalAmount.value, appliedDiscount.value.percent).discountAmount
+})
+
+const totalAmount = computed(() => Math.max(0, subtotalAmount.value - discountAmount.value))
 
 const metaLine = computed(() => {
   const parts = [props.locationLine, props.sportLabel].filter(Boolean)
@@ -90,11 +108,72 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetBookingState()
     wantRacket.value = false
+    discountInput.value = ''
+    discountError.value = ''
+    appliedDiscount.value = null
+  }
+})
+
+watch([wantRacket, () => props.slots], () => {
+  // Recompute applied discount amount when line items change; keep code if still applied.
+  if (!appliedDiscount.value) return
+  const next = applyDiscountPercent(subtotalAmount.value, appliedDiscount.value.percent)
+  appliedDiscount.value = {
+    ...appliedDiscount.value,
+    discountAmount: next.discountAmount,
   }
 })
 
 function close() {
   emit('close')
+}
+
+function clearDiscount() {
+  appliedDiscount.value = null
+  discountError.value = ''
+}
+
+async function applyDiscount() {
+  if (discountApplying.value || confirming.value || paying.value) return
+  const code = normalizeDiscountCode(discountInput.value)
+  if (!code) {
+    discountError.value = t('booking.discountRequired')
+    appliedDiscount.value = null
+    return
+  }
+  if (!props.clubId) {
+    discountError.value = t('booking.discountApplyFailed')
+    return
+  }
+  discountApplying.value = true
+  discountError.value = ''
+  try {
+    const result = await $fetch<{
+      code: string
+      percent: number
+      discountAmount: number
+    }>('/api/discounts/validate', {
+      method: 'POST',
+      body: {
+        code,
+        clubId: props.clubId,
+        subtotal: subtotalAmount.value,
+      },
+    })
+    appliedDiscount.value = {
+      code: result.code,
+      percent: result.percent,
+      discountAmount: result.discountAmount,
+    }
+    discountInput.value = result.code
+  }
+  catch (error: unknown) {
+    appliedDiscount.value = null
+    discountError.value = fetchErrorMessage(error, t('booking.discountInvalid'))
+  }
+  finally {
+    discountApplying.value = false
+  }
 }
 
 async function submit() {
@@ -103,6 +182,7 @@ async function submit() {
   const result = await createCourtBookings({
     slotIds: props.slots.map((s) => s.id),
     equipmentIds,
+    discountCode: appliedDiscount.value?.code,
   })
   if (result) {
     emit('success')
@@ -192,6 +272,58 @@ async function submit() {
             >
               <span class="text-brand-gray-600">{{ line.label }}</span>
               <span class="shrink-0 font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(line.amount) }}</span>
+            </div>
+
+            <div class="canva-confirm-book-discount">
+              <label class="sr-only" for="confirm-discount">{{ t('booking.discountCode') }}</label>
+              <div class="canva-confirm-book-discount-row">
+                <input
+                  id="confirm-discount"
+                  v-model="discountInput"
+                  type="text"
+                  class="canva-confirm-book-discount-input"
+                  :placeholder="t('booking.discountPlaceholder')"
+                  :disabled="discountApplying || confirming || paying"
+                  autocomplete="off"
+                  @keydown.enter.prevent="applyDiscount"
+                >
+                <button
+                  v-if="appliedDiscount"
+                  type="button"
+                  class="canva-confirm-book-discount-btn"
+                  :disabled="discountApplying || confirming || paying"
+                  @click="clearDiscount"
+                >
+                  {{ t('booking.discountClear') }}
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="canva-confirm-book-discount-btn"
+                  :disabled="discountApplying || confirming || paying || !discountInput.trim()"
+                  @click="applyDiscount"
+                >
+                  {{ discountApplying ? t('common.loading') : t('booking.discountApply') }}
+                </button>
+              </div>
+              <p v-if="discountError" class="canva-confirm-book-discount-note text-brand-primary">{{ discountError }}</p>
+              <p v-else-if="appliedDiscount" class="canva-confirm-book-discount-note text-brand-navy">
+                {{ t('booking.discountApplied', {
+                  code: appliedDiscount.code,
+                  percent: formatNumber(appliedDiscount.percent),
+                }) }}
+              </p>
+            </div>
+
+            <div
+              v-if="appliedDiscount && discountAmount > 0"
+              class="flex items-start justify-between gap-3 text-xs"
+            >
+              <span class="text-brand-gray-600">{{ t('booking.confirmLineDiscount', {
+                code: appliedDiscount.code,
+                percent: formatNumber(appliedDiscount.percent),
+              }) }}</span>
+              <span class="shrink-0 font-bold tabular-nums text-brand-primary" dir="ltr">−{{ formatCurrency(discountAmount) }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-brand-gray-200 pt-2 text-sm font-bold text-brand-navy">

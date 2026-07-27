@@ -82,10 +82,34 @@ async function ensureSports() {
   }
 }
 
+/** Platform promo codes (matches athlete home ۲۰٪ student badge). */
+async function ensureDiscountCodes() {
+  await prisma.discountCode.upsert({
+    where: { code: 'STUDENT20' },
+    update: {
+      percent: 20,
+      active: true,
+      labelFa: 'تخفیف دانشجویی',
+      labelEn: 'Student discount',
+      clubId: null,
+    },
+    create: {
+      code: 'STUDENT20',
+      percent: 20,
+      active: true,
+      labelFa: 'تخفیف دانشجویی',
+      labelEn: 'Student discount',
+    },
+  })
+}
+
 async function main() {
   const forceReset = process.env.FORCE_SEED_RESET === 'true'
   const isProduction = process.env.NODE_ENV === 'production'
   const userCount = await prisma.user.count()
+
+  await ensureSports()
+  await ensureDiscountCodes()
 
   if (!forceReset && userCount > 0) {
     console.log('Seed skipped: database already has data. Set FORCE_SEED_RESET=true to wipe and reseed.')
@@ -109,6 +133,7 @@ async function main() {
     await prisma.packageDraft.deleteMany()
     await prisma.seasonBooking.deleteMany()
     await prisma.booking.deleteMany()
+    await prisma.discountCode.deleteMany()
     await prisma.coachSession.deleteMany()
     await prisma.coachAvailability.deleteMany()
     await prisma.slot.deleteMany()
@@ -118,9 +143,9 @@ async function main() {
     await prisma.club.deleteMany()
     await prisma.user.deleteMany()
     await prisma.sport.deleteMany()
+    await ensureSports()
+    await ensureDiscountCodes()
   }
-
-  await ensureSports()
 
   const seedDemo = process.env.SEED_DEMO_DATA === 'true'
 

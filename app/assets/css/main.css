@@ -1545,8 +1545,15 @@
   .canva-confirm-book-discount {
     @apply space-y-1 pt-1;
   }
+  .canva-confirm-book-discount-row {
+    @apply flex items-stretch gap-2;
+  }
   .canva-confirm-book-discount-input {
-    @apply w-full border border-brand-gray-300 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    @apply min-w-0 flex-1 border border-brand-gray-300 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-book-discount-btn {
+    @apply shrink-0 border border-brand-navy bg-white px-3 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-discount-note {
