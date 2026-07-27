@@ -15,8 +15,17 @@ export default defineEventHandler(async (event) => {
 
   await ensureSlotsForDate(club.id, date)
 
+  // Public club detail needs booked/blocked cells for Canva legend; default stays FREE-only for booking APIs.
+  const includeUnavailable = query.includeUnavailable === '1' || query.includeUnavailable === 'true'
+
   const slots = await prisma.slot.findMany({
-    where: { court: { clubId: club.id }, date, displayStatus: 'FREE' },
+    where: {
+      court: { clubId: club.id },
+      date,
+      ...(includeUnavailable
+        ? { displayStatus: { not: 'CLOSED' } }
+        : { displayStatus: 'FREE' }),
+    },
     include: { court: { include: { sport: true } } },
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })

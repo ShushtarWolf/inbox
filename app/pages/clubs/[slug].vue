@@ -4,7 +4,7 @@ import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '
 const route = useRoute()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatNumber } = useFormatters()
+const { formatNumber, formatWeekday } = useFormatters()
 const { today } = useLocalDate()
 const slug = route.params.slug as string
 
@@ -19,7 +19,11 @@ const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 
 const { data: slots } = await useFetch('/api/slots/available', {
-  query: computed(() => ({ club: slug, date: selectedDate.value })),
+  query: computed(() => ({
+    club: slug,
+    date: selectedDate.value,
+    includeUnavailable: '1',
+  })),
 })
 
 const gallerySlides = computed(() => {
@@ -69,34 +73,47 @@ watch(selectedCourtId, () => {
   selectedSlotIds.value = []
 })
 
+type ClubSlot = {
+  id: string
+  startTime: string
+  endTime?: string
+  price?: number
+  displayStatus?: string
+  courtId?: string
+  court?: { id?: string }
+}
+
 const courtSlots = computed(() => {
-  const list = slots.value || []
+  const list = (slots.value || []) as ClubSlot[]
   if (!selectedCourtId.value) return list
-  return list.filter((s: { courtId?: string; court?: { id?: string } }) =>
+  return list.filter((s) =>
     s.courtId === selectedCourtId.value || s.court?.id === selectedCourtId.value,
   )
 })
 
+function isSlotBooked(slot: ClubSlot) {
+  return Boolean(slot.displayStatus && slot.displayStatus !== 'FREE')
+}
+
+function isSlotSelected(id: string) {
+  return selectedSlotIds.value.includes(id)
+}
+
 const selectedSlots = computed(() => {
-  const list = courtSlots.value as Array<{
-    id: string
-    startTime: string
-    endTime?: string
-    price?: number
-  }>
   return selectedSlotIds.value
-    .map((id) => list.find((s) => s.id === id))
-    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+    .map((id) => courtSlots.value.find((s) => s.id === id))
+    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
 })
 
 const bookingSummary = computed(() => {
   if (!selectedSlotIds.value.length) return ''
   const picked = selectedSlots.value
   if (!picked.length) return ''
-  const times = picked.map((s) => s.startTime).join('، ')
+  const times = picked.map((s) => s.startTime).join(' و ')
   const j = isoToJalaali(selectedDate.value)
-  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]}`
-  return t('clubs.bookingSummary', { date: dateLabel, times })
+  const weekday = formatWeekday(selectedDate.value, 'long')
+  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]} ${weekday}`
+  return t('clubs.bookingSummarySelected', { date: dateLabel, times })
 })
 
 const selectedCourtLabel = computed(() => {
@@ -163,7 +180,10 @@ function syncCalFromDate() {
 }
 watch(selectedDate, syncCalFromDate, { immediate: true })
 
-const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatNumber(viewYear.value)}`)
+const monthLabel = computed(() => {
+  const year = new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(viewYear.value)
+  return `${PERSIAN_MONTHS[viewMonth.value - 1]} ${year}`
+})
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)
@@ -200,12 +220,13 @@ function selectDay(iso: string) {
   selectedDate.value = iso
 }
 
-function toggleSlot(id: string) {
-  if (selectedSlotIds.value.includes(id)) {
-    selectedSlotIds.value = selectedSlotIds.value.filter((x) => x !== id)
+function toggleSlot(slot: ClubSlot) {
+  if (isSlotBooked(slot)) return
+  if (selectedSlotIds.value.includes(slot.id)) {
+    selectedSlotIds.value = selectedSlotIds.value.filter((x) => x !== slot.id)
     return
   }
-  selectedSlotIds.value = [...selectedSlotIds.value, id]
+  selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
 }
 
 function amenityLabel(item: string) {
@@ -267,7 +288,8 @@ async function shareClub() {
             <h1 class="canva-club-detail-name">{{ localizedField(club, 'nameFa', 'nameEn') }}</h1>
             <p class="canva-club-detail-rating-line">
               <span v-if="locationLine">{{ locationLine }}</span>
-              <span v-if="locationLine" class="text-brand-gray-300">·</span>
+              <span v-if="locationLine" class="text-brand-gray-300">|</span>
+              <span>{{ sportLabel }}</span>
               <span class="canva-court-card-rating !mt-0 text-brand-navy">
                 {{ ratingDisplay }}
                 <span class="canva-court-card-star" aria-hidden="true">★</span>
@@ -308,9 +330,39 @@ async function shareClub() {
           </div>
         </section>
 
-        <!-- 4. Booking widget: calendar + courts + slots + square CTA -->
+        <!-- 4. Booking widget: legend + courts + calendar/slots + square CTA -->
         <section class="canva-club-detail-section">
           <h2 class="canva-club-detail-section-title">{{ t('clubs.selectDateTime') }}</h2>
+
+          <div class="canva-club-slot-legend" role="list">
+            <span class="canva-club-legend-item" role="listitem">
+              <span class="canva-club-legend-swatch canva-club-legend-booked" aria-hidden="true" />
+              {{ t('clubs.slotLegendBooked') }}
+            </span>
+            <span class="canva-club-legend-item" role="listitem">
+              <span class="canva-club-legend-swatch canva-club-legend-selected" aria-hidden="true" />
+              {{ t('clubs.slotLegendSelected') }}
+            </span>
+            <span class="canva-club-legend-item" role="listitem">
+              <span class="canva-club-legend-swatch canva-club-legend-free" aria-hidden="true" />
+              {{ t('clubs.slotLegendFree') }}
+            </span>
+          </div>
+
+          <p class="canva-club-book-slots-label">{{ t('clubs.selectCourt') }}</p>
+          <div class="canva-clubs-chip-row flex-wrap">
+            <button
+              v-for="(court, idx) in courts"
+              :key="court.id"
+              type="button"
+              class="canva-club-court-num"
+              :class="selectedCourtId === court.id ? 'canva-club-court-num-active' : ''"
+              @click="selectedCourtId = court.id"
+            >
+              {{ formatNumber(idx + 1) }}
+            </button>
+          </div>
+
           <div class="canva-club-book">
             <div class="canva-club-book-cal">
               <div class="canva-club-cal-nav">
@@ -346,28 +398,18 @@ async function shareClub() {
             </div>
 
             <div class="canva-club-book-slots">
-              <p class="canva-club-book-slots-label">{{ t('clubs.selectCourt') }}</p>
-              <div class="canva-clubs-chip-row flex-wrap">
-                <button
-                  v-for="(court, idx) in courts"
-                  :key="court.id"
-                  type="button"
-                  class="canva-club-court-num"
-                  :class="selectedCourtId === court.id ? 'canva-club-court-num-active' : ''"
-                  @click="selectedCourtId = court.id"
-                >
-                  {{ formatNumber(idx + 1) }}
-                </button>
-              </div>
-
               <div class="canva-club-slot-grid">
                 <button
                   v-for="slot in courtSlots"
                   :key="slot.id"
                   type="button"
                   class="canva-club-slot"
-                  :class="selectedSlotIds.includes(slot.id) ? 'canva-club-slot-active' : ''"
-                  @click="toggleSlot(slot.id)"
+                  :class="{
+                    'canva-club-slot-booked': isSlotBooked(slot),
+                    'canva-club-slot-active': isSlotSelected(slot.id),
+                  }"
+                  :disabled="isSlotBooked(slot)"
+                  @click="toggleSlot(slot)"
                 >
                   {{ slot.startTime }}
                 </button>
@@ -383,8 +425,7 @@ async function shareClub() {
             <p v-else class="canva-club-book-summary text-brand-gray-600">{{ t('clubs.selectSlotToContinue') }}</p>
             <button
               type="button"
-              class="canva-cta canva-club-detail-cta"
-              :class="{ 'opacity-50': !selectedSlotIds.length }"
+              class="canva-cta canva-club-book-cta"
               :disabled="!selectedSlotIds.length"
               @click="openConfirmSheet"
             >

@@ -145,6 +145,10 @@
     "addressLabel": "آدرس",
     "contactLabel": "تماس",
     "bookingSummary": "{date} · {times}",
+    "bookingSummarySelected": "رزرو شما در تاریخ {date} در ساعت {times} انتخاب شد.",
+    "slotLegendBooked": "رزرو شده",
+    "slotLegendSelected": "انتخاب شده",
+    "slotLegendFree": "آزاد",
     "selectSlotToContinue": "برای ادامه یک سانس را انتخاب کنید",
     "sort": {
       "rank": "بهترین انتخاب",
@@ -287,7 +291,7 @@
     "historyRebook": "رزرو مجدد",
     "historyEmptyMonth": "در این ماه رزروی نیست",
     "historyEquipmentQty": "{qty} عدد {name}",
-    "historyCourtQty": "{qty} زمین",
+    "historyCourtQty": "{qty} زمین"
   },
   "coach": {
     "today": "امروز",
