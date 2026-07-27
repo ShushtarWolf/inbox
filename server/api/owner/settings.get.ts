@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
       defaultSessionDurationMinutes: club.defaultSessionDurationMinutes,
       sessionDurationsJson: club.sessionDurationsJson,
       amenitiesJson: club.amenitiesJson,
+      descriptionFa: club.descriptionFa,
+      descriptionEn: club.descriptionEn,
       cancellationWindowHours: club.cancellationWindowHours,
       rescheduleWindowHours: club.rescheduleWindowHours,
       waitlistEnabled: club.waitlistEnabled,

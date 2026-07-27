@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     openHour?: number | null
     closeHour?: number | null
     image?: string | null
+    imagesJson?: string | null
     facilitiesJson?: string | null
     pricingJson?: string | null
   }>(event)
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
   if (body.openHour !== undefined) data.openHour = body.openHour
   if (body.closeHour !== undefined) data.closeHour = body.closeHour
   if (body.image !== undefined) data.image = body.image?.trim() || null
+  if (body.imagesJson !== undefined) data.imagesJson = body.imagesJson
   if (body.facilitiesJson !== undefined) data.facilitiesJson = body.facilitiesJson
   if (body.pricingJson !== undefined) data.pricingJson = body.pricingJson
   if (body.sportSlug) {

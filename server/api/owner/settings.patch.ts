@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
     amenitiesJson?: string | null
     sessionDurationsJson?: string | null
     defaultSessionDurationMinutes?: number
+    descriptionFa?: string | null
+    descriptionEn?: string | null
   }>(event)
 
   const data: Record<string, unknown> = {}
@@ -62,6 +64,8 @@ export default defineEventHandler(async (event) => {
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
   if (body.amenitiesJson !== undefined) data.amenitiesJson = body.amenitiesJson
   if (body.sessionDurationsJson !== undefined) data.sessionDurationsJson = body.sessionDurationsJson
+  if (body.descriptionFa !== undefined) data.descriptionFa = body.descriptionFa?.trim() || null
+  if (body.descriptionEn !== undefined) data.descriptionEn = body.descriptionEn?.trim() || null
   if (body.defaultSessionDurationMinutes !== undefined) {
     const value = Number(body.defaultSessionDurationMinutes)
     if (!Number.isFinite(value) || value <= 0) {
@@ -106,6 +110,8 @@ export default defineEventHandler(async (event) => {
     defaultSessionDurationMinutes: updated.defaultSessionDurationMinutes,
     sessionDurationsJson: updated.sessionDurationsJson,
     amenitiesJson: updated.amenitiesJson,
+    descriptionFa: updated.descriptionFa,
+    descriptionEn: updated.descriptionEn,
     cancellationWindowHours: updated.cancellationWindowHours,
     rescheduleWindowHours: updated.rescheduleWindowHours,
     waitlistEnabled: updated.waitlistEnabled,

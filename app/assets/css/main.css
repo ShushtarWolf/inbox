@@ -679,6 +679,97 @@
     @apply border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm;
     border-radius: var(--sz-canva-radius);
   }
+
+  /* Owner settings — Canva (30)/(31)/افزودن زمین */
+  .canva-settings-chip {
+    @apply px-3 py-2 text-xs font-bold;
+  }
+  .canva-settings-chip-idle {
+    @apply bg-[#e8e4de] text-brand-navy;
+  }
+  .canva-settings-chip-active {
+    background: #2c2c2a;
+    color: #fff;
+  }
+  .canva-owner-add-link {
+    @apply inline-flex items-center gap-1 text-sm font-bold;
+    color: #2f9e44;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-settings-court-row {
+    @apply flex items-center justify-between gap-2 border border-brand-gray-200 bg-white px-3 py-2.5;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-settings-edit-btn {
+    @apply shrink-0 bg-[#e8e4de] px-3 py-1.5 text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-settings-radio {
+    @apply inline-flex cursor-pointer items-center gap-2;
+  }
+  .canva-settings-radio-box {
+    @apply inline-flex h-4 w-4 shrink-0 items-center justify-center border border-brand-gray-400 bg-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-settings-radio-box-on {
+    border-color: var(--color-brand-primary, #c8102e);
+    background: var(--color-brand-primary, #c8102e);
+    box-shadow: inset 0 0 0 2px #fff;
+  }
+  .canva-settings-check {
+    @apply flex items-start gap-2 text-sm text-brand-navy;
+  }
+  .canva-settings-checkbox {
+    @apply mt-0.5 h-4 w-4 shrink-0 appearance-none border border-brand-gray-400 bg-white checked:border-brand-primary checked:bg-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-settings-staff-card {
+    @apply border border-brand-gray-200 bg-white p-4;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-photo-slots-wrap {
+    @apply space-y-2;
+  }
+  .canva-photo-slots {
+    @apply grid grid-cols-4 gap-2 border border-dashed border-brand-gray-300 p-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-photo-slot {
+    @apply relative flex aspect-square items-center justify-center overflow-hidden bg-[#f4efe9] text-brand-gray-500;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #d4d0ca;
+  }
+  .canva-photo-slot-media {
+    @apply h-full w-full object-cover;
+  }
+  .canva-photo-slot-plus {
+    @apply absolute bottom-1 end-1 flex h-5 w-5 items-center justify-center bg-white text-sm font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #d4d0ca;
+  }
+  .canva-photo-slots-hint {
+    @apply text-center text-[11px] text-brand-gray-600;
+  }
+  .canva-owner-save-cta {
+    @apply w-full px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60;
+    background: #2c2c2a;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-owner-secondary-cta {
+    @apply w-full px-4 py-3 text-sm font-bold;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid #d4d0ca;
+    background: #fff;
+  }
+  .canva-owner-add-band {
+    @apply shrink-0 px-3 py-2 text-xs font-bold text-brand-navy;
+    background: #c9a227;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-court-pricing-band {
+    @apply border border-brand-gray-200 bg-white p-3;
+    border-radius: var(--sz-canva-radius);
+  }
   .canva-list-card {
     @apply border border-brand-gray-200/80 bg-white p-4 shadow-venus-sm transition hover:border-brand-primary/30;
     border-radius: var(--sz-canva-radius);

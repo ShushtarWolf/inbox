@@ -325,6 +325,7 @@ model Court {
   closeHour Int?
   facilitiesJson String?
   pricingJson    String?
+  imagesJson     String?
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)

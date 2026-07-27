@@ -6,7 +6,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatHours } = useFormatters()
+const { formatNumber, formatCurrency } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch('/api/owner/courts')
@@ -41,9 +41,12 @@ const showCourtForm = ref(false)
 const deleteCourtId = ref<string | null>(null)
 const deletePending = ref(false)
 
+const CANCEL_POLICY_OPTIONS = [24, 12, 0] as const
+
 const form = reactive({
   nameFa: '',
   nameEn: '',
+  sloganFa: '',
   addressFa: '',
   addressEn: '',
   city: '',
@@ -60,6 +63,27 @@ const form = reactive({
   sessionDurations: [60] as number[],
   defaultSessionDurationMinutes: 60,
 })
+
+/** Canva radios ۲۴ / ۱۲ / ندارد — maps both cancel + reschedule hours. */
+const cancelPolicyHours = computed({
+  get() {
+    const h = form.cancellationWindowHours
+    if ((CANCEL_POLICY_OPTIONS as readonly number[]).includes(h)) return h
+    if (h > 18) return 24
+    if (h > 6) return 12
+    return 0
+  },
+  set(value: number) {
+    const hours = Number(value)
+    form.cancellationWindowHours = hours
+    form.rescheduleWindowHours = hours
+  },
+})
+
+function cancelPolicyLabel(hours: number) {
+  if (hours === 0) return t('owner.settingsPage.cancelPolicyNone')
+  return t('owner.settingsPage.cancelPolicyHours', { hours: formatNumber(hours) })
+}
 
 function staffRoleLabel(role?: string) {
   if (!role) return ''
@@ -117,6 +141,7 @@ function applyClubData() {
   if (!club) return
   form.nameFa = club.nameFa || ''
   form.nameEn = club.nameEn || ''
+  form.sloganFa = (club as { descriptionFa?: string | null }).descriptionFa || ''
   form.addressFa = club.addressFa || ''
   form.addressEn = club.addressEn || ''
   form.city = club.city || ''
@@ -152,6 +177,13 @@ function toggleSessionDuration(minutes: number) {
   if (!form.sessionDurations.includes(form.defaultSessionDurationMinutes)) {
     form.defaultSessionDurationMinutes = form.sessionDurations[0] || 60
   }
+}
+
+function setDefaultDuration(minutes: number) {
+  if (!form.sessionDurations.includes(minutes)) {
+    form.sessionDurations = [...form.sessionDurations, minutes].sort((a, b) => a - b)
+  }
+  form.defaultSessionDurationMinutes = minutes
 }
 
 async function saveCourt(body: Record<string, unknown>) {
@@ -216,21 +248,32 @@ function startCreateCourt() {
   showCourtForm.value = true
 }
 
-const galleryUrl = ref('')
+function closeCourtForm() {
+  if (courtSaving.value) return
+  showCourtForm.value = false
+  editingCourtId.value = null
+}
+
+const galleryUrls = computed(() =>
+  (data.value?.club?.media || []).map((item: { url: string }) => item.url).slice(0, 4),
+)
+async function setGalleryUrls(urls: string[]) {
+  const current = data.value?.club?.media || []
+  const next = urls.filter(Boolean).slice(0, 4)
+  const toRemove = current.filter((item: { url: string }) => !next.includes(item.url))
+  for (const item of toRemove) {
+    await $fetch(`/api/owner/media/${item.id}`, { method: 'DELETE' })
+  }
+  const existingUrls = new Set(current.map((item: { url: string }) => item.url))
+  for (const url of next) {
+    if (!existingUrls.has(url)) {
+      await $fetch('/api/owner/media', { method: 'POST', body: { url } })
+    }
+  }
+  await refresh()
+}
 
 watch(data, applyClubData, { immediate: true })
-
-async function addGalleryImage(url: string) {
-  if (!url) return
-  await $fetch('/api/owner/media', { method: 'POST', body: { url } })
-  galleryUrl.value = ''
-  await refresh()
-}
-
-async function removeGalleryImage(id: string) {
-  await $fetch(`/api/owner/media/${id}`, { method: 'DELETE' })
-  await refresh()
-}
 
 async function save() {
   saving.value = true
@@ -242,8 +285,9 @@ async function save() {
       body: {
         nameFa: form.nameFa,
         nameEn: form.nameEn,
+        descriptionFa: form.sloganFa || null,
         addressFa: form.addressFa,
-        addressEn: form.addressEn,
+        addressEn: form.addressEn || form.addressFa,
         city: form.city,
         district: form.district || null,
         openHour: Number(form.openHour),
@@ -267,6 +311,19 @@ async function save() {
     saving.value = false
   }
 }
+
+function courtHoursLabel(court: { openHour?: number | null; closeHour?: number | null }) {
+  const open = court.openHour ?? form.openHour
+  const close = court.closeHour ?? form.closeHour
+  return `${String(open).padStart(2, '0')}:00 تا ${String(close).padStart(2, '0')}:00`
+}
+
+const editingCourt = computed(() => {
+  if (!editingCourtId.value) return null
+  return (courtsData.value || []).find((c: { id: string }) => c.id === editingCourtId.value) || null
+})
+
+const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 </script>
 
 <template>
@@ -277,250 +334,250 @@ async function save() {
     </section>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-    <form class="grid gap-4 md:grid-cols-2" @submit.prevent="save">
-      <div class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('owner.settingsPage.clubProfile') }}</h2>
-        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+      <form class="space-y-4" @submit.prevent="save">
+        <!-- مجموعه -->
+        <div class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubGroup') }}</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.nameFa') }}</span>
+              <input v-model="form.nameFa" required class="neo-input">
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.nameEn') }}</span>
+              <input v-model="form.nameEn" required dir="ltr" class="neo-input">
+            </label>
+          </div>
           <label class="block text-sm">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.nameFa') }}</span>
-            <input v-model="form.nameFa" required class="neo-input">
-          </label>
-          <label class="block text-sm">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.nameEn') }}</span>
-            <input v-model="form.nameEn" required dir="ltr" class="neo-input">
-          </label>
-          <label class="block text-sm sm:col-span-2">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.slug') }}</span>
-            <input :value="data?.club?.slug" readonly dir="ltr" class="neo-input bg-brand-lavender/40 tabular-nums">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.slogan') }}</span>
+            <input v-model="form.sloganFa" class="neo-input" :placeholder="t('owner.settingsPage.sloganPlaceholder')">
           </label>
           <label class="block text-sm">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.role') }}</span>
             <input :value="staffRoleLabel(data?.membership?.role)" readonly class="neo-input bg-brand-lavender/40">
           </label>
-          <label class="block text-sm">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.city') }}</span>
-            <input v-model="form.city" required class="neo-input">
-          </label>
-          <label class="block text-sm">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.district') }}</span>
-            <input v-model="form.district" class="neo-input">
-          </label>
-          <label class="block text-sm sm:col-span-2">
-            <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
-          </label>
-          <label class="block text-sm sm:col-span-2">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressFa') }}</span>
-            <input v-model="form.addressFa" required class="neo-input">
-          </label>
-          <label class="block text-sm sm:col-span-2">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressEn') }}</span>
-            <input v-model="form.addressEn" required dir="ltr" class="neo-input">
-          </label>
         </div>
-      </div>
 
-      <div class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('owner.settingsPage.sessionDurations') }}</h2>
-        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.sessionDurationsHint') }}</p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            v-for="minutes in DEFAULT_SESSION_DURATIONS"
-            :key="minutes"
-            type="button"
-            class="neo-pill"
-            :class="form.sessionDurations.includes(minutes) ? 'neo-pill-active' : 'neo-pill-inactive'"
-            @click="toggleSessionDuration(minutes)"
-          >
-            {{ minutes }} {{ t('owner.settingsPage.minutes') }}
-          </button>
-        </div>
-        <label class="mt-3 block text-sm">
-          <span class="mb-1 block font-bold">{{ t('owner.settingsPage.defaultSessionDuration') }}</span>
-          <select v-model.number="form.defaultSessionDurationMinutes" class="neo-select">
-            <option v-for="minutes in form.sessionDurations" :key="minutes" :value="minutes">
-              {{ minutes }} {{ t('owner.settingsPage.minutes') }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <div class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('owner.settingsPage.amenities') }}</h2>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            v-for="facility in COURT_FACILITY_OPTIONS"
-            :key="facility.slug"
-            type="button"
-            class="neo-pill"
-            :class="form.amenities.includes(facility.slug) ? 'neo-pill-active' : 'neo-pill-inactive'"
-            @click="toggleAmenity(facility.slug)"
-          >
-            {{ localizedField(facility, 'nameFa', 'nameEn') }}
-          </button>
-        </div>
-      </div>
-
-      <div class="canva-panel md:col-span-2">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="font-bold">{{ t('owner.settingsPage.courtsSection') }}</h2>
-          <button type="button" class="btn-secondary text-sm" @click="startCreateCourt">{{ t('owner.settingsPage.addCourt') }}</button>
-        </div>
-        <p v-if="courtError" class="mt-2 text-sm text-red-600">{{ courtError }}</p>
-        <ul class="mt-3 space-y-2">
-          <li
-            v-for="court in courtsData || []"
-            :key="court.id"
-            class="flex items-center justify-between gap-2 rounded-venus border border-brand-gray-100 px-3 py-2"
-          >
-            <div>
-              <p class="font-bold">{{ localizedField(court, 'nameFa', 'nameEn') }}</p>
-              <p class="text-xs text-brand-gray-600">
-                {{ court.openHour ?? form.openHour }}:00 – {{ court.closeHour ?? form.closeHour }}:00
-                · {{ t('owner.settingsPage.courtPrice') }}: {{ court.price.toLocaleString() }}
-              </p>
-            </div>
-            <button type="button" class="btn-ghost text-xs" @click="startEditCourt(court)">{{ t('common.edit') }}</button>
-          </li>
-        </ul>
-        <div v-if="showCourtForm" class="mt-4 border-t border-brand-gray-100 pt-4">
-          <OwnerCourtForm
-            :court="editingCourtId ? (courtsData || []).find((c: { id: string }) => c.id === editingCourtId) : null"
-            :club-open-hour="form.openHour"
-            :club-close-hour="form.closeHour"
-            :saving="courtSaving"
-            @save="saveCourt"
-            @cancel="showCourtForm = false; editingCourtId = null"
-            @delete="requestDeleteCourt"
-          />
-        </div>
-      </div>
-
-      <div class="canva-panel">
-        <h2 class="font-bold">{{ t('owner.settingsPage.operations') }}</h2>
-        <div class="mt-3 space-y-3 text-sm">
+        <!-- نشانی -->
+        <div class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.addressGroup') }}</h2>
           <div class="grid grid-cols-2 gap-2">
-            <label class="block">
-              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.openHour') }}</span>
-              <input v-model.number="form.openHour" type="number" min="0" max="23" required dir="ltr" class="neo-input tabular-nums">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.city') }}</span>
+              <input v-model="form.city" required class="neo-input">
             </label>
-            <label class="block">
-              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.closeHour') }}</span>
-              <input v-model.number="form.closeHour" type="number" min="1" max="24" required dir="ltr" class="neo-input tabular-nums">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.district') }}</span>
+              <input v-model="form.district" class="neo-input">
             </label>
           </div>
-          <label class="block">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.cancellation') }}</span>
-            <input v-model.number="form.cancellationWindowHours" type="number" min="0" required dir="ltr" class="neo-input tabular-nums">
-            <span class="mt-1 block text-xs text-brand-gray-600">{{ formatHours(form.cancellationWindowHours) }}</span>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressExact') }}</span>
+            <input v-model="form.addressFa" required class="neo-input">
           </label>
-          <label class="block">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.reschedule') }}</span>
-            <input v-model.number="form.rescheduleWindowHours" type="number" min="0" required dir="ltr" class="neo-input tabular-nums">
-            <span class="mt-1 block text-xs text-brand-gray-600">{{ formatHours(form.rescheduleWindowHours) }}</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input v-model="form.waitlistEnabled" type="checkbox" class="rounded">
-            <span class="font-bold">{{ t('owner.settingsPage.waitlist') }}</span>
-          </label>
-          <p class="text-brand-gray-600">
-            <span class="font-bold">{{ t('owner.settingsPage.inventory') }}:</span>
-            {{ data?.counts?.courts || 0 }} {{ t('owner.settingsPage.courts') }}
-            <template v-if="!pilotNoCoach">
-              · {{ data?.counts?.coaches || 0 }} {{ t('owner.settingsPage.coaches') }}
-            </template>
-          </p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('common.mobile') }}</span>
+              <input v-model="form.phone" dir="ltr" class="neo-input tabular-nums">
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('common.whatsapp') }}</span>
+              <input v-model="form.whatsapp" dir="ltr" class="neo-input tabular-nums">
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div class="canva-panel">
-        <h2 class="font-bold">{{ t('owner.settingsPage.contacts') }}</h2>
-        <div class="mt-3 space-y-3 text-sm">
-          <label class="block">
-            <span class="mb-1 block font-bold">{{ t('common.mobile') }}</span>
-            <input v-model="form.phone" dir="ltr" class="neo-input tabular-nums">
-          </label>
-          <label class="block">
-            <span class="mb-1 block font-bold">{{ t('common.whatsapp') }}</span>
-            <input v-model="form.whatsapp" dir="ltr" class="neo-input tabular-nums">
-          </label>
+        <!-- مدت سانس‌ها -->
+        <div class="canva-panel space-y-3">
+          <div>
+            <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.sessionDurations') }}</h2>
+            <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.sessionDurationsHint') }}</p>
+          </div>
+          <div class="canva-clubs-chip-row flex-wrap">
+            <button
+              v-for="minutes in DEFAULT_SESSION_DURATIONS"
+              :key="`dur-${minutes}`"
+              type="button"
+              class="canva-chip canva-settings-chip"
+              :class="form.sessionDurations.includes(minutes) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+              @click="toggleSessionDuration(minutes)"
+            >
+              {{ formatNumber(minutes) }} {{ t('owner.settingsPage.minutes') }}
+            </button>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.defaultSessionDuration') }}</h3>
+            <p class="mt-0.5 text-xs text-brand-gray-600">{{ t('owner.settingsPage.defaultSessionDurationHint') }}</p>
+            <div class="canva-clubs-chip-row mt-2 flex-wrap">
+              <button
+                v-for="minutes in DEFAULT_SESSION_DURATIONS"
+                :key="`def-${minutes}`"
+                type="button"
+                class="canva-chip canva-settings-chip"
+                :class="form.defaultSessionDurationMinutes === minutes ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                @click="setDefaultDuration(minutes)"
+              >
+                {{ formatNumber(minutes) }} {{ t('owner.settingsPage.minutes') }}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('register.clubGallery') }}</h2>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <div v-for="item in data?.club?.media || []" :key="item.id">
-            <img :src="item.url" alt="" class="h-20 w-20 object-cover border" />
-            <button type="button" class="mt-1 block text-xs text-red-600" @click="removeGalleryImage(item.id)">
-              {{ t('common.delete') }}
+        <!-- امکانات -->
+        <div class="canva-panel space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.amenities') }}</h2>
+          </div>
+          <div class="canva-clubs-chip-row flex-wrap">
+            <button
+              v-for="facility in COURT_FACILITY_OPTIONS"
+              :key="facility.slug"
+              type="button"
+              class="canva-chip canva-settings-chip"
+              :class="form.amenities.includes(facility.slug) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+              @click="toggleAmenity(facility.slug)"
+            >
+              {{ localizedField(facility, 'nameFa', 'nameEn') }}
             </button>
           </div>
         </div>
-        <div class="mt-3 space-y-2">
-          <AppImageUpload v-model="galleryUrl" />
-          <button type="button" class="btn-secondary" :disabled="!galleryUrl" @click="addGalleryImage(galleryUrl)">
-            {{ t('upload.addPhoto') }}
-          </button>
-        </div>
-      </div>
 
-      <div v-if="isOwner" class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('owner.settingsPage.workersSection') }}</h2>
-        <OwnerWorkersPanel embedded />
-      </div>
-
-      <div v-if="isOwner" class="canva-panel md:col-span-2">
-        <h2 class="font-bold">{{ t('owner.settingsPage.staffAccess') }}</h2>
-        <p class="mt-1 text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
-        <p v-if="staffError" class="mt-3 text-sm text-red-600">{{ staffError }}</p>
-        <p v-if="staffSuccess" class="mt-3 text-sm text-green-700">{{ staffSuccess }}</p>
-        <ul class="mt-4 space-y-3">
-          <li v-for="member in staffMembers" :key="member.id" class="ios-card p-4">
-            <div class="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p class="font-bold">{{ (!pilotNoCoach && member.coach) ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
+        <!-- زمین‌ها -->
+        <div class="canva-panel space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.courtsSection') }}</h2>
+            <button type="button" class="canva-owner-add-link" @click="startCreateCourt">
+              + {{ t('owner.settingsPage.addCourt') }}
+            </button>
+          </div>
+          <p v-if="courtError" class="text-sm text-red-600">{{ courtError }}</p>
+          <ul class="space-y-2">
+            <li
+              v-for="court in courtsData || []"
+              :key="court.id"
+              class="canva-settings-court-row"
+            >
+              <div class="min-w-0 flex-1 text-start">
+                <p class="text-sm font-bold text-brand-navy">
+                  {{ localizedField(court, 'nameFa', 'nameEn') }}
+                  <span class="ms-2 font-medium text-brand-gray-600">{{ localizedField(court.sport, 'nameFa', 'nameEn') }}</span>
+                </p>
                 <p class="text-xs text-brand-gray-600">
-                  <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ staffRoleLabel(member.role) }}</span>
-                  <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></span>
+                  {{ courtHoursLabel(court) }}
+                  · {{ formatCurrency(court.price) }}
                 </p>
               </div>
-              <button
-                v-if="member.role !== 'OWNER'"
-                type="button"
-                class="btn-secondary text-xs"
-                :disabled="staffSaving[member.id]"
-                @click="saveMemberPermissions(member)"
-              >
-                {{ staffSaving[member.id] ? t('common.loading') : t('common.save') }}
+              <button type="button" class="canva-settings-edit-btn" @click="startEditCourt(court)">
+                {{ t('common.edit') }}
               </button>
-            </div>
-            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+            </li>
+            <li v-if="!(courtsData || []).length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
+          </ul>
+        </div>
+
+        <!-- ساعات + لغو -->
+        <div class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubHours') }}</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.openHour') }}</span>
+              <select v-model.number="form.openHour" class="neo-select">
+                <option v-for="h in hourOptions.filter((x) => x < 24)" :key="`o-${h}`" :value="h">
+                  {{ String(h).padStart(2, '0') }}:00
+                </option>
+              </select>
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block font-bold">{{ t('owner.settingsPage.closeHour') }}</span>
+              <select v-model.number="form.closeHour" class="neo-select">
+                <option v-for="h in hourOptions.filter((x) => x > 0)" :key="`c-${h}`" :value="h">
+                  {{ String(h).padStart(2, '0') }}:00
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.cancelReschedulePolicy') }}</h3>
+            <div class="mt-2 flex flex-wrap gap-3" role="radiogroup" :aria-label="t('owner.settingsPage.cancelReschedulePolicy')">
               <label
-                v-for="permission in BASE_OWNER_PERMISSIONS"
-                :key="`${member.id}-${permission}`"
-                class="flex items-center gap-2 text-sm"
-                :class="member.role === 'OWNER' ? 'opacity-70' : ''"
+                v-for="hours in CANCEL_POLICY_OPTIONS"
+                :key="hours"
+                class="canva-settings-radio"
               >
                 <input
-                  type="checkbox"
-                  :checked="isPermissionChecked(member, permission)"
-                  :disabled="member.role === 'OWNER'"
-                  @change="toggleMemberPermission(member, permission)"
+                  v-model="cancelPolicyHours"
+                  type="radio"
+                  class="sr-only"
+                  :value="hours"
                 >
-                <span>{{ permissionLabel(permission) }}</span>
+                <span
+                  class="canva-settings-radio-box"
+                  :class="cancelPolicyHours === hours ? 'canva-settings-radio-box-on' : ''"
+                  aria-hidden="true"
+                />
+                <span class="text-sm font-medium text-brand-navy">{{ cancelPolicyLabel(hours) }}</span>
               </label>
             </div>
-            <div class="mt-4">
-              <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissions.financeGroup') }}</p>
-              <div class="grid gap-2 sm:grid-cols-2">
+          </div>
+
+          <label class="canva-settings-check">
+            <input v-model="form.waitlistEnabled" type="checkbox" class="canva-settings-checkbox">
+            <span class="font-bold">{{ t('owner.settingsPage.waitlist') }}</span>
+          </label>
+        </div>
+
+        <!-- عکس مجموعه -->
+        <div class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubPhotos') }}</h2>
+          <OwnerPhotoSlots
+            :model-value="galleryUrls"
+            :max="4"
+            @update:model-value="setGalleryUrls"
+          />
+          <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
+        </div>
+
+        <div v-if="isOwner" class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.workersSection') }}</h2>
+          <OwnerWorkersPanel embedded />
+        </div>
+
+        <div v-if="isOwner" class="canva-panel space-y-3">
+          <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.staffAccess') }}</h2>
+          <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
+          <p v-if="staffError" class="text-sm text-red-600">{{ staffError }}</p>
+          <p v-if="staffSuccess" class="text-sm text-green-700">{{ staffSuccess }}</p>
+          <ul class="space-y-3">
+            <li v-for="member in staffMembers" :key="member.id" class="canva-settings-staff-card">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p class="font-bold">{{ (!pilotNoCoach && member.coach) ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
+                  <p class="text-xs text-brand-gray-600">
+                    <span class="canva-chip canva-settings-chip-idle px-2 py-0.5">{{ staffRoleLabel(member.role) }}</span>
+                    <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></span>
+                  </p>
+                </div>
+                <button
+                  v-if="member.role !== 'OWNER'"
+                  type="button"
+                  class="canva-settings-edit-btn"
+                  :disabled="staffSaving[member.id]"
+                  @click="saveMemberPermissions(member)"
+                >
+                  {{ staffSaving[member.id] ? t('common.loading') : t('common.save') }}
+                </button>
+              </div>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
                 <label
-                  v-for="permission in FINANCE_SUB_PERMISSIONS"
+                  v-for="permission in BASE_OWNER_PERMISSIONS"
                   :key="`${member.id}-${permission}`"
-                  class="flex items-center gap-2 text-sm"
+                  class="canva-settings-check text-sm"
                   :class="member.role === 'OWNER' ? 'opacity-70' : ''"
                 >
                   <input
                     type="checkbox"
+                    class="canva-settings-checkbox"
                     :checked="isPermissionChecked(member, permission)"
                     :disabled="member.role === 'OWNER'"
                     @change="toggleMemberPermission(member, permission)"
@@ -528,22 +585,62 @@ async function save() {
                   <span>{{ permissionLabel(permission) }}</span>
                 </label>
               </div>
-            </div>
-            <p v-if="member.role === 'OWNER'" class="mt-2 text-xs text-brand-gray-500">{{ t('owner.settingsPage.ownerPermissionsReadonly') }}</p>
-          </li>
-          <li v-if="!(staffData?.staff || []).length" class="ios-card p-4 text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
-        </ul>
-      </div>
+              <div class="mt-4">
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissions.financeGroup') }}</p>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <label
+                    v-for="permission in FINANCE_SUB_PERMISSIONS"
+                    :key="`${member.id}-${permission}`"
+                    class="canva-settings-check text-sm"
+                    :class="member.role === 'OWNER' ? 'opacity-70' : ''"
+                  >
+                    <input
+                      type="checkbox"
+                      class="canva-settings-checkbox"
+                      :checked="isPermissionChecked(member, permission)"
+                      :disabled="member.role === 'OWNER'"
+                      @change="toggleMemberPermission(member, permission)"
+                    >
+                    <span>{{ permissionLabel(permission) }}</span>
+                  </label>
+                </div>
+              </div>
+              <p v-if="member.role === 'OWNER'" class="mt-2 text-xs text-brand-gray-500">{{ t('owner.settingsPage.ownerPermissionsReadonly') }}</p>
+            </li>
+            <li v-if="!(staffData?.staff || []).length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
+          </ul>
+        </div>
 
-      <div class="md:col-span-2">
-        <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
-        <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
-        <button type="submit" class="btn-primary venus-sticky-action w-full sm:w-auto" :disabled="saving">
-          {{ saving ? t('common.loading') : t('common.save') }}
-        </button>
-      </div>
-    </form>
+        <div>
+          <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
+          <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
+          <button type="submit" class="canva-owner-save-cta" :disabled="saving">
+            {{ saving ? t('common.loading') : t('owner.settingsPage.saveChanges') }}
+          </button>
+        </div>
+      </form>
     </AppAsyncState>
+
+    <AppModal
+      :open="showCourtForm"
+      :title="t('owner.settingsPage.courtDetailsTitle')"
+      sheet
+      patterned
+      max-width-class="canva-phone-shell max-w-sm"
+      @close="closeCourtForm"
+    >
+      <div class="canva-auth-body px-5 pb-6 pt-2">
+        <OwnerCourtForm
+          :court="editingCourt"
+          :club-open-hour="form.openHour"
+          :club-close-hour="form.closeHour"
+          :saving="courtSaving"
+          @save="saveCourt"
+          @cancel="closeCourtForm"
+          @delete="requestDeleteCourt"
+        />
+      </div>
+    </AppModal>
 
     <CanvaConfirmSheet
       :open="Boolean(deleteCourtId)"

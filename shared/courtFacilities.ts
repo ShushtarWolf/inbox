@@ -21,7 +21,27 @@ export function parseFacilitiesJson(value: string | null | undefined): string[] 
   }
 }
 
-export const DEFAULT_SESSION_DURATIONS = [30, 45, 60, 90, 105, 120] as const
+export const DEFAULT_SESSION_DURATIONS = [30, 45, 55, 60, 90, 105, 120] as const
+
+export function parseImagesJson(value: string | null | undefined, fallbackImage?: string | null): string[] {
+  const fromJson = (() => {
+    if (!value) return [] as string[]
+    try {
+      const parsed = JSON.parse(value)
+      if (!Array.isArray(parsed)) return [] as string[]
+      return parsed.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    } catch {
+      return [] as string[]
+    }
+  })()
+  if (fromJson.length) return fromJson.slice(0, 4)
+  return fallbackImage ? [fallbackImage] : []
+}
+
+export function serializeImagesJson(urls: string[]): string | null {
+  const cleaned = urls.map((u) => u.trim()).filter(Boolean).slice(0, 4)
+  return cleaned.length ? JSON.stringify(cleaned) : null
+}
 
 export function parseSessionDurationsJson(value: string | null | undefined): number[] {
   if (!value) return [60]

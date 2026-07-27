@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { COURT_FACILITY_OPTIONS, parseFacilitiesJson } from '#shared/courtFacilities.ts'
+import { parseImagesJson, serializeImagesJson } from '#shared/courtFacilities.ts'
 
 const props = defineProps<{
   court?: {
@@ -8,6 +8,7 @@ const props = defineProps<{
     nameEn: string
     price: number
     image?: string | null
+    imagesJson?: string | null
     openHour?: number | null
     closeHour?: number | null
     facilitiesJson?: string | null
@@ -26,17 +27,15 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { localizedField } = useLocalizedField()
 
 const form = reactive({
   nameFa: '',
   nameEn: '',
   price: 600000,
   sportSlug: 'padel',
-  image: '',
+  images: [] as string[],
   openHour: null as number | null,
   closeHour: null as number | null,
-  facilities: [] as string[],
   useClubHours: true,
   pricingJson: null as string | null,
 })
@@ -47,10 +46,9 @@ watch(() => props.court, (court) => {
     form.nameEn = ''
     form.price = 600000
     form.sportSlug = 'padel'
-    form.image = ''
+    form.images = []
     form.openHour = null
     form.closeHour = null
-    form.facilities = []
     form.useClubHours = true
     form.pricingJson = null
     return
@@ -59,40 +57,32 @@ watch(() => props.court, (court) => {
   form.nameEn = court.nameEn
   form.price = court.price
   form.sportSlug = court.sport?.slug || 'padel'
-  form.image = court.image || ''
+  form.images = parseImagesJson(court.imagesJson, court.image)
   form.openHour = court.openHour ?? null
   form.closeHour = court.closeHour ?? null
-  form.facilities = parseFacilitiesJson(court.facilitiesJson)
   form.useClubHours = court.openHour == null && court.closeHour == null
   form.pricingJson = court.pricingJson ?? null
 }, { immediate: true })
 
-function toggleFacility(slug: string) {
-  if (form.facilities.includes(slug)) {
-    form.facilities = form.facilities.filter((item) => item !== slug)
-  } else {
-    form.facilities = [...form.facilities, slug]
-  }
-}
-
 function submit() {
+  const imagesJson = serializeImagesJson(form.images)
   emit('save', {
     nameFa: form.nameFa,
     nameEn: form.nameEn,
     price: form.price,
     sportSlug: form.sportSlug,
-    image: form.image || null,
+    image: form.images[0] || null,
+    imagesJson,
     openHour: form.useClubHours ? null : form.openHour,
     closeHour: form.useClubHours ? null : form.closeHour,
-    facilitiesJson: JSON.stringify(form.facilities),
     pricingJson: form.pricingJson,
   })
 }
 </script>
 
 <template>
-  <div class="venus-form-stack">
-    <div class="grid gap-3 sm:grid-cols-2">
+  <div class="canva-court-form space-y-4 text-start">
+    <div class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtNameFa') }}</span>
         <input v-model="form.nameFa" required class="neo-input">
@@ -101,10 +91,12 @@ function submit() {
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtNameEn') }}</span>
         <input v-model="form.nameEn" required dir="ltr" class="neo-input">
       </label>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
-        <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtPrice') }}</span>
+        <span class="mb-1 block font-bold">{{ t('common.currency') }}</span>
         <input v-model.number="form.price" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
-        <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.basePriceHint') }}</span>
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtSport') }}</span>
@@ -114,10 +106,10 @@ function submit() {
         </select>
       </label>
     </div>
-    <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.courtImage')" placeholder="/placeholders/club.svg" />
-    <label class="flex items-center gap-2 text-sm">
-      <input v-model="form.useClubHours" type="checkbox" class="rounded">
-      <span class="font-bold">{{ t('owner.settingsPage.useClubHours') }}</span>
+
+    <label class="canva-settings-check">
+      <input v-model="form.useClubHours" type="checkbox" class="canva-settings-checkbox">
+      <span>{{ t('owner.settingsPage.useClubHours') }}</span>
     </label>
     <div v-if="!form.useClubHours" class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
@@ -129,35 +121,34 @@ function submit() {
         <input v-model.number="form.closeHour" type="number" min="1" max="24" dir="ltr" class="neo-input tabular-nums">
       </label>
     </div>
+
     <OwnerCourtPricingTimeline
       v-model="form.pricingJson"
       :base-price="form.price"
       :open-hour="form.useClubHours ? clubOpenHour : (form.openHour ?? clubOpenHour)"
       :close-hour="form.useClubHours ? clubCloseHour : (form.closeHour ?? clubCloseHour)"
     />
-    <div>
-      <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.settingsPage.courtFacilities') }}</p>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="facility in COURT_FACILITY_OPTIONS"
-          :key="facility.slug"
-          type="button"
-          class="neo-pill"
-          :class="form.facilities.includes(facility.slug) ? 'neo-pill-active' : 'neo-pill-inactive'"
-          @click="toggleFacility(facility.slug)"
-        >
-          {{ localizedField(facility, 'nameFa', 'nameEn') }}
-        </button>
-      </div>
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn-primary" :disabled="saving || !form.nameFa" @click="submit">
-        {{ saving ? t('common.loading') : t('common.save') }}
+
+    <OwnerPhotoSlots v-model="form.images" :max="4" />
+
+    <div class="space-y-2 pt-1">
+      <button
+        type="button"
+        class="canva-owner-save-cta"
+        :disabled="saving || !form.nameFa"
+        @click="submit"
+      >
+        {{ saving ? t('common.loading') : (court ? t('common.save') : t('owner.settingsPage.submitCourt')) }}
       </button>
-      <button v-if="court" type="button" class="btn-secondary text-red-600" :disabled="saving" @click="emit('delete', court.id)">
+      <button
+        v-if="court"
+        type="button"
+        class="canva-owner-secondary-cta text-red-600"
+        :disabled="saving"
+        @click="emit('delete', court.id)"
+      >
         {{ t('common.delete') }}
       </button>
-      <button type="button" class="btn-ghost" @click="emit('cancel')">{{ t('common.cancel') }}</button>
     </div>
   </div>
 </template>

@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
     openHour?: number | null
     closeHour?: number | null
     image?: string | null
+    imagesJson?: string | null
     facilitiesJson?: string | null
     pricingJson?: string | null
   }>(event)
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
       openHour: body.openHour ?? null,
       closeHour: body.closeHour ?? null,
       image: body.image?.trim() || null,
+      imagesJson: body.imagesJson ?? null,
       facilitiesJson: body.facilitiesJson ?? null,
       pricingJson: body.pricingJson ?? null,
     },
