@@ -34,7 +34,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify` with `%token%`). Without it, OTP uses free-text `sms/send`. |
 | `KAVENEGAR_SENDER` | Required for free-text sends | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است` (OTP 502 on prod). Needed for CRM + booking notify + OTP without template. |
 | `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional; `PILOT_NO_COACH` alone is synced to client at runtime via Nitro plugin |
-| `PILOT_NO_COACH` | Pilot | Prefer this for Behnaz: server-only coach API/sitemap gate; also drives client redirects at runtime |
+| `PILOT_NO_COACH` | Pilot | Prefer this for IUST MVP: server-only coach API/sitemap gate; also drives client redirects at runtime |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
 | `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
 | `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |
@@ -355,12 +355,12 @@ Preferred when the app can reach the DB (Liara): wipe catalog and create one `CL
 curl -X POST https://inboxs.ir/api/admin/reset-pilot \
   -H "Content-Type: application/json" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
-  -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"09124777927","name":"بهناز","clubName":"باشگاه بهناز"}'
+  -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"09124777927","name":"مدیر مجموعه","clubName":"دانشگاه علم و صنعت"}'
 ```
 
 Then set `AUTH_OTP_BYPASS_PHONES=09124777927` on Liara so that phone logs in without SMS OTP (enter phone → continue → owner dashboard).
 
-### Re-provision Behnaz (after wipe)
+### Re-provision IUST pilot (after wipe)
 
 1. Open `https://inboxs.ir/admin` with `ADMIN_PROVISION_SECRET` (do not commit the secret).
 2. Use **`/admin/provision`**: owner email, name, club name → creates `CLUB_ADMIN` + `ACTIVE` club + courts.
@@ -396,17 +396,17 @@ liara deploy --app inbox
 5. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
 6. Console sections: Overview (pilot checklist) · Clubs · Users · Bookings · Applications · Bug reports · Provision (CLUB_ADMIN)
 
-### Provision Behnaz’s club (preferred local path)
+### Provision دانشگاه علم و صنعت (preferred local path)
 
-One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 2 priced courts (hours 8–22). No coach required.
+One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 3 priced tennis courts (hours 8–22). No coach required.
 
-1. `/admin/provision` → owner email, name, club name (e.g. Behnaz’s club)
+1. `/admin/provision` → owner email, name, club name (e.g. دانشگاه علم و صنعت)
 2. Copy the temporary password from the success panel (do not commit secrets)
 3. Log in at `/login` as the owner → optionally `/owner/setup` (profile, hours, courts/pricing; coaches optional)
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book on club detail: `/clubs/{slug}` (athlete account needed to complete a booking). Legacy `/book/court/{slug}` redirects there.
 
-Pilot (Behnaz): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
+Pilot (IUST): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
 
 ### Review club applications
 

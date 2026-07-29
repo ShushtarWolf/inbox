@@ -1,15 +1,24 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
-import { BEHNAZ_COURT_COVERS, BEHNAZ_COURT_1_COVER } from '#shared/behnazClubPhotos.ts'
-import { uniqueClubSlug } from '../../utils/slug'
+import {
+  PILOT_CLUB_ADDRESS_EN,
+  PILOT_CLUB_ADDRESS_FA,
+  PILOT_CLUB_CITY,
+  PILOT_CLUB_DISTRICT,
+  PILOT_CLUB_NAME_EN,
+  PILOT_CLUB_NAME_FA,
+  PILOT_CLUB_SLUG,
+  PILOT_COURT_COUNT,
+  PILOT_COURT_PRICE,
+  PILOT_OWNER_NAME,
+  PILOT_OWNER_PHONE,
+  PILOT_SPORT_SLUG,
+} from '#shared/pilotClub.ts'
+import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhotos.ts'
 import { catalogCounts, wipeCatalog } from '../../utils/wipeCatalog'
-import { applyBehnazCourtPhotos } from '../../utils/behnazClubPhotos'
+import { applyPilotCourtPhotos } from '../../utils/behnazClubPhotos'
 
 const WIPE_CONFIRM = 'WIPE_ALL_USERS_AND_CLUBS'
-const DEFAULT_OWNER_PHONE = '09124777927'
-const DEFAULT_OWNER_NAME = 'بهناز'
-const DEFAULT_CLUB_NAME = 'باشگاه بهناز'
-const DEFAULT_COURT_PRICE = 600_000
 
 /**
  * One-shot pilot reset: wipe all users/clubs/data, keep sports,
@@ -36,23 +45,26 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const phone = normalizeIranPhone(body.phone || DEFAULT_OWNER_PHONE)
+  const phone = normalizeIranPhone(body.phone || PILOT_OWNER_PHONE)
   if (!phone) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
   }
 
-  const name = body.name?.trim() || DEFAULT_OWNER_NAME
-  const clubName = body.clubName?.trim() || DEFAULT_CLUB_NAME
+  const name = body.name?.trim() || PILOT_OWNER_NAME
+  const clubName = body.clubName?.trim() || PILOT_CLUB_NAME_FA
 
   const before = await catalogCounts()
   await wipeCatalog()
 
-  const padel = await prisma.sport.findFirst({ where: { slug: 'padel' } })
-  if (!padel) {
-    throw createError({ statusCode: 503, statusMessage: 'Sport catalog missing padel' })
+  const sport =
+    (await prisma.sport.findFirst({ where: { slug: PILOT_SPORT_SLUG } }))
+    || (await prisma.sport.findFirst({ where: { slug: 'padel' } }))
+  if (!sport) {
+    throw createError({ statusCode: 503, statusMessage: 'Sport catalog missing tennis/padel' })
   }
 
-  const slug = await uniqueClubSlug(clubName)
+  const slugTaken = await prisma.club.findUnique({ where: { slug: PILOT_CLUB_SLUG } })
+  const slug = slugTaken ? `${PILOT_CLUB_SLUG}-${Date.now().toString(36)}` : PILOT_CLUB_SLUG
   const email = phoneToSyntheticEmail(phone)
 
   const created = await prisma.$transaction(async (tx) => {
@@ -72,30 +84,31 @@ export default defineEventHandler(async (event) => {
       data: {
         slug,
         nameFa: clubName,
-        nameEn: clubName,
-        addressFa: 'تهران',
-        addressEn: 'Tehran',
-        city: 'تهران',
+        nameEn: clubName === PILOT_CLUB_NAME_FA ? PILOT_CLUB_NAME_EN : clubName,
+        addressFa: PILOT_CLUB_ADDRESS_FA,
+        addressEn: PILOT_CLUB_ADDRESS_EN,
+        city: PILOT_CLUB_CITY,
+        district: PILOT_CLUB_DISTRICT,
         ownerId: user.id,
         status: 'ACTIVE',
         openHour: 8,
         closeHour: 22,
-        priceFrom: DEFAULT_COURT_PRICE,
+        priceFrom: PILOT_COURT_PRICE,
         phone,
-        image: BEHNAZ_COURT_1_COVER,
+        image: PILOT_COURT_1_COVER,
+        featured: true,
       },
     })
 
-    for (let i = 1; i <= 3; i++) {
-      const cover = BEHNAZ_COURT_COVERS[i as 1 | 2 | 3]
+    for (let i = 1; i <= PILOT_COURT_COUNT; i++) {
       await tx.court.create({
         data: {
           nameFa: `زمین ${i}`,
           nameEn: `Court ${i}`,
           clubId: club.id,
-          sportId: padel.id,
-          price: DEFAULT_COURT_PRICE,
-          image: cover,
+          sportId: sport.id,
+          price: PILOT_COURT_PRICE,
+          image: PILOT_COURT_COVERS[i as 1 | 2 | 3],
         },
       })
     }
@@ -114,7 +127,7 @@ export default defineEventHandler(async (event) => {
     return { user, club }
   })
 
-  await applyBehnazCourtPhotos(prisma, created.club.id)
+  await applyPilotCourtPhotos(prisma, created.club.id)
 
   const after = await catalogCounts()
 
@@ -126,7 +139,6 @@ export default defineEventHandler(async (event) => {
       id: created.user.id,
       phone: created.user.phone,
       email: created.user.email,
-      role: created.user.role,
       name: created.user.name,
     },
     club: {
