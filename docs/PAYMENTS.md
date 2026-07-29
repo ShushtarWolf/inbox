@@ -86,6 +86,12 @@ Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PEN
 
 Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
+## Club settlement / owner withdraw
+
+Owner wallet credits on collected payments (`PLATFORM_COMMISSION_BPS`, default `1000` = 10%). Owner sets SHEBA and submits a **withdraw request**; ops pays via manual bank transfer, then marks **paid** (or **reject**) in `/admin/withdrawals`. No automated payout rail.
+
+On Liara after deploy: ensure `prisma migrate deploy` has applied `20260729120000_club_settlement` (ClubSettlement ledger + WithdrawRequest). Optional env: `PLATFORM_COMMISSION_BPS=1000`.
+
 ## Webhooks
 
 `POST /api/payments/webhook/[provider]` — optional; browser callback is the primary path for SEP. Uses the same `confirmPaymentAndSync` path (idempotent confirm + parent sync + paid notify).

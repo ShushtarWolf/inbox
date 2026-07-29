@@ -394,7 +394,7 @@ liara deploy --app inbox
 3. `npm run db:migrate` then `npm run db:seed` (sports catalog; avoid `FORCE_SEED_RESET` unless you re-seed sports)
 4. `npm run dev` → open **http://localhost:3000/admin**
 5. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
-6. Console sections: Overview (pilot checklist) · Clubs · Users · Bookings · Applications · Bug reports · Provision (CLUB_ADMIN)
+6. Console sections: Overview (pilot checklist) · Clubs · Users · Bookings · Withdrawals · Applications · Bug reports · Provision (CLUB_ADMIN)
 
 ### Provision دانشگاه علم و صنعت (preferred local path)
 

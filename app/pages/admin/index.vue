@@ -59,6 +59,7 @@ const consoleLinks = computed(() => [
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs') },
   { to: localePath('/admin/users'), label: t('admin.nav.users') },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings') },
+  { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals') },
   { to: localePath('/admin/applications'), label: t('admin.nav.applications') },
   { to: localePath('/admin/sms'), label: t('admin.nav.sms') },
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry') },
