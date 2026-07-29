@@ -1,6 +1,7 @@
 import { parseJsonValue, reviewSummary } from '../../utils/catalog'
 import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
+import { PILOT_CLUB_LAT, PILOT_CLUB_LNG, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 
 export default defineCachedEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
@@ -35,6 +36,10 @@ export default defineCachedEventHandler(async (event) => {
   })
   if (!club || club.status !== 'ACTIVE') throw createError({ statusCode: 404, statusMessage: 'Club not found' })
 
+  // Pilot map pin fallback until DB rows are re-synced with lat/lng.
+  const lat = club.lat ?? (club.slug === PILOT_CLUB_SLUG ? PILOT_CLUB_LAT : null)
+  const lng = club.lng ?? (club.slug === PILOT_CLUB_SLUG ? PILOT_CLUB_LNG : null)
+
   const today = todayDateStr()
 
   const slots = await prisma.slot.findMany({
@@ -61,7 +66,9 @@ export default defineCachedEventHandler(async (event) => {
     })),
     reviewSummary: reviewSummary(club.reviews),
     testimonials: club.reviews.slice(0, 3),
-    coordinates: club.lat && club.lng ? { lat: club.lat, lng: club.lng } : null,
+    lat,
+    lng,
+    coordinates: lat != null && lng != null ? { lat, lng } : null,
     nextSlots: slots.map((s) => ({
       id: s.id,
       startTime: s.startTime,

@@ -80,7 +80,7 @@ onMounted(() => {
           </NuxtLink>
         </div>
       </div>
-      <div class="canva-promo-badge" :title="t('athlete.homePromoCodeHint')">
+      <div class="canva-promo-badge pointer-events-none" :title="t('athlete.homePromoCodeHint')" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('athlete.homePromoShort') }}</span>
       </div>

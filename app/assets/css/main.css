@@ -1505,8 +1505,11 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-club-more-map-empty {
-    @apply flex h-36 items-center justify-center bg-[#e8e4de] text-xs font-bold text-brand-gray-600;
+    @apply flex h-36 items-center justify-center bg-[#e8e4de] px-2 text-center text-xs font-bold text-brand-gray-600;
     border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-more-map-cta {
+    @apply text-brand-primary underline-offset-2 hover:underline;
   }
 
   .canva-club-reviews {
@@ -1588,6 +1591,14 @@
     border-radius: var(--sz-canva-radius);
     min-width: 3.25rem;
     line-height: 1.1;
+  }
+  button.canva-promo-badge {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.canva-promo-badge:active {
+    opacity: 0.9;
+    transform: scale(0.98);
   }
   .canva-promo-badge-pct {
     @apply text-lg leading-none;

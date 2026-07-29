@@ -317,8 +317,14 @@ const mapEmbedSrc = computed(() => {
 
 const osmLink = computed(() => {
   const coords = club.value?.coordinates
-  if (!coords) return ''
-  return `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=16/${coords.lat}/${coords.lng}`
+  if (coords) {
+    return `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=16/${coords.lat}/${coords.lng}`
+  }
+  const address = club.value
+    ? localizedField(club.value, 'addressFa', 'addressEn') || club.value.city
+    : ''
+  if (!address) return ''
+  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`
 })
 
 /* ── Gallery ── */
@@ -634,9 +640,18 @@ async function shareClub() {
                 loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade"
               />
-              <div v-else class="canva-club-more-map-empty">{{ t('clubs.map') }}</div>
               <a
-                v-if="osmLink"
+                v-else-if="osmLink"
+                class="canva-club-more-map-empty canva-club-more-map-cta"
+                :href="osmLink"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {{ t('clubs.openMap') }}
+              </a>
+              <div v-else class="canva-club-more-map-empty">{{ t('clubs.mapUnavailable') }}</div>
+              <a
+                v-if="osmLink && mapEmbedSrc"
                 class="canva-club-detail-link mt-2"
                 :href="osmLink"
                 target="_blank"

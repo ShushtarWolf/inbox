@@ -55,6 +55,7 @@ const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at
 
 const date = ref(today())
 const showDatePicker = ref(false)
+const showPromoHint = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const activeCourtId = ref<string | null>(null)
 const calendarView = ref<'today' | 'overview'>('today')
@@ -1134,10 +1135,16 @@ function slotBarColor(status: string) {
           </NuxtLink>
         </div>
       </div>
-      <div class="canva-promo-badge" aria-hidden="true">
+      <button
+        type="button"
+        class="canva-promo-badge"
+        :aria-label="t('owner.calendarPromo')"
+        :title="t('owner.calendarPromoHint')"
+        @click="showPromoHint = true"
+      >
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
-      </div>
+      </button>
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
     </section>
 
@@ -1339,6 +1346,17 @@ function slotBarColor(status: string) {
     </Teleport>
 
     <OwnerLegalFooter />
+
+    <AppModal :open="showPromoHint" patterned max-width-class="canva-phone-shell max-w-sm" @close="showPromoHint = false">
+      <div class="canva-auth-body space-y-3 px-5 pb-6 pt-4 text-center">
+        <p class="text-lg font-bold text-brand-navy">{{ t('owner.calendarPromo') }}</p>
+        <p class="text-sm text-brand-gray-600">{{ t('owner.calendarPromoHint') }}</p>
+        <p class="font-mono text-base font-bold tracking-wide text-brand-primary" dir="ltr">STUDENT20</p>
+        <button type="button" class="canva-cta w-full" @click="showPromoHint = false">
+          {{ t('common.close') }}
+        </button>
+      </div>
+    </AppModal>
 
     <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
       <div class="venus-modal-shell">

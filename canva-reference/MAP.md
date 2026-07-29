@@ -99,7 +99,9 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **ok-enough**: Text ops guide + contact lines on cream; no soft TailAdmin cards / red hero band.
 
 ### `/owner/calendar` / finance / CRM
-- Prior passes; **visual (remaining)** only if diverging from `(15)` / `(10)` slot color bars or new frames.
+- **ok-enough (post Clarity QA Jul 2026)**: Today/overview tabs + court chips + slot bars; student promo badge opens STUDENT20 hint (no longer a dead sticker).
+- **flow fixes shipped**: guest confirm auth-gate; club slug alias `club-9208f4` → `iust-tennis`; pilot map pin fallback; wide viewport single login (Canva chrome ≤430 only).
+- **visual (remaining)**: Pixel polish vs `(15)` / `(10)` only if new Canva frames land.
 
 ## Chrome consistency (product rule)
 
@@ -119,10 +121,15 @@ Components: `CanvaPublicChrome.vue`, `CanvaSubpageHeader.vue`, `CanvaAthleteChro
 
 ## Recommended fix order (remaining — visual only)
 
-1. Owner calendar chrome + slot color bars (if still diverging from `(15)` / `(10)`)
-2. Club detail / confirm sheet pixel polish vs `(3)` / `(4)` overlays
-3. Finance / CRM polish only if new frames land
-4. Re-capture overlays after UI changes
+1. Club detail / confirm sheet pixel polish vs `(3)` / `(4)` overlays (optional)
+2. Finance / CRM polish only if new frames land
+3. Re-capture overlays after UI changes (latest: `public-home` + `owner-calendar` @ 375px)
+
+## Clarity QA notes (Jul 2026)
+
+- Script loads in prod (`data-clarity-project=xsyany4vpj`).
+- Pre-fix dead-click cluster on `/`: date remnant, city placeholder, duplicate login, hero chevrons — addressed in UX friction ship; recheck after Liara deploy.
+- Post-fix hotspots fixed here: owner promo badge, club «نقشه» empty (no lat/lng) → pilot pin + address OSM fallback.
 
 ## How to re-compare cheaply
 
