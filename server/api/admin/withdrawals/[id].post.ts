@@ -1,5 +1,5 @@
-import { requireAdminSecret } from '../../utils/adminAuth'
-import { markWithdrawPaid, rejectWithdrawRequest } from '../../utils/settlement'
+import { requireAdminSecret } from '../../../utils/adminAuth'
+import { markWithdrawPaid, rejectWithdrawRequest } from '../../../utils/settlement'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)

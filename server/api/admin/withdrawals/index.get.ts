@@ -1,4 +1,4 @@
-import { requireAdminSecret } from '../../utils/adminAuth'
+import { requireAdminSecret } from '../../../utils/adminAuth'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
