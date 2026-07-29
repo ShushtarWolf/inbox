@@ -8,18 +8,26 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
-const config = useRuntimeConfig()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
-useOwnerClubRefresh(refresh)
+const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch('/api/owner/settlement', {
+  immediate: false,
+  watch: false,
+})
 const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth } = useFormatters()
 const { today } = useLocalDate()
 const { pilotNoCoach } = usePilotFlags()
+const { fetchErrorMessage } = useFetchError()
 
 onMounted(() => { fetchAuth() })
 
 const period = ref<'day' | 'week' | 'month'>('day')
 const selectedTx = ref<Record<string, unknown> | null>(null)
+const shebaInput = ref('')
+const withdrawAmount = ref('')
+const payoutBusy = ref(false)
+const payoutError = ref('')
+const payoutSuccess = ref('')
 
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
@@ -34,9 +42,64 @@ const canPayouts = computed(() => isOwner.value || hasOwnerPermission(permission
 const reportsGatePending = computed(() => Boolean(user.value) && !(user.value?.memberships?.length))
 const showReports = computed(() => canReports.value || reportsGatePending.value)
 const showTransactions = computed(() => canTransactions.value || reportsGatePending.value)
-const showPayoutsSection = computed(() => (canPayouts.value || reportsGatePending.value) && !payAtClubMode.value)
-const payAtClubMode = computed(() => (config.public.paymentsMode || 'pay_at_club') === 'pay_at_club')
-const showPayoutsPayAtClubNote = computed(() => (canPayouts.value || reportsGatePending.value) && payAtClubMode.value)
+/** Settlement UI for all payment modes (desk + online ledger). */
+const showPayoutsSection = computed(() => canPayouts.value || reportsGatePending.value)
+
+useOwnerClubRefresh(() => {
+  refresh()
+  if (showPayoutsSection.value) refreshSettlement()
+})
+
+watch(showPayoutsSection, (show) => {
+  if (show) refreshSettlement()
+}, { immediate: true })
+
+watch(settlement, (value) => {
+  if (value?.sheba) shebaInput.value = value.sheba
+}, { immediate: true })
+
+const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
+
+async function saveSheba() {
+  payoutBusy.value = true
+  payoutError.value = ''
+  payoutSuccess.value = ''
+  try {
+    await $fetch('/api/owner/sheba', {
+      method: 'PATCH',
+      body: { sheba: shebaInput.value.trim() || null },
+    })
+    payoutSuccess.value = t('owner.financePage.shebaSaved')
+    await refreshSettlement()
+  } catch (error: unknown) {
+    payoutError.value = fetchErrorMessage(error, t('owner.financePage.shebaInvalid'))
+  } finally {
+    payoutBusy.value = false
+  }
+}
+
+async function submitWithdraw() {
+  payoutBusy.value = true
+  payoutError.value = ''
+  payoutSuccess.value = ''
+  try {
+    if (!settlement.value?.sheba) {
+      payoutError.value = t('owner.financePage.withdrawNeedSheba')
+      return
+    }
+    await $fetch('/api/owner/withdraw', {
+      method: 'POST',
+      body: { amount: Number(withdrawAmount.value) },
+    })
+    payoutSuccess.value = t('owner.financePage.withdrawSuccess')
+    withdrawAmount.value = ''
+    await refreshSettlement()
+  } catch (error: unknown) {
+    payoutError.value = fetchErrorMessage(error, t('common.error'))
+  } finally {
+    payoutBusy.value = false
+  }
+}
 
 function formatWeekLabel(iso?: string) {
   if (!iso) return ''
@@ -293,13 +356,87 @@ function closeTx() {
         <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ t('common.empty') }}</p>
       </div>
 
-      <div v-if="showPayoutsSection" class="canva-panel">
+      <div v-if="showPayoutsSection" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="mt-2 text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPlaceholder') }}</p>
-      </div>
-      <div v-else-if="showPayoutsPayAtClubNote" class="canva-panel">
-        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="mt-2 text-sm text-brand-gray-600">{{ t('owner.financePage.payoutsPayAtClub') }}</p>
+        <p class="text-sm text-brand-gray-600">
+          {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
+        </p>
+        <div class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-brand-cream px-3 py-3" style="border-radius: var(--sz-canva-radius);">
+          <span class="text-sm text-brand-gray-600">{{ t('owner.financePage.walletBalance') }}</span>
+          <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.balance || 0) }}</span>
+        </div>
+
+        <label class="block text-sm text-start">
+          <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.shebaLabel') }}</span>
+          <input
+            v-model="shebaInput"
+            dir="ltr"
+            class="neo-input tabular-nums"
+            :placeholder="t('owner.financePage.shebaPlaceholder')"
+            autocomplete="off"
+          >
+        </label>
+        <button
+          type="button"
+          class="canva-gate-btn-secondary w-full"
+          :disabled="payoutBusy"
+          @click="saveSheba"
+        >
+          {{ t('owner.settingsPage.saveChanges') }}
+        </button>
+
+        <label class="block text-sm text-start">
+          <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.withdrawAmount') }}</span>
+          <input
+            v-model="withdrawAmount"
+            type="number"
+            min="1"
+            dir="ltr"
+            class="neo-input tabular-nums"
+            :disabled="!settlement?.sheba"
+          >
+        </label>
+        <p v-if="!settlement?.sheba" class="text-xs text-brand-primary text-start">{{ t('owner.financePage.shebaRequired') }}</p>
+        <button
+          type="button"
+          class="canva-cta w-full"
+          :disabled="payoutBusy || !settlement?.sheba || !withdrawAmount"
+          @click="submitWithdraw"
+        >
+          {{ t('owner.financePage.withdrawRequest') }}
+        </button>
+
+        <p v-if="payoutError" class="canva-flash-error text-start text-xs">{{ payoutError }}</p>
+        <p v-else-if="payoutSuccess" class="text-start text-xs font-bold text-brand-navy">{{ payoutSuccess }}</p>
+
+        <div v-if="settlement?.pendingWithdraws?.length" class="space-y-2 text-start">
+          <p class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.withdrawPending') }}</p>
+          <div
+            v-for="req in settlement.pendingWithdraws"
+            :key="req.id"
+            class="flex items-center justify-between gap-2 border border-brand-gray-200 px-3 py-2 text-xs"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <span class="tabular-nums" dir="ltr">{{ formatCurrency(req.amount) }}</span>
+            <span class="text-brand-gray-600">{{ t('owner.financePage.withdrawPending') }}</span>
+          </div>
+        </div>
+
+        <div v-if="settlement?.ledger?.length" class="space-y-2 text-start">
+          <p class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.ledgerTitle') }}</p>
+          <div
+            v-for="entry in settlement.ledger.slice(0, 5)"
+            :key="entry.id"
+            class="flex items-center justify-between gap-2 border border-brand-gray-200 px-3 py-2 text-xs"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <span>
+              {{ t('owner.financePage.ledgerNet') }}
+              <template v-if="entry.clawedBackAt"> · {{ t('owner.financePage.ledgerClawed') }}</template>
+            </span>
+            <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(entry.ownerNet) }}</span>
+          </div>
+        </div>
       </div>
     </AppAsyncState>
 

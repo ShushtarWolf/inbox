@@ -9,6 +9,7 @@ import {
 import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
+import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
 
 function resolveDeskPaymentMethod(
@@ -93,6 +94,7 @@ export default defineEventHandler(async (event) => {
       && paymentStatus !== 'PAID'
       && slot.booking.userId,
     )
+    const becomingUnpaid = previousPaid && paymentStatus !== 'PAID'
 
     await prisma.$transaction(async (tx) => {
       if (wasWalletPaid && previousPayment && slot.booking?.userId) {
@@ -138,7 +140,23 @@ export default defineEventHandler(async (event) => {
       })
     })
 
+    if (becomingUnpaid && previousPayment) {
+      try {
+        await clawbackOwnerForPayment(previousPayment.id)
+      } catch (err) {
+        console.error('[reserve:ownerClawback]', previousPayment.id, err)
+      }
+    }
+
     if (becomingPaid) {
+      const paidPayment = await prisma.payment.findUnique({ where: { bookingId: slot.booking.id } })
+      if (paidPayment) {
+        try {
+          await creditOwnerForPaidPayment(paidPayment.id, previousPaid ? 'PAID' : '')
+        } catch (err) {
+          console.error('[reserve:ownerSettlement]', paidPayment.id, err)
+        }
+      }
       const phone = slot.booking.user?.phone || guestMobile || slot.booking.guestMobile
       if (slot.booking.userId || phone) {
         await notifyBookingPaid({
@@ -214,7 +232,24 @@ export default defineEventHandler(async (event) => {
       }
       await notifyBookingConfirmed(notifyBase)
       if (paymentStatus === 'PAID') {
+        const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
+        if (paidPayment) {
+          try {
+            await creditOwnerForPaidPayment(paidPayment.id, '')
+          } catch (err) {
+            console.error('[reserve:ownerSettlement]', paidPayment.id, err)
+          }
+        }
         await notifyBookingPaid(notifyBase)
+      }
+    } else if (paymentStatus === 'PAID') {
+      const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
+      if (paidPayment) {
+        try {
+          await creditOwnerForPaidPayment(paidPayment.id, '')
+        } catch (err) {
+          console.error('[reserve:ownerSettlement]', paidPayment.id, err)
+        }
       }
     }
   }

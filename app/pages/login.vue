@@ -7,6 +7,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const { openLogin, openRegister, close, notice: flowNotice } = useAuthFlow()
+const { smsLive } = useSmsCapability()
 
 const returnTo = computed(() => {
   const value = route.query.returnTo
@@ -29,9 +30,9 @@ onMounted(async () => {
   const notice = error === 'session' ? t('auth.sessionExpired') : (flowNotice.value || undefined)
 
   if (mode === 'register') {
-    openRegister({ returnTo: returnTo.value || undefined, notice })
+    openRegister({ returnTo: returnTo.value || undefined, notice, smsLive: smsLive.value })
   } else {
-    openLogin({ returnTo: returnTo.value || undefined, notice })
+    openLogin({ returnTo: returnTo.value || undefined, notice, smsLive: smsLive.value })
   }
 
   // Protected returnTo keeps modal on home; public returnTo opens under that page

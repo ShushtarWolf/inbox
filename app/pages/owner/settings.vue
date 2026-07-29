@@ -59,6 +59,7 @@ const form = reactive({
   phone: '',
   whatsapp: '',
   image: '',
+  sheba: '',
   amenities: [] as string[],
   sessionDurations: [60] as number[],
   defaultSessionDurationMinutes: 60,
@@ -154,6 +155,7 @@ function applyClubData() {
   form.phone = club.phone || ''
   form.whatsapp = club.whatsapp || ''
   form.image = club.image || ''
+  form.sheba = (club as { sheba?: string | null }).sheba || ''
   form.amenities = parseFacilitiesJson((club as { amenitiesJson?: string }).amenitiesJson)
   form.sessionDurations = parseSessionDurationsJson((club as { sessionDurationsJson?: string }).sessionDurationsJson)
   form.defaultSessionDurationMinutes = (club as { defaultSessionDurationMinutes?: number }).defaultSessionDurationMinutes ?? 60
@@ -298,6 +300,7 @@ async function save() {
         phone: form.phone || null,
         whatsapp: form.whatsapp || null,
         image: form.image || null,
+        sheba: form.sheba || null,
         amenitiesJson: JSON.stringify(form.amenities),
         sessionDurationsJson: JSON.stringify(form.sessionDurations),
         defaultSessionDurationMinutes: form.defaultSessionDurationMinutes,
@@ -385,6 +388,17 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
               <input v-model="form.whatsapp" dir="ltr" class="neo-input tabular-nums">
             </label>
           </div>
+          <label class="block text-sm text-start">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>
+            <input
+              v-model="form.sheba"
+              dir="ltr"
+              class="neo-input tabular-nums"
+              :placeholder="t('owner.financePage.shebaPlaceholder')"
+              autocomplete="off"
+            >
+            <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
+          </label>
         </div>
 
         <!-- مدت سانس‌ها -->

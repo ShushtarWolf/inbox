@@ -5,6 +5,7 @@ import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
 import { notifyPaymentPaidIfNeeded, syncPaymentToParent } from '../../utils/paymentSync'
+import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
 export default defineEventHandler(async (event) => {
@@ -111,6 +112,11 @@ export default defineEventHandler(async (event) => {
       })
     })
     await syncPaymentToParent(payment.id)
+    try {
+      await creditOwnerForPaidPayment(payment.id, previousStatus)
+    } catch (err) {
+      console.error('[checkout:ownerSettlement]', payment.id, err)
+    }
     await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
       paymentId: payment.id,

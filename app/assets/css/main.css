@@ -1608,7 +1608,7 @@
   }
   .canva-cal-sheet {
     @apply relative z-[1] -mt-4 space-y-3 bg-[var(--sz-bg)] px-4 pb-4 pt-5;
-    border-radius: 1.25rem 1.25rem 0 0;
+    border-radius: var(--sz-canva-radius-max) var(--sz-canva-radius-max) 0 0;
   }
   .canva-cal-date-line {
     @apply text-sm font-bold text-brand-navy;
@@ -1647,7 +1647,8 @@
     @apply grid grid-cols-7 gap-1 text-center;
   }
   .canva-overview-month-day {
-    @apply flex aspect-square items-center justify-center rounded-lg text-xs font-bold text-brand-navy transition;
+    @apply flex aspect-square items-center justify-center text-xs font-bold text-brand-navy transition;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-overview-month-day-active {
     @apply bg-brand-primary text-white;

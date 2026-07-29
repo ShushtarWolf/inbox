@@ -3,8 +3,9 @@ import type { NavItem } from '#shared/nav.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
+const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath, dashboardPathForRole } = useAuth()
 const { openGate } = useAuthFlow()
+const { smsLive } = useSmsCapability()
 
 async function handleLogout() {
   await logout()
@@ -22,7 +23,7 @@ const nav = computed((): NavItem[] => {
       to: localePath('/'),
       label: t('nav.me'),
       icon: 'account_circle',
-      action: () => openGate(),
+      action: () => openGate({ smsLive: smsLive.value }),
     })
   } else {
     items.push({
@@ -49,7 +50,7 @@ onMounted(() => {
             <button
               type="button"
               class="btn-primary inline-flex px-4 py-2 text-xs"
-              @click="openGate()"
+              @click="openGate({ smsLive })"
             >
               <span class="inline-flex items-center gap-1.5">
                 <AppIcon name="login" size="sm" />

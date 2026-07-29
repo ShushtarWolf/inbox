@@ -29,7 +29,7 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `home page (6).png` | `/athlete/favorites` | `overlays/favorites.jpg` |
 | `home page (5).png` | `/athlete` hub menu | capture: `localhost/app-athlete-hub.png` |
 | `home page (7).png` | `/athlete/bookings` history | capture only |
-| `home page (10|15).png` | `/owner/calendar` today | `overlays/owner-calendar.jpg` |
+| `home page (9|10|15).png` | `/owner/calendar` today (color bars, tabs, hero chrome, nav) | `overlays/owner-calendar.jpg` |
 | `home page (12).png` | `/owner/calendar` walk-in reserve sheet | — |
 | `home page (14).png` | `/owner/calendar` overview tab | — |
 | `جزییات بازیکن.png` | `/owner/finance` (+ txn sheet) | `overlays/owner-finance.jpg` |
@@ -99,8 +99,9 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **ok-enough**: Text ops guide + contact lines on cream; no soft TailAdmin cards / red hero band.
 
 ### `/owner/calendar` / finance / CRM
-- **ok-enough (post Clarity QA Jul 2026)**: Today/overview tabs + court chips + slot bars; student promo badge opens STUDENT20 hint (no longer a dead sticker).
-- **flow fixes shipped**: guest confirm auth-gate; club slug alias `club-9208f4` → `iust-tennis`; pilot map pin fallback; wide viewport single login (Canva chrome ≤430 only).
+- **ok-enough for COURT-MVP**: Frames `(9)` / `(10)` / `(15)` at 375px — color bars, today/overview tabs, photo hero chrome, owner bottom nav. Sheet radius locked to ≤2px; season/package dead panels use square chips (not neo-pill).
+- **settlement**: Finance payouts panel = real SHEBA + withdraw REQUEST (no `payoutsPlaceholder`).
+- **flow fixes shipped**: guest confirm auth-gate; wallet CTA on confirm when balance covers; club slug alias `club-9208f4` → `iust-tennis`; pilot map pin fallback; wide viewport single login (Canva chrome ≤430 only).
 - **visual (remaining)**: Pixel polish vs `(15)` / `(10)` only if new Canva frames land.
 
 ## Chrome consistency (product rule)

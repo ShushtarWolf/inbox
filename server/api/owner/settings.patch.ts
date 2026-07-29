@@ -1,4 +1,5 @@
 import type { EquipmentCategory } from '@prisma/client'
+import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
     defaultSessionDurationMinutes?: number
     descriptionFa?: string | null
     descriptionEn?: string | null
+    sheba?: string | null
   }>(event)
 
   const data: Record<string, unknown> = {}
@@ -88,6 +90,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
 
+  if (body.sheba !== undefined) {
+    const raw = body.sheba?.trim() || ''
+    if (!raw) {
+      data.sheba = null
+    } else {
+      const sheba = normalizeSheba(raw)
+      if (!sheba || !isValidSheba(sheba)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid SHEBA' })
+      }
+      data.sheba = sheba
+    }
+  }
+
   const updated = await prisma.club.update({
     where: { id: club.id },
     data,
@@ -115,5 +130,6 @@ export default defineEventHandler(async (event) => {
     cancellationWindowHours: updated.cancellationWindowHours,
     rescheduleWindowHours: updated.rescheduleWindowHours,
     waitlistEnabled: updated.waitlistEnabled,
+    sheba: updated.sheba,
   }
 })

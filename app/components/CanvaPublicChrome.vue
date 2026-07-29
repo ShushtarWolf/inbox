@@ -14,6 +14,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
 const { openGate } = useAuthFlow()
+const { smsLive } = useSmsCapability()
 
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 
@@ -69,7 +70,7 @@ onMounted(() => {
       v-if="!user"
       type="button"
       class="canva-home-login shrink-0"
-      @click="openGate()"
+      @click="openGate({ smsLive })"
     >
       {{ t('auth.loginRegister') }}
     </button>

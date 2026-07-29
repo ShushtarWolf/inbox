@@ -1,4 +1,5 @@
 import { isPaymentRefundable, shouldCreditWalletAfterGatewayRefund } from '#shared/bookingPayment.ts'
+import { clawbackOwnerForPayment } from './settlement'
 import { creditWallet } from './wallet'
 import { syncPaymentToParent } from './paymentSync'
 import { getPaymentService } from './payments/service'
@@ -61,6 +62,11 @@ export async function refundPaymentForCancellation(options: {
       data: { status: 'REFUNDED' },
     })
     await syncPaymentToParent(payment.id)
+    try {
+      await clawbackOwnerForPayment(payment.id)
+    } catch (err) {
+      console.error('[refunds:ownerClawback]', payment.id, err)
+    }
     return { refunded: true, walletCredited: false, amount: payment.amount }
   }
 
@@ -69,6 +75,12 @@ export async function refundPaymentForCancellation(options: {
     data: { status: 'REFUNDED' },
   })
   await syncPaymentToParent(payment.id)
+
+  try {
+    await clawbackOwnerForPayment(payment.id)
+  } catch (err) {
+    console.error('[refunds:ownerClawback]', payment.id, err)
+  }
 
   return { refunded: true, walletCredited, amount: payment.amount }
 }

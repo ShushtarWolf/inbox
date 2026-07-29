@@ -52,6 +52,7 @@ const {
   gateGuestAuth,
   createCourtBookings,
   primaryCtaLabel,
+  walletCoversAmount,
 } = useCourtBooking()
 
 const wantRacket = ref(false)
@@ -101,6 +102,10 @@ const discountAmount = computed(() => {
 })
 
 const totalAmount = computed(() => Math.max(0, subtotalAmount.value - discountAmount.value))
+
+const showWalletCta = computed(() =>
+  Boolean(user.value) && walletCoversAmount(totalAmount.value),
+)
 
 const metaLine = computed(() => {
   const parts = [props.locationLine, props.sportLabel].filter(Boolean)
@@ -179,7 +184,7 @@ async function applyDiscount() {
   }
 }
 
-async function submit() {
+async function submit(preferWallet = false) {
   if (!props.slots.length || confirming.value || paying.value) return
 
   // Guest: close confirm sheet first so AuthFlow is not buried under z-50 twin modal.
@@ -202,6 +207,7 @@ async function submit() {
     discountCode: appliedDiscount.value?.code,
     date: props.date,
     courtId: props.courtId,
+    preferWallet,
   })
   if (result) {
     emit('success')
@@ -359,10 +365,20 @@ async function submit() {
           </p>
 
           <button
+            v-if="showWalletCta"
             type="button"
             class="canva-cta canva-confirm-book-cta w-full"
             :disabled="!slots.length || confirming || paying"
-            @click="submit"
+            @click="submit(true)"
+          >
+            {{ confirming || paying ? t('common.loading') : t('booking.payFromWallet') }}
+          </button>
+          <button
+            type="button"
+            class="canva-confirm-book-cta w-full"
+            :class="showWalletCta ? 'canva-gate-btn-secondary' : 'canva-cta'"
+            :disabled="!slots.length || confirming || paying"
+            @click="submit(false)"
           >
             {{ primaryCtaLabel }}
           </button>

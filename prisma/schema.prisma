@@ -108,6 +108,21 @@ enum WalletTransactionType {
   TOPUP_CREDIT
 }
 
+enum ClubWalletTransactionType {
+  BOOKING_CREDIT
+  CLAWBACK
+  WITHDRAW_HOLD
+  WITHDRAW_RELEASE
+  WITHDRAW_PAID
+  ADJUSTMENT
+}
+
+enum WithdrawRequestStatus {
+  PENDING
+  PAID
+  REJECTED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -293,6 +308,8 @@ model Club {
   cancellationWindowHours Int @default(12)
   rescheduleWindowHours   Int @default(24)
   waitlistEnabled Boolean @default(true)
+  /** Iranian SHEBA / IBAN (IR + 24 digits). Required before withdraw. */
+  sheba String?
 
   ownerId String?
   owner   User?   @relation("ClubOwner", fields: [ownerId], references: [id])
@@ -314,6 +331,9 @@ model Club {
   workers     ClubWorker[]
   application ClubApplication?
   discountCodes DiscountCode[]
+  wallet            ClubWallet?
+  withdrawRequests  WithdrawRequest[]
+  settlementEntries SettlementLedgerEntry[]
 }
 
 model Court {
@@ -817,4 +837,68 @@ model ClubWorker {
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
   @@index([clubId, active])
+}
+
+/** Club settlement balance (owner net after platform commission). */
+model ClubWallet {
+  id        String   @id @default(cuid())
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clubId       String                  @unique
+  club         Club                    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  transactions ClubWalletTransaction[]
+}
+
+model ClubWalletTransaction {
+  id        String                    @id @default(cuid())
+  amount    Int
+  type      ClubWalletTransactionType
+  note      String?
+  createdAt DateTime                  @default(now())
+
+  walletId          String
+  wallet            ClubWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  paymentId         String?
+  bookingId         String?
+  withdrawRequestId String?
+
+  @@index([walletId, createdAt])
+  @@index([paymentId])
+}
+
+/** One row per settled payment — idempotency key for owner credit / clawback. */
+model SettlementLedgerEntry {
+  id            String    @id @default(cuid())
+  gross         Int
+  commissionBps Int
+  commission    Int
+  ownerNet      Int
+  createdAt     DateTime  @default(now())
+  clawedBackAt  DateTime?
+
+  clubId    String
+  club      Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  paymentId String  @unique
+  bookingId String?
+
+  @@index([clubId, createdAt])
+}
+
+model WithdrawRequest {
+  id            String                @id @default(cuid())
+  amount        Int
+  shebaSnapshot String
+  status        WithdrawRequestStatus @default(PENDING)
+  note          String?
+  createdAt     DateTime              @default(now())
+  paidAt        DateTime?
+  rejectedAt    DateTime?
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, status, createdAt])
+  @@index([status, createdAt])
 }

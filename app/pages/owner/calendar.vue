@@ -1471,7 +1471,7 @@ function slotBarColor(status: string) {
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doReserve">
-            <p v-if="selectedSlotFull && selectedSlotFull.displayStatus !== 'FREE'" class="rounded-venus bg-brand-lavender px-3 py-2 text-xs font-bold text-brand-navy">
+            <p v-if="selectedSlotFull && selectedSlotFull.displayStatus !== 'FREE'" class="bg-brand-lavender px-3 py-2 text-xs font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlotFull.startTime, selectedSlotFull.endTime) }}</bdi>
               · {{ statusLabel(selectedSlotFull.displayStatus) }}
             </p>
@@ -1698,8 +1698,8 @@ function slotBarColor(status: string) {
                       v-for="day in weekdayOptions"
                       :key="day"
                       type="button"
-                      class="neo-pill"
-                      :class="seasonForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
+                      class="canva-chip"
+                      :class="seasonForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
                       @click="toggleSeasonDay(day)"
                     >
                       {{ t(`owner.weekdays.${day}`) }}
@@ -1723,7 +1723,7 @@ function slotBarColor(status: string) {
                 class="w-full shrink-0 lg:w-52"
               />
             </div>
-            <p v-if="seasonSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
+            <p v-if="seasonSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ seasonSessionLabel }}
             </p>
           </div>
@@ -1789,8 +1789,8 @@ function slotBarColor(status: string) {
                       v-for="day in weekdayOptions"
                       :key="day"
                       type="button"
-                      class="neo-pill"
-                      :class="packageForm.days.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
+                      class="canva-chip"
+                      :class="packageForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
                       @click="togglePackageDay(day)"
                     >
                       {{ t(`owner.weekdays.${day}`) }}
@@ -1814,7 +1814,7 @@ function slotBarColor(status: string) {
                 class="w-full shrink-0 lg:w-52"
               />
             </div>
-            <p v-if="packageSessionLabel" class="mt-4 rounded-venus bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy">
+            <p v-if="packageSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ packageSessionLabel }}
             </p>
           </div>

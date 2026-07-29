@@ -259,13 +259,13 @@ async function main() {
     throw new Error(`me after logout expected 401/200, got ${meAfterLogout.status}`)
   }
 
-  // Google OAuth: product UI never shows Google; route fail-closed when unset
+  // Google OAuth: product hard-off — route returns 404 even if env is set
   const googleRes = await fetch(`${base}/auth/google`, { redirect: 'manual' })
-  const googleLoc = googleRes.headers.get('location') || ''
   const googleStatus = googleRes.status
-  if (![301, 302, 303, 307, 308].includes(googleStatus)) {
-    throw new Error(`/auth/google expected redirect, got ${googleStatus}`)
+  if (googleStatus !== 404) {
+    throw new Error(`/auth/google expected 404 hard-off, got ${googleStatus}`)
   }
+  console.log('ok  Google OAuth hard-off (/auth/google → 404)')
 
   const loginPage = await fetch(`${base}/login`)
   if (!loginPage.ok) throw new Error(`/login expected 200, got ${loginPage.status}`)
@@ -280,14 +280,6 @@ async function main() {
     const body = await googleEnabled.json()
     if (body.enabled) throw new Error('/api/auth/google-enabled expected enabled:false for Iran MVP')
     console.log('ok  /api/auth/google-enabled → enabled:false')
-  }
-
-  if (googleLoc.includes('error=google')) {
-    console.log('ok  Google OAuth fail-closed (/auth/google → login?error=google)')
-  } else if (/accounts\.google\.com|google\.com\/o\/oauth2|googleapis\.com/.test(googleLoc)) {
-    console.log('ok  /auth/google still redirects to Google when env set (UI stays hidden)')
-  } else {
-    throw new Error(`unexpected /auth/google Location: ${googleStatus} ${googleLoc}`)
   }
 
   console.log('smoke-auth ok')

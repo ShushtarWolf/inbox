@@ -3,6 +3,7 @@ import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clubNotifyName, notifyBookingPaid } from './bookingNotify'
 import { getPaymentService } from './payments/service'
+import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -170,6 +171,11 @@ export async function confirmPaymentAndSync(
       await creditWalletForTopUpPayment(intent.id, previousStatus)
     } catch (err) {
       console.error('[paymentSync:topUpCredit]', intent.id, err)
+    }
+    try {
+      await creditOwnerForPaidPayment(intent.id, previousStatus)
+    } catch (err) {
+      console.error('[paymentSync:ownerSettlement]', intent.id, err)
     }
     await notifyPaidIfNeeded(intent.id, previousStatus)
   }

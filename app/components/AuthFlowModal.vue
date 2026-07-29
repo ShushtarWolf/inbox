@@ -123,14 +123,14 @@ async function goForgotPassword() {
 function goGate() {
   resetForm()
   purpose.value = 'login'
-  channel.value = 'password'
+  channel.value = smsLive.value ? 'otp' : 'password'
   step.value = 'gate'
 }
 
 function goLogin() {
   resetForm()
   purpose.value = 'login'
-  channel.value = 'password'
+  channel.value = smsLive.value ? 'otp' : 'password'
   step.value = 'login'
 }
 
@@ -151,7 +151,7 @@ function goLoginPassword() {
 function goRole() {
   resetForm()
   purpose.value = 'register'
-  channel.value = 'password'
+  channel.value = smsLive.value ? 'otp' : 'password'
   selectedRole.value = 'ATHLETE'
   step.value = 'role'
 }
@@ -418,6 +418,14 @@ async function verifyOtp() {
 
 watch(open, (isOpen) => {
   if (!isOpen) resetForm()
+})
+
+/** Auto-flip to OTP when SMS becomes MULTI-live while auth sheet is open. */
+watch(smsLive, (live) => {
+  if (!open.value || !live) return
+  if (step.value === 'login' || step.value === 'register' || step.value === 'gate' || step.value === 'role') {
+    channel.value = 'otp'
+  }
 })
 
 watch(step, (next) => {
