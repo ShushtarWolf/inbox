@@ -1,3 +1,5 @@
+import { buildReturnTo } from '#shared/returnTo.ts'
+
 /**
  * Shared court booking + checkout used by club-detail confirm sheet.
  * Legacy `/book/court/:slug` redirects to `/clubs/:slug` (query preserved).
@@ -32,17 +34,55 @@ export function useCourtBooking() {
     done.value = false
   }
 
+  /** Deep-link back to club confirm sheet with the same date / court / slots. */
+  function bookingReturnTo(opts?: {
+    returnTo?: string
+    date?: string
+    courtId?: string
+    slotIds?: string[]
+  }) {
+    if (opts?.returnTo) return opts.returnTo
+    const slotIds = [...new Set((opts?.slotIds || []).filter(Boolean))]
+    if (!slotIds.length) return route.fullPath
+    return buildReturnTo(route.path, {
+      date: opts?.date || (typeof route.query.date === 'string' ? route.query.date : undefined),
+      court: opts?.courtId || (typeof route.query.court === 'string' ? route.query.court : undefined),
+      slots: slotIds.join(','),
+    })
+  }
+
+  function gateGuestAuth(opts?: {
+    returnTo?: string
+    date?: string
+    courtId?: string
+    slotIds?: string[]
+    notice?: string
+  }) {
+    if (user.value) return false
+    openLogin({
+      returnTo: bookingReturnTo(opts),
+      notice: opts?.notice || t('booking.loginToConfirmNotice'),
+    })
+    return true
+  }
+
   async function createCourtBookings(opts: {
     slotIds: string[]
     equipmentIds?: string[]
     discountCode?: string
     returnTo?: string
+    date?: string
+    courtId?: string
   }) {
     const slotIds = [...new Set(opts.slotIds.filter(Boolean))]
     if (!slotIds.length || confirming.value) return null
 
-    if (!user.value) {
-      openLogin({ returnTo: opts.returnTo || route.fullPath })
+    if (gateGuestAuth({
+      returnTo: opts.returnTo,
+      date: opts.date,
+      courtId: opts.courtId,
+      slotIds,
+    })) {
       return null
     }
 
@@ -138,6 +178,7 @@ export function useCourtBooking() {
 
   const primaryCtaLabel = computed(() => {
     if (confirming.value || paying.value) return t('common.loading')
+    if (!user.value) return t('booking.loginToContinue')
     if (onlineEnabled.value) return t('booking.pay')
     return t('booking.confirmPayAtClub')
   })
@@ -154,6 +195,8 @@ export function useCourtBooking() {
     done,
     onlineEnabled,
     resetBookingState,
+    bookingReturnTo,
+    gateGuestAuth,
     createCourtBookings,
     payBooking,
     payBookingWithWallet,

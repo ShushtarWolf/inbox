@@ -128,19 +128,25 @@ function prevHero() {
 
     <section class="canva-hero canva-hero-home">
       <img
+        :key="activeHero?.image"
         :src="activeHero?.image"
         alt=""
         class="canva-hero-media canva-hero-media-bw"
       />
       <div class="canva-hero-scrim" aria-hidden="true" />
       <div class="canva-hero-content canva-hero-home-content">
-        <div class="space-y-2">
+        <div class="space-y-2" :key="heroSlide">
           <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
         </div>
 
         <div class="mt-5 flex items-center justify-between">
-          <button type="button" class="canva-hero-arrow" :aria-label="t('calendar.prevMonth')" @click="prevHero">
+          <button
+            type="button"
+            class="canva-hero-arrow"
+            :aria-label="t('calendar.prevMonth')"
+            @click.stop.prevent="prevHero"
+          >
             <AppIcon name="chevron_right" size="md" />
           </button>
           <div class="flex gap-2">
@@ -152,10 +158,15 @@ function prevHero() {
               :class="index === heroSlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
               :aria-label="t('common.carouselSlide', { current: index + 1, total: heroSlides.length })"
               :aria-current="index === heroSlide ? 'true' : undefined"
-              @click="heroSlide = index"
+              @click.stop.prevent="heroSlide = index"
             />
           </div>
-          <button type="button" class="canva-hero-arrow" :aria-label="t('calendar.nextMonth')" @click="nextHero">
+          <button
+            type="button"
+            class="canva-hero-arrow"
+            :aria-label="t('calendar.nextMonth')"
+            @click.stop.prevent="nextHero"
+          >
             <AppIcon name="chevron_left" size="md" />
           </button>
         </div>

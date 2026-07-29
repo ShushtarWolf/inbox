@@ -209,6 +209,15 @@ async function onLicenseFile(event: Event) {
 async function showWelcome(variant: AuthWelcomeVariant, redirectTo: string) {
   welcomeVariant.value = variant
   pendingRedirect.value = redirectTo
+  // Court confirm handoff: skip home welcome thrash so slots reopen in confirm sheet.
+  const dest = redirectTo.startsWith('/') ? redirectTo : localePath(redirectTo)
+  const isClubConfirmReturn = /\/clubs\/[^/?]+/.test(dest)
+    && (dest.includes('slots=') || dest.includes('slot=') || dest.includes('time='))
+  if (isClubConfirmReturn) {
+    handleClose()
+    await navigateTo(dest)
+    return
+  }
   // Sheet over home (Canva 7 / 11 / 15) — never an orphan success page.
   await navigateTo(localePath('/'))
   step.value = 'welcome'
@@ -429,7 +438,7 @@ watch(
 </script>
 
 <template>
-  <AppModal :open="open" patterned max-width-class="max-w-sm" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
+  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[60]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1]">
       <div v-if="step !== 'welcome'" class="canva-auth-accent" />
       <div class="relative z-[1] flex items-center justify-center px-4 py-3">

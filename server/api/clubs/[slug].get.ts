@@ -1,9 +1,10 @@
 import { parseJsonValue, reviewSummary } from '../../utils/catalog'
 import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
+import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
 export default defineCachedEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
-  const slug = getRouterParam(event, 'slug')
+  const slug = resolveClubSlugAlias(getRouterParam(event, 'slug') || '')
   const club = await prisma.club.findUnique({
     where: { slug },
     include: {
@@ -72,5 +73,5 @@ export default defineCachedEventHandler(async (event) => {
   }
 }, {
   maxAge: 60,
-  getKey: (event) => `club:${getRouterParam(event, 'slug')}`,
+  getKey: (event) => `club:${resolveClubSlugAlias(getRouterParam(event, 'slug') || '')}`,
 })

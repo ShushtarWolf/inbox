@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { parseCourtPricingJson } from '#shared/courtPricing.ts'
+import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
 const route = useRoute()
+const localePath = useLocalePath()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatWeekday } = useFormatters()
 const { today } = useLocalDate()
-const slug = route.params.slug as string
+const rawSlug = route.params.slug as string
+const slug = resolveClubSlugAlias(rawSlug)
+
+if (rawSlug && slug !== rawSlug) {
+  await navigateTo(
+    { path: localePath(`/clubs/${slug}`), query: route.query },
+    { redirectCode: 301, replace: true },
+  )
+}
 
 const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
 const { isFavorite, toggleFavorite } = useClubFavorites()
@@ -406,8 +416,21 @@ async function shareClub() {
 </script>
 
 <template>
-  <AppAsyncState :pending="pending" :error="error" :empty="!club" skeleton-variant="default">
-    <div v-if="club" class="canva-club-detail space-y-3">
+  <div v-if="pending" class="tail-page-enter">
+    <AppVenusSkeleton :lines="4" />
+  </div>
+  <div
+    v-else-if="error || !club"
+    class="canva-result-sheet mx-auto mt-8 max-w-sm space-y-4 p-6 text-center"
+  >
+    <p class="text-lg font-bold text-brand-navy">{{ t('clubs.notFoundTitle') }}</p>
+    <p class="text-sm text-brand-gray-600">{{ t('clubs.notFoundBody') }}</p>
+    <NuxtLink :to="localePath('/clubs')" class="canva-cta inline-flex w-full justify-center">
+      {{ t('clubs.notFoundCta') }}
+    </NuxtLink>
+  </div>
+  <div v-else-if="club" class="tail-page-enter">
+    <div class="canva-club-detail space-y-3">
       <CanvaPublicChrome back-to="/clubs" />
       <!-- 1. Gallery: full-bleed, arrows, red active dots -->
       <section class="canva-club-gallery">
@@ -652,6 +675,7 @@ async function shareClub() {
         :sport-label="sportLabel"
         :rating-display="ratingDisplay"
         :date="selectedDate"
+        :court-id="selectedCourtId || undefined"
         :court-label="selectedCourtLabel"
         :slots="selectedSlots"
         :rental-equipment="rentalEquipment"
@@ -659,5 +683,5 @@ async function shareClub() {
         @success="onConfirmSuccess"
       />
     </div>
-  </AppAsyncState>
+  </div>
 </template>

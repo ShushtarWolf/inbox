@@ -39,7 +39,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="canva-home-chrome">
+  <!-- Phone Canva chrome only (≤430). ≥431 uses AppTopBar — one login control max. -->
+  <header class="canva-home-chrome hidden max-[430px]:flex">
     <div class="flex min-w-0 items-center gap-2">
       <NuxtLink
         v-if="backTo"

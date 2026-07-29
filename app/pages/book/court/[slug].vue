@@ -3,11 +3,13 @@
  * Legacy deep-link → club detail (primary court-booking UX).
  * Preserves date / slot / court query so `/clubs/[slug]` can hydrate selection.
  */
+import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
+
 definePageMeta({ ssr: false })
 
 const route = useRoute()
 const localePath = useLocalePath()
-const slug = String(route.params.slug || '')
+const slug = resolveClubSlugAlias(String(route.params.slug || ''))
 
 const query: Record<string, string> = {}
 for (const key of ['date', 'slot', 'slots', 'court', 'time'] as const) {

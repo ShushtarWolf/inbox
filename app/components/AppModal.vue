@@ -6,6 +6,8 @@ const props = defineProps<{
   patterned?: boolean
   /** Dock to the bottom edge as a Canva-style action sheet on narrow viewports. */
   sheet?: boolean
+  /** Overlay stacking — AuthFlow should sit above booking confirm (default z-50). */
+  overlayClass?: string
 }>()
 
 const emit = defineEmits<{
@@ -83,7 +85,8 @@ onUnmounted(() => {
     <Transition name="venus-modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
+        class="fixed inset-0 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
+        :class="overlayClass || 'z-50'"
         role="presentation"
         @click.self="close"
       >

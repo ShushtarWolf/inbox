@@ -423,7 +423,12 @@
     color: #fff !important;
   }
   .canva-hero-arrow {
-    @apply inline-flex items-center justify-center p-1 text-white transition hover:text-white/80;
+    @apply relative z-20 inline-flex h-11 w-11 shrink-0 items-center justify-center text-white transition hover:text-white/80;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .canva-hero-arrow:active {
+    transform: scale(0.94);
+    opacity: 0.85;
   }
   /* Carousel dots are circular in Canva — exception to pill ban.
      Button is 44×44 for PSI touch targets; ::after keeps the 8px visual dot. */
@@ -477,6 +482,15 @@
   }
   select.canva-search-placeholder {
     cursor: pointer;
+    padding-inline-end: 1rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b67' stroke-width='2.5' stroke-linecap='square'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 0.15rem center;
+    background-size: 0.7rem;
+  }
+  .canva-search-field:focus-within {
+    outline: 2px solid rgba(196, 30, 30, 0.35);
+    outline-offset: -2px;
   }
   .canva-search-cta {
     @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-4 text-sm font-bold text-white transition hover:brightness-110 sm:px-5;

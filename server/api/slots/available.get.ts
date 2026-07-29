@@ -1,8 +1,9 @@
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
+import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const clubSlug = query.club as string
+  const clubSlug = resolveClubSlugAlias(String(query.club || ''))
   const date = (query.date as string) || todayDateStr()
   if (!clubSlug) throw createError({ statusCode: 400, statusMessage: 'club required' })
 

@@ -24,6 +24,7 @@ const props = defineProps<{
   sportLabel?: string
   ratingDisplay?: string
   date: string
+  courtId?: string
   courtLabel?: string
   slots: ConfirmSlot[]
   rentalEquipment?: ConfirmEquipment | null
@@ -39,6 +40,7 @@ const localePath = useLocalePath()
 const { formatCurrency, formatNumber, formatWeekday } = useFormatters()
 const { localizedField } = useLocalizedField()
 const { fetchErrorMessage } = useFetchError()
+const { user } = useAuth()
 const {
   confirming,
   paying,
@@ -47,6 +49,7 @@ const {
   done,
   onlineEnabled,
   resetBookingState,
+  gateGuestAuth,
   createCourtBookings,
   primaryCtaLabel,
 } = useCourtBooking()
@@ -178,11 +181,27 @@ async function applyDiscount() {
 
 async function submit() {
   if (!props.slots.length || confirming.value || paying.value) return
+
+  // Guest: close confirm sheet first so AuthFlow is not buried under z-50 twin modal.
+  if (!user.value) {
+    const slotIds = props.slots.map((s) => s.id)
+    emit('close')
+    await nextTick()
+    gateGuestAuth({
+      date: props.date,
+      courtId: props.courtId,
+      slotIds,
+    })
+    return
+  }
+
   const equipmentIds = wantRacket.value && racketItem.value ? [racketItem.value.id] : []
   const result = await createCourtBookings({
     slotIds: props.slots.map((s) => s.id),
     equipmentIds,
     discountCode: appliedDiscount.value?.code,
+    date: props.date,
+    courtId: props.courtId,
   })
   if (result) {
     emit('success')
