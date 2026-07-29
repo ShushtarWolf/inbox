@@ -96,44 +96,26 @@ export async function ensurePilotCourts(db: Db, clubId: string) {
 
 /** Attach full court gallery (idempotent by URL). */
 export async function applyPilotCourtPhotos(db: Db, clubId: string) {
-  // Drop legacy demo/behnaz media URLs so gallery shows shipped IUST paths only.
-  await db.clubMedia.deleteMany({
-    where: {
-      clubId,
-      OR: [
-        { url: { contains: 'behnaz-court-' } },
-        { url: { contains: '/demo/clubs/iust-court-' } },
-        { url: { contains: '/demo/clubs/behnaz-court-' } },
-      ],
-    },
-  })
-
-  const refreshed = await db.clubMedia.findMany({
-    where: { clubId },
-    select: { url: true, sortOrder: true },
-  })
-  const urls = new Set(refreshed.map((m) => m.url))
-  let sortOrder = refreshed.reduce((max, m) => Math.max(max, m.sortOrder), -1) + 1
+  // Replace gallery with the current IUST set (drops legacy demo/behnaz/dupes).
+  await db.clubMedia.deleteMany({ where: { clubId } })
 
   const created: string[] = []
-  for (const photo of PILOT_ALL_COURT_PHOTOS) {
-    if (urls.has(photo.url)) continue
+  for (const [index, photo] of PILOT_ALL_COURT_PHOTOS.entries()) {
     await db.clubMedia.create({
       data: {
         clubId,
         url: photo.url,
-        sortOrder,
+        sortOrder: index,
         captionFa: photo.captionFa,
         captionEn: photo.captionEn,
       },
     })
     created.push(photo.url)
-    sortOrder += 1
   }
 
   return {
     mediaAdded: created,
-    mediaSkipped: PILOT_ALL_COURT_PHOTOS.filter((p) => urls.has(p.url)).map((p) => p.url),
+    mediaSkipped: [] as string[],
   }
 }
 
