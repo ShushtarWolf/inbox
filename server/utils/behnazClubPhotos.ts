@@ -96,9 +96,16 @@ export async function ensurePilotCourts(db: Db, clubId: string) {
 
 /** Attach full court gallery (idempotent by URL). */
 export async function applyPilotCourtPhotos(db: Db, clubId: string) {
-  // Drop legacy behnaz-* media URLs if present so gallery shows IUST paths only.
+  // Drop legacy demo/behnaz media URLs so gallery shows shipped IUST paths only.
   await db.clubMedia.deleteMany({
-    where: { clubId, url: { contains: 'behnaz-court-' } },
+    where: {
+      clubId,
+      OR: [
+        { url: { contains: 'behnaz-court-' } },
+        { url: { contains: '/demo/clubs/iust-court-' } },
+        { url: { contains: '/demo/clubs/behnaz-court-' } },
+      ],
+    },
   })
 
   const refreshed = await db.clubMedia.findMany({
