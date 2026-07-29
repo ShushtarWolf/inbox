@@ -19,8 +19,8 @@ provide('ownerMoreOpen', moreOpen)
 /** Primary Canva bottom-nav tabs. «بیشتر» opens a sheet grid (not /owner hub). */
 const primaryNavItems = [
   { path: '/owner/calendar', labelKey: 'owner.calendarShort', icon: 'calendar_month' },
-  { path: '/owner/finance', labelKey: 'owner.finance', icon: 'payments' },
-  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
+  { path: '/owner/finance', labelKey: 'owner.finance', icon: 'attach_money' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'person' },
 ] as const
 
 const activeMembership = computed(() => {
@@ -53,13 +53,18 @@ const bottomNav = computed((): NavItem[] => {
   items.push({
     to: '#more',
     label: t('owner.more'),
-    icon: 'apps',
+    icon: 'more_horiz',
     action: () => { moreOpen.value = true },
   })
   return items
 })
 
 const memberships = computed(() => user.value?.memberships || [])
+
+/** Club switcher white card must not sit above calendar photo hero (Canva). */
+const showLayoutClubSwitcher = computed(
+  () => memberships.value.length > 1 && !route.path.includes('/owner/calendar'),
+)
 
 watchEffect(() => {
   if (!selectedClubId.value && memberships.value.length) {
@@ -97,7 +102,7 @@ onMounted(() => fetchAuth())
     hide-mobile-header
     phone-shell
   >
-    <div v-if="memberships.length > 1" class="canva-club-switcher">
+    <div v-if="showLayoutClubSwitcher" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
         <AppIcon name="apartment" size="sm" />
       </span>

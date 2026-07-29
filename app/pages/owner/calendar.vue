@@ -191,11 +191,39 @@ const clubCalendarTitle = computed(() => {
   if (membership?.club) return localizedField(membership.club, 'nameFa', 'nameEn')
   return t('owner.calendar')
 })
-const clubHeroImage = computed(() => {
-  const memberships = user.value?.memberships || []
-  const membership = memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
-  return membership?.club?.image || '/hero/tennis-court.jpg'
-})
+/** Multi-club only — compact control under sheet title (never above photo hero). */
+const ownerMemberships = computed(() => user.value?.memberships || [])
+const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
+/** Canva owner hero uses the people/promo frame (same asset as athlete home), not club court crop. */
+const clubHeroImage = '/hero/fitness-venue.jpg'
+const localePath = useLocalePath()
+const settingsPath = computed(() => localePath('/owner/settings'))
+
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+let longPressFired = false
+
+function clearLongPressTimer() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+}
+
+function onSlotPointerDown(slot: OwnerCalendarSlot) {
+  if (slot.displayStatus !== 'FREE') return
+  longPressFired = false
+  clearLongPressTimer()
+  longPressTimer = setTimeout(() => {
+    longPressFired = true
+    multiSelectMode.value = true
+    closeMenu()
+    if (!isSlotSelected(slot)) toggleFreeSlot(slot)
+  }, 450)
+}
+
+function onSlotPointerEnd() {
+  clearLongPressTimer()
+}
 
 const overviewMonthLabel = computed(() => {
   const j = isoToJalaali(date.value)
@@ -299,6 +327,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick)
+  clearLongPressTimer()
 })
 
 function slotClass(status: string) {
@@ -509,12 +538,6 @@ function clearSelection() {
   selectionCourtId.value = null
 }
 
-function toggleMultiSelectMode() {
-  multiSelectMode.value = !multiSelectMode.value
-  if (!multiSelectMode.value) clearSelection()
-  if (multiSelectMode.value) closeMenu()
-}
-
 function isSlotSelected(slot: OwnerCalendarSlot) {
   return selectedSlotIds.value.includes(slot.id)
 }
@@ -536,6 +559,10 @@ function toggleFreeSlot(slot: OwnerCalendarSlot) {
 
 function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
+  if (longPressFired) {
+    longPressFired = false
+    return
+  }
   const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
   if (fullSlot.displayStatus !== 'FREE') {
     clearSelection()
@@ -1088,20 +1115,45 @@ function slotBarColor(status: string) {
 
 <template>
   <div class="venus-page-stack" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
-    <section class="canva-photo-hero">
-      <img :src="clubHeroImage" alt="" class="canva-photo-hero-media" />
+    <section class="canva-photo-hero -mx-4 sm:-mx-0">
+      <img
+        :src="clubHeroImage"
+        alt=""
+        class="canva-photo-hero-media"
+        style="filter: grayscale(0.55) brightness(0.72);"
+      />
       <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-top">
+        <span class="font-display text-base font-bold tracking-wide text-white">INBOX</span>
+        <div class="flex items-center gap-3 text-white">
+          <NuxtLink :to="settingsPath" :aria-label="t('owner.settings')">
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
+          <NuxtLink :to="settingsPath" :aria-label="t('nav.profile')">
+            <AppIcon name="person" size="sm" />
+          </NuxtLink>
+        </div>
+      </div>
       <div class="canva-promo-badge" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
       </div>
-      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8">
-        <p class="font-display text-lg font-bold text-white">INBOX</p>
-      </div>
+      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
     </section>
 
     <div class="canva-cal-sheet -mx-4 sm:mx-0">
       <h1 class="text-start text-base font-bold text-brand-navy">{{ clubCalendarTitle }}</h1>
+      <label
+        v-if="showClubSwitcher"
+        class="canva-cal-club-switch"
+      >
+        <span class="sr-only">{{ t('owner.activeClub') }}</span>
+        <select v-model="selectedClubId" class="canva-cal-club-select">
+          <option v-for="item in ownerMemberships" :key="item.club.id" :value="item.club.id">
+            {{ localizedField(item.club, 'nameFa', 'nameEn') }}
+          </option>
+        </select>
+      </label>
       <div class="canva-view-tabs mt-3">
         <button
           type="button"
@@ -1193,26 +1245,16 @@ function slotBarColor(status: string) {
         {{ weekdayLabel }}، <bdi dir="ltr" class="tabular-nums">{{ dayNumber }}</bdi> {{ monthLabel }}
       </p>
 
-      <div v-if="courts.length" class="flex flex-wrap items-center gap-2">
-        <div class="canva-rail min-w-0 flex-1 gap-2 pb-0">
-          <button
-            v-for="(court, idx) in courts"
-            :key="court.id"
-            type="button"
-            class="canva-court-chip"
-            :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
-            @click="activeCourtId = court.id"
-          >
-            {{ t('booking.courtNumber', { n: formatNumber(idx + 1) }) }}
-          </button>
-        </div>
+      <div v-if="courts.length" class="canva-rail gap-2 pb-0">
         <button
+          v-for="(court, idx) in courts"
+          :key="court.id"
           type="button"
-          class="canva-cal-multi-btn"
-          :class="multiSelectMode ? 'canva-cal-multi-btn-active' : ''"
-          @click="toggleMultiSelectMode"
+          class="canva-court-chip"
+          :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+          @click="activeCourtId = court.id"
         >
-          {{ t('owner.selectionBar.multiSelect') }}
+          {{ t('booking.courtNumber', { n: formatNumber(idx + 1) }) }}
         </button>
       </div>
 
@@ -1242,11 +1284,17 @@ function slotBarColor(status: string) {
             isSlotSelected(slot) ? 'canva-slot-row-selected' : '',
           ]"
           :style="{ background: slotBarColor(slot.displayStatus) }"
+          @pointerdown="onSlotPointerDown(slot)"
+          @pointerup="onSlotPointerEnd"
+          @pointerleave="onSlotPointerEnd"
+          @pointercancel="onSlotPointerEnd"
+          @contextmenu.prevent
           @click="handleSlotClick(slot)"
         >
-          <!-- Canva RTL bars: name at start (right), start-time at end (left) -->
+          <!-- Canva RTL bars: name at start (right), start-time at end (left); free = time only -->
           <span v-if="slotLabel(slot)" class="canva-slot-name min-w-0 flex-1 truncate text-start">{{ slotLabel(slot) }}</span>
-          <bdi dir="ltr" class="canva-slot-time ms-auto shrink-0 tabular-nums">{{ slotTimeLabel(slot) }}</bdi>
+          <span v-else class="min-w-0 flex-1" aria-hidden="true" />
+          <bdi dir="ltr" class="canva-slot-time shrink-0 tabular-nums">{{ slotTimeLabel(slot) }}</bdi>
         </button>
       </div>
     </section>

@@ -903,7 +903,7 @@
     @apply flex flex-col gap-1.5;
   }
   .canva-slot-row {
-    @apply relative flex w-full items-center justify-between gap-3 overflow-hidden px-3.5 py-3.5 text-start transition;
+    @apply relative flex w-full items-center gap-3 overflow-hidden px-3.5 py-3.5 text-start transition;
     border-radius: var(--sz-canva-radius);
     border: 0 !important;
     box-shadow: none !important;
@@ -1590,6 +1590,13 @@
   }
   .canva-cal-date-dot {
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-cal-club-switch {
+    @apply mt-1 block max-w-full;
+  }
+  .canva-cal-club-select {
+    @apply w-auto max-w-full border-0 bg-transparent py-0 pe-5 text-start text-[11px] font-bold text-brand-gray-500 outline-none;
     border-radius: var(--sz-canva-radius);
   }
   .canva-legend-row {
