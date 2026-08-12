@@ -1,5 +1,7 @@
+import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import { notifyBookingCancelled, clubNotifyName } from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
+import { refundPaymentForCancellation } from '../../../utils/refunds'
 import { canManageReservation } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -10,7 +12,21 @@ export default defineEventHandler(async (event) => {
     include: { slot: { include: { court: { include: { club: true } } } }, payment: true, user: true },
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
-  if (booking.status === 'CANCELLED') return { ok: true }
+
+  // Already cancelled: still retry refund if payment stayed PAID (non-atomic cancel→refund).
+  if (booking.status === 'CANCELLED') {
+    if (booking.payment?.id && isPaymentRefundable(booking.payment.status)) {
+      const refund = await refundPaymentForCancellation({
+        paymentId: booking.payment.id,
+        userId: booking.userId,
+        bookingId: booking.id,
+        reason: 'athlete-cancel-refund-retry',
+      })
+      return { ok: true, refund }
+    }
+    return { ok: true }
+  }
+
   if (!canManageReservation(booking.slot.date, booking.slot.startTime, booking.slot.court.club.cancellationWindowHours)) {
     throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }

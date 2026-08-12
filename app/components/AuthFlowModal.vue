@@ -123,14 +123,15 @@ async function goForgotPassword() {
 function goGate() {
   resetForm()
   purpose.value = 'login'
-  channel.value = smsLive.value ? 'otp' : 'password'
+  // Phone OTP is MVP primary (log mode = honest debugCode; live MULTI = real SMS).
+  channel.value = 'otp'
   step.value = 'gate'
 }
 
 function goLogin() {
   resetForm()
   purpose.value = 'login'
-  channel.value = smsLive.value ? 'otp' : 'password'
+  channel.value = 'otp'
   step.value = 'login'
 }
 
@@ -151,7 +152,7 @@ function goLoginPassword() {
 function goRole() {
   resetForm()
   purpose.value = 'register'
-  channel.value = smsLive.value ? 'otp' : 'password'
+  channel.value = 'otp'
   selectedRole.value = 'ATHLETE'
   step.value = 'role'
 }
@@ -159,7 +160,7 @@ function goRole() {
 function continueRole() {
   role.value = selectedRole.value
   purpose.value = 'register'
-  channel.value = 'password'
+  channel.value = 'otp'
   step.value = 'register'
 }
 
@@ -510,10 +511,10 @@ watch(
           </button>
           <p
             v-if="!smsLive"
-            class="border border-brand-gray-200 bg-white/80 px-3 py-2 text-start text-xs text-brand-gray-600"
+            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
-            {{ t('auth.otpUnavailableUsePassword') }}
+            {{ t('auth.otpLogModeBanner') }}
           </p>
         </template>
 
@@ -678,20 +679,11 @@ watch(
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
           <button
-            v-if="smsLive"
             type="button"
             class="canva-gate-btn-secondary"
             @click="goRegisterOtp"
           >
             {{ t('auth.registerWithPhone') }}
-          </button>
-          <button
-            v-else
-            type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
-            @click="goRegisterOtp"
-          >
-            {{ t('auth.otpDevOnlyLink') }}
           </button>
         </form>
 
@@ -705,7 +697,7 @@ watch(
             class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
-            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpUnavailableUsePassword') }}
+            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
           <template v-if="role === 'CLUB_ADMIN'">
             <AppFormField field-id="auth-otp-club" :label="t('auth.clubName')">
@@ -788,10 +780,10 @@ watch(
         >
           <p
             v-if="!smsLive"
-            class="border border-brand-gray-200 bg-white/80 px-3 py-2 text-start text-xs text-brand-gray-600"
+            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
-            {{ t('auth.otpUnavailableUsePassword') }}
+            {{ t('auth.otpLogModeBanner') }}
           </p>
           <p v-else class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
           <AppFormField field-id="login-identifier" :label="t('auth.emailOrPhone')">
@@ -826,20 +818,11 @@ watch(
             {{ t('auth.forgotPassword') }}
           </button>
           <button
-            v-if="smsLive"
             type="button"
             class="canva-gate-btn-secondary"
             @click="goLoginOtp"
           >
             {{ t('auth.loginWithPhone') }}
-          </button>
-          <button
-            v-else
-            type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
-            @click="goLoginOtp"
-          >
-            {{ t('auth.otpDevOnlyLink') }}
           </button>
           <button type="button" class="canva-gate-btn-secondary" @click="goRole">
             {{ t('auth.register') }}
@@ -856,7 +839,7 @@ watch(
             class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
-            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpUnavailableUsePassword') }}
+            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
           <AppFormField field-id="login-phone" :label="t('common.mobile')">
             <input

@@ -30,6 +30,16 @@ export async function creditWallet(
   if (amount <= 0) {
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
+  const type = meta.type || 'REFUND_CREDIT'
+  // Idempotent cancel/refund retries: one REFUND_CREDIT (or same typed credit) per paymentId.
+  if (meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT')) {
+    const existing = await db.walletTransaction.findFirst({
+      where: { paymentId: meta.paymentId, type },
+    })
+    if (existing) {
+      return getOrCreateWallet(userId, db)
+    }
+  }
   const wallet = await getOrCreateWallet(userId, db)
   const updated = await db.wallet.update({
     where: { id: wallet.id },
@@ -39,7 +49,7 @@ export async function creditWallet(
     data: {
       walletId: wallet.id,
       amount,
-      type: meta.type || 'REFUND_CREDIT',
+      type,
       paymentId: meta.paymentId,
       bookingId: meta.bookingId,
       note: meta.note,

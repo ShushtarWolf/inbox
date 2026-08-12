@@ -1115,7 +1115,11 @@ function canMarkPaid() {
 function canMarkUnpaid() {
   if (batchMode.value || !selectedSlotFull.value?.booking) return false
   if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
-  return isPaidPaymentStatus(slotPaymentStatus(selectedSlotFull.value))
+  if (!isPaidPaymentStatus(slotPaymentStatus(selectedSlotFull.value))) return false
+  // IPG PAID → cancel for reverse/wallet; desk mark-unpaid only cash/wallet.
+  const method = selectedSlotFull.value.booking.payment?.method
+    || selectedSlotFull.value.booking.paymentMethod
+  return method !== 'IPG'
 }
 
 function canShowCoachReserve() {
@@ -1533,6 +1537,7 @@ function slotBarColor(status: string) {
           </template>
 
           <template v-if="!activePanel">
+            <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
             <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
               <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
               <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>

@@ -7,15 +7,15 @@ export type AuthFlowStep =
   | 'otp'
   | 'welcome'
 
-/** Password is the MVP launch path; OTP auto-flips when SMS is MULTI-live. */
+/** Phone OTP is the court-MVP primary path; password remains a fallback. */
 export type AuthFlowChannel = 'password' | 'otp'
 
 export type AuthFlowRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
 
 export type AuthWelcomeVariant = 'athlete' | 'owner' | 'login'
 
-function defaultAuthChannel(smsLive?: boolean): AuthFlowChannel {
-  return smsLive ? 'otp' : 'password'
+function defaultAuthChannel(_smsLive?: boolean): AuthFlowChannel {
+  return 'otp'
 }
 
 export function useAuthFlow() {
@@ -23,7 +23,7 @@ export function useAuthFlow() {
   const step = useState<AuthFlowStep>('auth-flow-step', () => 'closed')
   const role = useState<AuthFlowRole>('auth-flow-role', () => 'ATHLETE')
   const purpose = useState<'login' | 'register'>('auth-flow-purpose', () => 'login')
-  const channel = useState<AuthFlowChannel>('auth-flow-channel', () => 'password')
+  const channel = useState<AuthFlowChannel>('auth-flow-channel', () => 'otp')
   const returnTo = useState('auth-flow-return-to', () => '')
   const notice = useState('auth-flow-notice', () => '')
   const welcomeVariant = useState<AuthWelcomeVariant>('auth-flow-welcome', () => 'login')
@@ -71,7 +71,7 @@ export function useAuthFlow() {
   function close() {
     open.value = false
     step.value = 'closed'
-    channel.value = 'password'
+    channel.value = 'otp'
     notice.value = ''
     pendingRedirect.value = ''
   }

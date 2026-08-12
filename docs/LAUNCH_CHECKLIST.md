@@ -5,6 +5,16 @@ Production: **Liara** app `inbox` → `https://inboxs.ir`. **You deploy manually
 
 Out of scope for this launch: coach product, matchmaking, Google OAuth, season/package products, new CRM features, EN UI.
 
+### Freeze — keep OFF (do not re-enable)
+
+| Surface | How it stays off |
+|---------|------------------|
+| Coach product | `PILOT_NO_COACH=true` + middleware `/coaches`, `/book/coach`, `/owner/coaches`, `/register/coach` |
+| Season / package reserve | `isRecurringReserveEnabled() === false` → API `403`; calendar openers gated |
+| Google OAuth | `/auth/google` 404; UI hard-off (`googleAuthEnabled: false`) |
+| EN product UI | `defaultLocale: fa` + `/en` redirect |
+| Zarinpal | Not in provider registry for checkout |
+
 ---
 
 ## 1. Liara env (set before deploy / restart)

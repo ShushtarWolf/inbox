@@ -265,6 +265,137 @@ async function main() {
   assert(bookingsPage.status === 200, `/athlete/bookings → ${bookingsPage.status}`)
   console.log('ok  /athlete/bookings')
 
+  // --- 4b. Online pay (test mode) → PAID → cancel refund → wallet top-up ---
+  const { res: checkoutRes, data: checkout } = await apiFetch(base, '/api/payments/checkout', {
+    jar,
+    session: 'athlete',
+    method: 'POST',
+    body: { bookingId: booking.id },
+  })
+  assert(checkoutRes.ok, `checkout → ${checkoutRes.status}: ${JSON.stringify(checkout)}`)
+  const providerRef = checkout?.intent?.providerRef
+  const provider = checkout?.intent?.provider || 'sep'
+  if (providerRef && checkout?.intent?.status === 'PENDING_ONLINE') {
+    const okPath = `/payments/callback/${provider}?ResNum=${encodeURIComponent(providerRef)}&State=OK`
+    const first = await fetch(`${base}${okPath}`, { redirect: 'manual' })
+    assert([302, 303].includes(first.status), `pay callback expected redirect, got ${first.status}`)
+    const loc = first.headers.get('location') || ''
+    assert(/payment=success/.test(loc), `pay success redirect missing: ${loc}`)
+    const second = await fetch(`${base}${okPath}`, { redirect: 'manual' })
+    assert([302, 303].includes(second.status), `pay double-callback expected redirect, got ${second.status}`)
+    console.log('ok  online pay callback (idempotent)')
+
+    const { res: payListRes, data: payList } = await apiFetch(base, '/api/athlete/payments', {
+      jar,
+      session: 'athlete',
+    })
+    assert(payListRes.ok, `athlete payments → ${payListRes.status}`)
+    const rows = Array.isArray(payList) ? payList : (payList.payments || payList.items || [])
+    assert(
+      rows.some((row) => row.status === 'PAID' && (row.bookingId === booking.id || row.booking?.id === booking.id)),
+      'PAID payment row missing after callback',
+    )
+    console.log('ok  /api/athlete/payments shows PAID')
+
+    // Desk mark-unpaid must reject IPG PAID (cancel is the refund path)
+    const { data: calAfterPay } = await apiFetch(base, `/api/owner/calendar?date=${bookDate}`, {
+      jar,
+      session: 'owner',
+    })
+    const paidSlot = (calAfterPay.slots || []).find((slot) => slot.id === athleteSlot.id)
+    if (paidSlot?.booking) {
+      const { res: unpaidRes } = await apiFetch(base, '/api/owner/reserve', {
+        jar,
+        session: 'owner',
+        method: 'POST',
+        body: {
+          slotId: paidSlot.id,
+          guestName: paidSlot.booking.guestName || 'x',
+          paymentMethod: 'CASH',
+          paymentStatus: 'PAY_AT_CLUB',
+        },
+        expectStatus: 409,
+      })
+      assert(unpaidRes.status === 409, `mark-unpaid IPG expected 409, got ${unpaidRes.status}`)
+      console.log('ok  desk mark-unpaid blocked for IPG PAID (409)')
+    }
+
+    const { res: cancelRes, data: cancel } = await apiFetch(base, `/api/bookings/${booking.id}/cancel`, {
+      jar,
+      session: 'athlete',
+      method: 'PATCH',
+    })
+    assert(cancelRes.ok, `cancel → ${cancelRes.status}: ${JSON.stringify(cancel)}`)
+    assert(cancel.ok, 'cancel missing ok')
+    // Retry cancel must still compensate refund if needed (idempotent)
+    const { res: cancelRetryRes, data: cancelRetry } = await apiFetch(base, `/api/bookings/${booking.id}/cancel`, {
+      jar,
+      session: 'athlete',
+      method: 'PATCH',
+    })
+    assert(cancelRetryRes.ok, `cancel retry → ${cancelRetryRes.status}`)
+    assert(cancelRetry.ok, 'cancel retry missing ok')
+    console.log('ok  athlete cancel + refund retry')
+
+    const { res: walletBeforeRes, data: walletBefore } = await apiFetch(base, '/api/wallet', {
+      jar,
+      session: 'athlete',
+    })
+    assert(walletBeforeRes.ok, `wallet → ${walletBeforeRes.status}`)
+    const balanceAfterCancel = Number(walletBefore.balance || 0)
+
+    const { res: topupRes, data: topup } = await apiFetch(base, '/api/wallet/topup', {
+      jar,
+      session: 'athlete',
+      method: 'POST',
+      body: { amount: 50000 },
+    })
+    assert(topupRes.ok, `wallet topup → ${topupRes.status}: ${JSON.stringify(topup)}`)
+    const topupRef = topup?.intent?.providerRef || topup?.providerRef
+    assert(topupRef, 'topup missing providerRef')
+    const topupCb = `/payments/callback/${topup?.intent?.provider || provider}?ResNum=${encodeURIComponent(topupRef)}&State=OK`
+    const topupPay = await fetch(`${base}${topupCb}`, { redirect: 'manual' })
+    assert([302, 303].includes(topupPay.status), `topup callback → ${topupPay.status}`)
+    const { data: walletAfter } = await apiFetch(base, '/api/wallet', { jar, session: 'athlete' })
+    const balAfterTopup = Number(walletAfter.balance || 0)
+    assert(
+      balAfterTopup >= balanceAfterCancel + 50000,
+      `wallet balance did not rise after topup (${walletAfter.balance} vs ${balanceAfterCancel})`,
+    )
+    console.log('ok  wallet top-up via test IPG')
+
+    // Spend full amount from wallet on a fresh booking
+    let spendSlot = null
+    for (let offset = 2; offset < 12 && !spendSlot; offset++) {
+      const spendDate = dateOffset(offset)
+      const { data } = await apiFetch(
+        base,
+        `/api/slots/available?club=${provision.clubSlug}&date=${spendDate}`,
+      )
+      const slots = Array.isArray(data) ? data : (data.slots || [])
+      spendSlot = slots.find((slot) => slot.id !== athleteSlot.id && slot.id !== freeSlot.id) || slots[0] || null
+    }
+    assert(spendSlot, 'no slot for wallet spend')
+    const { data: spendBook } = await apiFetch(base, '/api/bookings/court', {
+      jar,
+      session: 'athlete',
+      method: 'POST',
+      body: { slotId: spendSlot.id },
+    })
+    const { res: spendRes, data: spendPay } = await apiFetch(base, '/api/payments/checkout', {
+      jar,
+      session: 'athlete',
+      method: 'POST',
+      body: { bookingId: spendBook.id, useWallet: true },
+    })
+    assert(spendRes.ok && spendPay?.intent?.status === 'PAID', `wallet spend → ${spendRes.status}`)
+    const { data: walletSpent } = await apiFetch(base, '/api/wallet', { jar, session: 'athlete' })
+    assert(Number(walletSpent.balance) < balAfterTopup, 'wallet balance did not drop after spend')
+    console.log('ok  wallet spend (useWallet checkout)')
+  } else {
+    console.log(`skip online pay path (status=${checkout?.intent?.status || 'n/a'})`)
+  }
+
   // --- 5. Pilot no-coach gates (when runtime flag is on) ---
   const { html: homeHtml } = await fetchPage(base, '/')
   const pilotNoCoach = hasPilotNoCoach(homeHtml)
@@ -286,7 +417,7 @@ async function main() {
     )
     console.log('ok  /owner/coaches redirects away')
 
-    const { html: ownerHtml } = await fetchPage(base, '/owner', { jar, session: 'owner' })
+    const { html: ownerHtml } = await fetchPage(base, '/owner/calendar', { jar, session: 'owner' })
     assert(hasPilotNoCoach(ownerHtml), 'owner calendar missing pilotNoCoach runtime flag')
     // Coach reserve CTA is client-gated by pilotNoCoach; shell must not render the label.
     assert(

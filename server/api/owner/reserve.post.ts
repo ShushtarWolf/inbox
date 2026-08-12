@@ -96,6 +96,19 @@ export default defineEventHandler(async (event) => {
     )
     const becomingUnpaid = previousPaid && paymentStatus !== 'PAID'
 
+    // Online IPG PAID must cancel (gateway reverse / wallet fallback) — desk mark-unpaid would drop money.
+    if (
+      becomingUnpaid
+      && previousPayment
+      && previousPayment.method === 'IPG'
+      && isPaidPaymentStatus(previousPayment.status)
+    ) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Online paid bookings must be cancelled to refund',
+      })
+    }
+
     await prisma.$transaction(async (tx) => {
       if (wasWalletPaid && previousPayment && slot.booking?.userId) {
         await creditWallet(slot.booking.userId, previousPayment.amount, {
