@@ -61,9 +61,11 @@ const bottomNav = computed((): NavItem[] => {
 
 const memberships = computed(() => user.value?.memberships || [])
 
-/** Club switcher white card must not sit above calendar photo hero (Canva). */
+/** Club switcher white card must not sit above photo-hero pages (Canva). */
 const showLayoutClubSwitcher = computed(
-  () => memberships.value.length > 1 && !route.path.includes('/owner/calendar'),
+  () => memberships.value.length > 1
+    && !route.path.includes('/owner/calendar')
+    && !route.path.includes('/owner/finance'),
 )
 
 watchEffect(() => {

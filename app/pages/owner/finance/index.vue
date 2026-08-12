@@ -149,6 +149,8 @@ const heroTitle = computed(() => {
 const maxWeeklyRevenue = computed(() => Math.max(...weekly.value, 0))
 const isChartEmpty = computed(() => !weekly.value.some((amount: number) => amount > 0))
 const chartAreaHeight = 140
+/** Canva: today (last day in weekly series) is the red bar. */
+const activeChartIndex = computed(() => Math.max(weekly.value.length - 1, 0))
 
 function barHeightPx(amount: number) {
   if (!amount || !maxWeeklyRevenue.value) return 0
@@ -234,6 +236,33 @@ function closeTx() {
 
 <template>
   <div class="venus-page-stack">
+    <section class="canva-photo-hero -mx-4 sm:-mx-0">
+      <img
+        src="/hero/fitness-venue.jpg"
+        alt=""
+        class="canva-photo-hero-media"
+        style="filter: grayscale(0.55) brightness(0.72);"
+      />
+      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-top">
+        <span class="font-display text-base font-bold tracking-wide text-white">INBOX</span>
+        <div class="flex items-center gap-3 text-white">
+          <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('owner.settings')">
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
+          <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('nav.profile')">
+            <AppIcon name="person" size="sm" />
+          </NuxtLink>
+        </div>
+      </div>
+      <div class="canva-promo-badge pointer-events-none" aria-hidden="true">
+        <span class="canva-promo-badge-pct">۲۰٪</span>
+        <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
+      </div>
+      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
+    </section>
+
+    <div class="canva-cal-sheet -mx-4 sm:mx-0">
     <div class="canva-finance-period">
       <button
         type="button"
@@ -322,10 +351,14 @@ function closeTx() {
             >
               <div
                 class="canva-finance-chart-bar"
+                :class="index === activeChartIndex ? 'canva-finance-chart-bar-active' : ''"
                 :style="{ height: `${barHeightPx(amount)}px` }"
                 :title="`${formatWeekLabel(data?.weekLabels?.[index])} — ${formatCurrency(amount)}`"
               />
-              <span class="text-[10px] font-bold text-white/90">{{ weekdayLetter(data?.weekLabels?.[index]) }}</span>
+              <span
+                class="canva-finance-chart-label"
+                :class="index === activeChartIndex ? 'canva-finance-chart-label-active' : ''"
+              >{{ weekdayLetter(data?.weekLabels?.[index]) }}</span>
             </div>
           </div>
         </div>
@@ -478,5 +511,6 @@ function closeTx() {
     </AppModal>
 
     <OwnerLegalFooter />
+    </div>
   </div>
 </template>

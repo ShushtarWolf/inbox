@@ -29,12 +29,14 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 | `home page (6).png` | `/athlete/favorites` | `overlays/favorites.jpg` |
 | `home page (5).png` | `/athlete` hub menu | capture: `localhost/app-athlete-hub.png` |
 | `home page (7).png` | `/athlete/bookings` history | capture only |
-| `home page (9|10|15).png` | `/owner/calendar` today (color bars, tabs, hero chrome, nav) | `overlays/owner-calendar.jpg` |
-| `home page (12).png` | `/owner/calendar` walk-in reserve sheet | — |
-| `home page (14).png` | `/owner/calendar` overview tab | — |
-| `جزییات بازیکن.png` | `/owner/finance` (+ txn sheet) | `overlays/owner-finance.jpg` |
-| `گزارش پیشرفته.png` | `/owner/finance/report` | `overlays/finance-report.jpg` |
-| `home page (18).png` | `/owner/crm` | `overlays/owner-crm.jpg` |
+| `home page (9).png` + date picker `(13)` | `/owner/calendar` **Today multi-court grid** (date arrows, legend + note star, FAB رزرو/مسدود) | `overlays/owner-calendar.jpg` |
+| `home page (10|17|18).png` | `/owner/calendar` walk-in reserve / action menu / block+note sheets | — |
+| `home page (14|15).png` | `/owner/calendar` booking detail + multi-cancel sheet | — |
+| `changed.png` (= prior overview) | `/owner/calendar` overview tab | — |
+| `home page (26).png` | `/owner/finance` (photo hero + chart polish) | `overlays/owner-finance.jpg` |
+| `جزییات بازیکن.png` | `/owner/finance` txn sheet | — |
+| `گزارش پیشرفته.png` | `/owner/finance/report` | — |
+| `home page (28).png` (was 18) | `/owner/crm` | `overlays/owner-crm.jpg` |
 | `کمپین پیامکی جدید*.png` | CRM SMS wizard sheet | — |
 | `افزودن زمین.png` | owner add-court / settings court form | — |
 | `home page (20).png` / `(21).png` | `/owner/equipments` (+ edit sheet) | — |
