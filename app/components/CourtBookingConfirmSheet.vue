@@ -249,7 +249,8 @@ async function submit(preferWallet = false) {
         <template v-else>
           <div class="text-center">
             <p class="canva-confirm-book-title">{{ t('booking.confirmFinalTitle') }}</p>
-            <h2 class="mt-1 text-xl font-bold text-brand-navy">{{ clubName }}</h2>
+            <!-- Canva (4): club name under green confirm title is red -->
+            <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubName }}</h2>
             <p v-if="metaLine || (ratingDisplay && ratingDisplay !== '—')" class="mt-1 flex flex-wrap items-center justify-center gap-1 text-xs text-brand-gray-600">
               <span v-if="metaLine">{{ metaLine }}</span>
               <template v-if="ratingDisplay && ratingDisplay !== '—'">

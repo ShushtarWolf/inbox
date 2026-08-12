@@ -71,8 +71,17 @@ const activeGallery = computed(() => gallerySlides.value[gallerySlide.value] || 
 
 const ratingDisplay = computed(() => {
   if (!club.value) return '—'
-  const value = club.value.reviewSummary?.average ?? club.value.rating
-  return value != null ? Number(value).toFixed(1) : '—'
+  // Empty reviewSummary.average is 0 — do not mask club.rating (Canva shows ~۴.۳).
+  const summary = club.value.reviewSummary
+  const fromReviews =
+    summary && summary.count > 0 && summary.average != null && Number(summary.average) > 0
+      ? Number(summary.average)
+      : null
+  const fallback = club.value.rating != null && Number(club.value.rating) > 0
+    ? Number(club.value.rating)
+    : null
+  const value = fromReviews ?? fallback
+  return value != null ? value.toFixed(1) : '—'
 })
 
 const locationLine = computed(() => {
@@ -529,20 +538,7 @@ async function shareClub() {
             </span>
           </div>
 
-          <p class="canva-club-book-slots-label">{{ t('clubs.selectCourt') }}</p>
-          <div class="canva-clubs-chip-row flex-wrap">
-            <button
-              v-for="(court, idx) in courts"
-              :key="court.id"
-              type="button"
-              class="canva-club-court-num"
-              :class="selectedCourtId === court.id ? 'canva-club-court-num-active' : ''"
-              @click="selectedCourtId = court.id"
-            >
-              {{ formatNumber(idx + 1) }}
-            </button>
-          </div>
-
+          <!-- Canva (3): calendar RIGHT · court nums + slots LEFT -->
           <div class="canva-club-book">
             <div class="canva-club-book-cal">
               <div class="canva-club-cal-nav">
@@ -578,6 +574,19 @@ async function shareClub() {
             </div>
 
             <div class="canva-club-book-slots">
+              <p class="canva-club-book-slots-label">{{ t('clubs.selectCourt') }}</p>
+              <div class="canva-clubs-chip-row mb-2 flex-wrap">
+                <button
+                  v-for="(court, idx) in courts"
+                  :key="court.id"
+                  type="button"
+                  class="canva-club-court-num"
+                  :class="selectedCourtId === court.id ? 'canva-club-court-num-active' : ''"
+                  @click="selectedCourtId = court.id"
+                >
+                  {{ formatNumber(idx + 1) }}
+                </button>
+              </div>
               <div class="canva-club-slot-grid">
                 <button
                   v-for="slot in courtSlots"

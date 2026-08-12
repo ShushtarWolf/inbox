@@ -1,52 +1,56 @@
 # Canva ↔ App frame map (local)
 
-Generated from `canva-reference/pages/` (69 files; 14 blankish skipped).
-Side-by-side overlays live in `comparisons/overlays/`.
-App captures (375×812) live in `comparisons/localhost/`.
+Source of truth (Aug 12): `canva-reference/inbox-website-2026-08-12/raw/` (80 PNGs).
+Prior overlays live in `comparisons/overlays/`; app captures in `comparisons/localhost/`.
 
-## Inventory
+## Inventory (Aug 12 export)
 
 | Kind | Count |
 |------|------:|
-| Total PNGs | 69 |
+| Total PNGs | 80 |
 | Blank / near-empty (&lt;20KB) | 14 |
-| Real frames | 55 |
+| Real frames | 66 |
 
-Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
+Blankish (ignore): `17,21,26,45,49,55,59,66,69,73,77–80.png`
+
+Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|39|40|41|43).png` (high cream ratio).
 
 ## Route map (needed product pages)
 
-| Canva file(s) | App route / UI | Overlay |
+| Canva file(s) | App route / UI | Notes |
 |---|---|---|
-| `home page.png`, `home page (2).png` | `/` public home | `overlays/public-home.jpg` |
-| `Court list.png` | `/clubs` | `overlays/clubs-list.jpg` |
-| `home page (3).png` | `/clubs/[slug]` club detail (slots + calendar) | — |
-| `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | — |
-| `login_sign up.png` | AuthFlow **gate** (`/login`) | capture: `localhost/app-auth-gate.png` |
-| `4.png` | AuthFlow **role** picker | — |
+| `home page.png`, `home page (2).png` | `/` public home | Logo R / login L; hero; square search; 3 rails |
+| `Court list.png` | `/clubs` | Mustard square sport chips + court cards + **رزرو کن** |
+| `home page (3).png` | `/clubs/[slug]` club detail | Gallery · amenities · cal R / courts+slots L · confirm CTA |
+| `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | Green title · red club name · پرداخت |
+| `login_sign up.png` | AuthFlow **gate** | Square CTAs; Google in Canva is **product-excluded** |
+| `4.png` | AuthFlow **role** picker | Canva shows Coach — live = Athlete/Owner only |
 | `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | — |
-| `home page (8).png` | `/athlete/home` | `overlays/athlete-home.jpg` |
-| `home page (6).png` | `/athlete/favorites` | `overlays/favorites.jpg` |
-| `home page (5).png` | `/athlete` hub menu | capture: `localhost/app-athlete-hub.png` |
-| `home page (7).png` | `/athlete/bookings` history | capture only |
-| `home page (9).png` + date picker `(13)` | `/owner/calendar` **Today multi-court grid** (date arrows, legend + note star, FAB رزرو/مسدود) | `overlays/owner-calendar.jpg` |
-| `home page (10|17|18).png` | `/owner/calendar` walk-in reserve / action menu / block+note sheets | — |
-| `home page (14|15).png` | `/owner/calendar` booking detail + multi-cancel sheet | — |
-| `changed.png` (= prior overview) | `/owner/calendar` overview tab | — |
-| `home page (26).png` | `/owner/finance` (photo hero + chart polish) | `overlays/owner-finance.jpg` |
+| `home page (8).png` | `/athlete/home` | Photo hero + curve + ۲۰٪ + rails + bottom nav |
+| `home page (6).png` | `/athlete/favorites` | — |
+| `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva) |
+| `home page (7).png` | `/athlete/bookings` history | Cancel / rebook CTAs |
+| `home page (9).png` + date picker `(13)` | `/owner/calendar` **Today multi-court grid** | Primary owner Today |
+| `home page (10\|17\|18).png` | `/owner/calendar` walk-in / block+note sheets | — |
+| `home page (11).png` | Owner recurring / continue-book sheet on calendar | Soft-land (season/package gated) |
+| `home page (12\|19).png` | Owner desk confirm (pay link / cash) | Soft-land vs athlete confirm `(4)` |
+| `home page (14\|15\|16).png` | Booking detail + multi-cancel sheet | — |
+| `changed.png` | `/owner/calendar` overview tab | Designer-marked |
+| `home page (22\|23\|24\|25\|27\|32\|38\|42).png` | Owner **list-day** / action sheets / More menu | Alternate to `(9)` grid — do **not** replace grid without ask |
+| `home page (26).png` | `/owner/finance` | Photo hero + chart |
 | `جزییات بازیکن.png` | `/owner/finance` txn sheet | — |
 | `گزارش پیشرفته.png` | `/owner/finance/report` | — |
-| `home page (28).png` (was 18) | `/owner/crm` | `overlays/owner-crm.jpg` |
+| `home page (28).png` | `/owner/crm` | — |
 | `کمپین پیامکی جدید*.png` | CRM SMS wizard sheet | — |
 | `افزودن زمین.png` | owner add-court / settings court form | — |
-| `home page (20).png` / `(21).png` | `/owner/equipments` (+ edit sheet) | — |
+| `home page (20\|21\|30).png` | `/owner/equipments` (+ edit) | `(30)` thin duplicate |
 | `home page (29).png` | `/owner/support` | — |
 
 ### Routing notes (post Prompts 1–9 cleanup)
 
 - **Primary court book UX** = `/clubs/[slug]` + confirm sheet (`(3)` / `(4)`). Do not send athletes through a standalone book page.
 - **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
-- **Athlete booking detail** `/athlete/bookings/[id]` (and coach variant) → `/athlete/bookings?booking=` / `?coachSession=` (list is primary; detail is deep-link only).
+- **Athlete booking detail** `/athlete/bookings/[id]` → `/athlete/bookings?booking=` (list is primary).
 - **Coach / package** stay pilot-gated (`/book/coach`, `/book/package`, `/coaches`, …).
 
 ## Severity legend
@@ -56,90 +60,58 @@ Blankish (ignore): `17,21,26,34,38,44,48,55,58,62,66–69.png`
 - **copy** — placeholder / wrong labels
 - **ok-enough** — same job, minor polish
 
-## Gap summary (after Prompts 1–9 + cleanup)
+## Gap summary (Aug 12 QA pass)
 
-### Fixed blockers (product / flow)
+### Fixed this pass
 
-- Court booking lived on orphan `/book/court` → **fixed**: confirm sheet on club detail; legacy route redirects.
-- Athlete booking detail as separate primary surface → **fixed**: redirect to history list + query highlight.
-- Coach/package in primary court MVP paths → **fixed**: pilot middleware (+ `/book/package`); soft landings when reached.
-- AuthFlow Canva gate / role / sheets square CTAs; CRM SMS schedule sheet shipped in prior prompts.
+| Frame | Route | Severity | What was wrong | Fix |
+|---|---|---|---|---|
+| `(3)` | `/clubs/[slug]` | **blocker** | Rating showed `0.0` when `reviewSummary.average=0` with empty reviews | Prefer `club.rating` when review count is 0 |
+| `Court list` | `/clubs` | **copy** | Card CTA `رزرو آن` vs Canva `رزرو کن` | Use `home.bookNow` |
+| `(3)` | `/clubs/[slug]` | **visual** | Court nums sat above book widget | Move court picker into slots column (cal R / courts+slots L) |
+| `(4)` | confirm sheet | **visual** | Club name navy vs Canva red | `text-brand-primary` on confirm club title |
 
-### Public home `/`
-- **ok-enough**: Logo R / login L, hero rails, square red **جستجو** CTA + white field group (LOCKED search).
-- **copy**: Live FA hero uses real marketing (`رزرو زمین، راحت و سریع`). Canva artboard + AuthFlow gate still show shared placeholder **“Check this box!”** — keep that string on AuthFlow only for frame parity; do not put it back on `/`.
-- **visual (remaining)**: Public bottom nav / escape chrome even when Canva artboard omits them.
+### High-traffic status
 
-### `/clubs` + club detail `(3)` / confirm `(4)`
-- **ok-enough**: List hero + cards; detail calendar/slots + square confirm sheet CTAs.
-- **visual (remaining)**: Pixel polish vs Canva overlays (spacing, gallery chrome); app bottom nav vs full-bleed Canva.
+| Frame | Route | Severity | Notes |
+|---|---|---|---|
+| `home page` / `(2)` | `/` | **ok-enough** | Chrome, hero white title, square search (2 fields), rails, bottom nav kept |
+| `home page` search | `/` | **visual** (remaining) | Canva has 3 fields (sport · city/court · date); live sport+city. Ask before adding date |
+| `Court list` | `/clubs` | **ok-enough** | Square mustard chips, section head, square CTAs |
+| `(3)` / `(4)` | club detail + confirm | **ok-enough** | Interactive slots + sheet; product wallet/pay CTAs kept |
+| `login_sign up` / `4` | AuthFlow | **ok-enough** | No Google (intentional); Athlete/Owner only (Coach in Canva skipped) |
+| `(8)` / `(5)` / `(7)` | athlete home / hub / bookings | **ok-enough** | Prior ship; bottom nav labels may differ from icon-only Canva |
+| `(9)` + sheets | owner calendar | **ok-enough** | Multi-court grid is source of truth |
+| `(22–25,27,…)` | owner list-day | **skip / soft-land** | Decorative alternate; ask before product redesign |
+| `(11)` recurring | owner sheet | **out of MVP** | Season/package gated — soft-land |
+| `(12\|19)` owner pay sheet | owner desk | **soft-land** | Cash / pay-link desk flow — not athlete `(4)` |
 
-### Auth gate
-- **product**: No Google (intentional). Square gate CTAs + Athlete/Owner only.
-- **copy**: Gate tagline stays Canva “Check this box!” for auth sheets.
+### Chrome consistency (product rule)
 
-### `/athlete/home` vs `(8)`
-- **ok-enough**: Photo hero + curve + ۲۰٪ badge + greeting + text **جستجو** search row + 3 rails.
-- **visual (remaining)**: Bottom-nav labels may still differ from icon-only Canva variants.
-
-### `/athlete/favorites` vs `(6)`
-- **ok-enough**: Photo header + sport chips + rich cards / empty + browse CTA.
-
-### `/athlete` hub vs `(5)`
-- **ok-enough**: Red curved hero, **circular** avatar (Canva), square stats, menu list.
-- **product**: Wallet row kept (pay infrastructure); Canva list omits it.
-
-### Athlete profile + notifications + bookings
-- **ok-enough**: Square panels / CTAs; bookings calendar + cards / inline cancel–rebook–pay. History source of truth is `(7)` (not `(12)` — that frame is owner walk-in reserve).
-- **visual (remaining)**: History card density vs `(7)`; avatar may be `rounded-full` (matches hub circle).
-
-### `/owner/equipments` vs `(20)`/`(21)`
-- **ok-enough**: Square gray amenity chips + price bars; green **+ افزودن** on section start (left in RTL); edit sheet black **ذخیره**.
-- **visual (remaining)**: No red dash-hero band (Canva is title + subtitle only).
-
-### `/owner/support` vs `(29)`
-- **ok-enough**: Text ops guide + contact lines on cream; no soft TailAdmin cards / red hero band.
-
-### `/owner/calendar` / finance / CRM
-- **ok-enough for COURT-MVP**: Frames `(9)` / `(10)` / `(15)` at 375px — color bars, today/overview tabs, photo hero chrome, owner bottom nav. Sheet radius locked to ≤2px; season/package dead panels use square chips (not neo-pill).
-- **settlement**: Finance payouts panel = real SHEBA + withdraw REQUEST (no `payoutsPlaceholder`).
-- **flow fixes shipped**: guest confirm auth-gate; wallet CTA on confirm when balance covers; club slug alias `club-9208f4` → `iust-tennis`; pilot map pin fallback; wide viewport single login (Canva chrome ≤430 only).
-- **visual (remaining)**: Pixel polish vs `(15)` / `(10)` only if new Canva frames land.
-
-## Chrome consistency (product rule)
-
-Phone frames in Canva often omit shared chrome. **Live app must keep escape hatches** even when a Canva artboard does not show them:
+Phone frames in Canva often omit shared chrome. **Live app must keep escape hatches**:
 
 | Surface | Required chrome |
 |---------|-----------------|
 | Public (≤430px) | `CanvaPublicChrome` — INBOX logo → home, login / welcome; funnel pages also pass `backTo` |
-| Athlete primary tabs | Bottom nav + (home/favorites/bookings) logo or `CanvaAthleteChrome` + profile shortcut |
-| Athlete secondary | `CanvaSubpageHeader` → `/athlete` (notifications, wallet, payments, profile) |
+| Athlete primary tabs | Bottom nav + home/profile shortcuts |
+| Athlete secondary | `CanvaSubpageHeader` → `/athlete` |
 | Owner primary tabs | Bottom nav (calendar / finance / settings / more) |
 | Owner More destinations | `CanvaSubpageHeader` → `/owner/calendar?more=1` |
 
-Components: `CanvaPublicChrome.vue`, `CanvaSubpageHeader.vue`, `CanvaAthleteChrome.vue`.
-
 **Do not** strip bottom nav / logo / back to “match Canva” if that strands the user.
 
-## Recommended fix order (remaining — visual only)
+## Recommended next (ask first)
 
-1. Club detail / confirm sheet pixel polish vs `(3)` / `(4)` overlays (optional)
-2. Finance / CRM polish only if new frames land
-3. Re-capture overlays after UI changes (latest: `public-home` + `owner-calendar` @ 375px)
-
-## Clarity QA notes (Jul 2026)
-
-- Script loads in prod (`data-clarity-project=xsyany4vpj`).
-- Pre-fix dead-click cluster on `/`: date remnant, city placeholder, duplicate login, hero chevrons — addressed in UX friction ship; recheck after Liara deploy.
-- Post-fix hotspots fixed here: owner promo badge, club «نقشه» empty (no lat/lng) → pilot pin + address OSM fallback.
+1. Home search third field (date / free-text city) — visual only vs product query params
+2. Owner list-day frames `(22+)` — replace or keep multi-court `(9)`?
+3. Auth role Coach row — expand scope or keep Athlete/Owner?
+4. Re-capture overlays after UI changes
 
 ## How to re-compare cheaply
 
 ```bash
 # regenerate overlays after UI changes
-# (script pattern already used: resize Canva+app to 180×390 side-by-side JPG)
 open canva-reference/comparisons/overlays/
 ```
 
-Do **not** open all 55 full PNGs in chat — use contact sheets + one overlay per task.
+Do **not** open all 66 full PNGs in chat — use contact sheets + one overlay per task.

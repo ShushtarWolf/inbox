@@ -235,7 +235,7 @@ function prevHero() {
                 </p>
                 <p v-if="priceLine(club)" class="canva-court-card-price">{{ priceLine(club) }}</p>
               </div>
-              <span class="canva-court-card-cta">{{ t('home.bookIt') }}</span>
+              <span class="canva-court-card-cta">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
