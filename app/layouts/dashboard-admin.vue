@@ -73,7 +73,7 @@ function lockAdmin() {
       <!-- Brand -->
       <div class="mb-6 flex items-center justify-center gap-2">
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
-        <span class="font-display text-lg font-bold tracking-wide text-brand-navy">INBOX</span>
+        <InboxWordmark class="text-lg text-brand-navy" />
       </div>
 
       <!-- Title + ops card -->

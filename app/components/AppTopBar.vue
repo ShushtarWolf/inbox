@@ -26,7 +26,7 @@ function isActive(to: string) {
           <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary" aria-hidden="true">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
           </div>
-          <span class="font-display text-lg font-semibold text-brand-navy">{{ $t('brand.name') }}</span>
+          <InboxWordmark class="text-lg font-semibold text-brand-navy" />
         </div>
         <nav v-if="nav.length" class="hidden items-center gap-2 lg:flex">
           <component

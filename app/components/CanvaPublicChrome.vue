@@ -59,11 +59,11 @@ onMounted(() => {
         :aria-label="t('brand.name')"
       >
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
-        <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
+        <InboxWordmark class="text-lg text-brand-primary" />
       </NuxtLink>
       <div v-else class="flex min-w-0 items-center gap-2">
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
-        <span class="font-display text-lg font-bold tracking-wide text-brand-primary">INBOX</span>
+        <InboxWordmark class="text-lg text-brand-primary" />
       </div>
     </div>
     <button

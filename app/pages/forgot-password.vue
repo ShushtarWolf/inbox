@@ -67,7 +67,7 @@ function tryAgain() {
         <div class="canva-auth-header">
           <div class="flex items-center gap-2">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-            <span class="font-display text-base font-bold tracking-wide text-brand-navy">INBOX</span>
+            <InboxWordmark class="text-base text-brand-navy" />
           </div>
           <button type="button" class="text-xs font-bold text-brand-gray-600" @click="goSmsLogin">
             {{ t('auth.loginWithPhone') }}

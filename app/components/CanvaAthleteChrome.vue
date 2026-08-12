@@ -14,12 +14,10 @@ const localePath = useLocalePath()
 
 <template>
   <header class="canva-home-chrome">
-    <span
-      class="font-display text-base font-bold tracking-wide"
+    <InboxWordmark
+      class="text-base"
       :class="dark ? 'text-white' : 'text-brand-primary'"
-    >
-      INBOX
-    </span>
+    />
     <div class="flex items-center gap-3" :class="dark ? 'text-white' : 'text-brand-navy'">
       <slot />
       <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">

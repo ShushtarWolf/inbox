@@ -471,7 +471,7 @@ watch(
         <div v-if="step === 'gate' || step === 'welcome'" class="flex flex-col items-center">
           <div class="flex items-center gap-2">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-            <span class="font-display text-base font-bold tracking-wide text-brand-navy">INBOX</span>
+            <InboxWordmark class="text-base text-brand-navy" />
           </div>
           <p class="mt-0.5 text-[11px] font-bold text-brand-primary">Check this box!</p>
         </div>

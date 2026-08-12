@@ -245,7 +245,7 @@ function closeTx() {
       />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <span class="font-display text-base font-bold tracking-wide text-white">INBOX</span>
+        <InboxWordmark class="text-base text-white" />
         <div class="flex items-center gap-3 text-white">
           <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('owner.settings')">
             <AppIcon name="notifications" size="sm" />
