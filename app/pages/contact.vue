@@ -21,6 +21,14 @@ const paymentsMode = computed(() => String(config.public.paymentsMode || 'pay_at
 const ipgLive = computed(() => paymentsMode.value === 'live')
 const ipgTest = computed(() => paymentsMode.value === 'test')
 
+/** Minimal marketing message → mailto stub (no ticket system). */
+const messageName = ref('')
+const messageEmail = ref('')
+const messageBody = ref('')
+const messageError = ref('')
+
+const mailTarget = computed(() => email.value || 'support@inboxs.ir')
+
 function ipgReadinessCopy() {
   if (ipgLive.value) return t('contact.ipgReadyLive')
   if (ipgTest.value) return t('contact.ipgReadyTest')
@@ -42,6 +50,23 @@ const landlineTel = computed(() => {
   if (digits.startsWith('0')) return `+98${digits.slice(1)}`
   return digits
 })
+
+function submitMessage() {
+  messageError.value = ''
+  const body = messageBody.value.trim()
+  if (!body) {
+    messageError.value = t('contact.messageNeedBody')
+    return
+  }
+  const lines = [
+    body,
+    '',
+    messageName.value.trim() ? `نام: ${messageName.value.trim()}` : '',
+    messageEmail.value.trim() ? `ایمیل: ${messageEmail.value.trim()}` : '',
+  ].filter(Boolean)
+  const href = `mailto:${mailTarget.value}?subject=${encodeURIComponent('Inbox contact')}&body=${encodeURIComponent(lines.join('\n'))}`
+  if (import.meta.client) window.location.href = href
+}
 
 useHead({
   title: () => t('contact.title'),
@@ -121,6 +146,57 @@ useHead({
         <dd class="text-brand-gray-700">{{ t('contact.hours') }}</dd>
       </div>
     </dl>
+
+    <!-- Marketing message — only message field uses SmoothCaret -->
+    <section
+      class="mt-6 space-y-3 border border-brand-gray-200 bg-white p-4"
+      style="border-radius: 2px;"
+    >
+      <h2 class="text-start text-base font-bold text-brand-navy">{{ t('contact.messageTitle') }}</h2>
+      <p class="text-start text-sm text-brand-gray-600">{{ t('contact.messageIntro') }}</p>
+      <form class="space-y-3" @submit.prevent="submitMessage">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-start text-xs font-bold text-brand-gray-600">
+            {{ t('contact.messageNameLabel') }}
+            <input
+              v-model="messageName"
+              type="text"
+              class="neo-input mt-1 bg-white/95"
+              style="border-radius: 2px;"
+              autocomplete="name"
+            >
+          </label>
+          <label class="block text-start text-xs font-bold text-brand-gray-600">
+            {{ t('contact.messageEmailLabel') }}
+            <input
+              v-model="messageEmail"
+              type="email"
+              dir="ltr"
+              class="neo-input mt-1 bg-white/95"
+              style="border-radius: 2px;"
+              autocomplete="email"
+            >
+          </label>
+        </div>
+        <label class="block text-start text-xs font-bold text-brand-gray-600">
+          {{ t('contact.messageLabel') }}
+          <SmoothCaretInput
+            id="contact-message"
+            v-model="messageBody"
+            class="mt-1"
+            multiline
+            :rows="4"
+            dir="rtl"
+            :placeholder="t('contact.messagePlaceholder')"
+            required
+          />
+        </label>
+        <p v-if="messageError" class="text-start text-xs font-bold text-brand-primary">{{ messageError }}</p>
+        <button type="submit" class="canva-cta w-full sm:w-auto">
+          {{ t('contact.messageSubmit') }}
+        </button>
+      </form>
+    </section>
 
     <!-- Trust readiness: Enamad / SMS / IPG — cannot lie -->
     <section

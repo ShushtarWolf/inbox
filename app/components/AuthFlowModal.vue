@@ -662,10 +662,9 @@ watch(
 
           <template v-else>
             <AppFormField field-id="auth-name" :label="t('auth.fullName')">
-              <input
+              <SmoothCaretInput
                 id="auth-name"
                 v-model="name"
-                class="neo-input bg-white/95"
                 :placeholder="t('auth.fullName')"
                 autocomplete="name"
                 required
@@ -693,11 +692,10 @@ watch(
               />
             </AppFormField>
             <AppFormField field-id="auth-password" :label="t('auth.password')">
-              <input
+              <SmoothCaretInput
                 id="auth-password"
                 v-model="password"
                 type="password"
-                class="neo-input bg-white/95"
                 autocomplete="new-password"
                 required
                 minlength="6"
@@ -818,21 +816,19 @@ watch(
           </p>
           <p v-else class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
           <AppFormField field-id="login-identifier" :label="t('auth.emailOrPhone')">
-            <input
+            <SmoothCaretInput
               id="login-identifier"
               v-model="identifier"
               dir="ltr"
-              class="neo-input bg-white/95"
               autocomplete="username"
               required
             />
           </AppFormField>
           <AppFormField field-id="login-password" :label="t('auth.password')">
-            <input
+            <SmoothCaretInput
               id="login-password"
               v-model="password"
               type="password"
-              class="neo-input bg-white/95"
               autocomplete="current-password"
               required
             />
