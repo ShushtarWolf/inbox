@@ -216,11 +216,22 @@
   }
   .venus-modal-shell,
   .tail-modal-shell {
-    @apply flex w-full min-h-0 max-h-[min(92dvh,calc(100dvh-var(--sz-tab-bar-height)-var(--sz-safe-bottom)-2rem))] flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:max-h-[min(92dvh,calc(100dvh-2rem))] lg:flex-row;
+    /* Prefer visual viewport height when the mobile keyboard is open (--app-vv-height from AppModal). */
+    max-height: min(
+      92dvh,
+      var(--app-vv-height, 100dvh),
+      calc(100dvh - var(--sz-tab-bar-height) - var(--sz-safe-bottom) - 2rem)
+    );
+    @apply flex w-full min-h-0 flex-col overflow-hidden rounded-tail-lg border border-brand-gray-200 bg-white shadow-tail-md lg:max-h-[min(92dvh,calc(100dvh-2rem))] lg:flex-row;
   }
   .venus-modal-shell-simple,
   .tail-modal-shell-simple {
-    @apply flex max-h-[min(85dvh,calc(100dvh-var(--sz-tab-bar-height)-var(--sz-safe-bottom)-2rem))] max-w-md flex-col lg:max-h-[min(85dvh,calc(100dvh-2rem))];
+    max-height: min(
+      85dvh,
+      var(--app-vv-height, 100dvh),
+      calc(100dvh - var(--sz-tab-bar-height) - var(--sz-safe-bottom) - 2rem)
+    );
+    @apply flex max-w-md flex-col lg:max-h-[min(85dvh,calc(100dvh-2rem))];
   }
   .venus-modal-panel-header,
   .tail-modal-header {
@@ -228,11 +239,17 @@
   }
   .venus-modal-panel-body,
   .tail-modal-body {
-    @apply min-h-0 flex-1 overflow-y-auto px-5 py-4;
+    @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4;
+    scroll-padding-bottom: 1.5rem;
   }
   .venus-modal-footer,
   .tail-modal-footer {
     @apply shrink-0 space-y-3 border-t border-brand-gray-200 bg-brand-gray-50 px-5 py-4;
+  }
+  /* Keep focused fields visible above sticky sheet footers / mobile keyboards */
+  .venus-modal-panel-body :is(input, textarea, select),
+  .tail-modal-body :is(input, textarea, select) {
+    scroll-margin-block: 5rem;
   }
 
   /* Sticky bottom action bar — keeps primary CTAs visible above mobile tab bar */
@@ -874,7 +891,17 @@
     background-repeat: repeat, no-repeat;
   }
   .canva-sheet-dialog {
-    @apply mt-auto max-h-[90dvh] rounded-t-3xl sm:mt-0 sm:max-h-none sm:rounded-2xl;
+    max-height: min(90dvh, var(--app-vv-height, 90dvh));
+    @apply mt-auto rounded-t-3xl sm:mt-0 sm:max-h-none sm:rounded-2xl;
+  }
+  /* Title/handle sit above the shell — leave room so form footers are not clipped */
+  .canva-sheet-dialog .venus-modal-shell,
+  .canva-sheet-dialog .venus-modal-shell-simple {
+    max-height: min(
+      82dvh,
+      calc(var(--app-vv-height, 100dvh) - 4.5rem),
+      calc(100dvh - var(--sz-tab-bar-height) - var(--sz-safe-bottom) - 5rem)
+    );
   }
   .canva-sheet-handle {
     @apply h-1.5 w-12 rounded-full bg-brand-gray-300;

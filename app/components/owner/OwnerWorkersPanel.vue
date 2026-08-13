@@ -235,7 +235,7 @@ async function confirmDelete() {
     >
       <div class="venus-modal-shell venus-modal-shell-simple">
         <div class="venus-modal-panel">
-          <div class="venus-modal-panel-body venus-form-stack max-h-[70vh] overflow-y-auto">
+          <div class="venus-modal-panel-body venus-form-stack max-h-[min(70vh,var(--app-vv-height,70vh))] overflow-y-auto overscroll-contain">
             <div class="grid gap-3 sm:grid-cols-2">
               <AppFormField :label="t('owner.workersPage.firstName')" required>
                 <input v-model="form.firstName" class="neo-input" autocomplete="given-name">

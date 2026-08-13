@@ -323,7 +323,7 @@ async function send() {
         </template>
       </CanvaSuccessSheet>
 
-      <div v-else class="p-4">
+      <div v-else class="max-h-[min(75dvh,var(--app-vv-height,75dvh))] overflow-y-auto overscroll-contain p-4">
         <div v-if="wizardStep === 1" class="venus-form-stack">
           <p class="text-xs text-brand-gray-500">{{ liveSms ? t('owner.crmPage.liveNote') : t('owner.crmPage.logOnlyNote') }}</p>
 

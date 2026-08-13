@@ -17,6 +17,27 @@ const emit = defineEmits<{
 const dialogRef = ref<HTMLElement | null>(null)
 const previousFocus = ref<HTMLElement | null>(null)
 
+/** Visual viewport — keeps sheets above the mobile keyboard instead of burying focused fields. */
+const vvTop = ref(0)
+const vvHeight = ref(import.meta.client ? window.innerHeight : 0)
+const keyboardInset = ref(0)
+
+function syncVisualViewport() {
+  if (!import.meta.client) return
+  const vv = window.visualViewport
+  if (!vv) {
+    vvTop.value = 0
+    vvHeight.value = window.innerHeight
+    keyboardInset.value = 0
+    return
+  }
+  vvTop.value = Math.max(0, vv.offsetTop)
+  vvHeight.value = Math.max(0, Math.round(vv.height))
+  keyboardInset.value = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+  document.documentElement.style.setProperty('--app-vv-height', `${vvHeight.value}px`)
+  document.documentElement.style.setProperty('--app-keyboard-inset', `${keyboardInset.value}px`)
+}
+
 function getFocusableElements(root: HTMLElement) {
   return [...root.querySelectorAll<HTMLElement>(
     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -49,16 +70,49 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+function scrollFocusedFieldIntoView(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return
+  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
+  if ((target as HTMLInputElement).type === 'hidden') return
+  // Wait for keyboard + visualViewport to settle, then center the field in the scrollable body.
+  window.setTimeout(() => {
+    syncVisualViewport()
+    target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+  }, 80)
+}
+
+function onDialogFocusIn(event: FocusEvent) {
+  scrollFocusedFieldIntoView(event.target)
+}
+
+const overlayStyle = computed(() => {
+  if (!props.open) return undefined
+  const height = vvHeight.value || (import.meta.client ? window.innerHeight : 0)
+  if (!height) return undefined
+  return {
+    top: `${vvTop.value}px`,
+    height: `${height}px`,
+    bottom: 'auto',
+  } as Record<string, string>
+})
+
 watch(() => props.open, (isOpen) => {
   if (import.meta.client) {
     document.body.style.overflow = isOpen ? 'hidden' : ''
     if (isOpen) {
       previousFocus.value = document.activeElement as HTMLElement | null
+      syncVisualViewport()
+      window.visualViewport?.addEventListener('resize', syncVisualViewport)
+      window.visualViewport?.addEventListener('scroll', syncVisualViewport)
+      window.addEventListener('resize', syncVisualViewport)
       nextTick(() => {
         dialogRef.value?.focus()
         document.addEventListener('keydown', onDialogKeydown)
       })
     } else {
+      window.visualViewport?.removeEventListener('resize', syncVisualViewport)
+      window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
+      window.removeEventListener('resize', syncVisualViewport)
       document.removeEventListener('keydown', onDialogKeydown)
       previousFocus.value?.focus()
     }
@@ -75,6 +129,9 @@ onUnmounted(() => {
   if (import.meta.client) {
     document.removeEventListener('keydown', onKeydown)
     document.removeEventListener('keydown', onDialogKeydown)
+    window.visualViewport?.removeEventListener('resize', syncVisualViewport)
+    window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
+    window.removeEventListener('resize', syncVisualViewport)
     document.body.style.overflow = ''
   }
 })
@@ -85,8 +142,9 @@ onUnmounted(() => {
     <Transition name="venus-modal">
       <div
         v-if="open"
-        class="fixed inset-0 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
+        class="fixed inset-x-0 top-0 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
         :class="overlayClass || 'z-[55]'"
+        :style="overlayStyle"
         role="presentation"
         @click.self="close"
       >
@@ -107,12 +165,13 @@ onUnmounted(() => {
               sheet ? 'canva-sheet-dialog' : 'rounded-xl',
             ]"
             @click.stop
+            @focusin="onDialogFocusIn"
           >
-            <div class="relative z-[1]">
-              <div v-if="sheet" class="flex justify-center pt-3" aria-hidden="true">
+            <div class="relative z-[1] flex max-h-[inherit] min-h-0 flex-col">
+              <div v-if="sheet" class="flex shrink-0 justify-center pt-3" aria-hidden="true">
                 <span class="canva-sheet-handle" />
               </div>
-              <div v-if="title" class="venus-modal-title-bar" :class="sheet ? 'border-transparent bg-transparent pt-1' : ''">
+              <div v-if="title" class="venus-modal-title-bar shrink-0" :class="sheet ? 'border-transparent bg-transparent pt-1' : ''">
                 <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
                 <button
                   type="button"

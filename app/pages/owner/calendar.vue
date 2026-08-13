@@ -1506,8 +1506,9 @@ function slotBarColor(status: string) {
 
     <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
       <div class="venus-modal-shell">
-        <div class="space-y-1 !p-2">
-          <div v-if="selectedSlot && activePanel !== 'detail'" class="mb-1 border-b border-brand-gray-100 px-3 py-3 text-sm" style="border-radius: var(--sz-canva-radius);">
+        <!-- Menu only while choosing an action — hide once a form panel opens so fields stay above the keyboard -->
+        <div v-if="!activePanel" class="space-y-1 !p-2">
+          <div v-if="selectedSlot" class="mb-1 border-b border-brand-gray-100 px-3 py-3 text-sm" style="border-radius: var(--sz-canva-radius);">
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
@@ -1523,57 +1524,51 @@ function slotBarColor(status: string) {
             </div>
           </div>
 
-          <!-- Canva primary trio always visible on free/action sheets -->
-          <template v-if="activePanel !== 'detail' && activePanel !== 'cancel'">
-            <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
-            </button>
-            <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('block')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('block')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ t('owner.blockThisHour') }}</span>
-            </button>
-            <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ t('owner.addNote') }}</span>
-            </button>
-          </template>
-
-          <template v-if="!activePanel">
-            <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
-            <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
-            </button>
-            <button
-              v-if="canMarkPaid()"
-              type="button"
-              class="canva-action-row"
-              :disabled="saving"
-              @click="doMarkPaid"
-            >
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
-            </button>
-            <button
-              v-if="canMarkUnpaid()"
-              type="button"
-              class="canva-action-row"
-              :disabled="saving"
-              @click="doMarkUnpaid"
-            >
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
-            </button>
-            <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
-            </button>
-            <button type="button" class="canva-action-row" @click="closeMenu">
-              <span class="canva-dash-menu-icon" :class="menuIconWrap('close')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('close')" size="sm" /></span>
-              <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
-            </button>
-          </template>
+          <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
+          </button>
+          <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.blockThisHour') }}</span>
+          </button>
+          <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.addNote') }}</span>
+          </button>
+          <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
+          <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
+          </button>
+          <button
+            v-if="canMarkPaid()"
+            type="button"
+            class="canva-action-row"
+            :disabled="saving"
+            @click="doMarkPaid"
+          >
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
+          </button>
+          <button
+            v-if="canMarkUnpaid()"
+            type="button"
+            class="canva-action-row"
+            :disabled="saving"
+            @click="doMarkUnpaid"
+          >
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
+          </button>
+          <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
+          </button>
+          <button type="button" class="canva-action-row" @click="closeMenu">
+            <span class="canva-dash-menu-icon" :class="menuIconWrap('close')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('close')" size="sm" /></span>
+            <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
+          </button>
         </div>
 
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
@@ -1667,6 +1662,20 @@ function slotBarColor(status: string) {
         </div>
 
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel !border-0">
+          <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backToMenu">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+              <h3 class="font-bold text-brand-navy">{{ reserveMenuLabel() }}</h3>
+            </div>
+            <p v-if="selectedSlot" class="mt-1 text-xs font-bold text-brand-gray-600">
+              <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi>
+            </p>
+          </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="doReserve">
             <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
               <input
