@@ -434,15 +434,15 @@ async function shareClub() {
   <div v-if="pending" class="tail-page-enter">
     <AppVenusSkeleton :lines="4" />
   </div>
-  <div
-    v-else-if="error || !club"
-    class="canva-result-sheet mx-auto mt-8 max-w-sm space-y-4 p-6 text-center"
-  >
-    <p class="text-lg font-bold text-brand-navy">{{ t('clubs.notFoundTitle') }}</p>
-    <p class="text-sm text-brand-gray-600">{{ t('clubs.notFoundBody') }}</p>
-    <NuxtLink :to="localePath('/clubs')" class="canva-cta inline-flex w-full justify-center">
-      {{ t('clubs.notFoundCta') }}
-    </NuxtLink>
+  <div v-else-if="error || !club" class="space-y-4">
+    <CanvaPublicChrome back-to="/clubs" />
+    <div class="canva-result-sheet mx-auto max-w-sm space-y-4 p-6 text-center">
+      <p class="text-lg font-bold text-brand-navy">{{ t('clubs.notFoundTitle') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ t('clubs.notFoundBody') }}</p>
+      <NuxtLink :to="localePath('/clubs')" class="canva-cta inline-flex w-full justify-center">
+        {{ t('clubs.notFoundCta') }}
+      </NuxtLink>
+    </div>
   </div>
   <div v-else-if="club" class="tail-page-enter">
     <div class="canva-club-detail space-y-3">

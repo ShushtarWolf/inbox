@@ -3,6 +3,8 @@ import { isNavItemActive, type NavItem } from '#shared/nav.ts'
 
 const NuxtLink = resolveComponent('NuxtLink')
 const route = useRoute()
+const localePath = useLocalePath()
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   nav?: NavItem[]
@@ -21,13 +23,13 @@ function isActive(to: string) {
   <header class="glass-bar sticky top-0 z-40 px-4 py-4 sm:px-6">
     <div class="mx-auto flex w-full items-center justify-between gap-4" :class="maxWidthClass">
       <div class="flex min-w-0 items-center gap-4">
-        <!-- Brand mark only — Home in nav already goes to /. Avoids WAVE redundant / PSI identical links. -->
-        <div class="flex items-center gap-3">
+        <!-- Brand → home -->
+        <NuxtLink :to="localePath('/')" class="flex items-center gap-3" :aria-label="t('brand.name')">
           <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary" aria-hidden="true">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
           </div>
           <InboxWordmark class="text-lg font-semibold text-brand-navy" />
-        </div>
+        </NuxtLink>
         <nav v-if="nav.length" class="hidden items-center gap-2 lg:flex">
           <component
             :is="item.action ? 'button' : NuxtLink"

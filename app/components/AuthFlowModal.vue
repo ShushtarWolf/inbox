@@ -478,7 +478,7 @@ watch(
 </script>
 
 <template>
-  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[60]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
+  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1]">
       <div v-if="step !== 'welcome'" class="canva-auth-accent" />
       <div class="relative z-[1] flex items-center justify-center px-4 py-3">
@@ -500,10 +500,15 @@ watch(
           {{ t('common.back') }}
         </button>
         <div v-if="step === 'gate' || step === 'welcome'" class="flex flex-col items-center">
-          <div class="flex items-center gap-2">
+          <NuxtLink
+            :to="localePath('/')"
+            class="flex items-center gap-2"
+            :aria-label="t('brand.name')"
+            @click="handleClose()"
+          >
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
             <InboxWordmark class="text-base text-brand-navy" />
-          </div>
+          </NuxtLink>
           <p class="mt-0.5 text-[11px] font-bold text-brand-primary">Check this box!</p>
         </div>
         <span v-else class="h-7" />

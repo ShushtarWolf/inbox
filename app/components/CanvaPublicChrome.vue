@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * Shared public phone chrome: INBOX logo + login / signed-in shortcut.
- * On the homepage the logo is branding-only (bottom nav Home → /).
+ * Shared public phone chrome: inboxs logo (always → home) + login / signed-in shortcut.
  * Optional backTo keeps funnel pages escapable without relying only on bottom nav.
  */
 const props = defineProps<{
@@ -11,18 +10,11 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const route = useRoute()
 const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
-
-/** True on public homepage so logo is branding-only (bottom nav already links home). */
-const isHome = computed(() => {
-  const path = route.path.replace(/\/$/, '') || '/'
-  return path === '/' || path === localePath('/')
-})
 
 const backHref = computed(() => {
   if (!props.backTo) return ''
@@ -51,9 +43,7 @@ onMounted(() => {
       >
         <AppIcon name="arrow_forward" size="sm" />
       </NuxtLink>
-      <!-- On home, brand is not a link (bottom nav Home already → /). Elsewhere logo goes home. -->
       <NuxtLink
-        v-if="!isHome"
         :to="localePath('/')"
         class="flex min-w-0 items-center gap-2"
         :aria-label="t('brand.name')"
@@ -61,10 +51,6 @@ onMounted(() => {
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
         <InboxWordmark class="text-lg text-brand-primary" />
       </NuxtLink>
-      <div v-else class="flex min-w-0 items-center gap-2">
-        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
-        <InboxWordmark class="text-lg text-brand-primary" />
-      </div>
     </div>
     <button
       v-if="!user"

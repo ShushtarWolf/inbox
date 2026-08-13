@@ -1482,14 +1482,17 @@
     color: #8a8680;
   }
   /* Summary + square CTA in-section (not sticky TailAdmin bar) */
+  /* Sticky above AppBottomNav (z-50) so تایید و ادامه stays tappable on phone. */
   .canva-club-book-footer {
-    @apply mt-3 flex items-center gap-3;
+    @apply sticky z-30 mt-3 flex flex-col gap-2 border border-brand-gray-200 bg-brand-cream p-2.5;
+    border-radius: var(--sz-canva-radius);
+    bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 0.5rem);
   }
   .canva-club-book-summary {
-    @apply min-w-0 flex-1 text-start text-[11px] font-medium leading-snug text-brand-navy;
+    @apply min-w-0 w-full text-start text-[11px] font-medium leading-snug text-brand-navy;
   }
   .canva-club-book-cta {
-    @apply shrink-0 px-3.5 py-3 text-xs font-bold;
+    @apply w-full px-3.5 py-3 text-xs font-bold;
     border-radius: var(--sz-canva-radius);
   }
 
@@ -1568,6 +1571,15 @@
     @apply space-y-2 bg-[#f3efe9] px-3 py-3;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-confirm-book-cost-row {
+    @apply flex flex-col gap-0.5 text-start text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3;
+  }
+  .canva-confirm-book-cost-label {
+    @apply min-w-0 break-words text-brand-gray-600;
+  }
+  .canva-confirm-book-cost-amount {
+    @apply shrink-0 font-bold tabular-nums text-brand-navy;
+  }
   .canva-confirm-book-discount {
     @apply space-y-1 pt-1;
   }
@@ -1579,7 +1591,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-discount-btn {
-    @apply shrink-0 border border-brand-navy bg-white px-3 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
+    @apply shrink-0 self-stretch border border-brand-navy bg-white px-3 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-discount-note {

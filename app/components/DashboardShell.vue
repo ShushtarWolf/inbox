@@ -185,7 +185,9 @@ function goBack() {
         <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
           <AppIcon name="menu" size="sm" />
         </button>
-        <img src="/brand/inbox-logo-mark.svg" alt="inbox" class="h-7 w-7" />
+        <NuxtLink :to="localePath('/')" class="inline-flex" :aria-label="t('brand.name')">
+          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+        </NuxtLink>
         <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="handleLogout" :aria-label="resolvedLogoutLabel">
           <AppIcon name="logout" size="sm" />
         </button>

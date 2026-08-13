@@ -59,7 +59,7 @@ function blurb(club: { descriptionFa?: string | null; descriptionEn?: string | n
       <img src="/hero/tennis-court.jpg" alt="" class="canva-photo-hero-media" style="filter: grayscale(0.4) brightness(0.7);" />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <InboxWordmark class="text-base text-brand-primary" />
+        <InboxWordmark home-link class="text-base text-brand-primary" />
         <div class="flex items-center gap-3 text-white">
           <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
             <AppIcon name="notifications" size="sm" />

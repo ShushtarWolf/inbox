@@ -88,10 +88,10 @@ async function goLoginAfterReset() {
         <div class="canva-auth-accent" />
         <!-- LOCKED: logo RIGHT / action LEFT (RTL: logo first, action last) -->
         <div class="canva-auth-header">
-          <div class="flex items-center gap-2">
+          <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
             <InboxWordmark class="text-base text-brand-navy" />
-          </div>
+          </NuxtLink>
           <button type="button" class="text-xs font-bold text-brand-gray-600" @click="goSmsLogin">
             {{ t('auth.loginWithPhone') }}
           </button>

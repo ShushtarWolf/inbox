@@ -15,6 +15,7 @@ const localePath = useLocalePath()
 <template>
   <header class="canva-home-chrome">
     <InboxWordmark
+      home-link
       class="text-base"
       :class="dark ? 'text-white' : 'text-brand-primary'"
     />

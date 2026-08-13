@@ -86,7 +86,7 @@ onUnmounted(() => {
       <div
         v-if="open"
         class="fixed inset-0 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
-        :class="overlayClass || 'z-50'"
+        :class="overlayClass || 'z-[55]'"
         role="presentation"
         @click.self="close"
       >

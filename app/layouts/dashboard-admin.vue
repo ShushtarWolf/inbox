@@ -70,11 +70,15 @@ function lockAdmin() {
     class="flex min-h-dvh flex-col bg-brand-gray-50"
   >
     <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-      <!-- Brand -->
-      <div class="mb-6 flex items-center justify-center gap-2">
+      <!-- Brand → home -->
+      <NuxtLink
+        :to="localePath('/')"
+        class="mb-6 flex items-center justify-center gap-2"
+        :aria-label="t('brand.name')"
+      >
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
         <InboxWordmark class="text-lg text-brand-navy" />
-      </div>
+      </NuxtLink>
 
       <!-- Title + ops card -->
       <div

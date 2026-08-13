@@ -90,7 +90,7 @@ onMounted(() => {
       <img src="/hero/fitness-venue.jpg" alt="" class="canva-photo-hero-media" style="filter: grayscale(0.55) brightness(0.72);" />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <InboxWordmark class="text-base text-white" />
+        <InboxWordmark home-link class="text-base text-white" />
         <div class="flex items-center gap-3 text-white">
           <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
             <AppIcon name="notifications" size="sm" />

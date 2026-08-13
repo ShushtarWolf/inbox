@@ -228,10 +228,15 @@ async function submit(preferWallet = false) {
         <button type="button" class="text-xs font-bold text-brand-gray-600" @click="close">
           {{ t('common.close') }}
         </button>
-        <div class="flex items-center gap-2">
+        <NuxtLink
+          :to="localePath('/')"
+          class="flex items-center gap-2"
+          :aria-label="t('brand.name')"
+          @click="close"
+        >
           <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
           <InboxWordmark class="text-base text-brand-navy" />
-        </div>
+        </NuxtLink>
         <span class="w-8" aria-hidden="true" />
       </div>
 
@@ -294,10 +299,10 @@ async function submit(preferWallet = false) {
             <div
               v-for="(line, idx) in costLines"
               :key="idx"
-              class="flex items-start justify-between gap-3 text-xs"
+              class="canva-confirm-book-cost-row"
             >
-              <span class="text-brand-gray-600">{{ line.label }}</span>
-              <span class="shrink-0 font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(line.amount) }}</span>
+              <span class="canva-confirm-book-cost-label">{{ line.label }}</span>
+              <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
             </div>
 
             <div class="canva-confirm-book-discount">
@@ -343,13 +348,13 @@ async function submit(preferWallet = false) {
 
             <div
               v-if="appliedDiscount && discountAmount > 0"
-              class="flex items-start justify-between gap-3 text-xs"
+              class="canva-confirm-book-cost-row"
             >
-              <span class="text-brand-gray-600">{{ t('booking.confirmLineDiscount', {
+              <span class="canva-confirm-book-cost-label">{{ t('booking.confirmLineDiscount', {
                 code: appliedDiscount.code,
                 percent: formatNumber(appliedDiscount.percent),
               }) }}</span>
-              <span class="shrink-0 font-bold tabular-nums text-brand-primary" dir="ltr">−{{ formatCurrency(discountAmount) }}</span>
+              <span class="canva-confirm-book-cost-amount text-brand-primary" dir="ltr">−{{ formatCurrency(discountAmount) }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-brand-gray-200 pt-2 text-sm font-bold text-brand-navy">
