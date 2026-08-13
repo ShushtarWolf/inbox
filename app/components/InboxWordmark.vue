@@ -50,11 +50,11 @@ onMounted(async () => {
       {
         y: '-100%',
         loop: true,
-        loopDelay: 350,
-        duration: 750,
+        loopDelay: 1400,
+        duration: 3000,
         ease: 'inOut(2)',
       },
-      stagger(150, { from: 'center' }),
+      stagger(600, { from: 'center' }),
     ),
   )
 })
