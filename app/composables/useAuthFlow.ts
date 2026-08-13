@@ -55,15 +55,13 @@ export function useAuthFlow() {
     smsLive?: boolean
   }) {
     const requestedRole = opts?.role || 'ATHLETE'
-    // Product exclusion: Coach signup is never offered — fall back to athlete/owner picker.
-    const safeRole = requestedRole === 'COACH' ? 'ATHLETE' : requestedRole
-    const skipRolePicker = Boolean(opts?.role) && opts?.role !== 'COACH'
+    const skipRolePicker = Boolean(opts?.role)
 
     returnTo.value = opts?.returnTo || ''
     notice.value = opts?.notice || ''
     purpose.value = 'register'
     channel.value = opts?.channel || defaultAuthChannel(opts?.smsLive)
-    role.value = safeRole
+    role.value = requestedRole
     step.value = skipRolePicker ? 'register' : 'role'
     open.value = true
   }

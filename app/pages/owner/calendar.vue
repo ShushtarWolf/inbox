@@ -163,6 +163,10 @@ const activeCourtSlots = computed(() => {
     .sort((a: OwnerCalendarSlot, b: OwnerCalendarSlot) => a.startTime.localeCompare(b.startTime)) as OwnerCalendarSlot[]
 })
 
+watch(activeCourtId, () => {
+  clearSelection()
+})
+
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
@@ -314,6 +318,9 @@ const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 const monthLabel = computed(() => formatMonth(currentDate.value))
 const dateNavLabel = computed(() => `${weekdayLabel.value} | ${dayNumber.value} ${monthLabel.value}`)
+const listDayHeading = computed(() =>
+  `${formatWeekday(date.value, 'long')}، ${dayNumber.value} ${monthLabel.value}`,
+)
 
 const dateStripDays = computed(() => {
   const centerOffset = 3
@@ -1343,15 +1350,34 @@ function slotBarColor(status: string) {
     </section>
 
     <section v-else class="space-y-3" :class="locale === 'en' ? 'calendar-latin' : ''">
+      <!-- Canva list-day (22+): date bullet (+ day nav) · court chips · legend · color bars -->
       <div class="canva-cal-date-nav">
         <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
           <AppIcon name="chevron_right" size="sm" />
         </button>
-        <button type="button" class="canva-cal-date-nav-label" @click="showDatePicker = true">
-          {{ dateNavLabel }}
+        <button
+          type="button"
+          class="inline-flex min-w-0 flex-1 items-center justify-center gap-2 text-sm font-bold text-brand-navy"
+          @click="showDatePicker = true"
+        >
+          <span class="inline-block h-1.5 w-1.5 shrink-0 rounded-none bg-brand-navy" aria-hidden="true" />
+          <span class="truncate">{{ listDayHeading }}</span>
         </button>
         <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
           <AppIcon name="chevron_left" size="sm" />
+        </button>
+      </div>
+
+      <div class="canva-clubs-chip-row flex-wrap">
+        <button
+          v-for="(court, idx) in courts"
+          :key="court.id"
+          type="button"
+          class="canva-court-chip"
+          :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+          @click="activeCourtId = court.id"
+        >
+          {{ courtColumnLabel(court, idx) }}
         </button>
       </div>
 
@@ -1370,11 +1396,11 @@ function slotBarColor(status: string) {
         <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
       </div>
 
-      <div v-else-if="!hours.length">
+      <div v-else-if="!activeCourtSlots.length">
         <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
       </div>
 
-      <div v-else class="canva-cal-grid-shell">
+      <div v-else class="relative">
         <div class="canva-cal-fab">
           <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
             {{ t('owner.block') }}
@@ -1384,54 +1410,31 @@ function slotBarColor(status: string) {
           </button>
         </div>
 
-        <div class="canva-cal-grid-scroll">
-          <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
-            <div class="canva-cal-grid-corner" aria-hidden="true" />
-            <div
-              v-for="(court, idx) in courts"
-              :key="`head-${court.id}`"
-              class="canva-cal-grid-court"
-              :title="courtColumnLabel(court, idx)"
-            >
-              {{ courtColumnLabel(court, idx) }}
-            </div>
-
-            <template v-for="hour in hours" :key="hour">
-              <div class="canva-cal-grid-time">
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
-              </div>
-              <button
-                v-for="(court, idx) in courts"
-                :key="`${court.id}-${hour}`"
-                type="button"
-                class="canva-cal-grid-cell"
-                :class="[
-                  slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
-                  cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
-                ]"
-                :aria-label="courtColumnLabel(court, idx)"
-                @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
-                @pointerup="onSlotPointerEnd"
-                @pointerleave="onSlotPointerEnd"
-                @pointercancel="onSlotPointerEnd"
-                @contextmenu.prevent
-                @click="handleSlotClick(cellSlot(court.id, hour))"
-              >
-                <span
-                  class="canva-cal-grid-cell-bar"
-                  :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
-                />
-                <span class="canva-cal-grid-cell-body">
-                  <span v-if="slotLabel(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">
-                    {{ slotLabel(cellSlot(court.id, hour)) }}
-                  </span>
-                </span>
-                <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">
-                  <AppIcon name="star" size="sm" />
-                </span>
-              </button>
-            </template>
-          </div>
+        <div class="canva-slot-list">
+          <button
+            v-for="slot in activeCourtSlots"
+            :key="slot.id"
+            type="button"
+            class="canva-slot-row"
+            :class="[
+              slotClass(slot.displayStatus),
+              isSlotSelected(slot) ? 'canva-slot-row-selected' : '',
+            ]"
+            @pointerdown="onSlotPointerDown(slot)"
+            @pointerup="onSlotPointerEnd"
+            @pointerleave="onSlotPointerEnd"
+            @pointercancel="onSlotPointerEnd"
+            @contextmenu.prevent
+            @click="handleSlotClick(slot)"
+          >
+            <span class="canva-slot-name min-w-0 flex-1 truncate text-start">
+              {{ slotLabel(slot) || (slot.displayStatus === 'FREE' ? '' : statusLabel(slot.displayStatus)) }}
+            </span>
+            <bdi dir="ltr" class="canva-slot-time shrink-0 tabular-nums">{{ slotTimeLabel(slot) }}</bdi>
+            <span v-if="hasSlotNote(slot)" class="shrink-0" aria-hidden="true">
+              <AppIcon name="star" size="sm" />
+            </span>
+          </button>
         </div>
       </div>
     </section>

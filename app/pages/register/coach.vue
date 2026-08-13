@@ -5,8 +5,7 @@ const localePath = useLocalePath()
 const { openRegister } = useAuthFlow()
 
 onMounted(async () => {
-  // Product exclusion: coach signup never opens — fall back to athlete register.
-  openRegister({ role: 'ATHLETE' })
+  openRegister({ role: 'COACH' })
   await navigateTo(localePath('/'))
 })
 </script>

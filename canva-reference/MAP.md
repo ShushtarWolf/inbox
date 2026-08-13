@@ -19,24 +19,24 @@ Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|3
 
 | Canva file(s) | App route / UI | Notes |
 |---|---|---|
-| `home page.png`, `home page (2).png` | `/` public home | Logo R / login L; hero; square search; 3 rails |
-| `Court list.png` | `/clubs` | Mustard square sport chips + court cards + **رزرو کن** |
-| `home page (3).png` | `/clubs/[slug]` club detail | Gallery · amenities · cal R / courts+slots L · confirm CTA |
+| `home page.png`, `home page (2).png` | `/` public home | Logo R / login L; hero; **3-field search** (sport · city · date); 3 rails |
+| `Court list.png` | `/clubs` | Mustard square sport chips + court cards + **رزرو کن**; preserves `?date=` |
+| `home page (3).png` | `/clubs/[slug]` club detail | Gallery · amenities · cal R / courts+slots L · confirm CTA; deep-link `?date=` |
 | `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | Green title · red club name · پرداخت |
-| `login_sign up.png` | AuthFlow **gate** | Square CTAs; Google in Canva is **product-excluded** |
-| `4.png` | AuthFlow **role** picker | Canva shows Coach — live = Athlete/Owner only |
-| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | — |
-| `home page (8).png` | `/athlete/home` | Photo hero + curve + ۲۰٪ + rails + bottom nav |
+| `login_sign up.png` | AuthFlow **gate** | Square CTAs; Google excluded |
+| `4.png` | AuthFlow **role** picker | **Athlete / Coach / Owner** (coach product enabled) |
+| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | Coach register → `/api/auth/register-coach` |
+| `home page (8).png` | `/athlete/home` | Photo hero + curve + ۲۰٪ + **3-field search** + rails + bottom nav |
 | `home page (6).png` | `/athlete/favorites` | — |
 | `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva) |
 | `home page (7).png` | `/athlete/bookings` history | Cancel / rebook CTAs |
-| `home page (9).png` + date picker `(13)` | `/owner/calendar` **Today multi-court grid** | Primary owner Today |
+| `home page (9).png` + `(13)` | `/owner/calendar` (legacy multi-court ref) | Superseded for Today by list-day `(22+)` |
+| `home page (22\|23\|24\|25\|27\|32\|38\|42).png` | `/owner/calendar` **Today list-day** | Date bullet · court chips · color slot bars · desk sheets |
 | `home page (10\|17\|18).png` | `/owner/calendar` walk-in / block+note sheets | — |
 | `home page (11).png` | Owner recurring / continue-book sheet on calendar | Soft-land (season/package gated) |
 | `home page (12\|19).png` | Owner desk confirm (pay link / cash) | Soft-land vs athlete confirm `(4)` |
 | `home page (14\|15\|16).png` | Booking detail + multi-cancel sheet | — |
 | `changed.png` | `/owner/calendar` overview tab | Designer-marked |
-| `home page (22\|23\|24\|25\|27\|32\|38\|42).png` | Owner **list-day** / action sheets / More menu | Alternate to `(9)` grid — do **not** replace grid without ask |
 | `home page (26).png` | `/owner/finance` | Photo hero + chart |
 | `جزییات بازیکن.png` | `/owner/finance` txn sheet | — |
 | `گزارش پیشرفته.png` | `/owner/finance/report` | — |
@@ -51,7 +51,8 @@ Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|3
 - **Primary court book UX** = `/clubs/[slug]` + confirm sheet (`(3)` / `(4)`). Do not send athletes through a standalone book page.
 - **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
 - **Athlete booking detail** `/athlete/bookings/[id]` → `/athlete/bookings?booking=` (list is primary).
-- **Coach / package** stay pilot-gated (`/book/coach`, `/book/package`, `/coaches`, …).
+- **Coach / package**: coach signup + `/coach` hub are **on** (`PILOT_NO_COACH=false`). Package stays soft-landed / gated where still flagged.
+- **Owner Today** = list-day (`(22+)`): one court at a time, full-bleed status bars. Overview tab unchanged.
 
 ## Severity legend
 
@@ -75,14 +76,13 @@ Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|3
 
 | Frame | Route | Severity | Notes |
 |---|---|---|---|
-| `home page` / `(2)` | `/` | **ok-enough** | Chrome, hero white title, square search (2 fields), rails, bottom nav kept |
-| `home page` search | `/` | **visual** (remaining) | Canva has 3 fields (sport · city/court · date); live sport+city. Ask before adding date |
-| `Court list` | `/clubs` | **ok-enough** | Square mustard chips, section head, square CTAs |
+| `home page` / `(2)` | `/` | **ok-enough** | 3-field search (sport · city · date → `?date=`), rails, bottom nav kept |
+| `Court list` | `/clubs` | **ok-enough** | Square mustard chips; CTA **رزرو کن**; date query preserved |
 | `(3)` / `(4)` | club detail + confirm | **ok-enough** | Interactive slots + sheet; product wallet/pay CTAs kept |
-| `login_sign up` / `4` | AuthFlow | **ok-enough** | No Google (intentional); Athlete/Owner only (Coach in Canva skipped) |
-| `(8)` / `(5)` / `(7)` | athlete home / hub / bookings | **ok-enough** | Prior ship; bottom nav labels may differ from icon-only Canva |
-| `(9)` + sheets | owner calendar | **ok-enough** | Multi-court grid is source of truth |
-| `(22–25,27,…)` | owner list-day | **skip / soft-land** | Decorative alternate; ask before product redesign |
+| `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Coach / Owner; no Google |
+| `(8)` / `(5)` / `(7)` | athlete | **ok-enough** | Athlete home also has 3-field search |
+| `(22+)` + sheets | owner calendar Today | **ok-enough** | List-day primary (court chips + color bars) |
+| `(9)` multi-court | owner calendar | **legacy ref** | Export only; live Today uses list-day |
 | `(11)` recurring | owner sheet | **out of MVP** | Season/package gated — soft-land |
 | `(12\|19)` owner pay sheet | owner desk | **soft-land** | Cash / pay-link desk flow — not athlete `(4)` |
 
@@ -100,12 +100,11 @@ Phone frames in Canva often omit shared chrome. **Live app must keep escape hatc
 
 **Do not** strip bottom nav / logo / back to “match Canva” if that strands the user.
 
-## Recommended next (ask first)
+## Recommended next
 
-1. Home search third field (date / free-text city) — visual only vs product query params
-2. Owner list-day frames `(22+)` — replace or keep multi-court `(9)`?
-3. Auth role Coach row — expand scope or keep Athlete/Owner?
-4. Re-capture overlays after UI changes
+1. Re-capture overlays after UI changes
+2. Liara: set `PILOT_NO_COACH=false` + `NUXT_PUBLIC_PILOT_NO_COACH=false` so coach routes match local
+3. Owner desk pay sheets `(12|19)` polish if needed
 
 ## How to re-compare cheaply
 

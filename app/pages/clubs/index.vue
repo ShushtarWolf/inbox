@@ -74,6 +74,13 @@ async function setSort(value: string) {
   })
 }
 
+function clubHref(slug: string) {
+  const query: Record<string, string> = {}
+  const dateQ = typeof route.query.date === 'string' ? route.query.date : ''
+  if (dateQ) query.date = dateQ
+  return localePath({ path: `/clubs/${slug}`, query })
+}
+
 function sportCourtLabel(club: { sports?: string[] }) {
   if (club.sports?.includes('tennis')) return t('clubs.sportCourtTennis')
   if (club.sports?.includes('padel')) return t('clubs.sportCourtPadel')
@@ -214,7 +221,7 @@ function prevHero() {
           <NuxtLink
             v-for="club in clubs"
             :key="club.id"
-            :to="localePath(`/clubs/${club.slug}`)"
+            :to="clubHref(club.slug)"
             class="canva-court-card"
           >
             <img :src="clubImage(club)" alt="" />

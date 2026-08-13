@@ -4,6 +4,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     name?: string
     email?: string
+    phone?: string
     password?: string
     locale?: string
     clubId?: string
@@ -12,20 +13,24 @@ export default defineEventHandler(async (event) => {
     sessionPrice?: number
     avatarUrl?: string
     credentialUrls?: string[]
+    returnTo?: string
   }>(event)
 
   const name = body.name?.trim()
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
-  const clubId = body.clubId?.trim()
+  const clubId = body.clubId?.trim() || ''
+  const phone = body.phone?.trim() || undefined
 
-  if (!name || !email || password.length < 6 || !clubId) {
+  if (!name || !email || password.length < 6) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
 
-  const club = await prisma.club.findFirst({ where: { id: clubId, status: 'ACTIVE' } })
-  if (!club) {
+  const club = clubId
+    ? await prisma.club.findFirst({ where: { id: clubId, status: 'ACTIVE' } })
+    : null
+  if (clubId && !club) {
     throw createError({ statusCode: 404, statusMessage: 'Club not found' })
   }
 
@@ -34,7 +39,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
   }
 
-  const court = await prisma.court.findFirst({ where: { clubId: club.id }, include: { sport: true } })
+  const court = club
+    ? await prisma.court.findFirst({ where: { clubId: club.id }, include: { sport: true } })
+    : null
   const sport = court?.sport || await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
   const locale = body.locale === 'en' ? 'en' : 'fa'
   const sessionPrice = body.sessionPrice !== undefined ? Math.max(0, Math.round(body.sessionPrice)) : 400000
@@ -48,6 +55,7 @@ export default defineEventHandler(async (event) => {
         role: 'COACH',
         passwordHash: hashSecret(password),
         locale,
+        phone: phone || null,
         avatarUrl: body.avatarUrl?.trim() || null,
       },
     })
@@ -56,9 +64,9 @@ export default defineEventHandler(async (event) => {
       data: {
         nameFa: name,
         nameEn: name,
-        city: club.city,
+        city: club?.city || 'تهران',
         sportId: sport.id,
-        clubId: club.id,
+        clubId: club?.id || null,
         userId: user.id,
         bioFa: body.bioFa?.trim() || null,
         bioEn: body.bioEn?.trim() || body.bioFa?.trim() || null,
@@ -90,6 +98,6 @@ export default defineEventHandler(async (event) => {
     role: result.user.role,
     locale: result.user.locale,
     coachId: result.coach.id,
-    redirectTo: postLoginRedirectPath(result.user, locale),
+    redirectTo: postLoginRedirectPath(result.user, locale, body.returnTo),
   }
 })

@@ -5,7 +5,9 @@ const { localizedField } = useLocalizedField()
 
 const sport = ref<string>('')
 const city = ref<string>('')
+const date = ref<string>('')
 const heroSlide = ref(0)
+const showDatePicker = ref(false)
 
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
 
@@ -13,6 +15,7 @@ const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
 const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
+const { formatDayNumber, formatMonth, formatWeekday } = useFormatters()
 
 const cityOptions = computed(() => {
   const set = new Set<string>()
@@ -20,6 +23,11 @@ const cityOptions = computed(() => {
     if (club.city) set.add(club.city)
   }
   return [...set].sort((a, b) => a.localeCompare(b, 'fa'))
+})
+
+const dateFieldLabel = computed(() => {
+  if (!date.value) return t('home.heroSearchDateHint')
+  return `${formatWeekday(date.value)} ${formatDayNumber(date.value)} ${formatMonth(date.value)}`
 })
 
 /** Canva home frames show three square tiles per rail. */
@@ -56,10 +64,22 @@ const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlide
 function bookingLink(path: '/clubs', querySport?: string) {
   const sportQuery = querySport || sport.value || undefined
   const cityQuery = city.value || undefined
+  const dateQuery = date.value || undefined
   const query: Record<string, string> = {}
   if (sportQuery) query.sport = sportQuery
   if (cityQuery) query.city = cityQuery
+  if (dateQuery) query.date = dateQuery
   return localePath({ path, query })
+}
+
+function clubHref(slug: string) {
+  const query: Record<string, string> = {}
+  if (date.value) query.date = date.value
+  return localePath({ path: `/clubs/${slug}`, query })
+}
+
+function onHomeDatePicked() {
+  showDatePicker.value = false
 }
 
 function clubMeta(club: { city?: string; rating?: number | null; sports?: string[] }) {
@@ -139,7 +159,8 @@ function prevHero() {
       </section>
 
       <section class="canva-search-row">
-        <div class="canva-search-fields canva-search-fields-2">
+        <!-- Canva: sport · city · date + square جستجو -->
+        <div class="canva-search-fields">
           <div class="canva-search-field">
             <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
             <select
@@ -166,11 +187,36 @@ function prevHero() {
               <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
+          <div class="canva-search-field">
+            <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
+            <button
+              id="home-date-btn"
+              type="button"
+              class="canva-search-placeholder w-full text-center"
+              :class="{ 'canva-search-placeholder-filled': date }"
+              @click="showDatePicker = true"
+            >
+              {{ dateFieldLabel }}
+            </button>
+          </div>
         </div>
         <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>
+
+      <AppModal
+        :open="showDatePicker"
+        sheet
+        patterned
+        :title="t('home.heroSearchDateHint')"
+        max-width-class="canva-phone-shell max-w-sm"
+        @close="showDatePicker = false"
+      >
+        <div class="px-4 pb-5 pt-2">
+          <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
+        </div>
+      </AppModal>
 
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
@@ -187,7 +233,7 @@ function prevHero() {
           <NuxtLink
             v-for="club in suggestedClubs"
             :key="club.id"
-            :to="localePath(`/clubs/${club.slug}`)"
+            :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
@@ -218,7 +264,7 @@ function prevHero() {
           <NuxtLink
             v-for="club in tennisClubs"
             :key="`tennis-${club.id}`"
-            :to="localePath(`/clubs/${club.slug}`)"
+            :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
@@ -249,7 +295,7 @@ function prevHero() {
           <NuxtLink
             v-for="club in padelClubs"
             :key="`padel-${club.id}`"
-            :to="localePath(`/clubs/${club.slug}`)"
+            :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />

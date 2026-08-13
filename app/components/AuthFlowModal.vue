@@ -40,9 +40,10 @@ const selectedRole = ref<AuthFlowRole>('ATHLETE')
 const { smsMode, smsPhase, smsLive } = useSmsCapability()
 const { uploading: licenseUploading, error: licenseUploadError, upload: uploadLicense } = useImageUpload({ guest: true })
 
-/** Product exclusion: Coach role is never offered in AuthFlow. */
+/** Canva role picker (4.png): Athlete / Coach / Owner. */
 const roles: Array<{ id: AuthFlowRole; title: string; body: string }> = [
   { id: 'ATHLETE', title: 'register.roleAthlete', body: 'auth.roleAthleteHint' },
+  { id: 'COACH', title: 'register.roleCoach', body: 'auth.roleCoachHint' },
   { id: 'CLUB_ADMIN', title: 'register.roleOwner', body: 'auth.roleOwnerHint' },
 ]
 
@@ -67,11 +68,14 @@ const title = computed(() => {
   if (step.value === 'otp') {
     return purpose.value === 'register' && role.value === 'CLUB_ADMIN'
       ? t('auth.registerOwnerTitle')
-      : purpose.value === 'register'
-        ? t('auth.registerAthleteTitle')
-        : t('auth.otpTitle')
+      : purpose.value === 'register' && role.value === 'COACH'
+        ? t('auth.registerCoachTitle')
+        : purpose.value === 'register'
+          ? t('auth.registerAthleteTitle')
+          : t('auth.otpTitle')
   }
   if (role.value === 'CLUB_ADMIN') return t('auth.registerOwnerTitle')
+  if (role.value === 'COACH') return t('auth.registerCoachTitle')
   return t('auth.registerAthleteTitle')
 })
 
@@ -234,7 +238,8 @@ async function dismissWelcome() {
 
 function welcomeVariantForAuth(kind: 'login' | 'register', authRole?: string): AuthWelcomeVariant {
   if (kind === 'login') return 'login'
-  return authRole === 'CLUB_ADMIN' ? 'owner' : 'athlete'
+  if (authRole === 'CLUB_ADMIN') return 'owner'
+  return 'athlete'
 }
 
 async function loginWithPassword() {
@@ -298,6 +303,28 @@ async function registerWithPassword() {
       return
     }
 
+    if (role.value === 'COACH') {
+      const coachEmail = email.value.trim() || (phone.value.trim() ? `${phone.value.trim().replace(/\D/g, '')}@coach.inbox.local` : '')
+      if (!coachEmail) {
+        error.value = t('auth.registerIdentityRequired')
+        pending.value = false
+        return
+      }
+      const data = await $fetch<{ redirectTo?: string }>('/api/auth/register-coach', {
+        method: 'POST',
+        body: {
+          name: name.value.trim(),
+          email: coachEmail,
+          phone: phone.value || undefined,
+          password: password.value,
+          returnTo: returnPath,
+        },
+      })
+      await fetchAuth()
+      await showWelcome('athlete', data.redirectTo || localePath('/coach'))
+      return
+    }
+
     const data = await $fetch<{ redirectTo?: string }>('/api/auth/register', {
       method: 'POST',
       body: {
@@ -315,7 +342,8 @@ async function registerWithPassword() {
     const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
       || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
       || '')
-    if (status === 409 && /phone/i.test(message)) error.value = t('auth.phoneTaken')
+    if (status === 404 && /coach product/i.test(message)) error.value = t('auth.coachDisabledInPilot')
+    else if (status === 409 && /phone/i.test(message)) error.value = t('auth.phoneTaken')
     else if (status === 409) error.value = t('auth.emailTaken')
     else if (status === 400 && /phone/i.test(message)) error.value = t('auth.invalidPhone')
     else if (status === 400) error.value = t('auth.registerIdentityRequired')
@@ -378,7 +406,10 @@ async function requestOtp() {
     step.value = 'otp'
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
-    if (status === 404) error.value = t('auth.phoneNotFound')
+    if (status === 404 && /coach product/i.test(String((err as { statusMessage?: string })?.statusMessage || ''))) {
+      error.value = t('auth.coachDisabledInPilot')
+    }
+    else if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400) error.value = t('auth.invalidPhone')
     else if (status === 429) error.value = t('errors.rateLimited')
@@ -430,7 +461,7 @@ watch(smsLive, (live) => {
 })
 
 watch(step, (next) => {
-  if (next === 'role') selectedRole.value = role.value === 'COACH' ? 'ATHLETE' : role.value
+  if (next === 'role') selectedRole.value = role.value
 })
 
 // Dismiss leftover session notice when user navigates to a public page (e.g. club detail)
