@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * INBOX logotype with Anime.js SplitText clone (chars slide through a clip).
+ * inboxs logotype with Anime.js SplitText clone (chars slide through a clip).
+ * Keep dir=ltr so RTL pages do not reverse the Latin brand (INBOX → xobni).
  * Use for the wordmark only — keep the logo mark SVG separate.
  */
 withDefaults(
@@ -8,7 +9,7 @@ withDefaults(
     text?: string
   }>(),
   {
-    text: 'INBOX',
+    text: 'inboxs',
   },
 )
 
@@ -58,7 +59,8 @@ onBeforeUnmount(() => {
 <template>
   <span
     ref="root"
+    dir="ltr"
     class="inbox-wordmark inline-block font-display font-bold tracking-wide"
-    aria-label="inbox"
+    aria-label="inboxs"
   >{{ text }}</span>
 </template>
