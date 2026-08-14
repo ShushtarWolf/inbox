@@ -175,7 +175,7 @@ async function finish() {
             <input v-model.number="profile.closeHour" type="number" min="1" max="24" class="neo-input" dir="ltr" />
           </AppFormField>
         </div>
-        <button type="button" class="btn-primary w-full" :disabled="saving || !profileValid" @click="saveProfile">
+        <button type="button" class="canva-gate-btn-primary w-full" :disabled="saving || !profileValid" @click="saveProfile">
           {{ t('common.next') }}
         </button>
       </section>
@@ -201,7 +201,7 @@ async function finish() {
         <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">
           {{ t('owner.addCourt') }}
         </button>
-        <button type="button" class="btn-primary w-full" :disabled="saving || !courtsReady" @click="finish">
+        <button type="button" class="canva-gate-btn-primary w-full" :disabled="saving || !courtsReady" @click="finish">
           {{ t('owner.setupFinish') }}
         </button>
       </section>

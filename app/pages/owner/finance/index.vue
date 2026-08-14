@@ -250,7 +250,7 @@ function closeTx() {
           <InboxWordmark text="INBOX" class="text-base text-white" />
         </NuxtLink>
         <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('owner.settings')">
+          <NuxtLink :to="localePath('/owner/notifications')" :aria-label="t('notifications.title')">
             <AppIcon name="notifications" size="sm" />
           </NuxtLink>
           <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('nav.profile')">
@@ -258,7 +258,7 @@ function closeTx() {
           </NuxtLink>
         </div>
       </div>
-      <div class="canva-promo-badge pointer-events-none" aria-hidden="true">
+      <div class="canva-promo-badge canva-promo-badge-hero pointer-events-none" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
       </div>
