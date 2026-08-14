@@ -52,7 +52,7 @@ npm run db:migrate:deploy # production: apply pending migrations only
 
 Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
 
-**Liara env vars:** `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PAYMENTS_MODE=pay_at_club` until SEP terminal verified (then `live` — see docs/PAYMENTS.md).
+**Liara env vars:** see [docs/LIARA_ENV_FILL_SHEET.md](docs/LIARA_ENV_FILL_SHEET.md). Summary: `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PILOT_NO_COACH=true`, Kavenegar SMS vars, `PAYMENTS_MODE=pay_at_club` (OK fallback) or `test` until SEP terminal verified — **do not** set `live` until then (docs/PAYMENTS.md).
 
 Deploy from repo root:
 
@@ -60,7 +60,7 @@ Deploy from repo root:
 liara deploy --app inbox
 ```
 
-See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) (Behnaz MVP go-live + FA QA matrix), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md), [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md).
+See [docs/LIARA_ENV_FILL_SHEET.md](docs/LIARA_ENV_FILL_SHEET.md) (Liara secrets), [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) (Behnaz MVP go-live + FA QA matrix), [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/PAYMENTS.md](docs/PAYMENTS.md), [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md).
 
 Report security issues privately — see [SECURITY.md](SECURITY.md).
 
@@ -171,5 +171,5 @@ node scripts/qa-matrix.mjs  # role × locale route matrix (defaults to productio
 
 ### Provider architecture
 
-- **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=sep|log`. Real SEP (Saman) adapter + local test-gateway. Do not set `live` until terminal verified — see docs/PAYMENTS.md.
+- **Payments:** `PAYMENTS_MODE=pay_at_club|test|live`, `PAYMENT_PROVIDER=sep|log`. Real SEP (Saman) adapter + local test-gateway. Do not set `live` until terminal verified — `pay_at_club` is OK MVP fallback. Check: `npm run payments:status` or `GET /api/admin/payments-status`. See docs/PAYMENTS.md.
 - **SMS:** `SMS_PROVIDER=log` (default dry-run; OTP returns `debugCode`). Live Kavenegar when `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` are set. Optional `KAVENEGAR_TEMPLATE` (Verify Lookup) and `KAVENEGAR_SENDER`. Check with `npm run sms:status` or `/admin/sms`. Process due CRM campaigns: button on `/admin/sms` or `POST /api/admin/sms/process-scheduled`.

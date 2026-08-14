@@ -18,9 +18,9 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_PUBLIC_ENAMAD_*` | After signup | See [docs/ENAMAD.md](./ENAMAD.md) for meta/file/title/badge |
 | `SEED_ON_EMPTY` | First deploy | Set `true` once to seed sports catalog on empty DB; remove after |
 | `ADMIN_PROVISION_SECRET` | Yes | Header secret for admin APIs and `/admin/applications` |
-| `PAYMENTS_MODE` | No | `pay_at_club` (desk-only), `test` (local/simulate), or `live` (SEP). Synced to client Pay CTA at runtime (also accepts `NUXT_PUBLIC_PAYMENTS_MODE`). Do **not** set `live` until terminal verified — see docs/PAYMENTS.md |
+| `PAYMENTS_MODE` | No | `pay_at_club` (desk-only — **OK MVP fallback**), `test` (local/simulate), or `live` (SEP). Synced to client Pay CTA at runtime (also accepts `NUXT_PUBLIC_PAYMENTS_MODE`). **Do not set `live` until SEP terminal verified** — see docs/PAYMENTS.md. Check: `npm run payments:status` or `GET /api/admin/payments-status` |
 | `PAYMENT_PROVIDER` | No | Default `sep` when mode is `test`/`live`; `log` for API-only tests |
-| `SEP_TERMINAL_ID` | For live IPG | SEP numeric terminal id (never commit) |
+| `SEP_TERMINAL_ID` | For live IPG | SEP numeric terminal id (never commit; status endpoints never return it) |
 | `SEP_BASE_URL` | No | Defaults to `https://sep.shaparak.ir` |
 | `EMAIL_ENABLED` | No | `true` to send real emails via SMTP (default: log only — no SMTP required) |
 | `SMTP_HOST` | For live email | SMTP server hostname (required with `EMAIL_ENABLED=true`) |
@@ -362,12 +362,30 @@ Then set `AUTH_OTP_BYPASS_PHONES=09124777927` on Liara so that phone logs in wit
 
 **Product test athlete (not owner/admin):** seed/demo user `09121234567` (`athlete@inbox.local`, role `ATHLETE`). Add it to `AUTH_OTP_BYPASS_PHONES` (comma-separate with the owner phone if both are needed). Enter phone → continue → `/athlete`. No SMS / OTP code required.
 
-### Re-provision IUST pilot (after wipe)
+### Re-provision Behnaz / IUST pilot (after wipe)
+
+Owner **phone is required** for OTP login on production (email + temp password is desk fallback only).
 
 1. Open `https://inboxs.ir/admin` with `ADMIN_PROVISION_SECRET` (do not commit the secret).
-2. Use **`/admin/provision`**: owner email, name, club name → creates `CLUB_ADMIN` + `ACTIVE` club + courts.
-3. Owner logs in at `/login`; optional `/owner/setup` for hours/pricing.
+2. Use **`/admin/provision`**: owner email, name, **owner phone** (`09…` IR mobile that can receive OTP), club name (e.g. باشگاه بهناز / دانشگاه علم و صنعت) → creates `CLUB_ADMIN` + `ACTIVE` club + courts; phone is set on User + Club.
+3. Owner logs in at `/login` via **phone OTP**; optional email/temp password; optional `/owner/setup` for hours/pricing.
 4. Confirm public `/clubs` lists the new club.
+5. Status checks: `npm run sms:status` / `/admin/sms`; `npm run payments:status` / `GET /api/admin/payments-status`.
+
+API equivalent:
+
+```bash
+curl -X POST https://inboxs.ir/api/admin/provision \
+  -H "Content-Type: application/json" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
+  -d '{"type":"CLUB_ADMIN","email":"owner@club.ir","name":"مدیر مجموعه","phone":"0912xxxxxxx","clubName":"باشگاه بهناز","locale":"fa"}'
+```
+
+Fill sheet for Liara secrets: [docs/LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
+
+### Re-provision IUST pilot (legacy note)
+
+Same as Behnaz steps above; club name `دانشگاه علم و صنعت` keeps the `iust-tennis` slug when available.
 
 ## Deploy rollback
 
@@ -398,17 +416,17 @@ liara deploy --app inbox
 5. Enter the admin secret (stored in tab `sessionStorage`; use **Lock admin** to clear)
 6. Console sections: Overview (pilot checklist) · Clubs · Users · Bookings · Withdrawals · Applications · Bug reports · Provision (CLUB_ADMIN)
 
-### Provision دانشگاه علم و صنعت (preferred local path)
+### Provision دانشگاه علم و صنعت / Behnaz (preferred local path)
 
-One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 3 priced tennis courts (hours 8–22). No coach required.
+One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 3 priced tennis courts (hours 8–22). No coach required. **Include owner phone** so OTP login works after Kavenegar cutover.
 
-1. `/admin/provision` → owner email, name, club name (e.g. دانشگاه علم و صنعت)
+1. `/admin/provision` → owner email, name, **phone** (`09…`), club name (e.g. دانشگاه علم و صنعت / باشگاه بهناز)
 2. Copy the temporary password from the success panel (do not commit secrets)
-3. Log in at `/login` as the owner → optionally `/owner/setup` (profile, hours, courts/pricing; coaches optional)
+3. Log in at `/login` as the owner (phone OTP primary; email + temp password fallback) → optionally `/owner/setup` (profile, hours, courts/pricing; coaches optional)
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book on club detail: `/clubs/{slug}` (athlete account needed to complete a booking). Legacy `/book/court/{slug}` redirects there.
 
-Pilot (IUST): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step.
+Pilot (IUST/Behnaz): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Payments: `npm run payments:status` or `GET /api/admin/payments-status` — **do not** set `PAYMENTS_MODE=live` until SEP verified; `pay_at_club` is OK fallback. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step. Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
 
 ### Review club applications
 
@@ -424,7 +442,7 @@ Preferred: `/admin/provision` (CLUB_ADMIN only in the UI).
 curl -X POST http://localhost:3000/api/admin/provision \
   -H "Content-Type: application/json" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
-  -d '{"type":"CLUB_ADMIN","email":"owner@club.ir","name":"Club Owner","clubName":"My Club"}'
+  -d '{"type":"CLUB_ADMIN","email":"owner@club.ir","name":"Club Owner","phone":"0912xxxxxxx","clubName":"My Club"}'
 ```
 
 ### Approve club application

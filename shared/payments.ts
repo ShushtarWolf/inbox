@@ -60,6 +60,105 @@ export function getPaymentsMode(): PaymentsMode {
   return 'pay_at_club'
 }
 
+/** Safe ops snapshot — never includes SEP_TERMINAL_ID or other secrets. */
+export type PaymentsStatusSnapshot = {
+  paymentsMode: PaymentsMode
+  resolvedProvider: PaymentProvider
+  hasSepTerminalId: boolean
+  onlineCheckoutEnabled: boolean
+  usesTestGateway: boolean
+  liveReady: boolean
+  warningCodes: string[]
+  warnings: string[]
+  nextActionCodes: string[]
+  nextActions: string[]
+  noteCode: string
+  note: string
+  callbackPath: string
+}
+
+const PAYMENTS_WARNING: Record<string, string> = {
+  live_without_terminal:
+    'PAYMENTS_MODE=live but SEP_TERMINAL_ID is missing — live SEP checkout will fail',
+  pay_at_club_fallback:
+    'PAYMENTS_MODE=pay_at_club — online Pay CTA hidden; desk mark-paid / walk-ins OK (OK MVP fallback)',
+  test_without_terminal:
+    'PAYMENTS_MODE=test without SEP_TERMINAL_ID — checkout uses /payments/test-gateway (simulate OK/NOK)',
+}
+
+const PAYMENTS_NEXT: Record<string, string> = {
+  keep_pay_at_club: 'Keep PAYMENTS_MODE=pay_at_club until SEP is ready (desk fallback is OK for MVP)',
+  use_test_first: 'Prefer PAYMENTS_MODE=test on Liara until SEP terminal verify checklist passes',
+  set_terminal: 'Set SEP_TERMINAL_ID from the SEP merchant panel (never commit)',
+  verify_then_live:
+    'After docs/PAYMENTS.md manual verify passes, set PAYMENTS_MODE=live and restart',
+  set_site_url: 'Ensure NUXT_PUBLIC_SITE_URL=https://inboxs.ir so callback resolves correctly',
+}
+
+/**
+ * Local / admin diagnostics for payments mode after Liara secrets are set.
+ * Never returns terminal id or other secrets.
+ */
+export function getPaymentsStatusSnapshot(): PaymentsStatusSnapshot {
+  const paymentsMode = getPaymentsMode()
+  const resolvedProvider = resolvePaymentProvider()
+  const hasSepTerminalId = Boolean(process.env.SEP_TERMINAL_ID?.trim())
+  const onlineCheckoutEnabled = paymentsMode !== 'pay_at_club'
+  const usesTestGateway = paymentsMode === 'test' && !hasSepTerminalId && resolvedProvider === 'sep'
+  const liveReady = paymentsMode === 'live' && hasSepTerminalId && resolvedProvider === 'sep'
+
+  const warningCodes: string[] = []
+  const nextActionCodes: string[] = []
+
+  if (paymentsMode === 'live' && !hasSepTerminalId) {
+    warningCodes.push('live_without_terminal')
+    nextActionCodes.push('set_terminal')
+  }
+
+  if (paymentsMode === 'pay_at_club') {
+    warningCodes.push('pay_at_club_fallback')
+    nextActionCodes.push('keep_pay_at_club')
+  } else if (paymentsMode === 'test') {
+    if (!hasSepTerminalId) warningCodes.push('test_without_terminal')
+    nextActionCodes.push('use_test_first')
+    if (!hasSepTerminalId) nextActionCodes.push('set_terminal')
+    nextActionCodes.push('verify_then_live')
+  }
+
+  nextActionCodes.push('set_site_url')
+
+  let noteCode = 'pay_at_club'
+  let note =
+    'Desk-only — online Pay CTA hidden. OK MVP fallback until SEP terminal is verified.'
+  if (paymentsMode === 'test') {
+    noteCode = usesTestGateway ? 'test_gateway' : 'test_sep'
+    note = usesTestGateway
+      ? 'Test mode without terminal — /payments/test-gateway. Do not set live yet.'
+      : 'Test mode with SEP_TERMINAL_ID — real SEP request/verify. Flip to live only after checklist.'
+  } else if (paymentsMode === 'live') {
+    noteCode = liveReady ? 'live' : 'live_incomplete'
+    note = liveReady
+      ? 'Live SEP configured (terminal present). Confirm panel + callback before relying on it.'
+      : 'Live mode incomplete — set SEP_TERMINAL_ID or roll back to test / pay_at_club.'
+  }
+
+  return {
+    paymentsMode,
+    resolvedProvider,
+    hasSepTerminalId,
+    onlineCheckoutEnabled,
+    usesTestGateway,
+    liveReady,
+    warningCodes,
+    warnings: warningCodes.map((c) => PAYMENTS_WARNING[c] || c),
+    nextActionCodes,
+    nextActions: nextActionCodes.map((c) => PAYMENTS_NEXT[c] || c),
+    noteCode,
+    note,
+    callbackPath: '/payments/callback/sep',
+  }
+}
+
 /**
  * Resolve which payment provider to use.
  * When `explicit` is set (e.g. stored payment.provider on refund/callback),

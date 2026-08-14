@@ -295,6 +295,16 @@ async function main() {
   assert(!('apiKey' in sms) && !('KAVENEGAR_API_KEY' in sms), 'sms-status leaked API key')
   console.log(`ok  admin sms-status (${sms.resolvedProvider}, key=${sms.hasKavenegarApiKey})`)
 
+  const { res: payStatusRes, data: payStatus } = await apiFetch(base, '/api/admin/payments-status', {
+    headers: adminHeaders(),
+  })
+  assert(payStatusRes.ok, `admin payments-status → ${payStatusRes.status}`)
+  assert(payStatus.ok === true, 'payments-status missing ok')
+  assert(['pay_at_club', 'test', 'live'].includes(payStatus.paymentsMode), 'payments-status paymentsMode invalid')
+  assert(typeof payStatus.hasSepTerminalId === 'boolean', 'payments-status missing hasSepTerminalId')
+  assert(!('SEP_TERMINAL_ID' in payStatus) && !('terminalId' in payStatus), 'payments-status leaked terminal id')
+  console.log(`ok  admin payments-status (${payStatus.paymentsMode}, terminal=${payStatus.hasSepTerminalId})`)
+
   const { res: processRes, data: processResult } = await apiFetch(
     base,
     '/api/admin/sms/process-scheduled',

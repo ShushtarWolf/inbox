@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { getPaymentsMode, resolvePaymentProvider } from './payments'
+import { getPaymentsMode, getPaymentsStatusSnapshot, resolvePaymentProvider } from './payments'
 
 describe('resolvePaymentProvider', () => {
   const env = { ...process.env }
@@ -51,5 +51,50 @@ describe('getPaymentsMode', () => {
     delete process.env.PAYMENTS_MODE
     expect(getPaymentsMode()).toBe('pay_at_club')
     process.env.PAYMENTS_MODE = prev
+  })
+})
+
+describe('getPaymentsStatusSnapshot', () => {
+  const env = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...env }
+    delete process.env.PAYMENTS_MODE
+    delete process.env.PAYMENT_PROVIDER
+    delete process.env.SEP_TERMINAL_ID
+  })
+
+  it('reports pay_at_club desk fallback without leaking secrets', () => {
+    const snap = getPaymentsStatusSnapshot()
+    expect(snap.paymentsMode).toBe('pay_at_club')
+    expect(snap.onlineCheckoutEnabled).toBe(false)
+    expect(snap.hasSepTerminalId).toBe(false)
+    expect(snap.warningCodes).toContain('pay_at_club_fallback')
+    expect(snap).not.toHaveProperty('SEP_TERMINAL_ID')
+    expect(snap).not.toHaveProperty('terminalId')
+  })
+
+  it('reports test gateway when test mode has no terminal', () => {
+    process.env.PAYMENTS_MODE = 'test'
+    const snap = getPaymentsStatusSnapshot()
+    expect(snap.usesTestGateway).toBe(true)
+    expect(snap.liveReady).toBe(false)
+    expect(snap.nextActionCodes).toContain('verify_then_live')
+  })
+
+  it('flags live without terminal', () => {
+    process.env.PAYMENTS_MODE = 'live'
+    const snap = getPaymentsStatusSnapshot()
+    expect(snap.liveReady).toBe(false)
+    expect(snap.warningCodes).toContain('live_without_terminal')
+  })
+
+  it('marks liveReady when live + terminal', () => {
+    process.env.PAYMENTS_MODE = 'live'
+    process.env.SEP_TERMINAL_ID = '12345678'
+    const snap = getPaymentsStatusSnapshot()
+    expect(snap.hasSepTerminalId).toBe(true)
+    expect(snap.liveReady).toBe(true)
+    expect(JSON.stringify(snap)).not.toContain('12345678')
   })
 })

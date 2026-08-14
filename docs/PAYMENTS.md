@@ -11,13 +11,28 @@ We ship a **real SEP / سامان کیش** adapter (not a fake live stub). Reaso
 
 **Do not** set `PAYMENTS_MODE=live` until the terminal is active in the SEP panel and the manual checklist below passes.
 
+**`pay_at_club` is an OK MVP fallback** — launch without online IPG; desk mark-paid / walk-ins work. Prefer `test` on Liara until SEP is verified, then `live`.
+
 ## Modes
 
 | `PAYMENTS_MODE` | Behavior |
 |-----------------|----------|
-| `pay_at_club` | Legacy / desk-only. Online checkout hidden; bookings `PAY_AT_CLUB`. Still supported for walk-ins and if someone toggles back. Prefer migrating prod to `test` then `live`. |
-| `test` (recommended locally) | Default provider **sep**. Without `SEP_TERMINAL_ID`, checkout redirects to `/payments/test-gateway` (simulate OK/NOK). With terminal id, uses real SEP request/verify (SEP has no public sandbox host). |
-| `live` | Real SEP production API. Requires `SEP_TERMINAL_ID`. **Never** marks `PAID` without verify success (`0`/`2`). |
+| `pay_at_club` | Legacy / desk-only. Online checkout hidden; bookings `PAY_AT_CLUB`. **OK launch fallback.** Still supported for walk-ins and if someone toggles back. |
+| `test` (recommended locally / pre-SEP on Liara) | Default provider **sep**. Without `SEP_TERMINAL_ID`, checkout redirects to `/payments/test-gateway` (simulate OK/NOK). With terminal id, uses real SEP request/verify (SEP has no public sandbox host). |
+| `live` | Real SEP production API. Requires `SEP_TERMINAL_ID`. **Never** marks `PAID` without verify success (`0`/`2`). **Do not enable until checklist passes.** |
+
+## Ops status (after secrets)
+
+Never prints `SEP_TERMINAL_ID`:
+
+```bash
+npm run payments:status
+# Against Liara (after your deploy):
+curl -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
+  https://inboxs.ir/api/admin/payments-status
+```
+
+Expect `paymentsMode` + `hasSepTerminalId` + `liveReady` (true only when mode=`live` and terminal is set). Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
 
 ## Env vars
 
@@ -30,11 +45,18 @@ PAYMENTS_MODE=test
 NUXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
+Liara **before SEP verified** (pick one):
+
+| Variable | Value | Notes |
+|----------|-------|--------|
+| `PAYMENTS_MODE` | `pay_at_club` **or** `test` | Desk fallback OK; or test-gateway / SEP test |
+| `SEP_TERMINAL_ID` | only if calling real SEP | Never commit |
+
 Liara **live** (set only after terminal verified — never commit secrets):
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `PAYMENTS_MODE` | Yes | `live` (or `test` on Liara without terminal). Runtime-synced to client; optional `NUXT_PUBLIC_PAYMENTS_MODE` mirror |
+| `PAYMENTS_MODE` | Yes | `live` only after verify |
 | `PAYMENT_PROVIDER` | No | defaults to `sep` |
 | `SEP_TERMINAL_ID` | Yes | Numeric terminal id from SEP merchant panel |
 | `SEP_BASE_URL` | No | defaults to `https://sep.shaparak.ir` |
@@ -102,7 +124,7 @@ On Liara after deploy: ensure `prisma migrate deploy` has applied `2026072912000
 
 ## Manual verify before live (Liara)
 
-Do **not** set `PAYMENTS_MODE=live` until all pass:
+Do **not** set `PAYMENTS_MODE=live` until all pass. Until then keep `pay_at_club` (OK) or `test`.
 
 - [ ] Test-gateway: book → pay → `PAID`
 - [ ] Cancel / NOK → booking **not** `PAID`; Pay online retry works after `FAILED`
@@ -111,5 +133,6 @@ Do **not** set `PAYMENTS_MODE=live` until all pass:
 - [ ] Confirm SMS soft-fails independently (booking still succeeds if SMS down)
 - [ ] `SEP_TERMINAL_ID` set on Liara only — never in git
 - [ ] Callback URL `https://inboxs.ir/payments/callback/sep` matches panel / request payload
+- [ ] `npm run payments:status` / `GET /api/admin/payments-status` → `liveReady: true` only after mode=`live` + terminal (never prints terminal id)
 - [ ] Unit tests: `npm test` (includes SEP client + provider resolution + callback field parsing)
 - [ ] `/athlete/payments` shows the new payment row after book/pay

@@ -7,12 +7,14 @@ const { secret, clearSecret, adminFetch } = useAdminSecret()
 
 const email = ref('')
 const name = ref('')
+const phone = ref('')
 const clubName = ref('')
 const submitting = ref(false)
 const formError = ref('')
 const copied = ref(false)
 const result = ref<{
   email: string
+  phone?: string | null
   temporaryPassword: string
   role: string
   clubId?: string | null
@@ -25,7 +27,7 @@ async function submit() {
   formError.value = ''
   result.value = null
   copied.value = false
-  if (!email.value.trim() || !name.value.trim()) {
+  if (!email.value.trim() || !name.value.trim() || !phone.value.trim()) {
     formError.value = t('common.required')
     return
   }
@@ -33,6 +35,7 @@ async function submit() {
   try {
     const data = await adminFetch<{
       email: string
+      phone?: string | null
       temporaryPassword: string
       role: string
       clubId?: string | null
@@ -46,6 +49,7 @@ async function submit() {
           type: 'CLUB_ADMIN',
           email: email.value.trim(),
           name: name.value.trim(),
+          phone: phone.value.trim(),
           clubName: clubName.value.trim() || undefined,
           locale: 'fa',
         },
@@ -54,6 +58,7 @@ async function submit() {
     result.value = data
     email.value = ''
     name.value = ''
+    phone.value = ''
     clubName.value = ''
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
@@ -108,6 +113,9 @@ function resetForm() {
         {{ t('admin.provisionNote') }}
       </p>
       <p class="text-start text-xs text-brand-gray-500">
+        {{ t('admin.provisionPhoneHint') }}
+      </p>
+      <p class="text-start text-xs text-brand-gray-500">
         {{ t('admin.provisionNoSecretLeak') }}
       </p>
 
@@ -137,6 +145,21 @@ function resetForm() {
             :disabled="submitting"
           />
         </AppFormField>
+        <AppFormField field-id="provision-phone" :label="t('admin.ownerPhone')">
+          <input
+            id="provision-phone"
+            v-model="phone"
+            type="tel"
+            required
+            class="neo-input"
+            style="border-radius: 2px;"
+            dir="ltr"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="09xxxxxxxxx"
+            :disabled="submitting"
+          />
+        </AppFormField>
         <AppFormField field-id="provision-club" :label="t('admin.clubName')">
           <input
             id="provision-club"
@@ -158,6 +181,7 @@ function resetForm() {
         >
           <p class="font-bold">{{ t('admin.provisionSuccess') }}</p>
           <p dir="ltr">{{ result.email }} · {{ result.role }}</p>
+          <p v-if="result.phone" class="text-xs" dir="ltr">{{ result.phone }}</p>
           <p v-if="result.clubName" class="text-xs">
             {{ result.clubName }}
             <span v-if="result.clubSlug" dir="ltr"> · {{ result.clubSlug }}</span>

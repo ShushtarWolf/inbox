@@ -148,6 +148,22 @@ async function main() {
     }
     console.log('ok  sms-status has no secret material')
 
+    const { res: payRes, data: pay } = await apiFetch(base, '/api/admin/payments-status', {
+      headers: { 'x-admin-secret': adminSecret },
+    })
+    if (!payRes.ok) throw new Error(`payments-status → ${payRes.status}`)
+    const payJson = JSON.stringify(pay)
+    if (/"SEP_TERMINAL_ID"\s*:|"terminalId"\s*:|"sepTerminal"\s*:/.test(payJson)) {
+      throw new Error('payments-status leaked SEP terminal field')
+    }
+    if ('SEP_TERMINAL_ID' in pay || 'terminalId' in pay || 'sepTerminal' in pay) {
+      throw new Error('payments-status includes terminal fields')
+    }
+    if (!['pay_at_club', 'test', 'live'].includes(pay.paymentsMode)) {
+      throw new Error(`payments-status invalid paymentsMode: ${pay.paymentsMode}`)
+    }
+    console.log(`ok  payments-status has no terminal secret (${pay.paymentsMode})`)
+
     const { res: emailRes, data: email } = await apiFetch(base, '/api/admin/email-status', {
       headers: { 'x-admin-secret': adminSecret },
     })
