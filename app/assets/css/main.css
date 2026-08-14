@@ -1719,12 +1719,16 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9) — closed: no انتخاب chip */
+  /* Canva multi-court today grid (home page 9) — closed: date + FABs in one row, no overlay on cells */
   .canva-cal-date-nav {
-    @apply relative mb-2 flex min-h-[3.75rem] items-start justify-center gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
+    @apply relative mb-2 grid min-h-[4.75rem] items-center gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+  }
+  .canva-cal-date-nav-gutter {
+    min-height: 1px;
   }
   .canva-cal-date-nav-center {
-    @apply flex min-w-0 flex-1 items-center justify-center gap-1;
+    @apply flex min-w-0 items-center justify-center gap-1;
   }
   .canva-cal-date-nav-btn {
     @apply inline-flex h-8 w-8 items-center justify-center text-[#3B82F6] transition hover:bg-brand-primary-soft;
@@ -1745,8 +1749,7 @@
     @apply block;
   }
   .canva-cal-fab {
-    @apply absolute top-0 z-[2] flex w-[2.65rem] flex-col gap-1;
-    inset-inline-end: 0;
+    @apply z-[2] flex w-full flex-col items-stretch gap-1;
   }
   .canva-cal-fab-btn {
     @apply px-1 py-2 text-[10px] font-bold leading-tight text-white;
@@ -1762,7 +1765,7 @@
     @apply min-w-0 flex-1 overflow-x-auto pb-1;
   }
   .canva-cal-grid {
-    @apply grid min-w-[18.5rem] gap-px bg-[#e4e0da];
+    @apply grid min-w-[18.5rem] w-full gap-px bg-[#e4e0da];
     border: 1px solid #e4e0da;
     border-radius: var(--sz-canva-radius);
   }
@@ -1842,9 +1845,9 @@
     z-index: 2;
     width: 8px;
     height: 8px;
-    inset-inline-start: 3px;
+    inset-inline-end: 3px;
     inset-block-end: 3px;
-    inset-inline-end: auto;
+    inset-inline-start: auto;
     inset-block-start: auto;
     border: 1px solid #b8b3aa;
     background: #fff;
@@ -2284,8 +2287,50 @@
   .canva-venue-grid {
     gap: 1rem;
   }
+  .owner-cal-page .canva-photo-hero {
+    min-height: 14rem;
+  }
+  .owner-cal-page .canva-photo-hero-top {
+    display: none;
+  }
+  .canva-cal-sheet {
+    padding-inline: 0;
+    padding-top: 1.5rem;
+  }
+  .canva-overview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+    align-items: start;
+    gap: 1.5rem 2rem;
+  }
+  .canva-cal-date-nav {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+    min-height: 3.25rem;
+  }
+  .canva-cal-fab {
+    flex-direction: row;
+    width: auto;
+    gap: 0.4rem;
+  }
+  .canva-cal-fab-btn {
+    min-width: 4.25rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+  }
   .canva-cal-grid-scroll {
     overflow-x: auto;
+  }
+  .canva-cal-grid {
+    min-width: 0;
+    width: 100%;
+  }
+  .canva-cal-grid-cell {
+    min-height: 3.75rem;
+  }
+  .canva-cal-grid-court,
+  .canva-cal-grid-time {
+    font-size: 0.75rem;
+    padding: 0.65rem 0.4rem;
   }
 }
 

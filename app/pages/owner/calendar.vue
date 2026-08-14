@@ -56,7 +56,6 @@ const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at
 
 const date = ref(today())
 const showDatePicker = ref(false)
-const showPromoHint = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const activeCourtId = ref<string | null>(null)
 const calendarView = ref<'today' | 'overview'>('today')
@@ -150,8 +149,8 @@ const courts = computed(() => data.value?.courts || [])
 
 const gridTemplateColumns = computed(() => {
   const courtCount = Math.max(courts.value.length, 1)
-  // RTL: first columns sit on the right (courts), last column is the time gutter on the left — Canva (9).
-  return `repeat(${courtCount}, minmax(4.25rem, 1fr)) 2.75rem`
+  // RTL: first column is the time gutter on the RIGHT, then courts going left — Canva (9).
+  return `2.75rem repeat(${courtCount}, minmax(4.25rem, 1fr))`
 })
 
 function shiftDate(delta: number) {
@@ -228,9 +227,9 @@ const clubCalendarTitle = computed(() => {
   if (membership?.club) return localizedField(membership.club, 'nameFa', 'nameEn')
   return t('owner.calendar')
 })
-/** Multi-club lives in settings — closed Today (9) has no switcher under the title. */
+/** Keep a club switcher when the owner has more than one club (product chrome, even if Canva crop omits it). */
 const ownerMemberships = computed(() => user.value?.memberships || [])
-const showClubSwitcher = computed(() => false)
+const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
 const occupancyMarks = ref<Record<string, 'busy' | 'soft'>>({})
 const deskDiscountInput = ref('')
 const deskDiscountError = ref('')
@@ -1332,8 +1331,8 @@ function slotBarColor(status: string) {
 </script>
 
 <template>
-  <div class="venus-page-stack" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
-    <section class="canva-photo-hero -mx-4 sm:-mx-0">
+  <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
+    <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
       <img
         :src="clubHeroImage"
         alt=""
@@ -1342,7 +1341,10 @@ function slotBarColor(status: string) {
       />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <InboxWordmark home-link text="INBOX" class="text-base text-white" />
+        <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
+          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert" />
+          <InboxWordmark text="INBOX" class="text-base text-white" />
+        </NuxtLink>
         <div class="flex items-center gap-3 text-white">
           <NuxtLink :to="settingsPath" :aria-label="t('owner.settings')">
             <AppIcon name="notifications" size="sm" />
@@ -1352,20 +1354,17 @@ function slotBarColor(status: string) {
           </NuxtLink>
         </div>
       </div>
-      <button
-        type="button"
+      <div
         class="canva-promo-badge canva-promo-badge-hero"
         :aria-label="t('owner.calendarPromo')"
-        :title="t('owner.calendarPromoHint')"
-        @click="showPromoHint = true"
       >
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
-      </button>
-      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
+      </div>
+      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[12rem]" />
     </section>
 
-    <div class="canva-cal-sheet -mx-4 sm:mx-0">
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="text-start text-base font-bold text-brand-navy">{{ clubCalendarTitle }}</h1>
       <label
         v-if="showClubSwitcher"
@@ -1398,8 +1397,8 @@ function slotBarColor(status: string) {
       </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
-    <section v-if="calendarView === 'overview'" class="space-y-3">
-      <div class="grid grid-cols-3 gap-2">
+    <section v-if="calendarView === 'overview'" class="canva-overview-layout space-y-3">
+      <div class="grid grid-cols-3 gap-2 min-[431px]:gap-4">
         <div class="canva-overview-kpi">
           <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewBookingsToday') }}</p>
           <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">{{ formatNumber(overviewStats.bookingsToday) }}</p>
@@ -1448,6 +1447,7 @@ function slotBarColor(status: string) {
 
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
+          <div class="canva-cal-date-nav-gutter" aria-hidden="true" />
           <div class="canva-cal-date-nav-center">
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
               <AppIcon name="chevron_right" size="sm" />
@@ -1483,6 +1483,7 @@ function slotBarColor(status: string) {
           </div>
           <div v-else class="canva-cal-grid-scroll">
             <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
+              <div class="canva-cal-grid-corner" />
               <div
                 v-for="(court, idx) in courts"
                 :key="court.id"
@@ -1490,8 +1491,10 @@ function slotBarColor(status: string) {
               >
                 {{ courtColumnLabel(court, idx) }}
               </div>
-              <div class="canva-cal-grid-corner" />
               <template v-for="hour in hours" :key="hour">
+                <div class="canva-cal-grid-time">
+                  <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
+                </div>
                 <button
                   v-for="court in courts"
                   :key="`${court.id}-${hour}`"
@@ -1527,9 +1530,6 @@ function slotBarColor(status: string) {
                     @click="onCellCheckClick($event, cellSlot(court.id, hour))"
                   />
                 </button>
-                <div class="canva-cal-grid-time">
-                  <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
-                </div>
               </template>
             </div>
           </div>
@@ -1577,17 +1577,6 @@ function slotBarColor(status: string) {
     </Teleport>
 
     <OwnerLegalFooter />
-
-    <AppModal :open="showPromoHint" patterned max-width-class="canva-phone-shell max-w-sm" @close="showPromoHint = false">
-      <div class="canva-auth-body space-y-3 px-5 pb-6 pt-4 text-center">
-        <p class="text-lg font-bold text-brand-navy">{{ t('owner.calendarPromo') }}</p>
-        <p class="text-sm text-brand-gray-600">{{ t('owner.calendarPromoHint') }}</p>
-        <p class="font-mono text-base font-bold tracking-wide text-brand-primary" dir="ltr">STUDENT20</p>
-        <button type="button" class="canva-cta w-full" @click="showPromoHint = false">
-          {{ t('common.close') }}
-        </button>
-      </div>
-    </AppModal>
 
     <AppModal
       :open="showDatePicker"
