@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Canva home page (20)/(21): amenities chips + rental/sell/services bars; square +افزودن. */
+/** Canva home page (30)/(31): amenities chips + rental/sell/services bars; square +افزودن. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
@@ -128,10 +128,12 @@ async function confirmDelete() {
     <p class="text-sm text-brand-gray-600">{{ t('owner.equipmentsPage.tapToEdit') }}</p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
+      <div class="canva-equip-wide">
       <section
         v-for="cat in categories"
         :key="cat.key"
-        class="space-y-3 border-b border-brand-gray-200 pb-4 last:border-b-0"
+        class="space-y-3 border-b border-brand-gray-200 pb-4 last:border-b-0 min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-4 last:min-[431px]:border-b"
+        style="border-radius: var(--sz-canva-radius);"
       >
         <div class="flex items-center justify-between gap-2">
           <h2 class="font-bold text-brand-navy">{{ t(cat.labelKey) }}</h2>
@@ -163,14 +165,17 @@ async function confirmDelete() {
           <li v-if="!grouped[cat.key].length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</li>
         </ul>
       </section>
+      </div>
     </AppAsyncState>
 
     <OwnerLegalFooter />
 
     <AppModal
       :open="showModal"
+      sheet
       patterned
       :title="editing ? t('owner.equipmentsPage.editTitle') : t('owner.equipmentsPage.addTitle')"
+      max-width-class="canva-phone-shell max-w-sm"
       @close="closeModal"
     >
       <div class="venus-form-stack p-4">

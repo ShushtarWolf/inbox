@@ -247,6 +247,8 @@ async function send() {
         </div>
       </div>
 
+      <div class="canva-crm-wide">
+      <div class="space-y-4">
       <div class="canva-underline-tabs overflow-x-auto">
         <button
           v-for="segment in data?.segments || []"
@@ -280,6 +282,8 @@ async function send() {
         </NuxtLink>
       </div>
 
+      </div>
+      <div class="space-y-4">
       <div class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.crmPage.recentCampaigns') }}</h2>
         <CanvaEmptyState v-if="!(data?.campaigns?.length)" :title="t('owner.crmPage.emptyCampaigns')" icon="campaign" />
@@ -301,6 +305,8 @@ async function send() {
           <p class="font-bold text-brand-navy">{{ rule.name }}</p>
           <p class="mt-1 text-xs text-brand-gray-500">{{ triggerTypeLabel(rule.triggerType) }} · {{ formatHours(rule.offsetHours) }}</p>
         </div>
+      </div>
+      </div>
       </div>
     </AppAsyncState>
 

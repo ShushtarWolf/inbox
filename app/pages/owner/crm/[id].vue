@@ -19,14 +19,11 @@ function campaignStatusLabel(status: string) {
 
 <template>
   <div class="venus-page-stack">
+    <CanvaSubpageHeader to="/owner/crm" :title="t('owner.crm')" />
     <AppAsyncState :pending="pending" :error="error" :empty="!contact" skeleton-variant="default">
       <div v-if="contact" class="venus-page-stack">
-        <section class="canva-dash-hero">
-          <NuxtLink :to="localePath('/owner/crm')" class="inline-flex items-center gap-1.5 text-xs text-white/80">
-            <AppIcon name="arrow_back" size="sm" />
-            {{ t('owner.crm') }}
-          </NuxtLink>
-          <h1 class="mt-2 font-display text-2xl font-bold">{{ contact.name }}</h1>
+        <section class="canva-dash-hero hidden max-[430px]:block">
+          <h1 class="mt-2 font-display text-2xl font-bold text-white">{{ contact.name }}</h1>
           <p class="mt-1 text-sm text-white/85"><bdi dir="ltr" class="tabular-nums">{{ contact.mobile || '—' }}</bdi></p>
           <span
             class="canva-chip mt-3 inline-flex w-fit items-center gap-1 px-2.5 py-1 text-xs font-bold"
@@ -38,7 +35,9 @@ function campaignStatusLabel(status: string) {
           </span>
         </section>
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ contact.name }}</h1>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div class="canva-panel">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.visits') }}</p>
             <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.totalVisits || 0) }}</p>

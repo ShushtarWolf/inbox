@@ -128,7 +128,8 @@ function downloadReport() {
       <CanvaEmptyState v-if="!showReports && !reportsGatePending" :title="t('owner.financePage.reportsLocked')" icon="lock" />
 
       <template v-else-if="showReports">
-        <section>
+        <div class="canva-report-wide">
+        <section class="canva-report-span">
           <h2 class="mb-2 text-start text-sm font-bold text-brand-navy">{{ t('owner.financePage.customerSignals') }}</h2>
           <div class="canva-finance-signal-grid">
             <div v-for="card in signalCards" :key="card.key" class="canva-finance-signal-card">
@@ -167,11 +168,11 @@ function downloadReport() {
           </div>
         </section>
 
-        <button type="button" class="canva-black-cta" @click="downloadReport">
+        <button type="button" class="canva-black-cta canva-report-span" @click="downloadReport">
           {{ t('owner.financePage.downloadReport') }}
         </button>
 
-        <div class="space-y-3">
+        <div class="space-y-3 canva-report-span">
           <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
           <CanvaEmptyState v-if="!visibleTransactions.length" :title="t('common.empty')" icon="receipt_long" />
           <div v-else class="space-y-2">
@@ -193,6 +194,7 @@ function downloadReport() {
               </p>
             </div>
           </div>
+        </div>
         </div>
       </template>
     </AppAsyncState>

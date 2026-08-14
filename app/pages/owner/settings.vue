@@ -5,6 +5,7 @@ import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson,
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatCurrency } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
@@ -330,14 +331,21 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-4">
-    <section class="canva-dash-hero">
+  <div class="venus-page-stack">
+    <header class="canva-home-chrome hidden max-[430px]:flex">
+      <NuxtLink :to="localePath('/')" class="flex min-w-0 items-center gap-2" :aria-label="t('brand.name')">
+        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
+        <InboxWordmark class="text-lg text-brand-primary" />
+      </NuxtLink>
+    </header>
+    <section class="canva-dash-hero hidden max-[430px]:block">
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-      <h1 class="canva-page-hero-title">{{ t('owner.settings') }}</h1>
+      <h1 class="canva-page-hero-title text-white">{{ t('owner.settings') }}</h1>
     </section>
+    <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <form class="space-y-4" @submit.prevent="save">
+      <form class="canva-settings-wide" @submit.prevent="save">
         <!-- مجموعه -->
         <div class="canva-panel space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubGroup') }}</h2>
@@ -552,12 +560,12 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
         </div>
 
-        <div v-if="isOwner" class="canva-panel space-y-3">
+        <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.workersSection') }}</h2>
           <OwnerWorkersPanel embedded />
         </div>
 
-        <div v-if="isOwner" class="canva-panel space-y-3">
+        <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.staffAccess') }}</h2>
           <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
           <p v-if="staffError" class="text-sm text-red-600">{{ staffError }}</p>
@@ -625,7 +633,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           </ul>
         </div>
 
-        <div>
+        <div class="canva-settings-span">
           <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
           <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
           <button type="submit" class="canva-owner-save-cta" :disabled="saving">

@@ -22,7 +22,8 @@ const liveSms = computed(() =>
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.support')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <section class="space-y-3 text-start">
+      <div class="canva-support-wide">
+      <section class="space-y-3 text-start min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-5" style="border-radius: var(--sz-canva-radius);">
         <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.operations') }}</h2>
         <ul class="list-disc space-y-2 pe-4 text-sm text-brand-navy marker:text-brand-gray-400">
           <li>{{ t('owner.supportPage.calendarHelp') }}</li>
@@ -31,7 +32,7 @@ const liveSms = computed(() =>
         </ul>
       </section>
 
-      <section class="space-y-2 text-start">
+      <section class="space-y-2 text-start min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-5" style="border-radius: var(--sz-canva-radius);">
         <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.contactTitle') }}</h2>
         <p class="text-sm text-brand-navy">
           <span class="font-bold">{{ t('common.mobile') }}:</span>
@@ -43,6 +44,7 @@ const liveSms = computed(() =>
         </p>
         <p class="text-xs text-brand-gray-500">{{ t('owner.supportPage.contactNote') }}</p>
       </section>
+      </div>
     </AppAsyncState>
   </div>
 </template>
