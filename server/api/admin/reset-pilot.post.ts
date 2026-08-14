@@ -5,6 +5,8 @@ import {
   PILOT_CLUB_ADDRESS_FA,
   PILOT_CLUB_CITY,
   PILOT_CLUB_DISTRICT,
+  PILOT_CLUB_LAT,
+  PILOT_CLUB_LNG,
   PILOT_CLUB_NAME_EN,
   PILOT_CLUB_NAME_FA,
   PILOT_CLUB_SLUG,
@@ -16,7 +18,7 @@ import {
 } from '#shared/pilotClub.ts'
 import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhotos.ts'
 import { catalogCounts, wipeCatalog } from '../../utils/wipeCatalog'
-import { applyPilotCourtPhotos } from '../../utils/behnazClubPhotos'
+import { applyPilotCourtPhotos, ensurePilotCourts } from '../../utils/behnazClubPhotos'
 
 const WIPE_CONFIRM = 'WIPE_ALL_USERS_AND_CLUBS'
 
@@ -89,6 +91,8 @@ export default defineEventHandler(async (event) => {
         addressEn: PILOT_CLUB_ADDRESS_EN,
         city: PILOT_CLUB_CITY,
         district: PILOT_CLUB_DISTRICT,
+        lat: PILOT_CLUB_LAT,
+        lng: PILOT_CLUB_LNG,
         ownerId: user.id,
         status: 'ACTIVE',
         openHour: 8,
@@ -127,14 +131,27 @@ export default defineEventHandler(async (event) => {
     return { user, club }
   })
 
-  await applyPilotCourtPhotos(prisma, created.club.id)
+  await ensurePilotCourts(prisma, created.club.id)
+  const media = await applyPilotCourtPhotos(prisma, created.club.id)
 
   const after = await catalogCounts()
+  const leftoverGoogle = await prisma.user.count({
+    where: { oauthProvider: { not: null } },
+  })
+  const leftoverDemo = await prisma.user.count({
+    where: {
+      email: { endsWith: '@inbox.local' },
+      NOT: { email: { endsWith: '@users.inbox.local' } },
+    },
+  })
 
   return {
     ok: true,
     before,
     after,
+    leftoverGoogle,
+    leftoverDemo,
+    seedDemoData: false,
     owner: {
       id: created.user.id,
       phone: created.user.phone,
@@ -145,6 +162,11 @@ export default defineEventHandler(async (event) => {
       id: created.club.id,
       slug: created.club.slug,
       nameFa: created.club.nameFa,
+      image: created.club.image,
+      openHour: created.club.openHour,
+      closeHour: created.club.closeHour,
+      courts: PILOT_COURT_COUNT,
+      mediaCount: media.mediaAdded.length,
     },
   }
 })

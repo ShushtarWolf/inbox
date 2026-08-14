@@ -59,6 +59,11 @@ export async function wipeCatalog() {
       await tx.equipment.deleteMany()
       await tx.court.deleteMany()
 
+      await tx.clubWalletTransaction.deleteMany()
+      await tx.settlementLedgerEntry.deleteMany()
+      await tx.withdrawRequest.deleteMany()
+      await tx.clubWallet.deleteMany()
+
       await tx.club.updateMany({ data: { ownerId: null } })
       await tx.coach.updateMany({ data: { userId: null } })
       await tx.bugReport.updateMany({ data: { userId: null } })
@@ -67,6 +72,7 @@ export async function wipeCatalog() {
       await tx.clubApplication.deleteMany()
       await tx.club.deleteMany()
       await tx.phoneOtp.deleteMany()
+      // Includes Google OAuth users (oauthProvider/oauthSubject) and *@inbox.local demo rows.
       await tx.user.deleteMany()
     },
     { timeout: 120_000 },
