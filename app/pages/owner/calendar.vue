@@ -346,17 +346,28 @@ function cellSlot(courtId: string, hour: string) {
   return data.value?.slots?.find((s: OwnerCalendarSlot) => s.courtId === courtId && s.startTime === hour)
 }
 
-function slotLabel(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot) return ''
-  // Canva free cells stay empty (status via legend / thin bar only).
-  if (slot.displayStatus === 'FREE') return ''
+function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot || slot.displayStatus === 'FREE') return ''
+  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return ''
+  const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
+  return fullName || statusLabel(slot.displayStatus)
+}
+
+function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot || slot.displayStatus === 'FREE') return ''
   const note = slot.booking?.comments?.trim() || ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
     return note || t('owner.slotBlockedLabel')
   }
-  const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
-  if (fullName && note) return `${fullName} ${note}`
-  return fullName || statusLabel(slot.displayStatus)
+  return note
+}
+
+function onCellCheckClick(event: Event, slot: OwnerCalendarSlot | null | undefined) {
+  event.stopPropagation()
+  event.preventDefault()
+  if (!slot || slot.displayStatus !== 'FREE') return
+  multiSelectMode.value = true
+  toggleFreeSlot(slot)
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -1192,10 +1203,10 @@ function confirmReserveLabel() {
 }
 
 const legend = [
-  { status: 'FREE', color: palette.slotDisplay.FREE },
-  { status: 'RESERVED', color: palette.slotDisplay.RESERVED },
-  { status: 'PENDING', color: palette.slotDisplay.PENDING },
-  { status: 'BLOCKED', color: palette.slotDisplay.BLOCKED },
+  { status: 'FREE', color: 'transparent' },
+  { status: 'RESERVED', color: '#C41E1E' },
+  { status: 'PENDING', color: '#E8B84A' },
+  { status: 'BLOCKED', color: '#1A1A18' },
 ]
 
 function slotBarColor(status: string) {
@@ -1229,7 +1240,7 @@ function slotBarColor(status: string) {
       </div>
       <button
         type="button"
-        class="canva-promo-badge"
+        class="canva-promo-badge canva-promo-badge-hero"
         :aria-label="t('owner.calendarPromo')"
         :title="t('owner.calendarPromoHint')"
         @click="showPromoHint = true"
@@ -1257,7 +1268,7 @@ function slotBarColor(status: string) {
         <button
           type="button"
           class="canva-view-tab"
-          :class="calendarView === 'today' ? 'canva-view-tab-active' : ''"
+          :class="calendarView === 'today' ? 'canva-view-tab-active canva-cal-tab-active' : ''"
           @click="calendarView = 'today'"
         >
           {{ t('owner.today') }}
@@ -1265,7 +1276,7 @@ function slotBarColor(status: string) {
         <button
           type="button"
           class="canva-view-tab"
-          :class="calendarView === 'overview' ? 'canva-view-tab-active' : ''"
+          :class="calendarView === 'overview' ? 'canva-view-tab-active canva-cal-tab-active' : ''"
           @click="calendarView = 'overview'"
         >
           {{ t('owner.overview') }}
@@ -1308,85 +1319,100 @@ function slotBarColor(status: string) {
       <!-- Canva closed Today (9): legend · date nav + انتخاب · FABs · multi-court GRID -->
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
-          <span class="canva-legend-swatch" :style="{ background: item.color }" />
+          <span
+            class="canva-legend-swatch"
+            :class="item.status === 'FREE' ? 'canva-legend-swatch-free' : ''"
+            :style="item.status === 'FREE' ? undefined : { background: item.color }"
+          />
           {{ statusLabel(item.status) }}
         </div>
         <span class="canva-cal-legend-note">
-          <AppIcon name="star" size="sm" />
+          <span aria-hidden="true">*</span>
           {{ t('owner.legendNote') }}
         </span>
       </div>
 
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
-          <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
-            <AppIcon name="chevron_right" size="sm" />
-          </button>
-          <span class="canva-cal-date-nav-label">{{ dateNavLabel }}</span>
-          <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
-            <AppIcon name="chevron_left" size="sm" />
-          </button>
+          <div class="canva-cal-date-nav-center">
+            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
+              <AppIcon name="chevron_right" size="sm" />
+            </button>
+            <span class="canva-cal-date-nav-label">{{ dateNavLabel }}</span>
+            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
+              <AppIcon name="chevron_left" size="sm" />
+            </button>
+          </div>
           <button type="button" class="canva-cal-date-select" @click="showDatePicker = true">
             {{ t('common.select') }}
           </button>
         </div>
 
-        <div class="canva-cal-fab">
-          <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
-            {{ t('owner.block') }}
-          </button>
-          <button type="button" class="canva-cal-fab-btn canva-cal-fab-reserve" @click="openFabReserve">
-            {{ t('owner.reserve') }}
-          </button>
-        </div>
-
-        <div v-if="!courts.length">
-          <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
-        </div>
-        <div v-else-if="!hours.length">
-          <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
-        </div>
-        <div v-else class="canva-cal-grid-scroll">
-          <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
-            <div class="canva-cal-grid-corner" />
-            <div
-              v-for="(court, idx) in courts"
-              :key="court.id"
-              class="canva-cal-grid-court"
-            >
-              {{ courtColumnLabel(court, idx) }}
-            </div>
-            <template v-for="hour in hours" :key="hour">
-              <div class="canva-cal-grid-time">
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
-              </div>
-              <button
-                v-for="court in courts"
-                :key="`${court.id}-${hour}`"
-                type="button"
-                class="canva-cal-grid-cell"
-                :class="[
-                  slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
-                  cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
-                ]"
-                :disabled="!cellSlot(court.id, hour)"
-                @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
-                @pointerup="onSlotPointerEnd"
-                @pointerleave="onSlotPointerEnd"
-                @pointercancel="onSlotPointerEnd"
-                @contextmenu.prevent
-                @click="handleSlotClick(cellSlot(court.id, hour))"
+        <div class="canva-cal-body">
+          <div v-if="!courts.length">
+            <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
+          </div>
+          <div v-else-if="!hours.length">
+            <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
+          </div>
+          <div v-else class="canva-cal-grid-scroll">
+            <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
+              <div class="canva-cal-grid-corner" />
+              <div
+                v-for="(court, idx) in courts"
+                :key="court.id"
+                class="canva-cal-grid-court"
               >
-                <span
-                  class="canva-cal-grid-cell-bar"
-                  :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
-                />
-                <span class="canva-cal-grid-cell-body">
-                  <span class="canva-cal-grid-cell-label">{{ slotLabel(cellSlot(court.id, hour)) }}</span>
-                </span>
-                <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
-              </button>
-            </template>
+                {{ courtColumnLabel(court, idx) }}
+              </div>
+              <template v-for="hour in hours" :key="hour">
+                <div class="canva-cal-grid-time">
+                  <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
+                </div>
+                <button
+                  v-for="court in courts"
+                  :key="`${court.id}-${hour}`"
+                  type="button"
+                  class="canva-cal-grid-cell"
+                  :class="[
+                    slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
+                    cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
+                  ]"
+                  :disabled="!cellSlot(court.id, hour)"
+                  @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
+                  @pointerup="onSlotPointerEnd"
+                  @pointerleave="onSlotPointerEnd"
+                  @pointercancel="onSlotPointerEnd"
+                  @contextmenu.prevent
+                  @click="handleSlotClick(cellSlot(court.id, hour))"
+                >
+                  <span
+                    v-if="cellSlot(court.id, hour) && cellSlot(court.id, hour)!.displayStatus !== 'FREE'"
+                    class="canva-cal-grid-cell-bar"
+                    :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
+                  />
+                  <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">*</span>
+                  <span class="canva-cal-grid-cell-body">
+                    <span v-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
+                    <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
+                  </span>
+                  <span
+                    class="canva-cal-grid-check"
+                    :class="cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
+                    role="presentation"
+                    @click="onCellCheckClick($event, cellSlot(court.id, hour))"
+                  />
+                </button>
+              </template>
+            </div>
+          </div>
+          <div class="canva-cal-fab">
+            <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
+              {{ t('owner.block') }}
+            </button>
+            <button type="button" class="canva-cal-fab-btn canva-cal-fab-reserve" @click="openFabReserve">
+              {{ t('owner.reserve') }}
+            </button>
           </div>
         </div>
       </div>
@@ -1446,7 +1472,6 @@ function slotBarColor(status: string) {
 
     <AppModal
       :open="showDatePicker"
-      sheet
       patterned
       :title="t('owner.pickDate')"
       max-width-class="canva-phone-shell max-w-sm"
@@ -1478,15 +1503,15 @@ function slotBarColor(status: string) {
           </div>
 
           <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('reserve')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('reserve')" size="sm" /></span>
+            <span class="canva-desk-action-icon"><AppIcon name="person_add" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
           </button>
           <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('block')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('block')" size="sm" /></span>
+            <span class="canva-desk-action-icon"><AppIcon name="block" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.blockThisHour') }}</span>
           </button>
           <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('comments')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('comments')" size="sm" /></span>
+            <span class="canva-desk-action-icon"><AppIcon name="add" size="sm" /></span>
             <span class="min-w-0 flex-1 truncate">{{ t('owner.addNote') }}</span>
           </button>
           <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
@@ -1634,7 +1659,7 @@ function slotBarColor(status: string) {
               >
             </AppFormField>
 
-            <div>
+            <div v-if="!pilotNoCoach">
               <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.sessionType') }}</p>
               <div class="canva-session-radios">
                 <label class="canva-settings-radio">
@@ -1642,7 +1667,7 @@ function slotBarColor(status: string) {
                   <input v-model="sessionType" type="radio" value="free" class="sr-only">
                   <span>{{ t('owner.sessionTypeFree') }}</span>
                 </label>
-                <label v-if="!pilotNoCoach" class="canva-settings-radio">
+                <label class="canva-settings-radio">
                   <span class="canva-settings-radio-box" :class="sessionType === 'coach' ? 'canva-settings-radio-box-on' : ''" />
                   <input v-model="sessionType" type="radio" value="coach" class="sr-only">
                   <span>{{ t('owner.sessionTypeCoach') }}</span>
@@ -1762,19 +1787,19 @@ function slotBarColor(status: string) {
             <div class="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                class="canva-gate-btn-secondary"
-                :disabled="saving"
-                @click="confirmDeskPay('cash')"
-              >
-                {{ t('owner.payCash') }}
-              </button>
-              <button
-                type="button"
                 class="canva-gate-btn-primary"
                 :disabled="saving"
                 @click="confirmDeskPay('link')"
               >
                 {{ saving ? t('common.loading') : t('owner.sendPayLink') }}
+              </button>
+              <button
+                type="button"
+                class="canva-gate-btn-secondary"
+                :disabled="saving"
+                @click="confirmDeskPay('cash')"
+              >
+                {{ t('owner.payCash') }}
               </button>
             </div>
           </div>

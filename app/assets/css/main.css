@@ -937,11 +937,15 @@
     @apply h-1.5 w-12 rounded-full bg-brand-gray-300;
   }
   .canva-action-row {
-    @apply flex w-full items-center gap-3 border border-transparent px-3 py-3.5 text-start text-sm font-bold text-brand-navy transition hover:border-brand-gray-200 hover:bg-white/80;
-    border-radius: var(--sz-canva-radius);
+    @apply flex w-full items-center gap-3 border-0 border-b border-brand-gray-200 px-3 py-3.5 text-start text-sm font-bold text-brand-navy;
+    border-radius: 0;
   }
   .canva-action-row-active {
-    @apply border-brand-primary/20 bg-brand-primary-soft text-brand-primary;
+    @apply bg-white text-brand-navy;
+  }
+  .canva-desk-action-icon {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center text-brand-primary;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-date-pill {
     @apply inline-flex items-center gap-2 border border-brand-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-brand-navy shadow-venus-sm;
@@ -1673,13 +1677,26 @@
     min-width: 3.25rem;
     line-height: 1.1;
   }
+  .canva-promo-badge-hero {
+    @apply items-start bg-transparent px-0 py-0 text-start text-brand-primary;
+    inset-inline-start: 0.85rem;
+    bottom: 2.35rem;
+    border-radius: 0;
+    min-width: 0;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+  }
+  .canva-promo-badge-hero .canva-promo-badge-pct {
+    @apply text-[2rem] font-black leading-none;
+  }
+  .canva-promo-badge-hero .canva-promo-badge-label {
+    @apply mt-0.5 text-[11px] font-bold leading-tight;
+  }
   button.canva-promo-badge {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
   button.canva-promo-badge:active {
     opacity: 0.9;
-    transform: scale(0.98);
   }
   .canva-promo-badge-pct {
     @apply text-lg leading-none;
@@ -1700,27 +1717,33 @@
   }
   /* Canva multi-court today grid (home page 9+) */
   .canva-cal-date-nav {
-    @apply flex items-center justify-center gap-3 text-sm font-bold text-[#3B82F6];
+    @apply mb-2 flex items-center gap-1 text-sm font-bold text-[#3B82F6];
+  }
+  .canva-cal-date-nav-center {
+    @apply flex min-w-0 flex-1 items-center justify-center gap-1;
   }
   .canva-cal-date-nav-btn {
     @apply inline-flex h-8 w-8 items-center justify-center text-[#3B82F6] transition hover:bg-brand-primary-soft;
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-date-nav-label {
-    @apply min-w-[9rem] text-center tabular-nums text-[#3B82F6];
+    @apply min-w-[8.5rem] text-center tabular-nums text-[#3B82F6];
   }
   .canva-cal-date-select {
-    @apply px-2 py-1 text-[10px] font-bold text-brand-navy bg-brand-gray-100;
+    @apply shrink-0 px-2 py-1 text-[10px] font-bold text-brand-navy bg-[#eceae6];
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-grid-shell {
     @apply relative;
   }
+  .canva-cal-body {
+    @apply flex items-start gap-2;
+  }
   .canva-cal-fab {
-    @apply pointer-events-none absolute end-0 top-8 z-[2] flex flex-col gap-1.5;
+    @apply mt-8 flex w-[3.15rem] shrink-0 flex-col gap-1.5;
   }
   .canva-cal-fab-btn {
-    @apply pointer-events-auto px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm;
+    @apply px-1 py-2 text-[10px] font-bold leading-tight text-white;
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-fab-reserve {
@@ -1730,10 +1753,10 @@
     @apply bg-[#1A1A18];
   }
   .canva-cal-grid-scroll {
-    @apply -mx-1 overflow-x-auto pe-14 pb-1;
+    @apply min-w-0 flex-1 overflow-x-auto pb-1;
   }
   .canva-cal-grid {
-    @apply grid min-w-[22rem] gap-px bg-brand-gray-200/80;
+    @apply grid min-w-[18.5rem] gap-px bg-[#e4e0da];
     border: 1px solid #e4e0da;
     border-radius: var(--sz-canva-radius);
   }
@@ -1749,22 +1772,28 @@
     @apply flex items-start justify-center pt-2.5 text-[10px] tabular-nums text-brand-gray-500;
   }
   .canva-cal-grid-cell {
-    @apply relative flex min-h-[2.75rem] w-full flex-col items-stretch justify-start gap-0.5 overflow-hidden bg-white px-1 py-1 text-start transition;
+    @apply relative flex min-h-[3.15rem] w-full flex-col items-stretch justify-start overflow-hidden bg-white py-1 text-start transition;
+    padding-inline-start: 0.45rem;
+    padding-inline-end: 0.2rem;
   }
   .canva-cal-grid-cell-selected {
-    outline: 2px solid #2c2c2a;
-    outline-offset: -1px;
     z-index: 1;
   }
   .canva-cal-grid-cell-bar {
-    @apply absolute inset-y-1 start-0.5 w-1;
-    border-radius: var(--sz-canva-radius);
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0;
   }
   .canva-cal-grid-cell-body {
-    @apply relative z-[1] flex min-h-[2.25rem] flex-1 flex-col justify-center ps-2.5 pe-0.5;
+    @apply relative z-[1] flex min-h-[2.6rem] flex-1 flex-col justify-center gap-0.5 pe-3.5 ps-1.5;
   }
   .canva-cal-grid-cell-label {
-    @apply line-clamp-2 text-[9px] font-bold leading-tight text-brand-navy;
+    @apply line-clamp-1 text-[11px] font-bold leading-tight text-[#2c2c2a];
+  }
+  .canva-cal-grid-cell-sub {
+    @apply line-clamp-2 text-[10px] font-medium leading-snug text-[#4a4a46];
   }
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
@@ -1790,10 +1819,33 @@
     background: transparent;
   }
   .canva-cal-grid-note {
-    @apply absolute end-0.5 top-0.5 text-[10px] text-[#E8B84A];
+    @apply absolute top-0.5 z-[2] text-[11px] font-black leading-none text-[#1A1A18];
+    inset-inline-start: 0.35rem;
+  }
+  .canva-cal-tab-active {
+    border-bottom-color: #1A1A18 !important;
+    color: #1A1A18 !important;
+  }
+  .canva-cal-grid-check {
+    position: absolute;
+    z-index: 2;
+    width: 9px;
+    height: 9px;
+    inset-inline-start: 5px;
+    inset-block-end: 5px;
+    border: 1px solid #c9c4bb;
+    background: #fff;
+    border-radius: 1px;
+  }
+  .canva-cal-grid-check-on {
+    @apply border-[#3B82F6] bg-[#3B82F6];
   }
   .canva-cal-legend-note {
     @apply inline-flex items-center gap-1 text-[11px] font-bold text-brand-gray-600;
+  }
+  .canva-legend-swatch-free {
+    background: #fff !important;
+    border: 1px solid #c9c4bb;
   }
   .canva-detail-row {
     @apply flex items-center justify-between gap-3 border-b border-brand-gray-100 py-3 text-sm;
