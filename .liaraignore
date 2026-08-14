@@ -20,4 +20,4 @@ eslint.config.*
 public/demo
 public/videos
 tmp-logo-inspect
-# MVP pilot court photos ship from public/clubs/iust (not public/demo)
+# MVP pilot court photos ship from public/media/clubs/iust (not public/demo; not public/clubs — that shadowed /clubs)

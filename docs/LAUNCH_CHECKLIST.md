@@ -123,6 +123,41 @@ Prefer `smoke:pilot` over broad `npm run smoke` on wiped pilot prod.
 
 ---
 
+## 4b. How to run before / after Liara
+
+### Before deploy (local, log SMS + test IPG)
+
+1. Server up with `PAYMENTS_MODE=test`, `SMS_PROVIDER=log` (or `SMS_ENABLED` off / log), `ADMIN_PROVISION_SECRET` set.
+2. For coach freeze coverage: `PILOT_NO_COACH=true` (and optional `NUXT_PUBLIC_PILOT_NO_COACH=true`), then restart.
+3. Run:
+
+```bash
+npm run smoke:pilot
+BASE_URL=http://localhost:3000 npm run qa:matrix
+BASE_URL=http://localhost:3000 npm run smoke:pages
+```
+
+`smoke:pilot` covers owner OTP login, desk reserve/pay/cancel, athlete book→pay(test)→cancel, season/package `403`, package soft-land, legal/public FA shells, and coach redirects when the pilot flag is on.
+
+### After you deploy to Liara (secrets filled — you deploy, not the agent)
+
+1. Confirm SMS live: `GET /api/admin/sms-status` with `x-admin-secret` → `resolvedProvider` / `smsMode` live.
+2. Confirm payments: `PAYMENTS_MODE=test` until SEP is verified, then `live` (or stay on `pay_at_club`).
+3. Re-check shells against prod:
+
+```bash
+BASE_URL=https://inboxs.ir npm run qa:matrix
+```
+
+4. Walk the **live column** of the matrix in section 4 (real OTP SMS, live SEP if enabled, cancel SMS).
+5. Optional provision smoke against prod only if `ADMIN_PROVISION_SECRET` is available and you accept creating a throwaway club:
+
+```bash
+BASE_URL=https://inboxs.ir npm run smoke:pilot
+```
+
+Do **not** treat green local smoke as a substitute for live OTP / live SEP on `inboxs.ir`.
+
 ## 5. Security / integrity (already in code)
 
 - [x] Phone OTP primary; athlete email register → `410`

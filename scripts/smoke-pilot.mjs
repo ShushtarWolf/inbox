@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Behnaz pilot happy-path smoke — provision → desk reserve/paid → athlete book → admin SMS.
+ * Behnaz pilot happy-path smoke — owner OTP → desk → athlete book→pay(test)→cancel → freeze gates.
  *
  * Requires server on BASE_URL (default http://localhost:3000) and ADMIN_PROVISION_SECRET
  * (from env or .env). Log SMS mode is enough; does not require live Kavenegar.
+ * Expect PAYMENTS_MODE=test for the online pay path (fails hard if checkout skips).
  *
  * Usage: npm run smoke:pilot
  */
@@ -13,6 +14,7 @@ import {
   fetchPage,
   loadDotEnv,
   login,
+  loginViaOtp,
   registerAthlete,
 } from './lib/smoke-helpers.mjs'
 
@@ -42,6 +44,13 @@ function hasPilotNoCoach(html) {
   return /pilotNoCoach["']?\s*:\s*true/.test(html)
 }
 
+function paymentsModeFromHtml(html) {
+  const match = html.match(/paymentsMode["']?\s*:\s*["']([^"']+)["']/)
+  return (match?.[1] || process.env.PAYMENTS_MODE || process.env.NUXT_PUBLIC_PAYMENTS_MODE || '')
+    .trim()
+    .toLowerCase()
+}
+
 async function main() {
   console.log(`smoke-pilot → ${base}`)
   assert(adminSecret, 'ADMIN_PROVISION_SECRET is required (set in env or .env)')
@@ -49,22 +58,41 @@ async function main() {
   const jar = createCookieJar()
   const id = stamp()
   const ownerEmail = `pilot-owner-${id}@example.com`
+  const ownerPhone = `0913${Date.now().toString().slice(-6)}${String(Math.floor(Math.random() * 10))}`
   const guestMobile = '09121112233'
 
   const health = await apiFetch(base, '/api/health')
   assert(health.res.ok && health.data?.ok, '/api/health failed')
   console.log('ok  health')
 
-  // --- 1. Admin provision CLUB_ADMIN ---
+  // Cheap legal / public FA shells (MVP go-live surfaces)
+  for (const path of ['/contact', '/privacy', '/terms', '/clubs', '/login']) {
+    const { res: pageRes, html } = await fetchPage(base, path, { expectStatus: 200 })
+    assert(pageRes.status === 200, `${path} → ${pageRes.status}`)
+    assert(html.includes('__nuxt') || html.includes('<!DOCTYPE'), `${path} missing SPA shell`)
+    if (path === '/login') {
+      assert(
+        !/ادامه با گوگل|Continue with Google|AppGoogleSignIn|google-signin/i.test(html),
+        '/login leaked Google OAuth UI',
+      )
+    }
+  }
+  console.log('ok  legal + public FA shells')
+
+  const { html: homeHtmlEarly } = await fetchPage(base, '/')
+  const runtimePaymentsMode = paymentsModeFromHtml(homeHtmlEarly)
+
+  // --- 1. Admin provision CLUB_ADMIN (with phone for OTP login) ---
   const { res: provisionRes, data: provision } = await apiFetch(base, '/api/admin/provision', {
     method: 'POST',
     headers: adminHeaders(),
     body: {
       type: 'CLUB_ADMIN',
       email: ownerEmail,
+      phone: ownerPhone,
       name: 'Pilot Owner',
       clubName: `Behnaz Pilot ${id}`,
-      locale: 'en',
+      locale: 'fa',
     },
   })
   assert(provisionRes.ok, `admin provision → ${provisionRes.status}`)
@@ -73,9 +101,18 @@ async function main() {
   assert(provision.clubSlug, 'provision missing clubSlug')
   console.log(`ok  provision ${provision.clubSlug}`)
 
-  // --- 2. Owner desk reserve + mark paid ---
-  await login(base, jar, 'owner', ownerEmail, provision.temporaryPassword)
-  console.log('ok  owner login')
+  // --- 2. Owner login path (OTP primary; email password as desk fallback) ---
+  const ownerOtp = await loginViaOtp(base, jar, 'owner', ownerPhone)
+  assert(
+    ownerOtp.role === 'CLUB_ADMIN' || ownerOtp.redirectTo === '/owner' || /\/owner/.test(ownerOtp.redirectTo || ''),
+    `owner OTP login expected CLUB_ADMIN /owner, got role=${ownerOtp.role} redirect=${ownerOtp.redirectTo}`,
+  )
+  console.log('ok  owner OTP login')
+
+  // Email password still works for provisioned desk accounts
+  const emailJar = createCookieJar()
+  await login(base, emailJar, 'owner-email', ownerEmail, provision.temporaryPassword)
+  console.log('ok  owner email login (provision fallback)')
 
   let freeSlot = null
   let reserveDate = null
@@ -389,7 +426,14 @@ async function main() {
   assert(checkoutRes.ok, `checkout → ${checkoutRes.status}: ${JSON.stringify(checkout)}`)
   const providerRef = checkout?.intent?.providerRef
   const provider = checkout?.intent?.provider || 'sep'
-  if (providerRef && checkout?.intent?.status === 'PENDING_ONLINE') {
+  const pendingOnline = Boolean(providerRef && checkout?.intent?.status === 'PENDING_ONLINE')
+  if (runtimePaymentsMode === 'test' || runtimePaymentsMode === 'live') {
+    assert(
+      pendingOnline,
+      `PAYMENTS_MODE=${runtimePaymentsMode || 'test'} expected PENDING_ONLINE checkout, got ${JSON.stringify(checkout?.intent)}`,
+    )
+  }
+  if (pendingOnline) {
     const okPath = `/payments/callback/${provider}?ResNum=${encodeURIComponent(providerRef)}&State=OK`
     const first = await fetch(`${base}${okPath}`, { redirect: 'manual' })
     assert([302, 303].includes(first.status), `pay callback expected redirect, got ${first.status}`)
@@ -524,10 +568,27 @@ async function main() {
     assert(Number(walletSpent.balance) < balAfterTopup, 'wallet balance did not drop after spend')
     console.log('ok  wallet spend (useWallet checkout)')
   } else {
-    console.log(`skip online pay path (status=${checkout?.intent?.status || 'n/a'})`)
+    assert(
+      runtimePaymentsMode === 'pay_at_club',
+      `online pay skipped but PAYMENTS_MODE=${runtimePaymentsMode || 'n/a'} (set test/live or pay_at_club)`,
+    )
+    console.log('ok  pay_at_club mode — online pay path skipped by design')
   }
 
-  // --- 5. Pilot no-coach gates (when runtime flag is on) ---
+  // --- 5. Freeze gates: recurring always off; coach when pilotNoCoach ---
+  // Athlete package book soft-lands (recurring freeze) — never crash
+  {
+    const { res: pkgBook, html: pkgHtml } = await fetchPage(base, '/book/package/smoke-stub', {
+      expectStatus: 200,
+    })
+    assert(pkgBook.status === 200, `/book/package soft-land → ${pkgBook.status}`)
+    assert(
+      /packageDisabled|not available|در دسترس نیست|باشگاه/i.test(pkgHtml) || pkgHtml.includes('__nuxt'),
+      '/book/package missing soft-land shell',
+    )
+    console.log('ok  /book/package soft-land')
+  }
+
   const { html: homeHtml } = await fetchPage(base, '/')
   const pilotNoCoach = hasPilotNoCoach(homeHtml)
   if (pilotNoCoach) {
@@ -535,6 +596,11 @@ async function main() {
     const loc = coaches.res.headers.get('location') || ''
     assert(/\/clubs/.test(loc), `/coaches redirect expected /clubs, got ${loc || coaches.res.status}`)
     console.log('ok  /coaches redirects away')
+
+    const registerCoach = await fetchPage(base, '/register/coach', { expectRedirect: true })
+    const regLoc = registerCoach.res.headers.get('location') || ''
+    assert(/\/clubs/.test(regLoc), `/register/coach redirect expected /clubs, got ${regLoc || registerCoach.res.status}`)
+    console.log('ok  /register/coach redirects away')
 
     const ownerCoaches = await fetchPage(base, '/owner/coaches', {
       jar,
@@ -557,7 +623,7 @@ async function main() {
     )
     console.log('ok  owner calendar has no coach reserve UI')
   } else {
-    console.log('skip pilot no-coach (pilotNoCoach not true on server)')
+    console.log('skip pilot no-coach redirects (set PILOT_NO_COACH=true for Liara)')
   }
 
   console.log('smoke-pilot ok')

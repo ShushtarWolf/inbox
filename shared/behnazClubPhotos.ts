@@ -1,4 +1,6 @@
-/** Static court photos for دانشگاه علم و صنعت (MVP pilot). Served from public/clubs/iust. */
+/** Static court photos for دانشگاه علم و صنعت (MVP pilot).
+ * Served from public/media/clubs/iust — not public/clubs (that shadowed the /clubs page).
+ */
 
 export type PilotCourtPhoto = {
   url: string
@@ -8,7 +10,7 @@ export type PilotCourtPhoto = {
 
 function courtPhotos(court: 1 | 2 | 3): PilotCourtPhoto[] {
   return [1, 2, 3].map((view) => ({
-    url: `/clubs/iust/iust-court-${court}-${view}.webp`,
+    url: `/media/clubs/iust/iust-court-${court}-${view}.webp`,
     captionFa: `زمین ${court} — نمای ${view}`,
     captionEn: `Court ${court} — view ${view}`,
   }))

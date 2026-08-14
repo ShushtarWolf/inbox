@@ -100,12 +100,24 @@ async function login(session, email) {
 async function check(path, { session, expectRedirect, expectStatus = 200, label } = {}) {
   const headers = {}
   if (session && cookieJar.has(session)) headers.cookie = cookieJar.get(session)
-  const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
+  let res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
   if (expectRedirect) {
     if (![301, 302, 307, 308].includes(res.status)) {
       throw new Error(`${label || path} expected redirect, got ${res.status}`)
     }
     return
+  }
+  // Same-path trailing slash (static public/ shadow) — follow once
+  if ([301, 302, 307, 308].includes(res.status)) {
+    const loc = res.headers.get('location') || ''
+    let target = loc
+    try {
+      if (/^https?:\/\//i.test(loc)) target = new URL(loc).pathname
+    } catch { /* keep */ }
+    const bare = path.endsWith('/') ? path.slice(0, -1) : path
+    if (target === `${bare}/`) {
+      res = await fetch(`${base}${target}`, { headers, redirect: 'manual' })
+    }
   }
   if (res.status !== expectStatus) {
     throw new Error(`${label || path} → ${res.status}`)

@@ -112,10 +112,25 @@ export async function apiFetch(base, path, { jar, session, method = 'GET', body,
   return { res, data: await res.text() }
 }
 
+/** Follow a same-path trailing-slash redirect once (static public/ dir shadow). */
+async function followTrailingSlashOnce(base, path, headers, res) {
+  if (![301, 302, 307, 308].includes(res.status)) return res
+  const loc = res.headers.get('location') || ''
+  let targetPath = loc
+  try {
+    if (/^https?:\/\//i.test(loc)) targetPath = new URL(loc).pathname
+  } catch {
+    return res
+  }
+  const bare = path.endsWith('/') ? path.slice(0, -1) : path
+  if (targetPath !== `${bare}/`) return res
+  return fetch(`${base}${targetPath}`, { headers, redirect: 'manual' })
+}
+
 export async function fetchPage(base, path, { jar, session, expectStatus = 200, expectRedirect } = {}) {
   const headers = {}
   if (session && jar?.has(session)) headers.cookie = jar.get(session)
-  const res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
+  let res = await fetch(`${base}${path}`, { headers, redirect: 'manual' })
   if (expectRedirect) {
     const ok = [301, 302, 307, 308].includes(res.status)
     if (!ok) {
@@ -123,6 +138,7 @@ export async function fetchPage(base, path, { jar, session, expectStatus = 200, 
     }
     return { res, html: '' }
   }
+  res = await followTrailingSlashOnce(base, path, headers, res)
   if (res.status !== expectStatus) {
     throw new Error(`${path} → ${res.status}`)
   }
@@ -143,6 +159,12 @@ export function isProdSmokeBase(base = process.env.BASE_URL || '') {
 
 function stamp() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+}
+
+/** Unique IR mobile for smoke users (base36 stamps have too few digits → collisions). */
+function smokePhone(prefix = '0912') {
+  const n = Date.now().toString().slice(-6) + String(Math.floor(Math.random() * 10))
+  return `${prefix}${n}`
 }
 
 /**
@@ -176,6 +198,7 @@ export async function provisionOwner(base, adminSecret, overrides = {}) {
       name: overrides.name || 'Smoke Owner',
       clubName: overrides.clubName || `Smoke Club ${id}`,
       locale: 'en',
+      ...(overrides.phone ? { phone: overrides.phone } : {}),
     },
   })
   if (!res.ok) throw new Error(`provision owner → ${res.status}`)
@@ -185,8 +208,7 @@ export async function provisionOwner(base, adminSecret, overrides = {}) {
 /** Register a temporary ATHLETE via password (OTP remains available when SMS is live). */
 export async function registerAthlete(base, jar, session = 'athlete', overrides = {}) {
   const id = stamp()
-  const digits = String(id).replace(/\D/g, '').slice(-7).padStart(7, '0')
-  const phone = overrides.phone || `0912${digits}`
+  const phone = overrides.phone || smokePhone('0912')
   const name = overrides.name || 'Smoke Athlete'
   const password = overrides.password || `Smoke${id.slice(0, 8)}!`
 
@@ -200,7 +222,7 @@ export async function registerAthlete(base, jar, session = 'athlete', overrides 
         name,
       },
     })
-    if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}`)
+    if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}: ${JSON.stringify(reqData)}`)
     const code = reqData.debugCode
     if (!code) throw new Error('otp request athlete missing debugCode (expected in log SMS mode)')
 
