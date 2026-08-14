@@ -498,9 +498,10 @@ watch(
         <button
           v-if="step === 'gate' || step === 'welcome'"
           type="button"
-          class="absolute left-4 text-xs font-bold text-brand-gray-600"
+          class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
           @click="step === 'welcome' ? dismissWelcome() : handleClose()"
         >
+          <AppIcon name="close" size="sm" />
           {{ t('common.close') }}
         </button>
         <button
@@ -592,7 +593,92 @@ watch(
           </button>
         </template>
 
-        <!-- Password register (MVP primary) -->
+        <!-- Phone OTP register (Canva primary) — password is desk fallback only -->
+        <form
+          v-else-if="step === 'register' && channel === 'otp'"
+          class="space-y-4"
+          @submit.prevent="requestOtp"
+        >
+          <p
+            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
+          </p>
+          <template v-if="role === 'CLUB_ADMIN'">
+            <AppFormField field-id="auth-otp-club" :label="t('auth.clubName')">
+              <input id="auth-otp-club" v-model="clubNameFa" class="neo-input bg-white/95" required />
+            </AppFormField>
+            <AppFormField field-id="auth-otp-phone" :label="t('auth.ownerPhone')">
+              <input
+                id="auth-otp-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                class="neo-input bg-white/95"
+                placeholder="09xxxxxxxxx"
+                autocomplete="tel"
+                required
+              />
+            </AppFormField>
+            <AppFormField field-id="auth-otp-address" :label="t('auth.addressRegion')">
+              <input id="auth-otp-address" v-model="addressFa" class="neo-input bg-white/95" />
+            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-otp-courts" :label="t('auth.courtCount')">
+                <select id="auth-otp-courts" v-model.number="courtCount" class="neo-select bg-white/95">
+                  <option v-for="opt in courtCountOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+              <AppFormField field-id="auth-otp-sport" :label="t('auth.sport')">
+                <select id="auth-otp-sport" v-model="sport" class="neo-select bg-white/95">
+                  <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+            </div>
+            <div class="canva-auth-upload">
+              <div class="min-w-0 flex-1 text-start">
+                <p class="text-xs font-bold text-brand-navy">{{ t('auth.licenseUpload') }}</p>
+                <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.licenseHint') }}</p>
+                <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
+              </div>
+              <label class="canva-auth-upload-btn">
+                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" :disabled="licenseUploading" @change="onLicenseFile" />
+                {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
+              </label>
+            </div>
+          </template>
+          <template v-else>
+            <AppFormField field-id="auth-otp-name" :label="t('auth.fullName')">
+              <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
+            </AppFormField>
+            <AppFormField field-id="auth-otp-phone" :label="t('common.mobile')">
+              <input
+                id="auth-otp-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                class="neo-input bg-white/95"
+                placeholder="09xxxxxxxxx"
+                autocomplete="tel"
+                required
+              />
+            </AppFormField>
+          </template>
+          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
+            {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
+          </button>
+          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goRegisterPassword">
+            {{ t('auth.registerWithPassword') }}
+          </button>
+        </form>
+
+        <!-- Password register (desk fallback — not visual primary) -->
         <form
           v-else-if="step === 'register' && channel === 'password'"
           class="space-y-4"
@@ -727,95 +813,10 @@ watch(
           </button>
           <button
             type="button"
-            class="canva-gate-btn-secondary"
+            class="block w-full text-center text-xs font-bold text-brand-primary underline"
             @click="goRegisterOtp"
           >
             {{ t('auth.registerWithPhone') }}
-          </button>
-        </form>
-
-        <!-- OTP register -->
-        <form
-          v-else-if="step === 'register' && channel === 'otp'"
-          class="space-y-4"
-          @submit.prevent="requestOtp"
-        >
-          <p
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-            style="border-radius: var(--sz-canva-radius);"
-          >
-            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
-          </p>
-          <template v-if="role === 'CLUB_ADMIN'">
-            <AppFormField field-id="auth-otp-club" :label="t('auth.clubName')">
-              <input id="auth-otp-club" v-model="clubNameFa" class="neo-input bg-white/95" required />
-            </AppFormField>
-            <AppFormField field-id="auth-otp-phone" :label="t('auth.ownerPhone')">
-              <input
-                id="auth-otp-phone"
-                v-model="phone"
-                dir="ltr"
-                inputmode="tel"
-                class="neo-input bg-white/95"
-                placeholder="09xxxxxxxxx"
-                autocomplete="tel"
-                required
-              />
-            </AppFormField>
-            <AppFormField field-id="auth-otp-address" :label="t('auth.addressRegion')">
-              <input id="auth-otp-address" v-model="addressFa" class="neo-input bg-white/95" />
-            </AppFormField>
-            <div class="grid grid-cols-2 gap-2">
-              <AppFormField field-id="auth-otp-courts" :label="t('auth.courtCount')">
-                <select id="auth-otp-courts" v-model.number="courtCount" class="neo-select bg-white/95">
-                  <option v-for="opt in courtCountOptions" :key="opt.value" :value="opt.value">
-                    {{ t(opt.labelKey) }}
-                  </option>
-                </select>
-              </AppFormField>
-              <AppFormField field-id="auth-otp-sport" :label="t('auth.sport')">
-                <select id="auth-otp-sport" v-model="sport" class="neo-select bg-white/95">
-                  <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
-                    {{ t(opt.labelKey) }}
-                  </option>
-                </select>
-              </AppFormField>
-            </div>
-            <div class="canva-auth-upload">
-              <div class="min-w-0 flex-1 text-start">
-                <p class="text-xs font-bold text-brand-navy">{{ t('auth.licenseUpload') }}</p>
-                <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.licenseHint') }}</p>
-                <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
-              </div>
-              <label class="canva-auth-upload-btn">
-                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" :disabled="licenseUploading" @change="onLicenseFile" />
-                {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
-              </label>
-            </div>
-          </template>
-          <template v-else>
-            <AppFormField field-id="auth-otp-name" :label="t('auth.fullName')">
-              <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
-            </AppFormField>
-            <AppFormField field-id="auth-otp-phone" :label="t('common.mobile')">
-              <input
-                id="auth-otp-phone"
-                v-model="phone"
-                dir="ltr"
-                inputmode="tel"
-                class="neo-input bg-white/95"
-                placeholder="09xxxxxxxxx"
-                autocomplete="tel"
-                required
-              />
-            </AppFormField>
-          </template>
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
-          <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
-            {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
-          </button>
-          <button type="button" class="canva-gate-btn-secondary" @click="goRegisterPassword">
-            {{ t('auth.registerWithPassword') }}
           </button>
         </form>
 
@@ -902,7 +903,7 @@ watch(
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="canva-gate-btn-secondary" @click="goLoginPassword">
+          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goLoginPassword">
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>
@@ -938,7 +939,7 @@ watch(
           <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="requestOtp">
             {{ t('auth.resendOtp') }}
           </button>
-          <button type="button" class="canva-gate-btn-secondary" @click="goLoginPassword">
+          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goLoginPassword">
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>
