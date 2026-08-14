@@ -6,7 +6,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, courtNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
@@ -258,6 +258,7 @@ export default defineEventHandler(async (event) => {
         endTime: (body.notifyEndTime || slot.endTime).trim(),
         courtName: courtNotifyName(slot.court),
         paymentPaid: paymentStatus === 'PAID',
+        guestName: personNotifyName(body.guestName, body.guestFamily),
         ...clubNotifyLocation(club),
       }
       await notifyBookingConfirmed(notifyBase)

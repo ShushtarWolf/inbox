@@ -1,9 +1,14 @@
 import type { NotifyTemplate } from '../notify'
-import { formatSmsJalaliDate, formatSmsTime } from '#shared/jalali.ts'
+import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 
 function clubBit(data: Record<string, unknown>) {
   const name = String(data.clubName || '').trim()
   return name ? ` «${name}»` : ''
+}
+
+function greetingBit(data: Record<string, unknown>) {
+  const name = String(data.guestName || data.userName || '').trim()
+  return name ? `${name} عزیز` : ''
 }
 
 function whenBit(data: Record<string, unknown>) {
@@ -34,11 +39,18 @@ function bookingDetailLines(data: Record<string, unknown>) {
   const paid = paidBit(data)
   const address = String(data.address || '').trim()
   const maps = String(data.mapsUrl || '').trim()
+  const tracking = String(data.trackingCode || '').trim()
+  const receiptUrl = String(data.receiptUrl || '').trim()
   const lines: string[] = []
   if (court) lines.push(`زمین: ${court}`)
   if (paid) lines.push(`وضعیت پرداخت: ${paid}`)
   if (address) lines.push(address)
   if (maps) lines.push(maps)
+  if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
+  if (receiptUrl) {
+    if (data.paymentPaid !== true) lines.push('لینک پرداخت:')
+    lines.push(receiptUrl)
+  }
   return lines
 }
 
@@ -50,17 +62,20 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   PASSWORD_RESET: (data) => `بازیابی رمز inbox: ${data.resetUrl || ''}`,
   BOOKING_CONFIRMED: (data) => {
     const when = whenBit(data)
+    const greet = greetingBit(data)
     const head = when
       ? `رزرو تایید شد${clubBit(data)} — ${when}`
       : `رزرو تایید شد${clubBit(data)}`
     const extra = bookingDetailLines(data)
-    return [head, ...extra, 'اینباکس'].join('\n')
+    return [greet, head, ...extra, 'اینباکس'].filter(Boolean).join('\n')
   },
   BOOKING_CANCELLED: (data) => {
     const when = whenBit(data)
-    return when
+    const greet = greetingBit(data)
+    const head = when
       ? `رزرو لغو شد${clubBit(data)} — ${when}. اینباکس`
       : `رزرو لغو شد${clubBit(data)}. اینباکس`
+    return greet ? `${greet}\n${head}` : head
   },
   BOOKING_PAID: (data) => {
     const when = whenBit(data)
@@ -78,7 +93,7 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   CAMPAIGN: (data) => String(data.message || ''),
 }
 
-/** OTP body — Kavenegar Verify Lookup extracts the 6-digit token when KAVENEGAR_TEMPLATE is set. */
+/** OTP body — Kavenegar Verify Lookup extracts the 6-digit token when KAVENEGAR_TEMPLATE is used. */
 export function renderOtpSms(code: string) {
   return `کد تایید inbox: ${code}`
 }

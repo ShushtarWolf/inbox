@@ -1,4 +1,4 @@
-import { notifyBookingCancelled, clubNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingCancelled, clubNotifyName, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
 import { normalizeIranPhone } from '#shared/phone.ts'
 
@@ -42,6 +42,9 @@ export default defineEventHandler(async (event) => {
         startTime: slot.startTime,
         endTime: slot.endTime,
         reason,
+        guestName: personNotifyName(slot.booking.guestName, slot.booking.guestFamily)
+          || personNotifyName(slot.booking.user?.name),
+        courtName: courtNotifyName(slot.court),
       })
     }
   } else {

@@ -1,5 +1,6 @@
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { createInAppNotification, sendNotification } from './notify'
+import { bookingTrackingCode, receiptUrlForBooking } from './receipt'
 import { renderSmsTemplate } from './sms/templates'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
@@ -20,6 +21,9 @@ type BookingNotifyOpts = {
   paymentPaid?: boolean
   address?: string | null
   mapsUrl?: string | null
+  guestName?: string | null
+  trackingCode?: string | null
+  receiptUrl?: string | null
 }
 
 type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID'
@@ -37,6 +41,10 @@ export function clubNotifyName(club: { nameFa?: string | null; nameEn?: string |
 
 export function courtNotifyName(court: { nameFa?: string | null; nameEn?: string | null }) {
   return (court.nameFa || court.nameEn || '').trim()
+}
+
+export function personNotifyName(...parts: Array<string | null | undefined>) {
+  return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
 }
 
 export function clubNotifyLocation(club: {
@@ -101,6 +109,8 @@ async function safeSms(
 }
 
 function bookingNotifyData(opts: BookingNotifyOpts) {
+  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
+  const receiptUrl = opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
   return {
     kind: opts.kind,
     clubName: opts.clubName,
@@ -111,6 +121,9 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     paymentPaid: opts.paymentPaid,
     address: opts.address || '',
     mapsUrl: opts.mapsUrl || '',
+    guestName: opts.guestName || '',
+    trackingCode,
+    receiptUrl,
   }
 }
 

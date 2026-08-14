@@ -91,9 +91,11 @@ describe('SMS templates', () => {
         paymentPaid: false,
         address: 'آدرس باشگاه',
         mapsUrl: 'https://maps.google.com/?q=lat,lng',
+        guestName: 'علی رضایی',
       }),
     ).toBe(
       [
+        'علی رضایی عزیز',
         'رزرو تایید شد «باشگاه» — ۱۴۰۵/۰۵/۲۳ از ۱۸:۰۰ تا ۲۰:۰۰',
         'زمین: زمین ۱',
         'وضعیت پرداخت: پرداخت نشده',
@@ -102,5 +104,41 @@ describe('SMS templates', () => {
         'اینباکس',
       ].join('\n'),
     )
+  })
+
+  it('renders owner-desk confirmation like a pay receipt SMS', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        guestName: 'حمید افقه',
+        clubName: 'دانشگاه علم وصنعت',
+        date: '2026-08-14',
+        startTime: '08:00',
+        courtName: 'زمین ۳',
+        trackingCode: '1057128',
+        receiptUrl: 'https://inboxs.ir/r/abc',
+        paymentPaid: false,
+      }),
+    ).toBe(
+      [
+        'حمید افقه عزیز',
+        'رزرو تایید شد «دانشگاه علم وصنعت» — ۱۴۰۵/۰۵/۲۳ ساعت ۰۸:۰۰',
+        'زمین: زمین ۳',
+        'وضعیت پرداخت: پرداخت نشده',
+        'کد رهگیری: ۱۰۵۷۱۲۸',
+        'لینک پرداخت:',
+        'https://inboxs.ir/r/abc',
+        'اینباکس',
+      ].join('\n'),
+    )
+    expect(
+      renderSmsTemplate('BOOKING_CANCELLED', {
+        guestName: 'حمید افقه',
+        courtName: 'زمین ۳',
+        date: '2026-08-14',
+        startTime: '09:00',
+        endTime: '10:00',
+        trackingCode: '1057128',
+      }),
+    ).toContain('حمید افقه عزیز')
   })
 })

@@ -19,6 +19,7 @@ import {
   notifyBookingCancelled,
   notifyBookingConfirmed,
   notifyBookingPaid,
+  personNotifyName,
 } from './bookingNotify'
 
 const baseOpts = {
@@ -50,6 +51,11 @@ describe('clubNotifyName', () => {
     expect(clubNotifyName({ nameFa: 'بهناز', nameEn: 'Behnaz' })).toBe('بهناز')
     expect(clubNotifyName({ nameFa: null, nameEn: 'Behnaz' })).toBe('Behnaz')
     expect(clubNotifyName({})).toBe('باشگاه')
+  })
+
+  it('joins guest first and last name', () => {
+    expect(personNotifyName('علی', 'رضایی')).toBe('علی رضایی')
+    expect(personNotifyName('  علی  ', '', null)).toBe('علی')
   })
 
   it('builds maps url when lat/lng exist', () => {
@@ -220,6 +226,7 @@ describe('bookingNotify SMS', () => {
       paymentPaid: false,
       address: 'سعادت‌آباد',
       mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+      guestName: 'علی رضایی',
     })
 
     const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
@@ -228,6 +235,7 @@ describe('bookingNotify SMS', () => {
       paymentPaid: false,
       address: 'سعادت‌آباد',
       mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+      guestName: 'علی رضایی',
     })
   })
 
@@ -249,5 +257,26 @@ describe('bookingNotify SMS', () => {
       expect.stringContaining('از ۱۸:۰۰ تا ۲۰:۰۰'),
     )
     logSpy.mockRestore()
+  })
+
+  it('includes guest name, tracking, and receipt URL on desk confirmed SMS data', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      guestName: 'حمید افقه',
+      courtName: 'زمین ۳',
+      paymentPaid: false,
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0].data).toMatchObject({
+      guestName: 'حمید افقه',
+      courtName: 'زمین ۳',
+      paymentPaid: false,
+    })
+    expect(String(smsCall?.[0].data.trackingCode)).toMatch(/^\d{7}$/)
+    expect(String(smsCall?.[0].data.receiptUrl)).toContain('/r/')
   })
 })
