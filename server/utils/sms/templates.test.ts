@@ -20,28 +20,28 @@ describe('SMS templates', () => {
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00\nاینباکس')
+    ).toBe('رزرو تایید شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰\nاینباکس')
     expect(
       renderSmsTemplate('BOOKING_CANCELLED', {
         clubName: 'بهناز',
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('رزرو لغو شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
+    ).toBe('رزرو لغو شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. اینباکس')
     expect(
       renderSmsTemplate('BOOKING_PAID', {
         clubName: 'بهناز',
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('پرداخت رزرو ثبت شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
+    ).toBe('پرداخت رزرو ثبت شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. اینباکس')
     expect(
       renderSmsTemplate('WAITLIST_SLOT_AVAILABLE', {
         clubName: 'بهناز',
         date: '1404/01/01',
         startTime: '18:00',
       }),
-    ).toBe('نوبت آزاد شد «بهناز» — 1404/01/01 ساعت 18:00. سریع رزرو کنید')
+    ).toBe('نوبت آزاد شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۸:۰۰. سریع رزرو کنید')
   })
 
   it('includes court, payment status, and location on booking confirmed', () => {
@@ -57,7 +57,7 @@ describe('SMS templates', () => {
       }),
     ).toBe(
       [
-        'رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00',
+        'رزرو تایید شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰',
         'زمین: زمین ۱',
         'وضعیت پرداخت: پرداخت نشده',
         'سعادت‌آباد',
@@ -80,6 +80,27 @@ describe('SMS templates', () => {
         startTime: '18:00',
         endTime: '20:00',
       }),
-    ).toContain('از 18:00 تا 20:00')
+    ).toContain('از ۱۸:۰۰ تا ۲۰:۰۰')
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        clubName: 'باشگاه',
+        date: '2026-08-14',
+        startTime: '18:00',
+        endTime: '20:00',
+        courtName: 'زمین ۱',
+        paymentPaid: false,
+        address: 'آدرس باشگاه',
+        mapsUrl: 'https://maps.google.com/?q=lat,lng',
+      }),
+    ).toBe(
+      [
+        'رزرو تایید شد «باشگاه» — ۱۴۰۵/۰۵/۲۳ از ۱۸:۰۰ تا ۲۰:۰۰',
+        'زمین: زمین ۱',
+        'وضعیت پرداخت: پرداخت نشده',
+        'آدرس باشگاه',
+        'https://maps.google.com/?q=lat,lng',
+        'اینباکس',
+      ].join('\n'),
+    )
   })
 })

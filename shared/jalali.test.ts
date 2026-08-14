@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatSmsJalaliDate,
+  formatSmsTime,
   gregorianToIso,
   isoToJalaali,
   jalaaliDaysInMonth,
   jalaaliToIso,
   parseGregorianIso,
+  toPersianDigits,
 } from './jalali'
 
 describe('parseGregorianIso', () => {
@@ -26,6 +29,12 @@ describe('jalali conversions', () => {
 
   it('converts Gregorian to Jalali', () => {
     expect(isoToJalaali('2026-03-21')).toEqual({ jy: 1405, jm: 1, jd: 1 })
+  })
+
+  it('formats SMS Jalali date and Persian digits', () => {
+    expect(formatSmsJalaliDate('2026-08-14')).toBe('۱۴۰۵/۰۵/۲۳')
+    expect(formatSmsTime('18:00')).toBe('۱۸:۰۰')
+    expect(toPersianDigits('1404/05/23')).toBe('۱۴۰۴/۰۵/۲۳')
   })
 
   it('round-trips through ISO', () => {

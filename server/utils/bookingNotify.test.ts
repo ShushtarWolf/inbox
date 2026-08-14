@@ -246,7 +246,7 @@ describe('bookingNotify SMS', () => {
       'log',
       'BOOKING_CONFIRMED',
       '09129876543',
-      expect.stringContaining('از 18:00 تا 20:00'),
+      expect.stringContaining('از ۱۸:۰۰ تا ۲۰:۰۰'),
     )
     logSpy.mockRestore()
   })

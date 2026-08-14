@@ -1,4 +1,5 @@
 import type { NotifyTemplate } from '../notify'
+import { formatSmsJalaliDate, formatSmsTime } from '#shared/jalali.ts'
 
 function clubBit(data: Record<string, unknown>) {
   const name = String(data.clubName || '').trim()
@@ -6,9 +7,12 @@ function clubBit(data: Record<string, unknown>) {
 }
 
 function whenBit(data: Record<string, unknown>) {
-  const date = String(data.date || '').trim()
-  const start = String(data.time || data.startTime || '').trim()
-  const end = String(data.endTime || '').trim()
+  const dateRaw = String(data.date || '').trim()
+  const startRaw = String(data.time || data.startTime || '').trim()
+  const endRaw = String(data.endTime || '').trim()
+  const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+  const start = startRaw ? formatSmsTime(startRaw) : ''
+  const end = endRaw ? formatSmsTime(endRaw) : ''
   if (date && start && end && end !== start) return `${date} از ${start} تا ${end}`
   if (date && start) return `${date} ساعت ${start}`
   if (start && end && end !== start) return `از ${start} تا ${end}`
