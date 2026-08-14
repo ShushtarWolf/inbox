@@ -1293,6 +1293,9 @@
     @apply flex w-full items-start justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-start transition hover:border-brand-primary/30;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-finance-tx-grid {
+    @apply flex flex-col gap-2;
+  }
   .canva-finance-method-badge {
     @apply inline-flex px-2 py-0.5 text-[10px] font-bold text-white;
     border-radius: var(--sz-canva-radius);
@@ -2232,6 +2235,53 @@
 
 /* Desktop/laptop (≥431px): same Canva jobs, wide reflow — not a centered 375 column */
 @media (min-width: 431px) {
+  .canva-photo-hero-top {
+    display: none;
+  }
+  .canva-photo-hero-curve {
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-athlete-hub {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .canva-athlete-hub .canva-dash-hero {
+    margin-inline: 0;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-dash-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    align-content: start;
+  }
+  .canva-athlete-hub .canva-dash-menu {
+    display: flex;
+    flex-direction: column;
+    margin-top: 0;
+  }
+  .canva-history-desktop {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.2fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .canva-history-desktop-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .canva-finance-tx-col {
+    grid-column: 1 / -1;
+  }
+  .canva-finance-tx-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
   .canva-court-card-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2258,7 +2308,8 @@
     padding-top: 0;
   }
   .canva-club-book {
-    gap: 1rem;
+    grid-template-columns: minmax(16rem, 1fr) minmax(0, 1.15fr);
+    gap: 1.25rem;
     padding: 1rem;
   }
   .canva-club-slot-grid {

@@ -505,9 +505,9 @@ async function shareClub() {
       </NuxtLink>
     </div>
   </div>
-  <div v-else-if="club" class="tail-page-enter">
-    <div class="canva-club-detail space-y-3">
-      <CanvaPublicChrome back-to="/clubs" />
+  <div v-else-if="club" class="tail-page-enter space-y-3">
+    <CanvaPublicChrome back-to="/clubs" />
+    <div class="canva-club-detail">
       <!-- 1. Gallery: full-bleed, arrows, red active dots -->
       <section class="canva-club-gallery">
         <img :src="activeGallery" alt="" class="canva-club-gallery-media" />
@@ -775,6 +775,7 @@ async function shareClub() {
           </div>
         </section>
       </div>
+    </div>
 
       <CourtBookingConfirmSheet
         :open="confirmOpen"
@@ -791,6 +792,5 @@ async function shareClub() {
         @close="confirmOpen = false"
         @success="onConfirmSuccess"
       />
-    </div>
   </div>
 </template>

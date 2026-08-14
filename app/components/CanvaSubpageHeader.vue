@@ -23,7 +23,7 @@ const href = computed(() => {
 </script>
 
 <template>
-  <header class="flex items-center justify-between gap-3">
+  <header class="hidden items-center justify-between gap-3 max-[430px]:flex">
     <NuxtLink :to="href" class="inline-flex shrink-0 text-brand-navy" :aria-label="t('common.back')">
       <AppIcon name="arrow_forward" size="sm" />
     </NuxtLink>

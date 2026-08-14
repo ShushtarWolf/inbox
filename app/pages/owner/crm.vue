@@ -304,8 +304,8 @@ async function send() {
       </div>
     </AppAsyncState>
 
-    <div class="fixed inset-x-0 z-[40] px-4" style="bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom) + 0.75rem);">
-      <div class="mx-auto canva-phone-shell">
+    <div class="fixed inset-x-0 z-[40] px-4 max-[430px]:bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.75rem)] min-[431px]:static min-[431px]:z-auto min-[431px]:px-0">
+      <div class="mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] min-[431px]:max-w-none">
         <button type="button" class="canva-black-cta" @click="openWizard">
           {{ t('owner.smsWizard.openCta') }}
         </button>

@@ -262,7 +262,7 @@ function closeTx() {
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
     </section>
 
-    <div class="canva-cal-sheet -mx-4 sm:mx-0">
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
     <div class="canva-finance-period">
       <button
         type="button"
@@ -365,9 +365,9 @@ function closeTx() {
         </div>
       </div>
 
-      <div v-if="showTransactions" class="space-y-3">
+      <div v-if="showTransactions" class="canva-finance-tx-col space-y-3">
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
-        <div v-if="visibleTransactions.length" class="space-y-2">
+        <div v-if="visibleTransactions.length" class="canva-finance-tx-grid">
           <button
             v-for="tx in visibleTransactions"
             :key="tx.id"

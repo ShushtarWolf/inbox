@@ -74,6 +74,7 @@ async function handleLogout() {
 
 <template>
   <div class="venus-page-stack">
+    <div class="canva-athlete-hub">
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
@@ -122,6 +123,7 @@ async function handleLogout() {
         </span>
         <span class="flex-1">{{ t('athlete.logoutAccount') }}</span>
       </button>
+    </div>
     </div>
 
     <p class="sr-only">{{ formatCurrency(spendTotal) }}</p>

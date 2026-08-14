@@ -413,6 +413,7 @@ function dateLine(item: HistoryItem) {
   <div class="venus-page-stack">
     <CanvaAthleteChrome />
 
+    <div class="canva-history-desktop">
     <section class="canva-history-cal">
       <div class="canva-history-cal-layout">
         <div class="canva-history-cal-times" aria-hidden="true">
@@ -457,6 +458,7 @@ function dateLine(item: HistoryItem) {
       </div>
     </section>
 
+    <div class="canva-history-desktop-main">
     <section class="canva-history-head">
       <h1 class="canva-history-title">{{ t('athlete.historyTitle') }}</h1>
       <button
@@ -571,6 +573,8 @@ function dateLine(item: HistoryItem) {
         </div>
       </template>
     </AppAsyncState>
+    </div>
+    </div>
 
     <AppModal
       :open="Boolean(rescheduleTarget)"

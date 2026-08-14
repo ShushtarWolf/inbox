@@ -42,14 +42,14 @@ async function handleLogout() {
 
 const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 
-/** Phone shell keeps a 375 artboard only ≤430px — never lock desktop to max-w-lg. */
+/** Phone artboard only ≤430px — never lock desktop/laptop to 375 / max-w-lg. */
 const mainClass = computed(() => {
   if (props.phoneShell) {
-    return 'mx-auto w-full max-w-[var(--sz-phone-width)] px-4 pb-5 pt-0 min-[431px]:max-w-none min-[431px]:px-8 min-[431px]:py-6'
+    return 'mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] px-4 pb-5 pt-0 min-[431px]:mx-0 min-[431px]:max-w-none min-[431px]:px-8 min-[431px]:py-6'
   }
   return props.wide
     ? 'w-full px-4 py-5 min-[431px]:px-8 min-[431px]:py-8'
-    : 'mx-auto w-full max-w-lg px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8'
+    : 'mx-auto w-full max-[430px]:max-w-lg px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8'
 })
 
 const rootClass = computed(() => {
@@ -60,8 +60,11 @@ const rootClass = computed(() => {
 const backdropClass = 'fixed inset-0 z-40 bg-black/60 min-[431px]:hidden'
 
 const drawerWrapClass = computed(() => {
-  const base = 'fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 min-[431px]:static min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0'
-  return props.phoneShell ? `hidden min-[431px]:flex ${base}` : base
+  const desktop = 'min-[431px]:static min-[431px]:flex min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0'
+  if (props.phoneShell) {
+    return `z-50 max-[430px]:hidden min-[431px]:relative min-[431px]:shrink-0 ${desktop}`
+  }
+  return `fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 ${desktop}`
 })
 
 const drawerStateClass = computed(() => {
