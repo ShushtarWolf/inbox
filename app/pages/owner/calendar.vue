@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, PERSIAN_MONTHS } from '#shared/jalali.ts'
 import { palette } from '#shared/palette.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
@@ -118,6 +119,27 @@ watch(date, () => {
   refresh()
 })
 
+async function loadOccupancyMarks() {
+  const j = isoToJalaali(date.value)
+  const from = jalaaliToIso(j.jy, j.jm, 1)
+  const to = jalaaliToIso(j.jy, j.jm, jalaaliDaysInMonth(j.jy, j.jm))
+  try {
+    const month = await $fetch<{ busyDates?: string[]; softDates?: string[] }>('/api/owner/calendar', {
+      query: { from, to },
+    })
+    const marks: Record<string, 'busy' | 'soft'> = {}
+    for (const iso of month.softDates || []) marks[iso] = 'soft'
+    for (const iso of month.busyDates || []) marks[iso] = 'busy'
+    occupancyMarks.value = marks
+  } catch {
+    occupancyMarks.value = {}
+  }
+}
+
+watch(showDatePicker, (open) => {
+  if (open) loadOccupancyMarks()
+})
+
 const hours = computed(() => {
   const set = new Set<string>()
   data.value?.slots?.forEach((s: { startTime: string }) => set.add(s.startTime))
@@ -205,9 +227,14 @@ const clubCalendarTitle = computed(() => {
   if (membership?.club) return localizedField(membership.club, 'nameFa', 'nameEn')
   return t('owner.calendar')
 })
-/** Multi-club only — compact control under sheet title (never above photo hero). */
+/** Multi-club lives in settings — closed Today (9) has no switcher under the title. */
 const ownerMemberships = computed(() => user.value?.memberships || [])
-const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
+const showClubSwitcher = computed(() => false)
+const occupancyMarks = ref<Record<string, 'busy' | 'soft'>>({})
+const deskDiscountInput = ref('')
+const deskDiscountError = ref('')
+const deskDiscountApplying = ref(false)
+const deskDiscount = ref<{ code: string; percent: number; discountAmount: number } | null>(null)
 /** Canva owner hero uses the people/promo frame (same asset as athlete home), not club court crop. */
 const clubHeroImage = '/hero/fitness-venue.jpg'
 const localePath = useLocalePath()
@@ -708,6 +735,9 @@ function openCancelForm() {
 
 function openPayConfirm() {
   if (!canSubmitReserve()) return
+  deskDiscountInput.value = ''
+  deskDiscountError.value = ''
+  deskDiscount.value = null
   activePanel.value = 'payConfirm'
 }
 
@@ -839,6 +869,7 @@ async function doReserve() {
           paymentStatus: form.paymentStatus,
           comments: form.comments,
           equipmentIds: form.equipmentIds,
+          discountCode: deskDiscount.value?.code,
           displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
         },
       })
@@ -1182,6 +1213,89 @@ function toggleReserveEquipment(id: string) {
   form.equipmentIds = [...form.equipmentIds, id]
 }
 
+function equipmentQty(id: string) {
+  return form.equipmentIds.includes(id) ? 1 : 0
+}
+
+function setEquipmentQty(id: string, qty: number) {
+  if (qty <= 0) {
+    form.equipmentIds = form.equipmentIds.filter((item) => item !== id)
+    return
+  }
+  if (!form.equipmentIds.includes(id)) {
+    form.equipmentIds = [...form.equipmentIds, id]
+  }
+}
+
+const payConfirmDateHeading = computed(() => {
+  const j = isoToJalaali(date.value)
+  return `${weekdayLabel.value} ${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]}`
+})
+
+const payConfirmCostLines = computed(() => {
+  const lines: Array<{ label: string; amount: number }> = []
+  for (const slot of slotsForReserve()) {
+    lines.push({
+      label: t('booking.confirmLineSlot', {
+        date: payConfirmDateHeading.value,
+        time: slot.startTime?.slice(0, 5) || '',
+      }),
+      amount: slot.price ?? 0,
+    })
+  }
+  for (const item of rentalEquipments.value) {
+    if (!form.equipmentIds.includes(item.id)) continue
+    if (item.category === 'CLUB' || !item.price) continue
+    lines.push({
+      label: t('booking.confirmLineEquipment', {
+        name: localizedField(item, 'nameFa', 'nameEn'),
+        qty: formatNumber(1),
+      }),
+      amount: item.price,
+    })
+  }
+  return lines
+})
+
+const payConfirmSubtotal = computed(() =>
+  payConfirmCostLines.value.reduce((sum, line) => sum + line.amount, 0),
+)
+const payConfirmDiscountAmount = computed(() => deskDiscount.value?.discountAmount || 0)
+const payConfirmTotal = computed(() => Math.max(0, payConfirmSubtotal.value - payConfirmDiscountAmount.value))
+
+async function applyDeskDiscount() {
+  deskDiscountError.value = ''
+  const clubId = selectedClubId.value
+    || user.value?.memberships?.[0]?.club?.id
+  if (!clubId || !deskDiscountInput.value.trim()) return
+  deskDiscountApplying.value = true
+  try {
+    const result = await $fetch<{ code: string; percent: number; discountAmount: number }>('/api/discounts/validate', {
+      method: 'POST',
+      body: {
+        code: deskDiscountInput.value,
+        clubId,
+        subtotal: payConfirmSubtotal.value,
+      },
+    })
+    deskDiscount.value = {
+      code: result.code,
+      percent: result.percent,
+      discountAmount: result.discountAmount,
+    }
+  } catch {
+    deskDiscount.value = null
+    deskDiscountError.value = t('booking.discountApplyFailed')
+  } finally {
+    deskDiscountApplying.value = false
+  }
+}
+
+function clearDeskDiscount() {
+  deskDiscount.value = null
+  deskDiscountError.value = ''
+}
+
 function slotIsInPast(slot: OwnerCalendarSlot) {
   const slotDate = slot.date || date.value
   return isSlotStartInPast(slotDate, slot.startTime)
@@ -1228,7 +1342,7 @@ function slotBarColor(status: string) {
       />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <InboxWordmark home-link class="text-base text-white" />
+        <InboxWordmark home-link text="INBOX" class="text-base text-white" />
         <div class="flex items-center gap-3 text-white">
           <NuxtLink :to="settingsPath" :aria-label="t('owner.settings')">
             <AppIcon name="notifications" size="sm" />
@@ -1478,7 +1592,12 @@ function slotBarColor(status: string) {
       @close="showDatePicker = false"
     >
       <div class="px-4 pb-5 pt-2">
-        <AppJalaliCalendar v-model="date" @select="onDatePicked" />
+        <AppJalaliCalendar
+          v-model="date"
+          variant="owner"
+          :day-marks="occupancyMarks"
+          @select="onDatePicked"
+        />
       </div>
     </AppModal>
 
@@ -1683,17 +1802,27 @@ function slotBarColor(status: string) {
                   :key="item.id"
                   class="canva-equip-row"
                 >
-                  <span class="inline-flex items-center gap-2">
+                  <span class="inline-flex min-w-0 items-center gap-2">
                     <input
                       type="checkbox"
                       class="canva-settings-checkbox"
                       :checked="form.equipmentIds.includes(item.id)"
                       @change="toggleReserveEquipment(item.id)"
                     >
-                    <span>{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                    <span class="text-start">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
                   </span>
-                  <span class="shrink-0 tabular-nums text-brand-gray-600">
-                    {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
+                  <span class="inline-flex shrink-0 items-center gap-2">
+                    <span
+                      v-if="form.equipmentIds.includes(item.id)"
+                      class="canva-qty-step"
+                    >
+                      <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, 0)">−</button>
+                      <span class="tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                      <button type="button" class="canva-qty-step-btn" disabled>+</button>
+                    </span>
+                    <span class="tabular-nums text-brand-gray-600">
+                      {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
+                    </span>
                   </span>
                 </label>
               </div>
@@ -1753,7 +1882,7 @@ function slotBarColor(status: string) {
         <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel !border-0">
           <div class="canva-confirm-book px-1 pb-2">
             <div class="canva-auth-header">
-              <InboxWordmark class="text-base text-brand-navy" />
+              <InboxWordmark text="INBOX" class="text-base text-brand-navy" />
               <button type="button" class="text-xs font-bold text-brand-gray-600" @click="activePanel = 'reserve'">
                 {{ t('common.close') }}
               </button>
@@ -1763,7 +1892,7 @@ function slotBarColor(status: string) {
               <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubCalendarTitle }}</h2>
             </div>
             <div class="mt-3 text-start">
-              <p class="canva-confirm-book-date">{{ formattedDate }}</p>
+              <p class="canva-confirm-book-date">{{ payConfirmDateHeading }}</p>
               <div class="mt-2 flex flex-wrap justify-start gap-2">
                 <span
                   v-for="slot in slotsForReserve()"
@@ -1778,11 +1907,57 @@ function slotBarColor(status: string) {
                 {{ localizedField(payConfirmCourt, 'nameFa', 'nameEn') }}
               </p>
             </div>
-            <OwnerBookingPriceSummary
-              class="mt-4"
-              :court-price="courtPrice"
-              :equipment-price="reserveEquipmentPrice"
-            />
+            <div class="canva-confirm-book-costs mt-4 text-start">
+              <div
+                v-for="(line, idx) in payConfirmCostLines"
+                :key="idx"
+                class="canva-confirm-book-cost-row"
+              >
+                <span class="canva-confirm-book-cost-label">{{ line.label }}</span>
+                <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
+              </div>
+              <div class="canva-confirm-book-discount">
+                <div class="canva-confirm-book-discount-row">
+                  <input
+                    v-model="deskDiscountInput"
+                    type="text"
+                    class="canva-confirm-book-discount-input"
+                    :placeholder="t('booking.discountPlaceholder')"
+                    :disabled="deskDiscountApplying || saving"
+                    autocomplete="off"
+                    @keydown.enter.prevent="applyDeskDiscount"
+                  >
+                  <button
+                    v-if="deskDiscount"
+                    type="button"
+                    class="canva-confirm-book-discount-btn"
+                    :disabled="saving"
+                    @click="clearDeskDiscount"
+                  >
+                    {{ t('booking.discountClear') }}
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    class="canva-confirm-book-discount-btn"
+                    :disabled="deskDiscountApplying || saving || !deskDiscountInput.trim()"
+                    @click="applyDeskDiscount"
+                  >
+                    {{ deskDiscountApplying ? t('common.loading') : t('booking.discountApply') }}
+                  </button>
+                </div>
+                <p v-if="deskDiscountError" class="canva-confirm-book-discount-note text-brand-primary">{{ deskDiscountError }}</p>
+              </div>
+              <div class="canva-confirm-book-cost-row">
+                <span class="canva-confirm-book-cost-label">{{ t('booking.discountCode') }}</span>
+                <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatNumber(payConfirmDiscountAmount) }}</span>
+              </div>
+              <div class="canva-confirm-book-cost-row font-bold text-brand-navy">
+                <span>{{ t('owner.priceBreakdown.total') }}</span>
+                <span dir="ltr">{{ formatCurrency(payConfirmTotal) }}</span>
+              </div>
+            </div>
+            <p class="mt-3 text-center text-[11px] text-brand-gray-500">{{ t('booking.acceptTerms') }}</p>
             <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
             <div class="mt-4 grid grid-cols-2 gap-2">
               <button

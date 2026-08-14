@@ -1,6 +1,22 @@
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const query = getQuery(event)
+  const from = typeof query.from === 'string' ? query.from : ''
+  const to = typeof query.to === 'string' ? query.to : ''
+  if (from && to) {
+    const monthSlots = await prisma.slot.findMany({
+      where: { court: { clubId: club.id }, date: { gte: from, lte: to } },
+      select: { date: true, displayStatus: true },
+    })
+    const busyDates = new Set<string>()
+    const softDates = new Set<string>()
+    for (const slot of monthSlots) {
+      if (slot.displayStatus === 'PENDING') softDates.add(slot.date)
+      else if (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'CANCELLED') busyDates.add(slot.date)
+    }
+    return { busyDates: [...busyDates], softDates: [...softDates] }
+  }
+
   const date = (query.date as string) || todayDateStr()
   await ensureSlotsForDate(club.id, date)
 

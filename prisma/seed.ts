@@ -302,31 +302,70 @@ async function main() {
 
   let si = 0
   for (const court of courts) {
-    for (let h = 12; h <= 17; h++) {
-      const status = STATUSES[si % STATUSES.length]!
+    for (let h = 7; h <= 18; h++) {
+      const hour = formatHour(h)
+      let status: SlotDisplayStatus = 'FREE'
+      let guestName = ''
+      let guestFamily = ''
+      let comments: string | null = null
+      if (h === 7 || h === 10 || h === 14) {
+        status = 'RESERVED'
+        guestName = 'علی'
+        guestFamily = 'محمدی'
+        comments = h === 7 || h === 10 ? 'شاگرد جدید داره' : 'رزرو نمونه'
+      } else if (h === 8 && si % 2 === 0) {
+        status = 'PENDING'
+        guestName = 'علی'
+        guestFamily = 'محمدی'
+        comments = 'در انتظار پرداخت'
+      } else if (h === 9) {
+        status = 'BLOCKED'
+        comments = 'زمین در حال بازسازی است'
+      } else {
+        status = STATUSES[si % STATUSES.length]!
+        if (['RESERVED', 'PUBLIC', 'PENDING', 'TEAM'].includes(status)) {
+          guestName = 'علی'
+          guestFamily = 'محمدی'
+          comments = status === 'TEAM' ? 'جلسه تیمی' : 'شاگرد جدید داره'
+        }
+      }
       si++
       const slot = await prisma.slot.create({
         data: {
           courtId: court.id,
           date: today,
-          startTime: formatHour(h),
+          startTime: hour,
           endTime: hourEnd(h),
           price: court.price,
           displayStatus: status,
         },
       })
-      if (['RESERVED', 'PUBLIC', 'PENDING', 'TEAM'].includes(status)) {
+      if (status === 'BLOCKED') {
+        await prisma.booking.create({
+          data: {
+            slotId: slot.id,
+            guestName: 'باشگاه',
+            guestFamily: '',
+            guestMobile: '',
+            paymentMethod: 'CASH',
+            paymentStatus: 'PAY_AT_CLUB',
+            source: 'CLUB',
+            status: 'CONFIRMED',
+            comments,
+          },
+        }).catch(() => null)
+      } else if (['RESERVED', 'PUBLIC', 'PENDING', 'TEAM'].includes(status) && guestName) {
         const booking = await prisma.booking.create({
           data: {
             slotId: slot.id,
-            guestName: 'مهمان',
-            guestFamily: 'باشگاه',
+            guestName,
+            guestFamily,
             guestMobile: '09120000000',
             paymentMethod: 'CASH',
             paymentStatus: status === 'PENDING' ? 'PAY_AT_CLUB' : 'PAID',
             source: 'CLUB',
             status: status === 'PENDING' ? 'PENDING' : 'CONFIRMED',
-            comments: status === 'TEAM' ? 'جلسه تیمی' : 'رزرو نمونه',
+            comments,
           },
         })
         await prisma.reservationEvent.create({

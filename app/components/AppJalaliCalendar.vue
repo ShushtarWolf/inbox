@@ -7,9 +7,13 @@ const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
 const props = withDefaults(defineProps<{
   mode?: 'single' | 'range'
   minDate?: string
+  variant?: 'default' | 'owner'
+  dayMarks?: Record<string, 'busy' | 'soft'>
 }>(), {
   mode: 'single',
   minDate: '',
+  variant: 'default',
+  dayMarks: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -147,15 +151,15 @@ function cellClass(cell: { iso: string | null }) {
 </script>
 
 <template>
-  <div class="jalali-calendar rounded-venus border border-brand-gray-100 bg-white p-4 shadow-venus">
+  <div class="jalali-calendar" :class="variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default'">
     <div class="mb-3 flex items-center justify-between gap-2">
       <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
         <AppIcon name="chevron_left" size="sm" />
       </button>
       <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
-        <p class="truncate text-sm font-bold text-brand-navy">{{ monthLabel }}</p>
+        <p class="jalali-calendar-month truncate text-sm font-bold">{{ monthLabel }}</p>
         <button
-          v-if="!isViewingTodayMonth"
+          v-if="variant !== 'owner' && !isViewingTodayMonth"
           type="button"
           class="jalali-calendar-today shrink-0"
           @click="goToToday"
@@ -168,7 +172,7 @@ function cellClass(cell: { iso: string | null }) {
       </button>
     </div>
 
-    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-brand-navy/50">
+    <div class="jalali-calendar-weekdays grid grid-cols-7 gap-1 text-center text-xs font-bold">
       <span v-for="weekday in PERSIAN_WEEKDAYS" :key="weekday">{{ weekday }}</span>
     </div>
 
@@ -182,7 +186,13 @@ function cellClass(cell: { iso: string | null }) {
           :disabled="isDisabled(cell)"
           @click="selectDay(cell.iso!)"
         >
-          {{ formatNumber(cell.day) }}
+          <span>{{ formatNumber(cell.day) }}</span>
+          <i
+            v-if="variant === 'owner' && cell.iso && dayMarks[cell.iso]"
+            class="jalali-day-dot"
+            :class="dayMarks[cell.iso] === 'busy' ? 'jalali-day-dot-busy' : 'jalali-day-dot-soft'"
+            aria-hidden="true"
+          />
         </button>
       </span>
     </div>
@@ -193,7 +203,29 @@ function cellClass(cell: { iso: string | null }) {
 .jalali-calendar {
   width: min(100vw - 2rem, 18rem);
 }
-
+.jalali-calendar-default {
+  border-radius: 0.75rem;
+  border: 1px solid var(--sz-border);
+  background: #fff;
+  padding: 1rem;
+  box-shadow: var(--sz-shadow-sm, none);
+}
+.jalali-calendar-owner {
+  background: #fff;
+  padding: 0.25rem 0.15rem 0.5rem;
+}
+.jalali-calendar-owner .jalali-calendar-month {
+  color: var(--sz-accent);
+}
+.jalali-calendar-owner .jalali-calendar-weekdays {
+  color: var(--sz-accent);
+}
+.jalali-calendar-owner .jalali-calendar-nav {
+  border: 0;
+  background: transparent;
+  color: var(--sz-accent);
+  border-radius: 2px;
+}
 .jalali-calendar-nav {
   display: inline-flex;
   height: 2rem;
@@ -208,9 +240,8 @@ function cellClass(cell: { iso: string | null }) {
   font-weight: 700;
   line-height: 1;
 }
-
 .jalali-calendar-today {
-  border-radius: 9999px;
+  border-radius: 2px;
   border: 1px solid var(--sz-border);
   background: var(--sz-bg);
   padding: 0.25rem 0.75rem;
@@ -218,48 +249,57 @@ function cellClass(cell: { iso: string | null }) {
   font-weight: 700;
   color: var(--sz-accent);
 }
-
 .jalali-calendar-today:hover {
   background: var(--sz-bg-elevated);
 }
-
 .jalali-calendar-day {
   display: flex;
   height: 2.25rem;
   width: 100%;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.1rem;
   border-radius: 0.75rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--sz-navy);
 }
-
+.jalali-calendar-owner .jalali-calendar-day {
+  border-radius: 2px;
+}
 .jalali-calendar-day:hover {
   background: var(--sz-bg-elevated);
 }
-
 .jalali-calendar-day-selected {
   background: var(--sz-accent);
   color: #fff;
 }
-
 .jalali-calendar-day-selected:hover {
   background: var(--sz-accent-dark);
 }
-
 .jalali-calendar-day-in-range {
   background: color-mix(in srgb, var(--sz-accent) 18%, transparent);
   color: var(--sz-navy);
 }
-
 .jalali-calendar-day-disabled {
   cursor: not-allowed;
   color: var(--sz-border);
   opacity: 0.45;
 }
-
 .jalali-calendar-day-disabled:hover {
   background: transparent;
+}
+.jalali-day-dot {
+  display: block;
+  height: 4px;
+  width: 4px;
+  border-radius: 1px;
+}
+.jalali-day-dot-busy {
+  background: #16a34a;
+}
+.jalali-day-dot-soft {
+  background: #c9c4bb;
 }
 </style>

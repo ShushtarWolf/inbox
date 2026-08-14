@@ -1787,7 +1787,7 @@
     border-radius: 0;
   }
   .canva-cal-grid-cell-body {
-    @apply relative z-[1] flex min-h-[2.6rem] flex-1 flex-col justify-center gap-0.5 pe-3.5 ps-1.5;
+    @apply relative z-[1] flex min-h-[2.6rem] flex-1 flex-col justify-start gap-0.5 pt-1 pe-3.5 ps-2.5;
   }
   .canva-cal-grid-cell-label {
     @apply line-clamp-1 text-[11px] font-bold leading-tight text-[#2c2c2a];
@@ -1829,13 +1829,23 @@
   .canva-cal-grid-check {
     position: absolute;
     z-index: 2;
-    width: 9px;
-    height: 9px;
-    inset-inline-start: 5px;
-    inset-block-end: 5px;
-    border: 1px solid #c9c4bb;
+    width: 8px;
+    height: 8px;
+    inset-inline-start: 3px;
+    inset-block-end: 3px;
+    inset-inline-end: auto;
+    inset-block-start: auto;
+    border: 1px solid #b8b3aa;
     background: #fff;
     border-radius: 1px;
+    pointer-events: auto;
+  }
+  .canva-qty-step {
+    @apply inline-flex items-center gap-1 text-[11px] font-bold text-brand-navy;
+  }
+  .canva-qty-step-btn {
+    @apply inline-flex h-5 w-5 items-center justify-center border border-brand-gray-300 bg-white text-xs leading-none disabled:opacity-40;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-cal-grid-check-on {
     @apply border-[#3B82F6] bg-[#3B82F6];

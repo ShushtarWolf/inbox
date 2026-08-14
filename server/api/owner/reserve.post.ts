@@ -11,6 +11,8 @@ import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaEr
 import { assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
+import { applyDiscountPercent } from '#shared/discountCode.ts'
+import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
 
 function resolveDeskPaymentMethod(
   requested: string | undefined,
@@ -41,6 +43,7 @@ export default defineEventHandler(async (event) => {
     comments?: string
     displayStatus?: string
     equipmentIds?: string[]
+    discountCode?: string
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
   const guestMobile = resolveGuestMobile(body.guestMobile)
@@ -71,10 +74,16 @@ export default defineEventHandler(async (event) => {
   const becomingPaid = paymentStatus === 'PAID' && !previousPaid
   const equipmentIds = [...new Set(body.equipmentIds || [])]
   const equipmentItems = await loadEquipmentForBooking(club.id, equipmentIds)
-  const totalAmount = calculateSessionTotal({
+  let totalAmount = calculateSessionTotal({
     courtPrice: slot.price,
     equipmentPrices: equipmentItems.map((item) => (item.category === 'CLUB' ? 0 : item.price)),
   })
+  if (body.discountCode) {
+    const discountRow = await findDiscountCodeByInput(body.discountCode)
+    if (!discountRow) throw createError({ statusCode: 400, statusMessage: 'Invalid discount code' })
+    assertDiscountUsable(discountRow, club.id)
+    totalAmount = applyDiscountPercent(totalAmount, discountRow.percent).total
+  }
   // FREE is truthy — never keep FREE when creating/updating a desk booking unless explicitly set.
   const allowedDisplay = new Set(['RESERVED', 'TEAM', 'PENDING', 'PUBLIC'])
   const requestedDisplay = typeof body.displayStatus === 'string' ? body.displayStatus : undefined
