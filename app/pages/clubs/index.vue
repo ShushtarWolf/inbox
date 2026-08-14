@@ -217,7 +217,7 @@ function prevHero() {
       </div>
 
       <AppAsyncState :pending="pending" :error="error" :empty="!clubs?.length" skeleton-variant="table">
-        <div class="space-y-3">
+        <div class="canva-court-card-grid">
           <NuxtLink
             v-for="club in clubs"
             :key="club.id"

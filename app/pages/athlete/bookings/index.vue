@@ -485,7 +485,7 @@ function dateLine(item: HistoryItem) {
         :body="t('booking.emptyState')"
         doodle="seat"
       />
-      <div v-else class="space-y-3">
+      <div v-else class="canva-history-card-grid">
         <article
           v-for="item in filteredItems"
           :id="`booking-${item.id}`"

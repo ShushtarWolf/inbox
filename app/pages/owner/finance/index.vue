@@ -303,6 +303,7 @@ function closeTx() {
     </section>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+      <div class="canva-finance-wide">
       <div v-if="showReports" class="canva-finance-chips">
         <div v-for="chip in summaryChips" :key="chip.key" class="canva-finance-chip">
           <p class="canva-finance-chip-label">{{ chip.label }}</p>
@@ -469,6 +470,7 @@ function closeTx() {
             </span>
             <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(entry.ownerNet) }}</span>
           </div>
+        </div>
         </div>
       </div>
     </AppAsyncState>

@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
   hideUser?: boolean
   /** Hide sticky mobile glass header (Canva pages supply their own hero). */
   hideMobileHeader?: boolean
-  /** Canva-style phone-frame chrome: no desktop sidebar/header, bottom nav on all breakpoints. */
+  /** Canva phone chrome ≤430px; ≥431px uses sidebar + header + wide main. */
   phoneShell?: boolean
 }>(), {
   wide: false,
@@ -42,41 +42,36 @@ async function handleLogout() {
 
 const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 
-/** Phone shell: edge-to-edge content (no cream chrome gap above heroes). */
+/** Phone shell keeps a 375 artboard only ≤430px — never lock desktop to max-w-lg. */
 const mainClass = computed(() => {
-  if (props.phoneShell) return 'canva-phone-shell mx-auto px-4 pb-5 pt-0'
-  return props.wide ? 'w-full px-4 py-5 lg:px-8 lg:py-8' : 'mx-auto w-full max-w-lg px-4 py-5 lg:max-w-4xl lg:px-6 lg:py-8'
+  if (props.phoneShell) {
+    return 'mx-auto w-full max-w-[var(--sz-phone-width)] px-4 pb-5 pt-0 min-[431px]:max-w-none min-[431px]:px-8 min-[431px]:py-6'
+  }
+  return props.wide
+    ? 'w-full px-4 py-5 min-[431px]:px-8 min-[431px]:py-8'
+    : 'mx-auto w-full max-w-lg px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8'
 })
 
 const rootClass = computed(() => {
-  const base = 'flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))]'
-  return props.phoneShell ? base : `${base} lg:flex-row lg:pb-0`
+  const base = 'flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] min-[431px]:flex-row min-[431px]:pb-0'
+  return base
 })
 
-const backdropClass = computed(() => {
-  const base = 'fixed inset-0 z-40 bg-black/60'
-  return props.phoneShell ? base : `${base} lg:hidden`
-})
+const backdropClass = 'fixed inset-0 z-40 bg-black/60 min-[431px]:hidden'
 
 const drawerWrapClass = computed(() => {
-  const base = 'fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0'
-  return props.phoneShell ? base : `${base} lg:static lg:translate-x-0 lg:ltr:translate-x-0 lg:rtl:translate-x-0`
+  const base = 'fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 min-[431px]:static min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0'
+  return props.phoneShell ? `hidden min-[431px]:flex ${base}` : base
 })
 
 const drawerStateClass = computed(() => {
   const openState = open.value ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
-  return props.phoneShell ? openState : `${openState} lg:translate-x-0 lg:ltr:translate-x-0 lg:rtl:translate-x-0`
+  return `${openState} min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0`
 })
 
-const glassHeaderClass = computed(() => {
-  const base = 'glass-bar sticky top-0 z-30 px-4 py-3'
-  return props.phoneShell ? base : `${base} lg:hidden`
-})
+const glassHeaderClass = 'glass-bar sticky top-0 z-30 px-4 py-3 min-[431px]:hidden'
 
-const compactHeaderClass = computed(() => {
-  const base = 'sticky top-0 z-30 flex items-center justify-between gap-2 bg-brand-cream/95 px-4 py-2 backdrop-blur'
-  return props.phoneShell ? base : `${base} lg:hidden`
-})
+const compactHeaderClass = 'sticky top-0 z-30 flex items-center justify-between gap-2 bg-brand-cream/95 px-4 py-2 backdrop-blur min-[431px]:hidden'
 
 const dashboardRoot = computed(() => {
   const pool = drawerItems.value
@@ -121,17 +116,14 @@ function goBack() {
 
 <template>
   <div :class="rootClass">
-    <!-- Phone shell: Canva frames have no sidebar / cream chrome — bottom nav only. -->
-    <template v-if="!phoneShell">
-      <div v-if="open" :class="backdropClass" role="presentation" @click="open = false" />
+    <div v-if="open && !phoneShell" :class="backdropClass" role="presentation" @click="open = false" />
 
-      <div :class="[drawerWrapClass, drawerStateClass]">
-        <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />
-      </div>
-    </template>
+    <div :class="[drawerWrapClass, drawerStateClass]">
+      <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />
+    </div>
 
     <div class="min-w-0 flex-1 bg-brand-cream">
-      <header v-if="!phoneShell && !hideMobileHeader" :class="glassHeaderClass">
+      <header v-if="!hideMobileHeader" :class="glassHeaderClass">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">
@@ -185,42 +177,43 @@ function goBack() {
         <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
           <AppIcon name="menu" size="sm" />
         </button>
-        <NuxtLink :to="localePath('/')" class="inline-flex" :aria-label="t('brand.name')">
+        <NuxtLink :to="localePath('/')" class="inline-flex items-center gap-2" :aria-label="t('brand.name')">
           <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+          <InboxWordmark class="text-sm text-brand-primary" />
         </NuxtLink>
         <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="handleLogout" :aria-label="resolvedLogoutLabel">
           <AppIcon name="logout" size="sm" />
         </button>
       </div>
 
-      <div v-if="!phoneShell" class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 shadow-venus-sm lg:flex lg:items-center lg:justify-between">
-        <div class="flex items-center gap-2">
+      <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 shadow-venus-sm min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
+        <div class="flex min-w-0 items-center gap-3">
+          <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
+            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
+            <InboxWordmark class="text-base text-brand-primary" />
+          </NuxtLink>
           <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="arrow_back" size="sm" />
               {{ t('common.back') }}
             </span>
           </button>
-          <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
-            <span class="inline-flex items-center gap-1.5">
-              <AppIcon name="home" size="sm" />
-              {{ t('nav.home') }}
-            </span>
-          </NuxtLink>
         </div>
-        <AppUserShortcut
-          v-if="displayName && !hideUser"
-          :to="profilePath"
-          :name="displayName"
-          :avatar-url="avatarUrl"
-          :initials="initials"
-        />
-        <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
-          <span class="inline-flex items-center gap-1.5">
-            <AppIcon name="logout" size="sm" />
-            {{ resolvedLogoutLabel }}
-          </span>
-        </button>
+        <div class="flex items-center gap-2">
+          <AppUserShortcut
+            v-if="displayName && !hideUser"
+            :to="profilePath"
+            :name="displayName"
+            :avatar-url="avatarUrl"
+            :initials="initials"
+          />
+          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+            <span class="inline-flex items-center gap-1.5">
+              <AppIcon name="logout" size="sm" />
+              {{ resolvedLogoutLabel }}
+            </span>
+          </button>
+        </div>
       </div>
 
       <main :class="mainClass">
@@ -232,7 +225,6 @@ function goBack() {
       :items="items"
       :dark="darkNav"
       :max-width-class="phoneShell ? 'canva-phone-shell' : 'max-w-lg'"
-      :always-visible="phoneShell"
     />
   </div>
 </template>

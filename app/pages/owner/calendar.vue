@@ -1544,7 +1544,7 @@ function slotBarColor(status: string) {
         role="region"
         :aria-label="t('owner.selectionBar.title')"
       >
-        <div class="canva-selection-bar-inner canva-phone-shell">
+        <div class="canva-selection-bar-inner">
           <div class="min-w-0 flex-1">
             <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
             <p v-if="selectionCourt" class="mt-0.5 truncate text-sm font-bold text-brand-navy">

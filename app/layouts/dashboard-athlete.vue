@@ -14,6 +14,7 @@ const nav = computed(() => [
   <DashboardShell
     :title="t('dashboard.athlete')"
     :items="nav"
+    :wide="true"
     :dark-nav="false"
     hide-mobile-header
     phone-shell

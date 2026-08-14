@@ -42,7 +42,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] lg:pb-0">
+  <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] min-[431px]:pb-0">
     <div class="hidden min-[431px]:block">
       <AppTopBar :nav="nav">
         <template #actions>
@@ -75,10 +75,10 @@ onMounted(() => {
         </template>
       </AppTopBar>
     </div>
-    <main class="app-shell-main canva-public-main mx-auto w-full max-w-lg flex-1 px-4 py-5 lg:max-w-6xl lg:px-6 lg:py-8">
+    <main class="app-shell-main canva-public-main mx-auto w-full max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8">
       <slot />
     </main>
-    <footer class="canva-public-footer mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 lg:max-w-6xl lg:pb-4">
+    <footer class="canva-public-footer mx-auto w-full max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-6xl min-[431px]:pb-4">
       <p class="mb-2 hidden min-[431px]:block">
         <span class="font-bold text-brand-navy">{{ t('contact.us') }}</span>
         ·

@@ -13,7 +13,7 @@ const localePath = useLocalePath()
 </script>
 
 <template>
-  <header class="canva-home-chrome">
+  <header class="canva-home-chrome hidden max-[430px]:flex">
     <InboxWordmark
       home-link
       class="text-base"

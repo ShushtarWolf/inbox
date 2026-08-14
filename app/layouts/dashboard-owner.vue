@@ -22,6 +22,13 @@ const primaryNavItems = [
   { path: '/owner/settings', labelKey: 'owner.settings', icon: 'person' },
 ] as const
 
+const desktopExtraNavItems = [
+  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
+  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
+  { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
+  { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
+] as const
+
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
   return memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
@@ -55,6 +62,19 @@ const bottomNav = computed((): NavItem[] => {
   })
   return items
 })
+
+const sideNav = computed((): NavItem[] => [
+  ...filterNav(primaryNavItems).map((item) => ({
+    to: localePath(item.path),
+    label: t(item.labelKey),
+    icon: item.icon,
+  })),
+  ...filterNav(desktopExtraNavItems).map((item) => ({
+    to: localePath(item.path),
+    label: t(item.labelKey),
+    icon: item.icon,
+  })),
+])
 
 const memberships = computed(() => user.value?.memberships || [])
 
@@ -96,6 +116,7 @@ onMounted(() => fetchAuth())
   <DashboardShell
     :title="t('dashboard.owner')"
     :items="bottomNav"
+    :side-items="sideNav"
     :wide="true"
     :dark-nav="false"
     hide-mobile-header
