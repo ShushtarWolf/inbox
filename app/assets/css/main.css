@@ -1844,7 +1844,7 @@
     background: transparent;
   }
   .canva-cal-grid-note {
-    @apply absolute top-0.5 z-[2] text-[11px] font-black leading-none text-[#1A1A18];
+    @apply absolute top-0.5 z-[2] text-[10px] font-black leading-none text-[#C9A227];
     inset-inline-start: 0.35rem;
   }
   .canva-cal-tab-active {

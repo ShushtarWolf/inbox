@@ -240,6 +240,7 @@ const deskDiscount = ref<{ code: string; percent: number; discountAmount: number
 const clubHeroImage = '/hero/fitness-venue.jpg'
 const localePath = useLocalePath()
 const settingsPath = computed(() => localePath('/owner/settings'))
+const notificationsPath = computed(() => localePath('/owner/notifications'))
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let longPressFired = false
@@ -1362,7 +1363,7 @@ function slotBarColor(status: string) {
           <InboxWordmark text="INBOX" class="text-base text-white" />
         </NuxtLink>
         <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="settingsPath" :aria-label="t('owner.settings')">
+          <NuxtLink :to="notificationsPath" :aria-label="t('notifications.title')">
             <AppIcon name="notifications" size="sm" />
           </NuxtLink>
           <NuxtLink :to="settingsPath" :aria-label="t('nav.profile')">
@@ -1456,7 +1457,7 @@ function slotBarColor(status: string) {
           {{ statusLabel(item.status) }}
         </div>
         <span class="canva-cal-legend-note">
-          <span aria-hidden="true">*</span>
+          <span aria-hidden="true">★</span>
           {{ t('owner.legendNote') }}
         </span>
       </div>
@@ -1533,7 +1534,7 @@ function slotBarColor(status: string) {
                     class="canva-cal-grid-cell-bar"
                     :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
                   />
-                  <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">*</span>
+                  <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
                   <span class="canva-cal-grid-cell-body">
                     <span v-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
@@ -1685,6 +1686,7 @@ function slotBarColor(status: string) {
               </label>
             </div>
 
+            <!-- Canva (14): cancel + add note only — edit stays reachable via reserve flow, not on this sheet -->
             <div class="canva-detail-actions">
               <button type="button" class="canva-detail-cancel" @click="openCancelForm">
                 {{ t('owner.cancelBooking') }}
@@ -1694,9 +1696,6 @@ function slotBarColor(status: string) {
                 {{ t('owner.addNote') }}
               </button>
             </div>
-            <button type="button" class="canva-gate-btn-secondary mt-3 w-full" @click="openReserveForm">
-              {{ t('owner.editBookingTitle') }}
-            </button>
           </div>
         </div>
 
@@ -1969,10 +1968,10 @@ function slotBarColor(status: string) {
             </div>
             <p class="mt-3 text-center text-[11px] text-brand-gray-500">{{ t('booking.acceptTerms') }}</p>
             <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
-            <div class="mt-4 grid grid-cols-2 gap-2">
+            <div class="mt-4 flex flex-col gap-2">
               <button
                 type="button"
-                class="canva-gate-btn-primary"
+                class="canva-gate-btn-primary w-full"
                 :disabled="saving"
                 @click="confirmDeskPay('link')"
               >
@@ -1980,7 +1979,7 @@ function slotBarColor(status: string) {
               </button>
               <button
                 type="button"
-                class="canva-gate-btn-secondary"
+                class="canva-gate-btn-secondary w-full"
                 :disabled="saving"
                 @click="confirmDeskPay('cash')"
               >
