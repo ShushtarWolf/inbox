@@ -1,10 +1,13 @@
 <script setup lang="ts">
-/** Canva: «بیشتر» is a sheet over calendar, not a hub page. */
+/**
+ * OTP/login may land on /owner (AuthFlowModal fallback + QA matrix).
+ * Canonical desk is calendar — do not open «بیشتر» here (sheet is ?more=1 from subpages only).
+ */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const localePath = useLocalePath()
 
-await navigateTo({ path: localePath('/owner/calendar'), query: { more: '1' } }, { replace: true })
+await navigateTo(localePath('/owner/calendar'), { replace: true })
 </script>
 
 <template>

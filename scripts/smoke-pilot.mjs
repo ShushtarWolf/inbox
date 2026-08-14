@@ -183,6 +183,67 @@ async function main() {
   assert(paid.paymentStatus === 'PAID', 'mark paid did not set PAID')
   console.log('ok  mark paid + guestMobile notify (no crash)')
 
+  // Desk cancel frees slot
+  const { res: cancelRes, data: cancelData } = await apiFetch(base, '/api/owner/cancel', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: { slotId: freeSlot.id, reason: 'PILOT_SMOKE' },
+  })
+  assert(cancelRes.ok, `owner cancel → ${cancelRes.status}: ${JSON.stringify(cancelData)}`)
+  const { data: afterCancel } = await apiFetch(base, `/api/owner/calendar?date=${reserveDate}`, {
+    jar,
+    session: 'owner',
+  })
+  const cancelledSlot = (afterCancel.slots || []).find((slot) => slot.id === freeSlot.id)
+  assert(cancelledSlot?.displayStatus === 'FREE', `cancel left displayStatus=${cancelledSlot?.displayStatus}`)
+  console.log('ok  desk cancel → FREE')
+
+  // Block + unblock
+  const { res: blockRes } = await apiFetch(base, '/api/owner/block', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: { slotId: freeSlot.id, guestName: 'Blocked', comments: 'pilot' },
+  })
+  assert(blockRes.ok, `owner block → ${blockRes.status}`)
+  const { data: afterBlock } = await apiFetch(base, `/api/owner/calendar?date=${reserveDate}`, {
+    jar,
+    session: 'owner',
+  })
+  const blockedSlot = (afterBlock.slots || []).find((slot) => slot.id === freeSlot.id)
+  assert(blockedSlot?.displayStatus === 'BLOCKED', `block left displayStatus=${blockedSlot?.displayStatus}`)
+  const { res: unblockRes } = await apiFetch(base, '/api/owner/unblock', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: { slotId: freeSlot.id },
+  })
+  assert(unblockRes.ok, `owner unblock → ${unblockRes.status}`)
+  console.log('ok  desk block + unblock')
+
+  // Owner desk pages must open without errors (/owner → calendar)
+  {
+    const ownerHome = await fetchPage(base, '/owner', { jar, session: 'owner', expectRedirect: true })
+    const loc = ownerHome.res.headers.get('location') || ''
+    assert(/\/owner\/calendar/.test(loc), `/owner redirect expected /owner/calendar, got ${loc || ownerHome.res.status}`)
+  }
+  for (const path of ['/owner/calendar', '/owner/finance', '/owner/equipments', '/owner/settings', '/owner/support']) {
+    const { res: pageRes } = await fetchPage(base, path, { jar, session: 'owner', expectStatus: 200 })
+    assert(pageRes.status === 200, `${path} → ${pageRes.status}`)
+  }
+  const { res: financeApi } = await apiFetch(base, '/api/owner/finance', { jar, session: 'owner' })
+  assert(financeApi.ok, `owner finance API → ${financeApi.status}`)
+  const { res: equipApi } = await apiFetch(base, '/api/owner/equipments', { jar, session: 'owner' })
+  assert(equipApi.ok, `owner equipments API → ${equipApi.status}`)
+  const { res: settingsGet, data: settingsBefore } = await apiFetch(base, '/api/owner/settings', {
+    jar,
+    session: 'owner',
+  })
+  assert(settingsGet.ok, `owner settings GET → ${settingsGet.status}`)
+  assert(typeof settingsBefore?.club?.waitlistEnabled === 'boolean', 'settings missing waitlistEnabled')
+  console.log('ok  owner finance/equipments/settings/support shells')
+
   // --- 3. Admin SMS health + process-scheduled + /admin/sms page ---
   const { res: smsRes, data: sms } = await apiFetch(base, '/api/admin/sms-status', {
     headers: adminHeaders(),
@@ -482,10 +543,10 @@ async function main() {
     })
     const ownerLoc = ownerCoaches.res.headers.get('location') || ''
     assert(
-      /\/clubs/.test(ownerLoc),
-      `/owner/coaches redirect expected /clubs, got ${ownerLoc || ownerCoaches.res.status}`,
+      /\/owner(\/calendar)?/.test(ownerLoc),
+      `/owner/coaches redirect expected /owner/calendar, got ${ownerLoc || ownerCoaches.res.status}`,
     )
-    console.log('ok  /owner/coaches redirects away')
+    console.log('ok  /owner/coaches redirects to owner calendar')
 
     const { html: ownerHtml } = await fetchPage(base, '/owner/calendar', { jar, session: 'owner' })
     assert(hasPilotNoCoach(ownerHtml), 'owner calendar missing pilotNoCoach runtime flag')

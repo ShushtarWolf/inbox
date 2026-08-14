@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { NavItem } from '#shared/nav.ts'
 import { canAccessOwnerNav, parsePermissions } from '#shared/ownerPermissions.ts'
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -33,13 +32,11 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
   const role = membership?.role
   const permissions = parsePermissions(membership?.permissionsJson)
   const isOwner = role === 'OWNER'
-  const { pilotNoCoach } = usePilotFlags()
-  const coachCount = membership?.club?._count?.coaches ?? 0
 
   return items.filter((item) => {
     if (item.path === '/owner/workers' && !isOwner) return false
-    if (item.path === '/owner/coaches' && (pilotNoCoach.value || coachCount === 0)) return false
-    if (item.path === '/owner/packages' && !isRecurringReserveEnabled()) return false
+    // Court MVP: never surface Coaches / Packages (routes stay stubbed/pilot-gated).
+    if (item.path === '/owner/coaches' || item.path === '/owner/packages') return false
     return canAccessOwnerNav(item.path, permissions, isOwner)
   })
 }

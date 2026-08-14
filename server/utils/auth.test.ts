@@ -12,6 +12,6 @@ describe('postLoginRedirectPath', () => {
 
   it('always uses FA-unprefixed dashboards (FA-only launch)', () => {
     expect(postLoginRedirectPath({ role: 'COACH', locale: 'en' }, 'en')).toBe('/coach')
-    expect(postLoginRedirectPath({ role: 'CLUB_ADMIN', locale: 'fa' })).toBe('/owner/calendar')
+    expect(postLoginRedirectPath({ role: 'CLUB_ADMIN', locale: 'fa' })).toBe('/owner')
   })
 })

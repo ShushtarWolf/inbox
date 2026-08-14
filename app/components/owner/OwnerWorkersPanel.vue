@@ -200,12 +200,20 @@ async function confirmDelete() {
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
       <ul class="space-y-3">
-        <li v-for="worker in data || []" :key="worker.id" class="ios-card p-4">
+        <li
+          v-for="worker in data || []"
+          :key="worker.id"
+          class="canva-panel p-4"
+          style="border-radius: var(--sz-canva-radius);"
+        >
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
               <p class="font-bold">{{ worker.firstName }} {{ worker.lastName }}</p>
               <p class="mt-1 text-xs text-brand-gray-600">
-                <span class="rounded-full bg-brand-cream px-2 py-0.5 font-semibold">{{ positionLabel(worker.position) }}</span>
+                <span
+                  class="canva-chip canva-settings-chip-idle px-2 py-0.5 font-semibold"
+                  style="border-radius: var(--sz-canva-radius);"
+                >{{ positionLabel(worker.position) }}</span>
               </p>
               <p class="mt-2 text-sm">
                 <bdi dir="ltr" class="tabular-nums">{{ worker.mobile }}</bdi>
@@ -224,7 +232,11 @@ async function confirmDelete() {
             </div>
           </div>
         </li>
-        <li v-if="!(data || []).length" class="ios-card p-4 text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
+        <li
+          v-if="!(data || []).length"
+          class="canva-panel p-4 text-sm text-brand-gray-600"
+          style="border-radius: var(--sz-canva-radius);"
+        >{{ t('common.empty') }}</li>
       </ul>
     </AppAsyncState>
 

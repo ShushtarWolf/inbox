@@ -3,7 +3,8 @@ const LOCALE_PREFIX = /^\/en(?=\/|$)/
 export function roleDashboardPath(role: string, _locale: 'fa' | 'en' = 'fa') {
   // FA-only: ignore locale prefix
   void _locale
-  if (role === 'CLUB_ADMIN') return '/owner/calendar'
+  // /owner → calendar (index redirect). Prefer short path so OTP/QA “→ /owner” matches.
+  if (role === 'CLUB_ADMIN') return '/owner'
   if (role === 'COACH') return '/coach'
   return '/athlete'
 }

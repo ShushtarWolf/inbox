@@ -35,7 +35,7 @@ describe('sanitizeReturnTo', () => {
 
 describe('roleDashboardPath', () => {
   it('returns role-specific dashboards without en prefix', () => {
-    expect(roleDashboardPath('CLUB_ADMIN')).toBe('/owner/calendar')
+    expect(roleDashboardPath('CLUB_ADMIN')).toBe('/owner')
     expect(roleDashboardPath('COACH', 'en')).toBe('/coach')
     expect(roleDashboardPath('ATHLETE')).toBe('/athlete')
   })

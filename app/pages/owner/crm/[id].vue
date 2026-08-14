@@ -29,7 +29,8 @@ function campaignStatusLabel(status: string) {
           <h1 class="mt-2 font-display text-2xl font-bold">{{ contact.name }}</h1>
           <p class="mt-1 text-sm text-white/85"><bdi dir="ltr" class="tabular-nums">{{ contact.mobile || '—' }}</bdi></p>
           <span
-            class="mt-3 inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
+            class="canva-chip mt-3 inline-flex w-fit items-center gap-1 px-2.5 py-1 text-xs font-bold"
+            style="border-radius: var(--sz-canva-radius);"
             :class="contact.consentSms ? 'bg-white/20 text-white' : 'bg-black/20 text-white/70'"
           >
             <AppIcon :name="contact.consentSms ? 'sms' : 'sms_failed'" size="sm" />

@@ -11,6 +11,7 @@ import {
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -70,8 +71,6 @@ const saving = ref(false)
 const actionError = ref('')
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
-/** Visual recurring ask — season API still disabled in court MVP. */
-const recurringWanted = ref(false)
 
 const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
@@ -691,7 +690,6 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   cancelReason.value = ''
   actionError.value = ''
   sessionType.value = fullSlot.booking?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
-  recurringWanted.value = false
   const isFree = fullSlot.displayStatus === 'FREE'
   form.guestName = isFree ? '' : (fullSlot.booking?.guestName || '')
   form.guestFamily = isFree ? '' : (fullSlot.booking?.guestFamily || '')
@@ -1110,7 +1108,7 @@ function canReserveSlot() {
 
 /** Court-booking MVP: season/package recurring reserve hidden (API also rejects). */
 function canShowSeasonReserve() {
-  return false
+  return isRecurringReserveEnabled()
 }
 
 function canMarkPaid() {
@@ -1744,12 +1742,6 @@ function slotBarColor(status: string) {
               <p v-else class="text-xs text-brand-gray-500">{{ t('common.empty') }}</p>
             </div>
 
-            <label class="canva-recurring-check">
-              <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox">
-              <span>{{ t('owner.recurringWanted') }}</span>
-            </label>
-            <p v-if="recurringWanted" class="text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
-
             <AppFormField v-if="isEditingBooking()" :label="t('owner.slotStatusLabel')" field-id="owner-reserve-slot-status">
               <select id="owner-reserve-slot-status" v-model="form.displayStatus" class="neo-select">
                 <option v-for="status in deskSlotStatuses" :key="status" :value="status">
@@ -1875,7 +1867,7 @@ function slotBarColor(status: string) {
           </div>
         </div>
 
-        <div v-if="activePanel === 'season'" class="venus-modal-panel">
+        <div v-if="canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
               <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
@@ -1958,7 +1950,7 @@ function slotBarColor(status: string) {
           </div>
         </div>
 
-        <div v-if="activePanel === 'package'" class="venus-modal-panel">
+        <div v-if="canShowSeasonReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
               <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
