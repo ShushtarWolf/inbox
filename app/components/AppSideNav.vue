@@ -52,7 +52,7 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to + item.label"
         v-bind="item.action ? { type: 'button' } : { to: item.to }"
-        class="tail-menu-item w-full text-start"
+        class="canva-side-nav-item w-full text-start"
         :class="[
           !item.action && isActive(item.to)
             ? (dark ? 'tail-menu-item-dark-active' : 'tail-menu-item-active')

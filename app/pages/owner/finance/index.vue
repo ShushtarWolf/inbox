@@ -390,6 +390,34 @@ function closeTx() {
             </div>
           </button>
         </div>
+        <div v-if="visibleTransactions.length" class="canva-finance-table-wrap">
+          <table class="canva-finance-table">
+            <thead>
+              <tr>
+                <th>{{ t('owner.financeTable.reservation') }}</th>
+                <th>{{ t('owner.financeTable.guest') }}</th>
+                <th>{{ t('owner.financeTable.method') }}</th>
+                <th>{{ t('owner.financeTable.income') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="tx in visibleTransactions" :key="`desk-${tx.id}`">
+                <td>
+                  <button type="button" class="canva-finance-table-btn font-bold text-brand-navy" @click="openTx(tx)">
+                    {{ tx.reservationLabel }}
+                  </button>
+                </td>
+                <td>{{ tx.guestName }}</td>
+                <td>
+                  <span class="canva-finance-method-badge" :class="methodBadgeClass(tx.paymentMethod)">
+                    {{ methodBadgeLabel(tx.paymentMethod) }}
+                  </span>
+                </td>
+                <td class="tabular-nums font-bold">{{ formatCurrency(tx.amount) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ t('common.empty') }}</p>
       </div>
 

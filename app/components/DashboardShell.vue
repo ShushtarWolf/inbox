@@ -189,7 +189,7 @@ function goBack() {
         </button>
       </div>
 
-      <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 shadow-venus-sm min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
+      <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
         <div class="flex min-w-0 items-center gap-3">
           <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />

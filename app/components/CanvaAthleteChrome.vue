@@ -14,11 +14,10 @@ const localePath = useLocalePath()
 
 <template>
   <header class="canva-home-chrome hidden max-[430px]:flex">
-    <InboxWordmark
-      home-link
-      class="text-base"
-      :class="dark ? 'text-white' : 'text-brand-primary'"
-    />
+    <NuxtLink :to="localePath('/')" class="flex min-w-0 items-center gap-2" :aria-label="t('brand.name')">
+      <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
+      <InboxWordmark class="text-base" :class="dark ? 'text-white' : 'text-brand-primary'" />
+    </NuxtLink>
     <div class="flex items-center gap-3" :class="dark ? 'text-white' : 'text-brand-navy'">
       <slot />
       <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">

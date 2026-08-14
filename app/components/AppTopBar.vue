@@ -25,19 +25,20 @@ function isActive(to: string) {
       <div class="flex min-w-0 items-center gap-4">
         <!-- Brand → home -->
         <NuxtLink :to="localePath('/')" class="flex items-center gap-3" :aria-label="t('brand.name')">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary" aria-hidden="true">
+          <div class="flex h-10 w-10 items-center justify-center bg-brand-primary" style="border-radius: var(--sz-canva-radius);" aria-hidden="true">
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
           </div>
           <InboxWordmark class="text-lg font-semibold text-brand-navy" />
         </NuxtLink>
-        <nav v-if="nav.length" class="hidden items-center gap-2 lg:flex">
+        <nav v-if="nav.length" class="hidden items-center gap-1 lg:flex">
           <component
             :is="item.action ? 'button' : NuxtLink"
             v-for="item in nav"
             :key="item.to + item.label"
             v-bind="item.action ? { type: 'button' } : { to: item.to }"
-            class="neo-pill gap-1.5"
-            :class="!item.action && isActive(item.to) ? 'neo-pill-active' : 'neo-pill-inactive'"
+            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold"
+            style="border-radius: var(--sz-canva-radius);"
+            :class="!item.action && isActive(item.to) ? 'bg-brand-primary text-white' : 'text-brand-navy hover:bg-brand-cream'"
             @click="item.action?.()"
           >
             <AppIcon v-if="item.icon" :name="item.icon" size="sm" />

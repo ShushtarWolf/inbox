@@ -49,7 +49,7 @@ onMounted(() => {
           <template v-if="!user">
             <button
               type="button"
-              class="btn-primary inline-flex px-4 py-2 text-xs"
+              class="canva-home-login"
               @click="openGate({ smsLive })"
             >
               <span class="inline-flex items-center gap-1.5">

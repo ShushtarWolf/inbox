@@ -531,7 +531,7 @@ async function shareClub() {
         </div>
       </section>
 
-      <div class="canva-club-detail-body">
+      <div class="canva-club-detail-intro">
         <!-- 2. Title RIGHT + favorite/share LEFT · meta · description -->
         <header class="canva-club-detail-head">
           <div class="canva-club-detail-head-copy">
@@ -579,9 +579,10 @@ async function shareClub() {
             >{{ amenityLabel(item) }}</span>
           </div>
         </section>
+      </div>
 
         <!-- 4. Booking widget: legend + courts + calendar/slots + square CTA -->
-        <section class="canva-club-detail-section">
+        <section class="canva-club-detail-section canva-club-detail-book">
           <h2 class="canva-club-detail-section-title">{{ t('clubs.selectDateTime') }}</h2>
 
           <div class="canva-club-slot-legend" role="list">
@@ -712,7 +713,7 @@ async function shareClub() {
         </section>
 
         <!-- 5. More info: address/contact RIGHT, map LEFT -->
-        <section class="canva-club-detail-section">
+        <section class="canva-club-detail-section canva-club-detail-more">
           <h2 class="canva-club-detail-section-title">{{ t('clubs.moreInfo') }}</h2>
           <div class="canva-club-more">
             <div class="canva-club-more-copy">
@@ -756,7 +757,7 @@ async function shareClub() {
         </section>
 
         <!-- 6. Reviews — always present (empty box like Canva) -->
-        <section class="canva-club-detail-section">
+        <section class="canva-club-detail-section canva-club-detail-reviews">
           <h2 class="canva-club-detail-section-title">{{ t('clubs.athleteReviews') }}</h2>
           <div v-if="club.testimonials?.length" class="canva-club-reviews">
             <article v-for="item in club.testimonials" :key="item.id" class="canva-club-review">
@@ -774,7 +775,6 @@ async function shareClub() {
             {{ t('clubs.reviewsEmpty') }}
           </div>
         </section>
-      </div>
     </div>
 
       <CourtBookingConfirmSheet
