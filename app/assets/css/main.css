@@ -2504,3 +2504,20 @@
     height: 16rem;
   }
 }
+
+.receipt-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px dotted #c5cdd6;
+}
+.receipt-row dt {
+  color: #5b6470;
+  flex-shrink: 0;
+}
+.receipt-row dd {
+  font-weight: 600;
+  text-align: start;
+}

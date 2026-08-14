@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatSmsJalaliDate,
+  formatSmsJalaliLongDate,
   formatSmsTime,
   gregorianToIso,
   isoToJalaali,
@@ -33,6 +34,7 @@ describe('jalali conversions', () => {
 
   it('formats SMS Jalali date and Persian digits', () => {
     expect(formatSmsJalaliDate('2026-08-14')).toBe('۱۴۰۵/۰۵/۲۳')
+    expect(formatSmsJalaliLongDate('2026-08-14')).toBe('۲۳ مرداد ۱۴۰۵')
     expect(formatSmsTime('18:00')).toBe('۱۸:۰۰')
     expect(toPersianDigits('1404/05/23')).toBe('۱۴۰۴/۰۵/۲۳')
   })

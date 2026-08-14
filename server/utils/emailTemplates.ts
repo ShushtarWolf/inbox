@@ -41,6 +41,7 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
         `Payment: ${paid}`,
         address ? `Address: ${address}` : '',
         mapsUrl,
+        data.receiptUrl ? String(data.receiptUrl) : '',
       ].filter(Boolean).join('\n')
       return {
         subject: `Booking confirmed — ${clubName}`,

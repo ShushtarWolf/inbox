@@ -6,11 +6,6 @@ function clubBit(data: Record<string, unknown>) {
   return name ? ` «${name}»` : ''
 }
 
-function greetingBit(data: Record<string, unknown>) {
-  const name = String(data.guestName || data.userName || '').trim()
-  return name ? `${name} عزیز` : ''
-}
-
 function whenBit(data: Record<string, unknown>) {
   const dateRaw = String(data.date || '').trim()
   const startRaw = String(data.time || data.startTime || '').trim()
@@ -61,21 +56,58 @@ function bookingDetailLines(data: Record<string, unknown>) {
 const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string, unknown>) => string> = {
   PASSWORD_RESET: (data) => `بازیابی رمز inbox: ${data.resetUrl || ''}`,
   BOOKING_CONFIRMED: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim()
+    if (guest) {
+      const club = String(data.clubName || '').trim()
+      const dateRaw = String(data.date || '').trim()
+      const startRaw = String(data.time || data.startTime || '').trim()
+      const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+      const start = startRaw ? formatSmsTime(startRaw) : ''
+      const court = String(data.courtName || '').trim()
+      const courtBit = court ? ` (${court})` : ''
+      const tracking = String(data.trackingCode || '').trim()
+      const receiptUrl = String(data.receiptUrl || '').trim()
+      const paid = data.paymentPaid === true
+      const whenLine = date && start
+        ? `برای تاریخ ${date} ساعت ${start}${courtBit} با موفقیت انجام شد.`
+        : 'با موفقیت انجام شد.'
+      const lines = [
+        `${guest} عزیز`,
+        club ? `رزرو شما در ${club}` : 'رزرو شما',
+        whenLine,
+      ]
+      if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
+      if (!paid && receiptUrl) {
+        lines.push('لینک پرداخت:')
+        lines.push(receiptUrl)
+      } else if (receiptUrl) {
+        lines.push(receiptUrl)
+      }
+      return lines.join('\n')
+    }
     const when = whenBit(data)
-    const greet = greetingBit(data)
     const head = when
       ? `رزرو تایید شد${clubBit(data)} — ${when}`
       : `رزرو تایید شد${clubBit(data)}`
     const extra = bookingDetailLines(data)
-    return [greet, head, ...extra, 'اینباکس'].filter(Boolean).join('\n')
+    return [head, ...extra, 'اینباکس'].filter(Boolean).join('\n')
   },
   BOOKING_CANCELLED: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim()
+    const tracking = String(data.trackingCode || '').trim()
+    const court = String(data.courtName || '').trim()
     const when = whenBit(data)
-    const greet = greetingBit(data)
-    const head = when
+    if (guest || tracking) {
+      const lines = ['کاربر گرامی']
+      lines.push(guest ? `رزرو ${guest} لغو شد.` : `رزرو لغو شد${clubBit(data)}.`)
+      if (court) lines.push(court)
+      if (when) lines.push(when)
+      if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
+      return lines.join('\n')
+    }
+    return when
       ? `رزرو لغو شد${clubBit(data)} — ${when}. اینباکس`
       : `رزرو لغو شد${clubBit(data)}. اینباکس`
-    return greet ? `${greet}\n${head}` : head
   },
   BOOKING_PAID: (data) => {
     const when = whenBit(data)

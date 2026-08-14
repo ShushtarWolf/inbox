@@ -55,6 +55,15 @@ export function formatSmsJalaliDate(raw: string) {
   return toPersianDigits(value.replace(/-/g, '/'))
 }
 
+/** Receipt date: ISO YYYY-MM-DD → ۲۳ مرداد ۱۴۰۵ */
+export function formatSmsJalaliLongDate(raw: string) {
+  const value = raw.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return formatSmsJalaliDate(value)
+  const { jy, jm, jd } = isoToJalaali(value)
+  const month = PERSIAN_MONTHS[jm - 1] || ''
+  return toPersianDigits(`${jd} ${month} ${jy}`)
+}
+
 export function formatSmsTime(raw: string) {
   return toPersianDigits(raw.trim().slice(0, 5))
 }

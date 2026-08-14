@@ -2,11 +2,19 @@ import { confirmPaymentAndSync, markPaymentFailedAndSync } from '../../../utils/
 import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
 
 function redirectForPayment(
-  payment: { purpose?: string | null } | null | undefined,
+  payment: { purpose?: string | null; metadataJson?: string | null } | null | undefined,
   outcome: 'success' | 'cancelled' | 'error',
 ) {
   if (payment?.purpose === 'topup') {
     return `/athlete/wallet?payment=${outcome}`
+  }
+  if (payment?.metadataJson) {
+    try {
+      const meta = JSON.parse(payment.metadataJson) as { receiptToken?: string }
+      if (meta.receiptToken) return `/r/${encodeURIComponent(meta.receiptToken)}?payment=${outcome}`
+    } catch {
+      // fall through
+    }
   }
   return `/athlete/bookings?payment=${outcome}`
 }
@@ -39,7 +47,7 @@ export default defineEventHandler(async (event) => {
       providerRef,
       provider,
     },
-    select: { purpose: true },
+    select: { purpose: true, metadataJson: true },
   })
 
   // User cancelled / bank declined — never mark PAID.
