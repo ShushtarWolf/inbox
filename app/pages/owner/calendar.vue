@@ -740,7 +740,8 @@ function openSeasonForm() {
 }
 
 function openPackageForm() {
-  if (!canShowCoachReserve()) return
+  // Same kill switch as season — package recurring reserve stays frozen.
+  if (!canShowSeasonReserve()) return
   activePanel.value = 'package'
 }
 
@@ -1026,7 +1027,7 @@ async function doSeasonReserve() {
 }
 
 async function doPackageReserve() {
-  if (!canShowCoachReserve()) return
+  if (!canShowSeasonReserve()) return
   if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''

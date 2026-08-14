@@ -1,7 +1,7 @@
 const BLOCKED = [
   /^\/coaches(\/|$)/,
   /^\/book\/coach(\/|$)/,
-  /^\/book\/package(\/|$)/,
+  // /book/package soft-lands on its own page (recurring reserve freeze) — not a coach route.
   /^\/register\/coach(\/|$)/,
   /^\/owner\/coaches(\/|$)/,
   /^\/coach(\/|$)/,

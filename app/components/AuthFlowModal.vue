@@ -39,13 +39,17 @@ const selectedRole = ref<AuthFlowRole>('ATHLETE')
 
 const { smsMode, smsPhase, smsLive } = useSmsCapability()
 const { uploading: licenseUploading, error: licenseUploadError, upload: uploadLicense } = useImageUpload({ guest: true })
+const { pilotNoCoach } = usePilotFlags()
 
-/** Canva role picker (4.png): Athlete / Coach / Owner. */
-const roles: Array<{ id: AuthFlowRole; title: string; body: string }> = [
+/** Canva role picker (4.png): Athlete / Coach / Owner — Coach hidden when PILOT_NO_COACH. */
+const allRoles: Array<{ id: AuthFlowRole; title: string; body: string }> = [
   { id: 'ATHLETE', title: 'register.roleAthlete', body: 'auth.roleAthleteHint' },
   { id: 'COACH', title: 'register.roleCoach', body: 'auth.roleCoachHint' },
   { id: 'CLUB_ADMIN', title: 'register.roleOwner', body: 'auth.roleOwnerHint' },
 ]
+const roles = computed(() =>
+  pilotNoCoach.value ? allRoles.filter((item) => item.id !== 'COACH') : allRoles,
+)
 
 const sportOptions = [
   { value: 'tennis' as const, labelKey: 'auth.sportTennis' },
@@ -162,7 +166,9 @@ function goRole() {
 }
 
 function continueRole() {
-  role.value = selectedRole.value
+  const next = selectedRole.value === 'COACH' && pilotNoCoach.value ? 'ATHLETE' : selectedRole.value
+  selectedRole.value = next
+  role.value = next
   purpose.value = 'register'
   channel.value = 'otp'
   step.value = 'register'

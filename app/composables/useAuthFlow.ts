@@ -54,14 +54,18 @@ export function useAuthFlow() {
     channel?: AuthFlowChannel
     smsLive?: boolean
   }) {
+    const config = useRuntimeConfig()
+    const coachFrozen = Boolean(config.public.pilotNoCoach)
     const requestedRole = opts?.role || 'ATHLETE'
-    const skipRolePicker = Boolean(opts?.role)
+    // PILOT_NO_COACH: never open coach signup even if a deep-link asks for it.
+    const roleSafe = coachFrozen && requestedRole === 'COACH' ? 'ATHLETE' : requestedRole
+    const skipRolePicker = Boolean(opts?.role) && !(coachFrozen && requestedRole === 'COACH')
 
     returnTo.value = opts?.returnTo || ''
     notice.value = opts?.notice || ''
     purpose.value = 'register'
     channel.value = opts?.channel || defaultAuthChannel(opts?.smsLive)
-    role.value = requestedRole
+    role.value = roleSafe
     step.value = skipRolePicker ? 'register' : 'role'
     open.value = true
   }
