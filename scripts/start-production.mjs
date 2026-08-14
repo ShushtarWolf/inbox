@@ -51,17 +51,23 @@ async function ensureCatalog() {
 await ensureCatalog()
 
 if (process.env.SEED_ON_EMPTY === 'true') {
-  const prisma = new PrismaClient({ datasourceUrl: dbUrl })
-  try {
-    const userCount = await prisma.user.count()
-    if (userCount === 0) {
-      console.log('[start-production] Empty database — running full seed (SEED_ON_EMPTY=true)')
-      run('npx prisma db seed', 'Seeding empty database…')
-    } else {
-      console.log('[start-production] Database has users — skipping full seed')
+  if (process.env.NODE_ENV === 'production') {
+    console.log(
+      '[start-production] SEED_ON_EMPTY=true ignored in production — leave unset/false after catalog exists. Use /api/admin/reset-pilot for Behnaz.',
+    )
+  } else {
+    const prisma = new PrismaClient({ datasourceUrl: dbUrl })
+    try {
+      const userCount = await prisma.user.count()
+      if (userCount === 0) {
+        console.log('[start-production] Empty database — running full seed (SEED_ON_EMPTY=true)')
+        run('npx prisma db seed', 'Seeding empty database…')
+      } else {
+        console.log('[start-production] Database has users — skipping full seed')
+      }
+    } finally {
+      await prisma.$disconnect()
     }
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

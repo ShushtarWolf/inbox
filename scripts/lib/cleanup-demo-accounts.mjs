@@ -1,8 +1,11 @@
-/** Remove demo accounts (*@inbox.local). Real users (OAuth, registration, invites) are kept. */
+/** Remove demo accounts (*@inbox.local). Keep OTP synthetic emails and real users. */
 
 export async function cleanupDemoAccounts(prisma) {
   const demoUsers = await prisma.user.findMany({
-    where: { email: { endsWith: '@inbox.local' } },
+    where: {
+      email: { endsWith: '@inbox.local' },
+      NOT: { email: { endsWith: '@users.inbox.local' } },
+    },
     select: { id: true, email: true },
   })
 

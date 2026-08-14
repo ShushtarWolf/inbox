@@ -11,6 +11,10 @@ describe('isDemoEmail', () => {
     expect(isDemoEmail('user@gmail.com')).toBe(false)
     expect(isDemoEmail('coach@club.com')).toBe(false)
   })
+
+  it('does not treat OTP synthetic emails as demo junk', () => {
+    expect(isDemoEmail('phone.09124777927@users.inbox.local')).toBe(false)
+  })
 })
 
 describe('rejectDemoEmailInProduction', () => {

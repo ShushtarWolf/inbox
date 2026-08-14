@@ -1,6 +1,7 @@
 import { PrismaClient, SlotDisplayStatus } from '@prisma/client'
 import { hashSecret } from '../server/utils/password.ts'
 import { formatHour, hourEnd, todayDateStr } from '../server/utils/slots.ts'
+import { productionDemoSeedMessage, shouldRefuseProductionDemoSeed } from '../shared/seedSafety.ts'
 
 const prisma = new PrismaClient()
 
@@ -104,6 +105,10 @@ async function ensureDiscountCodes() {
 }
 
 async function main() {
+  if (shouldRefuseProductionDemoSeed(process.env)) {
+    throw new Error(productionDemoSeedMessage())
+  }
+
   const forceReset = process.env.FORCE_SEED_RESET === 'true'
   const isProduction = process.env.NODE_ENV === 'production'
   const userCount = await prisma.user.count()
@@ -155,7 +160,7 @@ async function main() {
   }
 
   if (isProduction) {
-    console.log('Production demo seed enabled — creating clubs, coaches, and demo accounts.')
+    throw new Error(productionDemoSeedMessage())
   }
 
   const athlete = await prisma.user.create({
