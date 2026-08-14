@@ -1,1 +1,2 @@
-Source: Downloads/inbox website (1).zip (Aug 12 2026). Extracted frames in raw/.
+Source: Downloads/inbox website (1) (synced 2026-08-14; same 80 PNGs as Aug 12 zip).
+Extracted frames in raw/; pages/ mirrored to match.

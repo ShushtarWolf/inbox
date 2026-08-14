@@ -1,7 +1,10 @@
 # Canva ↔ App frame map (local)
 
-Source of truth (Aug 12): `canva-reference/inbox-website-2026-08-12/raw/` (80 PNGs).
+Source of truth (Aug 12 sync): `canva-reference/inbox-website-2026-08-12/raw/` and mirrored `canva-reference/pages/` (80 PNGs from `Downloads/inbox website (1)`).
+
 Prior overlays live in `comparisons/overlays/`; app captures in `comparisons/localhost/`.
+
+Behnaz court-booking MVP screen list (FA only): [`docs/MVP_SCREEN_INVENTORY.md`](../docs/MVP_SCREEN_INVENTORY.md).
 
 ## Inventory (Aug 12 export)
 
@@ -11,9 +14,22 @@ Prior overlays live in `comparisons/overlays/`; app captures in `comparisons/loc
 | Blank / near-empty (&lt;20KB) | 14 |
 | Real frames | 66 |
 
-Blankish (ignore): `17,21,26,45,49,55,59,66,69,73,77–80.png`
+Blankish (ignore): `17,21,26,45,49,55,59,66,69,73,77–80.png` (numbered empties — not `home page (N)`).
 
-Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|39|40|41|43).png` (high cream ratio).
+Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|39|40|41|43).png` (high cream ratio). Note: `(30)` is still the **equipments** page (thin but real).
+
+### Filename sync notes (pages/ vs July dump)
+
+`pages/` now matches Aug 12 `raw/` (same 80 names + bytes). Vs the older July `pages/` dump:
+
+| Change | Detail |
+|--------|--------|
+| Removed blanks | `34,38,44,48,58,62,67,68.png` |
+| Added blanks | `45,49,59,73,77–80.png` |
+| Added real | `changed.png`, `home page (35–44).png` |
+| Renumbered content | Many `home page (N)` jobs moved (e.g. equipments → `(30)`, finance → `(26)`, CRM → `(28)`, desk sheets → `(10|17–21)`, list-day → `(22+)`) |
+
+Do **not** trust July code comments that still say equipments = `(20)/(21)` — those frames are owner desk sheets in this export.
 
 ## Route map (needed product pages)
 
@@ -22,37 +38,44 @@ Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|3
 | `home page.png`, `home page (2).png` | `/` public home | Logo R / login L; hero; **3-field search** (sport · city · date); 3 rails |
 | `Court list.png` | `/clubs` | Mustard square sport chips + court cards + **رزرو کن**; preserves `?date=` |
 | `home page (3).png` | `/clubs/[slug]` club detail | Gallery · amenities · cal R / courts+slots L · confirm CTA; deep-link `?date=` |
-| `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | Green title · red club name · پرداخت |
-| `login_sign up.png` | AuthFlow **gate** | Square CTAs; Google excluded |
-| `4.png` | AuthFlow **role** picker | **Athlete / Coach / Owner** (coach product enabled) |
-| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | Coach register → `/api/auth/register-coach` |
+| `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | Green title · red club name · **پرداخت** (athlete) |
+| `login_sign up.png` | AuthFlow **gate** | Square CTAs; **Google in Canva is OUT OF MVP** (product hard-off) |
+| `4.png` | AuthFlow **role** picker | Athlete / Owner for Behnaz (`PILOT_NO_COACH`); Coach frame exists but gated |
+| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | Phone OTP; coach register path frozen for Behnaz |
 | `home page (8).png` | `/athlete/home` | Photo hero + curve + ۲۰٪ + **3-field search** + rails + bottom nav |
-| `home page (6).png` | `/athlete/favorites` | — |
-| `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva) |
-| `home page (7).png` | `/athlete/bookings` history | Cancel / rebook CTAs |
+| `home page (6).png` | `/athlete/favorites` | Not required for Behnaz MVP inventory |
+| `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva); links to profile / payments / wallet |
+| `home page (7).png` | `/athlete/bookings` history | Cancel / rebook CTAs → `CanvaConfirmSheet` + club deep-link |
+| — | `/athlete/profile`, `/athlete/wallet`, `/athlete/payments` | **In product**; no dedicated Canva page — entered from hub `(5)` |
 | `home page (9).png` + `(13)` | `/owner/calendar` (legacy multi-court ref) | Superseded for Today by list-day `(22+)` |
-| `home page (22\|23\|24\|25\|27\|32\|38\|42).png` | `/owner/calendar` **Today list-day** | Date bullet · court chips · color slot bars · desk sheets |
-| `home page (10\|17\|18).png` | `/owner/calendar` walk-in / block+note sheets | — |
-| `home page (11).png` | Owner recurring / continue-book sheet on calendar | Soft-land (season/package gated) |
-| `home page (12\|19).png` | Owner desk confirm (pay link / cash) | Soft-land vs athlete confirm `(4)` |
-| `home page (14\|15\|16).png` | Booking detail + multi-cancel sheet | — |
+| `home page (22\|23\|24\|25\|27\|42).png` | `/owner/calendar` **Today list-day** | Date · court chips · color slot bars |
+| `home page (29\|32\|38).png` | Owner **More** sheet on calendar | CRM / equipments / support / workers; coaches+packages shown but OUT OF MVP |
+| `home page (17).png` | Free-slot **action menu** sheet | رزرو حضوری / مسدود / یادداشت |
+| `home page (10\|18).png` | Walk-in **reserve** desk sheet | Coach radio + recurring checkbox = OUT OF MVP UI in Canva |
+| `home page (20).png` | **Note** desk sheet | — |
+| `home page (21).png` | **Block** desk sheet | Daily/weekly/season steppers = OUT OF MVP |
+| `home page (11).png` | Owner recurring / continue-book sheet | **OUT OF MVP** (season/package gated) |
+| `home page (12\|19).png` | Owner desk confirm (**pay link / cash**) | Not athlete `(4)` |
+| `home page (14\|22).png` | Booking **detail** desk sheet | Cancel + add note |
+| `home page (15\|16).png` | Multi-cancel / cancel+wallet sheets | Owner desk |
 | `changed.png` | `/owner/calendar` overview tab | Designer-marked |
 | `home page (26).png` | `/owner/finance` | Photo hero + chart |
 | `جزییات بازیکن.png` | `/owner/finance` txn sheet | — |
 | `گزارش پیشرفته.png` | `/owner/finance/report` | — |
-| `home page (28).png` | `/owner/crm` | — |
-| `کمپین پیامکی جدید*.png` | CRM SMS wizard sheet | — |
-| `افزودن زمین.png` | owner add-court / settings court form | — |
-| `home page (20\|21\|30).png` | `/owner/equipments` (+ edit) | `(30)` thin duplicate |
-| `home page (29).png` | `/owner/support` | — |
+| `home page (28).png` | `/owner/crm` | Open-safe for Behnaz |
+| `کمپین پیامکی جدید*.png` | CRM SMS wizard sheet | Optional; not launch-required |
+| `افزودن زمین.png` | `/owner/settings` + court form sheet | Settings chrome in background |
+| `home page (30).png` | `/owner/equipments` | Amenities + rental/sell/services |
+| `home page (31).png` | Equipments **edit** sheet | — |
+| More → پشتیبانی `(38)` | `/owner/support` | No dedicated full-page Canva ops guide in this export |
 
-### Routing notes (post Prompts 1–9 cleanup)
+### Routing notes (Behnaz MVP freeze)
 
 - **Primary court book UX** = `/clubs/[slug]` + confirm sheet (`(3)` / `(4)`). Do not send athletes through a standalone book page.
 - **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
 - **Athlete booking detail** `/athlete/bookings/[id]` → `/athlete/bookings?booking=` (list is primary).
-- **Coach / package**: coach signup + `/coach` hub are **on** (`PILOT_NO_COACH=false`). Package stays soft-landed / gated where still flagged.
-- **Owner Today** = list-day (`(22+)`): one court at a time, full-bleed status bars. Overview tab unchanged.
+- **Coach / package / Google / EN**: **OUT OF MVP** for Behnaz — `PILOT_NO_COACH=true`, recurring APIs `403`, Google UI hard-off, `defaultLocale: fa`.
+- **Owner Today** = list-day (`(22+)`): one court at a time, full-bleed status bars. Overview tab = `changed.png`.
 
 ## Severity legend
 
@@ -79,12 +102,13 @@ Near-cream / thin frames (soft-land, not primary MVP): `home page (30|33|34|35|3
 | `home page` / `(2)` | `/` | **ok-enough** | 3-field search (sport · city · date → `?date=`), rails, bottom nav kept |
 | `Court list` | `/clubs` | **ok-enough** | Square mustard chips; CTA **رزرو کن**; date query preserved |
 | `(3)` / `(4)` | club detail + confirm | **ok-enough** | Interactive slots + sheet; product wallet/pay CTAs kept |
-| `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Coach / Owner; no Google |
-| `(8)` / `(5)` / `(7)` | athlete | **ok-enough** | Athlete home also has 3-field search |
+| `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Owner for Behnaz; no Google in product |
+| `(8)` / `(5)` / `(7)` | athlete | **ok-enough** | Hub + bookings; wallet/profile via hub |
 | `(22+)` + sheets | owner calendar Today | **ok-enough** | List-day primary (court chips + color bars) |
 | `(9)` multi-court | owner calendar | **legacy ref** | Export only; live Today uses list-day |
 | `(11)` recurring | owner sheet | **out of MVP** | Season/package gated — soft-land |
-| `(12\|19)` owner pay sheet | owner desk | **soft-land** | Cash / pay-link desk flow — not athlete `(4)` |
+| `(12\|19)` owner pay sheet | owner desk | **in MVP** | Cash / pay-link desk flow — not athlete `(4)` |
+| `(30)` / `(31)` | equipments | **ok-enough** | Was mislabeled `(20)/(21)` in older notes |
 
 ### Chrome consistency (product rule)
 
@@ -103,8 +127,9 @@ Phone frames in Canva often omit shared chrome. **Live app must keep escape hatc
 ## Recommended next
 
 1. Re-capture overlays after UI changes
-2. Liara: set `PILOT_NO_COACH=false` + `NUXT_PUBLIC_PILOT_NO_COACH=false` so coach routes match local
+2. Keep Behnaz freeze: `PILOT_NO_COACH=true` (do not flip coach on for this pilot)
 3. Owner desk pay sheets `(12|19)` polish if needed
+4. Refresh stale Canva comments in Vue files (`(20)/(21)` equipments → `(30)/(31)`)
 
 ## How to re-compare cheaply
 
