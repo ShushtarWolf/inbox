@@ -27,12 +27,18 @@ export async function cancelCourtBooking(options: {
   })
 
   if (options.paymentId) {
-    refund = await refundPaymentForCancellation({
-      paymentId: options.paymentId,
-      userId: options.userId,
-      bookingId: options.bookingId,
-      reason: options.reason,
-    })
+    try {
+      refund = await refundPaymentForCancellation({
+        paymentId: options.paymentId,
+        userId: options.userId,
+        bookingId: options.bookingId,
+        reason: options.reason,
+      })
+    }
+    catch (err) {
+      // Slot is already FREE — never 500 the cancel path on refund/wallet/SMS side effects.
+      console.error('[cancelCourtBooking:refund]', options.bookingId, err)
+    }
   }
 
   return { ok: true, refund }

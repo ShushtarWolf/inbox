@@ -16,13 +16,19 @@ export default defineEventHandler(async (event) => {
   // Already cancelled: still retry refund if payment stayed PAID (non-atomic cancel→refund).
   if (booking.status === 'CANCELLED') {
     if (booking.payment?.id && isPaymentRefundable(booking.payment.status)) {
-      const refund = await refundPaymentForCancellation({
-        paymentId: booking.payment.id,
-        userId: booking.userId,
-        bookingId: booking.id,
-        reason: 'athlete-cancel-refund-retry',
-      })
-      return { ok: true, refund }
+      try {
+        const refund = await refundPaymentForCancellation({
+          paymentId: booking.payment.id,
+          userId: booking.userId,
+          bookingId: booking.id,
+          reason: 'athlete-cancel-refund-retry',
+        })
+        return { ok: true, refund }
+      }
+      catch (err) {
+        console.error('[cancel:refund-retry]', booking.id, err)
+        return { ok: true }
+      }
     }
     return { ok: true }
   }

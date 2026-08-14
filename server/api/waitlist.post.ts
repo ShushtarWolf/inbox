@@ -1,3 +1,4 @@
+import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { assertSlotBookable } from '../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +19,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid waitlist request' })
   }
 
-  const club = await prisma.club.findUnique({ where: { slug: body.clubSlug } })
+  const slug = resolveClubSlugAlias(body.clubSlug)
+  const club = await prisma.club.findUnique({ where: { slug } })
   if (!club || !club.waitlistEnabled) {
     throw createError({ statusCode: 404, statusMessage: 'Waitlist is not available' })
   }

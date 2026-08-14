@@ -42,6 +42,21 @@ export async function refundPaymentForCancellation(options: {
       && (!gatewayRefunded || shouldCreditWalletAfterGatewayRefund(payment))
 
     if (creditWalletInsteadOfBank && options.userId) {
+      try {
+        await creditWallet(options.userId, payment.amount, {
+          paymentId: payment.id,
+          bookingId: options.bookingId,
+          note: options.reason,
+        })
+        walletCredited = true
+      }
+      catch (err) {
+        // Soft-fail: gateway may already be REFUNDED; cancel must still succeed.
+        console.error('[refunds:creditWallet]', payment.id, err)
+      }
+    }
+  } else if (options.userId) {
+    try {
       await creditWallet(options.userId, payment.amount, {
         paymentId: payment.id,
         bookingId: options.bookingId,
@@ -49,13 +64,9 @@ export async function refundPaymentForCancellation(options: {
       })
       walletCredited = true
     }
-  } else if (options.userId) {
-    await creditWallet(options.userId, payment.amount, {
-      paymentId: payment.id,
-      bookingId: options.bookingId,
-      note: options.reason,
-    })
-    walletCredited = true
+    catch (err) {
+      console.error('[refunds:creditWallet]', payment.id, err)
+    }
   } else {
     await prisma.payment.update({
       where: { id: payment.id },

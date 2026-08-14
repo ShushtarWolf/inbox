@@ -248,6 +248,13 @@ function welcomeVariantForAuth(kind: 'login' | 'register', authRole?: string): A
   return 'athlete'
 }
 
+/** Prefer role dashboard when API omits redirectTo (OTP / password happy path). */
+function fallbackAuthRedirect(authRole?: string) {
+  if (authRole === 'CLUB_ADMIN') return localePath('/owner')
+  if (authRole === 'COACH' && !pilotNoCoach.value) return localePath('/coach')
+  return localePath('/athlete')
+}
+
 async function loginWithPassword() {
   error.value = ''
   pending.value = true
@@ -261,7 +268,7 @@ async function loginWithPassword() {
       },
     })
     await fetchAuth()
-    await showWelcome(welcomeVariantForAuth('login', data.role), data.redirectTo || localePath('/'))
+    await showWelcome(welcomeVariantForAuth('login', data.role), data.redirectTo || fallbackAuthRedirect(data.role))
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 403) error.value = t('auth.accountDisabled')
@@ -342,7 +349,7 @@ async function registerWithPassword() {
       },
     })
     await fetchAuth()
-    await showWelcome('athlete', data.redirectTo || localePath('/'))
+    await showWelcome('athlete', data.redirectTo || fallbackAuthRedirect('ATHLETE'))
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
@@ -401,7 +408,7 @@ async function requestOtp() {
       await fetchAuth()
       notice.value = t('auth.otpBypassNotice')
       pending.value = false
-      await showWelcome('login', data.redirectTo || localePath('/'))
+      await showWelcome('login', data.redirectTo || fallbackAuthRedirect())
       return
     }
 
@@ -442,7 +449,7 @@ async function verifyOtp() {
     await fetchAuth()
     await showWelcome(
       welcomeVariantForAuth(purpose.value, data.role || role.value),
-      data.redirectTo || localePath('/'),
+      data.redirectTo || fallbackAuthRedirect(data.role || role.value),
     )
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode

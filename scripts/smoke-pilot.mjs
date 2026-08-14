@@ -212,8 +212,9 @@ async function main() {
   console.log('ok  /admin/sms page')
 
   // --- 4. Athlete register (phone OTP) → find club → book → /athlete/bookings ---
-  const athlete = await registerAthlete(base, jar, 'athlete', { name: 'Pilot Athlete' })
+  const athlete = await registerAthlete(base, jar, 'athlete', { name: 'Pilot Athlete', viaOtp: true })
   assert(athlete.role === 'ATHLETE', 'register role is not ATHLETE')
+  assert(athlete.redirectTo === '/athlete' || /\/athlete/.test(athlete.redirectTo || ''), 'OTP register redirectTo should be /athlete')
   console.log('ok  athlete register (OTP)')
 
   const { res: clubRes, data: club } = await apiFetch(base, `/api/clubs/${provision.clubSlug}`)
@@ -264,6 +265,58 @@ async function main() {
   })
   assert(bookingsPage.status === 200, `/athlete/bookings → ${bookingsPage.status}`)
   console.log('ok  /athlete/bookings')
+
+  // Waitlist: join when enabled; clean fail when off
+  const { res: waitOnRes, data: waitOn } = await apiFetch(base, '/api/waitlist', {
+    jar,
+    session: 'athlete',
+    method: 'POST',
+    body: {
+      clubSlug: provision.clubSlug,
+      courtId: athleteSlot.courtId || athleteSlot.court?.id,
+      date: bookDate,
+      startTime: freeSlot.startTime,
+      endTime: freeSlot.endTime || freeSlot.startTime,
+      guestName: 'Pilot Athlete',
+      guestMobile: athlete.phone,
+    },
+  })
+  assert(waitOnRes.ok, `waitlist join (enabled) → ${waitOnRes.status}: ${JSON.stringify(waitOn)}`)
+  assert(waitOn.ok, 'waitlist join missing ok')
+  console.log('ok  waitlist join (enabled)')
+
+  const { res: waitOffSettings } = await apiFetch(base, '/api/owner/settings', {
+    jar,
+    session: 'owner',
+    method: 'PATCH',
+    body: { waitlistEnabled: false },
+  })
+  assert(waitOffSettings.ok, `owner disable waitlist → ${waitOffSettings.status}`)
+  const { res: waitOffRes, data: waitOff } = await apiFetch(base, '/api/waitlist', {
+    jar,
+    session: 'athlete',
+    method: 'POST',
+    body: {
+      clubSlug: provision.clubSlug,
+      date: bookDate,
+      startTime: '23:00',
+      endTime: '24:00',
+    },
+    expectStatus: 404,
+  })
+  assert(waitOffRes.status === 404, `waitlist off expected 404, got ${waitOffRes.status}`)
+  assert(
+    /not available/i.test(waitOff?.statusMessage || waitOff?.message || '') || waitOffRes.status === 404,
+    'waitlist off should fail cleanly',
+  )
+  // Restore for any later notify path
+  await apiFetch(base, '/api/owner/settings', {
+    jar,
+    session: 'owner',
+    method: 'PATCH',
+    body: { waitlistEnabled: true },
+  })
+  console.log('ok  waitlist clean fail when off')
 
   // --- 4b. Online pay (test mode) → PAID → cancel refund → wallet top-up ---
   const { res: checkoutRes, data: checkout } = await apiFetch(base, '/api/payments/checkout', {
@@ -336,6 +389,23 @@ async function main() {
     assert(cancelRetryRes.ok, `cancel retry → ${cancelRetryRes.status}`)
     assert(cancelRetry.ok, 'cancel retry missing ok')
     console.log('ok  athlete cancel + refund retry')
+
+    const { data: calAfterCancel } = await apiFetch(base, `/api/owner/calendar?date=${bookDate}`, {
+      jar,
+      session: 'owner',
+    })
+    const freedSlot = (calAfterCancel.slots || []).find((slot) => slot.id === athleteSlot.id)
+    assert(freedSlot?.displayStatus === 'FREE', `cancel left displayStatus=${freedSlot?.displayStatus}`)
+    const { data: availAfterCancel } = await apiFetch(
+      base,
+      `/api/slots/available?club=${provision.clubSlug}&date=${bookDate}`,
+    )
+    const availSlots = Array.isArray(availAfterCancel) ? availAfterCancel : (availAfterCancel.slots || [])
+    assert(
+      availSlots.some((slot) => slot.id === athleteSlot.id),
+      'cancelled slot missing from available API',
+    )
+    console.log('ok  cancel → slot FREE')
 
     const { res: walletBeforeRes, data: walletBefore } = await apiFetch(base, '/api/wallet', {
       jar,

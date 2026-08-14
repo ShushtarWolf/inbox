@@ -22,6 +22,15 @@ if (rawSlug && slug !== rawSlug) {
 const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
+const { user } = useAuth()
+const { openLogin } = useAuthFlow()
+const { fetchErrorMessage } = useFetchError()
+
+const waitlistSlotId = ref<string | null>(null)
+const joiningWaitlist = ref(false)
+const waitlistFeedback = ref('')
+const waitlistFeedbackTone = ref<'success' | 'error'>('success')
+const waitlistEnabled = computed(() => Boolean((club.value as { waitlistEnabled?: boolean } | null)?.waitlistEnabled))
 
 function parseQueryCsv(raw: unknown): string[] {
   if (typeof raw === 'string') {
@@ -106,11 +115,15 @@ watch(
 watch(selectedDate, () => {
   if (suppressSlotClear) return
   selectedSlotIds.value = []
+  waitlistSlotId.value = null
+  waitlistFeedback.value = ''
 })
 
 watch(selectedCourtId, () => {
   if (suppressSlotClear) return
   selectedSlotIds.value = []
+  waitlistSlotId.value = null
+  waitlistFeedback.value = ''
 })
 
 type ClubSlot = {
@@ -310,11 +323,13 @@ const pricingFootnotes = computed(() => {
 
 function openConfirmSheet() {
   if (!selectedSlotIds.value.length) return
+  waitlistSlotId.value = null
   confirmOpen.value = true
 }
 
 function onConfirmSuccess() {
   selectedSlotIds.value = []
+  waitlistSlotId.value = null
 }
 const mapEmbedSrc = computed(() => {
   const coords = club.value?.coordinates
@@ -397,12 +412,58 @@ function selectDay(iso: string) {
 }
 
 function toggleSlot(slot: ClubSlot) {
-  if (isSlotBooked(slot)) return
+  if (isSlotBooked(slot)) {
+    if (!waitlistEnabled.value) return
+    selectedSlotIds.value = []
+    waitlistFeedback.value = ''
+    waitlistSlotId.value = waitlistSlotId.value === slot.id ? null : slot.id
+    return
+  }
+  waitlistSlotId.value = null
+  waitlistFeedback.value = ''
   if (selectedSlotIds.value.includes(slot.id)) {
     selectedSlotIds.value = selectedSlotIds.value.filter((x) => x !== slot.id)
     return
   }
   selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
+}
+
+async function joinCourtWaitlist() {
+  const slot = courtSlots.value.find((s) => s.id === waitlistSlotId.value)
+  if (!slot || !club.value) return
+  if (!user.value) {
+    openLogin({
+      returnTo: route.fullPath,
+      notice: t('booking.loginToConfirmNotice'),
+    })
+    return
+  }
+  joiningWaitlist.value = true
+  waitlistFeedback.value = ''
+  try {
+    await $fetch('/api/waitlist', {
+      method: 'POST',
+      body: {
+        clubSlug: slug,
+        courtId: selectedCourtId.value || slot.courtId || slot.court?.id,
+        date: selectedDate.value,
+        startTime: slot.startTime,
+        endTime: slot.endTime || slot.startTime,
+        guestName: user.value.name,
+        guestMobile: user.value.phone,
+      },
+    })
+    waitlistFeedbackTone.value = 'success'
+    waitlistFeedback.value = t('booking.waitlistJoined')
+    waitlistSlotId.value = null
+  }
+  catch (err: unknown) {
+    waitlistFeedbackTone.value = 'error'
+    waitlistFeedback.value = fetchErrorMessage(err, t('booking.actionFailed'))
+  }
+  finally {
+    joiningWaitlist.value = false
+  }
 }
 
 function amenityLabel(item: string) {
@@ -594,10 +655,10 @@ async function shareClub() {
                   type="button"
                   class="canva-club-slot"
                   :class="{
-                    'canva-club-slot-booked': isSlotBooked(slot),
-                    'canva-club-slot-active': isSlotSelected(slot.id),
+                    'canva-club-slot-booked': isSlotBooked(slot) && waitlistSlotId !== slot.id,
+                    'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
-                  :disabled="isSlotBooked(slot)"
+                  :disabled="isSlotBooked(slot) && !waitlistEnabled"
                   @click="toggleSlot(slot)"
                 >
                   {{ slot.startTime }}
@@ -606,6 +667,12 @@ async function shareClub() {
                   {{ t('common.empty') }}
                 </p>
               </div>
+              <p
+                v-if="waitlistEnabled && courtSlots.some((s) => isSlotBooked(s))"
+                class="mt-2 text-[11px] leading-snug text-brand-gray-600"
+              >
+                {{ t('booking.waitlistHint') }}
+              </p>
               <ul v-if="pricingFootnotes.length" class="mt-2 space-y-0.5 text-[11px] leading-snug text-brand-gray-600">
                 <li v-for="(note, idx) in pricingFootnotes" :key="idx">{{ note }}</li>
               </ul>
@@ -613,9 +680,27 @@ async function shareClub() {
           </div>
 
           <div class="canva-club-book-footer">
-            <p v-if="bookingSummary" class="canva-club-book-summary">{{ bookingSummary }}</p>
+            <p
+              v-if="waitlistFeedback"
+              class="canva-club-book-summary"
+              :class="waitlistFeedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'"
+            >
+              {{ waitlistFeedback }}
+            </p>
+            <p v-else-if="waitlistSlotId" class="canva-club-book-summary">{{ t('booking.waitlistSelectedHint') }}</p>
+            <p v-else-if="bookingSummary" class="canva-club-book-summary">{{ bookingSummary }}</p>
             <p v-else class="canva-club-book-summary text-brand-gray-600">{{ t('clubs.selectSlotToContinue') }}</p>
             <button
+              v-if="waitlistSlotId"
+              type="button"
+              class="canva-cta canva-club-book-cta"
+              :disabled="joiningWaitlist"
+              @click="joinCourtWaitlist"
+            >
+              {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
+            </button>
+            <button
+              v-else
               type="button"
               class="canva-cta canva-club-book-cta"
               :disabled="!selectedSlotIds.length"

@@ -30,6 +30,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Package not found': 'booking.errors.packageNotFound',
     'Package is full': 'booking.packageFull',
     'Invalid waitlist request': 'booking.errors.waitlistInvalid',
+    'Waitlist is not available': 'booking.errors.waitlistUnavailable',
     'Invalid credentials': 'auth.invalidCredentials',
     'Invalid OTP': 'auth.invalidOtp',
     'Invalid phone': 'auth.invalidPhone',
