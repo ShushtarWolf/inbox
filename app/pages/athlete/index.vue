@@ -90,16 +90,16 @@ async function handleLogout() {
 
       <div class="canva-dash-hero-stats">
         <div class="canva-dash-stat" style="border-radius: var(--sz-canva-radius);">
-          <p class="canva-dash-stat-value">{{ pending ? '…' : spendDisplay }}</p>
-          <p class="canva-dash-stat-label">{{ spendUnit }}</p>
+          <p class="canva-dash-stat-value">{{ pending ? '…' : formatNumber(bookingCount) }}</p>
+          <p class="canva-dash-stat-label">{{ t('athlete.statBookings') }}</p>
         </div>
         <div class="canva-dash-stat" style="border-radius: var(--sz-canva-radius);">
           <p class="canva-dash-stat-value">{{ pending ? '…' : ratingDisplay }}</p>
           <p class="canva-dash-stat-label">{{ t('athlete.statRating') }}</p>
         </div>
         <div class="canva-dash-stat" style="border-radius: var(--sz-canva-radius);">
-          <p class="canva-dash-stat-value">{{ pending ? '…' : formatNumber(bookingCount) }}</p>
-          <p class="canva-dash-stat-label">{{ t('athlete.statBookings') }}</p>
+          <p class="canva-dash-stat-value">{{ pending ? '…' : spendDisplay }}</p>
+          <p class="canva-dash-stat-label">{{ spendUnit }}</p>
         </div>
       </div>
     </section>

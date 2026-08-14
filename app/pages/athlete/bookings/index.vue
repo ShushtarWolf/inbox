@@ -411,7 +411,11 @@ function dateLine(item: HistoryItem) {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaAthleteChrome />
+    <CanvaAthleteChrome>
+      <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('notifications.title')">
+        <AppIcon name="notifications" size="sm" />
+      </NuxtLink>
+    </CanvaAthleteChrome>
 
     <div class="canva-history-desktop">
     <section class="canva-history-cal">
