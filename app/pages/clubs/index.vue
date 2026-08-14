@@ -93,8 +93,9 @@ function clubMeta(club: { city?: string; sports?: string[] }) {
   return `${club.city || 'تهران'} | ${sportCourtLabel(club)}`
 }
 
-function clubRating(club: { rating?: number | null }) {
-  return (club.rating ?? 4.5).toFixed(1)
+function clubRating(club: { rating?: number | null; reviewCount?: number }) {
+  if (!club.reviewCount) return ''
+  return (club.rating ?? 0).toFixed(1)
 }
 
 /** Canva: «هزینه هر سانس: ۳۰۰ الی ۴۵۰ هزار تومان» */
@@ -231,11 +232,13 @@ function prevHero() {
                 <p class="canva-court-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
                 <p class="canva-court-card-meta">
                   {{ clubMeta(club) }}
-                  <span class="text-white/50">|</span>
-                  <span class="canva-court-card-rating !mt-0 inline-flex">
-                    {{ clubRating(club) }}
-                    <span class="canva-court-card-star" aria-hidden="true">★</span>
-                  </span>
+                  <template v-if="clubRating(club)">
+                    <span class="text-white/50">|</span>
+                    <span class="canva-court-card-rating !mt-0 inline-flex">
+                      {{ clubRating(club) }}
+                      <span class="canva-court-card-star" aria-hidden="true">★</span>
+                    </span>
+                  </template>
                 </p>
                 <p
                   v-if="localizedField(club, 'descriptionFa', 'descriptionEn')"

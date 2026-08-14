@@ -3,8 +3,8 @@ import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { PILOT_CLUB_LAT, PILOT_CLUB_LNG, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 
-export default defineCachedEventHandler(async (event) => {
-  setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'no-store')
   const slug = resolveClubSlugAlias(getRouterParam(event, 'slug') || '')
   const club = await prisma.club.findUnique({
     where: { slug },
@@ -78,7 +78,4 @@ export default defineCachedEventHandler(async (event) => {
       courtNameEn: s.court.nameEn,
     })),
   }
-}, {
-  maxAge: 60,
-  getKey: (event) => `club:${resolveClubSlugAlias(getRouterParam(event, 'slug') || '')}`,
 })

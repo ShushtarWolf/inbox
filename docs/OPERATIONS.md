@@ -320,7 +320,9 @@ pg_restore -d "$DATABASE_URL" --clean --if-exists inbox-backup-YYYYMMDD.dump
 
 ## Production data wipe (clubs + users)
 
-Use when prod must be empty but healthy (new signups/applications still allowed). **Never** run `FORCE_SEED_RESET=true` + `SEED_DEMO_DATA=true` on production — that recreates `*@inbox.local` demo junk.
+Use when prod must be empty but healthy (new signups/applications still allowed). **Never** run `FORCE_SEED_RESET=true` + `SEED_DEMO_DATA=true` on production — seed **refuses** that combo when `NODE_ENV=production`. Use **reset-pilot** instead.
+
+`SEED_ON_EMPTY` must stay **unset / false** after the sports catalog exists. Production start ignores `SEED_ON_EMPTY=true` so a wipe cannot re-seed `*@inbox.local`.
 
 ### Keep vs delete
 
@@ -343,24 +345,26 @@ CONFIRM=WIPE_ALL_USERS_AND_CLUBS ALLOW_PROD_WIPE=yes NODE_ENV=production \
 ```
 
 4. Count after: users=0, clubs=0, bookings=0, sports≥1.
-5. Smoke: `GET /api/health`, `/`, `/clubs`, `/login`, `/register`, hero `/hero/*.jpg` → 200; empty `/clubs` OK.
+5. Smoke: `GET /api/health`, `/`, `/clubs`, `/login`, `/register`, hero `/hero/*.jpg` → 200; empty `/clubs` OK until re-provision.
 
 No deploy required for a remote DB wipe. Deploy only if you change the wipe script/docs and need them on the server.
 
 ### Pilot reset (wipe + single club owner)
 
-Preferred when the app can reach the DB (Liara): wipe catalog and create one `CLUB_ADMIN` in one call.
+Preferred when the app can reach the DB (Liara): wipe catalog (sports kept, no demo seed, Google OAuth users deleted) and create one `CLUB_ADMIN` + باشگاه بهناز courts/photos in one call.
+
+Do **not** set `AUTH_OTP_BYPASS_PHONES` on Liara for this cutover (Kavenegar will not approve OTP against a test catalog; after reset, login stays OTP-shaped / log-mode until you flip SMS yourself).
 
 ```bash
 curl -X POST https://inboxs.ir/api/admin/reset-pilot \
   -H "Content-Type: application/json" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
-  -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"09124777927","name":"مدیر مجموعه","clubName":"دانشگاه علم و صنعت"}'
+  -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"0912xxxxxxx","name":"مدیر مجموعه","clubName":"باشگاه بهناز"}'
 ```
 
-Then set `AUTH_OTP_BYPASS_PHONES=09124777927` on Liara so that phone logs in without SMS OTP (enter phone → continue → owner dashboard).
+Expect `after.clubs=1`, `after.users=1`, `leftoverGoogle=0`, `leftoverDemo=0`, `seedDemoData=false`. Then `GET /clubs` lists that one club (cover + hours restored). Unset `AUTH_OTP_BYPASS_PHONES` if it is still on Liara.
 
-**Product test athlete (not owner/admin):** seed/demo user `09121234567` (`athlete@inbox.local`, role `ATHLETE`). Add it to `AUTH_OTP_BYPASS_PHONES` (comma-separate with the owner phone if both are needed). Enter phone → continue → `/athlete`. No SMS / OTP code required.
+Do **not** add seed athlete `09121234567` / `athlete@inbox.local` to prod.
 
 ### Re-provision Behnaz / IUST pilot (after wipe)
 
@@ -465,4 +469,4 @@ FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed   # demo data (local o
 npm run dev
 ```
 
-Never set `FORCE_SEED_RESET=true` or demo passwords in production.
+Never set `FORCE_SEED_RESET=true` or demo passwords in production. Seed exits non-zero if those flags are set with `NODE_ENV=production`.

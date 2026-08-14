@@ -35,8 +35,8 @@ Liara runs [`scripts/start-production.mjs`](scripts/start-production.mjs) via `l
 
 | Env var | Purpose |
 |---------|---------|
-| `SEED_ON_EMPTY=true` | Run seed only when the database has zero users (first deploy) |
-| `FORCE_SEED_RESET=true` | Wipe and reseed — **dev/local only**; never set in production |
+| `SEED_ON_EMPTY=true` | Local/first-empty only. **Ignored in production** start; leave unset/false on Liara after catalog exists |
+| `FORCE_SEED_RESET=true` | Wipe and reseed — **dev/local only**; refused when `NODE_ENV=production` |
 
 Production seed creates the sports catalog only (no demo accounts). For local demo data, run `SEED_DEMO_DATA=true npm run db:seed` or `npm run db:seed:demo`. Demo passwords (`demo1234`) must never be used in production.
 

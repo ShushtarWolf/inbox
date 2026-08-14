@@ -64,12 +64,12 @@ function onHomeDatePicked() {
   showDatePicker.value = false
 }
 
-function clubMeta(club: { city?: string; rating?: number | null; sports?: string[] }) {
+function clubMeta(club: { city?: string; rating?: number | null; reviewCount?: number; sports?: string[] }) {
   const sportSlug = club.sports?.[0]
   const sportName = sports.value?.find((item) => item.slug === sportSlug)
   const label = sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('home.sportsLabel')
-  const rating = club.rating != null ? club.rating.toFixed(1) : '4.5'
-  return `${club.city || 'تهران'} | ${label} | ${rating} ★`
+  const rating = club.reviewCount && club.rating != null ? ` | ${club.rating.toFixed(1)} ★` : ''
+  return `${club.city || 'تهران'} | ${label}${rating}`
 }
 
 function clubImage(club: { image?: string | null; sports?: string[] }) {

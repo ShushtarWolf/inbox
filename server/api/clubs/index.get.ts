@@ -1,7 +1,7 @@
 import { clubRankingScore, getQueryNumber, haversineKm, parseJsonArray } from '../../utils/catalog'
 
-export default defineCachedEventHandler(async (event) => {
-  setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'no-store')
   const query = getQuery(event)
   const sport = query.sport as string | undefined
   const city = query.city as string | undefined
@@ -83,7 +83,4 @@ export default defineCachedEventHandler(async (event) => {
     if (!lat || !lng || club.distanceKm == null) return true
     return club.distanceKm <= radiusKm
   })
-}, {
-  maxAge: 60,
-  getKey: (event) => `clubs:${event.path}:${JSON.stringify(getQuery(event))}`,
 })
