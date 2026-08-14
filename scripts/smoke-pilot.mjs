@@ -586,6 +586,22 @@ async function main() {
   }
 
   // --- 5. Freeze gates: recurring always off; coach when pilotNoCoach ---
+  {
+    const googleRes = await fetch(`${base}/auth/google`, { redirect: 'manual' })
+    assert(googleRes.status === 404, `/auth/google expected 404, got ${googleRes.status}`)
+    console.log('ok  /auth/google fail-closed (404)')
+  }
+  {
+    const enRes = await fetch(`${base}/en`, { redirect: 'manual' })
+    const enLoc = enRes.headers.get('location') || ''
+    let enPath = enLoc
+    try {
+      if (/^https?:\/\//i.test(enLoc)) enPath = new URL(enLoc).pathname
+    } catch { /* keep */ }
+    assert([301, 302, 307, 308].includes(enRes.status), `/en expected redirect, got ${enRes.status}`)
+    assert(enPath === '/', `/en redirect expected /, got ${enLoc || enRes.status}`)
+    console.log('ok  /en redirects to FA /')
+  }
   // Athlete package book soft-lands (recurring freeze) — never crash
   {
     const { res: pkgBook, html: pkgHtml } = await fetchPage(base, '/book/package/smoke-stub', {
@@ -600,12 +616,21 @@ async function main() {
   }
 
   const { html: homeHtml } = await fetchPage(base, '/')
+  const envPilotNoCoach = process.env.PILOT_NO_COACH === 'true' || process.env.NUXT_PUBLIC_PILOT_NO_COACH === 'true'
   const pilotNoCoach = hasPilotNoCoach(homeHtml)
+  if (envPilotNoCoach && !pilotNoCoach) {
+    throw new Error('PILOT_NO_COACH=true in env but runtime HTML missing public.pilotNoCoach — restart the server')
+  }
   if (pilotNoCoach) {
     const coaches = await fetchPage(base, '/coaches', { expectRedirect: true })
     const loc = coaches.res.headers.get('location') || ''
     assert(/\/clubs/.test(loc), `/coaches redirect expected /clubs, got ${loc || coaches.res.status}`)
     console.log('ok  /coaches redirects away')
+
+    const bookCoach = await fetchPage(base, '/book/coach/smoke-stub', { expectRedirect: true })
+    const bookLoc = bookCoach.res.headers.get('location') || ''
+    assert(/\/clubs/.test(bookLoc), `/book/coach redirect expected /clubs, got ${bookLoc || bookCoach.res.status}`)
+    console.log('ok  /book/coach redirects away')
 
     const registerCoach = await fetchPage(base, '/register/coach', { expectRedirect: true })
     const regLoc = registerCoach.res.headers.get('location') || ''
