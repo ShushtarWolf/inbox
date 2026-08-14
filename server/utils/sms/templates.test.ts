@@ -73,5 +73,13 @@ describe('SMS templates', () => {
         paymentPaid: true,
       }),
     ).toContain('وضعیت پرداخت: پرداخت شده')
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '18:00',
+        endTime: '20:00',
+      }),
+    ).toContain('از 18:00 تا 20:00')
   })
 })

@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
     bookingId: booking.id,
     date: booking.slot.date,
     startTime: booking.slot.startTime,
+    endTime: booking.slot.endTime,
     reason: 'athlete-cancel',
   })
 

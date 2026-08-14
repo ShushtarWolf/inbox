@@ -230,4 +230,24 @@ describe('bookingNotify SMS', () => {
       mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
     })
   })
+
+  it('includes from-to hours in confirmed SMS when endTime is set', async () => {
+    resolveSmsProvider.mockReturnValue('log')
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      startTime: '18:00',
+      endTime: '20:00',
+    })
+
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_CONFIRMED',
+      '09129876543',
+      expect.stringContaining('از 18:00 تا 20:00'),
+    )
+    logSpy.mockRestore()
+  })
 })

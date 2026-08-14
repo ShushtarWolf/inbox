@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
     bookingId: session.id,
     date: body.date,
     startTime: body.startTime,
+    endTime: addOneHour(body.startTime),
     paymentPaid: paymentFields.paymentStatus === 'PAID',
     ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })

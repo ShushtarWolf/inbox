@@ -44,6 +44,9 @@ export default defineEventHandler(async (event) => {
     displayStatus?: string
     equipmentIds?: string[]
     discountCode?: string
+    skipNotify?: boolean
+    notifyStartTime?: string
+    notifyEndTime?: string
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
   const guestMobile = resolveGuestMobile(body.guestMobile)
@@ -191,6 +194,7 @@ export default defineEventHandler(async (event) => {
           bookingId: slot.booking.id,
           date: slot.date,
           startTime: slot.startTime,
+          endTime: slot.endTime,
         })
       }
     }
@@ -242,7 +246,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const phone = guestMobile || null
-    if (phone) {
+    if (phone && !body.skipNotify) {
       const notifyBase = {
         phone,
         kind: 'court' as const,
@@ -250,7 +254,8 @@ export default defineEventHandler(async (event) => {
         clubId: club.id,
         bookingId: createdBooking.id,
         date: slot.date,
-        startTime: slot.startTime,
+        startTime: (body.notifyStartTime || slot.startTime).trim(),
+        endTime: (body.notifyEndTime || slot.endTime).trim(),
         courtName: courtNotifyName(slot.court),
         paymentPaid: paymentStatus === 'PAID',
         ...clubNotifyLocation(club),

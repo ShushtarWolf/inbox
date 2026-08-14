@@ -12,6 +12,7 @@ type BookingNotifyOpts = {
   clubName: string
   date: string
   startTime: string
+  endTime?: string | null
   kind: BookingNotifyKind
   bookingId?: string
   clubId?: string
@@ -105,6 +106,7 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     clubName: opts.clubName,
     date: opts.date,
     startTime: opts.startTime,
+    endTime: opts.endTime || '',
     courtName: opts.courtName || '',
     paymentPaid: opts.paymentPaid,
     address: opts.address || '',
@@ -113,7 +115,10 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
 }
 
 function whenLine(opts: BookingNotifyOpts) {
-  const when = [opts.date, opts.startTime].filter(Boolean).join(' ')
+  const start = opts.startTime
+  const end = opts.endTime
+  const time = start && end && end !== start ? `از ${start} تا ${end}` : start
+  const when = [opts.date, time].filter(Boolean).join(' ')
   return when || '—'
 }
 

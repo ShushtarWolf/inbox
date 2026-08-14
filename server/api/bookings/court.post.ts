@@ -1,4 +1,5 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
+import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName } from '../../utils/bookingNotify'
 import {
@@ -220,7 +221,15 @@ export default defineEventHandler(async (event) => {
     rethrowSlotConflict(error)
   }
 
+  const groups = new Map<string, typeof orderedSlots>()
   for (const slot of orderedSlots) {
+    const key = `${slot.date}|${slot.courtId}`
+    const list = groups.get(key) || []
+    list.push(slot)
+    groups.set(key, list)
+  }
+  for (const group of groups.values()) {
+    const range = bookingTimeRange(group)
     await notifyBookingConfirmed({
       userId: user.id,
       email: dbUser.email,
@@ -228,10 +237,11 @@ export default defineEventHandler(async (event) => {
       kind: 'court',
       clubName: clubNotifyName(club),
       clubId,
-      bookingId: bookingIds[orderedSlots.indexOf(slot)]!,
-      date: slot.date,
-      startTime: slot.startTime,
-      courtName: courtNotifyName(slot.court),
+      bookingId: bookingIds[orderedSlots.indexOf(group[0]!)]!,
+      date: group[0]!.date,
+      startTime: range.startTime,
+      endTime: range.endTime,
+      courtName: courtNotifyName(group[0]!.court),
       paymentPaid: paymentStatus === 'PAID',
       ...clubNotifyLocation(club),
     })

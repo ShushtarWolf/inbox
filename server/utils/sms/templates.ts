@@ -7,9 +7,12 @@ function clubBit(data: Record<string, unknown>) {
 
 function whenBit(data: Record<string, unknown>) {
   const date = String(data.date || '').trim()
-  const time = String(data.time || data.startTime || '').trim()
-  if (date && time) return `${date} ساعت ${time}`
-  return date || time || ''
+  const start = String(data.time || data.startTime || '').trim()
+  const end = String(data.endTime || '').trim()
+  if (date && start && end && end !== start) return `${date} از ${start} تا ${end}`
+  if (date && start) return `${date} ساعت ${start}`
+  if (start && end && end !== start) return `از ${start} تا ${end}`
+  return date || start || ''
 }
 
 function paidBit(data: Record<string, unknown>) {

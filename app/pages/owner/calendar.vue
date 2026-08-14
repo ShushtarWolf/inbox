@@ -12,6 +12,7 @@ import {
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
+import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -856,22 +857,37 @@ async function doReserve() {
   saving.value = true
   actionError.value = ''
   try {
+    const groups = new Map<string, typeof targets>()
     for (const slot of targets) {
-      await $fetch('/api/owner/reserve', {
-        method: 'POST',
-        body: {
-          slotId: slot.id,
-          guestName: form.guestName,
-          guestFamily: form.guestFamily,
-          guestMobile: form.guestMobile,
-          paymentMethod: form.paymentMethod,
-          paymentStatus: form.paymentStatus,
-          comments: form.comments,
-          equipmentIds: form.equipmentIds,
-          discountCode: deskDiscount.value?.code,
-          displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
-        },
-      })
+      const key = `${slot.date || ''}|${slot.courtId}`
+      const list = groups.get(key) || []
+      list.push(slot)
+      groups.set(key, list)
+    }
+    for (const group of groups.values()) {
+      const range = bookingTimeRange(group)
+      for (let i = 0; i < group.length; i++) {
+        const slot = group[i]!
+        const isLast = i === group.length - 1
+        await $fetch('/api/owner/reserve', {
+          method: 'POST',
+          body: {
+            slotId: slot.id,
+            guestName: form.guestName,
+            guestFamily: form.guestFamily,
+            guestMobile: form.guestMobile,
+            paymentMethod: form.paymentMethod,
+            paymentStatus: form.paymentStatus,
+            comments: form.comments,
+            equipmentIds: form.equipmentIds,
+            discountCode: deskDiscount.value?.code,
+            displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
+            skipNotify: !isLast,
+            notifyStartTime: range.startTime,
+            notifyEndTime: range.endTime,
+          },
+        })
+      }
     }
     multiSelectMode.value = false
     closeMenu()

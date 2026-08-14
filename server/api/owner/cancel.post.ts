@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
         bookingId: slot.booking.id,
         date: slot.date,
         startTime: slot.startTime,
+        endTime: slot.endTime,
         reason,
       })
     }
