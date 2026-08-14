@@ -19,6 +19,7 @@ export async function refundPaymentForCancellation(options: {
   userId?: string | null
   reason: string
   bookingId?: string
+  skipWallet?: boolean
 }): Promise<RefundResult> {
   const payment = await prisma.payment.findUnique({ where: { id: options.paymentId } })
   if (!payment || !isPaymentRefundable(payment.status)) {
@@ -26,6 +27,8 @@ export async function refundPaymentForCancellation(options: {
   }
 
   let walletCredited = false
+
+  const walletUserId = options.skipWallet ? null : options.userId
 
   if (isOnlineGatewayPayment(payment)) {
     let gatewayRefunded = false
@@ -38,12 +41,12 @@ export async function refundPaymentForCancellation(options: {
     }
 
     const creditWalletInsteadOfBank =
-      Boolean(options.userId)
+      Boolean(walletUserId)
       && (!gatewayRefunded || shouldCreditWalletAfterGatewayRefund(payment))
 
-    if (creditWalletInsteadOfBank && options.userId) {
+    if (creditWalletInsteadOfBank && walletUserId) {
       try {
-        await creditWallet(options.userId, payment.amount, {
+        await creditWallet(walletUserId, payment.amount, {
           paymentId: payment.id,
           bookingId: options.bookingId,
           note: options.reason,
@@ -55,9 +58,9 @@ export async function refundPaymentForCancellation(options: {
         console.error('[refunds:creditWallet]', payment.id, err)
       }
     }
-  } else if (options.userId) {
+  } else if (walletUserId) {
     try {
-      await creditWallet(options.userId, payment.amount, {
+      await creditWallet(walletUserId, payment.amount, {
         paymentId: payment.id,
         bookingId: options.bookingId,
         note: options.reason,

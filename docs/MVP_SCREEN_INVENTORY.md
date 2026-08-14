@@ -52,7 +52,7 @@ Also not in this Behnaz inventory (even if frames/routes exist): athlete favorit
 
 | Screen | Canva filename(s) | App route | Overlays | Desktop+laptop |
 |--------|-------------------|-----------|----------|----------------|
-| Calendar Today (list-day) | `home page (22\|23\|24\|25\|27\|42).png`; overview `changed.png`; legacy multi-court ref `(9\|13)` | `/owner/calendar` | More sheet; desk sheets below | yes |
+| Calendar Today (GRID) | `home page (9\|13).png`; overlay artboards `(22+)`; overview `changed.png` | `/owner/calendar` | More sheet; desk sheets below | yes |
 | Desk — free-slot menu | `home page (17).png` | `/owner/calendar` | رزرو حضوری / مسدود / یادداشت | yes |
 | Desk — reserve (walk-in) | `home page (10\|18).png` | `/owner/calendar` | Reserve form sheet (hide coach + recurring for Behnaz) | yes |
 | Desk — block | `home page (21).png` | `/owner/calendar` | Block sheet (recurring steppers OUT OF MVP) | yes |

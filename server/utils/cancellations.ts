@@ -7,6 +7,7 @@ export async function cancelCourtBooking(options: {
   reason: string
   paymentId?: string | null
   userId?: string | null
+  skipWallet?: boolean
 }) {
   let refund: Awaited<ReturnType<typeof refundPaymentForCancellation>> | null = null
 
@@ -33,6 +34,7 @@ export async function cancelCourtBooking(options: {
         userId: options.userId,
         bookingId: options.bookingId,
         reason: options.reason,
+        skipWallet: options.skipWallet,
       })
     }
     catch (err) {

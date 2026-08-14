@@ -10,7 +10,6 @@ import {
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
-import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -44,7 +43,7 @@ interface OwnerCalendarSlot {
   booking?: OwnerCalendarBooking | null
 }
 
-type ActivePanel = 'cancel' | 'reserve' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
+type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
 
 const { t, locale } = useI18n()
 const { localizedField } = useLocalizedField()
@@ -67,6 +66,7 @@ const multiSelectMode = ref(false)
 const showMenu = ref(false)
 const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
+const refundToWallet = ref(true)
 const saving = ref(false)
 const actionError = ref('')
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
@@ -154,14 +154,6 @@ const activeCourt = computed(() =>
   courts.value.find((court: { id: string }) => court.id === activeCourtId.value) || null,
 )
 
-const activeCourtSlots = computed(() => {
-  if (!activeCourtId.value) return [] as OwnerCalendarSlot[]
-  return (data.value?.slots || [])
-    .filter((slot: OwnerCalendarSlot) => slot.courtId === activeCourtId.value)
-    .slice()
-    .sort((a: OwnerCalendarSlot, b: OwnerCalendarSlot) => a.startTime.localeCompare(b.startTime)) as OwnerCalendarSlot[]
-})
-
 watch(activeCourtId, () => {
   clearSelection()
 })
@@ -247,31 +239,6 @@ function onSlotPointerEnd() {
   clearLongPressTimer()
 }
 
-const overviewMonthLabel = computed(() => {
-  const j = isoToJalaali(date.value)
-  return `${PERSIAN_MONTHS[j.jm - 1]} ${formatNumber(j.jy)}`
-})
-
-const overviewMonthWeekdays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const
-
-const overviewMonthCells = computed(() => {
-  const j = isoToJalaali(date.value)
-  const daysInMonth = jalaaliDaysInMonth(j.jy, j.jm)
-  const [gy, gm, gd] = jalaaliToIso(j.jy, j.jm, 1).split('-').map(Number)
-  const weekday = new Date(gy, gm - 1, gd).getDay()
-  const leadingBlanks = (weekday + 1) % 7
-  const cells: Array<{ day: number | null; iso: string | null }> = []
-  for (let i = 0; i < leadingBlanks; i++) cells.push({ day: null, iso: null })
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push({ day, iso: jalaaliToIso(j.jy, j.jm, day) })
-  }
-  return cells
-})
-
-function selectOverviewDay(iso: string) {
-  date.value = iso
-  calendarView.value = 'today'
-}
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() =>
   pilotNoCoach.value
@@ -293,6 +260,10 @@ const selectedSlotsFull = computed(() =>
 const selectionCourt = computed(() =>
   courts.value.find((court: { id: string }) => court.id === selectionCourtId.value) || null,
 )
+const payConfirmCourt = computed(() => {
+  const id = selectedSlot.value?.courtId || selectionCourtId.value || activeCourtId.value
+  return courts.value.find((court: { id: string }) => court.id === id) || null
+})
 const batchMode = computed(() => selectedSlotIds.value.length > 1 && showMenu.value)
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
@@ -317,9 +288,6 @@ const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
 const monthLabel = computed(() => formatMonth(currentDate.value))
 const dateNavLabel = computed(() => `${weekdayLabel.value} | ${dayNumber.value} ${monthLabel.value}`)
-const listDayHeading = computed(() =>
-  `${formatWeekday(date.value, 'long')}، ${dayNumber.value} ${monthLabel.value}`,
-)
 
 const dateStripDays = computed(() => {
   const centerOffset = 3
@@ -389,10 +357,6 @@ function slotLabel(slot: OwnerCalendarSlot | null | undefined) {
   const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
   if (fullName && note) return `${fullName} ${note}`
   return fullName || statusLabel(slot.displayStatus)
-}
-
-function slotTimeLabel(slot: OwnerCalendarSlot) {
-  return formatTimeLabel(slot.startTime)
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -687,7 +651,8 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   showMenu.value = true
   resetPanels()
   activePanel.value = defaultPanelForSlot(fullSlot)
-  cancelReason.value = ''
+  cancelReason.value = 'CUSTOMER_REQUEST'
+  refundToWallet.value = true
   actionError.value = ''
   sessionType.value = fullSlot.booking?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
   const isFree = fullSlot.displayStatus === 'FREE'
@@ -725,7 +690,25 @@ function openReserveForm() {
 }
 
 function openCancelForm() {
+  cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
+  refundToWallet.value = true
   activePanel.value = 'cancel'
+}
+
+function openPayConfirm() {
+  if (!canSubmitReserve()) return
+  activePanel.value = 'payConfirm'
+}
+
+async function confirmDeskPay(mode: 'cash' | 'link') {
+  if (mode === 'cash') {
+    form.paymentMethod = 'CASH'
+    form.paymentStatus = 'PAID'
+  } else {
+    form.paymentMethod = payAtClubMode.value ? 'CASH' : 'IPG'
+    form.paymentStatus = 'PAY_AT_CLUB'
+  }
+  await doReserve()
 }
 
 function openCommentsForm() {
@@ -869,7 +852,11 @@ async function doCancel() {
     for (const slot of targets) {
       await $fetch('/api/owner/cancel', {
         method: 'POST',
-        body: { slotId: slot.id, reason: cancelReason.value },
+        body: {
+          slotId: slot.id,
+          reason: cancelReason.value,
+          refundToWallet: refundToWallet.value,
+        },
       })
     }
     closeMenu()
@@ -1289,97 +1276,36 @@ function slotBarColor(status: string) {
     <section v-if="calendarView === 'overview'" class="space-y-3">
       <div class="grid grid-cols-3 gap-2">
         <div class="canva-overview-kpi">
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewFreeSlots') }}</p>
-          <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">{{ formatNumber(overviewStats.free) }}</p>
+          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewBookingsToday') }}</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">{{ formatNumber(overviewStats.bookingsToday) }}</p>
         </div>
         <div class="canva-overview-kpi">
           <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewReservedPct') }}</p>
           <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">٪{{ formatNumber(overviewStats.reservedPct) }}</p>
         </div>
         <div class="canva-overview-kpi">
-          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewBookingsToday') }}</p>
-          <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">{{ formatNumber(overviewStats.bookingsToday) }}</p>
+          <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewFreeSlots') }}</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums text-brand-primary">{{ formatNumber(overviewStats.free) }}</p>
         </div>
       </div>
 
-      <div class="canva-panel space-y-3">
-        <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.overviewPerCourt') }}</h2>
+      <div class="space-y-3">
+        <h2 class="text-start text-sm font-bold text-brand-navy">• {{ t('owner.overviewPerCourt') }}</h2>
         <CanvaEmptyState v-if="!overviewStats.perCourt.length" :title="t('owner.emptyCourtsTitle')" doodle="bench" />
         <div v-for="court in overviewStats.perCourt" :key="court.id" class="space-y-1.5">
           <div class="flex items-center justify-between gap-2 text-xs font-bold">
-            <span class="text-brand-navy">{{ court.name }}</span>
-            <span class="tabular-nums text-brand-gray-500">{{ formatNumber(court.pct) }}%</span>
+            <span class="text-start text-brand-navy">{{ court.name }}</span>
+            <span class="tabular-nums text-brand-gray-500">٪ {{ formatNumber(court.pct) }}</span>
           </div>
           <div class="canva-overview-bar">
             <div class="canva-overview-bar-fill" :style="{ width: `${court.pct}%` }" />
           </div>
         </div>
       </div>
-
-      <aside class="canva-legend-row px-1">
-        <div v-for="item in legend" :key="item.status" class="canva-legend-item">
-          <span class="canva-legend-swatch" :style="{ background: item.color }" />
-          {{ statusLabel(item.status) }}
-        </div>
-      </aside>
-
-      <div class="canva-panel space-y-3">
-        <h2 class="text-sm font-bold text-brand-navy">{{ overviewMonthLabel }}</h2>
-        <div class="canva-overview-month text-[10px] font-bold text-brand-gray-500">
-          <span v-for="wd in overviewMonthWeekdays" :key="wd">{{ wd }}</span>
-        </div>
-        <div class="canva-overview-month">
-          <button
-            v-for="(cell, index) in overviewMonthCells"
-            :key="`${cell.iso || 'blank'}-${index}`"
-            type="button"
-            class="canva-overview-month-day"
-            :class="[
-              cell.iso === date ? 'canva-overview-month-day-active' : '',
-              cell.iso === today() ? 'canva-overview-month-day-today' : '',
-              !cell.iso ? 'pointer-events-none opacity-0' : '',
-            ]"
-            :disabled="!cell.iso"
-            @click="cell.iso && selectOverviewDay(cell.iso)"
-          >
-            <bdi v-if="cell.day" dir="ltr" class="tabular-nums">{{ formatNumber(cell.day) }}</bdi>
-          </button>
-        </div>
-      </div>
     </section>
 
     <section v-else class="space-y-3" :class="locale === 'en' ? 'calendar-latin' : ''">
-      <!-- Canva list-day (22+): date bullet (+ day nav) · court chips · legend · color bars -->
-      <div class="canva-cal-date-nav">
-        <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
-          <AppIcon name="chevron_right" size="sm" />
-        </button>
-        <button
-          type="button"
-          class="inline-flex min-w-0 flex-1 items-center justify-center gap-2 text-sm font-bold text-brand-navy"
-          @click="showDatePicker = true"
-        >
-          <span class="inline-block h-1.5 w-1.5 shrink-0 rounded-none bg-brand-navy" aria-hidden="true" />
-          <span class="truncate">{{ listDayHeading }}</span>
-        </button>
-        <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
-          <AppIcon name="chevron_left" size="sm" />
-        </button>
-      </div>
-
-      <div class="canva-clubs-chip-row flex-wrap">
-        <button
-          v-for="(court, idx) in courts"
-          :key="court.id"
-          type="button"
-          class="canva-court-chip"
-          :class="activeCourtId === court.id ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
-          @click="activeCourtId = court.id"
-        >
-          {{ courtColumnLabel(court, idx) }}
-        </button>
-      </div>
-
+      <!-- Canva closed Today (9): legend · date nav + انتخاب · FABs · multi-court GRID -->
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
           <span class="canva-legend-swatch" :style="{ background: item.color }" />
@@ -1391,15 +1317,20 @@ function slotBarColor(status: string) {
         </span>
       </div>
 
-      <div v-if="!courts.length">
-        <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
-      </div>
+      <div class="canva-cal-grid-shell">
+        <div class="canva-cal-date-nav">
+          <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
+            <AppIcon name="chevron_right" size="sm" />
+          </button>
+          <span class="canva-cal-date-nav-label">{{ dateNavLabel }}</span>
+          <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
+            <AppIcon name="chevron_left" size="sm" />
+          </button>
+          <button type="button" class="canva-cal-date-select" @click="showDatePicker = true">
+            {{ t('common.select') }}
+          </button>
+        </div>
 
-      <div v-else-if="!activeCourtSlots.length">
-        <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
-      </div>
-
-      <div v-else class="relative">
         <div class="canva-cal-fab">
           <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
             {{ t('owner.block') }}
@@ -1409,31 +1340,54 @@ function slotBarColor(status: string) {
           </button>
         </div>
 
-        <div class="canva-slot-list">
-          <button
-            v-for="slot in activeCourtSlots"
-            :key="slot.id"
-            type="button"
-            class="canva-slot-row"
-            :class="[
-              slotClass(slot.displayStatus),
-              isSlotSelected(slot) ? 'canva-slot-row-selected' : '',
-            ]"
-            @pointerdown="onSlotPointerDown(slot)"
-            @pointerup="onSlotPointerEnd"
-            @pointerleave="onSlotPointerEnd"
-            @pointercancel="onSlotPointerEnd"
-            @contextmenu.prevent
-            @click="handleSlotClick(slot)"
-          >
-            <span class="canva-slot-name min-w-0 flex-1 truncate text-start">
-              {{ slotLabel(slot) || (slot.displayStatus === 'FREE' ? '' : statusLabel(slot.displayStatus)) }}
-            </span>
-            <bdi dir="ltr" class="canva-slot-time shrink-0 tabular-nums">{{ slotTimeLabel(slot) }}</bdi>
-            <span v-if="hasSlotNote(slot)" class="shrink-0" aria-hidden="true">
-              <AppIcon name="star" size="sm" />
-            </span>
-          </button>
+        <div v-if="!courts.length">
+          <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
+        </div>
+        <div v-else-if="!hours.length">
+          <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
+        </div>
+        <div v-else class="canva-cal-grid-scroll">
+          <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
+            <div class="canva-cal-grid-corner" />
+            <div
+              v-for="(court, idx) in courts"
+              :key="court.id"
+              class="canva-cal-grid-court"
+            >
+              {{ courtColumnLabel(court, idx) }}
+            </div>
+            <template v-for="hour in hours" :key="hour">
+              <div class="canva-cal-grid-time">
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
+              </div>
+              <button
+                v-for="court in courts"
+                :key="`${court.id}-${hour}`"
+                type="button"
+                class="canva-cal-grid-cell"
+                :class="[
+                  slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
+                  cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
+                ]"
+                :disabled="!cellSlot(court.id, hour)"
+                @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
+                @pointerup="onSlotPointerEnd"
+                @pointerleave="onSlotPointerEnd"
+                @pointercancel="onSlotPointerEnd"
+                @contextmenu.prevent
+                @click="handleSlotClick(cellSlot(court.id, hour))"
+              >
+                <span
+                  class="canva-cal-grid-cell-bar"
+                  :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
+                />
+                <span class="canva-cal-grid-cell-body">
+                  <span class="canva-cal-grid-cell-label">{{ slotLabel(cellSlot(court.id, hour)) }}</span>
+                </span>
+                <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
+              </button>
+            </template>
+          </div>
         </div>
       </div>
     </section>
@@ -1536,38 +1490,6 @@ function slotBarColor(status: string) {
             <span class="min-w-0 flex-1 truncate">{{ t('owner.addNote') }}</span>
           </button>
           <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
-          <button type="button" :class="menuItemClass('equipment')" @click="openEquipmentForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('equipment')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('equipment')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.equipments') }}</span>
-          </button>
-          <button
-            v-if="canMarkPaid()"
-            type="button"
-            class="canva-action-row"
-            :disabled="saving"
-            @click="doMarkPaid"
-          >
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('markPaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markPaid')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markPaidCash') }}</span>
-          </button>
-          <button
-            v-if="canMarkUnpaid()"
-            type="button"
-            class="canva-action-row"
-            :disabled="saving"
-            @click="doMarkUnpaid"
-          >
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('markUnpaid')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('markUnpaid')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ saving ? t('common.loading') : t('owner.markUnpaid') }}</span>
-          </button>
-          <button v-if="canCancelSlot()" type="button" :class="menuItemClass('cancel')" @click="openCancelForm">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('cancel')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('cancel')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.cancel') }}</span>
-          </button>
-          <button type="button" class="canva-action-row" @click="closeMenu">
-            <span class="canva-dash-menu-icon" :class="menuIconWrap('close')" style="border-radius: var(--sz-canva-radius);"><AppIcon :name="menuIcon('close')" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('common.close') }}</span>
-          </button>
         </div>
 
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
@@ -1580,7 +1502,7 @@ function slotBarColor(status: string) {
               <span class="text-brand-gray-500">{{ t('owner.guestMobile') }}</span>
               <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedSlotFull?.booking?.guestMobile || '—' }}</bdi>
             </div>
-            <div class="canva-detail-row">
+            <div v-if="!pilotNoCoach" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ detailCoachLabel() }}</span>
             </div>
@@ -1646,6 +1568,17 @@ function slotBarColor(status: string) {
             <AppFormField :label="t('owner.guestMobile')">
               <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" readonly>
             </AppFormField>
+            <p class="text-start text-xs font-bold text-brand-gray-600">{{ t('owner.cancelledSessions') }}</p>
+            <ul class="space-y-1 text-start text-sm font-bold text-brand-gray-600">
+              <li v-for="slot in slotsForCancel()" :key="slot.id">
+                {{ formatWeekday(slot.date || date, 'long') }} {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
+                · <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
+              </li>
+            </ul>
+            <label class="canva-recurring-check">
+              <input v-model="refundToWallet" type="checkbox" class="canva-settings-checkbox">
+              <span>{{ t('owner.refundToWalletCheck') }}</span>
+            </label>
             <AppFormField :label="t('owner.cancelReasonPlaceholder')">
               <select v-model="cancelReason" class="neo-select">
                 <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
@@ -1655,7 +1588,7 @@ function slotBarColor(status: string) {
           </div>
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancel') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancelBooking') }}</button>
             <button type="button" class="canva-gate-btn-secondary" @click="activePanel = canCancelSlot() ? 'detail' : null">{{ t('common.back') }}</button>
           </div>
         </div>
@@ -1675,7 +1608,7 @@ function slotBarColor(status: string) {
               <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi>
             </p>
           </div>
-          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="doReserve">
+          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
             <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
               <input
                 id="owner-reserve-guest-full"
@@ -1749,13 +1682,13 @@ function slotBarColor(status: string) {
                 </option>
               </select>
             </AppFormField>
-            <AppFormField :label="t('owner.paymentMethod')" field-id="owner-reserve-payment-method">
+            <AppFormField v-if="isEditingBooking()" :label="t('owner.paymentMethod')" field-id="owner-reserve-payment-method">
               <select id="owner-reserve-payment-method" v-model="form.paymentMethod" class="neo-select">
                 <option v-if="!payAtClubMode" value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
                 <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
               </select>
             </AppFormField>
-            <AppFormField :label="t('owner.paymentStatusLabel')" field-id="owner-reserve-payment-status">
+            <AppFormField v-if="isEditingBooking()" :label="t('owner.paymentStatusLabel')" field-id="owner-reserve-payment-status">
               <select id="owner-reserve-payment-status" v-model="form.paymentStatus" class="neo-select">
                 <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
                 <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
@@ -1773,7 +1706,12 @@ function slotBarColor(status: string) {
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="isNewReservation() && slotsForReserve().some(slotIsInPast)" class="text-xs font-medium text-red-600">{{ t('owner.errors.slotInPast') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="!canSubmitReserve()" @click="doReserve">{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="!canSubmitReserve()"
+              @click="isNewReservation() ? openPayConfirm() : doReserve()"
+            >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
@@ -1784,6 +1722,61 @@ function slotBarColor(status: string) {
               {{ saving ? t('common.loading') : t('owner.markPaidCash') }}
             </button>
             <button type="button" class="canva-gate-btn-secondary" @click="activePanel = isEditingBooking() ? 'detail' : null">{{ t('common.back') }}</button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel !border-0">
+          <div class="canva-confirm-book px-1 pb-2">
+            <div class="canva-auth-header">
+              <InboxWordmark class="text-base text-brand-navy" />
+              <button type="button" class="text-xs font-bold text-brand-gray-600" @click="activePanel = 'reserve'">
+                {{ t('common.close') }}
+              </button>
+            </div>
+            <div class="text-center">
+              <p class="canva-confirm-book-title">{{ t('booking.confirmFinalTitle') }}</p>
+              <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubCalendarTitle }}</h2>
+            </div>
+            <div class="mt-3 text-start">
+              <p class="canva-confirm-book-date">{{ formattedDate }}</p>
+              <div class="mt-2 flex flex-wrap justify-start gap-2">
+                <span
+                  v-for="slot in slotsForReserve()"
+                  :key="slot.id"
+                  class="canva-confirm-book-time"
+                >
+                  {{ slot.startTime?.slice(0, 5) }}
+                </span>
+              </div>
+              <p v-if="payConfirmCourt" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
+                <span class="canva-confirm-book-dot" aria-hidden="true" />
+                {{ localizedField(payConfirmCourt, 'nameFa', 'nameEn') }}
+              </p>
+            </div>
+            <OwnerBookingPriceSummary
+              class="mt-4"
+              :court-price="courtPrice"
+              :equipment-price="reserveEquipmentPrice"
+            />
+            <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="canva-gate-btn-secondary"
+                :disabled="saving"
+                @click="confirmDeskPay('cash')"
+              >
+                {{ t('owner.payCash') }}
+              </button>
+              <button
+                type="button"
+                class="canva-gate-btn-primary"
+                :disabled="saving"
+                @click="confirmDeskPay('link')"
+              >
+                {{ saving ? t('common.loading') : t('owner.sendPayLink') }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1863,7 +1856,7 @@ function slotBarColor(status: string) {
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('owner.confirmNote') }}</button>
           </div>
         </div>
 

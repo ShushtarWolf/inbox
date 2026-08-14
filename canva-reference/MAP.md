@@ -47,8 +47,8 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva); links to profile / payments / wallet |
 | `home page (7).png` | `/athlete/bookings` history | Cancel / rebook CTAs → `CanvaConfirmSheet` + club deep-link |
 | — | `/athlete/profile`, `/athlete/wallet`, `/athlete/payments` | **In product**; no dedicated Canva page — entered from hub `(5)` |
-| `home page (9).png` + `(13)` | `/owner/calendar` (legacy multi-court ref) | Superseded for Today by list-day `(22+)` |
-| `home page (22\|23\|24\|25\|27\|42).png` | `/owner/calendar` **Today list-day** | Date · court chips · color slot bars |
+| `home page (9).png` + `(13)` | `/owner/calendar` **Today GRID** | Closed Today = multi-court columns + time gutter + FABs; date picker on GRID |
+| `home page (22\|23\|24\|25\|27\|42).png` | `/owner/calendar` overlay artboards | List-day is overlay-friendly restatement of Today — **not** the closed default |
 | `home page (29\|32\|38).png` | Owner **More** sheet on calendar | CRM / equipments / support / workers; coaches+packages shown but OUT OF MVP |
 | `home page (17).png` | Free-slot **action menu** sheet | رزرو حضوری / مسدود / یادداشت |
 | `home page (10\|18).png` | Walk-in **reserve** desk sheet | Coach radio + recurring checkbox = OUT OF MVP UI in Canva |
@@ -75,7 +75,7 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 - **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
 - **Athlete booking detail** `/athlete/bookings/[id]` → `/athlete/bookings?booking=` (list is primary).
 - **Coach / package / Google / EN**: **OUT OF MVP** for Behnaz — `PILOT_NO_COACH=true`, recurring APIs `403`, Google UI hard-off, `defaultLocale: fa`.
-- **Owner Today** = list-day (`(22+)`): one court at a time, full-bleed status bars. Overview tab = `changed.png`.
+- **Owner Today** = multi-court GRID (`(9)`): time rows × court columns, FABs, date chevrons. Overview tab = `changed.png`. List-day `(22+)` documents overlay states, not closed Today.
 
 ## Severity legend
 
@@ -104,8 +104,8 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | `(3)` / `(4)` | club detail + confirm | **ok-enough** | Interactive slots + sheet; product wallet/pay CTAs kept |
 | `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Owner for Behnaz; no Google in product |
 | `(8)` / `(5)` / `(7)` | athlete | **ok-enough** | Hub + bookings; wallet/profile via hub |
-| `(22+)` + sheets | owner calendar Today | **ok-enough** | List-day primary (court chips + color bars) |
-| `(9)` multi-court | owner calendar | **legacy ref** | Export only; live Today uses list-day |
+| `(9)` GRID | owner calendar Today | **blocker if list-day** | Closed Today is multi-court grid; list-day is overlay artboard only |
+| `(22+)` + sheets | owner calendar overlays | **visual** | Detail / 3-action / More sit on list-day crops |
 | `(11)` recurring | owner sheet | **out of MVP** | Season/package gated — soft-land |
 | `(12\|19)` owner pay sheet | owner desk | **in MVP** | Cash / pay-link desk flow — not athlete `(4)` |
 | `(30)` / `(31)` | equipments | **ok-enough** | Was mislabeled `(20)/(21)` in older notes |

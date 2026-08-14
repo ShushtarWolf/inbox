@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     slotId?: string
     reason?: string
+    refundToWallet?: boolean
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
 
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
       reason,
       paymentId: slot.booking.payment?.id,
       userId: slot.booking.userId,
+      skipWallet: body.refundToWallet === false,
     })
     const rawGuest = slot.booking.guestMobile
     const phone = slot.booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)

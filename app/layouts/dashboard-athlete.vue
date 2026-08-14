@@ -2,11 +2,10 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 
-/** Canva p22 bottom nav (RTL visual R→L): خانه · رزرو من · علاقه‌مندی · پروفایل */
+/** Canva hub bottom nav — favorites page is OUT OF MVP (hide, do not build). */
 const nav = computed(() => [
   { to: localePath('/athlete/home'), label: t('nav.home'), icon: 'home' },
   { to: localePath('/athlete/bookings'), label: t('nav.myBookings'), icon: 'confirmation_number' },
-  { to: localePath('/athlete/favorites'), label: t('nav.favorites'), icon: 'favorite' },
   { to: localePath('/athlete'), label: t('nav.profile'), icon: 'person' },
 ])
 </script>

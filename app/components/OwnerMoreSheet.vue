@@ -22,10 +22,10 @@ const tiles = computed(() => {
   const isOwner = role === 'OWNER'
 
   const items = [
-    { path: '/owner/crm', labelKey: 'owner.crm', icon: 'groups' },
-    { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'inventory_2' },
-    { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
+    { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
+    { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
     { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
+    { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
   ] as const
 
   return items
