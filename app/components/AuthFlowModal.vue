@@ -531,7 +531,7 @@ watch(
         <h2 v-if="title" class="text-center text-lg font-bold text-brand-primary">{{ title }}</h2>
         <p
           v-if="notice && step !== 'welcome'"
-          class="border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-900 text-start"
+          class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
           style="border-radius: var(--sz-canva-radius);"
         >
           {{ notice }}

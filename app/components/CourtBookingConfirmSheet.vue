@@ -224,10 +224,8 @@ async function submit(preferWallet = false) {
     @close="close"
   >
     <div class="canva-confirm-book">
+      <!-- LOCKED #5: logo RIGHT / close LEFT (RTL flex order) -->
       <div class="canva-auth-header">
-        <button type="button" class="text-xs font-bold text-brand-gray-600" @click="close">
-          {{ t('common.close') }}
-        </button>
         <NuxtLink
           :to="localePath('/')"
           class="flex items-center gap-2"
@@ -237,7 +235,9 @@ async function submit(preferWallet = false) {
           <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
           <InboxWordmark class="text-base text-brand-navy" />
         </NuxtLink>
-        <span class="w-8" aria-hidden="true" />
+        <button type="button" class="text-xs font-bold text-brand-gray-600" @click="close">
+          {{ t('common.close') }}
+        </button>
       </div>
 
       <div class="canva-auth-body space-y-3 px-5 pb-6 pt-1">

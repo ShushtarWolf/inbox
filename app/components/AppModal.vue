@@ -162,7 +162,8 @@ onUnmounted(() => {
             :class="[
               maxWidthClass || 'max-w-md',
               patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
-              sheet ? 'canva-sheet-dialog' : 'rounded-xl',
+              /* LOCKED: Canva phone frames ≤2px — never rounded-xl soft card */
+              sheet ? 'canva-sheet-dialog' : (patterned ? 'canva-modal-frame' : 'rounded-xl'),
             ]"
             @click.stop
             @focusin="onDialogFocusIn"
