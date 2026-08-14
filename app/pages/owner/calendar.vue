@@ -150,7 +150,8 @@ const courts = computed(() => data.value?.courts || [])
 
 const gridTemplateColumns = computed(() => {
   const courtCount = Math.max(courts.value.length, 1)
-  return `2.75rem repeat(${courtCount}, minmax(4.25rem, 1fr))`
+  // RTL: first columns sit on the right (courts), last column is the time gutter on the left — Canva (9).
+  return `repeat(${courtCount}, minmax(4.25rem, 1fr)) 2.75rem`
 })
 
 function shiftDate(delta: number) {
@@ -375,18 +376,17 @@ function cellSlot(courtId: string, hour: string) {
 
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
-  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return ''
+  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
+    return slot.booking?.comments?.trim() || t('owner.slotBlockedLabel')
+  }
   const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
   return fullName || statusLabel(slot.displayStatus)
 }
 
 function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
-  const note = slot.booking?.comments?.trim() || ''
-  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
-    return note || t('owner.slotBlockedLabel')
-  }
-  return note
+  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return ''
+  return slot.booking?.comments?.trim() || ''
 }
 
 function onCellCheckClick(event: Event, slot: OwnerCalendarSlot | null | undefined) {
@@ -1430,7 +1430,7 @@ function slotBarColor(status: string) {
     </section>
 
     <section v-else class="space-y-3" :class="locale === 'en' ? 'calendar-latin' : ''">
-      <!-- Canva closed Today (9): legend · date nav + انتخاب · FABs · multi-court GRID -->
+      <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
           <span
@@ -1452,14 +1452,26 @@ function slotBarColor(status: string) {
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
               <AppIcon name="chevron_right" size="sm" />
             </button>
-            <span class="canva-cal-date-nav-label">{{ dateNavLabel }}</span>
+            <button
+              type="button"
+              class="canva-cal-date-nav-label"
+              :aria-label="t('owner.pickDate')"
+              @click="showDatePicker = true"
+            >
+              {{ dateNavLabel }}
+            </button>
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
               <AppIcon name="chevron_left" size="sm" />
             </button>
           </div>
-          <button type="button" class="canva-cal-date-select" @click="showDatePicker = true">
-            {{ t('common.select') }}
-          </button>
+          <div class="canva-cal-fab">
+            <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
+              {{ t('owner.block') }}
+            </button>
+            <button type="button" class="canva-cal-fab-btn canva-cal-fab-reserve" @click="openFabReserve">
+              {{ t('owner.reserve') }}
+            </button>
+          </div>
         </div>
 
         <div class="canva-cal-body">
@@ -1471,7 +1483,6 @@ function slotBarColor(status: string) {
           </div>
           <div v-else class="canva-cal-grid-scroll">
             <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
-              <div class="canva-cal-grid-corner" />
               <div
                 v-for="(court, idx) in courts"
                 :key="court.id"
@@ -1479,10 +1490,8 @@ function slotBarColor(status: string) {
               >
                 {{ courtColumnLabel(court, idx) }}
               </div>
+              <div class="canva-cal-grid-corner" />
               <template v-for="hour in hours" :key="hour">
-                <div class="canva-cal-grid-time">
-                  <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
-                </div>
                 <button
                   v-for="court in courts"
                   :key="`${court.id}-${hour}`"
@@ -1511,22 +1520,18 @@ function slotBarColor(status: string) {
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
+                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
                     class="canva-cal-grid-check"
-                    :class="cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
+                    :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
                     role="presentation"
                     @click="onCellCheckClick($event, cellSlot(court.id, hour))"
                   />
                 </button>
+                <div class="canva-cal-grid-time">
+                  <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(hour) }}</bdi>
+                </div>
               </template>
             </div>
-          </div>
-          <div class="canva-cal-fab">
-            <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
-              {{ t('owner.block') }}
-            </button>
-            <button type="button" class="canva-cal-fab-btn canva-cal-fab-reserve" @click="openFabReserve">
-              {{ t('owner.reserve') }}
-            </button>
           </div>
         </div>
       </div>
@@ -2502,43 +2507,31 @@ function slotBarColor(status: string) {
   border-radius: 999px;
 }
 
-:deep(.slot-free) {
-  background: var(--sz-slot-free);
-  color: var(--sz-secondary);
+:deep(.canva-cal-grid-cell.slot-free) {
+  background: #eceae6;
+  color: #4a4a46;
 }
 
-:deep(.slot-reserved) {
-  background: var(--sz-slot-reserved);
-  color: #fff;
+:deep(.canva-cal-grid-cell.slot-reserved),
+:deep(.canva-cal-grid-cell.slot-public),
+:deep(.canva-cal-grid-cell.slot-team) {
+  background: #f3d4d4;
+  color: #2c2c2a;
 }
 
-:deep(.slot-public) {
-  background: var(--sz-slot-public);
-  color: var(--sz-navy);
+:deep(.canva-cal-grid-cell.slot-pending) {
+  background: #eceae6;
+  color: #2c2c2a;
 }
 
-:deep(.slot-team) {
-  background: var(--sz-slot-team);
-  color: #fff;
+:deep(.canva-cal-grid-cell.slot-cancel) {
+  background: #eceae6;
+  color: #4a4a46;
 }
 
-:deep(.slot-pending) {
-  background: var(--sz-slot-pending);
-  color: #fff;
-}
-
-:deep(.slot-cancel) {
-  background: var(--sz-slot-cancel);
-  color: var(--sz-secondary);
-}
-
-:deep(.slot-closed) {
-  background: var(--sz-slot-closed);
-  color: #fff;
-}
-
-:deep(.slot-blocked) {
-  background: var(--sz-slot-blocked);
+:deep(.canva-cal-grid-cell.slot-closed),
+:deep(.canva-cal-grid-cell.slot-blocked) {
+  background: #2a2a28;
   color: #fff;
 }
 

@@ -1715,9 +1715,9 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9+) */
+  /* Canva multi-court today grid (home page 9) — closed: no انتخاب chip */
   .canva-cal-date-nav {
-    @apply mb-2 flex items-center gap-1 text-sm font-bold text-[#3B82F6];
+    @apply relative mb-2 flex min-h-[3.75rem] items-start justify-center gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
   }
   .canva-cal-date-nav-center {
     @apply flex min-w-0 flex-1 items-center justify-center gap-1;
@@ -1727,7 +1727,8 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-date-nav-label {
-    @apply min-w-[8.5rem] text-center tabular-nums text-[#3B82F6];
+    @apply min-w-[8.5rem] bg-transparent text-center tabular-nums text-[#3B82F6];
+    border-radius: var(--sz-canva-radius);
   }
   .canva-cal-date-select {
     @apply shrink-0 px-2 py-1 text-[10px] font-bold text-brand-navy bg-[#eceae6];
@@ -1737,10 +1738,11 @@
     @apply relative;
   }
   .canva-cal-body {
-    @apply flex items-start gap-2;
+    @apply block;
   }
   .canva-cal-fab {
-    @apply mt-8 flex w-[3.15rem] shrink-0 flex-col gap-1.5;
+    @apply absolute top-0 z-[2] flex w-[2.65rem] flex-col gap-1;
+    inset-inline-end: 0;
   }
   .canva-cal-fab-btn {
     @apply px-1 py-2 text-[10px] font-bold leading-tight text-white;
@@ -1798,9 +1800,14 @@
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
-  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label,
-  .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label {
+  .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label {
     color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-sub,
+  .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-sub {
+    color: #fff;
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-public,
