@@ -532,7 +532,7 @@
 
   /* Sharp venue tiles + square CTAs */
   .canva-venue-grid {
-    @apply grid grid-cols-3 gap-2 sm:gap-3;
+    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
   }
   .canva-venue-card {
     @apply relative block aspect-square w-full overflow-hidden bg-[#2a1818] text-white shadow-venus-sm;
@@ -2328,7 +2328,11 @@
     width: 100%;
     text-align: inherit;
   }
-  .canva-court-card-grid,
+  .canva-court-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
   .canva-history-card-grid {
     display: flex;
     flex-direction: column;
@@ -2336,10 +2340,10 @@
   }
   .canva-court-card,
   .canva-court-card-body {
-    min-height: 12.5rem;
+    min-height: 11rem;
   }
   .canva-court-card-body {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
   .canva-hero-home-content {
     min-height: 20rem;
@@ -2388,6 +2392,19 @@
   .canva-club-book-footer {
     position: static;
     bottom: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .canva-club-book-cta {
+    width: auto;
+    min-width: 10rem;
+    flex-shrink: 0;
+  }
+  .canva-club-detail-book {
+    position: sticky;
+    top: 5.5rem;
   }
   .canva-club-more-map-frame,
   .canva-club-more-map-empty {
@@ -2467,6 +2484,7 @@
   .canva-cal-date-nav {
     grid-template-columns: 3.5rem minmax(0, 1fr) auto;
     min-height: 3.25rem;
+    align-items: start;
   }
   .canva-cal-fab {
     flex-direction: row;
@@ -2502,6 +2520,24 @@
   .canva-club-more-map-frame,
   .canva-club-more-map-empty {
     height: 16rem;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 767px) {
+  .canva-court-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .canva-club-detail {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "gallery"
+      "intro"
+      "book"
+      "more"
+      "reviews";
+  }
+  .canva-club-detail-book {
+    position: static;
   }
 }
 

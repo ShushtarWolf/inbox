@@ -82,7 +82,7 @@ async function handleLogout() {
           <span v-else>{{ initials }}</span>
         </div>
         <div class="min-w-0">
-          <h1 class="truncate text-xl font-bold">{{ displayName || firstName }}</h1>
+          <h1 class="truncate text-xl font-bold text-white">{{ displayName || firstName }}</h1>
           <p v-if="phone" class="mt-0.5 truncate text-sm tabular-nums text-white/85" dir="ltr">{{ phone }}</p>
           <p v-else class="mt-0.5 text-sm text-white/70">{{ addMobileHint }}</p>
         </div>

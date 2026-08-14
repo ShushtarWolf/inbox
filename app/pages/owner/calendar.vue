@@ -151,7 +151,7 @@ const courts = computed(() => data.value?.courts || [])
 const gridTemplateColumns = computed(() => {
   const courtCount = Math.max(courts.value.length, 1)
   // RTL: first column is the time gutter on the RIGHT, then courts going left — Canva (9).
-  return `2.75rem repeat(${courtCount}, minmax(4.25rem, 1fr))`
+  return `2.75rem repeat(${courtCount}, minmax(5.5rem, 1fr))`
 })
 
 function shiftDate(delta: number) {

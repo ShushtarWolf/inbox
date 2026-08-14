@@ -60,16 +60,19 @@ const rootClass = computed(() => {
 const backdropClass = 'fixed inset-0 z-40 bg-black/60 min-[431px]:hidden'
 
 const drawerWrapClass = computed(() => {
-  const desktop = 'min-[431px]:static min-[431px]:flex min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0'
+  const desktop = 'min-[431px]:static min-[431px]:flex min-[431px]:h-dvh min-[431px]:sticky min-[431px]:top-0 min-[431px]:shrink-0 min-[431px]:!translate-x-0'
   if (props.phoneShell) {
-    return `z-50 max-[430px]:hidden min-[431px]:relative min-[431px]:shrink-0 ${desktop}`
+    return `z-50 max-[430px]:hidden min-[431px]:relative ${desktop}`
   }
   return `fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 ${desktop}`
 })
 
 const drawerStateClass = computed(() => {
+  if (props.phoneShell) {
+    return 'min-[431px]:!translate-x-0'
+  }
   const openState = open.value ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
-  return `${openState} min-[431px]:translate-x-0 min-[431px]:ltr:translate-x-0 min-[431px]:rtl:translate-x-0`
+  return `${openState} min-[431px]:!translate-x-0`
 })
 
 const glassHeaderClass = 'glass-bar sticky top-0 z-30 px-4 py-3 min-[431px]:hidden'

@@ -20,7 +20,7 @@ function isActive(to: string) {
 
 <template>
   <aside
-    class="flex h-full w-[290px] shrink-0 flex-col border-e"
+    class="flex h-full min-h-dvh w-[290px] shrink-0 flex-col overflow-y-auto border-e"
     :class="dark
       ? 'border-white/10 bg-brand-primary-dark text-white'
       : 'border-brand-gray-200 bg-white'"
