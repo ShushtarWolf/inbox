@@ -51,11 +51,11 @@ const {
   resetBookingState,
   gateGuestAuth,
   createCourtBookings,
-  primaryCtaLabel,
   walletCoversAmount,
 } = useCourtBooking()
 
 const wantRacket = ref(false)
+const racketQty = ref(0)
 const discountInput = ref('')
 const discountApplying = ref(false)
 const discountError = ref('')
@@ -66,6 +66,15 @@ const appliedDiscount = ref<{
 } | null>(null)
 
 const racketItem = computed(() => props.rentalEquipment || null)
+
+watch(racketQty, (qty) => {
+  wantRacket.value = qty > 0
+})
+
+function bumpRacket(delta: number) {
+  const next = Math.min(1, Math.max(0, racketQty.value + delta))
+  racketQty.value = next
+}
 
 const dateHeading = computed(() => {
   if (!props.date) return ''
@@ -84,11 +93,11 @@ const costLines = computed(() => {
     })
   }
   if (wantRacket.value && racketItem.value) {
-    // Qty is always 1: BookingEquipment is unique per (booking, equipment).
+    // BookingEquipment is unique per (booking, equipment) — UI qty is 0|1 like Canva stepper.
     const name = localizedField(racketItem.value, 'nameFa', 'nameEn')
     lines.push({
-      label: t('booking.confirmLineEquipment', { name, qty: formatNumber(1) }),
-      amount: Number(racketItem.value.price || 0),
+      label: t('booking.confirmLineEquipment', { name, qty: formatNumber(racketQty.value || 1) }),
+      amount: Number(racketItem.value.price || 0) * (racketQty.value || 1),
     })
   }
   return lines
@@ -116,6 +125,7 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetBookingState()
     wantRacket.value = false
+    racketQty.value = 0
     discountInput.value = ''
     discountError.value = ''
     appliedDiscount.value = null
@@ -130,6 +140,12 @@ watch([wantRacket, () => props.slots], () => {
     ...appliedDiscount.value,
     discountAmount: next.discountAmount,
   }
+})
+
+const payCtaLabel = computed(() => {
+  if (confirming.value || paying.value) return t('common.loading')
+  if (!user.value) return t('booking.loginToContinue')
+  return t('booking.pay')
 })
 
 function close() {
@@ -235,7 +251,8 @@ async function submit(preferWallet = false) {
           <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
           <InboxWordmark class="text-base text-brand-navy" />
         </NuxtLink>
-        <button type="button" class="text-xs font-bold text-brand-gray-600" @click="close">
+        <button type="button" class="inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600" @click="close">
+          <AppIcon name="close" size="sm" />
           {{ t('common.close') }}
         </button>
       </div>
@@ -284,15 +301,31 @@ async function submit(preferWallet = false) {
           </div>
 
           <div v-if="racketItem" class="canva-confirm-book-equip">
-            <label class="flex cursor-pointer items-center justify-between gap-3 text-start">
-              <span class="flex min-w-0 items-center gap-3">
-                <input v-model="wantRacket" type="checkbox" class="canva-confirm-book-check" />
-                <span class="text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
-              </span>
-              <span class="shrink-0 font-bold tabular-nums text-brand-navy" dir="ltr">
-                {{ formatCurrency(racketItem.price) }}
-              </span>
-            </label>
+            <div class="flex items-center justify-between gap-3 text-start">
+              <span class="min-w-0 text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
+              <div class="flex shrink-0 items-center gap-2">
+                <div class="canva-qty-step" role="group" :aria-label="t('booking.wantRacket')">
+                  <button
+                    type="button"
+                    class="canva-qty-step-btn"
+                    :disabled="racketQty <= 0 || confirming || paying"
+                    aria-label="−"
+                    @click="bumpRacket(-1)"
+                  >−</button>
+                  <span class="min-w-[1.25rem] text-center tabular-nums">{{ formatNumber(racketQty) }}</span>
+                  <button
+                    type="button"
+                    class="canva-qty-step-btn"
+                    :disabled="racketQty >= 1 || confirming || paying"
+                    aria-label="+"
+                    @click="bumpRacket(1)"
+                  >+</button>
+                </div>
+                <span class="font-bold tabular-nums text-brand-navy" dir="ltr">
+                  {{ formatCurrency(racketItem.price) }}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div class="canva-confirm-book-costs text-start">
@@ -371,22 +404,21 @@ async function submit(preferWallet = false) {
           </p>
 
           <button
-            v-if="showWalletCta"
             type="button"
             class="canva-cta canva-confirm-book-cta w-full"
+            :disabled="!slots.length || confirming || paying"
+            @click="submit(false)"
+          >
+            {{ payCtaLabel }}
+          </button>
+          <button
+            v-if="showWalletCta"
+            type="button"
+            class="canva-gate-btn-secondary canva-confirm-book-cta w-full"
             :disabled="!slots.length || confirming || paying"
             @click="submit(true)"
           >
             {{ confirming || paying ? t('common.loading') : t('booking.payFromWallet') }}
-          </button>
-          <button
-            type="button"
-            class="canva-confirm-book-cta w-full"
-            :class="showWalletCta ? 'canva-gate-btn-secondary' : 'canva-cta'"
-            :disabled="!slots.length || confirming || paying"
-            @click="submit(false)"
-          >
-            {{ primaryCtaLabel }}
           </button>
         </template>
       </div>

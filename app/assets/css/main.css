@@ -587,7 +587,7 @@
     @apply min-w-0 flex-1 text-start;
   }
   .canva-court-card-title {
-    @apply truncate text-start text-base font-bold text-white sm:text-lg;
+    @apply truncate text-start text-base font-bold text-brand-primary sm:text-lg;
   }
   .canva-court-card-rating {
     @apply mt-1 inline-flex items-center justify-start gap-1 text-xs font-bold text-white;
@@ -596,7 +596,7 @@
     color: #c9a227;
   }
   .canva-court-card-meta {
-    @apply mt-1 text-start text-[11px] font-medium leading-snug text-white/90;
+    @apply mt-1 flex flex-wrap items-center justify-start gap-1 text-start text-[11px] font-medium leading-snug text-white/90;
   }
   .canva-court-card-desc {
     @apply mt-1.5 line-clamp-2 text-start text-[11px] font-medium leading-snug text-white/85;

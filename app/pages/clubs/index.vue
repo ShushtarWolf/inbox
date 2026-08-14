@@ -229,11 +229,14 @@ function prevHero() {
               <!-- RTL: text first → right; CTA second → left -->
               <div class="canva-court-card-copy">
                 <p class="canva-court-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-                <p class="canva-court-card-rating">
-                  <span class="canva-court-card-star" aria-hidden="true">★</span>
-                  {{ clubRating(club) }}
+                <p class="canva-court-card-meta">
+                  {{ clubMeta(club) }}
+                  <span class="text-white/50">|</span>
+                  <span class="canva-court-card-rating !mt-0 inline-flex">
+                    {{ clubRating(club) }}
+                    <span class="canva-court-card-star" aria-hidden="true">★</span>
+                  </span>
                 </p>
-                <p class="canva-court-card-meta">{{ clubMeta(club) }}</p>
                 <p
                   v-if="localizedField(club, 'descriptionFa', 'descriptionEn')"
                   class="canva-court-card-desc"
