@@ -68,11 +68,13 @@ Report security issues privately — see [SECURITY.md](SECURITY.md).
 
 Requires `SEED_DEMO_DATA=true` (or `npm run db:seed:demo`):
 
-| Role | Email | Password |
-|------|-------|----------|
-| Athlete | `athlete@inbox.local` | `demo1234` |
-| Coach | `coach@inbox.local` | `demo1234` |
-| Club owner | `owner@inbox.local` | `demo1234` |
+| Role | Email | Password | Phone (OTP login) |
+|------|-------|----------|-------------------|
+| Athlete | `athlete@inbox.local` | `demo1234` | `09121234567` |
+| Coach | `coach@inbox.local` | `demo1234` | `09123334455` |
+| Club owner | `owner@inbox.local` | `demo1234` | `09124445566` |
+
+Phone login without real SMS: set `AUTH_OTP_BYPASS_PHONES=09121234567` (athlete) — enter phone → continue → `/athlete`. With `SMS_PROVIDER=log`, any number still gets a `debugCode` instead of a real SMS.
 
 Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recreate demo data locally.
 

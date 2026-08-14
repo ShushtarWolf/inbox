@@ -360,6 +360,8 @@ curl -X POST https://inboxs.ir/api/admin/reset-pilot \
 
 Then set `AUTH_OTP_BYPASS_PHONES=09124777927` on Liara so that phone logs in without SMS OTP (enter phone → continue → owner dashboard).
 
+**Product test athlete (not owner/admin):** seed/demo user `09121234567` (`athlete@inbox.local`, role `ATHLETE`). Add it to `AUTH_OTP_BYPASS_PHONES` (comma-separate with the owner phone if both are needed). Enter phone → continue → `/athlete`. No SMS / OTP code required.
+
 ### Re-provision IUST pilot (after wipe)
 
 1. Open `https://inboxs.ir/admin` with `ADMIN_PROVISION_SECRET` (do not commit the secret).
