@@ -6,7 +6,7 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, courtNotifyName } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: { include: { payment: true, user: true } } },
+    include: { booking: { include: { payment: true, user: true } }, court: true },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
@@ -251,6 +251,9 @@ export default defineEventHandler(async (event) => {
         bookingId: createdBooking.id,
         date: slot.date,
         startTime: slot.startTime,
+        courtName: courtNotifyName(slot.court),
+        paymentPaid: paymentStatus === 'PAID',
+        ...clubNotifyLocation(club),
       }
       await notifyBookingConfirmed(notifyBase)
       if (paymentStatus === 'PAID') {

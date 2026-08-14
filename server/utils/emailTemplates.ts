@@ -25,11 +25,25 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
       const date = String(data.date || '')
       const time = String(data.startTime || '')
       const kind = String(data.kind || 'court')
+      const courtName = String(data.courtName || '').trim()
+      const address = String(data.address || '').trim()
+      const mapsUrl = String(data.mapsUrl || '').trim()
+      const paid = data.paymentPaid === true
+        ? 'Paid'
+        : data.paymentPaid === false
+          ? 'Unpaid — pay at club on arrival'
+          : 'pay at club on arrival'
       const label = kind === 'coach' ? 'Coach session' : kind === 'package' ? 'Package booking' : 'Court booking'
+      const extras = [
+        courtName ? `Court: ${courtName}` : '',
+        `Payment: ${paid}`,
+        address ? `Address: ${address}` : '',
+        mapsUrl,
+      ].filter(Boolean).join('\n')
       return {
         subject: `Booking confirmed — ${clubName}`,
-        text: `${label} confirmed at ${clubName}\nDate: ${date}\nTime: ${time}\n\nPayment: pay at club on arrival.`,
-        html: `<p><strong>${esc(label)} confirmed</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}</p><p>Payment: pay at club on arrival.</p>`,
+        text: `${label} confirmed at ${clubName}\nDate: ${date}\nTime: ${time}\n${extras}`,
+        html: `<p><strong>${esc(label)} confirmed</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}${courtName ? `<br>Court: ${esc(courtName)}` : ''}</p><p>Payment: ${esc(paid)}</p>${address ? `<p>${esc(address)}</p>` : ''}${mapsUrl ? `<p><a href="${esc(mapsUrl)}">${esc(mapsUrl)}</a></p>` : ''}`,
       }
     }
     case 'BOOKING_CANCELLED': {

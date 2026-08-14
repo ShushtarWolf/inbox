@@ -15,6 +15,10 @@ type BookingNotifyOpts = {
   kind: BookingNotifyKind
   bookingId?: string
   clubId?: string
+  courtName?: string | null
+  paymentPaid?: boolean
+  address?: string | null
+  mapsUrl?: string | null
 }
 
 type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID'
@@ -28,6 +32,26 @@ function kindLabelFa(kind: BookingNotifyKind) {
 /** Prefer Persian club name for FA product SMS / in-app. */
 export function clubNotifyName(club: { nameFa?: string | null; nameEn?: string | null }) {
   return (club.nameFa || club.nameEn || '').trim() || 'باشگاه'
+}
+
+export function courtNotifyName(court: { nameFa?: string | null; nameEn?: string | null }) {
+  return (court.nameFa || court.nameEn || '').trim()
+}
+
+export function clubNotifyLocation(club: {
+  addressFa?: string | null
+  addressEn?: string | null
+  lat?: number | null
+  lng?: number | null
+}) {
+  const address = (club.addressFa || club.addressEn || '').trim()
+  const lat = club.lat
+  const lng = club.lng
+  const mapsUrl =
+    typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng)
+      ? `https://maps.google.com/?q=${lat},${lng}`
+      : ''
+  return { address, mapsUrl }
 }
 
 async function safeInApp(opts: Parameters<typeof createInAppNotification>[0]) {
@@ -81,6 +105,10 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     clubName: opts.clubName,
     date: opts.date,
     startTime: opts.startTime,
+    courtName: opts.courtName || '',
+    paymentPaid: opts.paymentPaid,
+    address: opts.address || '',
+    mapsUrl: opts.mapsUrl || '',
   }
 }
 

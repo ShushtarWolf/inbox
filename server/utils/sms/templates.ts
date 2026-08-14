@@ -12,6 +12,29 @@ function whenBit(data: Record<string, unknown>) {
   return date || time || ''
 }
 
+function paidBit(data: Record<string, unknown>) {
+  if (typeof data.paymentPaid === 'boolean') {
+    return data.paymentPaid ? 'پرداخت شده' : 'پرداخت نشده'
+  }
+  const status = String(data.paymentStatus || '').toUpperCase()
+  if (status === 'PAID') return 'پرداخت شده'
+  if (status) return 'پرداخت نشده'
+  return ''
+}
+
+function bookingDetailLines(data: Record<string, unknown>) {
+  const court = String(data.courtName || '').trim()
+  const paid = paidBit(data)
+  const address = String(data.address || '').trim()
+  const maps = String(data.mapsUrl || '').trim()
+  const lines: string[] = []
+  if (court) lines.push(`زمین: ${court}`)
+  if (paid) lines.push(`وضعیت پرداخت: ${paid}`)
+  if (address) lines.push(address)
+  if (maps) lines.push(maps)
+  return lines
+}
+
 /**
  * Short Persian free-text bodies for Kavenegar sms/send (needs KAVENEGAR_SENDER when live).
  * OTP uses Verify Lookup separately — do not route these through KAVENEGAR_TEMPLATE.
@@ -20,9 +43,11 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   PASSWORD_RESET: (data) => `بازیابی رمز inbox: ${data.resetUrl || ''}`,
   BOOKING_CONFIRMED: (data) => {
     const when = whenBit(data)
-    return when
-      ? `رزرو تایید شد${clubBit(data)} — ${when}. اینباکس`
-      : `رزرو تایید شد${clubBit(data)}. اینباکس`
+    const head = when
+      ? `رزرو تایید شد${clubBit(data)} — ${when}`
+      : `رزرو تایید شد${clubBit(data)}`
+    const extra = bookingDetailLines(data)
+    return [head, ...extra, 'اینباکس'].join('\n')
   },
   BOOKING_CANCELLED: (data) => {
     const when = whenBit(data)

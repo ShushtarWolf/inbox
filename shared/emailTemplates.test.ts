@@ -14,9 +14,14 @@ describe('renderEmailTemplate', () => {
       date: '2026-07-11',
       startTime: '10:00',
       kind: 'court',
+      courtName: 'Court 1',
+      paymentPaid: false,
+      address: 'Tehran',
     })
     expect(result.subject).toContain('Padel Zone')
     expect(result.text).toContain('2026-07-11')
+    expect(result.text).toContain('Court: Court 1')
+    expect(result.text).toContain('Unpaid')
   })
 
   it('renders booking cancelled', () => {

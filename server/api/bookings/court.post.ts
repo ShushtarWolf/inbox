@@ -1,6 +1,6 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { computeBookingPrice } from '#shared/courtPricing.ts'
-import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName } from '../../utils/bookingNotify'
 import {
   loadEquipmentForBooking,
   sumEquipmentPrices,
@@ -231,6 +231,9 @@ export default defineEventHandler(async (event) => {
       bookingId: bookingIds[orderedSlots.indexOf(slot)]!,
       date: slot.date,
       startTime: slot.startTime,
+      courtName: courtNotifyName(slot.court),
+      paymentPaid: paymentStatus === 'PAID',
+      ...clubNotifyLocation(club),
     })
   }
 

@@ -20,7 +20,7 @@ describe('SMS templates', () => {
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00. اینباکس')
+    ).toBe('رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00\nاینباکس')
     expect(
       renderSmsTemplate('BOOKING_CANCELLED', {
         clubName: 'بهناز',
@@ -42,5 +42,36 @@ describe('SMS templates', () => {
         startTime: '18:00',
       }),
     ).toBe('نوبت آزاد شد «بهناز» — 1404/01/01 ساعت 18:00. سریع رزرو کنید')
+  })
+
+  it('includes court, payment status, and location on booking confirmed', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '10:00',
+        courtName: 'زمین ۱',
+        paymentPaid: false,
+        address: 'سعادت‌آباد',
+        mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+      }),
+    ).toBe(
+      [
+        'رزرو تایید شد «بهناز» — 1404/01/01 ساعت 10:00',
+        'زمین: زمین ۱',
+        'وضعیت پرداخت: پرداخت نشده',
+        'سعادت‌آباد',
+        'https://maps.google.com/?q=35.7,51.4',
+        'اینباکس',
+      ].join('\n'),
+    )
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        date: '1404/01/01',
+        startTime: '10:00',
+        paymentPaid: true,
+      }),
+    ).toContain('وضعیت پرداخت: پرداخت شده')
   })
 })

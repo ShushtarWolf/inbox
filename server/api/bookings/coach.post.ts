@@ -1,5 +1,5 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
-import { notifyBookingConfirmed, clubNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation } from '../../utils/bookingNotify'
 import { findCoachByIdOrSlug } from '../../utils/coaches'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
@@ -77,6 +77,8 @@ export default defineEventHandler(async (event) => {
     bookingId: session.id,
     date: body.date,
     startTime: body.startTime,
+    paymentPaid: paymentFields.paymentStatus === 'PAID',
+    ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })
 
   return session

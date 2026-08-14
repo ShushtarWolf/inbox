@@ -14,6 +14,7 @@ vi.mock('#shared/sms.ts', () => ({
 }))
 
 import {
+  clubNotifyLocation,
   clubNotifyName,
   notifyBookingCancelled,
   notifyBookingConfirmed,
@@ -49,6 +50,17 @@ describe('clubNotifyName', () => {
     expect(clubNotifyName({ nameFa: 'بهناز', nameEn: 'Behnaz' })).toBe('بهناز')
     expect(clubNotifyName({ nameFa: null, nameEn: 'Behnaz' })).toBe('Behnaz')
     expect(clubNotifyName({})).toBe('باشگاه')
+  })
+
+  it('builds maps url when lat/lng exist', () => {
+    expect(clubNotifyLocation({ addressFa: 'سعادت‌آباد', lat: 35.7, lng: 51.4 })).toEqual({
+      address: 'سعادت‌آباد',
+      mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+    })
+    expect(clubNotifyLocation({ addressFa: 'تهران' })).toEqual({
+      address: 'تهران',
+      mapsUrl: '',
+    })
   })
 })
 
@@ -196,5 +208,26 @@ describe('bookingNotify SMS', () => {
       expect.stringContaining('بهناز'),
     )
     logSpy.mockRestore()
+  })
+
+  it('passes court, payment, and location on confirmed SMS data', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      courtName: 'زمین ۱',
+      paymentPaid: false,
+      address: 'سعادت‌آباد',
+      mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0].data).toMatchObject({
+      courtName: 'زمین ۱',
+      paymentPaid: false,
+      address: 'سعادت‌آباد',
+      mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
+    })
   })
 })
