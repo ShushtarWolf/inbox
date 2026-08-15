@@ -15,6 +15,7 @@ const ENV_KEYS = [
   'KAVENEGAR_TEMPLATE',
   'KAVENEGAR_SENDER',
   'AUTH_OTP_BYPASS_PHONES',
+  'ALLOW_OTP_BYPASS',
   'NODE_ENV',
 ] as const
 
@@ -161,6 +162,17 @@ describe('getSmsStatusSnapshot', () => {
     expect(JSON.stringify(snap)).not.toContain('0912')
     expect(snap.warningCodes).toContain('otp_bypass_configured')
     expect(snap.warnings.some((w) => w.includes('AUTH_OTP_BYPASS_PHONES'))).toBe(true)
+  })
+
+  it('warns when OTP bypass is set in production', () => {
+    clearSmsEnv()
+    process.env.NODE_ENV = 'production'
+    process.env.AUTH_OTP_BYPASS_PHONES = '09121234567'
+    const snap = getSmsStatusSnapshot()
+    expect(snap.hasOtpBypassConfigured).toBe(true)
+    expect(snap.warningCodes).toContain('otp_bypass_on_production')
+    expect(snap.nextActionCodes).toContain('unset_otp_bypass')
+    expect(JSON.stringify(snap)).not.toContain('0912')
   })
 })
 

@@ -474,7 +474,8 @@
         "live_without_template_or_sender": "نه قالب و نه فرستنده تنظیم شده — OTP اغلب با فرستنده نامعتبر شکست می‌خورد؛ قالب Verify یا فرستنده تأییدشده پنل را بگذارید.",
         "live_sender_only_no_template": "قالب تنظیم نشده — OTP از sms/send آزاد استفاده می‌کند. برای OTP قالب Verify Lookup پنل را ترجیح دهید.",
         "phase_single": "فاز SINGLE — فقط شماره(های) تاییدشده/آزمایشی در پنل کاوه‌نگار؛ ادعای ارسال به هر موبایل ایران نکنید.",
-        "otp_bypass_configured": "AUTH_OTP_BYPASS_PHONES فعال است — فقط bypass/dev؛ به‌عنوان ارسال MULTI عادی ادعا نکنید."
+        "otp_bypass_configured": "AUTH_OTP_BYPASS_PHONES فعال است — فقط bypass/dev؛ به‌عنوان ارسال MULTI عادی ادعا نکنید.",
+        "otp_bypass_on_production": "AUTH_OTP_BYPASS_PHONES روی production تنظیم است — OTP واقعی رد می‌شود مگر ALLOW_OTP_BYPASS=true؛ روی لیارا UNSET کنید."
       },
       "nextActionCodes": {
         "set_sms_enabled": "پس از پذیرش ارسال در پنل کاوه‌نگار، SMS_ENABLED=true بگذارید.",
@@ -484,7 +485,8 @@
         "set_provider_live": "برای درگاه تولید، SMS_PROVIDER=live (یا kavenegar) بگذارید.",
         "enable_when_panel_accepts": "وقتی کاوه‌نگار ارسال چندشماره را پذیرفت، SMS_ENABLED=true کنید.",
         "add_api_key": "KAVENEGAR_API_KEY را اضافه کنید.",
-        "add_template_or_sender": "پس از باز شدن پنل، KAVENEGAR_TEMPLATE یا KAVENEGAR_SENDER را اضافه کنید."
+        "add_template_or_sender": "پس از باز شدن پنل، KAVENEGAR_TEMPLATE یا KAVENEGAR_SENDER را اضافه کنید.",
+        "unset_otp_bypass": "AUTH_OTP_BYPASS_PHONES را روی production بردارید (ALLOW_OTP_BYPASS نگذارید)."
       }
     },
     "provisionTitle": "ایجاد مدیر باشگاه",

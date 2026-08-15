@@ -26,7 +26,7 @@ type BookingNotifyOpts = {
   receiptUrl?: string | null
 }
 
-type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID'
+type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID' | 'WAITLIST_SLOT_AVAILABLE'
 
 function kindLabelFa(kind: BookingNotifyKind) {
   if (kind === 'coach') return 'جلسه مربی'
@@ -90,7 +90,8 @@ async function safeEmail(
  * the log SMS provider (SmsLog row when clubId is set) — never claims live delivery.
  * Live mode: same path → Kavenegar when env is unlocked.
  */
-async function safeSms(
+/** Soft-fail SMS — same Kavenegar/log path for booking + waitlist. */
+export async function notifySmsSoft(
   phone: string | null | undefined,
   template: BookingSmsTemplate,
   data: Record<string, unknown>,
@@ -106,6 +107,15 @@ async function safeSms(
   } catch (err) {
     console.error('[bookingNotify:sms]', template, err)
   }
+}
+
+async function safeSms(
+  phone: string | null | undefined,
+  template: BookingSmsTemplate,
+  data: Record<string, unknown>,
+  clubId?: string,
+) {
+  return notifySmsSoft(phone, template, data, clubId)
 }
 
 function bookingNotifyData(opts: BookingNotifyOpts) {

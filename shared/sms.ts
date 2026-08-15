@@ -87,6 +87,8 @@ const SMS_WARNING_EN: Record<string, string> = {
     'SMS phase SINGLE — UI must not claim delivery to any Iranian number; trial/approved-number or log/bypass only',
   otp_bypass_configured:
     'AUTH_OTP_BYPASS_PHONES is configured — listed numbers skip SMS OTP (dev/bypass only; never claim as normal MULTI delivery)',
+  otp_bypass_on_production:
+    'AUTH_OTP_BYPASS_PHONES is set while NODE_ENV=production — real OTP is skipped unless ALLOW_OTP_BYPASS=true; UNSET AUTH_OTP_BYPASS_PHONES on Liara',
 }
 
 const SMS_NEXT_ACTION_EN: Record<string, string> = {
@@ -98,6 +100,7 @@ const SMS_NEXT_ACTION_EN: Record<string, string> = {
   enable_when_panel_accepts: 'Enable SMS_ENABLED=true when Kavenegar accepts multi-number send',
   add_api_key: 'Add KAVENEGAR_API_KEY',
   add_template_or_sender: 'Add KAVENEGAR_TEMPLATE or KAVENEGAR_SENDER after panel opens',
+  unset_otp_bypass: 'UNSET AUTH_OTP_BYPASS_PHONES on production (do not set ALLOW_OTP_BYPASS)',
 }
 
 const SMS_NOTE_EN: Record<SmsStatusSnapshot['noteCode'], string> = {
@@ -202,6 +205,10 @@ export function getSmsStatusSnapshot(): SmsStatusSnapshot {
   }
   if (hasOtpBypassConfigured) {
     warningCodes.push('otp_bypass_configured')
+    if (process.env.NODE_ENV === 'production') {
+      warningCodes.push('otp_bypass_on_production')
+      nextActionCodes.push('unset_otp_bypass')
+    }
   }
 
   const uniqueWarningCodes = [...new Set(warningCodes)]

@@ -1,9 +1,17 @@
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 
 export function useCheckout() {
-  const { public: { paymentsMode } } = useRuntimeConfig()
-  const onlineEnabled = computed(() => paymentsMode !== 'pay_at_club')
-  const isTestPayments = computed(() => paymentsMode === 'test')
+  const { public: { paymentsMode: bakedMode } } = useRuntimeConfig()
+  const { data: paymentsModePayload } = useFetch<{ mode?: string }>('/api/payments/mode', {
+    key: 'payments-mode',
+  })
+  const paymentsMode = computed(() => {
+    const live = paymentsModePayload.value?.mode
+    if (live === 'pay_at_club' || live === 'test' || live === 'live') return live
+    return bakedMode || 'pay_at_club'
+  })
+  const onlineEnabled = computed(() => paymentsMode.value !== 'pay_at_club')
+  const isTestPayments = computed(() => paymentsMode.value === 'test')
 
   async function startCheckout(body: {
     bookingId?: string

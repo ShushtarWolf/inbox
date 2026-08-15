@@ -91,9 +91,10 @@ describe('waitlistNotify', () => {
     expect(smsCalls[0][0]).toMatchObject({
       template: 'WAITLIST_SLOT_AVAILABLE',
       to: '09121111111',
+      clubId: 'club-1',
       data: expect.objectContaining({ clubName: 'بهناز', startTime: '10:00' }),
     })
-    expect(smsCalls[1][0]).toMatchObject({ to: '09122222222' })
+    expect(smsCalls[1][0]).toMatchObject({ to: '09122222222', clubId: 'club-1' })
     expect(update).toHaveBeenCalledTimes(2)
   })
 

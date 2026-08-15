@@ -26,6 +26,11 @@ describe('isOnlinePaymentsEnabled', () => {
     process.env.PAYMENTS_MODE = 'test'
     expect(isOnlinePaymentsEnabled()).toBe(true)
   })
+
+  it('is true for live SEP mode (wallet top-up uses same checkout)', () => {
+    process.env.PAYMENTS_MODE = 'live'
+    expect(isOnlinePaymentsEnabled()).toBe(true)
+  })
 })
 
 describe('initialPlatformPaymentFields', () => {

@@ -1,4 +1,5 @@
 import { resolveSmsProvider } from '#shared/sms.ts'
+import { notifySmsSoft } from './bookingNotify'
 import { createInAppNotification, sendNotification } from './notify'
 import { prisma } from './prisma'
 
@@ -115,17 +116,12 @@ async function notifyWaitlistForFreedSlotInner(opts: {
 
       if (phone) {
         if (resolveSmsProvider() !== 'live') {
+          // Log/dry-run: skip gateway (booking confirm/paid/cancel still audit via notifySmsSoft).
           console.log('[waitlistNotify:sms:skip]', 'WAITLIST_SLOT_AVAILABLE', phone)
           notified = true
         } else {
           try {
-            await sendNotification({
-              channel: 'sms',
-              to: phone,
-              template: 'WAITLIST_SLOT_AVAILABLE',
-              data,
-              clubId: opts.clubId,
-            })
+            await notifySmsSoft(phone, 'WAITLIST_SLOT_AVAILABLE', data, opts.clubId)
             notified = true
           } catch (err) {
             console.error('[waitlistNotify:sms]', err)
