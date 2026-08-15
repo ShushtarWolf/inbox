@@ -59,13 +59,20 @@ export async function createAndSendPhoneOtp(opts: {
   })
 
   const body = renderOtpSms(code)
+  const smsMode = resolveSmsProvider()
+  // Production live MVP: never expose OTP codes in the API response.
+  // SMS_OTP_DEBUG_FALLBACK is ignored when live (dev/log only).
+  const allowDebugFallback =
+    smsMode === 'log'
+    || process.env.NODE_ENV !== 'production'
+    || (smsMode !== 'live' && process.env.SMS_OTP_DEBUG_FALLBACK === 'true')
   let debugFallback = false
   try {
     // purpose=otp enables Kavenegar Verify Lookup when KAVENEGAR_TEMPLATE is set
     await sendSms({ to: phone, body, purpose: 'otp' })
   } catch (err) {
     console.error('[otp] SMS send failed', err instanceof Error ? err.message : 'unknown')
-    if (process.env.NODE_ENV !== 'production' || resolveSmsProvider() === 'log' || process.env.SMS_OTP_DEBUG_FALLBACK === 'true') {
+    if (allowDebugFallback) {
       debugFallback = true
     } else {
       throw createError({
@@ -75,7 +82,6 @@ export async function createAndSendPhoneOtp(opts: {
     }
   }
 
-  const smsMode = resolveSmsProvider()
   return {
     phone,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
