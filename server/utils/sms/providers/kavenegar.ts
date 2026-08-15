@@ -26,6 +26,10 @@ function mapKavenegarFailure(message: string | undefined, httpFallback: string) 
   if (/ارسال کننده نامعتبر|sender/i.test(raw)) {
     return 'Kavenegar SMS failed: invalid sender — set a panel-approved KAVENEGAR_SENDER, or use KAVENEGAR_TEMPLATE for OTP Verify Lookup'
   }
+  // Template still in technical-test mode: only the Kavenegar account owner number works.
+  if (/صاحب حساب|فقط امکان ارسال پیام تست|501/i.test(raw)) {
+    return 'Kavenegar SMS failed: template restricted to account-owner phone — set inbox-verify usage to operational and wait for approval'
+  }
   return `Kavenegar SMS failed: ${raw}`
 }
 
