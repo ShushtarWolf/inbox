@@ -236,7 +236,7 @@ async function submit(preferWallet = false) {
     :open="open"
     sheet
     patterned
-    max-width-class="canva-phone-shell max-w-sm"
+    max-width-class="max-w-sm min-[431px]:max-w-lg"
     @close="close"
   >
     <div class="canva-confirm-book">
