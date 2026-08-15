@@ -43,7 +43,8 @@ export function clubRankingScore(input: {
   distanceKm?: number | null
 }) {
   const featureBoost = input.featured ? 3 : 0
-  const ratingBoost = input.rating
+  // Do not boost on schema-default ratings when the club has no reviews.
+  const ratingBoost = input.reviewCount > 0 ? input.rating : 0
   const reviewBoost = Math.min(input.reviewCount, 25) / 10
   const affordabilityBoost = input.priceFrom <= 550000 ? 1.5 : input.priceFrom <= 700000 ? 0.75 : 0
   const nearbyBoost = typeof input.distanceKm === 'number'

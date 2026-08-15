@@ -66,6 +66,12 @@ describe('clubRankingScore', () => {
     const boosted = clubRankingScore({ featured: true, rating: 4.8, reviewCount: 20, priceFrom: 500000, distanceKm: 2 })
     expect(boosted).toBeGreaterThan(base)
   })
+
+  it('ignores schema-default rating when reviewCount is 0', () => {
+    const withFake = clubRankingScore({ featured: false, rating: 4.5, reviewCount: 0, priceFrom: 800000 })
+    const withZero = clubRankingScore({ featured: false, rating: 0, reviewCount: 0, priceFrom: 800000 })
+    expect(withFake).toBe(withZero)
+  })
 })
 
 describe('coachRankingScore', () => {

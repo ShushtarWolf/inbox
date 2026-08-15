@@ -80,17 +80,12 @@ const activeGallery = computed(() => gallerySlides.value[gallerySlide.value] || 
 
 const ratingDisplay = computed(() => {
   if (!club.value) return '—'
-  // Empty reviewSummary.average is 0 — do not mask club.rating (Canva shows ~۴.۳).
+  // Only show ratings backed by reviews — never the schema default (4.5) as a demo score.
   const summary = club.value.reviewSummary
-  const fromReviews =
-    summary && summary.count > 0 && summary.average != null && Number(summary.average) > 0
-      ? Number(summary.average)
-      : null
-  const fallback = club.value.rating != null && Number(club.value.rating) > 0
-    ? Number(club.value.rating)
-    : null
-  const value = fromReviews ?? fallback
-  return value != null ? value.toFixed(1) : '—'
+  if (summary && summary.count > 0 && summary.average != null && Number(summary.average) > 0) {
+    return Number(summary.average).toFixed(1)
+  }
+  return '—'
 })
 
 const locationLine = computed(() => {

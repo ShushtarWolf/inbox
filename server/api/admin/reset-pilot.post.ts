@@ -101,6 +101,8 @@ export default defineEventHandler(async (event) => {
         phone,
         image: PILOT_COURT_1_COVER,
         featured: true,
+        // Schema default is 4.5 — do not ship a fake demo rating with zero reviews.
+        rating: 0,
       },
     })
 

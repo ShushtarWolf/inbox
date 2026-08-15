@@ -40,6 +40,8 @@ export default defineEventHandler(async (event) => {
       typeof lat === 'number' && typeof lng === 'number' && club.lat && club.lng
         ? Number(haversineKm(lat, lng, club.lat, club.lng).toFixed(1))
         : null
+    // Hide schema-default demo ratings (4.5) until real reviews exist.
+    const rating = reviewCount > 0 ? club.rating : 0
     return {
       id: club.id,
       slug: club.slug,
@@ -49,7 +51,7 @@ export default defineEventHandler(async (event) => {
       district: club.district,
       lat: club.lat,
       lng: club.lng,
-      rating: club.rating,
+      rating,
       reviewCount,
       verifiedReviewCount: 0,
       priceFrom: club.priceFrom,
@@ -64,7 +66,7 @@ export default defineEventHandler(async (event) => {
       sports: [...new Set(club.courts.map((court) => court.sport.slug))],
       rankingScore: clubRankingScore({
         featured: club.featured,
-        rating: club.rating,
+        rating,
         reviewCount,
         priceFrom: club.priceFrom,
         distanceKm,

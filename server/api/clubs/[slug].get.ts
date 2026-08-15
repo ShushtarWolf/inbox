@@ -49,8 +49,11 @@ export default defineEventHandler(async (event) => {
     take: 8,
   })
 
+  const summary = reviewSummary(club.reviews)
   return {
     ...club,
+    // Schema default is 4.5 — only expose a score when reviews exist.
+    rating: summary.count > 0 ? club.rating : 0,
     courts: club.courts.map((court) => ({
       ...court,
       facilities: parseFacilitiesJson(court.facilitiesJson),
@@ -64,7 +67,7 @@ export default defineEventHandler(async (event) => {
       captionFa: item.captionFa,
       captionEn: item.captionEn,
     })),
-    reviewSummary: reviewSummary(club.reviews),
+    reviewSummary: summary,
     testimonials: club.reviews.slice(0, 3),
     lat,
     lng,
