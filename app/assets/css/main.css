@@ -1879,6 +1879,32 @@
   .canva-cal-grid-check-on {
     @apply border-[#3B82F6] bg-[#3B82F6];
   }
+  .canva-cal-grid-check-muted {
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  .canva-owner-avatar {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
+    background: #c41e1e;
+    border-radius: 9999px;
+  }
+  .canva-owner-avatar-lg {
+    @apply h-11 w-11 text-sm;
+  }
+  .canva-account-drawer-overlay {
+    @apply fixed inset-0 z-[60] bg-black/45;
+  }
+  .canva-account-drawer {
+    @apply absolute top-10 flex w-[min(16.5rem,78vw)] flex-col gap-3 border border-brand-gray-200 bg-white p-3 shadow-tail-md;
+    inset-inline-end: 0.75rem;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-account-drawer-head {
+    @apply flex items-center gap-3 border-b border-brand-gray-100 pb-3;
+  }
+  .canva-account-drawer-clubs {
+    @apply block text-start;
+  }
   .canva-cal-legend-note {
     @apply inline-flex items-center gap-1 text-[11px] font-bold text-brand-gray-600;
   }
@@ -2473,7 +2499,7 @@
     min-height: 14rem;
   }
   .owner-cal-page .canva-photo-hero-top {
-    display: none;
+    display: flex;
   }
   .canva-cal-sheet {
     padding-inline: 0;

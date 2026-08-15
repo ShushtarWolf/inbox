@@ -244,20 +244,7 @@ function closeTx() {
         style="filter: grayscale(0.55) brightness(0.72);"
       />
       <div class="canva-photo-hero-wash" />
-      <div class="canva-photo-hero-top">
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert" />
-          <InboxWordmark text="INBOX" class="text-base text-white" />
-        </NuxtLink>
-        <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="localePath('/owner/notifications')" :aria-label="t('notifications.title')">
-            <AppIcon name="notifications" size="sm" />
-          </NuxtLink>
-          <NuxtLink :to="localePath('/owner/settings')" :aria-label="t('nav.profile')">
-            <AppIcon name="person" size="sm" />
-          </NuxtLink>
-        </div>
-      </div>
+      <CanvaOwnerHeroChrome />
       <div class="canva-promo-badge canva-promo-badge-hero pointer-events-none" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>

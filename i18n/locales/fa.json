@@ -1264,6 +1264,14 @@
     "overviewPerCourt": "رزرو هر زمین امروز",
     "overviewCourtSlots": "{used} از {total} سانس",
     "more": "بیشتر",
+    "account": {
+      "title": "حساب باشگاه",
+      "myProfile": "پروفایل من",
+      "myClubs": "باشگاه‌های من",
+      "transactions": "مدیریت تراکنش‌ها",
+      "roleManager": "مدیر باشگاه",
+      "roleStaff": "کارمند باشگاه"
+    },
     "finance": "مالی",
     "equipments": "تجهیزات",
     "packages": "پکیج‌ها",

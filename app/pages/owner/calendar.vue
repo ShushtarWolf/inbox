@@ -239,8 +239,6 @@ const deskDiscount = ref<{ code: string; percent: number; discountAmount: number
 /** Canva owner hero uses the people/promo frame (same asset as athlete home), not club court crop. */
 const clubHeroImage = '/hero/fitness-venue.jpg'
 const localePath = useLocalePath()
-const settingsPath = computed(() => localePath('/owner/settings'))
-const notificationsPath = computed(() => localePath('/owner/notifications'))
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let longPressFired = false
@@ -1357,20 +1355,7 @@ function slotBarColor(status: string) {
         style="filter: grayscale(0.55) brightness(0.72);"
       />
       <div class="canva-photo-hero-wash" />
-      <div class="canva-photo-hero-top">
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert" />
-          <InboxWordmark text="INBOX" class="text-base text-white" />
-        </NuxtLink>
-        <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="notificationsPath" :aria-label="t('notifications.title')">
-            <AppIcon name="notifications" size="sm" />
-          </NuxtLink>
-          <NuxtLink :to="settingsPath" :aria-label="t('nav.profile')">
-            <AppIcon name="person" size="sm" />
-          </NuxtLink>
-        </div>
-      </div>
+      <CanvaOwnerHeroChrome />
       <div
         class="canva-promo-badge canva-promo-badge-hero"
         :aria-label="t('owner.calendarPromo')"
@@ -1540,9 +1525,12 @@ function slotBarColor(status: string) {
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
-                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
+                    v-if="cellSlot(court.id, hour)"
                     class="canva-cal-grid-check"
-                    :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
+                    :class="[
+                      cellSlot(court.id, hour)!.displayStatus === 'FREE' ? '' : 'canva-cal-grid-check-muted',
+                      cellSlot(court.id, hour)!.displayStatus === 'FREE' && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : '',
+                    ]"
                     role="presentation"
                     @click="onCellCheckClick($event, cellSlot(court.id, hour))"
                   />
