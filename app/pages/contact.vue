@@ -5,6 +5,8 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const { smsPhase, smsLive } = useSmsCapability()
+const { fetchErrorMessage } = useFetchError()
+const { user } = useAuth()
 
 const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
 const address = computed(() => String(config.public.contactAddress || '').trim())
@@ -21,13 +23,12 @@ const paymentsMode = computed(() => String(config.public.paymentsMode || 'pay_at
 const ipgLive = computed(() => paymentsMode.value === 'live')
 const ipgTest = computed(() => paymentsMode.value === 'test')
 
-/** Minimal marketing message → mailto stub (no ticket system). */
 const messageName = ref('')
 const messageEmail = ref('')
 const messageBody = ref('')
 const messageError = ref('')
-
-const mailTarget = computed(() => email.value || 'support@inboxs.ir')
+const messageSuccess = ref('')
+const sending = ref(false)
 
 function ipgReadinessCopy() {
   if (ipgLive.value) return t('contact.ipgReadyLive')
@@ -51,21 +52,32 @@ const landlineTel = computed(() => {
   return digits
 })
 
-function submitMessage() {
+async function submitMessage() {
   messageError.value = ''
+  messageSuccess.value = ''
   const body = messageBody.value.trim()
   if (!body) {
     messageError.value = t('contact.messageNeedBody')
     return
   }
-  const lines = [
-    body,
-    '',
-    messageName.value.trim() ? `نام: ${messageName.value.trim()}` : '',
-    messageEmail.value.trim() ? `ایمیل: ${messageEmail.value.trim()}` : '',
-  ].filter(Boolean)
-  const href = `mailto:${mailTarget.value}?subject=${encodeURIComponent('Inbox contact')}&body=${encodeURIComponent(lines.join('\n'))}`
-  if (import.meta.client) window.location.href = href
+  sending.value = true
+  try {
+    await $fetch('/api/support/tickets', {
+      method: 'POST',
+      body: {
+        body,
+        name: messageName.value.trim() || user.value?.name || undefined,
+        email: messageEmail.value.trim() || user.value?.email || undefined,
+        pageUrl: import.meta.client ? window.location.href : '/contact',
+      },
+    })
+    messageBody.value = ''
+    messageSuccess.value = t('contact.messageTicketOk')
+  } catch (err: unknown) {
+    messageError.value = fetchErrorMessage(err, t('contact.messageTicketFail'), t)
+  } finally {
+    sending.value = false
+  }
 }
 
 useHead({
@@ -192,8 +204,9 @@ useHead({
           />
         </label>
         <p v-if="messageError" class="text-start text-xs font-bold text-brand-primary">{{ messageError }}</p>
-        <button type="submit" class="canva-cta w-full sm:w-auto">
-          {{ t('contact.messageSubmit') }}
+        <p v-else-if="messageSuccess" class="text-start text-xs font-bold text-emerald-800">{{ messageSuccess }}</p>
+        <button type="submit" class="canva-cta w-full sm:w-auto" :disabled="sending">
+          {{ sending ? t('common.loading') : t('contact.messageSubmit') }}
         </button>
       </form>
     </section>

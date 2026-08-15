@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
     paymentsPaid,
     paymentsPending,
     applicationsPending,
+    ticketsOpen,
+    withdrawalsPending,
   ] = await Promise.all([
     prisma.club.count(),
     prisma.club.count({ where: { status: 'ACTIVE' } }),
@@ -51,6 +53,8 @@ export default defineEventHandler(async (event) => {
       where: { status: { in: ['PENDING_AT_CLUB', 'PENDING_ONLINE', 'PAY_AT_CLUB'] } },
     }),
     prisma.clubApplication.count({ where: { status: 'PENDING' } }),
+    prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+    prisma.withdrawRequest.count({ where: { status: 'PENDING' } }),
   ])
 
   const email = getEmailStatus()
@@ -85,6 +89,8 @@ export default defineEventHandler(async (event) => {
       pendingCount: paymentsPending,
     },
     applications: { pending: applicationsPending },
+    tickets: { open: ticketsOpen },
+    withdrawals: { pending: withdrawalsPending },
     /** Safe email ops — never includes SMTP_PASS. */
     email: {
       emailConfigured: email.emailConfigured,

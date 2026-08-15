@@ -15,10 +15,11 @@ const verifying = ref(false)
 
 const nav = computed(() => [
   { to: localePath('/admin'), label: t('admin.nav.overview'), icon: 'dashboard' },
+  { to: localePath('/admin/tickets'), label: t('admin.nav.tickets'), icon: 'support_agent' },
+  { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals'), icon: 'account_balance' },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs'), icon: 'stadium' },
   { to: localePath('/admin/users'), label: t('admin.nav.users'), icon: 'group' },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings'), icon: 'event' },
-  { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals'), icon: 'account_balance' },
   { to: localePath('/admin/applications'), label: t('admin.nav.applications'), icon: 'assignment' },
   { to: localePath('/admin/sms'), label: t('admin.nav.sms'), icon: 'sms' },
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry'), icon: 'monitoring' },

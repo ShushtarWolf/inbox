@@ -29,9 +29,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Club not found' })
   }
 
-  const bookingCount = await prisma.booking.count({
-    where: { slot: { court: { clubId: club.id } } },
-  })
+  const [bookingCount, wallet, pendingWithdraws, walletTx] = await Promise.all([
+    prisma.booking.count({
+      where: { slot: { court: { clubId: club.id } } },
+    }),
+    prisma.clubWallet.findUnique({ where: { clubId: club.id } }),
+    prisma.withdrawRequest.findMany({
+      where: { clubId: club.id, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+    prisma.clubWalletTransaction.findMany({
+      where: { wallet: { clubId: club.id } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ])
 
   return {
     id: club.id,
@@ -53,5 +66,26 @@ export default defineEventHandler(async (event) => {
     courtCount: club._count.courts,
     mediaCount: club._count.media,
     bookingCount,
+    sheba: club.sheba,
+    wallet: {
+      balance: wallet?.balance ?? 0,
+      pendingWithdrawCount: pendingWithdraws.length,
+      pendingWithdrawAmount: pendingWithdraws.reduce((sum, row) => sum + row.amount, 0),
+      pendingWithdraws: pendingWithdraws.map((row) => ({
+        id: row.id,
+        amount: row.amount,
+        shebaSnapshot: row.shebaSnapshot,
+        createdAt: row.createdAt,
+      })),
+      transactions: walletTx.map((row) => ({
+        id: row.id,
+        amount: row.amount,
+        type: row.type,
+        note: row.note,
+        createdAt: row.createdAt,
+        bookingId: row.bookingId,
+        withdrawRequestId: row.withdrawRequestId,
+      })),
+    },
   }
 })

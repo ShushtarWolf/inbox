@@ -35,6 +35,8 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Invalid OTP': 'auth.invalidOtp',
     'Invalid phone': 'auth.invalidPhone',
     'Invalid or expired token': 'auth.resetFailed',
+    'Invalid ticket body': 'contact.messageNeedBody',
+    'Invalid email': 'contact.messageEmailInvalid',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

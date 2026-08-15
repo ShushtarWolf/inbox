@@ -74,6 +74,8 @@ const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profi
 const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 const adminPaths = [
   '/admin',
+  '/admin/tickets',
+  '/admin/withdrawals',
   '/admin/clubs',
   '/admin/users',
   '/admin/bookings',

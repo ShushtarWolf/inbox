@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const { localizedField } = useLocalizedField()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatCurrency, formatNumber } = useFormatters()
+const { formatCurrency, formatNumber, formatDate } = useFormatters()
 
 type ClubDetail = {
   id: string
@@ -28,6 +28,14 @@ type ClubDetail = {
   courtCount: number
   mediaCount: number
   bookingCount: number
+  sheba: string | null
+  wallet: {
+    balance: number
+    pendingWithdrawCount: number
+    pendingWithdrawAmount: number
+    pendingWithdraws: { id: string; amount: number; shebaSnapshot: string; createdAt: string }[]
+    transactions: { id: string; amount: number; type: string; note: string | null; createdAt: string }[]
+  }
 }
 
 const club = ref<ClubDetail | null>(null)
@@ -81,6 +89,12 @@ watch(secret, (value) => {
 watch(() => route.params.id, () => {
   if (secret.value) load()
 })
+
+function walletTxLabel(type: string) {
+  const key = `admin.walletTx.${type}`
+  const translated = t(key)
+  return translated === key ? type : translated
+}
 </script>
 
 <template>
@@ -173,6 +187,41 @@ watch(() => route.params.id, () => {
               <li class="flex justify-between gap-2"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></li>
             </ul>
           </div>
+        </div>
+
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-3">{{ t('admin.clubWalletTitle') }}</h2>
+          <ul class="space-y-2 text-sm">
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.clubWalletBalance') }}</span>
+              <strong dir="ltr">{{ formatCurrency(club.wallet.balance) }}</strong>
+            </li>
+            <li class="flex justify-between gap-2">
+              <span>{{ t('admin.withdrawSheba') }}</span>
+              <span class="font-mono text-xs" dir="ltr">{{ club.sheba || '—' }}</span>
+            </li>
+            <li class="flex justify-between gap-2">
+              <NuxtLink :to="localePath('/admin/withdrawals')" class="underline">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
+              <strong dir="ltr">{{ formatNumber(club.wallet.pendingWithdrawCount) }} · {{ formatCurrency(club.wallet.pendingWithdrawAmount) }}</strong>
+            </li>
+          </ul>
+          <ul v-if="club.wallet.pendingWithdraws.length" class="mt-3 divide-y divide-brand-gray-50 text-xs">
+            <li v-for="row in club.wallet.pendingWithdraws" :key="row.id" class="flex justify-between gap-2 py-2">
+              <span dir="ltr">{{ formatDate(row.createdAt) }}</span>
+              <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(row.amount) }}</span>
+            </li>
+          </ul>
+          <h3 class="mt-4 text-xs font-bold text-brand-gray-600">{{ t('admin.clubWalletTx') }}</h3>
+          <ul v-if="club.wallet.transactions.length" class="mt-1 divide-y divide-brand-gray-50 text-xs">
+            <li v-for="tx in club.wallet.transactions" :key="tx.id" class="flex justify-between gap-2 py-2">
+              <span>
+                {{ walletTxLabel(tx.type) }}
+                <span v-if="tx.note" class="text-brand-gray-500"> · {{ tx.note }}</span>
+              </span>
+              <span class="tabular-nums" dir="ltr">{{ formatCurrency(tx.amount) }}</span>
+            </li>
+          </ul>
+          <p v-else class="mt-1 text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
 
         <div class="tail-card">

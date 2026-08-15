@@ -12,6 +12,8 @@ type Overview = {
   bookings: { total: number; confirmed: number; cancelled: number; pending: number; today: number }
   payments: { count: number; totalAmount: number; paidCount: number; paidAmount: number; pendingCount: number }
   applications: { pending: number }
+  tickets?: { open: number }
+  withdrawals?: { pending: number }
   email?: {
     emailConfigured: boolean
     emailMode: 'log' | 'live'
@@ -56,10 +58,11 @@ const pending = ref(false)
 const loadError = ref('')
 
 const consoleLinks = computed(() => [
+  { to: localePath('/admin/tickets'), label: t('admin.nav.tickets') },
+  { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals') },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs') },
   { to: localePath('/admin/users'), label: t('admin.nav.users') },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings') },
-  { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals') },
   { to: localePath('/admin/applications'), label: t('admin.nav.applications') },
   { to: localePath('/admin/sms'), label: t('admin.nav.sms') },
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry') },
@@ -233,6 +236,14 @@ watch(secret, (value) => {
             <h2 class="tail-section-title mb-3">{{ t('admin.attention') }}</h2>
             <ul class="space-y-2 text-sm">
               <li class="flex justify-between gap-2">
+                <NuxtLink :to="localePath('/admin/tickets')" class="underline">{{ t('admin.metrics.openTickets') }}</NuxtLink>
+                <strong dir="ltr">{{ formatNumber(data.tickets?.open || 0) }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
+                <NuxtLink :to="localePath('/admin/withdrawals')" class="underline">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
+                <strong dir="ltr">{{ formatNumber(data.withdrawals?.pending || 0) }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
                 <NuxtLink :to="localePath('/admin/applications')" class="underline">{{ t('admin.metrics.pendingApplications') }}</NuxtLink>
                 <strong dir="ltr">{{ formatNumber(data.applications.pending) }}</strong>
               </li>
@@ -243,9 +254,6 @@ watch(secret, (value) => {
               <li class="flex justify-between gap-2">
                 <span>{{ t('admin.metrics.pendingPayments') }}</span>
                 <strong dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</strong>
-              </li>
-              <li>
-                <NuxtLink :to="localePath('/admin/sms')" class="underline">{{ t('admin.nav.sms') }}</NuxtLink>
               </li>
             </ul>
             <NuxtLink :to="localePath('/admin/provision')" class="mt-4 inline-block text-sm font-bold text-brand-navy underline">

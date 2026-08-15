@@ -63,6 +63,8 @@ export async function wipeCatalog() {
       await tx.settlementLedgerEntry.deleteMany()
       await tx.withdrawRequest.deleteMany()
       await tx.clubWallet.deleteMany()
+      await tx.supportTicketMessage.deleteMany()
+      await tx.supportTicket.deleteMany()
 
       await tx.club.updateMany({ data: { ownerId: null } })
       await tx.coach.updateMany({ data: { userId: null } })

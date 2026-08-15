@@ -123,6 +123,18 @@ enum WithdrawRequestStatus {
   REJECTED
 }
 
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum SupportTicketSource {
+  CONTACT
+  ATHLETE
+  OWNER
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -155,6 +167,7 @@ model User {
   wallet          Wallet?
   payments        Payment[]
   bugReports      BugReport[]
+  supportTickets  SupportTicket[]
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -259,6 +272,44 @@ model BugReport {
   @@index([status, createdAt])
 }
 
+model SupportTicket {
+  id        String               @id @default(cuid())
+  status    SupportTicketStatus  @default(OPEN)
+  source    SupportTicketSource  @default(CONTACT)
+  body      String
+  name      String?
+  email     String?
+  phone     String?
+  pageUrl   String?
+  bookingId String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  resolvedAt DateTime?
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clubId String?
+  club   Club?  @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  messages SupportTicketMessage[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([clubId, createdAt])
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  body       String
+  fromAdmin  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
 model ClubApplication {
   id           String            @id @default(cuid())
   clubName     String
@@ -334,6 +385,7 @@ model Club {
   wallet            ClubWallet?
   withdrawRequests  WithdrawRequest[]
   settlementEntries SettlementLedgerEntry[]
+  supportTickets    SupportTicket[]
 }
 
 model Court {
