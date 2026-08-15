@@ -125,6 +125,11 @@ function nextHero() {
 function prevHero() {
   heroSlide.value = (heroSlide.value - 1 + heroSlides.value.length) % heroSlides.value.length
 }
+
+const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSwipePager(
+  heroSlide,
+  () => heroSlides.value.length,
+)
 </script>
 
 <template>
@@ -132,7 +137,7 @@ function prevHero() {
     <div class="tail-page-stack animate-fade-in tail-stagger">
       <CanvaPublicChrome />
 
-      <section class="canva-hero canva-hero-home">
+      <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
         <img
           :key="activeHero?.image"
           :src="activeHero?.image"

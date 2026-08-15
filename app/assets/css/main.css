@@ -418,6 +418,19 @@
   .canva-home-chrome {
     @apply flex items-center justify-between gap-3;
   }
+  .canva-home-chrome img[src*='inbox-logo-mark'] {
+    object-fit: contain;
+    object-position: center 68%;
+  }
+  .inbox-wordmark {
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    transform: translateY(0.12em);
+  }
+  .canva-hero {
+    touch-action: pan-y;
+  }
   /* Chrome sits tight above hero (not a space-y-6 separate band) */
   .tail-page-stack > .canva-home-chrome + .canva-hero-home {
     margin-top: 0.5rem;
@@ -1366,6 +1379,8 @@
     border-radius: var(--sz-canva-radius);
     min-height: 13.5rem;
     aspect-ratio: 16 / 10;
+    touch-action: pan-y;
+    cursor: grab;
   }
   .canva-club-gallery-media {
     @apply absolute inset-0 h-full w-full object-cover;
@@ -2407,6 +2422,8 @@
   }
   .canva-club-detail-more {
     grid-area: more;
+    position: relative;
+    z-index: 1;
   }
   .canva-club-detail-reviews {
     grid-area: reviews;
@@ -2432,9 +2449,10 @@
     min-width: 10rem;
     flex-shrink: 0;
   }
+  /* Stay in document flow so the panel cannot cover the map on scroll. */
   .canva-club-detail-book {
-    position: sticky;
-    top: 5.5rem;
+    position: static;
+    top: auto;
   }
   .canva-club-more-map-frame,
   .canva-club-more-map-empty {

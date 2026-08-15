@@ -354,6 +354,11 @@ function prevGallery() {
   gallerySlide.value = (gallerySlide.value - 1 + gallerySlides.value.length) % gallerySlides.value.length
 }
 
+const { onPointerDown: onGalleryPointerDown, onPointerUp: onGalleryPointerUp } = useSwipePager(
+  gallerySlide,
+  () => gallerySlides.value.length,
+)
+
 /* ── Calendar (sharp, clubs-detail only) ── */
 const viewYear = ref(1404)
 const viewMonth = ref(1)
@@ -504,7 +509,11 @@ async function shareClub() {
     <CanvaPublicChrome back-to="/clubs" />
     <div class="canva-club-detail">
       <!-- 1. Gallery: full-bleed, arrows, red active dots -->
-      <section class="canva-club-gallery">
+      <section
+        class="canva-club-gallery"
+        @pointerdown="onGalleryPointerDown"
+        @pointerup="onGalleryPointerUp"
+      >
         <img :src="activeGallery" alt="" class="canva-club-gallery-media" />
         <button type="button" class="canva-club-gallery-arrow canva-club-gallery-arrow-start" :aria-label="t('calendar.prevMonth')" @click="prevGallery">
           <AppIcon name="chevron_right" size="md" />
