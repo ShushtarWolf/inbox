@@ -427,6 +427,14 @@ async function requestOtp() {
     else if (status === 400) error.value = t('auth.invalidPhone')
     else if (status === 429) error.value = t('errors.rateLimited')
     else if (status === 503 || status === 500) error.value = t('auth.otpServerUnavailable')
+    else if (status === 502) {
+      const msg = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
+        || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
+        || '')
+      error.value = /account-owner phone|صاحب حساب|technical|operational/i.test(msg)
+        ? t('auth.otpTemplateNotOperational')
+        : t('auth.otpSendFailed')
+    }
     else error.value = t('auth.otpSendFailed')
   } finally {
     pending.value = false
