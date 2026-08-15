@@ -673,7 +673,7 @@ watch(
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goRegisterPassword">
+          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goRegisterPassword">
             {{ t('auth.registerWithPassword') }}
           </button>
         </form>
@@ -903,7 +903,7 @@ watch(
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goLoginPassword">
+          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goLoginPassword">
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>
@@ -939,7 +939,7 @@ watch(
           <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="requestOtp">
             {{ t('auth.resendOtp') }}
           </button>
-          <button type="button" class="block w-full text-center text-xs font-bold text-brand-gray-600 underline" @click="goLoginPassword">
+          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goLoginPassword">
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>
