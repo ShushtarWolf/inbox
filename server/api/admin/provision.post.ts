@@ -9,6 +9,7 @@ import {
   PILOT_CLUB_LNG,
   PILOT_CLUB_NAME_EN,
   PILOT_CLUB_NAME_FA,
+  PILOT_CLUB_PHONE,
   PILOT_COURT_COUNT,
   PILOT_COURT_PRICE,
   PILOT_SPORT_SLUG,
@@ -104,7 +105,7 @@ export default defineEventHandler(async (event) => {
         priceFrom: defaultCourtPrice,
         image: isPilot ? PILOT_COURT_1_COVER : null,
         featured: isPilot,
-        ...(phone ? { phone } : {}),
+        ...(isPilot ? { phone: PILOT_CLUB_PHONE } : phone ? { phone } : {}),
       },
     })
     for (let i = 1; i <= PILOT_COURT_COUNT; i++) {

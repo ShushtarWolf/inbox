@@ -9,6 +9,7 @@ import {
   PILOT_CLUB_LNG,
   PILOT_CLUB_NAME_EN,
   PILOT_CLUB_NAME_FA,
+  PILOT_CLUB_PHONE,
   PILOT_CLUB_SLUG,
   PILOT_COURT_COUNT,
   PILOT_COURT_PRICE,
@@ -98,7 +99,7 @@ export default defineEventHandler(async (event) => {
         openHour: 8,
         closeHour: 22,
         priceFrom: PILOT_COURT_PRICE,
-        phone,
+        phone: PILOT_CLUB_PHONE,
         image: PILOT_COURT_1_COVER,
         featured: true,
         // Schema default is 4.5 — do not ship a fake demo rating with zero reviews.

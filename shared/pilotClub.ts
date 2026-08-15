@@ -12,6 +12,8 @@ export const PILOT_CLUB_LAT = 35.7448
 export const PILOT_CLUB_LNG = 51.5049
 export const PILOT_OWNER_NAME = 'مدیر مجموعه'
 export const PILOT_OWNER_PHONE = '09124777927'
+/** Public club contact on listing/detail — not owner OTP / site Enamad. */
+export const PILOT_CLUB_PHONE = '09153034039'
 export const PILOT_COURT_COUNT = 3
 /** Temporary low amount for live SEP IPG tests — restore to ~600_000 after. */
 export const PILOT_COURT_PRICE = 1001
