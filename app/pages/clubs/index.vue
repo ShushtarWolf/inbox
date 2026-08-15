@@ -18,12 +18,22 @@ const query = computed(() => ({
 
 const { data: clubs, pending, error } = await useFetch('/api/clubs', { query })
 const { data: sports } = await useFetch('/api/sports')
+const { data: catalogClubs } = await useFetch('/api/clubs', { key: 'clubs-catalog' })
 
-const sportChips = computed(() => [
-  { value: '', label: t('clubs.sportAll') },
-  { value: 'tennis', label: t('clubs.sportTennis') },
-  { value: 'padel', label: t('clubs.sportPadel') },
-])
+const listedSports = computed(() => {
+  const set = new Set<string>()
+  for (const club of catalogClubs.value || []) {
+    for (const s of club.sports || []) set.add(s)
+  }
+  return set
+})
+
+const sportChips = computed(() => {
+  const chips = [{ value: '', label: t('clubs.sportAll') }]
+  if (listedSports.value.has('tennis')) chips.push({ value: 'tennis', label: t('clubs.sportTennis') })
+  if (listedSports.value.has('padel')) chips.push({ value: 'padel', label: t('clubs.sportPadel') })
+  return chips
+})
 
 const listTitle = computed(() => {
   if (sportFilter.value === 'tennis') return t('clubs.tennisCourtsTitle')
@@ -32,23 +42,28 @@ const listTitle = computed(() => {
 })
 
 /* Canva Court list (p2) hero matches home slide copy, including placeholder title */
-const heroSlides = computed(() => [
-  {
-    title: t('home.heroSlideTitle'),
-    body: t('home.heroBody'),
-    image: '/hero/tennis-court.jpg',
-  },
-  {
-    title: t('home.bookCourt'),
-    body: t('home.bookCourtHint'),
-    image: '/hero/padel-court.jpg',
-  },
-  {
-    title: t('home.padelTitle'),
-    body: t('home.clubSectionBody'),
-    image: '/hero/fitness-venue.jpg',
-  },
-])
+const heroSlides = computed(() => {
+  const slides = [
+    {
+      title: t('home.heroSlideTitle'),
+      body: t('home.heroBody'),
+      image: '/hero/tennis-court.jpg',
+    },
+    {
+      title: t('home.bookCourt'),
+      body: t('home.bookCourtHint'),
+      image: '/hero/tennis-court.jpg',
+    },
+  ]
+  if (listedSports.value.has('padel')) {
+    slides.push({
+      title: t('home.padelTitle'),
+      body: t('home.clubSectionBody'),
+      image: '/hero/padel-court.jpg',
+    })
+  }
+  return slides
+})
 
 const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
 

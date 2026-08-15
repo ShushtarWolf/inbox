@@ -40,24 +40,45 @@ const padelClubs = computed(() => {
   const list = clubs.value || []
   return list.filter((club) => club.sports?.includes('padel')).slice(0, 3)
 })
+const listedSports = computed(() => {
+  const set = new Set<string>()
+  for (const club of clubs.value || []) {
+    for (const s of club.sports || []) set.add(s)
+  }
+  return set
+})
+const sportsForSearch = computed(() =>
+  (sports.value || []).filter((item) => listedSports.value.has(item.slug)),
+)
 
-const heroSlides = computed(() => [
-  {
-    title: t('home.heroSlideTitle'),
-    body: t('home.heroBody'),
-    image: '/hero/tennis-court.jpg',
-  },
-  {
-    title: t('home.bookCourt'),
-    body: t('home.bookCourtHint'),
-    image: '/hero/padel-court.jpg',
-  },
-  {
-    title: t('home.padelTitle'),
-    body: t('home.clubSectionBody'),
-    image: '/hero/fitness-venue.jpg',
-  },
-])
+const heroSlides = computed(() => {
+  const slides = [
+    {
+      title: t('home.heroSlideTitle'),
+      body: t('home.heroBody'),
+      image: '/hero/tennis-court.jpg',
+    },
+    {
+      title: t('home.bookCourt'),
+      body: t('home.bookCourtHint'),
+      image: '/hero/tennis-court.jpg',
+    },
+  ]
+  if (listedSports.value.has('padel')) {
+    slides.push({
+      title: t('home.padelTitle'),
+      body: t('home.clubSectionBody'),
+      image: '/hero/padel-court.jpg',
+    })
+  }
+  return slides
+})
+
+watchEffect(() => {
+  // #region agent log
+  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9cb647'},body:JSON.stringify({sessionId:'9cb647',runId:'gap-fill',hypothesisId:'D',location:'index.vue',message:'home catalog rails',data:{padelCount:padelClubs.value.length,tennisCount:tennisClubs.value.length,priceFrom:clubs.value?.[0]?.priceFrom ?? null,sports:[...listedSports.value]},timestamp:Date.now()})}).catch(()=>{})
+  // #endregion
+})
 
 const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
 
@@ -170,7 +191,7 @@ function prevHero() {
               :class="{ 'canva-search-placeholder-filled': sport }"
             >
               <option value="">{{ t('home.sportsTitle') }}</option>
-              <option v-for="s in sports" :key="s.slug" :value="s.slug">
+              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
                 {{ localizedField(s, 'nameFa', 'nameEn') }}
               </option>
             </select>
@@ -280,7 +301,7 @@ function prevHero() {
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="padelClubs.length" class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
@@ -291,7 +312,7 @@ function prevHero() {
             <AppIcon name="chevron_left" size="sm" />
           </NuxtLink>
         </div>
-        <div v-if="padelClubs.length" class="canva-venue-grid">
+        <div class="canva-venue-grid">
           <NuxtLink
             v-for="club in padelClubs"
             :key="`padel-${club.id}`"
@@ -308,7 +329,6 @@ function prevHero() {
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
     </div>
   </AppAsyncState>

@@ -42,6 +42,16 @@ const padelClubs = computed(() => {
   const list = clubs.value || []
   return list.filter((club: { sports?: string[] }) => club.sports?.includes('padel')).slice(0, 3)
 })
+const listedSports = computed(() => {
+  const set = new Set<string>()
+  for (const club of clubs.value || []) {
+    for (const s of club.sports || []) set.add(s)
+  }
+  return set
+})
+const sportsForSearch = computed(() =>
+  (sports.value || []).filter((item: { slug: string }) => listedSports.value.has(item.slug)),
+)
 
 function bookingLink(path: '/clubs', querySport?: string) {
   const sportQuery = querySport || sport.value || undefined
@@ -122,7 +132,7 @@ onMounted(() => {
               :class="{ 'canva-search-placeholder-filled': sport }"
             >
               <option value="">{{ t('home.sportsTitle') }}</option>
-              <option v-for="s in sports" :key="s.slug" :value="s.slug">
+              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
                 {{ localizedField(s, 'nameFa', 'nameEn') }}
               </option>
             </select>
@@ -226,7 +236,7 @@ onMounted(() => {
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="padelClubs.length" class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
@@ -234,7 +244,7 @@ onMounted(() => {
           </div>
           <NuxtLink :to="bookingLink('/clubs', 'padel')" class="text-xs font-bold text-brand-navy">{{ t('home.seeAll') }}</NuxtLink>
         </div>
-        <div v-if="padelClubs.length" class="canva-venue-grid">
+        <div class="canva-venue-grid">
           <NuxtLink
             v-for="club in padelClubs"
             :key="`padel-${club.id}`"
@@ -251,7 +261,6 @@ onMounted(() => {
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
     </AppAsyncState>
   </div>

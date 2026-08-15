@@ -149,5 +149,28 @@ export async function applyBehnazCourtPhotos(db: Db, clubId: string) {
   return syncPilotClub(db, clubId)
 }
 
+/** Restore catalog/court/open-slot prices only (does not rename the club). */
+export async function restorePilotListPrice(db: Db, clubId: string) {
+  const club = await db.club.update({
+    where: { id: clubId },
+    data: { priceFrom: PILOT_COURT_PRICE, priceTo: PILOT_COURT_PRICE },
+    select: { id: true, slug: true, nameFa: true, priceFrom: true },
+  })
+  const courts = await db.court.updateMany({
+    where: { clubId },
+    data: { price: PILOT_COURT_PRICE },
+  })
+  const openSlots = await db.slot.updateMany({
+    where: { court: { clubId }, booking: { is: null } },
+    data: { price: PILOT_COURT_PRICE },
+  })
+  return {
+    club,
+    courtsUpdated: courts.count,
+    openSlotsUpdated: openSlots.count,
+    price: PILOT_COURT_PRICE,
+  }
+}
+
 /** @deprecated Prefer applyBehnazCourtPhotos */
 export const applyBehnazCourt1Photos = applyBehnazCourtPhotos

@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const PWA_RESET_VERSION = '5'
 
@@ -189,11 +190,11 @@ export default defineNuxtConfig({
       // Microsoft Clarity (session replay / heatmaps). Set on Liara only; client plugin loads in production.
       clarityId: process.env.NUXT_PUBLIC_CLARITY_ID || '',
       // Public contact details for Enamad / legal pages (override on Liara as needed).
-      contactAddress: process.env.NUXT_PUBLIC_CONTACT_ADDRESS || '',
+      contactAddress: process.env.NUXT_PUBLIC_CONTACT_ADDRESS || PILOT_CLUB_ADDRESS_FA,
       contactLandline: process.env.NUXT_PUBLIC_CONTACT_LANDLINE || '',
       contactMobile: process.env.NUXT_PUBLIC_CONTACT_MOBILE || '09124777927',
       contactEmail: process.env.NUXT_PUBLIC_CONTACT_EMAIL || 'info@inboxs.ir',
-      contactOwnerName: process.env.NUXT_PUBLIC_CONTACT_OWNER_NAME || '',
+      contactOwnerName: process.env.NUXT_PUBLIC_CONTACT_OWNER_NAME || PILOT_OWNER_NAME,
       contactPostalCode: process.env.NUXT_PUBLIC_CONTACT_POSTAL_CODE || '',
       // Enamad post-signup: set these on Liara without a code change.
       enamadMetaContent: process.env.NUXT_PUBLIC_ENAMAD_META_CONTENT || '',

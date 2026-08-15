@@ -1,3 +1,5 @@
+import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from '#shared/pilotClub.ts'
+
 /**
  * Prefer NUXT_PUBLIC_PAYMENTS_MODE / NUXT_PUBLIC_PILOT_NO_COACH on Liara.
  * Nuxt freezes server runtimeConfig — mutating it crashes the process — so this
@@ -24,5 +26,18 @@ export default defineNitroPlugin(() => {
     } catch {
       // Frozen runtimeConfig — set NUXT_PUBLIC_PILOT_NO_COACH instead.
     }
+  }
+
+  const envAddress = (process.env.NUXT_PUBLIC_CONTACT_ADDRESS || '').trim()
+  if (!envAddress && !String(publicConfig.contactAddress || '').trim()) {
+    try {
+      publicConfig.contactAddress = PILOT_CLUB_ADDRESS_FA
+    } catch { /* frozen */ }
+  }
+  const envOwner = (process.env.NUXT_PUBLIC_CONTACT_OWNER_NAME || '').trim()
+  if (!envOwner && !String(publicConfig.contactOwnerName || '').trim()) {
+    try {
+      publicConfig.contactOwnerName = PILOT_OWNER_NAME
+    } catch { /* frozen */ }
   }
 })
