@@ -110,6 +110,8 @@ Optional rate-limit tuning (defaults are fine for MVP):
 
 Until live cutover: leave `SMS_ENABLED` unset/`false` — OTP uses log/dry-run and returns `debugCode` + `smsMode: "log"`. UI must not claim live SMS delivery in log mode (`auth.otpLogModeHint` / `auth.debugOtpHint`). Check `/admin/sms` or `npm run sms:status`.
 
+**Production MVP:** never set `SMS_OTP_DEBUG_FALLBACK=true` on Liara. That flag used to hide failed Kavenegar sends behind an on-screen test code. Live production ignores it and returns `502` when SMS fails.
+
 ### Verify checklist
 
 1. `npm run sms:status` (or `GET /api/admin/sms-status`) → `resolvedProvider: "log"` until keys are set; `"live"` after cutover.
