@@ -6,7 +6,16 @@ import {
   loadEquipmentForBooking,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
+import {
+  notifyBookingConfirmed,
+  notifyBookingPaid,
+  notifyOwnerBookingPaid,
+  clubNotifyName,
+  clubNotifyLocation,
+  courtNotifyName,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
@@ -183,6 +192,11 @@ export default defineEventHandler(async (event) => {
         }
       }
       const phone = slot.booking.user?.phone || guestMobile || slot.booking.guestMobile
+      const guestName = personNotifyName(
+        body.guestName ?? slot.booking.guestName,
+        body.guestFamily ?? slot.booking.guestFamily,
+      ) || slot.booking.user?.name || ''
+      const amountPaid = paidPayment?.amount ?? totalAmount
       if (slot.booking.userId || phone) {
         await notifyBookingPaid({
           userId: slot.booking.userId,
@@ -195,8 +209,29 @@ export default defineEventHandler(async (event) => {
           date: slot.date,
           startTime: slot.startTime,
           endTime: slot.endTime,
+          courtName: courtNotifyName(slot.court),
+          guestName,
+          amountPaid,
+          paymentPaid: true,
         })
       }
+      const ownerClub = await prisma.club.findUnique({
+        where: { id: club.id },
+        select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
+      })
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : club.phone,
+        clubName: clubNotifyName(ownerClub || club),
+        clubId: club.id,
+        bookingId: slot.booking.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        courtName: courtNotifyName(slot.court),
+        guestName,
+        guestPhone: phone,
+        amountPaid,
+      })
     }
   } else {
     let createdBooking
@@ -246,6 +281,9 @@ export default defineEventHandler(async (event) => {
     }
 
     const phone = guestMobile || null
+    const guestName = personNotifyName(body.guestName, body.guestFamily)
+    const notifyStart = (body.notifyStartTime || slot.startTime).trim()
+    const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
     if (phone && !body.skipNotify) {
       const notifyBase = {
         phone,
@@ -254,11 +292,12 @@ export default defineEventHandler(async (event) => {
         clubId: club.id,
         bookingId: createdBooking.id,
         date: slot.date,
-        startTime: (body.notifyStartTime || slot.startTime).trim(),
-        endTime: (body.notifyEndTime || slot.endTime).trim(),
+        startTime: notifyStart,
+        endTime: notifyEnd,
         courtName: courtNotifyName(slot.court),
         paymentPaid: paymentStatus === 'PAID',
-        guestName: personNotifyName(body.guestName, body.guestFamily),
+        guestName,
+        amountPaid: totalAmount,
         ...clubNotifyLocation(club),
       }
       await notifyBookingConfirmed(notifyBase)
@@ -282,6 +321,27 @@ export default defineEventHandler(async (event) => {
           console.error('[reserve:ownerSettlement]', paidPayment.id, err)
         }
       }
+    }
+
+    if (paymentStatus === 'PAID') {
+      const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
+      const ownerClub = await prisma.club.findUnique({
+        where: { id: club.id },
+        select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
+      })
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : club.phone,
+        clubName: clubNotifyName(ownerClub || club),
+        clubId: club.id,
+        bookingId: createdBooking.id,
+        date: slot.date,
+        startTime: notifyStart,
+        endTime: notifyEnd,
+        courtName: courtNotifyName(slot.court),
+        guestName,
+        guestPhone: phone,
+        amountPaid: paidPayment?.amount ?? totalAmount,
+      })
     }
   }
   return { ok: true, amount: totalAmount, paymentStatus, paymentMethod }

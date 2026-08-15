@@ -1,7 +1,14 @@
 import type { Prisma } from '@prisma/client'
 import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { clubNotifyName, notifyBookingPaid } from './bookingNotify'
+import {
+  clubNotifyName,
+  courtNotifyName,
+  notifyBookingPaid,
+  notifyOwnerBookingPaid,
+  ownerNotifyPhone,
+  personNotifyName,
+} from './bookingNotify'
 import { getPaymentService } from './payments/service'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
@@ -74,19 +81,27 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
       booking: {
         include: {
           user: true,
-          slot: { include: { court: { include: { club: true } } } },
+          slot: {
+            include: {
+              court: {
+                include: {
+                  club: { include: { owner: true } },
+                },
+              },
+            },
+          },
         },
       },
       coachSession: {
         include: {
           athlete: true,
-          coach: { include: { club: true } },
+          coach: { include: { club: { include: { owner: true } } } },
         },
       },
       packageBooking: {
         include: {
           athlete: true,
-          package: { include: { club: true } },
+          package: { include: { club: { include: { owner: true } } } },
         },
       },
     },
@@ -96,48 +111,107 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
   try {
     if (payment.booking) {
       const b = payment.booking
+      const club = b.slot.court.club
       const rawGuest = b.guestMobile
       const phone = b.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
+      const guestName = personNotifyName(b.guestName, b.guestFamily) || b.user?.name || ''
+      const courtName = courtNotifyName(b.slot.court)
+      const clubName = clubNotifyName(club)
       await notifyBookingPaid({
         userId: b.userId,
         email: b.user?.email,
         phone,
         kind: 'court',
-        clubName: clubNotifyName(b.slot.court.club),
-        clubId: b.slot.court.clubId,
+        clubName,
+        clubId: club.id,
         bookingId: b.id,
         date: b.slot.date,
         startTime: b.slot.startTime,
+        endTime: b.slot.endTime,
+        courtName,
+        paymentPaid: true,
+        guestName,
+        amountPaid: payment.amount,
+      })
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerNotifyPhone(club),
+        clubName,
+        clubId: club.id,
+        bookingId: b.id,
+        date: b.slot.date,
+        startTime: b.slot.startTime,
+        endTime: b.slot.endTime,
+        courtName,
+        guestName,
+        guestPhone: phone,
+        amountPaid: payment.amount,
       })
       return
     }
     if (payment.coachSession) {
       const s = payment.coachSession
+      const club = s.coach.club || {}
+      const clubName = clubNotifyName(club)
+      const clubId = s.coach.clubId || undefined
       await notifyBookingPaid({
         userId: s.athleteId,
         email: s.athlete?.email,
         phone: s.athlete?.phone,
         kind: 'coach',
-        clubName: clubNotifyName(s.coach.club || {}),
-        clubId: s.coach.clubId,
+        clubName,
+        clubId,
         bookingId: s.id,
         date: s.date,
         startTime: s.startTime,
+        endTime: s.endTime,
+        guestName: s.athlete?.name,
+        amountPaid: payment.amount,
+        paymentPaid: true,
       })
+      if (s.coach.club) {
+        await notifyOwnerBookingPaid({
+          ownerPhone: ownerNotifyPhone(s.coach.club),
+          clubName,
+          clubId,
+          bookingId: s.id,
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          guestName: s.athlete?.name,
+          guestPhone: s.athlete?.phone,
+          amountPaid: payment.amount,
+        })
+      }
       return
     }
     if (payment.packageBooking) {
       const p = payment.packageBooking
+      const club = p.package.club
+      const clubName = clubNotifyName(club)
       await notifyBookingPaid({
         userId: p.athleteId,
         email: p.athlete?.email,
         phone: p.athlete?.phone,
         kind: 'package',
-        clubName: clubNotifyName(p.package.club),
+        clubName,
         clubId: p.package.clubId,
         bookingId: p.id,
         date: '',
         startTime: '',
+        guestName: p.athlete?.name,
+        amountPaid: payment.amount,
+        paymentPaid: true,
+      })
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerNotifyPhone(club),
+        clubName,
+        clubId: p.package.clubId,
+        bookingId: p.id,
+        date: '',
+        startTime: '',
+        guestName: p.athlete?.name,
+        guestPhone: p.athlete?.phone,
+        amountPaid: payment.amount,
       })
     }
   } catch (err) {
@@ -206,7 +280,13 @@ export async function markPaymentFailedAndSync(providerRef: string, providerName
   return toSafeIntent(updated)
 }
 
-function toSafeIntent(payment: { id: string; amount: number; status: string; provider: string; providerRef: string | null }) {
+function toSafeIntent(payment: {
+  id: string
+  amount: number
+  status: string
+  provider: string
+  providerRef: string | null
+}) {
   return {
     id: payment.id,
     amount: payment.amount,

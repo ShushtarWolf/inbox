@@ -73,6 +73,25 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
         html: `<p><strong>Payment received</strong> for ${esc(label)} at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(time)}</p>`,
       }
     }
+    case 'OWNER_BOOKING_PAID': {
+      const clubName = String(data.clubName || 'Club')
+      const guest = String(data.guestName || data.userName || 'Guest')
+      const guestPhone = String(data.guestPhone || '').trim()
+      const amount = data.amountPaid ?? data.amount
+      const date = String(data.date || '')
+      const time = String(data.startTime || '')
+      const endTime = String(data.endTime || '').trim()
+      const timeLabel = endTime && endTime !== time ? `${time}–${endTime}` : time
+      const courtName = String(data.courtName || '').trim()
+      const amountLine = amount != null && amount !== '' ? `Amount: ${amount}\n` : ''
+      const courtLine = courtName ? `Court: ${courtName}\n` : ''
+      const phoneLine = guestPhone ? `Phone: ${guestPhone}\n` : ''
+      return {
+        subject: `Paid booking — ${clubName}`,
+        text: `Paid booking at ${clubName}\nGuest: ${guest}\n${phoneLine}${amountLine}${courtLine}Date: ${date}\nTime: ${timeLabel}`,
+        html: `<p><strong>Paid booking</strong> at ${esc(clubName)}</p><p>Guest: ${esc(guest)}${guestPhone ? `<br>Phone: ${esc(guestPhone)}` : ''}${amount != null && amount !== '' ? `<br>Amount: ${esc(amount)}` : ''}${courtName ? `<br>Court: ${esc(courtName)}` : ''}<br>Date: ${esc(date)}<br>Time: ${esc(timeLabel)}</p>`,
+      }
+    }
     case 'WAITLIST_SLOT_AVAILABLE': {
       const date = String(data.date || '')
       const startTime = String(data.startTime || '')
