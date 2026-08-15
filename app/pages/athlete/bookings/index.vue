@@ -572,7 +572,7 @@ function dateLine(item: HistoryItem) {
         <div class="canva-result-sheet p-6 text-center">
           <div class="canva-auth-body relative z-[1]">
             <p class="font-bold text-brand-navy">{{ t('booking.emptyState') }}</p>
-            <NuxtLink :to="localePath('/athlete/home')" class="canva-gate-btn-primary mt-4 inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
+            <NuxtLink :to="localePath('/clubs')" class="canva-gate-btn-primary mt-4 inline-block">{{ t('booking.emptyStateCta') }}</NuxtLink>
           </div>
         </div>
       </template>
