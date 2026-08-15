@@ -127,7 +127,8 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 |-------|------|--------|
 | Booking confirmed | `bookingNotify.notifyBookingConfirmed` | Athlete court book + owner desk reserve (guest phone) |
 | Booking cancelled | `bookingNotify.notifyBookingCancelled` | Athlete cancel + owner cancel (registered or guest phone) |
-| Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback |
+| Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback (athlete/guest) |
+| Owner booking paid | `bookingNotify.notifyOwnerBookingPaid` | Same paid triggers — SMS to club owner phone (`User.phone` or `Club.phone`) with guest, amount, time, court |
 | Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
 
 Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.

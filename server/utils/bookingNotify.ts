@@ -24,9 +24,31 @@ type BookingNotifyOpts = {
   guestName?: string | null
   trackingCode?: string | null
   receiptUrl?: string | null
+  /** Paid amount in product currency units (same as Payment.amount). */
+  amountPaid?: number | null
 }
 
-type BookingSmsTemplate = 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID' | 'WAITLIST_SLOT_AVAILABLE'
+type OwnerBookingPaidOpts = {
+  ownerPhone?: string | null
+  clubName: string
+  clubId?: string
+  bookingId?: string
+  date: string
+  startTime: string
+  endTime?: string | null
+  courtName?: string | null
+  guestName?: string | null
+  guestPhone?: string | null
+  amountPaid?: number | null
+  trackingCode?: string | null
+}
+
+type BookingSmsTemplate =
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
+  | 'BOOKING_PAID'
+  | 'OWNER_BOOKING_PAID'
+  | 'WAITLIST_SLOT_AVAILABLE'
 
 function kindLabelFa(kind: BookingNotifyKind) {
   if (kind === 'coach') return 'جلسه مربی'
@@ -45,6 +67,14 @@ export function courtNotifyName(court: { nameFa?: string | null; nameEn?: string
 
 export function personNotifyName(...parts: Array<string | null | undefined>) {
   return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
+}
+
+/** Owner account phone first, then public club phone. */
+export function ownerNotifyPhone(club: {
+  phone?: string | null
+  owner?: { phone?: string | null } | null
+}) {
+  return (club.owner?.phone || club.phone || '').trim() || null
 }
 
 export function clubNotifyLocation(club: {
@@ -134,6 +164,7 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     guestName: opts.guestName || '',
     trackingCode,
     receiptUrl,
+    amountPaid: opts.amountPaid ?? null,
   }
 }
 
@@ -212,4 +243,25 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   }
   await safeEmail(opts.email, 'BOOKING_PAID', data)
   await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
+}
+
+/**
+ * Soft-fail SMS to club owner when a booking becomes PAID.
+ * Includes who reserved, amount, time, and court — free-text via KAVENEGAR_SENDER when live.
+ */
+export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
+  if (!opts.ownerPhone) return
+  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
+  const data = {
+    clubName: opts.clubName,
+    date: opts.date,
+    startTime: opts.startTime,
+    endTime: opts.endTime || '',
+    courtName: opts.courtName || '',
+    guestName: opts.guestName || '',
+    guestPhone: opts.guestPhone || '',
+    amountPaid: opts.amountPaid ?? null,
+    trackingCode,
+  }
+  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_PAID', data, opts.clubId)
 }

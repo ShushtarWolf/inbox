@@ -19,6 +19,8 @@ import {
   notifyBookingCancelled,
   notifyBookingConfirmed,
   notifyBookingPaid,
+  notifyOwnerBookingPaid,
+  ownerNotifyPhone,
   personNotifyName,
 } from './bookingNotify'
 
@@ -56,6 +58,12 @@ describe('clubNotifyName', () => {
   it('joins guest first and last name', () => {
     expect(personNotifyName('علی', 'رضایی')).toBe('علی رضایی')
     expect(personNotifyName('  علی  ', '', null)).toBe('علی')
+  })
+
+  it('prefers owner phone then club phone', () => {
+    expect(ownerNotifyPhone({ phone: '021111', owner: { phone: '09120000000' } })).toBe('09120000000')
+    expect(ownerNotifyPhone({ phone: '021111', owner: { phone: null } })).toBe('021111')
+    expect(ownerNotifyPhone({ phone: null, owner: null })).toBeNull()
   })
 
   it('builds maps url when lat/lng exist', () => {
@@ -278,5 +286,52 @@ describe('bookingNotify SMS', () => {
     })
     expect(String(smsCall?.[0].data.trackingCode)).toMatch(/^\d{7}$/)
     expect(String(smsCall?.[0].data.receiptUrl)).toContain('/r/')
+  })
+
+  it('sends owner paid SMS with guest, amount, time, and court', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyOwnerBookingPaid({
+      ownerPhone: '09121112233',
+      clubName: 'بهناز',
+      clubId: 'club-1',
+      bookingId: 'booking-1',
+      date: '2026-08-14',
+      startTime: '18:00',
+      endTime: '20:00',
+      courtName: 'زمین ۲',
+      guestName: 'علی رضایی',
+      guestPhone: '09121234567',
+      amountPaid: 750000,
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0]).toMatchObject({
+      channel: 'sms',
+      to: '09121112233',
+      template: 'OWNER_BOOKING_PAID',
+      clubId: 'club-1',
+      data: expect.objectContaining({
+        guestName: 'علی رضایی',
+        guestPhone: '09121234567',
+        amountPaid: 750000,
+        courtName: 'زمین ۲',
+        startTime: '18:00',
+        endTime: '20:00',
+      }),
+    })
+  })
+
+  it('skips owner paid SMS when owner phone is missing', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    await notifyOwnerBookingPaid({
+      ownerPhone: null,
+      clubName: 'بهناز',
+      date: '2026-08-14',
+      startTime: '18:00',
+      amountPaid: 1000,
+    })
+    expect(sendNotification).not.toHaveBeenCalled()
   })
 })

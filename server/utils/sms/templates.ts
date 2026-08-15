@@ -29,6 +29,15 @@ function paidBit(data: Record<string, unknown>) {
   return ''
 }
 
+/** Product UI uses تومان for booking amounts (same integer stored as Payment.amount). */
+function amountBit(data: Record<string, unknown>) {
+  const raw = data.amountPaid ?? data.amount
+  if (raw == null || raw === '') return ''
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  if (!Number.isFinite(n)) return ''
+  return `${new Intl.NumberFormat('fa-IR').format(n)} تومان`
+}
+
 function bookingDetailLines(data: Record<string, unknown>) {
   const court = String(data.courtName || '').trim()
   const paid = paidBit(data)
@@ -114,6 +123,28 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     return when
       ? `پرداخت رزرو ثبت شد${clubBit(data)} — ${when}. اینباکس`
       : `پرداخت رزرو ثبت شد${clubBit(data)}. اینباکس`
+  },
+  OWNER_BOOKING_PAID: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
+    const guestPhone = String(data.guestPhone || '').trim()
+    const amount = amountBit(data)
+    const when = whenBit(data)
+    const court = String(data.courtName || '').trim()
+    const club = String(data.clubName || '').trim()
+    const tracking = String(data.trackingCode || '').trim()
+    const lines = ['رزرو پرداخت‌شده']
+    if (club) lines.push(`باشگاه: ${club}`)
+    lines.push(
+      guestPhone
+        ? `رزروکننده: ${guest} (${toPersianDigits(guestPhone)})`
+        : `رزروکننده: ${guest}`,
+    )
+    if (amount) lines.push(`مبلغ: ${amount}`)
+    if (when) lines.push(`زمان: ${when}`)
+    if (court) lines.push(`زمین: ${court}`)
+    if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
+    lines.push('اینباکس')
+    return lines.join('\n')
   },
   CLUB_APPROVED: (data) => `باشگاه «${data.clubName || ''}» در inbox تایید شد`,
   WAITLIST_SLOT_AVAILABLE: (data) => {

@@ -36,6 +36,30 @@ describe('SMS templates', () => {
       }),
     ).toBe('پرداخت رزرو ثبت شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. اینباکس')
     expect(
+      renderSmsTemplate('OWNER_BOOKING_PAID', {
+        clubName: 'بهناز',
+        guestName: 'علی رضایی',
+        guestPhone: '09121234567',
+        amountPaid: 500000,
+        date: '1404/01/01',
+        startTime: '10:00',
+        endTime: '11:00',
+        courtName: 'زمین ۱',
+        trackingCode: '1057128',
+      }),
+    ).toBe(
+      [
+        'رزرو پرداخت‌شده',
+        'باشگاه: بهناز',
+        'رزروکننده: علی رضایی (۰۹۱۲۱۲۳۴۵۶۷)',
+        'مبلغ: ۵۰۰٬۰۰۰ تومان',
+        'زمان: ۱۴۰۴/۰۱/۰۱ از ۱۰:۰۰ تا ۱۱:۰۰',
+        'زمین: زمین ۱',
+        'کد رهگیری: ۱۰۵۷۱۲۸',
+        'اینباکس',
+      ].join('\n'),
+    )
+    expect(
       renderSmsTemplate('WAITLIST_SLOT_AVAILABLE', {
         clubName: 'بهناز',
         date: '1404/01/01',
