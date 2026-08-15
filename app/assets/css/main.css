@@ -616,6 +616,10 @@
     @apply relative flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium transition;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-side-nav-item.tail-menu-item-active,
+  .canva-side-nav-item.tail-menu-item-inactive {
+    border-radius: var(--sz-canva-radius);
+  }
 
   /*
    * Clubs list (/clubs) — Canva Page 2 «Court list» regions (LOCKED):
@@ -2521,23 +2525,8 @@
   .canva-club-more-map-empty {
     height: 16rem;
   }
-}
-
-@media (min-width: 431px) and (max-width: 767px) {
   .canva-court-card-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .canva-club-detail {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "gallery"
-      "intro"
-      "book"
-      "more"
-      "reviews";
-  }
-  .canva-club-detail-book {
-    position: static;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

@@ -198,7 +198,7 @@ function goBack() {
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
             <InboxWordmark class="text-base text-brand-primary" />
           </NuxtLink>
-          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
+          <button type="button" class="canva-home-login canva-home-login-soft px-3 py-2 text-xs" @click="goBack">
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="arrow_back" size="sm" />
               {{ t('common.back') }}
@@ -213,7 +213,7 @@ function goBack() {
             :avatar-url="avatarUrl"
             :initials="initials"
           />
-          <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+          <button type="button" class="canva-home-login canva-home-login-soft px-3 py-2 text-xs" @click="handleLogout">
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="logout" size="sm" />
               {{ resolvedLogoutLabel }}

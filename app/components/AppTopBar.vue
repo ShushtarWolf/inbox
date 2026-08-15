@@ -30,7 +30,7 @@ function isActive(to: string) {
           </div>
           <InboxWordmark class="text-lg font-semibold text-brand-navy" />
         </NuxtLink>
-        <nav v-if="nav.length" class="hidden items-center gap-1 lg:flex">
+        <nav v-if="nav.length" class="hidden items-center gap-1 min-[431px]:flex">
           <component
             :is="item.action ? 'button' : NuxtLink"
             v-for="item in nav"
