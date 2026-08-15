@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canCoverBookingWithWallet,
   isWalletTopUpPayment,
   normalizeWalletTopUpAmount,
   WALLET_TOPUP_MAX_IRR,
@@ -24,5 +25,13 @@ describe('isWalletTopUpPayment', () => {
   it('detects topup purpose', () => {
     expect(isWalletTopUpPayment({ purpose: 'topup' })).toBe(true)
     expect(isWalletTopUpPayment({ purpose: 'booking' })).toBe(false)
+  })
+})
+
+describe('canCoverBookingWithWallet', () => {
+  it('requires full amount (no split)', () => {
+    expect(canCoverBookingWithWallet(500_000, 500_000)).toBe(true)
+    expect(canCoverBookingWithWallet(499_999, 500_000)).toBe(false)
+    expect(canCoverBookingWithWallet(500_000, 0)).toBe(false)
   })
 })

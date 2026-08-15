@@ -44,4 +44,12 @@ describe('otpBypass production gate', () => {
     expect(isOtpBypassAllowed()).toBe(true)
     expect(isOtpBypassPhone('09121234567')).toBe(true)
   })
+
+  it('refuses production bypass when ALLOW_OTP_BYPASS is not the string true', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.ALLOW_OTP_BYPASS = 'false'
+    process.env.AUTH_OTP_BYPASS_PHONES = '09121234567'
+    expect(isOtpBypassAllowed()).toBe(false)
+    expect(isOtpBypassPhone('09121234567')).toBe(false)
+  })
 })
