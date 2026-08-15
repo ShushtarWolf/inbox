@@ -13,6 +13,9 @@ dist
 prisma/dev.db
 prisma/dev.db-journal
 
+# Local production DB dumps (required after each Liara deploy; never commit)
+backups/
+
 # env
 .env
 .env.*

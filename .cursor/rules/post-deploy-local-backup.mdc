@@ -1,0 +1,34 @@
+---
+description: After every production deploy, keep a local computer backup of prod data
+alwaysApply: true
+---
+
+# Never lose production data
+
+Production database is Liara **`inbox-db`**. Git history is not a data backup.
+
+## After every successful deploy (mandatory)
+
+When the user asked to deploy to Liara (`inbox` / `inboxs.ir`), **do not consider the deploy done** until a dump exists **on this computer**.
+
+1. Confirm deploy succeeded (`liara deploy --app inbox`).
+2. Create an on-demand backup: `liara db backup create --name inbox-db`
+3. List backups: `liara db backup list --name inbox-db` and note the newest `manual/…` name.
+4. Download it into the repo-local folder (gitignored):
+
+```bash
+mkdir -p backups
+liara db backup download --name inbox-db --backup <MANUAL_BACKUP_NAME> --output backups/inbox-db-$(date +%Y%m%d-%H%M%S).dump
+```
+
+If `--backup` / `--output` flags differ in the installed CLI, use `liara db backup download --help` and still write the file under `backups/`.
+
+5. Verify the file exists and is non-empty (`ls -lh backups/…`). Report the **absolute path** in the chat.
+6. If create or download fails, **stop and tell the user**. Do not skip “because Liara already has hourly backups.” Cloud copies are extra; the required copy is **local**.
+
+## Never do without a fresh local dump first
+
+- `pg_restore`, DB wipe, `reset-pilot`, dropping tables, or any production data mutation that can destroy rows
+- Treat “we have git” or “Liara scheduled backups” as **not** sufficient
+
+Do **not** commit files under `backups/`. Do **not** restore unless the user explicitly asks.
