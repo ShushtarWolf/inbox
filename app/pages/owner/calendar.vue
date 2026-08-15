@@ -1889,16 +1889,19 @@ function slotBarColor(status: string) {
         </div>
 
         <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel !border-0">
-          <div class="canva-confirm-book px-1 pb-2">
+          <div class="canva-desk-pay px-1 pb-2">
             <div class="canva-auth-header">
-              <InboxWordmark text="INBOX" class="text-base text-brand-navy" />
+              <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
+                <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+                <InboxWordmark class="text-base text-brand-navy" />
+              </NuxtLink>
               <button type="button" class="text-xs font-bold text-brand-gray-600" @click="activePanel = 'reserve'">
                 {{ t('common.close') }}
               </button>
             </div>
             <div class="text-center">
-              <p class="canva-confirm-book-title">{{ t('booking.confirmFinalTitle') }}</p>
-              <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubCalendarTitle }}</h2>
+              <p class="text-sm font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</p>
+              <h2 class="mt-1 text-xl font-bold text-brand-navy">{{ clubCalendarTitle }}</h2>
             </div>
             <div class="mt-3 text-start">
               <p class="canva-confirm-book-date">{{ payConfirmDateHeading }}</p>
@@ -1992,7 +1995,7 @@ function slotBarColor(status: string) {
         <div v-if="activePanel === 'block'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -2049,7 +2052,7 @@ function slotBarColor(status: string) {
         <div v-if="activePanel === 'comments'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -2072,7 +2075,7 @@ function slotBarColor(status: string) {
         <div v-if="canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -2155,7 +2158,7 @@ function slotBarColor(status: string) {
         <div v-if="canShowSeasonReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -2247,7 +2250,7 @@ function slotBarColor(status: string) {
         <div v-if="activePanel === 'equipment'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs lg:hidden" @click="backToMenu">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}

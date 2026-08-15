@@ -1299,6 +1299,7 @@
     "markUnpaid": "علامت‌گذاری به‌عنوان پرداخت‌نشده",
     "sendPayLink": "ارسال لینک پرداخت",
     "payCash": "پرداخت نقدی",
+    "deskConfirmTitle": "تایید رزرو میز",
     "refundToWalletCheck": "مبلغ سانس‌های لغو شده به کیف پول کاربر اضافه شود.",
     "cancelledSessions": "سانس‌های لغو شده",
     "confirmNote": "ثبت یادداشت",

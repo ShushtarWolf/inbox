@@ -1734,10 +1734,10 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9) — closed: date + FABs in one row, no overlay on cells */
+  /* Canva multi-court today grid (home page 9) — date centered; FABs sit beside court cells */
   .canva-cal-date-nav {
-    @apply relative mb-2 grid min-h-[4.75rem] items-center gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
-    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+    @apply relative mb-2 grid min-h-[4.75rem] items-start gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   }
   .canva-cal-date-nav-gutter {
     min-height: 1px;
@@ -1764,7 +1764,7 @@
     @apply block;
   }
   .canva-cal-fab {
-    @apply z-[2] flex w-full flex-col items-stretch gap-1;
+    @apply z-[2] flex w-auto min-w-[4.75rem] flex-col items-stretch gap-1;
   }
   .canva-cal-fab-btn {
     @apply px-1 py-2 text-[10px] font-bold leading-tight text-white;
