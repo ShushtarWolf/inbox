@@ -1386,6 +1386,7 @@
     "legendNote": "یادداشت",
     "pickDate": "انتخاب تاریخ",
     "guestFullName": "نام و نام خانوادگی",
+    "guestSearchHint": "جستجوی نام/موبایل یا ورود دستی",
     "guestLabel": "مشتری",
     "coachLabel": "مربی",
     "addNote": "افزودن یادداشت",

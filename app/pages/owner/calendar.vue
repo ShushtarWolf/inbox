@@ -487,6 +487,74 @@ const guestFullName = computed({
   },
 })
 
+type GuestSearchHit = { name: string; mobile: string; source: 'user' | 'contact' | 'booking' }
+const guestSuggestions = ref<GuestSearchHit[]>([])
+const guestSearchOpen = ref(false)
+const guestSearchPending = ref(false)
+let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
+let guestSearchRequest = 0
+
+function clearGuestSearch() {
+  if (guestSearchTimer) {
+    clearTimeout(guestSearchTimer)
+    guestSearchTimer = null
+  }
+  guestSuggestions.value = []
+  guestSearchOpen.value = false
+  guestSearchPending.value = false
+}
+
+async function runGuestSearch(raw: string) {
+  const q = raw.trim()
+  if (q.length < 2) {
+    guestSuggestions.value = []
+    guestSearchOpen.value = false
+    guestSearchPending.value = false
+    return
+  }
+  const requestId = ++guestSearchRequest
+  guestSearchPending.value = true
+  guestSearchOpen.value = true
+  try {
+    const res = await $fetch<{ guests: GuestSearchHit[] }>('/api/owner/guests/search', {
+      query: { q },
+    })
+    if (requestId !== guestSearchRequest) return
+    guestSuggestions.value = res.guests || []
+  } catch {
+    if (requestId !== guestSearchRequest) return
+    guestSuggestions.value = []
+  } finally {
+    if (requestId === guestSearchRequest) {
+      guestSearchPending.value = false
+      guestSearchOpen.value = guestSuggestions.value.length > 0
+    }
+  }
+}
+
+function scheduleGuestSearch(raw: string) {
+  if (guestSearchTimer) clearTimeout(guestSearchTimer)
+  guestSearchTimer = setTimeout(() => {
+    void runGuestSearch(raw)
+  }, 250)
+}
+
+function onGuestFullNameInput() {
+  scheduleGuestSearch(guestFullName.value)
+}
+
+function selectGuestSuggestion(guest: GuestSearchHit) {
+  guestFullName.value = guest.name || guestFullName.value
+  if (guest.mobile) form.guestMobile = guest.mobile
+  clearGuestSearch()
+}
+
+function closeGuestSearchSoon() {
+  setTimeout(() => {
+    guestSearchOpen.value = false
+  }, 150)
+}
+
 function detailCoachLabel() {
   const booking = selectedSlotFull.value?.booking
   if (!booking?.coachId) return t('owner.sessionTypeFree')
@@ -713,6 +781,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.guestName = isFree ? '' : (fullSlot.booking?.guestName || '')
   form.guestFamily = isFree ? '' : (fullSlot.booking?.guestFamily || '')
   form.guestMobile = isFree ? '' : (fullSlot.booking?.guestMobile || '')
+  clearGuestSearch()
   const existingMethod = fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH'
   form.paymentMethod = isFree
     ? 'CASH'
@@ -1820,15 +1889,45 @@ function slotBarColor(status: string) {
           </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
             <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
-              <input
-                id="owner-reserve-guest-full"
-                v-model="guestFullName"
-                class="neo-input"
-                autocomplete="name"
-                required
-                :aria-required="true"
-                :placeholder="t('owner.guestFullName')"
-              >
+              <div class="relative">
+                <input
+                  id="owner-reserve-guest-full"
+                  v-model="guestFullName"
+                  class="neo-input"
+                  autocomplete="off"
+                  required
+                  :aria-required="true"
+                  :aria-expanded="guestSearchOpen"
+                  aria-autocomplete="list"
+                  aria-controls="owner-reserve-guest-suggestions"
+                  :placeholder="t('owner.guestSearchHint')"
+                  @input="onGuestFullNameInput"
+                  @focus="onGuestFullNameInput"
+                  @blur="closeGuestSearchSoon"
+                >
+                <div
+                  v-if="guestSearchOpen && (guestSuggestions.length || guestSearchPending)"
+                  id="owner-reserve-guest-suggestions"
+                  class="absolute inset-x-0 top-full z-20 mt-1 max-h-48 overflow-y-auto border border-brand-gray-200 bg-white shadow-sm"
+                  style="border-radius: 2px;"
+                  role="listbox"
+                >
+                  <p v-if="guestSearchPending && !guestSuggestions.length" class="px-3 py-2 text-xs text-brand-gray-500">
+                    {{ t('common.loading') }}
+                  </p>
+                  <button
+                    v-for="(guest, idx) in guestSuggestions"
+                    :key="`${guest.mobile}-${guest.name}-${idx}`"
+                    type="button"
+                    class="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-brand-primary-soft"
+                    role="option"
+                    @mousedown.prevent="selectGuestSuggestion(guest)"
+                  >
+                    <span class="min-w-0 truncate font-bold text-brand-navy">{{ guest.name || '—' }}</span>
+                    <bdi v-if="guest.mobile" dir="ltr" class="shrink-0 tabular-nums text-xs text-brand-gray-600">{{ guest.mobile }}</bdi>
+                  </button>
+                </div>
+              </div>
             </AppFormField>
             <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
               <input
