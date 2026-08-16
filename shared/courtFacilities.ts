@@ -5,7 +5,6 @@ export const COURT_FACILITY_OPTIONS = [
   { slug: 'cafe', nameFa: 'کافه', nameEn: 'Cafe' },
   { slug: 'wifi', nameFa: 'وای‌فای', nameEn: 'Wi-Fi' },
   { slug: 'shop', nameFa: 'فروشگاه', nameEn: 'Pro shop' },
-  { slug: 'lighting', nameFa: 'نورپردازی', nameEn: 'Lighting' },
   { slug: 'ac', nameFa: 'تهویه/سرمایش', nameEn: 'Air conditioning' },
 ] as const
 

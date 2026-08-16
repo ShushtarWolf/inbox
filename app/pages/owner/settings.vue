@@ -63,7 +63,6 @@ const form = reactive({
   sheba: '',
   amenities: [] as string[],
   sessionDurations: [60] as number[],
-  defaultSessionDurationMinutes: 60,
 })
 
 /** Canva radios ۲۴ / ۱۲ / ندارد — maps both cancel + reschedule hours. */
@@ -157,9 +156,10 @@ function applyClubData() {
   form.whatsapp = club.whatsapp || ''
   form.image = club.image || ''
   form.sheba = (club as { sheba?: string | null }).sheba || ''
+  const allowedSlugs = new Set<string>(COURT_FACILITY_OPTIONS.map((item) => item.slug))
   form.amenities = parseFacilitiesJson((club as { amenitiesJson?: string }).amenitiesJson)
+    .filter((slug) => allowedSlugs.has(slug))
   form.sessionDurations = parseSessionDurationsJson((club as { sessionDurationsJson?: string }).sessionDurationsJson)
-  form.defaultSessionDurationMinutes = (club as { defaultSessionDurationMinutes?: number }).defaultSessionDurationMinutes ?? 60
 }
 
 function toggleAmenity(slug: string) {
@@ -177,16 +177,6 @@ function toggleSessionDuration(minutes: number) {
   } else {
     form.sessionDurations = [...form.sessionDurations, minutes].sort((a, b) => a - b)
   }
-  if (!form.sessionDurations.includes(form.defaultSessionDurationMinutes)) {
-    form.defaultSessionDurationMinutes = form.sessionDurations[0] || 60
-  }
-}
-
-function setDefaultDuration(minutes: number) {
-  if (!form.sessionDurations.includes(minutes)) {
-    form.sessionDurations = [...form.sessionDurations, minutes].sort((a, b) => a - b)
-  }
-  form.defaultSessionDurationMinutes = minutes
 }
 
 async function saveCourt(body: Record<string, unknown>) {
@@ -304,7 +294,8 @@ async function save() {
         sheba: form.sheba || null,
         amenitiesJson: JSON.stringify(form.amenities),
         sessionDurationsJson: JSON.stringify(form.sessionDurations),
-        defaultSessionDurationMinutes: form.defaultSessionDurationMinutes,
+        // Calendar grid uses this DB field; keep it synced to the shortest allowed duration.
+        defaultSessionDurationMinutes: form.sessionDurations[0] || 60,
       },
     })
     saveSuccess.value = true
@@ -426,22 +417,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             >
               {{ formatNumber(minutes) }} {{ t('owner.settingsPage.minutes') }}
             </button>
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.defaultSessionDuration') }}</h3>
-            <p class="mt-0.5 text-xs text-brand-gray-600">{{ t('owner.settingsPage.defaultSessionDurationHint') }}</p>
-            <div class="canva-clubs-chip-row mt-2 flex-wrap">
-              <button
-                v-for="minutes in DEFAULT_SESSION_DURATIONS"
-                :key="`def-${minutes}`"
-                type="button"
-                class="canva-chip canva-settings-chip"
-                :class="form.defaultSessionDurationMinutes === minutes ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
-                @click="setDefaultDuration(minutes)"
-              >
-                {{ formatNumber(minutes) }} {{ t('owner.settingsPage.minutes') }}
-              </button>
-            </div>
           </div>
         </div>
 

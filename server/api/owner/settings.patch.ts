@@ -1,5 +1,6 @@
 import type { EquipmentCategory } from '@prisma/client'
 import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
+import { parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
@@ -65,10 +66,14 @@ export default defineEventHandler(async (event) => {
   }
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
   if (body.amenitiesJson !== undefined) data.amenitiesJson = body.amenitiesJson
-  if (body.sessionDurationsJson !== undefined) data.sessionDurationsJson = body.sessionDurationsJson
+  if (body.sessionDurationsJson !== undefined) {
+    data.sessionDurationsJson = body.sessionDurationsJson
+    const durations = parseSessionDurationsJson(body.sessionDurationsJson)
+    data.defaultSessionDurationMinutes = durations[0] || 60
+  }
   if (body.descriptionFa !== undefined) data.descriptionFa = body.descriptionFa?.trim() || null
   if (body.descriptionEn !== undefined) data.descriptionEn = body.descriptionEn?.trim() || null
-  if (body.defaultSessionDurationMinutes !== undefined) {
+  if (body.defaultSessionDurationMinutes !== undefined && body.sessionDurationsJson === undefined) {
     const value = Number(body.defaultSessionDurationMinutes)
     if (!Number.isFinite(value) || value <= 0) {
       throw createError({ statusCode: 400, statusMessage: 'defaultSessionDurationMinutes must be positive' })

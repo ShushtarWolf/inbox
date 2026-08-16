@@ -187,7 +187,6 @@
       "Kids area": "فضای کودک",
       "Recovery area": "فضای ریکاوری",
       "Wi-Fi": "وای‌فای",
-      "Lighting": "نورپردازی",
       "Air conditioning": "تهویه/سرمایش",
       "parking": "پارکینگ",
       "shower": "دوش",
@@ -195,7 +194,6 @@
       "cafe": "کافه",
       "wifi": "وای‌فای",
       "shop": "فروشگاه",
-      "lighting": "نورپردازی",
       "ac": "تهویه/سرمایش"
     }
   },
@@ -1805,8 +1803,6 @@
       "sessionDurations": "مدت سانس‌ها",
       "sessionDurationsHint": "مدت‌های مجاز سانس را انتخاب کنید.",
       "minutes": "دقیقه",
-      "defaultSessionDuration": "مدت پیش‌فرض سانس",
-      "defaultSessionDurationHint": "مدت پیش‌فرض، شبکه تقویم را تعیین می‌کند.",
       "amenities": "امکانات مجموعه",
       "courtsSection": "زمین‌ها",
       "addCourt": "افزودن",
