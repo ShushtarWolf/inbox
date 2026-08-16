@@ -8,6 +8,7 @@ import {
   parseEquipmentSelections,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
+import { findUserIdByPhone } from '../../utils/phoneAuth'
 import {
   notifyBookingConfirmed,
   notifyBookingPaid,
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
   const guestMobile = resolveGuestMobile(body.guestMobile)
+  const linkedUserId = await findUserIdByPhone(guestMobile)
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
@@ -158,6 +160,8 @@ export default defineEventHandler(async (event) => {
           comments: body.comments,
           paymentStatus,
           status: 'CONFIRMED',
+          // Attach to athlete when desk phone matches a registered user; never clear an existing link.
+          ...(linkedUserId ? { userId: linkedUserId } : {}),
         },
       })
       await syncBookingEquipments(tx, existing.id, equipmentItems)
@@ -260,6 +264,7 @@ export default defineEventHandler(async (event) => {
         const booking = await tx.booking.create({
           data: {
             slotId: slot.id,
+            userId: linkedUserId || undefined,
             guestName: body.guestName,
             guestFamily: body.guestFamily,
             guestMobile,
@@ -299,6 +304,7 @@ export default defineEventHandler(async (event) => {
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
     const skipGuest = !phone || Boolean(body.skipNotify)
     const notifyBase = {
+      userId: linkedUserId || undefined,
       phone,
       kind: 'court' as const,
       clubName: clubNotifyName(club),

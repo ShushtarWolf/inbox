@@ -1,5 +1,15 @@
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+
+  // Desk (CLUB) bookings were often created with guestMobile but no userId.
+  // Link them when the athlete opens My Bookings so cancel/reschedule also work.
+  if (user.phone) {
+    await prisma.booking.updateMany({
+      where: { userId: null, guestMobile: user.phone },
+      data: { userId: user.id },
+    })
+  }
+
   const courtBookings = await prisma.booking.findMany({
     where: { userId: user.id },
     include: {

@@ -41,6 +41,14 @@ export async function isPhoneRegistered(phoneRaw: string): Promise<boolean> {
   return Boolean(existing)
 }
 
+/** Link desk/guest bookings to a registered athlete when the mobile matches User.phone. */
+export async function findUserIdByPhone(phoneRaw: string | null | undefined): Promise<string | null> {
+  const phone = normalizeIranPhone(phoneRaw)
+  if (!phone) return null
+  const existing = await prisma.user.findUnique({ where: { phone }, select: { id: true } })
+  return existing?.id ?? null
+}
+
 /**
  * Find an existing phone user who can still accept `role` as a second platform role.
  * Returns null when the phone is free, already has the role, or already has two roles.
