@@ -370,9 +370,15 @@
     @apply flex w-full items-center justify-center bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-gate-btn-primary:disabled {
+    @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 shadow-none hover:brightness-100;
+  }
   .canva-gate-btn-secondary {
     @apply flex w-full items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary backdrop-blur-sm transition hover:bg-brand-primary-soft;
     border-radius: var(--sz-canva-radius);
+  }
+  .canva-gate-btn-secondary:disabled {
+    @apply cursor-not-allowed border-brand-gray-300 text-brand-gray-400 hover:bg-white;
   }
 
   /* Generic square CTA — replaces btn-primary on Canva frames */

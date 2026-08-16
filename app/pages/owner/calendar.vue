@@ -845,7 +845,36 @@ async function confirmDeskPay(mode: 'cash' | 'link') {
 }
 
 function openCommentsForm() {
+  actionError.value = ''
   activePanel.value = 'comments'
+}
+
+async function doSaveNote() {
+  const slot = selectedSlotFull.value
+  if (!slot || saving.value) return
+  const comments = form.comments.trim()
+  if (!comments && !slot.booking) {
+    actionError.value = t('owner.noteRequired')
+    return
+  }
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/slot-note', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        comments,
+      },
+    })
+    closeMenu()
+    clearSelection()
+    await refresh()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
 }
 
 function openSeasonForm() {
@@ -2229,7 +2258,14 @@ function slotBarColor(status: string) {
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button v-if="selectedSlot?.booking || canReserveSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving || (isNewReservation() && !guestFieldsValid())" @click="doReserve">{{ saving ? t('common.loading') : t('owner.confirmNote') }}</button>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="saving || (!form.comments.trim() && !selectedSlot?.booking)"
+              @click="doSaveNote"
+            >
+              {{ saving ? t('common.loading') : t('owner.confirmNote') }}
+            </button>
           </div>
         </div>
 
