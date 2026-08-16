@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
               nameFa: true,
               nameEn: true,
               image: true,
+              status: true,
               _count: { select: { coaches: true } },
             },
           },

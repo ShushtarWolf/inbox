@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
         : {}),
     },
     include: {
-      club: { select: { id: true, slug: true } },
+      club: { select: { id: true, slug: true, status: true } },
     },
   })
 
@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
       createdAt: app.createdAt.toISOString(),
       clubId: app.clubId,
       clubSlug: app.club?.slug || null,
+      clubStatus: app.club?.status || null,
+      alreadyProvisioned: Boolean(app.clubId),
     })),
   }
 })

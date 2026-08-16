@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   }
   await setUserSession(event, { user: toSessionUser(user) })
   await touchLastLogin(user.id)
-  const redirectTo = postLoginRedirectPath(user, locale, returnTo)
+  const redirectTo = await ownerPostLoginRedirect(user, returnTo)
   const { coachProfile, ...rest } = user
   return {
     id: rest.id,

@@ -25,6 +25,7 @@ type AuthUser = {
       nameFa: string
       nameEn: string
       image?: string | null
+      status?: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
       _count?: { coaches?: number }
     }
   }>

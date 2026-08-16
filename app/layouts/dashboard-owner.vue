@@ -110,6 +110,13 @@ function closeMore() {
 }
 
 onMounted(() => fetchAuth())
+
+const activeClubStatus = computed(() => activeMembership.value?.club?.status || null)
+const showPendingBanner = computed(() => {
+  const path = route.path
+  if (path.includes('/owner/pending')) return false
+  return activeClubStatus.value === 'PENDING' || activeClubStatus.value === 'SUSPENDED'
+})
 </script>
 
 <template>
@@ -122,6 +129,15 @@ onMounted(() => fetchAuth())
     hide-mobile-header
     phone-shell
   >
+    <div
+      v-if="showPendingBanner"
+      class="mx-4 mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-950"
+      style="border-radius: 2px;"
+    >
+      <NuxtLink :to="localePath('/owner/pending')" class="underline">
+        {{ activeClubStatus === 'SUSPENDED' ? t('owner.pendingBannerRejected') : t('owner.pendingBanner') }}
+      </NuxtLink>
+    </div>
     <div v-if="showLayoutClubSwitcher" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
         <AppIcon name="apartment" size="sm" />

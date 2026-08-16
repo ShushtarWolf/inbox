@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import type { Role, User } from '@prisma/client'
-import { resolvePostLoginPath } from '#shared/returnTo.ts'
+import { resolvePostLoginPath, sanitizeReturnTo } from '#shared/returnTo.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
 
@@ -30,6 +30,31 @@ export function postLoginRedirectPath(
   void user.locale
   void _locale
   return resolvePostLoginPath(user.role, 'fa', returnTo)
+}
+
+/** If the owner's primary club is still awaiting admin acceptance, send them to /owner/pending. */
+export async function ownerPostLoginRedirect(
+  user: { id: string; role: string; locale?: string | null },
+  returnTo?: string,
+) {
+  const base = postLoginRedirectPath(user, user.locale, returnTo)
+  if (user.role !== 'CLUB_ADMIN') return base
+  if (returnTo && sanitizeReturnTo(returnTo)) {
+    // Explicit deep-link wins (e.g. /owner/setup) unless it is the generic /owner hub.
+    const clean = sanitizeReturnTo(returnTo)!
+    if (clean !== '/owner' && clean !== '/owner/') return base
+  }
+
+  const membership = await prisma.staffMembership.findFirst({
+    where: { userId: user.id, active: true },
+    include: { club: { select: { status: true } } },
+    orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+  })
+  const status = membership?.club.status
+  if (status === 'PENDING' || status === 'SUSPENDED') {
+    return '/owner/pending'
+  }
+  return base
 }
 
 export function toSessionUser(user: {

@@ -3,7 +3,7 @@ import { resolveSmsPhase } from '#shared/sms.ts'
 import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
 import { isOtpBypassPhone } from '../../../utils/otpBypass'
 import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
-import { postLoginRedirectPath, toSessionUser } from '../../../utils/auth'
+import { ownerPostLoginRedirect, toSessionUser } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-request')
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
       bypass: true,
       smsMode: 'bypass' as const,
       smsPhase: resolveSmsPhase(),
-      redirectTo: postLoginRedirectPath(user, user.locale, body.returnTo),
+      redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
     }
   }
 

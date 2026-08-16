@@ -11,6 +11,7 @@ import {
   ownerSetupHandoff,
   sportSlugsForOwner,
 } from '../../../utils/ownerOnboarding'
+import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-verify')
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
       role: user.role,
       locale: user.locale,
       phone,
-      redirectTo: postLoginRedirectPath(user, user.locale, body.returnTo),
+      redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
     }
   }
 
@@ -117,7 +118,7 @@ export default defineEventHandler(async (event) => {
           addressEn: addressFa,
           city,
           ownerId: user.id,
-          status: 'ACTIVE',
+          status: 'PENDING',
           phone: consumed.phone,
           credentialsJson: credentialUrls.length ? JSON.stringify(credentialUrls) : null,
         },
@@ -147,6 +148,16 @@ export default defineEventHandler(async (event) => {
         },
       })
 
+      await createPendingOwnerApplication(tx, {
+        clubId: club.id,
+        clubName: clubNameFa,
+        city,
+        contactName: name,
+        contactEmail: email,
+        contactPhone: consumed.phone,
+        sport: sportKey,
+      })
+
       return { user, club }
     })
 
@@ -159,10 +170,9 @@ export default defineEventHandler(async (event) => {
       locale: result.user.locale,
       phone: result.user.phone,
       clubId: result.club.id,
+      clubStatus: 'PENDING' as const,
       setupHandoff,
-      redirectTo: setupHandoff
-        ? `/owner/setup?handoff=${setupHandoff}`
-        : postLoginRedirectPath(result.user, locale, body.returnTo),
+      redirectTo: '/owner/pending',
     }
   }
 

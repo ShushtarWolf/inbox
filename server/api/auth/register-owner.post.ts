@@ -7,6 +7,7 @@ import {
   ownerSetupHandoff,
   sportSlugsForOwner,
 } from '../../utils/ownerOnboarding'
+import { createPendingOwnerApplication } from '../../utils/ownerSignupApplication'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-owner')
@@ -104,7 +105,7 @@ export default defineEventHandler(async (event) => {
         addressEn: addressEn!,
         city: city!,
         ownerId: user.id,
-        status: 'ACTIVE',
+        status: 'PENDING',
         image: body.clubImage?.trim() || null,
         credentialsJson: body.credentialUrls?.length ? JSON.stringify(body.credentialUrls) : null,
         phone,
@@ -145,16 +146,23 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    await createPendingOwnerApplication(tx, {
+      clubId: club.id,
+      clubName: clubNameFa!,
+      city: city!,
+      contactName: name,
+      contactEmail: email,
+      contactPhone: phone,
+      sport: sportKey,
+    })
+
     return { user, club }
   })
 
   await setUserSession(event, { user: toSessionUser(result.user) })
   await touchLastLogin(result.user.id)
 
-  const redirectBase = postLoginRedirectPath(result.user, locale, body.returnTo)
-  const redirectTo = setupHandoff
-    ? `/owner/setup?handoff=${setupHandoff}`
-    : redirectBase
+  const redirectTo = '/owner/pending'
 
   return {
     id: result.user.id,
@@ -163,6 +171,7 @@ export default defineEventHandler(async (event) => {
     role: result.user.role,
     locale: result.user.locale,
     clubId: result.club.id,
+    clubStatus: 'PENDING' as const,
     setupHandoff,
     redirectTo,
   }

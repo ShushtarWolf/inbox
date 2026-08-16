@@ -19,6 +19,8 @@ type Application = {
   createdAt: string
   clubId: string | null
   clubSlug: string | null
+  clubStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | null
+  alreadyProvisioned: boolean
 }
 
 const applications = ref<Application[]>([])
@@ -30,7 +32,7 @@ const approveTarget = ref<Application | null>(null)
 const ownerEmail = ref('')
 const approving = ref(false)
 const approveError = ref('')
-const approveResult = ref<{ temporaryPassword?: string; ownerEmail?: string; clubSlug?: string } | null>(null)
+const approveResult = ref<{ temporaryPassword?: string; ownerEmail?: string; clubSlug?: string; alreadyProvisioned?: boolean } | null>(null)
 
 const rejectingId = ref<string | null>(null)
 const rejectTarget = ref<Application | null>(null)
@@ -139,16 +141,22 @@ function closeApprove() {
 }
 
 async function confirmApprove() {
-  if (!approveTarget.value || !ownerEmail.value.trim()) {
+  if (!approveTarget.value) return
+  if (!approveTarget.value.alreadyProvisioned && !ownerEmail.value.trim()) {
     approveError.value = t('common.required')
     return
   }
   approving.value = true
   approveError.value = ''
   try {
-    const result = await adminFetch<{ temporaryPassword?: string; ownerEmail: string; clubSlug?: string }>(
+    const result = await adminFetch<{ temporaryPassword?: string; ownerEmail: string; clubSlug?: string; alreadyProvisioned?: boolean }>(
       `/api/admin/clubs/${approveTarget.value.id}/approve`,
-      { method: 'POST', body: { ownerEmail: ownerEmail.value.trim() } },
+      {
+        method: 'POST',
+        body: approveTarget.value.alreadyProvisioned
+          ? {}
+          : { ownerEmail: ownerEmail.value.trim() },
+      },
     )
     approveResult.value = result
     await loadApplications()
@@ -314,6 +322,12 @@ watch(statusFilter, () => {
                 >
                   {{ statusLabel(app.status) }}
                 </span>
+                <div
+                  v-if="app.alreadyProvisioned"
+                  class="mt-1 text-[11px] font-bold text-brand-gray-500"
+                >
+                  {{ t('admin.applicationSignupLinked') }}
+                </div>
               </td>
               <td class="p-3 tabular-nums" dir="ltr">{{ formatDate(app.createdAt) }}</td>
               <td class="p-3 whitespace-nowrap">
@@ -357,7 +371,13 @@ watch(statusFilter, () => {
         <p class="text-start text-xs text-brand-gray-600">{{ approveTarget?.city }} · {{ approveTarget?.sportSlug }}</p>
 
         <template v-if="!approveResult">
-          <AppFormField :label="t('admin.ownerEmail')">
+          <p
+            v-if="approveTarget?.alreadyProvisioned"
+            class="text-start text-xs text-brand-gray-600"
+          >
+            {{ t('admin.approveSignupHint') }}
+          </p>
+          <AppFormField v-else :label="t('admin.ownerEmail')">
             <input
               v-model="ownerEmail"
               type="email"
@@ -389,7 +409,9 @@ watch(statusFilter, () => {
 
         <template v-else>
           <div class="venus-alert-success text-start text-sm">
-            <p class="font-bold">{{ t('admin.approveSuccess') }}</p>
+            <p class="font-bold">
+              {{ approveResult.alreadyProvisioned ? t('admin.approveSignupSuccess') : t('admin.approveSuccess') }}
+            </p>
             <p v-if="approveResult.temporaryPassword" class="mt-2" dir="ltr">
               {{ t('admin.tempPassword') }}: <strong>{{ approveResult.temporaryPassword }}</strong>
             </p>

@@ -1,4 +1,4 @@
-import { findUserForPasswordLogin, toSessionUser, postLoginRedirectPath, touchLastLogin } from '../../utils/auth'
+import { findUserForPasswordLogin, toSessionUser, ownerPostLoginRedirect, touchLastLogin } from '../../utils/auth'
 import { verifySecret } from '../../utils/password'
 import { demoAuthAllowed, isDemoEmail } from '../../utils/demo'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     await setUserSession(event, { user: toSessionUser(user) })
     await touchLastLogin(user.id)
 
-    const target = postLoginRedirectPath(user, 'fa', returnTo)
+    const target = await ownerPostLoginRedirect(user, returnTo)
     const separator = target.includes('?') ? '&' : '?'
     return sendRedirect(event, `${target}${separator}${stamp}`)
   } catch {

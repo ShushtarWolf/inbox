@@ -312,7 +312,7 @@ async function registerWithPassword() {
         },
       })
       await fetchAuth()
-      await showWelcome('owner', data.redirectTo || localePath('/owner/setup'))
+      await showWelcome('owner', data.redirectTo || localePath('/owner/pending'))
       return
     }
 

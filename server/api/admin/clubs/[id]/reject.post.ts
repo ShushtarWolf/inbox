@@ -10,13 +10,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Application not found' })
   }
 
-  const updated = await prisma.clubApplication.update({
-    where: { id },
-    data: { status: 'REJECTED' },
+  const updated = await prisma.$transaction(async (tx) => {
+    if (application.clubId) {
+      await tx.club.update({
+        where: { id: application.clubId },
+        data: { status: 'SUSPENDED' },
+      })
+    }
+
+    return tx.clubApplication.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    })
   })
 
   return {
     id: updated.id,
     status: updated.status,
+    clubId: application.clubId,
   }
 })
