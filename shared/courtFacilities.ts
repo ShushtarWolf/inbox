@@ -54,13 +54,33 @@ export function parseSessionDurationsJson(value: string | null | undefined): num
   }
 }
 
-export function buildHourlyOptions(openHour: number, closeHour: number, stepMinutes = 60): string[] {
+/** Formats minute-of-day as HH:mm; 1440 → 24:00 (midnight close). */
+export function formatMinutesAsTime(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60)
+  const min = totalMinutes % 60
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+}
+
+/**
+ * Hourly (or stepped) clock options from open to close.
+ * By default close is exclusive (start slots). Pass includeClose for end-time selects so e.g. 24:00 appears.
+ */
+export function buildHourlyOptions(
+  openHour: number,
+  closeHour: number,
+  stepMinutes = 60,
+  includeClose = false,
+): string[] {
   const options: string[] = []
   const endTotal = closeHour * 60
   for (let m = openHour * 60; m < endTotal; m += stepMinutes) {
-    const h = Math.floor(m / 60)
-    const min = m % 60
-    options.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`)
+    options.push(formatMinutesAsTime(m))
+  }
+  if (includeClose) {
+    const closeLabel = formatMinutesAsTime(endTotal)
+    if (options[options.length - 1] !== closeLabel) {
+      options.push(closeLabel)
+    }
   }
   return options
 }

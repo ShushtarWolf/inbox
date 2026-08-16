@@ -25,7 +25,10 @@ const { t } = useI18n()
 
 const config = reactive<CourtPricingConfig>(defaultCourtPricingConfig())
 
+/** Start times: exclusive of close (cannot start at midnight close). */
 const timeOptions = computed(() => buildHourlyOptions(props.openHour, props.closeHour))
+/** End times: include close so bands can cover through 24:00. */
+const endTimeOptions = computed(() => buildHourlyOptions(props.openHour, props.closeHour, 60, true))
 
 watch(() => props.modelValue, (value) => {
   const parsed = parseCourtPricingJson(value)
@@ -40,13 +43,16 @@ watch(config, () => {
 
 function addTimeBand() {
   const bands = config.timeBands || []
-  const lastEnd = bands.length ? bands[bands.length - 1]!.endTime : timeOptions.value[0] || '09:00'
-  const startIdx = timeOptions.value.indexOf(lastEnd)
-  const startTime = startIdx >= 0 && startIdx < timeOptions.value.length - 1
-    ? timeOptions.value[startIdx]!
-    : timeOptions.value[0] || '08:00'
-  const endIdx = Math.min(timeOptions.value.length - 1, (startIdx >= 0 ? startIdx : 0) + 2)
-  const endTime = timeOptions.value[endIdx] || '10:00'
+  const starts = timeOptions.value
+  const ends = endTimeOptions.value
+  const lastEnd = bands.length ? bands[bands.length - 1]!.endTime : starts[0] || '09:00'
+  const startIdx = starts.indexOf(lastEnd)
+  const startTime = startIdx >= 0 && startIdx < starts.length
+    ? starts[startIdx]!
+    : starts[0] || '08:00'
+  const endFromStart = ends.indexOf(startTime)
+  const endIdx = Math.min(ends.length - 1, (endFromStart >= 0 ? endFromStart : 0) + 2)
+  const endTime = ends[endIdx] || '10:00'
   config.timeBands = [
     ...bands,
     {
@@ -72,8 +78,11 @@ function updateBand(index: number, patch: Partial<CourtTimeBand>) {
 }
 
 function endOptionsFor(startTime: string) {
-  const startIdx = timeOptions.value.indexOf(startTime)
-  return timeOptions.value.filter((_, idx) => idx > startIdx)
+  const startIdx = endTimeOptions.value.indexOf(startTime)
+  if (startIdx < 0) {
+    return endTimeOptions.value.filter((time) => time > startTime)
+  }
+  return endTimeOptions.value.filter((_, idx) => idx > startIdx)
 }
 </script>
 
@@ -180,7 +189,7 @@ function endOptionsFor(startTime: string) {
         <label class="block text-xs">
           <span class="mb-1 block font-bold">{{ t('owner.seasonPage.endTime') }}</span>
           <select v-model="config.offPeakDiscount.endTime" class="neo-select">
-            <option v-for="time in timeOptions" :key="`off-end-${time}`" :value="time">{{ time }}</option>
+            <option v-for="time in endTimeOptions" :key="`off-end-${time}`" :value="time">{{ time }}</option>
           </select>
         </label>
         <label class="block text-xs">
