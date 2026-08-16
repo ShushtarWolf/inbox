@@ -110,11 +110,17 @@ onMounted(() => {
           </NuxtLink>
         </div>
       </div>
-      <div class="canva-promo-badge pointer-events-none" :title="t('athlete.homePromoCodeHint')" aria-hidden="true">
+      <div
+        class="canva-promo-badge canva-promo-badge-offer pointer-events-none"
+        :title="t('athlete.homePromoCodeHint')"
+        role="note"
+        :aria-label="t('athlete.homePromo')"
+      >
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('athlete.homePromoShort') }}</span>
+        <span class="canva-promo-badge-code">STUDENT20</span>
       </div>
-      <div class="canva-photo-hero-body !min-h-[10.5rem]">
+      <div class="canva-photo-hero-body canva-photo-hero-body-with-offer !min-h-[10.5rem]">
         <h1 class="canva-page-hero-title text-2xl">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
         <p class="mt-1 text-sm text-white/85">{{ t('athlete.homePickCourt') }}</p>
       </div>

@@ -1711,6 +1711,20 @@
     min-width: 3.25rem;
     line-height: 1.1;
   }
+  /* Athlete home: keep offer on the opposite side from RTL greeting (text-start). */
+  .canva-promo-badge-offer {
+    inset-inline-start: auto;
+    inset-inline-end: 0.75rem;
+    bottom: 1.1rem;
+    min-width: 3.75rem;
+    padding-inline: 0.55rem;
+  }
+  .canva-promo-badge-code {
+    @apply mt-0.5 text-[8px] font-bold leading-none tracking-wide opacity-95;
+  }
+  .canva-photo-hero-body-with-offer {
+    padding-inline-end: 4.75rem;
+  }
   .canva-promo-badge-hero {
     @apply items-start bg-transparent px-0 py-0 text-start text-brand-primary;
     inset-inline-start: 0.85rem;
