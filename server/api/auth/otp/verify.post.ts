@@ -3,7 +3,11 @@ import { phoneToSyntheticEmail } from '#shared/phone.ts'
 import { assignAddedRole, type PlatformRole } from '#shared/roles.ts'
 import { uniqueClubSlug } from '../../../utils/slug'
 import { consumePhoneOtp } from '../../../utils/otp'
-import { findUserForAdditionalRole, findUserForPhoneOtp } from '../../../utils/phoneAuth'
+import {
+  findUserForAdditionalRole,
+  findUserForPhoneOtp,
+  linkOrphanBookingsByPhone,
+} from '../../../utils/phoneAuth'
 import { enforceOtpVerifyPhoneLimit } from '../../../utils/rateLimit'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
@@ -55,6 +59,7 @@ export default defineEventHandler(async (event) => {
         lastLoginAt: new Date(),
       },
     })
+    await linkOrphanBookingsByPhone(updated.id, phone)
     await setUserSession(event, { user: toSessionUser(updated) })
     return {
       id: updated.id,
@@ -262,6 +267,7 @@ export default defineEventHandler(async (event) => {
 
   if (existing) {
     const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { name }))
+    await linkOrphanBookingsByPhone(user.id, user.phone || consumed.phone)
     await setUserSession(event, { user: toSessionUser(user) })
     return {
       id: user.id,
@@ -287,6 +293,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  await linkOrphanBookingsByPhone(user.id, consumed.phone)
   await setUserSession(event, { user: toSessionUser(user) })
   return {
     id: user.id,

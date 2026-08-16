@@ -1,4 +1,4 @@
-import { normalizeIranPhone } from '#shared/phone.ts'
+import { iranPhoneStorageVariants, normalizeIranPhone } from '#shared/phone.ts'
 import { canAddRole, hasRole, type PlatformRole } from '#shared/roles.ts'
 import type { User } from '@prisma/client'
 
@@ -47,6 +47,23 @@ export async function findUserIdByPhone(phoneRaw: string | null | undefined): Pr
   if (!phone) return null
   const existing = await prisma.user.findUnique({ where: { phone }, select: { id: true } })
   return existing?.id ?? null
+}
+
+/**
+ * Attach orphan desk bookings (guestMobile set, userId null) to this user.
+ * Matches common phone spellings so legacy rows still appear in My Bookings.
+ */
+export async function linkOrphanBookingsByPhone(
+  userId: string,
+  phoneRaw: string | null | undefined,
+): Promise<number> {
+  const variants = iranPhoneStorageVariants(phoneRaw)
+  if (!variants.length) return 0
+  const result = await prisma.booking.updateMany({
+    where: { userId: null, guestMobile: { in: variants } },
+    data: { userId },
+  })
+  return result.count
 }
 
 /**

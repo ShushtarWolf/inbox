@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { isSyntheticPhoneEmail, normalizeIranPhone, phoneToSyntheticEmail } from './phone'
+import {
+  iranPhoneStorageVariants,
+  isSyntheticPhoneEmail,
+  normalizeIranPhone,
+  phoneToSyntheticEmail,
+} from './phone'
 
 describe('normalizeIranPhone', () => {
   it('accepts local 09 format', () => {
@@ -11,9 +16,25 @@ describe('normalizeIranPhone', () => {
     expect(normalizeIranPhone('989123456789')).toBe('09123456789')
   })
 
+  it('accepts Persian digits', () => {
+    expect(normalizeIranPhone('۰۹۱۲۳۴۵۶۷۸۹')).toBe('09123456789')
+  })
+
   it('rejects invalid numbers', () => {
     expect(normalizeIranPhone('123')).toBeNull()
     expect(normalizeIranPhone('08123456789')).toBeNull()
+  })
+})
+
+describe('iranPhoneStorageVariants', () => {
+  it('includes common storage forms for matching guestMobile', () => {
+    const variants = iranPhoneStorageVariants('09123456789')
+    expect(variants).toEqual(expect.arrayContaining([
+      '09123456789',
+      '9123456789',
+      '989123456789',
+      '+989123456789',
+    ]))
   })
 })
 
