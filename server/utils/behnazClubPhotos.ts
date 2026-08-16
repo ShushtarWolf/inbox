@@ -16,6 +16,7 @@ import {
   PILOT_CLUB_SLUG,
   PILOT_COURT_COUNT,
   PILOT_COURT_PRICE,
+  PILOT_OWNER_PHONE,
   PILOT_SPORT_SLUG,
 } from '#shared/pilotClub.ts'
 
@@ -56,6 +57,35 @@ export async function syncPilotClubIdentity(db: Db, clubId: string) {
     ...(slugTaken ? {} : { slug: PILOT_CLUB_SLUG }),
   }
   return db.club.update({ where: { id: clubId }, data })
+}
+
+/** Set club owner User.phone so OTP login matches the real club number. */
+export async function syncPilotOwnerPhone(db: Db, clubId: string) {
+  const club = await db.club.findUnique({
+    where: { id: clubId },
+    select: { ownerId: true, owner: { select: { id: true, phone: true } } },
+  })
+  if (!club?.ownerId) {
+    return { ownerId: null as string | null, phone: PILOT_OWNER_PHONE, updated: false }
+  }
+  if (club.owner?.phone === PILOT_OWNER_PHONE) {
+    return { ownerId: club.ownerId, phone: PILOT_OWNER_PHONE, updated: false }
+  }
+  const taken = await db.user.findUnique({
+    where: { phone: PILOT_OWNER_PHONE },
+    select: { id: true },
+  })
+  if (taken && taken.id !== club.ownerId) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: `Phone ${PILOT_OWNER_PHONE} already belongs to another user`,
+    })
+  }
+  await db.user.update({
+    where: { id: club.ownerId },
+    data: { phone: PILOT_OWNER_PHONE, phoneVerifiedAt: new Date() },
+  })
+  return { ownerId: club.ownerId, phone: PILOT_OWNER_PHONE, updated: true }
 }
 
 /** Ensure Courts 1–3 exist with covers (tennis when available). */
@@ -128,6 +158,7 @@ export async function applyPilotCourtPhotos(db: Db, clubId: string) {
 /** Full MVP sync: identity + 3 courts + gallery. */
 export async function syncPilotClub(db: Db, clubId: string) {
   const club = await syncPilotClubIdentity(db, clubId)
+  const ownerPhone = await syncPilotOwnerPhone(db, clubId)
   const courts = await ensurePilotCourts(db, clubId)
   const media = await applyPilotCourtPhotos(db, clubId)
   return {
@@ -136,8 +167,10 @@ export async function syncPilotClub(db: Db, clubId: string) {
       slug: club.slug,
       nameFa: club.nameFa,
       nameEn: club.nameEn,
+      phone: club.phone,
       image: club.image,
     },
+    ownerPhone,
     courts,
     media,
     cover: PILOT_COURT_1_COVER,
