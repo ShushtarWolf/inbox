@@ -204,6 +204,9 @@ watch(
           <p class="text-xs text-brand-gray-600">
             {{ isTestPayments ? t('athlete.walletTopUpTestHint') : t('athlete.walletTopUpHint') }}
           </p>
+          <p class="text-xs font-bold text-red-600" role="note">
+            {{ t('athlete.walletTopUpPayoutNotice') }}
+          </p>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="amount in presets"
