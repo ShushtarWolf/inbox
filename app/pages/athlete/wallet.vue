@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { WALLET_TOPUP_PRESETS_IRR, WALLET_TOPUP_MIN_IRR, WALLET_TOPUP_MAX_IRR } from '#shared/walletTopUp.ts'
+import { isValidSheba } from '#shared/settlement.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { formatCurrency, formatDate } = useFormatters()
@@ -17,7 +19,15 @@ const toppingUp = ref(false)
 const flash = ref('')
 const flashTone = ref<'success' | 'error'>('success')
 
+const shebaInput = ref('')
+const withdrawAmount = ref('')
+const payoutBusy = ref(false)
+
 const presets = WALLET_TOPUP_PRESETS_IRR
+
+watch(data, (value) => {
+  if (value?.sheba) shebaInput.value = value.sheba
+}, { immediate: true })
 
 const topUpAmount = computed(() => {
   if (selectedPreset.value != null) return selectedPreset.value
@@ -39,6 +49,9 @@ function txLabel(tx: { type?: string; amount: number }) {
   if (tx.type === 'REFUND_CREDIT') return t('athlete.walletTypeRefund')
   if (tx.type === 'PAYMENT_DEBIT') return t('athlete.walletTypePayment')
   if (tx.type === 'TOPUP_CREDIT') return t('athlete.walletTypeTopUp')
+  if (tx.type === 'WITHDRAW_HOLD') return t('athlete.walletTypeWithdrawHold')
+  if (tx.type === 'WITHDRAW_RELEASE') return t('athlete.walletTypeWithdrawRelease')
+  if (tx.type === 'WITHDRAW_PAID') return t('athlete.walletTypeWithdrawPaid')
   if (tx.type === 'ADJUSTMENT') return t('athlete.walletTypeAdjustment')
   return tx.amount > 0 ? t('athlete.walletCredit') : t('athlete.walletDebit')
 }
@@ -76,6 +89,67 @@ async function startTopUp() {
     flash.value = fetchErrorMessage(err, t('athlete.walletTopUpFailed'))
   } finally {
     toppingUp.value = false
+  }
+}
+
+async function saveSheba() {
+  flash.value = ''
+  payoutBusy.value = true
+  try {
+    const raw = shebaInput.value.trim()
+    if (raw && !isValidSheba(raw)) {
+      flashTone.value = 'error'
+      flash.value = t('athlete.shebaInvalid')
+      return
+    }
+    await $fetch('/api/wallet/sheba', {
+      method: 'PATCH',
+      body: { sheba: raw || null },
+    })
+    flashTone.value = 'success'
+    flash.value = t('athlete.shebaSaved')
+    await refresh()
+  } catch (err: unknown) {
+    flashTone.value = 'error'
+    flash.value = fetchErrorMessage(err, t('athlete.shebaInvalid'))
+  } finally {
+    payoutBusy.value = false
+  }
+}
+
+async function requestWithdraw() {
+  flash.value = ''
+  if (!data.value?.sheba) {
+    flashTone.value = 'error'
+    flash.value = t('athlete.withdrawNeedSheba')
+    return
+  }
+  const amount = Number(String(withdrawAmount.value).replace(/[^\d]/g, ''))
+  if (!Number.isFinite(amount) || amount <= 0) {
+    flashTone.value = 'error'
+    flash.value = t('athlete.withdrawInvalidAmount')
+    return
+  }
+  if (amount > (data.value.balance || 0)) {
+    flashTone.value = 'error'
+    flash.value = t('athlete.withdrawInsufficient')
+    return
+  }
+  payoutBusy.value = true
+  try {
+    await $fetch('/api/wallet/withdraw', {
+      method: 'POST',
+      body: { amount },
+    })
+    flashTone.value = 'success'
+    flash.value = t('athlete.withdrawSuccess')
+    withdrawAmount.value = ''
+    await refresh()
+  } catch (err: unknown) {
+    flashTone.value = 'error'
+    flash.value = fetchErrorMessage(err, t('athlete.withdrawFailed'))
+  } finally {
+    payoutBusy.value = false
   }
 }
 
@@ -164,6 +238,64 @@ watch(
             {{ toppingUp ? t('common.loading') : t('athlete.walletTopUpCta') }}
           </button>
         </template>
+      </section>
+
+      <section class="canva-panel space-y-3 text-start">
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
+        <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">
+          <input
+            id="wallet-sheba"
+            v-model="shebaInput"
+            dir="ltr"
+            class="neo-input bg-white/95 font-mono text-sm"
+            :placeholder="t('athlete.shebaPlaceholder')"
+          />
+        </AppFormField>
+        <button
+          type="button"
+          class="canva-gate-btn-secondary w-full"
+          :disabled="payoutBusy"
+          @click="saveSheba"
+        >
+          {{ t('athlete.shebaSave') }}
+        </button>
+        <p v-if="!data?.sheba" class="text-xs text-brand-primary">{{ t('athlete.shebaRequired') }}</p>
+        <AppFormField field-id="wallet-withdraw-amount" :label="t('athlete.withdrawAmount')">
+          <input
+            id="wallet-withdraw-amount"
+            v-model="withdrawAmount"
+            dir="ltr"
+            inputmode="numeric"
+            class="neo-input bg-white/95 tabular-nums"
+            :disabled="!data?.sheba"
+            :placeholder="t('athlete.withdrawAmountPlaceholder')"
+          />
+        </AppFormField>
+        <button
+          type="button"
+          class="canva-gate-btn-primary w-full"
+          :disabled="payoutBusy || !data?.sheba || !withdrawAmount"
+          @click="requestWithdraw"
+        >
+          {{ t('athlete.withdrawRequest') }}
+        </button>
+        <p class="text-xs text-brand-gray-600">
+          <NuxtLink :to="localePath('/cancellation')" class="underline">
+            {{ t('athlete.withdrawCancelPolicyLink') }}
+          </NuxtLink>
+        </p>
+        <div v-if="data?.pendingWithdraws?.length" class="space-y-2">
+          <p class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawPending') }}</p>
+          <div
+            v-for="req in data.pendingWithdraws"
+            :key="req.id"
+            class="flex items-center justify-between gap-2 border border-brand-gray-200 bg-white px-3 py-2 text-sm"
+          >
+            <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(req.amount) }}</span>
+            <span class="text-brand-gray-600">{{ t('athlete.withdrawPending') }}</span>
+          </div>
+        </div>
       </section>
 
       <div class="space-y-2">

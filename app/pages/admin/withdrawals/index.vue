@@ -7,8 +7,10 @@ const { secret, clearSecret, adminFetch } = useAdminSecret()
 const { formatCurrency, formatDate } = useFormatters()
 
 type WithdrawStatus = 'PENDING' | 'PAID' | 'REJECTED'
+type KindFilter = 'club' | 'athlete'
 
-type WithdrawRow = {
+type ClubWithdrawRow = {
+  kind: 'club'
   id: string
   amount: number
   shebaSnapshot: string
@@ -20,6 +22,22 @@ type WithdrawRow = {
   club: { id: string; slug: string; nameFa: string; sheba: string | null }
 }
 
+type AthleteWithdrawRow = {
+  kind: 'athlete'
+  id: string
+  amount: number
+  shebaSnapshot: string
+  status: WithdrawStatus
+  note: string | null
+  createdAt: string
+  paidAt: string | null
+  rejectedAt: string | null
+  user: { id: string; name: string; email: string; phone: string | null; sheba: string | null }
+}
+
+type WithdrawRow = ClubWithdrawRow | AthleteWithdrawRow
+
+const kindFilter = ref<KindFilter>('athlete')
 const statusFilter = ref<'ALL' | WithdrawStatus>('PENDING')
 const requests = ref<WithdrawRow[]>([])
 const pending = ref(false)
@@ -49,8 +67,17 @@ async function load() {
   actionError.value = ''
   try {
     const params = new URLSearchParams({ status: statusFilter.value })
-    const data = await adminFetch<{ requests: WithdrawRow[] }>(`/api/admin/withdrawals?${params}`)
-    requests.value = data.requests
+    if (kindFilter.value === 'athlete') {
+      const data = await adminFetch<{ requests: Omit<AthleteWithdrawRow, 'kind'>[] }>(
+        `/api/admin/athlete-withdrawals?${params}`,
+      )
+      requests.value = data.requests.map((row) => ({ ...row, kind: 'athlete' as const }))
+    } else {
+      const data = await adminFetch<{ requests: Omit<ClubWithdrawRow, 'kind'>[] }>(
+        `/api/admin/withdrawals?${params}`,
+      )
+      requests.value = data.requests.map((row) => ({ ...row, kind: 'club' as const }))
+    }
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 403) {
@@ -69,7 +96,10 @@ async function act(row: WithdrawRow, action: 'paid' | 'reject') {
   actionId.value = row.id
   actionError.value = ''
   try {
-    await adminFetch(`/api/admin/withdrawals/${row.id}`, {
+    const path = row.kind === 'athlete'
+      ? `/api/admin/athlete-withdrawals/${row.id}`
+      : `/api/admin/withdrawals/${row.id}`
+    await adminFetch(path, {
       method: 'POST',
       body: {
         action,
@@ -95,7 +125,7 @@ watch(secret, (value) => {
   if (value) load()
 }, { immediate: true })
 
-watch(statusFilter, () => {
+watch([statusFilter, kindFilter], () => {
   if (secret.value) load()
 })
 </script>
@@ -119,6 +149,19 @@ watch(statusFilter, () => {
     </div>
 
     <p class="text-sm text-brand-gray-600 text-start">{{ t('admin.withdrawalsManualNote') }}</p>
+
+    <div class="flex flex-wrap gap-2">
+      <button
+        v-for="option in (['athlete', 'club'] as const)"
+        :key="option"
+        type="button"
+        :class="[chipBase, kindFilter === option ? chipActive : chipIdle]"
+        style="border-radius: 2px;"
+        @click="kindFilter = option"
+      >
+        {{ option === 'athlete' ? t('admin.withdrawalsKindAthlete') : t('admin.withdrawalsKindClub') }}
+      </button>
+    </div>
 
     <div class="flex flex-wrap gap-2">
       <button
@@ -154,7 +197,9 @@ watch(statusFilter, () => {
           <thead>
             <tr class="border-b border-brand-gray-100 text-start">
               <th class="p-3 font-bold">{{ t('common.date') }}</th>
-              <th class="p-3 font-bold">{{ t('admin.clubName') }}</th>
+              <th class="p-3 font-bold">
+                {{ kindFilter === 'athlete' ? t('admin.userName') : t('admin.clubName') }}
+              </th>
               <th class="p-3 font-bold">{{ t('admin.amount') }}</th>
               <th class="p-3 font-bold">{{ t('admin.withdrawSheba') }}</th>
               <th class="p-3 font-bold">{{ t('admin.status') }}</th>
@@ -162,18 +207,24 @@ watch(statusFilter, () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in requests" :key="row.id" class="border-b border-brand-gray-50">
+            <tr v-for="row in requests" :key="`${row.kind}-${row.id}`" class="border-b border-brand-gray-50">
               <td class="p-3 tabular-nums whitespace-nowrap" dir="ltr">
                 {{ formatDate(row.createdAt) }}
               </td>
               <td class="p-3">
-                <NuxtLink
-                  :to="localePath(`/admin/clubs/${row.club.id}`)"
-                  class="font-bold text-brand-navy underline"
-                >
-                  {{ row.club.nameFa }}
-                </NuxtLink>
-                <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.club.slug }}</div>
+                <template v-if="row.kind === 'club'">
+                  <NuxtLink
+                    :to="localePath(`/admin/clubs/${row.club.id}`)"
+                    class="font-bold text-brand-navy underline"
+                  >
+                    {{ row.club.nameFa }}
+                  </NuxtLink>
+                  <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.club.slug }}</div>
+                </template>
+                <template v-else>
+                  <span class="font-bold text-brand-navy">{{ row.user.name }}</span>
+                  <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.user.phone || row.user.email }}</div>
+                </template>
               </td>
               <td class="p-3 tabular-nums" dir="ltr">{{ formatCurrency(row.amount) }}</td>
               <td class="p-3 font-mono text-xs" dir="ltr">{{ row.shebaSnapshot }}</td>

@@ -94,6 +94,7 @@ async function wipe() {
       await tx.settlementLedgerEntry.deleteMany()
       await tx.withdrawRequest.deleteMany()
       await tx.clubWallet.deleteMany()
+      await tx.userWithdrawRequest.deleteMany()
 
       // Detach user FKs that lack onDelete Cascade / SetNull
       await tx.club.updateMany({ data: { ownerId: null } })

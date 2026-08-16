@@ -106,13 +106,21 @@ Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PEN
 | Cash / wallet marked `PAID` | Wallet credit |
 | Unpaid (`PAY_AT_CLUB` / `PENDING_ONLINE`) | No refund |
 
+**Cash-out path after wallet credit:** athlete sets SHEBA on `/athlete/wallet`, submits a withdraw request; ops pays via manual bank transfer and marks paid in `/admin/withdrawals` (ورزشکار tab). Same manual rail as club settlement.
+
 Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 ## Club settlement / owner withdraw
 
 Owner wallet credits on collected payments (`PLATFORM_COMMISSION_BPS`, default `1000` = 10%). Owner sets SHEBA and submits a **withdraw request**; ops pays via manual bank transfer, then marks **paid** (or **reject**) in `/admin/withdrawals`. No automated payout rail.
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied `20260729120000_club_settlement` (ClubSettlement ledger + WithdrawRequest). Optional env: `PLATFORM_COMMISSION_BPS=1000`.
+On Liara after deploy: ensure `prisma migrate deploy` has applied club settlement + `20260816160000_user_wallet_withdraw` (User.sheba, UserWithdrawRequest, wallet WITHDRAW_* types). Optional env: `PLATFORM_COMMISSION_BPS=1000`.
+
+## Athlete wallet withdraw
+
+1. `PATCH /api/wallet/sheba` `{ sheba }` — validate Iranian IBAN
+2. `POST /api/wallet/withdraw` `{ amount }` — holds balance (`WITHDRAW_HOLD`) + `UserWithdrawRequest` PENDING
+3. Admin marks paid (`WITHDRAW_PAID`) or reject (releases balance via `WITHDRAW_RELEASE`)
 
 ## Webhooks
 

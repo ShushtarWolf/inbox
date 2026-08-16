@@ -63,6 +63,7 @@ export async function wipeCatalog() {
       await tx.settlementLedgerEntry.deleteMany()
       await tx.withdrawRequest.deleteMany()
       await tx.clubWallet.deleteMany()
+      await tx.userWithdrawRequest.deleteMany()
       await tx.supportTicketMessage.deleteMany()
       await tx.supportTicket.deleteMany()
 

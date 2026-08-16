@@ -23,6 +23,7 @@ export async function creditWallet(
     type?: WalletTransactionType
     paymentId?: string
     bookingId?: string
+    withdrawRequestId?: string
     note?: string
   },
   db: DbClient = prisma,
@@ -52,6 +53,7 @@ export async function creditWallet(
       type,
       paymentId: meta.paymentId,
       bookingId: meta.bookingId,
+      withdrawRequestId: meta.withdrawRequestId,
       note: meta.note,
     },
   })
@@ -111,6 +113,7 @@ export async function debitWallet(
     type?: WalletTransactionType
     paymentId?: string
     bookingId?: string
+    withdrawRequestId?: string
     note?: string
   },
   db: DbClient = prisma,
@@ -133,6 +136,7 @@ export async function debitWallet(
       type: meta.type || 'PAYMENT_DEBIT',
       paymentId: meta.paymentId,
       bookingId: meta.bookingId,
+      withdrawRequestId: meta.withdrawRequestId,
       note: meta.note,
     },
   })

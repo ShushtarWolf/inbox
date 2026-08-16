@@ -106,6 +106,9 @@ enum WalletTransactionType {
   PAYMENT_DEBIT
   ADJUSTMENT
   TOPUP_CREDIT
+  WITHDRAW_HOLD
+  WITHDRAW_RELEASE
+  WITHDRAW_PAID
 }
 
 enum ClubWalletTransactionType {
@@ -148,6 +151,8 @@ model User {
   avatarUrl     String?
   oauthProvider String?
   oauthSubject  String?
+  /** Iranian SHEBA / IBAN (IR + 24 digits). Required before athlete wallet withdraw. */
+  sheba         String?
   disabledAt    DateTime?
   lastLoginAt   DateTime?
   createdAt     DateTime @default(now())
@@ -168,6 +173,7 @@ model User {
   payments        Payment[]
   bugReports      BugReport[]
   supportTickets  SupportTicket[]
+  withdrawRequests UserWithdrawRequest[]
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -206,12 +212,31 @@ model WalletTransaction {
   note      String?
   createdAt DateTime              @default(now())
 
-  walletId  String
-  wallet    Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  paymentId String?
-  bookingId String?
+  walletId          String
+  wallet            Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  paymentId         String?
+  bookingId         String?
+  withdrawRequestId String?
 
   @@index([walletId, createdAt])
+}
+
+/** Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest. */
+model UserWithdrawRequest {
+  id            String                @id @default(cuid())
+  amount        Int
+  shebaSnapshot String
+  status        WithdrawRequestStatus @default(PENDING)
+  note          String?
+  createdAt     DateTime              @default(now())
+  paidAt        DateTime?
+  rejectedAt    DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model PasswordResetToken {
