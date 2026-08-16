@@ -4,6 +4,8 @@ import {
   extractOtpToken,
   kavenegarSmsProvider,
   resolveNotifyLookupTemplate,
+  TOKEN10_MAX,
+  TOKEN10_MAX_SPACES,
   toKavenegarToken10,
 } from './kavenegar'
 import { getRegisteredSmsProvider } from '../registry'
@@ -20,9 +22,33 @@ describe('extractOtpToken', () => {
 })
 
 describe('toKavenegarToken10', () => {
-  it('collapses newlines and truncates', () => {
-    expect(toKavenegarToken10('a\nb\nc')).toBe('a | b | c')
-    expect(toKavenegarToken10('x'.repeat(120)).length).toBeLessThanOrEqual(100)
+  it('strips punctuation, packs to ≤5 spaces, and truncates without ellipsis', () => {
+    const out = toKavenegarToken10('a\nb\nc | d | e | f | g | h')
+    expect(out).not.toMatch(/[|#*…]/)
+    expect((out.match(/ /g) || []).length).toBeLessThanOrEqual(TOKEN10_MAX_SPACES)
+    expect(out.length).toBeLessThanOrEqual(TOKEN10_MAX)
+    expect(toKavenegarToken10('x'.repeat(120)).length).toBeLessThanOrEqual(TOKEN10_MAX)
+    expect(toKavenegarToken10('x'.repeat(120))).not.toContain('…')
+  })
+
+  it('accepts the prod admin club-application body that Kavenegar rejected with 431', () => {
+    const body =
+      'درخواست باشگاه | IInboxSS | تهران | IInboxSS | ۰۹۱۲۸۳۲۸۳۸۰ | اقدام در ادمین | اینباکس'
+    const out = toKavenegarToken10(body)
+    expect(out.length).toBeGreaterThan(0)
+    expect(out.length).toBeLessThanOrEqual(TOKEN10_MAX)
+    expect((out.match(/ /g) || []).length).toBeLessThanOrEqual(TOKEN10_MAX_SPACES)
+    expect(out).toMatch(/IInboxSS/)
+    expect(out).toMatch(/اینباکس|ادمین|تهران|درخواست/)
+  })
+
+  it('strips fa-IR thousand separators from withdraw amounts', () => {
+    const body =
+      'برداشت ورزشکار | الهه ربیعی | ۵۰٬۰۰۰ تومان | شبا ۹۲۰۱ | اقدام در ادمین | اینباکس'
+    const out = toKavenegarToken10(body)
+    expect(out).not.toContain('٬')
+    expect(out).not.toContain('|')
+    expect((out.match(/ /g) || []).length).toBeLessThanOrEqual(TOKEN10_MAX_SPACES)
   })
 })
 
@@ -32,20 +58,15 @@ describe('chunkSmsBodyForToken10', () => {
   })
 
   it('splits long multi-line digests so each chunk fits token10', () => {
-    const body = [
-      'یادآوری رزرو — باشگاه بهناز',
-      'تاریخ: ۱۴۰۵/۰۵/۲۵',
-      '• زمین ۱ | ۰۹:۰۰–۱۰:۰۰ | علی رضایی',
-      '• زمین ۱ | ۱۰:۰۰–۱۱:۰۰ | سارا محمدی',
-      '• زمین ۲ | ۱۸:۰۰–۱۹:۰۰ | حمید افقه',
-      '• زمین ۳ | ۱۹:۰۰–۲۰:۰۰ | مهمان (۰۹۱۲۱۲۳۴۵۶۷)',
-      'جمع: ۴ رزرو',
-      'اینباکس',
-    ].join('\n')
+    const body = Array.from({ length: 12 }, (_, i) =>
+      `رزرو زمین شماره ${i + 1} مهمان طولانی نام خانوادگی تست ${i + 1}`,
+    ).join('\n')
     const chunks = chunkSmsBodyForToken10(body)
     expect(chunks.length).toBeGreaterThan(1)
     for (const chunk of chunks) {
-      expect(toKavenegarToken10(chunk).length).toBeLessThanOrEqual(100)
+      const token = toKavenegarToken10(chunk)
+      expect(token.length).toBeLessThanOrEqual(TOKEN10_MAX)
+      expect((token.match(/ /g) || []).length).toBeLessThanOrEqual(TOKEN10_MAX_SPACES)
     }
   })
 })

@@ -11,6 +11,12 @@ export const DEFAULT_NOTIFY_LOOKUP_TEMPLATE = 'inbox-notify'
 /** Kavenegar token10 practical limit (UTF-8 Persian). */
 export const TOKEN10_MAX = 100
 
+/**
+ * Kavenegar Verify Lookup `token10` allows at most 5 spaces
+ * (docs: letters/digits + ≤5 spaces, ≤100 chars). Excess → API 431.
+ */
+export const TOKEN10_MAX_SPACES = 5
+
 type KavenegarResponse = {
   return?: { status?: number; message?: string }
   entries?: Array<{ messageid?: number | string }>
@@ -27,27 +33,58 @@ export function resolveNotifyLookupTemplate(): string {
   return process.env.KAVENEGAR_TEMPLATE_NOTIFY?.trim() || DEFAULT_NOTIFY_LOOKUP_TEMPLATE
 }
 
-/**
- * Sanitize + truncate for Kavenegar Verify Lookup `token10`
- * (spaces OK; avoid # * ; collapse newlines).
- */
-export function toKavenegarToken10(body: string): string {
-  const cleaned = body
-    .replace(/[\r\n]+/g, ' | ')
-    .replace(/[#*]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  if (cleaned.length <= TOKEN10_MAX) return cleaned
-  return `${cleaned.slice(0, TOKEN10_MAX - 1).trim()}…`
+/** Pack words so the joined string has ≤ TOKEN10_MAX_SPACES spaces. */
+function packToken10Words(words: string[]): string[] {
+  const maxParts = TOKEN10_MAX_SPACES + 1
+  const parts = [...words]
+  while (parts.length > maxParts) {
+    const b = parts.pop()!
+    const a = parts.pop()!
+    parts.push(`${a}${b}`)
+  }
+  return parts
 }
 
-/** Split a multi-line SMS so each part fits Verify Lookup token10 after newline collapse. */
+/**
+ * Letters/digits only + ≤5 spaces — no truncate.
+ * Used to decide chunk boundaries before the 100-char cut.
+ */
+export function prepareKavenegarToken10(body: string): string {
+  const words = body
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+
+  if (!words.length) return ''
+  return packToken10Words(words).join(' ')
+}
+
+/**
+ * Sanitize + truncate for Kavenegar Verify Lookup `token10`.
+ * Panel rule: Persian/English letters + digits only, ≤5 spaces, ≤100 chars.
+ * Punctuation (`|`, `٬`, `«»`, `/`, …) and extra spaces cause API 431.
+ */
+export function toKavenegarToken10(body: string): string {
+  let joined = prepareKavenegarToken10(body)
+  if (joined.length <= TOKEN10_MAX) return joined
+
+  // Hard cut — do not append ellipsis/punctuation (also rejected by Kavenegar).
+  joined = joined.slice(0, TOKEN10_MAX).trim()
+  joined = packToken10Words(joined.split(/\s+/).filter(Boolean)).join(' ')
+  if (joined.length > TOKEN10_MAX) joined = joined.slice(0, TOKEN10_MAX).trim()
+  return joined
+}
+
+/** Split a multi-line SMS so each part fits Verify Lookup token10 after sanitize. */
 export function chunkSmsBodyForToken10(body: string, max = TOKEN10_MAX): string[] {
   const lines = body.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
   if (!lines.length) return []
 
-  const previewLen = (parts: string[]) =>
-    parts.join(' | ').replace(/[#*]+/g, ' ').replace(/\s+/g, ' ').trim().length
+  // Measure packed length *before* the 100-char truncate so long digests still split.
+  const previewLen = (parts: string[]) => prepareKavenegarToken10(parts.join('\n')).length
 
   const chunks: string[] = []
   let current: string[] = []
@@ -86,7 +123,10 @@ function mapKavenegarFailure(message: string | undefined, httpFallback: string) 
   if (/صاحب حساب|فقط امکان ارسال پیام تست|501/i.test(raw)) {
     return 'Kavenegar SMS failed: template restricted to account-owner phone — set inbox-verify usage to operational and wait for approval'
   }
-  if (/قالب|template|431|یافت نشد|وجود ندارد/i.test(raw)) {
+  if (/ساختار کد صحیح|431/.test(raw) && !/قالب|template|یافت نشد|وجود ندارد/i.test(raw)) {
+    return 'Kavenegar SMS failed: invalid token10 structure — keep letters/digits only with ≤5 spaces (punctuation and extra spaces are rejected)'
+  }
+  if (/قالب|template|یافت نشد|وجود ندارد/i.test(raw)) {
     return `Kavenegar SMS failed: notify template missing/invalid — create panel template "${resolveNotifyLookupTemplate()}" with body %token10% (or set KAVENEGAR_TEMPLATE_NOTIFY)`
   }
   return `Kavenegar SMS failed: ${raw}`
