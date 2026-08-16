@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractOtpToken, kavenegarSmsProvider } from './kavenegar'
+import {
+  extractOtpToken,
+  kavenegarSmsProvider,
+  resolveNotifyLookupTemplate,
+  toKavenegarToken10,
+} from './kavenegar'
 import { getRegisteredSmsProvider } from '../registry'
 
 describe('extractOtpToken', () => {
@@ -13,12 +18,20 @@ describe('extractOtpToken', () => {
   })
 })
 
+describe('toKavenegarToken10', () => {
+  it('collapses newlines and truncates', () => {
+    expect(toKavenegarToken10('a\nb\nc')).toBe('a | b | c')
+    expect(toKavenegarToken10('x'.repeat(120)).length).toBeLessThanOrEqual(100)
+  })
+})
+
 describe('kavenegarSmsProvider', () => {
   const originalFetch = globalThis.fetch
 
   beforeEach(() => {
     process.env.KAVENEGAR_API_KEY = 'test-api-key'
     delete process.env.KAVENEGAR_TEMPLATE
+    delete process.env.KAVENEGAR_TEMPLATE_NOTIFY
     delete process.env.KAVENEGAR_SENDER
     kavenegarSmsProvider()
   })
@@ -27,6 +40,7 @@ describe('kavenegarSmsProvider', () => {
     globalThis.fetch = originalFetch
     delete process.env.KAVENEGAR_API_KEY
     delete process.env.KAVENEGAR_TEMPLATE
+    delete process.env.KAVENEGAR_TEMPLATE_NOTIFY
     delete process.env.KAVENEGAR_SENDER
     vi.restoreAllMocks()
   })
@@ -35,7 +49,13 @@ describe('kavenegarSmsProvider', () => {
     expect(getRegisteredSmsProvider('live')?.name).toBe('live')
   })
 
-  it('sends via sms/send.json when no template is configured', async () => {
+  it('defaults notify lookup template to inbox-notify', () => {
+    expect(resolveNotifyLookupTemplate()).toBe('inbox-notify')
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = 'custom-notify'
+    expect(resolveNotifyLookupTemplate()).toBe('custom-notify')
+  })
+
+  it('sends OTP via sms/send.json when no OTP template is configured', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -55,14 +75,12 @@ describe('kavenegarSmsProvider', () => {
     expect(result.sent).toBe(true)
     expect(result.providerRef).toBe('kavenegar-42')
     expect(fetchMock).toHaveBeenCalledOnce()
-    const calledUrl = String(fetchMock.mock.calls[0]![0])
-    expect(calledUrl).toContain('/v1/test-api-key/sms/send.json')
-    expect(calledUrl).toContain('receptor=09121234567')
-    expect(calledUrl).toContain('message=')
-    expect(calledUrl).toContain('654321')
+    const [calledUrl, init] = fetchMock.mock.calls[0]!
+    expect(String(calledUrl)).toContain('/v1/test-api-key/sms/send.json')
+    expect(init?.method).toBe('POST')
   })
 
-  it('uses verify/lookup.json only for OTP purpose when template is set', async () => {
+  it('uses verify/lookup.json for OTP purpose when template is set', async () => {
     process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -88,7 +106,7 @@ describe('kavenegarSmsProvider', () => {
     expect(calledUrl).toContain('template=inbox-verify')
   })
 
-  it('does not use verify/lookup for notify/campaign even with template + 6 digits', async () => {
+  it('uses verify/lookup token10 for notify (not OTP template)', async () => {
     process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -102,16 +120,19 @@ describe('kavenegarSmsProvider', () => {
 
     await getRegisteredSmsProvider('live')!.send({
       to: '09121234567',
-      body: 'تخفیف ویژه: 150000 تومان',
+      body: 'پرداخت رزرو ثبت شد «بهناز» — امروز. اینباکس',
       purpose: 'notify',
+      template: 'BOOKING_PAID',
     })
 
     const calledUrl = String(fetchMock.mock.calls[0]![0])
-    expect(calledUrl).toContain('/sms/send.json')
-    expect(calledUrl).not.toContain('verify/lookup')
+    expect(calledUrl).toContain('/verify/lookup.json')
+    expect(calledUrl).toContain('template=inbox-notify')
+    expect(calledUrl).toContain('token10=')
+    expect(calledUrl).not.toContain('template=inbox-verify')
   })
 
-  it('falls back to sms/send.json when template is set but body has no OTP', async () => {
+  it('falls back to sms/send.json when OTP template is set but body has no OTP', async () => {
     process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -129,12 +150,12 @@ describe('kavenegarSmsProvider', () => {
       purpose: 'otp',
     })
 
-    const calledUrl = String(fetchMock.mock.calls[0]![0])
-    expect(calledUrl).toContain('/sms/send.json')
+    const [calledUrl, init] = fetchMock.mock.calls[0]!
+    expect(String(calledUrl)).toContain('/sms/send.json')
+    expect(init?.method).toBe('POST')
   })
 
-  it('bulk CRM never uses verify/lookup even when body has a 6-digit token', async () => {
-    process.env.KAVENEGAR_TEMPLATE = 'inbox-verify'
+  it('bulk CRM uses notify lookup per recipient', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -147,21 +168,22 @@ describe('kavenegarSmsProvider', () => {
 
     await getRegisteredSmsProvider('live')!.sendBulk({
       recipients: [{ phone: '09121111111' }, { phone: '09122222222' }],
-      body: 'کد تایید inbox: 999888',
+      body: 'سلام باشگاه',
     })
 
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     const calledUrl = String(fetchMock.mock.calls[0]![0])
-    expect(calledUrl).toContain('/sms/send.json')
-    expect(calledUrl).not.toContain('verify/lookup')
+    expect(calledUrl).toContain('/verify/lookup.json')
+    expect(calledUrl).toContain('template=inbox-notify')
   })
 
   it('maps invalid-sender failures to a clear 502 hint', async () => {
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = ''
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        return: { status: 418, message: 'ارسال کننده نامعتبر است' },
+        return: { status: 412, message: 'ارسال کننده نامعتبر است' },
       }),
     }) as unknown as typeof fetch
 

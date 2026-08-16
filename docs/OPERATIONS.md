@@ -32,7 +32,8 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
 | `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify` with `%token%`). Without it, OTP uses free-text `sms/send`. |
-| `KAVENEGAR_SENDER` | Required for free-text sends | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است` (OTP 502 on prod). Needed for CRM + booking notify + OTP without template. |
+| `KAVENEGAR_TEMPLATE_NOTIFY` | Required for booking/CRM SMS | Default `inbox-notify`. Panel body must be `%token10%`. Live service lines often reject free-text `sms/send` (412 invalid sender) while OTP lookup still works. |
+| `KAVENEGAR_SENDER` | Free-text fallback | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است`. Needed only when notify lookup is disabled or OTP has no template. |
 | `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional; `PILOT_NO_COACH` alone is synced to client at runtime via Nitro plugin |
 | `PILOT_NO_COACH` | Pilot | Prefer this for IUST MVP: server-only coach API/sitemap gate; also drives client redirects at runtime |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
@@ -128,10 +129,13 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 | Event | Path | Notes |
 |-------|------|--------|
 | Booking confirmed | `bookingNotify.notifyBookingConfirmed` | Athlete court book + owner desk reserve (guest phone) |
-| Booking cancelled | `bookingNotify.notifyBookingCancelled` | Athlete cancel + owner cancel (registered or guest phone) |
+| Booking cancelled | `bookingNotify.notifyBookingCancelled` | Athlete cancel + owner cancel → SMS to athlete/guest |
+| Owner booking cancelled | `bookingNotify.notifyOwnerBookingCancelled` | Athlete cancel → SMS to club owner phone |
 | Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback (athlete/guest) |
 | Owner booking paid | `bookingNotify.notifyOwnerBookingPaid` | Same paid triggers — SMS to club owner phone (`User.phone` or `Club.phone`) with guest, amount, time, court |
 | Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
+
+**Delivery:** live notify/campaign SMS use Verify Lookup `KAVENEGAR_TEMPLATE_NOTIFY` (default `inbox-notify`, body `%token10%`). Do not rely on free-text `sms/send` for booking texts on service lines.
 
 Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
 

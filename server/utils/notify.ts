@@ -13,6 +13,7 @@ export type NotifyTemplate =
   | 'BOOKING_CANCELLED'
   | 'BOOKING_PAID'
   | 'OWNER_BOOKING_PAID'
+  | 'OWNER_BOOKING_CANCELLED'
   | 'CLUB_APPROVED'
 
 /**

@@ -1,5 +1,13 @@
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
-import { notifyBookingCancelled, clubNotifyName } from '../../../utils/bookingNotify'
+import { normalizeIranPhone } from '#shared/phone.ts'
+import {
+  notifyBookingCancelled,
+  notifyOwnerBookingCancelled,
+  clubNotifyName,
+  courtNotifyName,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
 import { refundPaymentForCancellation } from '../../../utils/refunds'
 import { canManageReservation } from '../../../utils/reservations'
@@ -9,7 +17,11 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const booking = await prisma.booking.findFirst({
     where: { id, userId: user.id },
-    include: { slot: { include: { court: { include: { club: true } } } }, payment: true, user: true },
+    include: {
+      slot: { include: { court: { include: { club: { include: { owner: true } } } } } },
+      payment: true,
+      user: true,
+    },
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
@@ -46,22 +58,43 @@ export default defineEventHandler(async (event) => {
     userId: booking.userId,
   })
 
+  const club = booking.slot.court.club
+  const phone = booking.user?.phone || normalizeIranPhone(booking.guestMobile) || booking.guestMobile
+  const guestName = personNotifyName(booking.guestName, booking.guestFamily) || personNotifyName(booking.user?.name)
+  const courtName = courtNotifyName(booking.slot.court)
+  const clubName = clubNotifyName(club)
+
   await notifyBookingCancelled({
     userId: user.id,
     email: booking.user?.email,
-    phone: booking.user?.phone,
+    phone,
     kind: 'court',
-    clubName: clubNotifyName(booking.slot.court.club),
-    clubId: booking.slot.court.clubId,
+    clubName,
+    clubId: club.id,
     bookingId: booking.id,
     date: booking.slot.date,
     startTime: booking.slot.startTime,
     endTime: booking.slot.endTime,
+    courtName,
+    guestName,
     reason: 'athlete-cancel',
   })
 
+  await notifyOwnerBookingCancelled({
+    ownerPhone: ownerNotifyPhone(club),
+    clubName,
+    clubId: club.id,
+    bookingId: booking.id,
+    date: booking.slot.date,
+    startTime: booking.slot.startTime,
+    endTime: booking.slot.endTime,
+    courtName,
+    guestName,
+    guestPhone: phone,
+  })
+
   await notifyWaitlistForFreedSlot({
-    clubId: booking.slot.court.clubId,
+    clubId: club.id,
     courtId: booking.slot.courtId,
     date: booking.slot.date,
     startTime: booking.slot.startTime,

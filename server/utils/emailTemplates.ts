@@ -92,6 +92,21 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
         html: `<p><strong>Paid booking</strong> at ${esc(clubName)}</p><p>Guest: ${esc(guest)}${guestPhone ? `<br>Phone: ${esc(guestPhone)}` : ''}${amount != null && amount !== '' ? `<br>Amount: ${esc(amount)}` : ''}${courtName ? `<br>Court: ${esc(courtName)}` : ''}<br>Date: ${esc(date)}<br>Time: ${esc(timeLabel)}</p>`,
       }
     }
+    case 'OWNER_BOOKING_CANCELLED': {
+      const clubName = String(data.clubName || 'Club')
+      const guest = String(data.guestName || data.userName || 'Guest')
+      const guestPhone = String(data.guestPhone || '').trim()
+      const date = String(data.date || '')
+      const time = String(data.startTime || '')
+      const endTime = String(data.endTime || '').trim()
+      const timeLabel = endTime && endTime !== time ? `${time}–${endTime}` : time
+      const courtName = String(data.courtName || '').trim()
+      return {
+        subject: `Cancelled booking — ${clubName}`,
+        text: `Cancelled booking at ${clubName}\nGuest: ${guest}${guestPhone ? `\nPhone: ${guestPhone}` : ''}${courtName ? `\nCourt: ${courtName}` : ''}\nDate: ${date}\nTime: ${timeLabel}`,
+        html: `<p><strong>Cancelled booking</strong> at ${esc(clubName)}</p><p>Guest: ${esc(guest)}${guestPhone ? `<br>Phone: ${esc(guestPhone)}` : ''}${courtName ? `<br>Court: ${esc(courtName)}` : ''}<br>Date: ${esc(date)}<br>Time: ${esc(timeLabel)}</p>`,
+      }
+    }
     case 'WAITLIST_SLOT_AVAILABLE': {
       const date = String(data.date || '')
       const startTime = String(data.startTime || '')

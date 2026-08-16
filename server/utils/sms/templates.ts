@@ -106,17 +106,15 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     const tracking = String(data.trackingCode || '').trim()
     const court = String(data.courtName || '').trim()
     const when = whenBit(data)
-    if (guest || tracking) {
-      const lines = ['کاربر گرامی']
-      lines.push(guest ? `رزرو ${guest} لغو شد.` : `رزرو لغو شد${clubBit(data)}.`)
-      if (court) lines.push(court)
-      if (when) lines.push(when)
-      if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
-      return lines.join('\n')
-    }
-    return when
-      ? `رزرو لغو شد${clubBit(data)} — ${when}. اینباکس`
-      : `رزرو لغو شد${clubBit(data)}. اینباکس`
+    // Keep short for Kavenegar token10 (inbox-notify lookup).
+    const bits = [
+      guest ? `رزرو ${guest} لغو شد` : `رزرو لغو شد${clubBit(data)}`,
+      court,
+      when,
+      tracking ? `کد ${toPersianDigits(tracking)}` : '',
+      'اینباکس',
+    ].filter(Boolean)
+    return bits.join(' | ')
   },
   BOOKING_PAID: (data) => {
     const when = whenBit(data)
@@ -124,27 +122,36 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       ? `پرداخت رزرو ثبت شد${clubBit(data)} — ${when}. اینباکس`
       : `پرداخت رزرو ثبت شد${clubBit(data)}. اینباکس`
   },
+  /** Compact single-line — service-line lookup uses token10 (~100 chars). */
   OWNER_BOOKING_PAID: (data) => {
     const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
     const guestPhone = String(data.guestPhone || '').trim()
     const amount = amountBit(data)
     const when = whenBit(data)
     const court = String(data.courtName || '').trim()
-    const club = String(data.clubName || '').trim()
-    const tracking = String(data.trackingCode || '').trim()
-    const lines = ['رزرو پرداخت‌شده']
-    if (club) lines.push(`باشگاه: ${club}`)
-    lines.push(
-      guestPhone
-        ? `رزروکننده: ${guest} (${toPersianDigits(guestPhone)})`
-        : `رزروکننده: ${guest}`,
-    )
-    if (amount) lines.push(`مبلغ: ${amount}`)
-    if (when) lines.push(`زمان: ${when}`)
-    if (court) lines.push(`زمین: ${court}`)
-    if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
-    lines.push('اینباکس')
-    return lines.join('\n')
+    const bits = [
+      'پرداخت رزرو',
+      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
+      amount,
+      when,
+      court,
+      'اینباکس',
+    ].filter(Boolean)
+    return bits.join(' | ')
+  },
+  OWNER_BOOKING_CANCELLED: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
+    const guestPhone = String(data.guestPhone || '').trim()
+    const when = whenBit(data)
+    const court = String(data.courtName || '').trim()
+    const bits = [
+      'لغو رزرو',
+      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
+      when,
+      court,
+      'اینباکس',
+    ].filter(Boolean)
+    return bits.join(' | ')
   },
   CLUB_APPROVED: (data) => `باشگاه «${data.clubName || ''}» در inbox تایید شد`,
   WAITLIST_SLOT_AVAILABLE: (data) => {

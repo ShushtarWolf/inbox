@@ -19,6 +19,7 @@ import {
   notifyBookingCancelled,
   notifyBookingConfirmed,
   notifyBookingPaid,
+  notifyOwnerBookingCancelled,
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
@@ -62,7 +63,8 @@ describe('clubNotifyName', () => {
 
   it('prefers owner phone then club phone', () => {
     expect(ownerNotifyPhone({ phone: '021111', owner: { phone: '09120000000' } })).toBe('09120000000')
-    expect(ownerNotifyPhone({ phone: '021111', owner: { phone: null } })).toBe('021111')
+    expect(ownerNotifyPhone({ phone: '021111', owner: { phone: null } })).toBeNull()
+    expect(ownerNotifyPhone({ phone: '09121112233', owner: { phone: null } })).toBe('09121112233')
     expect(ownerNotifyPhone({ phone: null, owner: null })).toBeNull()
   })
 
@@ -333,5 +335,31 @@ describe('bookingNotify SMS', () => {
       amountPaid: 1000,
     })
     expect(sendNotification).not.toHaveBeenCalled()
+  })
+
+  it('sends owner cancelled SMS with guest and time', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyOwnerBookingCancelled({
+      ownerPhone: '09121112233',
+      clubName: 'بهناز',
+      clubId: 'club-1',
+      bookingId: 'booking-1',
+      date: '2026-08-14',
+      startTime: '18:00',
+      endTime: '20:00',
+      courtName: 'زمین ۲',
+      guestName: 'علی رضایی',
+      guestPhone: '09121234567',
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0]).toMatchObject({
+      channel: 'sms',
+      to: '09121112233',
+      template: 'OWNER_BOOKING_CANCELLED',
+      clubId: 'club-1',
+    })
   })
 })

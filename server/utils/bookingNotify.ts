@@ -1,3 +1,4 @@
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { createInAppNotification, sendNotification } from './notify'
 import { bookingTrackingCode, receiptUrlForBooking } from './receipt'
@@ -48,6 +49,7 @@ type BookingSmsTemplate =
   | 'BOOKING_CANCELLED'
   | 'BOOKING_PAID'
   | 'OWNER_BOOKING_PAID'
+  | 'OWNER_BOOKING_CANCELLED'
   | 'WAITLIST_SLOT_AVAILABLE'
 
 function kindLabelFa(kind: BookingNotifyKind) {
@@ -69,12 +71,30 @@ export function personNotifyName(...parts: Array<string | null | undefined>) {
   return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
 }
 
-/** Owner account phone first, then public club phone. */
+/** Owner account mobile first, then club mobile — landlines skipped (SMS only). */
 export function ownerNotifyPhone(club: {
   phone?: string | null
   owner?: { phone?: string | null } | null
 }) {
-  return (club.owner?.phone || club.phone || '').trim() || null
+  for (const raw of [club.owner?.phone, club.phone]) {
+    const mobile = normalizeIranPhone(raw)
+    if (mobile) return mobile
+  }
+  return null
+}
+
+type OwnerBookingCancelledOpts = {
+  ownerPhone?: string | null
+  clubName: string
+  clubId?: string
+  bookingId?: string
+  date: string
+  startTime: string
+  endTime?: string | null
+  courtName?: string | null
+  guestName?: string | null
+  guestPhone?: string | null
+  trackingCode?: string | null
 }
 
 export function clubNotifyLocation(club: {
@@ -247,7 +267,7 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
 
 /**
  * Soft-fail SMS to club owner when a booking becomes PAID.
- * Includes who reserved, amount, time, and court — free-text via KAVENEGAR_SENDER when live.
+ * Delivered via Kavenegar Verify Lookup (inbox-notify / token10) on live service lines.
  */
 export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
   if (!opts.ownerPhone) return
@@ -264,4 +284,21 @@ export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
     trackingCode,
   }
   await safeSms(opts.ownerPhone, 'OWNER_BOOKING_PAID', data, opts.clubId)
+}
+
+/** Soft-fail SMS to club owner when a booking is cancelled (athlete or desk). */
+export async function notifyOwnerBookingCancelled(opts: OwnerBookingCancelledOpts) {
+  if (!opts.ownerPhone) return
+  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
+  const data = {
+    clubName: opts.clubName,
+    date: opts.date,
+    startTime: opts.startTime,
+    endTime: opts.endTime || '',
+    courtName: opts.courtName || '',
+    guestName: opts.guestName || '',
+    guestPhone: opts.guestPhone || '',
+    trackingCode,
+  }
+  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_CANCELLED', data, opts.clubId)
 }

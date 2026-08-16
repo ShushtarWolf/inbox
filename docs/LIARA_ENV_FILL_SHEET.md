@@ -36,7 +36,8 @@ Copy/paste checklist. Mark each row when set.
 | ☐ | `SMS_PROVIDER` | `kavenegar` (or `live`) | Both resolve to Kavenegar |
 | ☐ | `KAVENEGAR_API_KEY` | from Kavenegar panel | Never commit |
 | ☐ | `KAVENEGAR_TEMPLATE` | e.g. `inbox-verify` | **Preferred for OTP** (Verify Lookup, `%token%`) |
-| ☐ | `KAVENEGAR_SENDER` | approved line | Required for free-text booking/CRM SMS (and OTP without template) |
+| ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` (default if unset) | **Required for booking paid/cancel/CRM SMS.** Panel template body must be exactly `%token10%`. Free-text `sms/send` fails on service lines (`ارسال کننده نامعتبر است`). |
+| ☐ | `KAVENEGAR_SENDER` | approved line | Fallback only for free-text; OTP without template. Lookup uses the line attached to the template. |
 
 Until C is complete, OTP stays **log/dry-run** (`debugCode`) — not production-safe.
 
