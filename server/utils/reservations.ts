@@ -1,5 +1,13 @@
 import { minutesUntilSlotStart, todayDateString } from '#shared/localDate.ts'
 
+/** Cancel leaves Booking row on the slot (unique slotId). Treat CANCELLED as absent for desk ops. */
+export function activeSlotBooking<T extends { status: string }>(
+  booking: T | null | undefined,
+): T | null {
+  if (!booking || booking.status === 'CANCELLED') return null
+  return booking
+}
+
 export function toDateTime(date: string, time: string) {
   return new Date(`${date}T${time}:00`)
 }

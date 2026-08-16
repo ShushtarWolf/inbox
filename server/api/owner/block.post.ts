@@ -1,4 +1,4 @@
-import { cancelCourtBooking } from '../../utils/cancellations'
+import { activeSlotBooking } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -32,10 +32,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'SLOT_NOT_BLOCKABLE' })
     }
 
-    if (slot.booking) {
+    const existing = activeSlotBooking(slot.booking)
+    const staleCancelled = slot.booking?.status === 'CANCELLED' ? slot.booking : null
+
+    if (existing) {
       await prisma.$transaction(async (tx) => {
         await tx.booking.update({
-          where: { id: slot.booking!.id },
+          where: { id: existing.id },
           data: guestData,
         })
         await tx.slot.update({
@@ -45,6 +48,9 @@ export default defineEventHandler(async (event) => {
       })
     } else {
       await prisma.$transaction(async (tx) => {
+        if (staleCancelled) {
+          await tx.booking.delete({ where: { id: staleCancelled.id } })
+        }
         await tx.booking.create({
           data: {
             slotId: slot.id,

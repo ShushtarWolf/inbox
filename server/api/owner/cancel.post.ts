@@ -6,6 +6,7 @@ import {
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { activeSlotBooking } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -22,33 +23,34 @@ export default defineEventHandler(async (event) => {
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
-  if (slot.booking) {
+  const booking = activeSlotBooking(slot.booking)
+  if (booking) {
     const reason = body.reason || 'owner-cancel'
     await cancelCourtBooking({
-      bookingId: slot.booking.id,
+      bookingId: booking.id,
       slotId: slot.id,
       reason,
-      paymentId: slot.booking.payment?.id,
-      userId: slot.booking.userId,
+      paymentId: booking.payment?.id,
+      userId: booking.userId,
       skipWallet: body.refundToWallet === false,
     })
-    const rawGuest = slot.booking.guestMobile
-    const phone = slot.booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
-    if (slot.booking.userId || phone) {
+    const rawGuest = booking.guestMobile
+    const phone = booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
+    if (booking.userId || phone) {
       await notifyBookingCancelled({
-        userId: slot.booking.userId,
-        email: slot.booking.user?.email,
+        userId: booking.userId,
+        email: booking.user?.email,
         phone,
         kind: 'court',
         clubName: clubNotifyName(club),
         clubId: club.id,
-        bookingId: slot.booking.id,
+        bookingId: booking.id,
         date: slot.date,
         startTime: slot.startTime,
         endTime: slot.endTime,
         reason,
-        guestName: personNotifyName(slot.booking.guestName, slot.booking.guestFamily)
-          || personNotifyName(slot.booking.user?.name),
+        guestName: personNotifyName(booking.guestName, booking.guestFamily)
+          || personNotifyName(booking.user?.name),
         courtName: courtNotifyName(slot.court),
       })
     }

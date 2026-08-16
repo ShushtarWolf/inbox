@@ -24,6 +24,7 @@ interface OwnerCalendarBookingEquipment {
 }
 
 interface OwnerCalendarBooking {
+  status?: string | null
   guestName?: string | null
   guestFamily?: string | null
   guestMobile?: string | null
@@ -188,7 +189,7 @@ const overviewStats = computed(() => {
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
   const free = bookable.filter((slot) => slot.displayStatus === 'FREE')
   const reserved = bookable.filter((slot) =>
-    slot.displayStatus === 'RESERVED' || slot.displayStatus === 'PENDING' || Boolean(slot.booking),
+    slot.displayStatus === 'RESERVED' || slot.displayStatus === 'PENDING' || Boolean(activeBooking(slot)),
   )
   const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
@@ -353,6 +354,12 @@ onUnmounted(() => {
   clearLongPressTimer()
 })
 
+function activeBooking(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = slot?.booking
+  if (!booking || booking.status === 'CANCELLED') return null
+  return booking
+}
+
 function slotClass(status: string) {
   const map: Record<string, string> = {
     FREE: 'slot-free',
@@ -378,16 +385,17 @@ function cellSlot(courtId: string, hour: string) {
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
-    return slot.booking?.comments?.trim() || t('owner.slotBlockedLabel')
+    return activeBooking(slot)?.comments?.trim() || t('owner.slotBlockedLabel')
   }
-  const fullName = [slot.booking?.guestName, slot.booking?.guestFamily].filter(Boolean).join(' ').trim()
+  const booking = activeBooking(slot)
+  const fullName = [booking?.guestName, booking?.guestFamily].filter(Boolean).join(' ').trim()
   return fullName || statusLabel(slot.displayStatus)
 }
 
 function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return ''
-  return slot.booking?.comments?.trim() || ''
+  return activeBooking(slot)?.comments?.trim() || ''
 }
 
 function onCellCheckClick(event: Event, slot: OwnerCalendarSlot | null | undefined) {
@@ -399,15 +407,16 @@ function onCellCheckClick(event: Event, slot: OwnerCalendarSlot | null | undefin
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot?.booking) return null
-  return slot.booking.payment?.status || slot.booking.paymentStatus || null
+  const booking = activeBooking(slot)
+  if (!booking) return null
+  return booking.payment?.status || booking.paymentStatus || null
 }
 
 function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED')
     return ''
 
-  return slot.booking?.guestMobile || ''
+  return activeBooking(slot)?.guestMobile || ''
 }
 
 function slotPaymentBadge(slot: OwnerCalendarSlot | null | undefined) {
@@ -430,7 +439,7 @@ function resetPanels() {
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
   if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
-  if (slot.booking || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
+  if (activeBooking(slot) || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
   // Free slot: Canva shows the 3-action menu first (no nested panel yet).
   return null
 }
@@ -441,7 +450,7 @@ function courtColumnLabel(court: { nameFa: string; nameEn: string }, index: numb
 }
 
 function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
-  return Boolean(slot?.booking?.comments?.trim())
+  return Boolean(activeBooking(slot)?.comments?.trim())
 }
 
 function gridCellBarClass(status: string) {
@@ -556,7 +565,7 @@ function closeGuestSearchSoon() {
 }
 
 function detailCoachLabel() {
-  const booking = selectedSlotFull.value?.booking
+  const booking = activeBooking(selectedSlotFull.value)
   if (!booking?.coachId) return t('owner.sessionTypeFree')
   const coach = clubCoaches.value.find((item: { id: string }) => item.id === booking.coachId)
   if (!coach) return t('owner.sessionTypeCoach')
@@ -776,24 +785,25 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   cancelReason.value = 'CUSTOMER_REQUEST'
   refundToWallet.value = true
   actionError.value = ''
-  sessionType.value = fullSlot.booking?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
-  const isFree = fullSlot.displayStatus === 'FREE'
-  form.guestName = isFree ? '' : (fullSlot.booking?.guestName || '')
-  form.guestFamily = isFree ? '' : (fullSlot.booking?.guestFamily || '')
-  form.guestMobile = isFree ? '' : (fullSlot.booking?.guestMobile || '')
+  sessionType.value = activeBooking(fullSlot)?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
+  const isFree = fullSlot.displayStatus === 'FREE' || !activeBooking(fullSlot)
+  const booking = activeBooking(fullSlot)
+  form.guestName = isFree ? '' : (booking?.guestName || '')
+  form.guestFamily = isFree ? '' : (booking?.guestFamily || '')
+  form.guestMobile = isFree ? '' : (booking?.guestMobile || '')
   clearGuestSearch()
-  const existingMethod = fullSlot.booking?.payment?.method || fullSlot.booking?.paymentMethod || 'CASH'
+  const existingMethod = booking?.payment?.method || booking?.paymentMethod || 'CASH'
   form.paymentMethod = isFree
     ? 'CASH'
     : (existingMethod === 'IPG' && !payAtClubMode.value ? 'IPG' : 'CASH')
-  form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (fullSlot.booking?.payment?.status || fullSlot.booking?.paymentStatus || 'PAY_AT_CLUB')
-  form.comments = isFree ? '' : (fullSlot.booking?.comments || '')
+  form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (booking?.payment?.status || booking?.paymentStatus || 'PAY_AT_CLUB')
+  form.comments = isFree ? '' : (booking?.comments || '')
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
-  const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
+  const equipmentIds = isFree ? [] : (booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
   const quantities: Record<string, number> = {}
   if (!isFree) {
-    for (const row of fullSlot.booking?.bookingEquipments || []) {
+    for (const row of booking?.bookingEquipments || []) {
       quantities[row.equipmentId] = Math.max(1, row.quantity || 1)
     }
   }
@@ -805,14 +815,14 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   seasonForm.days = [anchorDay]
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   seasonForm.equipmentId = equipmentIds[0] || ''
-  seasonForm.comments = fullSlot.booking?.comments || ''
-  packageForm.coachId = pilotNoCoach.value ? '' : (fullSlot.booking?.coachId || '')
+  seasonForm.comments = booking?.comments || ''
+  packageForm.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   packageForm.startDate = ''
   packageForm.finishDate = ''
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.equipmentId = equipmentIds[0] || ''
-  packageForm.comments = fullSlot.booking?.comments || ''
+  packageForm.comments = booking?.comments || ''
 }
 
 function openReserveForm() {
@@ -853,7 +863,7 @@ async function doSaveNote() {
   const slot = selectedSlotFull.value
   if (!slot || saving.value) return
   const comments = form.comments.trim()
-  if (!comments && !slot.booking) {
+  if (!comments && !activeBooking(slot)) {
     actionError.value = t('owner.noteRequired')
     return
   }
@@ -937,7 +947,7 @@ function reserveDisplayStatus() {
 }
 
 function isEditingBooking() {
-  return Boolean(selectedSlot.value?.booking) && !batchMode.value
+  return Boolean(activeBooking(selectedSlot.value)) && !batchMode.value
 }
 
 const editableSlotStatuses = ['RESERVED', 'PUBLIC', 'TEAM', 'PENDING'] as const
@@ -961,7 +971,7 @@ function slotsForReserve() {
 
 function slotsForCancel() {
   if (batchMode.value && activePanel.value === 'cancel') return selectedSlotsFull.value
-  if (selectedSlotFull.value?.booking) return [selectedSlotFull.value]
+  if (activeBooking(selectedSlotFull.value)) return [selectedSlotFull.value]
   return []
 }
 
@@ -1050,7 +1060,7 @@ async function doCancel() {
 /** One-click cash collection for pay-at-club desk ops. */
 async function doMarkPaid() {
   const slot = selectedSlotFull.value
-  const booking = slot?.booking
+  const booking = activeBooking(slot)
   if (!slot || !booking || !canMarkPaid() || saving.value) return
   saving.value = true
   actionError.value = ''
@@ -1086,7 +1096,7 @@ async function doMarkPaid() {
 /** Reverse a mistaken cash mark (or wallet-paid mark) back to unpaid. */
 async function doMarkUnpaid() {
   const slot = selectedSlotFull.value
-  const booking = slot?.booking
+  const booking = activeBooking(slot)
   if (!slot || !booking || !canMarkUnpaid() || saving.value) return
   saving.value = true
   actionError.value = ''
@@ -1263,7 +1273,7 @@ function reserveMenuLabel() {
 }
 
 function canCancelSlot() {
-  return Boolean(selectedSlot.value?.booking) && selectedSlot.value?.displayStatus !== 'BLOCKED'
+  return Boolean(activeBooking(selectedSlot.value)) && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
 function canBlockSlot() {
@@ -1285,19 +1295,19 @@ function canShowSeasonReserve() {
 }
 
 function canMarkPaid() {
-  if (batchMode.value || !selectedSlotFull.value?.booking) return false
+  if (batchMode.value || !activeBooking(selectedSlotFull.value)) return false
   if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
   const status = slotPaymentStatus(selectedSlotFull.value)
   return isUnpaidPaymentStatus(status)
 }
 
 function canMarkUnpaid() {
-  if (batchMode.value || !selectedSlotFull.value?.booking) return false
+  const booking = activeBooking(selectedSlotFull.value)
+  if (batchMode.value || !booking) return false
   if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
   if (!isPaidPaymentStatus(slotPaymentStatus(selectedSlotFull.value))) return false
   // IPG PAID → cancel for reverse/wallet; desk mark-unpaid only cash/wallet.
-  const method = selectedSlotFull.value.booking.payment?.method
-    || selectedSlotFull.value.booking.paymentMethod
+  const method = booking.payment?.method || booking.paymentMethod
   return method !== 'IPG'
 }
 
@@ -1311,13 +1321,15 @@ function slotStatusSummary() {
   const parts: string[] = []
   const pay = slotPaymentStatus(slot)
   if (pay) parts.push(t(`booking.paymentStatus.${pay}`))
-  if (slot.booking?.guestMobile) parts.push(slot.booking.guestMobile)
+  const mobile = activeBooking(slot)?.guestMobile
+  if (mobile) parts.push(mobile)
   return parts.join(' · ')
 }
 
 function slotGuestName() {
-  if (!selectedSlot.value?.booking) return ''
-  return [selectedSlot.value.booking.guestName, selectedSlot.value.booking.guestFamily].filter(Boolean).join(' ').trim()
+  const booking = activeBooking(selectedSlot.value)
+  if (!booking) return ''
+  return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
 }
 
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
@@ -1341,7 +1353,7 @@ function slotButtonClass(slot: OwnerCalendarSlot) {
 
 function isNewReservation() {
   if (batchMode.value) return true
-  return selectedSlot.value?.displayStatus === 'FREE'
+  return !activeBooking(selectedSlot.value) || selectedSlot.value?.displayStatus === 'FREE'
 }
 
 function guestFieldsValid() {
@@ -1810,7 +1822,7 @@ function slotBarColor(status: string) {
             </div>
             <div class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.guestMobile') }}</span>
-              <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedSlotFull?.booking?.guestMobile || '—' }}</bdi>
+              <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ activeBooking(selectedSlotFull)?.guestMobile || '—' }}</bdi>
             </div>
             <div v-if="!pilotNoCoach" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
@@ -2261,7 +2273,7 @@ function slotBarColor(status: string) {
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="saving || (!form.comments.trim() && !selectedSlot?.booking)"
+              :disabled="saving || (!form.comments.trim() && !activeBooking(selectedSlot))"
               @click="doSaveNote"
             >
               {{ saving ? t('common.loading') : t('owner.confirmNote') }}

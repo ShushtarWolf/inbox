@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { addOneHour, canManageReservation, diffHours, toDateTime } from './reservations'
+import { addOneHour, activeSlotBooking, canManageReservation, diffHours, toDateTime } from './reservations'
 import { minutesUntilSlotStart } from '#shared/localDate.ts'
+
+describe('activeSlotBooking', () => {
+  it('returns null for cancelled bookings', () => {
+    expect(activeSlotBooking({ status: 'CANCELLED', id: '1' })).toBeNull()
+  })
+
+  it('returns active bookings', () => {
+    const booking = { status: 'CONFIRMED', id: '2' }
+    expect(activeSlotBooking(booking)).toBe(booking)
+  })
+
+  it('returns null when booking is missing', () => {
+    expect(activeSlotBooking(null)).toBeNull()
+    expect(activeSlotBooking(undefined)).toBeNull()
+  })
+})
 
 describe('toDateTime', () => {
   it('parses date and time into a Date', () => {

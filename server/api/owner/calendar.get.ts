@@ -46,7 +46,11 @@ export default defineEventHandler(async (event) => {
   return {
     date,
     courts,
-    slots,
+    // Cancelled rows still hold unique Booking.slotId — hide them so FREE hours reopen for desk reserve.
+    slots: slots.map((slot) => ({
+      ...slot,
+      booking: slot.booking?.status === 'CANCELLED' ? null : slot.booking,
+    })),
     clubOpenHour: club.openHour,
     clubCloseHour: club.closeHour,
     sessionDurationMinutes: club.defaultSessionDurationMinutes,

@@ -19,7 +19,7 @@ import {
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
-import { assertSlotBookable } from '../../utils/reservations'
+import { activeSlotBooking, assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
 import { applyDiscountPercent } from '#shared/discountCode.ts'
@@ -69,7 +69,10 @@ export default defineEventHandler(async (event) => {
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
-  if (!slot.booking) {
+  const staleCancelled = slot.booking?.status === 'CANCELLED' ? slot.booking : null
+  const existing = activeSlotBooking(slot.booking)
+
+  if (!existing) {
     // Desk create: only FREE slots — never silently overwrite BLOCKED/RESERVED/etc.
     if (slot.displayStatus !== 'FREE') {
       throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
@@ -79,12 +82,12 @@ export default defineEventHandler(async (event) => {
 
   const paymentMethod = resolveDeskPaymentMethod(
     body.paymentMethod,
-    slot.booking?.payment?.method || slot.booking?.paymentMethod,
+    existing?.payment?.method || existing?.paymentMethod,
   )
   const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
   const previousPaid = Boolean(
-    slot.booking
-    && (isPaidPaymentStatus(slot.booking.payment?.status) || isPaidPaymentStatus(slot.booking.paymentStatus)),
+    existing
+    && (isPaidPaymentStatus(existing.payment?.status) || isPaidPaymentStatus(existing.paymentStatus)),
   )
   const becomingPaid = paymentStatus === 'PAID' && !previousPaid
   const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
@@ -108,18 +111,18 @@ export default defineEventHandler(async (event) => {
   const displayStatus = (
     requestedDisplay && allowedDisplay.has(requestedDisplay)
       ? requestedDisplay
-      : (!slot.booking || slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus)
+      : (!existing || slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus)
   ) as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC'
   const provider = getPaymentsMode() === 'pay_at_club' ? 'pay_at_club' : undefined
 
-  if (slot.booking) {
-    const previousPayment = slot.booking.payment
+  if (existing) {
+    const previousPayment = existing.payment
     const wasWalletPaid = Boolean(
       previousPayment
       && isPaidPaymentStatus(previousPayment.status)
       && previousPayment.method === 'PAID'
       && paymentStatus !== 'PAID'
-      && slot.booking.userId,
+      && existing.userId,
     )
     const becomingUnpaid = previousPaid && paymentStatus !== 'PAID'
 
@@ -137,16 +140,16 @@ export default defineEventHandler(async (event) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      if (wasWalletPaid && previousPayment && slot.booking?.userId) {
-        await creditWallet(slot.booking.userId, previousPayment.amount, {
+      if (wasWalletPaid && previousPayment && existing.userId) {
+        await creditWallet(existing.userId, previousPayment.amount, {
           paymentId: previousPayment.id,
-          bookingId: slot.booking.id,
+          bookingId: existing.id,
           note: 'Wallet payment reversed (marked unpaid at club)',
         }, tx)
       }
 
       await tx.booking.update({
-        where: { id: slot.booking!.id },
+        where: { id: existing.id },
         data: {
           guestName: body.guestName,
           guestFamily: body.guestFamily,
@@ -157,9 +160,9 @@ export default defineEventHandler(async (event) => {
           status: 'CONFIRMED',
         },
       })
-      await syncBookingEquipments(tx, slot.booking!.id, equipmentItems)
+      await syncBookingEquipments(tx, existing.id, equipmentItems)
       await tx.payment.upsert({
-        where: { bookingId: slot.booking!.id },
+        where: { bookingId: existing.id },
         update: {
           amount: totalAmount,
           method: paymentMethod,
@@ -167,7 +170,7 @@ export default defineEventHandler(async (event) => {
           ...(provider ? { provider } : {}),
         },
         create: {
-          bookingId: slot.booking!.id,
+          bookingId: existing.id,
           amount: totalAmount,
           method: paymentMethod,
           status: paymentStatus,
@@ -189,7 +192,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (becomingPaid) {
-      const paidPayment = await prisma.payment.findUnique({ where: { bookingId: slot.booking.id } })
+      const paidPayment = await prisma.payment.findUnique({ where: { bookingId: existing.id } })
       if (paidPayment) {
         try {
           await creditOwnerForPaidPayment(paidPayment.id, previousPaid ? 'PAID' : '')
@@ -197,21 +200,21 @@ export default defineEventHandler(async (event) => {
           console.error('[reserve:ownerSettlement]', paidPayment.id, err)
         }
       }
-      const phone = slot.booking.user?.phone || guestMobile || slot.booking.guestMobile
+      const phone = existing.user?.phone || guestMobile || existing.guestMobile
       const guestName = personNotifyName(
-        body.guestName ?? slot.booking.guestName,
-        body.guestFamily ?? slot.booking.guestFamily,
-      ) || slot.booking.user?.name || ''
+        body.guestName ?? existing.guestName,
+        body.guestFamily ?? existing.guestFamily,
+      ) || existing.user?.name || ''
       const amountPaid = paidPayment?.amount ?? totalAmount
-      if (slot.booking.userId || phone) {
+      if (existing.userId || phone) {
         await notifyBookingPaid({
-          userId: slot.booking.userId,
-          email: slot.booking.user?.email,
+          userId: existing.userId,
+          email: existing.user?.email,
           phone,
           kind: 'court',
           clubName: clubNotifyName(club),
           clubId: club.id,
-          bookingId: slot.booking.id,
+          bookingId: existing.id,
           date: slot.date,
           startTime: slot.startTime,
           endTime: slot.endTime,
@@ -229,7 +232,7 @@ export default defineEventHandler(async (event) => {
         ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : club.phone,
         clubName: clubNotifyName(ownerClub || club),
         clubId: club.id,
-        bookingId: slot.booking.id,
+        bookingId: existing.id,
         date: slot.date,
         startTime: slot.startTime,
         endTime: slot.endTime,
@@ -249,6 +252,10 @@ export default defineEventHandler(async (event) => {
         })
         if (claimed.count !== 1) {
           throw new SlotNotAvailableError()
+        }
+        // Unique Booking.slotId: remove cancelled row before creating the new desk booking.
+        if (staleCancelled) {
+          await tx.booking.delete({ where: { id: staleCancelled.id } })
         }
         const booking = await tx.booking.create({
           data: {
