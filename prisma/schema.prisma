@@ -639,6 +639,8 @@ model Equipment {
   nameEn   String
   category EquipmentCategory
   price    Int               @default(0)
+  /// Club stock for this item (RENTAL/SELL/SERVICE). Caps how many can be booked per reservation.
+  quantity Int               @default(1)
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -649,6 +651,7 @@ model Equipment {
 model BookingEquipment {
   id             String @id @default(cuid())
   priceAtBooking Int    @default(0)
+  quantity       Int    @default(1)
 
   bookingId   String
   booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)

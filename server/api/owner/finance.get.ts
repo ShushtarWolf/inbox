@@ -171,7 +171,10 @@ export default defineEventHandler(async (event) => {
       kind: 'court' as const,
       reservationLabel: `${booking.slot.court.nameFa} · ${booking.slot.startTime} · ${booking.slot.date}`,
       equipmentSummary: booking.bookingEquipments
-        .map((item) => item.equipment.nameFa)
+        .map((item) => {
+          const qty = Math.max(1, item.quantity || 1)
+          return qty > 1 ? `${item.equipment.nameFa} ×${qty}` : item.equipment.nameFa
+        })
         .join(', ') || null,
       unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
     })),

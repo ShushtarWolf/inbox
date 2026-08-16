@@ -14,6 +14,7 @@ export type ConfirmEquipment = {
   nameFa: string
   nameEn: string
   price: number
+  quantity?: number
 }
 
 const props = defineProps<{
@@ -66,13 +67,16 @@ const appliedDiscount = ref<{
 } | null>(null)
 
 const racketItem = computed(() => props.rentalEquipment || null)
+const racketStock = computed(() => Math.max(0, Number(racketItem.value?.quantity || 1)))
 
 watch(racketQty, (qty) => {
   wantRacket.value = qty > 0
 })
 
 function bumpRacket(delta: number) {
-  const next = Math.min(1, Math.max(0, racketQty.value + delta))
+  const max = racketStock.value
+  if (max < 1) return
+  const next = Math.min(max, Math.max(0, racketQty.value + delta))
   racketQty.value = next
 }
 
@@ -93,11 +97,11 @@ const costLines = computed(() => {
     })
   }
   if (wantRacket.value && racketItem.value) {
-    // BookingEquipment is unique per (booking, equipment) — UI qty is 0|1 like Canva stepper.
     const name = localizedField(racketItem.value, 'nameFa', 'nameEn')
+    const qty = racketQty.value || 1
     lines.push({
-      label: t('booking.confirmLineEquipment', { name, qty: formatNumber(racketQty.value || 1) }),
-      amount: Number(racketItem.value.price || 0) * (racketQty.value || 1),
+      label: t('booking.confirmLineEquipment', { name, qty: formatNumber(qty) }),
+      amount: Number(racketItem.value.price || 0) * qty,
     })
   }
   return lines
@@ -216,10 +220,16 @@ async function submit(preferWallet = false) {
     return
   }
 
-  const equipmentIds = wantRacket.value && racketItem.value ? [racketItem.value.id] : []
+  const equipmentIds = wantRacket.value && racketItem.value && racketQty.value > 0
+    ? [racketItem.value.id]
+    : []
+  const equipmentQuantities = equipmentIds.length && racketItem.value
+    ? { [racketItem.value.id]: racketQty.value }
+    : undefined
   const result = await createCourtBookings({
     slotIds: props.slots.map((s) => s.id),
     equipmentIds,
+    equipmentQuantities,
     discountCode: appliedDiscount.value?.code,
     date: props.date,
     courtId: props.courtId,
@@ -300,7 +310,7 @@ async function submit(preferWallet = false) {
             </p>
           </div>
 
-          <div v-if="racketItem" class="canva-confirm-book-equip">
+          <div v-if="racketItem && racketStock > 0" class="canva-confirm-book-equip">
             <div class="flex items-center justify-between gap-3 text-start">
               <span class="min-w-0 text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
               <div class="flex shrink-0 items-center gap-2">
@@ -316,7 +326,7 @@ async function submit(preferWallet = false) {
                   <button
                     type="button"
                     class="canva-qty-step-btn"
-                    :disabled="racketQty >= 1 || confirming || paying"
+                    :disabled="racketQty >= racketStock || confirming || paying"
                     aria-label="+"
                     @click="bumpRacket(1)"
                   >+</button>

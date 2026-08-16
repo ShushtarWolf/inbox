@@ -8,9 +8,22 @@ function normalizePrice(category: EquipmentCategory, price?: number) {
   return Number.isFinite(value) && value > 0 ? Math.round(value) : 0
 }
 
+function normalizeQuantity(category: EquipmentCategory, quantity?: number) {
+  if (category === 'CLUB') return 1
+  const value = Number(quantity ?? 1)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.min(999, Math.round(value))
+}
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
-  const body = await readBody<{ nameFa?: string; nameEn?: string; category?: EquipmentCategory; price?: number }>(event)
+  const body = await readBody<{
+    nameFa?: string
+    nameEn?: string
+    category?: EquipmentCategory
+    price?: number
+    quantity?: number
+  }>(event)
   const category = body.category && validCategories.has(body.category) ? body.category : 'CLUB'
   return prisma.equipment.create({
     data: {
@@ -19,6 +32,7 @@ export default defineEventHandler(async (event) => {
       nameEn: body.nameEn?.trim() || 'New',
       category,
       price: normalizePrice(category, body.price),
+      quantity: normalizeQuantity(category, body.quantity),
     },
   })
 })

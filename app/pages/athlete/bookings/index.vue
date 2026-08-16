@@ -11,6 +11,7 @@ interface CourtBooking {
   paymentStatus?: string | null
   bookingEquipments?: Array<{
     priceAtBooking?: number
+    quantity?: number
     equipment?: { nameFa?: string; nameEn?: string } | null
   }>
   slot: {
@@ -268,12 +269,12 @@ const historyItems = computed((): HistoryItem[] => {
   for (const b of (data.value?.courtBookings || []) as CourtBooking[]) {
     const courtName = localizedField(b.slot.court, 'nameFa', 'nameEn')
     const clubName = localizedField(b.slot.court.club, 'nameFa', 'nameEn')
-    const equipNames = (b.bookingEquipments || []).map((row) => {
-      return row.equipment ? localizedField(row.equipment, 'nameFa', 'nameEn') : ''
+    const equipLines = (b.bookingEquipments || []).map((row) => {
+      const name = row.equipment ? localizedField(row.equipment, 'nameFa', 'nameEn') : ''
+      if (!name) return ''
+      const qty = Math.max(1, row.quantity || 1)
+      return t('athlete.historyEquipmentQty', { qty: formatNumber(qty), name })
     }).filter(Boolean) as string[]
-    const equipLines = equipNames.length
-      ? [t('athlete.historyEquipmentQty', { qty: formatNumber(equipNames.length), name: equipNames[0]! })]
-      : []
     items.push({
       id: b.id,
       kind: 'court',

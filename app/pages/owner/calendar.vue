@@ -19,7 +19,8 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 interface OwnerCalendarBookingEquipment {
   equipmentId: string
   priceAtBooking: number
-  equipment?: { id: string; nameFa: string; nameEn: string; price: number; category: string } | null
+  quantity?: number
+  equipment?: { id: string; nameFa: string; nameEn: string; price: number; category: string; quantity?: number } | null
 }
 
 interface OwnerCalendarBooking {
@@ -83,6 +84,7 @@ const form = reactive({
   paymentStatus: 'PAY_AT_CLUB',
   comments: '',
   equipmentIds: [] as string[],
+  equipmentQuantities: {} as Record<string, number>,
   displayStatus: 'RESERVED',
 })
 
@@ -544,10 +546,17 @@ function equipmentPriceForItem(item: { category: string; price: number }) {
   return item.price || 0
 }
 
-function sumEquipmentIds(ids: string[]) {
+function equipmentStock(item: { quantity?: number }) {
+  return Math.max(0, Number(item.quantity ?? 1))
+}
+
+function sumEquipmentIds(ids: string[], quantities?: Record<string, number>) {
   return (equipments.value || [])
     .filter((item: { id: string }) => ids.includes(item.id))
-    .reduce((sum: number, item: { category: string; price: number }) => sum + equipmentPriceForItem(item), 0)
+    .reduce((sum: number, item: { id: string; category: string; price: number }) => {
+      const qty = Math.max(1, quantities?.[item.id] || 1)
+      return sum + equipmentPriceForItem(item) * qty
+    }, 0)
 }
 
 function equipmentOptionLabel(item: { nameFa: string; nameEn: string; category: string; price: number }) {
@@ -556,8 +565,16 @@ function equipmentOptionLabel(item: { nameFa: string; nameEn: string; category: 
   return `${name} — ${formatCurrency(item.price)}`
 }
 
+function equipmentQuantitiesPayload(ids: string[] = form.equipmentIds) {
+  const out: Record<string, number> = {}
+  for (const id of ids) {
+    out[id] = Math.max(1, form.equipmentQuantities[id] || 1)
+  }
+  return out
+}
+
 const reserveEquipmentPrice = computed(() => {
-  const base = sumEquipmentIds(form.equipmentIds)
+  const base = sumEquipmentIds(form.equipmentIds, form.equipmentQuantities)
   if (batchMode.value && activePanel.value === 'reserve') {
     return base * selectedSlotsFull.value.length
   }
@@ -705,6 +722,13 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
   const equipmentIds = isFree ? [] : (fullSlot.booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
+  const quantities: Record<string, number> = {}
+  if (!isFree) {
+    for (const row of fullSlot.booking?.bookingEquipments || []) {
+      quantities[row.equipmentId] = Math.max(1, row.quantity || 1)
+    }
+  }
+  form.equipmentQuantities = quantities
   const defaultRange = defaultDayRange(fullSlot)
   const anchorDay = weekdayNameFromDate(fullSlot.date)
   seasonForm.startDate = ''
@@ -879,6 +903,7 @@ async function doReserve() {
             paymentStatus: form.paymentStatus,
             comments: form.comments,
             equipmentIds: form.equipmentIds,
+            equipmentQuantities: equipmentQuantitiesPayload(),
             discountCode: deskDiscount.value?.code,
             displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
             skipNotify: !isLast,
@@ -943,6 +968,9 @@ async function doMarkPaid() {
         paymentStatus: 'PAID',
         comments: booking.comments || form.comments,
         equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
+        equipmentQuantities: Object.fromEntries(
+          (booking.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
+        ),
         displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
       },
     })
@@ -976,6 +1004,9 @@ async function doMarkUnpaid() {
         paymentStatus: 'PAY_AT_CLUB',
         comments: booking.comments || form.comments,
         equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
+        equipmentQuantities: Object.fromEntries(
+          (booking.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
+        ),
         displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
       },
     })
@@ -1116,6 +1147,7 @@ async function saveEquipmentSelection() {
         paymentStatus: form.paymentStatus,
         comments: form.comments,
         equipmentIds: form.equipmentIds,
+        equipmentQuantities: equipmentQuantitiesPayload(),
         displayStatus: reserveDisplayStatus(),
       },
     })
@@ -1222,23 +1254,59 @@ function guestFieldsValid() {
 function toggleReserveEquipment(id: string) {
   if (form.equipmentIds.includes(id)) {
     form.equipmentIds = form.equipmentIds.filter((item) => item !== id)
+    const next = { ...form.equipmentQuantities }
+    delete next[id]
+    form.equipmentQuantities = next
     return
   }
+  const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+  const stock = equipmentStock(stockItem || {})
+  if (stock < 1) return
   form.equipmentIds = [...form.equipmentIds, id]
+  form.equipmentQuantities = { ...form.equipmentQuantities, [id]: 1 }
 }
 
 function equipmentQty(id: string) {
-  return form.equipmentIds.includes(id) ? 1 : 0
+  if (!form.equipmentIds.includes(id)) return 0
+  return Math.max(1, form.equipmentQuantities[id] || 1)
 }
 
 function setEquipmentQty(id: string, qty: number) {
-  if (qty <= 0) {
+  const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+  const stock = equipmentStock(stockItem || {})
+  const next = Math.min(stock, Math.max(0, Math.round(qty)))
+  if (next <= 0) {
     form.equipmentIds = form.equipmentIds.filter((item) => item !== id)
+    const quantities = { ...form.equipmentQuantities }
+    delete quantities[id]
+    form.equipmentQuantities = quantities
     return
   }
   if (!form.equipmentIds.includes(id)) {
     form.equipmentIds = [...form.equipmentIds, id]
   }
+  form.equipmentQuantities = { ...form.equipmentQuantities, [id]: next }
+}
+
+function onEquipmentPickerUpdate(ids: string[]) {
+  const previous = new Set(form.equipmentIds)
+  const nextIds = [...ids]
+  const quantities = { ...form.equipmentQuantities }
+  for (const id of nextIds) {
+    if (!previous.has(id)) {
+      const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+      if (equipmentStock(stockItem || {}) < 1) continue
+      quantities[id] = 1
+    }
+  }
+  for (const id of previous) {
+    if (!nextIds.includes(id)) delete quantities[id]
+  }
+  form.equipmentIds = nextIds.filter((id) => {
+    const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+    return equipmentStock(stockItem || {}) >= 1
+  })
+  form.equipmentQuantities = quantities
 }
 
 const payConfirmDateHeading = computed(() => {
@@ -1260,12 +1328,13 @@ const payConfirmCostLines = computed(() => {
   for (const item of rentalEquipments.value) {
     if (!form.equipmentIds.includes(item.id)) continue
     if (item.category === 'CLUB' || !item.price) continue
+    const qty = equipmentQty(item.id)
     lines.push({
       label: t('booking.confirmLineEquipment', {
         name: localizedField(item, 'nameFa', 'nameEn'),
-        qty: formatNumber(1),
+        qty: formatNumber(qty),
       }),
-      amount: item.price,
+      amount: item.price * qty,
     })
   }
   return lines
@@ -1813,9 +1882,14 @@ function slotBarColor(status: string) {
                       v-if="form.equipmentIds.includes(item.id)"
                       class="canva-qty-step"
                     >
-                      <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, 0)">−</button>
+                      <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) - 1)">−</button>
                       <span class="tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
-                      <button type="button" class="canva-qty-step-btn" disabled>+</button>
+                      <button
+                        type="button"
+                        class="canva-qty-step-btn"
+                        :disabled="equipmentQty(item.id) >= equipmentStock(item)"
+                        @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) + 1)"
+                      >+</button>
                     </span>
                     <span class="tabular-nums text-brand-gray-600">
                       {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
@@ -2249,7 +2323,11 @@ function slotBarColor(status: string) {
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-              <OwnerEquipmentPicker v-model="form.equipmentIds" :options="equipmentPickerOptions" />
+              <OwnerEquipmentPicker
+                :model-value="form.equipmentIds"
+                :options="equipmentPickerOptions"
+                @update:model-value="onEquipmentPickerUpdate"
+              />
             </AppFormField>
           </div>
           <div class="venus-modal-footer">

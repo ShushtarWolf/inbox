@@ -95,6 +95,7 @@ export function useCourtBooking() {
   async function createCourtBookings(opts: {
     slotIds: string[]
     equipmentIds?: string[]
+    equipmentQuantities?: Record<string, number>
     discountCode?: string
     returnTo?: string
     date?: string
@@ -129,6 +130,9 @@ export function useCourtBooking() {
           slotIds,
           slotId: slotIds[0],
           equipmentIds: opts.equipmentIds?.length ? opts.equipmentIds : undefined,
+          equipmentQuantities: opts.equipmentQuantities && Object.keys(opts.equipmentQuantities).length
+            ? opts.equipmentQuantities
+            : undefined,
           discountCode: opts.discountCode || undefined,
         },
       })

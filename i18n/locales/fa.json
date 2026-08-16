@@ -1617,6 +1617,9 @@
       "itemName": "نام",
       "price": "قیمت",
       "priceHint": "صفر به معنی رایگان است",
+      "quantity": "تعداد",
+      "quantityHint": "حداکثر تعداد قابل رزرو در هر نوبت",
+      "stockLabel": "{qty} عدد",
       "confirmDelete": "این مورد حذف شود؟",
       "selectForBooking": "انتخاب تجهیزات برای این رزرو"
     },

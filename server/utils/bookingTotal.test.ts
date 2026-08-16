@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   calculateSessionTotal,
+  equipmentLineTotal,
   equipmentPriceAtBooking,
+  parseEquipmentSelections,
   sumEquipmentPrices,
 } from './bookingTotal'
 
@@ -18,10 +20,33 @@ describe('equipmentPriceAtBooking', () => {
 describe('sumEquipmentPrices', () => {
   it('sums equipment with club items free', () => {
     const total = sumEquipmentPrices([
-      { id: '1', price: 50000, category: 'CLUB' },
-      { id: '2', price: 30000, category: 'RENTAL' },
+      { id: '1', price: 50000, category: 'CLUB', quantity: 1 },
+      { id: '2', price: 30000, category: 'RENTAL', quantity: 1 },
     ])
     expect(total).toBe(30000)
+  })
+
+  it('multiplies unit price by quantity', () => {
+    expect(equipmentLineTotal({ id: '2', price: 50000, category: 'RENTAL', quantity: 3 })).toBe(150000)
+    expect(sumEquipmentPrices([
+      { id: '2', price: 50000, category: 'RENTAL', quantity: 3 },
+    ])).toBe(150000)
+  })
+})
+
+describe('parseEquipmentSelections', () => {
+  it('defaults missing quantities to 1', () => {
+    expect(parseEquipmentSelections(['a', 'b'])).toEqual([
+      { id: 'a', quantity: 1 },
+      { id: 'b', quantity: 1 },
+    ])
+  })
+
+  it('applies quantity map and dedupes ids', () => {
+    expect(parseEquipmentSelections(['a', 'a', 'b'], { a: 2, b: 4 })).toEqual([
+      { id: 'a', quantity: 2 },
+      { id: 'b', quantity: 4 },
+    ])
   })
 })
 

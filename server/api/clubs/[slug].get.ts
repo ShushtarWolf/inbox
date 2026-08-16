@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       equipment: {
         where: { category: 'RENTAL' },
         orderBy: { nameFa: 'asc' },
-        select: { id: true, nameFa: true, nameEn: true, category: true, price: true },
+        select: { id: true, nameFa: true, nameEn: true, category: true, price: true, quantity: true },
       },
       coaches: {
         where: { isBookable: true },

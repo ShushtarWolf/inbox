@@ -3,7 +3,9 @@ import { isPaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   calculateSessionTotal,
+  equipmentLineTotal,
   loadEquipmentForBooking,
+  parseEquipmentSelections,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
 import {
@@ -52,6 +54,7 @@ export default defineEventHandler(async (event) => {
     comments?: string
     displayStatus?: string
     equipmentIds?: string[]
+    equipmentQuantities?: Record<string, number>
     discountCode?: string
     skipNotify?: boolean
     notifyStartTime?: string
@@ -84,11 +87,14 @@ export default defineEventHandler(async (event) => {
     && (isPaidPaymentStatus(slot.booking.payment?.status) || isPaidPaymentStatus(slot.booking.paymentStatus)),
   )
   const becomingPaid = paymentStatus === 'PAID' && !previousPaid
-  const equipmentIds = [...new Set(body.equipmentIds || [])]
-  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentIds)
+  const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
+  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentSelections)
+  if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
+  }
   let totalAmount = calculateSessionTotal({
     courtPrice: slot.price,
-    equipmentPrices: equipmentItems.map((item) => (item.category === 'CLUB' ? 0 : item.price)),
+    equipmentPrices: equipmentItems.map((item) => equipmentLineTotal(item)),
   })
   if (body.discountCode) {
     const discountRow = await findDiscountCodeByInput(body.discountCode)

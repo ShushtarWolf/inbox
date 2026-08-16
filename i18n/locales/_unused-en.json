@@ -1313,6 +1313,9 @@
       "itemName": "Name",
       "price": "Price",
       "priceHint": "Zero means free",
+      "quantity": "Quantity",
+      "quantityHint": "Max units bookable per reservation",
+      "stockLabel": "{qty} units",
       "confirmDelete": "Delete this item?",
       "selectForBooking": "Select equipment for this booking"
     },

@@ -16,6 +16,7 @@ interface EquipmentItem {
   nameEn: string
   category: EquipmentCategory
   price: number
+  quantity: number
 }
 
 const categories: { key: EquipmentCategory; labelKey: string }[] = [
@@ -37,6 +38,7 @@ const editing = ref<EquipmentItem | null>(null)
 const modalCategory = ref<EquipmentCategory>('CLUB')
 const modalName = ref('')
 const modalPrice = ref(0)
+const modalQuantity = ref(1)
 const saving = ref(false)
 const modalError = ref('')
 const deleteTarget = ref<EquipmentItem | null>(null)
@@ -47,11 +49,17 @@ function formatEquipmentPrice(item: EquipmentItem) {
   return formatCurrency(item.price)
 }
 
+function formatEquipmentStock(item: EquipmentItem) {
+  if (item.category === 'CLUB') return ''
+  return t('owner.equipmentsPage.stockLabel', { qty: formatNumber(Math.max(1, item.quantity || 1)) })
+}
+
 function openAdd(category: EquipmentCategory) {
   editing.value = null
   modalCategory.value = category
   modalName.value = t('owner.equipmentsPage.newItem')
   modalPrice.value = 0
+  modalQuantity.value = 1
   modalError.value = ''
   showModal.value = true
 }
@@ -61,6 +69,7 @@ function openEdit(item: EquipmentItem) {
   modalCategory.value = item.category
   modalName.value = localizedField(item, 'nameFa', 'nameEn')
   modalPrice.value = item.price
+  modalQuantity.value = Math.max(1, item.quantity || 1)
   modalError.value = ''
   showModal.value = true
 }
@@ -78,15 +87,16 @@ async function saveItem() {
   modalError.value = ''
   try {
     const price = modalCategory.value === 'CLUB' ? 0 : Math.max(0, Math.round(modalPrice.value || 0))
+    const quantity = modalCategory.value === 'CLUB' ? 1 : Math.max(1, Math.min(999, Math.round(modalQuantity.value || 1)))
     if (editing.value) {
       const body = locale.value === 'fa'
-        ? { nameFa: name, price }
-        : { nameEn: name, price }
+        ? { nameFa: name, price, quantity }
+        : { nameEn: name, price, quantity }
       await $fetch(`/api/owner/equipments/${editing.value.id}`, { method: 'PATCH', body })
     } else {
       const body = locale.value === 'fa'
-        ? { nameFa: name, nameEn: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price }
-        : { nameEn: name, nameFa: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price }
+        ? { nameFa: name, nameEn: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price, quantity }
+        : { nameEn: name, nameFa: t('owner.equipmentsPage.newItem'), category: modalCategory.value, price, quantity }
       await $fetch('/api/owner/equipments', { method: 'POST', body })
     }
     closeModal()
@@ -158,7 +168,10 @@ async function confirmDelete() {
         <ul v-else class="space-y-2">
           <li v-for="e in grouped[cat.key]" :key="e.id">
             <button type="button" class="canva-equip-row" @click="openEdit(e)">
-              <span class="font-bold text-brand-navy">{{ localizedField(e, 'nameFa', 'nameEn') }}</span>
+              <span class="min-w-0 text-start">
+                <span class="font-bold text-brand-navy">{{ localizedField(e, 'nameFa', 'nameEn') }}</span>
+                <span v-if="formatEquipmentStock(e)" class="mt-0.5 block text-xs text-brand-gray-600">{{ formatEquipmentStock(e) }}</span>
+              </span>
               <span class="shrink-0 text-xs tabular-nums text-brand-gray-600">{{ formatEquipmentPrice(e) }}</span>
             </button>
           </li>
@@ -185,6 +198,10 @@ async function confirmDelete() {
         <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.price')">
           <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</p>
+        </AppFormField>
+        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.quantity')">
+          <input v-model.number="modalQuantity" type="number" min="1" max="999" step="1" dir="ltr" class="neo-input tabular-nums" />
+          <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.quantityHint') }}</p>
         </AppFormField>
         <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
         <button

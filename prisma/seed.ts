@@ -582,15 +582,15 @@ async function main() {
   })
 
   const equipData = [
-    { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const, price: 0 },
-    { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const, price: 0 },
-    { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const, price: 0 },
-    { nameFa: 'راکت', nameEn: 'Racket', category: 'RENTAL' as const, price: 50000 },
-    { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const, price: 50000 },
-    { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const, price: 30000 },
-    { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const, price: 150000 },
-    { nameFa: 'توپ فروشی', nameEn: 'Ball', category: 'SELL' as const, price: 200000 },
-    { nameFa: 'Ball kid', nameEn: 'Ball kid', category: 'SERVICE' as const, price: 100000 },
+    { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const, price: 0, quantity: 1 },
+    { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const, price: 0, quantity: 1 },
+    { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const, price: 0, quantity: 1 },
+    { nameFa: 'راکت', nameEn: 'Racket', category: 'RENTAL' as const, price: 50000, quantity: 8 },
+    { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const, price: 50000, quantity: 8 },
+    { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const, price: 30000, quantity: 4 },
+    { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const, price: 150000, quantity: 20 },
+    { nameFa: 'توپ فروشی', nameEn: 'Ball', category: 'SELL' as const, price: 200000, quantity: 20 },
+    { nameFa: 'Ball kid', nameEn: 'Ball kid', category: 'SERVICE' as const, price: 100000, quantity: 2 },
   ]
   for (const e of equipData) {
     await prisma.equipment.create({ data: { ...e, clubId: ownerClub.id } })

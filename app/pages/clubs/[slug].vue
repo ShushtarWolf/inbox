@@ -214,7 +214,7 @@ const sportLabel = computed(() => {
 })
 
 const rentalEquipment = computed(() => {
-  const list = (club.value as { equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number }> } | null)?.equipment || []
+  const list = (club.value as { equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number }> } | null)?.equipment || []
   if (!list.length) return null
   const racket = list.find((e) => /راکت|racket/i.test(`${e.nameFa} ${e.nameEn}`))
   return racket || list[0] || null

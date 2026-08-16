@@ -4,6 +4,7 @@ import { computeBookingPrice } from '#shared/courtPricing.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import {
   loadEquipmentForBooking,
+  parseEquipmentSelections,
   sumEquipmentPrices,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
     slotId?: string
     slotIds?: string[]
     equipmentIds?: string[]
+    equipmentQuantities?: Record<string, number>
     discountCode?: string
   }>(event)
 
@@ -59,9 +61,9 @@ export default defineEventHandler(async (event) => {
   // Preserve caller order for primary-slot payment grouping.
   const orderedSlots = slotIds.map((id) => slots.find((s) => s.id === id)!)
 
-  const equipmentIds = [...new Set(body.equipmentIds || [])]
-  const equipmentItems = await loadEquipmentForBooking(clubId, equipmentIds)
-  if (equipmentIds.length && equipmentItems.length !== equipmentIds.length) {
+  const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
+  const equipmentItems = await loadEquipmentForBooking(clubId, equipmentSelections)
+  if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
   }
   const equipmentTotal = sumEquipmentPrices(equipmentItems)

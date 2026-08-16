@@ -48,9 +48,13 @@ export async function generateRecurringCourtSlots(opts: {
   const equipmentItems = guest?.equipmentId
     ? await prisma.equipment.findMany({
         where: { id: guest.equipmentId, clubId: opts.clubId },
-        select: { id: true, price: true, category: true },
+        select: { id: true, price: true, category: true, quantity: true },
       })
     : []
+  const equipmentBookingItems = equipmentItems.map((item) => ({
+    ...item,
+    quantity: 1,
+  }))
   let created = 0
   let skipped = 0
 
@@ -127,7 +131,7 @@ export async function generateRecurringCourtSlots(opts: {
               source: 'CLUB',
             },
           })
-          await syncBookingEquipments(tx, booking.id, equipmentItems)
+          await syncBookingEquipments(tx, booking.id, equipmentBookingItems)
           await tx.payment.create({
             data: {
               bookingId: booking.id,
