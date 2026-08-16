@@ -361,7 +361,7 @@ No deploy required for a remote DB wipe. Deploy only if you change the wipe scri
 
 Preferred when the app can reach the DB (Liara): wipe catalog (sports kept, no demo seed, Google OAuth users deleted) and create one `CLUB_ADMIN` + باشگاه بهناز courts/photos in one call.
 
-Do **not** set `AUTH_OTP_BYPASS_PHONES` on Liara for this cutover (Kavenegar will not approve OTP against a test catalog; after reset, login stays OTP-shaped / log-mode until you flip SMS yourself).
+Never set `AUTH_OTP_BYPASS_PHONES` / `ALLOW_OTP_BYPASS` on Liara (OTP phone bypass was removed; after reset, login stays OTP-shaped / log-mode until you flip SMS yourself).
 
 ```bash
 curl -X POST https://inboxs.ir/api/admin/reset-pilot \
@@ -370,7 +370,7 @@ curl -X POST https://inboxs.ir/api/admin/reset-pilot \
   -d '{"confirm":"WIPE_ALL_USERS_AND_CLUBS","phone":"0912xxxxxxx","name":"مدیر مجموعه","clubName":"باشگاه بهناز"}'
 ```
 
-Expect `after.clubs=1`, `after.users=1`, `leftoverGoogle=0`, `leftoverDemo=0`, `seedDemoData=false`. Then `GET /clubs` lists that one club (cover + hours restored). Unset `AUTH_OTP_BYPASS_PHONES` if it is still on Liara.
+Expect `after.clubs=1`, `after.users=1`, `leftoverGoogle=0`, `leftoverDemo=0`, `seedDemoData=false`. Then `GET /clubs` lists that one club (cover + hours restored). Unset any leftover `AUTH_OTP_BYPASS_PHONES` / `ALLOW_OTP_BYPASS` on Liara.
 
 Do **not** add seed athlete `09121234567` / `athlete@inbox.local` to prod.
 

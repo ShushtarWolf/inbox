@@ -99,7 +99,7 @@ Fill in the Liara dashboard for app `inbox` using [LIARA_ENV_FILL_SHEET.md](./LI
 | `KAVENEGAR_SENDER` | approved line (free-text booking/CRM SMS) |
 
 Until C is complete, OTP stays log/`debugCode` — **not** production-safe.  
-Leave `AUTH_OTP_BYPASS_PHONES` **unset** on prod (dev bypass only).
+Never set `AUTH_OTP_BYPASS_PHONES` / `ALLOW_OTP_BYPASS` (OTP phone bypass was removed).
 
 ### Payments — pick ONE path
 

@@ -409,10 +409,8 @@ async function requestOtp() {
     const data = await $fetch<{
       phone: string
       debugCode?: string
-      smsMode?: 'log' | 'live' | 'bypass'
+      smsMode?: 'log' | 'live'
       smsPhase?: 'SINGLE' | 'MULTI'
-      bypass?: boolean
-      redirectTo?: string
     }>('/api/auth/otp/request', {
       method: 'POST',
       body: {
@@ -433,18 +431,10 @@ async function requestOtp() {
       },
     })
 
-    if (data.bypass) {
-      await fetchAuth()
-      notice.value = t('auth.otpBypassNotice')
-      pending.value = false
-      await showWelcome('login', data.redirectTo || fallbackAuthRedirect())
-      return
-    }
-
     maskedPhone.value = data.phone
     debugCode.value = data.debugCode || ''
     // Prefill only in log/dry-run so local testing works; never imply a real SMS was sent.
-    code.value = data.smsMode === 'log' || data.smsMode === 'bypass' ? (data.debugCode || '') : ''
+    code.value = data.smsMode === 'log' ? (data.debugCode || '') : ''
     step.value = 'otp'
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode

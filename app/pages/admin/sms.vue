@@ -22,6 +22,7 @@ type SmsStatus = {
   hasKavenegarApiKey: boolean
   hasKavenegarTemplate: boolean
   hasKavenegarSender: boolean
+  /** Leftover obsolete bypass env — ignored by auth; ops should unset. */
   hasOtpBypassConfigured?: boolean
   pendingScheduled: number
   dueNow: number
@@ -260,9 +261,9 @@ watch(secret, (value) => {
               <span>{{ t('admin.smsPage.pendingScheduled') }}</span>
               <strong dir="ltr">{{ formatNumber(status.pendingScheduled) }}</strong>
             </li>
-            <li class="flex justify-between gap-2">
+            <li v-if="status.hasOtpBypassConfigured" class="flex justify-between gap-2 text-amber-900">
               <span>{{ t('admin.smsPage.hasOtpBypass') }}</span>
-              <strong dir="ltr">{{ yesNo(Boolean(status.hasOtpBypassConfigured)) }}</strong>
+              <strong dir="ltr">{{ yesNo(true) }}</strong>
             </li>
           </ul>
 

@@ -512,7 +512,7 @@
       "hasApiKey": "کلید API کاوه‌نگار موجود",
       "hasTemplate": "قالب کاوه‌نگار تنظیم شده",
       "hasSender": "فرستنده کاوه‌نگار تنظیم شده",
-      "hasOtpBypass": "AUTH_OTP_BYPASS_PHONES فعال (فقط bypass/dev)",
+      "hasOtpBypass": "AUTH_OTP_BYPASS_PHONES باقی‌مانده (منسوخ — حذف کنید)",
       "nextActions": "اقدامات پیشنهادی برای پذیرش کاوه‌نگار",
       "warnings": "هشدارها",
       "queueTitle": "کمپین‌های زمان‌بندی‌شده",
@@ -536,8 +536,7 @@
         "live_without_template_or_sender": "نه قالب و نه فرستنده تنظیم شده — OTP اغلب با فرستنده نامعتبر شکست می‌خورد؛ قالب Verify یا فرستنده تأییدشده پنل را بگذارید.",
         "live_sender_only_no_template": "قالب تنظیم نشده — OTP از sms/send آزاد استفاده می‌کند. برای OTP قالب Verify Lookup پنل را ترجیح دهید.",
         "phase_single": "فاز SINGLE — فقط شماره(های) تاییدشده/آزمایشی در پنل کاوه‌نگار؛ ادعای ارسال به هر موبایل ایران نکنید.",
-        "otp_bypass_configured": "AUTH_OTP_BYPASS_PHONES فعال است — فقط bypass/dev؛ به‌عنوان ارسال MULTI عادی ادعا نکنید.",
-        "otp_bypass_on_production": "AUTH_OTP_BYPASS_PHONES روی production تنظیم است — OTP واقعی رد می‌شود مگر ALLOW_OTP_BYPASS=true؛ روی لیارا UNSET کنید."
+        "otp_bypass_leftover": "AUTH_OTP_BYPASS_PHONES / ALLOW_OTP_BYPASS باقی مانده — بای‌پس OTP حذف شده؛ این متغیرها را UNSET کنید (نادیده گرفته می‌شوند و نباید بمانند)."
       },
       "nextActionCodes": {
         "set_sms_enabled": "پس از پذیرش ارسال در پنل کاوه‌نگار، SMS_ENABLED=true بگذارید.",
@@ -548,7 +547,7 @@
         "enable_when_panel_accepts": "وقتی کاوه‌نگار ارسال چندشماره را پذیرفت، SMS_ENABLED=true کنید.",
         "add_api_key": "KAVENEGAR_API_KEY را اضافه کنید.",
         "add_template_or_sender": "پس از باز شدن پنل، KAVENEGAR_TEMPLATE یا KAVENEGAR_SENDER را اضافه کنید.",
-        "unset_otp_bypass": "AUTH_OTP_BYPASS_PHONES را روی production بردارید (ALLOW_OTP_BYPASS نگذارید)."
+        "unset_otp_bypass": "AUTH_OTP_BYPASS_PHONES و ALLOW_OTP_BYPASS را حذف کنید (بای‌پس OTP حذف شده است)."
       }
     },
     "provisionTitle": "ایجاد مدیر باشگاه",
@@ -1230,7 +1229,6 @@
     "resendOtp": "ارسال دوباره کد",
     "debugOtpHint": "کد آزمایشی (پیامک واقعی ارسال نشده): {code}",
     "debugOtpDevOnly": "فقط برای تست محلی — برای کاربران عادی از ورود با رمز استفاده کنید.",
-    "otpBypassNotice": "ورود آزمایشی برای شماره مجاز (بدون کد تایید).",
     "otpLogModeBanner": "پیامک واقعی هنوز فعال نیست — کد تایید در همین صفحه نشان داده می‌شود.",
     "otpUnavailableUsePassword": "پیامک واقعی هنوز فعال نیست — کد تایید در همین صفحه نشان داده می‌شود. می‌توانید با رمز عبور هم وارد شوید.",
     "otpDevOnlyLink": "ورود با کد پیامکی",

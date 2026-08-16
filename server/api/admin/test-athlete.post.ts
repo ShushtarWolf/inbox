@@ -45,6 +45,6 @@ export default defineEventHandler(async (event) => {
     ok: true,
     created: !existing,
     user,
-    hint: 'Add this phone to AUTH_OTP_BYPASS_PHONES for login without SMS OTP',
+    hint: 'Use SMS_PROVIDER=log locally to get debugCode OTP; production always requires real SMS OTP',
   }
 })

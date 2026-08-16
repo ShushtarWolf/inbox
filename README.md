@@ -74,7 +74,7 @@ Requires `SEED_DEMO_DATA=true` (or `npm run db:seed:demo`):
 | Coach | `coach@inbox.local` | `demo1234` | `09123334455` |
 | Club owner | `owner@inbox.local` | `demo1234` | `09124445566` |
 
-Phone login without real SMS: set `AUTH_OTP_BYPASS_PHONES=09121234567` (athlete) — enter phone → continue → `/athlete`. With `SMS_PROVIDER=log`, any number still gets a `debugCode` instead of a real SMS.
+Phone login locally: with `SMS_PROVIDER=log`, OTP returns a `debugCode` instead of a real SMS. Production always requires real SMS OTP (no phone allowlist bypass).
 
 Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recreate demo data locally.
 

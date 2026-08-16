@@ -100,7 +100,7 @@ curl -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
 |-------------|-----|
 | `NUXT_OAUTH_GOOGLE_*` | Google UI hard-off |
 | Live SMTP / `S3_*` / `SENTRY_DSN` | Optional polish — not court-book blockers |
-| `AUTH_OTP_BYPASS_PHONES` | Dev/pilot bypass only — not for real owner OTP |
+| `AUTH_OTP_BYPASS_PHONES` / `ALLOW_OTP_BYPASS` | Removed — never set; all logins need real SMS OTP |
 
 ---
 
