@@ -397,6 +397,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
               autocomplete="off"
             >
             <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
+            <span class="mt-1 block text-xs font-bold text-red-600" role="note">{{ t('owner.settingsPage.shebaOwnerOnlyNotice') }}</span>
           </label>
         </div>
 

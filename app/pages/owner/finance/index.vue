@@ -413,6 +413,9 @@ function closeTx() {
         <p class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
         </p>
+        <p class="text-xs font-bold text-red-600 text-start" role="note">
+          {{ t('owner.financePage.payoutOwnerOnlyNotice') }}
+        </p>
         <div class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-brand-cream px-3 py-3" style="border-radius: var(--sz-canva-radius);">
           <span class="text-sm text-brand-gray-600">{{ t('owner.financePage.walletBalance') }}</span>
           <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.balance || 0) }}</span>
