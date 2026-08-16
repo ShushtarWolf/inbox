@@ -13,7 +13,18 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
 const { t } = useI18n()
-const { uploading, error, upload } = useImageUpload({ guest: props.guest })
+const {
+  uploading,
+  error,
+  showRules,
+  showFailure,
+  accept,
+  askPick,
+  closeRules,
+  confirmRules,
+  dismissFailure,
+  upload,
+} = useImageUpload({ guest: props.guest })
 const inputRef = ref<HTMLInputElement | null>(null)
 
 async function onFileChange(event: Event) {
@@ -52,7 +63,7 @@ function removeAt(index: number) {
         type="button"
         class="btn-secondary text-sm"
         :disabled="uploading || modelValue.length >= max"
-        @click="inputRef?.click()"
+        @click="askPick"
       >
         {{ uploading ? t('upload.uploading') : t('upload.addPhoto') }}
       </button>
@@ -76,7 +87,15 @@ function removeAt(index: number) {
         {{ t('upload.remove') }} {{ index + 1 }}
       </button>
     </div>
-    <input ref="inputRef" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="onFileChange" />
+    <input ref="inputRef" type="file" :accept="accept" multiple class="hidden" @change="onFileChange" />
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <AppUploadSheets
+      :rules-open="showRules"
+      :failure-open="showFailure"
+      :failure-message="error"
+      @confirm-rules="confirmRules(() => inputRef?.click())"
+      @close-rules="closeRules"
+      @close-failure="dismissFailure"
+    />
   </div>
 </template>

@@ -13,7 +13,18 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const { t } = useI18n()
-const { uploading, error, upload } = useImageUpload({ guest: props.guest })
+const {
+  uploading,
+  error,
+  showRules,
+  showFailure,
+  accept,
+  askPick,
+  closeRules,
+  confirmRules,
+  dismissFailure,
+  upload,
+} = useImageUpload({ guest: props.guest })
 const inputRef = ref<HTMLInputElement | null>(null)
 
 async function onFileChange(event: Event) {
@@ -32,15 +43,23 @@ async function onFileChange(event: Event) {
     <div class="flex items-center gap-3">
       <img :src="modelValue || placeholder" alt="" class="h-20 w-20 border border-brand-gray-100 object-cover shadow-venus-sm" />
       <div class="flex flex-col gap-2">
-        <button type="button" class="btn-secondary text-sm" :disabled="uploading" @click="inputRef?.click()">
+        <button type="button" class="btn-secondary text-sm" :disabled="uploading" @click="askPick">
           {{ uploading ? t('upload.uploading') : t('upload.choose') }}
         </button>
         <button v-if="modelValue" type="button" class="text-xs font-bold text-brand-gray-600" @click="emit('update:modelValue', '')">
           {{ t('upload.remove') }}
         </button>
       </div>
-      <input ref="inputRef" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFileChange" />
+      <input ref="inputRef" type="file" :accept="accept" class="hidden" @change="onFileChange" />
     </div>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <AppUploadSheets
+      :rules-open="showRules"
+      :failure-open="showFailure"
+      :failure-message="error"
+      @confirm-rules="confirmRules(() => inputRef?.click())"
+      @close-rules="closeRules"
+      @close-failure="dismissFailure"
+    />
   </div>
 </template>

@@ -38,7 +38,21 @@ const maskedPhone = ref('')
 const selectedRole = ref<AuthFlowRole>('ATHLETE')
 
 const { smsMode, smsPhase, smsLive } = useSmsCapability()
-const { uploading: licenseUploading, error: licenseUploadError, upload: uploadLicense } = useImageUpload({ guest: true })
+const {
+  uploading: licenseUploading,
+  error: licenseUploadError,
+  showRules: licenseShowRules,
+  showFailure: licenseShowFailure,
+  accept: licenseAccept,
+  askPick: licenseAskPick,
+  closeRules: licenseCloseRules,
+  confirmRules: licenseConfirmRules,
+  dismissFailure: licenseDismissFailure,
+  upload: uploadLicense,
+} = useImageUpload({ guest: true })
+const licenseInputOtpRef = ref<HTMLInputElement | null>(null)
+const licenseInputPasswordRef = ref<HTMLInputElement | null>(null)
+const licensePickerChannel = ref<'otp' | 'password'>('otp')
 const { pilotNoCoach } = usePilotFlags()
 
 /** Canva role picker (4.png): Athlete / Coach / Owner — Coach hidden when PILOT_NO_COACH. */
@@ -200,6 +214,21 @@ function goRegisterOtp() {
 function goRegisterPassword() {
   error.value = ''
   channel.value = 'password'
+}
+
+function openLicensePicker(which: 'otp' | 'password') {
+  if (licenseUploading.value) return
+  licensePickerChannel.value = which
+  licenseAskPick()
+}
+
+function confirmLicenseRules() {
+  licenseConfirmRules(() => {
+    const el = licensePickerChannel.value === 'password'
+      ? licenseInputPasswordRef.value
+      : licenseInputOtpRef.value
+    el?.click()
+  })
 }
 
 async function onLicenseFile(event: Event) {
@@ -654,10 +683,22 @@ watch(
                 <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.licenseHint') }}</p>
                 <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
               </div>
-              <label class="canva-auth-upload-btn">
-                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" :disabled="licenseUploading" @change="onLicenseFile" />
+              <button
+                type="button"
+                class="canva-auth-upload-btn"
+                :disabled="licenseUploading"
+                @click="openLicensePicker('otp')"
+              >
                 {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
-              </label>
+              </button>
+              <input
+                ref="licenseInputOtpRef"
+                type="file"
+                class="sr-only"
+                :accept="licenseAccept"
+                :disabled="licenseUploading"
+                @change="onLicenseFile"
+              >
             </div>
           </template>
           <template v-else>
@@ -751,10 +792,22 @@ watch(
                 <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.licenseHint') }}</p>
                 <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
               </div>
-              <label class="canva-auth-upload-btn">
-                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" :disabled="licenseUploading" @change="onLicenseFile" />
+              <button
+                type="button"
+                class="canva-auth-upload-btn"
+                :disabled="licenseUploading"
+                @click="openLicensePicker('password')"
+              >
                 {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
-              </label>
+              </button>
+              <input
+                ref="licenseInputPasswordRef"
+                type="file"
+                class="sr-only"
+                :accept="licenseAccept"
+                :disabled="licenseUploading"
+                @change="onLicenseFile"
+              >
             </div>
             <p v-if="sport === 'both' && courtCount < 2" class="text-start text-[10px] text-brand-gray-500">
               {{ t('auth.sportBothHandoff') }}
@@ -954,4 +1007,13 @@ watch(
       </div>
     </div>
   </AppModal>
+  <AppUploadSheets
+    :rules-open="licenseShowRules"
+    :failure-open="licenseShowFailure"
+    :failure-message="licenseUploadError"
+    overlay-class="z-[80]"
+    @confirm-rules="confirmLicenseRules"
+    @close-rules="licenseCloseRules"
+    @close-failure="licenseDismissFailure"
+  />
 </template>

@@ -14,7 +14,18 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
 const { t } = useI18n()
-const { uploading, error, upload } = useImageUpload()
+const {
+  uploading,
+  error,
+  showRules,
+  showFailure,
+  accept,
+  askPick,
+  closeRules,
+  confirmRules,
+  dismissFailure,
+  upload,
+} = useImageUpload()
 const inputRef = ref<HTMLInputElement | null>(null)
 const activeSlot = ref<number | null>(null)
 
@@ -26,7 +37,7 @@ const slots = computed(() => {
 
 function openSlot(index: number) {
   activeSlot.value = index
-  inputRef.value?.click()
+  askPick()
 }
 
 function clearSlot(index: number) {
@@ -47,6 +58,11 @@ async function onFileChange(event: Event) {
   const next = [...slots.value]
   next[index] = result.url
   emit('update:modelValue', next.filter(Boolean))
+}
+
+function onCloseRules() {
+  activeSlot.value = null
+  closeRules()
 }
 </script>
 
@@ -76,9 +92,17 @@ async function onFileChange(event: Event) {
     <input
       ref="inputRef"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      :accept="accept"
       class="hidden"
       @change="onFileChange"
     >
+    <AppUploadSheets
+      :rules-open="showRules"
+      :failure-open="showFailure"
+      :failure-message="error"
+      @confirm-rules="confirmRules(() => inputRef?.click())"
+      @close-rules="onCloseRules"
+      @close-failure="dismissFailure"
+    />
   </div>
 </template>

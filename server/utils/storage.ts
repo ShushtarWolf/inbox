@@ -2,9 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+  IMAGE_UPLOAD_ALLOWED_TYPE_SET,
+  IMAGE_UPLOAD_MAX_BYTES,
+} from '#shared/imageUpload.ts'
 
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_BYTES = 5 * 1024 * 1024
+const ALLOWED_TYPES = IMAGE_UPLOAD_ALLOWED_TYPE_SET
+const MAX_BYTES = IMAGE_UPLOAD_MAX_BYTES
 
 const EXT_BY_TYPE: Record<string, string> = {
   'image/jpeg': 'jpg',

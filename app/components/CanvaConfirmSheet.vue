@@ -9,6 +9,8 @@ withDefaults(defineProps<{
   /** Single OK button — for post-action notices (replaces alert). */
   notice?: boolean
   danger?: boolean
+  /** Stack above nested modals (e.g. AuthFlow at z-[70]). */
+  overlayClass?: string
 }>(), {
   body: '',
   confirmLabel: '',
@@ -16,6 +18,7 @@ withDefaults(defineProps<{
   pending: false,
   notice: false,
   danger: false,
+  overlayClass: '',
 })
 
 const emit = defineEmits<{
@@ -33,6 +36,7 @@ const { t } = useI18n()
     sheet
     patterned
     max-width-class="canva-phone-shell max-w-sm"
+    :overlay-class="overlayClass || undefined"
     @close="emit('close')"
   >
     <div class="canva-auth-body space-y-4 px-5 pb-6 pt-2">

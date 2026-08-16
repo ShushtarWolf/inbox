@@ -1067,7 +1067,17 @@
     "remove": "Remove",
     "addPhoto": "Add photo",
     "clearAll": "Clear all",
-    "failed": "Upload failed. Please try again."
+    "failed": "Upload failed. Please try again.",
+    "failedTitle": "Upload failed",
+    "rulesTitle": "Image upload rules",
+    "rulesBody": "Only JPEG, PNG, and WebP files are allowed (max 5 MB). HEIC (iPhone camera), GIF, PDF, and video are not accepted. Convert the photo to JPEG or PNG before choosing.",
+    "rulesConfirm": "Got it — choose image",
+    "errorHeic": "HEIC is not supported. Save the photo as JPEG in your gallery and try again.",
+    "errorType": "This file type is not allowed. Only JPEG, PNG, and WebP are accepted.",
+    "errorSize": "Image must be 5 MB or smaller. Choose a smaller file.",
+    "errorEmpty": "No valid image file was selected.",
+    "errorAuth": "Sign in to upload an image.",
+    "errorRateLimit": "Too many attempts. Wait a moment and try again."
   },
   "register": {
     "rolePickerLabel": "Account type",
