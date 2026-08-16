@@ -82,6 +82,7 @@ describe('clubNotifyName', () => {
 
 describe('bookingNotify SMS', () => {
   beforeEach(() => {
+    process.env.ADMIN_ALERT_SMS = 'false'
     createInAppNotification.mockResolvedValue(undefined)
     sendNotification.mockResolvedValue({ sent: false, logged: true })
     resolveSmsProvider.mockReturnValue('log')
@@ -89,6 +90,31 @@ describe('bookingNotify SMS', () => {
 
   afterEach(() => {
     vi.clearAllMocks()
+    delete process.env.ADMIN_ALERT_SMS
+    delete process.env.ADMIN_ALERT_PHONE
+  })
+
+  it('alerts platform admin even when guest SMS is skipped', async () => {
+    delete process.env.ADMIN_ALERT_SMS
+    process.env.ADMIN_ALERT_PHONE = '09124777927'
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({ ...baseOpts, phone: null, skipGuest: true })
+    await notifyBookingPaid({ ...baseOpts, phone: null, skipGuest: true })
+    await notifyBookingCancelled({ ...baseOpts, phone: null, skipGuest: true })
+
+    const adminCalls = sendNotification.mock.calls
+      .filter((call) => call[0]?.channel === 'sms' && String(call[0].template).startsWith('ADMIN_'))
+    expect(adminCalls).toHaveLength(3)
+    expect(adminCalls.map((call) => call[0].template)).toEqual([
+      'ADMIN_BOOKING_CONFIRMED',
+      'ADMIN_BOOKING_PAID',
+      'ADMIN_BOOKING_CANCELLED',
+    ])
+    for (const call of adminCalls) {
+      expect(call[0].to).toBe('09124777927')
+    }
   })
 
   it('attempts SMS when provider is live and phone is present', async () => {

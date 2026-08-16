@@ -38,6 +38,7 @@ Copy/paste checklist. Mark each row when set.
 | ☐ | `KAVENEGAR_TEMPLATE` | e.g. `inbox-verify` | **Preferred for OTP** (Verify Lookup, `%token%`) |
 | ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` (default if unset) | **Required for booking paid/cancel/CRM SMS.** Panel template body must be exactly `%token10%`. Free-text `sms/send` fails on service lines (`ارسال کننده نامعتبر است`). |
 | ☐ | `KAVENEGAR_SENDER` | approved line | Fallback only for free-text; OTP without template. Lookup uses the line attached to the template. |
+| ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / cashout / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
 
 Until C is complete, OTP stays **log/dry-run** (`debugCode`) — not production-safe.
 

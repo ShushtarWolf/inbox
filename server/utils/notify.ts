@@ -15,6 +15,12 @@ export type NotifyTemplate =
   | 'OWNER_BOOKING_PAID'
   | 'OWNER_BOOKING_CANCELLED'
   | 'CLUB_APPROVED'
+  | 'ADMIN_BOOKING_CONFIRMED'
+  | 'ADMIN_BOOKING_PAID'
+  | 'ADMIN_BOOKING_CANCELLED'
+  | 'ADMIN_WITHDRAW_REQUEST'
+  | 'ADMIN_CLUB_APPLICATION'
+  | 'ADMIN_WALLET_TOPUP'
 
 /**
  * Channel notify — email gates on EMAIL_ENABLED / live SMTP; always fail-soft.

@@ -1,4 +1,5 @@
 import { creditWallet, debitWallet, getOrCreateWallet } from './wallet'
+import { notifyAdminWithdrawRequest } from './adminNotify'
 
 export async function requestUserWithdraw(options: {
   userId: string
@@ -37,6 +38,24 @@ export async function requestUserWithdraw(options: {
       note: 'Withdraw request hold',
     }, tx)
 
+    return request
+  }).then(async (request) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: options.userId },
+        select: { name: true, phone: true },
+      })
+      await notifyAdminWithdrawRequest({
+        kind: 'athlete',
+        amount: request.amount,
+        sheba: request.shebaSnapshot,
+        userName: user?.name || '',
+        userPhone: user?.phone || '',
+        requestId: request.id,
+      })
+    } catch (err) {
+      console.error('[walletWithdraw:adminSms]', request.id, err)
+    }
     return request
   })
 }

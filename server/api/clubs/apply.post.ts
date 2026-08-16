@@ -1,3 +1,5 @@
+import { notifyAdminClubApplication } from '../../utils/adminNotify'
+
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
     clubName?: string
@@ -16,15 +18,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
+  const sportSlug = body.sport === 'tennis' ? 'tennis' : 'padel'
+  const contactPhone = body.contactPhone?.trim()
   const application = await prisma.clubApplication.create({
     data: {
       clubName,
       city,
       contactName,
       contactEmail,
-      contactPhone: body.contactPhone?.trim(),
-      sportSlug: body.sport === 'tennis' ? 'tennis' : 'padel',
+      contactPhone,
+      sportSlug,
     },
+  })
+
+  await notifyAdminClubApplication({
+    clubName,
+    city,
+    contactName,
+    contactPhone,
+    contactEmail,
+    sportSlug,
   })
 
   return { id: application.id, status: application.status }

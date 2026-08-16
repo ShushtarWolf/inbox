@@ -12,6 +12,7 @@ import {
   sportSlugsForOwner,
 } from '../../../utils/ownerOnboarding'
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
+import { notifyAdminClubApplication } from '../../../utils/adminNotify'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-verify')
@@ -162,6 +163,15 @@ export default defineEventHandler(async (event) => {
     })
 
     await setUserSession(event, { user: toSessionUser(result.user) })
+    await notifyAdminClubApplication({
+      clubName: clubNameFa,
+      city,
+      contactName: name,
+      contactPhone: consumed.phone,
+      contactEmail: email,
+      sportSlug: sportKey === 'tennis' ? 'tennis' : 'padel',
+      clubId: result.club.id,
+    })
     return {
       id: result.user.id,
       email: result.user.email,

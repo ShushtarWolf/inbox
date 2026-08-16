@@ -1,5 +1,6 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
+import { notifyAdminSms } from './adminNotify'
 import { createInAppNotification, sendNotification } from './notify'
 import { bookingTrackingCode, receiptUrlForBooking } from './receipt'
 import { renderSmsTemplate } from './sms/templates'
@@ -27,6 +28,8 @@ type BookingNotifyOpts = {
   receiptUrl?: string | null
   /** Paid amount in product currency units (same as Payment.amount). */
   amountPaid?: number | null
+  /** Skip athlete/guest channels but still alert platform admin. */
+  skipGuest?: boolean
 }
 
 type OwnerBookingPaidOpts = {
@@ -196,73 +199,89 @@ function whenLine(opts: BookingNotifyOpts) {
   return when || '—'
 }
 
+function adminBookingData(opts: BookingNotifyOpts) {
+  return {
+    ...bookingNotifyData(opts),
+    guestPhone: opts.phone || '',
+  }
+}
+
 /** Booking created (platform creates as CONFIRMED). In-app when userId; email/SMS when address/phone present. */
 export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
-  if (opts.userId) {
-    await safeInApp({
-      userId: opts.userId,
-      type: 'BOOKING_CONFIRMED',
-      title: 'رزرو تایید شد',
-      body: `${label} در «${opts.clubName}» — ${whenLine(opts)}`,
-      metadata: {
-        kind: opts.kind,
-        clubId: opts.clubId,
-        bookingId: opts.bookingId,
-        date: opts.date,
-        startTime: opts.startTime,
-      },
-    })
+  if (!opts.skipGuest) {
+    if (opts.userId) {
+      await safeInApp({
+        userId: opts.userId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'رزرو تایید شد',
+        body: `${label} در «${opts.clubName}» — ${whenLine(opts)}`,
+        metadata: {
+          kind: opts.kind,
+          clubId: opts.clubId,
+          bookingId: opts.bookingId,
+          date: opts.date,
+          startTime: opts.startTime,
+        },
+      })
+    }
+    await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
+    await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
   }
-  await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
-  await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
+  await notifyAdminSms('ADMIN_BOOKING_CONFIRMED', adminBookingData(opts), opts.clubId)
 }
 
 export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?: string }) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
-  if (opts.userId) {
-    await safeInApp({
-      userId: opts.userId,
-      type: 'BOOKING_CANCELLED',
-      title: 'رزرو لغو شد',
-      body: `${label} در «${opts.clubName}» — ${whenLine(opts)} لغو شد`,
-      metadata: {
-        kind: opts.kind,
-        clubId: opts.clubId,
-        bookingId: opts.bookingId,
-        date: opts.date,
-        startTime: opts.startTime,
-        reason: opts.reason,
-      },
-    })
+  if (!opts.skipGuest) {
+    if (opts.userId) {
+      await safeInApp({
+        userId: opts.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'رزرو لغو شد',
+        body: `${label} در «${opts.clubName}» — ${whenLine(opts)} لغو شد`,
+        metadata: {
+          kind: opts.kind,
+          clubId: opts.clubId,
+          bookingId: opts.bookingId,
+          date: opts.date,
+          startTime: opts.startTime,
+          reason: opts.reason,
+        },
+      })
+    }
+    await safeEmail(opts.email, 'BOOKING_CANCELLED', data)
+    await safeSms(opts.phone, 'BOOKING_CANCELLED', data, opts.clubId)
   }
-  await safeEmail(opts.email, 'BOOKING_CANCELLED', data)
-  await safeSms(opts.phone, 'BOOKING_CANCELLED', data, opts.clubId)
+  await notifyAdminSms('ADMIN_BOOKING_CANCELLED', adminBookingData(opts), opts.clubId)
 }
 
 /** Pay-at-club / wallet / online verified — notify linked athlete and/or guest phone. */
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
-  if (opts.userId) {
-    await safeInApp({
-      userId: opts.userId,
-      type: 'BOOKING_PAID',
-      title: 'پرداخت ثبت شد',
-      body: `${label} در «${opts.clubName}» — ${whenLine(opts)} پرداخت شد`,
-      metadata: {
-        kind: opts.kind,
-        clubId: opts.clubId,
-        bookingId: opts.bookingId,
-        date: opts.date,
-        startTime: opts.startTime,
-      },
-    })
+  if (!opts.skipGuest) {
+    if (opts.userId) {
+      await safeInApp({
+        userId: opts.userId,
+        type: 'BOOKING_PAID',
+        title: 'پرداخت ثبت شد',
+        body: `${label} در «${opts.clubName}» — ${whenLine(opts)} پرداخت شد`,
+        metadata: {
+          kind: opts.kind,
+          clubId: opts.clubId,
+          bookingId: opts.bookingId,
+          date: opts.date,
+          startTime: opts.startTime,
+        },
+      })
+    }
+    await safeEmail(opts.email, 'BOOKING_PAID', data)
+    await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
   }
-  await safeEmail(opts.email, 'BOOKING_PAID', data)
-  await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
+  await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
 }
 
 /**

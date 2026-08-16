@@ -159,4 +159,57 @@ describe('SMS templates', () => {
       }),
     ).toBe('رزرو حمید افقه لغو شد | زمین ۳ | ۱۴۰۵/۰۵/۲۳ از ۰۹:۰۰ تا ۱۰:۰۰ | کد ۱۰۵۷۱۲۸ | اینباکس')
   })
+
+  it('renders compact admin alert templates', () => {
+    expect(
+      renderSmsTemplate('ADMIN_BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        guestName: 'علی',
+        guestPhone: '09121234567',
+        date: '2026-08-14',
+        startTime: '10:00',
+        courtName: 'زمین ۱',
+      }),
+    ).toContain('رزرو جدید')
+    expect(
+      renderSmsTemplate('ADMIN_BOOKING_PAID', {
+        clubName: 'بهناز',
+        guestName: 'علی',
+        amountPaid: 500000,
+        date: '2026-08-14',
+        startTime: '10:00',
+      }),
+    ).toContain('پرداخت رزرو')
+    expect(
+      renderSmsTemplate('ADMIN_BOOKING_CANCELLED', {
+        clubName: 'بهناز',
+        guestName: 'علی',
+        date: '2026-08-14',
+        startTime: '10:00',
+      }),
+    ).toContain('لغو رزرو')
+    expect(
+      renderSmsTemplate('ADMIN_WITHDRAW_REQUEST', {
+        kind: 'club',
+        clubName: 'بهناز',
+        amount: 1000000,
+        sheba: 'IR123456789012345678901234',
+      }),
+    ).toContain('برداشت باشگاه')
+    expect(
+      renderSmsTemplate('ADMIN_CLUB_APPLICATION', {
+        clubName: 'باشگاه نو',
+        city: 'تهران',
+        contactName: 'سیامک',
+        contactPhone: '09124777927',
+      }),
+    ).toContain('درخواست باشگاه')
+    expect(
+      renderSmsTemplate('ADMIN_WALLET_TOPUP', {
+        userName: 'ورزشکار',
+        userPhone: '09121234567',
+        amount: 200000,
+      }),
+    ).toContain('شارژ کیف پول')
+  })
 })

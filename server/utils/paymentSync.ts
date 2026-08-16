@@ -9,6 +9,7 @@ import {
   ownerNotifyPhone,
   personNotifyName,
 } from './bookingNotify'
+import { notifyAdminWalletTopUp } from './adminNotify'
 import { getPaymentService } from './payments/service'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
@@ -252,6 +253,24 @@ export async function confirmPaymentAndSync(
       console.error('[paymentSync:ownerSettlement]', intent.id, err)
     }
     await notifyPaidIfNeeded(intent.id, previousStatus)
+    if (before?.purpose === 'topup' && previousStatus !== 'PAID') {
+      try {
+        const user = before.userId
+          ? await prisma.user.findUnique({
+              where: { id: before.userId },
+              select: { name: true, phone: true },
+            })
+          : null
+        await notifyAdminWalletTopUp({
+          amount: intent.amount,
+          userName: user?.name,
+          userPhone: user?.phone,
+          paymentId: intent.id,
+        })
+      } catch (err) {
+        console.error('[paymentSync:adminTopUpSms]', intent.id, err)
+      }
+    }
   }
   return intent
 }

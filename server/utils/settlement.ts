@@ -1,5 +1,6 @@
 import type { ClubWalletTransactionType, Prisma } from '@prisma/client'
 import { resolvePlatformCommissionBps, splitSettlement } from '#shared/settlement.ts'
+import { notifyAdminWithdrawRequest } from './adminNotify'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -262,6 +263,24 @@ export async function requestClubWithdraw(options: {
       note: 'Withdraw request hold',
     }, tx)
 
+    return request
+  }).then(async (request) => {
+    try {
+      const club = await prisma.club.findUnique({
+        where: { id: options.clubId },
+        select: { nameFa: true, nameEn: true },
+      })
+      await notifyAdminWithdrawRequest({
+        kind: 'club',
+        amount: request.amount,
+        sheba: request.shebaSnapshot,
+        clubName: club?.nameFa || club?.nameEn || '',
+        clubId: options.clubId,
+        requestId: request.id,
+      })
+    } catch (err) {
+      console.error('[settlement:adminWithdrawSms]', request.id, err)
+    }
     return request
   })
 }

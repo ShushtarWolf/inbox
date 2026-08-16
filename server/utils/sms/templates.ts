@@ -160,6 +160,97 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       ? `نوبت آزاد شد${clubBit(data)} — ${when}. سریع رزرو کنید`
       : `نوبت آزاد شد${clubBit(data)}. سریع رزرو کنید`
   },
+  /** Compact admin alerts — Verify Lookup token10 (~100 chars). */
+  ADMIN_BOOKING_CONFIRMED: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
+    const guestPhone = String(data.guestPhone || data.phone || '').trim()
+    const when = whenBit(data)
+    const court = String(data.courtName || '').trim()
+    const tracking = String(data.trackingCode || '').trim()
+    return [
+      'رزرو جدید',
+      clubBit(data).trim() || '',
+      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
+      when,
+      court,
+      tracking ? `کد ${toPersianDigits(tracking)}` : '',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_BOOKING_PAID: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
+    const guestPhone = String(data.guestPhone || data.phone || '').trim()
+    const amount = amountBit(data)
+    const when = whenBit(data)
+    const court = String(data.courtName || '').trim()
+    return [
+      'پرداخت رزرو',
+      clubBit(data).trim() || '',
+      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
+      amount,
+      when,
+      court,
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_BOOKING_CANCELLED: (data) => {
+    const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
+    const guestPhone = String(data.guestPhone || data.phone || '').trim()
+    const when = whenBit(data)
+    const court = String(data.courtName || '').trim()
+    const tracking = String(data.trackingCode || '').trim()
+    return [
+      'لغو رزرو',
+      clubBit(data).trim() || '',
+      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
+      when,
+      court,
+      tracking ? `کد ${toPersianDigits(tracking)}` : '',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_WITHDRAW_REQUEST: (data) => {
+    const kind = String(data.kind || '').toLowerCase() === 'athlete' ? 'ورزشکار' : 'باشگاه'
+    const who = kind === 'ورزشکار'
+      ? (String(data.userName || data.userPhone || '').trim() || 'ورزشکار')
+      : (String(data.clubName || '').trim() || 'باشگاه')
+    const amount = amountBit(data)
+    const sheba = String(data.sheba || '').trim()
+    return [
+      `برداشت ${kind}`,
+      who,
+      amount,
+      sheba ? `شبا ${toPersianDigits(sheba.slice(-4))}` : '',
+      'اقدام در ادمین',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_CLUB_APPLICATION: (data) => {
+    const club = String(data.clubName || '').trim() || 'باشگاه'
+    const city = String(data.city || '').trim()
+    const contact = String(data.contactName || '').trim()
+    const phone = String(data.contactPhone || '').trim()
+    return [
+      'درخواست باشگاه',
+      club,
+      city,
+      contact,
+      phone ? toPersianDigits(phone) : '',
+      'اقدام در ادمین',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_WALLET_TOPUP: (data) => {
+    const who = String(data.userName || data.userPhone || '').trim() || 'کاربر'
+    const phone = String(data.userPhone || '').trim()
+    const amount = amountBit(data)
+    return [
+      'شارژ کیف پول',
+      phone ? `${who} (${toPersianDigits(phone)})` : who,
+      amount,
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
   CAMPAIGN: (data) => String(data.message || ''),
 }
 

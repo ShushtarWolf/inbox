@@ -284,35 +284,25 @@ export default defineEventHandler(async (event) => {
     const guestName = personNotifyName(body.guestName, body.guestFamily)
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
-    if (phone && !body.skipNotify) {
-      const notifyBase = {
-        phone,
-        kind: 'court' as const,
-        clubName: clubNotifyName(club),
-        clubId: club.id,
-        bookingId: createdBooking.id,
-        date: slot.date,
-        startTime: notifyStart,
-        endTime: notifyEnd,
-        courtName: courtNotifyName(slot.court),
-        paymentPaid: paymentStatus === 'PAID',
-        guestName,
-        amountPaid: totalAmount,
-        ...clubNotifyLocation(club),
-      }
-      await notifyBookingConfirmed(notifyBase)
-      if (paymentStatus === 'PAID') {
-        const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
-        if (paidPayment) {
-          try {
-            await creditOwnerForPaidPayment(paidPayment.id, '')
-          } catch (err) {
-            console.error('[reserve:ownerSettlement]', paidPayment.id, err)
-          }
-        }
-        await notifyBookingPaid(notifyBase)
-      }
-    } else if (paymentStatus === 'PAID') {
+    const skipGuest = !phone || Boolean(body.skipNotify)
+    const notifyBase = {
+      phone,
+      kind: 'court' as const,
+      clubName: clubNotifyName(club),
+      clubId: club.id,
+      bookingId: createdBooking.id,
+      date: slot.date,
+      startTime: notifyStart,
+      endTime: notifyEnd,
+      courtName: courtNotifyName(slot.court),
+      paymentPaid: paymentStatus === 'PAID',
+      guestName,
+      amountPaid: totalAmount,
+      skipGuest,
+      ...clubNotifyLocation(club),
+    }
+    await notifyBookingConfirmed(notifyBase)
+    if (paymentStatus === 'PAID') {
       const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
       if (paidPayment) {
         try {
@@ -321,6 +311,7 @@ export default defineEventHandler(async (event) => {
           console.error('[reserve:ownerSettlement]', paidPayment.id, err)
         }
       }
+      await notifyBookingPaid(notifyBase)
     }
 
     if (paymentStatus === 'PAID') {
