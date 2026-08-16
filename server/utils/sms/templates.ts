@@ -153,6 +153,46 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     ].filter(Boolean)
     return bits.join(' | ')
   },
+  /** Daily club-owner digest — multi-line; live path may chunk for token10. */
+  OWNER_DAILY_RESERVATIONS: (data) => {
+    const club = String(data.clubName || '').trim() || 'باشگاه'
+    const dateRaw = String(data.date || '').trim()
+    const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+    const rawLines = Array.isArray(data.lines) ? data.lines : []
+    const lines = rawLines.map((row) => {
+      if (typeof row === 'string') return row.trim()
+      if (!row || typeof row !== 'object') return ''
+      const item = row as Record<string, unknown>
+      const court = String(item.court || item.courtName || '').trim()
+      const startRaw = String(item.start || item.startTime || '').trim()
+      const endRaw = String(item.end || item.endTime || '').trim()
+      const start = startRaw ? formatSmsTime(startRaw) : ''
+      const end = endRaw ? formatSmsTime(endRaw) : ''
+      const guest = String(item.guest || item.guestLabel || '').trim()
+      const when = start && end && end !== start ? `${start}–${end}` : start
+      return ['•', court, when ? `| ${when}` : '', guest ? `| ${guest}` : ''].filter(Boolean).join(' ')
+    }).filter(Boolean)
+    const countRaw = data.count ?? lines.length
+    const count = typeof countRaw === 'number' ? countRaw : Number(countRaw)
+    const countLabel = Number.isFinite(count)
+      ? toPersianDigits(String(count))
+      : toPersianDigits(String(lines.length))
+    return [
+      `یادآوری رزرو — باشگاه ${club}`,
+      date ? `تاریخ: ${date}` : '',
+      '',
+      ...lines,
+      '',
+      `جمع: ${countLabel} رزرو`,
+      'اینباکس',
+    ].filter((line, index, arr) => {
+      if (line !== '') return true
+      // Keep intentional blank separators; drop leading/trailing/duplicate blanks.
+      const prev = arr[index - 1]
+      const next = arr[index + 1]
+      return Boolean(prev && next && prev !== '' && next !== '')
+    }).join('\n')
+  },
   CLUB_APPROVED: (data) => `باشگاه «${data.clubName || ''}» در inbox تایید شد`,
   WAITLIST_SLOT_AVAILABLE: (data) => {
     const when = whenBit(data)

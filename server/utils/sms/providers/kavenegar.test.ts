@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  chunkSmsBodyForToken10,
   extractOtpToken,
   kavenegarSmsProvider,
   resolveNotifyLookupTemplate,
@@ -22,6 +23,30 @@ describe('toKavenegarToken10', () => {
   it('collapses newlines and truncates', () => {
     expect(toKavenegarToken10('a\nb\nc')).toBe('a | b | c')
     expect(toKavenegarToken10('x'.repeat(120)).length).toBeLessThanOrEqual(100)
+  })
+})
+
+describe('chunkSmsBodyForToken10', () => {
+  it('keeps a short body as one chunk', () => {
+    expect(chunkSmsBodyForToken10('خط یک\nخط دو')).toEqual(['خط یک\nخط دو'])
+  })
+
+  it('splits long multi-line digests so each chunk fits token10', () => {
+    const body = [
+      'یادآوری رزرو — باشگاه بهناز',
+      'تاریخ: ۱۴۰۵/۰۵/۲۵',
+      '• زمین ۱ | ۰۹:۰۰–۱۰:۰۰ | علی رضایی',
+      '• زمین ۱ | ۱۰:۰۰–۱۱:۰۰ | سارا محمدی',
+      '• زمین ۲ | ۱۸:۰۰–۱۹:۰۰ | حمید افقه',
+      '• زمین ۳ | ۱۹:۰۰–۲۰:۰۰ | مهمان (۰۹۱۲۱۲۳۴۵۶۷)',
+      'جمع: ۴ رزرو',
+      'اینباکس',
+    ].join('\n')
+    const chunks = chunkSmsBodyForToken10(body)
+    expect(chunks.length).toBeGreaterThan(1)
+    for (const chunk of chunks) {
+      expect(toKavenegarToken10(chunk).length).toBeLessThanOrEqual(100)
+    }
   })
 })
 

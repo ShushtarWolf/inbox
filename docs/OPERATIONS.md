@@ -133,6 +133,7 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 | Owner booking cancelled | `bookingNotify.notifyOwnerBookingCancelled` | Athlete cancel → SMS to club owner phone |
 | Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback (athlete/guest) |
 | Owner booking paid | `bookingNotify.notifyOwnerBookingPaid` | Same paid triggers — SMS to club owner phone (`User.phone` or `Club.phone`) with guest, amount, time, court |
+| Owner daily reservations | `sms/dailyOwnerReminders.processDailyOwnerReservationReminders` | Cron: `POST /api/admin/sms/process-daily-owner-reminders` (`x-admin-secret`). One SMS per ACTIVE club that has ≥1 non-cancelled court booking that day (Tehran date; optional `?date=YYYY-MM-DD`). Skips empty days and clubs without a mobile. Idempotent via `SmsLog.campaignName=OWNER_DAILY_RESERVATIONS:{date}`. Live path chunks for `%token10%`. |
 | Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
 
 **Delivery:** live notify/campaign SMS use Verify Lookup `KAVENEGAR_TEMPLATE_NOTIFY` (default `inbox-notify`, body `%token10%`). Do not rely on free-text `sms/send` for booking texts on service lines.

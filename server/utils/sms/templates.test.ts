@@ -212,4 +212,33 @@ describe('SMS templates', () => {
       }),
     ).toContain('شارژ کیف پول')
   })
+
+  it('renders owner daily reservation digest in the agreed multi-line format', () => {
+    expect(
+      renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {
+        clubName: 'بهناز',
+        date: '1405/05/25',
+        lines: [
+          { court: 'زمین ۱', start: '09:00', end: '10:00', guest: 'علی رضایی' },
+          { court: 'زمین ۱', start: '10:00', end: '11:00', guest: 'سارا محمدی' },
+          { court: 'زمین ۲', start: '18:00', end: '19:00', guest: 'حمید افقه' },
+          { court: 'زمین ۳', start: '19:00', end: '20:00', guest: 'مهمان (۰۹۱۲۱۲۳۴۵۶۷)' },
+        ],
+        count: 4,
+      }),
+    ).toBe(
+      [
+        'یادآوری رزرو — باشگاه بهناز',
+        'تاریخ: ۱۴۰۵/۰۵/۲۵',
+        '',
+        '• زمین ۱ | ۰۹:۰۰–۱۰:۰۰ | علی رضایی',
+        '• زمین ۱ | ۱۰:۰۰–۱۱:۰۰ | سارا محمدی',
+        '• زمین ۲ | ۱۸:۰۰–۱۹:۰۰ | حمید افقه',
+        '• زمین ۳ | ۱۹:۰۰–۲۰:۰۰ | مهمان (۰۹۱۲۱۲۳۴۵۶۷)',
+        '',
+        'جمع: ۴ رزرو',
+        'اینباکس',
+      ].join('\n'),
+    )
+  })
 })

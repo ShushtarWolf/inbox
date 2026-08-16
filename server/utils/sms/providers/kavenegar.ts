@@ -9,7 +9,7 @@ const KAVENEGAR_BASE = 'https://api.kavenegar.com/v1'
 export const DEFAULT_NOTIFY_LOOKUP_TEMPLATE = 'inbox-notify'
 
 /** Kavenegar token10 practical limit (UTF-8 Persian). */
-const TOKEN10_MAX = 100
+export const TOKEN10_MAX = 100
 
 type KavenegarResponse = {
   return?: { status?: number; message?: string }
@@ -39,6 +39,36 @@ export function toKavenegarToken10(body: string): string {
     .trim()
   if (cleaned.length <= TOKEN10_MAX) return cleaned
   return `${cleaned.slice(0, TOKEN10_MAX - 1).trim()}…`
+}
+
+/** Split a multi-line SMS so each part fits Verify Lookup token10 after newline collapse. */
+export function chunkSmsBodyForToken10(body: string, max = TOKEN10_MAX): string[] {
+  const lines = body.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  if (!lines.length) return []
+
+  const previewLen = (parts: string[]) =>
+    parts.join(' | ').replace(/[#*]+/g, ' ').replace(/\s+/g, ' ').trim().length
+
+  const chunks: string[] = []
+  let current: string[] = []
+  for (const line of lines) {
+    const trial = [...current, line]
+    if (previewLen(trial) > max && current.length) {
+      chunks.push(current.join('\n'))
+      current = [line]
+      if (previewLen(current) > max) {
+        chunks.push(toKavenegarToken10(line))
+        current = []
+      }
+    } else if (previewLen(trial) > max) {
+      chunks.push(toKavenegarToken10(line))
+      current = []
+    } else {
+      current = trial
+    }
+  }
+  if (current.length) chunks.push(current.join('\n'))
+  return chunks
 }
 
 function getApiKey(): string | undefined {
