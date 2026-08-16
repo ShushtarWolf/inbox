@@ -145,6 +145,8 @@ model User {
   name          String
   nameEn        String?
   role          Role     @default(ATHLETE)
+  /** Optional second platform role on the same phone/account (max 2 including `role`). */
+  secondaryRole Role?
   locale        String   @default("fa")
   phone         String?  @unique
   phoneVerifiedAt DateTime?

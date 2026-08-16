@@ -10,6 +10,7 @@ type UserRow = {
   name: string
   nameEn: string | null
   role: 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
+  secondaryRole: 'ATHLETE' | 'COACH' | 'CLUB_ADMIN' | null
   phone: string | null
   locale: string
   disabled: boolean
@@ -185,6 +186,12 @@ watch([roleFilter, disabledFilter], () => {
                   <option value="ATHLETE">{{ t('admin.roles.ATHLETE') }}</option>
                   <option value="COACH">{{ t('admin.roles.COACH') }}</option>
                 </select>
+                <div
+                  v-if="user.secondaryRole"
+                  class="mt-1 text-xs text-brand-gray-600"
+                >
+                  + {{ t(`admin.roles.${user.secondaryRole}`) }}
+                </div>
               </td>
               <td class="p-3">
                 <span

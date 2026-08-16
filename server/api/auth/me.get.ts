@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
       name: true,
       nameEn: true,
       role: true,
+      secondaryRole: true,
       phone: true,
       locale: true,
       avatarUrl: true,

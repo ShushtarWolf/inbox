@@ -1,8 +1,9 @@
+import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
+import { assignAddedRole, hasRole } from '#shared/roles.ts'
 import { randomBytes } from 'node:crypto'
 import { hashSecret } from '../../../../utils/password'
 import { siteUrl } from '../../../../utils/email'
 import { sendNotification } from '../../../../utils/notify'
-import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
     include: {
       club: {
         include: {
-          owner: { select: { id: true, email: true, name: true, phone: true, role: true } },
+          owner: { select: { id: true, email: true, name: true, phone: true, role: true, secondaryRole: true } },
         },
       },
     },
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   if (application.clubId && application.club) {
     const club = application.club
     const owner = club.owner
-    if (!owner || owner.role !== 'CLUB_ADMIN') {
+    if (!owner || !hasRole(owner, 'CLUB_ADMIN')) {
       throw createError({ statusCode: 409, statusMessage: 'Club owner missing' })
     }
 
@@ -109,8 +110,18 @@ export default defineEventHandler(async (event) => {
           phone: application.contactPhone,
         },
       })
-    } else if (user.role !== 'CLUB_ADMIN') {
-      throw createError({ statusCode: 409, statusMessage: 'User exists with different role' })
+    } else if (!hasRole(user, 'CLUB_ADMIN')) {
+      const assigned = assignAddedRole(user, 'CLUB_ADMIN')
+      if (!assigned) {
+        throw createError({ statusCode: 409, statusMessage: 'User already has two roles' })
+      }
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          role: assigned.role,
+          secondaryRole: assigned.secondaryRole,
+        },
+      })
     }
 
     const slug = `club-${application.id.slice(-8)}`

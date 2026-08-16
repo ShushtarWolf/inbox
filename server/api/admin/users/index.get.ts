@@ -9,7 +9,14 @@ export default defineEventHandler(async (event) => {
 
   const users = await prisma.user.findMany({
     where: {
-      ...(role && ['ATHLETE', 'COACH', 'CLUB_ADMIN'].includes(role) ? { role: role as Role } : {}),
+      ...(role && ['ATHLETE', 'COACH', 'CLUB_ADMIN'].includes(role)
+        ? {
+            OR: [
+              { role: role as Role },
+              { secondaryRole: role as Role },
+            ],
+          }
+        : {}),
       ...(disabled === 'true' ? { disabledAt: { not: null } } : {}),
       ...(disabled === 'false' ? { disabledAt: null } : {}),
       ...(q
@@ -28,6 +35,7 @@ export default defineEventHandler(async (event) => {
       name: true,
       nameEn: true,
       role: true,
+      secondaryRole: true,
       phone: true,
       locale: true,
       disabledAt: true,
@@ -46,6 +54,7 @@ export default defineEventHandler(async (event) => {
       name: user.name,
       nameEn: user.nameEn,
       role: user.role,
+      secondaryRole: user.secondaryRole,
       phone: user.phone,
       locale: user.locale,
       disabled: Boolean(user.disabledAt),

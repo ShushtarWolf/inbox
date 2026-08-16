@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto'
 import { hashSecret, verifySecret } from './password'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider, resolveSmsPhase } from '#shared/sms.ts'
-import { findUserForPhoneOtp, isPhoneRegistered } from './phoneAuth'
+import { findUserForAdditionalRole, findUserForPhoneOtp, isPhoneRegistered } from './phoneAuth'
 import { enforceOtpSendPhoneLimit } from './rateLimit'
 import { sendSms } from './sms/service'
 import { renderOtpSms } from './sms/templates'
@@ -36,7 +36,12 @@ export async function createAndSendPhoneOtp(opts: {
       throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
     }
   } else if (await isPhoneRegistered(phone)) {
-    throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+    // Same phone may register a second platform role (max 2). Owner still needs admin approval.
+    const role = opts.role || 'ATHLETE'
+    const eligible = await findUserForAdditionalRole(phone, role)
+    if (!eligible) {
+      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+    }
   }
 
   await prisma.phoneOtp.updateMany({

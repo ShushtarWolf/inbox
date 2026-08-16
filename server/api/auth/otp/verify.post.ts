@@ -1,8 +1,9 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { phoneToSyntheticEmail } from '#shared/phone.ts'
+import { assignAddedRole, type PlatformRole } from '#shared/roles.ts'
 import { uniqueClubSlug } from '../../../utils/slug'
 import { consumePhoneOtp } from '../../../utils/otp'
-import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
+import { findUserForAdditionalRole, findUserForPhoneOtp } from '../../../utils/phoneAuth'
 import { enforceOtpVerifyPhoneLimit } from '../../../utils/rateLimit'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
@@ -13,6 +14,8 @@ import {
 } from '../../../utils/ownerOnboarding'
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../../utils/adminNotify'
+import { ownerPostLoginRedirect, postLoginRedirectPath, toSessionUser } from '../../../utils/auth'
+import type { Prisma, User } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-verify')
@@ -44,7 +47,7 @@ export default defineEventHandler(async (event) => {
     if (user.disabledAt) {
       throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
     }
-    await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
         ...(linkPhone ? { phone } : {}),
@@ -52,15 +55,16 @@ export default defineEventHandler(async (event) => {
         lastLoginAt: new Date(),
       },
     })
-    await setUserSession(event, { user: toSessionUser(user) })
+    await setUserSession(event, { user: toSessionUser(updated) })
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      locale: user.locale,
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+      secondaryRole: updated.secondaryRole,
+      locale: updated.locale,
       phone,
-      redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
+      redirectTo: await ownerPostLoginRedirect(updated, body.returnTo),
     }
   }
 
@@ -69,9 +73,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Name required' })
   }
 
-  const role = consumed.role || 'ATHLETE'
+  const role = (consumed.role || 'ATHLETE') as PlatformRole
   const email = phoneToSyntheticEmail(consumed.phone)
   const locale = 'fa'
+  const existing = await findUserForAdditionalRole(consumed.phone, role)
 
   if (role === 'CLUB_ADMIN') {
     const clubNameFa = String(consumed.payload.clubNameFa || '').trim()
@@ -98,17 +103,19 @@ export default defineEventHandler(async (event) => {
     const slug = await uniqueClubSlug(clubNameFa)
 
     const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name,
-          nameEn: name,
-          email,
-          role: 'CLUB_ADMIN',
-          locale,
-          phone: consumed.phone,
-          phoneVerifiedAt: new Date(),
-        },
-      })
+      const user = existing
+        ? await applySecondRole(tx, existing, 'CLUB_ADMIN', { name })
+        : await tx.user.create({
+            data: {
+              name,
+              nameEn: name,
+              email,
+              role: 'CLUB_ADMIN',
+              locale,
+              phone: consumed.phone,
+              phoneVerifiedAt: new Date(),
+            },
+          })
 
       const club = await tx.club.create({
         data: {
@@ -138,6 +145,11 @@ export default defineEventHandler(async (event) => {
         })
       }
 
+      const hasMembership = await tx.staffMembership.findFirst({
+        where: { userId: user.id, active: true },
+        select: { id: true },
+      })
+
       await tx.staffMembership.create({
         data: {
           userId: user.id,
@@ -145,7 +157,7 @@ export default defineEventHandler(async (event) => {
           role: 'OWNER',
           permissionsJson: JSON.stringify(ALL_OWNER_PERMISSIONS),
           active: true,
-          isPrimary: true,
+          isPrimary: !hasMembership,
         },
       })
 
@@ -154,7 +166,7 @@ export default defineEventHandler(async (event) => {
         clubName: clubNameFa,
         city,
         contactName: name,
-        contactEmail: email,
+        contactEmail: user.email,
         contactPhone: consumed.phone,
         sport: sportKey,
       })
@@ -168,7 +180,7 @@ export default defineEventHandler(async (event) => {
       city,
       contactName: name,
       contactPhone: consumed.phone,
-      contactEmail: email,
+      contactEmail: result.user.email,
       sportSlug: sportKey === 'tennis' ? 'tennis' : 'padel',
       clubId: result.club.id,
     })
@@ -177,6 +189,7 @@ export default defineEventHandler(async (event) => {
       email: result.user.email,
       name: result.user.name,
       role: result.user.role,
+      secondaryRole: result.user.secondaryRole,
       locale: result.user.locale,
       phone: result.user.phone,
       clubId: result.club.id,
@@ -190,17 +203,24 @@ export default defineEventHandler(async (event) => {
     assertCoachProductEnabled(event)
     const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
     const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name,
-          nameEn: name,
-          email,
-          role: 'COACH',
-          locale,
-          phone: consumed.phone,
-          phoneVerifiedAt: new Date(),
-        },
-      })
+      const user = existing
+        ? await applySecondRole(tx, existing, 'COACH', { name })
+        : await tx.user.create({
+            data: {
+              name,
+              nameEn: name,
+              email,
+              role: 'COACH',
+              locale,
+              phone: consumed.phone,
+              phoneVerifiedAt: new Date(),
+            },
+          })
+
+      const coachExists = await tx.coach.findUnique({ where: { userId: user.id } })
+      if (coachExists) {
+        throw createError({ statusCode: 409, statusMessage: 'Coach profile already exists' })
+      }
 
       const coach = await tx.coach.create({
         data: {
@@ -232,10 +252,26 @@ export default defineEventHandler(async (event) => {
       email: result.user.email,
       name: result.user.name,
       role: result.user.role,
+      secondaryRole: result.user.secondaryRole,
       locale: result.user.locale,
       phone: result.user.phone,
       coachId: result.coach.id,
       redirectTo: postLoginRedirectPath(result.user, locale, body.returnTo),
+    }
+  }
+
+  if (existing) {
+    const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { name }))
+    await setUserSession(event, { user: toSessionUser(user) })
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      secondaryRole: user.secondaryRole,
+      locale: user.locale,
+      phone: user.phone,
+      redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
     }
   }
 
@@ -257,8 +293,31 @@ export default defineEventHandler(async (event) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    secondaryRole: user.secondaryRole,
     locale: user.locale,
     phone: user.phone,
     redirectTo: postLoginRedirectPath(user, locale, body.returnTo),
   }
 })
+
+async function applySecondRole(
+  tx: Prisma.TransactionClient,
+  existing: User,
+  newRole: PlatformRole,
+  opts: { name: string },
+) {
+  const assigned = assignAddedRole(existing, newRole)
+  if (!assigned) {
+    throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+  }
+  return tx.user.update({
+    where: { id: existing.id },
+    data: {
+      role: assigned.role,
+      secondaryRole: assigned.secondaryRole,
+      phoneVerifiedAt: new Date(),
+      // Keep the established display name unless empty.
+      ...(existing.name?.trim() ? {} : { name: opts.name, nameEn: opts.name }),
+    },
+  })
+}

@@ -1,3 +1,6 @@
+import { hasRole } from '#shared/roles.ts'
+import { roleDashboardPath } from '#shared/returnTo.ts'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const localePath = useLocalePath()
   const role = to.meta.role as string | undefined
@@ -10,9 +13,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
       query: { returnTo: to.fullPath },
     }))
   }
-  if (user.value?.role !== role) {
-    if (user.value?.role === 'CLUB_ADMIN') return navigateTo(localePath('/owner/calendar'))
-    if (user.value?.role === 'COACH') return navigateTo(localePath('/coach'))
-    return navigateTo(localePath('/athlete'))
+  const sessionUser = user.value as { role?: string; secondaryRole?: string | null } | null
+  if (!sessionUser?.role || !hasRole(sessionUser, role)) {
+    if (sessionUser && hasRole(sessionUser, 'CLUB_ADMIN')) return navigateTo(localePath('/owner/calendar'))
+    if (sessionUser && hasRole(sessionUser, 'COACH')) return navigateTo(localePath('/coach'))
+    return navigateTo(localePath(roleDashboardPath('ATHLETE')))
   }
 })

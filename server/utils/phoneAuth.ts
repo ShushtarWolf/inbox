@@ -1,4 +1,5 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { canAddRole, hasRole, type PlatformRole } from '#shared/roles.ts'
 import type { User } from '@prisma/client'
 
 /**
@@ -25,17 +26,33 @@ export async function findUserForPhoneOtp(phoneRaw: string): Promise<{
     orderBy: { createdAt: 'asc' },
   })
   const owner = club?.owner
-  if (!owner || owner.role !== 'CLUB_ADMIN') return null
+  if (!owner || !hasRole(owner, 'CLUB_ADMIN')) return null
   // Do not steal a phone already claimed on another identity shape
   if (owner.phone && owner.phone !== phone) return null
 
   return { user: owner, linkPhone: true, phone }
 }
 
-/** True when this phone already belongs to a user (register should 409). */
+/** True when this phone already belongs to a user. */
 export async function isPhoneRegistered(phoneRaw: string): Promise<boolean> {
   const phone = normalizeIranPhone(phoneRaw)
   if (!phone) return false
   const existing = await prisma.user.findUnique({ where: { phone }, select: { id: true } })
   return Boolean(existing)
+}
+
+/**
+ * Find an existing phone user who can still accept `role` as a second platform role.
+ * Returns null when the phone is free, already has the role, or already has two roles.
+ */
+export async function findUserForAdditionalRole(
+  phoneRaw: string,
+  role: PlatformRole,
+): Promise<User | null> {
+  const phone = normalizeIranPhone(phoneRaw)
+  if (!phone) return null
+  const existing = await prisma.user.findUnique({ where: { phone } })
+  if (!existing || existing.disabledAt) return null
+  if (!canAddRole(existing, role)) return null
+  return existing
 }

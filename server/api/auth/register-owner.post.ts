@@ -1,5 +1,6 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
+import { assignAddedRole, canAddRole } from '#shared/roles.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 import {
   normalizeOwnerCourtCount,
@@ -9,6 +10,7 @@ import {
 } from '../../utils/ownerOnboarding'
 import { createPendingOwnerApplication } from '../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../utils/adminNotify'
+import { toSessionUser, touchLastLogin } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-owner')
@@ -57,15 +59,19 @@ export default defineEventHandler(async (event) => {
   }
   rejectDemoEmailInProduction(email)
 
-  const existing = await prisma.user.findUnique({ where: { email } })
-  if (existing) {
-    throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
+  const existingByEmail = await prisma.user.findUnique({ where: { email } })
+  const existingByPhone = phone
+    ? await prisma.user.findUnique({ where: { phone } })
+    : null
+  if (existingByEmail && existingByPhone && existingByEmail.id !== existingByPhone.id) {
+    throw createError({ statusCode: 409, statusMessage: 'Email and phone belong to different accounts' })
   }
-  if (phone) {
-    const phoneTaken = await prisma.user.findUnique({ where: { phone } })
-    if (phoneTaken) {
-      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
-    }
+  const existingUser = existingByEmail || existingByPhone
+  if (existingUser && !canAddRole(existingUser, 'CLUB_ADMIN')) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: existingByEmail ? 'Email already registered' : 'Phone already registered',
+    })
   }
 
   const sportSlugs = sportSlugsForOwner(sportKey)
@@ -83,19 +89,37 @@ export default defineEventHandler(async (event) => {
   const locale = body.locale === 'en' ? 'en' : 'fa'
 
   const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: {
-        name,
-        nameEn: name,
-        email,
-        role: 'CLUB_ADMIN',
-        passwordHash: hashSecret(password),
-        locale,
-        phone,
-        phoneVerifiedAt: null,
-        avatarUrl: body.avatarUrl?.trim() || null,
-      },
-    })
+    let user
+    if (existingUser) {
+      const assigned = assignAddedRole(existingUser, 'CLUB_ADMIN')
+      if (!assigned) {
+        throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
+      }
+      user = await tx.user.update({
+        where: { id: existingUser.id },
+        data: {
+          role: assigned.role,
+          secondaryRole: assigned.secondaryRole,
+          passwordHash: hashSecret(password),
+          ...(phone && !existingUser.phone ? { phone } : {}),
+          avatarUrl: body.avatarUrl?.trim() || existingUser.avatarUrl,
+        },
+      })
+    } else {
+      user = await tx.user.create({
+        data: {
+          name,
+          nameEn: name,
+          email,
+          role: 'CLUB_ADMIN',
+          passwordHash: hashSecret(password),
+          locale,
+          phone,
+          phoneVerifiedAt: null,
+          avatarUrl: body.avatarUrl?.trim() || null,
+        },
+      })
+    }
 
     const club = await tx.club.create({
       data: {
@@ -126,6 +150,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const hasMembership = await tx.staffMembership.findFirst({
+      where: { userId: user.id, active: true },
+      select: { id: true },
+    })
+
     await tx.staffMembership.create({
       data: {
         userId: user.id,
@@ -133,7 +162,7 @@ export default defineEventHandler(async (event) => {
         role: 'OWNER',
         permissionsJson: JSON.stringify(ALL_OWNER_PERMISSIONS),
         active: true,
-        isPrimary: true,
+        isPrimary: !hasMembership,
       },
     })
 
@@ -152,7 +181,7 @@ export default defineEventHandler(async (event) => {
       clubName: clubNameFa!,
       city: city!,
       contactName: name,
-      contactEmail: email,
+      contactEmail: user.email,
       contactPhone: phone,
       sport: sportKey,
     })
@@ -168,7 +197,7 @@ export default defineEventHandler(async (event) => {
     city,
     contactName: name,
     contactPhone: phone,
-    contactEmail: email,
+    contactEmail: result.user.email,
     sportSlug: sportKey === 'tennis' ? 'tennis' : 'padel',
     clubId: result.club.id,
   })
@@ -180,6 +209,7 @@ export default defineEventHandler(async (event) => {
     email: result.user.email,
     name: result.user.name,
     role: result.user.role,
+    secondaryRole: result.user.secondaryRole,
     locale: result.user.locale,
     clubId: result.club.id,
     clubStatus: 'PENDING' as const,

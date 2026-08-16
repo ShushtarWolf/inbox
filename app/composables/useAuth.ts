@@ -12,6 +12,7 @@ type AuthUser = {
   name: string
   nameEn?: string | null
   role: string
+  secondaryRole?: string | null
   phone?: string | null
   locale?: string | null
   avatarUrl?: string | null

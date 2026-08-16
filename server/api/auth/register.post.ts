@@ -3,6 +3,8 @@
  * OTP register via /api/auth/otp/* remains for when SMS goes live.
  */
 import { resolvePasswordRegisterIdentity, isPasswordLongEnough } from '#shared/passwordAuth.ts'
+import { assignAddedRole, canAddRole } from '#shared/roles.ts'
+import { toSessionUser, touchLastLogin, ownerPostLoginRedirect } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register')
@@ -28,31 +30,44 @@ export default defineEventHandler(async (event) => {
 
   rejectDemoEmailInProduction(identity.email)
 
-  const existingEmail = await prisma.user.findUnique({ where: { email: identity.email } })
-  if (existingEmail) {
-    throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
+  const existingByEmail = await prisma.user.findUnique({ where: { email: identity.email } })
+  const existingByPhone = identity.phone
+    ? await prisma.user.findUnique({ where: { phone: identity.phone } })
+    : null
+  if (existingByEmail && existingByPhone && existingByEmail.id !== existingByPhone.id) {
+    throw createError({ statusCode: 409, statusMessage: 'Email and phone belong to different accounts' })
   }
-  if (identity.phone) {
-    const phoneTaken = await prisma.user.findUnique({ where: { phone: identity.phone } })
-    if (phoneTaken) {
-      throw createError({ statusCode: 409, statusMessage: 'Phone already registered' })
-    }
+  const existingUser = existingByEmail || existingByPhone
+  if (existingUser && !canAddRole(existingUser, 'ATHLETE')) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: existingByEmail ? 'Email already registered' : 'Phone already registered',
+    })
   }
 
   const locale = body.locale === 'en' ? 'en' : 'fa'
-  const user = await prisma.user.create({
-    data: {
-      name,
-      nameEn: name,
-      email: identity.email,
-      role: 'ATHLETE',
-      passwordHash: hashSecret(password),
-      locale,
-      phone: identity.phone,
-      // Password-register phones are not SMS-verified until live OTP cutover.
-      phoneVerifiedAt: null,
-    },
-  })
+  const user = existingUser
+    ? await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          ...assignAddedRole(existingUser, 'ATHLETE')!,
+          passwordHash: hashSecret(password),
+          ...(identity.phone && !existingUser.phone ? { phone: identity.phone } : {}),
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          name,
+          nameEn: name,
+          email: identity.email,
+          role: 'ATHLETE',
+          passwordHash: hashSecret(password),
+          locale,
+          phone: identity.phone,
+          // Password-register phones are not SMS-verified until live OTP cutover.
+          phoneVerifiedAt: null,
+        },
+      })
 
   await setUserSession(event, { user: toSessionUser(user) })
   await touchLastLogin(user.id)
@@ -61,8 +76,9 @@ export default defineEventHandler(async (event) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    secondaryRole: user.secondaryRole,
     locale: user.locale,
     phone: user.phone,
-    redirectTo: postLoginRedirectPath(user, locale, body.returnTo),
+    redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
   }
 })

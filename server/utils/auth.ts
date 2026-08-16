@@ -1,7 +1,8 @@
 import type { H3Event } from 'h3'
-import type { Role, User } from '@prisma/client'
+import type { Role } from '@prisma/client'
 import { resolvePostLoginPath, sanitizeReturnTo } from '#shared/returnTo.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { hasRole } from '#shared/roles.ts'
 import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
 
 export async function findUserForPasswordLogin(identifier: string) {
@@ -34,11 +35,11 @@ export function postLoginRedirectPath(
 
 /** If the owner's primary club is still awaiting admin acceptance, send them to /owner/pending. */
 export async function ownerPostLoginRedirect(
-  user: { id: string; role: string; locale?: string | null },
+  user: { id: string; role: string; secondaryRole?: string | null; locale?: string | null },
   returnTo?: string,
 ) {
   const base = postLoginRedirectPath(user, user.locale, returnTo)
-  if (user.role !== 'CLUB_ADMIN') return base
+  if (!hasRole(user, 'CLUB_ADMIN')) return base
   if (returnTo && sanitizeReturnTo(returnTo)) {
     // Explicit deep-link wins (e.g. /owner/setup) unless it is the generic /owner hub.
     const clean = sanitizeReturnTo(returnTo)!
@@ -63,6 +64,7 @@ export function toSessionUser(user: {
   name: string
   nameEn?: string | null
   role: string
+  secondaryRole?: string | null
   locale: string
 }) {
   return {
@@ -71,6 +73,7 @@ export function toSessionUser(user: {
     name: user.name,
     nameEn: user.nameEn,
     role: user.role,
+    secondaryRole: user.secondaryRole || null,
     locale: user.locale,
   }
 }
@@ -106,6 +109,7 @@ export async function requireUser(event: H3Event) {
     email: dbUser.email,
     name: dbUser.name,
     role: dbUser.role as Role,
+    secondaryRole: (dbUser.secondaryRole as Role | null) || null,
     locale: dbUser.locale,
     phone: dbUser.phone,
   }
@@ -113,7 +117,7 @@ export async function requireUser(event: H3Event) {
 
 export async function requireRole(event: H3Event, ...roles: Role[]) {
   const user = await requireUser(event)
-  if (!roles.includes(user.role)) {
+  if (!roles.some((role) => hasRole(user, role))) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
   return user
