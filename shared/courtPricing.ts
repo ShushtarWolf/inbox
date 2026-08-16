@@ -12,17 +12,9 @@ export type CourtLastSecondDiscount = {
   percent: number
 }
 
-export type CourtOffPeakDiscount = {
-  enabled: boolean
-  startTime: string
-  endTime: string
-  percent: number
-}
-
 export type CourtPricingConfig = {
   timeBands?: CourtTimeBand[]
   lastSecondDiscount?: CourtLastSecondDiscount
-  offPeakDiscount?: CourtOffPeakDiscount
 }
 
 export function minutesFromTime(time: string): number {
@@ -61,14 +53,6 @@ export function parseCourtPricingJson(value: string | null | undefined): CourtPr
             percent: clampPercent(Number(parsed.lastSecondDiscount.percent) || 0),
           }
         : undefined,
-      offPeakDiscount: parsed.offPeakDiscount?.enabled
-        ? {
-            enabled: true,
-            startTime: String(parsed.offPeakDiscount.startTime || '08:00'),
-            endTime: String(parsed.offPeakDiscount.endTime || '14:00'),
-            percent: clampPercent(Number(parsed.offPeakDiscount.percent) || 0),
-          }
-        : undefined,
     }
   } catch {
     return {}
@@ -79,8 +63,7 @@ export function serializeCourtPricingJson(config: CourtPricingConfig): string | 
   const payload: CourtPricingConfig = {}
   if (config.timeBands?.length) payload.timeBands = config.timeBands
   if (config.lastSecondDiscount?.enabled) payload.lastSecondDiscount = config.lastSecondDiscount
-  if (config.offPeakDiscount?.enabled) payload.offPeakDiscount = config.offPeakDiscount
-  if (!payload.timeBands?.length && !payload.lastSecondDiscount && !payload.offPeakDiscount) return null
+  if (!payload.timeBands?.length && !payload.lastSecondDiscount) return null
   return JSON.stringify(payload)
 }
 
@@ -93,23 +76,15 @@ export function applyPercentDiscount(price: number, percent: number): number {
   return Math.max(0, Math.round(price * (1 - percent / 100)))
 }
 
-/** Listed slot price from base price + time bands + off-peak discount. */
+/** Listed slot price from base price + time bands. */
 export function computeListedSlotPrice(
   basePrice: number,
   startTime: string,
   pricingJson: string | null | undefined,
 ): number {
   const config = parseCourtPricingJson(pricingJson)
-  let price = basePrice
-
   const band = config.timeBands?.find((item) => isTimeInRange(startTime, item.startTime, item.endTime))
-  if (band) price = band.price
-
-  if (config.offPeakDiscount?.enabled && isTimeInRange(startTime, config.offPeakDiscount.startTime, config.offPeakDiscount.endTime)) {
-    price = applyPercentDiscount(price, config.offPeakDiscount.percent)
-  }
-
-  return price
+  return band ? band.price : basePrice
 }
 
 export function hoursUntilSlot(slotDate: string, startTime: string, now = new Date()): number {
@@ -140,6 +115,5 @@ export function defaultCourtPricingConfig(): CourtPricingConfig {
   return {
     timeBands: [],
     lastSecondDiscount: { enabled: false, hoursBefore: 2, percent: 15 },
-    offPeakDiscount: { enabled: false, startTime: '08:00', endTime: '14:00', percent: 10 },
   }
 }

@@ -34,7 +34,6 @@ watch(() => props.modelValue, (value) => {
   const parsed = parseCourtPricingJson(value)
   config.timeBands = parsed.timeBands?.length ? [...parsed.timeBands] : []
   config.lastSecondDiscount = parsed.lastSecondDiscount || defaultCourtPricingConfig().lastSecondDiscount
-  config.offPeakDiscount = parsed.offPeakDiscount || defaultCourtPricingConfig().offPeakDiscount
 }, { immediate: true })
 
 watch(config, () => {
@@ -167,34 +166,6 @@ function endOptionsFor(startTime: string) {
         <label class="block text-xs">
           <span class="mb-1 block font-bold">{{ t('owner.settingsPage.discountPercent') }}</span>
           <input v-model.number="config.lastSecondDiscount.percent" type="number" min="0" max="100" dir="ltr" class="neo-input tabular-nums">
-        </label>
-      </div>
-    </div>
-
-    <div class="space-y-3 border-t border-brand-gray-200 pt-3">
-      <label class="canva-settings-check">
-        <input v-model="config.offPeakDiscount!.enabled" type="checkbox" class="canva-settings-checkbox">
-        <span>
-          <span class="font-bold">{{ t('owner.settingsPage.offPeakDiscount') }}</span>
-          <span class="mt-0.5 block text-xs font-normal text-brand-gray-600">{{ t('owner.settingsPage.offPeakDiscountHint') }}</span>
-        </span>
-      </label>
-      <div v-if="config.offPeakDiscount?.enabled" class="grid grid-cols-3 gap-2">
-        <label class="block text-xs">
-          <span class="mb-1 block font-bold">{{ t('owner.seasonPage.startTime') }}</span>
-          <select v-model="config.offPeakDiscount.startTime" class="neo-select">
-            <option v-for="time in timeOptions" :key="`off-start-${time}`" :value="time">{{ time }}</option>
-          </select>
-        </label>
-        <label class="block text-xs">
-          <span class="mb-1 block font-bold">{{ t('owner.seasonPage.endTime') }}</span>
-          <select v-model="config.offPeakDiscount.endTime" class="neo-select">
-            <option v-for="time in endTimeOptions" :key="`off-end-${time}`" :value="time">{{ time }}</option>
-          </select>
-        </label>
-        <label class="block text-xs">
-          <span class="mb-1 block font-bold">{{ t('owner.settingsPage.discountPercent') }}</span>
-          <input v-model.number="config.offPeakDiscount.percent" type="number" min="0" max="100" dir="ltr" class="neo-input tabular-nums">
         </label>
       </div>
     </div>

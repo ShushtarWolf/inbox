@@ -1510,8 +1510,6 @@
       "lastSecondDiscountHint": "Apply this discount when a booking is made within the hours before start.",
       "hoursBeforeStart": "Hours before start",
       "discountPercent": "Discount %",
-      "offPeakDiscount": "Off-peak discount",
-      "offPeakDiscountHint": "Apply this discount during quiet hours on listed slot prices.",
       "workersSection": "Workers",
       "workersSectionHint": "Keep an on-site staff roster with contact details, shifts, and responsibilities. Workers are hired in person — no platform login.",
       "manageWorkers": "Manage workers"

@@ -15,7 +15,7 @@ describe('parseCourtPricingJson', () => {
     expect(parseCourtPricingJson('not-json')).toEqual({})
   })
 
-  it('parses time bands and discounts', () => {
+  it('parses time bands and last-second discount', () => {
     const config = parseCourtPricingJson(JSON.stringify({
       timeBands: [{ startTime: '08:00', endTime: '12:00', price: 500000 }],
       lastSecondDiscount: { enabled: true, hoursBefore: 3, percent: 20 },
@@ -23,20 +23,18 @@ describe('parseCourtPricingJson', () => {
     }))
     expect(config.timeBands).toHaveLength(1)
     expect(config.lastSecondDiscount?.hoursBefore).toBe(3)
-    expect(config.offPeakDiscount?.percent).toBe(10)
+    expect(config).not.toHaveProperty('offPeakDiscount')
   })
 })
 
 describe('computeListedSlotPrice', () => {
-  const pricingJson = JSON.stringify({
-    timeBands: [
-      { startTime: '08:00', endTime: '12:00', price: 500000 },
-      { startTime: '17:00', endTime: '22:00', price: 800000 },
-    ],
-    offPeakDiscount: { enabled: true, startTime: '08:00', endTime: '14:00', percent: 10 },
-  })
-
   it('uses base price outside bands', () => {
+    const pricingJson = JSON.stringify({
+      timeBands: [
+        { startTime: '08:00', endTime: '12:00', price: 500000 },
+        { startTime: '17:00', endTime: '22:00', price: 800000 },
+      ],
+    })
     expect(computeListedSlotPrice(600000, '14:00', pricingJson)).toBe(600000)
   })
 
@@ -51,8 +49,12 @@ describe('computeListedSlotPrice', () => {
     expect(computeListedSlotPrice(600000, '18:00', bandsOnly)).toBe(800000)
   })
 
-  it('applies off-peak discount after band price', () => {
-    expect(computeListedSlotPrice(600000, '09:00', pricingJson)).toBe(450000)
+  it('ignores legacy off-peak discount in stored json', () => {
+    const pricingJson = JSON.stringify({
+      timeBands: [{ startTime: '08:00', endTime: '12:00', price: 500000 }],
+      offPeakDiscount: { enabled: true, startTime: '08:00', endTime: '14:00', percent: 10 },
+    })
+    expect(computeListedSlotPrice(600000, '09:00', pricingJson)).toBe(500000)
   })
 })
 
