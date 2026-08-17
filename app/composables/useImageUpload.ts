@@ -1,8 +1,10 @@
 import {
   classifyImageUploadFile,
   IMAGE_UPLOAD_ACCEPT,
+  isHeicLikeFile,
   type ImageUploadRejectReason,
 } from '#shared/imageUpload.ts'
+import { prepareImageForUpload } from '#shared/prepareImageUpload.ts'
 
 function isFetchError(err: unknown): err is {
   statusCode?: number
@@ -88,8 +90,15 @@ export function useImageUpload(options?: { guest?: boolean }) {
         fail(rejectMessage(reason))
         return null
       }
+      let prepared: File
+      try {
+        prepared = await prepareImageForUpload(file)
+      } catch {
+        fail(isHeicLikeFile(file) ? t('upload.errorHeic') : t('upload.failed'))
+        return null
+      }
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', prepared)
       const endpoint = options?.guest ? '/api/uploads/guest' : '/api/uploads'
       return await $fetch<{ url: string }>(endpoint, { method: 'POST', body: form })
     } catch (err) {

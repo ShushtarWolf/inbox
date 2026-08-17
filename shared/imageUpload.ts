@@ -1,15 +1,26 @@
-/** Allowed image MIME types for user uploads (avatars, gallery, guest license). */
+/** Server-stored image types after client prepare (never raw HEIC). */
 export const IMAGE_UPLOAD_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
 export type ImageUploadAllowedType = (typeof IMAGE_UPLOAD_ALLOWED_TYPES)[number]
 
 export const IMAGE_UPLOAD_ALLOWED_TYPE_SET = new Set<string>(IMAGE_UPLOAD_ALLOWED_TYPES)
 
-/** Max upload size — keep in sync with UI copy (`upload.rulesBody`). */
+/** Max bytes the server accepts (prepared WebP/JPEG). */
 export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 
-/** `<input accept>` value for file pickers. */
-export const IMAGE_UPLOAD_ACCEPT = IMAGE_UPLOAD_ALLOWED_TYPES.join(',')
+/** Max bytes for the original picker file before in-app convert/compress. */
+export const IMAGE_UPLOAD_SOURCE_MAX_BYTES = 25 * 1024 * 1024
+
+const IMAGE_UPLOAD_PICKER_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+] as const
+
+/** `<input accept>` — JPEG/PNG/WebP plus iPhone HEIC/HEIF. */
+export const IMAGE_UPLOAD_ACCEPT = [...IMAGE_UPLOAD_PICKER_TYPES, '.heic', '.heif'].join(',')
 
 export type ImageUploadRejectReason = 'empty' | 'heic' | 'type' | 'size'
 
@@ -20,6 +31,14 @@ const HEIC_TYPES = new Set([
   'image/heif-sequence',
 ])
 
+const PICKER_TYPE_SET = new Set<string>([
+  ...IMAGE_UPLOAD_PICKER_TYPES,
+  'image/heic-sequence',
+  'image/heif-sequence',
+])
+
+const PICKER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'])
+
 function extensionOf(name: string) {
   const i = name.lastIndexOf('.')
   return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
@@ -29,9 +48,15 @@ export function isAllowedImageUploadType(contentType: string) {
   return IMAGE_UPLOAD_ALLOWED_TYPE_SET.has(contentType)
 }
 
+export function isHeicLikeFile(file: { type?: string; name?: string }) {
+  const type = (file.type || '').trim().toLowerCase()
+  const ext = extensionOf(file.name || '')
+  return HEIC_TYPES.has(type) || ext === 'heic' || ext === 'heif'
+}
+
 /**
- * Client-side classify before upload. Returns null when the file may be sent.
- * Server still re-validates in `validateImageUpload`.
+ * Client-side classify before prepare+upload. HEIC/HEIF is allowed here;
+ * conversion happens in `prepareImageForUpload`. Server still rejects HEIC.
  */
 export function classifyImageUploadFile(file: { type?: string; size: number; name?: string }): ImageUploadRejectReason | null {
   if (!file || file.size < 0) return 'empty'
@@ -39,13 +64,12 @@ export function classifyImageUploadFile(file: { type?: string; size: number; nam
   const name = file.name || ''
   const ext = extensionOf(name)
 
-  if (HEIC_TYPES.has(type) || ext === 'heic' || ext === 'heif') return 'heic'
   if (!type && !ext) return 'empty'
   if (type) {
-    if (!isAllowedImageUploadType(type)) return 'type'
-  } else if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+    if (!PICKER_TYPE_SET.has(type)) return 'type'
+  } else if (!PICKER_EXTENSIONS.has(ext)) {
     return 'type'
   }
-  if (file.size > IMAGE_UPLOAD_MAX_BYTES) return 'size'
+  if (file.size > IMAGE_UPLOAD_SOURCE_MAX_BYTES) return 'size'
   return null
 }

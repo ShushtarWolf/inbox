@@ -65,6 +65,7 @@
     "@types/nodemailer": "^8.0.1",
     "@vite-pwa/nuxt": "^1.1.1",
     "animejs": "^4.5.0",
+    "heic-to": "^1.5.2",
     "jalaali-js": "^2.0.0",
     "material-symbols": "^0.45.8",
     "nodemailer": "^9.0.3",

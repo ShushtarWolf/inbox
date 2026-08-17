@@ -27,6 +27,9 @@ export default defineNuxtConfig({
   // dev server down). Polling is enabled by scripts/dev-stable.mjs; these
   // ignores still help when running plain `npm run dev`.
   vite: {
+    optimizeDeps: {
+      exclude: ['heic-to'],
+    },
     server: {
       watch: {
         ignored: [

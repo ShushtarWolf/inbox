@@ -19,8 +19,9 @@ describe('validateImageUpload', () => {
     expect(() => validateImageUpload('image/webp', 1024)).not.toThrow()
   })
 
-  it('rejects unsupported types', () => {
-    expect(() => validateImageUpload('image/gif', 1024)).toThrow(/JPEG, PNG, and WebP/)
+  it('rejects HEIC so raw camera files are never stored', () => {
+    expect(() => validateImageUpload('image/heic', 1024)).toThrow(/JPEG, PNG, and WebP/)
+    expect(() => validateImageUpload('image/heif', 1024)).toThrow(/JPEG, PNG, and WebP/)
   })
 
   it('rejects oversized files', () => {
