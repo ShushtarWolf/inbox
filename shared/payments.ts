@@ -13,6 +13,11 @@ export function tomanToRials(toman: number): number {
   return Math.round(toman) * TOMAN_TO_RIALS
 }
 
+/** Bank rials → product toman. Used when adopting a SEP charge into Payment.amount. */
+export function rialsToToman(rials: number): number {
+  return Math.round(rials / TOMAN_TO_RIALS)
+}
+
 export type PaymentProvider = 'pay_at_club' | 'sep' | 'idpay' | 'log'
 
 export interface PaymentConfirmOptions {

@@ -72,6 +72,8 @@ Server IP (آدرس آی‌پی سرور سایت) is the public A record for `i
 
 Stored prices, wallets, SMS, and the in-app test gateway are **toman**. SEP `Amount` is **rials** (`toman × 10`) at token request and verify only — never write rials back into `Payment.amount`.
 
+Paid SEP rows from **before** that ×10 cutover (bank charged the stored integer as rials) are rewritten once to `rials ÷ 10` toman via `POST /api/admin/payments/correct-pre-rial-ipg` (`scripts/correct-pre-rial-ipg.mjs`). Catalog court prices stay listed toman.
+
 ## Checkout flow (athlete court)
 
 1. Athlete books court → `Payment` row `PENDING_ONLINE` (when mode is `test`/`live`)
