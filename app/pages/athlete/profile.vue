@@ -3,6 +3,8 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const { t } = useI18n()
 const { user, fetch, displayName, avatarUrl: authAvatar, initials } = useAuth()
+const { formatCurrency } = useFormatters()
+const { data: wallet, pending: walletPending } = useAuthedFetch('/api/wallet')
 const { multiReady } = useSmsCapability()
 const name = ref('')
 const phone = ref('')
@@ -52,6 +54,10 @@ async function save() {
           <h1 class="truncate text-xl font-bold text-white">{{ displayName }}</h1>
         </div>
       </div>
+      <p class="mt-3 text-start text-xs text-white/80">{{ t('booking.walletBalance') }}</p>
+      <p class="text-start text-lg font-bold tabular-nums text-white" dir="ltr">
+        {{ walletPending ? '…' : formatCurrency(wallet?.balance || 0) }}
+      </p>
     </section>
 
     <div class="canva-panel space-y-3">
@@ -59,7 +65,7 @@ async function save() {
       <AppFormField :label="t('common.name')">
         <input v-model="name" class="neo-input" />
       </AppFormField>
-      <AppFormField :label="t('common.mobile')">
+      <AppFormField :label="t('common.mobile')" numeric>
         <input v-model="phone" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
       <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ addMobileHint }}</p>

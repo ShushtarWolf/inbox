@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { parseImagesJson, serializeImagesJson } from '#shared/courtFacilities.ts'
+import { COURT_BULK_MAX, COURT_BULK_MIN, parseCourtBulkCount } from '#shared/courtBulk.ts'
 
 const props = defineProps<{
   court?: {
@@ -38,6 +39,13 @@ const form = reactive({
   closeHour: null as number | null,
   useClubHours: true,
   pricingJson: null as string | null,
+  count: 1,
+})
+
+const submitLabel = computed(() => {
+  if (props.court) return t('common.save')
+  if (form.count > 1) return t('owner.settingsPage.submitCourts', { count: form.count })
+  return t('owner.settingsPage.submitCourt')
 })
 
 watch(() => props.court, (court) => {
@@ -51,6 +59,7 @@ watch(() => props.court, (court) => {
     form.closeHour = null
     form.useClubHours = true
     form.pricingJson = null
+    form.count = 1
     return
   }
   form.nameFa = court.nameFa
@@ -62,9 +71,18 @@ watch(() => props.court, (court) => {
   form.closeHour = court.closeHour ?? null
   form.useClubHours = court.openHour == null && court.closeHour == null
   form.pricingJson = court.pricingJson ?? null
+  form.count = 1
 }, { immediate: true })
 
 function submit() {
+  let count = 1
+  if (!props.court) {
+    try {
+      count = parseCourtBulkCount(form.count)
+    } catch {
+      count = COURT_BULK_MIN
+    }
+  }
   const imagesJson = serializeImagesJson(form.images)
   emit('save', {
     nameFa: form.nameFa,
@@ -76,6 +94,7 @@ function submit() {
     openHour: form.useClubHours ? null : form.openHour,
     closeHour: form.useClubHours ? null : form.closeHour,
     pricingJson: form.pricingJson,
+    count,
   })
 }
 </script>
@@ -97,6 +116,7 @@ function submit() {
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('common.currency') }}</span>
         <input v-model.number="form.price" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
+        <AppEnglishDigitsHint />
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtSport') }}</span>
@@ -106,6 +126,20 @@ function submit() {
         </select>
       </label>
     </div>
+
+    <label v-if="!court" class="block text-sm">
+      <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtCount') }}</span>
+      <input
+        v-model.number="form.count"
+        type="number"
+        :min="COURT_BULK_MIN"
+        :max="COURT_BULK_MAX"
+        dir="ltr"
+        class="neo-input tabular-nums"
+      >
+      <AppEnglishDigitsHint />
+      <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.courtCountHint') }}</span>
+    </label>
 
     <label class="canva-settings-check">
       <input v-model="form.useClubHours" type="checkbox" class="canva-settings-checkbox">
@@ -138,7 +172,7 @@ function submit() {
         :disabled="saving || !form.nameFa"
         @click="submit"
       >
-        {{ saving ? t('common.loading') : (court ? t('common.save') : t('owner.settingsPage.submitCourt')) }}
+        {{ saving ? t('common.loading') : submitLabel }}
       </button>
       <button
         v-if="court"

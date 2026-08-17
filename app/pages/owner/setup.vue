@@ -24,7 +24,7 @@ const profile = reactive({
 
 type CourtRow = { id: string; nameFa: string; nameEn: string; price: number }
 const courts = ref<CourtRow[]>([])
-const newCourt = reactive({ nameFa: '', nameEn: '', price: 600000 })
+const newCourt = reactive({ nameFa: '', nameEn: '', price: 600000, count: 1 })
 
 const { data: settings, pending, error: fetchError, refresh: refreshSettings } = await useAuthedFetch('/api/owner/settings')
 watchEffect(() => {
@@ -101,11 +101,13 @@ async function addCourt() {
         nameFa: newCourt.nameFa.trim(),
         nameEn: newCourt.nameEn.trim(),
         price: Number(newCourt.price),
+        count: newCourt.count,
       },
     })
     newCourt.nameFa = ''
     newCourt.nameEn = ''
     newCourt.price = 600000
+    newCourt.count = 1
     await loadCourts()
   } catch {
     saveError.value = t('common.error')
@@ -164,14 +166,14 @@ async function finish() {
         <AppFormField :label="t('owner.addressFa')">
           <input v-model="profile.addressFa" class="neo-input" required />
         </AppFormField>
-        <AppFormField :label="t('owner.phone')">
+        <AppFormField :label="t('owner.phone')" numeric>
           <input v-model="profile.phone" dir="ltr" class="neo-input tabular-nums" />
         </AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('owner.settingsPage.openHour')">
+          <AppFormField :label="t('owner.settingsPage.openHour')" numeric>
             <input v-model.number="profile.openHour" type="number" min="0" max="23" class="neo-input" dir="ltr" />
           </AppFormField>
-          <AppFormField :label="t('owner.settingsPage.closeHour')">
+          <AppFormField :label="t('owner.settingsPage.closeHour')" numeric>
             <input v-model.number="profile.closeHour" type="number" min="1" max="24" class="neo-input" dir="ltr" />
           </AppFormField>
         </div>
@@ -195,8 +197,11 @@ async function finish() {
         <AppFormField :label="t('owner.courtNameEn')">
           <input v-model="newCourt.nameEn" dir="ltr" class="neo-input" />
         </AppFormField>
-        <AppFormField :label="t('owner.settingsPage.courtPrice')">
+        <AppFormField :label="t('owner.settingsPage.courtPrice')" numeric>
           <input v-model.number="newCourt.price" type="number" min="1" step="1000" class="neo-input" dir="ltr" />
+        </AppFormField>
+        <AppFormField :label="t('owner.settingsPage.courtCount')" :hint="t('owner.settingsPage.courtCountHint')" numeric>
+          <input v-model.number="newCourt.count" type="number" min="1" max="30" class="neo-input" dir="ltr" />
         </AppFormField>
         <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">
           {{ t('owner.addCourt') }}

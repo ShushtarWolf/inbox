@@ -89,6 +89,7 @@ function onCloseRules() {
     <p class="canva-photo-slots-hint">{{ hint || t('owner.settingsPage.minUploadHint') }}</p>
     <p v-if="uploading" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <input
       ref="inputRef"
       type="file"

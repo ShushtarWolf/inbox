@@ -195,11 +195,11 @@ async function confirmDelete() {
         <AppFormField :label="t('owner.equipmentsPage.itemName')">
           <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'" />
         </AppFormField>
-        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.price')">
+        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.price')" numeric>
           <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</p>
         </AppFormField>
-        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.quantity')">
+        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.quantity')" numeric>
           <input v-model.number="modalQuantity" type="number" min="1" max="999" step="1" dir="ltr" class="neo-input tabular-nums" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.quantityHint') }}</p>
         </AppFormField>

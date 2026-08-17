@@ -99,7 +99,7 @@ async function removeGalleryImage(id: string) {
       <AppFormField :label="$t('coaches.credentials')">
         <textarea v-model="credentialsText" class="neo-textarea" rows="3" :placeholder="$t('register.credentialsHint')" />
       </AppFormField>
-      <AppFormField :label="$t('owner.packagePage.coachPlaceholder')">
+      <AppFormField :label="$t('owner.packagePage.coachPlaceholder')" numeric>
         <input v-model.number="price" type="number" min="0" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
       <section class="ios-card p-4 space-y-3">

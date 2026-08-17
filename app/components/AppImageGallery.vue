@@ -89,6 +89,7 @@ function removeAt(index: number) {
     </div>
     <input ref="inputRef" type="file" :accept="accept" multiple class="hidden" @change="onFileChange" />
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <AppUploadSheets
       :rules-open="showRules"
       :failure-open="showFailure"

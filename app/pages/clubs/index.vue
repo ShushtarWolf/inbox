@@ -38,7 +38,7 @@ const sportChips = computed(() => {
 const listTitle = computed(() => {
   if (sportFilter.value === 'tennis') return t('clubs.tennisCourtsTitle')
   if (sportFilter.value === 'padel') return t('clubs.padelCourtsTitle')
-  return t('clubs.courtsTitle')
+  return t('clubs.title')
 })
 
 /* Canva Court list (p2) hero matches home slide copy, including placeholder title */

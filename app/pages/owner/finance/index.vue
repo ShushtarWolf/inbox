@@ -430,6 +430,7 @@ function closeTx() {
             :placeholder="t('owner.financePage.shebaPlaceholder')"
             autocomplete="off"
           >
+          <AppEnglishDigitsHint />
         </label>
         <button
           type="button"
@@ -450,6 +451,7 @@ function closeTx() {
             class="neo-input tabular-nums"
             :disabled="!settlement?.sheba"
           >
+          <AppEnglishDigitsHint />
         </label>
         <p v-if="!settlement?.sheba" class="text-xs text-brand-primary text-start">{{ t('owner.financePage.shebaRequired') }}</p>
         <button

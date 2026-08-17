@@ -15,6 +15,22 @@ const landline = computed(() => String(config.public.contactLandline || '').trim
 const mobile = computed(() => String(config.public.contactMobile || '').trim())
 const email = computed(() => String(config.public.contactEmail || '').trim())
 
+const CONTACT_EMAILS = [
+  { address: 'info@inboxs.ir', labelKey: 'contact.emailInfo' },
+  { address: 'support@inboxs.ir', labelKey: 'contact.emailSupport' },
+  { address: 'privacy@inboxs.ir', labelKey: 'contact.emailPrivacy' },
+  { address: 'complaints@inboxs.ir', labelKey: 'contact.emailComplaints' },
+] as const
+
+const contactEmails = computed(() => {
+  const configured = email.value
+  const rows = CONTACT_EMAILS.map((row) => ({ address: row.address, labelKey: row.labelKey }))
+  if (configured && !rows.some((row) => row.address.toLowerCase() === configured.toLowerCase())) {
+    rows.unshift({ address: configured, labelKey: 'contact.emailInfo' })
+  }
+  return rows
+})
+
 const enamadReady = computed(() =>
   Boolean(String(config.public.enamadId || '').trim() && String(config.public.enamadCode || '').trim()),
 )
@@ -143,16 +159,19 @@ useHead({
       </div>
 
       <div
-        v-if="email"
         class="space-y-1 border border-brand-gray-200 bg-white p-4"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.emailLabel') }}</dt>
-        <dd class="space-y-1">
-          <a :href="`mailto:${email}`" class="block text-brand-primary" dir="ltr">{{ email }}</a>
-          <a href="mailto:support@inboxs.ir" class="block text-brand-primary" dir="ltr">support@inboxs.ir</a>
-          <a href="mailto:privacy@inboxs.ir" class="block text-brand-primary" dir="ltr">privacy@inboxs.ir</a>
-          <a href="mailto:complaints@inboxs.ir" class="block text-brand-primary" dir="ltr">complaints@inboxs.ir</a>
+        <dd class="space-y-2">
+          <p
+            v-for="row in contactEmails"
+            :key="row.address"
+            class="text-start text-sm"
+          >
+            <a :href="`mailto:${row.address}`" class="text-brand-primary" dir="ltr">{{ row.address }}</a>
+            <span class="ms-2 text-brand-gray-600">{{ t(row.labelKey) }}</span>
+          </p>
         </dd>
       </div>
 

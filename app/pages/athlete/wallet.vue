@@ -221,7 +221,7 @@ watch(
               {{ formatCurrency(amount) }}
             </button>
           </div>
-          <AppFormField field-id="wallet-custom-amount" :label="t('athlete.walletTopUpCustom')">
+          <AppFormField field-id="wallet-custom-amount" :label="t('athlete.walletTopUpCustom')" numeric>
             <input
               id="wallet-custom-amount"
               v-model="customAmount"
@@ -246,7 +246,7 @@ watch(
       <section class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
-        <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">
+        <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')" numeric>
           <input
             id="wallet-sheba"
             v-model="shebaInput"
@@ -264,7 +264,7 @@ watch(
           {{ t('athlete.shebaSave') }}
         </button>
         <p v-if="!data?.sheba" class="text-xs text-brand-primary">{{ t('athlete.shebaRequired') }}</p>
-        <AppFormField field-id="wallet-withdraw-amount" :label="t('athlete.withdrawAmount')">
+        <AppFormField field-id="wallet-withdraw-amount" :label="t('athlete.withdrawAmount')" numeric>
           <input
             id="wallet-withdraw-amount"
             v-model="withdrawAmount"

@@ -42,5 +42,7 @@ const { t } = useI18n()
     :overlay-class="overlayClass || undefined"
     @confirm="emit('close-failure')"
     @close="emit('close-failure')"
-  />
+  >
+    <p class="text-start text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
+  </CanvaConfirmSheet>
 </template>

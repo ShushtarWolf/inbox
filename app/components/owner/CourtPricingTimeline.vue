@@ -142,6 +142,7 @@ function endOptionsFor(startTime: string) {
               class="neo-input tabular-nums"
               @input="updateBand(index, { price: Number(($event.target as HTMLInputElement).value) })"
             >
+            <AppEnglishDigitsHint />
           </label>
         </div>
         <button type="button" class="mt-2 text-xs font-bold text-red-600" @click="removeTimeBand(index)">

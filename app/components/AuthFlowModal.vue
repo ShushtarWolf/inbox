@@ -636,7 +636,7 @@ watch(
             <AppFormField field-id="auth-otp-club" :label="t('auth.clubName')">
               <input id="auth-otp-club" v-model="clubNameFa" class="neo-input bg-white/95" required />
             </AppFormField>
-            <AppFormField field-id="auth-otp-phone" :label="t('auth.ownerPhone')">
+            <AppFormField field-id="auth-otp-phone" :label="t('auth.ownerPhone')" numeric>
               <input
                 id="auth-otp-phone"
                 v-model="phone"
@@ -695,7 +695,7 @@ watch(
             <AppFormField field-id="auth-otp-name" :label="t('auth.fullName')">
               <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
             </AppFormField>
-            <AppFormField field-id="auth-otp-phone" :label="t('common.mobile')">
+            <AppFormField field-id="auth-otp-phone" :label="t('common.mobile')" numeric>
               <input
                 id="auth-otp-phone"
                 v-model="phone"
@@ -740,7 +740,7 @@ watch(
                 required
               />
             </AppFormField>
-            <AppFormField field-id="auth-phone" :label="t('auth.ownerPhone')">
+            <AppFormField field-id="auth-phone" :label="t('auth.ownerPhone')" numeric>
               <input
                 id="auth-phone"
                 v-model="phone"
@@ -825,7 +825,7 @@ watch(
                 required
               />
             </AppFormField>
-            <AppFormField field-id="auth-phone" :label="t('common.mobile')">
+            <AppFormField field-id="auth-phone" :label="t('common.mobile')" numeric>
               <input
                 id="auth-phone"
                 v-model="phone"
@@ -938,7 +938,7 @@ watch(
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
-          <AppFormField field-id="login-phone" :label="t('common.mobile')">
+          <AppFormField field-id="login-phone" :label="t('common.mobile')" numeric>
             <input
               id="login-phone"
               v-model="phone"
@@ -963,7 +963,7 @@ watch(
           <p class="text-start text-sm text-brand-gray-600">
             {{ otpHint }}
           </p>
-          <AppFormField field-id="login-otp" :label="t('auth.otpCode')">
+          <AppFormField field-id="login-otp" :label="t('auth.otpCode')" numeric>
             <input
               id="login-otp"
               v-model="code"

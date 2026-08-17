@@ -53,6 +53,7 @@ async function onFileChange(event: Event) {
       <input ref="inputRef" type="file" :accept="accept" class="hidden" @change="onFileChange" />
     </div>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <AppUploadSheets
       :rules-open="showRules"
       :failure-open="showFailure"

@@ -257,10 +257,10 @@ async function confirmDelete() {
               </AppFormField>
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
-              <AppFormField :label="t('owner.workersPage.mobile')" required>
+              <AppFormField :label="t('owner.workersPage.mobile')" required numeric>
                 <input v-model="form.mobile" type="tel" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
               </AppFormField>
-              <AppFormField :label="t('owner.workersPage.emergencyMobile')">
+              <AppFormField :label="t('owner.workersPage.emergencyMobile')" numeric>
                 <input v-model="form.emergencyMobile" type="tel" dir="ltr" class="neo-input tabular-nums">
               </AppFormField>
             </div>
