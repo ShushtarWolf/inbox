@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ALL_OWNER_PERMISSIONS, BASE_OWNER_PERMISSIONS, FINANCE_SUB_PERMISSIONS, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
+import { isValidSheba } from '#shared/settlement.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -8,6 +9,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatCurrency } = useFormatters()
+const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch('/api/owner/courts')
@@ -35,6 +37,8 @@ watch(isOwner, (owner) => {
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
+const shebaError = ref('')
+const imageError = ref('')
 const courtSaving = ref(false)
 const courtError = ref('')
 const editingCourtId = ref<string | null>(null)
@@ -130,8 +134,8 @@ async function saveMemberPermissions(member: { id: string; role: string; permiss
     })
     staffSuccess.value = t('common.saved')
     await refreshStaff()
-  } catch {
-    staffError.value = t('common.error')
+  } catch (err: unknown) {
+    staffError.value = fetchErrorMessage(err, t('common.error'))
   } finally {
     staffSaving.value[member.id] = false
   }
@@ -160,6 +164,38 @@ function applyClubData() {
   form.amenities = parseFacilitiesJson((club as { amenitiesJson?: string }).amenitiesJson)
     .filter((slug) => allowedSlugs.has(slug))
   form.sessionDurations = parseSessionDurationsJson((club as { sessionDurationsJson?: string }).sessionDurationsJson)
+  appliedClubId = club.id
+  lastAppliedSnapshot = formSnapshot()
+}
+
+function formSnapshot() {
+  return JSON.stringify({
+    nameFa: form.nameFa,
+    nameEn: form.nameEn,
+    sloganFa: form.sloganFa,
+    addressFa: form.addressFa,
+    addressEn: form.addressEn,
+    city: form.city,
+    district: form.district,
+    openHour: form.openHour,
+    closeHour: form.closeHour,
+    cancellationWindowHours: form.cancellationWindowHours,
+    rescheduleWindowHours: form.rescheduleWindowHours,
+    waitlistEnabled: form.waitlistEnabled,
+    phone: form.phone,
+    whatsapp: form.whatsapp,
+    image: form.image,
+    sheba: form.sheba,
+    amenities: [...form.amenities],
+    sessionDurations: [...form.sessionDurations],
+  })
+}
+
+let appliedClubId: string | null = null
+let lastAppliedSnapshot = ''
+
+function isFormDirty() {
+  return Boolean(lastAppliedSnapshot) && formSnapshot() !== lastAppliedSnapshot
 }
 
 function toggleAmenity(slug: string) {
@@ -192,8 +228,8 @@ async function saveCourt(body: Record<string, unknown>) {
     showCourtForm.value = false
     await refreshCourts()
     await refresh()
-  } catch {
-    courtError.value = t('common.error')
+  } catch (err: unknown) {
+    courtError.value = fetchErrorMessage(err, t('common.error'))
   } finally {
     courtSaving.value = false
   }
@@ -222,8 +258,8 @@ async function confirmDeleteCourt() {
     deleteCourtId.value = null
     await refreshCourts()
     await refresh()
-  } catch {
-    courtError.value = t('common.error')
+  } catch (err: unknown) {
+    courtError.value = fetchErrorMessage(err, t('common.error'))
     deleteCourtId.value = null
   } finally {
     deletePending.value = false
@@ -266,13 +302,28 @@ async function setGalleryUrls(urls: string[]) {
   await refresh()
 }
 
-watch(data, applyClubData, { immediate: true })
+watch(data, () => {
+  const clubId = data.value?.club?.id || null
+  if (clubId && appliedClubId && clubId !== appliedClubId) {
+    applyClubData()
+    return
+  }
+  if (isFormDirty()) return
+  applyClubData()
+}, { immediate: true })
 
 async function save() {
   saving.value = true
   saveError.value = ''
+  shebaError.value = ''
+  imageError.value = ''
   saveSuccess.value = false
   try {
+    if (form.sheba.trim() && !isValidSheba(form.sheba)) {
+      shebaError.value = t('athlete.shebaInvalid')
+      saveError.value = t('athlete.shebaInvalid')
+      return
+    }
     await $fetch('/api/owner/settings', {
       method: 'PATCH',
       body: {
@@ -299,9 +350,13 @@ async function save() {
       },
     })
     saveSuccess.value = true
+    lastAppliedSnapshot = formSnapshot()
     await refresh()
-  } catch {
-    saveError.value = t('common.error')
+  } catch (err: unknown) {
+    const message = fetchErrorMessage(err, t('common.error'))
+    saveError.value = message
+    if (message === t('athlete.shebaInvalid')) shebaError.value = message
+    if (message === t('owner.settingsPage.errors.imageInvalid')) imageError.value = message
   } finally {
     saving.value = false
   }
@@ -394,11 +449,15 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
               v-model="form.sheba"
               dir="ltr"
               class="neo-input tabular-nums"
+              :class="shebaError ? 'border-red-500' : ''"
               :placeholder="t('owner.financePage.shebaPlaceholder')"
               autocomplete="off"
+              :aria-invalid="Boolean(shebaError)"
+              aria-describedby="owner-settings-sheba-hint"
             >
             <AppEnglishDigitsHint />
-            <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
+            <span id="owner-settings-sheba-hint" class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
+            <span v-if="shebaError" class="mt-1 block text-xs font-bold text-red-600" role="alert">{{ shebaError }}</span>
             <span class="mt-1 block text-xs font-bold text-red-600" role="note">{{ t('owner.settingsPage.shebaOwnerOnlyNotice') }}</span>
           </label>
         </div>
@@ -536,6 +595,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             @update:model-value="setGalleryUrls"
           />
           <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
+          <p v-if="imageError" class="text-sm text-red-600" role="alert">{{ imageError }}</p>
         </div>
 
         <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
@@ -568,43 +628,52 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                   {{ staffSaving[member.id] ? t('common.loading') : t('common.save') }}
                 </button>
               </div>
-              <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                <label
-                  v-for="permission in BASE_OWNER_PERMISSIONS"
-                  :key="`${member.id}-${permission}`"
-                  class="canva-settings-check text-sm"
-                  :class="member.role === 'OWNER' ? 'opacity-70' : ''"
-                >
-                  <input
-                    type="checkbox"
-                    class="canva-settings-checkbox"
-                    :checked="isPermissionChecked(member, permission)"
-                    :disabled="member.role === 'OWNER'"
-                    @change="toggleMemberPermission(member, permission)"
-                  >
-                  <span>{{ permissionLabel(permission) }}</span>
-                </label>
-              </div>
-              <div class="mt-4">
-                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissions.financeGroup') }}</p>
+              <fieldset
+                class="mt-3 min-w-0 border-0 p-0 m-0"
+                :disabled="member.role === 'OWNER'"
+                :aria-disabled="member.role === 'OWNER' ? 'true' : undefined"
+              >
+                <legend class="sr-only">{{ t('owner.settingsPage.staffAccess') }}</legend>
                 <div class="grid gap-2 sm:grid-cols-2">
                   <label
-                    v-for="permission in FINANCE_SUB_PERMISSIONS"
+                    v-for="permission in BASE_OWNER_PERMISSIONS"
                     :key="`${member.id}-${permission}`"
                     class="canva-settings-check text-sm"
-                    :class="member.role === 'OWNER' ? 'opacity-70' : ''"
+                    :class="member.role === 'OWNER' ? 'pointer-events-none cursor-not-allowed opacity-70' : ''"
                   >
                     <input
                       type="checkbox"
                       class="canva-settings-checkbox"
                       :checked="isPermissionChecked(member, permission)"
                       :disabled="member.role === 'OWNER'"
+                      :tabindex="member.role === 'OWNER' ? -1 : undefined"
                       @change="toggleMemberPermission(member, permission)"
                     >
                     <span>{{ permissionLabel(permission) }}</span>
                   </label>
                 </div>
-              </div>
+                <div class="mt-4">
+                  <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissions.financeGroup') }}</p>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <label
+                      v-for="permission in FINANCE_SUB_PERMISSIONS"
+                      :key="`${member.id}-${permission}`"
+                      class="canva-settings-check text-sm"
+                      :class="member.role === 'OWNER' ? 'pointer-events-none cursor-not-allowed opacity-70' : ''"
+                    >
+                      <input
+                        type="checkbox"
+                        class="canva-settings-checkbox"
+                        :checked="isPermissionChecked(member, permission)"
+                        :disabled="member.role === 'OWNER'"
+                        :tabindex="member.role === 'OWNER' ? -1 : undefined"
+                        @change="toggleMemberPermission(member, permission)"
+                      >
+                      <span>{{ permissionLabel(permission) }}</span>
+                    </label>
+                  </div>
+                </div>
+              </fieldset>
               <p v-if="member.role === 'OWNER'" class="mt-2 text-xs text-brand-gray-500">{{ t('owner.settingsPage.ownerPermissionsReadonly') }}</p>
             </li>
             <li v-if="!(staffData?.staff || []).length" class="text-sm text-brand-gray-600">{{ t('common.empty') }}</li>
@@ -612,6 +681,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
         </div>
 
         <div class="canva-settings-span">
+          <p class="mb-2 text-xs text-brand-gray-600">{{ t('owner.settingsPage.saveChangesHint') }}</p>
           <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
           <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
           <button type="submit" class="canva-owner-save-cta" :disabled="saving">

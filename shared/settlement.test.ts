@@ -80,10 +80,24 @@ describe('resolvePlatformCommissionBps', () => {
 
 describe('SHEBA helpers', () => {
   const VALID = 'IR060170000000000000000000'
+  const VALID_FA_DIGITS = 'IR۰۶۰۱۷۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰'
+  const VALID_AR_DIGITS = 'IR٠٦٠١٧٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠'
 
   it('normalizes spaces and lowercase', () => {
     expect(normalizeSheba(' ir06 0170 0000 0000 0000 0000 00 ')).toBe(VALID)
     expect(normalizeSheba('060170000000000000000000')).toBe(VALID)
+  })
+
+  it('normalizes Persian and Arabic-Indic digits', () => {
+    expect(normalizeSheba(VALID_FA_DIGITS)).toBe(VALID)
+    expect(normalizeSheba(VALID_AR_DIGITS)).toBe(VALID)
+    expect(isValidSheba(VALID_FA_DIGITS)).toBe(true)
+    expect(isValidSheba(VALID_AR_DIGITS)).toBe(true)
+  })
+
+  it('accepts Persian digits with spaces and without IR prefix', () => {
+    expect(normalizeSheba(' ۰۶۰۱۷۰ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰ ۰۰ ')).toBe(VALID)
+    expect(isValidSheba('۰۶۰۱۷۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰')).toBe(true)
   })
 
   it('rejects malformed SHEBA', () => {
@@ -91,6 +105,7 @@ describe('SHEBA helpers', () => {
     expect(isValidSheba('')).toBe(false)
     expect(isValidSheba('IR123')).toBe(false)
     expect(isValidSheba('IR000170000000000000000001')).toBe(false)
+    expect(isValidSheba('IR۰۰۰۱۷۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۰۱')).toBe(false)
   })
 
   it('accepts mod-97 valid Iranian SHEBA', () => {

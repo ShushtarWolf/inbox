@@ -1,4 +1,4 @@
-import type { EquipmentCategory } from '@prisma/client'
+import { parseClubImageInput } from '#shared/clubImageUrl.ts'
 import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
 import { parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 
@@ -58,11 +58,11 @@ export default defineEventHandler(async (event) => {
   if (body.phone !== undefined) data.phone = body.phone?.trim() || null
   if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp?.trim() || null
   if (body.image !== undefined) {
-    const value = body.image?.trim() || null
-    if (value && !/^https?:\/\/.+/i.test(value) && !value.startsWith('/uploads/') && !value.startsWith('/demo/')) {
+    const parsed = parseClubImageInput(body.image)
+    if (!parsed.ok) {
       throw createError({ statusCode: 400, statusMessage: 'image must be a valid URL' })
     }
-    data.image = value
+    data.image = parsed.value
   }
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
   if (body.amenitiesJson !== undefined) data.amenitiesJson = body.amenitiesJson

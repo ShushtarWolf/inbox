@@ -29,10 +29,16 @@ export function splitSettlement(gross: number, commissionBps: number = resolvePl
   return { gross: safeGross, commissionBps: bps, commission, ownerNet }
 }
 
+function toAsciiDigits(input: string) {
+  return input
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+}
+
 /** Normalize Iranian SHEBA / IBAN to uppercase IR + 24 digits (no spaces). */
 export function normalizeSheba(raw: string | null | undefined): string | null {
   if (!raw) return null
-  const cleaned = String(raw).replace(/[\s\-]/g, '').toUpperCase()
+  const cleaned = toAsciiDigits(String(raw)).replace(/[\s\-]/g, '').toUpperCase()
   if (!cleaned) return null
   const withIr = cleaned.startsWith('IR') ? cleaned : `IR${cleaned}`
   return withIr
