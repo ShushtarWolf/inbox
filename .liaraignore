@@ -21,3 +21,4 @@ public/demo
 public/videos
 tmp-logo-inspect
 # MVP pilot court photos ship from public/media/clubs/iust (not public/demo; not public/clubs — that shadowed /clubs)
+backups/
