@@ -10,7 +10,17 @@ type Overview = {
   clubs: { total: number; active: number; pending: number; suspended: number }
   users: { total: number; athlete: number; coach: number; clubAdmin: number; disabled: number }
   bookings: { total: number; confirmed: number; cancelled: number; pending: number; today: number }
-  payments: { count: number; totalAmount: number; paidCount: number; paidAmount: number; pendingCount: number }
+  payments: {
+    count: number
+    totalAmount: number
+    paidCount: number
+    paidAmount: number
+    paidIpgCount: number
+    paidIpgAmount: number
+    paidOnSiteCount: number
+    paidOnSiteAmount: number
+    pendingCount: number
+  }
   applications: { pending: number }
   tickets?: { open: number }
   withdrawals?: { pending: number }
@@ -157,11 +167,14 @@ watch(secret, (value) => {
           </NuxtLink>
         </section>
 
-        <div class="tail-card-grid-4">
+        <div class="tail-card-grid-3">
           <AppTailStatCard :label="t('admin.metrics.clubs')" :value="formatNumber(data.clubs.total)" icon="stadium" />
           <AppTailStatCard :label="t('admin.metrics.users')" :value="formatNumber(data.users.total)" icon="group" />
           <AppTailStatCard :label="t('admin.metrics.bookings')" :value="formatNumber(data.bookings.total)" icon="event" />
-          <AppTailStatCard :label="t('admin.metrics.paidRevenue')" :value="formatCurrency(data.payments.paidAmount)" icon="payments" />
+        </div>
+        <div class="tail-card-grid-2">
+          <AppTailStatCard :label="t('admin.paymentChannelIpg')" :value="formatCurrency(data.payments.paidIpgAmount)" icon="payments" />
+          <AppTailStatCard :label="t('admin.paymentChannelOnSite')" :value="formatCurrency(data.payments.paidOnSiteAmount)" icon="payments" />
         </div>
 
         <section class="tail-card space-y-3">

@@ -1,3 +1,4 @@
+import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
 import { getEmailStatus } from '../../utils/email'
 import { getStorageStatus } from '../../utils/storage'
 
@@ -6,6 +7,8 @@ export default defineEventHandler(async (event) => {
 
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
+  const paidIpgWhere = { status: 'PAID' as const, ...paymentRowChannelWhere('IPG') }
+  const paidOnSiteWhere = { status: 'PAID' as const, ...paymentRowChannelWhere('ON_SITE') }
 
   const [
     clubsTotal,
@@ -24,6 +27,8 @@ export default defineEventHandler(async (event) => {
     bookingsToday,
     paymentsAgg,
     paymentsPaid,
+    paymentsPaidIpg,
+    paymentsPaidOnSite,
     paymentsPending,
     applicationsPending,
     ticketsOpen,
@@ -48,6 +53,17 @@ export default defineEventHandler(async (event) => {
     prisma.payment.aggregate({
       where: { status: 'PAID' },
       _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.payment.aggregate({
+      where: paidIpgWhere,
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.payment.aggregate({
+      where: paidOnSiteWhere,
+      _sum: { amount: true },
+      _count: true,
     }),
     prisma.payment.count({
       where: { status: { in: ['PENDING_AT_CLUB', 'PENDING_ONLINE', 'PAY_AT_CLUB'] } },
@@ -85,8 +101,12 @@ export default defineEventHandler(async (event) => {
     payments: {
       count: paymentsAgg._count,
       totalAmount: paymentsAgg._sum.amount || 0,
-      paidCount: paymentsPaid._count,
+      paidCount: typeof paymentsPaid._count === 'number' ? paymentsPaid._count : 0,
       paidAmount: paymentsPaid._sum.amount || 0,
+      paidIpgCount: paymentsPaidIpg._count,
+      paidIpgAmount: paymentsPaidIpg._sum.amount || 0,
+      paidOnSiteCount: paymentsPaidOnSite._count,
+      paidOnSiteAmount: paymentsPaidOnSite._sum.amount || 0,
       pendingCount: paymentsPending,
     },
     applications: { pending: applicationsPending },

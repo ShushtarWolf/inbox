@@ -1,3 +1,5 @@
+import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
+
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const id = getRouterParam(event, 'id')
@@ -29,7 +31,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Club not found' })
   }
 
-  const [bookingCount, wallet, pendingWithdraws, walletTx] = await Promise.all([
+  const clubPaidParent = {
+    OR: [
+      { booking: { is: { slot: { court: { clubId: club.id } } } } },
+      { coachSession: { is: { coach: { clubId: club.id } } } },
+    ],
+  }
+
+  const [bookingCount, wallet, pendingWithdraws, walletTx, paidIpg, paidOnSite] = await Promise.all([
     prisma.booking.count({
       where: { slot: { court: { clubId: club.id } } },
     }),
@@ -43,6 +52,20 @@ export default defineEventHandler(async (event) => {
       where: { wallet: { clubId: club.id } },
       orderBy: { createdAt: 'desc' },
       take: 20,
+    }),
+    prisma.payment.aggregate({
+      where: {
+        AND: [{ status: 'PAID' }, paymentRowChannelWhere('IPG')!, clubPaidParent],
+      },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.payment.aggregate({
+      where: {
+        AND: [{ status: 'PAID' }, paymentRowChannelWhere('ON_SITE')!, clubPaidParent],
+      },
+      _sum: { amount: true },
+      _count: true,
     }),
   ])
 
@@ -66,6 +89,8 @@ export default defineEventHandler(async (event) => {
     courtCount: club._count.courts,
     mediaCount: club._count.media,
     bookingCount,
+    paidIpgAmount: paidIpg._sum.amount || 0,
+    paidOnSiteAmount: paidOnSite._sum.amount || 0,
     sheba: club.sheba,
     wallet: {
       balance: wallet?.balance ?? 0,

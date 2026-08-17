@@ -28,6 +28,8 @@ type ClubDetail = {
   courtCount: number
   mediaCount: number
   bookingCount: number
+  paidIpgAmount: number
+  paidOnSiteAmount: number
   sheba: string | null
   wallet: {
     balance: number
@@ -183,6 +185,8 @@ function walletTxLabel(type: string) {
             <h2 class="tail-section-title mb-3">{{ t('admin.metrics.bookings') }}</h2>
             <ul class="space-y-2 text-sm">
               <li class="flex justify-between gap-2"><span>{{ t('admin.metrics.bookings') }}</span><strong dir="ltr">{{ formatNumber(club.bookingCount) }}</strong></li>
+              <li class="flex justify-between gap-2"><span>{{ t('admin.paymentChannelIpg') }}</span><strong dir="ltr">{{ formatCurrency(club.paidIpgAmount) }}</strong></li>
+              <li class="flex justify-between gap-2"><span>{{ t('admin.paymentChannelOnSite') }}</span><strong dir="ltr">{{ formatCurrency(club.paidOnSiteAmount) }}</strong></li>
               <li class="flex justify-between gap-2"><span>{{ t('admin.courts') }}</span><strong dir="ltr">{{ formatNumber(club.courtCount) }}</strong></li>
               <li class="flex justify-between gap-2"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></li>
             </ul>
