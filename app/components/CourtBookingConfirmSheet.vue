@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
 import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
+import { uniqueOrdered, joinWithAnd } from '#shared/courtSlotSelection.ts'
 
 export type ConfirmSlot = {
   id: string
   startTime: string
   endTime?: string
   price?: number
+  courtId?: string
+  courtLabel?: string
 }
 
 export type ConfirmEquipment = {
@@ -92,7 +95,9 @@ const costLines = computed(() => {
   for (const slot of props.slots) {
     const time = slot.startTime?.slice(0, 5) || ''
     lines.push({
-      label: t('booking.confirmLineSlot', { date: dateHeading.value, time }),
+      label: slot.courtLabel
+        ? t('booking.confirmLineSlotCourt', { court: slot.courtLabel, time })
+        : t('booking.confirmLineSlot', { date: dateHeading.value, time }),
       amount: Number(slot.price || 0),
     })
   }
@@ -119,6 +124,18 @@ const totalAmount = computed(() => Math.max(0, subtotalAmount.value - discountAm
 const showWalletCta = computed(() =>
   Boolean(user.value) && walletCoversAmount(totalAmount.value),
 )
+
+const slotCourtIds = computed(() =>
+  uniqueOrdered(props.slots.map((s) => s.courtId).filter((id): id is string => Boolean(id))),
+)
+const multiCourt = computed(() => {
+  const labels = uniqueOrdered(props.slots.map((s) => s.courtLabel).filter((label): label is string => Boolean(label)))
+  return labels.length > 1 || slotCourtIds.value.length > 1
+})
+const displayCourtLabel = computed(() => {
+  const labels = uniqueOrdered(props.slots.map((s) => s.courtLabel).filter((label): label is string => Boolean(label)))
+  return labels.length ? joinWithAnd(labels) : (props.courtLabel || '')
+})
 
 const metaLine = computed(() => {
   const parts = [props.locationLine, props.sportLabel].filter(Boolean)
@@ -215,6 +232,7 @@ async function submit(preferWallet = false) {
     gateGuestAuth({
       date: props.date,
       courtId: props.courtId,
+      courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
       slotIds,
     })
     return
@@ -233,6 +251,7 @@ async function submit(preferWallet = false) {
     discountCode: appliedDiscount.value?.code,
     date: props.date,
     courtId: props.courtId,
+    courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
     preferWallet,
   })
   if (result) {
@@ -301,12 +320,12 @@ async function submit(preferWallet = false) {
                 :key="slot.id"
                 class="canva-confirm-book-time"
               >
-                {{ slot.startTime?.slice(0, 5) }}
+                <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ slot.startTime?.slice(0, 5) }}
               </span>
             </div>
-            <p v-if="courtLabel" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
+            <p v-if="displayCourtLabel" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
               <span class="canva-confirm-book-dot" aria-hidden="true" />
-              {{ courtLabel }}
+              {{ displayCourtLabel }}
             </p>
           </div>
 

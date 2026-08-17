@@ -144,7 +144,9 @@
     "addressLabel": "Address",
     "contactLabel": "Contact",
     "bookingSummary": "{date} · {times}",
-    "selectSlotToContinue": "Select a time slot to continue",
+    "bookingSummarySelected": "Your booking: {courts}, {times} — {date}",
+    "multiCourtTimeHint": "Each time is added on every selected court that is free.",
+    "selectSlotToContinue": "Select courts and times to continue",
     "sort": {
       "rank": "Best match",
       "rating": "Highest rated",
@@ -1184,7 +1186,7 @@
     "reserveWithCoach": "Reserve with coach",
     "currentBooking": "Current booking",
     "selectionBar": {
-      "title": "Selected hours",
+      "title": "Selected sessions",
       "clear": "Clear selection",
       "multiSelect": "Multi-select"
     },

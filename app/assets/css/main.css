@@ -1651,7 +1651,7 @@
     @apply text-base font-bold text-brand-primary;
   }
   .canva-confirm-book-time {
-    @apply inline-flex min-w-[4.5rem] items-center justify-center bg-[#ebe7e1] px-3 py-2 text-sm font-bold tabular-nums text-brand-navy;
+    @apply inline-flex min-w-0 items-center justify-center bg-[#ebe7e1] px-3 py-2 text-sm font-bold tabular-nums text-brand-navy;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-dot {

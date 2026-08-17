@@ -13,6 +13,7 @@ import {
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
+import { joinWithAnd, sortSlotsByTimeThenCourt, uniqueOrdered } from '#shared/courtSlotSelection.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -180,9 +181,6 @@ const activeCourt = computed(() =>
   courts.value.find((court: { id: string }) => court.id === activeCourtId.value) || null,
 )
 
-watch(activeCourtId, () => {
-  clearSelection()
-})
 
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
@@ -281,18 +279,35 @@ const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
   return data.value?.slots?.find((s: { id: string }) => s.id === selectedSlot.value!.id) || selectedSlot.value
 })
-const selectedSlotsFull = computed(() =>
-  selectedSlotIds.value
+const selectedSlotsFull = computed(() => {
+  const picked = selectedSlotIds.value
     .map((id) => data.value?.slots?.find((s: OwnerCalendarSlot) => s.id === id))
-    .filter(Boolean)
-    .sort((a: OwnerCalendarSlot, b: OwnerCalendarSlot) => a.startTime.localeCompare(b.startTime)) as OwnerCalendarSlot[],
+    .filter(Boolean) as OwnerCalendarSlot[]
+  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  return sortSlotsByTimeThenCourt(picked, courtOrder)
+})
+function slotCourtName(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot) return ''
+  const court = courts.value.find((item: { id: string }) => item.id === slot.courtId)
+  return court ? localizedField(court, 'nameFa', 'nameEn') : ''
+}
+function slotCellLabel(slot: OwnerCalendarSlot) {
+  const name = slotCourtName(slot)
+  const time = formatTimeLabel(slot.startTime)
+  return name ? `${name} ${time}` : time
+}
+const selectionCourtNames = computed(() =>
+  uniqueOrdered(selectedSlotsFull.value.map((slot) => slotCourtName(slot)).filter(Boolean)),
 )
-const selectionCourt = computed(() =>
-  courts.value.find((court: { id: string }) => court.id === selectionCourtId.value) || null,
+const selectionCourtsLabel = computed(() =>
+  joinWithAnd(selectionCourtNames.value, locale.value === 'fa' ? 'و' : '&'),
 )
-const payConfirmCourt = computed(() => {
+const payConfirmCourtsLabel = computed(() => {
+  const fromSelection = selectionCourtsLabel.value
+  if (fromSelection) return fromSelection
   const id = selectedSlot.value?.courtId || selectionCourtId.value || activeCourtId.value
-  return courts.value.find((court: { id: string }) => court.id === id) || null
+  const court = courts.value.find((item: { id: string }) => item.id === id)
+  return court ? localizedField(court, 'nameFa', 'nameEn') : ''
 })
 const batchMode = computed(() => selectedSlotIds.value.length > 1 && showMenu.value)
 const canBatchReserve = computed(() =>
@@ -305,7 +320,7 @@ const canBatchBlock = computed(() =>
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
 const courtPrice = computed(() => {
-  if (batchMode.value && activePanel.value === 'reserve') {
+  if (selectedSlotsFull.value.length) {
     return selectedSlotsFull.value.reduce((sum, slot) => sum + (slot.price ?? 0), 0)
   }
   return selectedSlotFull.value?.price ?? 0
@@ -728,17 +743,13 @@ function isSlotSelected(slot: OwnerCalendarSlot) {
 }
 
 function toggleFreeSlot(slot: OwnerCalendarSlot) {
-  if (selectionCourtId.value && selectionCourtId.value !== slot.courtId) {
-    selectedSlotIds.value = [slot.id]
-    selectionCourtId.value = slot.courtId
-    return
-  }
+  if (slot.displayStatus !== 'FREE') return
   if (isSlotSelected(slot)) {
     selectedSlotIds.value = selectedSlotIds.value.filter((id) => id !== slot.id)
     if (!selectedSlotIds.value.length) selectionCourtId.value = null
     return
   }
-  if (!selectionCourtId.value) selectionCourtId.value = slot.courtId
+  selectionCourtId.value = slot.courtId
   selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
 }
 
@@ -964,7 +975,7 @@ watch(deskSlotStatuses, (allowed) => {
 })
 
 function slotsForReserve() {
-  if (batchMode.value && activePanel.value === 'reserve') return selectedSlotsFull.value
+  if (selectedSlotsFull.value.length) return selectedSlotsFull.value
   if (selectedSlotFull.value) return [selectedSlotFull.value]
   return []
 }
@@ -976,7 +987,7 @@ function slotsForCancel() {
 }
 
 function slotsForBlock() {
-  if (batchMode.value && activePanel.value === 'block') return selectedSlotsFull.value
+  if (selectedSlotsFull.value.length) return selectedSlotsFull.value
   if (selectedSlotFull.value) return [selectedSlotFull.value]
   return []
 }
@@ -1428,10 +1439,15 @@ const payConfirmCostLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of slotsForReserve()) {
     lines.push({
-      label: t('booking.confirmLineSlot', {
-        date: payConfirmDateHeading.value,
-        time: slot.startTime?.slice(0, 5) || '',
-      }),
+      label: slotCourtName(slot)
+        ? t('booking.confirmLineSlotCourt', {
+          court: slotCourtName(slot),
+          time: slot.startTime?.slice(0, 5) || '',
+        })
+        : t('booking.confirmLineSlot', {
+          date: payConfirmDateHeading.value,
+          time: slot.startTime?.slice(0, 5) || '',
+        }),
       amount: slot.price ?? 0,
     })
   }
@@ -1731,8 +1747,8 @@ function slotBarColor(status: string) {
         <div class="canva-selection-bar-inner">
           <div class="min-w-0 flex-1">
             <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
-            <p v-if="selectionCourt" class="mt-0.5 truncate text-sm font-bold text-brand-navy">
-              {{ localizedField(selectionCourt, 'nameFa', 'nameEn') }} · {{ formattedDate }}
+            <p v-if="selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
+              {{ selectionCourtsLabel }} · {{ formattedDate }}
             </p>
             <div class="mt-2 flex gap-2 overflow-x-auto pb-0.5">
               <span
@@ -1741,7 +1757,8 @@ function slotBarColor(status: string) {
                 class="shrink-0 bg-brand-primary-soft px-2 py-0.5 text-xs font-bold text-brand-primary"
                 style="border-radius: var(--sz-canva-radius);"
               >
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                {{ slotCourtName(slot) }}
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
               </span>
             </div>
           </div>
@@ -1787,14 +1804,15 @@ function slotBarColor(status: string) {
             <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
             <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
             <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
-            <div v-if="batchMode" class="mt-2 flex flex-wrap gap-1">
+            <div v-if="batchMode" class="mt-2 flex flex-wrap justify-start gap-1">
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
                 class="bg-brand-lavender px-2 py-0.5 text-xs font-bold text-brand-navy"
                 style="border-radius: var(--sz-canva-radius);"
               >
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                {{ slotCourtName(slot) }}
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
               </span>
             </div>
           </div>
@@ -1848,7 +1866,7 @@ function slotBarColor(status: string) {
                   :checked="isSlotSelected(slot)"
                   @change="toggleFreeSlot(slot)"
                 >
-                <span class="min-w-0 flex-1 truncate text-start">{{ slotGuestName() || statusLabel(slot.displayStatus) }}</span>
+                <span class="min-w-0 flex-1 truncate text-start">{{ slotCourtName(slot) || slotGuestName() || statusLabel(slot.displayStatus) }}</span>
                 <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
               </label>
             </div>
@@ -1924,9 +1942,16 @@ function slotBarColor(status: string) {
               </button>
               <h3 class="font-bold text-brand-navy">{{ reserveMenuLabel() }}</h3>
             </div>
-            <p v-if="selectedSlot" class="mt-1 text-xs font-bold text-brand-gray-600">
-              <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi>
-            </p>
+            <div v-if="slotsForReserve().length" class="mt-1 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600">
+              <span
+                v-for="slot in slotsForReserve()"
+                :key="slot.id"
+                class="bg-brand-lavender px-2 py-0.5"
+                style="border-radius: var(--sz-canva-radius);"
+              >
+                {{ slotCellLabel(slot) }}
+              </span>
+            </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
             <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
@@ -2113,12 +2138,12 @@ function slotBarColor(status: string) {
                   :key="slot.id"
                   class="canva-confirm-book-time"
                 >
-                  {{ slot.startTime?.slice(0, 5) }}
+                  {{ slotCellLabel(slot) }}
                 </span>
               </div>
-              <p v-if="payConfirmCourt" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
+              <p v-if="payConfirmCourtsLabel" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
                 <span class="canva-confirm-book-dot" aria-hidden="true" />
-                {{ localizedField(payConfirmCourt, 'nameFa', 'nameEn') }}
+                {{ payConfirmCourtsLabel }}
               </p>
             </div>
             <div class="canva-confirm-book-costs mt-4 text-start">
@@ -2207,6 +2232,11 @@ function slotBarColor(status: string) {
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doBlock">
+            <ul v-if="slotsForBlock().length" class="space-y-1 text-start text-sm font-bold text-brand-navy">
+              <li v-for="slot in slotsForBlock()" :key="slot.id">
+                {{ slotCellLabel(slot) }}
+              </li>
+            </ul>
             <div class="venus-form-grid">
               <AppFormField :label="t('owner.guestName')" field-id="owner-block-guest-name">
                 <input

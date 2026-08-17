@@ -287,6 +287,7 @@ const historyItems = computed((): HistoryItem[] => {
       slug: b.slot.court.club.slug,
       image: b.slot.court.image || b.slot.court.club.image || '/placeholders/club.svg',
       equipmentLines: equipLines,
+      // One row = one court booking; do not invent a group count across separate rows.
       courtCountLabel: t('athlete.historyCourtQty', { qty: formatNumber(1) }),
       raw: b,
     })

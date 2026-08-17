@@ -55,14 +55,19 @@ export function useCourtBooking() {
     returnTo?: string
     date?: string
     courtId?: string
+    courtIds?: string[]
     slotIds?: string[]
   }) {
     if (opts?.returnTo) return opts.returnTo
     const slotIds = [...new Set((opts?.slotIds || []).filter(Boolean))]
     if (!slotIds.length) return route.fullPath
+    const courtIds = [...new Set((opts?.courtIds || []).filter(Boolean))]
+    const court = courtIds.length
+      ? courtIds.join(',')
+      : (opts?.courtId || (typeof route.query.court === 'string' ? route.query.court : undefined))
     return buildReturnTo(route.path, {
       date: opts?.date || (typeof route.query.date === 'string' ? route.query.date : undefined),
-      court: opts?.courtId || (typeof route.query.court === 'string' ? route.query.court : undefined),
+      court,
       slots: slotIds.join(','),
     })
   }
@@ -71,6 +76,7 @@ export function useCourtBooking() {
     returnTo?: string
     date?: string
     courtId?: string
+    courtIds?: string[]
     slotIds?: string[]
     notice?: string
   }) {
@@ -100,6 +106,7 @@ export function useCourtBooking() {
     returnTo?: string
     date?: string
     courtId?: string
+    courtIds?: string[]
     preferWallet?: boolean
   }) {
     const slotIds = [...new Set(opts.slotIds.filter(Boolean))]
@@ -109,6 +116,7 @@ export function useCourtBooking() {
       returnTo: opts.returnTo,
       date: opts.date,
       courtId: opts.courtId,
+      courtIds: opts.courtIds,
       slotIds,
     })) {
       return null

@@ -2,6 +2,16 @@
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { parseCourtPricingJson } from '#shared/courtPricing.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
+import {
+  courtIdsFromSlots,
+  isSlotFree,
+  joinWithAnd,
+  slotCourtId,
+  sortSlotsByTimeThenCourt,
+  timesFromSlots,
+  toggleHourOnCourts,
+  uniqueOrdered,
+} from '#shared/courtSlotSelection.ts'
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -44,7 +54,7 @@ function parseQueryCsv(raw: unknown): string[] {
 
 /** Deep-link handoff from legacy `/book/court/:slug?date&slot&court` and athlete rebook. */
 const deepLinkDate = typeof route.query.date === 'string' && route.query.date ? route.query.date : null
-const deepLinkCourt = typeof route.query.court === 'string' && route.query.court ? route.query.court : null
+const deepLinkCourtIds = parseQueryCsv(route.query.court)
 const deepLinkSlotIds = [
   ...parseQueryCsv(route.query.slot),
   ...parseQueryCsv(route.query.slots),
@@ -55,7 +65,8 @@ let suppressSlotClear = deepLinkSlotsPending.value
 
 const gallerySlide = ref(0)
 const selectedDate = ref(deepLinkDate || today())
-const selectedCourtId = ref<string | null>(deepLinkCourt)
+const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
+const selectedCourtIds = ref<string[]>(deepLinkCourtIds)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 
@@ -100,21 +111,15 @@ watch(
   courts,
   (list) => {
     if (!list.length) return
-    if (!selectedCourtId.value || !list.some((c) => c.id === selectedCourtId.value)) {
-      selectedCourtId.value = list[0]!.id
+    if (!focusedCourtId.value || !list.some((c) => c.id === focusedCourtId.value)) {
+      focusedCourtId.value = list[0]!.id
     }
+    selectedCourtIds.value = selectedCourtIds.value.filter((id) => list.some((c) => c.id === id))
   },
   { immediate: true },
 )
 
 watch(selectedDate, () => {
-  if (suppressSlotClear) return
-  selectedSlotIds.value = []
-  waitlistSlotId.value = null
-  waitlistFeedback.value = ''
-})
-
-watch(selectedCourtId, () => {
   if (suppressSlotClear) return
   selectedSlotIds.value = []
   waitlistSlotId.value = null
@@ -131,12 +136,12 @@ type ClubSlot = {
   court?: { id?: string }
 }
 
+const allSlots = computed(() => (slots.value || []) as ClubSlot[])
+
 const courtSlots = computed(() => {
-  const list = (slots.value || []) as ClubSlot[]
-  if (!selectedCourtId.value) return list
-  return list.filter((s) =>
-    s.courtId === selectedCourtId.value || s.court?.id === selectedCourtId.value,
-  )
+  const list = allSlots.value
+  if (!focusedCourtId.value) return list
+  return list.filter((s) => slotCourtId(s) === focusedCourtId.value)
 })
 
 watch(
@@ -144,25 +149,34 @@ watch(
   (list) => {
     if (!deepLinkSlotsPending.value || !list) return
     const available = list as ClubSlot[]
-    const isFree = (slot: ClubSlot) => !(slot.displayStatus && slot.displayStatus !== 'FREE')
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
-      return Boolean(slot && isFree(slot))
+      return Boolean(slot && isSlotFree(slot))
     })
     // Rebook fallback: match free slots by clock time when prior slot id is gone.
     if (!valid.length && deepLinkTimes.length) {
       valid = available
         .filter((s) => {
-          if (!isFree(s)) return false
+          if (!isSlotFree(s)) return false
           const start = (s.startTime || '').slice(0, 5)
           if (!deepLinkTimes.includes(start)) return false
-          if (!selectedCourtId.value) return true
-          return s.courtId === selectedCourtId.value || s.court?.id === selectedCourtId.value
+          if (!deepLinkCourtIds.length) return true
+          return deepLinkCourtIds.includes(slotCourtId(s))
         })
         .map((s) => s.id)
     }
     if (valid.length) {
       selectedSlotIds.value = valid
+      const fromSlots = courtIdsFromSlots(
+        valid
+          .map((id) => available.find((s) => s.id === id))
+          .filter((s): s is ClubSlot => Boolean(s)),
+      )
+      const courtIds = uniqueOrdered([...deepLinkCourtIds, ...fromSlots])
+      if (courtIds.length) {
+        selectedCourtIds.value = courtIds
+        focusedCourtId.value = courtIds[0]!
+      }
       confirmOpen.value = true
     }
     deepLinkSlotsPending.value = false
@@ -174,39 +188,80 @@ watch(
 )
 
 function isSlotBooked(slot: ClubSlot) {
-  return Boolean(slot.displayStatus && slot.displayStatus !== 'FREE')
+  return !isSlotFree(slot)
 }
 
 function isSlotSelected(id: string) {
   return selectedSlotIds.value.includes(id)
 }
 
+function courtNumberLabel(courtId: string) {
+  const idx = courts.value.findIndex((c) => c.id === courtId)
+  if (idx < 0) return ''
+  return t('booking.courtNumber', { n: formatNumber(idx + 1) })
+}
+
+function isCourtChipActive(courtId: string) {
+  if (focusedCourtId.value === courtId) return true
+  if (selectedCourtIds.value.includes(courtId)) return true
+  return selectedSlots.value.some((s) => slotCourtId(s) === courtId)
+}
+
+function toggleCourt(courtId: string) {
+  waitlistSlotId.value = null
+  waitlistFeedback.value = ''
+  const selected = selectedCourtIds.value
+  if (selected.includes(courtId)) {
+    if (focusedCourtId.value !== courtId) {
+      focusedCourtId.value = courtId
+      return
+    }
+    selectedCourtIds.value = selected.filter((id) => id !== courtId)
+    focusedCourtId.value = selectedCourtIds.value[0] || courtId
+    return
+  }
+  selectedCourtIds.value = [...selected, courtId]
+  focusedCourtId.value = courtId
+}
+
 const selectedSlots = computed(() => {
-  return selectedSlotIds.value
-    .map((id) => courtSlots.value.find((s) => s.id === id))
+  const courtOrder = courts.value.map((c) => c.id)
+  const picked = selectedSlotIds.value
+    .map((id) => allSlots.value.find((s) => s.id === id))
     .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
+  return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
 
 const bookingSummary = computed(() => {
-  if (!selectedSlotIds.value.length) return ''
   const picked = selectedSlots.value
   if (!picked.length) return ''
-  const times = picked.map((s) => s.startTime).join(' و ')
+  const courtLabels = uniqueOrdered(
+    courtIdsFromSlots(picked).map((id) => courtNumberLabel(id)).filter(Boolean),
+  )
+  const times = timesFromSlots(picked)
   const j = isoToJalaali(selectedDate.value)
   const weekday = formatWeekday(selectedDate.value, 'long')
   const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]} ${weekday}`
-  return t('clubs.bookingSummarySelected', { date: dateLabel, times })
+  return t('clubs.bookingSummarySelected', {
+    date: dateLabel,
+    courts: joinWithAnd(courtLabels),
+    times: joinWithAnd(times),
+  })
 })
 
 const selectedCourtLabel = computed(() => {
-  if (!club.value || !selectedCourtId.value) return ''
-  const idx = courts.value.findIndex((c) => c.id === selectedCourtId.value)
-  if (idx < 0) return ''
-  return t('booking.courtNumber', { n: formatNumber(idx + 1) })
+  const ids = courtIdsFromSlots(selectedSlots.value)
+  const labels = ids.map((id) => courtNumberLabel(id)).filter(Boolean)
+  return joinWithAnd(labels)
+})
+
+const selectedCourtIdsForReturn = computed(() => {
+  const fromSlots = courtIdsFromSlots(selectedSlots.value)
+  return uniqueOrdered([...fromSlots, ...selectedCourtIds.value]).join(',')
 })
 
 const sportLabel = computed(() => {
-  const court = courts.value.find((c) => c.id === selectedCourtId.value) || courts.value[0]
+  const court = courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
   const sportKey = (court as { sport?: { slug?: string } } | undefined)?.sport?.slug
   if (sportKey === 'padel') return t('clubs.sportCourtPadel')
   if (sportKey === 'tennis') return t('clubs.sportCourtTennis')
@@ -226,8 +281,8 @@ function toThousand(value: number) {
 }
 
 const selectedCourt = computed(() => {
-  if (!selectedCourtId.value) return courts.value[0]
-  return courts.value.find((c) => c.id === selectedCourtId.value) || courts.value[0]
+  if (!focusedCourtId.value) return courts.value[0]
+  return courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
 })
 
 const pricingFootnotes = computed(() => {
@@ -315,6 +370,14 @@ const pricingFootnotes = computed(() => {
   notes.push(t('clubs.sessionDurationNote', { minutes: formatNumber(minutes) }))
   return notes
 })
+
+const confirmSlots = computed(() =>
+  selectedSlots.value.map((slot) => ({
+    ...slot,
+    courtId: slotCourtId(slot),
+    courtLabel: courtNumberLabel(slotCourtId(slot)),
+  })),
+)
 
 function openConfirmSheet() {
   if (!selectedSlotIds.value.length) return
@@ -421,11 +484,15 @@ function toggleSlot(slot: ClubSlot) {
   }
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
-  if (selectedSlotIds.value.includes(slot.id)) {
-    selectedSlotIds.value = selectedSlotIds.value.filter((x) => x !== slot.id)
-    return
-  }
-  selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
+  const applyCourtIds = uniqueOrdered(
+    [...selectedCourtIds.value, focusedCourtId.value].filter((id): id is string => Boolean(id)),
+  )
+  selectedSlotIds.value = toggleHourOnCourts({
+    selectedSlotIds: selectedSlotIds.value,
+    selectedCourtIds: applyCourtIds,
+    startTime: slot.startTime,
+    slots: allSlots.value,
+  })
 }
 
 async function joinCourtWaitlist() {
@@ -445,7 +512,7 @@ async function joinCourtWaitlist() {
       method: 'POST',
       body: {
         clubSlug: slug,
-        courtId: selectedCourtId.value || slot.courtId || slot.court?.id,
+        courtId: focusedCourtId.value || slot.courtId || slot.court?.id,
         date: selectedDate.value,
         startTime: slot.startTime,
         endTime: slot.endTime || slot.startTime,
@@ -647,12 +714,19 @@ async function shareClub() {
                   :key="court.id"
                   type="button"
                   class="canva-club-court-num"
-                  :class="selectedCourtId === court.id ? 'canva-club-court-num-active' : ''"
-                  @click="selectedCourtId = court.id"
+                  :class="isCourtChipActive(court.id) ? 'canva-club-court-num-active' : ''"
+                  :aria-pressed="isCourtChipActive(court.id)"
+                  @click="toggleCourt(court.id)"
                 >
                   {{ formatNumber(idx + 1) }}
                 </button>
               </div>
+              <p
+                v-if="selectedCourtIds.length > 1"
+                class="mb-2 text-start text-[11px] leading-snug text-brand-gray-600"
+              >
+                {{ t('clubs.multiCourtTimeHint') }}
+              </p>
               <div class="canva-club-slot-grid">
                 <button
                   v-for="slot in courtSlots"
@@ -693,8 +767,8 @@ async function shareClub() {
               {{ waitlistFeedback }}
             </p>
             <p v-else-if="waitlistSlotId" class="canva-club-book-summary">{{ t('booking.waitlistSelectedHint') }}</p>
-            <p v-else-if="bookingSummary" class="canva-club-book-summary">{{ bookingSummary }}</p>
-            <p v-else class="canva-club-book-summary text-brand-gray-600">{{ t('clubs.selectSlotToContinue') }}</p>
+            <p v-else-if="bookingSummary" class="canva-club-book-summary text-start">{{ bookingSummary }}</p>
+            <p v-else class="canva-club-book-summary text-start text-brand-gray-600">{{ t('clubs.selectSlotToContinue') }}</p>
             <button
               v-if="waitlistSlotId"
               type="button"
@@ -789,9 +863,9 @@ async function shareClub() {
         :sport-label="sportLabel"
         :rating-display="ratingDisplay"
         :date="selectedDate"
-        :court-id="selectedCourtId || undefined"
+        :court-id="selectedCourtIdsForReturn || undefined"
         :court-label="selectedCourtLabel"
-        :slots="selectedSlots"
+        :slots="confirmSlots"
         :rental-equipment="rentalEquipment"
         @close="confirmOpen = false"
         @success="onConfirmSuccess"

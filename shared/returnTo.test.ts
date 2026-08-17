@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeReturnTo, roleDashboardPath, resolvePostLoginPath, isAuthProtectedPath } from './returnTo'
+import { sanitizeReturnTo, roleDashboardPath, resolvePostLoginPath, isAuthProtectedPath, buildReturnTo } from './returnTo'
 
 describe('sanitizeReturnTo', () => {
   it('accepts safe internal paths', () => {
@@ -58,5 +58,15 @@ describe('isAuthProtectedPath', () => {
     expect(isAuthProtectedPath('/clubs/padel-zone-tehran')).toBe(false)
     expect(isAuthProtectedPath('/')).toBe(false)
     expect(isAuthProtectedPath('/book/court/x')).toBe(false)
+  })
+})
+
+describe('buildReturnTo', () => {
+  it('keeps multi-court and multi-slot query for auth handoff', () => {
+    expect(buildReturnTo('/clubs/iust-tennis', {
+      date: '2026-08-17',
+      court: 'c4,c6',
+      slots: 's1,s2',
+    })).toBe('/clubs/iust-tennis?date=2026-08-17&court=c4%2Cc6&slots=s1%2Cs2')
   })
 })
