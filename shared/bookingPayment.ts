@@ -101,3 +101,54 @@ export function resolveParentPaymentMethod(
 export function isWalletPayableStatus(status: string | null | undefined): boolean {
   return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(status || '')
 }
+
+export const PAYMENT_CHANNELS = ['IPG', 'ON_SITE'] as const
+export type PaymentChannel = (typeof PAYMENT_CHANNELS)[number]
+export type ResolvedPaymentChannel = PaymentChannel | 'WALLET'
+
+export function isPaymentChannel(value: string | undefined | null): value is PaymentChannel {
+  return value === 'IPG' || value === 'ON_SITE'
+}
+
+/**
+ * IPG vs pay-on-site vs wallet. Desk unpaid rows (PAY_AT_CLUB) count as on-site
+ * even before Booking.paymentMethod is set.
+ */
+export function resolvePaymentChannel(
+  method?: string | null,
+  status?: string | null,
+): ResolvedPaymentChannel | null {
+  if (method === 'IPG') return 'IPG'
+  if (method === 'PAID') return 'WALLET'
+  if (method === 'CASH' || status === 'PAY_AT_CLUB' || status === 'PENDING_AT_CLUB') return 'ON_SITE'
+  return null
+}
+
+/** Prisma `where` fragment for Booking: IPG vs cash/on-site. */
+export function bookingPaymentChannelWhere(channel: string | undefined | null) {
+  if (channel === 'IPG') {
+    return {
+      OR: [
+        { paymentMethod: 'IPG' as const },
+        { payment: { is: { method: 'IPG' as const } } },
+      ],
+    }
+  }
+  if (channel === 'ON_SITE') {
+    return {
+      OR: [
+        { paymentMethod: 'CASH' as const },
+        { payment: { is: { method: 'CASH' as const } } },
+        { paymentStatus: { in: ['PAY_AT_CLUB' as const, 'PENDING_AT_CLUB' as const] } },
+      ],
+    }
+  }
+  return null
+}
+
+/** Prisma `where` fragment for Payment rows. */
+export function paymentRowChannelWhere(channel: string | undefined | null) {
+  if (channel === 'IPG') return { method: 'IPG' as const }
+  if (channel === 'ON_SITE') return { method: 'CASH' as const }
+  return null
+}

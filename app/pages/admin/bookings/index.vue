@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { isPaymentChannel, resolvePaymentChannel } from '#shared/bookingPayment.ts'
+
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
 const { formatCurrency, formatDate } = useFormatters()
+
+const PAYMENT_FILTERS = ['ALL', 'IPG', 'ON_SITE', 'PENDING_ONLINE', 'FAILED', 'REFUNDED'] as const
+type PaymentFilter = (typeof PAYMENT_FILTERS)[number]
 
 type BookingRow = {
   id: string
@@ -48,7 +53,7 @@ const pending = ref(false)
 const loadError = ref('')
 const search = ref('')
 const bookingStatusFilter = ref<'ALL' | BookingRow['status']>('ALL')
-const paymentStatusFilter = ref<'ALL' | string>('ALL')
+const paymentStatusFilter = ref<PaymentFilter>('ALL')
 const expandedId = ref<string | null>(null)
 
 const chipBase = 'border px-3 py-1.5 text-xs font-bold transition'
@@ -59,6 +64,42 @@ function paymentStatusLabel(status: string) {
   const key = `booking.paymentStatus.${status}`
   const translated = t(key)
   return translated === key ? status : translated
+}
+
+function paymentChannelLabel(channel: ReturnType<typeof resolvePaymentChannel>) {
+  if (channel === 'IPG') return t('admin.paymentChannelIpg')
+  if (channel === 'ON_SITE') return t('admin.paymentChannelOnSite')
+  if (channel === 'WALLET') return t('admin.paymentChannelWallet')
+  return ''
+}
+
+function paymentFilterLabel(option: PaymentFilter) {
+  if (option === 'ALL') return t('common.all')
+  if (option === 'IPG' || option === 'ON_SITE') return paymentChannelLabel(option)
+  return paymentStatusLabel(option)
+}
+
+function rowPaymentMethod(row: { payment?: { method: string } | null; paymentMethod?: string | null; method?: string }) {
+  return row.payment?.method || row.paymentMethod || row.method || null
+}
+
+function paymentBadgeLabel(status: string, method?: string | null) {
+  const channel = resolvePaymentChannel(method, status)
+  if (status === 'PAID' && channel === 'IPG') return t('admin.paymentChannelIpg')
+  if (channel === 'ON_SITE') return t('admin.paymentChannelOnSite')
+  if (status === 'PAID' && channel === 'WALLET') return t('admin.paymentChannelWallet')
+  return paymentStatusLabel(status)
+}
+
+function paymentMethodLine(status: string, method?: string | null) {
+  const channel = resolvePaymentChannel(method, status)
+  const badge = paymentBadgeLabel(status, method)
+  const channelText = paymentChannelLabel(channel)
+  return channelText && channelText !== badge ? channelText : ''
+}
+
+function paymentMethodDetail(method?: string | null, status?: string | null) {
+  return paymentChannelLabel(resolvePaymentChannel(method, status)) || method || '—'
 }
 
 function bookingStatusLabel(status: string) {
@@ -103,13 +144,15 @@ async function load() {
     if (tab.value === 'bookings') {
       const params = new URLSearchParams({ limit: '50' })
       if (bookingStatusFilter.value !== 'ALL') params.set('status', bookingStatusFilter.value)
-      if (paymentStatusFilter.value !== 'ALL') params.set('paymentStatus', paymentStatusFilter.value)
+      if (isPaymentChannel(paymentStatusFilter.value)) params.set('paymentChannel', paymentStatusFilter.value)
+      else if (paymentStatusFilter.value !== 'ALL') params.set('paymentStatus', paymentStatusFilter.value)
       if (search.value.trim()) params.set('q', search.value.trim())
       const data = await adminFetch<{ bookings: BookingRow[] }>(`/api/admin/bookings?${params}`)
       bookings.value = data.bookings
     } else {
       const params = new URLSearchParams({ limit: '50' })
-      if (paymentStatusFilter.value !== 'ALL') params.set('status', paymentStatusFilter.value)
+      if (isPaymentChannel(paymentStatusFilter.value)) params.set('paymentChannel', paymentStatusFilter.value)
+      else if (paymentStatusFilter.value !== 'ALL') params.set('status', paymentStatusFilter.value)
       if (search.value.trim()) params.set('q', search.value.trim())
       const data = await adminFetch<{ payments: PaymentRow[] }>(`/api/admin/payments?${params}`)
       payments.value = data.payments
@@ -216,14 +259,14 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
 
     <div class="flex flex-wrap gap-2">
       <button
-        v-for="option in (['ALL', 'PAID', 'PAY_AT_CLUB', 'PENDING_ONLINE', 'PENDING_AT_CLUB', 'FAILED', 'REFUNDED'] as const)"
+        v-for="option in PAYMENT_FILTERS"
         :key="option"
         type="button"
         :class="[chipBase, paymentStatusFilter === option ? chipActive : chipIdle]"
         style="border-radius: 2px;"
         @click="paymentStatusFilter = option"
       >
-        {{ option === 'ALL' ? t('common.all') : paymentStatusLabel(option) }}
+        {{ paymentFilterLabel(option) }}
       </button>
     </div>
 
@@ -278,8 +321,14 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       style="border-radius: 2px;"
                       :class="paymentStatusClass(row.paymentStatus)"
                     >
-                      {{ paymentStatusLabel(row.paymentStatus) }}
+                      {{ paymentBadgeLabel(row.paymentStatus, rowPaymentMethod(row)) }}
                     </span>
+                    <div
+                      v-if="paymentMethodLine(row.paymentStatus, rowPaymentMethod(row))"
+                      class="mt-1 text-xs text-brand-gray-600"
+                    >
+                      {{ paymentMethodLine(row.paymentStatus, rowPaymentMethod(row)) }}
+                    </div>
                     <div v-if="row.payment" class="mt-1 text-xs tabular-nums text-brand-gray-600" dir="ltr">
                       {{ formatCurrency(row.payment.amount) }}
                     </div>
@@ -314,9 +363,9 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                         <span>{{ t('admin.createdAt') }}</span>
                         <span dir="ltr">{{ formatDate(row.createdAt) }}</span>
                       </li>
-                      <li v-if="row.paymentMethod" class="flex justify-between gap-2">
+                      <li class="flex justify-between gap-2">
                         <span>{{ t('admin.paymentMethod') }}</span>
-                        <span dir="ltr">{{ row.paymentMethod }}</span>
+                        <span>{{ paymentMethodDetail(rowPaymentMethod(row), row.paymentStatus) }}</span>
                       </li>
                       <li v-if="row.guestMobile && row.user" class="flex justify-between gap-2">
                         <span>{{ t('admin.phone') }}</span>
@@ -374,9 +423,14 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       style="border-radius: 2px;"
                       :class="paymentStatusClass(row.status)"
                     >
-                      {{ paymentStatusLabel(row.status) }}
+                      {{ paymentBadgeLabel(row.status, row.method) }}
                     </span>
-                    <div class="mt-1 text-xs text-brand-gray-600" dir="ltr">{{ row.method }}</div>
+                    <div
+                      v-if="paymentMethodLine(row.status, row.method)"
+                      class="mt-1 text-xs text-brand-gray-600"
+                    >
+                      {{ paymentMethodLine(row.status, row.method) }}
+                    </div>
                   </td>
                   <td class="p-3 whitespace-nowrap">
                     <button
@@ -403,6 +457,10 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       <li class="flex justify-between gap-2">
                         <span>{{ t('admin.provider') }}</span>
                         <span dir="ltr">{{ row.provider }}</span>
+                      </li>
+                      <li class="flex justify-between gap-2">
+                        <span>{{ t('admin.paymentMethod') }}</span>
+                        <span>{{ paymentMethodDetail(row.method, row.status) }}</span>
                       </li>
                       <li v-if="row.bookingStatus" class="flex justify-between gap-2">
                         <span>{{ t('admin.nav.bookings') }}</span>

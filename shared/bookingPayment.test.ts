@@ -1,13 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  bookingPaymentChannelWhere,
   countsTowardRevenue,
   initialPlatformPaymentFields,
   isOnlinePaymentsEnabled,
+  isPaymentChannel,
   isPaymentPayableOnline,
   isPaymentRefundable,
   isUnpaidPaymentStatus,
   isWalletPayableStatus,
+  paymentRowChannelWhere,
   resolveParentPaymentMethod,
+  resolvePaymentChannel,
 } from './bookingPayment.ts'
 
 describe('isOnlinePaymentsEnabled', () => {
@@ -115,5 +119,42 @@ describe('resolveParentPaymentMethod (payment sync)', () => {
   it('does not set parent method while still unpaid', () => {
     expect(resolveParentPaymentMethod('CASH', 'PAY_AT_CLUB')).toBeUndefined()
     expect(resolveParentPaymentMethod('NOT_PAID', 'PENDING_ONLINE')).toBeUndefined()
+  })
+})
+
+describe('resolvePaymentChannel', () => {
+  it('keeps IPG distinct from pay-on-site cash', () => {
+    expect(resolvePaymentChannel('IPG', 'PAID')).toBe('IPG')
+    expect(resolvePaymentChannel('CASH', 'PAID')).toBe('ON_SITE')
+    expect(resolvePaymentChannel('CASH', 'PAY_AT_CLUB')).toBe('ON_SITE')
+    expect(resolvePaymentChannel(null, 'PAY_AT_CLUB')).toBe('ON_SITE')
+    expect(resolvePaymentChannel('PAID', 'PAID')).toBe('WALLET')
+    expect(resolvePaymentChannel('NOT_PAID', 'PENDING_ONLINE')).toBeNull()
+  })
+
+  it('accepts only IPG and ON_SITE as admin channel filters', () => {
+    expect(isPaymentChannel('IPG')).toBe(true)
+    expect(isPaymentChannel('ON_SITE')).toBe(true)
+    expect(isPaymentChannel('PAID')).toBe(false)
+    expect(isPaymentChannel('CASH')).toBe(false)
+  })
+
+  it('builds booking where that does not mix IPG with cash', () => {
+    expect(bookingPaymentChannelWhere('IPG')).toEqual({
+      OR: [
+        { paymentMethod: 'IPG' },
+        { payment: { is: { method: 'IPG' } } },
+      ],
+    })
+    expect(bookingPaymentChannelWhere('ON_SITE')?.OR).toEqual(
+      expect.arrayContaining([
+        { paymentMethod: 'CASH' },
+        { payment: { is: { method: 'CASH' } } },
+        { paymentStatus: { in: ['PAY_AT_CLUB', 'PENDING_AT_CLUB'] } },
+      ]),
+    )
+    expect(paymentRowChannelWhere('IPG')).toEqual({ method: 'IPG' })
+    expect(paymentRowChannelWhere('ON_SITE')).toEqual({ method: 'CASH' })
+    expect(bookingPaymentChannelWhere('PAID')).toBeNull()
   })
 })
