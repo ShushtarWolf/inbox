@@ -1551,8 +1551,7 @@
       "equipments": "Equipment",
       "packages": "Packages",
       "crm": "Customer service",
-      "finance": "Cash desk & finance",
-      "facilities": "Facilities"
+      "finance": "Cash desk & finance"
     },
     "supportPage": {
       "operations": "Operations help",

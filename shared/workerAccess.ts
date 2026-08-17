@@ -14,7 +14,6 @@ export const WORKER_ACCESS_AREAS = [
   'packages',
   'crm',
   'finance',
-  'facilities',
 ] as const
 
 export type WorkerAccessArea = (typeof WORKER_ACCESS_AREAS)[number]
