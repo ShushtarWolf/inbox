@@ -413,14 +413,6 @@ function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
   return activeBooking(slot)?.comments?.trim() || ''
 }
 
-function onCellCheckClick(event: Event, slot: OwnerCalendarSlot | null | undefined) {
-  event.stopPropagation()
-  event.preventDefault()
-  if (!slot || slot.displayStatus !== 'FREE') return
-  multiSelectMode.value = true
-  toggleFreeSlot(slot)
-}
-
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
   const booking = activeBooking(slot)
   if (!booking) return null
@@ -765,12 +757,9 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openSlot(fullSlot)
     return
   }
-  // Multi-select only while already selecting free slots; first tap opens desk sheet.
-  if (selectedSlotIds.value.length > 0 || multiSelectMode.value) {
-    toggleFreeSlot(fullSlot)
-    return
-  }
-  openSlot(fullSlot)
+  // Whole FREE cell toggles multi-select; reserve/block open via FAB or selection bar.
+  multiSelectMode.value = true
+  toggleFreeSlot(fullSlot)
 }
 
 function openSelectionReserve() {
@@ -1701,6 +1690,7 @@ function slotBarColor(status: string) {
                     slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
                     cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
                   ]"
+                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
@@ -1720,14 +1710,10 @@ function slotBarColor(status: string) {
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
-                    v-if="cellSlot(court.id, hour)"
+                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
                     class="canva-cal-grid-check"
-                    :class="[
-                      cellSlot(court.id, hour)!.displayStatus === 'FREE' ? '' : 'canva-cal-grid-check-muted',
-                      cellSlot(court.id, hour)!.displayStatus === 'FREE' && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : '',
-                    ]"
-                    role="presentation"
-                    @click="onCellCheckClick($event, cellSlot(court.id, hour))"
+                    :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
+                    aria-hidden="true"
                   />
                 </button>
               </template>
