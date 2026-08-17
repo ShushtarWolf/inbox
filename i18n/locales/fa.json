@@ -100,7 +100,8 @@
     "tennisTitle": "زمین تنیس",
     "padelTitle": "زمین پدل",
     "bookNow": "رزرو کن",
-    "bookIt": "رزرو آن"
+    "bookIt": "رزرو آن",
+    "pilotStudentOffer": "20% off for {club}"
   },
   "clubs": {
     "title": "باشگاه‌ها",
@@ -307,9 +308,10 @@
     "favoritesPricePending": "قیمت پس از انتخاب سانس",
     "removeFavorite": "حذف از علاقه‌مندی",
     "addFavorite": "افزودن به علاقه‌مندی",
-    "homePromo": "۲۰٪ تخفیف فقط با وارد کردن کد",
-    "homePromoShort": "فقط با کد",
-    "homePromoCodeHint": "تخفیف فقط با وارد کردن کد STUDENT20 هنگام رزرو — بدون کد قیمت کامل است.",
+    "homePromo": "20% off for students",
+    "homePromoShort": "20% off for students",
+    "homePromoAskClub": "ask for the code from club",
+    "homePromoCodeHint": "20% off for students — ask for the code from club.",
     "homeGreeting": "سلام {name}",
     "favoritesBrowseClubs": "مشاهده باشگاه‌ها",
     "favoritesBookIt": "رزرو آن",

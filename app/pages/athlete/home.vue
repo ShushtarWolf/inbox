@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
+import { PILOT_CLUB_NAME_FA, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { t } = useI18n()
@@ -89,6 +91,10 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   return '/hero/fitness-venue.jpg'
 }
 
+function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
+  return club.slug === PILOT_CLUB_SLUG || club.nameFa === PILOT_CLUB_NAME_FA
+}
+
 onMounted(() => {
   if (!user.value) fetchAuth()
 })
@@ -116,9 +122,8 @@ onMounted(() => {
         role="note"
         :aria-label="t('athlete.homePromo')"
       >
-        <span class="canva-promo-badge-pct">۲۰٪</span>
-        <span class="canva-promo-badge-label">{{ t('athlete.homePromoShort') }}</span>
-        <span class="canva-promo-badge-code">STUDENT20</span>
+        <span class="canva-promo-badge-label">{{ t('athlete.homePromo') }}</span>
+        <span class="canva-promo-badge-code">{{ t('athlete.homePromoAskClub') }}</span>
       </div>
       <div class="canva-photo-hero-body canva-photo-hero-body-with-offer !min-h-[10.5rem]">
         <h1 class="canva-page-hero-title text-2xl">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
@@ -202,6 +207,9 @@ onMounted(() => {
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -230,6 +238,9 @@ onMounted(() => {
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -258,6 +269,9 @@ onMounted(() => {
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>

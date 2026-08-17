@@ -591,6 +591,12 @@
     @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
     border-radius: var(--sz-canva-radius);
   }
+  .canva-venue-card-offer {
+    @apply absolute z-20 bg-brand-primary px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white;
+    inset-block-start: 0;
+    inset-inline: 0;
+    border-radius: 0;
+  }
 
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
   .canva-court-card {
@@ -1730,14 +1736,20 @@
     inset-inline-start: auto;
     inset-inline-end: 0.75rem;
     bottom: 1.1rem;
-    min-width: 3.75rem;
-    padding-inline: 0.55rem;
+    min-width: 6.75rem;
+    max-width: 7.75rem;
+    padding-block: 0.4rem;
+    padding-inline: 0.45rem;
+  }
+  .canva-promo-badge-offer .canva-promo-badge-label {
+    @apply mt-0 text-[9px] font-bold leading-tight;
   }
   .canva-promo-badge-code {
-    @apply mt-0.5 text-[8px] font-bold leading-none tracking-wide opacity-95;
+    @apply mt-0.5 text-[8px] font-bold leading-tight tracking-normal opacity-95;
+    text-transform: none;
   }
   .canva-photo-hero-body-with-offer {
-    padding-inline-end: 4.75rem;
+    padding-inline-end: 8rem;
   }
   .canva-promo-badge-hero {
     @apply items-start bg-transparent px-0 py-0 text-start text-brand-primary;

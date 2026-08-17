@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PILOT_CLUB_NAME_FA, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
@@ -116,6 +118,10 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   if (club.sports?.includes('padel')) return '/hero/padel-court.jpg'
   if (club.sports?.includes('tennis')) return '/hero/tennis-court.jpg'
   return '/hero/fitness-venue.jpg'
+}
+
+function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
+  return club.slug === PILOT_CLUB_SLUG || club.nameFa === PILOT_CLUB_NAME_FA
 }
 
 function nextHero() {
@@ -263,6 +269,9 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -294,6 +303,9 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -325,6 +337,9 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             class="canva-venue-card"
           >
             <img :src="clubImage(club)" alt="" />
+            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
+              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+            </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
