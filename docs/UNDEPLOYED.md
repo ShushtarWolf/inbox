@@ -1,8 +1,8 @@
 # Undeployed changes
 
-Last live Liara deploy: `9258d8e` (`inbox` / inboxs.ir).
+None — last successful Liara deploy through `29246e1` (`inbox` / inboxs.ir).
 
-- Split admin overview and club paid totals into **IPG** vs **پرداخت در محل** (no longer one combined پرداخت‌شده card).
-
-**Last live deploy:** `9258d8e` (post-deploy dump `backups/inbox-db-20260817-165259.dump`)  
+**Last live deploy:** `29246e1` (post-deploy dump `backups/inbox-db-20260817-174751.dump`)  
 **Built with:** `--build-location germany` (Iran source upload DNS/`storage.iran.liara.ir` failed from this machine)
+
+Clear / re-add commits here when `main` moves past the last live deploy again.
