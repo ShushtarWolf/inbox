@@ -1,4 +1,17 @@
+/**
+ * ISO code for Iranian rial (what Shaparak/SEP uses).
+ * Integers in this product — Payment.amount, wallet, court prices, UI — are **toman**.
+ * Convert with `tomanToRials` only when talking to an IPG.
+ */
 export const PAYMENT_CURRENCY = 'IRR' as const
+
+/** Everyday unit: 1 toman = 10 rials. */
+export const TOMAN_TO_RIALS = 10
+
+/** SEP `Amount` is rials. App money stays toman. */
+export function tomanToRials(toman: number): number {
+  return Math.round(toman) * TOMAN_TO_RIALS
+}
 
 export type PaymentProvider = 'pay_at_club' | 'sep' | 'idpay' | 'log'
 

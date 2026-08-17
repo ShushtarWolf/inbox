@@ -1,5 +1,13 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { getPaymentsMode, getPaymentsStatusSnapshot, resolvePaymentProvider } from './payments'
+import { getPaymentsMode, getPaymentsStatusSnapshot, resolvePaymentProvider, tomanToRials } from './payments'
+
+describe('tomanToRials', () => {
+  it('converts app toman to SEP rials (×10)', () => {
+    expect(tomanToRials(600_000)).toBe(6_000_000)
+    expect(tomanToRials(50_000)).toBe(500_000)
+    expect(tomanToRials(200_000.4)).toBe(2_000_000)
+  })
+})
 
 describe('resolvePaymentProvider', () => {
   const env = { ...process.env }

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { PaymentConfirmOptions, PaymentService } from '#shared/payments.ts'
-import { getPaymentsMode, PAYMENT_CURRENCY } from '#shared/payments.ts'
+import { getPaymentsMode, PAYMENT_CURRENCY, tomanToRials } from '#shared/payments.ts'
 import { siteUrl } from '../../email'
 import { registerPaymentProvider, toPaymentIntent } from '../registry'
 import {
@@ -93,7 +93,7 @@ export function sepProvider(): PaymentService {
 
       const requested = await sepRequestToken({
         terminalId: tid,
-        amount: input.amount,
+        amount: tomanToRials(input.amount),
         resNum,
         redirectUrl: callbackUrl(),
       })
@@ -197,7 +197,8 @@ export function sepProvider(): PaymentService {
         })
       }
 
-      if (verified.amount != null && verified.amount !== payment.amount) {
+      const expectedRials = tomanToRials(payment.amount)
+      if (verified.amount != null && verified.amount !== expectedRials) {
         const failed = await prisma.payment.update({
           where: { id: payment.id },
           data: {
@@ -206,7 +207,11 @@ export function sepProvider(): PaymentService {
               ...meta,
               refNum,
               verifyCode: verified.resultCode,
-              amountMismatch: { expected: payment.amount, got: verified.amount },
+              amountMismatch: {
+                expectedToman: payment.amount,
+                expectedRials,
+                gotRials: verified.amount,
+              },
             }),
           },
         })

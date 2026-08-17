@@ -68,6 +68,10 @@ Callback URL registered with SEP (آدرس کال‌بک) / sent as `RedirectUrl
 
 Server IP (آدرس آی‌پی سرور سایت) is the public A record for `inboxs.ir` (Liara).
 
+## Toman vs rial
+
+Stored prices, wallets, SMS, and the in-app test gateway are **toman**. SEP `Amount` is **rials** (`toman × 10`) at token request and verify only — never write rials back into `Payment.amount`.
+
 ## Checkout flow (athlete court)
 
 1. Athlete books court → `Payment` row `PENDING_ONLINE` (when mode is `test`/`live`)

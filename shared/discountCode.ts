@@ -11,7 +11,7 @@ export function clampDiscountPercent(percent: number): number {
   return Math.min(100, Math.max(0, Math.round(percent)))
 }
 
-/** Percent off a subtotal (rial integers). */
+/** Percent off a subtotal (toman integers). */
 export function applyDiscountPercent(subtotal: number, percent: number): {
   discountAmount: number
   total: number

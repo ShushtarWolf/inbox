@@ -29,7 +29,7 @@ function paidBit(data: Record<string, unknown>) {
   return ''
 }
 
-/** Product UI uses تومان for booking amounts (same integer stored as Payment.amount). */
+/** Product amounts are toman — same integer as Payment.amount (IPG converts to rials). */
 function amountBit(data: Record<string, unknown>) {
   const raw = data.amountPaid ?? data.amount
   if (raw == null || raw === '') return ''

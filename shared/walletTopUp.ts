@@ -1,4 +1,4 @@
-/** Wallet top-up amounts (IRR). Same online pipeline as court checkout. */
+/** Wallet top-up amounts (toman). Same online pipeline as court checkout. */
 export const WALLET_TOPUP_PRESETS_IRR = [200_000, 500_000, 1_000_000, 2_000_000] as const
 
 export const WALLET_TOPUP_MIN_IRR = 50_000

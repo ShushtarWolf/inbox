@@ -8,6 +8,7 @@
 
 export interface SepTokenInput {
   terminalId: string
+  /** Rials (SEP contract). Convert from toman with `tomanToRials` before calling. */
   amount: number
   resNum: string
   redirectUrl: string
@@ -30,6 +31,7 @@ export interface SepVerifyResult {
   resultCode: number
   resultDescription?: string
   success: boolean
+  /** Rials from SEP TransactionDetail. */
   amount?: number
   resNum?: string
   maskedPan?: string
