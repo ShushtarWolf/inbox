@@ -61,6 +61,7 @@ export async function wipeCatalog() {
 
       await tx.clubWalletTransaction.deleteMany()
       await tx.settlementLedgerEntry.deleteMany()
+      await tx.withdrawPaymentDocument.deleteMany()
       await tx.withdrawRequest.deleteMany()
       await tx.clubWallet.deleteMany()
       await tx.userWithdrawRequest.deleteMany()

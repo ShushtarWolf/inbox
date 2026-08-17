@@ -236,6 +236,7 @@ model UserWithdrawRequest {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentDocuments WithdrawPaymentDocument[]
 
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
@@ -980,7 +981,25 @@ model WithdrawRequest {
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  paymentDocuments WithdrawPaymentDocument[]
 
   @@index([clubId, status, createdAt])
   @@index([status, createdAt])
+}
+
+/** Bank receipt / transfer proof attached by ops to a cash-out request. */
+model WithdrawPaymentDocument {
+  id          String   @id @default(cuid())
+  url         String
+  fileName    String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  clubWithdrawId    String?
+  clubWithdraw      WithdrawRequest?     @relation(fields: [clubWithdrawId], references: [id], onDelete: Cascade)
+  athleteWithdrawId String?
+  athleteWithdraw   UserWithdrawRequest? @relation(fields: [athleteWithdrawId], references: [id], onDelete: Cascade)
+
+  @@index([clubWithdrawId, createdAt])
+  @@index([athleteWithdrawId, createdAt])
 }

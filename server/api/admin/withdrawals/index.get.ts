@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
     where: status === 'ALL' ? undefined : { status: status as 'PENDING' | 'PAID' | 'REJECTED' },
     include: {
       club: { select: { id: true, slug: true, nameFa: true, sheba: true } },
+      paymentDocuments: {
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, url: true, fileName: true, contentType: true, createdAt: true },
+      },
     },
     orderBy: { createdAt: 'desc' },
     take: 100,

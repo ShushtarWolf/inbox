@@ -36,12 +36,12 @@ export function useAdminSecret() {
     return secret.value ? { 'x-admin-secret': secret.value } : {}
   }
 
-  async function adminFetch<T>(url: string, opts: { method?: string; body?: unknown } = {}) {
+  async function adminFetch<T>(url: string, opts: { method?: string; body?: unknown; headers?: Record<string, string> } = {}) {
     try {
       return await $fetch<T>(url, {
         method: opts.method,
         body: opts.body,
-        headers: adminHeaders(),
+        headers: { ...adminHeaders(), ...opts.headers },
       })
     } catch (err: unknown) {
       const status = (err as { statusCode?: number })?.statusCode

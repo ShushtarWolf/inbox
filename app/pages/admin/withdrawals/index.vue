@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import {
+  classifyPaymentDocumentFile,
+  PAYMENT_DOCUMENT_ACCEPT,
+  type PaymentDocumentRejectReason,
+} from '#shared/paymentDocumentUpload.ts'
+
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
@@ -8,6 +14,14 @@ const { formatCurrency, formatDate } = useFormatters()
 
 type WithdrawStatus = 'PENDING' | 'PAID' | 'REJECTED'
 type KindFilter = 'club' | 'athlete'
+
+type PaymentDocument = {
+  id: string
+  url: string
+  fileName: string
+  contentType: string
+  createdAt: string
+}
 
 type ClubWithdrawRow = {
   kind: 'club'
@@ -19,6 +33,7 @@ type ClubWithdrawRow = {
   createdAt: string
   paidAt: string | null
   rejectedAt: string | null
+  paymentDocuments: PaymentDocument[]
   club: { id: string; slug: string; nameFa: string; sheba: string | null }
 }
 
@@ -32,6 +47,7 @@ type AthleteWithdrawRow = {
   createdAt: string
   paidAt: string | null
   rejectedAt: string | null
+  paymentDocuments: PaymentDocument[]
   user: { id: string; name: string; email: string; phone: string | null; sheba: string | null }
 }
 
@@ -42,9 +58,13 @@ const statusFilter = ref<'ALL' | WithdrawStatus>('PENDING')
 const requests = ref<WithdrawRow[]>([])
 const pending = ref(false)
 const actionId = ref<string | null>(null)
+const uploadId = ref<string | null>(null)
+const fileInputById = ref<Record<string, HTMLInputElement | null>>({})
 const loadError = ref('')
 const actionError = ref('')
 const actionNote = ref('')
+const docError = ref('')
+const acceptDocs = PAYMENT_DOCUMENT_ACCEPT
 
 const chipBase = 'border px-3 py-1.5 text-xs font-bold transition'
 const chipActive = 'border-brand-primary bg-brand-primary text-white'
@@ -60,23 +80,108 @@ function statusClass(status: WithdrawStatus) {
   return 'bg-amber-100 text-amber-900'
 }
 
+function documentsPath(row: WithdrawRow) {
+  return row.kind === 'athlete'
+    ? `/api/admin/athlete-withdrawals/${row.id}/documents`
+    : `/api/admin/withdrawals/${row.id}/documents`
+}
+
+function rejectDocMessage(reason: PaymentDocumentRejectReason) {
+  if (reason === 'heic') return t('admin.withdrawDocsErrorHeic')
+  if (reason === 'type') return t('admin.withdrawDocsErrorType')
+  if (reason === 'size') return t('admin.withdrawDocsErrorSize')
+  return t('admin.withdrawDocsErrorEmpty')
+}
+
+function setFileInput(id: string, el: unknown) {
+  fileInputById.value[id] = (el as HTMLInputElement | null) || null
+}
+
+function pickDocuments(row: WithdrawRow) {
+  fileInputById.value[row.id]?.click()
+}
+
+async function onDocumentsSelected(row: WithdrawRow, event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = [...(input.files || [])]
+  input.value = ''
+  if (!files.length || !secret.value || uploadId.value) return
+  uploadId.value = row.id
+  docError.value = ''
+  try {
+    for (const file of files) {
+      const reason = classifyPaymentDocumentFile(file)
+      if (reason) {
+        docError.value = rejectDocMessage(reason)
+        return
+      }
+      const form = new FormData()
+      form.append('file', file)
+      const data = await adminFetch<{ document: PaymentDocument }>(documentsPath(row), {
+        method: 'POST',
+        body: form,
+      })
+      row.paymentDocuments = [data.document, ...(row.paymentDocuments || [])]
+    }
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number })?.statusCode
+    if (status === 403) {
+      docError.value = t('admin.invalidSecret')
+      clearSecret()
+    } else {
+      docError.value = t('common.error')
+    }
+  } finally {
+    uploadId.value = null
+  }
+}
+
+async function removeDocument(row: WithdrawRow, doc: PaymentDocument) {
+  if (!secret.value || uploadId.value) return
+  uploadId.value = row.id
+  docError.value = ''
+  try {
+    await adminFetch(`${documentsPath(row)}/${doc.id}`, { method: 'DELETE' })
+    row.paymentDocuments = (row.paymentDocuments || []).filter((item) => item.id !== doc.id)
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number })?.statusCode
+    if (status === 403) {
+      docError.value = t('admin.invalidSecret')
+      clearSecret()
+    } else {
+      docError.value = t('common.error')
+    }
+  } finally {
+    uploadId.value = null
+  }
+}
+
 async function load() {
   if (!secret.value) return
   pending.value = true
   loadError.value = ''
   actionError.value = ''
+  docError.value = ''
   try {
     const params = new URLSearchParams({ status: statusFilter.value })
     if (kindFilter.value === 'athlete') {
       const data = await adminFetch<{ requests: Omit<AthleteWithdrawRow, 'kind'>[] }>(
         `/api/admin/athlete-withdrawals?${params}`,
       )
-      requests.value = data.requests.map((row) => ({ ...row, kind: 'athlete' as const }))
+      requests.value = data.requests.map((row) => ({
+        ...row,
+        kind: 'athlete' as const,
+        paymentDocuments: row.paymentDocuments || [],
+      }))
     } else {
       const data = await adminFetch<{ requests: Omit<ClubWithdrawRow, 'kind'>[] }>(
         `/api/admin/withdrawals?${params}`,
       )
-      requests.value = data.requests.map((row) => ({ ...row, kind: 'club' as const }))
+      requests.value = data.requests.map((row) => ({
+        ...row,
+        kind: 'club' as const,
+        paymentDocuments: row.paymentDocuments || [],
+      }))
     }
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
@@ -186,14 +291,16 @@ watch([statusFilter, kindFilter], () => {
       />
     </AppFormField>
 
+    <p class="text-xs text-brand-gray-600 text-start">{{ t('admin.withdrawDocsHint') }}</p>
     <p v-if="actionError" class="venus-alert-error text-start" role="alert">{{ actionError }}</p>
+    <p v-if="docError" class="venus-alert-error text-start" role="alert">{{ docError }}</p>
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="default">
       <div v-if="requests.length === 0" class="ios-card p-6 text-center text-sm text-brand-gray-600">
         {{ t('common.empty') }}
       </div>
       <div v-else class="overflow-x-auto ios-card">
-        <table class="w-full min-w-[860px] text-sm">
+        <table class="w-full min-w-[1040px] text-sm">
           <thead>
             <tr class="border-b border-brand-gray-100 text-start">
               <th class="p-3 font-bold">{{ t('common.date') }}</th>
@@ -203,6 +310,7 @@ watch([statusFilter, kindFilter], () => {
               <th class="p-3 font-bold">{{ t('admin.amount') }}</th>
               <th class="p-3 font-bold">{{ t('admin.withdrawSheba') }}</th>
               <th class="p-3 font-bold">{{ t('admin.status') }}</th>
+              <th class="p-3 font-bold">{{ t('admin.withdrawDocsLabel') }}</th>
               <th class="p-3 font-bold" />
             </tr>
           </thead>
@@ -237,6 +345,55 @@ watch([statusFilter, kindFilter], () => {
                   {{ statusLabel(row.status) }}
                 </span>
                 <div v-if="row.note" class="mt-1 text-xs text-brand-gray-600">{{ row.note }}</div>
+              </td>
+              <td class="p-3 align-top">
+                <div class="flex min-w-[220px] flex-col gap-2 text-start">
+                  <p v-if="!(row.paymentDocuments || []).length" class="text-xs text-brand-gray-500">
+                    {{ t('admin.withdrawDocsEmpty') }}
+                  </p>
+                  <ul v-else class="space-y-1">
+                    <li
+                      v-for="doc in row.paymentDocuments"
+                      :key="doc.id"
+                      class="flex items-center justify-between gap-2"
+                    >
+                      <a
+                        :href="doc.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="truncate text-xs font-bold text-brand-navy underline"
+                        :title="doc.fileName"
+                      >
+                        {{ doc.fileName }}
+                      </a>
+                      <button
+                        type="button"
+                        class="shrink-0 text-xs font-bold text-brand-primary disabled:opacity-60"
+                        :disabled="uploadId === row.id"
+                        @click="removeDocument(row, doc)"
+                      >
+                        {{ t('admin.withdrawDocsRemove') }}
+                      </button>
+                    </li>
+                  </ul>
+                  <input
+                    :ref="(el) => setFileInput(row.id, el)"
+                    type="file"
+                    class="hidden"
+                    :accept="acceptDocs"
+                    multiple
+                    @change="onDocumentsSelected(row, $event)"
+                  />
+                  <button
+                    type="button"
+                    class="border border-brand-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy transition hover:border-brand-primary/40 disabled:opacity-60"
+                    style="border-radius: 2px;"
+                    :disabled="uploadId === row.id"
+                    @click="pickDocuments(row)"
+                  >
+                    {{ uploadId === row.id ? t('admin.withdrawDocsUploading') : t('admin.withdrawDocsUpload') }}
+                  </button>
+                </div>
               </td>
               <td class="p-3 whitespace-nowrap">
                 <div v-if="row.status === 'PENDING'" class="flex flex-wrap gap-2">

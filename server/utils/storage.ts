@@ -6,6 +6,11 @@ import {
   IMAGE_UPLOAD_ALLOWED_TYPE_SET,
   IMAGE_UPLOAD_MAX_BYTES,
 } from '#shared/imageUpload.ts'
+import {
+  PAYMENT_DOCUMENT_ALLOWED_TYPE_SET,
+  PAYMENT_DOCUMENT_MAX_BYTES,
+  paymentDocumentExtension,
+} from '#shared/paymentDocumentUpload.ts'
 
 const ALLOWED_TYPES = IMAGE_UPLOAD_ALLOWED_TYPE_SET
 const MAX_BYTES = IMAGE_UPLOAD_MAX_BYTES
@@ -14,6 +19,7 @@ const EXT_BY_TYPE: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'application/pdf': 'pdf',
 }
 
 const S3_ENV_KEYS = [
@@ -30,6 +36,15 @@ export function validateImageUpload(contentType: string, size: number) {
   }
   if (size > MAX_BYTES) {
     throw createError({ statusCode: 400, statusMessage: 'Image must be 5 MB or smaller' })
+  }
+}
+
+export function validatePaymentDocumentUpload(contentType: string, size: number) {
+  if (!PAYMENT_DOCUMENT_ALLOWED_TYPE_SET.has(contentType)) {
+    throw createError({ statusCode: 400, statusMessage: 'Only JPEG, PNG, WebP, and PDF files are allowed' })
+  }
+  if (size > PAYMENT_DOCUMENT_MAX_BYTES) {
+    throw createError({ statusCode: 400, statusMessage: 'File must be 10 MB or smaller' })
   }
 }
 
@@ -177,9 +192,8 @@ async function putObjectWithAclFallback(
   }
 }
 
-export async function uploadImage(buffer: Buffer, options: { folder: string; contentType: string }) {
-  validateImageUpload(options.contentType, buffer.length)
-  const ext = EXT_BY_TYPE[options.contentType] || 'bin'
+async function uploadObject(buffer: Buffer, options: { folder: string; contentType: string }) {
+  const ext = EXT_BY_TYPE[options.contentType] || paymentDocumentExtension(options.contentType)
   const key = `${options.folder}/${randomUUID()}.${ext}`
   const s3 = createS3Client()
 
@@ -198,4 +212,14 @@ export async function uploadImage(buffer: Buffer, options: { folder: string; con
   const filename = `${randomUUID()}.${ext}`
   await writeFile(join(localDir, filename), buffer)
   return `/uploads/${options.folder}/${filename}`
+}
+
+export async function uploadImage(buffer: Buffer, options: { folder: string; contentType: string }) {
+  validateImageUpload(options.contentType, buffer.length)
+  return uploadObject(buffer, options)
+}
+
+export async function uploadPaymentDocument(buffer: Buffer, options: { folder: string; contentType: string }) {
+  validatePaymentDocumentUpload(options.contentType, buffer.length)
+  return uploadObject(buffer, options)
 }

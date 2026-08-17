@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getStorageStatus, isAclUnsupportedError, validateImageUpload } from '../server/utils/storage'
+import {
+  getStorageStatus,
+  isAclUnsupportedError,
+  validateImageUpload,
+  validatePaymentDocumentUpload,
+} from '../server/utils/storage'
 
 vi.stubGlobal('createError', (input: { statusCode: number; statusMessage: string }) => {
   const err = new Error(input.statusMessage) as Error & { statusCode: number }
@@ -24,6 +29,21 @@ describe('validateImageUpload', () => {
 
   it('allows zero-byte uploads (size check only caps max)', () => {
     expect(() => validateImageUpload('image/jpeg', 0)).not.toThrow()
+  })
+})
+
+describe('validatePaymentDocumentUpload', () => {
+  it('accepts images and PDFs under the size cap', () => {
+    expect(() => validatePaymentDocumentUpload('image/jpeg', 1024)).not.toThrow()
+    expect(() => validatePaymentDocumentUpload('application/pdf', 1024)).not.toThrow()
+  })
+
+  it('rejects unsupported types', () => {
+    expect(() => validatePaymentDocumentUpload('image/gif', 1024)).toThrow(/JPEG, PNG, WebP, and PDF/)
+  })
+
+  it('rejects oversized files', () => {
+    expect(() => validatePaymentDocumentUpload('application/pdf', 11 * 1024 * 1024)).toThrow(/10 MB/)
   })
 })
 
