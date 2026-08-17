@@ -181,7 +181,7 @@ export function useCourtBooking() {
         }
         catch (checkoutError: unknown) {
           feedbackTone.value = 'error'
-          feedback.value = fetchErrorMessage(checkoutError, t('booking.paymentError'))
+          feedback.value = fetchErrorMessage(checkoutError, t('booking.gatewayRedirectStalled'))
         }
         finally {
           paying.value = false
@@ -202,16 +202,15 @@ export function useCourtBooking() {
 
   async function payBooking(bookingId?: string | null) {
     const id = bookingId || createdBookingId.value
-    if (!id) return
+    if (!id || paying.value) return
     paying.value = true
+    feedback.value = ''
     try {
       await startCheckout({ bookingId: id })
-      feedbackTone.value = 'success'
-      feedback.value = t('booking.payNow')
     }
     catch (error: unknown) {
       feedbackTone.value = 'error'
-      feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+      feedback.value = fetchErrorMessage(error, t('booking.gatewayRedirectStalled'))
     }
     finally {
       paying.value = false
@@ -237,7 +236,8 @@ export function useCourtBooking() {
   }
 
   const primaryCtaLabel = computed(() => {
-    if (confirming.value || paying.value) return t('common.loading')
+    if (paying.value) return t('booking.redirectingToGateway')
+    if (confirming.value) return t('common.loading')
     if (!user.value) return t('booking.loginToContinue')
     if (onlineEnabled.value) return t('booking.pay')
     return t('booking.confirmPayAtClub')

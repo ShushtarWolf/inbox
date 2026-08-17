@@ -533,6 +533,8 @@
     "checkoutDisabled": "Online checkout is disabled; pay at the club or use wallet balance.",
     "paymentSuccess": "Online payment successful. Your booking is marked paid.",
     "paymentError": "Online payment failed. The booking was not marked paid — try again or pay at the club.",
+    "redirectingToGateway": "Redirecting to the payment gateway…",
+    "gatewayRedirectStalled": "Could not reach the payment gateway. Please try again.",
     "paymentCancelled": "Payment cancelled. Your booking is still awaiting online payment.",
     "testGatewayTitle": "Test payment gateway",
     "testGatewayHint": "No real SEP terminal. Choose an outcome to simulate.",

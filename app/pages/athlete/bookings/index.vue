@@ -221,6 +221,7 @@ async function confirmCancel() {
 }
 
 async function payBooking(bookingId: string, useWallet = false) {
+  if (payingId.value) return
   payingId.value = bookingId
   actionError.value = ''
   try {
@@ -549,9 +550,10 @@ function dateLine(item: HistoryItem) {
                 v-if="item.kind === 'court' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
                 type="button"
                 class="canva-history-btn-secondary"
-                :disabled="payingId === item.id"
+                :class="{ 'canva-cta-busy': payingId === item.id }"
+                :aria-busy="payingId === item.id"
                 @click="payBooking(item.id)"
-              >{{ payingId === item.id ? t('common.loading') : t('booking.payNow') }}</button>
+              >{{ payingId === item.id ? t('booking.redirectingToGateway') : t('booking.payNow') }}</button>
               <button
                 v-if="item.kind === 'court' && item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
                 type="button"

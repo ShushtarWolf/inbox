@@ -7,11 +7,13 @@ const localePath = useLocalePath()
 const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
 const { localizedField } = useLocalizedField()
 const { onlineEnabled, canPayOnline, startCheckout } = useCheckout()
+const { fetchErrorMessage } = useFetchError()
 
 const { data: wallet, pending: walletPending } = await useAuthedFetch('/api/wallet')
 const { data, pending, error, refresh } = await useAuthedFetch('/api/athlete/payments')
 
 const payingId = ref<string | null>(null)
+const payError = ref('')
 
 function statusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
@@ -25,13 +27,14 @@ function methodLabel(method: string) {
 }
 
 async function retryPay(row: { bookingId?: string | null; status: string }) {
-  if (!row.bookingId || !canPayOnline(row.status)) return
+  if (!row.bookingId || !canPayOnline(row.status) || payingId.value) return
   payingId.value = row.bookingId
+  payError.value = ''
   try {
     await startCheckout({ bookingId: row.bookingId })
     await refresh()
-  } catch {
-    // stay on page; flash handled by startCheckout redirect or error
+  } catch (err: unknown) {
+    payError.value = fetchErrorMessage(err, t('booking.gatewayRedirectStalled'))
   } finally {
     payingId.value = null
   }
@@ -81,6 +84,8 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
       </NuxtLink>
     </div>
 
+    <p v-if="payError" class="canva-flash-error text-start text-sm">{{ payError }}</p>
+
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <div class="space-y-2">
         <h2 class="text-sm font-bold text-brand-primary text-start">{{ t('athlete.paymentHistoryTitle') }}</h2>
@@ -113,10 +118,11 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
               v-if="row.bookingId && canPayOnline(row.status)"
               type="button"
               class="canva-gate-btn-primary mt-3 w-full text-sm"
-              :disabled="payingId === row.bookingId"
+              :class="{ 'canva-cta-busy': payingId === row.bookingId }"
+              :aria-busy="payingId === row.bookingId"
               @click="retryPay(row)"
             >
-              {{ payingId === row.bookingId ? t('common.loading') : t('booking.payNow') }}
+              {{ payingId === row.bookingId ? t('booking.redirectingToGateway') : t('booking.payNow') }}
             </button>
           </div>
         </div>

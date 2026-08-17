@@ -58,9 +58,14 @@ export function sepBaseUrl(): string {
   return (raw || DEFAULT_BASE).replace(/\/$/, '')
 }
 
-/** GET redirect into the bank UI (token already issued). */
+/** GET redirect into the bank UI (token already issued). Client prefers POST OnlinePG. */
 export function sepStartPayUrl(token: string): string {
   return `${sepBaseUrl()}/OnlinePG/SendToken?token=${encodeURIComponent(token)}`
+}
+
+/** SEP token handoff: POST hidden Token= to this action (preferred over SendToken GET). */
+export function sepOnlinePgUrl(): string {
+  return `${sepBaseUrl()}/OnlinePG/OnlinePG`
 }
 
 /** ResultCode 0 = first verify, 2 = already verified (idempotent). */

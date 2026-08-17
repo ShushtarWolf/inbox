@@ -6,6 +6,7 @@ import {
   sepBaseUrl,
   sepRequestToken,
   sepReverseTransaction,
+  sepOnlinePgUrl,
   sepStartPayUrl,
   sepVerifyTransaction,
 } from './sepClient'
@@ -13,6 +14,10 @@ import {
 describe('sepClient', () => {
   it('builds start-pay URL from token', () => {
     expect(sepStartPayUrl('tok-abc')).toBe(`${sepBaseUrl()}/OnlinePG/SendToken?token=tok-abc`)
+  })
+
+  it('builds POST OnlinePG action (preferred token handoff)', () => {
+    expect(sepOnlinePgUrl()).toBe(`${sepBaseUrl()}/OnlinePG/OnlinePG`)
   })
 
   it('treats verify codes 0 and 2 as success (idempotent)', () => {

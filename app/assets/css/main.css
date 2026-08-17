@@ -389,6 +389,14 @@
   .canva-cta:disabled {
     @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 opacity-100;
   }
+  /* Gateway handoff / booking in-flight — keep brand fill, never grey Pay. */
+  .canva-cta.canva-cta-busy,
+  .canva-gate-btn-primary.canva-cta-busy,
+  .canva-gate-btn-secondary.canva-cta-busy,
+  .canva-history-btn-secondary.canva-cta-busy {
+    pointer-events: none;
+    cursor: wait;
+  }
 
   /* Rectangular chip — replaces rounded-full / neo-pill on Canva frames */
   .canva-chip {

@@ -52,9 +52,13 @@ const {
   feedbackTone,
   done,
   onlineEnabled,
+  createdBookingId,
+  lastPaymentStatus,
   resetBookingState,
   gateGuestAuth,
   createCourtBookings,
+  payBooking,
+  payBookingWithWallet,
   walletCoversAmount,
 } = useCourtBooking()
 
@@ -163,9 +167,13 @@ watch([wantRacket, () => props.slots], () => {
   }
 })
 
+const payBusy = computed(() => confirming.value || paying.value)
+
 const payCtaLabel = computed(() => {
-  if (confirming.value || paying.value) return t('common.loading')
+  if (paying.value) return t('booking.redirectingToGateway')
+  if (confirming.value) return t('common.loading')
   if (!user.value) return t('booking.loginToContinue')
+  if (feedbackTone.value === 'error' && createdBookingId.value) return t('booking.payRetry')
   return t('booking.pay')
 })
 
@@ -238,6 +246,13 @@ async function submit(preferWallet = false) {
     return
   }
 
+  // Booking already created (checkout failed or SEP handshake stalled) — re-checkout only.
+  if (createdBookingId.value) {
+    if (preferWallet) await payBookingWithWallet(createdBookingId.value)
+    else await payBooking(createdBookingId.value)
+    return
+  }
+
   const equipmentIds = wantRacket.value && racketItem.value && racketQty.value > 0
     ? [racketItem.value.id]
     : []
@@ -254,9 +269,10 @@ async function submit(preferWallet = false) {
     courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
     preferWallet,
   })
-  if (result) {
-    emit('success')
-  }
+  if (!result) return
+  // Still on-page after online checkout means stall/error — keep slots so Pay can retry.
+  if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
+  emit('success')
 }
 </script>
 
@@ -287,7 +303,7 @@ async function submit(preferWallet = false) {
       </div>
 
       <div class="canva-auth-body space-y-3 px-5 pb-6 pt-1">
-        <template v-if="done && !onlineEnabled">
+        <template v-if="done && (!onlineEnabled || lastPaymentStatus === 'PAID')">
           <p class="text-center text-base font-bold text-brand-primary">✓ {{ feedback || t('booking.successCourt') }}</p>
           <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
             {{ t('booking.viewBookings') }}
@@ -337,7 +353,7 @@ async function submit(preferWallet = false) {
                   <button
                     type="button"
                     class="canva-qty-step-btn"
-                    :disabled="racketQty <= 0 || confirming || paying"
+                    :disabled="racketQty <= 0 || payBusy"
                     aria-label="−"
                     @click="bumpRacket(-1)"
                   >−</button>
@@ -345,7 +361,7 @@ async function submit(preferWallet = false) {
                   <button
                     type="button"
                     class="canva-qty-step-btn"
-                    :disabled="racketQty >= racketStock || confirming || paying"
+                    :disabled="racketQty >= racketStock || payBusy"
                     aria-label="+"
                     @click="bumpRacket(1)"
                   >+</button>
@@ -376,7 +392,7 @@ async function submit(preferWallet = false) {
                   type="text"
                   class="canva-confirm-book-discount-input"
                   :placeholder="t('booking.discountPlaceholder')"
-                  :disabled="discountApplying || confirming || paying"
+                  :disabled="discountApplying || payBusy"
                   autocomplete="off"
                   @keydown.enter.prevent="applyDiscount"
                 >
@@ -384,7 +400,7 @@ async function submit(preferWallet = false) {
                   v-if="appliedDiscount"
                   type="button"
                   class="canva-confirm-book-discount-btn"
-                  :disabled="discountApplying || confirming || paying"
+                  :disabled="discountApplying || payBusy"
                   @click="clearDiscount"
                 >
                   {{ t('booking.discountClear') }}
@@ -393,7 +409,7 @@ async function submit(preferWallet = false) {
                   v-else
                   type="button"
                   class="canva-confirm-book-discount-btn"
-                  :disabled="discountApplying || confirming || paying || !discountInput.trim()"
+                  :disabled="discountApplying || payBusy || !discountInput.trim()"
                   @click="applyDiscount"
                 >
                   {{ discountApplying ? t('common.loading') : t('booking.discountApply') }}
@@ -435,7 +451,9 @@ async function submit(preferWallet = false) {
           <button
             type="button"
             class="canva-cta canva-confirm-book-cta w-full"
-            :disabled="!slots.length || confirming || paying"
+            :class="{ 'canva-cta-busy': payBusy }"
+            :disabled="!slots.length"
+            :aria-busy="payBusy"
             @click="submit(false)"
           >
             {{ payCtaLabel }}
@@ -444,10 +462,12 @@ async function submit(preferWallet = false) {
             v-if="showWalletCta"
             type="button"
             class="canva-gate-btn-secondary canva-confirm-book-cta w-full"
-            :disabled="!slots.length || confirming || paying"
+            :class="{ 'canva-cta-busy': payBusy }"
+            :disabled="!slots.length"
+            :aria-busy="payBusy"
             @click="submit(true)"
           >
-            {{ confirming || paying ? t('common.loading') : t('booking.payFromWallet') }}
+            {{ payBusy ? t('common.loading') : t('booking.payFromWallet') }}
           </button>
         </template>
       </div>

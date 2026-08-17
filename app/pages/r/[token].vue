@@ -27,6 +27,8 @@ type ReceiptPayload = {
 const route = useRoute()
 const { t, locale } = useI18n()
 const { formatCurrency } = useFormatters()
+const { fetchErrorMessage } = useFetchError()
+const { redirectToPaymentGateway } = useCheckout()
 const token = computed(() => String(route.params.token || ''))
 const paying = ref(false)
 const payError = ref('')
@@ -66,12 +68,12 @@ async function pay() {
     )
     const url = session.intent?.redirectUrl
     if (url) {
-      await navigateTo(url, { external: true })
+      await redirectToPaymentGateway(url)
       return
     }
     await refresh()
-  } catch {
-    payError.value = t('booking.paymentError')
+  } catch (err: unknown) {
+    payError.value = fetchErrorMessage(err, t('booking.gatewayRedirectStalled'))
   } finally {
     paying.value = false
   }
@@ -158,10 +160,11 @@ async function pay() {
           v-if="data.canPayOnline"
           type="button"
           class="canva-gate-btn-primary mt-6 bg-emerald-600 hover:brightness-110"
-          :disabled="paying"
+          :class="{ 'canva-cta-busy': paying }"
+          :aria-busy="paying"
           @click="pay"
         >
-          {{ paying ? t('common.loading') : t('booking.receiptPayCta') }}
+          {{ paying ? t('booking.redirectingToGateway') : t('booking.receiptPayCta') }}
         </button>
         <p v-else-if="data.unpaid && !data.cancelled" class="mt-4 text-sm text-brand-gray-600 text-start">
           {{ t('booking.receiptPayAtClub') }}

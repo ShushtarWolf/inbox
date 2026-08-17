@@ -9,7 +9,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { formatCurrency, formatDate } = useFormatters()
-const { onlineEnabled, isTestPayments } = useCheckout()
+const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/wallet')
 
@@ -57,6 +57,7 @@ function txLabel(tx: { type?: string; amount: number }) {
 }
 
 async function startTopUp() {
+  if (toppingUp.value) return
   flash.value = ''
   if (!onlineEnabled.value) {
     flashTone.value = 'error'
@@ -79,7 +80,7 @@ async function startTopUp() {
       body: { amount },
     })
     if (session.intent.redirectUrl) {
-      await navigateTo(session.intent.redirectUrl, { external: true })
+      await redirectToPaymentGateway(session.intent.redirectUrl)
       return
     }
     flashTone.value = 'error'
@@ -235,10 +236,11 @@ watch(
           <button
             type="button"
             class="canva-gate-btn-primary w-full"
-            :disabled="toppingUp"
+            :class="{ 'canva-cta-busy': toppingUp }"
+            :aria-busy="toppingUp"
             @click="startTopUp"
           >
-            {{ toppingUp ? t('common.loading') : t('athlete.walletTopUpCta') }}
+            {{ toppingUp ? t('booking.redirectingToGateway') : t('athlete.walletTopUpCta') }}
           </button>
         </template>
       </section>

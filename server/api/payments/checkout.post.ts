@@ -78,6 +78,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Always charge the stored payment (slot + equipment + discount). Never recompute
+  // slot-only price — court booking already wrote the sheet total on Payment.amount.
   const payableAmount = existingPayment?.amount || amount
 
   if (body.useWallet && payableAmount > 0) {

@@ -129,6 +129,7 @@ export function sepProvider(): PaymentService {
           status: 'PENDING_ONLINE',
           provider: 'sep',
           providerRef: resNum,
+          // Client converts SendToken GET → POST OnlinePG + Token (see paymentRedirect).
           redirectUrl: sepStartPayUrl(requested.token),
         },
       }
