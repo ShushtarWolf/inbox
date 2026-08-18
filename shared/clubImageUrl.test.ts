@@ -24,7 +24,7 @@ describe('parseClubImageInput', () => {
     expect(parseClubImageInput('club.svg')).toEqual({ ok: false })
   })
 
-  it('still allows http(s), uploads, and demo paths', () => {
+  it('still allows http(s), uploads, media, and demo paths', () => {
     expect(parseClubImageInput('https://cdn.example/club.jpg')).toEqual({
       ok: true,
       value: 'https://cdn.example/club.jpg',
@@ -34,6 +34,11 @@ describe('parseClubImageInput', () => {
       ok: true,
       value: '/uploads/clubs/a.jpg',
     })
+    expect(parseClubImageInput('/media/clubs/iust/iust-court-1-1.webp')).toEqual({
+      ok: true,
+      value: '/media/clubs/iust/iust-court-1-1.webp',
+    })
+    expect(isAllowedClubImageUrl('/media/clubs/iust/iust-court-1-1.webp')).toBe(true)
     expect(parseClubImageInput('/demo/clubs/padel-zone-tehran.jpg').ok).toBe(true)
   })
 })

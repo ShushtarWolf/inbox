@@ -158,6 +158,7 @@ function applyClubData() {
   form.waitlistEnabled = club.waitlistEnabled ?? true
   form.phone = club.phone || ''
   form.whatsapp = club.whatsapp || ''
+  loadedImage = club.image || null
   form.image = club.image || ''
   form.sheba = (club as { sheba?: string | null }).sheba || ''
   const allowedSlugs = new Set<string>(COURT_FACILITY_OPTIONS.map((item) => item.slug))
@@ -193,6 +194,8 @@ function formSnapshot() {
 
 let appliedClubId: string | null = null
 let lastAppliedSnapshot = ''
+/** Cover URL as loaded from the server; omit from PATCH when unchanged. */
+let loadedImage: string | null = null
 
 function isFormDirty() {
   return Boolean(lastAppliedSnapshot) && formSnapshot() !== lastAppliedSnapshot
@@ -324,31 +327,30 @@ async function save() {
       saveError.value = t('athlete.shebaInvalid')
       return
     }
-    await $fetch('/api/owner/settings', {
-      method: 'PATCH',
-      body: {
-        nameFa: form.nameFa,
-        nameEn: form.nameEn,
-        descriptionFa: form.sloganFa || null,
-        addressFa: form.addressFa,
-        addressEn: form.addressEn || form.addressFa,
-        city: form.city,
-        district: form.district || null,
-        openHour: Number(form.openHour),
-        closeHour: Number(form.closeHour),
-        cancellationWindowHours: Number(form.cancellationWindowHours),
-        rescheduleWindowHours: Number(form.rescheduleWindowHours),
-        waitlistEnabled: form.waitlistEnabled,
-        phone: form.phone || null,
-        whatsapp: form.whatsapp || null,
-        image: form.image || null,
-        sheba: form.sheba || null,
-        amenitiesJson: JSON.stringify(form.amenities),
-        sessionDurationsJson: JSON.stringify(form.sessionDurations),
-        // Calendar grid uses this DB field; keep it synced to the shortest allowed duration.
-        defaultSessionDurationMinutes: form.sessionDurations[0] || 60,
-      },
-    })
+    const body: Record<string, unknown> = {
+      nameFa: form.nameFa,
+      nameEn: form.nameEn,
+      descriptionFa: form.sloganFa || null,
+      addressFa: form.addressFa,
+      addressEn: form.addressEn || form.addressFa,
+      city: form.city,
+      district: form.district || null,
+      openHour: Number(form.openHour),
+      closeHour: Number(form.closeHour),
+      cancellationWindowHours: Number(form.cancellationWindowHours),
+      rescheduleWindowHours: Number(form.rescheduleWindowHours),
+      waitlistEnabled: form.waitlistEnabled,
+      phone: form.phone || null,
+      whatsapp: form.whatsapp || null,
+      sheba: form.sheba || null,
+      amenitiesJson: JSON.stringify(form.amenities),
+      sessionDurationsJson: JSON.stringify(form.sessionDurations),
+      // Calendar grid uses this DB field; keep it synced to the shortest allowed duration.
+      defaultSessionDurationMinutes: form.sessionDurations[0] || 60,
+    }
+    const nextImage = form.image.trim() || null
+    if (nextImage !== loadedImage) body.image = nextImage
+    await $fetch('/api/owner/settings', { method: 'PATCH', body })
     saveSuccess.value = true
     lastAppliedSnapshot = formSnapshot()
     await refresh()

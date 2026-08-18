@@ -2,6 +2,7 @@
 export function isAllowedClubImageUrl(value: string) {
   return /^https?:\/\/.+/i.test(value)
     || value.startsWith('/uploads/')
+    || value.startsWith('/media/')
     || value.startsWith('/demo/')
     || value.startsWith('/placeholders/')
 }
@@ -12,7 +13,7 @@ export type ClubImageParseResult =
 
 /**
  * Empty / whitespace clears the stored image.
- * Allowed: http(s), /uploads/, /demo/, /placeholders/.
+ * Allowed: http(s), /uploads/, /media/, /demo/, /placeholders/.
  */
 export function parseClubImageInput(raw: string | null | undefined): ClubImageParseResult {
   if (raw == null) return { ok: true, value: null }
