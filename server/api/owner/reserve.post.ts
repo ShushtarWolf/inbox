@@ -22,7 +22,7 @@ import {
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assignBookingPayPin } from '../../utils/payPin'
 import { payUrlForPin } from '../../utils/receipt'
-import { activeSlotBooking, assertSlotBookable } from '../../utils/reservations'
+import { activeSlotBooking } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
@@ -88,10 +88,10 @@ export default defineEventHandler(async (event) => {
 
   if (!existing) {
     // Desk create: only FREE slots — never silently overwrite BLOCKED/RESERVED/etc.
+    // Owners may book elapsed hours for walk-in / backfill; athletes still hit assertSlotBookable.
     if (slot.displayStatus !== 'FREE') {
       throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
     }
-    assertSlotBookable(slot.date, slot.startTime)
   }
 
   const complimentary = body.complimentary === true

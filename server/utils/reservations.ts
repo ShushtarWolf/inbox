@@ -20,6 +20,7 @@ export function canManageReservation(date: string, time: string, minimumHours: n
   return minutesUntilSlotStart(date, time) >= minimumHours * 60
 }
 
+/** Athlete / public booking only — desk reserve may create past-hour records. */
 export function assertSlotBookable(date: string, startTime: string) {
   if (minutesUntilSlotStart(date, startTime) <= 0) {
     throw createError({ statusCode: 409, statusMessage: 'SLOT_IN_PAST' })

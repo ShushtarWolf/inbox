@@ -31,15 +31,13 @@ export function isSlotFree(slot: { displayStatus?: string | null }): boolean {
   return !slot.displayStatus || slot.displayStatus === 'FREE'
 }
 
-export type DeskReserveSelectionIssue = 'past' | 'unavailable'
+export type DeskReserveSelectionIssue = 'unavailable'
 
-/** Why a desk selection cannot start a new reserve (block can still apply to past FREE). */
+/** Why a desk selection cannot start a new reserve (past FREE slots are allowed). */
 export function deskReserveSelectionIssue<T extends { displayStatus?: string | null }>(
   slots: T[],
-  slotIsInPast: (slot: T) => boolean,
 ): DeskReserveSelectionIssue | null {
   if (!slots.length) return null
-  if (slots.some(slotIsInPast)) return 'past'
   if (slots.some((slot) => !isSlotFree(slot))) return 'unavailable'
   return null
 }

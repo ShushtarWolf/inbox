@@ -344,14 +344,12 @@ const bookedSiblingSlots = computed(() => {
 const showBookedCancelChecks = computed(() => bookedSiblingSlots.value.length > 1)
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
-    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
-    && !selectedSlotsFull.value.some(slotIsInPast),
+    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
 const canBatchBlock = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
-const selectionHasPastSlot = computed(() => selectedSlotsFull.value.some(slotIsInPast))
 const selectionHasUnavailableSlot = computed(() =>
   selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE'),
 )
@@ -557,12 +555,11 @@ function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
 }
 
 function setSelectionReserveError() {
-  const issue = deskReserveSelectionIssue(selectedSlotsFull.value, slotIsInPast)
-  if (issue === 'past') {
-    actionError.value = t('owner.errors.slotInPast')
+  if (deskReserveSelectionIssue(selectedSlotsFull.value) === 'unavailable') {
+    actionError.value = t('booking.errors.slotNotAvailable')
     return
   }
-  actionError.value = t('booking.errors.slotNotAvailable')
+  actionError.value = ''
 }
 
 const guestFullName = computed({
@@ -1746,7 +1743,6 @@ function slotIsInPast(slot: OwnerCalendarSlot) {
 function canSubmitReserve() {
   if (saving.value) return false
   if (!guestFieldsValid()) return false
-  if (isNewReservation() && slotsForReserve().some(slotIsInPast)) return false
   return true
 }
 
@@ -1985,21 +1981,20 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
               </span>
             </div>
             <div
-              v-if="selectionHasPastSlot || selectionHasUnavailableSlot || actionError"
+              v-if="selectionHasUnavailableSlot || actionError"
               id="owner-cal-selection-error"
               class="canva-selection-bar-error"
               role="alert"
             >
-              <p v-if="selectionHasPastSlot">{{ t('owner.errors.slotInPast') }}</p>
               <p v-if="selectionHasUnavailableSlot">{{ t('booking.errors.slotNotAvailable') }}</p>
-              <p v-if="actionError && !selectionHasPastSlot && !selectionHasUnavailableSlot">{{ actionError }}</p>
+              <p v-if="actionError && !selectionHasUnavailableSlot">{{ actionError }}</p>
             </div>
           </div>
           <div class="canva-selection-bar-actions">
             <button
               type="button"
               class="canva-selection-bar-btn-primary"
-              :aria-describedby="selectionHasPastSlot || selectionHasUnavailableSlot || actionError ? 'owner-cal-selection-error' : undefined"
+              :aria-describedby="selectionHasUnavailableSlot || actionError ? 'owner-cal-selection-error' : undefined"
               @click="openSelectionReserve"
             >
               {{ t('owner.reserve') }}
@@ -2334,7 +2329,6 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
               :equipment-price="reserveEquipmentPrice"
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
-            <p v-if="isNewReservation() && slotsForReserve().some(slotIsInPast)" class="text-xs font-medium text-red-600">{{ t('owner.errors.slotInPast') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"

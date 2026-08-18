@@ -108,34 +108,27 @@ describe('toggleHourOnCourts', () => {
 })
 
 describe('deskReserveSelectionIssue', () => {
-  it('flags a past FREE slot before a taken one', () => {
-    expect(deskReserveSelectionIssue(
-      [{ displayStatus: 'FREE' }],
-      () => true,
-    )).toBe('past')
-    expect(deskReserveSelectionIssue(
-      [{ displayStatus: 'FREE' }, { displayStatus: 'BLOCKED' }],
-      (slot) => slot.displayStatus === 'FREE',
-    )).toBe('past')
+  it('allows past FREE slots for desk reserve', () => {
+    expect(deskReserveSelectionIssue([{ displayStatus: 'FREE' }])).toBeNull()
   })
 
   it('flags a selected slot that is no longer FREE', () => {
     expect(deskReserveSelectionIssue(
       [{ displayStatus: 'RESERVED' }],
-      () => false,
     )).toBe('unavailable')
     expect(deskReserveSelectionIssue(
       [{ displayStatus: 'BLOCKED' }],
-      () => false,
+    )).toBe('unavailable')
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'FREE' }, { displayStatus: 'BLOCKED' }],
     )).toBe('unavailable')
   })
 
   it('returns null when every selected slot is still bookable', () => {
     expect(deskReserveSelectionIssue(
       [{ displayStatus: 'FREE' }],
-      () => false,
     )).toBeNull()
-    expect(deskReserveSelectionIssue([], () => false)).toBeNull()
+    expect(deskReserveSelectionIssue([])).toBeNull()
   })
 })
 
