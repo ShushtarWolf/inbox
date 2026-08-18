@@ -1104,7 +1104,37 @@
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
   }
   .canva-selection-bar-inner {
-    @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 sm:flex-row sm:items-end min-[431px]:max-w-6xl;
+    @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 min-[431px]:max-w-6xl lg:flex-row lg:items-end;
+  }
+  .canva-selection-bar-chips {
+    @apply mt-2 flex flex-wrap gap-2;
+  }
+  .canva-selection-bar-chip {
+    @apply inline-flex items-center gap-1 whitespace-nowrap bg-brand-primary-soft px-2 py-0.5 text-xs font-bold text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-selection-bar-error {
+    @apply mt-2 space-y-1 text-start text-xs font-bold text-brand-primary;
+  }
+  .canva-selection-bar-actions {
+    @apply flex w-full flex-col gap-2 lg:w-auto lg:shrink-0 lg:flex-row lg:items-stretch;
+  }
+  .canva-selection-bar-btn-primary,
+  .canva-selection-bar-btn-secondary {
+    @apply inline-flex shrink-0 items-center justify-center whitespace-nowrap px-3 py-2.5 text-sm font-bold transition w-full lg:w-auto lg:min-w-[5.75rem] lg:flex-none;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-selection-bar-btn-primary {
+    @apply bg-brand-primary text-white shadow-venus-sm hover:brightness-110;
+  }
+  .canva-selection-bar-btn-primary:disabled {
+    @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 shadow-none hover:brightness-100;
+  }
+  .canva-selection-bar-btn-secondary {
+    @apply border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary-soft;
+  }
+  .canva-selection-bar-btn-secondary:disabled {
+    @apply cursor-not-allowed border-brand-gray-300 text-brand-gray-400 hover:bg-white;
   }
   .canva-error-brand {
     @apply mx-auto mb-2 h-14 w-auto max-w-[10rem];
@@ -1891,6 +1921,17 @@
   .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-sub,
   .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-sub {
     color: #fff;
+  }
+  .canva-cal-grid-cell.slot-past {
+    background: #dedcd8;
+    color: #8e8c88;
+  }
+  .canva-cal-grid-cell.slot-past .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-past .canva-cal-grid-cell-sub {
+    color: #8e8c88;
+  }
+  .canva-cal-grid-cell.slot-past .canva-cal-grid-check:not(.canva-cal-grid-check-on) {
+    opacity: 0.4;
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-public,

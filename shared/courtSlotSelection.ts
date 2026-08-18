@@ -19,6 +19,19 @@ export function isSlotFree(slot: { displayStatus?: string | null }): boolean {
   return !slot.displayStatus || slot.displayStatus === 'FREE'
 }
 
+export type DeskReserveSelectionIssue = 'past' | 'unavailable'
+
+/** Why a desk selection cannot start a new reserve (block can still apply to past FREE). */
+export function deskReserveSelectionIssue<T extends { displayStatus?: string | null }>(
+  slots: T[],
+  slotIsInPast: (slot: T) => boolean,
+): DeskReserveSelectionIssue | null {
+  if (!slots.length) return null
+  if (slots.some(slotIsInPast)) return 'past'
+  if (slots.some((slot) => !isSlotFree(slot))) return 'unavailable'
+  return null
+}
+
 export function toggleId(ids: string[], id: string): string[] {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]
 }

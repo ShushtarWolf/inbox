@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   courtIdsFromSlots,
+  deskReserveSelectionIssue,
   joinWithAnd,
   slotCourtId,
   sortSlotsByTimeThenCourt,
@@ -98,6 +99,38 @@ describe('toggleHourOnCourts', () => {
       slots,
     })
     expect(next).toEqual(['s2-16'])
+  })
+})
+
+describe('deskReserveSelectionIssue', () => {
+  it('flags a past FREE slot before a taken one', () => {
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'FREE' }],
+      () => true,
+    )).toBe('past')
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'FREE' }, { displayStatus: 'BLOCKED' }],
+      (slot) => slot.displayStatus === 'FREE',
+    )).toBe('past')
+  })
+
+  it('flags a selected slot that is no longer FREE', () => {
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'RESERVED' }],
+      () => false,
+    )).toBe('unavailable')
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'BLOCKED' }],
+      () => false,
+    )).toBe('unavailable')
+  })
+
+  it('returns null when every selected slot is still bookable', () => {
+    expect(deskReserveSelectionIssue(
+      [{ displayStatus: 'FREE' }],
+      () => false,
+    )).toBeNull()
+    expect(deskReserveSelectionIssue([], () => false)).toBeNull()
   })
 })
 

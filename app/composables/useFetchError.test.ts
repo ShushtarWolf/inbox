@@ -25,3 +25,14 @@ describe('fetchErrorMessage settings PATCH', () => {
       .toBe('مشکلی پیش آمد')
   })
 })
+
+describe('fetchErrorMessage desk reserve conflicts', () => {
+  it('maps past and taken slot 409s to booking error keys', () => {
+    expect(fetchErrorMessage(err('SLOT_IN_PAST'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.slotInPast')
+    expect(fetchErrorMessage(err('Slot not available'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.slotNotAvailable')
+    expect(fetchErrorMessage(err('This session time is already booked'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.sessionTaken')
+  })
+})

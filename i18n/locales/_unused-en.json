@@ -617,7 +617,7 @@
     "errors": {
       "startTimeTooSoon": "This time is too soon to book. Pick a later slot.",
       "slotInPast": "This time slot has already passed and cannot be booked.",
-      "slotNotAvailable": "This slot is not available.",
+      "slotNotAvailable": "This slot is no longer free — it is reserved or blocked.",
       "coachUnavailable": "Coach is not available at this time.",
       "sessionTaken": "This session time is already booked.",
       "coachNotBookable": "This coach is not accepting bookings right now.",
@@ -1151,6 +1151,7 @@
     "calendarSubtitle": "Stay organized and track court availability for {date}",
     "calendarPromo": "20% student discount",
     "legendHint": "The side bar color shows each slot's status.",
+    "slotPast": "Past",
     "quickNotes": "Quick notes",
     "quickNotesBody": "Select free slots → Reserve (walk-in). On unpaid bookings, tap Mark paid (cash). Use Mark unpaid to reverse a mistaken cash mark. Cancel frees the court.",
     "markPaidCash": "Mark paid (cash)",

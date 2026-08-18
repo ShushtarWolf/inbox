@@ -13,7 +13,7 @@ import {
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
-import { joinWithAnd, sortSlotsByTimeThenCourt, uniqueOrdered } from '#shared/courtSlotSelection.ts'
+import { deskReserveSelectionIssue, joinWithAnd, sortSlotsByTimeThenCourt, uniqueOrdered } from '#shared/courtSlotSelection.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -51,6 +51,7 @@ interface OwnerCalendarSlot {
 type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
 
 const { t, locale } = useI18n()
+const { fetchErrorMessage } = useFetchError()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency } = useFormatters()
 const { today } = useLocalDate()
@@ -319,6 +320,14 @@ const canBatchBlock = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
+const selectionHasPastSlot = computed(() => selectedSlotsFull.value.some(slotIsInPast))
+const selectionHasUnavailableSlot = computed(() =>
+  selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE'),
+)
+
+watch(canBatchReserve, (ok) => {
+  if (ok) actionError.value = ''
+})
 const courtPrice = computed(() => {
   if (selectedSlotsFull.value.length) {
     return selectedSlotsFull.value.reduce((sum, slot) => sum + (slot.price ?? 0), 0)
@@ -375,7 +384,7 @@ function activeBooking(slot: OwnerCalendarSlot | null | undefined) {
   return booking
 }
 
-function slotClass(status: string) {
+function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const map: Record<string, string> = {
     FREE: 'slot-free',
     RESERVED: 'slot-reserved',
@@ -386,7 +395,21 @@ function slotClass(status: string) {
     CLOSED: 'slot-closed',
     BLOCKED: 'slot-blocked',
   }
-  return map[status] || 'slot-free'
+  const base = map[status] || 'slot-free'
+  if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
+  return base
+}
+
+function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
+  return Boolean(slot && slot.displayStatus === 'FREE' && slotIsInPast(slot))
+}
+
+function gridCellClasses(courtId: string, hour: string) {
+  const slot = cellSlot(courtId, hour)
+  return [
+    slotClass(slot?.displayStatus || 'FREE', slot),
+    slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+  ]
 }
 
 function statusLabel(status: string) {
@@ -474,9 +497,22 @@ function gridCellBarClass(status: string) {
   return map[status] || 'canva-cal-grid-cell-bar-free'
 }
 
+function setSelectionReserveError() {
+  const issue = deskReserveSelectionIssue(selectedSlotsFull.value, slotIsInPast)
+  if (issue === 'past') {
+    actionError.value = t('owner.errors.slotInPast')
+    return
+  }
+  actionError.value = t('booking.errors.slotNotAvailable')
+}
+
 function openFabReserve() {
   if (canBatchReserve.value) {
     openSelectionReserve()
+    return
+  }
+  if (selectedSlotsFull.value.length) {
+    setSelectionReserveError()
     return
   }
   multiSelectMode.value = true
@@ -728,6 +764,7 @@ const packageSessionLabel = computed(() => {
 function clearSelection() {
   selectedSlotIds.value = []
   selectionCourtId.value = null
+  actionError.value = ''
 }
 
 function isSlotSelected(slot: OwnerCalendarSlot) {
@@ -763,7 +800,11 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function openSelectionReserve() {
-  if (!canBatchReserve.value || !selectedSlotsFull.value.length) return
+  if (!selectedSlotsFull.value.length) return
+  if (!canBatchReserve.value) {
+    setSelectionReserveError()
+    return
+  }
   openSlot(selectedSlotsFull.value[0], { keepSelection: true })
   activePanel.value = 'reserve'
 }
@@ -877,9 +918,7 @@ async function doSaveNote() {
         comments,
       },
     })
-    closeMenu()
-    clearSelection()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -912,6 +951,22 @@ function closeMenu() {
   cancelReason.value = ''
   actionError.value = ''
   if (!multiSelectMode.value) clearSelection()
+}
+
+/** After a successful slot action: drop selection so the bar cannot stick under the sheet. */
+async function finishSlotAction() {
+  multiSelectMode.value = false
+  clearSelection()
+  closeMenu()
+  await refresh()
+}
+
+/** Partial batch reserve/block can leave mixed cells; refresh then drop leftover FREE chips. */
+async function recoverAfterBatchError() {
+  await refresh()
+  selectedSlotIds.value = []
+  selectionCourtId.value = null
+  multiSelectMode.value = false
 }
 
 function backToMenu() {
@@ -1021,12 +1076,10 @@ async function doReserve() {
         })
       }
     }
-    multiSelectMode.value = false
-    closeMenu()
-    clearSelection()
-    await refresh()
-  } catch {
-    actionError.value = t('common.error')
+    await finishSlotAction()
+  } catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await recoverAfterBatchError()
   } finally {
     saving.value = false
   }
@@ -1048,8 +1101,7 @@ async function doCancel() {
         },
       })
     }
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1084,8 +1136,7 @@ async function doMarkPaid() {
     })
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAID'
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1120,8 +1171,7 @@ async function doMarkUnpaid() {
     })
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAY_AT_CLUB'
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1146,10 +1196,10 @@ async function doBlock() {
         comments: form.comments,
       },
     })
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
+    await recoverAfterBatchError()
   } finally {
     saving.value = false
   }
@@ -1165,8 +1215,7 @@ async function doUnblock() {
       method: 'POST',
       body: { slotIds: targets.map((slot) => slot.id) },
     })
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1197,8 +1246,7 @@ async function doSeasonReserve() {
         paymentStatus: form.paymentStatus,
       },
     })
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1230,8 +1278,7 @@ async function doPackageReserve() {
         paymentStatus: form.paymentStatus,
       },
     })
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1259,8 +1306,7 @@ async function saveEquipmentSelection() {
         displayStatus: reserveDisplayStatus(),
       },
     })
-    closeMenu()
-    await refresh()
+    await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
   } finally {
@@ -1346,7 +1392,7 @@ const equipmentPickerOptions = computed(() =>
 )
 
 function slotButtonClass(slot: OwnerCalendarSlot) {
-  const classes = [slotClass(slot.displayStatus), 'slot', 'calendar-slot-card', 'w-full', 'text-start']
+  const classes = [slotClass(slot.displayStatus, slot), 'slot', 'calendar-slot-card', 'w-full', 'text-start']
   if (isSlotSelected(slot)) classes.push('slot-selected')
   return classes
 }
@@ -1530,7 +1576,7 @@ function slotBarColor(status: string) {
 </script>
 
 <template>
-  <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length }">
+  <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }">
     <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
       <img
         :src="clubHeroImage"
@@ -1686,10 +1732,7 @@ function slotBarColor(status: string) {
                   :key="`${court.id}-${hour}`"
                   type="button"
                   class="canva-cal-grid-cell"
-                  :class="[
-                    slotClass(cellSlot(court.id, hour)?.displayStatus || 'FREE'),
-                    cellSlot(court.id, hour) && isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-cell-selected' : '',
-                  ]"
+                  :class="gridCellClasses(court.id, hour)"
                   :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
@@ -1706,7 +1749,8 @@ function slotBarColor(status: string) {
                   />
                   <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
                   <span class="canva-cal-grid-cell-body">
-                    <span v-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
+                    <span v-if="isPastFreeSlot(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
+                    <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
@@ -1725,7 +1769,7 @@ function slotBarColor(status: string) {
 
     <Teleport to="body">
       <div
-        v-if="calendarView === 'today' && selectedSlotIds.length"
+        v-if="calendarView === 'today' && selectedSlotIds.length && !showMenu"
         class="canva-selection-bar"
         role="region"
         :aria-label="t('owner.selectionBar.title')"
@@ -1736,26 +1780,40 @@ function slotBarColor(status: string) {
             <p v-if="selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
               {{ selectionCourtsLabel }} · {{ formattedDate }}
             </p>
-            <div class="mt-2 flex gap-2 overflow-x-auto pb-0.5">
+            <div class="canva-selection-bar-chips">
               <span
                 v-for="slot in selectedSlotsFull"
                 :key="slot.id"
-                class="shrink-0 bg-brand-primary-soft px-2 py-0.5 text-xs font-bold text-brand-primary"
-                style="border-radius: var(--sz-canva-radius);"
+                class="canva-selection-bar-chip"
               >
                 {{ slotCourtName(slot) }}
                 <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
               </span>
             </div>
+            <div
+              v-if="selectionHasPastSlot || selectionHasUnavailableSlot || actionError"
+              id="owner-cal-selection-error"
+              class="canva-selection-bar-error"
+              role="alert"
+            >
+              <p v-if="selectionHasPastSlot">{{ t('owner.errors.slotInPast') }}</p>
+              <p v-if="selectionHasUnavailableSlot">{{ t('booking.errors.slotNotAvailable') }}</p>
+              <p v-if="actionError && !selectionHasPastSlot && !selectionHasUnavailableSlot">{{ actionError }}</p>
+            </div>
           </div>
-          <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <button type="button" class="canva-gate-btn-primary" :disabled="!canBatchReserve" @click="openSelectionReserve">
+          <div class="canva-selection-bar-actions">
+            <button
+              type="button"
+              class="canva-selection-bar-btn-primary"
+              :aria-describedby="selectionHasPastSlot || selectionHasUnavailableSlot || actionError ? 'owner-cal-selection-error' : undefined"
+              @click="openSelectionReserve"
+            >
               {{ t('owner.reserve') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" :disabled="!canBatchBlock" @click="openSelectionBlock">
+            <button type="button" class="canva-selection-bar-btn-secondary" :disabled="!canBatchBlock" @click="openSelectionBlock">
               {{ t('owner.block') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="clearSelection(); multiSelectMode = false">
+            <button type="button" class="canva-selection-bar-btn-secondary" @click="clearSelection(); multiSelectMode = false">
               {{ t('owner.selectionBar.clear') }}
             </button>
           </div>
@@ -2746,6 +2804,11 @@ function slotBarColor(status: string) {
 :deep(.canva-cal-grid-cell.slot-free) {
   background: #eceae6;
   color: #4a4a46;
+}
+
+:deep(.canva-cal-grid-cell.slot-past) {
+  background: #dedcd8;
+  color: #8e8c88;
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved),
