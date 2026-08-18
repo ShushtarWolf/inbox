@@ -844,6 +844,12 @@
   .canva-settings-checkbox {
     @apply mt-0.5 h-4 w-4 shrink-0 appearance-none border border-brand-gray-400 bg-white checked:border-brand-primary checked:bg-brand-primary;
     border-radius: var(--sz-canva-radius);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.6rem;
+  }
+  .canva-settings-checkbox:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 8.5L6.5 12L13 4' stroke='white' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
   }
   .canva-settings-staff-card {
     @apply border border-brand-gray-200 bg-white p-4;
