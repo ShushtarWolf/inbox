@@ -105,6 +105,7 @@ const calendarCells = computed(() => {
   for (let day = 1; day <= daysInMonth; day++) {
     cells.push({ day, iso: jalaaliToIso(viewYear.value, viewMonth.value, day) })
   }
+  while (cells.length % 7 !== 0) cells.push({ day: null, iso: null })
   return cells
 })
 
@@ -416,7 +417,7 @@ function dateLine(item: HistoryItem) {
     <div class="canva-history-desktop">
     <section class="canva-history-cal">
       <div class="canva-history-cal-layout">
-        <div class="canva-history-cal-times" aria-hidden="true">
+        <div v-if="selectedDayTimes.length" class="canva-history-cal-times" aria-hidden="true">
           <span
             v-for="time in selectedDayTimes"
             :key="time"

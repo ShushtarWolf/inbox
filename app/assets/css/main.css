@@ -1207,10 +1207,14 @@
   }
   .canva-history-cal-grid {
     @apply mt-1 grid grid-cols-7 gap-0.5;
+    grid-auto-rows: 1.75rem;
+    align-items: start;
   }
   .canva-history-cal-day {
-    @apply relative flex aspect-square flex-col items-center justify-center text-xs font-semibold text-brand-navy;
+    @apply relative flex h-7 w-full flex-col items-center justify-center text-xs font-semibold text-brand-navy;
     border-radius: var(--sz-canva-radius);
+    aspect-ratio: auto;
+    align-self: start;
   }
   .canva-history-cal-day-empty {
     @apply pointer-events-none;
