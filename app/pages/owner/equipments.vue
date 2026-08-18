@@ -6,7 +6,7 @@ const { t, locale } = useI18n()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/equipments')
 useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatNumber } = useFormatters()
 
 type EquipmentCategory = 'CLUB' | 'RENTAL' | 'SELL' | 'SERVICE'
 
