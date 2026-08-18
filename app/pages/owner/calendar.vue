@@ -1079,7 +1079,7 @@ async function doReserve() {
     await finishSlotAction()
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
-    await recoverAfterBatchError()
+    await refresh()
   } finally {
     saving.value = false
   }
