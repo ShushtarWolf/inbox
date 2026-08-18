@@ -808,6 +808,11 @@
     background: #2c2c2a;
     color: #fff;
   }
+  .canva-weekday-chip {
+    @apply flex w-full min-w-0 items-center justify-center whitespace-nowrap py-2 text-xs font-bold;
+    border-radius: var(--sz-canva-radius);
+    padding-inline: 0;
+  }
   .canva-owner-add-link {
     @apply inline-flex items-center gap-1 text-sm font-bold;
     color: #2f9e44;

@@ -8,6 +8,8 @@ import {
   parseSeasonTimesJson,
   timesInRange,
   weekdayNameFromDate,
+  sortIranWeekdays,
+  dayTimeRangesUniform,
 } from './recurringSessions'
 
 describe('timesInRange', () => {
@@ -83,5 +85,29 @@ describe('parseSeasonTimesJson', () => {
 describe('weekdayNameFromDate', () => {
   it('returns weekday name from ISO date', () => {
     expect(weekdayNameFromDate('2025-07-07')).toBe('Mon')
+  })
+})
+
+describe('sortIranWeekdays', () => {
+  it('orders Saturday first', () => {
+    expect(sortIranWeekdays(['Mon', 'Sat', 'Fri', 'Sun'])).toEqual(['Sat', 'Sun', 'Mon', 'Fri'])
+  })
+})
+
+describe('dayTimeRangesUniform', () => {
+  it('is true when all selected days share the same range', () => {
+    const hours = {
+      Sat: { start: '08:00', end: '17:00' },
+      Sun: { start: '08:00', end: '17:00' },
+    }
+    expect(dayTimeRangesUniform(hours, ['Sat', 'Sun'])).toBe(true)
+  })
+
+  it('is false when a day differs', () => {
+    const hours = {
+      Sat: { start: '08:00', end: '17:00' },
+      Sun: { start: '09:00', end: '17:00' },
+    }
+    expect(dayTimeRangesUniform(hours, ['Sat', 'Sun'])).toBe(false)
   })
 })

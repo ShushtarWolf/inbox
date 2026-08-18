@@ -4,7 +4,21 @@ const DAY_MAP: Record<string, number> = {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
+/** Display order for Iranian week (Saturday first). */
+export const IRAN_WEEKDAY_ORDER = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const
+
 export type DayTimeRange = { start: string; end: string }
+
+export function sortIranWeekdays(days: string[]): string[] {
+  return IRAN_WEEKDAY_ORDER.filter((day) => days.includes(day))
+}
+
+export function dayTimeRangesUniform(hours: Record<string, DayTimeRange>, days: string[]): boolean {
+  if (days.length <= 1) return true
+  const first = hours[days[0]]
+  if (!first) return true
+  return days.every((day) => hours[day]?.start === first.start && hours[day]?.end === first.end)
+}
 
 export function hourFromTime(time: string): number {
   return Number.parseInt(time.slice(0, 2), 10)

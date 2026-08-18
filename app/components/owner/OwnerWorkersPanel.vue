@@ -6,7 +6,12 @@ import {
   type WorkerAccessArea,
   type WorkerPosition,
 } from '#shared/workerAccess.ts'
-import type { DayTimeRange } from '#shared/recurringSessions.ts'
+import {
+  dayTimeRangesUniform,
+  sortIranWeekdays,
+  IRAN_WEEKDAY_ORDER,
+  type DayTimeRange,
+} from '#shared/recurringSessions.ts'
 
 const props = withDefaults(defineProps<{
   embedded?: boolean
@@ -20,7 +25,8 @@ const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/worke
 useOwnerClubRefresh(refresh)
 const { formatTimeRange } = useFormatters()
 
-const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+const weekdayOptions = IRAN_WEEKDAY_ORDER
+const DEFAULT_DAY_RANGE: DayTimeRange = { start: '08:00', end: '17:00' }
 
 interface WorkerItem {
   id: string
@@ -37,6 +43,7 @@ const showModal = ref(false)
 const editing = ref<WorkerItem | null>(null)
 const saving = ref(false)
 const modalError = ref('')
+const perDayHours = ref(false)
 
 const form = reactive({
   firstName: '',
@@ -47,6 +54,12 @@ const form = reactive({
   selectedDays: [] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
   accessAreas: [] as WorkerAccessArea[],
+})
+
+const modalTitle = computed(() => {
+  if (!editing.value) return t('owner.workersPage.addTitle')
+  const name = `${form.firstName} ${form.lastName}`.trim()
+  return name ? t('owner.workersPage.editTitleNamed', { name }) : t('owner.workersPage.editTitle')
 })
 
 function positionLabel(position: WorkerPosition) {
@@ -66,6 +79,7 @@ function resetForm() {
   form.selectedDays = []
   form.dayTimes = {}
   form.accessAreas = []
+  perDayHours.value = false
 }
 
 function openAdd() {
@@ -82,9 +96,10 @@ function openEdit(worker: WorkerItem) {
   form.mobile = worker.mobile
   form.emergencyMobile = worker.emergencyMobile || ''
   form.position = worker.position
-  form.selectedDays = Object.keys(worker.workingHours)
+  form.selectedDays = sortIranWeekdays(Object.keys(worker.workingHours))
   form.dayTimes = { ...worker.workingHours }
   form.accessAreas = parseAccessAreas(worker.accessAreasJson)
+  perDayHours.value = !dayTimeRangesUniform(form.dayTimes, form.selectedDays)
   modalError.value = ''
   showModal.value = true
 }
@@ -93,6 +108,29 @@ function closeModal() {
   showModal.value = false
   editing.value = null
   modalError.value = ''
+  perDayHours.value = false
+}
+
+function templateDayRange(): DayTimeRange {
+  const first = form.selectedDays[0]
+  return (first && form.dayTimes[first]) || DEFAULT_DAY_RANGE
+}
+
+function applySharedHours() {
+  const template = templateDayRange()
+  const next = { ...form.dayTimes }
+  for (const day of form.selectedDays) next[day] = { ...template }
+  form.dayTimes = next
+}
+
+function setPerDayHours(enabled: boolean) {
+  perDayHours.value = enabled
+  if (!enabled) applySharedHours()
+}
+
+function onPerDayHoursChange(event: Event) {
+  const target = event.target
+  if (target instanceof HTMLInputElement) setPerDayHours(target.checked)
 }
 
 function toggleDay(day: string) {
@@ -101,11 +139,13 @@ function toggleDay(day: string) {
     const next = { ...form.dayTimes }
     delete next[day]
     form.dayTimes = next
+    if (form.selectedDays.length <= 1) perDayHours.value = false
   } else {
-    form.selectedDays = [...form.selectedDays, day]
+    const range = perDayHours.value ? (form.dayTimes[day] || DEFAULT_DAY_RANGE) : { ...templateDayRange() }
+    form.selectedDays = sortIranWeekdays([...form.selectedDays, day])
     form.dayTimes = {
       ...form.dayTimes,
-      [day]: form.dayTimes[day] || { start: '08:00', end: '17:00' },
+      [day]: range,
     }
   }
 }
@@ -121,8 +161,13 @@ function toggleAccessArea(area: WorkerAccessArea) {
 function workingHoursSummary(worker: WorkerItem) {
   const entries = Object.entries(worker.workingHours)
   if (!entries.length) return t('owner.workersPage.noSchedule')
-  return entries
-    .map(([day, range]) => `${t(`owner.weekdays.${day}`)} ${formatTimeRange(range.start)}–${formatTimeRange(range.end)}`)
+  return sortIranWeekdays(entries.map(([day]) => day))
+    .map((day) => {
+      const range = worker.workingHours[day]
+      if (!range) return ''
+      return `${t(`owner.weekdays.${day}`)} ${formatTimeRange(range.start)}–${formatTimeRange(range.end)}`
+    })
+    .filter(Boolean)
     .join(' · ')
 }
 
@@ -242,7 +287,8 @@ async function confirmDelete() {
 
     <AppModal
       :open="showModal"
-      :title="editing ? t('owner.workersPage.editTitle') : t('owner.workersPage.addTitle')"
+      :title="modalTitle"
+      close-icon
       @close="closeModal"
     >
       <div class="venus-modal-shell venus-modal-shell-simple">
@@ -274,23 +320,40 @@ async function confirmDelete() {
 
             <div>
               <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.workersPage.workingHours') }}</p>
-              <div class="mb-3 flex flex-wrap gap-2">
+              <div class="mb-3 grid grid-cols-7 gap-1">
                 <button
                   v-for="day in weekdayOptions"
                   :key="day"
                   type="button"
-                  class="neo-pill text-xs"
-                  :class="form.selectedDays.includes(day) ? 'neo-pill-active' : 'neo-pill-inactive'"
+                  class="canva-weekday-chip"
+                  :class="form.selectedDays.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                  :aria-pressed="form.selectedDays.includes(day)"
+                  :aria-label="t(`owner.weekdays.${day}`)"
                   @click="toggleDay(day)"
                 >
-                  {{ t(`owner.weekdays.${day}`) }}
+                  {{ t(`owner.weekdaysShort.${day}`) }}
                 </button>
               </div>
+              <label
+                v-if="form.selectedDays.length > 1"
+                class="canva-settings-check mb-3"
+              >
+                <input
+                  type="checkbox"
+                  class="canva-settings-checkbox"
+                  :checked="perDayHours"
+                  @change="onPerDayHoursChange"
+                >
+                <span>{{ t('owner.workersPage.perDayHours') }}</span>
+              </label>
               <OwnerDayTimeSchedules
                 v-if="form.selectedDays.length"
                 v-model:day-times="form.dayTimes"
                 :days="form.selectedDays"
+                compact
+                :shared="!perDayHours"
               />
+              <p v-else class="text-xs text-brand-gray-600">{{ t('owner.workersPage.selectDaysHint') }}</p>
             </div>
 
             <div class="ios-card bg-brand-lavender/40 p-3">
@@ -319,7 +382,7 @@ async function confirmDelete() {
               >
                 {{ saving ? t('common.loading') : t('common.save') }}
               </button>
-              <button type="button" class="btn-ghost flex-1" @click="closeModal">{{ t('common.close') }}</button>
+              <button type="button" class="canva-gate-btn-secondary flex-1" @click="closeModal">{{ t('common.cancel') }}</button>
             </div>
           </div>
         </div>

@@ -8,6 +8,8 @@ const props = defineProps<{
   sheet?: boolean
   /** Overlay stacking — AuthFlow should sit above booking confirm (default z-50). */
   overlayClass?: string
+  /** Icon-only header dismiss (X) instead of the «بستن» text button. */
+  closeIcon?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -173,14 +175,18 @@ onUnmounted(() => {
                 <span class="canva-sheet-handle" />
               </div>
               <div v-if="title" class="venus-modal-title-bar shrink-0" :class="sheet ? 'border-transparent bg-transparent pt-1' : ''">
-                <h2 class="text-base font-bold text-brand-navy">{{ title }}</h2>
+                <h2 class="min-w-0 flex-1 truncate text-base font-bold text-brand-navy">{{ title }}</h2>
                 <button
                   type="button"
-                  class="btn-ghost px-3 py-1.5 text-xs"
+                  :class="closeIcon
+                    ? 'inline-flex h-8 w-8 shrink-0 items-center justify-center text-brand-navy hover:bg-brand-gray-100'
+                    : 'btn-ghost px-3 py-1.5 text-xs'"
+                  :style="closeIcon ? { borderRadius: 'var(--sz-canva-radius)' } : undefined"
                   :aria-label="$t('common.close')"
                   @click="close"
                 >
-                  {{ $t('common.close') }}
+                  <AppIcon v-if="closeIcon" name="close" size="sm" />
+                  <template v-else>{{ $t('common.close') }}</template>
                 </button>
               </div>
               <slot />
