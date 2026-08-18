@@ -24,7 +24,7 @@ describe('brandbook palette', () => {
     expect(palette.slotDisplay.TEAM).toBe('#C41E1E')
     expect(palette.slotDisplay.FREE).toBe('#E8E6E2')
     expect(palette.slotDisplay.PENDING).toBe('#E8B84A')
-    expect(palette.slotDisplay.BLOCKED).toBe('#1A1A18')
+    expect(palette.slotDisplay.BLOCKED).toBe('#C41E1E')
   })
 
   it('uses warm gray text scale', () => {

@@ -1915,16 +1915,15 @@
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
-  .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label {
+  .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label {
     color: #2c2c2a;
   }
-  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label {
     color: #fff;
     font-size: 0.75rem;
     line-height: 1.25;
   }
-  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-sub,
   .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-sub {
     color: #dedcd8;
     font-size: 0.6875rem;
@@ -1942,13 +1941,13 @@
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-public,
-  .canva-cal-grid-cell-bar-team {
+  .canva-cal-grid-cell-bar-team,
+  .canva-cal-grid-cell-bar-blocked {
     background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-pending {
     background: #E8B84A;
   }
-  .canva-cal-grid-cell-bar-blocked,
   .canva-cal-grid-cell-bar-closed,
   .canva-cal-grid-cell-bar-cancel {
     background: #1A1A18;
@@ -1960,7 +1959,6 @@
     @apply absolute top-0.5 z-[2] text-xs font-black leading-none text-[#E8B84A];
     inset-inline-start: 0.35rem;
   }
-  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-note,
   .canva-cal-grid-cell.slot-closed .canva-cal-grid-note {
     color: #F5D76E;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.85);

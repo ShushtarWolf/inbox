@@ -524,7 +524,7 @@ function gridCellBarClass(status: string) {
     PENDING: 'canva-cal-grid-cell-bar-pending',
     CANCELLED: 'canva-cal-grid-cell-bar-cancel',
     CLOSED: 'canva-cal-grid-cell-bar-closed',
-    BLOCKED: 'canva-cal-grid-cell-bar-blocked',
+    BLOCKED: 'canva-cal-grid-cell-bar-reserved',
   }
   return map[status] || 'canva-cal-grid-cell-bar-free'
 }
@@ -1678,12 +1678,13 @@ const legend = [
   { status: 'FREE', color: '#eceae6' },
   { status: 'RESERVED', color: '#f3d4d4' },
   { status: 'PENDING', color: '#f3e0a8' },
-  { status: 'BLOCKED', color: '#2a2a28' },
+  { status: 'BLOCKED', color: '#f3d4d4' },
 ]
 
 function slotBarColor(status: string) {
   if (status === 'PENDING') return palette.slotDisplay.PENDING
-  if (status === 'BLOCKED' || status === 'CLOSED' || status === 'CANCELLED') return palette.slotDisplay.BLOCKED
+  if (status === 'CLOSED') return palette.slotDisplay.CLOSED
+  if (status === 'CANCELLED') return palette.slotDisplay.CANCELLED
   if (status === 'FREE') return palette.slotDisplay.FREE
   return palette.slotDisplay.RESERVED
 }
@@ -2931,7 +2932,8 @@ function slotBarColor(status: string) {
 
 :deep(.canva-cal-grid-cell.slot-reserved),
 :deep(.canva-cal-grid-cell.slot-public),
-:deep(.canva-cal-grid-cell.slot-team) {
+:deep(.canva-cal-grid-cell.slot-team),
+:deep(.canva-cal-grid-cell.slot-blocked) {
   background: #f3d4d4;
   color: #2c2c2a;
 }
@@ -2946,8 +2948,7 @@ function slotBarColor(status: string) {
   color: #4a4a46;
 }
 
-:deep(.canva-cal-grid-cell.slot-closed),
-:deep(.canva-cal-grid-cell.slot-blocked) {
+:deep(.canva-cal-grid-cell.slot-closed) {
   background: #2a2a28;
   color: #fff;
 }
