@@ -1,3 +1,5 @@
+import { inferImageUploadContentType, isAllowedImageUploadType } from '#shared/imageUpload.ts'
+
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'uploads:guest')
   const form = await readMultipartFormData(event)
@@ -5,9 +7,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })
   }
   const file = form.find((part) => part.name === 'file' && part.data)
-  if (!file?.data || !file.type) {
+  const contentType = file ? inferImageUploadContentType(file) : ''
+  if (!file?.data || !contentType || !isAllowedImageUploadType(contentType)) {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })
   }
-  const url = await uploadImage(Buffer.from(file.data), { folder: 'uploads/guest', contentType: file.type })
+  const url = await uploadImage(Buffer.from(file.data), { folder: 'uploads/guest', contentType })
   return { url }
 })

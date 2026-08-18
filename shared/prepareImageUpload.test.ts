@@ -99,4 +99,38 @@ describe('prepareImageForUpload', () => {
     expect(prepared.type).toBe('image/webp')
     expect(IMAGE_PREPARE_LONG_EDGE_PX).toBe(1920)
   })
+
+  it('retries createImageBitmap without from-image when orientation option fails', async () => {
+    const bitmap = { width: 640, height: 480, close: vi.fn() }
+    const createImageBitmap = vi.fn()
+      .mockRejectedValueOnce(new Error('invalid enum from-image'))
+      .mockResolvedValueOnce(bitmap)
+    vi.stubGlobal('createImageBitmap', createImageBitmap)
+    stubCanvas(() => new Blob([new Uint8Array(200)], { type: 'image/webp' }))
+
+    const prepared = await prepareImageForUpload(
+      new File([new Uint8Array(400)], 'shot.jpg', { type: 'image/jpeg' }),
+    )
+    expect(createImageBitmap).toHaveBeenCalledTimes(2)
+    expect(createImageBitmap.mock.calls[0][1]).toEqual({ imageOrientation: 'from-image' })
+    expect(createImageBitmap.mock.calls[1]).toHaveLength(1)
+    expect(prepared.type).toBe('image/webp')
+  })
+
+  it('uses heic-to for mislabeled iPhone HEIC (jpeg type, ftyp header)', async () => {
+    const heicHead = new Uint8Array(12)
+    heicHead.set([0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])
+    const file = new File([heicHead], 'IMG_0001.JPG', { type: 'image/jpeg' })
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => {
+      throw new Error('decode failed')
+    }))
+    const bitmap = { width: 120, height: 90, close: vi.fn() }
+    const { heicTo } = await import('heic-to')
+    vi.mocked(heicTo).mockResolvedValue(bitmap as never)
+    stubCanvas(() => new Blob([new Uint8Array(200)], { type: 'image/webp' }))
+
+    const prepared = await prepareImageForUpload(file)
+    expect(heicTo).toHaveBeenCalled()
+    expect(prepared.type).toBe('image/webp')
+  })
 })

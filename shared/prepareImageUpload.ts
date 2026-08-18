@@ -1,5 +1,6 @@
 import {
   IMAGE_UPLOAD_MAX_BYTES,
+  isHeicFtypHeader,
   isHeicLikeFile,
 } from './imageUpload.ts'
 
@@ -30,6 +31,24 @@ export function preparedImageFileName(mime: PreparedImageMime) {
   return mime === 'image/webp' ? 'photo.webp' : 'photo.jpg'
 }
 
+async function createImageBitmapFromSource(source: Blob): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(source, { imageOrientation: 'from-image' })
+  } catch {
+    return createImageBitmap(source)
+  }
+}
+
+async function isLikelyHeicFile(file: File): Promise<boolean> {
+  if (isHeicLikeFile(file)) return true
+  try {
+    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+    return isHeicFtypHeader(head)
+  } catch {
+    return false
+  }
+}
+
 async function decodeHeicWithLibrary(file: File): Promise<ImageBitmap> {
   const { heicTo } = await import('heic-to')
   try {
@@ -46,15 +65,17 @@ async function decodeHeicWithLibrary(file: File): Promise<ImageBitmap> {
   }
   const jpeg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
   const blob = jpeg instanceof Blob ? jpeg : new Blob([jpeg as BlobPart], { type: 'image/jpeg' })
-  return createImageBitmap(blob, { imageOrientation: 'from-image' })
+  return createImageBitmapFromSource(blob)
 }
 
 async function decodeImageForUpload(file: File): Promise<ImageBitmap> {
   try {
-    return await createImageBitmap(file, { imageOrientation: 'from-image' })
-  } catch (err) {
-    if (!isHeicLikeFile(file)) throw err
-    return decodeHeicWithLibrary(file)
+    return await createImageBitmapFromSource(file)
+  } catch (primaryErr) {
+    if (await isLikelyHeicFile(file)) {
+      return decodeHeicWithLibrary(file)
+    }
+    throw primaryErr
   }
 }
 

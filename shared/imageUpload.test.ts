@@ -4,7 +4,9 @@ import {
   IMAGE_UPLOAD_ACCEPT,
   IMAGE_UPLOAD_MAX_BYTES,
   IMAGE_UPLOAD_SOURCE_MAX_BYTES,
+  inferImageUploadContentType,
   isAllowedImageUploadType,
+  isHeicFtypHeader,
   isHeicLikeFile,
 } from './imageUpload'
 
@@ -60,5 +62,30 @@ describe('image upload constants', () => {
     expect(isAllowedImageUploadType('image/webp')).toBe(true)
     expect(isAllowedImageUploadType('image/heic')).toBe(false)
     expect(isAllowedImageUploadType('image/gif')).toBe(false)
+  })
+})
+
+describe('isHeicFtypHeader', () => {
+  it('detects HEIC ftyp major brand', () => {
+    const bytes = new Uint8Array(12)
+    bytes.set([0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])
+    expect(isHeicFtypHeader(bytes)).toBe(true)
+  })
+
+  it('ignores non-HEIC ftyp', () => {
+    const bytes = new Uint8Array(12)
+    bytes.set([0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x6a, 0x70, 0x65, 0x67])
+    expect(isHeicFtypHeader(bytes)).toBe(false)
+  })
+})
+
+describe('inferImageUploadContentType', () => {
+  it('uses explicit allowed MIME when present', () => {
+    expect(inferImageUploadContentType({ type: 'image/webp', filename: 'photo.webp' })).toBe('image/webp')
+  })
+
+  it('infers from prepared filenames when multipart type is missing', () => {
+    expect(inferImageUploadContentType({ type: '', filename: 'photo.webp' })).toBe('image/webp')
+    expect(inferImageUploadContentType({ type: '', filename: 'photo.jpg' })).toBe('image/jpeg')
   })
 })

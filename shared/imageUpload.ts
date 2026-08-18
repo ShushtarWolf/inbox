@@ -54,6 +54,25 @@ export function isHeicLikeFile(file: { type?: string; name?: string }) {
   return HEIC_TYPES.has(type) || ext === 'heic' || ext === 'heif'
 }
 
+/** ISO BMFF `ftyp` major brand — iOS often mislabels HEIC as JPEG in the picker. */
+export function isHeicFtypHeader(bytes: Uint8Array) {
+  if (bytes.length < 12) return false
+  if (String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) !== 'ftyp') return false
+  const major = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11])
+  return major === 'heic' || major === 'heif' || major === 'mif1' || major === 'msf1'
+}
+
+/** Infer stored image MIME when multipart parts omit Content-Type (common on mobile). */
+export function inferImageUploadContentType(part: { type?: string; filename?: string }) {
+  const type = (part.type || '').trim().toLowerCase()
+  if (type && isAllowedImageUploadType(type)) return type
+  const name = (part.filename || '').toLowerCase()
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
+  if (name.endsWith('.png')) return 'image/png'
+  return type
+}
+
 /**
  * Client-side classify before prepare+upload. HEIC/HEIF is allowed here;
  * conversion happens in `prepareImageForUpload`. Server still rejects HEIC.
