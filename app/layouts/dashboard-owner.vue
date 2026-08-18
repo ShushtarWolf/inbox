@@ -128,6 +128,7 @@ const showPendingBanner = computed(() => {
     :dark-nav="false"
     hide-mobile-header
     phone-shell
+    use-account-drawer
   >
     <div
       v-if="showPendingBanner"

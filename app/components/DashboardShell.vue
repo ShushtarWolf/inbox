@@ -15,6 +15,8 @@ const props = withDefaults(defineProps<{
   hideMobileHeader?: boolean
   /** Canva phone chrome ≤430px; ≥431px uses sidebar + header + wide main. */
   phoneShell?: boolean
+  /** Header avatar opens OwnerAccountDrawer; logout lives in the drawer. */
+  useAccountDrawer?: boolean
 }>(), {
   wide: false,
   darkNav: false,
@@ -22,6 +24,7 @@ const props = withDefaults(defineProps<{
   hideUser: false,
   hideMobileHeader: false,
   phoneShell: false,
+  useAccountDrawer: false,
 })
 
 const drawerItems = computed(() => props.sideItems?.length ? props.sideItems : props.items)
@@ -30,6 +33,8 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const open = ref(false)
+const accountOpen = ref(false)
+const accountAnchor = ref<HTMLElement | null>(null)
 const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
 
 async function handleLogout() {
@@ -198,7 +203,12 @@ function goBack() {
             <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
             <InboxWordmark class="text-base text-brand-primary" />
           </NuxtLink>
-          <button type="button" class="canva-home-login canva-home-login-soft px-3 py-2 text-xs" @click="goBack">
+          <button
+            v-if="!(useAccountDrawer && isDashboardRoot)"
+            type="button"
+            class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+            @click="goBack"
+          >
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="arrow_back" size="sm" />
               {{ t('common.back') }}
@@ -206,14 +216,28 @@ function goBack() {
           </button>
         </div>
         <div class="flex items-center gap-2">
+          <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
+            <AppUserShortcut
+              :name="displayName"
+              :avatar-url="avatarUrl"
+              :initials="initials"
+              :expanded="accountOpen"
+              @click="accountOpen = true"
+            />
+          </div>
           <AppUserShortcut
-            v-if="displayName && !hideUser"
+            v-else-if="displayName && !hideUser"
             :to="profilePath"
             :name="displayName"
             :avatar-url="avatarUrl"
             :initials="initials"
           />
-          <button type="button" class="canva-home-login canva-home-login-soft px-3 py-2 text-xs" @click="handleLogout">
+          <button
+            v-if="!useAccountDrawer"
+            type="button"
+            class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+            @click="handleLogout"
+          >
             <span class="inline-flex items-center gap-1.5">
               <AppIcon name="logout" size="sm" />
               {{ resolvedLogoutLabel }}
@@ -221,6 +245,12 @@ function goBack() {
           </button>
         </div>
       </div>
+      <OwnerAccountDrawer
+        v-if="useAccountDrawer"
+        :open="accountOpen"
+        :anchor="accountAnchor"
+        @close="accountOpen = false"
+      />
 
       <main :class="mainClass">
         <slot />

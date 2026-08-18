@@ -167,7 +167,7 @@ const courts = computed(() => data.value?.courts || [])
 const gridTemplateColumns = computed(() => {
   const courtCount = Math.max(courts.value.length, 1)
   // RTL: first column is the time gutter on the RIGHT, then courts going left — Canva (9).
-  return `2.75rem repeat(${courtCount}, minmax(5.5rem, 1fr))`
+  return `var(--canva-cal-gutter, 2.75rem) repeat(${courtCount}, minmax(var(--canva-cal-court-min, 5.5rem), 1fr))`
 })
 
 function shiftDate(delta: number) {
@@ -447,7 +447,7 @@ function cellSlot(courtId: string, hour: string) {
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
-    return activeBooking(slot)?.comments?.trim() || t('owner.slotBlockedLabel')
+    return t('owner.slotBlockedLabel')
   }
   const booking = activeBooking(slot)
   const fullName = [booking?.guestName, booking?.guestFamily].filter(Boolean).join(' ').trim()
@@ -456,8 +456,15 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
 
 function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
-  if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return ''
   return activeBooking(slot)?.comments?.trim() || ''
+}
+
+function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot) return ''
+  if (slot.displayStatus === 'FREE') {
+    return isPastFreeSlot(slot) ? t('owner.slotPast') : ''
+  }
+  return [slotGuestLine(slot), slotNoteLine(slot)].filter(Boolean).join(' — ')
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -1651,10 +1658,10 @@ function confirmReserveLabel() {
 }
 
 const legend = [
-  { status: 'FREE', color: 'transparent' },
-  { status: 'RESERVED', color: '#C41E1E' },
-  { status: 'PENDING', color: '#E8B84A' },
-  { status: 'BLOCKED', color: '#1A1A18' },
+  { status: 'FREE', color: '#eceae6' },
+  { status: 'RESERVED', color: '#f3d4d4' },
+  { status: 'PENDING', color: '#f3e0a8' },
+  { status: 'BLOCKED', color: '#2a2a28' },
 ]
 
 function slotBarColor(status: string) {
@@ -1677,17 +1684,17 @@ function slotBarColor(status: string) {
       <div class="canva-photo-hero-wash" />
       <CanvaOwnerHeroChrome />
       <div
-        class="canva-promo-badge canva-promo-badge-hero"
+        class="canva-promo-badge canva-promo-badge-hero min-[431px]:hidden"
         :aria-label="t('owner.calendarPromo')"
       >
         <span class="canva-promo-badge-pct">۲۰٪</span>
         <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
       </div>
-      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[12rem]" />
+      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[3.25rem] min-[431px]:!pb-3 min-[431px]:!pt-3" />
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-      <h1 class="text-start text-base font-bold text-brand-navy">{{ clubCalendarTitle }}</h1>
+      <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
       <label
         v-if="showClubSwitcher"
         class="canva-cal-club-switch"
@@ -1810,6 +1817,7 @@ function slotBarColor(status: string) {
                 v-for="(court, idx) in courts"
                 :key="court.id"
                 class="canva-cal-grid-court"
+                :title="courtColumnLabel(court, idx)"
               >
                 {{ courtColumnLabel(court, idx) }}
               </div>
@@ -1823,6 +1831,7 @@ function slotBarColor(status: string) {
                   type="button"
                   class="canva-cal-grid-cell"
                   :class="gridCellClasses(court.id, hour)"
+                  :title="slotCellTitle(cellSlot(court.id, hour))"
                   :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
@@ -2911,7 +2920,7 @@ function slotBarColor(status: string) {
 }
 
 :deep(.canva-cal-grid-cell.slot-pending) {
-  background: #eceae6;
+  background: #f3e0a8;
   color: #2c2c2a;
 }
 

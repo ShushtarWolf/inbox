@@ -3,6 +3,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { initials, avatarUrl } = useAuth()
 const accountOpen = ref(false)
+const avatarBtn = ref<HTMLButtonElement | null>(null)
 const notificationsPath = computed(() => localePath('/owner/notifications'))
 </script>
 
@@ -17,9 +18,12 @@ const notificationsPath = computed(() => localePath('/owner/notifications'))
         <AppIcon name="notifications" size="sm" />
       </NuxtLink>
       <button
+        ref="avatarBtn"
         type="button"
         class="canva-owner-avatar"
         :aria-label="t('owner.account.title')"
+        :aria-expanded="accountOpen"
+        aria-haspopup="dialog"
         @click="accountOpen = true"
       >
         <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
@@ -27,5 +31,5 @@ const notificationsPath = computed(() => localePath('/owner/notifications'))
       </button>
     </div>
   </div>
-  <OwnerAccountDrawer :open="accountOpen" @close="accountOpen = false" />
+  <OwnerAccountDrawer :open="accountOpen" :anchor="avatarBtn" @close="accountOpen = false" />
 </template>
