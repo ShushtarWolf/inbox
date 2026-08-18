@@ -47,7 +47,7 @@ Use the fill sheet above. Summary:
 | `SMS_ENABLED` | `true` |
 | `SMS_PROVIDER` | `kavenegar` (or `live`) |
 | `KAVENEGAR_API_KEY` | from panel |
-| `KAVENEGAR_TEMPLATE` | panel Verify Lookup (e.g. `inbox-verify` with `%token%`) — **preferred for OTP** |
+| `KAVENEGAR_TEMPLATE` | panel Verify Lookup (e.g. `inbox-verify` with `code: %token%` + `@inboxs.ir #%token2%`) — **preferred for OTP** |
 | `KAVENEGAR_SENDER` | approved line — **required** for free-text booking/CRM SMS (and OTP without template) |
 
 Until these are set, OTP stays log/dry-run (`debugCode`) — **not** production-safe.

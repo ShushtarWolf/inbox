@@ -276,9 +276,24 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   CAMPAIGN: (data) => String(data.message || ''),
 }
 
-/** OTP body — Kavenegar Verify Lookup extracts the 6-digit token when KAVENEGAR_TEMPLATE is used. */
+function otpAutofillHost() {
+  try {
+    const base = (process.env.NUXT_PUBLIC_SITE_URL || 'https://inboxs.ir').replace(/\/$/, '')
+    return new URL(base).hostname
+  } catch {
+    return 'inboxs.ir'
+  }
+}
+
+/**
+ * OTP body for log/fallback `sms/send`.
+ * Live Verify Lookup still only sends the 6-digit token — the Kavenegar panel
+ * template must match this shape (`code: %token%` + `@host #%token2%`).
+ * iOS reads `code:`; Android Chrome WebOTP reads the last `@host #code` line.
+ */
 export function renderOtpSms(code: string) {
-  return `کد تایید inbox: ${code}`
+  const host = otpAutofillHost()
+  return [`code: ${code}`, 'کد تایید اینباکس', `@${host} #${code}`].join('\n')
 }
 
 export function renderSmsTemplate(template: NotifyTemplate | 'CAMPAIGN', data: Record<string, unknown>) {

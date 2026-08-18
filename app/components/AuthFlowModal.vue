@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AuthFlowRole, AuthWelcomeVariant } from '~/composables/useAuthFlow'
 import { isAuthProtectedPath } from '#shared/returnTo.ts'
+import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -31,6 +32,7 @@ const courtCount = ref<1 | 2 | 3>(1)
 const credentialUrls = ref<string[]>([])
 const licenseName = ref('')
 const code = ref('')
+const otpAutofillGen = ref(0)
 const pending = ref(false)
 const error = ref('')
 const debugCode = ref('')
@@ -436,6 +438,7 @@ async function requestOtp() {
     // Prefill only in log/dry-run so local testing works; never imply a real SMS was sent.
     code.value = data.smsMode === 'log' ? (data.debugCode || '') : ''
     step.value = 'otp'
+    otpAutofillGen.value += 1
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 404 && /coach product/i.test(String((err as { statusMessage?: string })?.statusMessage || ''))) {
@@ -488,8 +491,25 @@ async function verifyOtp() {
   }
 }
 
+let stopSmsOtpAutofill = () => {}
+
+function restartSmsOtpAutofill() {
+  stopSmsOtpAutofill()
+  stopSmsOtpAutofill = () => {}
+  if (!open.value || step.value !== 'otp' || debugCode.value) return
+  stopSmsOtpAutofill = startSmsOtpAutofill((next) => {
+    if (code.value.replace(/\D/g, '').length < 6) code.value = next
+  })
+}
+
 watch(open, (isOpen) => {
   if (!isOpen) resetForm()
+})
+
+watch([open, step, otpAutofillGen], restartSmsOtpAutofill)
+
+onUnmounted(() => {
+  stopSmsOtpAutofill()
 })
 
 /** Auto-flip to OTP when SMS becomes MULTI-live while auth sheet is open. */
@@ -967,9 +987,13 @@ watch(
             <input
               id="login-otp"
               v-model="code"
+              name="one-time-code"
+              type="text"
               dir="ltr"
               inputmode="numeric"
+              pattern="[0-9]{6}"
               maxlength="6"
+              enterkeyhint="done"
               class="neo-input bg-white/95 text-center tracking-[0.35em]"
               :placeholder="t('auth.otpCode')"
               autocomplete="one-time-code"

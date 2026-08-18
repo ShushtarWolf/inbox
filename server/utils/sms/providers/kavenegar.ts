@@ -24,6 +24,8 @@ type KavenegarResponse = {
 
 /** Extract a standalone 6-digit OTP from an SMS body when present. */
 export function extractOtpToken(body: string): string | undefined {
+  const fromLabel = body.match(/code:\s*(\d{6})(?!\d)/i)
+  if (fromLabel?.[1]) return fromLabel[1]
   const match = body.match(/(?<!\d)(\d{6})(?!\d)/)
   return match?.[1]
 }
@@ -183,7 +185,7 @@ async function kavenegarRequest(path: string, params: Record<string, string>, me
 
 /**
  * Send via Kavenegar.
- * - OTP: Verify Lookup with KAVENEGAR_TEMPLATE + 6-digit token
+ * - OTP: Verify Lookup with KAVENEGAR_TEMPLATE + 6-digit token (token + token2 for autofill templates)
  * - notify/campaign: Verify Lookup with inbox-notify (%token10%) — free-text sms/send fails on
  *   service lines that only allow lookup (prod sender 10004347 returns 412 on sms/send)
  * - fallback: POST sms/send when notify template explicitly disabled (KAVENEGAR_TEMPLATE_NOTIFY=)
@@ -197,6 +199,7 @@ async function sendViaKavenegar(to: string, body: string, purpose?: string) {
     return kavenegarRequest('verify/lookup.json', {
       receptor,
       token,
+      token2: token,
       template: otpTemplate,
     })
   }

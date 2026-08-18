@@ -15,6 +15,10 @@ describe('extractOtpToken', () => {
     expect(extractOtpToken('کد تایید inbox: 123456')).toBe('123456')
   })
 
+  it('prefers the code: label when the WebOTP line also has digits', () => {
+    expect(extractOtpToken(['code: 913717', 'کد تایید اینباکس', '@inboxs.ir #913717'].join('\n'))).toBe('913717')
+  })
+
   it('returns undefined when no standalone 6-digit token exists', () => {
     expect(extractOtpToken('hello')).toBeUndefined()
     expect(extractOtpToken('code 12345')).toBeUndefined()
@@ -164,6 +168,7 @@ describe('kavenegarSmsProvider', () => {
     const calledUrl = String(fetchMock.mock.calls[0]![0])
     expect(calledUrl).toContain('/verify/lookup.json')
     expect(calledUrl).toContain('token=111222')
+    expect(calledUrl).toContain('token2=111222')
     expect(calledUrl).toContain('template=inbox-verify')
   })
 

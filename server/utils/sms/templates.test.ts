@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { renderOtpSms, renderSmsTemplate } from './templates'
 
 describe('SMS templates', () => {
-  it('renders OTP with extractable 6-digit token', () => {
-    expect(renderOtpSms('123456')).toBe('کد تایید inbox: 123456')
+  it('renders OTP with iOS code: prefix and Android WebOTP last line', () => {
+    expect(renderOtpSms('123456')).toBe(
+      ['code: 123456', 'کد تایید اینباکس', '@inboxs.ir #123456'].join('\n'),
+    )
+  })
+
+  it('uses NUXT_PUBLIC_SITE_URL host in the WebOTP line', () => {
+    const prev = process.env.NUXT_PUBLIC_SITE_URL
+    process.env.NUXT_PUBLIC_SITE_URL = 'https://staging.example.com/'
+    expect(renderOtpSms('654321')).toContain('@staging.example.com #654321')
+    if (prev === undefined) delete process.env.NUXT_PUBLIC_SITE_URL
+    else process.env.NUXT_PUBLIC_SITE_URL = prev
   })
 
   it('renders booking / reset / club / campaign bodies', () => {
