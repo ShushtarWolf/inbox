@@ -23,7 +23,7 @@ import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaEr
 import { activeSlotBooking, assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
-import { applyDiscountPercent } from '#shared/discountCode.ts'
+import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
 
@@ -58,6 +58,8 @@ export default defineEventHandler(async (event) => {
     equipmentIds?: string[]
     equipmentQuantities?: Record<string, number>
     discountCode?: string
+    deskDiscountPercent?: number
+    complimentary?: boolean
     skipNotify?: boolean
     notifyStartTime?: string
     notifyEndTime?: string
@@ -84,11 +86,14 @@ export default defineEventHandler(async (event) => {
     assertSlotBookable(slot.date, slot.startTime)
   }
 
-  const paymentMethod = resolveDeskPaymentMethod(
-    body.paymentMethod,
-    existing?.payment?.method || existing?.paymentMethod,
-  )
-  const paymentStatus = body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
+  const complimentary = body.complimentary === true
+  const paymentMethod = complimentary
+    ? 'CASH'
+    : resolveDeskPaymentMethod(
+      body.paymentMethod,
+      existing?.payment?.method || existing?.paymentMethod,
+    )
+  const paymentStatus = complimentary || body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
   const previousPaid = Boolean(
     existing
     && (isPaidPaymentStatus(existing.payment?.status) || isPaidPaymentStatus(existing.paymentStatus)),
@@ -103,12 +108,39 @@ export default defineEventHandler(async (event) => {
     courtPrice: slot.price,
     equipmentPrices: equipmentItems.map((item) => equipmentLineTotal(item)),
   })
-  if (body.discountCode) {
+  const subtotalAmount = totalAmount
+  let discountMeta: Record<string, unknown> | null = null
+  if (complimentary) {
+    const charge = resolveDeskCharge({ subtotal: totalAmount, complimentary: true })
+    totalAmount = charge.amount
+    discountMeta = { complimentary: true, discountAmount: charge.discountAmount }
+  } else if (body.discountCode) {
     const discountRow = await findDiscountCodeByInput(body.discountCode)
     if (!discountRow) throw createError({ statusCode: 400, statusMessage: 'Invalid discount code' })
     assertDiscountUsable(discountRow, club.id)
-    totalAmount = applyDiscountPercent(totalAmount, discountRow.percent).total
+    const charge = resolveDeskCharge({ subtotal: totalAmount, percent: discountRow.percent })
+    totalAmount = charge.amount
+    discountMeta = {
+      discountCode: discountRow.code,
+      discountPercent: discountRow.percent,
+      discountAmount: charge.discountAmount,
+      subtotalBeforeDiscount: subtotalAmount,
+    }
+  } else {
+    const charge = resolveDeskCharge({
+      subtotal: totalAmount,
+      percent: Number(body.deskDiscountPercent) || 0,
+    })
+    totalAmount = charge.amount
+    if (charge.percent > 0) {
+      discountMeta = {
+        deskDiscountPercent: charge.percent,
+        discountAmount: charge.discountAmount,
+        subtotalBeforeDiscount: subtotalAmount,
+      }
+    }
   }
+  const paymentMetadataJson = discountMeta ? JSON.stringify(discountMeta) : undefined
   // FREE is truthy — never keep FREE when creating/updating a desk booking unless explicitly set.
   const allowedDisplay = new Set(['RESERVED', 'TEAM', 'PENDING', 'PUBLIC'])
   const requestedDisplay = typeof body.displayStatus === 'string' ? body.displayStatus : undefined
@@ -174,6 +206,7 @@ export default defineEventHandler(async (event) => {
           method: paymentMethod,
           status: paymentStatus,
           ...(provider ? { provider } : {}),
+          ...(paymentMetadataJson ? { metadataJson: paymentMetadataJson } : {}),
         },
         create: {
           bookingId: existing.id,
@@ -181,6 +214,7 @@ export default defineEventHandler(async (event) => {
           method: paymentMethod,
           status: paymentStatus,
           ...(provider ? { provider } : {}),
+          ...(paymentMetadataJson ? { metadataJson: paymentMetadataJson } : {}),
         },
       })
       await tx.slot.update({
@@ -284,6 +318,7 @@ export default defineEventHandler(async (event) => {
             method: paymentMethod,
             status: paymentStatus,
             ...(provider ? { provider } : {}),
+            ...(paymentMetadataJson ? { metadataJson: paymentMetadataJson } : {}),
           },
         })
         await tx.reservationEvent.create({

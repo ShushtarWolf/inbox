@@ -982,6 +982,7 @@
       calc(var(--app-vv-height, 100dvh) - 4.5rem),
       calc(100dvh - var(--sz-tab-bar-height) - var(--sz-safe-bottom) - 5rem)
     );
+    @apply min-h-0 overflow-hidden;
   }
   .canva-sheet-handle {
     @apply h-1.5 w-12 rounded-full bg-brand-gray-300;
@@ -1752,6 +1753,13 @@
   }
   .canva-confirm-book-cta {
     @apply px-4 py-3.5 text-sm font-bold;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-desk-pay-panel {
+    @apply flex min-h-0 max-h-full flex-1 flex-col overflow-hidden;
+  }
+  .canva-desk-pay-tertiary {
+    @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white px-4 py-3 text-sm font-bold text-brand-navy transition hover:bg-brand-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--sz-canva-radius);
   }
 

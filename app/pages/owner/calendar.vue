@@ -24,6 +24,8 @@ import {
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
 import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
+import { clampDiscountPercent } from '#shared/discountCode.ts'
+import { resolveDeskCharge } from '#shared/deskCharge.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -250,9 +252,10 @@ const deskDiscountInput = ref('')
 const deskDiscountError = ref('')
 const deskDiscountApplying = ref(false)
 const deskDiscount = ref<{ code: string; percent: number; discountAmount: number } | null>(null)
+const deskPercentInput = ref('')
+const deskPayMode = ref<'cash' | 'unpaid' | 'complimentary'>('cash')
 /** Canva owner hero uses the people/promo frame (same asset as athlete home), not club court crop. */
 const clubHeroImage = '/hero/fitness-venue.jpg'
-const localePath = useLocalePath()
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let longPressFired = false
@@ -933,16 +936,34 @@ function openCancelForm() {
   activePanel.value = 'cancel'
 }
 
+function parseDeskPercent(raw: string) {
+  const ascii = String(raw || '')
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[^\d]/g, '')
+  if (!ascii) return 0
+  return clampDiscountPercent(Number(ascii))
+}
+
+function onDeskPercentInput() {
+  if (!deskDiscount.value) return
+  deskDiscount.value = null
+  deskDiscountInput.value = ''
+}
+
 function openPayConfirm() {
   if (!canSubmitReserve()) return
   deskDiscountInput.value = ''
   deskDiscountError.value = ''
   deskDiscount.value = null
+  deskPercentInput.value = ''
+  deskPayMode.value = 'cash'
   activePanel.value = 'payConfirm'
 }
 
-async function confirmDeskPay(mode: 'cash' | 'link') {
-  if (mode === 'cash') {
+async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
+  deskPayMode.value = mode
+  if (mode === 'cash' || mode === 'complimentary') {
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAID'
   } else {
@@ -1012,6 +1033,9 @@ function closeMenu() {
 
 /** After a successful slot action: drop selection so the bar cannot stick under the sheet. */
 async function finishSlotAction() {
+  deskPayMode.value = 'cash'
+  deskDiscount.value = null
+  deskPercentInput.value = ''
   multiSelectMode.value = false
   clearSelection()
   closeMenu()
@@ -1140,7 +1164,11 @@ async function doReserve() {
             comments: form.comments,
             equipmentIds: form.equipmentIds,
             equipmentQuantities: equipmentQuantitiesPayload(),
-            discountCode: deskDiscount.value?.code,
+            discountCode: activePanel.value === 'payConfirm' ? deskDiscount.value?.code : undefined,
+            deskDiscountPercent: activePanel.value === 'payConfirm' && !deskDiscount.value
+              ? (parseDeskPercent(deskPercentInput.value) || undefined)
+              : undefined,
+            complimentary: activePanel.value === 'payConfirm' && deskPayMode.value === 'complimentary',
             displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
             skipNotify: !isLast,
             notifyStartTime: range.startTime,
@@ -1618,8 +1646,23 @@ const payConfirmCostLines = computed(() => {
 const payConfirmSubtotal = computed(() =>
   payConfirmCostLines.value.reduce((sum, line) => sum + line.amount, 0),
 )
-const payConfirmDiscountAmount = computed(() => deskDiscount.value?.discountAmount || 0)
-const payConfirmTotal = computed(() => Math.max(0, payConfirmSubtotal.value - payConfirmDiscountAmount.value))
+const payConfirmCharge = computed(() => resolveDeskCharge({
+  subtotal: payConfirmSubtotal.value,
+  percent: deskDiscount.value?.percent ?? parseDeskPercent(deskPercentInput.value),
+}))
+const payConfirmDiscountAmount = computed(() => payConfirmCharge.value.discountAmount)
+const payConfirmTotal = computed(() => payConfirmCharge.value.amount)
+const payConfirmDiscountLabel = computed(() => {
+  if (deskDiscount.value) {
+    return t('booking.confirmLineDiscount', {
+      code: deskDiscount.value.code,
+      percent: formatNumber(deskDiscount.value.percent),
+    })
+  }
+  const percent = parseDeskPercent(deskPercentInput.value)
+  if (percent > 0) return t('owner.deskPercentLine', { percent: formatNumber(percent) })
+  return t('booking.discountCode')
+})
 
 async function applyDeskDiscount() {
   deskDiscountError.value = ''
@@ -1641,6 +1684,7 @@ async function applyDeskDiscount() {
       percent: result.percent,
       discountAmount: result.discountAmount,
     }
+    deskPercentInput.value = String(result.percent)
   } catch {
     deskDiscount.value = null
     deskDiscountError.value = t('booking.discountApplyFailed')
@@ -1652,6 +1696,7 @@ async function applyDeskDiscount() {
 function clearDeskDiscount() {
   deskDiscount.value = null
   deskDiscountError.value = ''
+  deskPercentInput.value = ''
 }
 
 function slotIsInPast(slot: OwnerCalendarSlot) {
@@ -2278,22 +2323,21 @@ function slotBarColor(status: string) {
           </div>
         </div>
 
-        <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel !border-0">
-          <div class="canva-desk-pay px-1 pb-2">
-            <div class="canva-auth-header">
-              <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-                <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-                <InboxWordmark class="text-base text-brand-navy" />
-              </NuxtLink>
-              <button type="button" class="text-xs font-bold text-brand-gray-600" @click="activePanel = 'reserve'">
-                {{ t('common.close') }}
+        <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel canva-desk-pay-panel !border-0">
+          <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="activePanel = 'reserve'">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
               </button>
+              <h3 class="font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</h3>
             </div>
-            <div class="text-center">
-              <p class="text-sm font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</p>
-              <h2 class="mt-1 text-xl font-bold text-brand-navy">{{ clubCalendarTitle }}</h2>
-            </div>
-            <div class="mt-3 text-start">
+            <p class="mt-1 text-start text-sm font-bold text-brand-navy">{{ clubCalendarTitle }}</p>
+          </div>
+          <div class="venus-modal-panel-body canva-desk-pay !pt-1">
+            <div class="text-start">
               <p class="canva-confirm-book-date">{{ payConfirmDateHeading }}</p>
               <div class="mt-2 flex flex-wrap justify-start gap-2">
                 <span
@@ -2348,37 +2392,59 @@ function slotBarColor(status: string) {
                     {{ deskDiscountApplying ? t('common.loading') : t('booking.discountApply') }}
                   </button>
                 </div>
+                <div class="mt-2 text-start">
+                  <label class="canva-confirm-book-discount-note" for="owner-desk-percent">{{ t('owner.deskPercentLabel') }}</label>
+                  <input
+                    id="owner-desk-percent"
+                    v-model="deskPercentInput"
+                    type="text"
+                    inputmode="numeric"
+                    class="canva-confirm-book-discount-input mt-1 w-full"
+                    :placeholder="t('owner.deskPercentPlaceholder')"
+                    :disabled="saving"
+                    autocomplete="off"
+                    @input="onDeskPercentInput"
+                  >
+                </div>
                 <p v-if="deskDiscountError" class="canva-confirm-book-discount-note text-brand-primary">{{ deskDiscountError }}</p>
+                <p v-else class="canva-confirm-book-discount-note">{{ t('owner.deskPercentHint') }}</p>
               </div>
               <div class="canva-confirm-book-cost-row">
-                <span class="canva-confirm-book-cost-label">{{ t('booking.discountCode') }}</span>
-                <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatNumber(payConfirmDiscountAmount) }}</span>
+                <span class="canva-confirm-book-cost-label">{{ payConfirmDiscountLabel }}</span>
+                <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(payConfirmDiscountAmount) }}</span>
               </div>
               <div class="canva-confirm-book-cost-row font-bold text-brand-navy">
                 <span>{{ t('owner.priceBreakdown.total') }}</span>
                 <span dir="ltr">{{ formatCurrency(payConfirmTotal) }}</span>
               </div>
             </div>
-            <p class="mt-3 text-center text-[11px] text-brand-gray-500">{{ t('booking.acceptTerms') }}</p>
-            <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
-            <div class="mt-4 flex flex-col gap-2">
-              <button
-                type="button"
-                class="canva-gate-btn-primary w-full"
-                :disabled="saving"
-                @click="confirmDeskPay('link')"
-              >
-                {{ saving ? t('common.loading') : t('owner.sendPayLink') }}
-              </button>
-              <button
-                type="button"
-                class="canva-gate-btn-secondary w-full"
-                :disabled="saving"
-                @click="confirmDeskPay('cash')"
-              >
-                {{ t('owner.payCash') }}
-              </button>
-            </div>
+          </div>
+          <div class="venus-modal-footer space-y-2">
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary w-full"
+              :disabled="saving"
+              @click="confirmDeskPay('cash')"
+            >
+              {{ saving && deskPayMode === 'cash' ? t('common.loading') : t('owner.payCash') }}
+            </button>
+            <button
+              type="button"
+              class="canva-gate-btn-secondary w-full"
+              :disabled="saving"
+              @click="confirmDeskPay('complimentary')"
+            >
+              {{ saving && deskPayMode === 'complimentary' ? t('common.loading') : t('owner.payComplimentary') }}
+            </button>
+            <button
+              type="button"
+              class="canva-desk-pay-tertiary w-full"
+              :disabled="saving"
+              @click="confirmDeskPay('unpaid')"
+            >
+              {{ saving && deskPayMode === 'unpaid' ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
+            </button>
           </div>
         </div>
 
