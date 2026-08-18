@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bookedGuestKey,
+  checkedBookedSlots,
   courtIdsFromSlots,
   deskReserveSelectionIssue,
+  isCancellableBookedSlot,
   joinWithAnd,
+  siblingBookedSlots,
   slotCourtId,
   sortSlotsByTimeThenCourt,
   timesFromSlots,
+  toggleBookedSlotSelection,
   toggleHourOnCourts,
   toggleId,
   uniqueOrdered,
@@ -156,5 +161,110 @@ describe('slot summaries', () => {
   it('uniqueOrdered keeps first occurrence', () => {
     expect(uniqueOrdered(['a', 'b', 'a'])).toEqual(['a', 'b'])
     expect(slotCourtId({ court: { id: 'x' } })).toBe('x')
+  })
+})
+
+describe('siblingBookedSlots', () => {
+  const guestA = { status: 'CONFIRMED', guestMobile: '09120000001', guestName: 'علی', guestFamily: 'محمدی' }
+  const guestAAltName = { status: 'CONFIRMED', guestMobile: '+989120000001', guestName: 'Ali', guestFamily: 'X' }
+  const guestB = { status: 'CONFIRMED', guestMobile: '09120000002', guestName: 'سارا', guestFamily: 'رضایی' }
+  const guestNameOnly = { status: 'CONFIRMED', guestMobile: '', guestName: 'مینا', guestFamily: 'کریمی' }
+
+  function booked(
+    id: string,
+    startTime: string,
+    opts: {
+      courtId?: string
+      date?: string
+      displayStatus?: string
+      booking?: typeof guestA | null
+    } = {},
+  ) {
+    return {
+      id,
+      courtId: opts.courtId || c2,
+      startTime,
+      date: opts.date ?? '2026-08-18',
+      displayStatus: opts.displayStatus ?? 'RESERVED',
+      booking: opts.booking === undefined ? guestA : opts.booking,
+    }
+  }
+
+  it('groups same-date hours for the same mobile, including other courts', () => {
+    const nine = booked('s-09', '09:00')
+    const tenOtherCourt = booked('s-10', '10:00', { courtId: c4 })
+    const slots = [
+      tenOtherCourt,
+      nine,
+      booked('other-guest', '11:00', { booking: guestB }),
+      booked('other-day', '12:00', { date: '2026-08-19' }),
+      booked('blocked', '13:00', { displayStatus: 'BLOCKED' }),
+      booked('free', '14:00', { displayStatus: 'FREE', booking: null }),
+    ]
+    expect(siblingBookedSlots(slots, nine, [c2, c4]).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+
+  it('prefers guestMobile even when names differ, and normalizes +98 vs 09', () => {
+    const nine = booked('s-09', '09:00')
+    const ten = booked('s-10', '10:00', { booking: guestAAltName })
+    expect(siblingBookedSlots([nine, ten], nine).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+
+  it('falls back to name+family when mobile is empty', () => {
+    const nine = booked('s-09', '09:00', { booking: guestNameOnly })
+    const ten = booked('s-10', '10:00', { booking: { ...guestNameOnly } })
+    const other = booked('s-11', '11:00', { booking: { ...guestNameOnly, guestFamily: 'دیگر' } })
+    expect(siblingBookedSlots([nine, ten, other], nine).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+
+  it('does not group empty identities together', () => {
+    const empty = { status: 'CONFIRMED', guestMobile: '', guestName: '', guestFamily: '' }
+    const nine = booked('s-09', '09:00', { booking: empty })
+    const ten = booked('s-10', '10:00', { booking: empty })
+    expect(siblingBookedSlots([nine, ten], nine).map((s) => s.id)).toEqual(['s-09'])
+  })
+
+  it('returns only the tapped hour when there are no siblings', () => {
+    const nine = booked('s-09', '09:00')
+    expect(siblingBookedSlots([nine], nine).map((s) => s.id)).toEqual(['s-09'])
+  })
+
+  it('excludes CANCELLED, PUBLIC, CLOSED and returns nothing for a non-booked anchor', () => {
+    const cancelled = booked('s-09', '09:00', { booking: { ...guestA, status: 'CANCELLED' } })
+    const publicSlot = booked('s-10', '10:00', { displayStatus: 'PUBLIC' })
+    const closed = booked('s-11', '11:00', { displayStatus: 'CLOSED' })
+    expect(siblingBookedSlots([cancelled, publicSlot, closed], cancelled)).toEqual([])
+    expect(isCancellableBookedSlot(publicSlot)).toBe(false)
+    expect(isCancellableBookedSlot(booked('p', '09:00', { displayStatus: 'PENDING' }))).toBe(true)
+  })
+
+  it('includes PENDING siblings with RESERVED hours', () => {
+    const reserved = booked('s-09', '09:00')
+    const pending = booked('s-10', '10:00', { displayStatus: 'PENDING' })
+    expect(siblingBookedSlots([reserved, pending], reserved).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+})
+
+describe('toggleBookedSlotSelection', () => {
+  const siblings = [
+    { id: 's-09', displayStatus: 'RESERVED', booking: { status: 'CONFIRMED' } },
+    { id: 's-10', displayStatus: 'RESERVED', booking: { status: 'CONFIRMED' } },
+  ]
+  const allowed = siblings.map((s) => s.id)
+
+  it('unchecking one hour leaves the other checked for cancel', () => {
+    let selected = ['s-09', 's-10']
+    selected = toggleBookedSlotSelection(selected, 's-10', allowed)
+    expect(checkedBookedSlots(siblings, selected).map((s) => s.id)).toEqual(['s-09'])
+    selected = toggleBookedSlotSelection(selected, 's-09', allowed)
+    expect(checkedBookedSlots(siblings, selected)).toEqual([])
+  })
+
+  it('ignores ids outside the sibling set (does not mix another guest)', () => {
+    expect(toggleBookedSlotSelection(['s-09'], 'other', allowed)).toEqual(['s-09'])
+  })
+
+  it('bookedGuestKey is empty for cancelled bookings', () => {
+    expect(bookedGuestKey({ status: 'CANCELLED', guestMobile: '09120000001' })).toBe('')
   })
 })

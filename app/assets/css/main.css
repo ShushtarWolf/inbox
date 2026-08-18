@@ -2017,7 +2017,7 @@
     @apply mt-4 flex items-center justify-between gap-3;
   }
   .canva-detail-cancel {
-    @apply bg-brand-primary px-4 py-2.5 text-sm font-bold text-white;
+    @apply bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40;
     border-radius: var(--sz-canva-radius);
   }
   .canva-detail-note {

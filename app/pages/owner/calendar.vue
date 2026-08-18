@@ -13,7 +13,16 @@ import {
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
-import { deskReserveSelectionIssue, joinWithAnd, sortSlotsByTimeThenCourt, uniqueOrdered } from '#shared/courtSlotSelection.ts'
+import {
+  checkedBookedSlots,
+  deskReserveSelectionIssue,
+  isCancellableBookedSlot,
+  joinWithAnd,
+  siblingBookedSlots,
+  sortSlotsByTimeThenCourt,
+  toggleBookedSlotSelection,
+  uniqueOrdered,
+} from '#shared/courtSlotSelection.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -66,6 +75,8 @@ const activeCourtId = ref<string | null>(null)
 const calendarView = ref<'today' | 'overview'>('today')
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const selectedSlotIds = ref<string[]>([])
+/** Stable sibling set for booked cancel checkboxes (survives unchecking). */
+const bookedSiblingIds = ref<string[]>([])
 const selectionCourtId = ref<string | null>(null)
 const multiSelectMode = ref(false)
 const showMenu = ref(false)
@@ -310,7 +321,20 @@ const payConfirmCourtsLabel = computed(() => {
   const court = courts.value.find((item: { id: string }) => item.id === id)
   return court ? localizedField(court, 'nameFa', 'nameEn') : ''
 })
-const batchMode = computed(() => selectedSlotIds.value.length > 1 && showMenu.value)
+const batchMode = computed(() =>
+  selectedSlotIds.value.length > 1
+  && showMenu.value
+  && selectedSlotsFull.value.length > 0
+  && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
+)
+const bookedSiblingSlots = computed(() => {
+  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  const live = bookedSiblingIds.value
+    .map((id) => data.value?.slots?.find((slot: OwnerCalendarSlot) => slot.id === id))
+    .filter((slot): slot is OwnerCalendarSlot => slot != null && isCancellableBookedSlot(slot))
+  return sortSlotsByTimeThenCourt(live, courtOrder)
+})
+const showBookedCancelChecks = computed(() => bookedSiblingSlots.value.length > 1)
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
@@ -763,6 +787,7 @@ const packageSessionLabel = computed(() => {
 
 function clearSelection() {
   selectedSlotIds.value = []
+  bookedSiblingIds.value = []
   selectionCourtId.value = null
   actionError.value = ''
 }
@@ -782,6 +807,29 @@ function toggleFreeSlot(slot: OwnerCalendarSlot) {
   selectedSlotIds.value = [...selectedSlotIds.value, slot.id]
 }
 
+function toggleBookedSlot(slot: OwnerCalendarSlot) {
+  if (!isCancellableBookedSlot(slot)) return
+  selectedSlotIds.value = toggleBookedSlotSelection(
+    selectedSlotIds.value,
+    slot.id,
+    bookedSiblingSlots.value.map((item) => item.id),
+  )
+}
+
+function openBookedSlot(fullSlot: OwnerCalendarSlot) {
+  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  const siblings = siblingBookedSlots(data.value?.slots || [], fullSlot, courtOrder)
+  if (!siblings.length) {
+    clearSelection()
+    openSlot(fullSlot)
+    return
+  }
+  bookedSiblingIds.value = siblings.map((item) => item.id)
+  selectedSlotIds.value = [...bookedSiblingIds.value]
+  selectionCourtId.value = null
+  openSlot(fullSlot, { keepSelection: true })
+}
+
 function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return
   if (longPressFired) {
@@ -790,11 +838,11 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   }
   const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
   if (fullSlot.displayStatus !== 'FREE') {
-    clearSelection()
-    openSlot(fullSlot)
+    openBookedSlot(fullSlot)
     return
   }
   // Whole FREE cell toggles multi-select; reserve/block open via FAB or selection bar.
+  bookedSiblingIds.value = []
   multiSelectMode.value = true
   toggleFreeSlot(fullSlot)
 }
@@ -871,6 +919,7 @@ function openReserveForm() {
 }
 
 function openCancelForm() {
+  if (!slotsForCancel().length) return
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
   refundToWallet.value = true
   activePanel.value = 'cancel'
@@ -965,6 +1014,7 @@ async function finishSlotAction() {
 async function recoverAfterBatchError() {
   await refresh()
   selectedSlotIds.value = []
+  bookedSiblingIds.value = []
   selectionCourtId.value = null
   multiSelectMode.value = false
 }
@@ -1025,8 +1075,19 @@ function slotsForReserve() {
 }
 
 function slotsForCancel() {
-  if (batchMode.value && activePanel.value === 'cancel') return selectedSlotsFull.value
-  if (activeBooking(selectedSlotFull.value)) return [selectedSlotFull.value]
+  if (showBookedCancelChecks.value || bookedSiblingSlots.value.length) {
+    return checkedBookedSlots(bookedSiblingSlots.value, selectedSlotIds.value)
+  }
+  const slot = selectedSlotFull.value
+  if (
+    slot
+    && activeBooking(slot)
+    && slot.displayStatus !== 'FREE'
+    && slot.displayStatus !== 'BLOCKED'
+    && slot.displayStatus !== 'CLOSED'
+  ) {
+    return [slot]
+  }
   return []
 }
 
@@ -1085,25 +1146,45 @@ async function doReserve() {
   }
 }
 
+function pruneBookedCancelSelection() {
+  const liveIds = new Set(bookedSiblingSlots.value.map((slot) => slot.id))
+  selectedSlotIds.value = selectedSlotIds.value.filter((id) => liveIds.has(id))
+  bookedSiblingIds.value = bookedSiblingIds.value.filter((id) => liveIds.has(id))
+  const next = bookedSiblingSlots.value.find((slot) => selectedSlotIds.value.includes(slot.id))
+    || bookedSiblingSlots.value[0]
+  if (next) selectedSlot.value = next
+}
+
 async function doCancel() {
-  const targets = slotsForCancel()
+  const targets = slotsForCancel().filter((slot) => {
+    if (slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return false
+    return Boolean(activeBooking(slot))
+  })
   if (!targets.length || !cancelReason.value || saving.value) return
   saving.value = true
   actionError.value = ''
   try {
-    for (const slot of targets) {
+    const range = bookingTimeRange(targets)
+    for (let i = 0; i < targets.length; i++) {
+      const slot = targets[i]!
+      const isLast = i === targets.length - 1
       await $fetch('/api/owner/cancel', {
         method: 'POST',
         body: {
           slotId: slot.id,
           reason: cancelReason.value,
           refundToWallet: refundToWallet.value,
+          skipNotify: !isLast,
+          notifyStartTime: range.startTime,
+          notifyEndTime: range.endTime,
         },
       })
     }
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await refresh()
+    pruneBookedCancelSelection()
   } finally {
     saving.value = false
   }
@@ -1319,6 +1400,7 @@ function reserveMenuLabel() {
 }
 
 function canCancelSlot() {
+  if (bookedSiblingSlots.value.length) return true
   return Boolean(activeBooking(selectedSlot.value)) && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
@@ -1372,10 +1454,18 @@ function slotStatusSummary() {
   return parts.join(' · ')
 }
 
-function slotGuestName() {
-  const booking = activeBooking(selectedSlot.value)
-  if (!booking) return ''
-  return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+function slotGuestName(slot: OwnerCalendarSlot | null | undefined = selectedSlot.value) {
+  const booking = activeBooking(slot)
+    || activeBooking(selectedSlotFull.value)
+    || activeBooking(bookedSiblingSlots.value[0])
+  if (booking) return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+  return [form.guestName, form.guestFamily].filter(Boolean).join(' ').trim()
+}
+
+function slotRowGuestName(slot: OwnerCalendarSlot) {
+  const booking = activeBooking(slot)
+  if (booking) return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+  return slotGuestName(slot)
 }
 
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
@@ -1897,27 +1987,29 @@ function slotBarColor(status: string) {
               </span>
             </div>
 
-            <div v-if="batchMode || selectedSlotsFull.length > 1" class="mt-3 space-y-2">
+            <div v-if="showBookedCancelChecks" class="mt-3 space-y-2">
               <label
-                v-for="slot in selectedSlotsFull"
+                v-for="slot in bookedSiblingSlots"
                 :key="slot.id"
-                class="flex items-center gap-2 bg-[#eceae6] px-3 py-2.5 text-xs font-bold text-brand-navy"
+                class="flex flex-wrap items-center justify-start gap-x-2 gap-y-1 bg-[#eceae6] px-3 py-2.5 text-start text-xs font-bold text-brand-navy"
                 style="border-radius: var(--sz-canva-radius);"
               >
                 <input
                   type="checkbox"
                   class="canva-settings-checkbox"
                   :checked="isSlotSelected(slot)"
-                  @change="toggleFreeSlot(slot)"
+                  @change="toggleBookedSlot(slot)"
                 >
-                <span class="min-w-0 flex-1 truncate text-start">{{ slotCourtName(slot) || slotGuestName() || statusLabel(slot.displayStatus) }}</span>
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
+                <span class="min-w-0 truncate">{{ slotRowGuestName(slot) }}</span>
+                <bdi dir="ltr" class="shrink-0 tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                <span class="shrink-0">{{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}</span>
+                <span class="min-w-0 truncate">{{ slotCourtName(slot) }}</span>
               </label>
             </div>
 
             <!-- Canva (14): cancel + add note only — edit stays reachable via reserve flow, not on this sheet -->
             <div class="canva-detail-actions">
-              <button type="button" class="canva-detail-cancel" @click="openCancelForm">
+              <button type="button" class="canva-detail-cancel" :disabled="!slotsForCancel().length" @click="openCancelForm">
                 {{ t('owner.cancelBooking') }}
               </button>
               <button type="button" class="canva-detail-note" @click="openCommentsForm">
@@ -1970,7 +2062,7 @@ function slotBarColor(status: string) {
           </div>
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving" @click="doCancel">{{ t('owner.cancelBooking') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving || !slotsForCancel().length" @click="doCancel">{{ t('owner.cancelBooking') }}</button>
             <button type="button" class="canva-gate-btn-secondary" @click="activePanel = canCancelSlot() ? 'detail' : null">{{ t('common.back') }}</button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { normalizeIranPhone } from './phone.ts'
+
 /** Multi-court / multi-hour slot basket helpers (same club + same date). */
 
 export type SelectableCourtSlot = {
@@ -7,6 +9,15 @@ export type SelectableCourtSlot = {
   courtId?: string | null
   court?: { id?: string | null } | null
 }
+
+export type BookedSlotGuest = {
+  status?: string | null
+  guestMobile?: string | null
+  guestName?: string | null
+  guestFamily?: string | null
+}
+
+const BOOKED_CANCEL_STATUSES = new Set(['RESERVED', 'PENDING'])
 
 export function slotCourtId(slot: {
   courtId?: string | null
@@ -115,4 +126,80 @@ export function courtIdsFromSlots(slots: SelectableCourtSlot[]): string[] {
 
 export function timesFromSlots(slots: { startTime: string }[]): string[] {
   return uniqueOrdered(slots.map((slot) => clockTime(slot.startTime)).filter(Boolean))
+}
+
+/** Live RESERVED/PENDING booking that desk cancel may target (not FREE/BLOCKED/CLOSED). */
+export function isCancellableBookedSlot(slot: {
+  displayStatus?: string | null
+  booking?: BookedSlotGuest | null
+}): boolean {
+  if (!BOOKED_CANCEL_STATUSES.has(String(slot.displayStatus || ''))) return false
+  const booking = slot.booking
+  if (!booking || booking.status === 'CANCELLED') return false
+  return true
+}
+
+/**
+ * Guest identity for grouping same-day hours: prefer mobile, else name+family.
+ * Empty identity does not match other empty identities.
+ */
+export function bookedGuestKey(booking: BookedSlotGuest | null | undefined): string {
+  if (!booking || booking.status === 'CANCELLED') return ''
+  const mobileRaw = String(booking.guestMobile || '').trim()
+  if (mobileRaw) {
+    const normalized = normalizeIranPhone(mobileRaw)
+    return `m:${normalized || mobileRaw}`
+  }
+  const name = String(booking.guestName || '').trim()
+  const family = String(booking.guestFamily || '').trim()
+  if (name || family) return `n:${name}\0${family}`
+  return ''
+}
+
+export type SiblingBookedSlot = {
+  id: string
+  date?: string | null
+  startTime: string
+  displayStatus?: string | null
+  courtId?: string | null
+  court?: { id?: string | null } | null
+  booking?: BookedSlotGuest | null
+}
+
+/** Same calendar date + same guest, live RESERVED/PENDING hours (any court). */
+export function siblingBookedSlots<T extends SiblingBookedSlot>(
+  slots: T[],
+  anchor: T,
+  courtOrder: string[] = [],
+): T[] {
+  if (!isCancellableBookedSlot(anchor)) return []
+  const date = anchor.date || ''
+  const key = bookedGuestKey(anchor.booking)
+  const matched = slots.filter((slot) => {
+    if (slot.id === anchor.id) return true
+    if (!key) return false
+    if (!isCancellableBookedSlot(slot)) return false
+    if ((slot.date || '') !== date) return false
+    return bookedGuestKey(slot.booking) === key
+  })
+  return sortSlotsByTimeThenCourt(matched, courtOrder)
+}
+
+/** Checkbox toggle for booked cancel rows — never adds ids outside the sibling set. */
+export function toggleBookedSlotSelection(
+  selectedIds: string[],
+  slotId: string,
+  allowedIds: string[],
+): string[] {
+  if (!allowedIds.includes(slotId)) return selectedIds
+  return toggleId(selectedIds, slotId)
+}
+
+/** Checked siblings that are still live bookings (the cancel target list). */
+export function checkedBookedSlots<T extends { id: string; displayStatus?: string | null; booking?: BookedSlotGuest | null }>(
+  siblings: T[],
+  selectedIds: string[],
+): T[] {
+  const selected = new Set(selectedIds)
+  return siblings.filter((slot) => selected.has(slot.id) && isCancellableBookedSlot(slot))
 }

@@ -14,6 +14,9 @@ export default defineEventHandler(async (event) => {
     slotId?: string
     reason?: string
     refundToWallet?: boolean
+    skipNotify?: boolean
+    notifyStartTime?: string
+    notifyEndTime?: string
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
 
@@ -37,6 +40,8 @@ export default defineEventHandler(async (event) => {
     const rawGuest = booking.guestMobile
     const phone = booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
     if (booking.userId || phone) {
+      const notifyStart = (body.notifyStartTime || slot.startTime).trim()
+      const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
       await notifyBookingCancelled({
         userId: booking.userId,
         email: booking.user?.email,
@@ -46,12 +51,13 @@ export default defineEventHandler(async (event) => {
         clubId: club.id,
         bookingId: booking.id,
         date: slot.date,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+        startTime: notifyStart,
+        endTime: notifyEnd,
         reason,
         guestName: personNotifyName(booking.guestName, booking.guestFamily)
           || personNotifyName(booking.user?.name),
         courtName: courtNotifyName(slot.court),
+        skipGuest: Boolean(body.skipNotify),
       })
     }
   } else {
