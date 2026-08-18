@@ -330,14 +330,7 @@ function dayHasActivity(iso: string | null) {
 
 const selectedDayTimes = computed(() => {
   const day = selectedDayIso.value
-  if (!day) {
-    // Canva side chips: times for first active day in the viewed month, if any.
-    const first = [...activeDaySet.value].sort()[0]
-    if (!first) return [] as string[]
-    return [...new Set(
-      visibleHistory.value.filter((i) => i.date === first).map((i) => i.timeLabel),
-    )].slice(0, 4)
-  }
+  if (!day) return [] as string[]
   return [...new Set(
     visibleHistory.value.filter((i) => i.date === day).map((i) => i.timeLabel),
   )].slice(0, 4)
