@@ -971,8 +971,14 @@
     background-repeat: repeat, no-repeat;
   }
   .canva-sheet-dialog {
-    max-height: min(90dvh, var(--app-vv-height, 90dvh));
-    @apply mt-auto sm:mt-0 sm:max-h-none;
+    /* Keep the sheet inside the overlay (padding ~2rem). Never drop max-height on
+       desktop — sm:max-h-none let multi-slot confirm grow past the viewport. */
+    max-height: min(
+      100%,
+      calc(var(--app-vv-height, 100dvh) - 2rem),
+      calc(100dvh - 2rem)
+    );
+    @apply mt-auto flex min-h-0 flex-col overflow-hidden sm:mt-0;
     border-radius: var(--sz-canva-radius-max) var(--sz-canva-radius-max) 0 0;
   }
   @media (min-width: 640px) {
@@ -980,15 +986,11 @@
       border-radius: var(--sz-canva-radius);
     }
   }
-  /* Title/handle sit above the shell — leave room so form footers are not clipped */
+  /* Fill remaining space under title/handle so panel bodies scroll and footers stay on screen */
   .canva-sheet-dialog .venus-modal-shell,
   .canva-sheet-dialog .venus-modal-shell-simple {
-    max-height: min(
-      82dvh,
-      calc(var(--app-vv-height, 100dvh) - 4.5rem),
-      calc(100dvh - var(--sz-tab-bar-height) - var(--sz-safe-bottom) - 5rem)
-    );
-    @apply min-h-0 overflow-hidden;
+    max-height: none;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-col;
   }
   .canva-sheet-handle {
     @apply h-1.5 w-12 rounded-full bg-brand-gray-300;
@@ -1701,7 +1703,7 @@
 
   /* Court booking confirm sheet — Canva home page (4) */
   .canva-confirm-book {
-    @apply text-start;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden text-start;
   }
   .canva-confirm-book-title {
     @apply text-sm font-bold;
@@ -1766,7 +1768,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-desk-pay-panel {
-    @apply flex min-h-0 max-h-full flex-1 flex-col overflow-hidden;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
   .canva-desk-pay-tertiary {
     @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white px-4 py-3 text-sm font-bold text-brand-navy transition hover:bg-brand-gray-50 disabled:cursor-not-allowed disabled:opacity-50;

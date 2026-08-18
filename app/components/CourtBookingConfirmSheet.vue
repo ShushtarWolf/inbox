@@ -284,9 +284,9 @@ async function submit(preferWallet = false) {
     max-width-class="max-w-sm min-[431px]:max-w-lg"
     @close="close"
   >
-    <div class="canva-confirm-book">
+    <div class="canva-confirm-book flex min-h-0 flex-1 flex-col overflow-hidden">
       <!-- LOCKED #5: logo RIGHT / close LEFT (RTL flex order) -->
-      <div class="canva-auth-header">
+      <div class="canva-auth-header shrink-0">
         <NuxtLink
           :to="localePath('/')"
           class="flex items-center gap-2"
@@ -302,15 +302,9 @@ async function submit(preferWallet = false) {
         </button>
       </div>
 
-      <div class="canva-auth-body space-y-3 px-5 pb-6 pt-1">
+      <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
         <template v-if="done && (!onlineEnabled || lastPaymentStatus === 'PAID')">
           <p class="text-center text-base font-bold text-brand-primary">✓ {{ feedback || t('booking.successCourt') }}</p>
-          <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
-            {{ t('booking.viewBookings') }}
-          </NuxtLink>
-          <button type="button" class="canva-gate-btn-secondary w-full" @click="close">
-            {{ t('common.close') }}
-          </button>
         </template>
 
         <template v-else>
@@ -447,7 +441,19 @@ async function submit(preferWallet = false) {
             {{ t('booking.acceptTerms') }}
             <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">{{ t('legal.terms') }}</NuxtLink>
           </p>
+        </template>
+      </div>
 
+      <div class="shrink-0 space-y-2 px-5 pb-6">
+        <template v-if="done && (!onlineEnabled || lastPaymentStatus === 'PAID')">
+          <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
+            {{ t('booking.viewBookings') }}
+          </NuxtLink>
+          <button type="button" class="canva-gate-btn-secondary w-full" @click="close">
+            {{ t('common.close') }}
+          </button>
+        </template>
+        <template v-else>
           <button
             type="button"
             class="canva-cta canva-confirm-book-cta w-full"

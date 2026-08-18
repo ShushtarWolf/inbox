@@ -2003,7 +2003,7 @@ function slotBarColor(status: string) {
     </AppModal>
 
     <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
-      <div class="venus-modal-shell">
+      <div class="venus-modal-shell min-h-0 flex-1">
         <!-- Menu only while choosing an action — hide once a form panel opens so fields stay above the keyboard -->
         <div v-if="!activePanel" class="space-y-1 !p-2">
           <div v-if="selectedSlot" class="mb-1 border-b border-brand-gray-100 px-3 py-3 text-sm" style="border-radius: var(--sz-canva-radius);">

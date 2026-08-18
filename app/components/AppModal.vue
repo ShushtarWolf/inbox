@@ -151,7 +151,7 @@ onUnmounted(() => {
         @click.self="close"
       >
         <div
-          class="flex flex-1 justify-center py-2 sm:py-4"
+          class="flex h-full w-full justify-center"
           :class="sheet ? 'items-end sm:items-center' : 'items-center'"
         >
           <div
@@ -160,7 +160,7 @@ onUnmounted(() => {
             aria-modal="true"
             :aria-label="title"
             tabindex="-1"
-            class="w-full overflow-hidden border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
+            class="flex min-h-0 w-full flex-col overflow-hidden border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
             :class="[
               maxWidthClass || 'max-w-md',
               patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
@@ -170,7 +170,7 @@ onUnmounted(() => {
             @click.stop
             @focusin="onDialogFocusIn"
           >
-            <div class="relative z-[1] flex max-h-[inherit] min-h-0 flex-col">
+            <div class="relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden">
               <div v-if="sheet" class="flex shrink-0 justify-center pt-3" aria-hidden="true">
                 <span class="canva-sheet-handle" />
               </div>
@@ -189,7 +189,9 @@ onUnmounted(() => {
                   <template v-else>{{ $t('common.close') }}</template>
                 </button>
               </div>
-              <slot />
+              <div class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+                <slot />
+              </div>
             </div>
           </div>
         </div>
