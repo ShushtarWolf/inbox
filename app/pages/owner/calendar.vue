@@ -2952,12 +2952,22 @@ function slotBarColor(status: string) {
 }
 
 .calendar-page-has-selection {
-  padding-bottom: calc(9rem + var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+  padding-bottom: calc(10rem + var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+}
+
+.calendar-page-has-selection :deep(.canva-cal-grid-scroll) {
+  padding-bottom: 1.25rem;
+}
+
+@media (min-width: 431px) {
+  .calendar-page-has-selection {
+    padding-bottom: 12rem;
+  }
 }
 
 @media (min-width: 1024px) {
   .calendar-selection-bar {
-    inset-inline-start: 290px;
+    inset-inline-start: var(--sz-side-nav-width);
     inset-inline-end: 0;
     bottom: 0;
     padding: 1rem 2rem;
@@ -2978,7 +2988,7 @@ function slotBarColor(status: string) {
   }
 
   .calendar-page-has-selection {
-    padding-bottom: 6rem;
+    padding-bottom: 8rem;
   }
 }
 

@@ -1109,11 +1109,11 @@
     @apply h-2.5 w-2.5 rounded-full;
   }
   .canva-selection-bar {
-    @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white/95 px-3 py-3 shadow-tail-lg backdrop-blur;
+    @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
   }
   .canva-selection-bar-inner {
-    @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 min-[431px]:max-w-6xl lg:flex-row lg:items-end;
+    @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 min-[431px]:max-w-none lg:flex-row lg:items-start lg:justify-between;
   }
   .canva-selection-bar-chips {
     @apply mt-2 flex flex-wrap gap-2;
@@ -2603,6 +2603,9 @@
   }
   .canva-selection-bar {
     bottom: 0;
+    inset-inline-start: var(--sz-side-nav-width);
+    inset-inline-end: 0;
+    padding-inline: 2rem;
   }
   .canva-finance-wide {
     display: grid;
