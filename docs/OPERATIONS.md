@@ -133,12 +133,34 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 | Owner booking cancelled | `bookingNotify.notifyOwnerBookingCancelled` | Athlete cancel → SMS to club owner phone |
 | Booking paid | `bookingNotify.notifyBookingPaid` | Owner mark paid, wallet checkout, online payment callback (athlete/guest) |
 | Owner booking paid | `bookingNotify.notifyOwnerBookingPaid` | Same paid triggers — SMS to club owner phone (`User.phone` or `Club.phone`) with guest, amount, time, court |
-| Owner daily reservations | `sms/dailyOwnerReminders.processDailyOwnerReservationReminders` | Cron: `POST /api/admin/sms/process-daily-owner-reminders` (`x-admin-secret`). One SMS per ACTIVE club that has ≥1 non-cancelled court booking that day (Tehran date; optional `?date=YYYY-MM-DD`). Skips empty days and clubs without a mobile. Idempotent via `SmsLog.campaignName=OWNER_DAILY_RESERVATIONS:{date}`. Live path chunks for `%token10%`. |
+| Owner daily reservations | `sms/dailyOwnerReminders.processDailyOwnerReservationReminders` | **Does not run by itself.** One short SMS per ACTIVE club with ≥1 non-cancelled court booking that Tehran day (no courts/times/guests; ping + `{NUXT_PUBLIC_SITE_URL}/owner/calendar`). Skips empty days and clubs without a mobile. Idempotent `SmsLog.campaignName=OWNER_DAILY_RESERVATIONS:{date}`. See **Liara cron (daily owner SMS)** below. |
 | Waitlist slot available | `waitlistNotify.notifyWaitlistForFreedSlot` | After cancel frees a slot; matches `courtId` **or** any-court (`courtId` null); SMS + in-app; **always soft-fail** |
 
-**Delivery:** live notify/campaign SMS use Verify Lookup `KAVENEGAR_TEMPLATE_NOTIFY` (default `inbox-notify`, body `%token10%`). `token10` is sanitized to letters/digits only with ≤5 spaces (Kavenegar API 431 otherwise). Do not rely on free-text `sms/send` for booking texts on service lines.
+**Delivery:** live notify/campaign SMS use Verify Lookup `KAVENEGAR_TEMPLATE_NOTIFY` (default `inbox-notify`, body `%token10%`). `token10` is sanitized to letters/digits only with ≤5 spaces (Kavenegar API 431 otherwise). Punctuation in URLs (`://`, `/`, `.`) is stripped, so lookup **cannot** deliver a tappable `https://…` link (same path as `BOOKING_CONFIRMED` receipt URLs). Do not rely on free-text `sms/send` for booking texts on service lines (prod sender returns 412).
 
 Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
+
+### Liara cron (daily owner SMS)
+
+Nothing auto-sends until a Liara **dashboard** Cron Job is set. There is no in-app worker. `liara.json` is platform `node`; Liara’s `cron` field is only for Next/Laravel/PHP/Python/Django/Flask — **do not add it here** (it is ignored or invalid for this app).
+
+**Manual now:** `/admin/sms` → **ارسال یادآوری روزانه به صاحب باشگاه** (same `x-admin-secret` as process-scheduled). Response shows sent / skipped / failed / note.
+
+**Automatic (required for mornings):** Liara dashboard → `inbox` app → Cron Jobs. Morning Tehran, HTTP POST:
+
+```bash
+# Today (server uses Tehran date). Optional ?date=YYYY-MM-DD to override.
+curl -X POST "https://inboxs.ir/api/admin/sms/process-daily-owner-reminders" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET"
+
+# Example: force 2026-08-18 Tehran
+curl -X POST "https://inboxs.ir/api/admin/sms/process-daily-owner-reminders?date=2026-08-18" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET"
+```
+
+Suggested schedule: `30 4 * * *` (04:30 UTC = 08:00 Tehran). If the dashboard cron runs in `Asia/Tehran`, use `0 8 * * *` instead. Header `x-admin-secret` = `ADMIN_PROVISION_SECRET`. Without this cron, daily owner SMS only go when someone clicks the admin button.
+
+Owner phone: `ownerNotifyPhone` (owner mobile, then club mobile; landlines skipped). Live path is the same Verify Lookup `%token10%` as `BOOKING_CONFIRMED` — not a tappable URL. Log mode + `SmsLog` keep `https://inboxs.ir/owner/calendar`.
 
 ### Live reservation SMS cutover (later — do not enable now)
 

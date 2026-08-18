@@ -1,9 +1,10 @@
 import { processDailyOwnerReservationReminders } from '../../../utils/sms/dailyOwnerReminders'
 
 /**
- * Cron entry: SMS club owners a same-day court reservation list.
- * Only clubs with ≥1 non-cancelled booking for the date receive a message.
+ * Cron / admin entry: one short SMS per club with same-day court reservations
+ * (calendar URL; no booking list). Empty days are skipped.
  * Auth: x-admin-secret (same as process-scheduled).
+ * There is no in-app worker — Liara dashboard cron or the /admin/sms button must call this.
  */
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)

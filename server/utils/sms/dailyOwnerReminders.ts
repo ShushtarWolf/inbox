@@ -1,16 +1,8 @@
-import { normalizeIranPhone } from '#shared/phone.ts'
-import { toPersianDigits } from '#shared/jalali.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
-import {
-  clubNotifyName,
-  courtNotifyName,
-  ownerNotifyPhone,
-  personNotifyName,
-} from '../bookingNotify'
+import { ownerNotifyPhone } from '../bookingNotify'
 import { todayDateStr } from '../slots'
 import { sendSms } from './service'
-import { chunkSmsBodyForToken10 } from './providers/kavenegar'
-import { renderSmsTemplate } from './templates'
+import { ownerDailyReservationsCalendarUrl, renderSmsTemplate } from './templates'
 
 export type DailyOwnerReminderResult = {
   date: string
@@ -28,25 +20,14 @@ export function dailyOwnerReminderCampaignName(date: string) {
   return `OWNER_DAILY_RESERVATIONS:${date}`
 }
 
-export function reservationGuestLabel(booking: {
-  guestName?: string | null
-  guestFamily?: string | null
-  guestMobile?: string | null
-  user?: { name?: string | null; phone?: string | null } | null
-}) {
-  const name =
-    personNotifyName(booking.guestName, booking.guestFamily)
-    || personNotifyName(booking.user?.name)
-  if (name) return name
-  const phone = normalizeIranPhone(booking.user?.phone || booking.guestMobile)
-  if (phone) return `مهمان (${toPersianDigits(phone)})`
-  return 'مهمان'
-}
-
 /**
- * Soft-fail daily digest to club owners for courts booked on `date` (Tehran YYYY-MM-DD).
- * Only clubs with ≥1 non-cancelled reservation receive SMS (empty days = no send).
+ * Soft-fail daily ping to club owners when they have courts booked on `date` (Tehran YYYY-MM-DD).
+ * One short SMS per club (calendar URL; no court/time/guest list). Empty days = no send.
  * Idempotent via SmsLog.campaignName.
+ *
+ * Live send uses the same Kavenegar Verify Lookup %token10% path as BOOKING_CONFIRMED.
+ * token10 cannot carry a tappable URL (punctuation stripped); do not switch to sms/send
+ * (prod service line returns 412). Full URL is in the body for log mode + SmsLog.
  */
 export async function processDailyOwnerReservationReminders(opts?: {
   date?: string
@@ -54,6 +35,7 @@ export async function processDailyOwnerReservationReminders(opts?: {
   const date = opts?.date || todayDateStr()
   const provider = resolveSmsProvider()
   const campaignName = dailyOwnerReminderCampaignName(date)
+  const calendarUrl = ownerDailyReservationsCalendarUrl()
 
   const bookings = await prisma.booking.findMany({
     where: {
@@ -63,42 +45,29 @@ export async function processDailyOwnerReservationReminders(opts?: {
         court: { club: { status: 'ACTIVE' } },
       },
     },
-    include: {
-      user: { select: { name: true, phone: true } },
+    select: {
       slot: {
-        include: {
+        select: {
           court: {
-            include: {
-              club: { include: { owner: { select: { phone: true } } } },
+            select: {
+              club: {
+                select: {
+                  id: true,
+                  phone: true,
+                  owner: { select: { phone: true } },
+                },
+              },
             },
           },
         },
       },
     },
-    orderBy: [{ slot: { startTime: 'asc' } }, { slot: { courtId: 'asc' } }],
   })
 
-  const byClub = new Map<
-    string,
-    {
-      club: (typeof bookings)[number]['slot']['court']['club']
-      lines: Array<{ court: string; start: string; end: string; guest: string }>
-    }
-  >()
-
+  const byClub = new Map<string, (typeof bookings)[number]['slot']['court']['club']>()
   for (const booking of bookings) {
     const club = booking.slot.court.club
-    let group = byClub.get(club.id)
-    if (!group) {
-      group = { club, lines: [] }
-      byClub.set(club.id, group)
-    }
-    group.lines.push({
-      court: courtNotifyName(booking.slot.court),
-      start: booking.slot.startTime,
-      end: booking.slot.endTime,
-      guest: reservationGuestLabel(booking),
-    })
+    if (!byClub.has(club.id)) byClub.set(club.id, club)
   }
 
   let sent = 0
@@ -108,7 +77,7 @@ export async function processDailyOwnerReservationReminders(opts?: {
   const errors: string[] = []
   const clubsWithReservations = byClub.size
 
-  for (const { club, lines } of byClub.values()) {
+  for (const club of byClub.values()) {
     const phone = ownerNotifyPhone(club)
     if (!phone) {
       skippedNoPhone++
@@ -124,29 +93,18 @@ export async function processDailyOwnerReservationReminders(opts?: {
       continue
     }
 
-    const body = renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {
-      clubName: clubNotifyName(club),
-      date,
-      lines,
-      count: lines.length,
-    })
-
-    // Log mode keeps the full multi-line body; live Verify Lookup token10 needs chunks.
-    const parts = provider === 'live' ? chunkSmsBodyForToken10(body) : [body]
+    const body = renderSmsTemplate('OWNER_DAILY_RESERVATIONS', { calendarUrl })
 
     try {
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i]!
-        const result = await sendSms({
-          to: phone,
-          body: part,
-          clubId: club.id,
-          purpose: 'notify',
-          template: i === 0 ? campaignName : `${campaignName}:p${i + 1}`,
-        })
-        if (!result.sent && !result.logged) {
-          throw new Error('provider returned neither sent nor logged')
-        }
+      const result = await sendSms({
+        to: phone,
+        body,
+        clubId: club.id,
+        purpose: 'notify',
+        template: campaignName,
+      })
+      if (!result.sent && !result.logged) {
+        throw new Error('provider returned neither sent nor logged')
       }
       console.log('[sms:dailyOwnerReminders]', provider, club.id, phone, body)
       sent++

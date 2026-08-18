@@ -44,12 +44,28 @@ type ProcessResult = {
   errors?: string[]
 }
 
+type DailyOwnerResult = {
+  ok: boolean
+  date: string
+  provider: 'log' | 'live'
+  clubsWithReservations: number
+  sent: number
+  skippedNoPhone: number
+  skippedAlreadySent: number
+  failed: number
+  note: string
+  errors?: string[]
+}
+
 const status = ref<SmsStatus | null>(null)
 const pending = ref(false)
 const processing = ref(false)
+const processingDaily = ref(false)
 const loadError = ref('')
 const processResult = ref<ProcessResult | null>(null)
 const processError = ref('')
+const dailyResult = ref<DailyOwnerResult | null>(null)
+const dailyError = ref('')
 
 /** MULTI banner only when snapshot says truly ready (same gate as FLOW-G). */
 const showMultiBanner = computed(() => Boolean(status.value?.multiReady && status.value?.smsPhase === 'MULTI'))
@@ -93,6 +109,28 @@ async function processScheduled() {
     }
   } finally {
     processing.value = false
+  }
+}
+
+async function processDailyOwner() {
+  if (!secret.value || processingDaily.value) return
+  processingDaily.value = true
+  dailyError.value = ''
+  dailyResult.value = null
+  try {
+    dailyResult.value = await adminFetch<DailyOwnerResult>('/api/admin/sms/process-daily-owner-reminders', {
+      method: 'POST',
+    })
+  } catch (err: unknown) {
+    const code = (err as { statusCode?: number })?.statusCode
+    if (code === 403) {
+      dailyError.value = t('admin.invalidSecret')
+      clearSecret()
+    } else {
+      dailyError.value = t('common.error')
+    }
+  } finally {
+    processingDaily.value = false
   }
 }
 
@@ -344,6 +382,62 @@ watch(secret, (value) => {
               <p class="text-xs font-bold text-red-900">{{ t('admin.smsPage.lastErrors') }}</p>
               <ul class="mt-2 space-y-1 text-xs text-red-800" dir="ltr">
                 <li v-for="(err, idx) in processResult.errors" :key="idx">{{ err }}</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tail-card space-y-3">
+          <h2 class="tail-section-title">{{ t('admin.smsPage.dailyOwnerTitle') }}</h2>
+          <p class="text-sm text-brand-gray-600">{{ t('admin.smsPage.dailyOwnerHint') }}</p>
+          <button
+            type="button"
+            class="bg-brand-primary px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-brand-gray-300 disabled:text-brand-gray-600"
+            style="border-radius: 2px;"
+            :disabled="processingDaily"
+            @click="processDailyOwner"
+          >
+            {{ processingDaily ? t('admin.smsPage.processing') : t('admin.smsPage.processDailyOwner') }}
+          </button>
+          <p v-if="dailyError" class="venus-alert-error text-start">{{ dailyError }}</p>
+
+          <div
+            v-if="dailyResult"
+            class="space-y-2 border border-brand-gray-100 bg-brand-gray-50 p-3"
+            style="border-radius: 2px;"
+          >
+            <p class="text-sm font-bold">{{ t('admin.smsPage.lastResult') }}</p>
+            <ul class="space-y-1 text-sm">
+              <li class="flex justify-between gap-2">
+                <span>{{ t('admin.smsPage.dailyOwnerSent') }}</span>
+                <strong dir="ltr">{{ formatNumber(dailyResult.sent) }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
+                <span>{{ t('admin.smsPage.dailyOwnerSkipped') }}</span>
+                <strong dir="ltr">{{ formatNumber(dailyResult.skippedNoPhone + dailyResult.skippedAlreadySent) }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
+                <span>{{ t('admin.smsPage.failed') }}</span>
+                <strong dir="ltr">{{ formatNumber(dailyResult.failed) }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
+                <span>{{ t('admin.smsPage.provider') }}</span>
+                <strong dir="ltr">{{ dailyResult.provider }}</strong>
+              </li>
+              <li class="flex justify-between gap-2">
+                <span>{{ t('admin.smsPage.dailyOwnerDate') }}</span>
+                <strong dir="ltr">{{ dailyResult.date }}</strong>
+              </li>
+            </ul>
+            <p class="text-xs text-brand-gray-600" dir="ltr">{{ dailyResult.note }}</p>
+            <div
+              v-if="dailyResult.errors?.length"
+              class="border border-red-200 bg-red-50 p-3"
+              style="border-radius: 2px;"
+            >
+              <p class="text-xs font-bold text-red-900">{{ t('admin.smsPage.lastErrors') }}</p>
+              <ul class="mt-2 space-y-1 text-xs text-red-800" dir="ltr">
+                <li v-for="(err, idx) in dailyResult.errors" :key="idx">{{ err }}</li>
               </ul>
             </div>
           </div>

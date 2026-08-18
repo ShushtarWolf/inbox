@@ -42,6 +42,21 @@ describe('toKavenegarToken10', () => {
     expect(out).toMatch(/اینباکس|ادمین|تهران|درخواست/)
   })
 
+  it('strips URL punctuation so token10 cannot carry a tappable https link', () => {
+    const body = [
+      'صاحب باشگاه عزیز',
+      'شما از سایت اینباکس رزرو دارید',
+      '',
+      'https://inboxs.ir/owner/calendar',
+    ].join('\n')
+    const out = toKavenegarToken10(body)
+    expect(out).not.toContain('://')
+    expect(out).not.toContain('/')
+    expect(out).not.toContain('.')
+    expect(out.length).toBeLessThanOrEqual(TOKEN10_MAX)
+    expect((out.match(/ /g) || []).length).toBeLessThanOrEqual(TOKEN10_MAX_SPACES)
+  })
+
   it('strips fa-IR thousand separators from withdraw amounts', () => {
     const body =
       'برداشت ورزشکار | الهه ربیعی | ۵۰٬۰۰۰ تومان | شبا ۹۲۰۱ | اقدام در ادمین | اینباکس'

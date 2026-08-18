@@ -213,32 +213,30 @@ describe('SMS templates', () => {
     ).toContain('شارژ کیف پول')
   })
 
-  it('renders owner daily reservation digest in the agreed multi-line format', () => {
+  it('renders a short owner daily SMS with the calendar URL and no booking list', () => {
     expect(
       renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {
+        calendarUrl: 'https://inboxs.ir/owner/calendar',
         clubName: 'بهناز',
-        date: '1405/05/25',
-        lines: [
-          { court: 'زمین ۱', start: '09:00', end: '10:00', guest: 'علی رضایی' },
-          { court: 'زمین ۱', start: '10:00', end: '11:00', guest: 'سارا محمدی' },
-          { court: 'زمین ۲', start: '18:00', end: '19:00', guest: 'حمید افقه' },
-          { court: 'زمین ۳', start: '19:00', end: '20:00', guest: 'مهمان (۰۹۱۲۱۲۳۴۵۶۷)' },
-        ],
-        count: 4,
+        lines: [{ court: 'زمین ۱', start: '09:00', guest: 'علی رضایی' }],
       }),
     ).toBe(
       [
-        'یادآوری رزرو — باشگاه بهناز',
-        'تاریخ: ۱۴۰۵/۰۵/۲۵',
+        'صاحب باشگاه عزیز',
+        'شما از سایت اینباکس رزرو دارید',
         '',
-        '• زمین ۱ | ۰۹:۰۰–۱۰:۰۰ | علی رضایی',
-        '• زمین ۱ | ۱۰:۰۰–۱۱:۰۰ | سارا محمدی',
-        '• زمین ۲ | ۱۸:۰۰–۱۹:۰۰ | حمید افقه',
-        '• زمین ۳ | ۱۹:۰۰–۲۰:۰۰ | مهمان (۰۹۱۲۱۲۳۴۵۶۷)',
-        '',
-        'جمع: ۴ رزرو',
-        'اینباکس',
+        'https://inboxs.ir/owner/calendar',
       ].join('\n'),
     )
+  })
+
+  it('defaults the owner calendar URL to NUXT_PUBLIC_SITE_URL or inboxs.ir', () => {
+    const prev = process.env.NUXT_PUBLIC_SITE_URL
+    delete process.env.NUXT_PUBLIC_SITE_URL
+    expect(renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {})).toContain('https://inboxs.ir/owner/calendar')
+    process.env.NUXT_PUBLIC_SITE_URL = 'https://example.test/'
+    expect(renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {})).toContain('https://example.test/owner/calendar')
+    if (prev === undefined) delete process.env.NUXT_PUBLIC_SITE_URL
+    else process.env.NUXT_PUBLIC_SITE_URL = prev
   })
 })
