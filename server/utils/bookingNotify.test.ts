@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const createInAppNotification = vi.fn()
 const sendNotification = vi.fn()
 const resolveSmsProvider = vi.fn()
+const sendSms = vi.fn()
 
 vi.mock('./notify', () => ({
   createInAppNotification: (...args: unknown[]) => createInAppNotification(...args),
@@ -11,6 +12,10 @@ vi.mock('./notify', () => ({
 
 vi.mock('#shared/sms.ts', () => ({
   resolveSmsProvider: () => resolveSmsProvider(),
+}))
+
+vi.mock('./sms/service', () => ({
+  sendSms: (...args: unknown[]) => sendSms(...args),
 }))
 
 import {
@@ -85,6 +90,7 @@ describe('bookingNotify SMS', () => {
     process.env.ADMIN_ALERT_SMS = 'false'
     createInAppNotification.mockResolvedValue(undefined)
     sendNotification.mockResolvedValue({ sent: false, logged: true })
+    sendSms.mockResolvedValue({ sent: false, logged: true })
     resolveSmsProvider.mockReturnValue('log')
   })
 
@@ -92,6 +98,7 @@ describe('bookingNotify SMS', () => {
     vi.clearAllMocks()
     delete process.env.ADMIN_ALERT_SMS
     delete process.env.ADMIN_ALERT_PHONE
+    delete process.env.KAVENEGAR_TEMPLATE_PAY_LINK
   })
 
   it('alerts platform admin even when guest SMS is skipped', async () => {
@@ -314,6 +321,47 @@ describe('bookingNotify SMS', () => {
     })
     expect(String(smsCall?.[0].data.trackingCode)).toMatch(/^\d{7}$/)
     expect(String(smsCall?.[0].data.receiptUrl)).toContain('/r/')
+  })
+
+  it('puts pay pin and pay URL on desk confirmed SMS data', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      guestName: 'حمید افقه',
+      paymentPaid: false,
+      payPin: 'ab12cd9x',
+      payUrl: 'https://inboxs.ir/p/ab12cd9x',
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0].data).toMatchObject({
+      payPin: 'ab12cd9x',
+      payUrl: 'https://inboxs.ir/p/ab12cd9x',
+      paymentPaid: false,
+    })
+    expect(sendSms).not.toHaveBeenCalled()
+  })
+
+  it('sends a tappable pay-link lookup SMS when the panel template is set', async () => {
+    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'inbox-pay'
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+    sendSms.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      paymentPaid: false,
+      payPin: 'ab12cd9x',
+      payUrl: 'https://inboxs.ir/p/ab12cd9x',
+    })
+
+    expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
+      to: '09129876543',
+      body: 'https://inboxs.ir/p/ab12cd9x',
+      lookup: { template: 'inbox-pay', token: 'ab12cd9x' },
+    }))
   })
 
   it('sends owner paid SMS with guest, amount, time, and court', async () => {

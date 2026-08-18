@@ -13,6 +13,7 @@ import {
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
+import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import {
   checkedBookedSlots,
   deskReserveSelectionIssue,
@@ -60,7 +61,7 @@ interface OwnerCalendarSlot {
   booking?: OwnerCalendarBooking | null
 }
 
-type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
+type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
 
 const { t, locale } = useI18n()
 const { fetchErrorMessage } = useFetchError()
@@ -88,6 +89,8 @@ const cancelReason = ref('')
 const refundToWallet = ref(true)
 const saving = ref(false)
 const actionError = ref('')
+const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
+const payLinkCopied = ref(false)
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
 
@@ -973,6 +976,23 @@ async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
   await doReserve()
 }
 
+const payLinkWhatsappHref = computed(() => {
+  const link = lastPayLink.value
+  if (!link) return ''
+  return whatsappHrefForIranMobile(link.mobile, t('owner.payLinkWhatsappText', { url: link.url }))
+})
+
+async function copyPayLink() {
+  const url = lastPayLink.value?.url
+  if (!url || !import.meta.client) return
+  try {
+    await navigator.clipboard.writeText(url)
+    payLinkCopied.value = true
+  } catch {
+    payLinkCopied.value = false
+  }
+}
+
 function openCommentsForm() {
   actionError.value = ''
   activePanel.value = 'comments'
@@ -1028,6 +1048,8 @@ function closeMenu() {
   resetPanels()
   cancelReason.value = ''
   actionError.value = ''
+  lastPayLink.value = null
+  payLinkCopied.value = false
   if (!multiSelectMode.value) clearSelection()
 }
 
@@ -1147,12 +1169,13 @@ async function doReserve() {
       list.push(slot)
       groups.set(key, list)
     }
+    let payLink: { payUrl?: string; payPin?: string } = {}
     for (const group of groups.values()) {
       const range = bookingTimeRange(group)
       for (let i = 0; i < group.length; i++) {
         const slot = group[i]!
         const isLast = i === group.length - 1
-        await $fetch('/api/owner/reserve', {
+        const result = await $fetch<{ payUrl?: string; payPin?: string }>('/api/owner/reserve', {
           method: 'POST',
           body: {
             slotId: slot.id,
@@ -1175,9 +1198,26 @@ async function doReserve() {
             notifyEndTime: range.endTime,
           },
         })
+        if (result.payUrl && result.payPin) {
+          payLink = { payUrl: result.payUrl, payPin: result.payPin }
+        }
       }
     }
-    await finishSlotAction()
+    if (deskPayMode.value === 'unpaid' && payLink.payUrl && payLink.payPin) {
+      lastPayLink.value = {
+        url: payLink.payUrl,
+        pin: payLink.payPin,
+        mobile: form.guestMobile,
+      }
+      payLinkCopied.value = false
+      multiSelectMode.value = false
+      clearSelection()
+      await refresh()
+      showMenu.value = true
+      activePanel.value = 'payLinkSent'
+    } else {
+      await finishSlotAction()
+    }
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
     await refresh()
@@ -2444,6 +2484,35 @@ function slotBarColor(status: string) {
               @click="confirmDeskPay('unpaid')"
             >
               {{ saving && deskPayMode === 'unpaid' ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'payLinkSent'" class="venus-modal-panel !border-0">
+          <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
+            <h3 class="font-bold text-brand-navy">{{ t('owner.payLinkSentTitle') }}</h3>
+          </div>
+          <div class="venus-modal-panel-body venus-form-stack !pt-1">
+            <p class="text-start text-sm text-brand-gray-600">{{ t('owner.payLinkSentHint') }}</p>
+            <p v-if="lastPayLink" class="break-all text-start text-sm font-bold text-brand-navy" dir="ltr">
+              {{ lastPayLink.url }}
+            </p>
+          </div>
+          <div class="venus-modal-footer space-y-2">
+            <button type="button" class="canva-gate-btn-primary w-full" @click="copyPayLink">
+              {{ payLinkCopied ? t('owner.payLinkCopied') : t('owner.copyPayLink') }}
+            </button>
+            <a
+              v-if="payLinkWhatsappHref"
+              class="canva-gate-btn-secondary flex w-full items-center justify-center"
+              :href="payLinkWhatsappHref"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ t('owner.sendPayLinkWhatsapp') }}
+            </a>
+            <button type="button" class="canva-gate-btn-secondary w-full" @click="closeMenu">
+              {{ t('common.close') }}
             </button>
           </div>
         </div>

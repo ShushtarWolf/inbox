@@ -30,6 +30,7 @@ export async function sendSms(opts: {
   purpose?: 'otp' | 'notify' | 'campaign'
   /** Optional audit tag (e.g. BOOKING_CONFIRMED) stored on SmsLog.campaignName in log mode. */
   template?: string
+  lookup?: { template: string; token?: string; token2?: string }
 }) {
   return getSmsService().send(opts)
 }

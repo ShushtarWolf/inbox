@@ -41,12 +41,13 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
         `Payment: ${paid}`,
         address ? `Address: ${address}` : '',
         mapsUrl,
-        data.receiptUrl ? String(data.receiptUrl) : '',
+        data.payUrl ? String(data.payUrl) : data.receiptUrl ? String(data.receiptUrl) : '',
       ].filter(Boolean).join('\n')
+      const payHref = String(data.payUrl || data.receiptUrl || '')
       return {
         subject: `Booking confirmed — ${clubName}`,
         text: `${label} confirmed at ${clubName}\nDate: ${date}\nTime: ${timeLabel}\n${extras}`,
-        html: `<p><strong>${esc(label)} confirmed</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(timeLabel)}${courtName ? `<br>Court: ${esc(courtName)}` : ''}</p><p>Payment: ${esc(paid)}</p>${address ? `<p>${esc(address)}</p>` : ''}${mapsUrl ? `<p><a href="${esc(mapsUrl)}">${esc(mapsUrl)}</a></p>` : ''}`,
+        html: `<p><strong>${esc(label)} confirmed</strong> at ${esc(clubName)}</p><p>Date: ${esc(date)}<br>Time: ${esc(timeLabel)}${courtName ? `<br>Court: ${esc(courtName)}` : ''}</p><p>Payment: ${esc(paid)}</p>${address ? `<p>${esc(address)}</p>` : ''}${mapsUrl ? `<p><a href="${esc(mapsUrl)}">${esc(mapsUrl)}</a></p>` : ''}${payHref ? `<p><a href="${esc(payHref)}">${esc(payHref)}</a></p>` : ''}`,
       }
     }
     case 'BOOKING_CANCELLED': {

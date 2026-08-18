@@ -60,8 +60,13 @@ function bookingDetailLines(data: Record<string, unknown>) {
   if (maps) lines.push(maps)
   if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
   if (receiptUrl) {
-    if (data.paymentPaid !== true) lines.push('لینک پرداخت:')
-    lines.push(receiptUrl)
+    if (data.paymentPaid !== true && !String(data.payPin || '').trim()) lines.push('لینک پرداخت:')
+    if (data.paymentPaid === true || !String(data.payPin || '').trim()) lines.push(receiptUrl)
+  }
+  const payPin = String(data.payPin || '').trim()
+  if (payPin && data.paymentPaid !== true) {
+    lines.push('کد پرداخت')
+    lines.push(payPin)
   }
   return lines
 }
@@ -84,6 +89,7 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       const courtBit = court ? ` (${court})` : ''
       const tracking = String(data.trackingCode || '').trim()
       const receiptUrl = String(data.receiptUrl || '').trim()
+      const payPin = String(data.payPin || '').trim()
       const paid = data.paymentPaid === true
       const whenLine = date && start
         ? `برای تاریخ ${date} ساعت ${start}${courtBit} با موفقیت انجام شد.`
@@ -94,7 +100,10 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
         whenLine,
       ]
       if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
-      if (!paid && receiptUrl) {
+      if (!paid && payPin) {
+        lines.push('کد پرداخت')
+        lines.push(payPin)
+      } else if (!paid && receiptUrl) {
         lines.push('لینک پرداخت:')
         lines.push(receiptUrl)
       } else if (receiptUrl) {

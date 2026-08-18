@@ -100,6 +100,8 @@ Rejected when `PAYMENTS_MODE=pay_at_club`. Refunds still credit wallet on cancel
 
 Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PENDING_ONLINE` / `FAILED`). Public athlete flow offers **پرداخت آنلاین** when `PAYMENTS_MODE` is `test` or `live` (not when `pay_at_club`).
 
+Owner desk **ارسال لینک پرداخت** (not shown in `pay_at_club` — that button is **رزرو بدون دریافت وجه**) creates an unpaid IPG booking, SMS a token10-safe pay pin, and shows a copy/WhatsApp URL to `https://inboxs.ir/p/{pin}` (opens the receipt Pay CTA). Checkout still requires `PAYMENTS_MODE=test` or `live`.
+
 ## Cancellation refunds
 
 `refundPaymentForCancellation` (all cancel endpoints):

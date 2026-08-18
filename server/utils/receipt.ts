@@ -1,4 +1,5 @@
 import { siteUrl } from './email'
+import { payPath } from '#shared/payPin.ts'
 import { bookingTrackingCode, receiptPath, signReceiptToken } from '#shared/receiptToken.ts'
 
 export function receiptSigningSecret() {
@@ -8,6 +9,10 @@ export function receiptSigningSecret() {
 export function receiptUrlForBooking(bookingId: string) {
   const token = signReceiptToken(bookingId, receiptSigningSecret())
   return `${siteUrl().replace(/\/$/, '')}${receiptPath(token)}`
+}
+
+export function payUrlForPin(pin: string) {
+  return `${siteUrl().replace(/\/$/, '')}${payPath(pin)}`
 }
 
 export { bookingTrackingCode }

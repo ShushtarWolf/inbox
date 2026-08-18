@@ -37,6 +37,8 @@ export interface SmsProvider {
     clubId?: string
     purpose?: SmsPurpose
     template?: string
+    /** Dedicated Verify Lookup (e.g. pay-link panel template with %token%). */
+    lookup?: { template: string; token?: string; token2?: string }
   }): Promise<SmsResult>
   sendBulk(opts: {
     recipients: SmsRecipient[]

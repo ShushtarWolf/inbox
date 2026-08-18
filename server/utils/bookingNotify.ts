@@ -3,8 +3,9 @@ import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
 import { createInAppNotification, sendNotification } from './notify'
-import { bookingTrackingCode, receiptUrlForBooking } from './receipt'
+import { bookingTrackingCode, payUrlForPin, receiptUrlForBooking } from './receipt'
 import { renderSmsTemplate } from './sms/templates'
+import { sendSms } from './sms/service'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
 
@@ -27,6 +28,9 @@ type BookingNotifyOpts = {
   guestName?: string | null
   trackingCode?: string | null
   receiptUrl?: string | null
+  /** Alphanumeric desk pay pin — SMS-safe; /p/:pin opens the receipt. */
+  payPin?: string | null
+  payUrl?: string | null
   /** Paid amount in product currency units (same as Payment.amount). */
   amountPaid?: number | null
   /** Skip athlete/guest channels but still alert platform admin. */
@@ -172,9 +176,38 @@ async function safeSms(
   return notifySmsSoft(phone, template, data, clubId)
 }
 
+function payLinkLookupTemplate() {
+  return process.env.KAVENEGAR_TEMPLATE_PAY_LINK?.trim() || ''
+}
+
+/** Optional second SMS: Kavenegar panel template with https://inboxs.ir/p/%token% (tappable URL). */
+async function sendPayLinkLookup(
+  phone: string | null | undefined,
+  payPin: string,
+  payUrl: string,
+  clubId?: string,
+) {
+  const template = payLinkLookupTemplate()
+  if (!phone || !template || !payPin) return
+  try {
+    await sendSms({
+      to: phone,
+      body: payUrl || payPin,
+      clubId,
+      purpose: 'notify',
+      template: 'BOOKING_CONFIRMED',
+      lookup: { template, token: payPin },
+    })
+  } catch (err) {
+    console.error('[bookingNotify:sms] BOOKING_PAY_LINK', err)
+  }
+}
+
 function bookingNotifyData(opts: BookingNotifyOpts) {
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
   const receiptUrl = opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
+  const payPin = String(opts.payPin || '').trim()
+  const payUrl = opts.payUrl || (payPin ? payUrlForPin(payPin) : '')
   return {
     kind: opts.kind,
     clubName: opts.clubName,
@@ -188,6 +221,8 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     guestName: opts.guestName || '',
     trackingCode,
     receiptUrl,
+    payPin,
+    payUrl,
     amountPaid: opts.amountPaid ?? null,
   }
 }
@@ -229,6 +264,9 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
     }
     await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
     await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
+    if (!opts.skipGuest && opts.paymentPaid !== true && data.payPin) {
+      await sendPayLinkLookup(opts.phone, String(data.payPin), String(data.payUrl || ''), opts.clubId)
+    }
   }
   await notifyAdminSms('ADMIN_BOOKING_CONFIRMED', adminBookingData(opts), opts.clubId)
 }

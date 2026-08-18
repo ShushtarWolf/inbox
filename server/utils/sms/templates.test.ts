@@ -145,7 +145,7 @@ describe('SMS templates', () => {
         startTime: '08:00',
         courtName: 'زمین ۳',
         trackingCode: '1057128',
-        receiptUrl: 'https://inboxs.ir/r/abc',
+        payPin: 'ab12cd9x',
         paymentPaid: false,
       }),
     ).toBe(
@@ -154,8 +154,8 @@ describe('SMS templates', () => {
         'رزرو شما در دانشگاه علم وصنعت',
         'برای تاریخ ۱۴۰۵/۰۵/۲۳ ساعت ۰۸:۰۰ (زمین ۳) با موفقیت انجام شد.',
         'کد رهگیری: ۱۰۵۷۱۲۸',
-        'لینک پرداخت:',
-        'https://inboxs.ir/r/abc',
+        'کد پرداخت',
+        'ab12cd9x',
       ].join('\n'),
     )
     expect(

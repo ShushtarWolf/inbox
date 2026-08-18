@@ -37,6 +37,7 @@ Copy/paste checklist. Mark each row when set.
 | ☐ | `KAVENEGAR_API_KEY` | from Kavenegar panel | Never commit |
 | ☐ | `KAVENEGAR_TEMPLATE` | e.g. `inbox-verify` | **Preferred for OTP** (Verify Lookup). Panel body: `code: %token%` then `کد تایید اینباکس` then `@inboxs.ir #%token2%` |
 | ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` (default if unset) | **Required for booking paid/cancel/CRM SMS.** Panel template body must be exactly `%token10%`. Free-text `sms/send` fails on service lines (`ارسال کننده نامعتبر است`). |
+| ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | e.g. `inbox-pay` | **Optional.** Panel body must include `https://inboxs.ir/p/%token%` so desk “ارسال لینک پرداخت” SMS is tappable. Without it, the owner still gets a copy/WhatsApp URL and the athlete gets a pay pin. |
 | ☐ | `KAVENEGAR_SENDER` | approved line | Fallback only for free-text; OTP without template. Lookup uses the line attached to the template. |
 | ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / cashout / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
 

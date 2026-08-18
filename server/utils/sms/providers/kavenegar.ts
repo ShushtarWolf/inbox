@@ -110,6 +110,10 @@ export function chunkSmsBodyForToken10(body: string, max = TOKEN10_MAX): string[
   return chunks
 }
 
+export function toKavenegarLookupToken(raw: string | undefined) {
+  return String(raw || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)
+}
+
 function getApiKey(): string | undefined {
   const key = process.env.KAVENEGAR_API_KEY?.trim()
   return key || undefined
@@ -190,10 +194,28 @@ async function kavenegarRequest(path: string, params: Record<string, string>, me
  *   service lines that only allow lookup (prod sender 10004347 returns 412 on sms/send)
  * - fallback: POST sms/send when notify template explicitly disabled (KAVENEGAR_TEMPLATE_NOTIFY=)
  */
-async function sendViaKavenegar(to: string, body: string, purpose?: string) {
+async function sendViaKavenegar(
+  to: string,
+  body: string,
+  purpose?: string,
+  lookup?: { template: string; token?: string; token2?: string },
+) {
   const receptor = normalizeReceptor(to)
   const otpTemplate = process.env.KAVENEGAR_TEMPLATE?.trim()
   const token = extractOtpToken(body)
+
+  if (lookup?.template) {
+    const lookupToken = toKavenegarLookupToken(lookup.token)
+    const lookupToken2 = toKavenegarLookupToken(lookup.token2)
+    const params: Record<string, string> = {
+      receptor,
+      template: lookup.template,
+    }
+    if (lookupToken) params.token = lookupToken
+    if (lookupToken2) params.token2 = lookupToken2
+    if (!params.token && !params.token2) params.token = toKavenegarToken10(body).slice(0, 20)
+    return kavenegarRequest('verify/lookup.json', params)
+  }
 
   if (purpose === 'otp' && otpTemplate && token) {
     return kavenegarRequest('verify/lookup.json', {
@@ -229,7 +251,7 @@ export function kavenegarSmsProvider(): SmsProvider {
   const provider: SmsProvider = {
     name: 'live',
     async send(opts) {
-      const result = await sendViaKavenegar(opts.to, opts.body, opts.purpose)
+      const result = await sendViaKavenegar(opts.to, opts.body, opts.purpose, opts.lookup)
       if (opts.clubId) {
         await prisma.smsLog.create({
           data: {

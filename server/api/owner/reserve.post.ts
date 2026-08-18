@@ -1,5 +1,5 @@
 import { getPaymentsMode } from '#shared/payments.ts'
-import { isPaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { isOnlinePaymentsEnabled, isPaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   calculateSessionTotal,
@@ -20,6 +20,8 @@ import {
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
+import { assignBookingPayPin } from '../../utils/payPin'
+import { payUrlForPin } from '../../utils/receipt'
 import { activeSlotBooking, assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
@@ -42,6 +44,12 @@ function resolveDeskPaymentMethod(
 function resolveGuestMobile(raw?: string | null) {
   if (!raw?.trim()) return undefined
   return normalizeIranPhone(raw) || raw.trim()
+}
+
+async function deskPayLinkFields(bookingId: string, paymentStatus: string) {
+  if (!isOnlinePaymentsEnabled() || paymentStatus === 'PAID') return {}
+  const payPin = await assignBookingPayPin(bookingId)
+  return { payPin, payUrl: payUrlForPin(payPin) }
 }
 
 export default defineEventHandler(async (event) => {
@@ -339,6 +347,7 @@ export default defineEventHandler(async (event) => {
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
     const skipGuest = !phone || Boolean(body.skipNotify)
+    const payLink = await deskPayLinkFields(createdBooking.id, paymentStatus)
     const notifyBase = {
       userId: linkedUserId || undefined,
       phone,
@@ -354,6 +363,8 @@ export default defineEventHandler(async (event) => {
       guestName,
       amountPaid: totalAmount,
       skipGuest,
+      payPin: payLink.payPin,
+      payUrl: payLink.payUrl,
       ...clubNotifyLocation(club),
     }
     await notifyBookingConfirmed(notifyBase)
@@ -389,6 +400,8 @@ export default defineEventHandler(async (event) => {
         amountPaid: paidPayment?.amount ?? totalAmount,
       })
     }
+    return { ok: true, amount: totalAmount, paymentStatus, paymentMethod, ...payLink }
   }
-  return { ok: true, amount: totalAmount, paymentStatus, paymentMethod }
+  const payLink = await deskPayLinkFields(existing.id, paymentStatus)
+  return { ok: true, amount: totalAmount, paymentStatus, paymentMethod, ...payLink }
 })

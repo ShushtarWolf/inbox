@@ -472,6 +472,9 @@ model Booking {
   noShowAt      DateTime?
   checkedInAt   DateTime?
 
+  /** Desk pay-link pin for /p/:pin (letters+digits). Survives IPG payment-row replace. */
+  payPin String? @unique
+
   userId String?
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
   slotId String @unique
