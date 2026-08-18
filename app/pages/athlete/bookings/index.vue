@@ -351,6 +351,13 @@ const filteredItems = computed(() => {
 
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
+const historyEmptyTitle = computed(() =>
+  selectedDayIso.value ? t('athlete.historyEmptyDay') : t('athlete.historyEmptyMonth'),
+)
+const historyEmptyBody = computed(() =>
+  selectedDayIso.value ? t('athlete.historyEmptyDayBody') : t('athlete.historyEmptyMonthBody'),
+)
+
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
   if (item.status === 'CANCELLED') return 'cancelled'
   if (item.date < today()) return 'done'
@@ -484,8 +491,8 @@ function dateLine(item: HistoryItem) {
     <AppAsyncState :pending="pending" :error="error" :empty="Boolean(data) && !hasAnyBookings" skeleton-variant="table">
       <CanvaEmptyState
         v-if="!filteredItems.length"
-        :title="t('athlete.historyEmptyMonth')"
-        :body="t('booking.emptyState')"
+        :title="historyEmptyTitle"
+        :body="historyEmptyBody"
         doodle="seat"
       />
       <div v-else class="canva-history-card-grid">

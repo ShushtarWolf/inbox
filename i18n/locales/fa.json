@@ -327,6 +327,9 @@
     "historyCancel": "لغو کردن",
     "historyRebook": "رزرو مجدد",
     "historyEmptyMonth": "در این ماه رزروی نیست",
+    "historyEmptyMonthBody": "رزروی برای این ماه ثبت نشده.",
+    "historyEmptyDay": "در این روز رزروی نیست",
+    "historyEmptyDayBody": "رزروی برای این تاریخ ثبت نشده.",
     "historyEquipmentQty": "{qty} عدد {name}",
     "historyCourtQty": "{qty} زمین"
   },
