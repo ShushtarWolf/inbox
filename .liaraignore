@@ -24,3 +24,9 @@ canva-reference
 .inbox-dev
 # MVP pilot court photos ship from public/media/clubs/iust (not public/demo; not public/clubs — that shadowed /clubs)
 backups/
+scripts/debug-liara-deploy.mjs
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
