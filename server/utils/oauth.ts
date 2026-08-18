@@ -47,7 +47,15 @@ export async function upsertGoogleUser(profile: GoogleProfile, locale?: string) 
   })
 }
 
-export async function signInOAuthUser(event: H3Event, user: { id: string; email: string; name: string; nameEn?: string | null; role: string; locale: string }) {
+export async function signInOAuthUser(event: H3Event, user: {
+  id: string
+  email: string
+  name: string
+  nameEn?: string | null
+  role: string
+  locale: string
+  avatarUrl?: string | null
+}) {
   await setUserSession(event, { user: toSessionUser(user) })
   await touchLastLogin(user.id)
 }

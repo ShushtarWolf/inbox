@@ -67,8 +67,10 @@ export function useImageUpload(options?: { guest?: boolean }) {
   }
 
   function confirmRules(openFilePicker: () => void) {
+    // iOS only allows <input type="file">.click() in the same user gesture.
+    // Closing the sheet first (or deferring with nextTick) silently blocks the picker.
+    openFilePicker()
     showRules.value = false
-    nextTick(() => openFilePicker())
   }
 
   function dismissFailure() {

@@ -4,16 +4,17 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const localePath = useLocalePath()
 const { t } = useI18n()
-const { displayName, avatarUrl, initials, firstName, user, logout, fetch: fetchAuth } = useAuth()
+const { displayName, avatarUrl, initials, firstName, user, logout } = useAuth()
 const { formatCurrency, formatNumber } = useFormatters()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending } = useAuthedFetch('/api/bookings/mine')
 const { data: wallet, pending: walletPending } = useAuthedFetch('/api/wallet')
+const showPhoto = ref(true)
 
-onMounted(() => {
-  if (!user.value) fetchAuth()
-})
+watch(avatarUrl, (url) => {
+  showPhoto.value = Boolean(url)
+}, { immediate: true })
 
 const phone = computed(() => user.value?.phone || '')
 
@@ -79,7 +80,13 @@ async function handleLogout() {
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
-          <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover" />
+          <img
+            v-if="avatarUrl && showPhoto"
+            :src="avatarUrl"
+            alt=""
+            class="h-full w-full object-cover"
+            @error="showPhoto = false"
+          />
           <span v-else>{{ initials }}</span>
         </div>
         <div class="min-w-0 text-start">

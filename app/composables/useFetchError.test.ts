@@ -24,6 +24,11 @@ describe('fetchErrorMessage settings PATCH', () => {
     expect(fetchErrorMessage(err('Some unknown failure'), 'مشکلی پیش آمد', t))
       .toBe('مشکلی پیش آمد')
   })
+
+  it('maps profile phone conflicts', () => {
+    expect(fetchErrorMessage(err('Invalid phone'), 'مشکلی پیش آمد', t)).toBe('i18n:auth.invalidPhone')
+    expect(fetchErrorMessage(err('Phone already registered'), 'مشکلی پیش آمد', t)).toBe('i18n:auth.phoneTaken')
+  })
 })
 
 describe('fetchErrorMessage desk reserve conflicts', () => {

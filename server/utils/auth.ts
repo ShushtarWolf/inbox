@@ -66,6 +66,7 @@ export function toSessionUser(user: {
   role: string
   secondaryRole?: string | null
   locale: string
+  avatarUrl?: string | null
 }) {
   return {
     id: user.id,
@@ -75,6 +76,7 @@ export function toSessionUser(user: {
     role: user.role,
     secondaryRole: user.secondaryRole || null,
     locale: user.locale,
+    avatarUrl: user.avatarUrl || null,
   }
 }
 

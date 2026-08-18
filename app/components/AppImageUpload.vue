@@ -26,6 +26,16 @@ const {
   upload,
 } = useImageUpload({ guest: props.guest })
 const inputRef = ref<HTMLInputElement | null>(null)
+const broken = ref(false)
+
+watch(() => props.modelValue, () => {
+  broken.value = false
+})
+
+const previewSrc = computed(() => {
+  if (props.modelValue && !broken.value) return props.modelValue
+  return props.placeholder
+})
 
 async function onFileChange(event: Event) {
   const target = event.target as HTMLInputElement
@@ -41,7 +51,7 @@ async function onFileChange(event: Event) {
   <div class="space-y-2">
     <p v-if="label" class="text-sm font-bold">{{ label }}</p>
     <div class="flex items-center gap-3">
-      <img :src="modelValue || placeholder" alt="" class="h-20 w-20 border border-brand-gray-100 object-cover shadow-venus-sm" />
+      <img :src="previewSrc" alt="" class="h-20 w-20 border border-brand-gray-100 object-cover shadow-venus-sm" @error="broken = true" />
       <div class="flex flex-col gap-2">
         <button type="button" class="btn-secondary text-sm" :disabled="uploading" @click="askPick">
           {{ uploading ? t('upload.uploading') : t('upload.choose') }}
@@ -50,7 +60,7 @@ async function onFileChange(event: Event) {
           {{ t('upload.remove') }}
         </button>
       </div>
-      <input ref="inputRef" type="file" :accept="accept" class="hidden" @change="onFileChange" />
+      <input ref="inputRef" type="file" :accept="accept" class="sr-only" @change="onFileChange" />
     </div>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
     <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>

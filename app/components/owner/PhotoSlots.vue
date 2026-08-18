@@ -94,7 +94,7 @@ function onCloseRules() {
       ref="inputRef"
       type="file"
       :accept="accept"
-      class="hidden"
+      class="sr-only"
       @change="onFileChange"
     >
     <AppUploadSheets

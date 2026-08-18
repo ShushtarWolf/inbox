@@ -1,6 +1,11 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { fetch: fetchAuth } = useAuth()
+
+onMounted(() => {
+  fetchAuth()
+})
 
 /** Canva hub bottom nav — favorites page is OUT OF MVP (hide, do not build). */
 const nav = computed(() => [

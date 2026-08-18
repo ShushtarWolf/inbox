@@ -3,6 +3,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const { t } = useI18n()
 const { user, fetch, displayName, avatarUrl: authAvatar, initials } = useAuth()
+const { fetchErrorMessage } = useFetchError()
 const { formatCurrency } = useFormatters()
 const { data: wallet, pending: walletPending } = useAuthedFetch('/api/wallet')
 const { multiReady } = useSmsCapability()
@@ -10,22 +11,59 @@ const name = ref('')
 const phone = ref('')
 const avatarUrl = ref('')
 const saving = ref(false)
+const savingAvatar = ref(false)
 const saved = ref(false)
+const saveError = ref('')
+const showHeroPhoto = ref(true)
 
 const addMobileHint = computed(() =>
   multiReady.value ? t('athlete.addMobileForSmsMulti') : t('athlete.addMobileForSmsSingle'),
 )
 
+const heroPhoto = computed(() => avatarUrl.value || authAvatar.value || '')
+
+watch(heroPhoto, (url) => {
+  showHeroPhoto.value = Boolean(url)
+})
+
 onMounted(async () => {
   await fetch()
   name.value = user.value?.name || ''
   phone.value = user.value?.phone || ''
-  avatarUrl.value = user.value?.avatarUrl || ''
+  if (!avatarUrl.value) {
+    avatarUrl.value = user.value?.avatarUrl || ''
+  } else if (avatarUrl.value !== (user.value?.avatarUrl || '')) {
+    await persistAvatar(avatarUrl.value)
+  }
 })
+
+async function persistAvatar(url: string) {
+  savingAvatar.value = true
+  saveError.value = ''
+  saved.value = false
+  try {
+    await $fetch('/api/profile', {
+      method: 'PATCH',
+      body: { avatarUrl: url || null },
+    })
+    await fetch()
+    saved.value = true
+  } catch (err) {
+    saveError.value = fetchErrorMessage(err, t('common.error'))
+  } finally {
+    savingAvatar.value = false
+  }
+}
+
+async function onAvatarChange(url: string) {
+  avatarUrl.value = url
+  await persistAvatar(url)
+}
 
 async function save() {
   saving.value = true
   saved.value = false
+  saveError.value = ''
   try {
     await $fetch('/api/profile', {
       method: 'PATCH',
@@ -33,6 +71,8 @@ async function save() {
     })
     await fetch()
     saved.value = true
+  } catch (err) {
+    saveError.value = fetchErrorMessage(err, t('common.error'))
   } finally {
     saving.value = false
   }
@@ -46,7 +86,13 @@ async function save() {
       <div class="flex items-center gap-4">
         <!-- Canva hub uses circular avatar -->
         <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
-          <img v-if="avatarUrl || authAvatar" :src="avatarUrl || authAvatar || ''" alt="" class="h-full w-full object-cover" />
+          <img
+            v-if="heroPhoto && showHeroPhoto"
+            :src="heroPhoto"
+            alt=""
+            class="h-full w-full object-cover"
+            @error="showHeroPhoto = false"
+          />
           <span v-else>{{ initials }}</span>
         </div>
         <div class="min-w-0 text-start">
@@ -61,7 +107,8 @@ async function save() {
     </section>
 
     <div class="canva-panel space-y-3">
-      <AppImageUpload v-model="avatarUrl" :label="t('register.profilePhoto')" />
+      <AppImageUpload :model-value="avatarUrl" :label="t('register.profilePhoto')" @update:model-value="onAvatarChange" />
+      <p v-if="savingAvatar" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
       <AppFormField :label="t('common.name')">
         <input v-model="name" class="neo-input" />
       </AppFormField>
@@ -69,8 +116,9 @@ async function save() {
         <input v-model="phone" dir="ltr" class="neo-input tabular-nums" />
       </AppFormField>
       <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ addMobileHint }}</p>
-      <p v-if="saved" class="text-sm font-bold text-emerald-700">{{ t('common.saved') }}</p>
-      <button type="button" class="canva-black-cta" :disabled="saving" @click="save">
+      <p v-if="saveError" class="text-sm font-bold text-brand-primary">{{ saveError }}</p>
+      <p v-else-if="saved" class="text-sm font-bold text-emerald-700">{{ t('common.saved') }}</p>
+      <button type="button" class="canva-black-cta" :disabled="saving || savingAvatar" @click="save">
         {{ saving ? t('common.loading') : t('common.save') }}
       </button>
     </div>

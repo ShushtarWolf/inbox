@@ -1,3 +1,5 @@
+import { toSessionUser } from '../../utils/auth'
+
 function isValidMediaUrl(url: string) {
   return /^https?:\/\/.+/i.test(url) || url.startsWith('/uploads/')
 }
@@ -35,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'photo must be a valid URL' })
   }
 
-  return prisma.coach.update({
+  const updatedCoach = await prisma.coach.update({
     where: { id: coach.id },
     data: {
       bioFa: body.bioFa,
@@ -46,4 +48,10 @@ export default defineEventHandler(async (event) => {
       credentialsJson: body.credentials !== undefined ? JSON.stringify(body.credentials) : undefined,
     },
   })
+
+  const sessionUser = await prisma.user.findUnique({ where: { id: user.id } })
+  if (sessionUser) {
+    await setUserSession(event, { user: toSessionUser(sessionUser) })
+  }
+  return updatedCoach
 })

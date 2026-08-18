@@ -53,6 +53,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Invalid credentials': 'auth.invalidCredentials',
     'Invalid OTP': 'auth.invalidOtp',
     'Invalid phone': 'auth.invalidPhone',
+    'Phone already registered': 'auth.phoneTaken',
     'Invalid or expired token': 'auth.resetFailed',
     'Invalid ticket body': 'contact.messageNeedBody',
     'Invalid email': 'contact.messageEmailInvalid',

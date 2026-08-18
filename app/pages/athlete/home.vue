@@ -7,7 +7,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { firstName, displayName, user, fetch: fetchAuth } = useAuth()
+const { firstName, displayName } = useAuth()
 
 const sport = ref('')
 const city = ref('')
@@ -95,9 +95,6 @@ function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
   return isOfficialPilotClub(club)
 }
 
-onMounted(() => {
-  if (!user.value) fetchAuth()
-})
 </script>
 
 <template>

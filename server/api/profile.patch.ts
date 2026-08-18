@@ -1,3 +1,4 @@
+import { toSessionUser } from '../utils/auth'
 import { normalizeIranPhone } from '#shared/phone.ts'
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
       name: body.name?.trim() || undefined,
@@ -33,5 +34,6 @@ export default defineEventHandler(async (event) => {
       avatarUrl: body.avatarUrl !== undefined ? (body.avatarUrl?.trim() || null) : undefined,
     },
   })
-  return { ok: true }
+  await setUserSession(event, { user: toSessionUser(updated) })
+  return { ok: true, avatarUrl: updated.avatarUrl || null }
 })
