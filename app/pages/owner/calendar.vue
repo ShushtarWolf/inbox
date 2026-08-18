@@ -544,28 +544,6 @@ function setSelectionReserveError() {
   actionError.value = t('booking.errors.slotNotAvailable')
 }
 
-function openFabReserve() {
-  if (canBatchReserve.value) {
-    openSelectionReserve()
-    return
-  }
-  if (selectedSlotsFull.value.length) {
-    setSelectionReserveError()
-    return
-  }
-  multiSelectMode.value = true
-  actionError.value = ''
-}
-
-function openFabBlock() {
-  if (canBatchBlock.value) {
-    openSelectionBlock()
-    return
-  }
-  multiSelectMode.value = true
-  actionError.value = ''
-}
-
 const guestFullName = computed({
   get() {
     return formatGuestDisplayName(form.guestName, form.guestFamily)
@@ -855,7 +833,7 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openBookedSlot(fullSlot)
     return
   }
-  // Whole FREE cell toggles multi-select; reserve/block open via FAB or selection bar.
+  // Whole FREE cell toggles multi-select; reserve/block open via the selection bar.
   bookedSiblingIds.value = []
   multiSelectMode.value = true
   toggleFreeSlot(fullSlot)
@@ -1879,7 +1857,6 @@ function slotBarColor(status: string) {
 
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
-          <div class="canva-cal-date-nav-gutter" aria-hidden="true" />
           <div class="canva-cal-date-nav-center">
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
               <AppIcon name="chevron_right" size="sm" />
@@ -1894,14 +1871,6 @@ function slotBarColor(status: string) {
             </button>
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
               <AppIcon name="chevron_left" size="sm" />
-            </button>
-          </div>
-          <div class="canva-cal-fab">
-            <button type="button" class="canva-cal-fab-btn canva-cal-fab-block" @click="openFabBlock">
-              {{ t('owner.block') }}
-            </button>
-            <button type="button" class="canva-cal-fab-btn canva-cal-fab-reserve" @click="openFabReserve">
-              {{ t('owner.reserve') }}
             </button>
           </div>
         </div>

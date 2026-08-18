@@ -1844,13 +1844,9 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9) — date centered; FABs sit beside court cells */
+  /* Canva multi-court today grid (home page 9) — date centered above the court cells */
   .canva-cal-date-nav {
-    @apply relative mb-2 grid min-h-[4.75rem] items-start gap-1 pt-0.5 text-sm font-bold text-[#3B82F6];
-    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-  }
-  .canva-cal-date-nav-gutter {
-    min-height: 1px;
+    @apply relative mb-2 flex min-h-[2.5rem] items-center justify-center pt-0.5 text-sm font-bold text-[#3B82F6];
   }
   .canva-cal-date-nav-center {
     @apply flex min-w-0 items-center justify-center gap-1;
@@ -1872,19 +1868,6 @@
   }
   .canva-cal-body {
     @apply block;
-  }
-  .canva-cal-fab {
-    @apply z-[2] flex w-auto min-w-[4.75rem] flex-col items-stretch gap-1;
-  }
-  .canva-cal-fab-btn {
-    @apply px-1 py-2 text-[10px] font-bold leading-tight text-white;
-    border-radius: var(--sz-canva-radius);
-  }
-  .canva-cal-fab-reserve {
-    @apply bg-brand-primary;
-  }
-  .canva-cal-fab-block {
-    @apply bg-[#1A1A18];
   }
   .canva-cal-grid-scroll {
     @apply min-w-0 flex-1 overflow-x-auto pb-1;
@@ -2680,27 +2663,12 @@
     gap: 1.5rem 2rem;
   }
   .canva-cal-date-nav {
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 3.25rem;
-    align-items: center;
+    min-height: 2.75rem;
     color: #2c2c2a;
-  }
-  .canva-cal-date-nav-gutter {
-    display: none;
   }
   .canva-cal-date-nav-btn,
   .canva-cal-date-nav-label {
     color: #2c2c2a;
-  }
-  .canva-cal-fab {
-    flex-direction: row;
-    width: auto;
-    gap: 0.4rem;
-  }
-  .canva-cal-fab-btn {
-    min-width: 4.25rem;
-    padding: 0.45rem 0.7rem;
-    font-size: 0.75rem;
   }
   .canva-cal-grid-scroll {
     overflow-x: auto;
