@@ -1056,8 +1056,13 @@
   }
   .canva-slot-row.slot-reserved,
   .canva-slot-row.slot-public,
-  .canva-slot-row.slot-team {
+  .canva-slot-row.slot-team,
+  .canva-slot-row.slot-reserved-cash {
     background: #C41E1E !important;
+    color: #fff;
+  }
+  .canva-slot-row.slot-reserved-ipg {
+    background: #4A1420 !important;
     color: #fff;
   }
   .canva-slot-row.slot-pending {
@@ -1916,6 +1921,8 @@
     @apply line-clamp-2 text-[10px] font-medium leading-snug text-[#4a4a46];
   }
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-reserved-cash .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-reserved-ipg .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label,
@@ -1943,10 +1950,14 @@
     opacity: 0.4;
   }
   .canva-cal-grid-cell-bar-reserved,
+  .canva-cal-grid-cell-bar-reserved-cash,
   .canva-cal-grid-cell-bar-public,
   .canva-cal-grid-cell-bar-team,
   .canva-cal-grid-cell-bar-blocked {
     background: #C41E1E;
+  }
+  .canva-cal-grid-cell-bar-reserved-ipg {
+    background: #4A1420;
   }
   .canva-cal-grid-cell-bar-pending {
     background: #E8B84A;
@@ -2255,6 +2266,8 @@
   /* ── Calendar slots (legacy class names; Canva bars styled via .canva-slot-row.slot-*) ── */
   .slot-free { @apply font-medium; }
   .slot-reserved { @apply font-medium; }
+  .slot-reserved-cash { @apply font-medium; }
+  .slot-reserved-ipg { @apply font-medium; }
   .slot-public { @apply font-medium; }
   .slot-team { @apply font-medium; }
   .slot-pending { @apply font-medium; }

@@ -1615,6 +1615,8 @@
       "TEAM": "تیمی",
       "PUBLIC": "عمومی",
       "RESERVED": "رزرو شده",
+      "RESERVED_CASH": "رزرو نقدی",
+      "RESERVED_IPG": "رزرو آنلاین",
       "FREE": "آزاد",
       "CANCELLED": "لغو شده",
       "PENDING": "در انتظار",

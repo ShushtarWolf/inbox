@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, PERSIAN_MONTHS } from '#shared/jalali.ts'
 import { palette } from '#shared/palette.ts'
-import { isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { isPaidPaymentStatus, isUnpaidPaymentStatus, resolvePaymentChannel } from '#shared/bookingPayment.ts'
 import { addDaysToIsoDate, isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import {
   countRecurringSessionsByDayInRange,
@@ -415,6 +415,23 @@ function activeBooking(slot: OwnerCalendarSlot | null | undefined) {
   return booking
 }
 
+function isReservedDisplayStatus(status: string) {
+  return status === 'RESERVED' || status === 'PUBLIC' || status === 'TEAM'
+}
+
+function slotPaymentChannel(slot?: OwnerCalendarSlot | null) {
+  const booking = activeBooking(slot)
+  if (!booking) return null
+  return resolvePaymentChannel(
+    booking.payment?.method || booking.paymentMethod,
+    booking.payment?.status || booking.paymentStatus,
+  )
+}
+
+function isIpgReservedSlot(slot?: OwnerCalendarSlot | null) {
+  return isReservedDisplayStatus(slot?.displayStatus || '') && slotPaymentChannel(slot) === 'IPG'
+}
+
 function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const map: Record<string, string> = {
     FREE: 'slot-free',
@@ -428,6 +445,10 @@ function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   }
   const base = map[status] || 'slot-free'
   if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
+  if (isReservedDisplayStatus(status) && slotPaymentChannel(slot) === 'IPG') {
+    return `${base} slot-reserved-ipg`
+  }
+  if (isReservedDisplayStatus(status)) return `${base} slot-reserved-cash`
   return base
 }
 
@@ -521,12 +542,12 @@ function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
   return Boolean(activeBooking(slot)?.comments?.trim())
 }
 
-function gridCellBarClass(status: string) {
+function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
+  const status = slot?.displayStatus || 'FREE'
+  if (isIpgReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-ipg'
+  if (isReservedDisplayStatus(status)) return 'canva-cal-grid-cell-bar-reserved-cash'
   const map: Record<string, string> = {
     FREE: 'canva-cal-grid-cell-bar-free',
-    RESERVED: 'canva-cal-grid-cell-bar-reserved',
-    PUBLIC: 'canva-cal-grid-cell-bar-public',
-    TEAM: 'canva-cal-grid-cell-bar-team',
     PENDING: 'canva-cal-grid-cell-bar-pending',
     CANCELLED: 'canva-cal-grid-cell-bar-cancel',
     CLOSED: 'canva-cal-grid-cell-bar-closed',
@@ -1739,16 +1760,18 @@ function confirmReserveLabel() {
 
 const legend = [
   { status: 'FREE', color: '#eceae6' },
-  { status: 'RESERVED', color: '#f3d4d4' },
+  { status: 'RESERVED_CASH', color: '#f3d4d4' },
+  { status: 'RESERVED_IPG', color: '#d4dce8' },
   { status: 'PENDING', color: '#f3e0a8' },
   { status: 'BLOCKED', color: '#f3d4d4' },
 ]
 
-function slotBarColor(status: string) {
+function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
   if (status === 'PENDING') return palette.slotDisplay.PENDING
   if (status === 'CLOSED') return palette.slotDisplay.CLOSED
   if (status === 'CANCELLED') return palette.slotDisplay.CANCELLED
   if (status === 'FREE') return palette.slotDisplay.FREE
+  if (isIpgReservedSlot(slot) || status === 'RESERVED_IPG') return palette.schedule.clubBooking
   return palette.slotDisplay.RESERVED
 }
 </script>
@@ -1916,7 +1939,7 @@ function slotBarColor(status: string) {
                   <span
                     v-if="cellSlot(court.id, hour) && cellSlot(court.id, hour)!.displayStatus !== 'FREE'"
                     class="canva-cal-grid-cell-bar"
-                    :class="gridCellBarClass(cellSlot(court.id, hour)?.displayStatus || 'FREE')"
+                    :class="gridCellBarClass(cellSlot(court.id, hour))"
                   />
                   <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
                   <span class="canva-cal-grid-cell-body">
@@ -3045,10 +3068,16 @@ function slotBarColor(status: string) {
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved),
+:deep(.canva-cal-grid-cell.slot-reserved-cash),
 :deep(.canva-cal-grid-cell.slot-public),
 :deep(.canva-cal-grid-cell.slot-team),
 :deep(.canva-cal-grid-cell.slot-blocked) {
   background: #f3d4d4;
+  color: #2c2c2a;
+}
+
+:deep(.canva-cal-grid-cell.slot-reserved-ipg) {
+  background: #d4dce8;
   color: #2c2c2a;
 }
 

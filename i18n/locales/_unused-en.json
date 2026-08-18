@@ -1280,6 +1280,8 @@
       "TEAM": "Team",
       "PUBLIC": "Public",
       "RESERVED": "Reserved",
+      "RESERVED_CASH": "Cash reserve",
+      "RESERVED_IPG": "Online reserve",
       "FREE": "Free",
       "CANCELLED": "Cancelled",
       "PENDING": "Pending",

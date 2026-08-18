@@ -31,6 +31,8 @@
   --sz-canva-radius-max: 2px;
   --sz-slot-free: #e8e6e2;
   --sz-slot-reserved: #c41e1e;
+  --sz-slot-reserved-ipg: #d4dce8;
+  --sz-slot-reserved-ipg-bar: #4a1420;
   --sz-slot-public: #b68a3b;
   --sz-slot-team: #6b1f28;
   --sz-slot-pending: #4a1420;
