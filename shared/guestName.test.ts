@@ -22,6 +22,11 @@ describe('formatGuestDisplayName', () => {
     expect(formatGuestDisplayName('سید حمید رضا', 'افقه')).toBe('سید حمید رضا افقه')
   })
 
+  it('shows once when first already contains family, or family contains first', () => {
+    expect(formatGuestDisplayName('بهناز تعبدی', 'تعبدی')).toBe('بهناز تعبدی')
+    expect(formatGuestDisplayName('علی', 'علی محمدی')).toBe('علی محمدی')
+  })
+
   it('returns empty when both parts are empty', () => {
     expect(formatGuestDisplayName('', '')).toBe('')
     expect(formatGuestDisplayName(null, undefined)).toBe('')
@@ -56,6 +61,17 @@ describe('normalizeGuestNamePair', () => {
 
   it('returns empty when both parts are empty', () => {
     expect(normalizeGuestNamePair('', '')).toEqual({ guestName: '', guestFamily: '' })
+  })
+
+  it('clears family when first already contains it, or stores the longer family', () => {
+    expect(normalizeGuestNamePair('بهناز تعبدی', 'تعبدی')).toEqual({
+      guestName: 'بهناز تعبدی',
+      guestFamily: '',
+    })
+    expect(normalizeGuestNamePair('علی', 'علی محمدی')).toEqual({
+      guestName: 'علی محمدی',
+      guestFamily: '',
+    })
   })
 })
 

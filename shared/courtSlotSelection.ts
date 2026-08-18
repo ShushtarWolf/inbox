@@ -1,3 +1,4 @@
+import { formatGuestDisplayName } from './guestName.ts'
 import { normalizeIranPhone } from './phone.ts'
 
 /** Multi-court / multi-hour slot basket helpers (same club + same date). */
@@ -150,9 +151,8 @@ export function bookedGuestKey(booking: BookedSlotGuest | null | undefined): str
     const normalized = normalizeIranPhone(mobileRaw)
     return `m:${normalized || mobileRaw}`
   }
-  const name = String(booking.guestName || '').trim()
-  const family = String(booking.guestFamily || '').trim()
-  if (name || family) return `n:${name}\0${family}`
+  const name = formatGuestDisplayName(booking.guestName, booking.guestFamily)
+  if (name) return `n:${name}`
   return ''
 }
 

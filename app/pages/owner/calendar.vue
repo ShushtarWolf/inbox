@@ -1210,12 +1210,16 @@ async function doMarkPaid() {
   saving.value = true
   actionError.value = ''
   try {
+    const guest = normalizeGuestNamePair(
+      booking.guestName || form.guestName,
+      booking.guestFamily || form.guestFamily,
+    )
     await $fetch('/api/owner/reserve', {
       method: 'POST',
       body: {
         slotId: slot.id,
-        guestName: booking.guestName || form.guestName,
-        guestFamily: booking.guestFamily || form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: booking.guestMobile || form.guestMobile,
         paymentMethod: 'CASH',
         paymentStatus: 'PAID',
@@ -1245,12 +1249,16 @@ async function doMarkUnpaid() {
   saving.value = true
   actionError.value = ''
   try {
+    const guest = normalizeGuestNamePair(
+      booking.guestName || form.guestName,
+      booking.guestFamily || form.guestFamily,
+    )
     await $fetch('/api/owner/reserve', {
       method: 'POST',
       body: {
         slotId: slot.id,
-        guestName: booking.guestName || form.guestName,
-        guestFamily: booking.guestFamily || form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: booking.guestMobile || form.guestMobile,
         paymentMethod: 'CASH',
         paymentStatus: 'PAY_AT_CLUB',
@@ -1387,12 +1395,13 @@ async function saveEquipmentSelection() {
   saving.value = true
   actionError.value = ''
   try {
+    const guest = guestNamePayload()
     await $fetch('/api/owner/reserve', {
       method: 'POST',
       body: {
         slotId: selectedSlot.value.id,
-        guestName: form.guestName,
-        guestFamily: form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: form.guestMobile,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,

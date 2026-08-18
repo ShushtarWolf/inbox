@@ -18,3 +18,33 @@ export const PILOT_COURT_COUNT = 3
 /** Public list / court price (toman). Low amounts are only for SEP scripts, not MVP catalog. */
 export const PILOT_COURT_PRICE = 600_000
 export const PILOT_SPORT_SLUG = 'tennis'
+
+/** Leftover pilot row (باشگاه بهناز) must never be treated as the live IUST club. */
+export function isRetiredPilotClubName(nameFa?: string | null): boolean {
+  return String(nameFa || '').includes('بهناز')
+}
+
+export function isOfficialPilotClubName(nameFa?: string | null): boolean {
+  return String(nameFa || '').includes('علم و صنعت')
+}
+
+/** Live MVP club: iust-tennis / دانشگاه علم و صنعت, never باشگاه بهناز. */
+export function isOfficialPilotClub(club: { slug?: string | null; nameFa?: string | null }): boolean {
+  if (isRetiredPilotClubName(club.nameFa)) return false
+  return club.slug === PILOT_CLUB_SLUG || isOfficialPilotClubName(club.nameFa)
+}
+
+/** Prisma `where` for default admin pilot lookup (sync / restore-list-price). */
+export function defaultPilotClubWhere() {
+  return {
+    AND: [
+      {
+        OR: [
+          { slug: PILOT_CLUB_SLUG },
+          { nameFa: { contains: 'علم و صنعت' } },
+        ],
+      },
+      { NOT: { nameFa: { contains: 'بهناز' } } },
+    ],
+  }
+}

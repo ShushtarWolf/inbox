@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PILOT_CLUB_NAME_FA, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -76,12 +76,6 @@ const heroSlides = computed(() => {
   return slides
 })
 
-watchEffect(() => {
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9cb647'},body:JSON.stringify({sessionId:'9cb647',runId:'gap-fill',hypothesisId:'D',location:'index.vue',message:'home catalog rails',data:{padelCount:padelClubs.value.length,tennisCount:tennisClubs.value.length,priceFrom:clubs.value?.[0]?.priceFrom ?? null,sports:[...listedSports.value]},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
-})
-
 const activeHero = computed(() => heroSlides.value[heroSlide.value] || heroSlides.value[0])
 
 function bookingLink(path: '/clubs', querySport?: string) {
@@ -121,7 +115,7 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
 }
 
 function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
-  return club.slug === PILOT_CLUB_SLUG || club.nameFa === PILOT_CLUB_NAME_FA
+  return isOfficialPilotClub(club)
 }
 
 function nextHero() {

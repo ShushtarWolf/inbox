@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
-import { PILOT_CLUB_NAME_FA, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -92,7 +92,7 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
 }
 
 function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
-  return club.slug === PILOT_CLUB_SLUG || club.nameFa === PILOT_CLUB_NAME_FA
+  return isOfficialPilotClub(club)
 }
 
 onMounted(() => {

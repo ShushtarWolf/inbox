@@ -217,6 +217,14 @@ describe('siblingBookedSlots', () => {
     expect(siblingBookedSlots([nine, ten, other], nine).map((s) => s.id)).toEqual(['s-09', 's-10'])
   })
 
+  it('treats a duplicated full name as the same guest when mobile is empty', () => {
+    const split = { status: 'CONFIRMED', guestMobile: '', guestName: 'بهناز تعبدی', guestFamily: '' }
+    const duplicated = { status: 'CONFIRMED', guestMobile: '', guestName: 'بهناز تعبدی', guestFamily: 'بهناز تعبدی' }
+    const nine = booked('s-09', '09:00', { booking: split })
+    const ten = booked('s-10', '10:00', { booking: duplicated })
+    expect(siblingBookedSlots([nine, ten], nine).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+
   it('does not group empty identities together', () => {
     const empty = { status: 'CONFIRMED', guestMobile: '', guestName: '', guestFamily: '' }
     const nine = booked('s-09', '09:00', { booking: empty })
