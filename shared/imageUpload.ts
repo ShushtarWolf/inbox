@@ -62,8 +62,40 @@ export function isHeicFtypHeader(bytes: Uint8Array) {
   return major === 'heic' || major === 'heif' || major === 'mif1' || major === 'msf1'
 }
 
-/** Infer stored image MIME when multipart parts omit Content-Type (common on mobile). */
-export function inferImageUploadContentType(part: { type?: string; filename?: string }) {
+function asciiAt(bytes: Uint8Array, offset: number, length: number) {
+  return String.fromCharCode(...bytes.subarray(offset, offset + length))
+}
+
+/**
+ * MIME from magic bytes — ignore declared type.
+ * Safari `canvas.toBlob('image/webp')` can emit PNG while still labeling WebP;
+ * Liara then serves `Content-Type: image/webp` + nosniff and the <img> breaks.
+ */
+export function sniffImageUploadContentType(bytes: Uint8Array | ArrayBuffer | null | undefined): ImageUploadAllowedType | '' {
+  if (!bytes) return ''
+  const head = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+  if (head.length >= 3 && head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return 'image/jpeg'
+  if (
+    head.length >= 8
+    && head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47
+    && head[4] === 0x0d && head[5] === 0x0a && head[6] === 0x1a && head[7] === 0x0a
+  ) {
+    return 'image/png'
+  }
+  if (head.length >= 12 && asciiAt(head, 0, 4) === 'RIFF' && asciiAt(head, 8, 4) === 'WEBP') {
+    return 'image/webp'
+  }
+  return ''
+}
+
+/** Infer stored image MIME. Magic bytes win over multipart type/filename. */
+export function inferImageUploadContentType(part: {
+  type?: string
+  filename?: string
+  data?: Uint8Array | ArrayBuffer | null
+}) {
+  const sniffed = sniffImageUploadContentType(part.data)
+  if (sniffed) return sniffed
   const type = (part.type || '').trim().toLowerCase()
   if (type && isAllowedImageUploadType(type)) return type
   const name = (part.filename || '').toLowerCase()

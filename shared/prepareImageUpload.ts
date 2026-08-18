@@ -2,6 +2,7 @@ import {
   IMAGE_UPLOAD_MAX_BYTES,
   isHeicFtypHeader,
   isHeicLikeFile,
+  sniffImageUploadContentType,
 } from './imageUpload.ts'
 
 export const IMAGE_PREPARE_LONG_EDGE_PX = 1920
@@ -106,12 +107,22 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: PreparedImageMime, qualit
   })
 }
 
+/** True only when bytes (or blob.type, if magic is missing) match the requested encoder. */
+export async function blobMatchesPreparedType(blob: Blob, requested: PreparedImageMime) {
+  const head = new Uint8Array(await blob.slice(0, 16).arrayBuffer())
+  const sniffed = sniffImageUploadContentType(head)
+  if (sniffed) return sniffed === requested
+  return (blob.type || '').trim().toLowerCase() === requested
+}
+
 async function encodeTypeUnderCap(canvas: HTMLCanvasElement, type: PreparedImageMime) {
   let quality = IMAGE_PREPARE_WEBP_QUALITY
   let last: Blob | null = null
   while (quality >= IMAGE_PREPARE_MIN_QUALITY - 1e-6) {
     const blob = await canvasToBlob(canvas, type, quality)
     if (!blob) return null
+    // Safari/WebView: toBlob('image/webp') often returns PNG, not null.
+    if (!(await blobMatchesPreparedType(blob, type))) return null
     last = blob
     if (blob.size <= IMAGE_UPLOAD_MAX_BYTES) return blob
     quality -= IMAGE_PREPARE_QUALITY_STEP

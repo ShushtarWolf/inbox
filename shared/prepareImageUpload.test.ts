@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { IMAGE_UPLOAD_MAX_BYTES } from './imageUpload'
 import {
+  blobMatchesPreparedType,
   fittedImageSize,
   IMAGE_PREPARE_LONG_EDGE_PX,
   preparedImageFileName,
@@ -81,6 +82,28 @@ describe('prepareImageForUpload', () => {
     )
     expect(prepared.type).toBe('image/jpeg')
     expect(prepared.name).toBe('photo.jpg')
+  })
+
+  it('falls back to jpeg when webp toBlob silently emits PNG', async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 1, 2, 3])
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46])
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({
+      width: 640,
+      height: 480,
+      close: vi.fn(),
+    })))
+    stubCanvas((type) => {
+      if (type === 'image/webp') return new Blob([png], { type: 'image/webp' })
+      if (type === 'image/jpeg') return new Blob([jpeg], { type: 'image/jpeg' })
+      return null
+    })
+
+    const prepared = await prepareImageForUpload(
+      new File([new Uint8Array(400)], 'shot.jpg', { type: 'image/jpeg' }),
+    )
+    expect(prepared.type).toBe('image/jpeg')
+    expect(prepared.name).toBe('photo.jpg')
+    expect(await blobMatchesPreparedType(prepared, 'image/jpeg')).toBe(true)
   })
 
   it('uses heic-to when createImageBitmap fails for HEIC', async () => {
