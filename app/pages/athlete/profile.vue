@@ -101,8 +101,8 @@ async function save() {
         </div>
       </div>
       <p class="mt-3 text-start text-xs text-white/80">{{ t('booking.walletBalance') }}</p>
-      <p class="text-start text-lg font-bold tabular-nums text-white" dir="ltr">
-        {{ walletPending ? '…' : formatCurrency(wallet?.balance || 0) }}
+      <p class="text-start text-lg font-bold tabular-nums text-white">
+        <span dir="ltr">{{ walletPending ? '…' : formatCurrency(wallet?.balance || 0) }}</span>
       </p>
     </section>
 
