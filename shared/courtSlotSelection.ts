@@ -1,3 +1,4 @@
+import { isPaidPaymentStatus, isUnpaidPaymentStatus } from './bookingPayment.ts'
 import { formatGuestDisplayName } from './guestName.ts'
 import { normalizeIranPhone } from './phone.ts'
 
@@ -16,6 +17,12 @@ export type BookedSlotGuest = {
   guestMobile?: string | null
   guestName?: string | null
   guestFamily?: string | null
+}
+
+export type BookedSlotPayment = BookedSlotGuest & {
+  payment?: { status?: string | null; method?: string | null } | null
+  paymentStatus?: string | null
+  paymentMethod?: string | null
 }
 
 const BOOKED_CANCEL_STATUSES = new Set(['RESERVED', 'PENDING'])
@@ -200,4 +207,35 @@ export function checkedBookedSlots<T extends { id: string; displayStatus?: strin
 ): T[] {
   const selected = new Set(selectedIds)
   return siblings.filter((slot) => selected.has(slot.id) && isCancellableBookedSlot(slot))
+}
+
+function slotBookingPaymentStatus(booking?: BookedSlotPayment | null) {
+  return booking?.payment?.status || booking?.paymentStatus || null
+}
+
+function slotBookingPaymentMethod(booking?: BookedSlotPayment | null) {
+  return booking?.payment?.method || booking?.paymentMethod || null
+}
+
+type PaidAwareSlot = { id: string; displayStatus?: string | null; booking?: BookedSlotPayment | null }
+
+/** Checked siblings the desk can mark cash-paid (online-pending or pay-at-club). */
+export function checkedUnpaidBookedSlots<T extends PaidAwareSlot>(
+  siblings: T[],
+  selectedIds: string[],
+): T[] {
+  return checkedBookedSlots(siblings, selectedIds).filter((slot) =>
+    isUnpaidPaymentStatus(slotBookingPaymentStatus(slot.booking)),
+  )
+}
+
+/** Checked cash/wallet PAID siblings the desk can reverse (not IPG). */
+export function checkedDeskReversiblePaidSlots<T extends PaidAwareSlot>(
+  siblings: T[],
+  selectedIds: string[],
+): T[] {
+  return checkedBookedSlots(siblings, selectedIds).filter((slot) => {
+    if (!isPaidPaymentStatus(slotBookingPaymentStatus(slot.booking))) return false
+    return slotBookingPaymentMethod(slot.booking) !== 'IPG'
+  })
 }

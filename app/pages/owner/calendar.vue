@@ -16,6 +16,8 @@ import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import {
   checkedBookedSlots,
+  checkedDeskReversiblePaidSlots,
+  checkedUnpaidBookedSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
   joinWithAnd,
@@ -1141,6 +1143,37 @@ function slotsForCancel() {
   return []
 }
 
+function slotsForMarkPaid() {
+  if (showBookedCancelChecks.value || bookedSiblingSlots.value.length) {
+    return checkedUnpaidBookedSlots(bookedSiblingSlots.value, selectedSlotIds.value)
+  }
+  const slot = selectedSlotFull.value
+  if (slot && canMarkPaidSlot(slot)) return [slot]
+  return []
+}
+
+function slotsForMarkUnpaid() {
+  if (showBookedCancelChecks.value || bookedSiblingSlots.value.length) {
+    return checkedDeskReversiblePaidSlots(bookedSiblingSlots.value, selectedSlotIds.value)
+  }
+  const slot = selectedSlotFull.value
+  if (slot && canMarkUnpaidSlot(slot)) return [slot]
+  return []
+}
+
+function canMarkPaidSlot(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot || slot.displayStatus === 'BLOCKED' || !activeBooking(slot)) return false
+  return isUnpaidPaymentStatus(slotPaymentStatus(slot))
+}
+
+function canMarkUnpaidSlot(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!slot || !booking || slot.displayStatus === 'BLOCKED') return false
+  if (!isPaidPaymentStatus(slotPaymentStatus(slot))) return false
+  const method = booking.payment?.method || booking.paymentMethod
+  return method !== 'IPG'
+}
+
 function slotsForBlock() {
   if (selectedSlotsFull.value.length) return selectedSlotsFull.value
   if (selectedSlotFull.value) return [selectedSlotFull.value]
@@ -1266,40 +1299,47 @@ async function doCancel() {
   }
 }
 
-/** One-click cash collection for pay-at-club desk ops. */
-async function doMarkPaid() {
-  const slot = selectedSlotFull.value
+function deskCashPaymentBody(slot: OwnerCalendarSlot, paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
   const booking = activeBooking(slot)
-  if (!slot || !booking || !canMarkPaid() || saving.value) return
+  const guest = normalizeGuestNamePair(
+    booking?.guestName || form.guestName,
+    booking?.guestFamily || form.guestFamily,
+  )
+  return {
+    slotId: slot.id,
+    guestName: guest.guestName,
+    guestFamily: guest.guestFamily,
+    guestMobile: booking?.guestMobile || form.guestMobile,
+    paymentMethod: 'CASH' as const,
+    paymentStatus,
+    comments: booking?.comments || form.comments,
+    equipmentIds: (booking?.bookingEquipments || []).map((item) => item.equipmentId),
+    equipmentQuantities: Object.fromEntries(
+      (booking?.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
+    ),
+    displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+  }
+}
+
+/** One-click cash collection for unpaid (including online-pending) desk ops. */
+async function doMarkPaid() {
+  const targets = slotsForMarkPaid()
+  if (!targets.length || !canMarkPaid() || saving.value) return
   saving.value = true
   actionError.value = ''
   try {
-    const guest = normalizeGuestNamePair(
-      booking.guestName || form.guestName,
-      booking.guestFamily || form.guestFamily,
-    )
-    await $fetch('/api/owner/reserve', {
-      method: 'POST',
-      body: {
-        slotId: slot.id,
-        guestName: guest.guestName,
-        guestFamily: guest.guestFamily,
-        guestMobile: booking.guestMobile || form.guestMobile,
-        paymentMethod: 'CASH',
-        paymentStatus: 'PAID',
-        comments: booking.comments || form.comments,
-        equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
-        equipmentQuantities: Object.fromEntries(
-          (booking.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
-        ),
-        displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
-      },
-    })
+    for (const slot of targets) {
+      await $fetch('/api/owner/reserve', {
+        method: 'POST',
+        body: deskCashPaymentBody(slot, 'PAID'),
+      })
+    }
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAID'
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await refresh()
   } finally {
     saving.value = false
   }
@@ -1307,38 +1347,23 @@ async function doMarkPaid() {
 
 /** Reverse a mistaken cash mark (or wallet-paid mark) back to unpaid. */
 async function doMarkUnpaid() {
-  const slot = selectedSlotFull.value
-  const booking = activeBooking(slot)
-  if (!slot || !booking || !canMarkUnpaid() || saving.value) return
+  const targets = slotsForMarkUnpaid()
+  if (!targets.length || !canMarkUnpaid() || saving.value) return
   saving.value = true
   actionError.value = ''
   try {
-    const guest = normalizeGuestNamePair(
-      booking.guestName || form.guestName,
-      booking.guestFamily || form.guestFamily,
-    )
-    await $fetch('/api/owner/reserve', {
-      method: 'POST',
-      body: {
-        slotId: slot.id,
-        guestName: guest.guestName,
-        guestFamily: guest.guestFamily,
-        guestMobile: booking.guestMobile || form.guestMobile,
-        paymentMethod: 'CASH',
-        paymentStatus: 'PAY_AT_CLUB',
-        comments: booking.comments || form.comments,
-        equipmentIds: (booking.bookingEquipments || []).map((item) => item.equipmentId),
-        equipmentQuantities: Object.fromEntries(
-          (booking.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
-        ),
-        displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
-      },
-    })
+    for (const slot of targets) {
+      await $fetch('/api/owner/reserve', {
+        method: 'POST',
+        body: deskCashPaymentBody(slot, 'PAY_AT_CLUB'),
+      })
+    }
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAY_AT_CLUB'
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await refresh()
   } finally {
     saving.value = false
   }
@@ -1511,20 +1536,13 @@ function canShowSeasonReserve() {
 }
 
 function canMarkPaid() {
-  if (batchMode.value || !activeBooking(selectedSlotFull.value)) return false
-  if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
-  const status = slotPaymentStatus(selectedSlotFull.value)
-  return isUnpaidPaymentStatus(status)
+  if (batchMode.value) return false
+  return slotsForMarkPaid().length > 0
 }
 
 function canMarkUnpaid() {
-  const booking = activeBooking(selectedSlotFull.value)
-  if (batchMode.value || !booking) return false
-  if (selectedSlotFull.value.displayStatus === 'BLOCKED') return false
-  if (!isPaidPaymentStatus(slotPaymentStatus(selectedSlotFull.value))) return false
-  // IPG PAID → cancel for reverse/wallet; desk mark-unpaid only cash/wallet.
-  const method = booking.payment?.method || booking.paymentMethod
-  return method !== 'IPG'
+  if (batchMode.value) return false
+  return slotsForMarkUnpaid().length > 0
 }
 
 function canShowCoachReserve() {
@@ -2106,7 +2124,26 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
               </label>
             </div>
 
-            <!-- Canva (14): cancel + add note only — edit stays reachable via reserve flow, not on this sheet -->
+            <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
+            <!-- Desk cash collection on this sheet — online-pending walk-ins stay unpaid until marked -->
+            <button
+              v-if="canMarkPaid()"
+              type="button"
+              class="canva-detail-paid"
+              :disabled="saving"
+              @click="doMarkPaid"
+            >
+              {{ saving ? t('common.loading') : t('owner.markPaidCash') }}
+            </button>
+            <button
+              v-if="canMarkUnpaid()"
+              type="button"
+              class="canva-detail-unpaid"
+              :disabled="saving"
+              @click="doMarkUnpaid"
+            >
+              {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
+            </button>
             <div class="canva-detail-actions">
               <button type="button" class="canva-detail-cancel" :disabled="!slotsForCancel().length" @click="openCancelForm">
                 {{ t('owner.cancelBooking') }}
@@ -2344,6 +2381,15 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
               @click="doMarkPaid"
             >
               {{ saving ? t('common.loading') : t('owner.markPaidCash') }}
+            </button>
+            <button
+              v-if="isEditingBooking() && canMarkUnpaid()"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving"
+              @click="doMarkUnpaid"
+            >
+              {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
             </button>
             <button type="button" class="canva-gate-btn-secondary" @click="activePanel = isEditingBooking() ? 'detail' : null">{{ t('common.back') }}</button>
           </div>

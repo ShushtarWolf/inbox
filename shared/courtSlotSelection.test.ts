@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   bookedGuestKey,
   checkedBookedSlots,
+  checkedDeskReversiblePaidSlots,
+  checkedUnpaidBookedSlots,
   courtIdsFromSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
@@ -267,5 +269,52 @@ describe('toggleBookedSlotSelection', () => {
 
   it('bookedGuestKey is empty for cancelled bookings', () => {
     expect(bookedGuestKey({ status: 'CANCELLED', guestMobile: '09120000001' })).toBe('')
+  })
+})
+
+describe('checkedUnpaidBookedSlots', () => {
+  const siblings = [
+    {
+      id: 's-09',
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED', paymentStatus: 'PENDING_ONLINE' },
+    },
+    {
+      id: 's-10',
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED', payment: { status: 'PENDING_ONLINE' } },
+    },
+    {
+      id: 's-11',
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED', paymentStatus: 'PAID', paymentMethod: 'CASH' },
+    },
+  ]
+
+  it('marks every checked online-pending hour, not only the clicked slot', () => {
+    expect(checkedUnpaidBookedSlots(siblings, ['s-09', 's-10']).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+
+  it('skips already-paid hours in the same guest group', () => {
+    expect(checkedUnpaidBookedSlots(siblings, ['s-09', 's-10', 's-11']).map((s) => s.id)).toEqual(['s-09', 's-10'])
+  })
+})
+
+describe('checkedDeskReversiblePaidSlots', () => {
+  const siblings = [
+    {
+      id: 's-cash',
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED', paymentStatus: 'PAID', paymentMethod: 'CASH' },
+    },
+    {
+      id: 's-ipg',
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED', payment: { status: 'PAID', method: 'IPG' } },
+    },
+  ]
+
+  it('allows reversing desk cash, not gateway-paid hours', () => {
+    expect(checkedDeskReversiblePaidSlots(siblings, ['s-cash', 's-ipg']).map((s) => s.id)).toEqual(['s-cash'])
   })
 })
