@@ -23,6 +23,7 @@ import {
   toggleBookedSlotSelection,
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
+import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -450,7 +451,7 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
     return t('owner.slotBlockedLabel')
   }
   const booking = activeBooking(slot)
-  const fullName = [booking?.guestName, booking?.guestFamily].filter(Boolean).join(' ').trim()
+  const fullName = formatGuestDisplayName(booking?.guestName, booking?.guestFamily)
   return fullName || statusLabel(slot.displayStatus)
 }
 
@@ -561,7 +562,7 @@ function openFabBlock() {
 
 const guestFullName = computed({
   get() {
-    return [form.guestName, form.guestFamily].filter(Boolean).join(' ').trim()
+    return formatGuestDisplayName(form.guestName, form.guestFamily)
   },
   set(value: string) {
     const parts = value.trim().split(/\s+/)
@@ -1104,13 +1105,17 @@ function slotsForBlock() {
   return []
 }
 
+function guestNamePayload() {
+  return normalizeGuestNamePair(form.guestName, form.guestFamily)
+}
+
 async function doReserve() {
   const targets = slotsForReserve()
   if (!targets.length || saving.value || !canSubmitReserve()) return
-  if (!form.guestFamily.trim()) form.guestFamily = form.guestName.trim()
   saving.value = true
   actionError.value = ''
   try {
+    const guest = guestNamePayload()
     const groups = new Map<string, typeof targets>()
     for (const slot of targets) {
       const key = `${slot.date || ''}|${slot.courtId}`
@@ -1127,8 +1132,8 @@ async function doReserve() {
           method: 'POST',
           body: {
             slotId: slot.id,
-            guestName: form.guestName,
-            guestFamily: form.guestFamily,
+            guestName: guest.guestName,
+            guestFamily: guest.guestFamily,
             guestMobile: form.guestMobile,
             paymentMethod: form.paymentMethod,
             paymentStatus: form.paymentStatus,
@@ -1274,12 +1279,13 @@ async function doBlock() {
   actionError.value = ''
   try {
     const slotIds = targets.map((slot) => slot.id)
+    const guest = guestNamePayload()
     await $fetch('/api/owner/block', {
       method: 'POST',
       body: {
         slotIds,
-        guestName: form.guestName,
-        guestFamily: form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: form.guestMobile,
         comments: form.comments,
       },
@@ -1317,11 +1323,12 @@ async function doSeasonReserve() {
   saving.value = true
   actionError.value = ''
   try {
+    const guest = guestNamePayload()
     await $fetch('/api/owner/season', {
       method: 'POST',
       body: {
-        guestName: form.guestName,
-        guestFamily: form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: form.guestMobile,
         startDate: seasonForm.startDate,
         finishDate: seasonForm.finishDate,
@@ -1348,11 +1355,12 @@ async function doPackageReserve() {
   saving.value = true
   actionError.value = ''
   try {
+    const guest = guestNamePayload()
     await $fetch('/api/owner/package-reserve', {
       method: 'POST',
       body: {
-        guestName: form.guestName,
-        guestFamily: form.guestFamily,
+        guestName: guest.guestName,
+        guestFamily: guest.guestFamily,
         guestMobile: form.guestMobile,
         coachId: pilotNoCoach.value ? undefined : (packageForm.coachId || undefined),
         startDate: packageForm.startDate,
@@ -1465,13 +1473,13 @@ function slotGuestName(slot: OwnerCalendarSlot | null | undefined = selectedSlot
   const booking = activeBooking(slot)
     || activeBooking(selectedSlotFull.value)
     || activeBooking(bookedSiblingSlots.value[0])
-  if (booking) return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
-  return [form.guestName, form.guestFamily].filter(Boolean).join(' ').trim()
+  if (booking) return formatGuestDisplayName(booking.guestName, booking.guestFamily)
+  return formatGuestDisplayName(form.guestName, form.guestFamily)
 }
 
 function slotRowGuestName(slot: OwnerCalendarSlot) {
   const booking = activeBooking(slot)
-  if (booking) return [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+  if (booking) return formatGuestDisplayName(booking.guestName, booking.guestFamily)
   return slotGuestName(slot)
 }
 

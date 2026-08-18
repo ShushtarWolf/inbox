@@ -24,6 +24,7 @@ import { activeSlotBooking, assertSlotBookable } from '../../utils/reservations'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
 import { applyDiscountPercent } from '#shared/discountCode.ts'
+import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
 
 function resolveDeskPaymentMethod(
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
     notifyEndTime?: string
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
+  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
   const guestMobile = resolveGuestMobile(body.guestMobile)
   const linkedUserId = await findUserIdByPhone(guestMobile)
 
@@ -153,8 +155,8 @@ export default defineEventHandler(async (event) => {
       await tx.booking.update({
         where: { id: existing.id },
         data: {
-          guestName: body.guestName,
-          guestFamily: body.guestFamily,
+          guestName: guest.guestName,
+          guestFamily: guest.guestFamily || null,
           guestMobile,
           paymentMethod,
           comments: body.comments,
@@ -205,10 +207,9 @@ export default defineEventHandler(async (event) => {
         }
       }
       const phone = existing.user?.phone || guestMobile || existing.guestMobile
-      const guestName = personNotifyName(
-        body.guestName ?? existing.guestName,
-        body.guestFamily ?? existing.guestFamily,
-      ) || existing.user?.name || ''
+      const guestName = personNotifyName(guest.guestName, guest.guestFamily)
+        || existing.user?.name
+        || ''
       const amountPaid = paidPayment?.amount ?? totalAmount
       if (existing.userId || phone) {
         await notifyBookingPaid({
@@ -265,8 +266,8 @@ export default defineEventHandler(async (event) => {
           data: {
             slotId: slot.id,
             userId: linkedUserId || undefined,
-            guestName: body.guestName,
-            guestFamily: body.guestFamily,
+            guestName: guest.guestName,
+            guestFamily: guest.guestFamily || null,
             guestMobile,
             paymentMethod,
             comments: body.comments,
@@ -299,7 +300,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const phone = guestMobile || null
-    const guestName = personNotifyName(body.guestName, body.guestFamily)
+    const guestName = personNotifyName(guest.guestName, guest.guestFamily)
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
     const skipGuest = !phone || Boolean(body.skipNotify)

@@ -1,3 +1,4 @@
+import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 
 type GuestHit = {
@@ -119,7 +120,7 @@ export default defineEventHandler(async (event) => {
   }
 
   for (const booking of bookings) {
-    const name = [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+    const name = formatGuestDisplayName(booking.guestName, booking.guestFamily)
       || booking.user?.name
       || ''
     const mobile = booking.guestMobile || booking.user?.phone || ''

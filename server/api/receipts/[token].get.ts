@@ -1,4 +1,5 @@
 import { isOnlinePaymentsEnabled, isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliLongDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { bookingTrackingCode, parseReceiptToken } from '#shared/receiptToken.ts'
 import { receiptSigningSecret } from '../../utils/receipt'
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   const club = booking.slot.court.club
-  const guestName = [booking.guestName, booking.guestFamily].filter(Boolean).join(' ').trim()
+  const guestName = formatGuestDisplayName(booking.guestName, booking.guestFamily)
     || booking.user?.name
     || ''
   const mobile = booking.guestMobile || booking.user?.phone || ''

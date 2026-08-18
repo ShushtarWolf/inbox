@@ -1,3 +1,4 @@
+import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
@@ -71,7 +72,7 @@ export function courtNotifyName(court: { nameFa?: string | null; nameEn?: string
 }
 
 export function personNotifyName(...parts: Array<string | null | undefined>) {
-  return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ')
+  return parts.reduce((acc, part) => formatGuestDisplayName(acc, part), '')
 }
 
 /** Owner account mobile first, then club mobile — landlines skipped (SMS only). */

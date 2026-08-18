@@ -1,9 +1,11 @@
 /**
- * Sync the live MVP pilot club (find by slug or legacy باشگاه بهناز).
+ * Sync the live MVP pilot club (find by slug or دانشگاه علم و صنعت).
  * POST /api/admin/pilot-club/sync
  * Header: x-admin-secret
  * Body: { clubId?: string, slug?: string }
  */
+import { PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const body = await readBody<{ clubId?: string; slug?: string }>(event).catch(() => ({}))
@@ -24,9 +26,8 @@ export default defineEventHandler(async (event) => {
     club = await prisma.club.findFirst({
       where: {
         OR: [
-          { slug: 'iust-tennis' },
+          { slug: PILOT_CLUB_SLUG },
           { slug: 'club-9208f4' },
-          { nameFa: { contains: 'بهناز' } },
           { nameFa: { contains: 'علم و صنعت' } },
         ],
       },

@@ -2,6 +2,7 @@ import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seaso
 import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { canClaimExistingSlotForRecurring } from '#shared/recurringReserve.ts'
+import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
@@ -44,6 +45,8 @@ export async function generateRecurringCourtSlots(opts: {
     : datesForWeekdays(opts.anchorDate, opts.weekdays, opts.weeks ?? 8)
   const status = opts.displayStatus ?? 'RESERVED'
   const guest = opts.guestInfo
+    ? { ...opts.guestInfo, ...normalizeGuestNamePair(opts.guestInfo.guestName, opts.guestInfo.guestFamily) }
+    : undefined
   const paymentMethod = guest?.paymentMethod || 'CASH'
   const paymentStatus = guest?.paymentStatus || 'PAY_AT_CLUB'
   const equipmentItems = guest?.equipmentId

@@ -1,3 +1,4 @@
+import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { getPaymentsMode } from '#shared/payments.ts'
 import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
@@ -73,12 +74,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const { storedJson, expanded } = resolveDayTimes(body.dayTimes, body.times, body.days)
+  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
 
   const record = await prisma.seasonBooking.create({
     data: {
       clubId: club.id,
-      guestName: body.guestName || '',
-      guestFamily: body.guestFamily || '',
+      guestName: guest.guestName,
+      guestFamily: guest.guestFamily,
       guestMobile: body.guestMobile || '',
       daysJson: JSON.stringify(body.days || []),
       timesJson: storedJson,
@@ -107,8 +109,8 @@ export default defineEventHandler(async (event) => {
         finishDate: body.finishDate,
         displayStatus: 'RESERVED',
         guestInfo: {
-          guestName: body.guestName || '',
-          guestFamily: body.guestFamily || '',
+          guestName: guest.guestName,
+          guestFamily: guest.guestFamily,
           guestMobile: body.guestMobile || '',
           comments: body.comments,
           paymentMethod: getPaymentsMode() === 'pay_at_club'
@@ -134,7 +136,7 @@ export default defineEventHandler(async (event) => {
       date: body.startDate,
       startTime: firstScheduleTime(expanded, body.times),
       paymentPaid: body.paymentStatus === 'PAID',
-      guestName: personNotifyName(body.guestName, body.guestFamily),
+      guestName: personNotifyName(guest.guestName, guest.guestFamily),
       ...clubNotifyLocation(club),
     })
   }

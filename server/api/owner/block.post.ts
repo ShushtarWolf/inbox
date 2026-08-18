@@ -1,3 +1,4 @@
+import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { activeSlotBooking } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -14,9 +15,10 @@ export default defineEventHandler(async (event) => {
   const ids = body.slotIds?.length ? body.slotIds : body.slotId ? [body.slotId] : []
   if (!ids.length) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
 
+  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
   const guestData = {
-    guestName: body.guestName?.trim() || null,
-    guestFamily: body.guestFamily?.trim() || null,
+    guestName: guest.guestName || null,
+    guestFamily: guest.guestFamily || null,
     guestMobile: body.guestMobile?.trim() || null,
     comments: body.comments?.trim() || null,
   }
