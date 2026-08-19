@@ -35,12 +35,25 @@ async function main() {
     return
   }
 
-  console.log(`Found ${phantomTx.length} phantom REFUND_CREDIT transaction(s):\n`)
+  // Filter out wallets already corrected (have an ADJUSTMENT with the correction note).
+  const correctedWallets = await prisma.$queryRaw`
+    SELECT DISTINCT "walletId" FROM "WalletTransaction"
+    WHERE type = 'ADJUSTMENT' AND note LIKE 'Correction: removed%phantom credit%'
+  `
+  const correctedIds = new Set(correctedWallets.map(r => r.walletId))
+  const uncorrected = phantomTx.filter(tx => !correctedIds.has(tx.walletId))
+  if (!uncorrected.length) {
+    console.log(`Found ${phantomTx.length} phantom transaction(s) but all wallets already corrected.`)
+    await prisma.$disconnect()
+    return
+  }
+
+  console.log(`Found ${uncorrected.length} uncorrected phantom REFUND_CREDIT transaction(s):\n`)
 
   let totalPhantom = 0
   const byWallet = new Map()
 
-  for (const tx of phantomTx) {
+  for (const tx of uncorrected) {
     console.log(
       `  tx=${tx.id}  amount=${tx.amount}  method=${tx.method}  ` +
       `user=${tx.name || '?'} (${tx.phone || '?'})  date=${tx.createdAt.toISOString()}`
