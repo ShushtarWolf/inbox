@@ -210,9 +210,6 @@ watch(
           <p class="text-xs text-brand-gray-600">
             {{ isTestPayments ? t('athlete.walletTopUpTestHint') : t('athlete.walletTopUpHint') }}
           </p>
-          <p class="text-xs font-bold text-red-600" role="note">
-            {{ t('athlete.walletTopUpPayoutNotice') }}
-          </p>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="amount in presets"
@@ -253,7 +250,6 @@ watch(
       <section class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
-        <p class="text-xs font-bold text-red-600">{{ t('athlete.withdrawClosedLoopNotice') }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')" numeric>
           <input
             id="wallet-sheba"
@@ -291,9 +287,6 @@ watch(
         >
           {{ t('athlete.withdrawRequest') }}
         </button>
-        <p v-if="withdrawableBalance <= 0" class="text-xs text-brand-gray-600">
-          {{ t('athlete.withdrawUnavailable') }}
-        </p>
         <p class="text-xs text-brand-gray-600">
           <NuxtLink :to="localePath('/cancellation')" class="underline">
             {{ t('athlete.withdrawCancelPolicyLink') }}

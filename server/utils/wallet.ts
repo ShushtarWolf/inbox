@@ -16,13 +16,9 @@ export async function getWalletBalance(userId: string) {
   return wallet?.balance ?? 0
 }
 
-/**
- * Athlete wallet is closed-loop platform credit.
- * Current credit sources (top-ups, refund credit, releases, adjustments) can be
- * spent on future bookings, but they are not eligible for bank cash-out.
- */
-export async function getWalletWithdrawableBalance(_userId: string) {
-  return 0
+/** All current credit sources are cash-backed, so the full balance is withdrawable. */
+export async function getWalletWithdrawableBalance(userId: string) {
+  return getWalletBalance(userId)
 }
 
 export async function creditWallet(
