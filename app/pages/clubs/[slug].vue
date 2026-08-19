@@ -15,6 +15,7 @@ import {
 
 const route = useRoute()
 const localePath = useLocalePath()
+const config = useRuntimeConfig()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatWeekday } = useFormatters()
@@ -474,6 +475,67 @@ function selectDay(iso: string) {
   selectedDate.value = iso
 }
 
+function calendarDayAria(cell: { day: number | null; iso: string | null }) {
+  if (!cell.iso || cell.day == null) return undefined
+  const weekday = formatWeekday(cell.iso, 'long')
+  const j = isoToJalaali(cell.iso)
+  const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1]} ${weekday}`
+  if (cell.iso < today()) return t('clubs.calendarDayDisabled', { date: dateLabel })
+  if (cell.iso === selectedDate.value) return t('clubs.calendarDaySelected', { date: dateLabel })
+  return t('clubs.calendarDaySelectable', { date: dateLabel })
+}
+
+function slotAriaLabel(slot: ClubSlot) {
+  const time = slot.startTime?.slice(0, 5) || ''
+  if (isSlotSelected(slot.id)) return t('clubs.slotAriaSelected', { time })
+  if (waitlistSlotId.value === slot.id) return t('clubs.slotAriaWaitlist', { time })
+  if (isSlotBooked(slot)) return t('clubs.slotAriaBooked', { time })
+  return t('clubs.slotAriaFree', { time })
+}
+
+const clubPageName = computed(() =>
+  club.value ? localizedField(club.value, 'nameFa', 'nameEn') : '',
+)
+
+const clubSeoDescription = computed(() => {
+  if (!club.value) return t('home.subtitle')
+  return t('clubs.seoDescription', {
+    name: clubPageName.value,
+    city: club.value.city || 'تهران',
+    sport: sportLabel.value,
+  })
+})
+
+const clubCanonicalUrl = computed(() => {
+  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
+  if (!base || !club.value) return ''
+  return `${base}${localePath(`/clubs/${slug}`)}`
+})
+
+const clubOgImage = computed(() => {
+  const image = club.value?.image || activeGallery.value
+  if (!image) return ''
+  if (image.startsWith('http://') || image.startsWith('https://')) return image
+  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
+  return base ? `${base}${image.startsWith('/') ? image : `/${image}`}` : image
+})
+
+useSeoMeta({
+  title: () => (clubPageName.value ? `${clubPageName.value} — ${t('clubs.title')}` : t('clubs.title')),
+  description: () => clubSeoDescription.value,
+  ogTitle: () => (clubPageName.value ? `${clubPageName.value} — inbox` : 'inbox'),
+  ogDescription: () => clubSeoDescription.value,
+  ogImage: () => clubOgImage.value || undefined,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+})
+
+useHead(() => ({
+  link: clubCanonicalUrl.value
+    ? [{ rel: 'canonical', href: clubCanonicalUrl.value }]
+    : [],
+}))
+
 function toggleSlot(slot: ClubSlot) {
   if (isSlotBooked(slot)) {
     if (!waitlistEnabled.value) return
@@ -581,7 +643,15 @@ async function shareClub() {
         @pointerdown="onGalleryPointerDown"
         @pointerup="onGalleryPointerUp"
       >
-        <img :src="activeGallery" alt="" class="canva-club-gallery-media" />
+        <img
+          :src="activeGallery"
+          :alt="t('clubs.galleryImageAlt', {
+            name: localizedField(club, 'nameFa', 'nameEn'),
+            index: gallerySlide + 1,
+            total: gallerySlides.length,
+          })"
+          class="canva-club-gallery-media"
+        />
         <button type="button" class="canva-club-gallery-arrow canva-club-gallery-arrow-start" :aria-label="t('calendar.prevMonth')" @click="prevGallery">
           <AppIcon name="chevron_right" size="md" />
         </button>
@@ -697,6 +767,8 @@ async function shareClub() {
                       'canva-club-cal-day-disabled': cell.iso < today(),
                     }"
                     :disabled="cell.iso < today()"
+                    :aria-label="calendarDayAria(cell)"
+                    :aria-current="cell.iso === selectedDate ? 'date' : undefined"
                     @click="selectDay(cell.iso!)"
                   >
                     {{ formatNumber(cell.day) }}
@@ -715,6 +787,7 @@ async function shareClub() {
                   type="button"
                   class="canva-club-court-num"
                   :class="isCourtChipActive(court.id) ? 'canva-club-court-num-active' : ''"
+                  :aria-label="t('booking.courtNumber', { n: formatNumber(idx + 1) })"
                   :aria-pressed="isCourtChipActive(court.id)"
                   @click="toggleCourt(court.id)"
                 >
@@ -738,6 +811,8 @@ async function shareClub() {
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
                   :disabled="isSlotBooked(slot) && !waitlistEnabled"
+                  :aria-label="slotAriaLabel(slot)"
+                  :aria-pressed="isSlotSelected(slot.id) || waitlistSlotId === slot.id"
                   @click="toggleSlot(slot)"
                 >
                   {{ slot.startTime }}

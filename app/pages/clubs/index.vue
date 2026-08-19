@@ -136,6 +136,17 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   return '/hero/fitness-venue.jpg'
 }
 
+function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
+  return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
+}
+
+useHead({
+  title: () => t('clubs.title'),
+  meta: [
+    { name: 'description', content: () => t('home.subtitle') },
+  ],
+})
+
 function nextHero() {
   heroSlide.value = (heroSlide.value + 1) % heroSlides.value.length
 }
@@ -158,7 +169,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
       <img
         :key="activeHero?.image"
         :src="activeHero?.image"
-        alt=""
+        :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
         class="canva-hero-media canva-hero-media-bw"
       />
       <div class="canva-hero-scrim" aria-hidden="true" />
@@ -245,7 +256,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-court-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <div class="canva-court-card-body">
               <!-- RTL: text first → right; CTA second → left -->
               <div class="canva-court-card-copy">

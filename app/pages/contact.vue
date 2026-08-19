@@ -46,12 +46,6 @@ const messageError = ref('')
 const messageSuccess = ref('')
 const sending = ref(false)
 
-watchEffect(() => {
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9cb647'},body:JSON.stringify({sessionId:'9cb647',runId:'gap-fill',hypothesisId:'B',location:'contact.vue',message:'contact public fields',data:{hasAddress:Boolean(address.value),hasOwner:Boolean(ownerName.value),hasLandline:Boolean(landline.value),hasPostal:Boolean(postalCode.value),paymentsMode:paymentsMode.value},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
-})
-
 function ipgReadinessCopy() {
   if (ipgLive.value) return t('contact.ipgReadyLive')
   if (ipgTest.value) return t('contact.ipgReadyTest')

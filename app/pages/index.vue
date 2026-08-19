@@ -130,6 +130,17 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
   heroSlide,
   () => heroSlides.value.length,
 )
+
+useHead({
+  title: () => t('home.title'),
+  meta: [
+    { name: 'description', content: () => t('home.subtitle') },
+  ],
+})
+
+function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
+  return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
+}
 </script>
 
 <template>
@@ -141,7 +152,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         <img
           :key="activeHero?.image"
           :src="activeHero?.image"
-          alt=""
+          :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
           class="canva-hero-media canva-hero-media-bw"
         />
         <div class="canva-hero-scrim" aria-hidden="true" />
@@ -262,7 +273,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -296,7 +307,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -330,7 +341,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
