@@ -70,7 +70,7 @@ export function sepProvider(): PaymentService {
             metadataJson: JSON.stringify({ simulated: true, purpose }),
           },
         })
-        const redirectUrl = `${siteUrl().replace(/\/$/, '')}/payments/test-gateway?provider=sep&ResNum=${encodeURIComponent(providerRef)}&amount=${payment.amount}`
+        const redirectUrl = `/payments/test-gateway?provider=sep&ResNum=${encodeURIComponent(providerRef)}&amount=${payment.amount}`
         return {
           paymentId: payment.id,
           mode: 'test',

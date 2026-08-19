@@ -64,7 +64,35 @@ export function paymentHandoffFromRedirectUrl(url: string): PaymentHandoff {
       actionUrl: sepOnlinePgUrl(url),
     }
   }
-  return { kind: 'assign', url }
+  return { kind: 'assign', url: rewriteRedirectToCurrentOrigin(url) }
+}
+
+/** Rewrite absolute localhost/127.0.0.1 app URLs to the current browser origin. */
+export function rewriteRedirectToCurrentOrigin(url: string, origin?: string): string {
+  if (url.startsWith('/') && !url.startsWith('//')) return url
+
+  const currentOrigin = origin ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  if (!currentOrigin) return url
+
+  try {
+    const parsed = new URL(url)
+    const current = new URL(currentOrigin)
+    const isLocalDevHost = (host: string) => host === 'localhost' || host === '127.0.0.1'
+
+    if (
+      parsed.port === current.port
+      && isLocalDevHost(parsed.hostname)
+      && isLocalDevHost(current.hostname)
+      && parsed.origin !== current.origin
+      && parsed.pathname.startsWith('/')
+    ) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  }
+  catch {
+    // fall through
+  }
+  return url
 }
 
 export function createSepTokenForm(

@@ -5,6 +5,7 @@ import {
   leaveToPaymentGateway,
   parseSepSendToken,
   paymentHandoffFromRedirectUrl,
+  rewriteRedirectToCurrentOrigin,
   sepOnlinePgUrl,
 } from './paymentRedirect.ts'
 
@@ -17,6 +18,25 @@ describe('parseSepSendToken', () => {
   it('ignores test-gateway and relative app URLs', () => {
     expect(parseSepSendToken('/payments/test-gateway?ResNum=x')).toBeNull()
     expect(parseSepSendToken('https://inboxs.ir/payments/test-gateway?provider=sep&ResNum=INB1')).toBeNull()
+  })
+})
+
+describe('rewriteRedirectToCurrentOrigin', () => {
+  it('keeps relative app URLs unchanged', () => {
+    expect(rewriteRedirectToCurrentOrigin('/payments/test-gateway?amount=1', 'http://127.0.0.1:3000'))
+      .toBe('/payments/test-gateway?amount=1')
+  })
+
+  it('rewrites localhost absolute URLs to the current dev origin path', () => {
+    expect(rewriteRedirectToCurrentOrigin(
+      'http://localhost:3000/payments/test-gateway?amount=2000000',
+      'http://127.0.0.1:3000',
+    )).toBe('/payments/test-gateway?amount=2000000')
+  })
+
+  it('leaves external SEP URLs unchanged', () => {
+    const sep = 'https://sep.shaparak.ir/OnlinePG/SendToken?token=abc'
+    expect(rewriteRedirectToCurrentOrigin(sep, 'http://127.0.0.1:3000')).toBe(sep)
   })
 })
 

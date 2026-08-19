@@ -16,6 +16,47 @@ import { creditWalletForTopUpPayment } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
+function parsePaymentMetadata(raw: string | null): Record<string, unknown> {
+  if (!raw) return {}
+  try {
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+/** Mark abandoned top-up intents FAILED so payment history stays consistent. */
+export async function supersedePendingTopUpPayments(userId: string, db: DbClient = prisma) {
+  const pending = await db.payment.findMany({
+    where: {
+      userId,
+      purpose: 'topup',
+      status: 'PENDING_ONLINE',
+    },
+    select: { id: true, metadataJson: true },
+  })
+
+  for (const payment of pending) {
+    const credited = await db.walletTransaction.findFirst({
+      where: { paymentId: payment.id, type: 'TOPUP_CREDIT' },
+    })
+    if (credited) continue
+
+    const meta = parsePaymentMetadata(payment.metadataJson)
+    await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'FAILED',
+        metadataJson: JSON.stringify({
+          ...meta,
+          superseded: true,
+          supersededAt: new Date().toISOString(),
+        }),
+      },
+    })
+  }
+}
+
 export async function syncPaymentToParent(paymentId: string, db: DbClient = prisma) {
   const payment = await db.payment.findUnique({ where: { id: paymentId } })
   if (!payment) return

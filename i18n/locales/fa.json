@@ -242,6 +242,8 @@
     "walletTopUpTestHint": "حالت تست: بدون ترمینال سامان، به صفحه شبیه‌سازی درگاه هدایت می‌شوید.",
     "walletTopUpCustom": "مبلغ دلخواه (تومان)",
     "walletTopUpCta": "پرداخت و شارژ",
+    "walletTopUpCtaWithAmount": "پرداخت {amount} و شارژ",
+    "walletTopUpSelectAmount": "مبلغ شارژ را انتخاب کنید",
     "walletTopUpSuccess": "شارژ کیف پول با موفقیت ثبت شد.",
     "walletTopUpCancelled": "شارژ لغو شد؛ موجودی تغییر نکرد.",
     "walletTopUpFailed": "شارژ انجام نشد. دوباره تلاش کنید.",

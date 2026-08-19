@@ -4,13 +4,29 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
 const { localizedField } = useLocalizedField()
 const { onlineEnabled, canPayOnline, startCheckout } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
 
-const { data: wallet, pending: walletPending } = await useAuthedFetch('/api/wallet')
+const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch('/api/wallet')
 const { data, pending, error, refresh } = await useAuthedFetch('/api/athlete/payments')
+
+onMounted(() => {
+  void refresh()
+  void refreshWallet()
+})
+
+watch(
+  () => route.query.payment,
+  (value) => {
+    if (value === 'success' || value === 'cancelled' || value === 'error') {
+      void refresh()
+      void refreshWallet()
+    }
+  },
+)
 
 const payingId = ref<string | null>(null)
 const payError = ref('')

@@ -13,7 +13,7 @@ const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout(
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/wallet')
 
-const selectedPreset = ref<number | null>(WALLET_TOPUP_PRESETS_IRR[1] ?? 500_000)
+const selectedPreset = ref<number | null>(null)
 const customAmount = ref('')
 const toppingUp = ref(false)
 const flash = ref('')
@@ -37,6 +37,11 @@ const topUpAmount = computed(() => {
 })
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
+
+const canTopUp = computed(() => {
+  const amount = topUpAmount.value
+  return amount >= WALLET_TOPUP_MIN_IRR && amount <= WALLET_TOPUP_MAX_IRR
+})
 
 function selectPreset(amount: number) {
   selectedPreset.value = amount
@@ -66,8 +71,8 @@ async function startTopUp() {
     flash.value = t('athlete.walletTopUpRequiresOnline')
     return
   }
-  const amount = topUpAmount.value
-  if (amount < WALLET_TOPUP_MIN_IRR || amount > WALLET_TOPUP_MAX_IRR) {
+  const amountToCharge = topUpAmount.value
+  if (amountToCharge < WALLET_TOPUP_MIN_IRR || amountToCharge > WALLET_TOPUP_MAX_IRR) {
     flashTone.value = 'error'
     flash.value = t('athlete.walletTopUpInvalidAmount', {
       min: formatCurrency(WALLET_TOPUP_MIN_IRR),
@@ -79,7 +84,7 @@ async function startTopUp() {
   try {
     const session = await $fetch<{ intent: { redirectUrl?: string } }>('/api/wallet/topup', {
       method: 'POST',
-      body: { amount },
+      body: { amount: amountToCharge },
     })
     if (session.intent.redirectUrl) {
       await redirectToPaymentGateway(session.intent.redirectUrl)
@@ -239,10 +244,17 @@ watch(
             type="button"
             class="canva-gate-btn-primary w-full"
             :class="{ 'canva-cta-busy': toppingUp }"
+            :disabled="!canTopUp || toppingUp"
             :aria-busy="toppingUp"
             @click="startTopUp"
           >
-            {{ toppingUp ? t('booking.redirectingToGateway') : t('athlete.walletTopUpCta') }}
+            {{
+              toppingUp
+                ? t('booking.redirectingToGateway')
+                : canTopUp
+                  ? t('athlete.walletTopUpCtaWithAmount', { amount: formatCurrency(topUpAmount) })
+                  : t('athlete.walletTopUpSelectAmount')
+            }}
           </button>
         </template>
       </section>

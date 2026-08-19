@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { normalizeWalletTopUpAmount } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
+import { supersedePendingTopUpPayments } from '../../utils/paymentSync'
 
 /**
  * Start online wallet top-up (same SEP / test-gateway pipeline as court checkout).
@@ -21,6 +22,8 @@ export default defineEventHandler(async (event) => {
   if (amount == null) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid top-up amount' })
   }
+
+  await supersedePendingTopUpPayments(user.id)
 
   const service = getPaymentService()
   const session = await service.createIntent({

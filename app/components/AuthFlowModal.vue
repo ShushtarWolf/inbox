@@ -138,6 +138,14 @@ function handleClose() {
   close()
 }
 
+function handleGateLogoClick() {
+  if (step.value === 'welcome') {
+    void dismissWelcome()
+    return
+  }
+  handleClose()
+}
+
 async function goForgotPassword() {
   resetForm()
   close()
@@ -260,9 +268,10 @@ async function showWelcome(variant: AuthWelcomeVariant, redirectTo: string) {
     await navigateTo(dest)
     return
   }
-  // Sheet over home (Canva 7 / 11 / 15) — never an orphan success page.
-  await navigateTo(localePath('/'))
+  // Sheet over home (Canva 7 / 11 / 15) — set welcome step before navigation so route watcher won't close.
   step.value = 'welcome'
+  open.value = true
+  await navigateTo(localePath('/'))
 }
 
 async function dismissWelcome() {
@@ -540,19 +549,28 @@ watch(
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1]">
-      <div v-if="step !== 'welcome'" class="canva-auth-accent" />
-      <div class="relative z-[1] flex items-center justify-center px-4 py-3">
+      <div class="canva-auth-accent" />
+      <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
-          v-if="step === 'gate' || step === 'welcome'"
           type="button"
-          class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
+          class="inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
           @click="step === 'welcome' ? dismissWelcome() : handleClose()"
         >
           <AppIcon name="close" size="sm" />
           {{ t('common.close') }}
         </button>
+        <NuxtLink
+          :to="localePath('/')"
+          class="flex items-center gap-2"
+          :aria-label="t('brand.name')"
+          @click.prevent="handleGateLogoClick()"
+        >
+          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+          <InboxWordmark class="text-base text-brand-navy" />
+        </NuxtLink>
+      </div>
+      <div v-else class="relative z-[1] flex items-center justify-center px-4 py-3">
         <button
-          v-else
           type="button"
           class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
           @click="goBack"
@@ -560,19 +578,7 @@ watch(
           <AppIcon name="arrow_back" size="sm" />
           {{ t('common.back') }}
         </button>
-        <div v-if="step === 'gate' || step === 'welcome'" class="flex flex-col items-center">
-          <NuxtLink
-            :to="localePath('/')"
-            class="flex items-center gap-2"
-            :aria-label="t('brand.name')"
-            @click="handleClose()"
-          >
-            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-            <InboxWordmark class="text-base text-brand-navy" />
-          </NuxtLink>
-          <p class="mt-0.5 text-[11px] font-bold text-brand-primary">Check this box!</p>
-        </div>
-        <span v-else class="h-7" />
+        <span class="h-7" />
       </div>
 
       <div class="canva-auth-body">
