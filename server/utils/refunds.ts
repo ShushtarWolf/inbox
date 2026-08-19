@@ -59,7 +59,7 @@ export async function refundPaymentForCancellation(options: {
         console.error('[refunds:creditWallet]', payment.id, err)
       }
     }
-  } else if (walletUserId) {
+  } else if (walletUserId && payment.method === 'PAID') {
     try {
       await creditWallet(walletUserId, payment.amount, {
         paymentId: payment.id,

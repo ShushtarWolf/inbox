@@ -105,7 +105,7 @@ describe('refundPaymentForCancellation', () => {
     expect(result).toMatchObject({ refunded: true, walletCredited: true })
   })
 
-  it('wallet / pay_at_club PAID: credit wallet, skip SEP', async () => {
+  it('wallet PAID cancel: credit wallet, skip SEP', async () => {
     process.env.PAYMENTS_MODE = 'live'
     findUnique.mockResolvedValue({
       id: 'pay-w',
@@ -125,5 +125,27 @@ describe('refundPaymentForCancellation', () => {
     expect(refund).not.toHaveBeenCalled()
     expect(creditWallet).toHaveBeenCalled()
     expect(result.walletCredited).toBe(true)
+  })
+
+  it('cash / pay_at_club cancel: do not mint wallet credit', async () => {
+    process.env.PAYMENTS_MODE = 'live'
+    findUnique.mockResolvedValue({
+      id: 'pay-cash',
+      amount: 400000,
+      status: 'PAID',
+      method: 'CASH',
+      provider: 'pay_at_club',
+      providerRef: null,
+      metadataJson: null,
+    })
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-cash',
+      userId: 'user-1',
+      reason: 'cancel',
+      bookingId: 'b1',
+    })
+    expect(refund).not.toHaveBeenCalled()
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(result.walletCredited).toBe(false)
   })
 })

@@ -36,6 +36,8 @@ const topUpAmount = computed(() => {
   return Number.isFinite(n) ? n : 0
 })
 
+const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
+
 function selectPreset(amount: number) {
   selectedPreset.value = amount
   customAmount.value = ''
@@ -131,7 +133,7 @@ async function requestWithdraw() {
     flash.value = t('athlete.withdrawInvalidAmount')
     return
   }
-  if (amount > (data.value.balance || 0)) {
+  if (amount > withdrawableBalance.value) {
     flashTone.value = 'error'
     flash.value = t('athlete.withdrawInsufficient')
     return
@@ -185,6 +187,9 @@ watch(
       <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
       <p class="mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
+      <p class="mt-2 text-xs text-white/80 text-start">
+        {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
+      </p>
     </section>
 
     <p
@@ -248,6 +253,7 @@ watch(
       <section class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
+        <p class="text-xs font-bold text-red-600">{{ t('athlete.withdrawClosedLoopNotice') }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')" numeric>
           <input
             id="wallet-sheba"
@@ -273,18 +279,21 @@ watch(
             dir="ltr"
             inputmode="numeric"
             class="neo-input bg-white/95 tabular-nums"
-            :disabled="!data?.sheba"
+            :disabled="!data?.sheba || withdrawableBalance <= 0"
             :placeholder="t('athlete.withdrawAmountPlaceholder')"
           />
         </AppFormField>
         <button
           type="button"
           class="canva-gate-btn-primary w-full"
-          :disabled="payoutBusy || !data?.sheba || !withdrawAmount"
+          :disabled="payoutBusy || !data?.sheba || !withdrawAmount || withdrawableBalance <= 0"
           @click="requestWithdraw"
         >
           {{ t('athlete.withdrawRequest') }}
         </button>
+        <p v-if="withdrawableBalance <= 0" class="text-xs text-brand-gray-600">
+          {{ t('athlete.withdrawUnavailable') }}
+        </p>
         <p class="text-xs text-brand-gray-600">
           <NuxtLink :to="localePath('/cancellation')" class="underline">
             {{ t('athlete.withdrawCancelPolicyLink') }}

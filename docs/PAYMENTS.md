@@ -126,9 +126,11 @@ On Liara after deploy: ensure `prisma migrate deploy` has applied club settlemen
 
 ## Athlete wallet withdraw
 
-1. `PATCH /api/wallet/sheba` `{ sheba }` — validate Iranian IBAN
-2. `POST /api/wallet/withdraw` `{ amount }` — holds balance (`WITHDRAW_HOLD`) + `UserWithdrawRequest` PENDING
-3. Admin marks paid (`WITHDRAW_PAID`) or reject (releases balance via `WITHDRAW_RELEASE`)
+Athlete wallet is closed-loop credit for bookings. Current athlete wallet sources
+(top-ups, wallet-backed refunds, and manual balance adjustments) are **not**
+bank-withdrawable. Keep the request flow dormant unless a future source of
+cash-out-eligible athlete funds is introduced with explicit policy and ledger
+rules.
 
 ## Webhooks
 

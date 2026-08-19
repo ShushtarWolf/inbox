@@ -1,4 +1,4 @@
-import { creditWallet, debitWallet, getOrCreateWallet } from './wallet'
+import { creditWallet, debitWallet, getOrCreateWallet, getWalletWithdrawableBalance } from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 
 export async function requestUserWithdraw(options: {
@@ -17,9 +17,13 @@ export async function requestUserWithdraw(options: {
   }
 
   return prisma.$transaction(async (tx) => {
-    const wallet = await getOrCreateWallet(options.userId, tx)
-    if (wallet.balance < amount) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+    await getOrCreateWallet(options.userId, tx)
+    const withdrawableBalance = await getWalletWithdrawableBalance(options.userId)
+    if (withdrawableBalance < amount) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Athlete wallet credit is not withdrawable to bank',
+      })
     }
 
     const request = await tx.userWithdrawRequest.create({

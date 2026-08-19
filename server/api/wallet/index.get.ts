@@ -1,8 +1,11 @@
-import { getWalletBalance } from '../../utils/wallet'
+import { getWalletBalance, getWalletWithdrawableBalance } from '../../utils/wallet'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  const balance = await getWalletBalance(user.id)
+  const [balance, withdrawableBalance] = await Promise.all([
+    getWalletBalance(user.id),
+    getWalletWithdrawableBalance(user.id),
+  ])
   const [wallet, dbUser, pendingWithdraws, recentWithdraws] = await Promise.all([
     prisma.wallet.findUnique({
       where: { userId: user.id },
@@ -28,6 +31,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     balance,
+    withdrawableBalance,
     sheba: dbUser?.sheba || null,
     transactions: wallet?.transactions || [],
     pendingWithdraws,
