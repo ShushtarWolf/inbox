@@ -171,6 +171,8 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         :src="activeHero?.image"
         :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
         class="canva-hero-media canva-hero-media-bw"
+        fetchpriority="high"
+        decoding="async"
       />
       <div class="canva-hero-scrim" aria-hidden="true" />
       <div class="canva-hero-content canva-hero-home-content">

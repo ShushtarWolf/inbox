@@ -1,5 +1,6 @@
 import { buildReturnTo } from '#shared/returnTo.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
+import { isSlotConflictError } from '~/composables/useFetchError'
 
 /**
  * Shared court booking + checkout used by club-detail confirm sheet.
@@ -193,6 +194,9 @@ export function useCourtBooking() {
     catch (error: unknown) {
       feedbackTone.value = 'error'
       feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+      if (isSlotConflictError(error)) {
+        return { conflict: true as const }
+      }
       return null
     }
     finally {

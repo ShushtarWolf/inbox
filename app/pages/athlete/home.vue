@@ -95,12 +95,23 @@ function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
   return isOfficialPilotClub(club)
 }
 
+function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
+  return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
+}
+
 </script>
 
 <template>
   <div class="venus-page-stack">
     <section class="canva-photo-hero canva-photo-hero-curve -mx-4 sm:-mx-0">
-      <img src="/hero/fitness-venue.jpg" alt="" class="canva-photo-hero-media" style="filter: grayscale(0.55) brightness(0.72);" />
+      <img
+        src="/hero/fitness-venue.jpg"
+        :alt="t('athlete.homePickCourt')"
+        class="canva-photo-hero-media"
+        style="filter: grayscale(0.55) brightness(0.72);"
+        fetchpriority="high"
+        decoding="async"
+      />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
         <InboxWordmark home-link class="text-base text-white" />
@@ -203,7 +214,7 @@ function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -234,7 +245,7 @@ function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -265,7 +276,7 @@ function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" alt="" />
+            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>

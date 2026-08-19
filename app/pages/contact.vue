@@ -45,6 +45,8 @@ const messageBody = ref('')
 const messageError = ref('')
 const messageSuccess = ref('')
 const sending = ref(false)
+/** Honeypot — hidden from users; bots that fill it are silently discarded server-side. */
+const honeypot = ref('')
 
 function ipgReadinessCopy() {
   if (ipgLive.value) return t('contact.ipgReadyLive')
@@ -85,6 +87,7 @@ async function submitMessage() {
         name: messageName.value.trim() || user.value?.name || undefined,
         email: messageEmail.value.trim() || user.value?.email || undefined,
         pageUrl: import.meta.client ? window.location.href : '/contact',
+        website: honeypot.value,
       },
     })
     messageBody.value = ''
@@ -186,6 +189,18 @@ useHead({
       <h2 class="text-start text-base font-bold text-brand-navy">{{ t('contact.messageTitle') }}</h2>
       <p class="text-start text-sm text-brand-gray-600">{{ t('contact.messageIntro') }}</p>
       <form class="space-y-3" @submit.prevent="submitMessage">
+        <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label>
+            Website
+            <input
+              v-model="honeypot"
+              type="text"
+              name="website"
+              tabindex="-1"
+              autocomplete="off"
+            >
+          </label>
+        </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="block text-start text-xs font-bold text-brand-gray-600">
             {{ t('contact.messageNameLabel') }}

@@ -37,6 +37,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   success: []
+  slotConflict: []
 }>()
 
 const { t } = useI18n()
@@ -269,6 +270,10 @@ async function submit(preferWallet = false) {
     courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
     preferWallet,
   })
+  if (result && 'conflict' in result) {
+    emit('slotConflict')
+    return
+  }
   if (!result) return
   // Still on-page after online checkout means stall/error — keep slots so Pay can retry.
   if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return

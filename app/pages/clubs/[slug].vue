@@ -71,7 +71,7 @@ const selectedCourtIds = ref<string[]>(deepLinkCourtIds)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 
-const { data: slots } = await useFetch('/api/slots/available', {
+const { data: slots, refresh: refreshSlots } = await useFetch('/api/slots/available', {
   query: computed(() => ({
     club: slug,
     date: selectedDate.value,
@@ -390,6 +390,14 @@ function onConfirmSuccess() {
   selectedSlotIds.value = []
   waitlistSlotId.value = null
 }
+
+async function onSlotConflict() {
+  confirmOpen.value = false
+  selectedSlotIds.value = []
+  waitlistSlotId.value = null
+  waitlistFeedback.value = ''
+  await refreshSlots()
+}
 const mapEmbedSrc = computed(() => {
   const coords = club.value?.coordinates
   if (!coords) return ''
@@ -530,11 +538,46 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
-useHead(() => ({
-  link: clubCanonicalUrl.value
-    ? [{ rel: 'canonical', href: clubCanonicalUrl.value }]
-    : [],
-}))
+useHead(() => {
+  const head: { link?: Array<{ rel: string; href: string }>; script?: Array<{ type: string; innerHTML: string }> } = {}
+  if (clubCanonicalUrl.value) {
+    head.link = [{ rel: 'canonical', href: clubCanonicalUrl.value }]
+  }
+  if (club.value && clubPageName.value) {
+    const address = localizedField(club.value, 'addressFa', 'addressEn') || club.value.city || ''
+    const jsonLd: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'SportsActivityLocation',
+      name: clubPageName.value,
+      url: clubCanonicalUrl.value || undefined,
+      image: clubOgImage.value || undefined,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: club.value.city || undefined,
+        streetAddress: address || undefined,
+        addressCountry: 'IR',
+      },
+    }
+    const coords = club.value.coordinates
+    if (coords?.lat != null && coords?.lng != null) {
+      jsonLd.geo = {
+        '@type': 'GeoCoordinates',
+        latitude: coords.lat,
+        longitude: coords.lng,
+      }
+    }
+    const summary = club.value.reviewSummary
+    if (summary?.count && summary.average != null && summary.average > 0) {
+      jsonLd.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: summary.average,
+        reviewCount: summary.count,
+      }
+    }
+    head.script = [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) }]
+  }
+  return head
+})
 
 function toggleSlot(slot: ClubSlot) {
   if (isSlotBooked(slot)) {
@@ -944,6 +987,7 @@ async function shareClub() {
         :rental-equipment="rentalEquipment"
         @close="confirmOpen = false"
         @success="onConfirmSuccess"
+        @slot-conflict="onSlotConflict"
       />
   </div>
 </template>

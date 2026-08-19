@@ -70,6 +70,23 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
         { name: 'mobile-web-app-capable', content: 'yes' },
+        { property: 'og:site_name', content: 'inbox' },
+        { property: 'og:locale', content: 'fa_IR' },
+        { property: 'og:type', content: 'website' },
+        ...(siteUrl
+          ? [
+              { property: 'og:url', content: siteUrl },
+              { property: 'og:title', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { property: 'og:description', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { property: 'og:image', content: `${siteUrl}/hero/tennis-court.jpg` },
+              { name: 'twitter:card', content: 'summary_large_image' },
+              { name: 'twitter:title', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { name: 'twitter:description', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { name: 'twitter:image', content: `${siteUrl}/hero/tennis-court.jpg` },
+            ]
+          : [
+              { name: 'twitter:card', content: 'summary_large_image' },
+            ]),
       ],
     },
   },

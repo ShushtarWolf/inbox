@@ -33,13 +33,6 @@ const sections = computed(() => {
   const raw = tm(props.sectionsKey) as LegalSection[] | LegalSection
   return Array.isArray(raw) ? raw : []
 })
-
-watchEffect(() => {
-  if (props.sectionsKey !== 'legal.termsSections') return
-  // #region agent log
-  fetch('http://127.0.0.1:7459/ingest/150d6ec9-7ea4-4890-8fdc-843d504b2806',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9cb647'},body:JSON.stringify({sessionId:'9cb647',runId:'gap-fill',hypothesisId:'A',location:'LegalDocument.vue',message:'terms payments copy',data:{paymentsMode:paymentsMode.value,mapped:mapParagraph('__PAYMENTS_STATUS__').slice(0,80)},timestamp:Date.now()})}).catch(()=>{})
-  // #endregion
-})
 </script>
 
 <template>

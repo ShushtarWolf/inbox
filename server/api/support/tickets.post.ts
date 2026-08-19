@@ -15,7 +15,13 @@ export default defineEventHandler(async (event) => {
     phone?: string
     pageUrl?: string
     bookingId?: string
+    website?: string
   }>(event)
+
+  // Honeypot: silently accept so bots do not adapt.
+  if (normalizeOptionalLine(body?.website, 200)) {
+    return { ok: true, ticket: null }
+  }
 
   const text = normalizeTicketBody(body?.body)
   if (!text) {

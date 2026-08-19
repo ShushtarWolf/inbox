@@ -1,5 +1,24 @@
 const FARSI_CHARS = /[\u0600-\u06FF]/
 
+const SLOT_CONFLICT_MESSAGES = new Set([
+  'Slot not available',
+  'SLOT_IN_PAST',
+  'This session time is already booked',
+])
+
+export function isSlotConflictError(error: unknown) {
+  if (error && typeof error === 'object' && 'statusCode' in error) {
+    const statusCode = (error as { statusCode?: number }).statusCode
+    if (statusCode === 409) return true
+  }
+  if (error && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data?: { statusMessage?: string; statusCode?: number } }).data
+    if (data?.statusCode === 409) return true
+    if (data?.statusMessage && SLOT_CONFLICT_MESSAGES.has(data.statusMessage)) return true
+  }
+  return false
+}
+
 export function fetchErrorMessage(error: unknown, fallback: string, translate?: (key: string) => string) {
   let raw = ''
   if (error && typeof error === 'object' && 'data' in error) {
@@ -57,6 +76,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Invalid or expired token': 'auth.resetFailed',
     'Invalid ticket body': 'contact.messageNeedBody',
     'Invalid email': 'contact.messageEmailInvalid',
+    'errors.rateLimited': 'errors.rateLimited',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

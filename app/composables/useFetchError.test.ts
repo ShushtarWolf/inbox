@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchErrorMessage } from './useFetchError.ts'
+import { fetchErrorMessage, isSlotConflictError } from './useFetchError.ts'
 
 function t(key: string) {
   return `i18n:${key}`
@@ -39,5 +39,13 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
       .toBe('i18n:booking.errors.slotNotAvailable')
     expect(fetchErrorMessage(err('This session time is already booked'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.sessionTaken')
+  })
+})
+
+describe('isSlotConflictError', () => {
+  it('detects 409 status and known slot conflict messages', () => {
+    expect(isSlotConflictError({ statusCode: 409 })).toBe(true)
+    expect(isSlotConflictError({ data: { statusMessage: 'Slot not available' } })).toBe(true)
+    expect(isSlotConflictError({ data: { statusMessage: 'Invalid credentials' } })).toBe(false)
   })
 })
