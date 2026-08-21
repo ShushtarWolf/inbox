@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { consumePhoneOtp } from '../../utils/otp'
 import { findUserForPhoneOtp, linkOrphanBookingsByPhone } from '../../utils/phoneAuth'
 import { hashSecret } from '../../utils/password'
@@ -29,9 +30,13 @@ export default defineEventHandler(async (event) => {
 
   // Primary path: phone + SMS OTP
   if (body.phone && body.code) {
-    await enforceOtpVerifyPhoneLimit(body.phone)
+    const phone = normalizeIranPhone(body.phone)
+    if (!phone) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
+    }
+    await enforceOtpVerifyPhoneLimit(phone)
     const consumed = await consumePhoneOtp({
-      phoneRaw: body.phone,
+      phoneRaw: phone,
       code: body.code,
       purpose: 'password_reset',
     })
