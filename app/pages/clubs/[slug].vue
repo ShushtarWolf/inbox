@@ -12,6 +12,7 @@ import {
   toggleHourOnCourts,
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
+import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -106,7 +107,7 @@ const locationLine = computed(() => {
   return parts.join('، ') || club.value.city || ''
 })
 
-const courts = computed(() => club.value?.courts || [])
+const courts = computed(() => sortCourtsByOrdinal(club.value?.courts || []))
 
 watch(
   courts,
@@ -199,7 +200,12 @@ function isSlotSelected(id: string) {
 function courtNumberLabel(courtId: string) {
   const idx = courts.value.findIndex((c) => c.id === courtId)
   if (idx < 0) return ''
-  return t('booking.courtNumber', { n: formatNumber(idx + 1) })
+  const court = courts.value[idx]!
+  const n = courtDisplayNumber(
+    { nameFa: court.nameFa || '', nameEn: (court as { nameEn?: string }).nameEn },
+    idx,
+  )
+  return t('booking.courtNumber', { n: formatNumber(n) })
 }
 
 function isCourtChipActive(courtId: string) {
@@ -375,11 +381,15 @@ const pricingFootnotes = computed(() => {
 const confirmSlots = computed(() =>
   selectedSlots.value.map((slot) => {
     const courtId = slotCourtId(slot)
-    const court = courts.value.find((c) => c.id === courtId) as { pricingJson?: string | null } | undefined
+    const court = courts.value.find((c) => c.id === courtId) as {
+      price?: number
+      pricingJson?: string | null
+    } | undefined
     return {
       ...slot,
       courtId,
       courtLabel: courtNumberLabel(courtId),
+      courtPrice: court?.price,
       pricingJson: court?.pricingJson ?? null,
     }
   }),
@@ -832,11 +842,11 @@ async function shareClub() {
                   type="button"
                   class="canva-club-court-num"
                   :class="isCourtChipActive(court.id) ? 'canva-club-court-num-active' : ''"
-                  :aria-label="t('booking.courtNumber', { n: formatNumber(idx + 1) })"
+                  :aria-label="t('booking.courtNumber', { n: formatNumber(courtDisplayNumber(court, idx)) })"
                   :aria-pressed="isCourtChipActive(court.id)"
                   @click="toggleCourt(court.id)"
                 >
-                  {{ formatNumber(idx + 1) }}
+                  {{ formatNumber(courtDisplayNumber(court, idx)) }}
                 </button>
               </div>
               <p

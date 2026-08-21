@@ -3,6 +3,7 @@ import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { PILOT_CLUB_LAT, PILOT_CLUB_LNG, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
+import { sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const club = await prisma.club.findUnique({
     where: { slug },
     include: {
-      courts: { include: { sport: true } },
+      courts: { include: { sport: true }, orderBy: { nameFa: 'asc' } },
       owner: { select: { name: true } },
       media: { orderBy: { sortOrder: 'asc' } },
       reviews: { orderBy: { publishedAt: 'desc' }, take: 6 },
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
     priceTo: liveRange.priceTo ?? club.priceTo,
     // Schema default is 4.5 — only expose a score when reviews exist.
     rating: summary.count > 0 ? club.rating : 0,
-    courts: club.courts.map((court) => ({
+    courts: sortCourtsByOrdinal(club.courts).map((court) => ({
       ...court,
       facilities: parseFacilitiesJson(court.facilitiesJson),
     })),

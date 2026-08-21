@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { computeBookingPrice } from '#shared/courtPricing.ts'
+import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
@@ -39,7 +39,11 @@ export default defineEventHandler(async (event) => {
     if (booking.payment) existingPayment = booking.payment
     else {
       amount = computeBookingPrice(
-        booking.slot.price,
+        computeListedSlotPrice(
+          booking.slot.court.price,
+          booking.slot.startTime,
+          booking.slot.court.pricingJson,
+        ),
         booking.slot.court.pricingJson,
         booking.slot.date,
         booking.slot.startTime,

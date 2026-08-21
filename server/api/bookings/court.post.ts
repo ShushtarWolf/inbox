@@ -1,6 +1,6 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
-import { computeBookingPrice } from '#shared/courtPricing.ts'
+import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import {
   loadEquipmentForBooking,
@@ -68,12 +68,11 @@ export default defineEventHandler(async (event) => {
   }
   const equipmentTotal = sumEquipmentPrices(equipmentItems)
 
-  const slotAmounts = orderedSlots.map((slot) => computeBookingPrice(
-    slot.price,
-    slot.court.pricingJson,
-    slot.date,
-    slot.startTime,
-  ))
+  const slotAmounts = orderedSlots.map((slot) => {
+    // Charge live court listing (base + bands), not a stale Slot.price snapshot.
+    const listed = computeListedSlotPrice(slot.court.price, slot.startTime, slot.court.pricingJson)
+    return computeBookingPrice(listed, slot.court.pricingJson, slot.date, slot.startTime)
+  })
   const subtotal = slotAmounts.reduce((sum, n) => sum + n, 0) + equipmentTotal
   const discount = await resolveDiscountForBooking({
     code: body.discountCode,

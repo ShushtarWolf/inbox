@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
 import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
-import { computeBookingPrice } from '#shared/courtPricing.ts'
+import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { uniqueOrdered, joinWithAnd } from '#shared/courtSlotSelection.ts'
 
 export type ConfirmSlot = {
@@ -9,6 +9,8 @@ export type ConfirmSlot = {
   startTime: string
   endTime?: string
   price?: number
+  /** Live Court.price — preferred over slot.price for the confirm total. */
+  courtPrice?: number
   courtId?: string
   courtLabel?: string
   /** Court pricingJson — used so owner last-second discount matches IPG. */
@@ -102,7 +104,9 @@ const costLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of props.slots) {
     const time = slot.startTime?.slice(0, 5) || ''
-    const listed = Number(slot.price || 0)
+    const listed = slot.courtPrice != null && slot.startTime
+      ? computeListedSlotPrice(Number(slot.courtPrice), slot.startTime, slot.pricingJson)
+      : Number(slot.price || 0)
     const amount = props.date && slot.startTime
       ? computeBookingPrice(listed, slot.pricingJson, props.date, slot.startTime)
       : listed
