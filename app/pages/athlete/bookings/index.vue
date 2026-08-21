@@ -593,35 +593,39 @@ function dateLine(item: HistoryItem) {
       :title="t('booking.reschedule')"
       @close="closeReschedule"
     >
-      <div class="canva-auth-body space-y-4 px-5 pb-6 pt-2">
-        <AppDateInput v-model="rescheduleDate" :min-date="today()" />
-        <div class="max-h-64 space-y-2 overflow-auto">
-          <button
-            v-for="slot in replacementSlots"
-            :key="slot.id"
-            type="button"
-            class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
-            :class="rescheduleSlotId === slot.id ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
-            style="border-radius: var(--sz-canva-radius);"
-            @click="rescheduleSlotId = slot.id"
-          >
-            {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
-          </button>
-          <p v-if="replacementSlots && !replacementSlots.length" class="text-sm text-brand-gray-600">
-            {{ t('booking.noSlots') }}
-          </p>
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="canva-auth-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-4 pt-2">
+          <AppDateInput v-model="rescheduleDate" :min-date="today()" />
+          <div class="space-y-2">
+            <button
+              v-for="slot in replacementSlots"
+              :key="slot.id"
+              type="button"
+              class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
+              :class="rescheduleSlotId === slot.id ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
+              style="border-radius: var(--sz-canva-radius);"
+              @click="rescheduleSlotId = slot.id"
+            >
+              {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
+            </button>
+            <p v-if="replacementSlots && !replacementSlots.length" class="text-sm text-brand-gray-600">
+              {{ t('booking.noSlots') }}
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          class="canva-gate-btn-primary"
-          :disabled="!rescheduleSlotId || reschedulePending"
-          @click="rescheduleCourt"
-        >
-          {{ reschedulePending ? t('common.loading') : t('booking.confirmReschedule') }}
-        </button>
-        <button type="button" class="canva-gate-btn-secondary" :disabled="reschedulePending" @click="closeReschedule">
-          {{ t('common.close') }}
-        </button>
+        <div class="shrink-0 space-y-2 px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-1">
+          <button
+            type="button"
+            class="canva-gate-btn-primary w-full"
+            :disabled="!rescheduleSlotId || reschedulePending"
+            @click="rescheduleCourt"
+          >
+            {{ reschedulePending ? t('common.loading') : t('booking.confirmReschedule') }}
+          </button>
+          <button type="button" class="canva-gate-btn-secondary w-full" :disabled="reschedulePending" @click="closeReschedule">
+            {{ t('common.close') }}
+          </button>
+        </div>
       </div>
     </AppModal>
 
