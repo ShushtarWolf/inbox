@@ -55,7 +55,7 @@ type HistoryItem = {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatIsoDate } = useFormatters()
+const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
@@ -93,7 +93,7 @@ function syncCalFromAnchor() {
 }
 watch(monthAnchor, syncCalFromAnchor, { immediate: true })
 
-const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatNumber(viewYear.value)}`)
+const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatYear(viewYear.value)}`)
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)

@@ -20,7 +20,7 @@ const emit = defineEmits<{
   select: []
 }>()
 
-const { formatNumber } = useFormatters()
+const { formatNumber, formatYear } = useFormatters()
 const { t } = useI18n()
 const { today } = useLocalDate()
 
@@ -38,7 +38,7 @@ function syncViewFromModel() {
 
 watch(model, syncViewFromModel, { immediate: true })
 
-const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatNumber(viewYear.value)}`)
+const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatYear(viewYear.value)}`)
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)

@@ -18,7 +18,7 @@ const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatNumber, formatWeekday } = useFormatters()
+const { formatNumber, formatYear, formatWeekday } = useFormatters()
 const { today } = useLocalDate()
 const rawSlug = route.params.slug as string
 const slug = resolveClubSlugAlias(rawSlug)
@@ -448,10 +448,7 @@ function syncCalFromDate() {
 }
 watch(selectedDate, syncCalFromDate, { immediate: true })
 
-const monthLabel = computed(() => {
-  const year = new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(viewYear.value)
-  return `${PERSIAN_MONTHS[viewMonth.value - 1]} ${year}`
-})
+const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatYear(viewYear.value)}`)
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)

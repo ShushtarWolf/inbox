@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t, locale } = useI18n()
-const { formatDate, formatNumber } = useFormatters()
+const { formatDate, formatNumber, formatYear } = useFormatters()
 
 const isFa = computed(() => locale.value === 'fa')
 const effectiveMinDate = computed(() => props.minDate || '')
@@ -88,7 +88,7 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
         dir="ltr"
         :aria-label="t('common.date')"
       >
-        <option v-for="year in jalaliYears" :key="year" :value="year">{{ formatNumber(year) }}</option>
+        <option v-for="year in jalaliYears" :key="year" :value="year">{{ formatYear(year) }}</option>
       </select>
     </div>
 

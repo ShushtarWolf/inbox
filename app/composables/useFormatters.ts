@@ -1,3 +1,5 @@
+import { toPersianDigits } from '#shared/jalali.ts'
+
 export function useFormatters() {
   const { locale, t } = useI18n()
 
@@ -19,6 +21,14 @@ export function useFormatters() {
   function formatNumber(value: number | string | null | undefined) {
     const numeric = typeof value === 'number' ? value : Number(value ?? 0)
     return new Intl.NumberFormat(intlLocale()).format(numeric)
+  }
+
+  /** Calendar years — Persian digits only, never thousand separators (unlike formatNumber). */
+  function formatYear(value: number | string | null | undefined) {
+    const numeric = typeof value === 'number' ? value : Number(value ?? 0)
+    if (!Number.isFinite(numeric)) return ''
+    const year = String(Math.trunc(numeric))
+    return locale.value === 'fa' ? toPersianDigits(year) : year
   }
 
   function formatCurrency(value: number | string | null | undefined) {
@@ -73,6 +83,7 @@ export function useFormatters() {
 
   return {
     formatNumber,
+    formatYear,
     formatCurrency,
     formatDate,
     formatIsoDate,
