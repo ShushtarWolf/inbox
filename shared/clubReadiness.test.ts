@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateClubReadiness, minCourtPrice } from './clubReadiness'
+import {
+  clubCatalogPriceRange,
+  courtListedPricePoints,
+  evaluateClubReadiness,
+  minCourtPrice,
+} from './clubReadiness'
 
 const base = {
   status: 'ACTIVE',
@@ -40,5 +45,32 @@ describe('minCourtPrice', () => {
   it('returns the lowest positive court price', () => {
     expect(minCourtPrice([{ price: 800000 }, { price: 500000 }, { price: 0 }])).toBe(500000)
     expect(minCourtPrice([])).toBeNull()
+  })
+})
+
+describe('clubCatalogPriceRange', () => {
+  it('uses the cheapest court base price as priceFrom', () => {
+    expect(clubCatalogPriceRange([
+      { price: 600000 },
+      { price: 480000 },
+    ])).toEqual({ priceFrom: 480000, priceTo: 600000 })
+  })
+
+  it('includes time-band prices in the range', () => {
+    const pricingJson = JSON.stringify({
+      timeBands: [
+        { startTime: '08:00', endTime: '17:00', price: 1000000 },
+        { startTime: '17:00', endTime: '23:00', price: 1200000 },
+      ],
+    })
+    expect(courtListedPricePoints({ price: 1200000, pricingJson })).toEqual([
+      1200000,
+      1000000,
+      1200000,
+    ])
+    expect(clubCatalogPriceRange([{ price: 1200000, pricingJson }])).toEqual({
+      priceFrom: 1000000,
+      priceTo: 1200000,
+    })
   })
 })

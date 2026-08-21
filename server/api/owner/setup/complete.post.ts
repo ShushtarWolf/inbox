@@ -1,4 +1,5 @@
-import { evaluateClubReadiness, minCourtPrice } from '#shared/clubReadiness.ts'
+import { evaluateClubReadiness } from '#shared/clubReadiness.ts'
+import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
 /** Validate bookability and sync catalog priceFrom from court prices. Coaches are never required. */
 export default defineEventHandler(async (event) => {
@@ -6,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const courts = await prisma.court.findMany({
     where: { clubId: club.id },
-    select: { price: true },
+    select: { price: true, pricingJson: true },
   })
 
   const owner = club.ownerId
@@ -37,15 +38,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const priceFrom = minCourtPrice(courts)
-  const updated = await prisma.club.update({
+  await prisma.club.update({
     where: { id: club.id },
-    data: {
-      status: 'ACTIVE',
-      ...(priceFrom != null ? { priceFrom } : {}),
-    },
-    select: { id: true, slug: true, status: true, priceFrom: true },
+    data: { status: 'ACTIVE' },
   })
+  const synced = await syncClubCatalogPrices(club.id)
+  const updated = synced
+    ? { id: club.id, slug: club.slug, status: 'ACTIVE' as const, priceFrom: synced.priceFrom }
+    : await prisma.club.findUniqueOrThrow({
+        where: { id: club.id },
+        select: { id: true, slug: true, status: true, priceFrom: true },
+      })
 
   return {
     ok: true,

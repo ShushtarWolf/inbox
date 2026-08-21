@@ -1,3 +1,6 @@
+import { repriceFreeSlotsForCourts } from '../../../utils/slots'
+import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
   const id = getRouterParam(event, 'id')
@@ -39,8 +42,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
 
-  return prisma.court.update({
+  const pricingChanged = body.price !== undefined || body.pricingJson !== undefined
+
+  const updated = await prisma.court.update({
     where: { id: court.id },
     data,
   })
+
+  if (pricingChanged) {
+    await repriceFreeSlotsForCourts([{
+      id: updated.id,
+      price: updated.price,
+      pricingJson: updated.pricingJson,
+    }], { courtId: updated.id })
+    await syncClubCatalogPrices(club.id)
+  }
+
+  return updated
 })

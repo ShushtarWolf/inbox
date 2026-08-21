@@ -125,4 +125,65 @@ export async function ensureSlotsForDate(clubId: string, date: string) {
   if (missing.length) {
     await prisma.slot.createMany({ data: missing, skipDuplicates: true })
   }
+
+  // Heal FREE slot prices for this date when court base/bands changed after slots were created.
+  await repriceFreeSlotsForCourts(
+    courts.map((court) => ({
+      id: court.id,
+      price: court.price,
+      pricingJson: court.pricingJson,
+    })),
+    { date },
+  )
+}
+
+export type CourtPriceInput = {
+  id: string
+  price: number
+  pricingJson?: string | null
+}
+
+/** Pure: which FREE slots need a new listed price after court pricing changes. */
+export function listedSlotPriceUpdates(
+  slots: Array<{ id: string; startTime: string; price: number }>,
+  court: { price: number; pricingJson?: string | null },
+): Array<{ id: string; price: number }> {
+  const updates: Array<{ id: string; price: number }> = []
+  for (const slot of slots) {
+    const next = computeListedSlotPrice(court.price, slot.startTime, court.pricingJson)
+    if (next !== slot.price) updates.push({ id: slot.id, price: next })
+  }
+  return updates
+}
+
+/**
+ * Reprice FREE (bookable) slots to match current court listing.
+ * Does not touch RESERVED/paid rows — those keep the amount sold.
+ */
+export async function repriceFreeSlotsForCourts(
+  courts: CourtPriceInput[],
+  opts?: { date?: string; courtId?: string },
+) {
+  if (!courts.length) return { updated: 0 }
+  const courtById = new Map(courts.map((court) => [court.id, court]))
+  const courtIds = opts?.courtId ? [opts.courtId] : courts.map((court) => court.id)
+  const freeSlots = await prisma.slot.findMany({
+    where: {
+      courtId: { in: courtIds },
+      displayStatus: 'FREE',
+      ...(opts?.date ? { date: opts.date } : {}),
+    },
+    select: { id: true, courtId: true, startTime: true, price: true },
+  })
+
+  let updated = 0
+  for (const slot of freeSlots) {
+    const court = courtById.get(slot.courtId)
+    if (!court) continue
+    const next = computeListedSlotPrice(court.price, slot.startTime, court.pricingJson)
+    if (next === slot.price) continue
+    await prisma.slot.update({ where: { id: slot.id }, data: { price: next } })
+    updated += 1
+  }
+  return { updated }
 }

@@ -373,11 +373,16 @@ const pricingFootnotes = computed(() => {
 })
 
 const confirmSlots = computed(() =>
-  selectedSlots.value.map((slot) => ({
-    ...slot,
-    courtId: slotCourtId(slot),
-    courtLabel: courtNumberLabel(slotCourtId(slot)),
-  })),
+  selectedSlots.value.map((slot) => {
+    const courtId = slotCourtId(slot)
+    const court = courts.value.find((c) => c.id === courtId) as { pricingJson?: string | null } | undefined
+    return {
+      ...slot,
+      courtId,
+      courtLabel: courtNumberLabel(courtId),
+      pricingJson: court?.pricingJson ?? null,
+    }
+  }),
 )
 
 function openConfirmSheet() {

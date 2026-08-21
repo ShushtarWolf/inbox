@@ -1,4 +1,5 @@
 import { numberedCourtNames, parseCourtBulkCount } from '#shared/courtBulk.ts'
+import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
@@ -53,11 +54,14 @@ export default defineEventHandler(async (event) => {
   }
 
   if (count === 1) {
-    return prisma.court.create({ data: courtData(1) })
+    const created = await prisma.court.create({ data: courtData(1) })
+    await syncClubCatalogPrices(club.id)
+    return created
   }
 
   const courts = await prisma.$transaction(
     Array.from({ length: count }, (_, i) => prisma.court.create({ data: courtData(i + 1) })),
   )
+  await syncClubCatalogPrices(club.id)
   return { count: courts.length, courts }
 })

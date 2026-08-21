@@ -1,5 +1,7 @@
 /** Minimum checks for a club to appear in the catalog and accept court bookings. */
 
+import { parseCourtPricingJson } from './courtPricing.ts'
+
 export type ClubReadinessInput = {
   status: string
   openHour: number
@@ -62,4 +64,27 @@ export function minCourtPrice(courts: Array<{ price?: number | null }>): number 
     .filter((price) => Number.isFinite(price) && price > 0)
   if (!prices.length) return null
   return Math.min(...prices)
+}
+
+/** Base court price plus any time-band listed prices (for catalog from/to). */
+export function courtListedPricePoints(court: {
+  price?: number | null
+  pricingJson?: string | null
+}): number[] {
+  const points: number[] = []
+  const base = Number(court.price)
+  if (Number.isFinite(base) && base > 0) points.push(base)
+  for (const band of parseCourtPricingJson(court.pricingJson).timeBands || []) {
+    if (Number.isFinite(band.price) && band.price > 0) points.push(band.price)
+  }
+  return points
+}
+
+/** Live catalog range from courts (includes time bands). */
+export function clubCatalogPriceRange(
+  courts: Array<{ price?: number | null; pricingJson?: string | null }>,
+): { priceFrom: number | null; priceTo: number | null } {
+  const points = courts.flatMap(courtListedPricePoints)
+  if (!points.length) return { priceFrom: null, priceTo: null }
+  return { priceFrom: Math.min(...points), priceTo: Math.max(...points) }
 }

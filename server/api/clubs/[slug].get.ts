@@ -2,6 +2,7 @@ import { parseJsonValue, reviewSummary } from '../../utils/catalog'
 import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { PILOT_CLUB_LAT, PILOT_CLUB_LNG, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
@@ -50,8 +51,11 @@ export default defineEventHandler(async (event) => {
   })
 
   const summary = reviewSummary(club.reviews)
+  const liveRange = clubCatalogPriceRange(club.courts)
   return {
     ...club,
+    priceFrom: liveRange.priceFrom ?? club.priceFrom,
+    priceTo: liveRange.priceTo ?? club.priceTo,
     // Schema default is 4.5 — only expose a score when reviews exist.
     rating: summary.count > 0 ? club.rating : 0,
     courts: club.courts.map((court) => ({

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { computeMissingSlots, formatHour, hourEnd, slotStatusLabel } from './slots'
+import {
+  computeMissingSlots,
+  formatHour,
+  hourEnd,
+  listedSlotPriceUpdates,
+  slotStatusLabel,
+} from './slots'
 
 describe('computeMissingSlots', () => {
   it('returns only slots not in existing set', () => {
@@ -21,6 +27,28 @@ describe('computeMissingSlots', () => {
     const courts = [{ courtId: 'c1', price: 100, openHour: 9, closeHour: 10 }]
     const existing = new Set(['c1:2026-07-11:09:00'])
     expect(computeMissingSlots(courts, '2026-07-11', existing)).toHaveLength(0)
+  })
+})
+
+describe('listedSlotPriceUpdates', () => {
+  it('reprices FREE slots when court base price changes', () => {
+    expect(listedSlotPriceUpdates(
+      [
+        { id: 'a', startTime: '10:00', price: 480000 },
+        { id: 'b', startTime: '11:00', price: 600000 },
+      ],
+      { price: 600000 },
+    )).toEqual([{ id: 'a', price: 600000 }])
+  })
+
+  it('applies time-band listed prices', () => {
+    const pricingJson = JSON.stringify({
+      timeBands: [{ startTime: '08:00', endTime: '17:00', price: 1000000 }],
+    })
+    expect(listedSlotPriceUpdates(
+      [{ id: 'a', startTime: '09:00', price: 600000 }],
+      { price: 1200000, pricingJson },
+    )).toEqual([{ id: 'a', price: 1000000 }])
   })
 })
 

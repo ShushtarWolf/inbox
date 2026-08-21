@@ -1,3 +1,5 @@
+import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
   const id = getRouterParam(event, 'id')
@@ -17,5 +19,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await prisma.court.delete({ where: { id: court.id } })
+  await syncClubCatalogPrices(club.id)
   return { ok: true }
 })

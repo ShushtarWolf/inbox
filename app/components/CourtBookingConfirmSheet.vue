@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
 import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
+import { computeBookingPrice } from '#shared/courtPricing.ts'
 import { uniqueOrdered, joinWithAnd } from '#shared/courtSlotSelection.ts'
 
 export type ConfirmSlot = {
@@ -10,6 +11,8 @@ export type ConfirmSlot = {
   price?: number
   courtId?: string
   courtLabel?: string
+  /** Court pricingJson — used so owner last-second discount matches IPG. */
+  pricingJson?: string | null
 }
 
 export type ConfirmEquipment = {
@@ -99,11 +102,15 @@ const costLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of props.slots) {
     const time = slot.startTime?.slice(0, 5) || ''
+    const listed = Number(slot.price || 0)
+    const amount = props.date && slot.startTime
+      ? computeBookingPrice(listed, slot.pricingJson, props.date, slot.startTime)
+      : listed
     lines.push({
       label: slot.courtLabel
         ? t('booking.confirmLineSlotCourt', { court: slot.courtLabel, time })
         : t('booking.confirmLineSlot', { date: dateHeading.value, time }),
-      amount: Number(slot.price || 0),
+      amount,
     })
   }
   if (wantRacket.value && racketItem.value) {

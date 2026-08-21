@@ -1,4 +1,5 @@
 import { clubRankingScore, getQueryNumber, haversineKm, parseJsonArray } from '../../utils/catalog'
+import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
@@ -21,8 +22,6 @@ export default defineEventHandler(async (event) => {
     ...(city ? { city } : {}),
     ...(district ? { district } : {}),
     ...(verified === 'true' ? { verifiedAt: { not: null } } : {}),
-    ...(typeof minPrice === 'number' ? { priceFrom: { gte: minPrice } } : {}),
-    ...(typeof maxPrice === 'number' ? { priceFrom: { lte: maxPrice } } : {}),
   }
   const clubs = await prisma.club.findMany({
     where,
@@ -42,6 +41,9 @@ export default defineEventHandler(async (event) => {
         : null
     // Hide schema-default demo ratings (4.5) until real reviews exist.
     const rating = reviewCount > 0 ? club.rating : 0
+    const liveRange = clubCatalogPriceRange(club.courts)
+    const priceFrom = liveRange.priceFrom ?? club.priceFrom
+    const priceTo = liveRange.priceTo ?? club.priceTo
     return {
       id: club.id,
       slug: club.slug,
@@ -54,8 +56,8 @@ export default defineEventHandler(async (event) => {
       rating,
       reviewCount,
       verifiedReviewCount: 0,
-      priceFrom: club.priceFrom,
-      priceTo: club.priceTo,
+      priceFrom,
+      priceTo,
       image: club.image,
       descriptionFa: club.descriptionFa,
       descriptionEn: club.descriptionEn,
@@ -68,20 +70,27 @@ export default defineEventHandler(async (event) => {
         featured: club.featured,
         rating,
         reviewCount,
-        priceFrom: club.priceFrom,
+        priceFrom,
         distanceKm,
       }),
     }
   }).filter((club) => !amenity || club.amenities.includes(amenity))
 
-  hydrated.sort((left, right) => {
+  // Apply min/max against live court prices (Club.priceFrom can lag after owner edits).
+  const priceFiltered = hydrated.filter((club) => {
+    if (typeof minPrice === 'number' && club.priceFrom < minPrice) return false
+    if (typeof maxPrice === 'number' && club.priceFrom > maxPrice) return false
+    return true
+  })
+
+  priceFiltered.sort((left, right) => {
     if (sort === 'price') return left.priceFrom - right.priceFrom
     if (sort === 'rating') return right.rating - left.rating
     if (sort === 'nearby') return (left.distanceKm ?? Number.MAX_SAFE_INTEGER) - (right.distanceKm ?? Number.MAX_SAFE_INTEGER)
     return right.rankingScore - left.rankingScore
   })
 
-  return hydrated.filter((club) => {
+  return priceFiltered.filter((club) => {
     if (!lat || !lng || club.distanceKm == null) return true
     return club.distanceKm <= radiusKm
   })
