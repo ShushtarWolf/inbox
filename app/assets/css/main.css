@@ -1352,6 +1352,17 @@
     @apply border border-brand-gray-200 bg-white px-2 py-3 text-center;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-finance-chip-link {
+    @apply block no-underline transition-colors;
+  }
+  .canva-finance-chip-link:hover,
+  .canva-finance-chip-link:focus-visible {
+    @apply border-brand-primary bg-brand-cream outline-none;
+  }
+  .canva-finance-unpaid-cta {
+    @apply font-bold text-brand-primary underline-offset-2;
+    text-decoration: underline;
+  }
   .canva-finance-chip-label {
     @apply text-[10px] font-bold text-brand-gray-500;
   }

@@ -182,9 +182,12 @@ function methodBadgeLabel(method?: string | null) {
   return t('owner.financePage.methodUnpaid')
 }
 
-/** Canva day chips: رزروها / در انتظار تسویه / عدم حضور — real stats only. */
+/** Canva day chips: رزروها / پرداخت‌نشده / عدم حضور — unpaidAmount is desk receivables, not payout. */
+const unpaidAmount = computed(() => data.value?.stats?.unpaidAmount)
+const hasUnpaidReceivables = computed(() => Number(unpaidAmount.value || 0) > 0)
+
 const summaryChips = computed(() => {
-  const unpaidAmt = data.value?.stats?.unpaidAmount
+  const unpaidAmt = unpaidAmount.value
   const noShows = data.value?.stats?.noShowsToday
   return [
     {
@@ -196,6 +199,7 @@ const summaryChips = computed(() => {
       key: 'pendingSettlement',
       label: t('owner.financeCards.pendingSettlement'),
       value: unpaidAmt == null ? '—' : formatCurrency(unpaidAmt),
+      to: localePath('/owner/calendar'),
     },
     {
       key: 'noShows',
@@ -294,11 +298,29 @@ function closeTx() {
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div class="canva-finance-wide">
-      <div v-if="showReports" class="canva-finance-chips">
-        <div v-for="chip in summaryChips" :key="chip.key" class="canva-finance-chip">
-          <p class="canva-finance-chip-label">{{ chip.label }}</p>
-          <p class="canva-finance-chip-value">{{ chip.value }}</p>
+      <div v-if="showReports" class="space-y-2">
+        <div class="canva-finance-chips">
+          <template v-for="chip in summaryChips" :key="chip.key">
+            <NuxtLink
+              v-if="chip.to"
+              :to="chip.to"
+              class="canva-finance-chip canva-finance-chip-link"
+            >
+              <p class="canva-finance-chip-label">{{ chip.label }}</p>
+              <p class="canva-finance-chip-value">{{ chip.value }}</p>
+            </NuxtLink>
+            <div v-else class="canva-finance-chip">
+              <p class="canva-finance-chip-label">{{ chip.label }}</p>
+              <p class="canva-finance-chip-value">{{ chip.value }}</p>
+            </div>
+          </template>
         </div>
+        <p v-if="hasUnpaidReceivables" class="text-start text-[11px] leading-5 text-brand-gray-500">
+          {{ t('owner.financePage.unpaidChipHint') }}
+          <NuxtLink :to="localePath('/owner/calendar')" class="canva-finance-unpaid-cta ms-1">
+            {{ t('owner.financePage.unpaidChipCta') }}
+          </NuxtLink>
+        </p>
       </div>
 
       <div v-if="showReports" class="canva-panel">

@@ -1570,6 +1570,8 @@
       "methodCashless": "درگاه",
       "methodUnpaid": "پرداخت‌نشده",
       "unpaidShareNote": "پرداخت‌نشده از کل رزروها: {pct}٪",
+      "unpaidChipHint": "این مبلغ رزروهای پرداخت‌نشده است (نه موجودی قابل برداشت). برای صفر شدن، در تقویم «ثبت پرداخت نقدی در باشگاه» را بزنید.",
+      "unpaidChipCta": "رفتن به تقویم",
       "paymentBreakdownHint": "درصد رزروهای فعال بر اساس وضعیت وصول.",
       "breakdown": {
         "PAID_CASH": "پرداخت‌شده · نقدی در باشگاه",
@@ -1649,7 +1651,7 @@
       "unpaid": "رزروهای پرداخت‌نشده",
       "bookings": "رزروها",
       "bookingsToday": "رزروهای امروز",
-      "pendingSettlement": "در انتظار تسویه",
+      "pendingSettlement": "پرداخت‌نشده",
       "noShows": "عدم حضور",
       "pending": "در انتظار",
       "paidRate": "نرخ پرداخت",
