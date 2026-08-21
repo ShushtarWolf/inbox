@@ -445,10 +445,12 @@ function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   }
   const base = map[status] || 'slot-free'
   if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
-  if (isReservedDisplayStatus(status) && slotPaymentChannel(slot) === 'IPG') {
-    return `${base} slot-reserved-ipg`
+  if (isReservedDisplayStatus(status)) {
+    // Unpaid wins over channel so desk unpaid / pending-online never look like settled pink.
+    if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return `${base} slot-reserved-unpaid`
+    if (slotPaymentChannel(slot) === 'IPG') return `${base} slot-reserved-ipg`
+    return `${base} slot-reserved-cash`
   }
-  if (isReservedDisplayStatus(status)) return `${base} slot-reserved-cash`
   return base
 }
 
@@ -513,6 +515,9 @@ function slotPaymentBadge(slot: OwnerCalendarSlot | null | undefined) {
   const status = slotPaymentStatus(slot)
   if (!status || slot?.displayStatus === 'FREE' || slot?.displayStatus === 'BLOCKED')
     return ''
+  // Short grid labels — full status strings clip in narrow court columns.
+  if (isUnpaidPaymentStatus(status)) return t('owner.slotPayUnpaid')
+  if (isPaidPaymentStatus(status)) return t('owner.slotPayPaid')
   return t(`booking.paymentStatus.${status}`)
 }
 
@@ -545,8 +550,11 @@ function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
 
 function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
   const status = slot?.displayStatus || 'FREE'
-  if (isIpgReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-ipg'
-  if (isReservedDisplayStatus(status)) return 'canva-cal-grid-cell-bar-reserved-cash'
+  if (isReservedDisplayStatus(status)) {
+    if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return 'canva-cal-grid-cell-bar-reserved-unpaid'
+    if (isIpgReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-ipg'
+    return 'canva-cal-grid-cell-bar-reserved-cash'
+  }
   const map: Record<string, string> = {
     FREE: 'canva-cal-grid-cell-bar-free',
     PENDING: 'canva-cal-grid-cell-bar-pending',
@@ -1824,7 +1832,8 @@ function confirmReserveLabel() {
 
 const legend = [
   { status: 'FREE', color: '#eceae6' },
-  { status: 'RESERVED_CASH', color: '#f3d4d4' },
+  { status: 'RESERVED_PAID', color: '#f3d4d4' },
+  { status: 'RESERVED_UNPAID', color: '#fde8c8' },
   { status: 'RESERVED_IPG', color: '#d4dce8' },
   { status: 'PENDING', color: '#f3e0a8' },
   { status: 'BLOCKED', color: '#f3d4d4' },
@@ -1835,6 +1844,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
   if (status === 'CLOSED') return palette.slotDisplay.CLOSED
   if (status === 'CANCELLED') return palette.slotDisplay.CANCELLED
   if (status === 'FREE') return palette.slotDisplay.FREE
+  if (status === 'RESERVED_UNPAID' || isUnpaidPaymentStatus(slotPaymentStatus(slot))) return '#d97706'
   if (isIpgReservedSlot(slot) || status === 'RESERVED_IPG') return palette.schedule.clubBooking
   return palette.slotDisplay.RESERVED
 }
@@ -2011,7 +2021,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
                       v-if="slotPaymentBadge(cellSlot(court.id, hour))"
-                      class="canva-slot-pay-chip mt-0.5"
+                      class="canva-slot-pay-chip"
                       :class="slotPaymentBadgeClass(cellSlot(court.id, hour))"
                     >{{ slotPaymentBadge(cellSlot(court.id, hour)) }}</span>
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
@@ -3168,6 +3178,11 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
 :deep(.canva-cal-grid-cell.slot-team),
 :deep(.canva-cal-grid-cell.slot-blocked) {
   background: #f3d4d4;
+  color: #2c2c2a;
+}
+
+:deep(.canva-cal-grid-cell.slot-reserved-unpaid) {
+  background: #fde8c8;
   color: #2c2c2a;
 }
 

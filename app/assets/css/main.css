@@ -1061,6 +1061,10 @@
     background: #C41E1E !important;
     color: #fff;
   }
+  .canva-slot-row.slot-reserved-unpaid {
+    background: #d97706 !important;
+    color: #1c1917;
+  }
   .canva-slot-row.slot-reserved-ipg {
     background: #4A1420 !important;
     color: #fff;
@@ -1096,14 +1100,16 @@
     @apply hidden;
   }
   .canva-slot-pay-chip {
-    @apply shrink-0 px-2 py-0.5 text-[10px] font-bold;
+    @apply mt-0.5 inline-block max-w-full shrink-0 truncate px-1 py-px text-[9px] font-extrabold leading-tight;
     border-radius: var(--sz-canva-radius);
   }
   .canva-slot-pay-paid {
-    @apply bg-emerald-50 text-emerald-700;
+    background: #d1fae5;
+    color: #047857;
   }
   .canva-slot-pay-unpaid {
-    @apply bg-amber-50 text-amber-800;
+    background: #f59e0b;
+    color: #1c1917;
   }
   .canva-legend-chip {
     @apply inline-flex items-center gap-1.5 border border-brand-gray-200 bg-brand-cream px-2.5 py-1 text-xs font-bold text-brand-navy;
@@ -1907,7 +1913,7 @@
     @apply flex items-start justify-center pt-2.5 text-[10px] tabular-nums text-brand-gray-500;
   }
   .canva-cal-grid-cell {
-    @apply relative flex min-h-[3.15rem] w-full flex-col items-stretch justify-start overflow-hidden bg-white py-1 text-start transition;
+    @apply relative flex min-h-[3.5rem] w-full flex-col items-stretch justify-start overflow-hidden bg-white py-1 text-start transition;
     padding-inline-start: 0.45rem;
     padding-inline-end: 0.2rem;
   }
@@ -1933,6 +1939,7 @@
   }
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-reserved-cash .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-reserved-unpaid .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-reserved-ipg .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
@@ -1966,6 +1973,9 @@
   .canva-cal-grid-cell-bar-team,
   .canva-cal-grid-cell-bar-blocked {
     background: #C41E1E;
+  }
+  .canva-cal-grid-cell-bar-reserved-unpaid {
+    background: #d97706;
   }
   .canva-cal-grid-cell-bar-reserved-ipg {
     background: #4A1420;
@@ -2286,6 +2296,7 @@
   .slot-free { @apply font-medium; }
   .slot-reserved { @apply font-medium; }
   .slot-reserved-cash { @apply font-medium; }
+  .slot-reserved-unpaid { @apply font-medium; }
   .slot-reserved-ipg { @apply font-medium; }
   .slot-public { @apply font-medium; }
   .slot-team { @apply font-medium; }
