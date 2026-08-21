@@ -1,46 +1,24 @@
-import { createHash, randomBytes } from 'node:crypto'
-import { getEmailMode, isEmailConfigured, siteUrl } from '../../utils/email'
-import { sendNotification } from '../../utils/notify'
+import { createAndSendPhoneOtp } from '../../utils/otp'
 
-function hashToken(token: string) {
-  return createHash('sha256').update(token).digest('hex')
-}
-
+/**
+ * Password recovery via SMS OTP (product does not use email).
+ * Body: { phone } → sends purpose=password_reset OTP through Kavenegar.
+ */
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:forgot-password')
-  const { email } = await readBody<{ email?: string }>(event)
-  const normalized = email?.trim().toLowerCase()
-  // Safe public mode — no secrets; UI uses this to avoid "email sent" traps in log mode.
-  const emailMode = getEmailMode()
+  const body = await readBody<{ phone?: string }>(event)
 
-  let debugResetUrl: string | undefined
+  const result = await createAndSendPhoneOtp({
+    phoneRaw: body.phone || '',
+    purpose: 'password_reset',
+  })
 
-  if (normalized) {
-    const user = await prisma.user.findUnique({ where: { email: normalized } })
-    if (user) {
-      const token = randomBytes(32).toString('hex')
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
-      await prisma.passwordResetToken.create({
-        data: { userId: user.id, tokenHash: hashToken(token), expiresAt },
-      })
-      const resetUrl = `${siteUrl()}/reset-password?token=${token}`
-      // Fail soft — SMTP errors / log mode must not break auth (always ok: true).
-      try {
-        await sendNotification({
-          channel: 'email',
-          to: normalized,
-          template: 'PASSWORD_RESET',
-          data: { resetUrl },
-        })
-      } catch (err) {
-        console.error('[auth:forgot-password:email]', err)
-      }
-      // Mirror OTP debugCode: expose reset link only when SMTP email is not live.
-      if (!isEmailConfigured() && process.env.NODE_ENV !== 'production') {
-        debugResetUrl = resetUrl
-      }
-    }
+  return {
+    ok: true,
+    phone: result.phone,
+    expiresIn: result.expiresIn,
+    debugCode: result.debugCode,
+    smsMode: result.smsMode,
+    smsPhase: result.smsPhase,
   }
-
-  return { ok: true, emailMode, debugResetUrl }
 })

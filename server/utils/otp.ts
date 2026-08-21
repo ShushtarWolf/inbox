@@ -7,7 +7,7 @@ import { enforceOtpSendPhoneLimit } from './rateLimit'
 import { sendSms } from './sms/service'
 import { renderOtpSms } from './sms/templates'
 
-export type OtpPurpose = 'login' | 'register'
+export type OtpPurpose = 'login' | 'register' | 'password_reset'
 export type OtpRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
 
 const OTP_TTL_MS = 5 * 60 * 1000
@@ -30,7 +30,7 @@ export async function createAndSendPhoneOtp(opts: {
 
   await enforceOtpSendPhoneLimit(phone)
 
-  if (opts.purpose === 'login') {
+  if (opts.purpose === 'login' || opts.purpose === 'password_reset') {
     const match = await findUserForPhoneOtp(phone)
     if (!match) {
       throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })

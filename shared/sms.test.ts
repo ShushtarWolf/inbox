@@ -151,6 +151,8 @@ describe('getSmsStatusSnapshot', () => {
       hasTemplateOrSender: true,
     })
     expect(snap.warningCodes).not.toContain('phase_single')
+    expect(snap.warningCodes).toContain('notify_lookup_needed')
+    expect(snap.nextActionCodes).toContain('create_notify_template')
     expect(snap.note).toContain('MULTI')
   })
 

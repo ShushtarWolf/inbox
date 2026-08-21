@@ -116,7 +116,7 @@ async function goLoginAfterReset() {
               {{ missingToken ? t('auth.resetTokenMissing') : (error || t('auth.resetFailed')) }}
             </p>
             <NuxtLink :to="localePath('/forgot-password')" class="canva-gate-btn-primary block text-center">
-              {{ t('auth.sendResetLink') }}
+              {{ t('auth.sendResetCode') }}
             </NuxtLink>
             <button type="button" class="canva-gate-btn-secondary" @click="goSmsLogin">
               {{ t('auth.loginWithPhone') }}

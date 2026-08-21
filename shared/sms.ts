@@ -85,6 +85,8 @@ const SMS_WARNING_EN: Record<string, string> = {
     'Live SMS with neither KAVENEGAR_TEMPLATE nor KAVENEGAR_SENDER — OTP uses sms/send and often fails with invalid sender; set a panel-approved sender or Verify Lookup template',
   live_sender_only_no_template:
     'KAVENEGAR_TEMPLATE unset — OTP uses free-text sms/send (requires a valid KAVENEGAR_SENDER). Prefer a panel-approved Verify Lookup template for OTP.',
+  notify_lookup_needed:
+    'Booking/owner/admin SMS need panel Verify Lookup template inbox-notify (body %token10%). OTP template alone is not enough.',
   phase_single:
     'SMS phase SINGLE — UI must not claim delivery to any Iranian number; trial/approved-number or log mode only',
   otp_bypass_leftover:
@@ -96,6 +98,8 @@ const SMS_NEXT_ACTION_EN: Record<string, string> = {
   set_api_key: 'Set KAVENEGAR_API_KEY from the Kavenegar console',
   set_template_or_sender: 'Set KAVENEGAR_TEMPLATE (preferred for OTP) or KAVENEGAR_SENDER after panel approval',
   prefer_template: 'Prefer KAVENEGAR_TEMPLATE (Verify Lookup) for OTP reliability',
+  create_notify_template:
+    'In Kavenegar panel create Verify Lookup template inbox-notify with body exactly %token10%, set usage عملیاتی, then set KAVENEGAR_TEMPLATE_NOTIFY=inbox-notify',
   set_provider_live: 'Set SMS_PROVIDER=live (or kavenegar) for production gateway',
   enable_when_panel_accepts: 'Enable SMS_ENABLED=true when Kavenegar accepts multi-number send',
   add_api_key: 'Add KAVENEGAR_API_KEY',
@@ -197,6 +201,11 @@ export function getSmsStatusSnapshot(): SmsStatusSnapshot {
   if (provider === 'live' && !hasTemplate && hasSender) {
     warningCodes.push('live_sender_only_no_template')
     nextActionCodes.push('prefer_template')
+  }
+  if (provider === 'live' && hasKey && smsEnabledFlag) {
+    // OTP may work while booking/CRM fail — surface the second template requirement.
+    warningCodes.push('notify_lookup_needed')
+    nextActionCodes.push('create_notify_template')
   }
   if (smsPhase === 'SINGLE') {
     warningCodes.push('phase_single')

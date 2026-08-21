@@ -1,5 +1,7 @@
 <script setup lang="ts">
-/** Canva password-recovery / FA phone-auth sibling — real email recovery (not AuthFlow stub). */
+/** Canva password recovery — SMS OTP (no email). */
+import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
+
 definePageMeta({
   middleware: 'guest',
   layout: false,
@@ -9,38 +11,90 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { openLogin } = useAuthFlow()
 const { fetchErrorMessage } = useFetchError()
+const { smsMode } = useSmsCapability()
 
 useHead({
   title: () => t('auth.forgotPasswordTitle'),
 })
 
-const email = ref('')
+type Step = 'phone' | 'reset' | 'done'
+
+const step = ref<Step>('phone')
+const phone = ref('')
+const code = ref('')
+const password = ref('')
+const confirmPassword = ref('')
 const pending = ref(false)
 const error = ref('')
-const done = ref(false)
-const emailMode = ref<'log' | 'live'>('log')
-const debugResetUrl = ref('')
+const normalizedPhone = ref('')
+const debugCode = ref('')
 
-async function submit() {
+async function requestCode() {
   error.value = ''
   pending.value = true
   try {
     const data = await $fetch<{
       ok: boolean
-      emailMode?: 'log' | 'live'
-      debugResetUrl?: string
+      phone?: string
+      expiresIn?: number
+      debugCode?: string
+      smsMode?: 'log' | 'live'
     }>('/api/auth/forgot-password', {
       method: 'POST',
-      body: { email: email.value },
+      body: { phone: phone.value },
     })
-    emailMode.value = data.emailMode === 'live' ? 'live' : 'log'
-    debugResetUrl.value = data.debugResetUrl || ''
-    done.value = true
+    normalizedPhone.value = data.phone || phone.value
+    debugCode.value = data.debugCode || ''
+    if (data.smsMode === 'log' && data.debugCode) {
+      code.value = data.debugCode
+    } else {
+      code.value = ''
+    }
+    step.value = 'reset'
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
-    error.value = status === 429
-      ? t('errors.rateLimited')
-      : fetchErrorMessage(err, t('auth.resetRequestFailed'))
+    if (status === 404) {
+      error.value = t('auth.phoneNotFound')
+    } else if (status === 429) {
+      error.value = t('errors.rateLimited')
+    } else {
+      error.value = fetchErrorMessage(err, t('auth.resetRequestFailed'))
+    }
+  } finally {
+    pending.value = false
+  }
+}
+
+async function submitReset() {
+  error.value = ''
+  if (password.value.length < 6) {
+    error.value = t('auth.passwordTooShort')
+    return
+  }
+  if (password.value !== confirmPassword.value) {
+    error.value = t('auth.passwordMismatch')
+    return
+  }
+  pending.value = true
+  try {
+    await $fetch('/api/auth/reset-password', {
+      method: 'POST',
+      body: {
+        phone: normalizedPhone.value || phone.value,
+        code: code.value,
+        password: password.value,
+      },
+    })
+    step.value = 'done'
+  } catch (err: unknown) {
+    const status = (err as { statusCode?: number })?.statusCode
+    if (status === 400) {
+      error.value = t('auth.invalidOtp')
+    } else if (status === 429) {
+      error.value = t('errors.rateLimited')
+    } else {
+      error.value = fetchErrorMessage(err, t('auth.resetFailed'))
+    }
   } finally {
     pending.value = false
   }
@@ -51,11 +105,36 @@ async function goSmsLogin() {
   await navigateTo(localePath('/'))
 }
 
-function tryAgain() {
-  done.value = false
-  debugResetUrl.value = ''
+async function goLoginAfterReset() {
+  openLogin({ notice: t('auth.resetSuccess') })
+  await navigateTo(localePath('/login'))
+}
+
+function backToPhone() {
+  step.value = 'phone'
+  code.value = ''
+  password.value = ''
+  confirmPassword.value = ''
+  debugCode.value = ''
   error.value = ''
 }
+
+let stopSmsOtpAutofill = () => {}
+
+function restartSmsOtpAutofill() {
+  stopSmsOtpAutofill()
+  stopSmsOtpAutofill = () => {}
+  if (step.value !== 'reset' || debugCode.value) return
+  stopSmsOtpAutofill = startSmsOtpAutofill((next) => {
+    if (code.value.replace(/\D/g, '').length < 6) code.value = next
+  })
+}
+
+watch(step, restartSmsOtpAutofill)
+
+onUnmounted(() => {
+  stopSmsOtpAutofill()
+})
 </script>
 
 <template>
@@ -78,43 +157,91 @@ function tryAgain() {
           <h1 class="text-center text-lg font-bold text-brand-navy">{{ t('auth.forgotPasswordTitle') }}</h1>
           <p class="text-center text-sm text-brand-gray-600">{{ t('auth.resetPreferPhoneHint') }}</p>
 
-          <div v-if="done" class="space-y-3 text-center">
-            <p class="text-sm font-bold text-brand-navy">
-              {{ emailMode === 'live' ? t('auth.resetEmailSent') : t('auth.resetEmailLogMode') }}
-            </p>
-            <p
-              v-if="debugResetUrl"
-              class="break-all border border-brand-primary/20 bg-brand-primary-soft px-3 py-2 text-start text-xs text-brand-primary"
-              style="border-radius: 2px;"
-              dir="ltr"
-            >
-              {{ t('auth.debugResetHint') }}
-              <a :href="debugResetUrl" class="font-bold underline">{{ debugResetUrl }}</a>
-            </p>
-            <button type="button" class="canva-gate-btn-primary" @click="goSmsLogin">
-              {{ t('auth.loginWithPhone') }}
+          <div v-if="step === 'done'" class="space-y-3 text-center">
+            <p class="text-sm font-bold text-brand-navy">{{ t('auth.resetSuccess') }}</p>
+            <button type="button" class="canva-gate-btn-primary" @click="goLoginAfterReset">
+              {{ t('auth.login') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="tryAgain">
-              {{ t('auth.sendResetLink') }}
+            <button type="button" class="canva-gate-btn-secondary" @click="goSmsLogin">
+              {{ t('auth.loginWithPhone') }}
             </button>
           </div>
 
-          <form v-else class="space-y-4" @submit.prevent="submit">
-            <AppFormField field-id="forgot-email" :label="t('auth.email')">
+          <form v-else-if="step === 'reset'" class="space-y-4" @submit.prevent="submitReset">
+            <p class="text-center text-sm text-brand-gray-600">
+              {{ t('auth.otpSentHint', { phone: normalizedPhone }) }}
+            </p>
+            <p
+              v-if="smsMode === 'log' || debugCode"
+              class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+              style="border-radius: 2px;"
+            >
+              {{ t('auth.otpLogModeBanner') }}
+              <span v-if="debugCode" class="ms-1 font-mono" dir="ltr">{{ debugCode }}</span>
+            </p>
+            <AppFormField field-id="reset-otp" :label="t('auth.otpCode')" numeric>
               <input
-                id="forgot-email"
-                v-model="email"
-                type="email"
-                required
+                id="reset-otp"
+                v-model="code"
                 dir="ltr"
-                autocomplete="email"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                required
                 class="neo-input bg-white/95"
-                :placeholder="t('auth.email')"
+              />
+            </AppFormField>
+            <AppFormField field-id="reset-password" :label="t('auth.newPassword')">
+              <input
+                id="reset-password"
+                v-model="password"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="neo-input bg-white/95"
+              />
+            </AppFormField>
+            <AppFormField field-id="reset-password-confirm" :label="t('auth.confirmPassword')">
+              <input
+                id="reset-password-confirm"
+                v-model="confirmPassword"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="neo-input bg-white/95"
               />
             </AppFormField>
             <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
-            <button type="submit" class="canva-gate-btn-primary" :disabled="pending || !email.trim()">
-              {{ pending ? t('common.loading') : t('auth.sendResetLink') }}
+            <button
+              type="submit"
+              class="canva-gate-btn-primary"
+              :disabled="pending || !code.trim() || !password || !confirmPassword"
+            >
+              {{ pending ? t('common.loading') : t('auth.resetPassword') }}
+            </button>
+            <button type="button" class="canva-gate-btn-secondary" @click="backToPhone">
+              {{ t('auth.sendResetCode') }}
+            </button>
+          </form>
+
+          <form v-else class="space-y-4" @submit.prevent="requestCode">
+            <AppFormField field-id="forgot-phone" :label="t('common.mobile')" numeric>
+              <input
+                id="forgot-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                autocomplete="tel"
+                required
+                class="neo-input bg-white/95"
+                :placeholder="t('auth.phonePlaceholder')"
+              />
+            </AppFormField>
+            <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+            <button type="submit" class="canva-gate-btn-primary" :disabled="pending || !phone.trim()">
+              {{ pending ? t('common.loading') : t('auth.sendResetCode') }}
             </button>
             <button type="button" class="canva-gate-btn-secondary" @click="goSmsLogin">
               {{ t('auth.loginWithPhone') }}
