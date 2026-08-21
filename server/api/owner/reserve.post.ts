@@ -248,46 +248,53 @@ export default defineEventHandler(async (event) => {
           console.error('[reserve:ownerSettlement]', paidPayment.id, err)
         }
       }
-      const phone = existing.user?.phone || guestMobile || existing.guestMobile
-      const guestName = personNotifyName(guest.guestName, guest.guestFamily)
-        || existing.user?.name
-        || ''
-      const amountPaid = paidPayment?.amount ?? totalAmount
-      if (existing.userId || phone) {
-        await notifyBookingPaid({
-          userId: existing.userId,
-          email: existing.user?.email,
-          phone,
-          kind: 'court',
-          clubName: clubNotifyName(club),
+      // Multi-hour desk mark-paid: client sends skipNotify on all but the last hour
+      // so guest/owner get one SMS covering the full range (not N hangs).
+      const skipNotify = Boolean(body.skipNotify)
+      if (!skipNotify) {
+        const phone = existing.user?.phone || guestMobile || existing.guestMobile
+        const guestName = personNotifyName(guest.guestName, guest.guestFamily)
+          || existing.user?.name
+          || ''
+        const amountPaid = paidPayment?.amount ?? totalAmount
+        const notifyStart = (body.notifyStartTime || slot.startTime).trim()
+        const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
+        if (existing.userId || phone) {
+          await notifyBookingPaid({
+            userId: existing.userId,
+            email: existing.user?.email,
+            phone,
+            kind: 'court',
+            clubName: clubNotifyName(club),
+            clubId: club.id,
+            bookingId: existing.id,
+            date: slot.date,
+            startTime: notifyStart,
+            endTime: notifyEnd,
+            courtName: courtNotifyName(slot.court),
+            guestName,
+            amountPaid,
+            paymentPaid: true,
+          })
+        }
+        const ownerClub = await prisma.club.findUnique({
+          where: { id: club.id },
+          select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
+        })
+        await notifyOwnerBookingPaid({
+          ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : club.phone,
+          clubName: clubNotifyName(ownerClub || club),
           clubId: club.id,
           bookingId: existing.id,
           date: slot.date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
+          startTime: notifyStart,
+          endTime: notifyEnd,
           courtName: courtNotifyName(slot.court),
           guestName,
+          guestPhone: phone,
           amountPaid,
-          paymentPaid: true,
         })
       }
-      const ownerClub = await prisma.club.findUnique({
-        where: { id: club.id },
-        select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
-      })
-      await notifyOwnerBookingPaid({
-        ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : club.phone,
-        clubName: clubNotifyName(ownerClub || club),
-        clubId: club.id,
-        bookingId: existing.id,
-        date: slot.date,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        courtName: courtNotifyName(slot.court),
-        guestName,
-        guestPhone: phone,
-        amountPaid,
-      })
     }
   } else {
     let createdBooking

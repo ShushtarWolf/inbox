@@ -492,7 +492,8 @@ function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
   if (slot.displayStatus === 'FREE') {
     return isPastFreeSlot(slot) ? t('owner.slotPast') : ''
   }
-  return [slotGuestLine(slot), slotNoteLine(slot)].filter(Boolean).join(' — ')
+  const pay = slotPaymentBadge(slot)
+  return [slotGuestLine(slot), pay, slotNoteLine(slot)].filter(Boolean).join(' — ')
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -1299,7 +1300,11 @@ async function doCancel() {
   }
 }
 
-function deskCashPaymentBody(slot: OwnerCalendarSlot, paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
+function deskCashPaymentBody(
+  slot: OwnerCalendarSlot,
+  paymentStatus: 'PAID' | 'PAY_AT_CLUB',
+  opts?: { skipNotify?: boolean; notifyStartTime?: string; notifyEndTime?: string },
+) {
   const booking = activeBooking(slot)
   const guest = normalizeGuestNamePair(
     booking?.guestName || form.guestName,
@@ -1318,25 +1323,61 @@ function deskCashPaymentBody(slot: OwnerCalendarSlot, paymentStatus: 'PAID' | 'P
       (booking?.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
     ),
     displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+    skipNotify: opts?.skipNotify,
+    notifyStartTime: opts?.notifyStartTime,
+    notifyEndTime: opts?.notifyEndTime,
   }
+}
+
+/** Refresh calendar data but keep the session sheet open so paid/unpaid status is visible. */
+async function refreshDeskPaymentSheet(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
+  form.paymentMethod = 'CASH'
+  form.paymentStatus = paymentStatus
+  actionError.value = ''
+  await refresh()
+  const anchorId = selectedSlot.value?.id
+  if (anchorId) {
+    const refreshed = data.value?.slots?.find((slot: OwnerCalendarSlot) => slot.id === anchorId)
+    if (refreshed) selectedSlot.value = refreshed
+  }
+  // Keep sibling checkboxes in sync with live bookings after payment flips.
+  if (bookedSiblingIds.value.length) {
+    const liveIds = new Set(bookedSiblingSlots.value.map((slot) => slot.id))
+    bookedSiblingIds.value = bookedSiblingIds.value.filter((id) => liveIds.has(id))
+    selectedSlotIds.value = selectedSlotIds.value.filter((id) => liveIds.has(id))
+    if (!selectedSlotIds.value.length && bookedSiblingIds.value.length) {
+      selectedSlotIds.value = [...bookedSiblingIds.value]
+    }
+  }
+  showMenu.value = true
+  activePanel.value = 'detail'
 }
 
 /** One-click cash collection for unpaid (including online-pending) desk ops. */
 async function doMarkPaid() {
+  if (saving.value) return
   const targets = slotsForMarkPaid()
-  if (!targets.length || !canMarkPaid() || saving.value) return
+  if (!targets.length || !canMarkPaid()) {
+    actionError.value = t('owner.deskPaymentNoSlots')
+    return
+  }
   saving.value = true
   actionError.value = ''
   try {
-    for (const slot of targets) {
+    const range = bookingTimeRange(targets)
+    for (let i = 0; i < targets.length; i++) {
+      const slot = targets[i]!
+      const isLast = i === targets.length - 1
       await $fetch('/api/owner/reserve', {
         method: 'POST',
-        body: deskCashPaymentBody(slot, 'PAID'),
+        body: deskCashPaymentBody(slot, 'PAID', {
+          skipNotify: !isLast,
+          notifyStartTime: range.startTime,
+          notifyEndTime: range.endTime,
+        }),
       })
     }
-    form.paymentMethod = 'CASH'
-    form.paymentStatus = 'PAID'
-    await finishSlotAction()
+    await refreshDeskPaymentSheet('PAID')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
     await refresh()
@@ -1347,20 +1388,29 @@ async function doMarkPaid() {
 
 /** Reverse a mistaken cash mark (or wallet-paid mark) back to unpaid. */
 async function doMarkUnpaid() {
+  if (saving.value) return
   const targets = slotsForMarkUnpaid()
-  if (!targets.length || !canMarkUnpaid() || saving.value) return
+  if (!targets.length || !canMarkUnpaid()) {
+    actionError.value = t('owner.deskPaymentNoSlots')
+    return
+  }
   saving.value = true
   actionError.value = ''
   try {
-    for (const slot of targets) {
+    const range = bookingTimeRange(targets)
+    for (let i = 0; i < targets.length; i++) {
+      const slot = targets[i]!
+      const isLast = i === targets.length - 1
       await $fetch('/api/owner/reserve', {
         method: 'POST',
-        body: deskCashPaymentBody(slot, 'PAY_AT_CLUB'),
+        body: deskCashPaymentBody(slot, 'PAY_AT_CLUB', {
+          skipNotify: !isLast,
+          notifyStartTime: range.startTime,
+          notifyEndTime: range.endTime,
+        }),
       })
     }
-    form.paymentMethod = 'CASH'
-    form.paymentStatus = 'PAY_AT_CLUB'
-    await finishSlotAction()
+    await refreshDeskPaymentSheet('PAY_AT_CLUB')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
     await refresh()
@@ -1959,6 +2009,11 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                   <span class="canva-cal-grid-cell-body">
                     <span v-if="isPastFreeSlot(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
+                    <span
+                      v-if="slotPaymentBadge(cellSlot(court.id, hour))"
+                      class="canva-slot-pay-chip mt-0.5"
+                      :class="slotPaymentBadgeClass(cellSlot(court.id, hour))"
+                    >{{ slotPaymentBadge(cellSlot(court.id, hour)) }}</span>
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span

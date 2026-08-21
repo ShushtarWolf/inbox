@@ -220,6 +220,40 @@ async function main() {
   assert(paid.paymentStatus === 'PAID', 'mark paid did not set PAID')
   console.log('ok  mark paid + guestMobile notify (no crash)')
 
+  // Desk mark-unpaid reverses cash PAID; remake paid with skipNotify (multi-hour desk path)
+  const { res: unpaidCashRes, data: unpaidCash } = await apiFetch(base, '/api/owner/reserve', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: {
+      slotId: freeSlot.id,
+      guestName: 'Pilot Guest',
+      guestMobile,
+      paymentMethod: 'CASH',
+      paymentStatus: 'PAY_AT_CLUB',
+    },
+  })
+  assert(unpaidCashRes.ok, `mark unpaid → ${unpaidCashRes.status}: ${JSON.stringify(unpaidCash)}`)
+  assert(unpaidCash.paymentStatus === 'PAY_AT_CLUB', 'mark unpaid did not set PAY_AT_CLUB')
+  const { res: repaidSkipRes, data: repaidSkip } = await apiFetch(base, '/api/owner/reserve', {
+    jar,
+    session: 'owner',
+    method: 'POST',
+    body: {
+      slotId: freeSlot.id,
+      guestName: 'Pilot Guest',
+      guestMobile,
+      paymentMethod: 'CASH',
+      paymentStatus: 'PAID',
+      skipNotify: true,
+      notifyStartTime: freeSlot.startTime,
+      notifyEndTime: freeSlot.endTime,
+    },
+  })
+  assert(repaidSkipRes.ok, `mark paid skipNotify → ${repaidSkipRes.status}: ${JSON.stringify(repaidSkip)}`)
+  assert(repaidSkip.paymentStatus === 'PAID', 'mark paid skipNotify did not set PAID')
+  console.log('ok  desk mark unpaid + mark paid with skipNotify')
+
   // Desk cancel frees slot
   const { res: cancelRes, data: cancelData } = await apiFetch(base, '/api/owner/cancel', {
     jar,
