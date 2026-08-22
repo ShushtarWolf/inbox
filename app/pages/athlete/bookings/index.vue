@@ -58,8 +58,12 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/bookings/mine')
-const { data: wallet } = await useAuthedFetch('/api/wallet', { lazy: true })
+const { data, pending, error, refresh } = await useAuthedFetch<{
+  courtBookings?: CourtBooking[]
+  coachSessions?: unknown[]
+  packageBookings?: unknown[]
+}>('/api/bookings/mine')
+const { data: wallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet', { lazy: true })
 const {
   paymentStatusLabel,
   paymentStatusBadgeClass,
@@ -162,7 +166,11 @@ watch(
   { immediate: true },
 )
 
-const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch('/api/slots/available', {
+const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch<Array<{
+  id: string
+  startTime: string
+  court: { nameFa?: string; nameEn?: string }
+}>>('/api/slots/available', {
   query: computed(() => ({
     club: rescheduleTarget.value?.slot?.court?.club?.slug,
     date: rescheduleDate.value,

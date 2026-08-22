@@ -1,7 +1,7 @@
 import { coachRankingScore, getQueryNumber, parseJsonArray } from '../../utils/catalog'
 import { slugify } from '../../utils/slug'
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   setHeader(event, 'Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
   const query = getQuery(event)

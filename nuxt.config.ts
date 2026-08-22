@@ -166,7 +166,7 @@ export default defineNuxtConfig({
     client: {
       installPrompt: false,
       register: false,
-    },
+    } as { installPrompt?: boolean | string },
     devOptions: { enabled: process.env.NUXT_PUBLIC_ENABLE_PWA === 'true' },
   },
 

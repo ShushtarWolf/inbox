@@ -19,8 +19,26 @@ const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
 const bookedPrice = ref<number | null>(null)
 
-const { data: coach } = await useFetch(`/api/coaches/${id}`)
-const { data: availability, pending, error } = await useFetch(`/api/coaches/${id}/availability`, {
+type CoachBookingClub = {
+  slug?: string
+  rescheduleWindowHours?: number | null
+}
+
+type CoachBookingDetail = {
+  id: string
+  nameFa?: string
+  nameEn?: string
+  sessionPrice?: number
+  club?: CoachBookingClub | null
+}
+
+type CoachAvailability = {
+  sessionPrice?: number
+  slots?: Array<{ startTime: string; endTime?: string; available?: boolean }>
+}
+
+const { data: coach } = await useFetch<CoachBookingDetail>(`/api/coaches/${id}`)
+const { data: availability, pending, error } = await useFetch<CoachAvailability>(`/api/coaches/${id}/availability`, {
   query: computed(() => ({ date: date.value })),
 })
 

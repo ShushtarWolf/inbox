@@ -14,7 +14,7 @@ import {
 
 loadDotEnv()
 
-const base = process.env.BASE_URL || 'http://localhost:3000'
+const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const adminSecret = process.env.ADMIN_PROVISION_SECRET || ''
 
 async function main() {

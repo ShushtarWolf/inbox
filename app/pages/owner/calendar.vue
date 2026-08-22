@@ -63,6 +63,59 @@ interface OwnerCalendarSlot {
   booking?: OwnerCalendarBooking | null
 }
 
+interface OwnerEquipment {
+  id: string
+  nameFa: string
+  nameEn: string
+  category: string
+  price: number
+  quantity?: number
+}
+
+interface OwnerCalendarCourt {
+  id: string
+  nameFa: string
+  nameEn: string
+  effectiveOpenHour?: number
+  effectiveCloseHour?: number
+}
+
+interface OwnerCalendarResponse {
+  date?: string
+  courts?: OwnerCalendarCourt[]
+  slots?: OwnerCalendarSlot[]
+  clubOpenHour?: number
+  clubCloseHour?: number
+  sessionDurationMinutes?: number
+  busyDates?: string[]
+  softDates?: string[]
+}
+
+interface OwnerStaffCoach {
+  id: string
+  nameFa: string
+  nameEn: string
+  sessionPrice?: number
+}
+
+interface OwnerStaffMember {
+  id: string
+  role: string
+  permissionsJson?: string | null
+  coach?: OwnerStaffCoach | null
+  user: {
+    id?: string
+    name: string
+    nameEn?: string | null
+    email?: string | null
+    phone?: string | null
+  }
+}
+
+interface OwnerStaffResponse {
+  staff: OwnerStaffMember[]
+}
+
 type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
 
 const { t, locale } = useI18n()
@@ -129,10 +182,10 @@ const packageForm = reactive({
   comments: '',
 })
 
-const { data: equipments } = await useAuthedFetch('/api/owner/equipments')
-const { data: staffData } = await useAuthedFetch('/api/owner/staff')
+const { data: equipments } = await useAuthedFetch<OwnerEquipment[]>('/api/owner/equipments')
+const { data: staffData } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff')
 
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/calendar', {
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerCalendarResponse>('/api/owner/calendar', {
   query: computed(() => ({ date: date.value })),
 })
 
@@ -166,7 +219,7 @@ watch(showDatePicker, (open) => {
 
 const hours = computed(() => {
   const set = new Set<string>()
-  data.value?.slots?.forEach((s: { startTime: string }) => set.add(s.startTime))
+  data.value?.slots?.forEach((s) => set.add(s.startTime))
   return [...set].sort()
 })
 
@@ -192,13 +245,13 @@ watch(courts, (list) => {
     activeCourtId.value = null
     return
   }
-  if (!activeCourtId.value || !list.some((court: { id: string }) => court.id === activeCourtId.value)) {
-    activeCourtId.value = list[0].id
+  if (!activeCourtId.value || !list.some((court) => court.id === activeCourtId.value)) {
+    activeCourtId.value = list[0]?.id ?? null
   }
 }, { immediate: true })
 
 const activeCourt = computed(() =>
-  courts.value.find((court: { id: string }) => court.id === activeCourtId.value) || null,
+  courts.value.find((court) => court.id === activeCourtId.value) || null,
 )
 
 
@@ -211,7 +264,7 @@ const overviewStats = computed(() => {
   )
   const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
-  const perCourt = courts.value.map((court: { id: string; nameFa: string; nameEn: string }) => {
+  const perCourt = courts.value.map((court) => {
     const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
     const used = courtSlots.filter((slot) => slot.displayStatus !== 'FREE').length
     const pct = courtSlots.length ? Math.round((used / courtSlots.length) * 100) : 0
@@ -234,7 +287,7 @@ const overviewStats = computed(() => {
 })
 
 const scheduleTimeOptions = computed(() => {
-  const court = courts.value.find((item: { id: string }) => item.id === selectedSlotFull.value?.courtId)
+  const court = courts.value.find((item) => item.id === selectedSlotFull.value?.courtId)
   const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
   const close = court?.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22
   const step = data.value?.sessionDurationMinutes ?? 60
@@ -289,27 +342,26 @@ function onSlotPointerEnd() {
 }
 
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
-const clubCoaches = computed(() =>
-  pilotNoCoach.value
-    ? []
-    : (staffData.value?.staff || [])
-        .filter((member: { coach?: { id: string; sessionPrice?: number } | null }) => member.coach)
-        .map((member: { coach: { id: string; nameFa: string; nameEn: string; sessionPrice: number } }) => member.coach),
-)
+const clubCoaches = computed(() => {
+  if (pilotNoCoach.value) return [] as OwnerStaffCoach[]
+  return (staffData.value?.staff ?? [])
+    .map((member) => member.coach)
+    .filter((coach): coach is OwnerStaffCoach => coach != null)
+})
 const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
-  return data.value?.slots?.find((s: { id: string }) => s.id === selectedSlot.value!.id) || selectedSlot.value
+  return data.value?.slots?.find((s) => s.id === selectedSlot.value!.id) || selectedSlot.value
 })
 const selectedSlotsFull = computed(() => {
   const picked = selectedSlotIds.value
-    .map((id) => data.value?.slots?.find((s: OwnerCalendarSlot) => s.id === id))
+    .map((id) => data.value?.slots?.find((s) => s.id === id))
     .filter(Boolean) as OwnerCalendarSlot[]
-  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  const courtOrder = courts.value.map((court) => court.id)
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
 function slotCourtName(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
-  const court = courts.value.find((item: { id: string }) => item.id === slot.courtId)
+  const court = courts.value.find((item) => item.id === slot.courtId)
   return court ? localizedField(court, 'nameFa', 'nameEn') : ''
 }
 function slotCellLabel(slot: OwnerCalendarSlot) {
@@ -327,7 +379,7 @@ const payConfirmCourtsLabel = computed(() => {
   const fromSelection = selectionCourtsLabel.value
   if (fromSelection) return fromSelection
   const id = selectedSlot.value?.courtId || selectionCourtId.value || activeCourtId.value
-  const court = courts.value.find((item: { id: string }) => item.id === id)
+  const court = courts.value.find((item) => item.id === id)
   return court ? localizedField(court, 'nameFa', 'nameEn') : ''
 })
 const batchMode = computed(() =>
@@ -337,9 +389,9 @@ const batchMode = computed(() =>
   && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
 const bookedSiblingSlots = computed(() => {
-  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  const courtOrder = courts.value.map((court) => court.id)
   const live = bookedSiblingIds.value
-    .map((id) => data.value?.slots?.find((slot: OwnerCalendarSlot) => slot.id === id))
+    .map((id) => data.value?.slots?.find((slot) => slot.id === id))
     .filter((slot): slot is OwnerCalendarSlot => slot != null && isCancellableBookedSlot(slot))
   return sortSlotsByTimeThenCourt(live, courtOrder)
 })
@@ -367,7 +419,7 @@ const courtPrice = computed(() => {
 })
 const selectedCoach = computed(() => {
   if (!packageForm.coachId) return null
-  return clubCoaches.value.find((coach: { id: string }) => coach.id === packageForm.coachId) || null
+  return clubCoaches.value.find((coach) => coach.id === packageForm.coachId) || null
 })
 const dayNumber = computed(() => formatDayNumber(currentDate.value))
 const weekdayLabel = computed(() => formatWeekday(currentDate.value))
@@ -471,7 +523,7 @@ function statusLabel(status: string) {
 }
 
 function cellSlot(courtId: string, hour: string) {
-  return data.value?.slots?.find((s: OwnerCalendarSlot) => s.courtId === courtId && s.startTime === hour)
+  return data.value?.slots?.find((s) => s.courtId === courtId && s.startTime === hour)
 }
 
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
@@ -655,7 +707,7 @@ function closeGuestSearchSoon() {
 function detailCoachLabel() {
   const booking = activeBooking(selectedSlotFull.value)
   if (!booking?.coachId) return t('owner.sessionTypeFree')
-  const coach = clubCoaches.value.find((item: { id: string }) => item.id === booking.coachId)
+  const coach = clubCoaches.value.find((item) => item.id === booking.coachId)
   if (!coach) return t('owner.sessionTypeCoach')
   return localizedField(coach, 'nameFa', 'nameEn')
 }
@@ -717,8 +769,8 @@ function equipmentStock(item: { quantity?: number }) {
 
 function sumEquipmentIds(ids: string[], quantities?: Record<string, number>) {
   return (equipments.value || [])
-    .filter((item: { id: string }) => ids.includes(item.id))
-    .reduce((sum: number, item: { id: string; category: string; price: number }) => {
+    .filter((item) => ids.includes(item.id))
+    .reduce((sum, item) => {
       const qty = Math.max(1, quantities?.[item.id] || 1)
       return sum + equipmentPriceForItem(item) * qty
     }, 0)
@@ -838,7 +890,7 @@ function toggleBookedSlot(slot: OwnerCalendarSlot) {
 }
 
 function openBookedSlot(fullSlot: OwnerCalendarSlot) {
-  const courtOrder = courts.value.map((court: { id: string }) => court.id)
+  const courtOrder = courts.value.map((court) => court.id)
   const siblings = siblingBookedSlots(data.value?.slots || [], fullSlot, courtOrder)
   if (!siblings.length) {
     clearSelection()
@@ -857,7 +909,7 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     longPressFired = false
     return
   }
-  const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  const fullSlot = (data.value?.slots?.find((s) => s.id === slot.id) || slot) as OwnerCalendarSlot
   if (fullSlot.displayStatus !== 'FREE') {
     openBookedSlot(fullSlot)
     return
@@ -886,7 +938,7 @@ function openSelectionBlock() {
 
 function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
   if (!slot) return
-  const fullSlot = (data.value?.slots?.find((s: { id: string }) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  const fullSlot = (data.value?.slots?.find((s) => s.id === slot.id) || slot) as OwnerCalendarSlot
   if (!opts?.keepSelection) clearSelection()
   selectedSlot.value = fullSlot
   showMenu.value = true
@@ -919,7 +971,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   }
   form.equipmentQuantities = quantities
   const defaultRange = defaultDayRange(fullSlot)
-  const anchorDay = weekdayNameFromDate(fullSlot.date)
+  const anchorDay = weekdayNameFromDate(fullSlot.date || data.value?.date || today())
   seasonForm.startDate = ''
   seasonForm.finishDate = ''
   seasonForm.days = [anchorDay]
@@ -1345,7 +1397,7 @@ async function refreshDeskPaymentSheet(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
   await refresh()
   const anchorId = selectedSlot.value?.id
   if (anchorId) {
-    const refreshed = data.value?.slots?.find((slot: OwnerCalendarSlot) => slot.id === anchorId)
+    const refreshed = data.value?.slots?.find((slot) => slot.id === anchorId)
     if (refreshed) selectedSlot.value = refreshed
   }
   // Keep sibling checkboxes in sync with live bookings after payment flips.
@@ -1635,11 +1687,11 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
 
 const rentalEquipments = computed(() =>
-  (equipments.value || []).filter((item: { category: string }) => item.category === 'CLUB' || item.category === 'RENTAL'),
+  (equipments.value || []).filter((item) => item.category === 'CLUB' || item.category === 'RENTAL'),
 )
 
 const equipmentPickerOptions = computed(() =>
-  rentalEquipments.value.map((item: { id: string; nameFa: string; nameEn: string; category: string; price: number }) => ({
+  rentalEquipments.value.map((item) => ({
     id: item.id,
     label: equipmentOptionLabel(item),
   })),
@@ -1669,7 +1721,7 @@ function toggleReserveEquipment(id: string) {
     form.equipmentQuantities = next
     return
   }
-  const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+  const stockItem = (equipments.value || []).find((item) => item.id === id)
   const stock = equipmentStock(stockItem || {})
   if (stock < 1) return
   form.equipmentIds = [...form.equipmentIds, id]
@@ -1682,7 +1734,7 @@ function equipmentQty(id: string) {
 }
 
 function setEquipmentQty(id: string, qty: number) {
-  const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+  const stockItem = (equipments.value || []).find((item) => item.id === id)
   const stock = equipmentStock(stockItem || {})
   const next = Math.min(stock, Math.max(0, Math.round(qty)))
   if (next <= 0) {
@@ -1704,7 +1756,7 @@ function onEquipmentPickerUpdate(ids: string[]) {
   const quantities = { ...form.equipmentQuantities }
   for (const id of nextIds) {
     if (!previous.has(id)) {
-      const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+      const stockItem = (equipments.value || []).find((item) => item.id === id)
       if (equipmentStock(stockItem || {}) < 1) continue
       quantities[id] = 1
     }
@@ -1713,7 +1765,7 @@ function onEquipmentPickerUpdate(ids: string[]) {
     if (!nextIds.includes(id)) delete quantities[id]
   }
   form.equipmentIds = nextIds.filter((id) => {
-    const stockItem = (equipments.value || []).find((item: { id: string }) => item.id === id) as { quantity?: number } | undefined
+    const stockItem = (equipments.value || []).find((item) => item.id === id)
     return equipmentStock(stockItem || {}) >= 1
   })
   form.equipmentQuantities = quantities
@@ -1935,7 +1987,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
       </div>
     </section>
 
-    <section v-else class="space-y-3" :class="locale === 'en' ? 'calendar-latin' : ''">
+    <section v-else class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
       <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">

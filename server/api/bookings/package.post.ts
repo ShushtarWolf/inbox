@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     bookingId: booking.id,
     date: pkg.startDate || '',
     startTime: pkg.title,
-    paymentPaid: paymentFields.paymentStatus === 'PAID',
+    paymentPaid: false,
     guestName: personNotifyName(athlete?.name),
     ...clubNotifyLocation(pkg.club),
   })

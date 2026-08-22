@@ -24,7 +24,10 @@ const CONTACT_EMAILS = [
 
 const contactEmails = computed(() => {
   const configured = email.value
-  const rows = CONTACT_EMAILS.map((row) => ({ address: row.address, labelKey: row.labelKey }))
+  const rows: Array<{ address: string; labelKey: string }> = CONTACT_EMAILS.map((row) => ({
+    address: row.address,
+    labelKey: row.labelKey,
+  }))
   if (configured && !rows.some((row) => row.address.toLowerCase() === configured.toLowerCase())) {
     rows.unshift({ address: configured, labelKey: 'contact.emailInfo' })
   }
@@ -93,7 +96,7 @@ async function submitMessage() {
     messageBody.value = ''
     messageSuccess.value = t('contact.messageTicketOk')
   } catch (err: unknown) {
-    messageError.value = fetchErrorMessage(err, t('contact.messageTicketFail'), t)
+    messageError.value = fetchErrorMessage(err, t('contact.messageTicketFail'))
   } finally {
     sending.value = false
   }

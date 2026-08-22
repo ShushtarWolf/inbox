@@ -135,7 +135,7 @@ describe('prepareImageForUpload', () => {
       new File([new Uint8Array(400)], 'shot.jpg', { type: 'image/jpeg' }),
     )
     expect(createImageBitmap).toHaveBeenCalledTimes(2)
-    expect(createImageBitmap.mock.calls[0][1]).toEqual({ imageOrientation: 'from-image' })
+    expect(createImageBitmap.mock.calls[0]?.[1]).toEqual({ imageOrientation: 'from-image' })
     expect(createImageBitmap.mock.calls[1]).toHaveLength(1)
     expect(prepared.type).toBe('image/webp')
   })

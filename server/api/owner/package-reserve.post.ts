@@ -17,18 +17,23 @@ function resolveDayTimes(
     return { storedJson: JSON.stringify(dayTimes), expanded }
   }
   if (times?.length && days?.length) {
-    const endHour = Number.parseInt(times[times.length - 1].slice(0, 2), 10) + 1
-    const legacyRange = { start: times[0], end: `${String(endHour).padStart(2, '0')}:00` }
+    const lastTime = times[times.length - 1]
+    const firstTime = times[0]
+    if (!lastTime || !firstTime) {
+      return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
+    }
+    const endHour = Number.parseInt(lastTime.slice(0, 2), 10) + 1
+    const legacyRange = { start: firstTime, end: `${String(endHour).padStart(2, '0')}:00` }
     const mapped = Object.fromEntries(days.map((day) => [day, legacyRange])) as Record<string, DayTimeRange>
     return { storedJson: JSON.stringify(mapped), expanded: expandDayTimeRanges(mapped) }
   }
   return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
 }
 
-function firstScheduleTime(expanded: Record<string, string[]>, times?: string[]) {
-  if (times?.length) return times[0]
+function firstScheduleTime(expanded: Record<string, string[]>, times?: string[]): string {
+  if (times?.length) return times[0] ?? ''
   for (const dayTimes of Object.values(expanded)) {
-    if (dayTimes?.length) return dayTimes[0]
+    if (dayTimes?.length) return dayTimes[0] ?? ''
   }
   return ''
 }

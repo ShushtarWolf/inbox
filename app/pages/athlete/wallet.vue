@@ -11,7 +11,19 @@ const router = useRouter()
 const { formatCurrency, formatDate } = useFormatters()
 const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/wallet')
+const { data, pending, error, refresh } = await useAuthedFetch<{
+  balance?: number
+  withdrawableBalance?: number
+  sheba?: string | null
+  pendingWithdraws?: Array<{ id: string; amount: number }>
+  transactions?: Array<{
+    id: string
+    type?: string
+    amount: number
+    createdAt: string
+    note?: string | null
+  }>
+}>('/api/wallet')
 
 const selectedPreset = ref<number | null>(null)
 const customAmount = ref('')

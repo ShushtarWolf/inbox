@@ -5,12 +5,68 @@ import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
+type OwnerFinanceTransaction = {
+  id: string
+  guestName: string
+  guestMobile?: string | null
+  paymentMethod?: string | null
+  paymentStatus: string
+  amount: number
+  bookingStatus: string
+  kind?: string
+  reservationLabel: string
+  unpaid?: boolean
+}
+
+type OwnerFinanceStats = {
+  revenue?: number
+  unpaidAmount?: number | null
+  bookingsToday?: number
+  noShowsToday?: number | null
+}
+
+type OwnerFinancePaymentBreakdown = {
+  PAID_CASH?: number
+  PAID_IPG?: number
+  UNPAID?: number
+  CASH?: number
+  IPG?: number
+  NOT_PAID?: number
+}
+
+type OwnerFinanceResponse = {
+  stats?: OwnerFinanceStats
+  weeklyRevenue?: number[]
+  weekLabels?: string[]
+  paymentBreakdown?: OwnerFinancePaymentBreakdown
+  transactions?: OwnerFinanceTransaction[]
+}
+
+type OwnerSettlementWithdraw = {
+  id: string
+  amount: number
+}
+
+type OwnerSettlementLedgerEntry = {
+  id: string
+  ownerNet: number
+  clawedBackAt?: string | Date | null
+}
+
+type OwnerSettlementResponse = {
+  sheba?: string | null
+  commissionBps?: number
+  balance?: number
+  pendingWithdraws?: OwnerSettlementWithdraw[]
+  ledger?: OwnerSettlementLedgerEntry[]
+}
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance')
-const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch('/api/owner/settlement', {
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance')
+const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
   immediate: false,
   watch: false,
 })
@@ -22,7 +78,7 @@ const { fetchErrorMessage } = useFetchError()
 onMounted(() => { fetchAuth() })
 
 const period = ref<'day' | 'week' | 'month'>('day')
-const selectedTx = ref<Record<string, unknown> | null>(null)
+const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
 const withdrawAmount = ref('')
 const payoutBusy = ref(false)
@@ -226,10 +282,10 @@ const ipgPct = computed(() => {
 const visibleTransactions = computed(() => {
   const list = data.value?.transactions || []
   if (!pilotNoCoach.value) return list
-  return list.filter((tx: { kind?: string }) => tx.kind !== 'coach')
+  return list.filter((tx) => tx.kind !== 'coach')
 })
 
-function openTx(tx: Record<string, unknown>) {
+function openTx(tx: OwnerFinanceTransaction) {
   selectedTx.value = tx
 }
 

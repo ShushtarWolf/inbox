@@ -3,8 +3,18 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
-const { data, pending: profilePending, error: profileError } = await useAuthedFetch('/api/coach/profile')
-const { data: clientsData, pending: clientsPending, error: clientsError } = await useAuthedFetch('/api/coach/clients')
+const { data, pending: profilePending, error: profileError } = await useAuthedFetch<{
+  availability?: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>
+}>('/api/coach/profile')
+const { data: clientsData, pending: clientsPending, error: clientsError } = await useAuthedFetch<{
+  sessions?: Array<{
+    id: string
+    date: string
+    startTime: string
+    endTime: string
+    athlete: { name: string }
+  }>
+}>('/api/coach/clients')
 const pending = computed(() => profilePending.value || clientsPending.value)
 const error = computed(() => profileError.value || clientsError.value)
 </script>

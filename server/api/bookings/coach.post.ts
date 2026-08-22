@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     date: body.date,
     startTime: body.startTime,
     endTime: addOneHour(body.startTime),
-    paymentPaid: paymentFields.paymentStatus === 'PAID',
+    paymentPaid: false,
     guestName: personNotifyName(athlete?.name),
     ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })

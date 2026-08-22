@@ -15,6 +15,51 @@ import {
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 
+type ClubSlot = {
+  id: string
+  startTime: string
+  endTime?: string
+  price?: number
+  displayStatus?: string
+  courtId?: string
+  court?: { id?: string }
+}
+
+type ClubCourt = {
+  id: string
+  nameFa: string
+  nameEn?: string
+  price?: number
+  pricingJson?: string | null
+  sport?: { slug?: string }
+}
+
+type ClubDetail = {
+  id: string
+  image?: string | null
+  media?: Array<{ url: string }>
+  reviewSummary?: { count: number; average: number | null }
+  city?: string
+  district?: string
+  courts?: ClubCourt[]
+  waitlistEnabled?: boolean
+  equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number }>
+  pricing?: Array<{ labelFa?: string; labelEn?: string; from?: number; to?: number; price?: number }>
+  priceFrom?: number | null
+  priceTo?: number | null
+  defaultSessionDurationMinutes?: number
+  coordinates?: { lat: number; lng: number } | null
+  addressFa?: string
+  addressEn?: string
+  nameFa?: string
+  nameEn?: string
+  descriptionFa?: string
+  descriptionEn?: string
+  amenities?: string[]
+  phone?: string
+  testimonials?: Array<{ id: string; authorName: string; rating: number; body: string }>
+}
+
 const route = useRoute()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
@@ -32,7 +77,7 @@ if (rawSlug && slug !== rawSlug) {
   )
 }
 
-const { data: club, pending, error } = await useFetch(`/api/clubs/${slug}`)
+const { data: club, pending, error } = await useFetch<ClubDetail>(`/api/clubs/${slug}`)
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
 const { user } = useAuth()
@@ -43,7 +88,7 @@ const waitlistSlotId = ref<string | null>(null)
 const joiningWaitlist = ref(false)
 const waitlistFeedback = ref('')
 const waitlistFeedbackTone = ref<'success' | 'error'>('success')
-const waitlistEnabled = computed(() => Boolean((club.value as { waitlistEnabled?: boolean } | null)?.waitlistEnabled))
+const waitlistEnabled = computed(() => Boolean(club.value?.waitlistEnabled))
 
 function parseQueryCsv(raw: unknown): string[] {
   if (typeof raw === 'string') {
@@ -73,7 +118,7 @@ const selectedCourtIds = ref<string[]>(deepLinkCourtIds)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 
-const { data: slots, refresh: refreshSlots } = await useFetch('/api/slots/available', {
+const { data: slots, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
   query: computed(() => ({
     club: slug,
     date: selectedDate.value,
@@ -129,17 +174,7 @@ watch(selectedDate, () => {
   waitlistFeedback.value = ''
 })
 
-type ClubSlot = {
-  id: string
-  startTime: string
-  endTime?: string
-  price?: number
-  displayStatus?: string
-  courtId?: string
-  court?: { id?: string }
-}
-
-const allSlots = computed(() => (slots.value || []) as ClubSlot[])
+const allSlots = computed(() => slots.value || [])
 
 const courtSlots = computed(() => {
   const list = allSlots.value
@@ -151,7 +186,7 @@ watch(
   () => slots.value,
   (list) => {
     if (!deepLinkSlotsPending.value || !list) return
-    const available = list as ClubSlot[]
+    const available = list
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
       return Boolean(slot && isSlotFree(slot))
@@ -203,7 +238,7 @@ function courtNumberLabel(courtId: string) {
   if (idx < 0) return ''
   const court = courts.value[idx]!
   const n = courtDisplayNumber(
-    { nameFa: court.nameFa || '', nameEn: (court as { nameEn?: string }).nameEn },
+    { nameFa: court.nameFa || '', nameEn: court.nameEn },
     idx,
   )
   return t('booking.courtNumber', { n: formatNumber(n) })
@@ -249,7 +284,7 @@ const bookingSummary = computed(() => {
   const times = timesFromSlots(picked)
   const j = isoToJalaali(selectedDate.value)
   const weekday = formatWeekday(selectedDate.value, 'long')
-  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]} ${weekday}`
+  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
   return t('clubs.bookingSummarySelected', {
     date: dateLabel,
     courts: joinWithAnd(courtLabels),
@@ -270,14 +305,14 @@ const selectedCourtIdsForReturn = computed(() => {
 
 const sportLabel = computed(() => {
   const court = courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
-  const sportKey = (court as { sport?: { slug?: string } } | undefined)?.sport?.slug
+  const sportKey = court?.sport?.slug
   if (sportKey === 'padel') return t('clubs.sportCourtPadel')
   if (sportKey === 'tennis') return t('clubs.sportCourtTennis')
   return t('clubs.sportCourtGeneric')
 })
 
 const rentalEquipment = computed(() => {
-  const list = (club.value as { equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number }> } | null)?.equipment || []
+  const list = club.value?.equipment || []
   if (!list.length) return null
   const racket = list.find((e) => /راکت|racket/i.test(`${e.nameFa} ${e.nameEn}`))
   return racket || list[0] || null
@@ -296,7 +331,7 @@ const selectedCourt = computed(() => {
 const pricingFootnotes = computed(() => {
   if (!club.value) return [] as string[]
   const notes: string[] = []
-  const court = selectedCourt.value as { price?: number; pricingJson?: string | null } | undefined
+  const court = selectedCourt.value
   const bands = court ? (parseCourtPricingJson(court.pricingJson).timeBands || []) : []
   const distinctBandPrices = [...new Set(bands.map((b) => b.price))]
 
@@ -320,13 +355,7 @@ const pricingFootnotes = computed(() => {
   } else if (bands.length === 1 && bands[0]) {
     notes.push(t('clubs.sessionRateSingle', { price: toThousand(bands[0].price) }))
   } else {
-    const clubPricing = (club.value.pricing || []) as Array<{
-      labelFa?: string
-      labelEn?: string
-      from?: number
-      to?: number
-      price?: number
-    }>
+    const clubPricing = club.value.pricing || []
     const labeled = clubPricing
       .map((row) => {
         const label = localizedField(row, 'labelFa', 'labelEn') || row.labelFa || row.labelEn
@@ -374,7 +403,7 @@ const pricingFootnotes = computed(() => {
     }
   }
 
-  const minutes = (club.value as { defaultSessionDurationMinutes?: number }).defaultSessionDurationMinutes ?? 60
+  const minutes = club.value.defaultSessionDurationMinutes ?? 60
   notes.push(t('clubs.sessionDurationNote', { minutes: formatNumber(minutes) }))
   return notes
 })
@@ -382,10 +411,7 @@ const pricingFootnotes = computed(() => {
 const confirmSlots = computed(() =>
   selectedSlots.value.map((slot) => {
     const courtId = slotCourtId(slot)
-    const court = courts.value.find((c) => c.id === courtId) as {
-      price?: number
-      pricingJson?: string | null
-    } | undefined
+    const court = courts.value.find((c) => c.id === courtId)
     return {
       ...slot,
       courtId,
@@ -459,12 +485,12 @@ function syncCalFromDate() {
 }
 watch(selectedDate, syncCalFromDate, { immediate: true })
 
-const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatYear(viewYear.value)}`)
+const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1] ?? ''} ${formatYear(viewYear.value)}`)
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)
   const [gy, gm, gd] = jalaaliToIso(viewYear.value, viewMonth.value, 1).split('-').map(Number)
-  const weekday = new Date(gy!, gm! - 1, gd!).getDay()
+  const weekday = new Date(gy ?? 0, (gm ?? 1) - 1, gd ?? 1).getDay()
   const leadingBlanks = (weekday + 1) % 7
   const cells: Array<{ day: number | null; iso: string | null }> = []
   for (let i = 0; i < leadingBlanks; i++) cells.push({ day: null, iso: null })
@@ -500,7 +526,7 @@ function calendarDayAria(cell: { day: number | null; iso: string | null }) {
   if (!cell.iso || cell.day == null) return undefined
   const weekday = formatWeekday(cell.iso, 'long')
   const j = isoToJalaali(cell.iso)
-  const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1]} ${weekday}`
+  const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
   if (cell.iso < today()) return t('clubs.calendarDayDisabled', { date: dateLabel })
   if (cell.iso === selectedDate.value) return t('clubs.calendarDaySelected', { date: dateLabel })
   return t('clubs.calendarDaySelectable', { date: dateLabel })

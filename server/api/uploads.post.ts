@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import { inferImageUploadContentType, isAllowedImageUploadType } from '#shared/imageUpload.ts'
 
 async function handleUpload(event: H3Event, folder: string) {

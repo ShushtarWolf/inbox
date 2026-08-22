@@ -4,10 +4,49 @@ import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
+type OwnerFinanceTransaction = {
+  id: string
+  guestName: string
+  paymentStatus: string
+  amount: number
+  bookingStatus: string
+  kind?: string
+  reservationLabel: string
+  unpaid?: boolean
+}
+
+type OwnerFinanceStats = {
+  revenue?: number
+  unpaid?: number
+  ltv?: number | null
+  churnRisk?: number
+  noShowRate?: number | null
+}
+
+type OwnerFinanceSegments = {
+  activeContacts?: number
+  churnRisk?: number
+  waitlist?: number
+  cancellations?: number
+  cancellationsThisMonth?: number
+}
+
+type OwnerFinanceFunnel = {
+  confirmed?: number
+  total?: number
+}
+
+type OwnerFinanceResponse = {
+  stats?: OwnerFinanceStats
+  segments?: OwnerFinanceSegments
+  funnel?: OwnerFinanceFunnel
+  transactions?: OwnerFinanceTransaction[]
+}
+
 const { t } = useI18n()
 const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/finance', {
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
   key: 'owner-finance-report',
 })
 useOwnerClubRefresh(refresh)
@@ -93,7 +132,7 @@ const noShowRateLabel = computed(() => {
 const visibleTransactions = computed(() => {
   const list = data.value?.transactions || []
   if (!pilotNoCoach.value) return list
-  return list.filter((tx: { kind?: string }) => tx.kind !== 'coach')
+  return list.filter((tx) => tx.kind !== 'coach')
 })
 
 function downloadReport() {

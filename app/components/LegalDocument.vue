@@ -26,7 +26,12 @@ function mapParagraph(para: string) {
     return t('legal.termsPayStatusPayAtClub')
   }
   if (raw === '__PAYMENTS_PROVIDER__') return t('legal.termsPayProvider')
-  return rt(para)
+  return normalizeLegalText(typeof para === 'string' ? para : rt(para))
+}
+
+/** tm() returns raw JSON strings; linked @ syntax is not compiled until rendered. */
+function normalizeLegalText(text: string) {
+  return text.replace(/\{'@'\}/g, '@')
 }
 
 const sections = computed(() => {
@@ -41,7 +46,7 @@ const sections = computed(() => {
     <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t(introKey) }}</p>
     <section v-for="(section, idx) in sections" :key="idx" class="mt-6">
-      <h2>{{ rt(section.title) }}</h2>
+      <h2>{{ normalizeLegalText(rt(section.title)) }}</h2>
       <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ mapParagraph(para) }}</p>
     </section>
     <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>

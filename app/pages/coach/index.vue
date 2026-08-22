@@ -4,7 +4,21 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 const localePath = useLocalePath()
 const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
-const { data, pending, error } = await useAuthedFetch('/api/coach/today')
+const { data, pending, error } = await useAuthedFetch<{
+  sessions?: Array<{
+    id: string
+    startTime: string
+    endTime: string
+    athlete: { name: string; phone: string }
+  }>
+  upcomingSessions?: Array<{
+    id: string
+    date: string
+    startTime: string
+    endTime: string
+    athlete: { name: string; phone: string }
+  }>
+}>('/api/coach/today')
 </script>
 
 <template>

@@ -15,7 +15,9 @@ export function sortIranWeekdays(days: string[]): string[] {
 
 export function dayTimeRangesUniform(hours: Record<string, DayTimeRange>, days: string[]): boolean {
   if (days.length <= 1) return true
-  const first = hours[days[0]]
+  const firstDay = days[0]
+  if (!firstDay) return true
+  const first = hours[firstDay]
   if (!first) return true
   return days.every((day) => hours[day]?.start === first.start && hours[day]?.end === first.end)
 }

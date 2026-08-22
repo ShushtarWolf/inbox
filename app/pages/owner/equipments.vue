@@ -3,7 +3,7 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/equipments')
+const { data, pending, error, refresh } = await useAuthedFetch<EquipmentItem[]>('/api/owner/equipments')
 useOwnerClubRefresh(refresh)
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatNumber } = useFormatters()

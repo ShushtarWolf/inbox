@@ -16,8 +16,12 @@ export const PERSIAN_MONTHS = [
 ] as const
 
 export function parseGregorianIso(iso: string) {
-  const [year, month, day] = iso.split('-').map(Number)
-  return { year, month, day }
+  const parts = iso.split('-').map(Number)
+  return {
+    year: parts[0] ?? 0,
+    month: parts[1] ?? 1,
+    day: parts[2] ?? 1,
+  }
 }
 
 export function gregorianToIso(year: number, month: number, day: number) {

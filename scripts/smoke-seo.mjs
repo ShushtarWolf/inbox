@@ -2,7 +2,12 @@
 /** SEO & basic accessibility smoke — meta tags, lang, manifest. FA-only launch aware. */
 import { extractHtmlLang, extractMeta, fetchPage } from './lib/smoke-helpers.mjs'
 
-const base = process.env.BASE_URL || 'http://localhost:3000'
+const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
+
+/** Ignore i18n/dev payload scripts — only check user-visible HTML. */
+function visibleHtml(html) {
+  return html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+}
 
 const faPages = [
   { path: '/', expectLang: 'fa' },
@@ -54,23 +59,25 @@ async function main() {
 
   // Terms page has brand/title content
   const { html: termsHtml } = await fetchPage(base, '/terms')
-  if (!termsHtml.includes('<title') && !termsHtml.includes('inbox')) {
+  const termsVisible = visibleHtml(termsHtml)
+  if (!termsVisible.includes('<title') && !termsVisible.includes('inbox')) {
     throw new Error('/terms missing title or brand')
   }
   // Legal emails must render as real addresses, not vue-i18n escape litter
-  if (termsHtml.includes("{'@'}") || termsHtml.includes('{"@"}')) {
+  if (termsVisible.includes("{'@'}") || termsVisible.includes('{"@"}')) {
     throw new Error('/terms still contains unescaped email markup')
   }
-  if (termsHtml.includes('@inbox.ir') || !termsHtml.includes('support@inboxs.ir')) {
+  if (termsVisible.includes('@inbox.ir') || !termsVisible.includes('support@inboxs.ir')) {
     throw new Error('/terms must use support@inboxs.ir (not inbox.ir)')
   }
   console.log('ok  /terms has page content')
 
   const { html: privacyHtml } = await fetchPage(base, '/privacy')
-  if (privacyHtml.includes("{'@'}") || privacyHtml.includes('{"@"}')) {
+  const privacyVisible = visibleHtml(privacyHtml)
+  if (privacyVisible.includes("{'@'}") || privacyVisible.includes('{"@"}')) {
     throw new Error('/privacy still contains unescaped email markup')
   }
-  if (privacyHtml.includes('@inbox.ir') || !privacyHtml.includes('privacy@inboxs.ir')) {
+  if (privacyVisible.includes('@inbox.ir') || !privacyVisible.includes('privacy@inboxs.ir')) {
     throw new Error('/privacy must use privacy@inboxs.ir (not inbox.ir)')
   }
   console.log('ok  /privacy email rendering')

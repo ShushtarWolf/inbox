@@ -16,8 +16,9 @@ type ScrubbableEvent = {
 }
 
 /** Strip cookies / auth headers from a Sentry event before send. */
-export function scrubSentryEvent<T extends ScrubbableEvent>(event: T): T {
-  const headers = event.request?.headers
+export function scrubSentryEvent<T extends object>(event: T): T {
+  const scrubbable = event as T & ScrubbableEvent
+  const headers = scrubbable.request?.headers
   if (headers) {
     for (const key of Object.keys(headers)) {
       if (SENSITIVE_HEADER_NAMES.has(key.toLowerCase())) {
@@ -25,8 +26,8 @@ export function scrubSentryEvent<T extends ScrubbableEvent>(event: T): T {
       }
     }
   }
-  if (event.request && 'cookies' in event.request) {
-    event.request.cookies = undefined
+  if (scrubbable.request && 'cookies' in scrubbable.request) {
+    scrubbable.request.cookies = undefined
   }
   return event
 }

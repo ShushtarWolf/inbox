@@ -3,7 +3,26 @@ import { ALL_OWNER_PERMISSIONS, defaultPermissionsForRole, parsePermissions, typ
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 const { t } = useI18n()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/staff')
+
+type OwnerStaffMember = {
+  id: string
+  role: string
+  permissionsJson?: string | null
+  user: { name: string; phone?: string | null; email?: string | null }
+  coach?: { nameFa?: string | null; nameEn?: string | null } | null
+}
+
+type OwnerStaffPage = {
+  staff: OwnerStaffMember[]
+  upcomingSessions: Array<{
+    id: string
+    date: string
+    startTime: string
+    coach: { nameFa?: string | null; nameEn?: string | null }
+  }>
+}
+
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerStaffPage>('/api/owner/staff')
 useOwnerClubRefresh(refresh)
 const { formatIsoDate, formatTimeRange } = useFormatters()
 const { localizedField } = useLocalizedField()

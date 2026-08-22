@@ -2,7 +2,16 @@
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { fetch } = useAuth()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/coach/profile')
+const { data, pending, error, refresh } = await useAuthedFetch<{
+  bioFa?: string | null
+  bioEn?: string | null
+  sessionPrice: number
+  photo?: string | null
+  clubId?: string | null
+  credentialsJson?: string | null
+  availability?: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>
+  media?: Array<{ id: string; url: string }>
+}>('/api/coach/profile')
 const { data: clubs } = await useFetch<Array<{ id: string; nameFa: string; nameEn: string; city: string }>>('/api/clubs/options')
 
 const bioFa = ref('')

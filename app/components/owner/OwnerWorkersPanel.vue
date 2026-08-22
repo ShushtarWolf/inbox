@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<{
 
 const { t } = useI18n()
 const { pilotNoCoach } = usePilotFlags()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/workers')
+const { data, pending, error, refresh } = await useAuthedFetch<WorkerItem[]>('/api/owner/workers')
 useOwnerClubRefresh(refresh)
 const { formatTimeRange } = useFormatters()
 

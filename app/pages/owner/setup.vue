@@ -26,7 +26,17 @@ type CourtRow = { id: string; nameFa: string; nameEn: string; price: number }
 const courts = ref<CourtRow[]>([])
 const newCourt = reactive({ nameFa: '', nameEn: '', price: 600000, count: 1 })
 
-const { data: settings, pending, error: fetchError, refresh: refreshSettings } = await useAuthedFetch('/api/owner/settings')
+const { data: settings, pending, error: fetchError, refresh: refreshSettings } = await useAuthedFetch<{
+  club?: {
+    nameFa: string
+    nameEn: string
+    addressFa: string
+    addressEn: string
+    phone?: string | null
+    openHour: number
+    closeHour: number
+  } | null
+}>('/api/owner/settings')
 watchEffect(() => {
   if (!settings.value?.club) return
   const c = settings.value.club

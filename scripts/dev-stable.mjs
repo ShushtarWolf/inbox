@@ -184,6 +184,7 @@ function runSupervisor() {
       NUXT_IGNORE_LOCK: '1',
       HOST: host,
       PORT: String(port),
+      RATE_LIMIT_MAX: process.env.RATE_LIMIT_MAX || '100',
       CHOKIDAR_USEPOLLING: process.env.CHOKIDAR_USEPOLLING || '1',
       CHOKIDAR_INTERVAL: process.env.CHOKIDAR_INTERVAL || '1000',
       WATCHPACK_POLLING: process.env.WATCHPACK_POLLING || 'true',

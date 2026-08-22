@@ -8,7 +8,7 @@ export function parseJsonArray(value?: string | null): string[] {
   }
 }
 
-export function parseJsonValue<T>(value?: string | null, fallback: T): T {
+export function parseJsonValue<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback
   try {
     return JSON.parse(value) as T

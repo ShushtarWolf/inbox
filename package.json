@@ -45,7 +45,8 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:db": "node scripts/check-db.mjs",
     "db:wipe-catalog": "node scripts/wipe-prod-catalog.mjs",
-    "fix:domain": "node scripts/fix-liara-domain.mjs"
+    "fix:domain": "node scripts/fix-liara-domain.mjs",
+    "typecheck": "nuxt prepare && nuxi typecheck"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"
@@ -88,6 +89,7 @@
     "eslint-plugin-vuejs-accessibility": "^2.4.1",
     "globals": "^17.11.0",
     "vitest": "^3.2.4",
-    "vue-eslint-parser": "^10.4.1"
+    "vue-eslint-parser": "^10.4.1",
+    "vue-tsc": "^2.2.12"
   }
 }

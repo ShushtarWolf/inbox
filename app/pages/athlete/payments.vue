@@ -10,8 +10,22 @@ const { localizedField } = useLocalizedField()
 const { onlineEnabled, canPayOnline, startCheckout } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
 
-const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch('/api/wallet')
-const { data, pending, error, refresh } = await useAuthedFetch('/api/athlete/payments')
+const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet')
+const { data, pending, error, refresh } = await useAuthedFetch<{
+  payments?: Array<{
+    id: string
+    kind: string
+    title?: string | null
+    club?: { nameFa?: string; nameEn?: string } | null
+    status: string
+    method: string
+    date?: string | null
+    startTime?: string | null
+    createdAt: string
+    amount: number
+    bookingId?: string | null
+  }>
+}>('/api/athlete/payments')
 
 onMounted(() => {
   void refresh()

@@ -23,7 +23,7 @@ describe('pilot club identity', () => {
 
   it('default lookup matches IUST slug/name and excludes بهناز', () => {
     const where = defaultPilotClubWhere()
-    expect(where.AND[0].OR).toEqual([
+    expect(where.AND[0]?.OR).toEqual([
       { slug: PILOT_CLUB_SLUG },
       { nameFa: { contains: 'علم و صنعت' } },
     ])

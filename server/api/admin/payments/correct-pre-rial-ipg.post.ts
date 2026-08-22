@@ -11,6 +11,6 @@ import { correctPreRialIpgPayments } from '../../../utils/payments/correctPreRia
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
-  const body = await readBody<{ apply?: boolean }>(event).catch(() => ({}))
-  return correctPreRialIpgPayments({ apply: body?.apply === true })
+  const body = await readBody<{ apply?: boolean }>(event).catch((): { apply?: boolean } => ({}))
+  return correctPreRialIpgPayments({ apply: body.apply === true })
 })

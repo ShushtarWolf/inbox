@@ -7,8 +7,13 @@ export type SmsOtpAutofillHost = {
   }
 }
 
+function defaultSmsOtpHost(): SmsOtpAutofillHost | undefined {
+  if (typeof window === 'undefined') return undefined
+  return window as unknown as SmsOtpAutofillHost
+}
+
 /** True when the browser implements the WebOTP API (Chrome Android). */
-export function canUseWebOtp(host: SmsOtpAutofillHost | undefined = typeof window === 'undefined' ? undefined : window): boolean {
+export function canUseWebOtp(host: SmsOtpAutofillHost | undefined = defaultSmsOtpHost()): boolean {
   return Boolean(host?.OTPCredential && host.navigator?.credentials?.get)
 }
 
@@ -18,7 +23,7 @@ export function canUseWebOtp(host: SmsOtpAutofillHost | undefined = typeof windo
  */
 export function startSmsOtpAutofill(
   onCode: (code: string) => void,
-  host: SmsOtpAutofillHost | undefined = typeof window === 'undefined' ? undefined : window,
+  host: SmsOtpAutofillHost | undefined = defaultSmsOtpHost(),
 ): () => void {
   const get = host?.navigator?.credentials?.get
   if (!canUseWebOtp(host) || !get) return () => {}

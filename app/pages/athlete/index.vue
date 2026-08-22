@@ -8,8 +8,12 @@ const { displayName, avatarUrl, initials, firstName, user, logout } = useAuth()
 const { formatCurrency, formatNumber } = useFormatters()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach } = usePilotFlags()
-const { data, pending } = useAuthedFetch('/api/bookings/mine')
-const { data: wallet, pending: walletPending } = useAuthedFetch('/api/wallet')
+const { data, pending } = useAuthedFetch<{
+  courtBookings?: Array<{ payment?: { amount?: number } | null; slot?: { price?: number } }>
+  coachSessions?: Array<{ payment?: { amount?: number } | null; price?: number }>
+  packageBookings?: Array<{ payment?: { amount?: number } | null; package?: { price?: number } }>
+}>('/api/bookings/mine')
+const { data: wallet, pending: walletPending } = useAuthedFetch<{ balance?: number }>('/api/wallet')
 const showPhoto = ref(true)
 
 watch(avatarUrl, (url) => {

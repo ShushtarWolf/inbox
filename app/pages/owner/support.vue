@@ -2,11 +2,26 @@
 /** Canva home page (29): ops guide + club contact + platform ticket. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
+type OwnerSettingsClub = {
+  phone?: string | null
+  whatsapp?: string | null
+}
+
+type OwnerSettingsResponse = {
+  club?: OwnerSettingsClub
+}
+
+type OwnerSmsStatusResponse = {
+  smsMode?: string
+  smsPhase?: string
+  multiReady?: boolean
+}
+
 const { t } = useI18n()
 const { formatDate } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
-const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch('/api/owner/sms-status')
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
+const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch<OwnerSmsStatusResponse>('/api/owner/sms-status')
 const { data: mine, refresh: refreshMine } = await useAuthedFetch<{
   tickets: {
     id: string
@@ -58,7 +73,7 @@ async function submitTicket() {
     ticketSuccess.value = t('owner.supportPage.ticketOk')
     await refreshMine()
   } catch (err: unknown) {
-    ticketError.value = fetchErrorMessage(err, t('owner.supportPage.ticketFail'), t)
+    ticketError.value = fetchErrorMessage(err, t('owner.supportPage.ticketFail'))
   } finally {
     sending.value = false
   }

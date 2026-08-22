@@ -1,7 +1,15 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
-const { data, pending, error } = await useAuthedFetch('/api/coach/clients')
+const { data, pending, error } = await useAuthedFetch<{
+  clients?: Array<{
+    id: string
+    name: string
+    phone: string
+    nextSessionDate: string
+    nextSessionTime: string
+  }>
+}>('/api/coach/clients')
 </script>
 
 <template>

@@ -29,6 +29,7 @@ function startServer() {
       HOST: '127.0.0.1',
       NITRO_HOST: '127.0.0.1',
       NITRO_PORT: port,
+      RATE_LIMIT_MAX: process.env.RATE_LIMIT_MAX || '100',
     },
   })
 

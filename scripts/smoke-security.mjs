@@ -13,7 +13,7 @@ import {
 
 loadDotEnv()
 
-const base = process.env.BASE_URL || 'http://localhost:3000'
+const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const adminSecret = process.env.ADMIN_PROVISION_SECRET || ''
 const xssPayload = '<script>alert("xss")</script>'
 
@@ -70,6 +70,41 @@ async function main() {
     throw new Error(`admin overview wrong secret expected 403, got ${adminOverviewWrong.status}`)
   }
   console.log('ok  admin overview rejects wrong secret')
+
+  // Cross-club: two owners cannot mark each other's slots paid (before login rate limits)
+  if (adminSecret) {
+    const ownerA = await provisionOwner(base, adminSecret, { name: 'Owner A' })
+    const ownerB = await provisionOwner(base, adminSecret, { name: 'Owner B' })
+    await login(base, jar, 'ownerA', ownerA.email, ownerA.password)
+    await login(base, jar, 'ownerB', ownerB.email, ownerB.password)
+
+    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
+    const { data: calA } = await apiFetch(base, `/api/owner/calendar?date=${date}`, {
+      jar,
+      session: 'ownerA',
+    })
+    const slotA = (calA.slots || []).find((s) => s.displayStatus === 'FREE')
+    if (slotA) {
+      const cross = await apiFetch(base, '/api/owner/reserve', {
+        jar,
+        session: 'ownerB',
+        method: 'POST',
+        body: {
+          slotId: slotA.id,
+          guestName: 'Cross Club',
+          guestMobile: '09123334455',
+          paymentStatus: 'PAID',
+        },
+      })
+      if (cross.res.ok) throw new Error('cross-club mark-paid succeeded (IDOR)')
+      if (![403, 404].includes(cross.res.status)) {
+        throw new Error(`cross-club mark-paid expected 403/404, got ${cross.res.status}`)
+      }
+      console.log('ok  cross-club mark-paid rejected')
+    } else {
+      console.warn('warn  no FREE slot for cross-club IDOR probe')
+    }
+  }
 
   // XSS in page search — HTML should not contain unescaped script tag from URL
   const { html: clubsHtml } = await fetchPage(base, `/clubs?city=${encodeURIComponent(xssPayload)}`)
@@ -242,43 +277,10 @@ async function main() {
   }
   console.log('ok  oversized upload rejected or blocked')
 
-  // Cross-club: two owners cannot mark each other's slots paid (before rate-limit bursts)
-  if (adminSecret) {
-    const ownerA = await provisionOwner(base, adminSecret, { name: 'Owner A' })
-    const ownerB = await provisionOwner(base, adminSecret, { name: 'Owner B' })
-    await login(base, jar, 'ownerA', ownerA.email, ownerA.password)
-    await login(base, jar, 'ownerB', ownerB.email, ownerB.password)
-
-    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
-    const { data: calA } = await apiFetch(base, `/api/owner/calendar?date=${date}`, {
-      jar,
-      session: 'ownerA',
-    })
-    const slotA = (calA.slots || []).find((s) => s.displayStatus === 'FREE')
-    if (slotA) {
-      const cross = await apiFetch(base, '/api/owner/reserve', {
-        jar,
-        session: 'ownerB',
-        method: 'POST',
-        body: {
-          slotId: slotA.id,
-          guestName: 'Cross Club',
-          guestMobile: '09123334455',
-          paymentStatus: 'PAID',
-        },
-      })
-      if (cross.res.ok) throw new Error('cross-club mark-paid succeeded (IDOR)')
-      if (![403, 404].includes(cross.res.status)) {
-        throw new Error(`cross-club mark-paid expected 403/404, got ${cross.res.status}`)
-      }
-      console.log('ok  cross-club mark-paid rejected')
-    } else {
-      console.warn('warn  no FREE slot for cross-club IDOR probe')
-    }
-  }
-
   // Rate-limit bursts last — they poison the shared IP bucket for ~60s
-  const burstLimit = Math.max(25, (Number(process.env.RATE_LIMIT_MAX) || 15) + 10)
+  // Default 100 matches dev-stable / CI; production smoke should set RATE_LIMIT_MAX explicitly.
+  const rateLimitMax = Number(process.env.RATE_LIMIT_MAX) || 100
+  const burstLimit = rateLimitMax + 15
   let otpRateLimited = false
   for (let i = 0; i < burstLimit; i++) {
     const res = await fetch(`${base}/api/auth/otp/request`, {

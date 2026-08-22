@@ -7,7 +7,24 @@ const { t } = useI18n()
 const { formatNumber, formatCurrency, formatIsoDate } = useFormatters()
 const id = route.params.id as string
 
-const { data, pending, error } = await useAuthedFetch(`/api/owner/contacts/${id}`)
+const { data, pending, error } = await useAuthedFetch<{
+  contact?: {
+    id: string
+    name: string
+    mobile?: string | null
+    consentSms?: boolean
+    totalVisits?: number | null
+    lifetimeValue?: number | null
+    inactiveDays?: number | null
+    noShowCount?: number | null
+    lastVisit?: string | null
+  } | null
+  recentCampaigns?: Array<{
+    id: string
+    createdAt?: string
+    campaign?: { name?: string; status?: string } | null
+  }>
+}>(`/api/owner/contacts/${id}`)
 
 const contact = computed(() => data.value?.contact)
 const recentCampaigns = computed(() => data.value?.recentCampaigns || [])
@@ -68,7 +85,7 @@ function campaignStatusLabel(status: string) {
               <p class="font-bold text-brand-navy">{{ item.campaign?.name || '—' }}</p>
               <span v-if="item.campaign?.status" class="neo-badge">{{ campaignStatusLabel(item.campaign.status) }}</span>
             </div>
-            <p class="mt-1 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(item.createdAt) }}</bdi></p>
+            <p class="mt-1 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(item.createdAt || '') }}</bdi></p>
           </div>
         </div>
       </div>

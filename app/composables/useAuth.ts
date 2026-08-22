@@ -37,8 +37,11 @@ export function useAuth() {
   const { user: sessionUser, loggedIn, fetch: refreshSession, clear, ready } = useUserSession()
   const profile = useState<AuthUser | null>('auth-profile', () => null)
   const pending = useState('auth-pending', () => false)
-  const ownerClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-  const requestFetch = import.meta.server ? useRequestFetch() : $fetch
+  const ownerClubId = useCookie('owner_club_id', { sameSite: 'lax' }) as Ref<string | null>
+  type SimpleFetch = <R>(url: string, opts?: Record<string, unknown>) => Promise<R>
+  const requestFetch: SimpleFetch = import.meta.server
+    ? (useRequestFetch() as unknown as SimpleFetch)
+    : ($fetch as unknown as SimpleFetch)
 
   const user = computed<AuthUser | null>(() => profile.value ?? (sessionUser.value as AuthUser | null) ?? null)
 

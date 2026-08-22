@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },
   })
   if (!sport) throw createError({ statusCode: 400, statusMessage: 'Invalid sport' })
+  const sportId = sport.id
   if (body.openHour != null && body.closeHour != null && body.openHour >= body.closeHour) {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     })
     return {
       clubId: club.id,
-      sportId: sport.id,
+      sportId,
       nameFa: names.nameFa,
       nameEn: names.nameEn,
       price: body.price ?? 600000,

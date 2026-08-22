@@ -42,7 +42,10 @@ const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${form
 
 const calendarCells = computed(() => {
   const daysInMonth = jalaaliDaysInMonth(viewYear.value, viewMonth.value)
-  const [gy, gm, gd] = jalaaliToIso(viewYear.value, viewMonth.value, 1).split('-').map(Number)
+  const isoParts = jalaaliToIso(viewYear.value, viewMonth.value, 1).split('-').map(Number)
+  const gy = isoParts[0] ?? 0
+  const gm = isoParts[1] ?? 1
+  const gd = isoParts[2] ?? 1
   const weekday = new Date(gy, gm - 1, gd).getDay()
   const leadingBlanks = (weekday + 1) % 7
 

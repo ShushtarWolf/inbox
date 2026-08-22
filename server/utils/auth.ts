@@ -38,7 +38,7 @@ export async function ownerPostLoginRedirect(
   user: { id: string; role: string; secondaryRole?: string | null; locale?: string | null },
   returnTo?: string,
 ) {
-  const base = postLoginRedirectPath(user, user.locale, returnTo)
+  const base = postLoginRedirectPath(user, user.locale ?? undefined, returnTo)
   if (!hasRole(user, 'CLUB_ADMIN')) return base
   if (returnTo && sanitizeReturnTo(returnTo)) {
     // Explicit deep-link wins (e.g. /owner/setup) unless it is the generic /owner hub.

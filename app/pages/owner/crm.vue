@@ -3,6 +3,60 @@ import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
+type OwnerCrmContact = {
+  id: string
+  name: string
+  mobile?: string | null
+  segment?: string
+  totalVisits?: number
+  risk?: string
+}
+
+type OwnerCrmSegment = {
+  id: string
+  name: string
+  count?: number
+}
+
+type OwnerCrmCampaign = {
+  id: string
+  name: string
+  status: string
+  segmentName?: string | null
+  sent?: number
+  logged?: number
+  queued?: number
+  delivered?: number
+  total: number
+}
+
+type OwnerCrmReminder = {
+  id: string
+  name: string
+  triggerType: string
+  offsetHours: number
+}
+
+type OwnerCrmStats = {
+  totalContacts?: number
+  smsSent?: number
+  campaigns?: number
+}
+
+type OwnerContactsResponse = {
+  stats?: OwnerCrmStats
+  segments?: OwnerCrmSegment[]
+  contacts?: OwnerCrmContact[]
+  campaigns?: OwnerCrmCampaign[]
+  reminders?: OwnerCrmReminder[]
+}
+
+type OwnerSmsStatusResponse = {
+  smsMode?: string
+  smsPhase?: string
+  multiReady?: boolean
+}
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { formatHours } = useFormatters()
@@ -17,10 +71,10 @@ function toFaDigits(value: string | number) {
 function pad2(value: number | string) {
   return String(value).padStart(2, '0')
 }
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/contacts', {
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerContactsResponse>('/api/owner/contacts', {
   query: computed(() => ({ segment: selectedSegment.value === 'all' ? undefined : selectedSegment.value })),
 })
-const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch('/api/owner/sms-status')
+const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch<OwnerSmsStatusResponse>('/api/owner/sms-status')
 useOwnerClubRefresh(() => {
   refresh()
   refreshSmsStatus()
@@ -85,6 +139,7 @@ watch(
 const scheduleReviewLabel = computed(() => {
   if (!sms.schedule) return t('owner.smsWizard.noSchedule')
   const [datePart, timePart = '00:00'] = sms.schedule.split('T')
+  if (!datePart) return t('owner.smsWizard.noSchedule')
   const j = isoToJalaali(datePart)
   const date = `${toFaDigits(j.jy)}/${toFaDigits(pad2(j.jm))}/${toFaDigits(pad2(j.jd))}`
   const [hh = '00', mm = '00'] = timePart.split(':')
@@ -112,7 +167,7 @@ function segmentLabel(segment: { id: string, name: string }) {
 }
 
 const selectedSegmentLabel = computed(() => {
-  const segment = data.value?.segments?.find((item: { id: string }) => item.id === selectedSegment.value)
+  const segment = data.value?.segments?.find((item) => item.id === selectedSegment.value)
   return segment ? segmentLabel(segment) : undefined
 })
 

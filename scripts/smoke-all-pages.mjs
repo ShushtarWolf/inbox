@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { isProdSmokeBase, isPilotNoCoachRuntime } from './lib/smoke-helpers.mjs'
 
-const base = process.env.BASE_URL || 'http://localhost:3000'
+const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const prodAware = isProdSmokeBase(base)
 
 const ROOT = path.resolve(import.meta.dirname, '..')

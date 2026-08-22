@@ -5,18 +5,86 @@ import { isValidSheba } from '#shared/settlement.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
+interface OwnerSettingsClubMedia {
+  id: string
+  url: string
+}
+
+interface OwnerSettingsClub {
+  id: string
+  slug?: string
+  nameFa: string
+  nameEn: string
+  city: string
+  district?: string | null
+  addressFa: string
+  addressEn?: string | null
+  phone?: string | null
+  whatsapp?: string | null
+  image?: string | null
+  openHour?: number
+  closeHour?: number
+  defaultSessionDurationMinutes?: number
+  sessionDurationsJson?: string | null
+  amenitiesJson?: string | null
+  descriptionFa?: string | null
+  descriptionEn?: string | null
+  cancellationWindowHours?: number
+  rescheduleWindowHours?: number
+  waitlistEnabled?: boolean
+  sheba?: string | null
+  media?: OwnerSettingsClubMedia[]
+}
+
+interface OwnerSettingsResponse {
+  club: OwnerSettingsClub
+  membership: { role: string; isPrimary?: boolean }
+  counts?: { courts: number; coaches: number }
+}
+
+interface OwnerCourtListItem {
+  id: string
+  nameFa: string
+  nameEn: string
+  price: number
+  image?: string | null
+  imagesJson?: string | null
+  openHour?: number | null
+  closeHour?: number | null
+  facilitiesJson?: string | null
+  pricingJson?: string | null
+  sport?: { slug: string; nameFa?: string; nameEn?: string }
+}
+
+interface OwnerStaffMember {
+  id: string
+  role: string
+  permissionsJson?: string | null
+  user: {
+    name: string
+    nameEn?: string | null
+    phone?: string | null
+    email?: string | null
+  }
+  coach?: { id: string; nameFa: string; nameEn: string } | null
+}
+
+interface OwnerStaffResponse {
+  staff: OwnerStaffMember[]
+}
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatCurrency } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
-const { data, pending, error, refresh } = await useAuthedFetch('/api/owner/settings')
-const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch('/api/owner/courts')
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
+const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
 
 const isOwner = computed(() => data.value?.membership?.role === 'OWNER')
-const { data: staffData, refresh: refreshStaff } = await useAuthedFetch('/api/owner/staff', {
+const { data: staffData, refresh: refreshStaff } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff', {
   immediate: false,
   watch: false,
 })
@@ -24,7 +92,7 @@ const { data: staffData, refresh: refreshStaff } = await useAuthedFetch('/api/ow
 const staffMembers = computed(() => {
   const list = staffData.value?.staff || []
   if (!pilotNoCoach.value) return list
-  return list.filter((member: { role?: string }) => member.role !== 'COACH')
+  return list.filter((member) => member.role !== 'COACH')
 })
 const staffSaving = ref<Record<string, boolean>>({})
 const staffError = ref('')
@@ -101,16 +169,16 @@ function permissionLabel(permission: OwnerPermission | string) {
   return t(`owner.permissions.${permission}`)
 }
 
-function memberPermissions(member: { role: string; permissionsJson?: string | null }) {
+function memberPermissions(member: Pick<OwnerStaffMember, 'role' | 'permissionsJson'>) {
   if (member.role === 'OWNER') return [...ALL_OWNER_PERMISSIONS, 'finance' as OwnerPermission]
   return parsePermissions(member.permissionsJson)
 }
 
-function isPermissionChecked(member: { role: string; permissionsJson?: string | null }, permission: OwnerPermission) {
+function isPermissionChecked(member: Pick<OwnerStaffMember, 'role' | 'permissionsJson'>, permission: OwnerPermission) {
   return memberPermissions(member).includes(permission)
 }
 
-function toggleMemberPermission(member: { id: string; role: string; permissionsJson?: string | null }, permission: OwnerPermission) {
+function toggleMemberPermission(member: OwnerStaffMember, permission: OwnerPermission) {
   if (member.role === 'OWNER') return
   const current = memberPermissions(member)
   const next = current.includes(permission)
@@ -121,7 +189,7 @@ function toggleMemberPermission(member: { id: string; role: string; permissionsJ
   if (target) target.permissionsJson = JSON.stringify(next)
 }
 
-async function saveMemberPermissions(member: { id: string; role: string; permissionsJson?: string | null }) {
+async function saveMemberPermissions(member: OwnerStaffMember) {
   if (member.role === 'OWNER') return
   staffSaving.value[member.id] = true
   staffError.value = ''
@@ -146,7 +214,7 @@ function applyClubData() {
   if (!club) return
   form.nameFa = club.nameFa || ''
   form.nameEn = club.nameEn || ''
-  form.sloganFa = (club as { descriptionFa?: string | null }).descriptionFa || ''
+  form.sloganFa = club.descriptionFa || ''
   form.addressFa = club.addressFa || ''
   form.addressEn = club.addressEn || ''
   form.city = club.city || ''
@@ -160,11 +228,11 @@ function applyClubData() {
   form.whatsapp = club.whatsapp || ''
   loadedImage = club.image || null
   form.image = club.image || ''
-  form.sheba = (club as { sheba?: string | null }).sheba || ''
+  form.sheba = club.sheba || ''
   const allowedSlugs = new Set<string>(COURT_FACILITY_OPTIONS.map((item) => item.slug))
-  form.amenities = parseFacilitiesJson((club as { amenitiesJson?: string }).amenitiesJson)
+  form.amenities = parseFacilitiesJson(club.amenitiesJson)
     .filter((slug) => allowedSlugs.has(slug))
-  form.sessionDurations = parseSessionDurationsJson((club as { sessionDurationsJson?: string }).sessionDurationsJson)
+  form.sessionDurations = parseSessionDurationsJson(club.sessionDurationsJson)
   appliedClubId = club.id
   lastAppliedSnapshot = formSnapshot()
 }
@@ -270,7 +338,7 @@ async function confirmDeleteCourt() {
   }
 }
 
-function startEditCourt(court: { id: string }) {
+function startEditCourt(court: OwnerCourtListItem) {
   editingCourtId.value = court.id
   showCourtForm.value = true
 }
@@ -287,16 +355,16 @@ function closeCourtForm() {
 }
 
 const galleryUrls = computed(() =>
-  (data.value?.club?.media || []).map((item: { url: string }) => item.url).slice(0, 4),
+  (data.value?.club?.media || []).map((item) => item.url).slice(0, 4),
 )
 async function setGalleryUrls(urls: string[]) {
   const current = data.value?.club?.media || []
   const next = urls.filter(Boolean).slice(0, 4)
-  const toRemove = current.filter((item: { url: string }) => !next.includes(item.url))
+  const toRemove = current.filter((item) => !next.includes(item.url))
   for (const item of toRemove) {
     await $fetch(`/api/owner/media/${item.id}`, { method: 'DELETE' })
   }
-  const existingUrls = new Set(current.map((item: { url: string }) => item.url))
+  const existingUrls = new Set(current.map((item) => item.url))
   for (const url of next) {
     if (!existingUrls.has(url)) {
       await $fetch('/api/owner/media', { method: 'POST', body: { url } })
@@ -364,7 +432,7 @@ async function save() {
   }
 }
 
-function courtHoursLabel(court: { openHour?: number | null; closeHour?: number | null }) {
+function courtHoursLabel(court: Pick<OwnerCourtListItem, 'openHour' | 'closeHour'>) {
   const open = court.openHour ?? form.openHour
   const close = court.closeHour ?? form.closeHour
   return `${String(open).padStart(2, '0')}:00 تا ${String(close).padStart(2, '0')}:00`
@@ -372,7 +440,7 @@ function courtHoursLabel(court: { openHour?: number | null; closeHour?: number |
 
 const editingCourt = computed(() => {
   if (!editingCourtId.value) return null
-  return (courtsData.value || []).find((c: { id: string }) => c.id === editingCourtId.value) || null
+  return (courtsData.value || []).find((c) => c.id === editingCourtId.value) || null
 })
 
 const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
