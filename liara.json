@@ -1,8 +1,7 @@
 {
   "app": "inbox",
-  "platform": "node",
+  "platform": "docker",
   "port": 3000,
-  "args": ["npm", "run", "start:production"],
   "build": {
     "location": "iran"
   }
