@@ -77,10 +77,20 @@ export async function redeemDiscountCode(
   tx: Prisma.TransactionClient,
   discountId: string,
 ) {
-  await tx.discountCode.update({
-    where: { id: discountId },
+  const row = await tx.discountCode.findUnique({ where: { id: discountId } })
+  if (!row) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid discount code' })
+  }
+  const where: Prisma.DiscountCodeWhereInput = row.maxRedemptions == null
+    ? { id: discountId }
+    : { id: discountId, redemptionCount: { lt: row.maxRedemptions } }
+  const claimed = await tx.discountCode.updateMany({
+    where,
     data: { redemptionCount: { increment: 1 } },
   })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 400, statusMessage: 'Discount code exhausted' })
+  }
 }
 
 export function discountPaymentMetadata(discount: ResolvedDiscount) {

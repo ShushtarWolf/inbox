@@ -118,11 +118,7 @@ export default defineEventHandler(async (event) => {
       })
     })
     await syncPaymentToParent(payment.id)
-    try {
-      await creditOwnerForPaidPayment(payment.id, previousStatus)
-    } catch (err) {
-      console.error('[checkout:ownerSettlement]', payment.id, err)
-    }
+    await creditOwnerForPaidPayment(payment.id, previousStatus)
     await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
       paymentId: payment.id,

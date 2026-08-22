@@ -35,8 +35,15 @@ export default defineEventHandler(async (event) => {
     if (staleCancelledBooking) {
       await tx.booking.delete({ where: { id: staleCancelledBooking.id } })
     }
+    // Claim target atomically (same pattern as court.create) so parallel reschedule/book cannot both win.
+    const claimed = await tx.slot.updateMany({
+      where: { id: targetSlot.id, displayStatus: 'FREE' },
+      data: { displayStatus: 'RESERVED' },
+    })
+    if (claimed.count !== 1) {
+      throw createError({ statusCode: 409, statusMessage: 'Target slot is not available' })
+    }
     await tx.slot.update({ where: { id: booking.slotId }, data: { displayStatus: 'FREE' } })
-    await tx.slot.update({ where: { id: targetSlot.id }, data: { displayStatus: 'RESERVED' } })
     await tx.booking.update({
       where: { id },
       data: {

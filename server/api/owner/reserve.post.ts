@@ -242,11 +242,7 @@ export default defineEventHandler(async (event) => {
     if (becomingPaid) {
       const paidPayment = await prisma.payment.findUnique({ where: { bookingId: existing.id } })
       if (paidPayment) {
-        try {
-          await creditOwnerForPaidPayment(paidPayment.id, previousPaid ? 'PAID' : '')
-        } catch (err) {
-          console.error('[reserve:ownerSettlement]', paidPayment.id, err)
-        }
+        await creditOwnerForPaidPayment(paidPayment.id, previousPaid ? 'PAID' : '')
       }
       // Multi-hour desk mark-paid: client sends skipNotify on all but the last hour
       // so guest/owner get one SMS covering the full range (not N hangs).
@@ -378,11 +374,7 @@ export default defineEventHandler(async (event) => {
     if (paymentStatus === 'PAID') {
       const paidPayment = await prisma.payment.findUnique({ where: { bookingId: createdBooking.id } })
       if (paidPayment) {
-        try {
-          await creditOwnerForPaidPayment(paidPayment.id, '')
-        } catch (err) {
-          console.error('[reserve:ownerSettlement]', paidPayment.id, err)
-        }
+        await creditOwnerForPaidPayment(paidPayment.id, '')
       }
       await notifyBookingPaid(notifyBase)
     }
@@ -407,8 +399,22 @@ export default defineEventHandler(async (event) => {
         amountPaid: paidPayment?.amount ?? totalAmount,
       })
     }
-    return { ok: true, amount: totalAmount, paymentStatus, paymentMethod, ...payLink }
+    return {
+      ok: true,
+      bookingId: createdBooking.id,
+      amount: totalAmount,
+      paymentStatus,
+      paymentMethod,
+      ...payLink,
+    }
   }
   const payLink = await deskPayLinkFields(existing.id, paymentStatus)
-  return { ok: true, amount: totalAmount, paymentStatus, paymentMethod, ...payLink }
+  return {
+    ok: true,
+    bookingId: existing.id,
+    amount: totalAmount,
+    paymentStatus,
+    paymentMethod,
+    ...payLink,
+  }
 })

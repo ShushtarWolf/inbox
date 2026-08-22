@@ -1,6 +1,7 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
 import { findCoachByIdOrSlug } from '../../utils/coaches'
+import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -40,17 +41,25 @@ export default defineEventHandler(async (event) => {
   }
 
   const paymentFields = initialPlatformPaymentFields(coach.sessionPrice)
-  const session = await prisma.coachSession.create({
-    data: {
-      coachId: coach.id,
-      athleteId: user.id,
-      date: body.date,
-      startTime: body.startTime,
-      endTime: addOneHour(body.startTime),
-      price: coach.sessionPrice,
-      paymentStatus: paymentFields.paymentStatus,
-    },
-  })
+  let session
+  try {
+    session = await prisma.coachSession.create({
+      data: {
+        coachId: coach.id,
+        athleteId: user.id,
+        date: body.date,
+        startTime: body.startTime,
+        endTime: addOneHour(body.startTime),
+        price: coach.sessionPrice,
+        paymentStatus: paymentFields.paymentStatus,
+      },
+    })
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
+    }
+    throw err
+  }
   await prisma.payment.create({
     data: {
       coachSessionId: session.id,

@@ -127,13 +127,15 @@ export async function debitWallet(
     throw createError({ statusCode: 400, statusMessage: 'Debit amount must be positive' })
   }
   const wallet = await getOrCreateWallet(userId, db)
-  if (wallet.balance < amount) {
-    throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
-  }
-  const updated = await db.wallet.update({
-    where: { id: wallet.id },
+  // Atomic claim: parallel checkouts cannot both pass a read-then-decrement race.
+  const claimed = await db.wallet.updateMany({
+    where: { id: wallet.id, balance: { gte: amount } },
     data: { balance: { decrement: amount } },
   })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+  }
+  const updated = await db.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
   await db.walletTransaction.create({
     data: {
       walletId: wallet.id,

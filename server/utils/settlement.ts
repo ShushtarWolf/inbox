@@ -68,13 +68,32 @@ async function debitClubWallet(
     throw createError({ statusCode: 400, statusMessage: 'Debit amount must be positive' })
   }
   const wallet = await getOrCreateClubWallet(clubId, db)
-  if (!meta.allowNegative && wallet.balance < amount) {
-    throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
+  if (meta.allowNegative) {
+    const updated = await db.clubWallet.update({
+      where: { id: wallet.id },
+      data: { balance: { decrement: amount } },
+    })
+    await db.clubWalletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount: -amount,
+        type: meta.type,
+        paymentId: meta.paymentId,
+        bookingId: meta.bookingId,
+        withdrawRequestId: meta.withdrawRequestId,
+        note: meta.note,
+      },
+    })
+    return updated
   }
-  const updated = await db.clubWallet.update({
-    where: { id: wallet.id },
+  const claimed = await db.clubWallet.updateMany({
+    where: { id: wallet.id, balance: { gte: amount } },
     data: { balance: { decrement: amount } },
   })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
+  }
+  const updated = await db.clubWallet.findUniqueOrThrow({ where: { id: wallet.id } })
   await db.clubWalletTransaction.create({
     data: {
       walletId: wallet.id,

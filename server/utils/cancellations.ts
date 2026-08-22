@@ -40,10 +40,11 @@ export async function cancelCourtBooking(options: {
     catch (err) {
       // Slot is already FREE — never 500 the cancel path on refund/wallet/SMS side effects.
       console.error('[cancelCourtBooking:refund]', options.bookingId, err)
+      return { ok: true, refund: null, refundFailed: true as const }
     }
   }
 
-  return { ok: true, refund }
+  return { ok: true, refund, refundFailed: false as const }
 }
 
 export async function cancelCoachSession(options: {

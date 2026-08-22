@@ -283,16 +283,8 @@ export async function confirmPaymentAndSync(
   const intent = await service.confirm(providerRef, opts)
   await syncPaymentToParent(intent.id)
   if (intent.status === 'PAID') {
-    try {
-      await creditWalletForTopUpPayment(intent.id, previousStatus)
-    } catch (err) {
-      console.error('[paymentSync:topUpCredit]', intent.id, err)
-    }
-    try {
-      await creditOwnerForPaidPayment(intent.id, previousStatus)
-    } catch (err) {
-      console.error('[paymentSync:ownerSettlement]', intent.id, err)
-    }
+    await creditWalletForTopUpPayment(intent.id, previousStatus)
+    await creditOwnerForPaidPayment(intent.id, previousStatus)
     await notifyPaidIfNeeded(intent.id, previousStatus)
     if (before?.purpose === 'topup' && previousStatus !== 'PAID') {
       try {

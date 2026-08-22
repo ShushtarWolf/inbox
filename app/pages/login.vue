@@ -35,10 +35,9 @@ onMounted(async () => {
     openLogin({ returnTo: returnTo.value || undefined, notice, smsLive: smsLive.value })
   }
 
-  // Protected returnTo keeps modal on home; public returnTo opens under that page
-  await navigateTo(
-    error === 'session' && isAuthProtectedPath(safeReturn) ? localePath('/') : safeReturn,
-  )
+  // Protected returnTo always hosts the modal on home (avoids guest middleware bounce loop).
+  // Public returnTo opens under that page so the sheet stays on context.
+  await navigateTo(isAuthProtectedPath(safeReturn) ? localePath('/') : safeReturn)
 })
 </script>
 

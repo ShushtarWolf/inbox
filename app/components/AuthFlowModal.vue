@@ -533,12 +533,16 @@ watch(step, (next) => {
   if (next === 'role') selectedRole.value = role.value
 })
 
-// Dismiss leftover session notice when user navigates to a public page (e.g. club detail)
+// Dismiss leftover session notice when user navigates to a public page (e.g. club detail).
+// Do NOT close while an auth sheet is active — /login intentionally navigates away first.
 watch(
   () => route.fullPath,
   (next, prev) => {
     if (!open.value || !notice.value || next === prev) return
     if (step.value === 'welcome') return
+    if (step.value === 'login' || step.value === 'register' || step.value === 'otp' || step.value === 'gate' || step.value === 'role') {
+      return
+    }
     const path = next.split('?')[0] || next
     if (path.endsWith('/login')) return
     if (!isAuthProtectedPath(path)) handleClose()
