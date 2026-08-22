@@ -30,10 +30,20 @@ export async function createAndSendPhoneOtp(opts: {
 
   await enforceOtpSendPhoneLimit(phone)
 
+  const smsMode = resolveSmsProvider()
+  const uniformOk = () => ({
+    phone,
+    expiresIn: Math.floor(OTP_TTL_MS / 1000),
+    debugCode: undefined as string | undefined,
+    smsMode,
+    smsPhase: resolveSmsPhase(),
+  })
+
+  // Anti-enumeration: login/reset always look successful; SMS only if phone exists.
   if (opts.purpose === 'login' || opts.purpose === 'password_reset') {
     const match = await findUserForPhoneOtp(phone)
     if (!match) {
-      throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
+      return uniformOk()
     }
   } else if (await isPhoneRegistered(phone)) {
     // Same phone may register a second platform role (max 2). Owner still needs admin approval.
@@ -64,13 +74,13 @@ export async function createAndSendPhoneOtp(opts: {
   })
 
   const body = renderOtpSms(code)
-  const smsMode = resolveSmsProvider()
-  // Production live MVP: never expose OTP codes in the API response.
-  // SMS_OTP_DEBUG_FALLBACK is ignored when live (dev/log only).
+  // Never expose OTP codes in production — even when SMS is log/dry-run.
   const allowDebugFallback =
-    smsMode === 'log'
-    || process.env.NODE_ENV !== 'production'
-    || (smsMode !== 'live' && process.env.SMS_OTP_DEBUG_FALLBACK === 'true')
+    process.env.NODE_ENV !== 'production'
+    && (
+      smsMode === 'log'
+      || (smsMode !== 'live' && process.env.SMS_OTP_DEBUG_FALLBACK === 'true')
+    )
   let debugFallback = false
   try {
     // purpose=otp enables Kavenegar Verify Lookup when KAVENEGAR_TEMPLATE is set
@@ -91,7 +101,7 @@ export async function createAndSendPhoneOtp(opts: {
     phone,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
     /** Returned only while SMS is log/dry-run, or after a non-prod live SMS failure. Never when live send succeeds. */
-    debugCode: smsMode === 'log' || debugFallback ? code : undefined,
+    debugCode: allowDebugFallback && (smsMode === 'log' || debugFallback) ? code : undefined,
     /** Client may show soft copy when SMS is dry-run (never claim live delivery). */
     smsMode,
     smsPhase: resolveSmsPhase(),

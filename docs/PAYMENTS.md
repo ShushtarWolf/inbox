@@ -134,7 +134,7 @@ rules.
 
 ## Webhooks
 
-`POST /api/payments/webhook/[provider]` — optional; browser callback is the primary path for SEP. Uses the same `confirmPaymentAndSync` path (idempotent confirm + parent sync + paid notify).
+`POST /api/payments/webhook/[provider]` — optional and **disabled by default**. Requires `PAYMENT_WEBHOOK_SECRET` (header `x-webhook-secret` or `Authorization: Bearer …`, min 16 chars). Without the secret the route returns **501**. `pay_at_club` and SEP providers reject webhook confirm (`verifyWebhook` → false); browser callback remains the primary SEP path. The `log` provider may accept webhooks only in non-live modes **and** with a valid secret. Uses the same `confirmPaymentAndSync` path (idempotent confirm + parent sync + paid notify).
 
 ## `pay_at_club` migration note
 

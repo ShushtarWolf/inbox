@@ -65,8 +65,9 @@ export function logPaymentProvider(): PaymentService {
       const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })
       return toPaymentIntent(payment)
     },
+    // Dev/test log provider only — live must never confirm via unsigned webhook.
     verifyWebhook() {
-      return true
+      return getPaymentsMode() !== 'live'
     },
   }
   registerPaymentProvider(provider)

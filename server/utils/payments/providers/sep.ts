@@ -288,8 +288,9 @@ export function sepProvider(): PaymentService {
       return toPaymentIntent(payment)
     },
 
-    verifyWebhook(payload: unknown) {
-      return Boolean(payload && typeof payload === 'object')
+    // SEP has no HMAC webhook in this integration — browser callback + verifyTransaction only.
+    verifyWebhook(_payload: unknown) {
+      return false
     },
   }
   registerPaymentProvider(provider)

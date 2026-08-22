@@ -31,12 +31,12 @@ export function payAtClubProvider(): PaymentService {
         },
       }
     },
-    async confirm(providerRef) {
-      const payment = await prisma.payment.update({
-        where: { id: providerRef },
-        data: { status: 'PAID' },
+    async confirm(_providerRef) {
+      // Desk cash must be marked paid via authenticated owner APIs — never IPG callback/webhook.
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Pay-at-club payments cannot be confirmed via payment callback',
       })
-      return toPaymentIntent(payment)
     },
     async refund(paymentId) {
       const payment = await prisma.payment.update({
@@ -49,8 +49,9 @@ export function payAtClubProvider(): PaymentService {
       const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })
       return toPaymentIntent(payment)
     },
+    // Desk cash/mark-paid is owner-authenticated only — never via public webhook.
     verifyWebhook() {
-      return true
+      return false
     },
   }
   registerPaymentProvider(provider)

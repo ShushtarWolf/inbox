@@ -1,6 +1,8 @@
 import { notifyAdminClubApplication } from '../../utils/adminNotify'
+import { enforceRateLimit } from '../../utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
+  await enforceRateLimit(event, 'clubs:apply')
   const body = await readBody<{
     clubName?: string
     city?: string

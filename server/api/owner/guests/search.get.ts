@@ -51,22 +51,8 @@ export default defineEventHandler(async (event) => {
   const phoneHint = normalizeIranPhone(q) || (/\d{3,}/.test(q) ? q.replace(/\D/g, '') : '')
   const limit = 12
 
-  const [users, contacts, bookings] = await Promise.all([
-    prisma.user.findMany({
-      where: {
-        disabledAt: null,
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { nameEn: { contains: q, mode: 'insensitive' } },
-          ...(phoneHint
-            ? [{ phone: { contains: phoneHint } }]
-            : [{ phone: { contains: q } }]),
-        ],
-      },
-      select: { name: true, phone: true },
-      take: limit,
-      orderBy: { lastLoginAt: 'desc' },
-    }),
+  // Club-scoped only: contacts + past bookings at this club (no global User directory).
+  const [contacts, bookings] = await Promise.all([
     prisma.contact.findMany({
       where: {
         clubId: club.id,
@@ -102,14 +88,6 @@ export default defineEventHandler(async (event) => {
   ])
 
   const map = new Map<string, GuestHit>()
-
-  for (const user of users) {
-    pushUnique(map, {
-      name: user.name || '',
-      mobile: user.phone || '',
-      source: 'user',
-    })
-  }
 
   for (const contact of contacts) {
     pushUnique(map, {

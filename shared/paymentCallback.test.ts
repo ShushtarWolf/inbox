@@ -38,12 +38,12 @@ describe('readPaymentCallbackFields', () => {
 })
 
 describe('isPaymentCallbackOk', () => {
-  it('treats OK and empty as success path (verify still required)', () => {
+  it('treats only explicit OK as success path (verify still required)', () => {
     expect(isPaymentCallbackOk('OK')).toBe(true)
-    expect(isPaymentCallbackOk('')).toBe(true)
+    expect(isPaymentCallbackOk('')).toBe(false)
   })
 
-  it('treats NOK / cancel as failure path', () => {
+  it('treats NOK / cancel / empty as failure path', () => {
     expect(isPaymentCallbackOk('NOK')).toBe(false)
     expect(isPaymentCallbackOk('CANCELED')).toBe(false)
   })

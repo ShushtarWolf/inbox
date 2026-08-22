@@ -25,7 +25,10 @@ export function readPaymentCallbackFields(
   }
 }
 
-/** True when callback State/Status means successful bank return (still needs verify). */
+/**
+ * True when callback State/Status means successful bank return (still needs verify).
+ * Empty/missing State is NOT success — callers (test-gateway, SEP) must send State=OK explicitly.
+ */
 export function isPaymentCallbackOk(statusRaw: string): boolean {
-  return !statusRaw || statusRaw === 'OK'
+  return statusRaw === 'OK'
 }

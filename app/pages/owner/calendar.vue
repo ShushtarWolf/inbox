@@ -2324,6 +2324,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                     type="button"
                     class="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-brand-primary-soft"
                     role="option"
+                    :aria-selected="idx === 0"
                     @mousedown.prevent="selectGuestSuggestion(guest)"
                   >
                     <span class="min-w-0 truncate font-bold text-brand-navy">{{ guest.name || '—' }}</span>
