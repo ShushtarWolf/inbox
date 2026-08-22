@@ -1,6 +1,7 @@
 .git
 .github
 .cursor
+node_modules
 .nuxt
 .output
 .data
