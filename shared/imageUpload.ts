@@ -57,8 +57,8 @@ export function isHeicLikeFile(file: { type?: string; name?: string }) {
 /** ISO BMFF `ftyp` major brand — iOS often mislabels HEIC as JPEG in the picker. */
 export function isHeicFtypHeader(bytes: Uint8Array) {
   if (bytes.length < 12) return false
-  if (String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) !== 'ftyp') return false
-  const major = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11])
+  if (String.fromCharCode(bytes[4]!, bytes[5]!, bytes[6]!, bytes[7]!) !== 'ftyp') return false
+  const major = String.fromCharCode(bytes[8]!, bytes[9]!, bytes[10]!, bytes[11]!)
   return major === 'heic' || major === 'heif' || major === 'mif1' || major === 'msf1'
 }
 

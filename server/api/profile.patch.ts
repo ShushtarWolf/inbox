@@ -1,4 +1,5 @@
 import { toSessionUser } from '../utils/auth'
+import { parseClubImageInput } from '#shared/clubImageUrl.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 
 export default defineEventHandler(async (event) => {
@@ -25,13 +26,22 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  let avatarUrl: string | null | undefined
+  if (body.avatarUrl !== undefined) {
+    const parsed = parseClubImageInput(body.avatarUrl)
+    if (!parsed.ok) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid avatar URL' })
+    }
+    avatarUrl = parsed.value
+  }
+
   const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
       name: body.name?.trim() || undefined,
       ...(phone !== undefined ? { phone } : {}),
       locale: body.locale === 'en' ? 'en' : body.locale === 'fa' ? 'fa' : undefined,
-      avatarUrl: body.avatarUrl !== undefined ? (body.avatarUrl?.trim() || null) : undefined,
+      ...(avatarUrl !== undefined ? { avatarUrl } : {}),
     },
   })
   await setUserSession(event, { user: toSessionUser(updated) })

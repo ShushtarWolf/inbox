@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   }
   const phone = normalizeOptionalLine(body?.phone, 32)
   const pageUrl = normalizeOptionalLine(body?.pageUrl, 400)
-  const bookingId = normalizeOptionalLine(body?.bookingId, 40)
+  let bookingId = normalizeOptionalLine(body?.bookingId, 40)
 
   const session = await getUserSession(event)
   let userId: string | null = session?.user?.id || null
@@ -65,6 +65,22 @@ export default defineEventHandler(async (event) => {
       } else {
         source = 'ATHLETE'
       }
+    }
+  }
+
+  if (bookingId) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, userId: true },
+    })
+    if (!booking) {
+      bookingId = null
+    } else if (userId && booking.userId && booking.userId !== userId) {
+      // Authenticated users may only attach their own bookings.
+      bookingId = null
+    } else if (!userId) {
+      // Anonymous tickets: drop booking link (no ownership proof).
+      bookingId = null
     }
   }
 

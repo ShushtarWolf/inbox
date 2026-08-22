@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { postLoginRedirectPath, toSessionUser } from './auth'
+import { permissionNeedsActiveClub, postLoginRedirectPath, toSessionUser } from './auth'
 
 describe('postLoginRedirectPath', () => {
   it('uses sanitized returnTo for athlete', () => {
@@ -13,6 +13,19 @@ describe('postLoginRedirectPath', () => {
   it('always uses FA-unprefixed dashboards (FA-only launch)', () => {
     expect(postLoginRedirectPath({ role: 'COACH', locale: 'en' }, 'en')).toBe('/coach')
     expect(postLoginRedirectPath({ role: 'CLUB_ADMIN', locale: 'fa' })).toBe('/owner')
+  })
+})
+
+describe('permissionNeedsActiveClub', () => {
+  it('allows settings (and unspecified) while club is inactive', () => {
+    expect(permissionNeedsActiveClub()).toBe(false)
+    expect(permissionNeedsActiveClub('settings')).toBe(false)
+  })
+
+  it('requires ACTIVE for desk and finance permissions', () => {
+    expect(permissionNeedsActiveClub('calendar')).toBe(true)
+    expect(permissionNeedsActiveClub('crm')).toBe(true)
+    expect(permissionNeedsActiveClub('finance:view')).toBe(true)
   })
 })
 

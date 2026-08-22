@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { checkRateLimitBucket } from '#shared/rateLimitBucket.ts'
+import { resolveClientIpForRateLimit } from '#shared/clientIp.ts'
 
 const WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000
 const MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX) || 15
@@ -37,8 +38,30 @@ async function enforceBucket(bucketKey: string, windowMs: number, max: number) {
 }
 
 export async function enforceRateLimit(event: H3Event, key: string) {
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+  const ip = clientIpForRateLimit(event)
   await enforceBucket(`rate:${key}:${ip}`, WINDOW_MS, MAX_REQUESTS)
+}
+
+/**
+ * Prefer platform client-IP headers (Liara/Cloudflare set these from the socket).
+ * For X-Forwarded-For, use the rightmost hop (added by the edge), not the leftmost
+ * (client-spoofable).
+ */
+export function clientIpForRateLimit(event: H3Event): string {
+  const headers = getRequestHeaders(event)
+  return resolveClientIpForRateLimit({
+    platformIp: firstHeaderValue(headers['cf-connecting-ip'])
+      || firstHeaderValue(headers['x-real-ip'])
+      || firstHeaderValue(headers['true-client-ip']),
+    xForwardedFor: firstHeaderValue(headers['x-forwarded-for']),
+    fallback: getRequestIP(event),
+  })
+}
+
+function firstHeaderValue(value: string | string[] | undefined) {
+  if (!value) return ''
+  const raw = Array.isArray(value) ? value[0] : value
+  return (raw || '').trim()
 }
 
 /** Per-phone OTP send limit (Iranian mobile already normalized to 09…). */

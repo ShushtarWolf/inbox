@@ -25,13 +25,18 @@ export function localTimeString(date = new Date(), timeZone = TEHRAN_TZ) {
 }
 
 function parseTimeMinutes(time: string) {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + (minutes || 0)
+  const parts = time.split(':').map(Number)
+  const hours = parts[0] ?? 0
+  const minutes = parts[1] ?? 0
+  return hours * 60 + minutes
 }
 
 /** Adds (or subtracts) whole days to a YYYY-MM-DD date string, returning a YYYY-MM-DD string. */
 export function addDaysToIsoDate(date: string, days: number) {
-  const [year, month, day] = date.split('-').map(Number)
+  const parts = date.split('-').map(Number)
+  const year = parts[0] ?? 0
+  const month = parts[1] ?? 1
+  const day = parts[2] ?? 1
   const shifted = new Date(Date.UTC(year, month - 1, day) + days * 86400000)
   const yyyy = shifted.getUTCFullYear()
   const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0')
@@ -40,8 +45,14 @@ export function addDaysToIsoDate(date: string, days: number) {
 }
 
 export function daysBetweenCalendarDates(from: string, to: string) {
-  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number)
-  const [toYear, toMonth, toDay] = to.split('-').map(Number)
+  const fromParts = from.split('-').map(Number)
+  const toParts = to.split('-').map(Number)
+  const fromYear = fromParts[0] ?? 0
+  const fromMonth = fromParts[1] ?? 1
+  const fromDay = fromParts[2] ?? 1
+  const toYear = toParts[0] ?? 0
+  const toMonth = toParts[1] ?? 1
+  const toDay = toParts[2] ?? 1
   const fromUtc = Date.UTC(fromYear, fromMonth - 1, fromDay)
   const toUtc = Date.UTC(toYear, toMonth - 1, toDay)
   return Math.round((toUtc - fromUtc) / 86400000)

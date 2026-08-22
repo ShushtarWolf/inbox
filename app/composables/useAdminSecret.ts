@@ -9,9 +9,13 @@ export function useAdminSecret() {
   function setSecret(value: string) {
     secret.value = value.trim()
     if (secret.value) secretRejected.value = false
+    // Memory-only: never persist to sessionStorage (same-origin XSS could steal it).
     if (import.meta.client) {
-      if (secret.value) sessionStorage.setItem(STORAGE_KEY, secret.value)
-      else sessionStorage.removeItem(STORAGE_KEY)
+      try {
+        sessionStorage.removeItem(STORAGE_KEY)
+      } catch {
+        // ignore quota / private mode
+      }
     }
   }
 
@@ -23,7 +27,13 @@ export function useAdminSecret() {
   function rejectSecret() {
     secretRejected.value = true
     secret.value = ''
-    if (import.meta.client) sessionStorage.removeItem(STORAGE_KEY)
+    if (import.meta.client) {
+      try {
+        sessionStorage.removeItem(STORAGE_KEY)
+      } catch {
+        // ignore
+      }
+    }
   }
 
   /** Intentional lock from nav logout — no invalid-secret banner. */
@@ -39,8 +49,8 @@ export function useAdminSecret() {
   async function adminFetch<T>(url: string, opts: { method?: string; body?: unknown; headers?: Record<string, string> } = {}) {
     try {
       return await $fetch<T>(url, {
-        method: opts.method,
-        body: opts.body,
+        method: opts.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | undefined,
+        body: opts.body as Record<string, unknown> | undefined,
         headers: { ...adminHeaders(), ...opts.headers },
       })
     } catch (err: unknown) {
@@ -50,21 +60,14 @@ export function useAdminSecret() {
     }
   }
 
-  onMounted(async () => {
+  onMounted(() => {
     if (hydrated.value || !import.meta.client) return
-    const alreadyInMemory = Boolean(secret.value)
     hydrated.value = true
-    if (!secret.value) {
-      const stored = sessionStorage.getItem(STORAGE_KEY) || ''
-      if (stored) setSecret(stored)
-    }
-    // Only re-validate when restoring from sessionStorage (not after a live gate submit).
-    if (!alreadyInMemory && secret.value) {
-      try {
-        await adminFetch('/api/admin/overview')
-      } catch {
-        // 403 handled by adminFetch → rejectSecret
-      }
+    // Drop any legacy persisted secret from older builds.
+    try {
+      sessionStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
     }
   })
 

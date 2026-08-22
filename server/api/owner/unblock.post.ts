@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
     if (!slot) throw createError({ statusCode: 404, statusMessage: 'Blocked slot not found' })
 
     if (slot.booking) {
+      if (slot.booking.source !== 'CLUB') {
+        throw createError({ statusCode: 409, statusMessage: 'Cannot unblock non-club booking' })
+      }
       await cancelCourtBooking({
         bookingId: slot.booking.id,
         slotId: slot.id,

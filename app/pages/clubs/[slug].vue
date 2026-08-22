@@ -13,6 +13,7 @@ import {
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
+import { serializeJsonLd } from '#shared/jsonLd.ts'
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -586,7 +587,8 @@ useHead(() => {
         reviewCount: summary.count,
       }
     }
-    head.script = [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) }]
+    // Escape `<` so club name/address cannot break out of the LD+JSON script tag.
+    head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
   }
   return head
 })

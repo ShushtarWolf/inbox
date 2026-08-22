@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { Role } from '@prisma/client'
+import type { Role, User } from '@prisma/client'
 import { resolvePostLoginPath, sanitizeReturnTo } from '#shared/returnTo.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { hasRole } from '#shared/roles.ts'
@@ -125,6 +125,13 @@ export async function requireRole(event: H3Event, ...roles: Role[]) {
   return user
 }
 
+/** Desk/CRM/finance need an ACTIVE club; settings/setup remain available while PENDING/SUSPENDED. */
+export function permissionNeedsActiveClub(permission?: OwnerPermission | string) {
+  if (!permission) return false
+  if (permission === 'settings') return false
+  return true
+}
+
 export async function requireOwnerClub(event: H3Event, permission?: OwnerPermission) {
   const user = await requireRole(event, 'CLUB_ADMIN')
   const memberships = await prisma.staffMembership.findMany({
@@ -143,6 +150,11 @@ export async function requireOwnerClub(event: H3Event, permission?: OwnerPermiss
   const permissions = parsePermissions(membership.permissionsJson)
   if (permission && membership.role !== 'OWNER' && !hasOwnerPermission(permissions, permission)) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+  // PENDING/SUSPENDED clubs may finish setup (settings) but not run desk/finance/CRM ops.
+  const status = membership.club.status
+  if (status && status !== 'ACTIVE' && permissionNeedsActiveClub(permission)) {
+    throw createError({ statusCode: 403, statusMessage: 'CLUB_NOT_ACTIVE' })
   }
   return {
     user,

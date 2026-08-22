@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   pending?: boolean
-  error?: boolean | string | null
+  /** Accept Error objects from useFetch/useAsyncData without callers wrapping. */
+  error?: boolean | string | Error | null
   empty?: boolean
   loadingLabel?: string
   skeletonLines?: number
@@ -21,6 +22,7 @@ const { t } = useI18n()
 
 const errorMessage = computed(() => {
   if (typeof props.error === 'string') return props.error
+  if (props.error instanceof Error) return props.error.message || t('common.error')
   if (props.error) return t('common.error')
   return ''
 })
@@ -35,7 +37,7 @@ const label = computed(() => props.loadingLabel || t('common.loading'))
       <AppVenusSkeleton
         v-else
         :lines="skeletonLines"
-        :variant="skeletonVariant === 'calendar' ? 'default' : skeletonVariant"
+        :variant="skeletonVariant === 'table' || skeletonVariant === 'stat-grid' ? skeletonVariant : 'default'"
       />
       <AppVenusSpinner v-if="inline" size="sm" :label="label" class="mt-4" />
     </slot>
