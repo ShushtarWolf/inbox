@@ -20,10 +20,11 @@ export async function findUserForPhoneOtp(phoneRaw: string): Promise<{
     return { user: byPhone, linkPhone: false, phone }
   }
 
+  // Club has no createdAt — order by id for deterministic oldest match.
   const club = await prisma.club.findFirst({
     where: { phone },
     include: { owner: true },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { id: 'asc' },
   })
   const owner = club?.owner
   if (!owner || !hasRole(owner, 'CLUB_ADMIN')) return null
