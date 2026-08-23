@@ -449,9 +449,15 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
+**Preferred:** push to `main` — GitHub Actions runs CI, then `.github/workflows/deploy.yml` deploys to Liara (`inbox` app). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)).
+
+**Manual fallback:**
+
 ```bash
 liara deploy --app inbox
 ```
+
+Or trigger **Deploy to Liara** from the GitHub Actions tab (`workflow_dispatch`).
 
 ## Admin provisioning
 

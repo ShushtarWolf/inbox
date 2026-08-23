@@ -52,6 +52,16 @@ git config user.name "Siamak Ghodsi"
 
 Avoid appending `Co-authored-by: Cursor` on every commit unless you intend to show AI attribution publicly.
 
+## Liara CD (GitHub Actions)
+
+Production deploys run from GitHub after **CI** passes on `main` (`.github/workflows/deploy.yml`). You can also trigger **Deploy to Liara** manually from the Actions tab.
+
+One-time secret (Settings → Secrets and variables → Actions):
+
+- [ ] **`LIARA_API_TOKEN`** — API key from [Liara console → API keys](https://console.liara.ir/settings/api-keys)
+
+After each successful deploy, still download a local DB dump per [OPERATIONS.md](./OPERATIONS.md#never-lose-production-data).
+
 ## Security
 
 - [ ] Read [SECURITY.md](../SECURITY.md) — vulnerability reporting contact
