@@ -75,8 +75,9 @@ export async function createAndSendPhoneOtp(opts: {
 
   const body = renderOtpSms(code)
   // Never expose OTP codes in production — even when SMS is log/dry-run.
+  // CI runs the production build artifact with SMS_PROVIDER=log; allow debugCode there.
   const allowDebugFallback =
-    process.env.NODE_ENV !== 'production'
+    (process.env.NODE_ENV !== 'production' || process.env.CI === 'true')
     && (
       smsMode === 'log'
       || (smsMode !== 'live' && process.env.SMS_OTP_DEBUG_FALLBACK === 'true')
