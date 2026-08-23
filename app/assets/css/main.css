@@ -607,6 +607,20 @@
     inset-block-start: 0;
     inset-inline: 0;
     border-radius: 0;
+    /* Keep offer in its strip — never spill over club name (Safari wrap). */
+    max-height: 2.5rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    word-break: break-word;
+  }
+  /* Reserve top band so title/meta/CTA sit fully below the offer. */
+  .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
+    justify-content: flex-end;
+    padding-block-start: 2.65rem;
+    padding-block-end: 0.5rem;
   }
 
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
@@ -1323,8 +1337,9 @@
     border-radius: var(--sz-canva-radius);
     min-height: 11rem;
   }
+  /* LOCKED sharp frames: no soft oval bottom (match guest canva-hero-home). */
   .canva-photo-hero-curve {
-    border-radius: 0 0 50% 50% / 0 0 1.75rem 1.75rem;
+    border-radius: var(--sz-canva-radius);
   }
   .canva-photo-hero-media {
     @apply absolute inset-0 h-full w-full object-cover;

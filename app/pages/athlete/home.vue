@@ -103,7 +103,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 
 <template>
   <div class="venus-page-stack">
-    <section class="canva-photo-hero canva-photo-hero-curve -mx-4 sm:-mx-0">
+    <section class="canva-photo-hero -mx-4 sm:-mx-0">
       <img
         src="/hero/fitness-venue.jpg"
         :alt="t('athlete.homePickCourt')"
