@@ -49,6 +49,7 @@ sh-thd-*
 
 # Runtime local uploads + Playwright artifacts (never commit)
 public/uploads/
+data/uploads/
 test-results/
 playwright-report/
 

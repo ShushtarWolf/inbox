@@ -128,25 +128,7 @@ describe('getStorageStatus', () => {
 })
 
 describe('localUploadsRoot', () => {
-  it('uses public/uploads outside production Nitro', () => {
-    const previous = process.env.NODE_ENV
-    process.env.NODE_ENV = 'development'
-    try {
-      expect(localUploadsRoot().replace(/\\/g, '/')).toMatch(/public\/uploads$/)
-    } finally {
-      process.env.NODE_ENV = previous
-    }
-  })
-
-  it('uses .output/public/uploads when production Nitro public dir exists', () => {
-    const previous = process.env.NODE_ENV
-    process.env.NODE_ENV = 'production'
-    try {
-      const root = localUploadsRoot().replace(/\\/g, '/')
-      // Prefer Nitro public when .output/public is present; otherwise fall back.
-      expect(root.endsWith('public/uploads') || root.endsWith('.output/public/uploads')).toBe(true)
-    } finally {
-      process.env.NODE_ENV = previous
-    }
+  it('uses data/uploads so Liara can serve via the uploads route', () => {
+    expect(localUploadsRoot().replace(/\\/g, '/')).toMatch(/data\/uploads$/)
   })
 })

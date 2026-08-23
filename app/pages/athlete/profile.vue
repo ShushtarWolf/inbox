@@ -133,7 +133,7 @@ async function save() {
     </section>
 
     <div class="canva-panel space-y-3">
-      <AppImageUpload :model-value="avatarUrl" :label="t('register.profilePhoto')" @update:model-value="onAvatarChange" />
+      <AppImageUpload crop :model-value="avatarUrl" :label="t('register.profilePhoto')" @update:model-value="onAvatarChange" />
       <p v-if="savingAvatar" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
       <AppFormField :label="t('common.name')">
         <input v-model="name" class="neo-input" />

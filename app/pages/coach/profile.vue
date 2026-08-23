@@ -111,7 +111,7 @@ async function removeGalleryImage(id: string) {
     <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <div class="venus-form-stack">
-      <AppImageUpload :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
+      <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
       <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
       <AppFormField :label="$t('register.selectClub')">
         <select v-model="clubId" class="neo-select">

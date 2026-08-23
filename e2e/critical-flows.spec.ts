@@ -29,11 +29,16 @@ test('profile photo upload saves avatar', async ({ page }) => {
   await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
 
   await page.goto('/athlete/profile')
-  const uploadPromise = page.waitForResponse((res) => res.url().includes('/api/uploads') && res.request().method() === 'POST')
   const fileChooserPromise = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'انتخاب تصویر' }).click()
   const fileChooser = await fileChooserPromise
   await fileChooser.setFiles('public/icons/icon-192.png')
+
+  // Telegram-style crop sheet — confirm exports JPEG then uploads
+  const confirmCrop = page.getByRole('button', { name: 'تأیید و بارگذاری' })
+  await expect(confirmCrop).toBeEnabled({ timeout: 15_000 })
+  const uploadPromise = page.waitForResponse((res) => res.url().includes('/api/uploads') && res.request().method() === 'POST')
+  await confirmCrop.click()
   const uploadRes = await uploadPromise
   expect(uploadRes.ok()).toBeTruthy()
 

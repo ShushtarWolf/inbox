@@ -126,8 +126,8 @@ export function getStorageStatus() {
     allowedTypes: [...ALLOWED_TYPES],
     warnings,
     note: s3Ready
-      ? 'S3 configured — uploads use PutObject (forcePathStyle); URLs use S3_PUBLIC_URL'
-      : 'S3 unset or incomplete — uploads write to public/uploads (localhost-friendly)',
+      ? 'S3 configured — PutObject best-effort; browsers load via /uploads/* (local data/uploads + S3 GetObject fallback)'
+      : 'S3 unset or incomplete — uploads write to data/uploads and are served at /uploads/*',
   }
 }
 
@@ -148,6 +148,11 @@ function createS3Client() {
     bucket: config.bucket,
     publicUrl: config.publicUrl.replace(/\/$/, ''),
   }
+}
+
+/** Same client as uploads — used by `/uploads/*` to fall back to GetObject. */
+export function createS3ClientForReads() {
+  return createS3Client()
 }
 
 /** Detect providers that reject canned ACLs (common on S3-compatible / Object Ownership). */
@@ -194,40 +199,45 @@ async function putObjectWithAclFallback(
 }
 
 /**
- * Nitro production (`node .output/server/index.mjs`) serves static files from
- * `.output/public`, not source `public/`. Writing only to `public/uploads` makes
- * avatar URLs 404 on Liara/CI while the DB still saves — "saved" with no photo.
+ * Writable uploads root served by `server/routes/uploads/[...path].get.ts`.
+ * Uses `data/uploads` so Liara/Docker is not tied to Nitro’s `.output/public`
+ * snapshot (writes there still 404’d after deploy). Dev keeps the same path.
  */
 export function localUploadsRoot() {
-  const outputPublic = join(process.cwd(), '.output', 'public')
-  if (process.env.NODE_ENV === 'production' && existsSync(outputPublic)) {
-    return join(outputPublic, 'uploads')
-  }
-  return join(process.cwd(), 'public', 'uploads')
+  return join(process.cwd(), 'data', 'uploads')
 }
 
 async function uploadObject(buffer: Buffer, options: { folder: string; contentType: string }) {
-  // storage.ts already prefixes `uploads/` in the returned URL — folder must not.
+  // Returned URL is always `/uploads/{folder}/{file}` — route serves local (and S3 fallback).
   const folder = options.folder.replace(/^\/+/, '').replace(/^uploads\//, '')
   const ext = EXT_BY_TYPE[options.contentType] || paymentDocumentExtension(options.contentType)
-  const key = `${folder}/${randomUUID()}.${ext}`
-  const s3 = createS3Client()
-
-  if (s3) {
-    await putObjectWithAclFallback(s3.client, {
-      bucket: s3.bucket,
-      key,
-      body: buffer,
-      contentType: options.contentType,
-    })
-    return `${s3.publicUrl}/${key}`
-  }
+  const filename = `${randomUUID()}.${ext}`
+  const key = `${folder}/${filename}`
 
   const localDir = join(localUploadsRoot(), folder)
   await mkdir(localDir, { recursive: true })
-  const filename = `${randomUUID()}.${ext}`
-  await writeFile(join(localDir, filename), buffer)
-  return `/uploads/${folder}/${filename}`
+  const localPath = join(localDir, filename)
+  await writeFile(localPath, buffer)
+  if (!existsSync(localPath)) {
+    throw createError({ statusCode: 500, statusMessage: 'Upload write failed' })
+  }
+
+  // Best-effort durable copy to S3 when configured (bucket need not be public).
+  const s3 = createS3Client()
+  if (s3) {
+    try {
+      await putObjectWithAclFallback(s3.client, {
+        bucket: s3.bucket,
+        key,
+        body: buffer,
+        contentType: options.contentType,
+      })
+    } catch {
+      // Local file already saved and is what the browser loads via /uploads/*.
+    }
+  }
+
+  return `/uploads/${key}`
 }
 
 export async function uploadImage(buffer: Buffer, options: { folder: string; contentType: string }) {

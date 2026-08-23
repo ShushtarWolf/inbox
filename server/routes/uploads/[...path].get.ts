@@ -1,6 +1,7 @@
 import { createReadStream, existsSync } from 'node:fs'
 import { join, normalize, sep } from 'node:path'
-import { localUploadsRoot } from '../../utils/storage'
+import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { createS3ClientForReads, localUploadsRoot } from '../../utils/storage'
 
 const CONTENT_TYPE: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -10,11 +11,16 @@ const CONTENT_TYPE: Record<string, string> = {
   pdf: 'application/pdf',
 }
 
+function contentTypeFor(path: string) {
+  const ext = path.split('.').pop()?.toLowerCase() || ''
+  return CONTENT_TYPE[ext] || ''
+}
+
 /**
- * Serve `/uploads/*` from Nitro's public dir and legacy `public/uploads`.
- * Needed when files were written to the wrong root before localUploadsRoot().
+ * Serve `/uploads/*` from `data/uploads` (primary), legacy public paths, then S3.
+ * Always return relative `/uploads/…` URLs from upload APIs so public S3 ACL is not required.
  */
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const raw = (getRouterParam(event, 'path') || '').replace(/^\/+/, '')
   if (!raw || raw.includes('\0') || raw.split(/[/\\]/).includes('..')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid path' })
@@ -37,8 +43,7 @@ export default defineEventHandler((event) => {
     if (!uploadsRoots.some((root) => resolved.startsWith(root))) continue
     if (!existsSync(resolved)) continue
 
-    const ext = resolved.split('.').pop()?.toLowerCase() || ''
-    const type = CONTENT_TYPE[ext]
+    const type = contentTypeFor(resolved)
     if (!type) {
       throw createError({ statusCode: 415, statusMessage: 'Unsupported file type' })
     }
@@ -46,6 +51,22 @@ export default defineEventHandler((event) => {
     setHeader(event, 'Content-Type', type)
     setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
     return sendStream(event, createReadStream(resolved))
+  }
+
+  const s3 = createS3ClientForReads()
+  if (s3) {
+    try {
+      const out = await s3.client.send(new GetObjectCommand({ Bucket: s3.bucket, Key: raw }))
+      const type = contentTypeFor(raw) || out.ContentType || 'application/octet-stream'
+      setHeader(event, 'Content-Type', type)
+      setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+      if (out.Body) {
+        const bytes = Buffer.from(await out.Body.transformToByteArray())
+        return bytes
+      }
+    } catch {
+      // fall through to 404
+    }
   }
 
   throw createError({ statusCode: 404, statusMessage: 'Not found' })
