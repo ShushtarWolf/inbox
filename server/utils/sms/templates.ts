@@ -301,13 +301,19 @@ function otpAutofillHost() {
 
 /**
  * OTP body for log/fallback `sms/send`.
- * Live Verify Lookup only sends the 6-digit token — the Kavenegar panel
- * template must match this shape (Persian line + Android WebOTP last line).
- * Panel body (عملیاتی): `کد تایید اینباکس: %token%` then `@inboxs.ir #%token2%`.
+ * Live Verify Lookup text comes from the panel template — keep this in sync for log mode.
+ * Panel `inbox-verify-autofill` (عملیاتی):
+ *   code: %token%
+ *   کد تایید اینباکس
+ *   @inboxs.ir #%token2%
  */
 export function renderOtpSms(code: string) {
   const host = otpAutofillHost()
-  return [`کد تایید اینباکس: ${code}`, `@${host} #${code}`].join('\n')
+  return [
+    `code: ${code}`,
+    'کد تایید اینباکس',
+    `@${host} #${code}`,
+  ].join('\n')
 }
 
 export function renderSmsTemplate(template: NotifyTemplate | 'CAMPAIGN', data: Record<string, unknown>) {

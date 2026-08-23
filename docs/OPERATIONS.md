@@ -31,7 +31,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SMS_ENABLED` | For live SMS | `true` to allow live sends (OTP + CRM + desk guest); default stays log/dry-run |
 | `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
-| `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | Panel-approved Verify Lookup template (e.g. `inbox-verify`). Body: `کد تایید اینباکس: %token%` + `@inboxs.ir #%token2%`. Also used for password-reset OTP. Without it, OTP uses free-text `sms/send`. |
+| `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | `inbox-verify-autofill` — body: `code: %token%` + `کد تایید اینباکس` + `@inboxs.ir #%token2%`. Also password-reset OTP. |
 | `KAVENEGAR_TEMPLATE_NOTIFY` | Required for booking/CRM SMS | Default `inbox-notify`. Panel body must be `%token10%`. Live service lines often reject free-text `sms/send` (412 invalid sender) while OTP lookup still works. |
 | `KAVENEGAR_TEMPLATE_PAY_LINK` | Optional tappable pay SMS | Panel template (e.g. `inbox-pay`) whose body includes `https://inboxs.ir/p/%token%`. `%token%` is the 8-char pay pin. Without this, desk “ارسال لینک پرداخت” still SMS a token10-safe pay pin and shows the owner a copy/WhatsApp URL. |
 | `KAVENEGAR_SENDER` | Free-text fallback | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است`. Needed only when notify lookup is disabled or OTP has no template. |
@@ -97,7 +97,7 @@ Set in the Liara dashboard when cutting over live OTP (never commit secrets):
 | `SMS_ENABLED` | `true` | Required for live sends |
 | `SMS_PROVIDER` | `kavenegar` or `live` | Both resolve to Kavenegar |
 | `KAVENEGAR_API_KEY` | from Kavenegar panel | Required with the two above |
-| `KAVENEGAR_TEMPLATE` | e.g. `inbox-verify` | **Preferred for OTP + password-reset OTP** — panel-approved Verify Lookup. Body: `کد تایید اینباکس: %token%` then `@inboxs.ir #%token2%` |
+| `KAVENEGAR_TEMPLATE` | `inbox-verify-autofill` | OTP + password-reset — `code: %token%` / `کد تایید اینباکس` / `@inboxs.ir #%token2%` |
 | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` | **Required for booking/owner/admin/CRM** — panel body exactly `%token10%`. See [KAVENEGAR_SETUP.md](./KAVENEGAR_SETUP.md). |
 | `KAVENEGAR_SENDER` | approved line | Required for free-text `sms/send` (CRM + booking notify + OTP without template) |
 
@@ -177,14 +177,15 @@ KAVENEGAR_SENDER=…  # panel-approved; required for booking free-text
 
 OTP is separate: needs `KAVENEGAR_TEMPLATE` (Verify Lookup) — do **not** claim OTP works until the site template is approved. Verify with `npm run sms:status` → `resolvedProvider: "live"` and `smsPhase: "MULTI"`.
 
-**OTP autofill (iOS / Android):** live text comes from the **panel template**, not from `renderOtpSms`. Create a **new** Verify Lookup template (do not edit the live one — that sends it back to review and OTP stops). Paste:
+**OTP autofill (iOS / Android):** live text comes from panel template `inbox-verify-autofill`:
 
 ```
-کد تایید اینباکس: %token%
+code: %token%
+کد تایید اینباکس
 @inboxs.ir #%token2%
 ```
 
-Wait until status is **عملیاتی**, then set `KAVENEGAR_TEMPLATE` to that template name and restart/redeploy. Step-by-step (OTP + `inbox-notify` + pay-link): [KAVENEGAR_SETUP.md](./KAVENEGAR_SETUP.md).
+Set `KAVENEGAR_TEMPLATE=inbox-verify-autofill` on Liara and redeploy. Full checklist: [KAVENEGAR_SETUP.md](./KAVENEGAR_SETUP.md).
 
 **Password reset:** phone SMS OTP only (`POST /api/auth/forgot-password` with `{ phone }`, then `POST /api/auth/reset-password` with `{ phone, code, password }`). Same `KAVENEGAR_TEMPLATE` as login OTP. Email reset is not used.
 

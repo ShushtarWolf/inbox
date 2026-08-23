@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { renderOtpSms, renderSmsTemplate } from './templates'
 
 describe('SMS templates', () => {
-  it('renders OTP with Persian line and Android WebOTP last line', () => {
+  it('renders OTP with iOS code: line and Android WebOTP last line', () => {
     expect(renderOtpSms('123456')).toBe(
-      ['کد تایید اینباکس: 123456', '@inboxs.ir #123456'].join('\n'),
+      ['code: 123456', 'کد تایید اینباکس', '@inboxs.ir #123456'].join('\n'),
     )
   })
 
