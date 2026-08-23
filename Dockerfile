@@ -31,17 +31,20 @@ COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts/start-production.mjs ./scripts/start-production.mjs
 COPY --from=builder /app/scripts/lib ./scripts/lib
-COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/shared ./shared
 
-# Only packages needed by start-production (migrate / optional seed / PrismaClient)
-RUN npm install --omit=dev --no-save \
+# Minimal manifest first — npm arborist crashes when --no-save targets are added
+# on top of the full app package.json without a lockfile in this stage.
+RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
+  && npm install --omit=dev --no-save \
     prisma@6.19.3 \
     @prisma/client@6.19.3 \
     tsx@4.22.4 \
   && npx prisma generate \
   && npm cache clean --force
+
+COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 CMD ["node", "scripts/start-production.mjs"]
