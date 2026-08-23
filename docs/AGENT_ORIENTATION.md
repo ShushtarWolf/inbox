@@ -69,8 +69,11 @@ Routes come from `app/pages/`. This list emphasizes product entry points rather 
 | `/clubs/apply` | Club application entry point. |
 | `/about`, `/contact`, `/pricing`, `/terms`, `/privacy`, `/cancellation`, `/complaints` | Public informational/legal/support pages. |
 | `/offline` | PWA fallback, although PWA is disabled unless explicitly enabled. |
+| `/payments/test-gateway` | Simulated payment handoff used by local/test payment mode. |
 
 `/coaches`, `/coaches/:id`, and `/book/coach/:id` are implemented but redirect to `/clubs` while the pilot no-coach flag is active. `/book/package/:id` is a soft-landing/frozen product surface in the current pilot.
+
+Legacy `/en` and `/en/*` requests are permanently redirected to the corresponding unprefixed Farsi routes by `server/middleware/en-redirect.ts`.
 
 ### Authenticated follow-up and role routes
 
@@ -170,7 +173,7 @@ Old bypass names `AUTH_OTP_BYPASS_PHONES` and `ALLOW_OTP_BYPASS` may be detected
 
 - The README still describes FA/EN behavior, but current `nuxt.config.ts` is Farsi-only. Treat the active Nuxt config as authoritative.
 - The court-focused pilot hides coach discovery/registration/dashboard routes and owner coach navigation while retaining their code and schema.
-- Package/public-class and some season/package navigation surfaces are frozen or soft-landed; recurring owner calendar APIs still exist.
+- Package/public-class and season/package navigation surfaces are frozen or soft-landed. The recurring APIs and implementation remain in the tree, but `isRecurringReserveEnabled()` currently disables their mutations.
 - Live Kavenegar OTP is real, but non-OTP booking/CRM delivery depends on separately approved lookup templates. Default local mode is dry-run/log. Scheduled campaigns and daily owner reminders have no in-app worker and require manual admin action or an external Liara dashboard cron.
 - PWA is disabled by default to avoid stale service-worker caches.
 - Without all S3 variables, uploads use `public/uploads`; that is convenient locally but Liara container disk is ephemeral.
@@ -179,6 +182,7 @@ Old bypass names `AUTH_OTP_BYPASS_PHONES` and `ALLOW_OTP_BYPASS` may be detected
 - Several flexible properties are stored as JSON strings rather than normalized tables; parse them through existing helpers.
 - Admin authorization is one shared header secret, not a user/role/audit session.
 - Historical docs can be stale. For example, `docs/UNDEPLOYED.md` is a deployment snapshot, not proof that current `main` is live.
+- The README's unit-test count is stale; avoid recording a fixed count because the suite changes frequently.
 - There is no repository evidence for a Cloudflare Tunnel or VPN dependency.
 
 Search for current operational warnings in `docs/LAUNCH_CHECKLIST.md`, `docs/OPERATIONS.md`, `docs/KAVENEGAR_SETUP.md`, `docs/PAYMENTS.md`, and `docs/AUDIT_CHECKLIST.md` before changing provider or production behavior.
@@ -186,6 +190,8 @@ Search for current operational warnings in `docs/LAUNCH_CHECKLIST.md`, `docs/OPE
 ## Test story
 
 CI (`.github/workflows/ci.yml`) starts PostgreSQL 16, installs with `npm ci`, generates Prisma, applies migrations, seeds demo data, checks i18n, builds, runs Vitest, runs integration smoke checks, installs Chromium, and runs Playwright.
+
+CI does not currently run the lint or typecheck scripts, so run those explicitly when a code change can affect them.
 
 - `npm test` — colocated Vitest tests under `shared/`, `server/`, and `app/composables/`
 - `npm run lint` — ESLint plus Vue accessibility rules
