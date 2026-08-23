@@ -64,7 +64,7 @@ const redirectPaths = [
 ]
 
 const ownerPaths = [
-  '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/packages',
+  '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/discounts', '/owner/packages',
   '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings',
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]

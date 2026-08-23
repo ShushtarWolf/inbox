@@ -299,7 +299,7 @@ async function main() {
     const loc = ownerHome.res.headers.get('location') || ''
     assert(/\/owner\/calendar/.test(loc), `/owner redirect expected /owner/calendar, got ${loc || ownerHome.res.status}`)
   }
-  for (const path of ['/owner/calendar', '/owner/finance', '/owner/equipments', '/owner/settings', '/owner/support']) {
+  for (const path of ['/owner/calendar', '/owner/finance', '/owner/equipments', '/owner/discounts', '/owner/settings', '/owner/support']) {
     const { res: pageRes } = await fetchPage(base, path, { jar, session: 'owner', expectStatus: 200 })
     assert(pageRes.status === 200, `${path} → ${pageRes.status}`)
   }

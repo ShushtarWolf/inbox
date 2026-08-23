@@ -105,6 +105,7 @@ const localRoleMatrix = [
       '/owner/calendar',
       '/owner/finance',
       '/owner/equipments',
+      '/owner/discounts',
       '/owner/settings',
       '/owner/support',
       '/owner/crm',

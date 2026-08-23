@@ -25,6 +25,7 @@ const primaryNavItems = [
 const desktopExtraNavItems = [
   { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
+  { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
   { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
   { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
 ] as const

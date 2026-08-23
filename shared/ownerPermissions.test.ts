@@ -81,6 +81,7 @@ describe('OWNER_NAV_PERMISSIONS', () => {
     expect(OWNER_NAV_PERMISSIONS['/owner/finance']).toBe('finance')
     expect(OWNER_NAV_PERMISSIONS['/owner/crm']).toBe('crm')
     expect(OWNER_NAV_PERMISSIONS['/owner/settings']).toBe('settings')
+    expect(OWNER_NAV_PERMISSIONS['/owner/discounts']).toBe('settings')
   })
 })
 
