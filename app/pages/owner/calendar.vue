@@ -589,7 +589,7 @@ function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
   if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
   if (activeBooking(slot) || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
-  // Free slot: Canva shows the 3-action menu first (no nested panel yet).
+  // Free slot: reserve/block open from the selection bar with an explicit panel.
   return null
 }
 
@@ -712,16 +712,6 @@ function detailCoachLabel() {
   const coach = clubCoaches.value.find((item) => item.id === booking.coachId)
   if (!coach) return t('owner.sessionTypeCoach')
   return localizedField(coach, 'nameFa', 'nameEn')
-}
-
-function menuButtonClass(panel: ActivePanel) {
-  const base = 'neo-menu-item'
-  return activePanel.value === panel ? `${base} neo-menu-item-active` : base
-}
-
-function menuItemClass(panel: ActivePanel) {
-  const base = 'canva-action-row'
-  return activePanel.value === panel ? `${base} canva-action-row-active` : base
 }
 
 const menuIconMap: Record<string, { icon: string; wrap: string }> = {
@@ -989,10 +979,6 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   packageForm.comments = booking?.comments || ''
 }
 
-function openReserveForm() {
-  activePanel.value = 'reserve'
-}
-
 function openCancelForm() {
   if (!slotsForCancel().length) return
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
@@ -1100,10 +1086,6 @@ function openEquipmentForm() {
   activePanel.value = 'equipment'
 }
 
-function openBlockForm() {
-  activePanel.value = 'block'
-}
-
 function closeMenu() {
   showMenu.value = false
   resetPanels()
@@ -1134,10 +1116,48 @@ async function recoverAfterBatchError() {
   multiSelectMode.value = false
 }
 
+function hasBookedDetailContext() {
+  const slot = selectedSlot.value
+  if (!slot) return false
+  if (activeBooking(slot) || canCancelSlot()) return true
+  return slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED'
+}
+
 function backToMenu() {
-  activePanel.value = null
+  if (hasBookedDetailContext()) {
+    activePanel.value = 'detail'
+  } else {
+    closeMenu()
+  }
   actionError.value = ''
 }
+
+const slotModalTitle = computed(() => {
+  switch (activePanel.value) {
+    case 'reserve':
+      return reserveMenuLabel()
+    case 'block':
+      return t('owner.blockFormTitle')
+    case 'detail':
+      return t('owner.currentBooking')
+    case 'cancel':
+      return t('owner.cancel')
+    case 'comments':
+      return t('owner.comments')
+    case 'payConfirm':
+      return t('owner.deskConfirmTitle')
+    case 'payLinkSent':
+      return t('owner.payLinkSentTitle')
+    case 'season':
+      return t('owner.seasonPage.title')
+    case 'package':
+      return t('owner.packagesPage.title')
+    case 'equipment':
+      return t('owner.equipments')
+    default:
+      return t('owner.slotActions')
+  }
+})
 
 function toggleDay(days: string[], day: string) {
   if (days.includes(day)) {
@@ -2168,42 +2188,8 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
       </div>
     </AppModal>
 
-    <AppModal :open="showMenu" patterned sheet :title="t('owner.slotActions')" max-width-class="canva-phone-shell" @close="closeMenu">
+    <AppModal :open="showMenu" patterned sheet :title="slotModalTitle" max-width-class="canva-phone-shell" @close="closeMenu">
       <div class="venus-modal-shell min-h-0 flex-1">
-        <!-- Menu only while choosing an action — hide once a form panel opens so fields stay above the keyboard -->
-        <div v-if="!activePanel" class="space-y-1 !p-2">
-          <div v-if="selectedSlot" class="mb-1 border-b border-brand-gray-100 px-3 py-3 text-sm" style="border-radius: var(--sz-canva-radius);">
-            <p class="font-bold"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(selectedSlot.startTime, selectedSlot.endTime) }}</bdi></p>
-            <p class="mt-1 font-bold text-brand-gray-600">{{ slotGuestName() || statusLabel(selectedSlot.displayStatus) }}</p>
-            <p v-if="slotStatusSummary()" class="mt-1 text-xs font-bold text-brand-gray-600">{{ slotStatusSummary() }}</p>
-            <div v-if="batchMode" class="mt-2 flex flex-wrap justify-start gap-1">
-              <span
-                v-for="slot in selectedSlotsFull"
-                :key="slot.id"
-                class="bg-brand-lavender px-2 py-0.5 text-xs font-bold text-brand-navy"
-                style="border-radius: var(--sz-canva-radius);"
-              >
-                {{ slotCourtName(slot) }}
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(slot.startTime) }}</bdi>
-              </span>
-            </div>
-          </div>
-
-          <button v-if="canReserveSlot()" type="button" :class="menuItemClass('reserve')" @click="openReserveForm">
-            <span class="canva-desk-action-icon"><AppIcon name="person_add" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ reserveMenuLabel() }}</span>
-          </button>
-          <button v-if="canBlockSlot()" type="button" :class="menuItemClass('block')" @click="openBlockForm">
-            <span class="canva-desk-action-icon"><AppIcon name="block" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.blockThisHour') }}</span>
-          </button>
-          <button type="button" :class="menuItemClass('comments')" @click="openCommentsForm">
-            <span class="canva-desk-action-icon"><AppIcon name="add" size="sm" /></span>
-            <span class="min-w-0 flex-1 truncate">{{ t('owner.addNote') }}</span>
-          </button>
-          <p v-if="actionError" class="venus-alert-error mx-2 mb-2">{{ actionError }}</p>
-        </div>
-
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-body !pt-1">
             <div class="canva-detail-row">
@@ -2280,7 +2266,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="activePanel = canCancelSlot() ? 'detail' : null">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -2320,7 +2306,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving || !slotsForCancel().length" @click="doCancel">{{ t('owner.cancelBooking') }}</button>
-            <button type="button" class="canva-gate-btn-secondary" @click="activePanel = canCancelSlot() ? 'detail' : null">{{ t('common.back') }}</button>
+            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
 
@@ -2513,7 +2499,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
             >
               {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="activePanel = isEditingBooking() ? 'detail' : null">{{ t('common.back') }}</button>
+            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
 
@@ -2732,7 +2718,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
             <button v-if="canBlockSlot() || canUnblockSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving" @click="doBlock">
               {{ saving ? t('common.loading') : (canUnblockSlot() ? t('common.save') : t('owner.confirmBlock')) }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="activePanel = null">{{ t('common.back') }}</button>
+            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
 
