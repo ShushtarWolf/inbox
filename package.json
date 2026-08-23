@@ -19,6 +19,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:seed:demo": "SEED_DEMO_DATA=true prisma db seed",
+    "db:backfill-contacts": "node --import tsx scripts/backfill-contacts-from-bookings.ts",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
     "sms:status": "node --import tsx scripts/sms-status.ts",

@@ -29,6 +29,7 @@ import { creditWallet } from '../../utils/wallet'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
+import { syncClubContactForBooking } from '../../utils/contactSync'
 
 function resolveDeskPaymentMethod(
   requested: string | undefined,
@@ -233,6 +234,7 @@ export default defineEventHandler(async (event) => {
         data: { displayStatus },
       })
     })
+    await syncClubContactForBooking(existing.id)
 
     if (becomingUnpaid && previousPayment) {
       try {
@@ -347,6 +349,7 @@ export default defineEventHandler(async (event) => {
     } catch (error: unknown) {
       rethrowSlotConflict(error)
     }
+    await syncClubContactForBooking(createdBooking.id)
 
     const phone = guestMobile || null
     const guestName = personNotifyName(guest.guestName, guest.guestFamily)

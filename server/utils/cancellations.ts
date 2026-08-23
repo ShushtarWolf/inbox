@@ -1,3 +1,4 @@
+import { syncClubContactForBooking } from './contactSync'
 import { refundPaymentForCancellation } from './refunds'
 
 export async function cancelCourtBooking(options: {
@@ -26,6 +27,7 @@ export async function cancelCourtBooking(options: {
       },
     })
   })
+  await syncClubContactForBooking(options.bookingId)
 
   if (options.paymentId) {
     try {

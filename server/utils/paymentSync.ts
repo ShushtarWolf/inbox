@@ -14,6 +14,7 @@ import { getPaymentService } from './payments/service'
 import { promoteOnlineHoldOnPaid } from './onlinePaymentHold'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
+import { syncClubContactForBooking } from './contactSync'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -83,6 +84,7 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
     if (payment.status === 'PAID') {
       await promoteOnlineHoldOnPaid(payment.bookingId, db)
     }
+    await syncClubContactForBooking(payment.bookingId)
 
     // Multi-slot group: when the primary (combined) payment settles, mirror status onto siblings.
     if (payment.metadataJson && payment.status === 'PAID') {

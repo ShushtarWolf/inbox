@@ -15,6 +15,7 @@ import {
   resolveDiscountForBooking,
 } from '../../utils/discountCodes'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
+import { syncClubContactForBooking } from '../../utils/contactSync'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 
@@ -227,6 +228,10 @@ export default defineEventHandler(async (event) => {
   }
   catch (error: unknown) {
     rethrowSlotConflict(error)
+  }
+
+  for (const bookingId of bookingIds) {
+    await syncClubContactForBooking(bookingId)
   }
 
   // Online soft-holds wait for PAID before "رزرو تایید شد"; pay-at-club confirms now.
