@@ -1,4 +1,16 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+async function loginWithPhoneOtp(page: Page, phone: string, destination: RegExp) {
+  await page.goto('/login')
+  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
+  await page.locator('#login-phone').fill(phone)
+  await page.locator('button[type="submit"]').click()
+  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('#login-otp')).not.toHaveValue('')
+  await page.locator('button[type="submit"]').click()
+  await page.getByRole('button', { name: 'متوجه شدم' }).click({ timeout: 15_000 })
+  await page.waitForURL(destination)
+}
 
 test('guest homepage loads clubs link', async ({ page }) => {
   await page.goto('/')
@@ -8,26 +20,13 @@ test('guest homepage loads clubs link', async ({ page }) => {
 })
 
 test('athlete can login via phone OTP and view bookings', async ({ page }) => {
-  await page.goto('/login')
-  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
-  await page.locator('#login-phone').fill('09121234567')
-  await page.locator('button[type="submit"]').click()
-  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
-  // Log SMS mode auto-fills debugCode into the OTP field
-  await expect(page.locator('#login-otp')).not.toHaveValue('')
-  await page.locator('button[type="submit"]').click()
-  await page.waitForURL(/\/athlete/)
+  await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
   await page.goto('/athlete/bookings')
   await expect(page.locator('body')).toBeVisible()
 })
 
 test('profile photo upload saves avatar', async ({ page }) => {
-  await page.goto('/login')
-  await page.locator('#login-phone').fill('09121234567')
-  await page.locator('button[type="submit"]').click()
-  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
-  await page.locator('button[type="submit"]').click()
-  await page.waitForURL(/\/athlete/)
+  await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
 
   await page.goto('/athlete/profile')
   const fileInput = page.locator('input[type="file"]')
@@ -43,14 +42,7 @@ test('profile photo upload saves avatar', async ({ page }) => {
 })
 
 test('owner can login via phone OTP and view finance', async ({ page }) => {
-  await page.goto('/login')
-  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
-  await page.locator('#login-phone').fill('09124445566')
-  await page.locator('button[type="submit"]').click()
-  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('#login-otp')).not.toHaveValue('')
-  await page.locator('button[type="submit"]').click()
-  await page.waitForURL(/\/owner/)
+  await loginWithPhoneOtp(page, '09124445566', /\/owner/)
   await page.goto('/owner/finance')
   await expect(page.locator('body')).toBeVisible()
 })

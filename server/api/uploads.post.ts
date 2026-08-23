@@ -17,5 +17,5 @@ async function handleUpload(event: H3Event, folder: string) {
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  return handleUpload(event, `uploads/${user.role.toLowerCase()}/${user.id}`)
+  return handleUpload(event, `${user.role.toLowerCase()}/${user.id}`)
 })

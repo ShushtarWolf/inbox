@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   if (!file?.data || !contentType || !isAllowedImageUploadType(contentType)) {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })
   }
-  const url = await uploadImage(Buffer.from(file.data), { folder: 'uploads/guest', contentType })
+  const url = await uploadImage(Buffer.from(file.data), { folder: 'guest', contentType })
   return { url }
 })
