@@ -535,7 +535,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             <label class="block text-sm">
               <span class="mb-1 block font-bold">{{ t('common.mobile') }}</span>
               <input v-model="form.phone" dir="ltr" class="neo-input tabular-nums">
-              <AppEnglishDigitsHint />
             </label>
             <label class="block text-sm">
               <span class="mb-1 block font-bold">{{ t('common.whatsapp') }}</span>
@@ -554,7 +553,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
               :aria-invalid="Boolean(shebaError)"
               aria-describedby="owner-settings-sheba-hint"
             >
-            <AppEnglishDigitsHint />
             <span id="owner-settings-sheba-hint" class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
             <span v-if="shebaError" class="mt-1 block text-xs font-bold text-red-600" role="alert">{{ shebaError }}</span>
             <span class="mt-1 block text-xs font-bold text-red-600" role="note">{{ t('owner.settingsPage.shebaOwnerOnlyNotice') }}</span>

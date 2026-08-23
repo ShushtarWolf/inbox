@@ -181,10 +181,10 @@ async function finish() {
         </AppFormField>
         <div class="grid grid-cols-2 gap-3">
           <AppFormField :label="t('owner.settingsPage.openHour')" numeric>
-            <input v-model.number="profile.openHour" type="number" min="0" max="23" class="neo-input" dir="ltr" />
+            <AppNumericInput v-model="profile.openHour" :min="0" :max="23" />
           </AppFormField>
           <AppFormField :label="t('owner.settingsPage.closeHour')" numeric>
-            <input v-model.number="profile.closeHour" type="number" min="1" max="24" class="neo-input" dir="ltr" />
+            <AppNumericInput v-model="profile.closeHour" :min="1" :max="24" />
           </AppFormField>
         </div>
         <button type="button" class="canva-gate-btn-primary w-full" :disabled="saving || !profileValid" @click="saveProfile">
@@ -208,10 +208,10 @@ async function finish() {
           <input v-model="newCourt.nameEn" dir="ltr" class="neo-input" />
         </AppFormField>
         <AppFormField :label="t('owner.settingsPage.courtPrice')" numeric>
-          <input v-model.number="newCourt.price" type="number" min="1" step="1000" class="neo-input" dir="ltr" />
+          <AppNumericInput v-model="newCourt.price" :min="1" />
         </AppFormField>
         <AppFormField :label="t('owner.settingsPage.courtCount')" :hint="t('owner.settingsPage.courtCountHint')" numeric>
-          <input v-model.number="newCourt.count" type="number" min="1" max="30" class="neo-input" dir="ltr" />
+          <AppNumericInput v-model="newCourt.count" :min="1" :max="30" />
         </AppFormField>
         <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">
           {{ t('owner.addCourt') }}

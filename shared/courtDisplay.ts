@@ -1,13 +1,8 @@
 /** Stable court chip / confirm labels from name — never Prisma array order. */
 
-const PERSIAN_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
+import { toAsciiDigits } from './digits.ts'
 
-export function toAsciiDigits(value: string): string {
-  return String(value || '').replace(/[۰-۹]/g, (digit) => {
-    const idx = PERSIAN_DIGITS.indexOf(digit)
-    return idx >= 0 ? String(idx) : digit
-  })
-}
+export { toAsciiDigits }
 
 /**
  * Extract court ordinal from names like «زمین 1», «زمین ۳ غیر استاندارد», «Court 2».

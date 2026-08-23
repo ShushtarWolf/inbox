@@ -88,7 +88,7 @@ watch(() => props.court, (court) => {
 function submit() {
   if (props.bulkEdit) {
     emit('save', {
-      price: form.price,
+      price: form.price ?? 0,
       sportSlug: form.sportSlug,
       openHour: form.useClubHours ? null : form.openHour,
       closeHour: form.useClubHours ? null : form.closeHour,
@@ -100,7 +100,7 @@ function submit() {
   let count = 1
   if (!props.court) {
     try {
-      count = parseCourtBulkCount(form.count)
+      count = parseCourtBulkCount(form.count ?? COURT_BULK_MIN)
     } catch {
       count = COURT_BULK_MIN
     }
@@ -109,7 +109,7 @@ function submit() {
   emit('save', {
     nameFa: form.nameFa,
     nameEn: form.nameEn,
-    price: form.price,
+    price: form.price ?? 0,
     sportSlug: form.sportSlug,
     image: form.images[0] || null,
     imagesJson,
@@ -139,8 +139,7 @@ function submit() {
     <div class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('common.currency') }}</span>
-        <input v-model.number="form.price" type="number" min="0" dir="ltr" class="neo-input tabular-nums">
-        <AppEnglishDigitsHint />
+        <AppNumericInput v-model="form.price" :min="0" />
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtSport') }}</span>
@@ -153,15 +152,11 @@ function submit() {
 
     <label v-if="!court" class="block text-sm">
       <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtCount') }}</span>
-      <input
-        v-model.number="form.count"
-        type="number"
+      <AppNumericInput
+        v-model="form.count"
         :min="COURT_BULK_MIN"
         :max="COURT_BULK_MAX"
-        dir="ltr"
-        class="neo-input tabular-nums"
-      >
-      <AppEnglishDigitsHint />
+      />
       <span class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.courtCountHint') }}</span>
     </label>
 
@@ -172,11 +167,11 @@ function submit() {
     <div v-if="!form.useClubHours" class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.openHour') }}</span>
-        <input v-model.number="form.openHour" type="number" min="0" max="23" dir="ltr" class="neo-input tabular-nums">
+        <AppNumericInput v-model="form.openHour" :min="0" :max="23" />
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.closeHour') }}</span>
-        <input v-model.number="form.closeHour" type="number" min="1" max="24" dir="ltr" class="neo-input tabular-nums">
+        <AppNumericInput v-model="form.closeHour" :min="1" :max="24" />
       </label>
     </div>
 

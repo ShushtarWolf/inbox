@@ -1,13 +1,4 @@
-const PERSIAN_ARABIC_DIGIT: Record<string, string> = {
-  '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
-  '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
-  '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
-  '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-}
-
-function toAsciiDigits(input: string) {
-  return input.replace(/[۰-۹٠-٩]/g, (ch) => PERSIAN_ARABIC_DIGIT[ch] || ch)
-}
+import { toAsciiDigits } from './digits.ts'
 
 /** Normalize Iranian mobile numbers to `09xxxxxxxxx`. */
 export function normalizeIranPhone(input: string | null | undefined): string | null {

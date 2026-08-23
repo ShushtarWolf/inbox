@@ -134,15 +134,11 @@ function endOptionsFor(startTime: string) {
           </label>
           <label class="block text-xs">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.bandPrice') }}</span>
-            <input
-              :value="band.price"
-              type="number"
-              min="0"
-              dir="ltr"
-              class="neo-input tabular-nums"
-              @input="updateBand(index, { price: Number(($event.target as HTMLInputElement).value) })"
-            >
-            <AppEnglishDigitsHint />
+            <AppNumericInput
+              :model-value="band.price"
+              :min="0"
+              @update:model-value="updateBand(index, { price: $event ?? 0 })"
+            />
           </label>
         </div>
         <button type="button" class="mt-2 text-xs font-bold text-red-600" @click="removeTimeBand(index)">
@@ -162,11 +158,11 @@ function endOptionsFor(startTime: string) {
       <div v-if="config.lastSecondDiscount?.enabled" class="grid grid-cols-2 gap-2">
         <label class="block text-xs">
           <span class="mb-1 block font-bold">{{ t('owner.settingsPage.hoursBeforeStart') }}</span>
-          <input v-model.number="config.lastSecondDiscount.hoursBefore" type="number" min="0" max="48" dir="ltr" class="neo-input tabular-nums">
+          <AppNumericInput v-model="config.lastSecondDiscount.hoursBefore" :min="0" :max="48" />
         </label>
         <label class="block text-xs">
           <span class="mb-1 block font-bold">{{ t('owner.settingsPage.discountPercent') }}</span>
-          <input v-model.number="config.lastSecondDiscount.percent" type="number" min="0" max="100" dir="ltr" class="neo-input tabular-nums">
+          <AppNumericInput v-model="config.lastSecondDiscount.percent" :min="0" :max="100" />
         </label>
       </div>
     </div>

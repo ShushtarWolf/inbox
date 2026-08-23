@@ -26,13 +26,13 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
 }>('/api/wallet')
 
 const selectedPreset = ref<number | null>(null)
-const customAmount = ref('')
+const customAmount = ref<number | null>(null)
 const toppingUp = ref(false)
 const flash = ref('')
 const flashTone = ref<'success' | 'error'>('success')
 
 const shebaInput = ref('')
-const withdrawAmount = ref('')
+const withdrawAmount = ref<number | null>(null)
 const payoutBusy = ref(false)
 
 const presets = WALLET_TOPUP_PRESETS_IRR
@@ -43,9 +43,8 @@ watch(data, (value) => {
 
 const topUpAmount = computed(() => {
   if (selectedPreset.value != null) return selectedPreset.value
-  const digits = customAmount.value.replace(/[^\d]/g, '')
-  const n = Number(digits)
-  return Number.isFinite(n) ? n : 0
+  const n = customAmount.value
+  return Number.isFinite(n) && n != null ? n : 0
 })
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
@@ -57,12 +56,12 @@ const canTopUp = computed(() => {
 
 function selectPreset(amount: number) {
   selectedPreset.value = amount
-  customAmount.value = ''
+  customAmount.value = null
 }
 
-function onCustomInput() {
+watch(customAmount, () => {
   selectedPreset.value = null
-}
+})
 
 function txLabel(tx: { type?: string; amount: number }) {
   if (tx.type === 'REFUND_CREDIT') return t('athlete.walletTypeRefund')
@@ -144,8 +143,8 @@ async function requestWithdraw() {
     flash.value = t('athlete.withdrawNeedSheba')
     return
   }
-  const amount = Number(String(withdrawAmount.value).replace(/[^\d]/g, ''))
-  if (!Number.isFinite(amount) || amount <= 0) {
+  const amount = withdrawAmount.value
+  if (!Number.isFinite(amount) || amount == null || amount <= 0) {
     flashTone.value = 'error'
     flash.value = t('athlete.withdrawInvalidAmount')
     return
@@ -163,7 +162,7 @@ async function requestWithdraw() {
     })
     flashTone.value = 'success'
     flash.value = t('athlete.withdrawSuccess')
-    withdrawAmount.value = ''
+    withdrawAmount.value = null
     await refresh()
   } catch (err: unknown) {
     flashTone.value = 'error'
@@ -242,14 +241,10 @@ watch(
             </button>
           </div>
           <AppFormField field-id="wallet-custom-amount" :label="t('athlete.walletTopUpCustom')" numeric>
-            <input
+            <AppNumericInput
               id="wallet-custom-amount"
               v-model="customAmount"
-              dir="ltr"
-              inputmode="numeric"
-              class="neo-input bg-white/95 tabular-nums"
               :placeholder="String(WALLET_TOPUP_MIN_IRR)"
-              @input="onCustomInput"
             />
           </AppFormField>
           <button
@@ -293,12 +288,9 @@ watch(
         </button>
         <p v-if="!data?.sheba" class="text-xs text-brand-primary">{{ t('athlete.shebaRequired') }}</p>
         <AppFormField field-id="wallet-withdraw-amount" :label="t('athlete.withdrawAmount')" numeric>
-          <input
+          <AppNumericInput
             id="wallet-withdraw-amount"
             v-model="withdrawAmount"
-            dir="ltr"
-            inputmode="numeric"
-            class="neo-input bg-white/95 tabular-nums"
             :disabled="!data?.sheba || withdrawableBalance <= 0"
             :placeholder="t('athlete.withdrawAmountPlaceholder')"
           />

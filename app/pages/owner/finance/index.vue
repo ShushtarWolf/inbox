@@ -80,7 +80,7 @@ onMounted(() => { fetchAuth() })
 const period = ref<'day' | 'week' | 'month'>('day')
 const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
-const withdrawAmount = ref('')
+const withdrawAmount = ref<number | null>(null)
 const payoutBusy = ref(false)
 const payoutError = ref('')
 const payoutSuccess = ref('')
@@ -145,10 +145,10 @@ async function submitWithdraw() {
     }
     await $fetch('/api/owner/withdraw', {
       method: 'POST',
-      body: { amount: Number(withdrawAmount.value) },
+      body: { amount: withdrawAmount.value ?? 0 },
     })
     payoutSuccess.value = t('owner.financePage.withdrawSuccess')
-    withdrawAmount.value = ''
+    withdrawAmount.value = null
     await refreshSettlement()
   } catch (error: unknown) {
     payoutError.value = fetchErrorMessage(error, t('common.error'))
@@ -508,7 +508,6 @@ function closeTx() {
             :placeholder="t('owner.financePage.shebaPlaceholder')"
             autocomplete="off"
           >
-          <AppEnglishDigitsHint />
         </label>
         <button
           type="button"
@@ -521,15 +520,11 @@ function closeTx() {
 
         <label class="block text-sm text-start">
           <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.withdrawAmount') }}</span>
-          <input
+          <AppNumericInput
             v-model="withdrawAmount"
-            type="number"
-            min="1"
-            dir="ltr"
-            class="neo-input tabular-nums"
+            :min="1"
             :disabled="!settlement?.sheba"
-          >
-          <AppEnglishDigitsHint />
+          />
         </label>
         <p v-if="!settlement?.sheba" class="text-xs text-brand-primary text-start">{{ t('owner.financePage.shebaRequired') }}</p>
         <button

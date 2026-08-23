@@ -4,7 +4,7 @@ const props = defineProps<{
   hint?: string
   required?: boolean
   fieldId?: string
-  /** Show the shared “use English digits” notice under this field. */
+  /** Marks a numeric field (use with AppNumericInput). */
   numeric?: boolean
 }>()
 
@@ -25,6 +25,5 @@ const labelId = computed(() => (resolvedId.value ? `${resolvedId.value}-label` :
     </label>
     <slot />
     <span v-if="hint" class="mt-1 block text-xs text-brand-gray-600">{{ hint }}</span>
-    <AppEnglishDigitsHint v-if="numeric" />
   </div>
 </template>

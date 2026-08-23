@@ -211,24 +211,12 @@ async function saveItem() {
           <input v-model="modalLabel" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'" />
         </AppFormField>
         <AppFormField :label="t('owner.discountsPage.percent')" numeric>
-          <input
-            v-model.number="modalPercent"
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            dir="ltr"
-            class="neo-input tabular-nums"
-          />
+          <AppNumericInput v-model="modalPercent" :min="1" :max="100" />
         </AppFormField>
         <AppFormField :label="t('owner.discountsPage.maxRedemptions')" numeric>
-          <input
-            v-model.number="modalMaxRedemptions"
-            type="number"
-            min="1"
-            step="1"
-            dir="ltr"
-            class="neo-input tabular-nums"
+          <AppNumericInput
+            v-model="modalMaxRedemptions"
+            :min="1"
             :placeholder="t('owner.discountsPage.maxRedemptionsPlaceholder')"
           />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.discountsPage.maxRedemptionsHint') }}</p>

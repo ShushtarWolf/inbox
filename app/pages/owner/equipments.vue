@@ -196,11 +196,11 @@ async function confirmDelete() {
           <input v-model="modalName" class="neo-input" :dir="locale === 'fa' ? 'auto' : 'ltr'" />
         </AppFormField>
         <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.price')" numeric>
-          <input v-model.number="modalPrice" type="number" min="0" step="1000" dir="ltr" class="neo-input tabular-nums" />
+          <AppNumericInput v-model="modalPrice" :min="0" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</p>
         </AppFormField>
         <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.quantity')" numeric>
-          <input v-model.number="modalQuantity" type="number" min="1" max="999" step="1" dir="ltr" class="neo-input tabular-nums" />
+          <AppNumericInput v-model="modalQuantity" :min="1" :max="999" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.quantityHint') }}</p>
         </AppFormField>
         <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
