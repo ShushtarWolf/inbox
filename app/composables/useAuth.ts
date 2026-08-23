@@ -62,7 +62,12 @@ export function useAuth() {
     return (displayName.value[0] || '?').toUpperCase()
   })
 
-  const avatarUrl = computed(() => user.value?.avatarUrl || null)
+  const avatarUrl = computed(() => {
+    const raw = user.value?.avatarUrl || null
+    if (!raw) return null
+    // Collapse legacy `/uploads/uploads/…` paths written before folder prefix fix
+    return raw.replace(/^\/uploads\/uploads\//, '/uploads/')
+  })
 
   const profilePath = computed(() => {
     if (!user.value) return localePath('/login')

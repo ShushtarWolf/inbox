@@ -8,9 +8,14 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    /* Prevent iOS Safari horizontal rubber-band revealing clipped Canva chrome */
+    overflow-x: clip;
+  }
   body {
     @apply bg-brand-cream text-brand-navy font-sans antialiased;
     min-height: 100dvh;
+    overflow-x: clip;
   }
   [dir='rtl'] body {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
@@ -128,7 +133,8 @@
   .tail-input,
   .tail-select,
   .tail-textarea {
-    @apply w-full rounded-lg border border-brand-gray-300 bg-white px-4 py-2.5 text-sm font-normal text-brand-navy outline-none transition-all duration-200;
+    /* text-base (16px): iOS Safari auto-zooms focused fields under 16px and often stays zoomed */
+    @apply w-full rounded-lg border border-brand-gray-300 bg-white px-4 py-2.5 text-base font-normal text-brand-navy outline-none transition-all duration-200;
   }
   .neo-input:focus,
   .neo-select:focus,
@@ -514,7 +520,8 @@
     background: #d4d0ca;
   }
   .canva-search-placeholder {
-    @apply w-full truncate border-0 bg-transparent p-0 text-center text-xs font-medium outline-none sm:text-sm;
+    /* 16px on phone so <select> focus does not trigger iOS page zoom */
+    @apply w-full truncate border-0 bg-transparent p-0 text-center text-base font-medium outline-none sm:text-sm;
     /* brand-gray-500 — muted on white, ≥4.5:1 for PSI contrast */
     color: #6b6b67;
     appearance: none;
@@ -714,8 +721,9 @@
     max-width: var(--sz-phone-width);
   }
   .canva-dash-hero {
-    @apply relative -mx-4 overflow-hidden bg-brand-primary px-4 pb-9 pt-7 text-white sm:-mx-0;
+    @apply relative -mx-4 max-w-[100vw] overflow-hidden bg-brand-primary px-4 pb-9 pt-7 text-white sm:-mx-0;
     border-radius: 0 0 1.5rem 1.5rem;
+    box-sizing: border-box;
     background-image:
       radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.16), transparent 42%),
       radial-gradient(ellipse at bottom right, rgba(0, 0, 0, 0.12), transparent 48%),

@@ -26,14 +26,19 @@ watch(heroPhoto, (url) => {
   showHeroPhoto.value = Boolean(url)
 })
 
+function normalizeAvatar(url: string) {
+  return url.replace(/^\/uploads\/uploads\//, '/uploads/')
+}
+
 onMounted(async () => {
   await fetch()
   name.value = user.value?.name || ''
   phone.value = user.value?.phone || ''
+  const stored = normalizeAvatar(user.value?.avatarUrl || '')
   if (!avatarUrl.value) {
-    avatarUrl.value = user.value?.avatarUrl || ''
-  } else if (avatarUrl.value !== (user.value?.avatarUrl || '')) {
-    await persistAvatar(avatarUrl.value)
+    avatarUrl.value = stored
+  } else if (normalizeAvatar(avatarUrl.value) !== stored) {
+    await persistAvatar(normalizeAvatar(avatarUrl.value))
   }
 })
 
@@ -41,23 +46,44 @@ async function persistAvatar(url: string) {
   savingAvatar.value = true
   saveError.value = ''
   saved.value = false
+  const normalized = url ? normalizeAvatar(url) : ''
   try {
     await $fetch('/api/profile', {
       method: 'PATCH',
-      body: { avatarUrl: url || null },
+      body: { avatarUrl: normalized || null },
     })
     await fetch()
+    avatarUrl.value = normalizeAvatar(user.value?.avatarUrl || normalized)
+    // Only show success when the browser can actually paint the image
+    if (normalized && import.meta.client) {
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('load'))
+        img.src = normalized
+      })
+    }
+    showHeroPhoto.value = Boolean(avatarUrl.value)
     saved.value = true
   } catch (err) {
-    saveError.value = fetchErrorMessage(err, t('common.error'))
+    saved.value = false
+    showHeroPhoto.value = false
+    saveError.value = err instanceof Error && err.message === 'load'
+      ? t('upload.errorLoad')
+      : fetchErrorMessage(err, t('common.error'))
   } finally {
     savingAvatar.value = false
   }
 }
 
 async function onAvatarChange(url: string) {
-  avatarUrl.value = url
-  await persistAvatar(url)
+  if (!url) {
+    avatarUrl.value = ''
+    await persistAvatar('')
+    return
+  }
+  avatarUrl.value = normalizeAvatar(url)
+  await persistAvatar(avatarUrl.value)
 }
 
 async function save() {

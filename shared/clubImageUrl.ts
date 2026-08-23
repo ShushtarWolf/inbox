@@ -1,10 +1,16 @@
+/** Collapse legacy double-prefix paths (`/uploads/uploads/…` → `/uploads/…`). */
+export function normalizeUploadUrl(value: string) {
+  return value.replace(/^\/uploads\/uploads\//, '/uploads/')
+}
+
 /** Club cover/gallery paths the owner settings PATCH may persist. */
 export function isAllowedClubImageUrl(value: string) {
-  return /^https?:\/\/.+/i.test(value)
-    || value.startsWith('/uploads/')
-    || value.startsWith('/media/')
-    || value.startsWith('/demo/')
-    || value.startsWith('/placeholders/')
+  const normalized = normalizeUploadUrl(value)
+  return /^https?:\/\/.+/i.test(normalized)
+    || normalized.startsWith('/uploads/')
+    || normalized.startsWith('/media/')
+    || normalized.startsWith('/demo/')
+    || normalized.startsWith('/placeholders/')
 }
 
 export type ClubImageParseResult =
@@ -17,8 +23,9 @@ export type ClubImageParseResult =
  */
 export function parseClubImageInput(raw: string | null | undefined): ClubImageParseResult {
   if (raw == null) return { ok: true, value: null }
-  const value = String(raw).trim()
-  if (!value) return { ok: true, value: null }
+  const trimmed = String(raw).trim()
+  if (!trimmed) return { ok: true, value: null }
+  const value = normalizeUploadUrl(trimmed)
   if (!isAllowedClubImageUrl(value)) return { ok: false }
   return { ok: true, value }
 }

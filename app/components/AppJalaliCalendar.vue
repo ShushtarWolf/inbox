@@ -204,7 +204,11 @@ function cellClass(cell: { iso: string | null }) {
 
 <style scoped>
 .jalali-calendar {
-  width: min(100vw - 2rem, 18rem);
+  /* Relative to modal/container — 100vw ignores sheet padding and looks zoomed on phone */
+  width: 100%;
+  max-width: 18rem;
+  margin-inline: auto;
+  box-sizing: border-box;
 }
 .jalali-calendar-default {
   border-radius: 0.75rem;

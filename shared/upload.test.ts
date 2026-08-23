@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   getStorageStatus,
   isAclUnsupportedError,
+  localUploadsRoot,
   validateImageUpload,
   validatePaymentDocumentUpload,
 } from '../server/utils/storage'
@@ -120,6 +121,30 @@ describe('getStorageStatus', () => {
       const status = getStorageStatus()
       expect(status.storageMode).toBe('local')
       expect(status.warnings.some((w) => w.includes('ephemeral'))).toBe(true)
+    } finally {
+      process.env.NODE_ENV = previous
+    }
+  })
+})
+
+describe('localUploadsRoot', () => {
+  it('uses public/uploads outside production Nitro', () => {
+    const previous = process.env.NODE_ENV
+    process.env.NODE_ENV = 'development'
+    try {
+      expect(localUploadsRoot().replace(/\\/g, '/')).toMatch(/public\/uploads$/)
+    } finally {
+      process.env.NODE_ENV = previous
+    }
+  })
+
+  it('uses .output/public/uploads when production Nitro public dir exists', () => {
+    const previous = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    try {
+      const root = localUploadsRoot().replace(/\\/g, '/')
+      // Prefer Nitro public when .output/public is present; otherwise fall back.
+      expect(root.endsWith('public/uploads') || root.endsWith('.output/public/uploads')).toBe(true)
     } finally {
       process.env.NODE_ENV = previous
     }

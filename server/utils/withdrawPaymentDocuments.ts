@@ -60,7 +60,8 @@ export async function attachWithdrawPaymentDocument(options: {
   }
 
   const url = await uploadPaymentDocument(options.buffer, {
-    folder: `uploads/withdrawals/${options.kind}/${options.requestId}`,
+    // Do not prefix `uploads/` — uploadObject already returns `/uploads/{folder}/…`
+    folder: `withdrawals/${options.kind}/${options.requestId}`,
     contentType: options.contentType,
   })
 

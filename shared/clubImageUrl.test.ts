@@ -41,4 +41,11 @@ describe('parseClubImageInput', () => {
     expect(isAllowedClubImageUrl('/media/clubs/iust/iust-court-1-1.webp')).toBe(true)
     expect(parseClubImageInput('/demo/clubs/padel-zone-tehran.jpg').ok).toBe(true)
   })
+
+  it('collapses legacy double /uploads/uploads/ prefixes', () => {
+    expect(parseClubImageInput('/uploads/uploads/athlete/u1/a.jpg')).toEqual({
+      ok: true,
+      value: '/uploads/athlete/u1/a.jpg',
+    })
+  })
 })

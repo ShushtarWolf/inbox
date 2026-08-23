@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
@@ -192,9 +193,24 @@ async function putObjectWithAclFallback(
   }
 }
 
+/**
+ * Nitro production (`node .output/server/index.mjs`) serves static files from
+ * `.output/public`, not source `public/`. Writing only to `public/uploads` makes
+ * avatar URLs 404 on Liara/CI while the DB still saves — "saved" with no photo.
+ */
+export function localUploadsRoot() {
+  const outputPublic = join(process.cwd(), '.output', 'public')
+  if (process.env.NODE_ENV === 'production' && existsSync(outputPublic)) {
+    return join(outputPublic, 'uploads')
+  }
+  return join(process.cwd(), 'public', 'uploads')
+}
+
 async function uploadObject(buffer: Buffer, options: { folder: string; contentType: string }) {
+  // storage.ts already prefixes `uploads/` in the returned URL — folder must not.
+  const folder = options.folder.replace(/^\/+/, '').replace(/^uploads\//, '')
   const ext = EXT_BY_TYPE[options.contentType] || paymentDocumentExtension(options.contentType)
-  const key = `${options.folder}/${randomUUID()}.${ext}`
+  const key = `${folder}/${randomUUID()}.${ext}`
   const s3 = createS3Client()
 
   if (s3) {
@@ -207,11 +223,11 @@ async function uploadObject(buffer: Buffer, options: { folder: string; contentTy
     return `${s3.publicUrl}/${key}`
   }
 
-  const localDir = join(process.cwd(), 'public', 'uploads', options.folder)
+  const localDir = join(localUploadsRoot(), folder)
   await mkdir(localDir, { recursive: true })
   const filename = `${randomUUID()}.${ext}`
   await writeFile(join(localDir, filename), buffer)
-  return `/uploads/${options.folder}/${filename}`
+  return `/uploads/${folder}/${filename}`
 }
 
 export async function uploadImage(buffer: Buffer, options: { folder: string; contentType: string }) {

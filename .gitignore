@@ -47,6 +47,11 @@ canva-reference/*.zip
 # Shell / editor temp junk
 sh-thd-*
 
+# Runtime local uploads + Playwright artifacts (never commit)
+public/uploads/
+test-results/
+playwright-report/
+
 # Watermarked Canva dumps (keep local; do not ship binaries)
 canva-reference/inbox-website-2026-08-12/raw/
 canva-reference/inbox-website-2026-08-12/diff-review/

@@ -71,6 +71,32 @@ export function useImageUpload(options?: { guest?: boolean }) {
     showFailure.value = true
   }
 
+  /** Ensure the returned URL actually loads — catch Nitro/static path mismatches early. */
+  function assertImageLoads(url: string) {
+    if (!import.meta.client) return Promise.resolve()
+    return new Promise<void>((resolve, reject) => {
+      const img = new Image()
+      const timer = window.setTimeout(() => {
+        cleanup()
+        reject(new Error('timeout'))
+      }, 12_000)
+      function cleanup() {
+        window.clearTimeout(timer)
+        img.onload = null
+        img.onerror = null
+      }
+      img.onload = () => {
+        cleanup()
+        resolve()
+      }
+      img.onerror = () => {
+        cleanup()
+        reject(new Error('load'))
+      }
+      img.src = url
+    })
+  }
+
   async function upload(file: File) {
     uploading.value = true
     error.value = ''
@@ -91,7 +117,18 @@ export function useImageUpload(options?: { guest?: boolean }) {
       const form = new FormData()
       form.append('file', prepared)
       const endpoint = options?.guest ? '/api/uploads/guest' : '/api/uploads'
-      return await $fetch<{ url: string }>(endpoint, { method: 'POST', body: form })
+      const result = await $fetch<{ url: string }>(endpoint, { method: 'POST', body: form })
+      if (!result?.url) {
+        fail(t('upload.failed'))
+        return null
+      }
+      try {
+        await assertImageLoads(result.url)
+      } catch {
+        fail(t('upload.errorLoad'))
+        return null
+      }
+      return result
     } catch (err) {
       fail(mapServerError(err))
       return null

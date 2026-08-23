@@ -50,7 +50,7 @@ const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 /** Phone artboard only ≤430px — never lock desktop/laptop to 375 / max-w-lg. */
 const mainClass = computed(() => {
   if (props.phoneShell) {
-    return 'mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] px-4 pb-5 pt-0 min-[431px]:mx-0 min-[431px]:max-w-none min-[431px]:px-8 min-[431px]:py-6'
+    return 'mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] overflow-x-clip px-4 pb-5 pt-0 min-[431px]:mx-0 min-[431px]:max-w-none min-[431px]:overflow-visible min-[431px]:px-8 min-[431px]:py-6'
   }
   return props.wide
     ? 'w-full px-4 py-5 min-[431px]:px-8 min-[431px]:py-8'
