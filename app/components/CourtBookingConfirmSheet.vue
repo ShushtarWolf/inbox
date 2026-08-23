@@ -23,6 +23,7 @@ export type ConfirmEquipment = {
   nameEn: string
   price: number
   quantity?: number
+  category?: 'RENTAL' | 'SELL' | 'SERVICE' | 'CLUB'
 }
 
 const props = defineProps<{
@@ -36,7 +37,7 @@ const props = defineProps<{
   courtId?: string
   courtLabel?: string
   slots: ConfirmSlot[]
-  rentalEquipment?: ConfirmEquipment | null
+  bookableEquipment?: ConfirmEquipment[]
 }>()
 
 const emit = defineEmits<{
@@ -68,8 +69,7 @@ const {
   walletCoversAmount,
 } = useCourtBooking()
 
-const wantRacket = ref(false)
-const racketQty = ref(0)
+const equipmentQuantities = ref<Record<string, number>>({})
 const discountInput = ref('')
 const discountApplying = ref(false)
 const discountError = ref('')
@@ -79,19 +79,38 @@ const appliedDiscount = ref<{
   discountAmount: number
 } | null>(null)
 
-const racketItem = computed(() => props.rentalEquipment || null)
-const racketStock = computed(() => Math.max(0, Number(racketItem.value?.quantity || 1)))
+const visibleEquipment = computed(() =>
+  (props.bookableEquipment || []).filter((item) => equipmentStock(item) > 0),
+)
 
-watch(racketQty, (qty) => {
-  wantRacket.value = qty > 0
-})
-
-function bumpRacket(delta: number) {
-  const max = racketStock.value
-  if (max < 1) return
-  const next = Math.min(max, Math.max(0, racketQty.value + delta))
-  racketQty.value = next
+function equipmentStock(item: ConfirmEquipment) {
+  return Math.max(0, Number(item.quantity ?? 1))
 }
+
+function equipmentQty(id: string) {
+  return Math.max(0, equipmentQuantities.value[id] || 0)
+}
+
+function bumpEquipment(id: string, delta: number) {
+  const item = visibleEquipment.value.find((row) => row.id === id)
+  if (!item) return
+  const max = equipmentStock(item)
+  if (max < 1) return
+  const next = Math.min(max, Math.max(0, equipmentQty(id) + delta))
+  if (next <= 0) {
+    const quantities = { ...equipmentQuantities.value }
+    delete quantities[id]
+    equipmentQuantities.value = quantities
+    return
+  }
+  equipmentQuantities.value = { ...equipmentQuantities.value, [id]: next }
+}
+
+const selectedEquipmentIds = computed(() =>
+  Object.entries(equipmentQuantities.value)
+    .filter(([, qty]) => qty > 0)
+    .map(([id]) => id),
+)
 
 const dateHeading = computed(() => {
   if (!props.date) return ''
@@ -117,12 +136,13 @@ const costLines = computed(() => {
       amount,
     })
   }
-  if (wantRacket.value && racketItem.value) {
-    const name = localizedField(racketItem.value, 'nameFa', 'nameEn')
-    const qty = racketQty.value || 1
+  for (const item of visibleEquipment.value) {
+    const qty = equipmentQty(item.id)
+    if (qty < 1) continue
+    const name = localizedField(item, 'nameFa', 'nameEn')
     lines.push({
       label: t('booking.confirmLineEquipment', { name, qty: formatNumber(qty) }),
-      amount: Number(racketItem.value.price || 0) * qty,
+      amount: Number(item.price || 0) * qty,
     })
   }
   return lines
@@ -161,15 +181,14 @@ const metaLine = computed(() => {
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetBookingState()
-    wantRacket.value = false
-    racketQty.value = 0
+    equipmentQuantities.value = {}
     discountInput.value = ''
     discountError.value = ''
     appliedDiscount.value = null
   }
 })
 
-watch([wantRacket, () => props.slots], () => {
+watch([equipmentQuantities, () => props.slots], () => {
   // Recompute applied discount amount when line items change; keep code if still applied.
   if (!appliedDiscount.value) return
   const next = applyDiscountPercent(subtotalAmount.value, appliedDiscount.value.percent)
@@ -265,16 +284,16 @@ async function submit(preferWallet = false) {
     return
   }
 
-  const equipmentIds = wantRacket.value && racketItem.value && racketQty.value > 0
-    ? [racketItem.value.id]
-    : []
-  const equipmentQuantities = equipmentIds.length && racketItem.value
-    ? { [racketItem.value.id]: racketQty.value }
+  const equipmentIds = selectedEquipmentIds.value
+  const quantitiesPayload = equipmentIds.length
+    ? Object.fromEntries(
+      equipmentIds.map((id) => [id, equipmentQty(id)]),
+    )
     : undefined
   const result = await createCourtBookings({
     slotIds: props.slots.map((s) => s.id),
     equipmentIds,
-    equipmentQuantities,
+    equipmentQuantities: quantitiesPayload,
     discountCode: appliedDiscount.value?.code,
     date: props.date,
     courtId: props.courtId,
@@ -362,30 +381,74 @@ async function submit(preferWallet = false) {
             </p>
           </div>
 
-          <div v-if="racketItem && racketStock > 0" class="canva-confirm-book-equip">
-            <div class="flex items-center justify-between gap-3 text-start">
-              <span class="min-w-0 text-sm font-bold text-brand-navy">{{ t('booking.wantRacket') }}</span>
-              <div class="flex shrink-0 items-center gap-2">
-                <div class="canva-qty-step" role="group" :aria-label="t('booking.wantRacket')">
-                  <button
-                    type="button"
-                    class="canva-qty-step-btn"
-                    :disabled="racketQty <= 0 || payBusy"
-                    aria-label="−"
-                    @click="bumpRacket(-1)"
-                  >−</button>
-                  <span class="min-w-[1.25rem] text-center tabular-nums">{{ formatNumber(racketQty) }}</span>
-                  <button
-                    type="button"
-                    class="canva-qty-step-btn"
-                    :disabled="racketQty >= racketStock || payBusy"
-                    aria-label="+"
-                    @click="bumpRacket(1)"
-                  >+</button>
+          <div v-if="visibleEquipment.length" class="space-y-2">
+            <p v-if="visibleEquipment.some((item) => item.category === 'RENTAL')" class="text-start text-xs font-bold text-brand-gray-600">
+              {{ t('booking.equipmentRental') }}
+            </p>
+            <div
+              v-for="item in visibleEquipment.filter((row) => row.category === 'RENTAL')"
+              :key="item.id"
+              class="canva-confirm-book-equip"
+            >
+              <div class="flex items-center justify-between gap-3 text-start">
+                <span class="min-w-0 text-sm font-bold text-brand-navy">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <div class="canva-qty-step" role="group" :aria-label="localizedField(item, 'nameFa', 'nameEn')">
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) <= 0 || payBusy"
+                      aria-label="−"
+                      @click="bumpEquipment(item.id, -1)"
+                    >−</button>
+                    <span class="min-w-[1.25rem] text-center tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy"
+                      aria-label="+"
+                      @click="bumpEquipment(item.id, 1)"
+                    >+</button>
+                  </div>
+                  <span class="font-bold tabular-nums text-brand-navy" dir="ltr">
+                    {{ formatCurrency(item.price) }}
+                  </span>
                 </div>
-                <span class="font-bold tabular-nums text-brand-navy" dir="ltr">
-                  {{ formatCurrency(racketItem.price) }}
-                </span>
+              </div>
+            </div>
+
+            <p v-if="visibleEquipment.some((item) => item.category === 'SELL')" class="text-start text-xs font-bold text-brand-gray-600">
+              {{ t('booking.equipmentSell') }}
+            </p>
+            <div
+              v-for="item in visibleEquipment.filter((row) => row.category === 'SELL')"
+              :key="item.id"
+              class="canva-confirm-book-equip"
+            >
+              <div class="flex items-center justify-between gap-3 text-start">
+                <span class="min-w-0 text-sm font-bold text-brand-navy">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <div class="canva-qty-step" role="group" :aria-label="localizedField(item, 'nameFa', 'nameEn')">
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) <= 0 || payBusy"
+                      aria-label="−"
+                      @click="bumpEquipment(item.id, -1)"
+                    >−</button>
+                    <span class="min-w-[1.25rem] text-center tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                    <button
+                      type="button"
+                      class="canva-qty-step-btn"
+                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy"
+                      aria-label="+"
+                      @click="bumpEquipment(item.id, 1)"
+                    >+</button>
+                  </div>
+                  <span class="font-bold tabular-nums text-brand-navy" dir="ltr">
+                    {{ formatCurrency(item.price) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

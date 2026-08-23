@@ -44,7 +44,7 @@ type ClubDetail = {
   district?: string
   courts?: ClubCourt[]
   waitlistEnabled?: boolean
-  equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number }>
+  equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number; category?: string }>
   pricing?: Array<{ labelFa?: string; labelEn?: string; from?: number; to?: number; price?: number }>
   priceFrom?: number | null
   priceTo?: number | null
@@ -314,11 +314,12 @@ const sportLabel = computed(() => {
   return t('clubs.sportCourtGeneric')
 })
 
-const rentalEquipment = computed(() => {
+const bookableEquipment = computed(() => {
   const list = club.value?.equipment || []
-  if (!list.length) return null
-  const racket = list.find((e) => /راکت|racket/i.test(`${e.nameFa} ${e.nameEn}`))
-  return racket || list[0] || null
+  return list.filter((item) => {
+    if (item.category !== 'RENTAL' && item.category !== 'SELL') return false
+    return Math.max(0, Number(item.quantity ?? 1)) > 0
+  })
 })
 
 /** Canva (3): rate footnotes under slot grid — only from real pricing, never invent a second band. */
@@ -1028,7 +1029,7 @@ async function shareClub() {
         :court-id="selectedCourtIdsForReturn || undefined"
         :court-label="selectedCourtLabel"
         :slots="confirmSlots"
-        :rental-equipment="rentalEquipment"
+        :bookable-equipment="bookableEquipment"
         @close="confirmOpen = false"
         @success="onConfirmSuccess"
         @slot-conflict="onSlotConflict"

@@ -1689,7 +1689,9 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
 
 const rentalEquipments = computed(() =>
-  (equipments.value || []).filter((item) => item.category === 'CLUB' || item.category === 'RENTAL'),
+  (equipments.value || []).filter((item) =>
+    item.category === 'CLUB' || item.category === 'RENTAL' || item.category === 'SELL',
+  ),
 )
 
 const equipmentPickerOptions = computed(() =>

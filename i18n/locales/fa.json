@@ -753,6 +753,8 @@
     "confirmLineSlotCourt": "{court}، ساعت {time}",
     "confirmLineEquipment": "{name} {qty} عدد",
     "wantRacket": "راکت برای اجاره می‌خواهم",
+    "equipmentRental": "اجاره‌ای",
+    "equipmentSell": "برای فروش",
     "equipmentUnit": "عدد",
     "discountCode": "کد تخفیف",
     "discountPlaceholder": "کد تخفیف دارید؟",

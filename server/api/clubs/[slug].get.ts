@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       media: { orderBy: { sortOrder: 'asc' } },
       reviews: { orderBy: { publishedAt: 'desc' }, take: 6 },
       equipment: {
-        where: { category: 'RENTAL' },
+        where: { category: { in: ['RENTAL', 'SELL'] } },
         orderBy: { nameFa: 'asc' },
         select: { id: true, nameFa: true, nameEn: true, category: true, price: true, quantity: true },
       },
