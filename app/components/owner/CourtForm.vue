@@ -19,6 +19,9 @@ const props = defineProps<{
   clubOpenHour: number
   clubCloseHour: number
   saving?: boolean
+  /** Apply shared fields to every court in the club. */
+  bulkEdit?: boolean
+  bulkCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -43,9 +46,17 @@ const form = reactive({
 })
 
 const submitLabel = computed(() => {
+  if (props.bulkEdit) {
+    return t('owner.settingsPage.submitBulkCourts', { count: props.bulkCount ?? 0 })
+  }
   if (props.court) return t('common.save')
   if (form.count > 1) return t('owner.settingsPage.submitCourts', { count: form.count })
   return t('owner.settingsPage.submitCourt')
+})
+
+const canSubmit = computed(() => {
+  if (props.bulkEdit) return true
+  return Boolean(form.nameFa)
 })
 
 watch(() => props.court, (court) => {
@@ -75,6 +86,17 @@ watch(() => props.court, (court) => {
 }, { immediate: true })
 
 function submit() {
+  if (props.bulkEdit) {
+    emit('save', {
+      price: form.price,
+      sportSlug: form.sportSlug,
+      openHour: form.useClubHours ? null : form.openHour,
+      closeHour: form.useClubHours ? null : form.closeHour,
+      pricingJson: form.pricingJson,
+      all: true,
+    })
+    return
+  }
   let count = 1
   if (!props.court) {
     try {
@@ -101,7 +123,9 @@ function submit() {
 
 <template>
   <div class="canva-court-form space-y-4 text-start">
-    <div class="grid grid-cols-2 gap-2">
+    <p v-if="bulkEdit" class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.bulkEditCourtsHint', { count: bulkCount ?? 0 }) }}</p>
+
+    <div v-if="!bulkEdit" class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.courtNameFa') }}</span>
         <input v-model="form.nameFa" required class="neo-input">
@@ -163,19 +187,19 @@ function submit() {
       :close-hour="form.useClubHours ? clubCloseHour : (form.closeHour ?? clubCloseHour)"
     />
 
-    <OwnerPhotoSlots v-model="form.images" :max="4" />
+    <OwnerPhotoSlots v-if="!bulkEdit" v-model="form.images" :max="4" />
 
     <div class="space-y-2 pt-1">
       <button
         type="button"
         class="canva-owner-save-cta"
-        :disabled="saving || !form.nameFa"
+        :disabled="saving || !canSubmit"
         @click="submit"
       >
         {{ saving ? t('common.loading') : submitLabel }}
       </button>
       <button
-        v-if="court"
+        v-if="court && !bulkEdit"
         type="button"
         class="canva-owner-secondary-cta text-red-600"
         :disabled="saving"

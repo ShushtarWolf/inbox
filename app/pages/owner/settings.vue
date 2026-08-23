@@ -110,6 +110,7 @@ const imageError = ref('')
 const courtSaving = ref(false)
 const courtError = ref('')
 const editingCourtId = ref<string | null>(null)
+const bulkEditCourts = ref(false)
 const showCourtForm = ref(false)
 const deleteCourtId = ref<string | null>(null)
 const deletePending = ref(false)
@@ -290,12 +291,15 @@ async function saveCourt(body: Record<string, unknown>) {
   courtSaving.value = true
   courtError.value = ''
   try {
-    if (editingCourtId.value) {
+    if (bulkEditCourts.value) {
+      await $fetch('/api/owner/courts/bulk', { method: 'PATCH', body })
+    } else if (editingCourtId.value) {
       await $fetch(`/api/owner/courts/${editingCourtId.value}`, { method: 'PATCH', body })
     } else {
       await $fetch('/api/owner/courts', { method: 'POST', body })
     }
     editingCourtId.value = null
+    bulkEditCourts.value = false
     showCourtForm.value = false
     await refreshCourts()
     await refresh()
@@ -339,11 +343,19 @@ async function confirmDeleteCourt() {
 }
 
 function startEditCourt(court: OwnerCourtListItem) {
+  bulkEditCourts.value = false
   editingCourtId.value = court.id
   showCourtForm.value = true
 }
 
 function startCreateCourt() {
+  bulkEditCourts.value = false
+  editingCourtId.value = null
+  showCourtForm.value = true
+}
+
+function startBulkEditCourts() {
+  bulkEditCourts.value = true
   editingCourtId.value = null
   showCourtForm.value = true
 }
@@ -352,6 +364,7 @@ function closeCourtForm() {
   if (courtSaving.value) return
   showCourtForm.value = false
   editingCourtId.value = null
+  bulkEditCourts.value = false
 }
 
 const galleryUrls = computed(() =>
@@ -441,6 +454,22 @@ function courtHoursLabel(court: Pick<OwnerCourtListItem, 'openHour' | 'closeHour
 const editingCourt = computed(() => {
   if (!editingCourtId.value) return null
   return (courtsData.value || []).find((c) => c.id === editingCourtId.value) || null
+})
+
+const bulkEditSeedCourt = computed(() => {
+  const courts = courtsData.value || []
+  if (!courts.length) return null
+  return courts[0]!
+})
+
+const courtFormCourt = computed(() => {
+  if (bulkEditCourts.value) return bulkEditSeedCourt.value
+  return editingCourt.value
+})
+
+const courtFormTitle = computed(() => {
+  if (bulkEditCourts.value) return t('owner.settingsPage.bulkEditCourtsTitle')
+  return t('owner.settingsPage.courtDetailsTitle')
 })
 
 const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
@@ -573,11 +602,21 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 
         <!-- زمین‌ها -->
         <div class="canva-panel space-y-3">
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.courtsSection') }}</h2>
-            <button type="button" class="canva-owner-add-link" @click="startCreateCourt">
-              + {{ t('owner.settingsPage.addCourt') }}
-            </button>
+            <div class="flex flex-wrap items-center justify-end gap-3">
+              <button
+                v-if="(courtsData || []).length > 1"
+                type="button"
+                class="canva-owner-add-link"
+                @click="startBulkEditCourts"
+              >
+                {{ t('owner.settingsPage.bulkEditCourts') }}
+              </button>
+              <button type="button" class="canva-owner-add-link" @click="startCreateCourt">
+                + {{ t('owner.settingsPage.addCourt') }}
+              </button>
+            </div>
           </div>
           <p v-if="courtError" class="text-sm text-red-600">{{ courtError }}</p>
           <ul class="space-y-2">
@@ -763,7 +802,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 
     <AppModal
       :open="showCourtForm"
-      :title="t('owner.settingsPage.courtDetailsTitle')"
+      :title="courtFormTitle"
       sheet
       patterned
       max-width-class="canva-phone-shell max-w-sm"
@@ -771,10 +810,12 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     >
       <div class="canva-auth-body px-5 pb-6 pt-2">
         <OwnerCourtForm
-          :court="editingCourt"
+          :court="courtFormCourt"
           :club-open-hour="form.openHour"
           :club-close-hour="form.closeHour"
           :saving="courtSaving"
+          :bulk-edit="bulkEditCourts"
+          :bulk-count="(courtsData || []).length"
           @save="saveCourt"
           @cancel="closeCourtForm"
           @delete="requestDeleteCourt"
