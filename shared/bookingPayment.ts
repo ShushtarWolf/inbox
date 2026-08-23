@@ -71,6 +71,35 @@ export function countsTowardRevenue(bookingStatus: string, paymentStatus: string
   return bookingStatus !== 'CANCELLED' && paymentStatus === 'PAID'
 }
 
+/** Booking/session row shape used for athlete hub spend KPIs. */
+export type AthleteSpendRow = {
+  status?: string | null
+  paymentStatus?: string | null
+  payment?: { amount?: number | null; status?: string | null } | null
+}
+
+/**
+ * Settled spend for one athlete booking/session.
+ * Only PAID + non-cancelled rows count. Uses payment.amount only — never list
+ * price fallbacks. Amount 0 (multi-slot siblings) stays 0 (do not use `||`).
+ */
+export function settledSpendAmount(row: AthleteSpendRow): number {
+  const paymentStatus = row.payment?.status || row.paymentStatus || ''
+  if (!countsTowardRevenue(row.status || '', paymentStatus)) return 0
+  const amount = row.payment?.amount
+  return typeof amount === 'number' && Number.isFinite(amount) ? amount : 0
+}
+
+/** Sum settled spend across court / coach / package rows for the athlete hub. */
+export function sumAthleteSettledSpend(rows: AthleteSpendRow[]): number {
+  return rows.reduce((sum, row) => sum + settledSpendAmount(row), 0)
+}
+
+/** Hub «رزروها»: non-cancelled bookings only (cancelled must not inflate the KPI). */
+export function countActiveAthleteBookings(rows: Array<{ status?: string | null }>): number {
+  return rows.filter((row) => (row.status || '') !== 'CANCELLED').length
+}
+
 /** Pay-at-club / pending / failed statuses that still need collection at the desk. */
 export function isUnpaidPaymentStatus(status: string | null | undefined): boolean {
   return ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID', 'FAILED'].includes(status || '')

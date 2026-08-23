@@ -1,5 +1,10 @@
 <script setup lang="ts">
 /** Canva p22 user hub: profile + stats + account list (not a booking overview). */
+import {
+  countActiveAthleteBookings,
+  sumAthleteSettledSpend,
+} from '#shared/bookingPayment.ts'
+
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const localePath = useLocalePath()
@@ -9,9 +14,21 @@ const { formatCurrency, formatNumber } = useFormatters()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending } = useAuthedFetch<{
-  courtBookings?: Array<{ payment?: { amount?: number } | null; slot?: { price?: number } }>
-  coachSessions?: Array<{ payment?: { amount?: number } | null; price?: number }>
-  packageBookings?: Array<{ payment?: { amount?: number } | null; package?: { price?: number } }>
+  courtBookings?: Array<{
+    status?: string
+    paymentStatus?: string
+    payment?: { amount?: number; status?: string } | null
+  }>
+  coachSessions?: Array<{
+    status?: string
+    paymentStatus?: string
+    payment?: { amount?: number; status?: string } | null
+  }>
+  packageBookings?: Array<{
+    status?: string
+    paymentStatus?: string
+    payment?: { amount?: number; status?: string } | null
+  }>
 }>('/api/bookings/mine')
 const { data: wallet, pending: walletPending } = useAuthedFetch<{ balance?: number }>('/api/wallet')
 const showPhoto = ref(true)
@@ -27,25 +44,20 @@ const addMobileHint = computed(() =>
 )
 
 const bookingCount = computed(() => {
-  const courts = data.value?.courtBookings?.length || 0
+  const courts = countActiveAthleteBookings(data.value?.courtBookings || [])
   if (pilotNoCoach.value) return courts
-  const coaches = data.value?.coachSessions?.length || 0
-  const packages = data.value?.packageBookings?.length || 0
+  const coaches = countActiveAthleteBookings(data.value?.coachSessions || [])
+  const packages = countActiveAthleteBookings(data.value?.packageBookings || [])
   return courts + coaches + packages
 })
 
+/** Settled PAID only — never list-price fallbacks; amount 0 siblings stay 0. */
 const spendTotal = computed(() => {
-  const court = (data.value?.courtBookings || []).reduce((sum: number, b: { payment?: { amount?: number } | null; slot?: { price?: number } }) => {
-    return sum + (b.payment?.amount || b.slot?.price || 0)
-  }, 0)
+  const court = sumAthleteSettledSpend(data.value?.courtBookings || [])
   if (pilotNoCoach.value) return court
-  const coach = (data.value?.coachSessions || []).reduce((sum: number, s: { payment?: { amount?: number } | null; price?: number }) => {
-    return sum + (s.payment?.amount || s.price || 0)
-  }, 0)
-  const packages = (data.value?.packageBookings || []).reduce((sum: number, b: { payment?: { amount?: number } | null; package?: { price?: number } }) => {
-    return sum + (b.payment?.amount || b.package?.price || 0)
-  }, 0)
-  return court + coach + packages
+  return court
+    + sumAthleteSettledSpend(data.value?.coachSessions || [])
+    + sumAthleteSettledSpend(data.value?.packageBookings || [])
 })
 
 const spendDisplay = computed(() => {

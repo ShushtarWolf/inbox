@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   bookingPaymentChannelWhere,
+  countActiveAthleteBookings,
   countsTowardRevenue,
   initialPlatformPaymentFields,
   isOnlinePaymentsEnabled,
@@ -12,6 +13,8 @@ import {
   paymentRowChannelWhere,
   resolveParentPaymentMethod,
   resolvePaymentChannel,
+  settledSpendAmount,
+  sumAthleteSettledSpend,
 } from './bookingPayment.ts'
 
 describe('isOnlinePaymentsEnabled', () => {
@@ -95,6 +98,44 @@ describe('payment helpers', () => {
     expect(countsTowardRevenue('CONFIRMED', 'PAID')).toBe(true)
     expect(countsTowardRevenue('CANCELLED', 'PAID')).toBe(false)
     expect(countsTowardRevenue('CONFIRMED', 'PAY_AT_CLUB')).toBe(false)
+  })
+})
+
+describe('athlete hub settled spend', () => {
+  it('sums only PAID non-cancelled payment amounts', () => {
+    expect(sumAthleteSettledSpend([
+      { status: 'CONFIRMED', payment: { amount: 500_000, status: 'PAID' } },
+      { status: 'CONFIRMED', payment: { amount: 400_000, status: 'PAY_AT_CLUB' } },
+      { status: 'CANCELLED', payment: { amount: 300_000, status: 'PAID' } },
+      { status: 'CONFIRMED', paymentStatus: 'PAID', payment: { amount: 200_000, status: 'PAID' } },
+    ])).toBe(700_000)
+  })
+
+  it('keeps multi-slot sibling amount 0 (never falls back to list price)', () => {
+    expect(sumAthleteSettledSpend([
+      { status: 'CONFIRMED', payment: { amount: 1_200_000, status: 'PAID' } },
+      { status: 'CONFIRMED', payment: { amount: 0, status: 'PAID' } },
+      { status: 'CONFIRMED', payment: { amount: 0, status: 'PAID' } },
+    ])).toBe(1_200_000)
+    expect(settledSpendAmount({ status: 'CONFIRMED', payment: { amount: 0, status: 'PAID' } })).toBe(0)
+  })
+
+  it('ignores unpaid desk and missing payment rows', () => {
+    expect(settledSpendAmount({ status: 'CONFIRMED', paymentStatus: 'PAY_AT_CLUB' })).toBe(0)
+    expect(settledSpendAmount({ status: 'CONFIRMED', payment: null })).toBe(0)
+    expect(settledSpendAmount({
+      status: 'CONFIRMED',
+      paymentStatus: 'PAY_AT_CLUB',
+      payment: { amount: 600_000, status: 'PAY_AT_CLUB' },
+    })).toBe(0)
+  })
+
+  it('excludes cancelled from hub reservation count', () => {
+    expect(countActiveAthleteBookings([
+      { status: 'CONFIRMED' },
+      { status: 'CANCELLED' },
+      { status: 'PENDING' },
+    ])).toBe(2)
   })
 })
 
