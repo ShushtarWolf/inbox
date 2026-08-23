@@ -16,16 +16,17 @@ const { t } = useI18n()
 const {
   uploading,
   error,
-  showRules,
   showFailure,
   accept,
   askPick,
-  closeRules,
-  confirmRules,
   dismissFailure,
   upload,
 } = useImageUpload({ guest: props.guest })
 const inputRef = ref<HTMLInputElement | null>(null)
+
+function openFilePicker() {
+  inputRef.value?.click()
+}
 
 async function onFileChange(event: Event) {
   const target = event.target as HTMLInputElement
@@ -63,7 +64,7 @@ function removeAt(index: number) {
         type="button"
         class="btn-secondary text-sm"
         :disabled="uploading || modelValue.length >= max"
-        @click="askPick"
+        @click="askPick(openFilePicker)"
       >
         {{ uploading ? t('upload.uploading') : t('upload.addPhoto') }}
       </button>
@@ -87,15 +88,20 @@ function removeAt(index: number) {
         {{ t('upload.remove') }} {{ index + 1 }}
       </button>
     </div>
-    <input ref="inputRef" type="file" :accept="accept" multiple class="sr-only" @change="onFileChange" />
+    <input
+      ref="inputRef"
+      type="file"
+      :accept="accept"
+      multiple
+      class="absolute h-px w-px overflow-hidden opacity-0"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onFileChange"
+    />
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
-    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <AppUploadSheets
-      :rules-open="showRules"
       :failure-open="showFailure"
       :failure-message="error"
-      @confirm-rules="confirmRules(() => inputRef?.click())"
-      @close-rules="closeRules"
       @close-failure="dismissFailure"
     />
   </div>

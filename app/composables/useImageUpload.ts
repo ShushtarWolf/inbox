@@ -19,7 +19,6 @@ export function useImageUpload(options?: { guest?: boolean }) {
   const { t } = useI18n()
   const uploading = ref(false)
   const error = ref('')
-  const showRules = ref(false)
   const showFailure = ref(false)
 
   function rejectMessage(reason: ImageUploadRejectReason) {
@@ -55,22 +54,12 @@ export function useImageUpload(options?: { guest?: boolean }) {
     return t('upload.failed')
   }
 
-  function askPick() {
+  /** Open the native file picker in the same user gesture — never defer behind a modal. */
+  function askPick(openFilePicker: () => void) {
     if (uploading.value) return
     error.value = ''
     showFailure.value = false
-    showRules.value = true
-  }
-
-  function closeRules() {
-    showRules.value = false
-  }
-
-  function confirmRules(openFilePicker: () => void) {
-    // iOS only allows <input type="file">.click() in the same user gesture.
-    // Closing the sheet first (or deferring with nextTick) silently blocks the picker.
     openFilePicker()
-    showRules.value = false
   }
 
   function dismissFailure() {
@@ -114,12 +103,9 @@ export function useImageUpload(options?: { guest?: boolean }) {
   return {
     uploading,
     error,
-    showRules,
     showFailure,
     accept: IMAGE_UPLOAD_ACCEPT,
     askPick,
-    closeRules,
-    confirmRules,
     dismissFailure,
     upload,
   }

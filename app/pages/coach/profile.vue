@@ -25,6 +25,8 @@ const newStart = ref('09:00')
 const newEnd = ref('17:00')
 const galleryUrl = ref('')
 
+const savingPhoto = ref(false)
+
 watch(data, (d) => {
   if (d) {
     bioFa.value = d.bioFa || ''
@@ -41,6 +43,25 @@ watch(data, (d) => {
     })()
   }
 }, { immediate: true })
+
+async function persistPhoto(url: string) {
+  savingPhoto.value = true
+  try {
+    await $fetch('/api/coach/profile', {
+      method: 'PATCH',
+      body: { photo: url || null },
+    })
+    await fetch()
+    refresh()
+  } finally {
+    savingPhoto.value = false
+  }
+}
+
+async function onPhotoChange(url: string) {
+  photo.value = url
+  await persistPhoto(url)
+}
 
 async function save() {
   const credentials = credentialsText.value.split('\n').map((line) => line.trim()).filter(Boolean)
@@ -90,7 +111,8 @@ async function removeGalleryImage(id: string) {
     <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <div class="venus-form-stack">
-      <AppImageUpload v-model="photo" :label="$t('coach.photoUrl')" />
+      <AppImageUpload :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
+      <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
       <AppFormField :label="$t('register.selectClub')">
         <select v-model="clubId" class="neo-select">
           <option value="">{{ $t('register.selectClubPlaceholder') }}</option>

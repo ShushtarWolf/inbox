@@ -43,12 +43,9 @@ const { smsMode, smsPhase, smsLive } = useSmsCapability()
 const {
   uploading: licenseUploading,
   error: licenseUploadError,
-  showRules: licenseShowRules,
   showFailure: licenseShowFailure,
   accept: licenseAccept,
   askPick: licenseAskPick,
-  closeRules: licenseCloseRules,
-  confirmRules: licenseConfirmRules,
   dismissFailure: licenseDismissFailure,
   upload: uploadLicense,
 } = useImageUpload({ guest: true })
@@ -229,12 +226,8 @@ function goRegisterPassword() {
 function openLicensePicker(which: 'otp' | 'password') {
   if (licenseUploading.value) return
   licensePickerChannel.value = which
-  licenseAskPick()
-}
-
-function confirmLicenseRules() {
-  licenseConfirmRules(() => {
-    const el = licensePickerChannel.value === 'password'
+  licenseAskPick(() => {
+    const el = which === 'password'
       ? licenseInputPasswordRef.value
       : licenseInputOtpRef.value
     el?.click()
@@ -1032,12 +1025,9 @@ watch(
     </div>
   </AppModal>
   <AppUploadSheets
-    :rules-open="licenseShowRules"
     :failure-open="licenseShowFailure"
     :failure-message="licenseUploadError"
     overlay-class="z-[80]"
-    @confirm-rules="confirmLicenseRules"
-    @close-rules="licenseCloseRules"
     @close-failure="licenseDismissFailure"
   />
 </template>

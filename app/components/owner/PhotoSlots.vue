@@ -17,12 +17,9 @@ const { t } = useI18n()
 const {
   uploading,
   error,
-  showRules,
   showFailure,
   accept,
   askPick,
-  closeRules,
-  confirmRules,
   dismissFailure,
   upload,
 } = useImageUpload()
@@ -35,9 +32,13 @@ const slots = computed(() => {
   return list.slice(0, props.max)
 })
 
+function openFilePicker() {
+  inputRef.value?.click()
+}
+
 function openSlot(index: number) {
   activeSlot.value = index
-  askPick()
+  askPick(openFilePicker)
 }
 
 function clearSlot(index: number) {
@@ -58,11 +59,6 @@ async function onFileChange(event: Event) {
   const next = [...slots.value]
   next[index] = result.url
   emit('update:modelValue', next.filter(Boolean))
-}
-
-function onCloseRules() {
-  activeSlot.value = null
-  closeRules()
 }
 </script>
 
@@ -89,20 +85,18 @@ function onCloseRules() {
     <p class="canva-photo-slots-hint">{{ hint || t('owner.settingsPage.minUploadHint') }}</p>
     <p v-if="uploading" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
-    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <input
       ref="inputRef"
       type="file"
       :accept="accept"
-      class="sr-only"
+      class="absolute h-px w-px overflow-hidden opacity-0"
+      tabindex="-1"
+      aria-hidden="true"
       @change="onFileChange"
     >
     <AppUploadSheets
-      :rules-open="showRules"
       :failure-open="showFailure"
       :failure-message="error"
-      @confirm-rules="confirmRules(() => inputRef?.click())"
-      @close-rules="onCloseRules"
       @close-failure="dismissFailure"
     />
   </div>

@@ -19,8 +19,8 @@ const IMAGE_UPLOAD_PICKER_TYPES = [
   'image/heif',
 ] as const
 
-/** `<input accept>` — JPEG/PNG/WebP plus iPhone HEIC/HEIF. */
-export const IMAGE_UPLOAD_ACCEPT = [...IMAGE_UPLOAD_PICKER_TYPES, '.heic', '.heif'].join(',')
+/** `<input accept>` — broad `image/*` for iOS picker + explicit HEIC/HEIF. */
+export const IMAGE_UPLOAD_ACCEPT = ['image/*', ...IMAGE_UPLOAD_PICKER_TYPES, '.heic', '.heif'].join(',')
 
 export type ImageUploadRejectReason = 'empty' | 'heic' | 'type' | 'size'
 
@@ -109,11 +109,21 @@ export function inferImageUploadContentType(part: {
  * Client-side classify before prepare+upload. HEIC/HEIF is allowed here;
  * conversion happens in `prepareImageForUpload`. Server still rejects HEIC.
  */
+const MOBILE_JPEG_ALIASES = new Set(['image/jpg', 'image/pjpeg'])
+
 export function classifyImageUploadFile(file: { type?: string; size: number; name?: string }): ImageUploadRejectReason | null {
-  if (!file || file.size < 0) return 'empty'
-  const type = (file.type || '').trim().toLowerCase()
+  if (!file || file.size <= 0) return 'empty'
+  let type = (file.type || '').trim().toLowerCase()
   const name = file.name || ''
   const ext = extensionOf(name)
+
+  if (MOBILE_JPEG_ALIASES.has(type)) type = 'image/jpeg'
+
+  // iOS/Android often send application/octet-stream or other junk MIME — trust extension.
+  if (type && !PICKER_TYPE_SET.has(type)) {
+    if (!PICKER_EXTENSIONS.has(ext)) return 'type'
+    type = ''
+  }
 
   if (!type && !ext) return 'empty'
   if (type) {

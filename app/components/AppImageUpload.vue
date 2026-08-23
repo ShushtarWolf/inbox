@@ -16,12 +16,9 @@ const { t } = useI18n()
 const {
   uploading,
   error,
-  showRules,
   showFailure,
   accept,
   askPick,
-  closeRules,
-  confirmRules,
   dismissFailure,
   upload,
 } = useImageUpload({ guest: props.guest })
@@ -37,6 +34,10 @@ const previewSrc = computed(() => {
   return props.placeholder
 })
 
+function openFilePicker() {
+  inputRef.value?.click()
+}
+
 async function onFileChange(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -50,26 +51,30 @@ async function onFileChange(event: Event) {
 <template>
   <div class="space-y-2">
     <p v-if="label" class="text-sm font-bold">{{ label }}</p>
-    <div class="flex items-center gap-3">
+    <div class="relative flex items-center gap-3">
       <img :src="previewSrc" alt="" class="h-20 w-20 border border-brand-gray-100 object-cover shadow-venus-sm" @error="broken = true" />
       <div class="flex flex-col gap-2">
-        <button type="button" class="btn-secondary text-sm" :disabled="uploading" @click="askPick">
+        <button type="button" class="btn-secondary text-sm" :disabled="uploading" @click="askPick(openFilePicker)">
           {{ uploading ? t('upload.uploading') : t('upload.choose') }}
         </button>
         <button v-if="modelValue" type="button" class="text-xs font-bold text-brand-gray-600" @click="emit('update:modelValue', '')">
           {{ t('upload.remove') }}
         </button>
       </div>
-      <input ref="inputRef" type="file" :accept="accept" class="sr-only" @change="onFileChange" />
+      <input
+        ref="inputRef"
+        type="file"
+        :accept="accept"
+        class="absolute h-px w-px overflow-hidden opacity-0"
+        tabindex="-1"
+        aria-hidden="true"
+        @change="onFileChange"
+      />
     </div>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
-    <p v-if="error" class="text-xs text-brand-gray-600">{{ t('upload.rulesBody') }}</p>
     <AppUploadSheets
-      :rules-open="showRules"
       :failure-open="showFailure"
       :failure-message="error"
-      @confirm-rules="confirmRules(() => inputRef?.click())"
-      @close-rules="closeRules"
       @close-failure="dismissFailure"
     />
   </div>

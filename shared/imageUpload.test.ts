@@ -27,8 +27,13 @@ describe('classifyImageUploadFile', () => {
 
   it('rejects unsupported types', () => {
     expect(classifyImageUploadFile({ type: 'image/gif', size: 1024, name: 'a.gif' })).toBe('type')
-    expect(classifyImageUploadFile({ type: 'image/jpg', size: 1024, name: 'a.jpg' })).toBe('type')
     expect(classifyImageUploadFile({ type: 'application/pdf', size: 1024, name: 'a.pdf' })).toBe('type')
+  })
+
+  it('allows common mobile MIME quirks when extension is known', () => {
+    expect(classifyImageUploadFile({ type: 'image/jpg', size: 1024, name: 'a.jpg' })).toBeNull()
+    expect(classifyImageUploadFile({ type: 'image/pjpeg', size: 1024, name: 'IMG_0001.JPG' })).toBeNull()
+    expect(classifyImageUploadFile({ type: 'application/octet-stream', size: 1024, name: 'photo.jpg' })).toBeNull()
   })
 
   it('rejects source files over ~25 MB, not the 5 MB server cap', () => {

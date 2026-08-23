@@ -50,23 +50,46 @@ async function isLikelyHeicFile(file: File): Promise<boolean> {
   }
 }
 
-async function decodeHeicWithLibrary(file: File): Promise<ImageBitmap> {
-  const { heicTo } = await import('heic-to')
+async function decodeViaImageElement(source: Blob): Promise<ImageBitmap> {
+  const url = URL.createObjectURL(source)
   try {
-    const bitmap = await heicTo({
-      blob: file,
-      type: 'bitmap',
-      options: { imageOrientation: 'from-image' },
-    })
-    if (bitmap && typeof (bitmap as ImageBitmap).width === 'number') {
-      return bitmap as ImageBitmap
-    }
-  } catch {
-    // Convert to JPEG then decode — some builds skip bitmap output.
+    const img = new Image()
+    img.src = url
+    await img.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas 2d unavailable')
+    ctx.drawImage(img, 0, 0)
+    return createImageBitmap(canvas)
+  } finally {
+    URL.revokeObjectURL(url)
   }
-  const jpeg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
-  const blob = jpeg instanceof Blob ? jpeg : new Blob([jpeg as BlobPart], { type: 'image/jpeg' })
-  return createImageBitmapFromSource(blob)
+}
+
+async function decodeHeicWithLibrary(file: File): Promise<ImageBitmap> {
+  try {
+    const { heicTo } = await import('heic-to')
+    try {
+      const bitmap = await heicTo({
+        blob: file,
+        type: 'bitmap',
+        options: { imageOrientation: 'from-image' },
+      })
+      if (bitmap && typeof (bitmap as ImageBitmap).width === 'number') {
+        return bitmap as ImageBitmap
+      }
+    } catch {
+      // Convert to JPEG then decode — some builds skip bitmap output.
+    }
+    const jpeg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
+    const blob = jpeg instanceof Blob ? jpeg : new Blob([jpeg as BlobPart], { type: 'image/jpeg' })
+    return createImageBitmapFromSource(blob)
+  } catch {
+    // Safari on iOS can decode HEIC via <img> even when heic-to/WASM fails.
+    return decodeViaImageElement(file)
+  }
 }
 
 async function decodeImageForUpload(file: File): Promise<ImageBitmap> {
@@ -76,7 +99,11 @@ async function decodeImageForUpload(file: File): Promise<ImageBitmap> {
     if (await isLikelyHeicFile(file)) {
       return decodeHeicWithLibrary(file)
     }
-    throw primaryErr
+    try {
+      return await decodeViaImageElement(file)
+    } catch {
+      throw primaryErr
+    }
   }
 }
 
@@ -133,7 +160,7 @@ async function encodeTypeUnderCap(canvas: HTMLCanvasElement, type: PreparedImage
 async function encodeCanvasUnderCap(canvas: HTMLCanvasElement): Promise<{ blob: Blob; type: PreparedImageMime }> {
   let current = canvas
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    for (const type of ['image/webp', 'image/jpeg'] as const) {
+    for (const type of ['image/jpeg', 'image/webp'] as const) {
       const blob = await encodeTypeUnderCap(current, type)
       if (blob && blob.size <= IMAGE_UPLOAD_MAX_BYTES) {
         return { blob, type }
