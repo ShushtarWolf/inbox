@@ -9,6 +9,7 @@ import {
   slotCourtId,
   sortSlotsByTimeThenCourt,
   timesFromSlots,
+  removeSlotsForCourt,
   toggleHourOnCourts,
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
@@ -260,6 +261,8 @@ function toggleCourt(courtId: string) {
       return
     }
     selectedCourtIds.value = selected.filter((id) => id !== courtId)
+    // Drop this court's basket slots so chips/hours cannot stay green as orphans.
+    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, allSlots.value)
     focusedCourtId.value = selectedCourtIds.value[0] || courtId
     return
   }
@@ -637,6 +640,7 @@ function toggleSlot(slot: ClubSlot) {
     selectedCourtIds: applyCourtIds,
     startTime: slot.startTime,
     slots: allSlots.value,
+    clickedSlotId: slot.id,
   })
 }
 

@@ -8,6 +8,7 @@ import {
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
   joinWithAnd,
+  removeSlotsForCourt,
   siblingBookedSlots,
   slotCourtId,
   sortSlotsByTimeThenCourt,
@@ -105,7 +106,51 @@ describe('toggleHourOnCourts', () => {
       startTime: '16:00',
       slots,
     })
-    expect(next).toEqual(['s2-16'])
+    // Also drops orphan s2-16 at the same clock hour so cancel does not leave green chips.
+    expect(next).toEqual([])
+  })
+
+  it('clears the whole hour when the clicked slot is already selected', () => {
+    const next = toggleHourOnCourts({
+      selectedSlotIds: ['s4-16', 's5-16'],
+      selectedCourtIds: [c5],
+      startTime: '16:00',
+      slots,
+      clickedSlotId: 's5-16',
+    })
+    expect(next).toEqual([])
+  })
+
+  it('clears orphan basket hours even when no court chips are selected', () => {
+    const next = toggleHourOnCourts({
+      selectedSlotIds: ['s2-16', 's5-16'],
+      selectedCourtIds: [],
+      startTime: '16:00',
+      slots,
+      clickedSlotId: 's2-16',
+    })
+    expect(next).toEqual([])
+  })
+
+  it('clears orphan slots at the same hour when toggling off selected courts', () => {
+    const next = toggleHourOnCourts({
+      selectedSlotIds: ['s2-16', 's5-16'],
+      selectedCourtIds: [c5],
+      startTime: '16:00',
+      slots,
+    })
+    expect(next).toEqual([])
+  })
+})
+
+describe('removeSlotsForCourt', () => {
+  it('drops only the deselected court’s basket slots', () => {
+    const slots = [
+      slot('s2-16', c2, '16:00'),
+      slot('s5-16', c5, '16:00'),
+      slot('s5-17', c5, '17:00'),
+    ]
+    expect(removeSlotsForCourt(['s2-16', 's5-16', 's5-17'], c5, slots).sort()).toEqual(['s2-16'])
   })
 })
 

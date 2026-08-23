@@ -94,32 +94,91 @@ export function sortSlotsByTimeThenCourt<T extends {
   })
 }
 
+/** Basket slot ids whose clock time matches `startTime`. */
+export function selectedSlotIdsAtHour(
+  selectedSlotIds: string[],
+  slots: SelectableCourtSlot[],
+  startTime: string,
+): string[] {
+  const hour = clockTime(startTime)
+  if (!hour) return []
+  const byId = new Map(slots.map((slot) => [slot.id, slot]))
+  return selectedSlotIds.filter((id) => {
+    const slot = byId.get(id)
+    return slot != null && clockTime(slot.startTime) === hour
+  })
+}
+
+/** Drop every basket slot that belongs to `courtId`. */
+export function removeSlotsForCourt(
+  selectedSlotIds: string[],
+  courtId: string,
+  slots: SelectableCourtSlot[],
+): string[] {
+  if (!courtId) return selectedSlotIds
+  const byId = new Map(slots.map((slot) => [slot.id, slot]))
+  return selectedSlotIds.filter((id) => {
+    const slot = byId.get(id)
+    if (!slot) return true
+    return slotCourtId(slot) !== courtId
+  })
+}
+
 /**
  * Toggle one clock hour onto every selected court that has a FREE slot then.
  * Booked courts are skipped (the pick does not fail). Same-court multi-hour is
  * unchanged: a single selected court toggles only that court's slot.
+ *
+ * Cancel: if the clicked slot is already in the basket (green hour), remove
+ * every basket slot at that clock time — including other courts — so the user
+ * does not need to deselect court chips first.
  */
 export function toggleHourOnCourts(opts: {
   selectedSlotIds: string[]
   selectedCourtIds: string[]
   startTime: string
   slots: SelectableCourtSlot[]
+  /** When set and already selected, clears the whole hour from the basket. */
+  clickedSlotId?: string
 }): string[] {
   const hour = clockTime(opts.startTime)
+  if (!hour) return opts.selectedSlotIds
+
+  const basketAtHour = selectedSlotIdsAtHour(opts.selectedSlotIds, opts.slots, hour)
+  if (opts.clickedSlotId && opts.selectedSlotIds.includes(opts.clickedSlotId)) {
+    const drop = new Set(basketAtHour)
+    return opts.selectedSlotIds.filter((id) => !drop.has(id))
+  }
+
   const courtSet = new Set(opts.selectedCourtIds.filter(Boolean))
-  if (!hour || !courtSet.size) return opts.selectedSlotIds
+  if (!courtSet.size) {
+    // No courts selected: still allow clearing orphaned basket hours.
+    if (basketAtHour.length) {
+      const drop = new Set(basketAtHour)
+      return opts.selectedSlotIds.filter((id) => !drop.has(id))
+    }
+    return opts.selectedSlotIds
+  }
 
   const candidates = opts.slots.filter((slot) => {
     if (!isSlotFree(slot)) return false
     if (!courtSet.has(slotCourtId(slot))) return false
     return clockTime(slot.startTime) === hour
   })
-  if (!candidates.length) return opts.selectedSlotIds
+  if (!candidates.length) {
+    if (basketAtHour.length) {
+      const drop = new Set(basketAtHour)
+      return opts.selectedSlotIds.filter((id) => !drop.has(id))
+    }
+    return opts.selectedSlotIds
+  }
 
   const candidateIds = candidates.map((slot) => slot.id)
   const allOn = candidateIds.every((id) => opts.selectedSlotIds.includes(id))
   if (allOn) {
-    return opts.selectedSlotIds.filter((id) => !candidateIds.includes(id))
+    // Clear the hour across the whole basket (selected + orphan courts).
+    const drop = new Set(basketAtHour.length ? basketAtHour : candidateIds)
+    return opts.selectedSlotIds.filter((id) => !drop.has(id))
   }
   const next = new Set(opts.selectedSlotIds)
   for (const id of candidateIds) next.add(id)
