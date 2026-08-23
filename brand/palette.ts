@@ -61,6 +61,14 @@ export const palette = {
     CLOSED: '#52524F',
     BLOCKED: '#A3A39F',
   },
+  calendarGrid: {
+    FREE: '#eceae6',
+    RESERVED_PAID: '#f3d4d4',
+    RESERVED_UNPAID: '#fcd9a8',
+    RESERVED_IPG: '#d4dce8',
+    PENDING: '#e8d4a8',
+    BLOCKED: '#d4d2ce',
+  },
 } as const
 
 export const BRAND_PRIMARY = palette.brand.primary

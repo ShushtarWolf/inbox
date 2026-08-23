@@ -39,4 +39,10 @@
   --sz-slot-cancel: #a3a39f;
   --sz-slot-closed: #52524f;
   --sz-slot-blocked: #a3a39f;
+  --sz-cal-grid-free: #eceae6;
+  --sz-cal-grid-reserved-paid: #f3d4d4;
+  --sz-cal-grid-reserved-unpaid: #fcd9a8;
+  --sz-cal-grid-reserved-ipg: #d4dce8;
+  --sz-cal-grid-pending: #e8d4a8;
+  --sz-cal-grid-blocked: #d4d2ce;
 }

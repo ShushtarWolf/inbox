@@ -24,7 +24,9 @@ describe('brandbook palette', () => {
     expect(palette.slotDisplay.TEAM).toBe('#C41E1E')
     expect(palette.slotDisplay.FREE).toBe('#E8E6E2')
     expect(palette.slotDisplay.PENDING).toBe('#E8B84A')
-    expect(palette.slotDisplay.BLOCKED).toBe('#C41E1E')
+    expect(palette.slotDisplay.BLOCKED).toBe('#A3A39F')
+    expect(palette.calendarGrid.BLOCKED).not.toBe(palette.calendarGrid.RESERVED_PAID)
+    expect(palette.calendarGrid.RESERVED_UNPAID).not.toBe(palette.calendarGrid.PENDING)
   })
 
   it('uses warm gray text scale', () => {

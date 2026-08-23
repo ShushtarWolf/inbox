@@ -58,7 +58,16 @@ export const palette = {
     PENDING: '#E8B84A',
     CANCELLED: '#A3A39F',
     CLOSED: '#1A1A18',
-    BLOCKED: '#C41E1E',
+    BLOCKED: '#A3A39F',
+  },
+  /** Pastel cell fills for owner calendar grid + legend swatches */
+  calendarGrid: {
+    FREE: '#eceae6',
+    RESERVED_PAID: '#f3d4d4',
+    RESERVED_UNPAID: '#fcd9a8',
+    RESERVED_IPG: '#d4dce8',
+    PENDING: '#e8d4a8',
+    BLOCKED: '#d4d2ce',
   },
 } as const
 

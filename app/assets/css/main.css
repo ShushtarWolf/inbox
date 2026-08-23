@@ -1989,9 +1989,11 @@
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-reserved-cash,
   .canva-cal-grid-cell-bar-public,
-  .canva-cal-grid-cell-bar-team,
-  .canva-cal-grid-cell-bar-blocked {
+  .canva-cal-grid-cell-bar-team {
     background: #C41E1E;
+  }
+  .canva-cal-grid-cell-bar-blocked {
+    background: var(--sz-slot-blocked);
   }
   .canva-cal-grid-cell-bar-reserved-unpaid {
     background: #d97706;

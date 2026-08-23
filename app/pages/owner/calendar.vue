@@ -619,7 +619,7 @@ function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
     PENDING: 'canva-cal-grid-cell-bar-pending',
     CANCELLED: 'canva-cal-grid-cell-bar-cancel',
     CLOSED: 'canva-cal-grid-cell-bar-closed',
-    BLOCKED: 'canva-cal-grid-cell-bar-reserved',
+    BLOCKED: 'canva-cal-grid-cell-bar-blocked',
   }
   return map[status] || 'canva-cal-grid-cell-bar-free'
 }
@@ -1974,23 +1974,13 @@ function confirmReserveLabel() {
 }
 
 const legend = [
-  { status: 'FREE', color: '#eceae6' },
-  { status: 'RESERVED_PAID', color: '#f3d4d4' },
-  { status: 'RESERVED_UNPAID', color: '#fde8c8' },
-  { status: 'RESERVED_IPG', color: '#d4dce8' },
-  { status: 'PENDING', color: '#f3e0a8' },
-  { status: 'BLOCKED', color: '#f3d4d4' },
+  { status: 'FREE', color: palette.calendarGrid.FREE },
+  { status: 'RESERVED_PAID', color: palette.calendarGrid.RESERVED_PAID },
+  { status: 'RESERVED_UNPAID', color: palette.calendarGrid.RESERVED_UNPAID },
+  { status: 'RESERVED_IPG', color: palette.calendarGrid.RESERVED_IPG },
+  { status: 'PENDING', color: palette.calendarGrid.PENDING },
+  { status: 'BLOCKED', color: palette.calendarGrid.BLOCKED },
 ]
-
-function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
-  if (status === 'PENDING') return palette.slotDisplay.PENDING
-  if (status === 'CLOSED') return palette.slotDisplay.CLOSED
-  if (status === 'CANCELLED') return palette.slotDisplay.CANCELLED
-  if (status === 'FREE') return palette.slotDisplay.FREE
-  if (status === 'RESERVED_UNPAID' || isUnpaidPaymentStatus(slotPaymentStatus(slot))) return '#d97706'
-  if (isIpgReservedSlot(slot) || status === 'RESERVED_IPG') return palette.schedule.clubBooking
-  return palette.slotDisplay.RESERVED
-}
 </script>
 
 <template>
@@ -3275,7 +3265,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
 }
 
 :deep(.canva-cal-grid-cell.slot-free) {
-  background: #eceae6;
+  background: var(--sz-cal-grid-free);
   color: #4a4a46;
 }
 
@@ -3287,24 +3277,28 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
 :deep(.canva-cal-grid-cell.slot-reserved),
 :deep(.canva-cal-grid-cell.slot-reserved-cash),
 :deep(.canva-cal-grid-cell.slot-public),
-:deep(.canva-cal-grid-cell.slot-team),
+:deep(.canva-cal-grid-cell.slot-team) {
+  background: var(--sz-cal-grid-reserved-paid);
+  color: #2c2c2a;
+}
+
 :deep(.canva-cal-grid-cell.slot-blocked) {
-  background: #f3d4d4;
+  background: var(--sz-cal-grid-blocked);
   color: #2c2c2a;
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved-unpaid) {
-  background: #fde8c8;
+  background: var(--sz-cal-grid-reserved-unpaid);
   color: #2c2c2a;
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved-ipg) {
-  background: #d4dce8;
+  background: var(--sz-cal-grid-reserved-ipg);
   color: #2c2c2a;
 }
 
 :deep(.canva-cal-grid-cell.slot-pending) {
-  background: #f3e0a8;
+  background: var(--sz-cal-grid-pending);
   color: #2c2c2a;
 }
 
