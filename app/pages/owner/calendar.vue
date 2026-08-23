@@ -690,8 +690,16 @@ function scheduleGuestSearch(raw: string) {
   }, 250)
 }
 
+const guestSearchSource = ref<'name' | 'mobile'>('name')
+
 function onGuestFullNameInput() {
+  guestSearchSource.value = 'name'
   scheduleGuestSearch(guestFullName.value)
+}
+
+function onGuestMobileInput() {
+  guestSearchSource.value = 'mobile'
+  scheduleGuestSearch(form.guestMobile)
 }
 
 function selectGuestSuggestion(guest: GuestSearchHit) {
@@ -2342,51 +2350,50 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                   autocomplete="off"
                   required
                   :aria-required="true"
-                  :aria-expanded="guestSearchOpen"
+                  :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
                   aria-autocomplete="list"
-                  aria-controls="owner-reserve-guest-suggestions"
+                  aria-controls="owner-reserve-guest-suggestions-name"
                   :placeholder="t('owner.guestSearchHint')"
                   @input="onGuestFullNameInput"
                   @focus="onGuestFullNameInput"
                   @blur="closeGuestSearchSoon"
                 >
-                <div
-                  v-if="guestSearchOpen && (guestSuggestions.length || guestSearchPending)"
-                  id="owner-reserve-guest-suggestions"
-                  class="absolute inset-x-0 top-full z-20 mt-1 max-h-48 overflow-y-auto border border-brand-gray-200 bg-white shadow-sm"
-                  style="border-radius: 2px;"
-                  role="listbox"
-                >
-                  <p v-if="guestSearchPending && !guestSuggestions.length" class="px-3 py-2 text-xs text-brand-gray-500">
-                    {{ t('common.loading') }}
-                  </p>
-                  <button
-                    v-for="(guest, idx) in guestSuggestions"
-                    :key="`${guest.mobile}-${guest.name}-${idx}`"
-                    type="button"
-                    class="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-brand-primary-soft"
-                    role="option"
-                    :aria-selected="idx === 0"
-                    @mousedown.prevent="selectGuestSuggestion(guest)"
-                  >
-                    <span class="min-w-0 truncate font-bold text-brand-navy">{{ guest.name || '—' }}</span>
-                    <bdi v-if="guest.mobile" dir="ltr" class="shrink-0 tabular-nums text-xs text-brand-gray-600">{{ guest.mobile }}</bdi>
-                  </button>
-                </div>
+                <OwnerGuestSearchDropdown
+                  list-id="owner-reserve-guest-suggestions-name"
+                  :open="guestSearchOpen && guestSearchSource === 'name'"
+                  :pending="guestSearchPending"
+                  :suggestions="guestSuggestions"
+                  @select="selectGuestSuggestion"
+                />
               </div>
             </AppFormField>
             <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
-              <input
-                id="owner-reserve-guest-mobile"
-                v-model="form.guestMobile"
-                dir="ltr"
-                class="neo-input tabular-nums"
-                autocomplete="tel"
-                inputmode="tel"
-                required
-                :aria-required="true"
-                :placeholder="t('owner.guestMobile')"
-              >
+              <div class="relative">
+                <input
+                  id="owner-reserve-guest-mobile"
+                  v-model="form.guestMobile"
+                  dir="ltr"
+                  class="neo-input tabular-nums"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  required
+                  :aria-required="true"
+                  :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                  aria-autocomplete="list"
+                  aria-controls="owner-reserve-guest-suggestions-mobile"
+                  :placeholder="t('owner.guestSearchHint')"
+                  @input="onGuestMobileInput"
+                  @focus="onGuestMobileInput"
+                  @blur="closeGuestSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="owner-reserve-guest-suggestions-mobile"
+                  :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                  :pending="guestSearchPending"
+                  :suggestions="guestSuggestions"
+                  @select="selectGuestSuggestion"
+                />
+              </div>
             </AppFormField>
 
             <div v-if="!pilotNoCoach">
