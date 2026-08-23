@@ -2540,7 +2540,10 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                   {{ slotCellLabel(slot) }}
                 </span>
               </div>
-              <p v-if="payConfirmCourtsLabel" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
+              <p
+                v-if="payConfirmCourtsLabel && selectionCourtNames.length <= 1"
+                class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
+              >
                 <span class="canva-confirm-book-dot" aria-hidden="true" />
                 {{ payConfirmCourtsLabel }}
               </p>

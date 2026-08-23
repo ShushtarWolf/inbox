@@ -340,16 +340,23 @@ async function submit(preferWallet = false) {
 
           <div class="text-start">
             <p class="canva-confirm-book-date">{{ dateHeading }}</p>
-            <div class="mt-2 flex flex-wrap justify-start gap-2">
+            <div
+              class="mt-2 flex justify-start gap-2"
+              :class="multiCourt ? 'flex-col' : 'flex-wrap'"
+            >
               <span
                 v-for="slot in slots"
                 :key="slot.id"
                 class="canva-confirm-book-time"
+                :class="multiCourt ? 'w-full justify-start' : ''"
               >
                 <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ slot.startTime?.slice(0, 5) }}
               </span>
             </div>
-            <p v-if="displayCourtLabel" class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy">
+            <p
+              v-if="displayCourtLabel && !multiCourt"
+              class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
+            >
               <span class="canva-confirm-book-dot" aria-hidden="true" />
               {{ displayCourtLabel }}
             </p>
