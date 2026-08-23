@@ -1,6 +1,7 @@
 import { PrismaClient, SlotDisplayStatus } from '@prisma/client'
 import { hashSecret } from '../server/utils/password.ts'
 import { formatHour, hourEnd, todayDateStr } from '../server/utils/slots.ts'
+import { addDaysToIsoDate } from '../shared/localDate.ts'
 import { productionDemoSeedMessage, shouldRefuseProductionDemoSeed } from '../shared/seedSafety.ts'
 
 const prisma = new PrismaClient()
@@ -397,9 +398,9 @@ async function main() {
 
   const demoCourt = courts[0]!
   for (let dayOffset = 6; dayOffset >= 0; dayOffset -= 1) {
-    const date = new Date()
-    date.setDate(date.getDate() - dayOffset)
-    const dateKey = date.toISOString().slice(0, 10)
+    const dateKey = addDaysToIsoDate(today, -dayOffset)
+    // Calendar grid above already seeds every court (including demoCourt) for today.
+    if (dateKey === today) continue
     const revenueFactor = [0.45, 0.6, 0.75, 0.55, 0.9, 0.7, 1][6 - dayOffset] ?? 0.5
     const slot = await prisma.slot.create({
       data: {
