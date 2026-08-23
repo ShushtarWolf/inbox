@@ -37,7 +37,7 @@ test('profile photo upload saves avatar', async ({ page }) => {
   const uploadRes = await uploadPromise
   expect(uploadRes.ok()).toBeTruthy()
 
-  await expect(page.locator('img[src*="/uploads/athlete/"]')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('img[src*="/uploads/athlete/"]').first()).toBeVisible({ timeout: 15_000 })
 })
 
 test('owner can login via phone OTP and view finance', async ({ page }) => {
