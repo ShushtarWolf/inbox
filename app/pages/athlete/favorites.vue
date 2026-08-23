@@ -55,7 +55,7 @@ function blurb(club: { descriptionFa?: string | null; descriptionEn?: string | n
 
 <template>
   <div class="venus-page-stack">
-    <section class="canva-photo-hero canva-photo-hero-curve -mx-4 sm:-mx-0">
+    <section class="canva-photo-hero -mx-4 sm:-mx-0">
       <img src="/hero/tennis-court.jpg" alt="" class="canva-photo-hero-media" style="filter: grayscale(0.4) brightness(0.7);" />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
