@@ -2,7 +2,10 @@
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
 import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { uniqueOrdered, joinWithAnd } from '#shared/courtSlotSelection.ts'
+import {
+  minAvailableEquipmentAcrossTimes,
+  normalizeSlotTime,
+} from '#shared/equipmentAvailability.ts'
 
 export type ConfirmSlot = {
   id: string
@@ -70,6 +73,8 @@ const {
 } = useCourtBooking()
 
 const equipmentQuantities = ref<Record<string, number>>({})
+const equipmentAvailability = ref<Record<string, number>>({})
+const availabilityLoading = ref(false)
 const discountInput = ref('')
 const discountApplying = ref(false)
 const discountError = ref('')
@@ -83,8 +88,48 @@ const visibleEquipment = computed(() =>
   (props.bookableEquipment || []).filter((item) => equipmentStock(item) > 0),
 )
 
-function equipmentStock(item: ConfirmEquipment) {
+function equipmentCatalogStock(item: ConfirmEquipment) {
   return Math.max(0, Number(item.quantity ?? 1))
+}
+
+function equipmentStock(item: ConfirmEquipment) {
+  const live = equipmentAvailability.value[item.id]
+  if (live != null) return Math.max(0, live)
+  return equipmentCatalogStock(item)
+}
+
+async function refreshEquipmentAvailability() {
+  if (!props.open || !props.clubId || !props.date || !props.slots.length) {
+    equipmentAvailability.value = {}
+    return
+  }
+  const equipmentIds = (props.bookableEquipment || []).map((item) => item.id)
+  if (!equipmentIds.length) {
+    equipmentAvailability.value = {}
+    return
+  }
+  const startTimes = uniqueOrdered(
+    props.slots.map((slot) => normalizeSlotTime(slot.startTime)).filter(Boolean),
+  )
+  availabilityLoading.value = true
+  try {
+    const result = await $fetch<{ available: Record<string, number> }>('/api/equipment/availability', {
+      method: 'POST',
+      body: {
+        clubId: props.clubId,
+        date: props.date,
+        startTimes,
+        equipmentIds,
+      },
+    })
+    equipmentAvailability.value = result.available || {}
+  }
+  catch {
+    equipmentAvailability.value = {}
+  }
+  finally {
+    availabilityLoading.value = false
+  }
 }
 
 function equipmentQty(id: string) {
@@ -182,10 +227,38 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetBookingState()
     equipmentQuantities.value = {}
+    equipmentAvailability.value = {}
     discountInput.value = ''
     discountError.value = ''
     appliedDiscount.value = null
+    refreshEquipmentAvailability()
   }
+})
+
+watch(
+  () => [props.slots.map((slot) => slot.id).join(','), props.date, props.bookableEquipment?.map((item) => item.id).join(',')],
+  () => {
+    if (!props.open) return
+    refreshEquipmentAvailability()
+  },
+)
+
+watch(equipmentAvailability, (available) => {
+  const next = { ...equipmentQuantities.value }
+  let changed = false
+  for (const [id, qty] of Object.entries(next)) {
+    const max = available[id]
+    if (max == null) continue
+    if (max < 1) {
+      delete next[id]
+      changed = true
+    }
+    else if (qty > max) {
+      next[id] = max
+      changed = true
+    }
+  }
+  if (changed) equipmentQuantities.value = next
 })
 
 watch([equipmentQuantities, () => props.slots], () => {
@@ -405,7 +478,7 @@ async function submit(preferWallet = false) {
                     <button
                       type="button"
                       class="canva-qty-step-btn"
-                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy"
+                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy || availabilityLoading"
                       aria-label="+"
                       @click="bumpEquipment(item.id, 1)"
                     >+</button>
@@ -440,7 +513,7 @@ async function submit(preferWallet = false) {
                     <button
                       type="button"
                       class="canva-qty-step-btn"
-                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy"
+                      :disabled="equipmentQty(item.id) >= equipmentStock(item) || payBusy || availabilityLoading"
                       aria-label="+"
                       @click="bumpEquipment(item.id, 1)"
                     >+</button>

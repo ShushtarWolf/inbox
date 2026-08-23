@@ -29,6 +29,10 @@ import {
 import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import {
+  minAvailableEquipmentAcrossTimes,
+  normalizeSlotTime,
+} from '#shared/equipmentAvailability.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -40,6 +44,7 @@ interface OwnerCalendarBookingEquipment {
 }
 
 interface OwnerCalendarBooking {
+  id?: string
   status?: string | null
   guestName?: string | null
   guestFamily?: string | null
@@ -765,6 +770,31 @@ function equipmentPriceForItem(item: { category: string; price: number }) {
 
 function equipmentStock(item: { quantity?: number }) {
   return Math.max(0, Number(item.quantity ?? 1))
+}
+
+function reserveEquipmentExcludeBookingId() {
+  if (isNewReservation()) return undefined
+  const slot = selectedSlotFull.value
+  return activeBooking(slot)?.id
+}
+
+function reserveEquipmentStartTimes() {
+  const slots = slotsForReserve()
+  return uniqueOrdered(slots.map((slot) => normalizeSlotTime(slot.startTime)).filter(Boolean))
+}
+
+/** Available units at selected slot time(s), accounting for other bookings the same hour. */
+function equipmentAvailable(item: { id: string; quantity?: number }) {
+  const slots = slotsForReserve()
+  if (!slots.length) return equipmentStock(item)
+  return minAvailableEquipmentAcrossTimes(
+    data.value?.slots || [],
+    item.id,
+    date.value,
+    reserveEquipmentStartTimes(),
+    equipmentStock(item),
+    reserveEquipmentExcludeBookingId(),
+  )
 }
 
 function sumEquipmentIds(ids: string[], quantities?: Record<string, number>) {
@@ -1754,8 +1784,7 @@ function toggleReserveEquipment(id: string) {
     return
   }
   const stockItem = (equipments.value || []).find((item) => item.id === id)
-  const stock = equipmentStock(stockItem || {})
-  if (stock < 1) return
+  if (equipmentAvailable(stockItem || { id }) < 1) return
   form.equipmentIds = [...form.equipmentIds, id]
   form.equipmentQuantities = { ...form.equipmentQuantities, [id]: 1 }
 }
@@ -1767,7 +1796,7 @@ function equipmentQty(id: string) {
 
 function setEquipmentQty(id: string, qty: number) {
   const stockItem = (equipments.value || []).find((item) => item.id === id)
-  const stock = equipmentStock(stockItem || {})
+  const stock = equipmentAvailable(stockItem || { id })
   const next = Math.min(stock, Math.max(0, Math.round(qty)))
   if (next <= 0) {
     form.equipmentIds = form.equipmentIds.filter((item) => item !== id)
@@ -1789,7 +1818,7 @@ function onEquipmentPickerUpdate(ids: string[]) {
   for (const id of nextIds) {
     if (!previous.has(id)) {
       const stockItem = (equipments.value || []).find((item) => item.id === id)
-      if (equipmentStock(stockItem || {}) < 1) continue
+      if (equipmentAvailable(stockItem || { id }) < 1) continue
       quantities[id] = 1
     }
   }
@@ -1798,10 +1827,40 @@ function onEquipmentPickerUpdate(ids: string[]) {
   }
   form.equipmentIds = nextIds.filter((id) => {
     const stockItem = (equipments.value || []).find((item) => item.id === id)
-    return equipmentStock(stockItem || {}) >= 1
+    return equipmentAvailable(stockItem || { id }) >= 1
   })
   form.equipmentQuantities = quantities
 }
+
+function clampReserveEquipmentToAvailability() {
+  for (const id of [...form.equipmentIds]) {
+    const item = (equipments.value || []).find((row) => row.id === id)
+    if (!item) continue
+    const max = equipmentAvailable(item)
+    if (max < 1) {
+      form.equipmentIds = form.equipmentIds.filter((rowId) => rowId !== id)
+      const next = { ...form.equipmentQuantities }
+      delete next[id]
+      form.equipmentQuantities = next
+    }
+    else if (equipmentQty(id) > max) {
+      setEquipmentQty(id, max)
+    }
+  }
+}
+
+watch(
+  () => [
+    date.value,
+    selectedSlotIds.value.join(','),
+    selectedSlot.value?.id,
+    data.value?.slots?.map((slot) => `${slot.id}:${slot.booking?.id || ''}`).join('|'),
+  ],
+  () => {
+    if (!form.equipmentIds.length) return
+    clampReserveEquipmentToAvailability()
+  },
+)
 
 const payConfirmDateHeading = computed(() => {
   const j = isoToJalaali(date.value)
@@ -2439,7 +2498,7 @@ function slotBarColor(status: string, slot?: OwnerCalendarSlot | null) {
                       <button
                         type="button"
                         class="canva-qty-step-btn"
-                        :disabled="equipmentQty(item.id) >= equipmentStock(item)"
+                        :disabled="equipmentQty(item.id) >= equipmentAvailable(item)"
                         @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) + 1)"
                       >+</button>
                     </span>

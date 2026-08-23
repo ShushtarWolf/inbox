@@ -68,7 +68,11 @@ export default defineEventHandler(async (event) => {
   const orderedSlots = slotIds.map((id) => slots.find((s) => s.id === id)!)
 
   const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
-  const equipmentItems = await loadEquipmentForBooking(clubId, equipmentSelections)
+  const primarySlot = orderedSlots[0]!
+  const equipmentItems = await loadEquipmentForBooking(clubId, equipmentSelections, {
+    date: primarySlot.date,
+    startTime: primarySlot.startTime,
+  })
   if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
   }

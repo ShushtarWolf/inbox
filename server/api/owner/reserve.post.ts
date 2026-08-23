@@ -112,7 +112,11 @@ export default defineEventHandler(async (event) => {
   )
   const becomingPaid = paymentStatus === 'PAID' && !previousPaid
   const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
-  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentSelections)
+  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentSelections, {
+    date: slot.date,
+    startTime: slot.startTime,
+    excludeBookingId: existing?.id,
+  })
   if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
   }

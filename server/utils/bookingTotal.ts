@@ -1,4 +1,5 @@
 import type { Equipment, Prisma } from '@prisma/client'
+import { availableEquipmentAtTime, type EquipmentSlotContext } from './equipmentAvailability'
 
 export type EquipmentRow = Pick<Equipment, 'id' | 'price' | 'category'>
 
@@ -48,9 +49,12 @@ export function parseEquipmentSelections(
   })
 }
 
+export type { EquipmentSlotContext }
+
 export async function loadEquipmentForBooking(
   clubId: string,
   selections: EquipmentSelectionInput[],
+  slotContext?: EquipmentSlotContext,
 ): Promise<EquipmentBookingItem[]> {
   if (!selections.length) return []
   const rows = await prisma.equipment.findMany({
@@ -63,10 +67,21 @@ export async function loadEquipmentForBooking(
     const row = byId.get(selection.id)
     if (!row) continue
     const stock = Math.max(0, row.quantity ?? 1)
-    if (stock < 1) {
+    let maxQty = stock
+    if (slotContext) {
+      maxQty = await availableEquipmentAtTime({
+        clubId,
+        equipmentId: row.id,
+        date: slotContext.date,
+        startTime: slotContext.startTime,
+        totalStock: stock,
+        excludeBookingId: slotContext.excludeBookingId,
+      })
+    }
+    if (maxQty < 1) {
       throw createError({ statusCode: 400, statusMessage: 'Equipment out of stock' })
     }
-    if (selection.quantity > stock) {
+    if (selection.quantity > maxQty) {
       throw createError({ statusCode: 400, statusMessage: 'Equipment quantity exceeds stock' })
     }
     items.push({
