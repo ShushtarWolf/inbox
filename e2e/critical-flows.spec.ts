@@ -29,16 +29,15 @@ test('profile photo upload saves avatar', async ({ page }) => {
   await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
 
   await page.goto('/athlete/profile')
-  const fileInput = page.locator('input[type="file"]')
-  await expect(fileInput).toHaveCount(1)
-
-  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9])
   const uploadPromise = page.waitForResponse((res) => res.url().includes('/api/uploads') && res.request().method() === 'POST')
-  await fileInput.setInputFiles({ name: 'photo.jpg', mimeType: 'image/jpeg', buffer: jpeg })
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'انتخاب تصویر' }).click()
+  const fileChooser = await fileChooserPromise
+  await fileChooser.setFiles('public/icons/icon-192.png')
   const uploadRes = await uploadPromise
   expect(uploadRes.ok()).toBeTruthy()
 
-  await expect(page.locator('img[src*="/uploads/"]')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('img[src*="/uploads/athlete/"]')).toBeVisible({ timeout: 15_000 })
 })
 
 test('owner can login via phone OTP and view finance', async ({ page }) => {
