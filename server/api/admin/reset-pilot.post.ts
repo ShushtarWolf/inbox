@@ -20,6 +20,7 @@ import {
 import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhotos.ts'
 import { catalogCounts, wipeCatalog } from '../../utils/wipeCatalog'
 import { applyPilotCourtPhotos, ensurePilotCourts } from '../../utils/behnazClubPhotos'
+import { seedDefaultEquipment } from '../../utils/seedDefaultEquipment'
 
 const WIPE_CONFIRM = 'WIPE_ALL_USERS_AND_CLUBS'
 
@@ -119,6 +120,8 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
+
+    await seedDefaultEquipment(tx, club.id)
 
     await tx.staffMembership.create({
       data: {

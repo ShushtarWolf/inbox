@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { hashSecret } from '../../../../utils/password'
 import { siteUrl } from '../../../../utils/email'
 import { sendNotification } from '../../../../utils/notify'
+import { seedDefaultEquipment } from '../../../../utils/seedDefaultEquipment'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -151,6 +152,8 @@ export default defineEventHandler(async (event) => {
         price: 600000,
       },
     })
+
+    await seedDefaultEquipment(tx, club.id)
 
     await tx.staffMembership.create({
       data: {

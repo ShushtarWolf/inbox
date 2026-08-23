@@ -17,6 +17,7 @@ import {
 import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhotos.ts'
 import { hashSecret } from '../../utils/password'
 import { applyPilotCourtPhotos } from '../../utils/behnazClubPhotos'
+import { seedDefaultEquipment } from '../../utils/seedDefaultEquipment'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -120,6 +121,7 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
+    await seedDefaultEquipment(tx, club.id)
     await tx.staffMembership.create({
       data: {
         userId: created.id,
