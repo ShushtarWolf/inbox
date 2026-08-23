@@ -11,7 +11,8 @@ Production database is Liara **`inbox-db`**. Git history is not a data backup.
 
 When the user asked to deploy to Liara (`inbox` / `inboxs.ir`), **do not consider the deploy done** until a dump exists **on this computer**.
 
-1. Confirm deploy succeeded (`liara deploy --app inbox`).
+1. Confirm deploy succeeded (GitHub Actions **Deploy to Liara** workflow green, or
+   `gh run view` for the triggered run). Do not use local `liara deploy` for production.
 2. Create an on-demand backup: `liara db backup create --name inbox-db`
 3. List backups: `liara db backup list --name inbox-db` and note the newest `manual/…` name.
 4. Download it into the repo-local folder (gitignored):

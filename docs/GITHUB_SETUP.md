@@ -54,7 +54,7 @@ Avoid appending `Co-authored-by: Cursor` on every commit unless you intend to sh
 
 ## Liara CD (GitHub Actions)
 
-Production deploys run from GitHub after **CI** passes on `main` (`.github/workflows/deploy.yml`). You can also trigger **Deploy to Liara** manually from the Actions tab.
+Production deploys are **manual only** — trigger **Deploy to Liara** from the Actions tab or ask the agent to run `gh workflow run deploy.yml --ref main`. Pushes to `main` do not auto-deploy.
 
 One-time secret (Settings → Secrets and variables → Actions):
 
