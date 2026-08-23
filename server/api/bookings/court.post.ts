@@ -1,6 +1,7 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
+import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import {
   loadEquipmentForBooking,
@@ -13,6 +14,7 @@ import {
   redeemDiscountCode,
   resolveDiscountForBooking,
 } from '../../utils/discountCodes'
+import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 
@@ -31,6 +33,9 @@ export default defineEventHandler(async (event) => {
       .filter((id): id is string => Boolean(id)),
   )]
   if (!slotIds.length) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
+
+  // Free any stale unpaid online holds on these slots before availability checks.
+  await releaseExpiredOnlinePaymentHolds({ slotIds })
 
   const slots = await prisma.slot.findMany({
     where: { id: { in: slotIds } },
@@ -83,6 +88,8 @@ export default defineEventHandler(async (event) => {
   const discountAmount = discount?.discountAmount || 0
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+  const onlineEnabled = isOnlinePaymentsEnabled()
+  const holdDisplay = initialOnlineCourtHoldDisplay(onlineEnabled)
 
   let primaryBookingId = ''
   let paymentStatus = ''
@@ -98,7 +105,7 @@ export default defineEventHandler(async (event) => {
         // gateway checkout covers the sheet total; siblings are amount 0 + linked.
         // Pay-at-club: each booking keeps its own desk amount (+ equipment on primary),
         // with percent discount applied across lines (primary first).
-        const groupOnPrimary = orderedSlots.length > 1 && isOnlinePaymentsEnabled()
+        const groupOnPrimary = orderedSlots.length > 1 && onlineEnabled
         let amount: number
         if (groupOnPrimary) {
           amount = isPrimary ? totalAmount : 0
@@ -120,7 +127,7 @@ export default defineEventHandler(async (event) => {
 
         const claimed = await tx.slot.updateMany({
           where: { id: slot.id, displayStatus: 'FREE' },
-          data: { displayStatus: 'RESERVED' },
+          data: { displayStatus: holdDisplay.displayStatus },
         })
         if (claimed.count !== 1) {
           throw new SlotNotAvailableError()
@@ -137,7 +144,7 @@ export default defineEventHandler(async (event) => {
             guestMobile: dbUser.phone,
             paymentStatus: paymentFields.paymentStatus,
             source: 'PLATFORM',
-            status: 'CONFIRMED',
+            status: holdDisplay.bookingStatus,
           },
         })
         bookingIds.push(booking.id)
@@ -183,7 +190,7 @@ export default defineEventHandler(async (event) => {
       }
 
       // Link sibling payments to primary for post-pay sync (online multi only).
-      if (orderedSlots.length > 1 && isOnlinePaymentsEnabled() && primaryBookingId) {
+      if (orderedSlots.length > 1 && onlineEnabled && primaryBookingId) {
         const siblingIds = bookingIds.slice(1)
         const primaryPayment = await tx.payment.findUniqueOrThrow({ where: { bookingId: primaryBookingId } })
         let existingMeta: Record<string, unknown> = {}
@@ -222,31 +229,34 @@ export default defineEventHandler(async (event) => {
     rethrowSlotConflict(error)
   }
 
-  const groups = new Map<string, typeof orderedSlots>()
-  for (const slot of orderedSlots) {
-    const key = `${slot.date}|${slot.courtId}`
-    const list = groups.get(key) || []
-    list.push(slot)
-    groups.set(key, list)
-  }
-  for (const group of groups.values()) {
-    const range = bookingTimeRange(group)
-    await notifyBookingConfirmed({
-      userId: user.id,
-      email: dbUser.email,
-      phone: dbUser.phone,
-      kind: 'court',
-      clubName: clubNotifyName(club),
-      clubId,
-      bookingId: bookingIds[orderedSlots.indexOf(group[0]!)]!,
-      date: group[0]!.date,
-      startTime: range.startTime,
-      endTime: range.endTime,
-      courtName: courtNotifyName(group[0]!.court),
-      paymentPaid: paymentStatus === 'PAID',
-      guestName: personNotifyName(dbUser.name),
-      ...clubNotifyLocation(club),
-    })
+  // Online soft-holds wait for PAID before "رزرو تایید شد"; pay-at-club confirms now.
+  if (!onlineEnabled) {
+    const groups = new Map<string, typeof orderedSlots>()
+    for (const slot of orderedSlots) {
+      const key = `${slot.date}|${slot.courtId}`
+      const list = groups.get(key) || []
+      list.push(slot)
+      groups.set(key, list)
+    }
+    for (const group of groups.values()) {
+      const range = bookingTimeRange(group)
+      await notifyBookingConfirmed({
+        userId: user.id,
+        email: dbUser.email,
+        phone: dbUser.phone,
+        kind: 'court',
+        clubName: clubNotifyName(club),
+        clubId,
+        bookingId: bookingIds[orderedSlots.indexOf(group[0]!)]!,
+        date: group[0]!.date,
+        startTime: range.startTime,
+        endTime: range.endTime,
+        courtName: courtNotifyName(group[0]!.court),
+        paymentPaid: paymentStatus === 'PAID',
+        guestName: personNotifyName(dbUser.name),
+        ...clubNotifyLocation(club),
+      })
+    }
   }
 
   return {

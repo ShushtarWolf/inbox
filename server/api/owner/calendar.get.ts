@@ -3,6 +3,10 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const from = typeof query.from === 'string' ? query.from : ''
   const to = typeof query.to === 'string' ? query.to : ''
+
+  // Free expired unpaid online holds so owner grid matches public availability.
+  await releaseExpiredOnlinePaymentHolds({ clubId: club.id })
+
   if (from && to) {
     const monthSlots = await prisma.slot.findMany({
       where: { court: { clubId: club.id }, date: { gte: from, lte: to } },

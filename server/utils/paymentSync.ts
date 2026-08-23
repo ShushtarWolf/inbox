@@ -11,6 +11,7 @@ import {
 } from './bookingNotify'
 import { notifyAdminWalletTopUp } from './adminNotify'
 import { getPaymentService } from './payments/service'
+import { promoteOnlineHoldOnPaid } from './onlinePaymentHold'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
 
@@ -67,6 +68,10 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
   const paymentMethod = resolveParentPaymentMethod(payment.method, payment.status)
 
   if (payment.bookingId) {
+    const booking = await db.booking.findUnique({ where: { id: payment.bookingId } })
+    // Expired/cancelled holds must not be revived by a late PAID sync.
+    if (booking?.status === 'CANCELLED') return
+
     await db.booking.update({
       where: { id: payment.bookingId },
       data: {
@@ -74,6 +79,10 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
         ...(paymentMethod ? { paymentMethod } : {}),
       },
     })
+
+    if (payment.status === 'PAID') {
+      await promoteOnlineHoldOnPaid(payment.bookingId, db)
+    }
 
     // Multi-slot group: when the primary (combined) payment settles, mirror status onto siblings.
     if (payment.metadataJson && payment.status === 'PAID') {
@@ -276,8 +285,27 @@ export async function confirmPaymentAndSync(
       providerRef,
       ...(providerName ? { provider: providerName } : {}),
     },
+    include: { booking: { select: { id: true, status: true } } },
   })
   const previousStatus = before?.status || ''
+
+  // Hold already released — do not confirm/credit against a cancelled booking.
+  if (before?.booking?.status === 'CANCELLED') {
+    if (before.status !== 'PAID' && before.status !== 'REFUNDED' && before.status !== 'FAILED') {
+      await prisma.payment.update({
+        where: { id: before.id },
+        data: { status: 'FAILED' },
+      })
+      await syncPaymentToParent(before.id)
+    }
+    return {
+      id: before.id,
+      amount: before.amount,
+      status: 'FAILED' as const,
+      provider: before.provider,
+      providerRef: before.providerRef,
+    }
+  }
 
   const service = getPaymentService(providerName)
   const intent = await service.confirm(providerRef, opts)

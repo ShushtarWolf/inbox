@@ -37,6 +37,8 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
       .toBe('i18n:booking.errors.slotInPast')
     expect(fetchErrorMessage(err('Slot not available'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotNotAvailable')
+    expect(fetchErrorMessage(err('HOLD_EXPIRED'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.holdExpired')
     expect(fetchErrorMessage(err('This session time is already booked'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.sessionTaken')
   })
@@ -46,6 +48,7 @@ describe('isSlotConflictError', () => {
   it('detects 409 status and known slot conflict messages', () => {
     expect(isSlotConflictError({ statusCode: 409 })).toBe(true)
     expect(isSlotConflictError({ data: { statusMessage: 'Slot not available' } })).toBe(true)
+    expect(isSlotConflictError({ data: { statusMessage: 'HOLD_EXPIRED' } })).toBe(true)
     expect(isSlotConflictError({ data: { statusMessage: 'Invalid credentials' } })).toBe(false)
   })
 })

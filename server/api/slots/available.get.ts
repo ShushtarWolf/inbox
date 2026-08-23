@@ -1,5 +1,6 @@
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
+import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
   if (isPastDate(date)) return []
 
   await ensureSlotsForDate(club.id, date)
+  await releaseExpiredOnlinePaymentHolds({ clubId: club.id })
 
   // Public club detail needs booked/blocked cells for Canva legend; default stays FREE-only for booking APIs.
   const includeUnavailable = query.includeUnavailable === '1' || query.includeUnavailable === 'true'

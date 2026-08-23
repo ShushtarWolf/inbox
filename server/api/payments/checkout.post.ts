@@ -4,6 +4,10 @@ import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/booking
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
+import {
+  assertOnlineHoldPayable,
+  releaseExpiredOnlinePaymentHolds,
+} from '../../utils/onlinePaymentHold'
 import { notifyPaymentPaidIfNeeded, syncPaymentToParent } from '../../utils/paymentSync'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
@@ -31,11 +35,18 @@ export default defineEventHandler(async (event) => {
   } | null = null
 
   if (body.bookingId) {
+    await releaseExpiredOnlinePaymentHolds({ bookingIds: [body.bookingId] })
     const booking = await prisma.booking.findFirst({
       where: { id: body.bookingId, userId: user.id },
       include: { slot: { include: { court: true } }, payment: true },
     })
     if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+    assertOnlineHoldPayable({
+      source: booking.source,
+      status: booking.status,
+      paymentStatus: booking.payment?.status || booking.paymentStatus,
+      createdAt: booking.createdAt,
+    })
     if (booking.payment) existingPayment = booking.payment
     else {
       amount = computeBookingPrice(

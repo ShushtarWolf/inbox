@@ -23,6 +23,7 @@ import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaEr
 import { assignBookingPayPin } from '../../utils/payPin'
 import { payUrlForPin } from '../../utils/receipt'
 import { activeSlotBooking } from '../../utils/reservations'
+import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
 import { creditWallet } from '../../utils/wallet'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
@@ -76,6 +77,8 @@ export default defineEventHandler(async (event) => {
   const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
   const guestMobile = resolveGuestMobile(body.guestMobile)
   const linkedUserId = await findUserIdByPhone(guestMobile)
+
+  await releaseExpiredOnlinePaymentHolds({ slotIds: [body.slotId], clubId: club.id })
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },

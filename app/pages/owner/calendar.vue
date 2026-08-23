@@ -567,6 +567,8 @@ function slotPaymentBadge(slot: OwnerCalendarSlot | null | undefined) {
   const status = slotPaymentStatus(slot)
   if (!status || slot?.displayStatus === 'FREE' || slot?.displayStatus === 'BLOCKED')
     return ''
+  // Soft online hold — distinct from desk unpaid «پرداخت‌نشده».
+  if (slot?.displayStatus === 'PENDING') return t('owner.status.PENDING')
   // Short grid labels — full status strings clip in narrow court columns.
   if (isUnpaidPaymentStatus(status)) return t('owner.slotPayUnpaid')
   if (isPaidPaymentStatus(status)) return t('owner.slotPayPaid')
