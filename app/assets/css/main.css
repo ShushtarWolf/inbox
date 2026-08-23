@@ -9,13 +9,13 @@
 
 @layer base {
   html {
-    /* Prevent iOS Safari horizontal rubber-band revealing clipped Canva chrome */
-    overflow-x: clip;
+    /* overflow-x: hidden — Safari implements overflow-x: clip incorrectly (also clips Y / hit-testing). */
+    overflow-x: hidden;
   }
   body {
     @apply bg-brand-cream text-brand-navy font-sans antialiased;
     min-height: 100dvh;
-    overflow-x: clip;
+    overflow-x: hidden;
   }
   [dir='rtl'] body {
     font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
@@ -373,15 +373,17 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-gate-btn-primary {
-    @apply flex w-full items-center justify-center bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
+    @apply flex w-full cursor-pointer items-center justify-center bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-venus-sm transition hover:brightness-110;
     border-radius: var(--sz-canva-radius);
+    -webkit-tap-highlight-color: transparent;
   }
   .canva-gate-btn-primary:disabled {
     @apply cursor-not-allowed bg-brand-gray-300 text-brand-gray-600 shadow-none hover:brightness-100;
   }
   .canva-gate-btn-secondary {
-    @apply flex w-full items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary backdrop-blur-sm transition hover:bg-brand-primary-soft;
+    @apply flex w-full cursor-pointer items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary backdrop-blur-sm transition hover:bg-brand-primary-soft;
     border-radius: var(--sz-canva-radius);
+    -webkit-tap-highlight-color: transparent;
   }
   .canva-gate-btn-secondary:disabled {
     @apply cursor-not-allowed border-brand-gray-300 text-brand-gray-400 hover:bg-white;
@@ -420,7 +422,8 @@
     box-shadow: none;
   }
   .canva-hero-media {
-    @apply absolute inset-0 h-full w-full object-cover opacity-55;
+    /* pointer-events-none: Safari treats absolute media as a tap barrier over siblings/chrome */
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover opacity-55;
   }
   /* B&W hero helper */
   .canva-hero-media-bw {
@@ -457,8 +460,9 @@
   }
   /* Square login — replaces btn-primary / rounded-lg / rounded-full */
   .canva-home-login {
-    @apply inline-flex items-center justify-center bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white shadow-venus-sm transition hover:brightness-110;
+    @apply inline-flex cursor-pointer items-center justify-center bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white shadow-venus-sm transition hover:brightness-110;
     border-radius: var(--sz-canva-radius);
+    -webkit-tap-highlight-color: transparent;
   }
   .canva-home-login-soft {
     @apply bg-brand-primary-soft text-brand-primary shadow-none hover:brightness-100;
@@ -2371,10 +2375,13 @@
   }
 }
 
-/* Page transitions */
+/* Page transitions — leave must not steal taps (Safari keeps opacity:0 nodes hittable). */
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.page-leave-active {
+  pointer-events: none;
 }
 .page-enter-from {
   opacity: 0;
@@ -2385,10 +2392,14 @@
   transform: translateY(-6px);
 }
 
-/* Modal transition */
+/* Modal transition — leave must not steal taps after close on iOS Safari. */
 .venus-modal-enter-active,
 .venus-modal-leave-active {
   transition: opacity 0.2s ease;
+}
+.venus-modal-leave-active,
+.venus-modal-leave-to {
+  pointer-events: none !important;
 }
 .venus-modal-enter-active .animate-venus-fade-up,
 .venus-modal-leave-active .animate-venus-fade-up {

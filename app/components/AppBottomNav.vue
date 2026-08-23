@@ -50,7 +50,7 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to + item.label"
         v-bind="item.action ? { type: 'button' } : { to: item.to }"
-        class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-medium transition-colors"
+        class="relative flex min-h-14 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-medium transition-colors"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
           !item.action && isActive(item.to)

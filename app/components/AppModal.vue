@@ -19,25 +19,23 @@ const emit = defineEmits<{
 const dialogRef = ref<HTMLElement | null>(null)
 const previousFocus = ref<HTMLElement | null>(null)
 
-/** Visual viewport — keeps sheets above the mobile keyboard instead of burying focused fields. */
-const vvTop = ref(0)
-const vvHeight = ref(import.meta.client ? window.innerHeight : 0)
-const keyboardInset = ref(0)
-
+/**
+ * Visual viewport → CSS vars only (keyboard-aware max-height for sheet bodies).
+ * Never reposition the fixed overlay with offsetTop/height — on iOS Safari that
+ * leaves an invisible full-screen hit target while Chrome iOS often still works.
+ */
 function syncVisualViewport() {
   if (!import.meta.client) return
   const vv = window.visualViewport
   if (!vv) {
-    vvTop.value = 0
-    vvHeight.value = window.innerHeight
-    keyboardInset.value = 0
+    document.documentElement.style.setProperty('--app-vv-height', `${window.innerHeight}px`)
+    document.documentElement.style.setProperty('--app-keyboard-inset', '0px')
     return
   }
-  vvTop.value = Math.max(0, vv.offsetTop)
-  vvHeight.value = Math.max(0, Math.round(vv.height))
-  keyboardInset.value = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
-  document.documentElement.style.setProperty('--app-vv-height', `${vvHeight.value}px`)
-  document.documentElement.style.setProperty('--app-keyboard-inset', `${keyboardInset.value}px`)
+  const height = Math.max(0, Math.round(vv.height))
+  const keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+  document.documentElement.style.setProperty('--app-vv-height', `${height}px`)
+  document.documentElement.style.setProperty('--app-keyboard-inset', `${keyboardInset}px`)
 }
 
 function getFocusableElements(root: HTMLElement) {
@@ -88,37 +86,26 @@ function onDialogFocusIn(event: FocusEvent) {
   scrollFocusedFieldIntoView(event.target)
 }
 
-const overlayStyle = computed(() => {
-  if (!props.open) return undefined
-  const height = vvHeight.value || (import.meta.client ? window.innerHeight : 0)
-  if (!height) return undefined
-  return {
-    top: `${vvTop.value}px`,
-    height: `${height}px`,
-    bottom: 'auto',
-  } as Record<string, string>
-})
-
 watch(() => props.open, (isOpen) => {
-  if (import.meta.client) {
-    document.body.style.overflow = isOpen ? 'hidden' : ''
-    if (isOpen) {
-      previousFocus.value = document.activeElement as HTMLElement | null
-      syncVisualViewport()
-      window.visualViewport?.addEventListener('resize', syncVisualViewport)
-      window.visualViewport?.addEventListener('scroll', syncVisualViewport)
-      window.addEventListener('resize', syncVisualViewport)
-      nextTick(() => {
-        dialogRef.value?.focus()
-        document.addEventListener('keydown', onDialogKeydown)
-      })
-    } else {
-      window.visualViewport?.removeEventListener('resize', syncVisualViewport)
-      window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
-      window.removeEventListener('resize', syncVisualViewport)
-      document.removeEventListener('keydown', onDialogKeydown)
-      previousFocus.value?.focus()
-    }
+  if (!import.meta.client) return
+  document.body.style.overflow = isOpen ? 'hidden' : ''
+  if (isOpen) {
+    previousFocus.value = document.activeElement as HTMLElement | null
+    syncVisualViewport()
+    window.visualViewport?.addEventListener('resize', syncVisualViewport)
+    window.visualViewport?.addEventListener('scroll', syncVisualViewport)
+    window.addEventListener('resize', syncVisualViewport)
+    nextTick(() => {
+      dialogRef.value?.focus()
+      document.addEventListener('keydown', onDialogKeydown)
+    })
+  } else {
+    window.visualViewport?.removeEventListener('resize', syncVisualViewport)
+    window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
+    window.removeEventListener('resize', syncVisualViewport)
+    document.removeEventListener('keydown', onDialogKeydown)
+    document.body.style.overflow = ''
+    previousFocus.value?.focus()
   }
 })
 
@@ -145,14 +132,18 @@ onUnmounted(() => {
     <Transition name="venus-modal">
       <div
         v-if="open"
-        class="fixed inset-x-0 top-0 flex flex-col overflow-y-auto overscroll-contain bg-[#2c2c2a]/60 p-4 pb-[max(1rem,var(--sz-safe-bottom))] backdrop-blur-[2px] sm:p-6"
+        class="fixed inset-0 flex flex-col overflow-y-auto overscroll-contain p-4 pb-[max(1rem,var(--sz-safe-bottom))] sm:p-6"
         :class="overlayClass || 'z-[55]'"
-        :style="overlayStyle"
         role="presentation"
-        @click.self="close"
       >
+        <!-- Dedicated backdrop: always inset-0. Do not size via visualViewport (Safari hit-test bug). -->
         <div
-          class="flex h-full w-full justify-center"
+          class="absolute inset-0 z-0 bg-[#2c2c2a]/60 backdrop-blur-[2px]"
+          aria-hidden="true"
+          @click="close"
+        />
+        <div
+          class="relative z-[1] flex min-h-0 w-full flex-1 justify-center"
           :class="sheet ? 'items-end sm:items-center' : 'items-center'"
         >
           <div

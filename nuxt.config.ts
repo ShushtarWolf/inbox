@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
-const PWA_RESET_VERSION = '5'
+const PWA_RESET_VERSION = '6'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
