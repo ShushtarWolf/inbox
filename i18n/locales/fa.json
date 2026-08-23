@@ -346,6 +346,9 @@
     "historyEmptyMonthBody": "رزروی برای این ماه ثبت نشده.",
     "historyEmptyDay": "در این روز رزروی نیست",
     "historyEmptyDayBody": "رزروی برای این تاریخ ثبت نشده.",
+    "historyEmptyDayFilterBody": "رزروی برای این تاریخ ثبت نشده. برای دیدن همه رزروها، فیلتر را بردارید.",
+    "historyFilterDay": "فیلتر: {date}",
+    "historyShowAll": "نمایش همه رزروها",
     "historyEquipmentQty": "{qty} عدد {name}",
     "historyCourtQty": "{qty} زمین"
   },

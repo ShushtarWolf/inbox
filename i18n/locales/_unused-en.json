@@ -249,7 +249,12 @@
     "historyStatusCancelled": "Cancelled",
     "historyCancel": "Cancel",
     "historyRebook": "Book again",
-    "historyEmptyMonth": "No bookings this month"
+    "historyEmptyMonth": "No bookings this month",
+    "historyEmptyDay": "No bookings on this day",
+    "historyEmptyDayBody": "Nothing booked for this date.",
+    "historyEmptyDayFilterBody": "Nothing booked for this date. Clear the filter to see all reservations.",
+    "historyFilterDay": "Filter: {date}",
+    "historyShowAll": "Show all reservations"
   },
   "coach": {
     "today": "Today",

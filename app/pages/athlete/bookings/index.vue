@@ -142,6 +142,10 @@ function selectDay(iso: string) {
   selectedDayIso.value = selectedDayIso.value === iso ? null : iso
 }
 
+function clearCalendarFilter() {
+  selectedDayIso.value = null
+}
+
 const route = useRoute()
 const highlightBookingId = computed(() =>
   typeof route.query.booking === 'string' ? route.query.booking : '',
@@ -345,9 +349,10 @@ const selectedDayTimes = computed(() => {
   )].slice(0, 4)
 })
 
+const calendarDayFilterActive = computed(() => Boolean(selectedDayIso.value))
+
 const filteredItems = computed(() => {
-  const key = `${viewYear.value}-${String(viewMonth.value).padStart(2, '0')}`
-  let list = visibleHistory.value.filter((item) => monthKeyJalali(item.date) === key)
+  let list = visibleHistory.value
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
@@ -359,12 +364,19 @@ const filteredItems = computed(() => {
 
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
-const historyEmptyTitle = computed(() =>
-  selectedDayIso.value ? t('athlete.historyEmptyDay') : t('athlete.historyEmptyMonth'),
-)
-const historyEmptyBody = computed(() =>
-  selectedDayIso.value ? t('athlete.historyEmptyDayBody') : t('athlete.historyEmptyMonthBody'),
-)
+const historyEmptyTitle = computed(() => {
+  if (selectedDayIso.value) return t('athlete.historyEmptyDay')
+  return t('booking.emptyState')
+})
+
+const historyEmptyBody = computed(() => {
+  if (selectedDayIso.value) {
+    return hasAnyBookings.value
+      ? t('athlete.historyEmptyDayFilterBody')
+      : t('athlete.historyEmptyDayBody')
+  }
+  return ''
+})
 
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
   if (item.status === 'CANCELLED') return 'cancelled'
@@ -487,6 +499,15 @@ function dateLine(item: HistoryItem) {
       </button>
     </section>
 
+    <div v-if="calendarDayFilterActive && selectedDayIso" class="canva-history-filter">
+      <p class="canva-history-filter-label">
+        {{ t('athlete.historyFilterDay', { date: formatIsoDate(selectedDayIso) }) }}
+      </p>
+      <button type="button" class="canva-history-sort" @click="clearCalendarFilter">
+        {{ t('athlete.historyShowAll') }}
+      </button>
+    </div>
+
     <p
       v-if="paymentFlash"
       class="text-sm"
@@ -502,7 +523,16 @@ function dateLine(item: HistoryItem) {
         :title="historyEmptyTitle"
         :body="historyEmptyBody"
         doodle="seat"
-      />
+      >
+        <button
+          v-if="calendarDayFilterActive && hasAnyBookings"
+          type="button"
+          class="canva-gate-btn-secondary mt-3 px-4 py-2 text-xs font-bold"
+          @click="clearCalendarFilter"
+        >
+          {{ t('athlete.historyShowAll') }}
+        </button>
+      </CanvaEmptyState>
       <div v-else class="canva-history-card-grid">
         <article
           v-for="item in filteredItems"

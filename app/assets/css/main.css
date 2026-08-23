@@ -1272,6 +1272,13 @@
   .canva-history-sort {
     @apply inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600;
   }
+  .canva-history-filter {
+    @apply flex items-center justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-2;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-history-filter-label {
+    @apply text-xs font-bold text-brand-navy text-start;
+  }
   .canva-history-card {
     @apply bg-white p-3;
     border-radius: var(--sz-canva-radius);
