@@ -2098,7 +2098,7 @@
     overflow-wrap: anywhere;
   }
   .canva-cal-legend-note {
-    @apply inline-flex items-center gap-1 text-[11px] font-bold text-brand-gray-600;
+    @apply inline-flex items-center gap-2 text-xs font-bold text-brand-navy;
   }
   .canva-legend-swatch-free {
     background: #eceae6 !important;
@@ -2142,13 +2142,13 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-legend-row {
-    @apply flex flex-wrap items-center justify-start gap-x-3 gap-y-1.5;
+    @apply mb-1 flex flex-wrap items-center justify-start gap-x-5 gap-y-2;
   }
   .canva-legend-item {
-    @apply inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-gray-600;
+    @apply inline-flex items-center gap-2 text-xs font-bold text-brand-navy;
   }
   .canva-legend-swatch {
-    @apply h-2.5 w-2.5 shrink-0;
+    @apply h-3.5 w-3.5 shrink-0;
     border-radius: var(--sz-canva-radius);
   }
   .canva-finance-period {
