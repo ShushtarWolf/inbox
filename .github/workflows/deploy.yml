@@ -23,4 +23,4 @@ jobs:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           npm i -g @liara/cli@9
-          liara deploy --app=inbox --api-token="$LIARA_TOKEN" --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
+          timeout 22m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
