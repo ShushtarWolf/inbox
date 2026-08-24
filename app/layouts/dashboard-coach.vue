@@ -10,6 +10,7 @@ onMounted(() => {
 const nav = computed(() => [
   { to: localePath('/coach'), label: t('coach.today'), icon: 'today' },
   { to: localePath('/coach/schedule'), label: t('coach.schedule'), icon: 'schedule' },
+  { to: localePath('/coach/book'), label: t('coach.book.navLabel'), icon: 'add_circle' },
   { to: localePath('/coach/clients'), label: t('coach.clients'), icon: 'groups' },
   { to: localePath('/coach/profile'), label: t('nav.profile'), icon: 'person' },
 ])

@@ -500,6 +500,7 @@ model Booking {
   events  ReservationEvent[]
   review  Review?
   bookingEquipments BookingEquipment[]
+  coachSession CoachSession? @relation("CoachSessionCourt")
 }
 
 model SeasonBooking {
@@ -603,6 +604,9 @@ model CoachSession {
   coach     Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
   athleteId String
   athlete   User   @relation("AthleteSessions", fields: [athleteId], references: [id], onDelete: Cascade)
+  /** Court the coach reserved for this lesson, paid from the coach wallet at the club's discounted rate. */
+  courtBookingId String?  @unique
+  courtBooking   Booking? @relation("CoachSessionCourt", fields: [courtBookingId], references: [id], onDelete: SetNull)
   payment Payment?
   events  ReservationEvent[]
 }

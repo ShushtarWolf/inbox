@@ -70,7 +70,7 @@ const ownerPaths = [
 ]
 /** Dashboard entry points that forward to their real landing page. */
 const ownerRedirectPaths = ['/owner']
-const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
+const coachPaths = ['/coach', '/coach/schedule', '/coach/book', '/coach/clients', '/coach/profile']
 const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 const adminPaths = [
   '/admin',

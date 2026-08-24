@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const session = await prisma.coachSession.findFirst({
     where: { id, athleteId: user.id },
-    include: { coach: { include: { club: true } }, payment: true, athlete: true },
+    include: {
+      coach: { include: { club: true, user: true } },
+      payment: true,
+      athlete: true,
+      courtBooking: { include: { slot: { include: { court: { include: { club: true } } } } } },
+    },
   })
 
   if (!session) {
@@ -19,7 +24,9 @@ export default defineEventHandler(async (event) => {
     return { ok: true }
   }
 
-  if (!canManageReservation(session.date, session.startTime, session.coach.club?.cancellationWindowHours ?? 24)) {
+  // Independent coaches have no home club, so the lesson's rules come from the club whose court is booked.
+  const hostClub = session.courtBooking?.slot.court.club || session.coach.club
+  if (!canManageReservation(session.date, session.startTime, hostClub?.cancellationWindowHours ?? 24)) {
     throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }
 
@@ -36,13 +43,29 @@ export default defineEventHandler(async (event) => {
     email: session.athlete?.email,
     phone: session.athlete?.phone,
     kind: 'coach',
-    clubName: session.coach.club?.nameEn || session.coach.club?.nameFa || session.coach.nameEn || session.coach.nameFa,
-    clubId: session.coach.clubId || undefined,
+    clubName: hostClub?.nameEn || hostClub?.nameFa || session.coach.nameEn || session.coach.nameFa,
+    clubId: hostClub?.id || undefined,
     bookingId: session.id,
     date: session.date,
     startTime: session.startTime,
     reason: 'athlete-cancel',
   })
+
+  // The coach reserved (and paid for) a court for this lesson — they must know it is off.
+  if (session.courtBooking) {
+    await notifyBookingCancelled({
+      userId: session.coach.userId,
+      email: session.coach.user?.email,
+      phone: session.coach.user?.phone,
+      kind: 'coach',
+      clubName: hostClub?.nameFa || hostClub?.nameEn || '',
+      clubId: hostClub?.id || undefined,
+      bookingId: session.id,
+      date: session.date,
+      startTime: session.startTime,
+      reason: 'athlete-cancel',
+    })
+  }
 
   return result
 })
