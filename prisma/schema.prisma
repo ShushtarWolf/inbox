@@ -139,47 +139,43 @@ enum SupportTicketSource {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  passwordHash    String?
-  name            String
-  nameEn          String?
-  role            Role      @default(ATHLETE)
-  /**
-   * Optional second platform role on the same phone/account (max 2 including `role`).
-   */
-  secondaryRole   Role?
-  locale          String    @default("fa")
-  phone           String?   @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String
+  nameEn        String?
+  role          Role     @default(ATHLETE)
+  /** Optional second platform role on the same phone/account (max 2 including `role`). */
+  secondaryRole Role?
+  locale        String   @default("fa")
+  phone         String?  @unique
   phoneVerifiedAt DateTime?
-  avatarUrl       String?
-  oauthProvider   String?
-  oauthSubject    String?
-  /**
-   * Iranian SHEBA / IBAN (IR + 24 digits). Required before athlete wallet withdraw.
-   */
-  sheba           String?
-  disabledAt      DateTime?
-  lastLoginAt     DateTime?
-  createdAt       DateTime  @default(now())
+  avatarUrl     String?
+  oauthProvider String?
+  oauthSubject  String?
+  /** Iranian SHEBA / IBAN (IR + 24 digits). Required before athlete wallet withdraw. */
+  sheba         String?
+  disabledAt    DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
 
-  ownedClubs          Club[]                @relation("ClubOwner")
-  coachProfile        Coach?
-  bookings            Booking[]
-  coachSessions       CoachSession[]        @relation("AthleteSessions")
-  packageBookings     PackageBooking[]
-  packagePlayers      PackagePlayer[]
-  reviews             Review[]
-  memberships         StaffMembership[]
-  bookingEvents       ReservationEvent[]    @relation("ReservationActor")
-  waitlistEntries     WaitlistEntry[]
+  ownedClubs      Club[]           @relation("ClubOwner")
+  coachProfile    Coach?
+  bookings        Booking[]
+  coachSessions   CoachSession[]   @relation("AthleteSessions")
+  packageBookings PackageBooking[]
+  packagePlayers  PackagePlayer[]
+  reviews         Review[]
+  memberships     StaffMembership[]
+  bookingEvents   ReservationEvent[] @relation("ReservationActor")
+  waitlistEntries WaitlistEntry[]
   passwordResetTokens PasswordResetToken[]
-  notifications       Notification[]
-  wallet              Wallet?
-  payments            Payment[]
-  bugReports          BugReport[]
-  supportTickets      SupportTicket[]
-  withdrawRequests    UserWithdrawRequest[]
+  notifications   Notification[]
+  wallet          Wallet?
+  payments        Payment[]
+  bugReports      BugReport[]
+  supportTickets  SupportTicket[]
+  withdrawRequests UserWithdrawRequest[]
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -227,9 +223,7 @@ model WalletTransaction {
   @@index([walletId, createdAt])
 }
 
-/**
- * Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest.
- */
+/** Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest. */
 model UserWithdrawRequest {
   id            String                @id @default(cuid())
   amount        Int
@@ -240,8 +234,8 @@ model UserWithdrawRequest {
   paidAt        DateTime?
   rejectedAt    DateTime?
 
-  userId           String
-  user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   paymentDocuments WithdrawPaymentDocument[]
 
   @@index([userId, status, createdAt])
@@ -278,18 +272,14 @@ enum ClubStatus {
   SUSPENDED
 }
 
-/**
- * Public coach signup is invite-free but needs platform admin acceptance before the coach is listed.
- */
+/** Public coach signup is invite-free but needs platform admin acceptance before listing. */
 enum CoachApprovalStatus {
   PENDING
   APPROVED
   REJECTED
 }
 
-/**
- * Coach asks to work at a club; the club owner accepts and sets the court discount.
- */
+/** Coach asks to work at a club; the club owner accepts and sets the court discount. */
 enum CoachClubLinkStatus {
   PENDING
   ACTIVE
@@ -319,29 +309,29 @@ model BugReport {
   resolvedAt    DateTime?
 
   userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
 }
 
 model SupportTicket {
-  id         String              @id @default(cuid())
-  status     SupportTicketStatus @default(OPEN)
-  source     SupportTicketSource @default(CONTACT)
-  body       String
-  name       String?
-  email      String?
-  phone      String?
-  pageUrl    String?
-  bookingId  String?
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
+  id        String               @id @default(cuid())
+  status    SupportTicketStatus  @default(OPEN)
+  source    SupportTicketSource  @default(CONTACT)
+  body      String
+  name      String?
+  email     String?
+  phone     String?
+  pageUrl   String?
+  bookingId String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
   resolvedAt DateTime?
 
   userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
   clubId String?
-  club   Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  club   Club?  @relation(fields: [clubId], references: [id], onDelete: SetNull)
 
   messages SupportTicketMessage[]
 
@@ -351,10 +341,10 @@ model SupportTicket {
 }
 
 model SupportTicketMessage {
-  id        String   @id @default(cuid())
-  body      String
-  fromAdmin Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  body       String
+  fromAdmin  Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   ticketId String
   ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
@@ -378,65 +368,63 @@ model ClubApplication {
 }
 
 model Club {
-  id                            String     @id @default(cuid())
-  slug                          String     @unique
-  nameFa                        String
-  nameEn                        String
-  addressFa                     String
-  addressEn                     String
-  city                          String
-  district                      String?
-  lat                           Float?
-  lng                           Float?
-  rating                        Float      @default(4.5)
-  priceFrom                     Int        @default(500000)
-  image                         String?
-  featured                      Boolean    @default(false)
-  status                        ClubStatus @default(ACTIVE)
-  openHour                      Int        @default(8)
-  closeHour                     Int        @default(22)
-  defaultSessionDurationMinutes Int        @default(60)
+  id        String  @id @default(cuid())
+  slug      String  @unique
+  nameFa    String
+  nameEn    String
+  addressFa String
+  addressEn String
+  city      String
+  district  String?
+  lat       Float?
+  lng       Float?
+  rating    Float   @default(4.5)
+  priceFrom Int     @default(500000)
+  image     String?
+  featured  Boolean @default(false)
+  status    ClubStatus @default(ACTIVE)
+  openHour  Int     @default(8)
+  closeHour Int     @default(22)
+  defaultSessionDurationMinutes Int @default(60)
   sessionDurationsJson          String?
-  descriptionFa                 String?
-  descriptionEn                 String?
-  phone                         String?
-  whatsapp                      String?
-  amenitiesJson                 String?
-  policiesJson                  String?
-  pricingJson                   String?
-  verificationNote              String?
-  credentialsJson               String?
-  verifiedAt                    DateTime?
-  priceTo                       Int?
-  cancellationWindowHours       Int        @default(12)
-  rescheduleWindowHours         Int        @default(24)
-  waitlistEnabled               Boolean    @default(true)
-  /**
-   * Iranian SHEBA / IBAN (IR + 24 digits). Required before withdraw.
-   */
-  sheba                         String?
+  descriptionFa String?
+  descriptionEn String?
+  phone         String?
+  whatsapp      String?
+  amenitiesJson String?
+  policiesJson  String?
+  pricingJson   String?
+  verificationNote String?
+  credentialsJson  String?
+  verifiedAt    DateTime?
+  priceTo       Int?
+  cancellationWindowHours Int @default(12)
+  rescheduleWindowHours   Int @default(24)
+  waitlistEnabled Boolean @default(true)
+  /** Iranian SHEBA / IBAN (IR + 24 digits). Required before withdraw. */
+  sheba String?
 
   ownerId String?
   owner   User?   @relation("ClubOwner", fields: [ownerId], references: [id])
 
-  courts            Court[]
-  equipment         Equipment[]
-  contacts          Contact[]
-  smsLogs           SmsLog[]
-  packages          PackageDraft[]
-  seasonBooks       SeasonBooking[]
-  coaches           Coach[]
-  coachLinks        CoachClubLink[]
-  media             ClubMedia[]
-  reviews           Review[]
-  waitlistEntries   WaitlistEntry[]
-  campaigns         Campaign[]
-  segments          ContactSegment[]
-  reminders         ReminderRule[]
-  memberships       StaffMembership[]
-  workers           ClubWorker[]
-  application       ClubApplication?
-  discountCodes     DiscountCode[]
+  courts      Court[]
+  equipment   Equipment[]
+  contacts    Contact[]
+  smsLogs     SmsLog[]
+  packages    PackageDraft[]
+  seasonBooks SeasonBooking[]
+  coaches     Coach[]
+  coachLinks  CoachClubLink[]
+  media       ClubMedia[]
+  reviews     Review[]
+  waitlistEntries WaitlistEntry[]
+  campaigns   Campaign[]
+  segments    ContactSegment[]
+  reminders   ReminderRule[]
+  memberships StaffMembership[]
+  workers     ClubWorker[]
+  application ClubApplication?
+  discountCodes DiscountCode[]
   wallet            ClubWallet?
   withdrawRequests  WithdrawRequest[]
   settlementEntries SettlementLedgerEntry[]
@@ -444,13 +432,13 @@ model Club {
 }
 
 model Court {
-  id             String  @id @default(cuid())
-  nameFa         String
-  nameEn         String
-  price          Int     @default(600000)
-  image          String?
-  openHour       Int?
-  closeHour      Int?
+  id     String @id @default(cuid())
+  nameFa String
+  nameEn String
+  price  Int    @default(600000)
+  image  String?
+  openHour  Int?
+  closeHour Int?
   facilitiesJson String?
   pricingJson    String?
   imagesJson     String?
@@ -460,7 +448,7 @@ model Court {
   sportId String
   sport   Sport  @relation(fields: [sportId], references: [id])
 
-  slots           Slot[]
+  slots Slot[]
   waitlistEntries WaitlistEntry[]
 }
 
@@ -482,37 +470,35 @@ model Slot {
 }
 
 model Booking {
-  id                       String         @id @default(cuid())
-  status                   BookingStatus  @default(CONFIRMED)
-  paymentStatus            PaymentStatus  @default(PAY_AT_CLUB)
-  paymentMethod            PaymentMethod?
-  source                   BookingSource  @default(PLATFORM)
-  guestName                String?
-  guestFamily              String?
-  guestMobile              String?
-  comments                 String?
-  createdAt                DateTime       @default(now())
-  cancelledAt              DateTime?
-  cancellationReason       String?
-  rescheduledToBookingId   String?
+  id            String        @id @default(cuid())
+  status        BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(PAY_AT_CLUB)
+  paymentMethod PaymentMethod?
+  source        BookingSource @default(PLATFORM)
+  guestName     String?
+  guestFamily   String?
+  guestMobile   String?
+  comments      String?
+  createdAt     DateTime      @default(now())
+  cancelledAt   DateTime?
+  cancellationReason String?
+  rescheduledToBookingId String?
   rescheduledFromBookingId String?
-  noShowAt                 DateTime?
-  checkedInAt              DateTime?
+  noShowAt      DateTime?
+  checkedInAt   DateTime?
 
-  /**
-   * Desk pay-link pin for /p/:pin (letters+digits). Survives IPG payment-row replace.
-   */
+  /** Desk pay-link pin for /p/:pin (letters+digits). Survives IPG payment-row replace. */
   payPin String? @unique
 
-  userId            String?
-  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  slotId            String             @unique
-  slot              Slot               @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  coachId           String?
-  coach             Coach?             @relation(fields: [coachId], references: [id], onDelete: SetNull)
-  payment           Payment?
-  events            ReservationEvent[]
-  review            Review?
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  slotId String @unique
+  slot   Slot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  coachId String?
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  payment Payment?
+  events  ReservationEvent[]
+  review  Review?
   bookingEquipments BookingEquipment[]
 }
 
@@ -536,64 +522,57 @@ model SeasonBooking {
 }
 
 model Coach {
-  id               String    @id @default(cuid())
-  nameFa           String
-  nameEn           String
-  city             String
-  rating           Float     @default(4.8)
-  sessionPrice     Int       @default(400000)
-  photo            String?
-  bioFa            String?
-  bioEn            String?
-  featured         Boolean   @default(false)
-  headlineFa       String?
-  headlineEn       String?
-  specialtiesJson  String?
-  credentialsJson  String?
-  languagesJson    String?
-  verifiedAt       DateTime?
+  id           String  @id @default(cuid())
+  nameFa       String
+  nameEn       String
+  city         String
+  rating       Float   @default(4.8)
+  sessionPrice Int     @default(400000)
+  photo        String?
+  bioFa        String?
+  bioEn        String?
+  featured     Boolean @default(false)
+  headlineFa   String?
+  headlineEn   String?
+  specialtiesJson String?
+  credentialsJson String?
+  languagesJson String?
+  verifiedAt   DateTime?
   verificationNote String?
-  experienceYears  Int       @default(0)
-  isBookable       Boolean   @default(true)
-
-  /**
-   * Defaults to APPROVED so seeded and owner-invited coaches stay listed; public signup sets PENDING.
-   */
+  experienceYears Int @default(0)
+  isBookable   Boolean @default(true)
+  /** Defaults to APPROVED so seeded and owner-invited coaches stay listed; public signup sets PENDING. */
   approvalStatus CoachApprovalStatus @default(APPROVED)
   approvalNote   String?
   appliedAt      DateTime?
   reviewedAt     DateTime?
 
   sportId String
-  sport   Sport   @relation(fields: [sportId], references: [id])
+  sport   Sport  @relation(fields: [sportId], references: [id])
   userId  String? @unique
   user    User?   @relation(fields: [userId], references: [id])
   clubId  String?
   club    Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
 
-  sessions        CoachSession[]
-  availability    CoachAvailability[]
-  bookings        Booking[]
-  packages        PackageDraft[]
-  media           CoachMedia[]
-  reviews         Review[]
+  sessions     CoachSession[]
+  availability CoachAvailability[]
+  bookings     Booking[]
+  packages     PackageDraft[]
+  media        CoachMedia[]
+  reviews      Review[]
   waitlistEntries WaitlistEntry[]
-  membershipLinks StaffMembership[]   @relation("MembershipCoach")
-  clubLinks       CoachClubLink[]
+  membershipLinks StaffMembership[] @relation("MembershipCoach")
+  clubLinks    CoachClubLink[]
 }
 
-/**
- * Independent coaches work across clubs; each link carries that club's court discount for the coach.
- */
+/** Independent coaches work across clubs; each link carries that club's court discount for the coach. */
 model CoachClubLink {
-  id                   String              @id @default(cuid())
-  status               CoachClubLinkStatus @default(PENDING)
-  /**
-   * Owner-set percent off the court price when this coach pays for a lesson court.
-   */
-  courtDiscountPercent Int                 @default(0)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  id     String              @id @default(cuid())
+  status CoachClubLinkStatus @default(PENDING)
+  /** Owner-set percent off the court price when this coach pays for a lesson court. */
+  courtDiscountPercent Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   coachId String
   coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
@@ -605,27 +584,27 @@ model CoachClubLink {
 }
 
 model CoachSession {
-  id                       String        @id @default(cuid())
-  date                     String
-  startTime                String
-  endTime                  String
-  status                   BookingStatus @default(CONFIRMED)
-  paymentStatus            PaymentStatus @default(PAY_AT_CLUB)
-  price                    Int
-  createdAt                DateTime      @default(now())
-  cancelledAt              DateTime?
-  cancellationReason       String?
-  rescheduledToSessionId   String?
+  id            String        @id @default(cuid())
+  date          String
+  startTime     String
+  endTime       String
+  status        BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(PAY_AT_CLUB)
+  price         Int
+  createdAt     DateTime      @default(now())
+  cancelledAt   DateTime?
+  cancellationReason String?
+  rescheduledToSessionId String?
   rescheduledFromSessionId String?
-  noShowAt                 DateTime?
-  checkedInAt              DateTime?
+  noShowAt      DateTime?
+  checkedInAt   DateTime?
 
   coachId   String
-  coach     Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  coach     Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
   athleteId String
-  athlete   User               @relation("AthleteSessions", fields: [athleteId], references: [id], onDelete: Cascade)
-  payment   Payment?
-  events    ReservationEvent[]
+  athlete   User   @relation("AthleteSessions", fields: [athleteId], references: [id], onDelete: Cascade)
+  payment Payment?
+  events  ReservationEvent[]
 }
 
 model CoachAvailability {
@@ -673,22 +652,22 @@ model Review {
   publishedAt DateTime         @default(now())
 
   authorUserId String?
-  authorUser   User?    @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorUser   User?  @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   clubId       String?
-  club         Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  club         Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId      String?
-  coach        Coach?   @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  bookingId    String?  @unique
+  coach        Coach? @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  bookingId    String? @unique
   booking      Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
-  id           String    @id @default(cuid())
-  type         String
-  title        String
-  body         String
-  readAt       DateTime?
-  createdAt    DateTime  @default(now())
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
   metadataJson String?
 
   userId String
@@ -726,31 +705,31 @@ model BookingEquipment {
 }
 
 model Contact {
-  id            String    @id @default(cuid())
-  name          String
-  mobile        String
-  lastVisit     String?
-  createdAt     DateTime  @default(now())
-  tagsJson      String?
-  source        String?
-  totalVisits   Int       @default(0)
-  lifetimeValue Int       @default(0)
-  lastBookedAt  DateTime?
-  inactiveDays  Int       @default(0)
-  consentSms    Boolean   @default(true)
-  noShowCount   Int       @default(0)
+  id        String   @id @default(cuid())
+  name      String
+  mobile    String
+  lastVisit String?
+  createdAt DateTime @default(now())
+  tagsJson       String?
+  source         String?
+  totalVisits    Int      @default(0)
+  lifetimeValue  Int      @default(0)
+  lastBookedAt   DateTime?
+  inactiveDays   Int      @default(0)
+  consentSms     Boolean  @default(true)
+  noShowCount    Int      @default(0)
 
-  clubId             String
-  club               Club                @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   campaignRecipients CampaignRecipient[]
 }
 
 model SmsLog {
-  id           String   @id @default(cuid())
-  message      String
-  recipient    String
-  createdAt    DateTime @default(now())
-  segmentName  String?
+  id        String   @id @default(cuid())
+  message   String
+  recipient String
+  createdAt DateTime @default(now())
+  segmentName String?
   campaignName String?
 
   clubId String
@@ -771,10 +750,10 @@ model PackageDraft {
   comment    String?
   createdAt  DateTime @default(now())
 
-  clubId   String
-  club     Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  coachId  String?
-  coach    Coach?           @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  clubId  String
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  coachId String?
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
   bookings PackageBooking[]
   players  PackagePlayer[]
 }
@@ -815,37 +794,37 @@ model PackageBooking {
 }
 
 model WaitlistEntry {
-  id          String         @id @default(cuid())
-  date        String
-  startTime   String
-  endTime     String
-  status      WaitlistStatus @default(ACTIVE)
-  createdAt   DateTime       @default(now())
-  notifiedAt  DateTime?
-  acceptedAt  DateTime?
-  guestName   String?
+  id         String         @id @default(cuid())
+  date       String
+  startTime  String
+  endTime    String
+  status     WaitlistStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now())
+  notifiedAt DateTime?
+  acceptedAt DateTime?
+  guestName  String?
   guestMobile String?
 
   userId  String?
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user    User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
   clubId  String
-  club    Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   courtId String?
-  court   Court?  @relation(fields: [courtId], references: [id], onDelete: SetNull)
+  court   Court? @relation(fields: [courtId], references: [id], onDelete: SetNull)
   coachId String?
-  coach   Coach?  @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
 }
 
 model ReservationEvent {
-  id           String               @id @default(cuid())
-  type         ReservationEventType
-  createdAt    DateTime             @default(now())
+  id        String               @id @default(cuid())
+  type      ReservationEventType
+  createdAt DateTime             @default(now())
   metadataJson String?
 
-  actorUserId    String?
-  actorUser      User?         @relation("ReservationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  bookingId      String?
-  booking        Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  actorUserId String?
+  actorUser   User?         @relation("ReservationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  bookingId   String?
+  booking     Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   coachSessionId String?
   coachSession   CoachSession? @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
 }
@@ -858,76 +837,70 @@ model Payment {
   provider       String        @default("pay_at_club")
   providerRef    String?
   idempotencyKey String?       @unique
-  /**
-   * booking (default) | topup — top-up rows have userId and no booking parent.
-   */
+  /** booking (default) | topup — top-up rows have userId and no booking parent. */
   purpose        String        @default("booking")
   metadataJson   String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  userId           String?
-  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
-  bookingId        String?         @unique
-  booking          Booking?        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  coachSessionId   String?         @unique
-  coachSession     CoachSession?   @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
-  packageBookingId String?         @unique
-  packageBooking   PackageBooking? @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
+  userId            String?
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookingId         String?          @unique
+  booking           Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  coachSessionId    String?          @unique
+  coachSession      CoachSession?    @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
+  packageBookingId  String?          @unique
+  packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose, createdAt])
 }
 
-/**
- * Platform or club-scoped percent codes athletes apply on court confirm.
- */
+/** Platform or club-scoped percent codes athletes apply on court confirm. */
 model DiscountCode {
-  id              String    @id @default(cuid())
-  code            String    @unique
-  labelFa         String?
-  labelEn         String?
-  percent         Int
-  active          Boolean   @default(true)
-  maxRedemptions  Int?
-  redemptionCount Int       @default(0)
-  startsAt        DateTime?
-  endsAt          DateTime?
-  createdAt       DateTime  @default(now())
+  id               String    @id @default(cuid())
+  code             String    @unique
+  labelFa          String?
+  labelEn          String?
+  percent          Int
+  active           Boolean   @default(true)
+  maxRedemptions   Int?
+  redemptionCount  Int       @default(0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  createdAt        DateTime  @default(now())
 
-  /**
-   * null = platform-wide; set = only that club.
-   */
+  /** null = platform-wide; set = only that club. */
   clubId String?
-  club   Club?   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  club   Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
   @@index([active, clubId])
 }
 
 model ContactSegment {
-  id         String   @id @default(cuid())
-  name       String
-  filterJson String
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  filterJson  String
+  createdAt   DateTime @default(now())
 
-  clubId    String
-  club      Club       @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   campaigns Campaign[]
 }
 
 model Campaign {
-  id          String          @id @default(cuid())
+  id          String         @id @default(cuid())
   name        String
   channel     CampaignChannel @default(SMS)
   template    String
-  status      CampaignStatus  @default(DRAFT)
+  status      CampaignStatus @default(DRAFT)
   scheduledAt DateTime?
   sentAt      DateTime?
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime       @default(now())
 
-  clubId     String
-  club       Club                @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  segmentId  String?
-  segment    ContactSegment?     @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  segmentId String?
+  segment   ContactSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
   recipients CampaignRecipient[]
 }
 
@@ -956,19 +929,19 @@ model ReminderRule {
 }
 
 model StaffMembership {
-  id              String    @id @default(cuid())
-  role            StaffRole
+  id             String    @id @default(cuid())
+  role           StaffRole
   permissionsJson String?
-  active          Boolean   @default(true)
-  isPrimary       Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  active         Boolean   @default(true)
+  isPrimary      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
 
-  userId  String
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clubId  String
-  club    Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   coachId String?
-  coach   Coach?  @relation("MembershipCoach", fields: [coachId], references: [id], onDelete: SetNull)
+  coach   Coach? @relation("MembershipCoach", fields: [coachId], references: [id], onDelete: SetNull)
 
   @@unique([userId, clubId, role])
 }
@@ -991,9 +964,7 @@ model ClubWorker {
   @@index([clubId, active])
 }
 
-/**
- * Club settlement balance (owner net after platform commission).
- */
+/** Club settlement balance (owner net after platform commission). */
 model ClubWallet {
   id        String   @id @default(cuid())
   balance   Int      @default(0)
@@ -1022,9 +993,7 @@ model ClubWalletTransaction {
   @@index([paymentId])
 }
 
-/**
- * One row per settled payment — idempotency key for owner credit / clawback.
- */
+/** One row per settled payment — idempotency key for owner credit / clawback. */
 model SettlementLedgerEntry {
   id            String    @id @default(cuid())
   gross         Int
@@ -1052,17 +1021,15 @@ model WithdrawRequest {
   paidAt        DateTime?
   rejectedAt    DateTime?
 
-  clubId           String
-  club             Club                      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   paymentDocuments WithdrawPaymentDocument[]
 
   @@index([clubId, status, createdAt])
   @@index([status, createdAt])
 }
 
-/**
- * Bank receipt / transfer proof attached by ops to a cash-out request.
- */
+/** Bank receipt / transfer proof attached by ops to a cash-out request. */
 model WithdrawPaymentDocument {
   id          String   @id @default(cuid())
   url         String
