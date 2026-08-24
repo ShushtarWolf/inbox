@@ -15,6 +15,7 @@ import { promoteOnlineHoldOnPaid } from './onlinePaymentHold'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
 import { syncClubContactForBooking } from './contactSync'
+import { confirmEntryFromPayment } from './competitions'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -123,6 +124,15 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
       where: { id: payment.packageBookingId },
       data: { paymentStatus: payment.status },
     })
+  }
+}
+
+/** Confirm competition entry when payment settles — idempotent. */
+export async function syncCompetitionEntryOnPayment(paymentId: string) {
+  try {
+    await confirmEntryFromPayment(paymentId)
+  } catch (err) {
+    console.error('[paymentSync:competitionEntry]', paymentId, err)
   }
 }
 
@@ -315,6 +325,7 @@ export async function confirmPaymentAndSync(
   if (intent.status === 'PAID') {
     await creditWalletForTopUpPayment(intent.id, previousStatus)
     await creditOwnerForPaidPayment(intent.id, previousStatus)
+    await syncCompetitionEntryOnPayment(intent.id)
     await notifyPaidIfNeeded(intent.id, previousStatus)
     if (before?.purpose === 'topup' && previousStatus !== 'PAID') {
       try {

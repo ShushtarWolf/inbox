@@ -257,6 +257,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </AppModal>
 
+      <CompetitionDiscoveryRail />
+
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>

@@ -12,7 +12,16 @@ const { t } = useI18n()
 const { displayName, avatarUrl, initials, firstName, user, logout } = useAuth()
 const { formatCurrency, formatNumber } = useFormatters()
 const { smsLive } = useSmsCapability()
-const { pilotNoCoach } = usePilotFlags()
+const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
+
+const { data: myCompetitions } = useAuthedFetch<Array<{ status: string }>>('/api/athlete/competitions', {
+  immediate: competitionsEnabled.value,
+})
+
+const activeEntryCount = computed(() => {
+  const entries = myCompetitions.value || []
+  return entries.filter((entry) => entry.status === 'PENDING' || entry.status === 'CONFIRMED').length
+})
 const { data, pending } = useAuthedFetch<{
   courtBookings?: Array<{
     status?: string
@@ -77,6 +86,15 @@ const spendUnit = computed(() => {
 const ratingDisplay = computed(() => '—')
 
 const menu = computed(() => [
+  ...(competitionsEnabled.value
+    ? [{
+        to: localePath('/athlete/competitions'),
+        label: t('competitions.nav'),
+        icon: 'emoji_events',
+        danger: false,
+        badge: activeEntryCount.value > 0 ? activeEntryCount.value : undefined,
+      }]
+    : []),
   { to: localePath('/athlete/profile'), label: t('athlete.editProfile'), icon: 'manage_accounts', danger: false },
   { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet', danger: false },
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card', danger: false },
@@ -143,6 +161,11 @@ async function handleLogout() {
           <AppIcon :name="item.icon" size="sm" />
         </span>
         <span class="flex-1">{{ item.label }}</span>
+        <span
+          v-if="item.badge"
+          class="bg-brand-primary px-1.5 py-0.5 text-[10px] font-bold text-white"
+          style="border-radius: var(--sz-canva-radius);"
+        >{{ item.badge }}</span>
         <AppIcon name="chevron_left" size="sm" class="text-brand-gray-400" />
       </NuxtLink>
       <button type="button" class="canva-dash-menu-item !text-brand-primary" @click="handleLogout">

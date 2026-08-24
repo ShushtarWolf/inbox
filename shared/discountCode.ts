@@ -27,12 +27,14 @@ export function applyDiscountPercent(subtotal: number, percent: number): {
 
 export type DiscountCodeValidity =
   | { ok: true }
-  | { ok: false; reason: 'missing' | 'inactive' | 'not_started' | 'expired' | 'exhausted' | 'wrong_club' }
+  | { ok: false; reason: 'missing' | 'inactive' | 'not_started' | 'expired' | 'exhausted' | 'wrong_club' | 'wrong_user' }
 
 export function evaluateDiscountCodeWindow(opts: {
   active: boolean
   clubId?: string | null
   bookingClubId?: string | null
+  boundUserId?: string | null
+  redeemingUserId?: string | null
   startsAt?: Date | string | null
   endsAt?: Date | string | null
   maxRedemptions?: number | null
@@ -45,6 +47,9 @@ export function evaluateDiscountCodeWindow(opts: {
   }
   if (opts.clubId && !opts.bookingClubId) {
     return { ok: false, reason: 'wrong_club' }
+  }
+  if (opts.boundUserId && opts.redeemingUserId && opts.boundUserId !== opts.redeemingUserId) {
+    return { ok: false, reason: 'wrong_user' }
   }
   const now = opts.now || new Date()
   if (opts.startsAt && new Date(opts.startsAt) > now) return { ok: false, reason: 'not_started' }

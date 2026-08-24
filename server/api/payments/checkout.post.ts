@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
+import { competitionJoinIdempotencyKey } from '#shared/competition.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
@@ -8,7 +9,7 @@ import {
   assertOnlineHoldPayable,
   releaseExpiredOnlinePaymentHolds,
 } from '../../utils/onlinePaymentHold'
-import { notifyPaymentPaidIfNeeded, syncPaymentToParent } from '../../utils/paymentSync'
+import { notifyPaymentPaidIfNeeded, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
@@ -18,13 +19,15 @@ export default defineEventHandler(async (event) => {
     bookingId?: string
     coachSessionId?: string
     packageBookingId?: string
+    competitionEntryId?: string
     useWallet?: boolean
   }>(event)
-  if (!body.bookingId && !body.coachSessionId && !body.packageBookingId) {
+  if (!body.bookingId && !body.coachSessionId && !body.packageBookingId && !body.competitionEntryId) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
 
   let amount = 0
+  let competitionId: string | undefined
   let existingPayment: {
     id: string
     amount: number
@@ -76,6 +79,18 @@ export default defineEventHandler(async (event) => {
     if (!pkg) throw createError({ statusCode: 404, statusMessage: 'Not found' })
     if (pkg.payment) existingPayment = pkg.payment
     else amount = pkg.price
+  } else if (body.competitionEntryId) {
+    const entry = await prisma.competitionEntry.findFirst({
+      where: { id: body.competitionEntryId, athleteId: user.id },
+      include: { payment: true, competition: true },
+    })
+    if (!entry) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+    if (entry.status !== 'PENDING') {
+      throw createError({ statusCode: 409, statusMessage: 'Entry not pending payment' })
+    }
+    competitionId = entry.competitionId
+    if (entry.payment) existingPayment = entry.payment
+    else amount = entry.competition.entryFee
   }
 
   if (existingPayment?.status === 'PAID') {
@@ -106,7 +121,9 @@ export default defineEventHandler(async (event) => {
     const payment = await prisma.$transaction(async (tx) => {
       await debitWallet(user.id, payableAmount, {
         bookingId: body.bookingId,
-        note: 'Booking payment from wallet',
+        note: body.competitionEntryId
+          ? 'Competition entry payment from wallet'
+          : 'Booking payment from wallet',
       }, tx)
 
       if (existingPayment) {
@@ -125,10 +142,13 @@ export default defineEventHandler(async (event) => {
           bookingId: body.bookingId,
           coachSessionId: body.coachSessionId,
           packageBookingId: body.packageBookingId,
+          userId: body.competitionEntryId ? user.id : undefined,
+          purpose: body.competitionEntryId ? 'competition' : 'booking',
         },
       })
     })
     await syncPaymentToParent(payment.id)
+    await syncCompetitionEntryOnPayment(payment.id)
     await creditOwnerForPaidPayment(payment.id, previousStatus)
     await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
@@ -166,9 +186,12 @@ export default defineEventHandler(async (event) => {
   }
 
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
-    await prisma.payment.delete({ where: { id: existingPayment.id } })
-    existingPayment = null
-    amount = payableAmount
+    if (!body.competitionEntryId) {
+      await prisma.payment.delete({ where: { id: existingPayment.id } })
+      existingPayment = null
+      amount = payableAmount
+    }
+    // Competition checkout keeps the join-linked payment and refreshes intent in place.
   } else if (existingPayment) {
     return {
       paymentId: existingPayment.id,
@@ -185,15 +208,32 @@ export default defineEventHandler(async (event) => {
   }
 
   const service = getPaymentService()
-  const idempotencyKey = randomBytes(16).toString('hex')
+  const idempotencyKey = body.competitionEntryId && competitionId
+    ? competitionJoinIdempotencyKey(competitionId, user.id)
+    : randomBytes(16).toString('hex')
 
   const session = await service.createIntent({
     amount: payableAmount,
     bookingId: body.bookingId,
     coachSessionId: body.coachSessionId,
     packageBookingId: body.packageBookingId,
+    competitionEntryId: body.competitionEntryId,
+    userId: body.competitionEntryId ? user.id : undefined,
+    purpose: body.competitionEntryId ? 'competition' : undefined,
     idempotencyKey,
+    existingPaymentId: body.competitionEntryId && existingPayment
+      ? existingPayment.id
+      : undefined,
   })
+
+  if (body.competitionEntryId) {
+    await prisma.competitionEntry.update({
+      where: { id: body.competitionEntryId },
+      data: { paymentId: session.paymentId },
+    })
+  }
+
   await syncPaymentToParent(session.paymentId)
+  await syncCompetitionEntryOnPayment(session.paymentId)
   return session
 })

@@ -36,6 +36,7 @@ export function useCheckout() {
     bookingId?: string
     coachSessionId?: string
     packageBookingId?: string
+    competitionEntryId?: string
     useWallet?: boolean
   }) {
     const result = await $fetch<{

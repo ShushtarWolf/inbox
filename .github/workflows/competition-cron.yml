@@ -1,0 +1,31 @@
+# Optional: ping competition admin cron endpoints on production.
+# Liara dashboard cron is equally valid — see docs/OPERATIONS.md § Competition cron jobs.
+#
+# Requires repo secret: ADMIN_PROVISION_SECRET (same as Liara inbox app).
+# Does NOT deploy or change PAYMENTS_MODE.
+
+name: Competition cron
+
+on:
+  schedule:
+    # Every 15 minutes (UTC). Adjust if Liara cron preferred.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  competition-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process registration close (+ bundled stale PENDING expiry)
+        run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/competitions/process-registration-close" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+
+      - name: Expire stale PENDING entries
+        run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/competitions/expire-pending" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}

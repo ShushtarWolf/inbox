@@ -105,7 +105,37 @@ curl -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
 
 ---
 
-## F. After env is filled (you deploy — not the agent)
+## F. Competition pilot (optional add-on — off by default)
+
+| ☐ | Variable | Fill with | Notes |
+|---|----------|-----------|--------|
+| ☐ | `COMPETITIONS_ENABLED` | unset / `false` | **Default off.** Set `true` only when enabling IUST competition pilot |
+| ☐ | `COMPETITIONS_PILOT_CLUB_SLUG` | e.g. `iust` | When set with enabled: only this club’s competitions are listed; other clubs cannot publish OPEN |
+| ☐ | `NUXT_PUBLIC_COMPETITIONS_ENABLED` | optional mirror | Belt-and-suspenders for client pages / nav |
+| ☐ | `NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG` | optional mirror | Same as `COMPETITIONS_PILOT_CLUB_SLUG` for client |
+
+**Pilot enable (IUST / Behnaz):**
+
+```bash
+COMPETITIONS_ENABLED=true
+COMPETITIONS_PILOT_CLUB_SLUG=iust
+```
+
+**Verify after restart:**
+
+```bash
+# Disabled globally → empty list
+curl -s https://inboxs.ir/api/competitions | jq length   # expect 0 when unset
+
+# Enabled pilot → only iust slug in list
+curl -s https://inboxs.ir/api/competitions | jq '[.[].club.slug] | unique'
+```
+
+Detail: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md).
+
+---
+
+## G. After env is filled (you deploy — not the agent)
 
 1. `liara deploy --app inbox` (your step).
 2. Confirm SMS: `sms:status` / `/api/admin/sms-status` → live.

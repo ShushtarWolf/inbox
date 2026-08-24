@@ -79,6 +79,13 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Invalid ticket body': 'contact.messageNeedBody',
     'Invalid email': 'contact.messageEmailInvalid',
     'errors.rateLimited': 'errors.rateLimited',
+    COMPETITION_FULL: 'competitions.errors.full',
+    COMPETITION_NOT_JOINABLE: 'competitions.errors.notJoinable',
+    COMPETITION_CANCELLED: 'competitions.errors.notJoinable',
+    ALREADY_REGISTERED: 'competitions.errors.alreadyRegistered',
+    PAY_AT_CLUB_NOT_ALLOWED: 'competitions.errors.payAtClubNotAllowed',
+    CANCELLATION_WINDOW_PASSED: 'competitions.errors.cancellationWindowPassed',
+    COMPETITION_JOIN_RATE_LIMITED: 'competitions.errors.rateLimited',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

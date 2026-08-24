@@ -138,6 +138,32 @@ enum SupportTicketSource {
   OWNER
 }
 
+enum CompetitionEnrollmentType {
+  SINGLE
+  DOUBLE
+}
+
+enum CompetitionPrizeType {
+  WALLET
+  DISCOUNT
+}
+
+enum CompetitionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CompetitionEntryStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -176,6 +202,10 @@ model User {
   bugReports      BugReport[]
   supportTickets  SupportTicket[]
   withdrawRequests UserWithdrawRequest[]
+  competitionEntries        CompetitionEntry[]
+  competitionPartnerEntries CompetitionEntry[] @relation("CompetitionPartner")
+  competitionPrizeAwards    CompetitionPrizeAward[]
+  boundDiscountCodes        DiscountCode[]       @relation("DiscountCodeBoundUser")
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -262,8 +292,9 @@ model Sport {
   nameEn String
   icon   String
 
-  courts  Court[]
-  coaches Coach[]
+  courts       Court[]
+  coaches      Coach[]
+  competitions Competition[]
 }
 
 enum ClubStatus {
@@ -429,6 +460,7 @@ model Club {
   withdrawRequests  WithdrawRequest[]
   settlementEntries SettlementLedgerEntry[]
   supportTickets    SupportTicket[]
+  competitions      Competition[]
 }
 
 model Court {
@@ -855,8 +887,99 @@ model Payment {
   coachSession      CoachSession?    @relation(fields: [coachSessionId], references: [id], onDelete: Cascade)
   packageBookingId  String?          @unique
   packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
+  competitionEntry  CompetitionEntry?
 
   @@index([userId, purpose, createdAt])
+}
+
+model Competition {
+  id                 String                    @id @default(cuid())
+  title              String
+  format             String
+  enrollmentType     CompetitionEnrollmentType
+  entryFee           Int                       @default(0)
+  prizeType          CompetitionPrizeType
+  prizeConfigJson    String
+  maxParticipants    Int
+  minParticipants    Int                       @default(2)
+  registrationOpens  DateTime
+  registrationCloses DateTime
+  eventAt            DateTime
+  status             CompetitionStatus         @default(DRAFT)
+  /** Required when entryFee is 0 — sponsor covers fees/prizes. */
+  sponsorFunded      Boolean                   @default(false)
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancelReason       String?
+  /** Set when awardCompetitionPrizes succeeds — prevents double payout. */
+  prizesAwardedAt    DateTime?
+  /** JSON audit: { winnerEntryIds: Record<string, string>, discountCodeIds?: string[] } */
+  prizeAwardAuditJson String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  clubId  String
+  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  sportId String
+  sport   Sport  @relation(fields: [sportId], references: [id])
+
+  entries     CompetitionEntry[]
+  prizeAwards CompetitionPrizeAward[]
+
+  @@index([clubId, status])
+  @@index([status, registrationOpens, registrationCloses])
+}
+
+model CompetitionEntry {
+  id               String                 @id @default(cuid())
+  status           CompetitionEntryStatus @default(PENDING)
+  /** Owner-recorded finish rank (1..N) before prize payout. */
+  placement        Int?
+  cancelledAt      DateTime?
+  cancelledBy      String?
+  cancelReason     String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  competitionId    String
+  competition      Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athleteId        String
+  athlete          User        @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  partnerAthleteId String?
+  partnerAthlete   User?       @relation("CompetitionPartner", fields: [partnerAthleteId], references: [id], onDelete: SetNull)
+  paymentId        String?     @unique
+  payment          Payment?    @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  prizeAwards      CompetitionPrizeAward[]
+
+  @@index([competitionId, status])
+  @@index([competitionId, placement])
+  @@index([athleteId])
+  @@index([partnerAthleteId])
+}
+
+/** Idempotent audit row per (competition, entry, placement) prize payout. */
+model CompetitionPrizeAward {
+  id                  String               @id @default(cuid())
+  placement           Int
+  prizeType           CompetitionPrizeType
+  amount              Int?
+  percent             Int?
+  idempotencyKey      String               @unique
+  walletTransactionId String?
+  createdAt           DateTime             @default(now())
+
+  competitionId  String
+  competition    Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  entryId        String
+  entry          CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  athleteId      String
+  athlete        User             @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  discountCodeId String?
+  discountCode   DiscountCode?    @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+
+  @@unique([competitionId, entryId, placement])
+  @@index([competitionId, createdAt])
+  @@index([athleteId])
 }
 
 /** Platform or club-scoped percent codes athletes apply on court confirm. */
@@ -876,8 +999,14 @@ model DiscountCode {
   /** null = platform-wide; set = only that club. */
   clubId String?
   club   Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /** When set, only this athlete may redeem (competition prizes). */
+  boundUserId String?
+  boundUser   User?  @relation("DiscountCodeBoundUser", fields: [boundUserId], references: [id], onDelete: SetNull)
+
+  competitionPrizeAwards CompetitionPrizeAward[]
 
   @@index([active, clubId])
+  @@index([boundUserId])
 }
 
 model ContactSegment {

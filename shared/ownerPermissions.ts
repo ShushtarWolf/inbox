@@ -34,6 +34,7 @@ export const OWNER_NAV_PERMISSIONS: Record<string, OwnerPermission | 'finance'> 
   '/owner/equipments': 'calendar',
   '/owner/packages': 'calendar',
   '/owner/discounts': 'settings',
+  '/owner/competitions': 'calendar',
   '/owner/crm': 'crm',
   '/owner/coaches': 'team',
   '/owner/workers': 'settings',

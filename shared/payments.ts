@@ -56,11 +56,15 @@ export interface PaymentCreateInput {
   bookingId?: string
   coachSessionId?: string
   packageBookingId?: string
+  /** Competition entry being paid (stored in metadata; linked via CompetitionEntry.paymentId). */
+  competitionEntryId?: string
   /** Athlete who owns a wallet top-up (no booking parent). */
   userId?: string
-  /** booking (default) | topup */
-  purpose?: 'booking' | 'topup'
+  /** booking (default) | topup | competition */
+  purpose?: 'booking' | 'topup' | 'competition'
   idempotencyKey: string
+  /** Refresh an existing PENDING_ONLINE row instead of creating a duplicate (competition checkout). */
+  existingPaymentId?: string
 }
 
 export interface PaymentService {

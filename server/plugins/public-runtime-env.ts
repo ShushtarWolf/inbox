@@ -28,6 +28,27 @@ export default defineNitroPlugin(() => {
     }
   }
 
+  if (process.env.NUXT_PUBLIC_COMPETITIONS_ENABLED === 'true' || process.env.COMPETITIONS_ENABLED === 'true') {
+    try {
+      publicConfig.competitionsEnabled = true
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_COMPETITIONS_ENABLED instead.
+    }
+  }
+
+  const competitionsPilotClubSlug = (
+    process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
+    || process.env.COMPETITIONS_PILOT_CLUB_SLUG
+    || ''
+  ).trim()
+  if (competitionsPilotClubSlug) {
+    try {
+      publicConfig.competitionsPilotClubSlug = competitionsPilotClubSlug
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG instead.
+    }
+  }
+
   const envAddress = (process.env.NUXT_PUBLIC_CONTACT_ADDRESS || '').trim()
   if (!envAddress && !String(publicConfig.contactAddress || '').trim()) {
     try {

@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const { user, fetch: fetchAuth } = useAuth()
 const { localizedField } = useLocalizedField()
-const { pilotNoCoach } = usePilotFlags()
+const { pilotNoCoach, competitionsEnabled, competitionsVisibleForClub } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const ownerClubVersion = ref(0)
 const moreOpen = ref(false)
@@ -28,6 +28,7 @@ const desktopExtraNavItems = [
   { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'sports' },
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
   { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
+  { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
   { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
   { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
 ] as const
@@ -48,6 +49,7 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
     // Packages stay frozen for court MVP; coaches follow the pilot flag.
     if (item.path === '/owner/packages') return false
     if (item.path === '/owner/coaches' && pilotNoCoach.value) return false
+    if (item.path === '/owner/competitions' && !competitionsVisibleForClub(activeMembership.value?.club?.slug)) return false
     return canAccessOwnerNav(item.path, permissions, isOwner)
   })
 }

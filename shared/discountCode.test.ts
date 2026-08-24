@@ -50,4 +50,15 @@ describe('evaluateDiscountCodeWindow', () => {
       now,
     })).toEqual({ ok: false, reason: 'exhausted' })
   })
+
+  it('rejects bound codes for wrong user', () => {
+    expect(evaluateDiscountCodeWindow({
+      active: true,
+      boundUserId: 'user-a',
+      redeemingUserId: 'user-b',
+      bookingClubId: 'club-a',
+      clubId: 'club-a',
+      now,
+    })).toEqual({ ok: false, reason: 'wrong_user' })
+  })
 })

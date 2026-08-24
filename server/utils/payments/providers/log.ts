@@ -10,23 +10,47 @@ export function logPaymentProvider(): PaymentService {
     name: 'log',
     async createIntent(input) {
       const providerRef = `log-test-${randomBytes(8).toString('hex')}`
-      const purpose = input.purpose === 'topup' ? 'topup' : 'booking'
-      const payment = await prisma.payment.create({
-        data: {
-          amount: input.amount,
-          method: 'IPG',
-          status: 'PENDING_ONLINE',
-          provider: 'log',
-          providerRef,
-          idempotencyKey: input.idempotencyKey,
-          purpose,
-          userId: purpose === 'topup' ? input.userId : undefined,
-          bookingId: input.bookingId,
-          coachSessionId: input.coachSessionId,
-          packageBookingId: input.packageBookingId,
-          metadataJson: JSON.stringify({ logged: true, purpose }),
-        },
+      const purpose = input.purpose === 'topup'
+        ? 'topup'
+        : input.purpose === 'competition'
+          ? 'competition'
+          : 'booking'
+      const metadataJson = JSON.stringify({
+        logged: true,
+        purpose,
+        competitionEntryId: input.competitionEntryId,
       })
+      const payment = input.existingPaymentId
+        ? await prisma.payment.update({
+            where: { id: input.existingPaymentId },
+            data: {
+              amount: input.amount,
+              method: 'IPG',
+              status: 'PENDING_ONLINE',
+              provider: 'log',
+              providerRef,
+              idempotencyKey: input.idempotencyKey,
+              purpose,
+              userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
+              metadataJson,
+            },
+          })
+        : await prisma.payment.create({
+            data: {
+              amount: input.amount,
+              method: 'IPG',
+              status: 'PENDING_ONLINE',
+              provider: 'log',
+              providerRef,
+              idempotencyKey: input.idempotencyKey,
+              purpose,
+              userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
+              bookingId: input.bookingId,
+              coachSessionId: input.coachSessionId,
+              packageBookingId: input.packageBookingId,
+              metadataJson,
+            },
+          })
       console.log('[payment:log]', providerRef, input.amount)
       return {
         paymentId: payment.id,

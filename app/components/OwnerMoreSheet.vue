@@ -7,7 +7,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user } = useAuth()
-const { pilotNoCoach } = usePilotFlags()
+const { pilotNoCoach, competitionsVisibleForClub } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 
 const activeMembership = computed(() => {
@@ -27,6 +27,7 @@ const tiles = computed(() => {
     { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'sports' },
     { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
     { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
+    { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
     { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
     { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
   ] as const
@@ -35,6 +36,7 @@ const tiles = computed(() => {
     .filter((item) => {
       if (item.path === '/owner/workers' && !isOwner) return false
       if (item.path === '/owner/coaches' && pilotNoCoach.value) return false
+      if (item.path === '/owner/competitions' && !competitionsVisibleForClub(membership?.club?.slug)) return false
       return canAccessOwnerNav(item.path, permissions, isOwner)
     })
     .map((item) => ({

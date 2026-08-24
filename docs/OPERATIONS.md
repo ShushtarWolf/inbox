@@ -49,6 +49,10 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` | For Google login | Google Cloud OAuth client ID |
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
 | `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (preferred; else derived from `NUXT_PUBLIC_SITE_URL`) |
+| `COMPETITIONS_ENABLED` | Competition pilot | Default **off** (`false` / unset). Set `true` only when enabling IUST competition pilot |
+| `COMPETITIONS_PILOT_CLUB_SLUG` | Competition pilot | e.g. `iust` — when set with enabled, only this club’s competitions are listed/joinable |
+| `NUXT_PUBLIC_COMPETITIONS_ENABLED` | Optional mirror | Client pages / nav; server reads `COMPETITIONS_ENABLED` too |
+| `NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG` | Optional mirror | Same as `COMPETITIONS_PILOT_CLUB_SLUG` for client |
 
 ## Email (SMTP)
 
@@ -163,6 +167,38 @@ curl -X POST "https://inboxs.ir/api/admin/sms/process-daily-owner-reminders?date
 Suggested schedule: `30 4 * * *` (04:30 UTC = 08:00 Tehran). If the dashboard cron runs in `Asia/Tehran`, use `0 8 * * *` instead. Header `x-admin-secret` = `ADMIN_PROVISION_SECRET`. Without this cron, daily owner SMS only go when someone clicks the admin button.
 
 Owner phone: `ownerNotifyPhone` (owner mobile, then club mobile; landlines skipped). Live path is the same Verify Lookup `%token10%` as `BOOKING_CONFIRMED` — not a tappable URL. Log mode + `SmsLog` keep `https://inboxs.ir/owner/calendar`.
+
+### Competition cron jobs (registration close + stale PENDING)
+
+Nothing runs until **Liara dashboard Cron Jobs** or the optional GitHub workflow (`.github/workflows/competition-cron.yml`) is configured. There is no in-app worker.
+
+| Endpoint | Schedule | What it does |
+|----------|----------|--------------|
+| `POST /api/admin/competitions/process-registration-close` | **Every 15 min** | Expires stale unpaid `PENDING` entries (>10 min) **and** closes `OPEN` competitions past `registrationCloses`; auto-cancels + refunds when `confirmedCount < minParticipants` |
+| `POST /api/admin/competitions/expire-pending` | **Every 15 min** (optional duplicate) | Cancels stale unpaid `PENDING` entries only — redundant if `process-registration-close` already runs, but safe to call |
+
+Both require header `x-admin-secret: $ADMIN_PROVISION_SECRET`. Implementation: [server/api/admin/competitions/process-registration-close.post.ts](../server/api/admin/competitions/process-registration-close.post.ts), [expire-pending.post.ts](../server/api/admin/competitions/expire-pending.post.ts).
+
+**Manual now:**
+
+```bash
+curl -s -X POST "https://inboxs.ir/api/admin/competitions/process-registration-close" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET" | jq .
+
+curl -s -X POST "https://inboxs.ir/api/admin/competitions/expire-pending" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET" | jq .
+```
+
+**Liara dashboard (recommended):** `inbox` app → Cron Jobs → add two HTTP POST jobs (or one if you only use `process-registration-close`):
+
+- Schedule: `*/15 * * * *` (every 15 minutes; use `Asia/Tehran` if the dashboard supports timezone)
+- URL: `https://inboxs.ir/api/admin/competitions/process-registration-close`
+- Header: `x-admin-secret` = `ADMIN_PROVISION_SECRET`
+- Optional second job: same schedule → `…/expire-pending`
+
+**GitHub Actions (optional):** workflow [`.github/workflows/competition-cron.yml`](../.github/workflows/competition-cron.yml) runs the same curls on `*/15 * * * *` when repo secret `ADMIN_PROVISION_SECRET` is set. Use **either** Liara cron **or** GitHub — not both required.
+
+Pilot enablement and dispute runbook: [docs/COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md). Risk register: [docs/COMPETITION_RISK_SPEC.md](./COMPETITION_RISK_SPEC.md).
 
 ### Live reservation SMS cutover (later — do not enable now)
 

@@ -88,6 +88,7 @@ export default defineEventHandler(async (event) => {
     code: body.discountCode,
     clubId,
     subtotal,
+    userId: user.id,
   })
   const totalAmount = discount ? discount.total : subtotal
   const discountAmount = discount?.discountAmount || 0
