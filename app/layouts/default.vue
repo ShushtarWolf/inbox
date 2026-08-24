@@ -13,19 +13,13 @@ async function handleLogout() {
 
 const nav = computed((): NavItem[] => {
   // Court booking is primary; coach discovery is off main nav (and gated by pilotNoCoach).
+  // Guest: no bottom tab bar — login lives in CanvaPublicChrome / AppTopBar only.
   const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
   ]
 
-  if (!user.value) {
-    items.push({
-      to: localePath('/'),
-      label: t('nav.me'),
-      icon: 'account_circle',
-      action: () => openGate({ smsLive: smsLive.value }),
-    })
-  } else {
+  if (user.value) {
     items.push({
       to: dashboardPathForRole(user.value.role),
       label: t('nav.me'),
@@ -42,7 +36,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] min-[431px]:pb-0">
+  <div
+    class="flex min-h-dvh flex-col min-[431px]:pb-0"
+    :class="user ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))]' : ''"
+  >
     <div class="hidden min-[431px]:block">
       <AppTopBar :nav="nav">
         <template #actions>
@@ -78,7 +75,12 @@ onMounted(() => {
     <main class="app-shell-main canva-public-main mx-auto w-full max-[430px]:max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8">
       <slot />
     </main>
-    <footer class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)] text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-6xl min-[431px]:pb-4">
+    <footer
+      class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-6xl min-[431px]:pb-4"
+      :class="user
+        ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)]'
+        : 'pb-[calc(var(--sz-safe-bottom)+0.5rem)]'"
+    >
       <p class="mb-2 hidden min-[431px]:block">
         <span class="font-bold text-brand-navy">{{ t('contact.us') }}</span>
         ·
@@ -117,6 +119,6 @@ onMounted(() => {
         <NuxtLink :to="localePath('/clubs/apply')" class="px-1.5 hover:text-brand-primary">{{ t('clubs.applyLink') }}</NuxtLink>
       </div>
     </footer>
-    <AppBottomNav :items="nav" />
+    <AppBottomNav v-if="user" :items="nav" />
   </div>
 </template>
