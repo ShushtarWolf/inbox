@@ -577,7 +577,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-venue-card img {
-    @apply absolute inset-0 h-full w-full object-cover;
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
     opacity: 0.7;
     filter: brightness(0.72) saturate(0.85);
   }
@@ -622,13 +622,57 @@
     padding-block-start: 2.65rem;
   }
 
+  /* Competition discovery rail — tournament gold #B68A3B, square tiles */
+  .canva-competition-grid {
+    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
+  }
+  .canva-competition-card {
+    @apply relative block aspect-square w-full overflow-hidden bg-[#1a1510] text-white shadow-venus-sm;
+    border-radius: var(--sz-canva-radius);
+    box-shadow: inset 0 3px 0 0 #B68A3B;
+  }
+  .canva-competition-card img {
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
+    opacity: 0.65;
+    filter: brightness(0.68) saturate(0.8);
+  }
+  .canva-competition-card::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(180deg, rgba(26, 21, 16, 0.15) 0%, rgba(26, 21, 16, 0.82) 100%);
+  }
+  .canva-competition-card-badge {
+    @apply absolute z-20 flex items-center justify-center bg-[#B68A3B] text-white;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0;
+  }
+  .canva-competition-card-body {
+    @apply relative z-10 flex h-full flex-col items-start justify-end gap-1.5 p-2 pb-2 text-start sm:gap-2 sm:p-3 sm:pb-2;
+  }
+  .canva-competition-card-copy {
+    @apply flex w-full flex-col items-start gap-0.5 text-start;
+  }
+  .canva-competition-card-title {
+    @apply line-clamp-2 text-start text-sm font-bold leading-tight sm:text-base;
+  }
+  .canva-competition-card-meta {
+    @apply line-clamp-1 text-start text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
+  }
+  .canva-competition-card-cta {
+    @apply inline-flex items-center justify-center self-start border border-[#B68A3B] bg-[#B68A3B]/15 px-2 py-0.5 text-[9px] font-bold text-[#B68A3B] sm:text-[10px];
+    border-radius: var(--sz-canva-radius);
+  }
+
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
   .canva-court-card {
     @apply relative block min-h-[10.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
     border-radius: var(--sz-canva-radius);
   }
   .canva-court-card img {
-    @apply absolute inset-0 h-full w-full object-cover;
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
     opacity: 0.72;
     filter: brightness(0.7) saturate(0.9);
   }
@@ -1194,10 +1238,10 @@
     min-height: 11.5rem;
   }
   .canva-fav-card-media {
-    @apply absolute inset-0 h-full w-full object-cover;
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
   }
   .canva-fav-card-wash {
-    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10;
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10;
   }
   .canva-fav-card-body {
     @apply relative z-[1] flex h-full min-h-[11.5rem] flex-col justify-end p-4 text-start;
@@ -1348,10 +1392,10 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-photo-hero-media {
-    @apply absolute inset-0 h-full w-full object-cover;
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
   }
   .canva-photo-hero-wash {
-    @apply absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20;
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20;
   }
   .canva-photo-hero-body {
     @apply relative z-[1] flex min-h-[11rem] flex-col justify-end px-4 pb-5 pt-10 text-start;
@@ -1506,7 +1550,7 @@
     cursor: grab;
   }
   .canva-club-gallery-media {
-    @apply absolute inset-0 h-full w-full object-cover;
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
   }
   .canva-club-gallery-arrow {
     @apply absolute top-1/2 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center text-white;
@@ -2402,8 +2446,7 @@
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.page-leave-active {
+  /* Safari keeps opacity:0 nodes hittable during route transitions. */
   pointer-events: none;
 }
 .page-enter-from {

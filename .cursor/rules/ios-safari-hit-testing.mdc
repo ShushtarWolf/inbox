@@ -1,0 +1,32 @@
+---
+description: iOS Safari tap/hit-testing — prevent invisible layers from stealing taps on phone frames
+alwaysApply: true
+---
+
+# iOS Safari Hit-Testing — LOCKED
+
+Safari on iPhone keeps full-bleed and fading layers **hittable** even when invisible. Chrome iOS often still works — regressions show up as “some iPhone Safari only” dead buttons.
+
+## Hard rules
+
+1. **Decorative full-bleed layers** — Any `absolute`/`fixed` `inset-0` hero image, gallery media, gradient wash, or scrim that does not handle clicks MUST use `pointer-events-none`. Reuse existing classes (`canva-hero-media`, `canva-photo-hero-media`, `canva-photo-hero-wash`, `canva-club-gallery-media`, `canva-fav-card-media`, `canva-fav-card-wash`, card `img` rules) — do not add new raw overlay stacks.
+
+2. **Modals / sheets** — Use `AppModal` only. Overlay is always `fixed inset-0`. NEVER size or reposition the fixed overlay with `visualViewport.offsetTop` / height (Safari leaves a ghost full-screen hit target). Visual viewport is CSS vars only (`--app-vv-height`, `--app-keyboard-inset`).
+
+3. **Overflow** — Never `overflow-x: clip` on `html`, `body`, or phone-shell main. Use `overflow-x: hidden`.
+
+4. **Transitions** — Any page/modal `<Transition>` leave (and enter) state must set `pointer-events: none` while opacity animates. Match `.page-*` and `.venus-modal-*` patterns in `main.css`.
+
+5. **PWA cache** — When changing modal overlay, transition, or hit-testing CSS, bump `PWA_RESET_VERSION` in `nuxt.config.ts` in the same change.
+
+## Done gate (real iPhone or Playwright WebKit)
+
+- Open auth gate → close → tap login or search behind it (must work).
+- Open booking confirm / date sheet → close → tap page control again.
+- Athlete home hero: notification + profile icons respond.
+- Club detail: gallery arrows + dots respond.
+
+## CI
+
+- `npm run check:ios-hit-testing` must pass.
+- `e2e/ios-safari-taps.spec.ts` (WebKit mobile) must pass.

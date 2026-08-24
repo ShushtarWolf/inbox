@@ -30,6 +30,8 @@ jobs:
       NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
       ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
       PAYMENTS_MODE: pay_at_club
+      COMPETITIONS_ENABLED: true
+      NUXT_PUBLIC_COMPETITIONS_ENABLED: true
       SMS_PROVIDER: log
       BASE_URL: http://127.0.0.1:3000
       CI: true
@@ -50,8 +52,69 @@ jobs:
       - run: npm run db:migrate:deploy
       - run: FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed
       - run: npm run check:i18n
+      - run: npm run check:ios-hit-testing
       - run: npm run build
       - run: npm test
       - run: node scripts/ci-smoke.mjs
-      - run: npx playwright install chromium --with-deps
+      - run: npx playwright install chromium webkit --with-deps
       - run: npm run test:e2e:ci
+
+  competition-go-no-go:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inbox
+          POSTGRES_PASSWORD: inbox
+          POSTGRES_DB: inbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inbox -d inbox"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox
+      NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
+      ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
+      PAYMENTS_MODE: test
+      COMPETITIONS_ENABLED: true
+      NUXT_PUBLIC_COMPETITIONS_ENABLED: true
+      PILOT_NO_COACH: true
+      SMS_PROVIDER: log
+      BASE_URL: http://127.0.0.1:3000
+      CI: true
+      ALLOW_DEMO_AUTH: true
+      RATE_LIMIT_MAX: 100
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npx nuxt prepare
+      - run: npx prisma generate
+      - run: npm run db:migrate:deploy
+      - run: FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed
+      - run: npm run build
+
+      - name: Run competition go/no-go (non-blocking)
+        run: |
+          node .output/server/index.mjs &
+          SERVER_PID=$!
+          for i in $(seq 1 60); do
+            if curl -sf "$BASE_URL/api/health" >/dev/null; then break; fi
+            sleep 2
+          done
+          npm run competition:go-no-go || exit 1
+          kill $SERVER_PID || true

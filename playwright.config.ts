@@ -13,5 +13,10 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'webkit-mobile',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /ios-safari-taps\.spec\.ts/,
+    },
   ],
 })

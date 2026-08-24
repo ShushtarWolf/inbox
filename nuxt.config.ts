@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
-const PWA_RESET_VERSION = '6'
+const PWA_RESET_VERSION = '7'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -196,6 +196,14 @@ export default defineNuxtConfig({
       pilotNoCoach:
         process.env.NUXT_PUBLIC_PILOT_NO_COACH === 'true'
         || process.env.PILOT_NO_COACH === 'true',
+      // Competition pilot: off by default; optional single-club slug when enabled.
+      competitionsEnabled:
+        process.env.NUXT_PUBLIC_COMPETITIONS_ENABLED === 'true'
+        || process.env.COMPETITIONS_ENABLED === 'true',
+      competitionsPilotClubSlug:
+        (process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
+          || process.env.COMPETITIONS_PILOT_CLUB_SLUG
+          || '').trim(),
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE
