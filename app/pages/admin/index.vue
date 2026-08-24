@@ -33,9 +33,9 @@ const loadError = ref('')
 async function load() {
   if (!secret.value) return
   pending.value = true
-  loadError.value = ''
   try {
     data.value = await adminFetch<Overview>('/api/admin/overview')
+    loadError.value = ''
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status === 403) {
@@ -56,15 +56,22 @@ watch(secret, (value) => {
 
 <template>
   <div class="tail-page-stack">
-    <section class="canva-dash-hero">
+    <section class="admin-overview-hero">
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div class="min-w-0 flex-1 text-start">
           <p class="text-xs text-white/80">{{ t('admin.consoleTitle') }}</p>
-          <h1 class="mt-1 text-2xl font-bold">{{ t('admin.overviewTitle') }}</h1>
+          <h1 class="mt-1 text-2xl font-bold text-white">{{ t('admin.overviewTitle') }}</h1>
           <p class="mt-1 text-sm text-white/85">{{ t('admin.overviewSubtitle') }}</p>
         </div>
-        <button type="button" class="rounded-lg bg-white px-3 py-2 text-xs font-bold text-brand-primary" :disabled="pending" @click="load">
-          {{ t('common.retry') }}
+        <button
+          v-if="loadError"
+          type="button"
+          class="shrink-0 bg-white px-3 py-2 text-xs font-bold text-brand-primary transition hover:brightness-95 disabled:opacity-60"
+          style="border-radius: 2px;"
+          :disabled="pending"
+          @click="load"
+        >
+          {{ pending ? t('common.loading') : t('common.retry') }}
         </button>
       </div>
     </section>
@@ -135,3 +142,16 @@ watch(secret, (value) => {
     </AppAsyncState>
   </div>
 </template>
+
+<style scoped>
+.admin-overview-hero {
+  @apply relative overflow-hidden bg-brand-primary p-5 text-white;
+  border-radius: 2px;
+  background-image:
+    radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.16), transparent 42%),
+    radial-gradient(ellipse at bottom right, rgba(0, 0, 0, 0.12), transparent 48%),
+    url('/brand/canva-auth-pattern.svg');
+  background-size: auto, auto, 160px 160px;
+  background-blend-mode: normal, normal, soft-light;
+}
+</style>
