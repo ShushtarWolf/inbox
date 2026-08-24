@@ -586,8 +586,9 @@
     @apply pointer-events-none absolute inset-0;
     background: linear-gradient(180deg, rgba(20, 12, 12, 0.2) 0%, rgba(20, 12, 12, 0.78) 100%);
   }
+  /* Pin CTA to card bottom so neighbor tiles stay aligned (offer banner or 2-line titles). */
   .canva-venue-card-body {
-    @apply relative z-10 flex h-full flex-col items-center justify-center gap-2 p-2 text-center sm:gap-2.5 sm:p-3;
+    @apply relative z-10 flex h-full flex-col items-center justify-end gap-2 p-2 pb-2 text-center sm:gap-2.5 sm:p-3 sm:pb-2;
   }
   .canva-venue-card-copy {
     @apply flex w-full flex-col items-center gap-1 text-center;
@@ -616,11 +617,9 @@
     line-clamp: 2;
     word-break: break-word;
   }
-  /* Reserve top band so title/meta/CTA sit fully below the offer. */
+  /* Reserve top band so title/meta sit fully below the offer; CTA stays bottom-aligned. */
   .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
-    justify-content: flex-end;
     padding-block-start: 2.65rem;
-    padding-block-end: 0.5rem;
   }
 
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
