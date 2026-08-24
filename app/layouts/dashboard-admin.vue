@@ -133,9 +133,14 @@ function lockAdmin() {
     :wide="true"
     :dark-nav="true"
     :hide-user="true"
-    :logout-label="t('admin.logout')"
-    :custom-logout="lockAdmin"
   >
+    <template #top-header>
+      <AdminTopBar
+        :title="t('admin.consoleTitle')"
+        :lock-label="t('admin.logout')"
+        @lock="lockAdmin"
+      />
+    </template>
     <slot />
   </DashboardShell>
 </template>

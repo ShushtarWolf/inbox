@@ -134,48 +134,112 @@ function goBack() {
     </div>
 
     <div class="min-w-0 flex-1 bg-brand-cream">
-      <header v-if="!hideMobileHeader" :class="glassHeaderClass">
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">
-              <span class="inline-flex items-center gap-1.5">
-                <AppIcon name="menu" size="sm" />
-                {{ t('common.menu') }}
-              </span>
-            </button>
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
+      <slot v-if="$slots['top-header']" name="top-header" />
+      <template v-else>
+        <header v-if="!hideMobileHeader" :class="glassHeaderClass">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="open = true">
+                <span class="inline-flex items-center gap-1.5">
+                  <AppIcon name="menu" size="sm" />
+                  {{ t('common.menu') }}
+                </span>
+              </button>
+              <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
+                <span class="inline-flex items-center gap-1.5">
+                  <AppIcon name="arrow_back" size="sm" />
+                  {{ t('common.back') }}
+                </span>
+              </button>
+            </div>
+            <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
+            <div class="flex min-w-0 items-center gap-2">
+              <AppUserShortcut
+                v-if="displayName && !hideUser"
+                :to="profilePath"
+                :name="displayName"
+                :avatar-url="avatarUrl"
+                :initials="initials"
+                compact
+                class="sm:hidden"
+              />
+              <AppUserShortcut
+                v-if="displayName && !hideUser"
+                :to="profilePath"
+                :name="displayName"
+                :avatar-url="avatarUrl"
+                :initials="initials"
+                class="hidden sm:inline-flex"
+              />
+              <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
+                <span class="inline-flex items-center gap-1.5">
+                  <AppIcon name="home" size="sm" />
+                  {{ t('nav.home') }}
+                </span>
+              </NuxtLink>
+              <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+                <span class="inline-flex items-center gap-1.5">
+                  <AppIcon name="logout" size="sm" />
+                  {{ resolvedLogoutLabel }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </header>
+        <div v-else-if="!phoneShell" :class="compactHeaderClass">
+          <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
+            <AppIcon name="menu" size="sm" />
+          </button>
+          <NuxtLink :to="localePath('/')" class="inline-flex items-center gap-2" :aria-label="t('brand.name')">
+            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
+            <InboxWordmark class="text-sm text-brand-primary" />
+          </NuxtLink>
+          <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="handleLogout" :aria-label="resolvedLogoutLabel">
+            <AppIcon name="logout" size="sm" />
+          </button>
+        </div>
+
+        <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
+          <div class="flex min-w-0 items-center gap-3">
+            <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
+              <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
+              <InboxWordmark class="text-base text-brand-primary" />
+            </NuxtLink>
+            <button
+              v-if="!(useAccountDrawer && isDashboardRoot)"
+              type="button"
+              class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+              @click="goBack"
+            >
               <span class="inline-flex items-center gap-1.5">
                 <AppIcon name="arrow_back" size="sm" />
                 {{ t('common.back') }}
               </span>
             </button>
           </div>
-          <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
-          <div class="flex min-w-0 items-center gap-2">
+          <div class="flex items-center gap-2">
+            <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
+              <AppUserShortcut
+                :name="displayName"
+                :avatar-url="avatarUrl"
+                :initials="initials"
+                :expanded="accountOpen"
+                @click="accountOpen = true"
+              />
+            </div>
             <AppUserShortcut
-              v-if="displayName && !hideUser"
+              v-else-if="displayName && !hideUser"
               :to="profilePath"
               :name="displayName"
               :avatar-url="avatarUrl"
               :initials="initials"
-              compact
-              class="sm:hidden"
             />
-            <AppUserShortcut
-              v-if="displayName && !hideUser"
-              :to="profilePath"
-              :name="displayName"
-              :avatar-url="avatarUrl"
-              :initials="initials"
-              class="hidden sm:inline-flex"
-            />
-            <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
-              <span class="inline-flex items-center gap-1.5">
-                <AppIcon name="home" size="sm" />
-                {{ t('nav.home') }}
-              </span>
-            </NuxtLink>
-            <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="handleLogout">
+            <button
+              v-if="!useAccountDrawer"
+              type="button"
+              class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+              @click="handleLogout"
+            >
               <span class="inline-flex items-center gap-1.5">
                 <AppIcon name="logout" size="sm" />
                 {{ resolvedLogoutLabel }}
@@ -183,68 +247,7 @@ function goBack() {
             </button>
           </div>
         </div>
-      </header>
-      <div v-else-if="!phoneShell" :class="compactHeaderClass">
-        <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
-          <AppIcon name="menu" size="sm" />
-        </button>
-        <NuxtLink :to="localePath('/')" class="inline-flex items-center gap-2" :aria-label="t('brand.name')">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <InboxWordmark class="text-sm text-brand-primary" />
-        </NuxtLink>
-        <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="handleLogout" :aria-label="resolvedLogoutLabel">
-          <AppIcon name="logout" size="sm" />
-        </button>
-      </div>
-
-      <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
-        <div class="flex min-w-0 items-center gap-3">
-          <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
-            <InboxWordmark class="text-base text-brand-primary" />
-          </NuxtLink>
-          <button
-            v-if="!(useAccountDrawer && isDashboardRoot)"
-            type="button"
-            class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
-            @click="goBack"
-          >
-            <span class="inline-flex items-center gap-1.5">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </span>
-          </button>
-        </div>
-        <div class="flex items-center gap-2">
-          <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
-            <AppUserShortcut
-              :name="displayName"
-              :avatar-url="avatarUrl"
-              :initials="initials"
-              :expanded="accountOpen"
-              @click="accountOpen = true"
-            />
-          </div>
-          <AppUserShortcut
-            v-else-if="displayName && !hideUser"
-            :to="profilePath"
-            :name="displayName"
-            :avatar-url="avatarUrl"
-            :initials="initials"
-          />
-          <button
-            v-if="!useAccountDrawer"
-            type="button"
-            class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
-            @click="handleLogout"
-          >
-            <span class="inline-flex items-center gap-1.5">
-              <AppIcon name="logout" size="sm" />
-              {{ resolvedLogoutLabel }}
-            </span>
-          </button>
-        </div>
-      </div>
+      </template>
       <OwnerAccountDrawer
         v-if="useAccountDrawer"
         :open="accountOpen"
