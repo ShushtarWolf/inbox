@@ -5,6 +5,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber } = useFormatters()
+const { pilotNoCoach } = usePilotFlags()
 
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const sort = ref((route.query.sort as string) || 'rank')
@@ -227,6 +228,25 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         {{ chip.label }}
       </button>
     </div>
+
+    <NuxtLink
+      v-if="!pilotNoCoach"
+      :to="localePath('/coaches')"
+      class="flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 shadow-venus-sm transition hover:border-brand-primary"
+      style="border-radius: var(--sz-canva-radius);"
+    >
+      <span
+        class="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary"
+        style="border-radius: var(--sz-canva-radius);"
+      >
+        <AppIcon name="sports" size="sm" />
+      </span>
+      <span class="min-w-0 flex-1 text-start">
+        <span class="block text-sm font-bold text-brand-navy">{{ t('home.findCoach') }}</span>
+        <span class="block text-xs text-brand-gray-600">{{ t('home.findCoachHint') }}</span>
+      </span>
+      <AppIcon name="chevron_left" size="sm" />
+    </NuxtLink>
 
     <section class="space-y-3">
       <!-- Title+subtitle RIGHT, «مرتب سازی» LEFT — not in chip row -->

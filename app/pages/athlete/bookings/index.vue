@@ -35,6 +35,22 @@ interface CourtBooking {
   }
 }
 
+interface CoachSessionRow {
+  id: string
+  status: string
+  date: string
+  startTime: string
+  price?: number
+  paymentStatus?: string | null
+  payment?: { status?: string; amount?: number } | null
+  coach: {
+    id: string
+    nameFa?: string
+    nameEn?: string
+    photo?: string | null
+  }
+}
+
 type HistoryKind = 'court' | 'coach' | 'package'
 type HistoryItem = {
   id: string
@@ -46,10 +62,11 @@ type HistoryItem = {
   price: number
   paymentStatus?: string | null
   slug?: string
+  coachId?: string
   image?: string
   equipmentLines: string[]
   courtCountLabel: string
-  raw: CourtBooking
+  raw: CourtBooking | null
 }
 
 const { t } = useI18n()
@@ -58,9 +75,10 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
+const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   courtBookings?: CourtBooking[]
-  coachSessions?: unknown[]
+  coachSessions?: CoachSessionRow[]
   packageBookings?: unknown[]
 }>('/api/bookings/mine')
 const { data: wallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet', { lazy: true })
@@ -147,9 +165,11 @@ function clearCalendarFilter() {
 }
 
 const route = useRoute()
-const highlightBookingId = computed(() =>
-  typeof route.query.booking === 'string' ? route.query.booking : '',
-)
+const highlightBookingId = computed(() => {
+  if (typeof route.query.booking === 'string') return route.query.booking
+  if (typeof route.query.coachSession === 'string') return route.query.coachSession
+  return ''
+})
 
 watch(
   () => route.query.payment,
@@ -216,8 +236,11 @@ async function confirmCancel() {
   cancelPending.value = true
   actionError.value = ''
   try {
-    if (kind === 'court') {
-      const result = await $fetch<{ refund?: { walletCredited?: boolean; refunded?: boolean } }>(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
+    if (kind === 'court' || kind === 'coach') {
+      const endpoint = kind === 'court'
+        ? `/api/bookings/${id}/cancel`
+        : `/api/coach-sessions/${id}/cancel`
+      const result = await $fetch<{ refund?: { walletCredited?: boolean; refunded?: boolean } }>(endpoint, { method: 'PATCH' })
       if (result.refund?.walletCredited) noticeBody.value = t('booking.refundToWallet')
       else if (result.refund?.refunded) noticeBody.value = t('booking.refundToGateway')
     }
@@ -233,12 +256,16 @@ async function confirmCancel() {
   }
 }
 
-async function payBooking(bookingId: string, useWallet = false) {
+async function payBooking(item: HistoryItem, useWallet = false) {
   if (payingId.value) return
-  payingId.value = bookingId
+  payingId.value = item.id
   actionError.value = ''
   try {
-    await startCheckout({ bookingId, useWallet })
+    await startCheckout(
+      item.kind === 'coach'
+        ? { coachSessionId: item.id, useWallet }
+        : { bookingId: item.id, useWallet },
+    )
     await refresh()
   }
   catch (err: unknown) {
@@ -306,7 +333,26 @@ const historyItems = computed((): HistoryItem[] => {
       raw: b,
     })
   }
-  // Court MVP Canva frame: coach/package history never listed here.
+  // Package history stays frozen; coach sessions list only when the coach product is on.
+  if (!pilotNoCoach.value) {
+    for (const s of (data.value?.coachSessions || []) as CoachSessionRow[]) {
+      items.push({
+        id: s.id,
+        kind: 'coach',
+        status: s.status,
+        date: s.date,
+        title: localizedField(s.coach, 'nameFa', 'nameEn'),
+        timeLabel: formatTimeLabel(s.startTime),
+        price: s.payment?.amount || s.price || 0,
+        paymentStatus: paymentOf(s),
+        coachId: s.coach.id,
+        image: s.coach.photo || '/placeholders/coach.svg',
+        equipmentLines: [],
+        courtCountLabel: '',
+        raw: null,
+      })
+    }
+  }
   return items
 })
 
@@ -399,6 +445,11 @@ function historyStatusClass(item: HistoryItem) {
 }
 
 function rebookTo(item: HistoryItem) {
+  if (item.kind === 'coach') {
+    return item.coachId
+      ? localePath(`/book/coach/${item.coachId}`)
+      : localePath('/coaches')
+  }
   if (!item.slug) return localePath('/clubs')
   /** Club detail hydrates from `date` / `slot` / `court` / `time` (legacy book redirect + rebook). */
   const todayIso = today()
@@ -554,12 +605,13 @@ function dateLine(item: HistoryItem) {
               </p>
               <p class="canva-history-card-meta">{{ dateLine(item) }}</p>
               <p class="canva-history-card-price">{{ formatCurrency(item.price) }}</p>
-              <div v-if="item.equipmentLines.length || item.courtCountLabel" class="canva-history-card-meta-row">
+              <div v-if="item.equipmentLines.length || item.courtCountLabel || item.kind === 'coach'" class="canva-history-card-meta-row">
                 <span v-for="line in item.equipmentLines" :key="line" class="canva-history-meta-chip">{{ line }}</span>
                 <span v-if="item.courtCountLabel" class="canva-history-meta-chip">{{ item.courtCountLabel }}</span>
+                <span v-if="item.kind === 'coach'" class="canva-history-meta-chip">{{ t('home.findCoach') }}</span>
               </div>
               <p
-                v-if="item.kind === 'court' && item.status !== 'CANCELLED' && isPayAtClubStatus(item.paymentStatus)"
+                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && isPayAtClubStatus(item.paymentStatus)"
                 class="mt-1 text-[11px] text-brand-gray-600"
               >{{ t('booking.payAtClubDetail') }}</p>
               <p
@@ -586,19 +638,19 @@ function dateLine(item: HistoryItem) {
               >{{ t('athlete.historyRebook') }}</NuxtLink>
 
               <button
-                v-if="item.kind === 'court' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
+                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
                 type="button"
                 class="canva-history-btn-secondary"
                 :class="{ 'canva-cta-busy': payingId === item.id }"
                 :aria-busy="payingId === item.id"
-                @click="payBooking(item.id)"
+                @click="payBooking(item)"
               >{{ payingId === item.id ? t('booking.redirectingToGateway') : t('booking.payNow') }}</button>
               <button
-                v-if="item.kind === 'court' && item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
+                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
                 type="button"
                 class="canva-history-btn-secondary"
                 :disabled="payingId === item.id"
-                @click="payBooking(item.id, true)"
+                @click="payBooking(item, true)"
               >{{ t('booking.payWithWallet') }}</button>
               <button
                 v-if="item.kind === 'court' && item.status !== 'CANCELLED' && historyStatus(item) === 'pending'"

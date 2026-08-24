@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const { user, fetch: fetchAuth } = useAuth()
 const { localizedField } = useLocalizedField()
+const { pilotNoCoach } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const ownerClubVersion = ref(0)
 const moreOpen = ref(false)
@@ -24,6 +25,7 @@ const primaryNavItems = [
 
 const desktopExtraNavItems = [
   { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
+  { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'sports' },
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
   { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
   { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
@@ -43,8 +45,9 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
 
   return items.filter((item) => {
     if (item.path === '/owner/workers' && !isOwner) return false
-    // Court MVP: never surface Coaches / Packages (routes stay stubbed/pilot-gated).
-    if (item.path === '/owner/coaches' || item.path === '/owner/packages') return false
+    // Packages stay frozen for court MVP; coaches follow the pilot flag.
+    if (item.path === '/owner/packages') return false
+    if (item.path === '/owner/coaches' && pilotNoCoach.value) return false
     return canAccessOwnerNav(item.path, permissions, isOwner)
   })
 }
