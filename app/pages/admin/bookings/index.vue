@@ -6,7 +6,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatCurrency, formatDate } = useFormatters()
+const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
 
 const PAYMENT_FILTERS = ['ALL', 'IPG', 'ON_SITE', 'PENDING_ONLINE', 'FAILED', 'REFUNDED'] as const
 type PaymentFilter = (typeof PAYMENT_FILTERS)[number]
@@ -291,7 +291,7 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
               <template v-for="row in bookings" :key="row.id">
                 <tr class="border-b border-brand-gray-50">
                   <td class="p-3 tabular-nums whitespace-nowrap" dir="ltr">
-                    {{ row.date }} {{ row.startTime }}
+                    {{ formatDate(row.date) }} {{ formatTimeLabel(row.startTime) }}
                   </td>
                   <td class="p-3">
                     <NuxtLink
@@ -468,7 +468,7 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       </li>
                       <li v-if="row.date" class="flex justify-between gap-2">
                         <span>{{ t('common.date') }}</span>
-                        <span dir="ltr">{{ row.date }} {{ row.startTime }}</span>
+                        <span dir="ltr">{{ formatDate(row.date) }} {{ formatTimeLabel(row.startTime) }}</span>
                       </li>
                     </ul>
                     <p class="mt-2 text-brand-gray-500">{{ t('admin.bookingsReadOnlyNote') }}</p>

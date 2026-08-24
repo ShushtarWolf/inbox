@@ -5,7 +5,7 @@ const route = useRoute()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatTimeRange } = useFormatters()
 const id = route.params.id as string
 
 const { data: coach, pending, error } = await useFetch(`/api/coaches/${id}`)
@@ -54,7 +54,7 @@ function specialtyLabel(value: string) {
       <h2 class="mb-2 font-bold">{{ t('coaches.availability') }}</h2>
       <div class="flex flex-wrap gap-2 text-xs">
         <span v-for="item in coach.availability" :key="item.id" class="rounded-full border px-3 py-1">
-          {{ t('coach.dayLabel', { day: item.dayOfWeek }) }} · {{ item.startTime }} - {{ item.endTime }}
+          {{ t('coach.dayLabel', { day: item.dayOfWeek }) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
         </span>
       </div>
     </section>

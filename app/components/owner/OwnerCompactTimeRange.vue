@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const { formatTimeLabel } = useFormatters()
 
 const endOptions = computed(() => {
   const startH = hourFromTime(startTime.value)
@@ -39,7 +40,7 @@ function onEndChange(event: Event) {
         dir="ltr"
         @change="onStartChange"
       >
-        <option v-for="time in options" :key="`start-${time}`" :value="time">{{ time }}</option>
+        <option v-for="time in options" :key="`start-${time}`" :value="time">{{ formatTimeLabel(time) }}</option>
       </select>
     </AppFormField>
     <AppFormField :label="t('owner.seasonPage.endTime')">
@@ -49,7 +50,7 @@ function onEndChange(event: Event) {
         dir="ltr"
         @change="onEndChange"
       >
-        <option v-for="time in endOptions" :key="`end-${time}`" :value="time">{{ time }}</option>
+        <option v-for="time in endOptions" :key="`end-${time}`" :value="time">{{ formatTimeLabel(time) }}</option>
       </select>
     </AppFormField>
   </div>

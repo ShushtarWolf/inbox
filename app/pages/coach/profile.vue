@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { fetch } = useAuth()
+const { formatTimeRange } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   bioFa?: string | null
   bioEn?: string | null
@@ -137,7 +138,7 @@ async function removeGalleryImage(id: string) {
         <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
         <div class="flex flex-wrap gap-2 text-xs">
           <span v-for="item in data?.availability || []" :key="item.id" class="rounded-full border px-3 py-1 flex items-center gap-2">
-            {{ $t('coach.dayLabel', { day: item.dayOfWeek }) }} · {{ item.startTime }} - {{ item.endTime }}
+            {{ $t('coach.dayLabel', { day: item.dayOfWeek }) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
             <button type="button" class="text-red-600" @click="removeAvailability(item.id)">×</button>
           </span>
         </div>

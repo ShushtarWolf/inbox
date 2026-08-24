@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { formatTimeLabel } = useFormatters()
 
 const config = reactive<CourtPricingConfig>(defaultCourtPricingConfig())
 
@@ -116,7 +117,7 @@ function endOptionsFor(startTime: string) {
               @change="updateBand(index, { startTime: ($event.target as HTMLSelectElement).value })"
             >
               <option v-for="time in timeOptions" :key="`start-${index}-${time}`" :value="time">
-                {{ time }}
+                {{ formatTimeLabel(time) }}
               </option>
             </select>
           </label>
@@ -128,7 +129,7 @@ function endOptionsFor(startTime: string) {
               @change="updateBand(index, { endTime: ($event.target as HTMLSelectElement).value })"
             >
               <option v-for="time in endOptionsFor(band.startTime)" :key="`end-${index}-${time}`" :value="time">
-                {{ time }}
+                {{ formatTimeLabel(time) }}
               </option>
             </select>
           </label>

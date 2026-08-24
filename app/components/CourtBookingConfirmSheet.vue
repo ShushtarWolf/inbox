@@ -51,7 +51,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { formatCurrency, formatNumber, formatWeekday } = useFormatters()
+const { formatCurrency, formatNumber, formatWeekday, formatTimeLabel } = useFormatters()
 const { localizedField } = useLocalizedField()
 const { fetchErrorMessage } = useFetchError()
 const { user } = useAuth()
@@ -167,7 +167,7 @@ const dateHeading = computed(() => {
 const costLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of props.slots) {
-    const time = slot.startTime?.slice(0, 5) || ''
+    const time = formatTimeLabel(slot.startTime || '')
     const listed = slot.courtPrice != null && slot.startTime
       ? computeListedSlotPrice(Number(slot.courtPrice), slot.startTime, slot.pricingJson)
       : Number(slot.price || 0)
@@ -442,7 +442,7 @@ async function submit(preferWallet = false) {
                 class="canva-confirm-book-time"
                 :class="multiCourt ? 'w-full justify-start' : ''"
               >
-                <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ slot.startTime?.slice(0, 5) }}
+                <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ formatTimeLabel(slot.startTime || '') }}
               </span>
             </div>
             <p

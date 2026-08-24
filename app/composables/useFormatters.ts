@@ -65,12 +65,23 @@ export function useFormatters() {
   }
 
   function formatTimeLabel(value: string) {
-    return value.slice(0, 5)
+    const label = (value || '').trim().slice(0, 5)
+    return locale.value === 'fa' ? toPersianDigits(label) : label
   }
 
   function formatTimeRange(start: string, end?: string | null) {
     if (!end) return formatTimeLabel(start)
     return `${formatTimeLabel(start)} – ${formatTimeLabel(end)}`
+  }
+
+  function formatDateTime(value: string | number | Date) {
+    return new Intl.DateTimeFormat(intlLocale(), faDateOptions({
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })).format(toDate(value))
   }
 
   function formatHours(count: number | string | null | undefined) {
@@ -92,6 +103,7 @@ export function useFormatters() {
     formatMonth,
     formatTimeLabel,
     formatTimeRange,
+    formatDateTime,
     formatHours,
     formatDistanceKm,
   }

@@ -449,7 +449,7 @@ function dateLine(item: HistoryItem) {
             v-for="time in selectedDayTimes"
             :key="time"
             class="canva-history-time-chip"
-          >{{ time }}</span>
+          >{{ formatTimeLabel(time) }}</span>
         </div>
         <div class="canva-history-cal-grid-wrap">
           <div class="canva-history-cal-nav">

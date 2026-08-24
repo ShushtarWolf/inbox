@@ -1874,11 +1874,11 @@ const payConfirmCostLines = computed(() => {
       label: slotCourtName(slot)
         ? t('booking.confirmLineSlotCourt', {
           court: slotCourtName(slot),
-          time: slot.startTime?.slice(0, 5) || '',
+          time: formatTimeLabel(slot.startTime || ''),
         })
         : t('booking.confirmLineSlot', {
           date: payConfirmDateHeading.value,
-          time: slot.startTime?.slice(0, 5) || '',
+          time: formatTimeLabel(slot.startTime || ''),
         }),
       amount: slot.price ?? 0,
     })

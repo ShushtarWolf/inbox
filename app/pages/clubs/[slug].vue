@@ -66,7 +66,7 @@ const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatNumber, formatYear, formatWeekday } = useFormatters()
+const { formatNumber, formatYear, formatWeekday, formatTimeLabel } = useFormatters()
 const { today } = useLocalDate()
 const rawSlug = route.params.slug as string
 const slug = resolveClubSlugAlias(rawSlug)
@@ -284,7 +284,7 @@ const bookingSummary = computed(() => {
   const courtLabels = uniqueOrdered(
     courtIdsFromSlots(picked).map((id) => courtNumberLabel(id)).filter(Boolean),
   )
-  const times = timesFromSlots(picked)
+  const times = timesFromSlots(picked).map((time) => formatTimeLabel(time))
   const j = isoToJalaali(selectedDate.value)
   const weekday = formatWeekday(selectedDate.value, 'long')
   const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
@@ -537,7 +537,7 @@ function calendarDayAria(cell: { day: number | null; iso: string | null }) {
 }
 
 function slotAriaLabel(slot: ClubSlot) {
-  const time = slot.startTime?.slice(0, 5) || ''
+  const time = formatTimeLabel(slot.startTime || '')
   if (isSlotSelected(slot.id)) return t('clubs.slotAriaSelected', { time })
   if (waitlistSlotId.value === slot.id) return t('clubs.slotAriaWaitlist', { time })
   if (isSlotBooked(slot)) return t('clubs.slotAriaBooked', { time })
@@ -903,7 +903,7 @@ async function shareClub() {
                   :aria-pressed="isSlotSelected(slot.id) || waitlistSlotId === slot.id"
                   @click="toggleSlot(slot)"
                 >
-                  {{ slot.startTime }}
+                  {{ formatTimeLabel(slot.startTime) }}
                 </button>
                 <p v-if="!courtSlots.length" class="canva-club-detail-desc col-span-full">
                   {{ t('common.empty') }}

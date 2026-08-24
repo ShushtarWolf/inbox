@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const { formatTimeLabel } = useFormatters()
 
 const endOptions = computed(() => {
   const startH = hourFromTime(startTime.value)
@@ -44,7 +45,7 @@ function selectEnd(time: string) {
             :class="startTime === time ? 'bg-brand-primary text-white shadow-venus-sm' : 'text-brand-gray-600 hover:bg-brand-lavender hover:text-brand-primary'"
             @click="selectStart(time)"
           >
-            <bdi dir="ltr" class="tabular-nums">{{ time }}</bdi>
+            <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(time) }}</bdi>
           </button>
         </li>
       </ul>
@@ -62,7 +63,7 @@ function selectEnd(time: string) {
             :class="endTime === time ? 'bg-brand-primary text-white shadow-venus-sm' : 'text-brand-gray-600 hover:bg-brand-lavender hover:text-brand-primary'"
             @click="selectEnd(time)"
           >
-            <bdi dir="ltr" class="tabular-nums">{{ time }}</bdi>
+            <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(time) }}</bdi>
           </button>
         </li>
       </ul>

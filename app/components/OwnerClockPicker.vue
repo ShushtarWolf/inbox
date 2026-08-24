@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
 
 const { t } = useI18n()
+const { formatTimeLabel } = useFormatters()
 
 const selected = computed(() => props.modelValue[0] || '')
 
@@ -31,7 +32,7 @@ function selectTime(time: string) {
           :class="selected === time ? 'bg-brand-primary text-white shadow-venus-sm' : 'text-brand-gray-600 hover:bg-brand-lavender hover:text-brand-primary'"
           @click="selectTime(time)"
         >
-          <bdi dir="ltr" class="tabular-nums">{{ time }}</bdi>
+          <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(time) }}</bdi>
         </button>
       </li>
     </ul>

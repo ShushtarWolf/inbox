@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   notifications: Array<{
     id: string
@@ -74,7 +75,7 @@ async function markAllRead() {
               <p class="font-bold text-brand-navy">{{ item.title }}</p>
               <p class="mt-1 text-sm text-brand-gray-700">{{ item.body }}</p>
               <p class="mt-2 text-xs text-brand-gray-500 tabular-nums" dir="ltr">
-                {{ new Date(item.createdAt).toLocaleString() }}
+                {{ formatDateTime(item.createdAt) }}
               </p>
             </div>
             <button
