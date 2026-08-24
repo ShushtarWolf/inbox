@@ -22,10 +22,48 @@ type OwnerStaffPage = {
   }>
 }
 
+type CoachLink = {
+  id: string
+  status: 'PENDING' | 'ACTIVE' | 'BLOCKED'
+  courtDiscountPercent: number
+  coach: {
+    id: string
+    nameFa: string
+    nameEn: string
+    city: string
+    sessionPrice: number
+    photo: string | null
+    phone: string | null
+    email: string | null
+  }
+}
+
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerStaffPage>('/api/owner/staff')
+const { data: linkData, refresh: refreshLinks } = await useAuthedFetch<{ links: CoachLink[] }>('/api/owner/coach-links')
 useOwnerClubRefresh(refresh)
-const { formatIsoDate, formatTimeRange } = useFormatters()
+useOwnerClubRefresh(refreshLinks)
+const { formatIsoDate, formatTimeRange, formatCurrency } = useFormatters()
 const { localizedField } = useLocalizedField()
+
+const linkBusyId = ref('')
+const discountDrafts = reactive<Record<string, number>>({})
+
+watch(linkData, (value) => {
+  for (const link of value?.links || []) {
+    if (discountDrafts[link.id] === undefined) discountDrafts[link.id] = link.courtDiscountPercent
+  }
+}, { immediate: true })
+
+async function updateLink(link: CoachLink, patch: { status?: CoachLink['status']; courtDiscountPercent?: number }) {
+  if (linkBusyId.value) return
+  linkBusyId.value = link.id
+  try {
+    await $fetch(`/api/owner/coach-links/${link.id}`, { method: 'PATCH', body: patch })
+    await refreshLinks()
+  } finally {
+    linkBusyId.value = ''
+  }
+}
 
 const inviteEmail = ref('')
 const inviteName = ref('')
@@ -145,7 +183,58 @@ async function deactivate(memberId: string) {
         </ul>
       </section>
       <section class="ios-card p-4">
-        <h2 class="mb-3 font-bold">{{ $t('coach.schedule') }}</h2>
+        <h2 class="mb-1 font-bold">{{ t('owner.coachLinksTitle') }}</h2>
+        <p class="mb-3 text-xs text-brand-gray-600">{{ t('owner.coachLinksHint') }}</p>
+        <ul class="space-y-2">
+          <li v-for="link in linkData?.links" :key="link.id" class="ios-card p-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-bold">{{ localizedField(link.coach, 'nameFa', 'nameEn') }}</p>
+                <p class="text-xs text-brand-gray-600">
+                  {{ link.coach.city }} · {{ formatCurrency(link.coach.sessionPrice) }}
+                </p>
+              </div>
+              <span class="text-xs font-bold" :class="link.status === 'ACTIVE' ? 'text-emerald-700' : 'text-brand-gray-500'">
+                {{ t(`owner.coachLinkStatus.${link.status}`) }}
+              </span>
+            </div>
+            <div class="mt-2 flex flex-wrap items-end gap-2">
+              <AppFormField :label="t('owner.coachCourtDiscount')" class="min-w-[140px] flex-1">
+                <input
+                  v-model.number="discountDrafts[link.id]"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="neo-input"
+                  :disabled="linkBusyId === link.id"
+                >
+              </AppFormField>
+              <button
+                type="button"
+                class="btn-primary px-3 py-2 text-xs"
+                :disabled="linkBusyId === link.id"
+                @click="updateLink(link, { courtDiscountPercent: discountDrafts[link.id] })"
+              >{{ t('common.save') }}</button>
+              <button
+                v-if="link.status !== 'ACTIVE'"
+                type="button"
+                class="text-xs font-bold text-emerald-700"
+                :disabled="linkBusyId === link.id"
+                @click="updateLink(link, { status: 'ACTIVE' })"
+              >{{ t('owner.coachLinkAccept') }}</button>
+              <button
+                v-if="link.status !== 'BLOCKED'"
+                type="button"
+                class="text-xs text-red-600"
+                :disabled="linkBusyId === link.id"
+                @click="updateLink(link, { status: 'BLOCKED' })"
+              >{{ t('owner.coachLinkBlock') }}</button>
+            </div>
+          </li>
+          <li v-if="!linkData?.links?.length" class="ios-card p-3 text-sm text-brand-gray-600">{{ t('owner.coachLinksEmpty') }}</li>
+        </ul>
+
+        <h2 class="mb-3 mt-6 font-bold">{{ $t('coach.schedule') }}</h2>
         <ul class="space-y-2 text-sm">
           <li v-for="session in data?.upcomingSessions" :key="session.id" class="ios-card p-3">
             <p class="font-bold">{{ localizedField(session.coach, 'nameFa', 'nameEn') }}</p>

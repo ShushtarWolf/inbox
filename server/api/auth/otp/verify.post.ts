@@ -239,6 +239,8 @@ export default defineEventHandler(async (event) => {
           userId: user.id,
           sessionPrice: 400000,
           isBookable: true,
+          approvalStatus: 'PENDING',
+          appliedAt: new Date(),
         },
       })
 
@@ -252,6 +254,13 @@ export default defineEventHandler(async (event) => {
       })
 
       return { user, coach }
+    })
+
+    await notifyAdminCoachApplication({
+      coachName: name,
+      city: result.coach.city,
+      phone: result.user.phone,
+      email: result.user.email,
     })
 
     await setUserSession(event, { user: toSessionUser(result.user) })

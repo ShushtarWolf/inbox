@@ -130,6 +130,24 @@ export function renderEmailTemplate(template: NotifyTemplate, data: TemplateData
         html: `<p>Your club application for <strong>${esc(clubName)}</strong> has been approved.</p><p><a href="${esc(loginUrl)}">Log in to your owner dashboard</a></p>${tempPassword ? `<p>Temporary password: <code>${esc(tempPassword)}</code><br>Please change it after your first login.</p>` : '<p>Use your existing password to log in.</p>'}`,
       }
     }
+    case 'COACH_APPROVED': {
+      const loginUrl = String(data.loginUrl || '')
+      const coachName = String(data.coachName || 'your coach profile')
+      return {
+        subject: `Your coach profile "${coachName}" is approved`,
+        text: `Your coach application for ${coachName} has been approved. Athletes can now find and book you.\n\nLogin: ${loginUrl}`,
+        html: `<p>Your coach application for <strong>${esc(coachName)}</strong> has been approved. Athletes can now find and book you.</p><p><a href="${esc(loginUrl)}">Log in to your coach dashboard</a></p>`,
+      }
+    }
+    case 'COACH_REJECTED': {
+      const coachName = String(data.coachName || 'your coach profile')
+      const note = String(data.note || '').trim()
+      return {
+        subject: `Your coach application for "${coachName}" was not approved`,
+        text: `Your coach application for ${coachName} was not approved.${note ? `\n\nReason: ${note}` : ''}`,
+        html: `<p>Your coach application for <strong>${esc(coachName)}</strong> was not approved.</p>${note ? `<p>Reason: ${esc(note)}</p>` : ''}`,
+      }
+    }
     default:
       return {
         subject: 'inbox notification',

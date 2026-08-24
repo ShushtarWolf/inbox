@@ -1,4 +1,4 @@
-import { findCoachByIdOrSlug } from '../../utils/coaches'
+import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { parseJsonArray, reviewSummary } from '../../utils/catalog'
 import { slugify } from '../../utils/slug'
 
@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const coachRecord = await findCoachByIdOrSlug(id)
   if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+  assertCoachApproved(coachRecord)
 
   const coach = await prisma.coach.findUnique({
     where: { id: coachRecord.id },

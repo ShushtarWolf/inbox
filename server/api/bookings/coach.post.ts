@@ -1,6 +1,6 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
-import { findCoachByIdOrSlug } from '../../utils/coaches'
+import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
 
   const coachRecord = await findCoachByIdOrSlug(body.coachId)
   if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+  assertCoachApproved(coachRecord)
 
   const coach = await prisma.coach.findUnique({
     where: { id: coachRecord.id },

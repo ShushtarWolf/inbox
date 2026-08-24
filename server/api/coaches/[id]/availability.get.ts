@@ -1,5 +1,5 @@
 import { addOneHour } from '../../../utils/reservations'
-import { findCoachByIdOrSlug } from '../../../utils/coaches'
+import { assertCoachApproved, findCoachByIdOrSlug } from '../../../utils/coaches'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 
 export default defineEventHandler(async (event) => {
@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const coachRecord = await findCoachByIdOrSlug(id)
   if (!coachRecord) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
+  assertCoachApproved(coachRecord)
 
   const coach = await prisma.coach.findUnique({
     where: { id: coachRecord.id },

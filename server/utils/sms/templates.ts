@@ -190,6 +190,12 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     ].join('\n')
   },
   CLUB_APPROVED: (data) => `باشگاه «${data.clubName || ''}» در inbox تایید شد`,
+  COACH_APPROVED: (data) => `پروفایل مربی «${data.coachName || ''}» در inbox تایید شد`,
+  COACH_REJECTED: (data) => {
+    const note = String(data.note || '').trim()
+    const base = `درخواست مربی «${data.coachName || ''}» در inbox تایید نشد`
+    return note ? `${base} — ${note}` : base
+  },
   WAITLIST_SLOT_AVAILABLE: (data) => {
     const when = whenBit(data)
     return when
@@ -271,6 +277,19 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       club,
       city,
       contact,
+      phone ? toPersianDigits(phone) : '',
+      'اقدام در ادمین',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
+  ADMIN_COACH_APPLICATION: (data) => {
+    const coach = String(data.coachName || '').trim() || 'مربی'
+    const city = String(data.city || '').trim()
+    const phone = String(data.phone || '').trim()
+    return [
+      'درخواست مربی',
+      coach,
+      city,
       phone ? toPersianDigits(phone) : '',
       'اقدام در ادمین',
       'اینباکس',

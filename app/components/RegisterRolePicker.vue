@@ -8,16 +8,16 @@ defineProps<{
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
+const { pilotNoCoach } = usePilotFlags()
 
 const allRoles: Array<{ id: RegisterRole; labelKey: string; path: string }> = [
   { id: 'athlete', labelKey: 'register.roleAthlete', path: '/register' },
   { id: 'owner', labelKey: 'register.roleOwner', path: '/register/owner' },
-  // Coach role kept in type for legacy routes; never offered in UI (MVP freeze).
   { id: 'coach', labelKey: 'register.roleCoach', path: '/register/coach' },
 ]
 
-/** Product exclusion: coach signup stays off (same as AuthFlowModal). */
-const roles = computed(() => allRoles.filter((item) => item.id !== 'coach'))
+/** Coach signup is open but admin-reviewed; it follows the pilot flag like AuthFlowModal. */
+const roles = computed(() => (pilotNoCoach.value ? allRoles.filter((item) => item.id !== 'coach') : allRoles))
 
 function roleLink(path: string) {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : ''

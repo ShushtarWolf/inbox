@@ -5,6 +5,7 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 const { formatIsoDate, formatTimeRange } = useFormatters()
 const { data, pending, error } = await useAuthedFetch<{
+  coach?: { approvalStatus?: string; approvalNote?: string | null }
   sessions?: Array<{
     id: string
     startTime: string
@@ -19,11 +20,23 @@ const { data, pending, error } = await useAuthedFetch<{
     athlete: { name: string; phone: string }
   }>
 }>('/api/coach/today')
+
+const approvalStatus = computed(() => data.value?.coach?.approvalStatus || 'APPROVED')
 </script>
 
 <template>
   <div class="tail-page-stack">
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+    <div
+      v-if="approvalStatus !== 'APPROVED'"
+      class="ios-card p-4 text-sm"
+      :class="approvalStatus === 'REJECTED' ? 'venus-alert-error' : 'bg-amber-50 text-amber-900'"
+    >
+      <p class="font-bold">
+        {{ approvalStatus === 'REJECTED' ? $t('coach.approvalRejected') : $t('coach.approvalPending') }}
+      </p>
+      <p v-if="data?.coach?.approvalNote" class="mt-1 text-xs">{{ data.coach.approvalNote }}</p>
+    </div>
     <div class="flex items-center justify-between gap-3">
       <h1 class="font-display text-xl font-bold">{{ $t('coach.today') }}</h1>
       <NuxtLink :to="localePath('/coach/schedule')" class="text-sm font-bold text-brand-primary">{{ $t('coach.schedule') }}</NuxtLink>

@@ -15,6 +15,38 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
 }>('/api/coach/profile')
 const { data: clubs } = await useFetch<Array<{ id: string; nameFa: string; nameEn: string; city: string }>>('/api/clubs/options')
 
+type ClubOption = { id: string; nameFa: string; nameEn: string; city: string }
+const { data: clubLinks, refresh: refreshClubLinks } = await useAuthedFetch<{
+  links: Array<{ id: string; status: 'PENDING' | 'ACTIVE' | 'BLOCKED'; courtDiscountPercent: number; club: ClubOption }>
+  availableClubs: ClubOption[]
+}>('/api/coach/clubs')
+
+const linkClubId = ref('')
+const linkBusy = ref(false)
+
+async function requestClubLink() {
+  if (!linkClubId.value || linkBusy.value) return
+  linkBusy.value = true
+  try {
+    await $fetch('/api/coach/clubs', { method: 'POST', body: { clubId: linkClubId.value } })
+    linkClubId.value = ''
+    await refreshClubLinks()
+  } finally {
+    linkBusy.value = false
+  }
+}
+
+async function removeClubLink(id: string) {
+  if (linkBusy.value) return
+  linkBusy.value = true
+  try {
+    await $fetch(`/api/coach/clubs/${id}`, { method: 'DELETE' })
+    await refreshClubLinks()
+  } finally {
+    linkBusy.value = false
+  }
+}
+
 const bioFa = ref('')
 const bioEn = ref('')
 const price = ref(0)
@@ -148,6 +180,39 @@ async function removeGalleryImage(id: string) {
           <input v-model="newEnd" type="time" dir="ltr" class="neo-input tabular-nums" />
         </div>
         <button type="button" class="btn-secondary w-full" @click="addAvailability">{{ $t('common.add') }}</button>
+      </section>
+
+      <section class="ios-card p-4 space-y-3">
+        <h2 class="font-bold">{{ $t('coach.clubLinksTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksHint') }}</p>
+        <ul class="space-y-2 text-sm">
+          <li v-for="link in clubLinks?.links || []" :key="link.id" class="flex items-start justify-between gap-2 border p-2">
+            <div>
+              <p class="font-bold">{{ link.club.nameFa }}</p>
+              <p class="text-xs text-brand-gray-600">
+                {{ $t(`owner.coachLinkStatus.${link.status}`) }}
+                <template v-if="link.status === 'ACTIVE'">
+                  · {{ $t('coach.clubLinkDiscount', { percent: link.courtDiscountPercent }) }}
+                </template>
+              </p>
+            </div>
+            <button type="button" class="text-xs text-red-600" :disabled="linkBusy" @click="removeClubLink(link.id)">
+              {{ $t('common.delete') }}
+            </button>
+          </li>
+          <li v-if="!clubLinks?.links?.length" class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksEmpty') }}</li>
+        </ul>
+        <div class="flex gap-2">
+          <select v-model="linkClubId" class="neo-select flex-1">
+            <option value="">{{ $t('register.selectClubPlaceholder') }}</option>
+            <option v-for="club in clubLinks?.availableClubs || []" :key="club.id" :value="club.id">
+              {{ club.nameFa }} — {{ club.city }}
+            </option>
+          </select>
+          <button type="button" class="btn-secondary px-4" :disabled="!linkClubId || linkBusy" @click="requestClubLink">
+            {{ $t('common.add') }}
+          </button>
+        </div>
       </section>
 
       <section class="ios-card p-4 space-y-3">

@@ -74,6 +74,8 @@ export default defineEventHandler(async (event) => {
         photo: body.avatarUrl?.trim() || null,
         credentialsJson: body.credentialUrls?.length ? JSON.stringify(body.credentialUrls) : null,
         isBookable: true,
+        approvalStatus: 'PENDING',
+        appliedAt: new Date(),
       },
     })
 
@@ -88,6 +90,13 @@ export default defineEventHandler(async (event) => {
     })
 
     return { user, coach }
+  })
+
+  await notifyAdminCoachApplication({
+    coachName: name,
+    city: result.coach.city,
+    phone: phone || null,
+    email,
   })
 
   await setUserSession(event, { user: toSessionUser(result.user) })

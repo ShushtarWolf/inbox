@@ -10,6 +10,7 @@ export type AdminSmsTemplate =
   | 'ADMIN_BOOKING_CANCELLED'
   | 'ADMIN_WITHDRAW_REQUEST'
   | 'ADMIN_CLUB_APPLICATION'
+  | 'ADMIN_COACH_APPLICATION'
   | 'ADMIN_WALLET_TOPUP'
 
 /**
@@ -73,6 +74,20 @@ export async function notifyAdminClubApplication(opts: {
     },
     opts.clubId || undefined,
   )
+}
+
+export async function notifyAdminCoachApplication(opts: {
+  coachName: string
+  city?: string | null
+  phone?: string | null
+  email?: string | null
+}) {
+  await notifyAdminSms('ADMIN_COACH_APPLICATION', {
+    coachName: opts.coachName,
+    city: opts.city || '',
+    phone: opts.phone || '',
+    email: opts.email || '',
+  })
 }
 
 export async function notifyAdminWithdrawRequest(opts: {

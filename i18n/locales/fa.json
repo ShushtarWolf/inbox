@@ -366,7 +366,13 @@
     "dayLabel": "روز {day}",
     "bioFa": "بیو فارسی",
     "bioEn": "بیو انگلیسی",
-    "photoUrl": "آدرس تصویر پروفایل"
+    "photoUrl": "آدرس تصویر پروفایل",
+    "approvalPending": "پروفایل شما در انتظار تأیید اینباکس است. تا تأیید نشود، ورزشکاران شما را نمی‌بینند.",
+    "approvalRejected": "درخواست مربی‌گری شما تأیید نشد.",
+    "clubLinksTitle": "باشگاه‌های من",
+    "clubLinksHint": "باشگاه‌هایی که می‌توانید در آن‌ها جلسه بگذارید. پس از پذیرش باشگاه، تخفیف زمین برای شما اعمال می‌شود.",
+    "clubLinksEmpty": "هنوز به باشگاهی درخواست نداده‌اید",
+    "clubLinkDiscount": "تخفیف زمین: {percent}٪"
   },
   "notifications": {
     "title": "اعلان‌ها",
@@ -485,6 +491,12 @@
     },
     "applicationsTitle": "درخواست‌های باشگاه",
     "applicationsSubtitle": "تأیید یا رد درخواست‌های ثبت‌نام باشگاه",
+    "coachApplicationsTitle": "درخواست‌های مربی",
+    "coachApplicationsSubtitle": "تأیید یا رد ثبت‌نام مربی‌ها؛ تا تأیید نشوند در سایت دیده نمی‌شوند.",
+    "noCoachApplications": "درخواست مربی ثبت نشده",
+    "coachName": "مربی",
+    "coachSessionPrice": "هزینه هر جلسه",
+    "rejectNote": "دلیل رد (اختیاری)",
     "emailOpsTitle": "ارسال ایمیل",
     "emailMode": "حالت ایمیل",
     "emailConfigured": "ایمیل زنده پیکربندی شده",
@@ -674,6 +686,7 @@
       "bookings": "رزروها",
       "withdrawals": "برداشت‌ها",
       "applications": "درخواست‌ها",
+      "coachApplications": "درخواست‌های مربی",
       "sms": "پیامک",
       "sentry": "Sentry",
       "provision": "ایجاد مدیر"
@@ -1509,6 +1522,17 @@
     "inviteSent": "دعوت ارسال شد.",
     "inviteCreated": "حساب ساخته شد. رمز موقت: {password}",
     "deactivate": "غیرفعال‌سازی",
+    "coachLinksTitle": "مربی‌های مستقل",
+    "coachLinksHint": "مربی‌هایی که خواسته‌اند در باشگاه شما کار کنند. با پذیرش، درصد تخفیف زمین برای رزرو مستقیم مربی تعیین می‌شود.",
+    "coachLinksEmpty": "درخواستی از مربی‌ها ثبت نشده",
+    "coachCourtDiscount": "تخفیف زمین مربی (٪)",
+    "coachLinkAccept": "پذیرش",
+    "coachLinkBlock": "مسدود کردن",
+    "coachLinkStatus": {
+      "PENDING": "در انتظار پذیرش",
+      "ACTIVE": "فعال",
+      "BLOCKED": "مسدود"
+    },
     "permissionsTitle": "دسترسی‌ها",
     "reserve": "رزرو",
     "free": "رایگان",

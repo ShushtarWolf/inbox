@@ -3,6 +3,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
+const { pilotNoCoach } = usePilotFlags()
 
 useHead({
   title: () => t('admin.consoleTitle'),
@@ -21,6 +22,9 @@ const nav = computed(() => [
   { to: localePath('/admin/users'), label: t('admin.nav.users'), icon: 'group' },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings'), icon: 'event' },
   { to: localePath('/admin/applications'), label: t('admin.nav.applications'), icon: 'assignment' },
+  ...(pilotNoCoach.value
+    ? []
+    : [{ to: localePath('/admin/coach-applications'), label: t('admin.nav.coachApplications'), icon: 'sports' }]),
   { to: localePath('/admin/sms'), label: t('admin.nav.sms'), icon: 'sms' },
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry'), icon: 'monitoring' },
   { to: localePath('/admin/provision'), label: t('admin.nav.provision'), icon: 'person_add' },

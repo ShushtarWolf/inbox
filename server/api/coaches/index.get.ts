@@ -1,4 +1,5 @@
 import { coachRankingScore, getQueryNumber, parseJsonArray } from '../../utils/catalog'
+import { PUBLIC_COACH_WHERE } from '../../utils/coaches'
 import { slugify } from '../../utils/slug'
 
 export default defineCachedEventHandler(async (event) => {
@@ -14,6 +15,7 @@ export default defineCachedEventHandler(async (event) => {
   const sort = (query.sort as string | undefined) || 'rank'
   const coaches = await prisma.coach.findMany({
     where: {
+      ...PUBLIC_COACH_WHERE,
       ...(sport ? { sport: { slug: sport } } : {}),
       ...(city ? { city } : {}),
       ...(verified === 'true' ? { verifiedAt: { not: null } } : {}),
