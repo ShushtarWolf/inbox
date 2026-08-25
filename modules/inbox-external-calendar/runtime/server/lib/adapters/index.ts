@@ -3,6 +3,16 @@ import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
 import { fetchCourticOccupancy } from './courtic'
 
+function aloplaySupported(mapping: ClubMapping): boolean {
+  return mapping.sources?.aloplay?.clubId != null
+}
+
+function alovarzeshSupported(mapping: ClubMapping): boolean {
+  const source = mapping.sources?.alovarzesh
+  if (!source || ('supported' in source && source.supported === false)) return false
+  return Boolean(mapping.courts?.some((court) => court.external?.alovarzesh?.productId != null))
+}
+
 export async function fetchExternalOccupancy(opts: {
   mapping: ClubMapping | null
   date: string
@@ -30,12 +40,17 @@ export async function fetchExternalOccupancy(opts: {
   adapters.push({
     source: 'aloplay',
     occupied: aloplay.occupied,
-    supported: opts.mapping.sources?.aloplay?.clubId != null,
+    supported: aloplaySupported(opts.mapping),
     error: aloplay.error,
   })
   occupied.push(...aloplay.occupied)
 
-  const alovarzesh = await fetchAloVarzeshOccupancy()
+  const alovarzesh = await fetchAloVarzeshOccupancy({
+    mapping: opts.mapping,
+    date: opts.date,
+    courts: opts.courts,
+    sessionDurationMinutes: opts.sessionDurationMinutes,
+  })
   adapters.push(alovarzesh)
   occupied.push(...alovarzesh.occupied)
 
@@ -45,3 +60,5 @@ export async function fetchExternalOccupancy(opts: {
 
   return { occupied, adapters }
 }
+
+export { alovarzeshSupported, aloplaySupported }

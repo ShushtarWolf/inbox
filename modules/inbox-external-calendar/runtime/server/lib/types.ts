@@ -45,10 +45,16 @@ export interface ExternalSourceConfig {
   clubTitle?: string | null
   comment?: string
   supported?: false
+  /** AloPlay ProductGender: 1=Female, 2=Male */
+  productGender?: number | null
 }
 
 export interface AloPlaySourceConfig extends ExternalSourceConfig {
   clubId: number | null
+}
+
+export interface AloVarzeshSourceConfig extends ExternalSourceConfig {
+  clubTitle?: string | null
 }
 
 export interface UnsupportedSourceConfig {
@@ -57,7 +63,7 @@ export interface UnsupportedSourceConfig {
 
 export interface CourtExternalMapping {
   aloplay?: { courtId: number | null }
-  alovarzesh?: UnsupportedSourceConfig
+  alovarzesh?: { productId: number | null }
   courtic?: UnsupportedSourceConfig
 }
 
@@ -72,7 +78,7 @@ export interface ClubMapping {
   label?: string
   sources?: {
     aloplay?: AloPlaySourceConfig
-    alovarzesh?: UnsupportedSourceConfig & ExternalSourceConfig
+    alovarzesh?: AloVarzeshSourceConfig | (UnsupportedSourceConfig & ExternalSourceConfig)
     courtic?: UnsupportedSourceConfig & ExternalSourceConfig
   }
   courts?: CourtMapping[]

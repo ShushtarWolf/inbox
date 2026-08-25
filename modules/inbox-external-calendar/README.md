@@ -29,18 +29,23 @@ rm -rf modules/inbox-external-calendar
 - تنها ویرایش بیرون از پوشه: `nuxt.config.ts` (`existsSync`) + **قلاب اختیاری** `useExternalSuspectedSlots` و چند خط در `clubs/[slug].vue` که بدون ماژول no-op می‌شوند.
 - تقویم مالک اصلی (`/owner/calendar`) و بقیهٔ اپ بدون ماژول مثل قبل build می‌شوند.
 
-## mapping
+## mapping (`iust-tennis`)
 
-- `mappings/iust-tennis.json` — `clubId` و `clubTitle` AloPlay عمداً `null` (TODO).
+| Source | Status |
+|--------|--------|
+| AloPlay | club **10887** (`/v1/PublicClub/GetAvailableTime`) |
+| AloVarzesh | products **2796** (زمین ۱), **3335** (زمین ۲) — HTML timetable |
+| Courtic | stub (`supported: false`) |
 
 ## تست
 
 ```bash
-npx vitest run modules/inbox-external-calendar/lib/merge.test.ts
+npx vitest run --config modules/inbox-external-calendar/vitest.config.ts
 ```
 
 ## محدودیت‌ها
 
 - بدون migration / env جدید
-- AloVarzesh و Courtic: stub
+- Courtic: stub
+- AloPlay availability is club-level (not per-court) for the public time list
 - polling ~۲۵ث؛ cache adapter ~۴۵ث

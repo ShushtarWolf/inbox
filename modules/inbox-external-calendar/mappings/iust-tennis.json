@@ -3,24 +3,30 @@
   "label": "دانشگاه علم و صنعت",
   "sources": {
     "aloplay": {
-      "clubId": null,
-      "clubTitle": null,
-      "comment": "TODO: AloPlay numeric clubId and clubTitle are unknown — fill when confirmed from AloPlay admin."
+      "clubId": 10887,
+      "clubTitle": "دانشگاه علم وصنعت",
+      "productGender": 2,
+      "comment": "https://aloplay.io/en/tennis/clubs/10887 — productGender 2=Male (default public filter)."
     },
-    "alovarzesh": { "supported": false },
+    "alovarzesh": {
+      "clubTitle": "تنیس علم و صنعت",
+      "comment": "https://alo-varzesh.com/products/2796 (court 1) / 3335 (court 2); mini court 3336 unused."
+    },
     "courtic": { "supported": false }
   },
   "courts": [
     {
       "inboxCourtName": "زمین ۱",
       "external": {
-        "aloplay": { "courtId": null }
+        "aloplay": { "courtId": null },
+        "alovarzesh": { "productId": 2796 }
       }
     },
     {
       "inboxCourtName": "زمین ۲",
       "external": {
-        "aloplay": { "courtId": null }
+        "aloplay": { "courtId": null },
+        "alovarzesh": { "productId": 3335 }
       }
     }
   ]

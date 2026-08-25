@@ -1,15 +1,10 @@
 import type { ClubMapping, ExternalOccupiedSlot } from '../types'
 import { readCached, writeCached } from '../cache'
+import { findCourtMapping } from '../courtMatch'
 import { checkAdapterRateLimit } from '../rateLimit'
+import { addMinutes, buildSessionStarts, normalizeClockTime } from '../time'
 
 const ALOPLAY_BASE = 'https://ws.aloplay.io/api'
-
-function normalizeTime(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.trim()) return null
-  const match = value.trim().match(/^(\d{1,2}):(\d{2})/)
-  if (!match) return null
-  return `${String(Number.parseInt(match[1], 10)).padStart(2, '0')}:${match[2]}`
-}
 
 function collectAvailableTimes(payload: unknown): string[] {
   const found = new Set<string>()
@@ -23,8 +18,8 @@ function collectAvailableTimes(payload: unknown): string[] {
     if (typeof node !== 'object') return
 
     const record = node as Record<string, unknown>
-    for (const key of ['time', 'startTime', 'StartTime', 'fromTime']) {
-      const normalized = normalizeTime(record[key])
+    for (const key of ['time', 'startTime', 'StartTime', 'fromTime', 'value']) {
+      const normalized = normalizeClockTime(record[key])
       if (normalized) found.add(normalized)
     }
     for (const value of Object.values(record)) visit(value)
@@ -32,22 +27,6 @@ function collectAvailableTimes(payload: unknown): string[] {
 
   visit(payload)
   return [...found].sort()
-}
-
-function buildSessionStarts(
-  openHour: number,
-  closeHour: number,
-  durationMinutes: number,
-): string[] {
-  const times: string[] = []
-  const openTotal = openHour * 60
-  const closeTotal = closeHour * 60
-  for (let minutes = openTotal; minutes + durationMinutes <= closeTotal; minutes += durationMinutes) {
-    const hour = Math.floor(minutes / 60)
-    const minute = minutes % 60
-    times.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`)
-  }
-  return times
 }
 
 async function fetchAloPlayJson(path: string, query: Record<string, string | number>) {
@@ -58,7 +37,12 @@ async function fetchAloPlayJson(path: string, query: Record<string, string | num
   const url = `${ALOPLAY_BASE}/${path}?${params.toString()}`
   const response = await fetch(url, {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: 'https://aloplay.io',
+      Referer: 'https://aloplay.io/',
+    },
     signal: AbortSignal.timeout(8_000),
   })
   if (!response.ok) {
@@ -89,7 +73,8 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay clubId is not mapped yet (TODO).' }
   }
 
-  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}`
+  const productGender = opts.mapping.sources?.aloplay?.productGender ?? 2
+  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:g${productGender}`
   const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
   if (cached) return { occupied: cached }
 
@@ -100,7 +85,11 @@ export async function fetchAloPlayOccupied(opts: {
 
   let availableTimes: string[] = []
   try {
-    const payload = await fetchAloPlayJson('GetAvailableTime', { clubId, date: opts.date })
+    const payload = await fetchAloPlayJson('v1/PublicClub/GetAvailableTime', {
+      clubId,
+      date: opts.date,
+      productGender,
+    })
     availableTimes = collectAvailableTimes(payload)
   } catch (error) {
     return {
@@ -117,10 +106,7 @@ export async function fetchAloPlayOccupied(opts: {
   const occupied: ExternalOccupiedSlot[] = []
 
   for (const court of opts.courts) {
-    const mappingCourt = opts.mapping.courts?.find((item) =>
-      item.inboxCourtId === court.id
-      || item.inboxCourtName === court.nameFa,
-    )
+    const mappingCourt = findCourtMapping(opts.mapping, court)
     if (!mappingCourt?.external?.aloplay) continue
 
     const starts = buildSessionStarts(
@@ -133,10 +119,11 @@ export async function fetchAloPlayOccupied(opts: {
       if (availableSet.has(startTime)) continue
 
       try {
-        const byTime = await fetchAloPlayJson('GetByTime', {
+        const byTime = await fetchAloPlayJson('v1/Product/GetByTime', {
           clubId,
           date: opts.date,
           time: startTime,
+          productGender,
         })
         const stillAvailable = collectAvailableTimes(byTime)
         if (stillAvailable.includes(startTime)) continue

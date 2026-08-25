@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { parseAloVarzeshOccupiedTimes } from './alovarzeshParse'
 import { formatSourceBadge } from '../runtime/server/lib/badges'
 import { isInboxOccupied, mergeOccupancy } from '../runtime/server/lib/merge'
 import { computeSuspectedSlots } from '../runtime/server/lib/suspected'
 import { sourceDetailsForCell } from '../runtime/server/lib/sourceDetails'
+import { addMinutes } from '../runtime/server/lib/time'
 
 describe('formatSourceBadge', () => {
   it('returns empty for no sources', () => {
@@ -103,7 +105,7 @@ describe('sourceDetailsForCell', () => {
       {
         inboxSlug: 'iust-tennis',
         label: 'دانشگاه علم و صنعت',
-        sources: { aloplay: { clubId: null, clubTitle: 'باشگاه نمونه AloPlay' } },
+        sources: { aloplay: { clubId: 10887, clubTitle: 'باشگاه نمونه AloPlay' } },
       },
       ['inbox', 'aloplay'],
     )
@@ -111,5 +113,36 @@ describe('sourceDetailsForCell', () => {
       { source: 'inbox', siteLabel: 'اینباکس', externalClubTitle: 'دانشگاه علم و صنعت' },
       { source: 'aloplay', siteLabel: 'الوپلی', externalClubTitle: 'باشگاه نمونه AloPlay' },
     ])
+  })
+})
+
+describe('addMinutes', () => {
+  it('adds session length on the same day', () => {
+    expect(addMinutes('10:00', 60)).toBe('11:00')
+    expect(addMinutes('07:30', 90)).toBe('09:00')
+  })
+})
+
+describe('parseAloVarzeshOccupiedTimes', () => {
+  it('flags bg-disabled rows for the requested Jalali day', () => {
+    const html = `
+      <div class="day-box flex-timetable row bg-disabled ">
+        <span class="time-value">07:00</span>
+        <input type="hidden" name="product_schedule" value="1405-06-03 07:00">
+      </div>
+      <div class="day-box flex-timetable row ">
+        <span class="time-value">08:00</span>
+        <input type="hidden" name="product_schedule" value="1405-06-03 08:00">
+      </div>
+      <div class="day-box flex-timetable row bg-disabled ">
+        <span class="time-value">09:00</span>
+        <input type="hidden" name="product_schedule" value="1405-06-04 09:00">
+      </div>
+      <div class="day-box flex-timetable row bg-disabled box-green-reserve-over">
+        <span class="time-value">10:00</span>
+        <input type="hidden" name="product_schedule" value="1405-06-03 10:00">
+      </div>
+    `
+    expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03')).toEqual(['07:00', '10:00'])
   })
 })
