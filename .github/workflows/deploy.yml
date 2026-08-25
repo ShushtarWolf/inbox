@@ -10,7 +10,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -23,4 +23,5 @@ jobs:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           npm i -g @liara/cli@9
-          timeout 22m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
+          # Iran builds often exceed 22m (Nuxt + runtime prisma layer).
+          timeout 40m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
