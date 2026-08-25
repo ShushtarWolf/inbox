@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   assertCompetitionStatusTransition,
   assertEntryStatusTransition,
@@ -13,9 +13,11 @@ import {
   isCompetitionsEnabled,
   isCompetitionsVisibleForClub,
   isPaymentLinkedForEntryConfirm,
+  normalizeCompetitionsPilotClubSlug,
   resolveEntryPrizeStatus,
   validatePrizeConfig,
 } from './competition'
+import { PILOT_CLUB_SLUG } from './pilotClub'
 
 describe('competition status transitions', () => {
   it('allows DRAFT → OPEN → CLOSED → IN_PROGRESS → COMPLETED', () => {
@@ -199,7 +201,7 @@ describe('competition pilot gate', () => {
   it('defaults to disabled', () => {
     withGateEnv({}, () => {
       expect(isCompetitionsEnabled()).toBe(false)
-      expect(isCompetitionsVisibleForClub('iust')).toBe(false)
+      expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG)).toBe(false)
       expect(getCompetitionsPilotClubSlug()).toBeNull()
     })
   })
@@ -207,28 +209,76 @@ describe('competition pilot gate', () => {
   it('enables globally when COMPETITIONS_ENABLED=true', () => {
     withGateEnv({ COMPETITIONS_ENABLED: 'true' }, () => {
       expect(isCompetitionsEnabled()).toBe(true)
-      expect(isCompetitionsVisibleForClub('iust')).toBe(true)
+      expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG)).toBe(true)
       expect(isCompetitionsVisibleForClub('other')).toBe(true)
     })
   })
 
-  it('restricts to pilot club slug when set', () => {
+  it('restricts to PILOT_CLUB_SLUG when set', () => {
     withGateEnv({
       COMPETITIONS_ENABLED: 'true',
-      COMPETITIONS_PILOT_CLUB_SLUG: 'iust',
+      COMPETITIONS_PILOT_CLUB_SLUG: PILOT_CLUB_SLUG,
     }, () => {
-      expect(getCompetitionsPilotClubSlug()).toBe('iust')
-      expect(isCompetitionsVisibleForClub('iust')).toBe(true)
+      expect(getCompetitionsPilotClubSlug()).toBe(PILOT_CLUB_SLUG)
+      expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG)).toBe(true)
+      // Short alias is not a club slug — must not silently match the live club.
+      expect(isCompetitionsVisibleForClub('iust')).toBe(false)
       expect(isCompetitionsVisibleForClub('other')).toBe(false)
       expect(isCompetitionsVisibleForClub('')).toBe(false)
     })
   })
 
-  it('accepts explicit runtime overrides', () => {
+  it('maps legacy env alias iust → PILOT_CLUB_SLUG with a one-line warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      withGateEnv({
+        COMPETITIONS_ENABLED: 'true',
+        COMPETITIONS_PILOT_CLUB_SLUG: 'iust',
+      }, () => {
+        expect(getCompetitionsPilotClubSlug()).toBe(PILOT_CLUB_SLUG)
+        expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG)).toBe(true)
+        expect(isCompetitionsVisibleForClub('iust')).toBe(false)
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`COMPETITIONS_PILOT_CLUB_SLUG="iust" is a legacy alias`),
+        )
+      })
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('maps legacy env alias بهناز → PILOT_CLUB_SLUG', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(normalizeCompetitionsPilotClubSlug('بهناز')).toBe(PILOT_CLUB_SLUG)
+      expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG, {
+        enabled: true,
+        pilotClubSlug: 'بهناز',
+      })).toBe(true)
+      expect(isCompetitionsVisibleForClub('بهناز', {
+        enabled: true,
+        pilotClubSlug: 'بهناز',
+      })).toBe(false)
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('accepts explicit runtime overrides with canonical slug', () => {
     withGateEnv({}, () => {
-      expect(isCompetitionsEnabled({ enabled: true, pilotClubSlug: 'iust' })).toBe(true)
-      expect(isCompetitionsVisibleForClub('iust', { enabled: true, pilotClubSlug: 'iust' })).toBe(true)
-      expect(isCompetitionsVisibleForClub('other', { enabled: true, pilotClubSlug: 'iust' })).toBe(false)
+      expect(isCompetitionsEnabled({ enabled: true, pilotClubSlug: PILOT_CLUB_SLUG })).toBe(true)
+      expect(isCompetitionsVisibleForClub(PILOT_CLUB_SLUG, {
+        enabled: true,
+        pilotClubSlug: PILOT_CLUB_SLUG,
+      })).toBe(true)
+      expect(isCompetitionsVisibleForClub('other', {
+        enabled: true,
+        pilotClubSlug: PILOT_CLUB_SLUG,
+      })).toBe(false)
+      expect(isCompetitionsVisibleForClub('iust', {
+        enabled: true,
+        pilotClubSlug: PILOT_CLUB_SLUG,
+      })).toBe(false)
     })
   })
 })

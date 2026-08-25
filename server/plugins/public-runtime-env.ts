@@ -1,3 +1,4 @@
+import { normalizeCompetitionsPilotClubSlug } from '#shared/competition.ts'
 import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from '#shared/pilotClub.ts'
 
 /**
@@ -36,11 +37,11 @@ export default defineNitroPlugin(() => {
     }
   }
 
-  const competitionsPilotClubSlug = (
+  const competitionsPilotClubSlug = normalizeCompetitionsPilotClubSlug(
     process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
     || process.env.COMPETITIONS_PILOT_CLUB_SLUG
-    || ''
-  ).trim()
+    || '',
+  )
   if (competitionsPilotClubSlug) {
     try {
       publicConfig.competitionsPilotClubSlug = competitionsPilotClubSlug

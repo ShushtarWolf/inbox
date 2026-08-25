@@ -1,4 +1,5 @@
 import { isOnlinePaymentsEnabled } from './bookingPayment.ts'
+import { PILOT_CLUB_SLUG } from './pilotClub.ts'
 
 export type CompetitionsGateOptions = {
   env?: NodeJS.ProcessEnv
@@ -7,15 +8,42 @@ export type CompetitionsGateOptions = {
   pilotClubSlug?: string | null
 }
 
+/**
+ * Legacy COMPETITIONS_PILOT_CLUB_SLUG values ops may still set.
+ * Canonical value is always PILOT_CLUB_SLUG (`iust-tennis`).
+ * Aliases are env-only — club slug `iust` / `بهناز` never silently match the live club.
+ */
+export const COMPETITIONS_PILOT_CLUB_SLUG_ALIASES: Readonly<Record<string, string>> = {
+  iust: PILOT_CLUB_SLUG,
+  'بهناز': PILOT_CLUB_SLUG,
+}
+
+const warnedPilotSlugAliases = new Set<string>()
+
+/** Normalize pilot env/override to the live club slug; warn once per legacy alias. */
+export function normalizeCompetitionsPilotClubSlug(raw: string | null | undefined): string | null {
+  const slug = String(raw || '').trim()
+  if (!slug) return null
+  const canonical = COMPETITIONS_PILOT_CLUB_SLUG_ALIASES[slug]
+  if (!canonical) return slug
+  if (!warnedPilotSlugAliases.has(slug)) {
+    warnedPilotSlugAliases.add(slug)
+    console.warn(
+      `[competitions] COMPETITIONS_PILOT_CLUB_SLUG="${slug}" is a legacy alias; using "${canonical}" (PILOT_CLUB_SLUG). Update env to ${canonical}.`,
+    )
+  }
+  return canonical
+}
+
 function resolveCompetitionsGate(options?: CompetitionsGateOptions) {
   const env = options?.env ?? process.env
   const enabled = options?.enabled ?? (
     env.NUXT_PUBLIC_COMPETITIONS_ENABLED === 'true' || env.COMPETITIONS_ENABLED === 'true'
   )
-  const pilotClubSlug = options?.pilotClubSlug !== undefined
+  const rawPilot = options?.pilotClubSlug !== undefined
     ? (options.pilotClubSlug?.trim() || null)
     : ((env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG || env.COMPETITIONS_PILOT_CLUB_SLUG || '').trim() || null)
-  return { enabled, pilotClubSlug }
+  return { enabled, pilotClubSlug: normalizeCompetitionsPilotClubSlug(rawPilot) }
 }
 
 /** True when competitions product is enabled (default false). */

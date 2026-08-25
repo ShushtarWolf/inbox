@@ -426,10 +426,11 @@ async function main() {
       return slug === pilot
     }
 
-    const defaultOff = !enabled(process.env) && !visible('iust', process.env)
+    const pilotSlug = 'iust-tennis' // shared/pilotClub.ts PILOT_CLUB_SLUG
+    const defaultOff = !enabled(process.env) && !visible(pilotSlug, process.env)
     process.env.COMPETITIONS_ENABLED = 'true'
-    process.env.COMPETITIONS_PILOT_CLUB_SLUG = 'iust'
-    const pilotOnly = enabled(process.env) && visible('iust', process.env) && !visible('other', process.env)
+    process.env.COMPETITIONS_PILOT_CLUB_SLUG = pilotSlug
+    const pilotOnly = enabled(process.env) && visible(pilotSlug, process.env) && !visible('other', process.env) && !visible('iust', process.env)
 
     for (const k of gateKeys) {
       if (saved[k] === undefined) delete process.env[k]

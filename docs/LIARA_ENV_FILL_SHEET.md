@@ -110,15 +110,15 @@ curl -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
 | ☐ | Variable | Fill with | Notes |
 |---|----------|-----------|--------|
 | ☐ | `COMPETITIONS_ENABLED` | unset / `false` | **Default off.** Set `true` only when enabling IUST competition pilot |
-| ☐ | `COMPETITIONS_PILOT_CLUB_SLUG` | e.g. `iust` | When set with enabled: only this club’s competitions are listed; other clubs cannot publish OPEN |
+| ☐ | `COMPETITIONS_PILOT_CLUB_SLUG` | `iust-tennis` | Must match live club slug (`PILOT_CLUB_SLUG` in `shared/pilotClub.ts`). When set with enabled: only this club’s competitions are listed; other clubs cannot publish OPEN. Legacy `iust` / `بهناز` still normalize to `iust-tennis` with a warning — prefer the canonical value |
 | ☐ | `NUXT_PUBLIC_COMPETITIONS_ENABLED` | optional mirror | Belt-and-suspenders for client pages / nav |
 | ☐ | `NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG` | optional mirror | Same as `COMPETITIONS_PILOT_CLUB_SLUG` for client |
 
-**Pilot enable (IUST / Behnaz):**
+**Pilot enable (IUST — canonical slug):**
 
 ```bash
 COMPETITIONS_ENABLED=true
-COMPETITIONS_PILOT_CLUB_SLUG=iust
+COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis
 ```
 
 **Verify after restart:**
@@ -127,7 +127,7 @@ COMPETITIONS_PILOT_CLUB_SLUG=iust
 # Disabled globally → empty list
 curl -s https://inboxs.ir/api/competitions | jq length   # expect 0 when unset
 
-# Enabled pilot → only iust slug in list
+# Enabled pilot → only iust-tennis slug in list
 curl -s https://inboxs.ir/api/competitions | jq '[.[].club.slug] | unique'
 ```
 

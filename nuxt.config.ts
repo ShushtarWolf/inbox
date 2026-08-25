@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { normalizeCompetitionsPilotClubSlug } from './shared/competition'
 import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const PWA_RESET_VERSION = '7'
@@ -201,9 +202,11 @@ export default defineNuxtConfig({
         process.env.NUXT_PUBLIC_COMPETITIONS_ENABLED === 'true'
         || process.env.COMPETITIONS_ENABLED === 'true',
       competitionsPilotClubSlug:
-        (process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
+        normalizeCompetitionsPilotClubSlug(
+          process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
           || process.env.COMPETITIONS_PILOT_CLUB_SLUG
-          || '').trim(),
+          || '',
+        ) || '',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE

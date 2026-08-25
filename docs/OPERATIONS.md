@@ -50,7 +50,7 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | For Google login | Google Cloud OAuth client secret |
 | `NUXT_OAUTH_GOOGLE_REDIRECT_URL` | For Google login | e.g. `https://inboxs.ir/auth/google` (preferred; else derived from `NUXT_PUBLIC_SITE_URL`) |
 | `COMPETITIONS_ENABLED` | Competition pilot | Default **off** (`false` / unset). Set `true` only when enabling IUST competition pilot |
-| `COMPETITIONS_PILOT_CLUB_SLUG` | Competition pilot | e.g. `iust` — when set with enabled, only this club’s competitions are listed/joinable |
+| `COMPETITIONS_PILOT_CLUB_SLUG` | Competition pilot | `iust-tennis` (`PILOT_CLUB_SLUG` in `shared/pilotClub.ts`) — when set with enabled, only this club’s competitions are listed/joinable. Legacy env aliases `iust` / `بهناز` normalize to `iust-tennis` with a one-line warning |
 | `NUXT_PUBLIC_COMPETITIONS_ENABLED` | Optional mirror | Client pages / nav; server reads `COMPETITIONS_ENABLED` too |
 | `NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG` | Optional mirror | Same as `COMPETITIONS_PILOT_CLUB_SLUG` for client |
 

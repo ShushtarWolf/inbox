@@ -3,7 +3,7 @@
 Short checklist before enabling **competitions** for real athletes at the IUST pilot club.  
 Style mirrors [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md). **Do not deploy** or set `PAYMENTS_MODE=live` from this doc.
 
-**Pilot club:** provision slug for IUST / Behnaz (e.g. `iust` or club name from `/admin/provision`).  
+**Pilot club:** live IUST club slug is `iust-tennis` (`PILOT_CLUB_SLUG` in `shared/pilotClub.ts`). Set `COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis` (legacy env aliases `iust` / `بهناز` normalize with a warning).  
 **Local runner:** `npm run competition:go-no-go` (needs server + `ADMIN_PROVISION_SECRET` + applied competition migrations).  
 **Risk register:** [COMPETITION_RISK_SPEC.md](./COMPETITION_RISK_SPEC.md) (Phase 1 scope, failure modes, invariants).  
 **Regression:** `npm run smoke:pilot` (court booking freeze unchanged).
@@ -33,7 +33,7 @@ Competition routes (`/competitions`, `/athlete/competitions`, `/owner/competitio
 | `PAYMENTS_MODE` | `test` (local) or `pay_at_club` (desk-only entry) | **Do not** set `live` until [PAYMENTS.md](./PAYMENTS.md) verify |
 | `PILOT_NO_COACH` | `true` | Unchanged |
 | `COMPETITIONS_ENABLED` | **`false` default**; `true` only when enabling pilot | **PASS** — `isCompetitionsEnabled()` in `shared/competition.ts`; Nuxt `runtimeConfig.public.competitionsEnabled` |
-| `COMPETITIONS_PILOT_CLUB_SLUG` | e.g. `iust` | **PASS** — `isCompetitionsVisibleForClub(slug)`; optional single-club pilot |
+| `COMPETITIONS_PILOT_CLUB_SLUG` | `iust-tennis` (`PILOT_CLUB_SLUG`) | **PASS** — `isCompetitionsVisibleForClub(slug)`; optional single-club pilot |
 | `ADMIN_PROVISION_SECRET` | set | Cron + admin competition jobs |
 | DB migrations | `20260824210000_competitions` + prizes + awards applied | Required on Liara before deploy |
 
@@ -270,14 +270,14 @@ Hard refresh `http://localhost:3000/competitions/{id}` at **375px** width:
 ```bash
 # Liara pilot enable:
 COMPETITIONS_ENABLED=true
-COMPETITIONS_PILOT_CLUB_SLUG=iust   # only this slug: public list, join, owner publish OPEN
+COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis   # PILOT_CLUB_SLUG — only this slug: public list, join, owner publish OPEN
 
 # Verify disabled (default / unset):
 curl -s "$BASE_URL/api/competitions" | jq length   # 0
 curl -s -o /dev/null -w "%{http_code}\n" "$BASE_URL/api/competitions/$COMP_ID"  # 404
 
 # Verify pilot-only (when slug set):
-curl -s "$BASE_URL/api/competitions" | jq '[.[].club.slug] | unique'   # ["iust"]
+curl -s "$BASE_URL/api/competitions" | jq '[.[].club.slug] | unique'   # ["iust-tennis"]
 # Non-pilot owner POST /api/owner/competitions → 404; publish OPEN blocked
 ```
 
@@ -331,7 +331,7 @@ GitHub optional: `.github/workflows/competition-cron.yml` (requires repo secret 
 | UX / trust | **GO** — U-01 Playwright @375px in CI; Canva radius OK |
 | Ops | **GO** — OPS-01 gate **PASS**; OPS-02 runbook + cron documented |
 
-**Overall: GO** for pilot with `COMPETITIONS_ENABLED=true` + `COMPETITIONS_PILOT_CLUB_SLUG=iust`, `PAYMENTS_MODE=pay_at_club` or **wallet/online test** entry, cron jobs scheduled (Liara or GitHub).
+**Overall: GO** for pilot with `COMPETITIONS_ENABLED=true` + `COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis`, `PAYMENTS_MODE=pay_at_club` or **wallet/online test** entry, cron jobs scheduled (Liara or GitHub).
 
 ---
 
