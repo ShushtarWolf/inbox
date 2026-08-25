@@ -15,10 +15,11 @@
 
 | URL | نقش |
 |-----|-----|
-| `/owner/calendar-sources` | مالک باشگاه (همان session مالک) |
+| `/owner/calendar` | تقویم اصلی مالک — اشغال الوپلی/الوورزش با **نام سایت** روی سلول‌های آزاد اینباکس |
+| `/owner/calendar-sources` | نمای مرجع همپوشانی (همان داده) |
 | `/admin/calendar-sources` | ادمین (`x-admin-secret`) — `clubSlug` در query/فرم |
 
-این صفحات **منبع** را نشان می‌دهند: «الوپلی»، «الوورزش»، «کورتیک» + **عنوان باشگاه در آن سایت** (از mapping). همپوشانی: «اینباکس + الوپلی».
+تقویم اصلی مالک منبع را نشان می‌دهد: «الوپلی»، «الوورزش»، … (+ عنوان باشگاه در آن سایت در شیت جزئیات). ورزشکار همچنان فقط «مشکوک به رزرو» می‌بیند.
 
 ## حذف کامل
 
@@ -26,8 +27,8 @@
 rm -rf modules/inbox-external-calendar
 ```
 
-- تنها ویرایش بیرون از پوشه: `nuxt.config.ts` (`existsSync`) + **قلاب اختیاری** `useExternalSuspectedSlots` و چند خط در `clubs/[slug].vue` که بدون ماژول no-op می‌شوند.
-- تقویم مالک اصلی (`/owner/calendar`) و بقیهٔ اپ بدون ماژول مثل قبل build می‌شوند.
+- تنها ویرایش بیرون از پوشه: `nuxt.config.ts` (`existsSync`) + **قلاب اختیاری** `useExternalSuspectedSlots` / `useOwnerExternalCalendarOverlay` و چند خط در `clubs/[slug].vue` و `owner/calendar.vue` که بدون ماژول no-op می‌شوند.
+- تقویم مالک اصلی (`/owner/calendar`) بدون ماژول مثل قبل کار می‌کند؛ با ماژول، overlay منابع خارجی را با نام سایت نشان می‌دهد.
 
 ## mapping (`iust-tennis`)
 

@@ -46,6 +46,7 @@ interface OwnerCalendarBookingEquipment {
 interface OwnerCalendarBooking {
   id?: string
   status?: string | null
+  source?: string | null
   guestName?: string | null
   guestFamily?: string | null
   guestMobile?: string | null
@@ -121,7 +122,7 @@ interface OwnerStaffResponse {
   staff: OwnerStaffMember[]
 }
 
-type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | null
+type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | 'external' | null
 
 const { t, locale } = useI18n()
 const { fetchErrorMessage } = useFetchError()
@@ -194,11 +195,22 @@ const { data, pending, error, refresh } = await useAuthedFetch<OwnerCalendarResp
   query: computed(() => ({ date: date.value })),
 })
 
-useOwnerClubRefresh(refresh)
+const {
+  isExternalOnlyOccupied,
+  externalSiteBadge,
+  externalSourceDetails,
+  refreshExternalOverlay,
+} = useOwnerExternalCalendarOverlay({ date })
+
+async function refreshCalendar() {
+  await Promise.all([refresh(), refreshExternalOverlay()])
+}
+
+useOwnerClubRefresh(refreshCalendar)
 
 watch(date, () => {
   clearSelection()
-  refresh()
+  void refreshCalendar()
 })
 
 async function loadOccupancyMarks() {
@@ -263,15 +275,20 @@ const activeCourt = computed(() =>
 const overviewStats = computed(() => {
   const slots = (data.value?.slots || []) as OwnerCalendarSlot[]
   const bookable = slots.filter((slot) => slot.displayStatus !== 'CLOSED')
-  const free = bookable.filter((slot) => slot.displayStatus === 'FREE')
+  const free = bookable.filter((slot) => slot.displayStatus === 'FREE' && !isExternalOnlyOccupied(slot))
   const reserved = bookable.filter((slot) =>
-    slot.displayStatus === 'RESERVED' || slot.displayStatus === 'PENDING' || Boolean(activeBooking(slot)),
+    slot.displayStatus === 'RESERVED'
+    || slot.displayStatus === 'PENDING'
+    || Boolean(activeBooking(slot))
+    || isExternalOnlyOccupied(slot),
   )
   const freePct = bookable.length ? Math.round((free.length / bookable.length) * 100) : 0
   const reservedPct = bookable.length ? Math.round((reserved.length / bookable.length) * 100) : 0
   const perCourt = courts.value.map((court) => {
     const courtSlots = bookable.filter((slot) => slot.courtId === court.id)
-    const used = courtSlots.filter((slot) => slot.displayStatus !== 'FREE').length
+    const used = courtSlots.filter((slot) =>
+      slot.displayStatus !== 'FREE' || isExternalOnlyOccupied(slot),
+    ).length
     const pct = courtSlots.length ? Math.round((used / courtSlots.length) * 100) : 0
     return {
       id: court.id,
@@ -331,7 +348,7 @@ function clearLongPressTimer() {
 }
 
 function onSlotPointerDown(slot: OwnerCalendarSlot) {
-  if (slot.displayStatus !== 'FREE') return
+  if (slot.displayStatus !== 'FREE' || isExternalOnlyOccupied(slot)) return
   longPressFired = false
   clearLongPressTimer()
   longPressTimer = setTimeout(() => {
@@ -517,6 +534,12 @@ function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
 
 function gridCellClasses(courtId: string, hour: string) {
   const slot = cellSlot(courtId, hour)
+  if (isExternalOnlyOccupied(slot)) {
+    return [
+      'slot-blocked',
+      slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+    ]
+  }
   return [
     slotClass(slot?.displayStatus || 'FREE', slot),
     slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
@@ -531,8 +554,16 @@ function cellSlot(courtId: string, hour: string) {
   return data.value?.slots?.find((s) => s.courtId === courtId && s.startTime === hour)
 }
 
+function bookingSourceLabel(source?: string | null) {
+  if (source === 'PLATFORM') return t('owner.bookingSourcePlatform')
+  if (source === 'CLUB') return t('owner.bookingSourceClub')
+  return ''
+}
+
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot || slot.displayStatus === 'FREE') return ''
+  if (!slot) return ''
+  if (isExternalOnlyOccupied(slot)) return externalSiteBadge(slot)
+  if (slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
     return t('owner.slotBlockedLabel')
   }
@@ -548,11 +579,13 @@ function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
 
 function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
+  if (isExternalOnlyOccupied(slot)) return externalSiteBadge(slot)
   if (slot.displayStatus === 'FREE') {
     return isPastFreeSlot(slot) ? t('owner.slotPast') : ''
   }
   const pay = slotPaymentBadge(slot)
-  return [slotGuestLine(slot), pay, slotNoteLine(slot)].filter(Boolean).join(' — ')
+  const source = bookingSourceLabel(activeBooking(slot)?.source)
+  return [slotGuestLine(slot), source, pay, slotNoteLine(slot)].filter(Boolean).join(' — ')
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -591,6 +624,7 @@ function resetPanels() {
 }
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
+  if (isExternalOnlyOccupied(slot)) return 'external'
   if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
   if (activeBooking(slot) || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
@@ -608,6 +642,7 @@ function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
+  if (isExternalOnlyOccupied(slot)) return 'canva-cal-grid-cell-bar-blocked'
   const status = slot?.displayStatus || 'FREE'
   if (isReservedDisplayStatus(status)) {
     if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return 'canva-cal-grid-cell-bar-reserved-unpaid'
@@ -900,7 +935,7 @@ function isSlotSelected(slot: OwnerCalendarSlot) {
 }
 
 function toggleFreeSlot(slot: OwnerCalendarSlot) {
-  if (slot.displayStatus !== 'FREE') return
+  if (slot.displayStatus !== 'FREE' || isExternalOnlyOccupied(slot)) return
   if (isSlotSelected(slot)) {
     selectedSlotIds.value = selectedSlotIds.value.filter((id) => id !== slot.id)
     if (!selectedSlotIds.value.length) selectionCourtId.value = null
@@ -940,6 +975,10 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     return
   }
   const fullSlot = (data.value?.slots?.find((s) => s.id === slot.id) || slot) as OwnerCalendarSlot
+  if (isExternalOnlyOccupied(fullSlot)) {
+    openSlot(fullSlot)
+    return
+  }
   if (fullSlot.displayStatus !== 'FREE') {
     openBookedSlot(fullSlot)
     return
@@ -1142,12 +1181,12 @@ async function finishSlotAction() {
   multiSelectMode.value = false
   clearSelection()
   closeMenu()
-  await refresh()
+  await refreshCalendar()
 }
 
 /** Partial batch reserve/block can leave mixed cells; refresh then drop leftover FREE chips. */
 async function recoverAfterBatchError() {
-  await refresh()
+  await refreshCalendar()
   selectedSlotIds.value = []
   bookedSiblingIds.value = []
   selectionCourtId.value = null
@@ -1178,6 +1217,8 @@ const slotModalTitle = computed(() => {
       return t('owner.blockFormTitle')
     case 'detail':
       return t('owner.currentBooking')
+    case 'external':
+      return t('owner.externalBookingTitle')
     case 'cancel':
       return t('owner.cancel')
     case 'comments':
@@ -1362,7 +1403,7 @@ async function doReserve() {
       payLinkCopied.value = false
       multiSelectMode.value = false
       clearSelection()
-      await refresh()
+      await refreshCalendar()
       showMenu.value = true
       activePanel.value = 'payLinkSent'
     } else {
@@ -1370,7 +1411,7 @@ async function doReserve() {
     }
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
-    await refresh()
+    await refreshCalendar()
   } finally {
     saving.value = false
   }
@@ -1413,7 +1454,7 @@ async function doCancel() {
     await finishSlotAction()
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
-    await refresh()
+    await refreshCalendar()
     pruneBookedCancelSelection()
   } finally {
     saving.value = false
@@ -1454,7 +1495,7 @@ async function refreshDeskPaymentSheet(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
   form.paymentMethod = 'CASH'
   form.paymentStatus = paymentStatus
   actionError.value = ''
-  await refresh()
+  await refreshCalendar()
   const anchorId = selectedSlot.value?.id
   if (anchorId) {
     const refreshed = data.value?.slots?.find((slot) => slot.id === anchorId)
@@ -1500,7 +1541,7 @@ async function doMarkPaid() {
     await refreshDeskPaymentSheet('PAID')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
-    await refresh()
+    await refreshCalendar()
   } finally {
     saving.value = false
   }
@@ -1533,7 +1574,7 @@ async function doMarkUnpaid() {
     await refreshDeskPaymentSheet('PAY_AT_CLUB')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
-    await refresh()
+    await refreshCalendar()
   } finally {
     saving.value = false
   }
@@ -2134,7 +2175,7 @@ const legend = [
                   class="canva-cal-grid-cell"
                   :class="gridCellClasses(court.id, hour)"
                   :title="slotCellTitle(cellSlot(court.id, hour))"
-                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
+                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' && !isExternalOnlyOccupied(cellSlot(court.id, hour)) ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
@@ -2144,13 +2185,13 @@ const legend = [
                   @click="handleSlotClick(cellSlot(court.id, hour))"
                 >
                   <span
-                    v-if="cellSlot(court.id, hour) && cellSlot(court.id, hour)!.displayStatus !== 'FREE'"
+                    v-if="cellSlot(court.id, hour) && (cellSlot(court.id, hour)!.displayStatus !== 'FREE' || isExternalOnlyOccupied(cellSlot(court.id, hour)))"
                     class="canva-cal-grid-cell-bar"
                     :class="gridCellBarClass(cellSlot(court.id, hour))"
                   />
                   <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
                   <span class="canva-cal-grid-cell-body">
-                    <span v-if="isPastFreeSlot(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
+                    <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
                       v-if="slotPaymentBadge(cellSlot(court.id, hour))"
@@ -2160,7 +2201,7 @@ const legend = [
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
-                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
+                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE' && !isExternalOnlyOccupied(cellSlot(court.id, hour))"
                     class="canva-cal-grid-check"
                     :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
                     aria-hidden="true"
@@ -2257,6 +2298,10 @@ const legend = [
               <span class="text-brand-gray-500">{{ t('owner.guestMobile') }}</span>
               <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ activeBooking(selectedSlotFull)?.guestMobile || '—' }}</bdi>
             </div>
+            <div v-if="bookingSourceLabel(activeBooking(selectedSlotFull)?.source)" class="canva-detail-row">
+              <span class="text-brand-gray-500">{{ t('owner.bookingSourceLabel') }}</span>
+              <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ bookingSourceLabel(activeBooking(selectedSlotFull)?.source) }}</span>
+            </div>
             <div v-if="!pilotNoCoach" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ detailCoachLabel() }}</span>
@@ -2317,6 +2362,31 @@ const legend = [
                 {{ t('owner.addNote') }}
               </button>
             </div>
+          </div>
+        </div>
+
+        <div v-if="activePanel === 'external'" class="venus-modal-panel !border-0">
+          <div class="venus-modal-panel-body !pt-1">
+            <p class="mb-3 text-start text-sm leading-6 text-brand-navy/80">
+              {{ t('owner.externalBookingHint') }}
+            </p>
+            <div
+              v-for="detail in externalSourceDetails(selectedSlotFull)"
+              :key="detail.source"
+              class="canva-detail-row"
+            >
+              <span class="text-brand-gray-500">{{ t('owner.bookingSourceLabel') }}</span>
+              <span class="max-w-[60%] text-start font-bold text-brand-navy">
+                {{ detail.externalClubTitle ? `${detail.siteLabel} — ${detail.externalClubTitle}` : detail.siteLabel }}
+              </span>
+            </div>
+            <div class="canva-detail-row border-b-0">
+              <span class="text-brand-gray-500">{{ t('owner.externalBookingStatus') }}</span>
+              <span class="font-bold text-brand-navy">{{ externalSiteBadge(selectedSlotFull) }}</span>
+            </div>
+            <button type="button" class="canva-gate-btn-secondary mt-4" @click="closeMenu">
+              {{ t('common.close') }}
+            </button>
           </div>
         </div>
 
