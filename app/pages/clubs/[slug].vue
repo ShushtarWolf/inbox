@@ -127,6 +127,14 @@ const { data: slots, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/
   })),
 })
 
+const {
+  enabled: externalSuspectedEnabled,
+  isSlotSuspected,
+} = useExternalSuspectedSlots({
+  clubSlug: slug,
+  date: selectedDate,
+})
+
 const gallerySlides = computed(() => {
   if (!club.value) return [] as string[]
   const urls = [
@@ -541,6 +549,7 @@ function slotAriaLabel(slot: ClubSlot) {
   if (isSlotSelected(slot.id)) return t('clubs.slotAriaSelected', { time })
   if (waitlistSlotId.value === slot.id) return t('clubs.slotAriaWaitlist', { time })
   if (isSlotBooked(slot)) return t('clubs.slotAriaBooked', { time })
+  if (isSlotSuspected(slot)) return `${time} — مشکوک به رزرو`
   return t('clubs.slotAriaFree', { time })
 }
 
@@ -827,6 +836,10 @@ async function shareClub() {
               <span class="canva-club-legend-swatch canva-club-legend-free" aria-hidden="true" />
               {{ t('clubs.slotLegendFree') }}
             </span>
+            <span v-if="externalSuspectedEnabled" class="canva-club-legend-item" role="listitem">
+              <span class="canva-club-legend-swatch canva-club-legend-suspected" aria-hidden="true" />
+              مشکوک به رزرو
+            </span>
           </div>
 
           <!-- Canva (3): calendar RIGHT · court nums + slots LEFT -->
@@ -896,6 +909,7 @@ async function shareClub() {
                   class="canva-club-slot"
                   :class="{
                     'canva-club-slot-booked': isSlotBooked(slot) && waitlistSlotId !== slot.id,
+                    'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
                   :disabled="isSlotBooked(slot) && !waitlistEnabled"
@@ -904,6 +918,12 @@ async function shareClub() {
                   @click="toggleSlot(slot)"
                 >
                   {{ formatTimeLabel(slot.startTime) }}
+                  <span
+                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot) && !isSlotSelected(slot.id)"
+                    class="canva-club-slot-suspected-label"
+                  >
+                    مشکوک به رزرو
+                  </span>
                 </button>
                 <p v-if="!courtSlots.length" class="canva-club-detail-desc col-span-full">
                   {{ t('common.empty') }}
