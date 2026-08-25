@@ -49,8 +49,6 @@ export function parseEquipmentSelections(
   })
 }
 
-export type { EquipmentSlotContext }
-
 export async function loadEquipmentForBooking(
   clubId: string,
   selections: EquipmentSelectionInput[],

@@ -8,7 +8,12 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['shared/**/*.test.ts', 'server/**/*.test.ts', 'app/composables/*.test.ts'],
+    include: [
+      'shared/**/*.test.ts',
+      'server/**/*.test.ts',
+      'app/composables/*.test.ts',
+      'modules/**/*.test.ts',
+    ],
     environment: 'node',
   },
 })

@@ -1,9 +1,18 @@
-/** Normalize slot times to HH:MM for comparison. */
-export function normalizeSlotTime(time: string): string {
-  const trimmed = time.trim()
+/** Normalize slot times to HH:MM for comparison. Accepts HH:MM strings or bare hour numbers. */
+export function normalizeSlotTime(time: string | number): string {
+  if (typeof time === 'number' && Number.isFinite(time)) {
+    return `${Math.floor(time).toString().padStart(2, '0')}:00`
+  }
+  const trimmed = String(time ?? '').trim()
   const match = trimmed.match(/^(\d{1,2}):(\d{2})/)
-  if (!match) return trimmed
-  return `${Number(match[1]).toString().padStart(2, '0')}:${match[2]}`
+  if (match) {
+    return `${Number(match[1]).toString().padStart(2, '0')}:${match[2]}`
+  }
+  const hourOnly = trimmed.match(/^(\d{1,2})$/)
+  if (hourOnly) {
+    return `${Number(hourOnly[1]).toString().padStart(2, '0')}:00`
+  }
+  return trimmed
 }
 
 export type EquipmentBookingRow = {

@@ -12,6 +12,12 @@ describe('normalizeSlotTime', () => {
     expect(normalizeSlotTime('17:00:00')).toBe('17:00')
     expect(normalizeSlotTime('9:30')).toBe('09:30')
   })
+
+  it('coerces bare hour numbers and strings to HH:00', () => {
+    expect(normalizeSlotTime(10)).toBe('10:00')
+    expect(normalizeSlotTime('10')).toBe('10:00')
+    expect(normalizeSlotTime(8)).toBe('08:00')
+  })
 })
 
 describe('sumBookedEquipmentFromSlots', () => {
