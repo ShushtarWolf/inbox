@@ -3,6 +3,7 @@ import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import {
   ACTIVE_ENTRY_STATUSES,
+  assertCompetitionEntryFeeWithinCap,
   assertCompetitionStatusTransition,
   assertEntryStatusTransition,
   assertFreeEntryAllowed,
@@ -246,6 +247,11 @@ export async function updateCompetition(opts: {
   const nextEntryFee = (data.entryFee as number | undefined) ?? competition.entryFee
   const nextSponsorFunded = (data.sponsorFunded as boolean | undefined) ?? competition.sponsorFunded
   assertFreeEntryAllowed(nextEntryFee, nextSponsorFunded)
+  try {
+    assertCompetitionEntryFeeWithinCap(nextEntryFee)
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'ENTRY_FEE_TOO_HIGH' })
+  }
 
   if (patch.status === 'OPEN' && competition.status === 'DRAFT') {
     await assertCompetitionPublishable(competition.clubId, patch.sportId ?? competition.sportId)
@@ -784,6 +790,11 @@ export function assertCompetitionJoinable(
 
 export function assertCompetitionDraftValid(input: CompetitionCreateInput) {
   assertFreeEntryAllowed(input.entryFee, Boolean(input.sponsorFunded))
+  try {
+    assertCompetitionEntryFeeWithinCap(input.entryFee)
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'ENTRY_FEE_TOO_HIGH' })
+  }
   validatePrizeConfig(input.prizeType, input.prizeConfigJson)
   if (input.maxParticipants < 1) {
     throw createError({ statusCode: 400, statusMessage: 'maxParticipants must be positive' })

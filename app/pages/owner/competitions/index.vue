@@ -128,6 +128,7 @@ function statusMessageFromError(err: unknown) {
     : undefined
   if (statusMessage === 'NO_COURTS_FOR_SPORT') return t('owner.competitionsPage.errorNoCourts')
   if (statusMessage === 'ENTRY_FEE_LOCKED') return t('owner.competitionsPage.errorEntryFeeLocked')
+  if (statusMessage === 'ENTRY_FEE_TOO_HIGH') return t('owner.competitionsPage.errorEntryFeeTooHigh')
   if (statusMessage === 'MAX_BELOW_CONFIRMED') return t('owner.competitionsPage.errorMaxBelowConfirmed')
   return t('common.error')
 }

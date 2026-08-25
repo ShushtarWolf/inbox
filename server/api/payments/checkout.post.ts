@@ -1,7 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
-import { competitionJoinIdempotencyKey } from '#shared/competition.ts'
+import {
+  buildCompetitionWalletPaymentCreateData,
+  competitionJoinIdempotencyKey,
+} from '#shared/competition.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
@@ -133,6 +136,22 @@ export default defineEventHandler(async (event) => {
         })
       }
 
+      if (body.competitionEntryId && competitionId) {
+        const created = await tx.payment.create({
+          data: buildCompetitionWalletPaymentCreateData({
+            amount: payableAmount,
+            userId: user.id,
+            competitionEntryId: body.competitionEntryId,
+            competitionId,
+          }),
+        })
+        await tx.competitionEntry.update({
+          where: { id: body.competitionEntryId },
+          data: { paymentId: created.id },
+        })
+        return created
+      }
+
       return tx.payment.create({
         data: {
           amount: payableAmount,
@@ -142,8 +161,7 @@ export default defineEventHandler(async (event) => {
           bookingId: body.bookingId,
           coachSessionId: body.coachSessionId,
           packageBookingId: body.packageBookingId,
-          userId: body.competitionEntryId ? user.id : undefined,
-          purpose: body.competitionEntryId ? 'competition' : 'booking',
+          purpose: 'booking',
         },
       })
     })

@@ -86,6 +86,9 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     PAY_AT_CLUB_NOT_ALLOWED: 'competitions.errors.payAtClubNotAllowed',
     CANCELLATION_WINDOW_PASSED: 'competitions.errors.cancellationWindowPassed',
     COMPETITION_JOIN_RATE_LIMITED: 'competitions.errors.rateLimited',
+    PARTNER_NOT_REGISTERED: 'competitions.errors.partnerNotRegistered',
+    PARTNER_PHONE_INVALID: 'competitions.errors.partnerPhoneInvalid',
+    ENTRY_FEE_TOO_HIGH: 'owner.competitionsPage.errorEntryFeeTooHigh',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

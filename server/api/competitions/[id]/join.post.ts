@@ -1,5 +1,7 @@
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { joinCompetition } from '../../../utils/competitions'
 import { assertCompetitionAccessById } from '../../../utils/competitionsGate'
+import { findUserIdByPhone } from '../../../utils/phoneAuth'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'competitions:join')
@@ -11,13 +13,27 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{
     partnerAthleteId?: string | null
+    partnerPhone?: string | null
     payAtClub?: boolean
   }>(event)
+
+  let partnerAthleteId = body.partnerAthleteId ?? null
+  const partnerPhoneRaw = typeof body.partnerPhone === 'string' ? body.partnerPhone.trim() : ''
+  if (partnerPhoneRaw) {
+    if (!normalizeIranPhone(partnerPhoneRaw)) {
+      throw createError({ statusCode: 400, statusMessage: 'PARTNER_PHONE_INVALID' })
+    }
+    const partnerId = await findUserIdByPhone(partnerPhoneRaw)
+    if (!partnerId) {
+      throw createError({ statusCode: 400, statusMessage: 'PARTNER_NOT_REGISTERED' })
+    }
+    partnerAthleteId = partnerId
+  }
 
   const result = await joinCompetition({
     competitionId,
     athleteId: user.id,
-    partnerAthleteId: body.partnerAthleteId,
+    partnerAthleteId,
     payAtClub: Boolean(body.payAtClub),
   })
 

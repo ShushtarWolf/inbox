@@ -32,7 +32,7 @@ const { data: competition, pending, error, refresh } = await useFetch<{
 
 const { data: wallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet', { lazy: true })
 
-const partnerAthleteId = ref('')
+const partnerPhone = ref('')
 const joinPending = ref(false)
 const joinError = ref('')
 const joinSuccess = ref('')
@@ -67,7 +67,7 @@ async function join(useWallet = false) {
     }>(`/api/competitions/${id}/join`, {
       method: 'POST',
       body: {
-        partnerAthleteId: partnerAthleteId.value || undefined,
+        partnerPhone: partnerPhone.value.trim() || undefined,
         payAtClub: payAtClub.value,
       },
     })
@@ -93,7 +93,7 @@ async function join(useWallet = false) {
       await refresh()
     }
   } catch (err) {
-    joinError.value = fetchErrorMessage(err)
+    joinError.value = fetchErrorMessage(err, t('common.error'))
   } finally {
     joinPending.value = false
   }
@@ -147,6 +147,9 @@ async function join(useWallet = false) {
           <dd>{{ prizeDescription }}</dd>
           <dd class="mt-1 text-xs text-gray-500">
             {{ t('competitions.prizeTerms') }}
+            <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">
+              {{ t('legal.terms') }}
+            </NuxtLink>
           </dd>
         </div>
         <div>
@@ -155,6 +158,9 @@ async function join(useWallet = false) {
           </dt>
           <dd>
             {{ t('competitions.cancelPolicyBody', { hours: competition.club.cancellationWindowHours }) }}
+            <NuxtLink :to="localePath('/cancellation')" class="ms-1 font-bold text-brand-primary underline">
+              {{ t('legal.cancellation') }}
+            </NuxtLink>
           </dd>
         </div>
         <div>
@@ -177,13 +183,15 @@ async function join(useWallet = false) {
       <div v-if="!competition.isFull && competition.status === 'OPEN'" class="mt-6 space-y-3">
         <div v-if="competition.enrollmentType === 'DOUBLE'">
           <label class="block text-sm font-medium text-gray-700">
-            {{ t('competitions.partnerId') }}
+            {{ t('competitions.partnerPhone') }}
           </label>
           <input
-            v-model="partnerAthleteId"
-            type="text"
+            v-model="partnerPhone"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
             class="mt-1 w-full rounded-sm border border-gray-300 px-2 py-1 text-sm"
-            :placeholder="t('competitions.partnerIdHint')"
+            :placeholder="t('competitions.partnerPhoneHint')"
           >
         </div>
 

@@ -108,8 +108,6 @@ Mapped in [i18n/locales/fa.json](../i18n/locales/fa.json) under `competitions.*`
 | DN-03 | Cron host: Liara dashboard vs GitHub Actions | Both documented in [OPERATIONS.md](./OPERATIONS.md); neither auto-enabled in repo deploy |
 | DN-04 | Auto-block publish when calendar overlap > 0? | Warning only today |
 | DN-05 | Competition waitlist for full events? | Not implemented |
-| DN-06 | Maximum entry fee cap for pilot? | No server cap beyond payment provider limits |
-| DN-07 | Legal ToS / refund policy page link on detail screen? | Cancel policy inline only |
 | DN-08 | Notify athletes on auto-cancel below min participants? | `notifyCompetitionCancelled()` exists in [server/utils/competitionNotify.ts](../server/utils/competitionNotify.ts) — verify SMS/email config before relying on it |
 
 ### Resolved
@@ -117,6 +115,8 @@ Mapped in [i18n/locales/fa.json](../i18n/locales/fa.json) under `competitions.*`
 | ID | Decision | Rule |
 |----|----------|------|
 | DN-02 | Pilot club slug canonicalization | **Canonical:** `COMPETITIONS_PILOT_CLUB_SLUG` must be `iust-tennis` (`PILOT_CLUB_SLUG` in [shared/pilotClub.ts](../shared/pilotClub.ts)). Docs / Liara sheet / `.env.example` use that value. **Legacy env aliases** `iust` and `بهناز` normalize to `iust-tennis` with a one-line `console.warn` (see `normalizeCompetitionsPilotClubSlug`). Club slug `iust` alone does **not** match the live club — only the canonical slug (or aliased env) does. Retired Behnaz club names are never the live pilot. |
+| DN-06 | Maximum entry fee cap for pilot | **`MAX_COMPETITION_ENTRY_FEE = 5_000_000` toman** in [shared/competition.ts](../shared/competition.ts); enforced in `assertCompetitionDraftValid` / owner update (`ENTRY_FEE_TOO_HIGH` → FA on owner create). |
+| DN-07 | Legal ToS / refund policy page link on detail screen | Competition detail links prize copy to [`/terms`](../app/pages/terms.vue) and cancel policy to [`/cancellation`](../app/pages/cancellation.vue). |
 
 ---
 

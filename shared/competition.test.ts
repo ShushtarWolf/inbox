@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  assertCompetitionEntryFeeWithinCap,
   assertCompetitionStatusTransition,
   assertEntryStatusTransition,
   assertFreeEntryAllowed,
+  buildCompetitionWalletPaymentCreateData,
   canCancelCompetitionEntry,
   canCompetitionStatusTransition,
   competitionJoinIdempotencyKey,
+  competitionPaymentMetadataJson,
   competitionPrizeIdempotencyKey,
   competitionPrizeWalletNote,
   getCompetitionsPilotClubSlug,
@@ -13,6 +16,7 @@ import {
   isCompetitionsEnabled,
   isCompetitionsVisibleForClub,
   isPaymentLinkedForEntryConfirm,
+  MAX_COMPETITION_ENTRY_FEE,
   normalizeCompetitionsPilotClubSlug,
   resolveEntryPrizeStatus,
   validatePrizeConfig,
@@ -128,6 +132,84 @@ describe('free entry rules', () => {
     expect(() => assertFreeEntryAllowed(0, false)).toThrow('sponsorFunded')
     expect(() => assertFreeEntryAllowed(0, true)).not.toThrow()
     expect(() => assertFreeEntryAllowed(100000, false)).not.toThrow()
+  })
+})
+
+describe('pilot entry fee cap', () => {
+  it('allows fees up to MAX_COMPETITION_ENTRY_FEE', () => {
+    expect(() => assertCompetitionEntryFeeWithinCap(MAX_COMPETITION_ENTRY_FEE)).not.toThrow()
+    expect(() => assertCompetitionEntryFeeWithinCap(200000)).not.toThrow()
+  })
+
+  it('rejects fees above the pilot cap', () => {
+    expect(() => assertCompetitionEntryFeeWithinCap(MAX_COMPETITION_ENTRY_FEE + 1)).toThrow(
+      'ENTRY_FEE_TOO_HIGH',
+    )
+  })
+})
+
+describe('competition wallet payment create data', () => {
+  it('sets purpose=competition and metadataJson.competitionEntryId for new wallet payments', () => {
+    const data = buildCompetitionWalletPaymentCreateData({
+      amount: 200000,
+      userId: 'athlete-1',
+      competitionEntryId: 'entry-1',
+      competitionId: 'comp-1',
+    })
+    expect(data.purpose).toBe('competition')
+    expect(data.status).toBe('PAID')
+    expect(data.method).toBe('PAID')
+    expect(JSON.parse(data.metadataJson)).toEqual({
+      competitionEntryId: 'entry-1',
+      competitionId: 'comp-1',
+    })
+    expect(JSON.parse(competitionPaymentMetadataJson({
+      competitionEntryId: 'entry-1',
+      competitionId: 'comp-1',
+    }))).toEqual({
+      competitionEntryId: 'entry-1',
+      competitionId: 'comp-1',
+    })
+  })
+
+  it('links CompetitionEntry.paymentId in the same transaction as payment create', async () => {
+    const created = { id: 'pay-new' }
+    const ops: string[] = []
+    const tx = {
+      payment: {
+        create: async (args: { data: Record<string, unknown> }) => {
+          ops.push('payment.create')
+          expect(args.data.purpose).toBe('competition')
+          expect(JSON.parse(String(args.data.metadataJson))).toMatchObject({
+            competitionEntryId: 'entry-1',
+          })
+          return created
+        },
+      },
+      competitionEntry: {
+        update: async (args: { where: { id: string }; data: { paymentId: string } }) => {
+          ops.push('competitionEntry.update')
+          expect(args.where.id).toBe('entry-1')
+          expect(args.data.paymentId).toBe('pay-new')
+          return { id: 'entry-1', paymentId: 'pay-new' }
+        },
+      },
+    }
+
+    // Mirrors server/api/payments/checkout.post.ts wallet branch for NEW competition payments.
+    const data = buildCompetitionWalletPaymentCreateData({
+      amount: 150000,
+      userId: 'athlete-1',
+      competitionEntryId: 'entry-1',
+      competitionId: 'comp-1',
+    })
+    const payment = await tx.payment.create({ data })
+    await tx.competitionEntry.update({
+      where: { id: 'entry-1' },
+      data: { paymentId: payment.id },
+    })
+
+    expect(ops).toEqual(['payment.create', 'competitionEntry.update'])
   })
 })
 

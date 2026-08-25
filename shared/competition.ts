@@ -259,10 +259,52 @@ export function validatePrizeConfig(
   return { placements: placements.sort((a, b) => a.placement - b.placement) }
 }
 
+/** Pilot max entry fee (toman) — owner create/patch must stay at or below this. */
+export const MAX_COMPETITION_ENTRY_FEE = 5_000_000
+
 /** Free-entry competitions must be explicitly sponsor-funded. */
 export function assertFreeEntryAllowed(entryFee: number, sponsorFunded: boolean) {
   if (entryFee <= 0 && !sponsorFunded) {
     throw new Error('Competitions with zero entry fee require sponsorFunded')
+  }
+}
+
+/** Reject entry fees above the pilot cap. */
+export function assertCompetitionEntryFeeWithinCap(entryFee: number) {
+  if (entryFee > MAX_COMPETITION_ENTRY_FEE) {
+    throw new Error('ENTRY_FEE_TOO_HIGH')
+  }
+}
+
+/** metadataJson for competition-purpose payments (wallet / IPG). */
+export function competitionPaymentMetadataJson(opts: {
+  competitionEntryId: string
+  competitionId?: string
+}) {
+  return JSON.stringify({
+    competitionEntryId: opts.competitionEntryId,
+    ...(opts.competitionId ? { competitionId: opts.competitionId } : {}),
+  })
+}
+
+/** Prisma create data for a new wallet-settled competition payment (link entry.paymentId in the same tx). */
+export function buildCompetitionWalletPaymentCreateData(opts: {
+  amount: number
+  userId: string
+  competitionEntryId: string
+  competitionId: string
+}) {
+  return {
+    amount: opts.amount,
+    method: 'PAID' as const,
+    status: 'PAID' as const,
+    provider: 'pay_at_club',
+    userId: opts.userId,
+    purpose: 'competition' as const,
+    metadataJson: competitionPaymentMetadataJson({
+      competitionEntryId: opts.competitionEntryId,
+      competitionId: opts.competitionId,
+    }),
   }
 }
 

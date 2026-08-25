@@ -103,6 +103,7 @@ vi.stubGlobal('createError', (input: { statusCode: number; statusMessage: string
 })
 
 import {
+  assertCompetitionDraftValid,
   assertCompetitionJoinable,
   awardCompetitionPrizes,
   cancelCompetition,
@@ -114,6 +115,7 @@ import {
   markCompetitionEntryPaid,
   transitionCompetitionStatus,
 } from './competitions'
+import { MAX_COMPETITION_ENTRY_FEE } from '#shared/competition.ts'
 
 const refundPaymentForCancellation = vi.fn().mockResolvedValue({ refunded: true, walletCredited: true, amount: 200000 })
 const creditWallet = vi.fn().mockResolvedValue({ balance: 400000 })
@@ -219,6 +221,38 @@ describe('assertCompetitionJoinable', () => {
 
   it('allows join when seats remain', () => {
     expect(() => assertCompetitionJoinable(openCompetition, 1)).not.toThrow()
+  })
+})
+
+describe('assertCompetitionDraftValid entry fee cap', () => {
+  const baseDraft = {
+    clubId: 'club-1',
+    sportId: 'sport-1',
+    title: 'Pilot',
+    format: 'knockout',
+    enrollmentType: 'SINGLE' as const,
+    prizeType: 'DISCOUNT' as const,
+    prizeConfigJson: JSON.stringify({ placements: [{ placement: 1, percent: 20 }] }),
+    maxParticipants: 16,
+    minParticipants: 2,
+    registrationOpens: new Date('2026-09-01T10:00:00Z'),
+    registrationCloses: new Date('2026-09-20T10:00:00Z'),
+    eventAt: new Date('2026-10-01T10:00:00Z'),
+    sponsorFunded: false,
+  }
+
+  it('rejects entryFee above pilot cap with ENTRY_FEE_TOO_HIGH', () => {
+    expect(() => assertCompetitionDraftValid({
+      ...baseDraft,
+      entryFee: MAX_COMPETITION_ENTRY_FEE + 1,
+    })).toThrow('ENTRY_FEE_TOO_HIGH')
+  })
+
+  it('allows entryFee at the pilot cap', () => {
+    expect(() => assertCompetitionDraftValid({
+      ...baseDraft,
+      entryFee: MAX_COMPETITION_ENTRY_FEE,
+    })).not.toThrow()
   })
 })
 
