@@ -1,4 +1,6 @@
-/** Default 10% platform fee when PLATFORM_COMMISSION_BPS is unset. */
+import { toAsciiDigits } from './digits.ts'
+
+/** Default 10% platform fee when PLATFORM_COMMISSION_BPS / COACH_COMMISSION_BPS is unset. */
 export const DEFAULT_PLATFORM_COMMISSION_BPS = 1000
 
 export type SettlementSplit = {
@@ -8,17 +10,35 @@ export type SettlementSplit = {
   ownerNet: number
 }
 
-/** Resolve commission BPS from env (0–10000). Invalid/missing → default. */
-export function resolvePlatformCommissionBps(
-  raw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
-): number {
-  if (raw == null || String(raw).trim() === '') return DEFAULT_PLATFORM_COMMISSION_BPS
+function parseCommissionBps(raw: string | undefined | null, fallback: number): number {
+  if (raw == null || String(raw).trim() === '') return fallback
   const n = Number(raw)
-  if (!Number.isFinite(n) || n < 0 || n > 10_000) return DEFAULT_PLATFORM_COMMISSION_BPS
+  if (!Number.isFinite(n) || n < 0 || n > 10_000) return fallback
   return Math.floor(n)
 }
 
-/** Split gross payment into platform commission + owner net (floor). */
+/** Resolve club commission BPS from env (0–10000). Invalid/missing → default. */
+export function resolvePlatformCommissionBps(
+  raw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
+): number {
+  return parseCommissionBps(raw, DEFAULT_PLATFORM_COMMISSION_BPS)
+}
+
+/**
+ * Resolve coach lesson commission BPS.
+ * Uses COACH_COMMISSION_BPS when set; otherwise same as club (`PLATFORM_COMMISSION_BPS` / default 10%).
+ */
+export function resolveCoachCommissionBps(
+  raw: string | undefined | null = typeof process !== 'undefined' ? process.env.COACH_COMMISSION_BPS : undefined,
+  platformRaw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
+): number {
+  if (raw != null && String(raw).trim() !== '') {
+    return parseCommissionBps(raw, DEFAULT_PLATFORM_COMMISSION_BPS)
+  }
+  return resolvePlatformCommissionBps(platformRaw)
+}
+
+/** Split gross payment into platform commission + payee net (floor). */
 export function splitSettlement(gross: number, commissionBps: number = resolvePlatformCommissionBps()): SettlementSplit {
   const safeGross = Number.isFinite(gross) && gross > 0 ? Math.floor(gross) : 0
   const bps = Number.isFinite(commissionBps) && commissionBps >= 0
@@ -28,8 +48,6 @@ export function splitSettlement(gross: number, commissionBps: number = resolvePl
   const ownerNet = Math.max(0, safeGross - commission)
   return { gross: safeGross, commissionBps: bps, commission, ownerNet }
 }
-
-import { toAsciiDigits } from './digits.ts'
 
 /** Normalize Iranian SHEBA / IBAN to uppercase IR + 24 digits (no spaces). */
 export function normalizeSheba(raw: string | null | undefined): string | null {

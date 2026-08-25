@@ -111,14 +111,33 @@ async function correctOne(
   const ledger = await db.settlementLedgerEntry.findUnique({ where: { paymentId } })
   if (ledger && !ledger.clawedBackAt) {
     const split = splitSettlement(amountToman, ledger.commissionBps)
-    clubWalletDelta = split.ownerNet - ledger.ownerNet
-    await adjustClubWallet(
-      ledger.clubId,
-      clubWalletDelta,
-      paymentId,
-      `Pre-rial IPG correction (bank ${sepAmountRials} rials → ${amountToman} toman)`,
-      db,
-    )
+    const delta = split.ownerNet - ledger.ownerNet
+    if (ledger.clubId) {
+      clubWalletDelta = delta
+      await adjustClubWallet(
+        ledger.clubId,
+        clubWalletDelta,
+        paymentId,
+        `Pre-rial IPG correction (bank ${sepAmountRials} rials → ${amountToman} toman)`,
+        db,
+      )
+    }
+    else if (ledger.coachId) {
+      const coach = await db.coach.findUnique({
+        where: { id: ledger.coachId },
+        select: { userId: true },
+      })
+      if (coach?.userId) {
+        athleteWalletDelta = delta
+        await adjustAthleteWallet(
+          coach.userId,
+          delta,
+          paymentId,
+          `Pre-rial IPG coach settlement correction (bank ${sepAmountRials} rials → ${amountToman} toman)`,
+          db,
+        )
+      }
+    }
     await db.settlementLedgerEntry.update({
       where: { id: ledger.id },
       data: {

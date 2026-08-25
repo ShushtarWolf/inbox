@@ -37,8 +37,8 @@ export async function creditWallet(
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
   const type = meta.type || 'REFUND_CREDIT'
-  // Idempotent cancel/refund retries: one REFUND_CREDIT (or same typed credit) per paymentId.
-  if (meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT')) {
+  // Idempotent retries: one credit of these types per paymentId.
+  if (meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT' || type === 'SETTLEMENT_CREDIT')) {
     const existing = await db.walletTransaction.findFirst({
       where: { paymentId: meta.paymentId, type },
     })
@@ -120,6 +120,8 @@ export async function debitWallet(
     bookingId?: string
     withdrawRequestId?: string
     note?: string
+    /** Settlement clawback may go negative if coach already spent net on courts. */
+    allowNegative?: boolean
   },
   db: DbClient = prisma,
 ) {
@@ -127,6 +129,24 @@ export async function debitWallet(
     throw createError({ statusCode: 400, statusMessage: 'Debit amount must be positive' })
   }
   const wallet = await getOrCreateWallet(userId, db)
+  if (meta.allowNegative) {
+    const updated = await db.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { decrement: amount } },
+    })
+    await db.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount: -amount,
+        type: meta.type || 'PAYMENT_DEBIT',
+        paymentId: meta.paymentId,
+        bookingId: meta.bookingId,
+        withdrawRequestId: meta.withdrawRequestId,
+        note: meta.note,
+      },
+    })
+    return updated
+  }
   // Atomic claim: parallel checkouts cannot both pass a read-then-decrement race.
   const claimed = await db.wallet.updateMany({
     where: { id: wallet.id, balance: { gte: amount } },

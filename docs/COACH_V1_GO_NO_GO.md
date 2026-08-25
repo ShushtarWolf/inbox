@@ -22,8 +22,9 @@ Competitions (if enabled) stay pilot-scoped to `iust-tennis` — independent of 
 
 1. Coach wallet must cover discounted court charge **before** slot claim succeeds (`debitWallet` atomic).
 2. Court payment metadata `source: coach-lesson-court` → owner settlement at **0 bps** (club gets full charge; no phantom platform skim).
-3. Cancel either lesson or court unwinds the sibling: student lesson fee refunded once; coach court fee credited once; slot `FREE`.
-4. Wallet top-up requires `PAYMENTS_MODE=test|live` (production is `live`).
+3. Athlete lesson fee PAID → coach user wallet credited **net after** `COACH_COMMISSION_BPS` / platform default **10%** (`SETTLEMENT_CREDIT`); club is not the lesson payee.
+4. Cancel either lesson or court unwinds the sibling: student lesson fee refunded once + coach settlement clawed; coach court fee credited once; slot `FREE`.
+5. Wallet top-up requires `PAYMENTS_MODE=test|live` (production is `live`).
 
 ---
 

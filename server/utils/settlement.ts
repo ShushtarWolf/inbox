@@ -1,6 +1,11 @@
 import type { ClubWalletTransactionType, Prisma } from '@prisma/client'
-import { resolvePlatformCommissionBps, splitSettlement } from '#shared/settlement.ts'
+import {
+  resolveCoachCommissionBps,
+  resolvePlatformCommissionBps,
+  splitSettlement,
+} from '#shared/settlement.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
+import { creditWallet, debitWallet } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -127,7 +132,6 @@ async function resolveClubIdForPayment(
     where: { id: paymentId },
     include: {
       booking: { include: { slot: { include: { court: true } } } },
-      coachSession: { include: { coach: true } },
       packageBooking: { include: { package: true } },
     },
   })
@@ -135,17 +139,36 @@ async function resolveClubIdForPayment(
   if (payment.booking?.slot?.court?.clubId) {
     return { clubId: payment.booking.slot.court.clubId, bookingId: payment.booking.id }
   }
-  if (payment.coachSession?.coach?.clubId) {
-    return { clubId: payment.coachSession.coach.clubId, bookingId: payment.coachSessionId }
-  }
   if (payment.packageBooking?.package?.clubId) {
     return { clubId: payment.packageBooking.package.clubId, bookingId: payment.packageBookingId }
   }
   return null
 }
 
+async function resolveCoachForLessonPayment(
+  paymentId: string,
+  db: DbClient,
+): Promise<{ coachId: string; userId: string; coachSessionId: string } | null> {
+  const payment = await db.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      coachSession: { include: { coach: { select: { id: true, userId: true } } } },
+    },
+  })
+  if (!payment?.coachSessionId || !payment.coachSession) return null
+  const userId = payment.coachSession.coach.userId
+  if (!userId) return null
+  return {
+    coachId: payment.coachSession.coach.id,
+    userId,
+    coachSessionId: payment.coachSessionId,
+  }
+}
+
 /**
- * Credit owner club wallet with net-after-commission when a payment becomes PAID.
+ * Credit payee net-after-commission when a payment becomes PAID.
+ * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 10%).
+ * - Club bookings / packages / coach-lesson-court → club wallet (0 bps for court charge).
  * Idempotent on paymentId via SettlementLedgerEntry unique constraint.
  */
 export async function creditOwnerForPaidPayment(
@@ -169,6 +192,48 @@ export async function creditOwnerForPaidPayment(
       reason: 'already_settled' as const,
       entry: existing,
     }
+  }
+
+  // Lesson fee paid by athlete → coach receives net after platform commission.
+  if (payment.coachSessionId) {
+    const coachPayee = await resolveCoachForLessonPayment(paymentId, db)
+    if (!coachPayee) {
+      return { credited: false as const, reason: 'no_coach_user' as const }
+    }
+    const split = splitSettlement(payment.amount, resolveCoachCommissionBps())
+
+    const runCoach = async (tx: Prisma.TransactionClient) => {
+      const raced = await tx.settlementLedgerEntry.findUnique({ where: { paymentId } })
+      if (raced) return { credited: false as const, reason: 'already_settled' as const, entry: raced }
+
+      const entry = await tx.settlementLedgerEntry.create({
+        data: {
+          coachId: coachPayee.coachId,
+          paymentId,
+          bookingId: coachPayee.coachSessionId,
+          gross: split.gross,
+          commissionBps: split.commissionBps,
+          commission: split.commission,
+          ownerNet: split.ownerNet,
+        },
+      })
+
+      if (split.ownerNet > 0) {
+        await creditWallet(coachPayee.userId, split.ownerNet, {
+          type: 'SETTLEMENT_CREDIT',
+          paymentId,
+          bookingId: coachPayee.coachSessionId,
+          note: `Coach lesson settlement net (commission ${split.commission})`,
+        }, tx)
+      }
+
+      return { credited: true as const, reason: 'ok' as const, entry, split, payee: 'coach' as const }
+    }
+
+    if (db === prisma) {
+      return prisma.$transaction(runCoach)
+    }
+    return runCoach(db as Prisma.TransactionClient)
   }
 
   const resolved = await resolveClubIdForPayment(paymentId, db)
@@ -207,7 +272,7 @@ export async function creditOwnerForPaidPayment(
       }, tx)
     }
 
-    return { credited: true as const, reason: 'ok' as const, entry, split }
+    return { credited: true as const, reason: 'ok' as const, entry, split, payee: 'club' as const }
   }
 
   if (db === prisma) {
@@ -217,8 +282,8 @@ export async function creditOwnerForPaidPayment(
 }
 
 /**
- * Reverse owner credit after cancel/refund. Idempotent via clawedBackAt.
- * Allows negative club balance if desk cash already withdrawn conceptually.
+ * Reverse payee credit after cancel/refund. Idempotent via clawedBackAt.
+ * Club: allows negative club balance. Coach: allows negative user wallet.
  */
 export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = prisma) {
   const entry = await db.settlementLedgerEntry.findUnique({ where: { paymentId } })
@@ -240,7 +305,22 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
       data: { clawedBackAt: new Date() },
     })
 
-    if (current.ownerNet > 0) {
+    if (current.ownerNet > 0 && current.coachId) {
+      const coach = await tx.coach.findUnique({
+        where: { id: current.coachId },
+        select: { userId: true },
+      })
+      if (coach?.userId) {
+        await debitWallet(coach.userId, current.ownerNet, {
+          type: 'SETTLEMENT_CLAWBACK',
+          paymentId,
+          bookingId: current.bookingId || undefined,
+          note: 'Coach lesson cancel clawback',
+          allowNegative: true,
+        }, tx)
+      }
+    }
+    else if (current.ownerNet > 0 && current.clubId) {
       await debitClubWallet(current.clubId, current.ownerNet, {
         type: 'CLAWBACK',
         paymentId,

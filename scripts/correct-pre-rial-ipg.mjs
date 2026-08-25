@@ -71,8 +71,9 @@ async function main() {
       const ledger = await tx.settlementLedgerEntry.findUnique({ where: { paymentId: row.id } })
       if (ledger && !ledger.clawedBackAt) {
         const split = splitSettlement(amountToman, ledger.commissionBps)
-        clubWalletDelta = split.ownerNet - ledger.ownerNet
-        if (clubWalletDelta !== 0) {
+        const delta = split.ownerNet - ledger.ownerNet
+        if (delta !== 0 && ledger.clubId) {
+          clubWalletDelta = delta
           const wallet = await tx.clubWallet.upsert({
             where: { clubId: ledger.clubId },
             update: {},
@@ -91,6 +92,33 @@ async function main() {
               note: `Pre-rial IPG correction (bank ${previousAmount} rials → ${amountToman} toman)`,
             },
           })
+        }
+        else if (delta !== 0 && ledger.coachId) {
+          const coach = await tx.coach.findUnique({
+            where: { id: ledger.coachId },
+            select: { userId: true },
+          })
+          if (coach?.userId) {
+            athleteWalletDelta = delta
+            const wallet = await tx.wallet.upsert({
+              where: { userId: coach.userId },
+              update: {},
+              create: { userId: coach.userId },
+            })
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: { balance: { increment: athleteWalletDelta } },
+            })
+            await tx.walletTransaction.create({
+              data: {
+                walletId: wallet.id,
+                amount: athleteWalletDelta,
+                type: 'ADJUSTMENT',
+                paymentId: row.id,
+                note: `Pre-rial IPG coach settlement correction (bank ${previousAmount} rials → ${amountToman} toman)`,
+              },
+            })
+          }
         }
         await tx.settlementLedgerEntry.update({
           where: { id: ledger.id },

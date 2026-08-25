@@ -122,7 +122,11 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 Owner wallet credits on collected payments (`PLATFORM_COMMISSION_BPS`, default `1000` = 10%). Owner sets SHEBA and submits a **withdraw request**; ops pays via manual bank transfer, then marks **paid** (or **reject**) in `/admin/withdrawals`. No automated payout rail.
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied club settlement + `20260816160000_user_wallet_withdraw` (User.sheba, UserWithdrawRequest, wallet WITHDRAW_* types). Optional env: `PLATFORM_COMMISSION_BPS=1000`.
+On Liara after deploy: ensure `prisma migrate deploy` has applied club settlement + `20260816160000_user_wallet_withdraw` (User.sheba, UserWithdrawRequest, wallet WITHDRAW_* types) + `20260825143000_coach_lesson_settlement`. Optional env: `PLATFORM_COMMISSION_BPS=1000`, `COACH_COMMISSION_BPS=1000`.
+
+## Coach lesson settlement
+
+When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlement credits the **coach user wallet** with net after commission (`COACH_COMMISSION_BPS`, else same as `PLATFORM_COMMISSION_BPS`, default 10%). Athletes stay fee-free at checkout. Court charges paid by the coach (`metadata.source=coach-lesson-court`) still settle to the **club** at **0 bps**. Cancel/refund clawbacks debit the coach wallet (`SETTLEMENT_CLAWBACK`, may go negative).
 
 ## Athlete wallet withdraw
 
@@ -130,7 +134,7 @@ Athlete wallet is closed-loop credit for bookings. Current athlete wallet source
 (top-ups, wallet-backed refunds, and manual balance adjustments) are **not**
 bank-withdrawable. Keep the request flow dormant unless a future source of
 cash-out-eligible athlete funds is introduced with explicit policy and ledger
-rules.
+rules. Coach **settlement** credits (`SETTLEMENT_CREDIT`) are cash-backed lesson nets; coach bank withdraw UI can reuse the user-withdraw rail when product enables it.
 
 ## Webhooks
 

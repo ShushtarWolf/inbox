@@ -3,6 +3,7 @@ import {
   DEFAULT_PLATFORM_COMMISSION_BPS,
   isValidSheba,
   normalizeSheba,
+  resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
 } from './settlement.ts'
@@ -75,6 +76,19 @@ describe('resolvePlatformCommissionBps', () => {
     expect(resolvePlatformCommissionBps('0')).toBe(0)
     expect(resolvePlatformCommissionBps('500')).toBe(500)
     expect(resolvePlatformCommissionBps('10000')).toBe(10_000)
+  })
+})
+
+describe('resolveCoachCommissionBps', () => {
+  it('falls back to platform / default when coach env unset', () => {
+    expect(resolveCoachCommissionBps(undefined, undefined)).toBe(DEFAULT_PLATFORM_COMMISSION_BPS)
+    expect(resolveCoachCommissionBps('', '500')).toBe(500)
+    expect(resolveCoachCommissionBps(undefined, '0')).toBe(0)
+  })
+
+  it('uses explicit coach BPS when set', () => {
+    expect(resolveCoachCommissionBps('1000', '500')).toBe(1000)
+    expect(resolveCoachCommissionBps('0', '1000')).toBe(0)
   })
 })
 

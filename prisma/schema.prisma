@@ -106,6 +106,10 @@ enum WalletTransactionType {
   PAYMENT_DEBIT
   ADJUSTMENT
   TOPUP_CREDIT
+  /** Coach lesson fee net after platform commission. */
+  SETTLEMENT_CREDIT
+  /** Reverse SETTLEMENT_CREDIT on cancel/refund. */
+  SETTLEMENT_CLAWBACK
   WITHDRAW_HOLD
   WITHDRAW_RELEASE
   WITHDRAW_PAID
@@ -596,6 +600,7 @@ model Coach {
   waitlistEntries WaitlistEntry[]
   membershipLinks StaffMembership[] @relation("MembershipCoach")
   clubLinks    CoachClubLink[]
+  settlementEntries SettlementLedgerEntry[]
 }
 
 /** Independent coaches work across clubs; each link carries that club's court discount for the coach. */
@@ -1126,7 +1131,7 @@ model ClubWalletTransaction {
   @@index([paymentId])
 }
 
-/** One row per settled payment — idempotency key for owner credit / clawback. */
+/** One row per settled payment — idempotency key for club/coach credit / clawback. */
 model SettlementLedgerEntry {
   id            String    @id @default(cuid())
   gross         Int
@@ -1136,12 +1141,17 @@ model SettlementLedgerEntry {
   createdAt     DateTime  @default(now())
   clawedBackAt  DateTime?
 
-  clubId    String
-  club      Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /** Club court/package settlement. Null when payee is a coach (lesson fee). */
+  clubId    String?
+  club      Club?   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /** Coach lesson settlement. Null when payee is a club. */
+  coachId   String?
+  coach     Coach?  @relation(fields: [coachId], references: [id], onDelete: Cascade)
   paymentId String  @unique
   bookingId String?
 
   @@index([clubId, createdAt])
+  @@index([coachId, createdAt])
 }
 
 model WithdrawRequest {
