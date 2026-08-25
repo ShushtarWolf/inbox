@@ -4,6 +4,17 @@ import { notifyAdminWithdrawRequest } from './adminNotify'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
+function parsePaymentMetaSource(metadataJson: string | null | undefined): string | null {
+  if (!metadataJson) return null
+  try {
+    const parsed = JSON.parse(metadataJson) as { source?: unknown }
+    return typeof parsed.source === 'string' ? parsed.source : null
+  }
+  catch {
+    return null
+  }
+}
+
 export async function getOrCreateClubWallet(clubId: string, db: DbClient = prisma) {
   return db.clubWallet.upsert({
     where: { clubId },
@@ -165,7 +176,10 @@ export async function creditOwnerForPaidPayment(
     return { credited: false as const, reason: 'no_club' as const }
   }
 
-  const bps = resolvePlatformCommissionBps()
+  // Coach already paid the discounted court fee from their wallet — club gets 100%.
+  // Skimming PLATFORM_COMMISSION_BPS would leave a phantom gap (coach −charge, club +90%).
+  const metaSource = parsePaymentMetaSource(payment.metadataJson)
+  const bps = metaSource === 'coach-lesson-court' ? 0 : resolvePlatformCommissionBps()
   const split = splitSettlement(payment.amount, bps)
 
   const run = async (tx: Prisma.TransactionClient) => {

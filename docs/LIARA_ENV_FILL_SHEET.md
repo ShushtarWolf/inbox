@@ -19,12 +19,14 @@ Copy/paste checklist. Mark each row when set.
 
 ---
 
-## B. Pilot (coach product OFF)
+## B. Pilot flags
 
-| ☐ | Variable | Fill with | Notes |
-|---|----------|-----------|--------|
-| ☐ | `PILOT_NO_COACH` | `true` | Server APIs + sitemap; synced to client at runtime |
-| ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | Optional belt-and-suspenders for client nav |
+| ☐ | Variable | Court-only MVP | Competition + Coach go-live |
+|---|----------|----------------|------------------------------|
+| ☐ | `PILOT_NO_COACH` | `true` | `false` (or unset) — unlocks coach signup, `/coaches`, wallet court book |
+| ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; redeploy after change |
+
+When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Keep packages/recurring frozen.
 
 ---
 

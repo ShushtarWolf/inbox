@@ -26,7 +26,12 @@ function roleLink(path: string) {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-2" role="tablist" :aria-label="t('register.rolePickerLabel')">
+  <div
+    class="grid gap-2"
+    :class="roles.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'"
+    role="tablist"
+    :aria-label="t('register.rolePickerLabel')"
+  >
     <NuxtLink
       v-for="role in roles"
       :key="role.id"

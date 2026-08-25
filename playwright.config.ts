@@ -12,7 +12,12 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      // Phone-chrome / iOS tap guards are WebKit-only (Desktop Chrome hides max-[430px] UI).
+      testIgnore: /ios-safari-taps\.spec\.ts/,
+    },
     {
       name: 'webkit-mobile',
       use: { ...devices['iPhone 13'] },

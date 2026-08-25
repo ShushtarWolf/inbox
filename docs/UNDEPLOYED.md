@@ -1,8 +1,7 @@
 # Undeployed changes
 
-None — last successful Liara deploy through `d77bcc4` (`inbox` / inboxs.ir).
+None after the next successful Deploy to Liara of current `main`.
 
-**Last live deploy:** `d77bcc4` (court chip ordinal / confirm+IPG live Court.price; post-deploy dump `backups/inbox-db-20260821-193200.dump`)  
-**Built with:** Iran builders
+**Last tracked live deploy (stale until re-ship):** `524004d` was deployed via GitHub Actions; Liara `GIT_COMMIT_SHA` may lag until the overnight competition+coach go-live redeploy.
 
 Clear / re-add commits here when `main` moves past the last live deploy again.
