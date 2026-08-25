@@ -1,0 +1,54 @@
+import { getClubMapping, hasExternalMapping } from './mappings'
+import { loadInboxOwnerCalendar } from './inboxCalendar'
+import { fetchExternalOccupancy } from './adapters'
+import { mergeOccupancy } from './merge'
+import { enrichCellsWithSourceDetails } from './sourceDetails'
+import { SOURCE_LABELS, type ExternalAdapterResult, type ExternalSourceId } from './types'
+
+const POLL_INTERVAL_MS = 25_000
+
+export async function buildCalendarSourcesResponse(opts: {
+  clubId: string
+  clubSlug: string
+  date: string
+}) {
+  const inbox = await loadInboxOwnerCalendar(opts.clubId, opts.date)
+  const mapping = getClubMapping(opts.clubSlug)
+  const mapped = hasExternalMapping(opts.clubSlug)
+
+  const external = await fetchExternalOccupancy({
+    mapping,
+    date: opts.date,
+    courts: inbox.courts,
+    sessionDurationMinutes: inbox.sessionDurationMinutes,
+  })
+
+  const cells = enrichCellsWithSourceDetails(
+    mergeOccupancy(inbox.slots, external.occupied),
+    mapping,
+  )
+
+  return {
+    date: opts.date,
+    clubSlug: opts.clubSlug,
+    mapped,
+    mappingLabel: mapping?.label ?? null,
+    message: mapped
+      ? null
+      : 'این نمای همپوشانی فقط برای باشگاه‌هایی است که علاوه بر اینباکس در سایت دیگری هم لیست شده‌اند.',
+    courts: inbox.courts,
+    cells,
+    sessionDurationMinutes: inbox.sessionDurationMinutes,
+    pollIntervalMs: POLL_INTERVAL_MS,
+    adapters: external.adapters.map((adapter: ExternalAdapterResult) => ({
+      source: adapter.source,
+      siteLabel: SOURCE_LABELS[adapter.source as ExternalSourceId],
+      supported: adapter.supported,
+      error: adapter.error ?? null,
+      slotCount: adapter.occupied.length,
+      externalClubTitle: mapping?.sources?.[adapter.source as keyof NonNullable<typeof mapping.sources>]
+        ? (mapping.sources[adapter.source as keyof NonNullable<typeof mapping.sources>] as { clubTitle?: string | null }).clubTitle ?? null
+        : null,
+    })),
+  }
+}

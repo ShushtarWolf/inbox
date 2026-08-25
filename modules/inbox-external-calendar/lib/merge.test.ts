@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { formatSourceBadge } from '../runtime/server/lib/badges'
 import { isInboxOccupied, mergeOccupancy } from '../runtime/server/lib/merge'
+import { computeSuspectedSlots } from '../runtime/server/lib/suspected'
+import { sourceDetailsForCell } from '../runtime/server/lib/sourceDetails'
 
 describe('formatSourceBadge', () => {
   it('returns empty for no sources', () => {
@@ -15,20 +17,6 @@ describe('formatSourceBadge', () => {
   it('joins overlap sources in stable order', () => {
     expect(formatSourceBadge(['aloplay', 'inbox'])).toBe('اینباکس + الوپلی')
     expect(formatSourceBadge(['courtic', 'alovarzesh', 'inbox'])).toBe('اینباکس + الوورزش + کورتیک')
-  })
-})
-
-describe('isInboxOccupied', () => {
-  it('treats busy desk statuses as occupied', () => {
-    expect(isInboxOccupied('RESERVED')).toBe(true)
-    expect(isInboxOccupied('PENDING')).toBe(true)
-    expect(isInboxOccupied('BLOCKED')).toBe(true)
-  })
-
-  it('treats free/cancelled/closed as not occupied', () => {
-    expect(isInboxOccupied('FREE')).toBe(false)
-    expect(isInboxOccupied('CANCELLED')).toBe(false)
-    expect(isInboxOccupied('CLOSED')).toBe(false)
   })
 })
 
@@ -69,5 +57,59 @@ describe('mergeOccupancy', () => {
     expect(merged).toHaveLength(1)
     expect(merged[0]?.inboxStatus).toBe('FREE')
     expect(merged[0]?.badge).toBe('الوپلی')
+  })
+})
+
+describe('isInboxOccupied', () => {
+  it('treats busy desk statuses as occupied', () => {
+    expect(isInboxOccupied('RESERVED')).toBe(true)
+    expect(isInboxOccupied('PENDING')).toBe(true)
+    expect(isInboxOccupied('BLOCKED')).toBe(true)
+  })
+
+  it('treats free/cancelled/closed as not occupied', () => {
+    expect(isInboxOccupied('FREE')).toBe(false)
+    expect(isInboxOccupied('CANCELLED')).toBe(false)
+    expect(isInboxOccupied('CLOSED')).toBe(false)
+  })
+})
+
+describe('computeSuspectedSlots', () => {
+  it('flags inbox-free + external-occupied without platform fields', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'FREE', id: 's1' }],
+      [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'aloplay' }],
+    )
+    expect(suspected).toEqual([{
+      slotId: 's1',
+      startTime: '10:00',
+      courtId: 'c1',
+      suspected: true,
+    }])
+  })
+
+  it('ignores inbox-busy slots', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'RESERVED' }],
+      [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'aloplay' }],
+    )
+    expect(suspected).toEqual([])
+  })
+})
+
+describe('sourceDetailsForCell', () => {
+  it('includes Persian site label and external club title for owner/admin', () => {
+    const details = sourceDetailsForCell(
+      {
+        inboxSlug: 'iust-tennis',
+        label: 'دانشگاه علم و صنعت',
+        sources: { aloplay: { clubId: null, clubTitle: 'باشگاه نمونه AloPlay' } },
+      },
+      ['inbox', 'aloplay'],
+    )
+    expect(details).toEqual([
+      { source: 'inbox', siteLabel: 'اینباکس', externalClubTitle: 'دانشگاه علم و صنعت' },
+      { source: 'aloplay', siteLabel: 'الوپلی', externalClubTitle: 'باشگاه نمونه AloPlay' },
+    ])
   })
 })

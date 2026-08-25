@@ -1,0 +1,50 @@
+/* Athlete-facing suspected slot styling — loaded only when module is registered. */
+.canva-club-legend-suspected {
+  border-color: #c9a227;
+  background-color: #fff8dc;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 2px,
+    rgba(201, 162, 39, 0.55) 2px,
+    rgba(201, 162, 39, 0.55) 3.5px
+  );
+}
+
+.canva-club-slot-suspected {
+  cursor: pointer;
+  color: #7a5d00;
+  border-color: #c9a227;
+  background-color: #fff8dc;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 2px,
+    rgba(201, 162, 39, 0.45) 2px,
+    rgba(201, 162, 39, 0.45) 3.5px
+  );
+}
+
+.canva-club-slot-suspected.canva-club-slot-active {
+  background: #2f9e44;
+  border-color: #2f9e44;
+  color: #fff;
+  background-image: none;
+}
+
+.canva-club-slot-suspected-label {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.canva-ext-cal-source-detail {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, 0.92);
+}

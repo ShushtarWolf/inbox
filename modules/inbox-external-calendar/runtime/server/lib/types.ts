@@ -16,6 +16,12 @@ export interface ExternalOccupiedSlot {
   source: ExternalSourceId
 }
 
+export interface SourceDetail {
+  source: ExternalSourceId
+  siteLabel: string
+  externalClubTitle: string | null
+}
+
 export interface MergedCell {
   courtId: string
   startTime: string
@@ -24,6 +30,7 @@ export interface MergedCell {
   sources: ExternalSourceId[]
   badge: string
   occupied: boolean
+  sourceDetails?: SourceDetail[]
 }
 
 export interface InboxCalendarSlot {
@@ -33,9 +40,15 @@ export interface InboxCalendarSlot {
   displayStatus: string
 }
 
-export interface AloPlaySourceConfig {
-  clubId: number | null
+export interface ExternalSourceConfig {
+  clubId?: number | null
+  clubTitle?: string | null
   comment?: string
+  supported?: false
+}
+
+export interface AloPlaySourceConfig extends ExternalSourceConfig {
+  clubId: number | null
 }
 
 export interface UnsupportedSourceConfig {
@@ -59,8 +72,8 @@ export interface ClubMapping {
   label?: string
   sources?: {
     aloplay?: AloPlaySourceConfig
-    alovarzesh?: UnsupportedSourceConfig
-    courtic?: UnsupportedSourceConfig
+    alovarzesh?: UnsupportedSourceConfig & ExternalSourceConfig
+    courtic?: UnsupportedSourceConfig & ExternalSourceConfig
   }
   courts?: CourtMapping[]
 }
