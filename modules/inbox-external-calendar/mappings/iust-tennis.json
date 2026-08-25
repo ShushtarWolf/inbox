@@ -1,0 +1,26 @@
+{
+  "inboxSlug": "iust-tennis",
+  "label": "دانشگاه علم و صنعت",
+  "sources": {
+    "aloplay": {
+      "clubId": null,
+      "comment": "TODO: AloPlay numeric clubId is unknown — fill when confirmed from AloPlay admin."
+    },
+    "alovarzesh": { "supported": false },
+    "courtic": { "supported": false }
+  },
+  "courts": [
+    {
+      "inboxCourtName": "زمین ۱",
+      "external": {
+        "aloplay": { "courtId": null }
+      }
+    },
+    {
+      "inboxCourtName": "زمین ۲",
+      "external": {
+        "aloplay": { "courtId": null }
+      }
+    }
+  ]
+}

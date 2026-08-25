@@ -1,6 +1,9 @@
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { normalizeCompetitionsPilotClubSlug } from './shared/competition'
 import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
+
+const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
 const PWA_RESET_VERSION = '7'
 
@@ -20,6 +23,7 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
     'nuxt-auth-utils',
     '@vite-pwa/nuxt',
+    ...(existsSync(externalCalendarModuleDir) ? ['./modules/inbox-external-calendar'] : []),
   ],
 
   css: ['~/assets/css/main.css'],
