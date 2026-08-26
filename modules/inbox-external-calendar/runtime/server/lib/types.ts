@@ -61,8 +61,16 @@ export interface UnsupportedSourceConfig {
   supported: false
 }
 
+export interface AloPlayCourtMapping {
+  /** AloPlay product id (GetByTime identity). */
+  productId: number | null
+  /** @deprecated Use productId. Kept for legacy mapping JSON only. */
+  courtId?: number | null
+  name?: string
+}
+
 export interface CourtExternalMapping {
-  aloplay?: { courtId: number | null }
+  aloplay?: AloPlayCourtMapping
   alovarzesh?: { productId: number | null }
   courtic?: UnsupportedSourceConfig
 }
