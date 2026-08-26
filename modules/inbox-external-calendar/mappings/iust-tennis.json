@@ -6,27 +6,55 @@
       "clubId": 10887,
       "clubTitle": "دانشگاه علم وصنعت",
       "productGender": 2,
-      "comment": "https://aloplay.io/en/tennis/clubs/10887 — productGender 2=Male (default public filter)."
+      "genders": [
+        2,
+        1
+      ],
+      "comment": "https://aloplay.io/en/tennis/clubs/10887 — genders 2=Male, 1=Female. Occupancy is union of both."
     },
     "alovarzesh": {
       "clubTitle": "تنیس علم و صنعت",
-      "comment": "https://alo-varzesh.com/products/2796 (court 1) / 3335 (court 2); mini court 3336 unused."
+      "comment": "https://alo-varzesh.com/products/2796 (court 1) / 3335 (court 2) / 3336 (court 3 non-standard)."
     },
-    "courtic": { "supported": false }
+    "courtic": {
+      "supported": false
+    }
   },
   "courts": [
     {
       "inboxCourtName": "زمین ۱",
       "external": {
-        "aloplay": { "courtId": null },
-        "alovarzesh": { "productId": 2796 }
+        "aloplay": {
+          "productId": 56921,
+          "name": "زمین 1"
+        },
+        "alovarzesh": {
+          "productId": 2796
+        }
       }
     },
     {
       "inboxCourtName": "زمین ۲",
       "external": {
-        "aloplay": { "courtId": null },
-        "alovarzesh": { "productId": 3335 }
+        "aloplay": {
+          "productId": 317335,
+          "name": "زمین2"
+        },
+        "alovarzesh": {
+          "productId": 3335
+        }
+      }
+    },
+    {
+      "inboxCourtName": "زمین 3 غیر استاندارد",
+      "external": {
+        "aloplay": {
+          "productId": 112282,
+          "name": "زمین 3 (غیراستاندارد)"
+        },
+        "alovarzesh": {
+          "productId": 3336
+        }
       }
     }
   ]

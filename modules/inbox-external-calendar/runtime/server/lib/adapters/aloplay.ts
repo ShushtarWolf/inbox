@@ -1,33 +1,12 @@
+import { unionOccupiedProductIds } from '../../../../lib/aloplayParse'
 import type { ClubMapping, ExternalOccupiedSlot } from '../types'
 import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
 import { checkAdapterRateLimit } from '../rateLimit'
-import { addMinutes, buildSessionStarts, normalizeClockTime } from '../time'
+import { addMinutes, buildSessionStarts } from '../time'
 
 const ALOPLAY_BASE = 'https://ws.aloplay.io/api'
-
-function collectAvailableTimes(payload: unknown): string[] {
-  const found = new Set<string>()
-
-  const visit = (node: unknown) => {
-    if (!node) return
-    if (Array.isArray(node)) {
-      node.forEach(visit)
-      return
-    }
-    if (typeof node !== 'object') return
-
-    const record = node as Record<string, unknown>
-    for (const key of ['time', 'startTime', 'StartTime', 'fromTime', 'value']) {
-      const normalized = normalizeClockTime(record[key])
-      if (normalized) found.add(normalized)
-    }
-    for (const value of Object.values(record)) visit(value)
-  }
-
-  visit(payload)
-  return [...found].sort()
-}
+const ALOPLAY_GENDERS = [1, 2] as const
 
 async function fetchAloPlayJson(path: string, query: Record<string, string | number>) {
   const params = new URLSearchParams()
@@ -57,6 +36,28 @@ async function fetchAloPlayJson(path: string, query: Record<string, string | num
   }
 }
 
+async function fetchByTimePayload(opts: {
+  clubId: number
+  date: string
+  time: string
+  productGender: number
+}): Promise<unknown | null> {
+  const cacheKey = `ext-cal:aloplay-bytimes:${opts.clubId}:${opts.date}:${opts.time}:g${opts.productGender}`
+  const cached = await readCached<unknown>(cacheKey)
+  if (cached) return cached
+
+  const payload = await fetchAloPlayJson('v1/Product/GetByTime', {
+    clubId: opts.clubId,
+    date: opts.date,
+    time: opts.time,
+    productGender: opts.productGender,
+  })
+  if (payload != null) {
+    await writeCached(cacheKey, payload)
+  }
+  return payload
+}
+
 export async function fetchAloPlayOccupied(opts: {
   mapping: ClubMapping
   date: string
@@ -73,8 +74,7 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay clubId is not mapped yet (TODO).' }
   }
 
-  const productGender = opts.mapping.sources?.aloplay?.productGender ?? 2
-  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:g${productGender}`
+  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}`
   const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
   if (cached) return { occupied: cached }
 
@@ -83,53 +83,61 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay rate limited — retry shortly.' }
   }
 
-  let availableTimes: string[] = []
-  try {
-    const payload = await fetchAloPlayJson('v1/PublicClub/GetAvailableTime', {
-      clubId,
-      date: opts.date,
-      productGender,
+  const mappedCourts = opts.courts
+    .map((court) => {
+      const mappingCourt = findCourtMapping(opts.mapping, court)
+      const aloplay = mappingCourt?.external?.aloplay
+      const productId = aloplay?.productId ?? aloplay?.courtId
+      if (productId == null) return null
+      return {
+        court,
+        productId,
+        starts: buildSessionStarts(
+          court.effectiveOpenHour,
+          court.effectiveCloseHour,
+          opts.sessionDurationMinutes,
+        ),
+      }
     })
-    availableTimes = collectAvailableTimes(payload)
-  } catch (error) {
-    return {
-      occupied: [],
-      error: error instanceof Error ? error.message : 'AloPlay GetAvailableTime failed',
-    }
+    .filter((item): item is NonNullable<typeof item> => item != null)
+
+  if (!mappedCourts.length) {
+    return { occupied: [], error: 'AloPlay productId is not mapped for any court (TODO).' }
   }
 
-  if (!availableTimes.length) {
-    return { occupied: [], error: 'AloPlay returned no parsable availability (read-only overlay skipped).' }
-  }
+  const sessionTimes = [...new Set(mappedCourts.flatMap((item) => item.starts))].sort()
+  const occupiedByTime = new Map<string, Set<number>>()
+  const errors: string[] = []
 
-  const availableSet = new Set(availableTimes)
-  const occupied: ExternalOccupiedSlot[] = []
-
-  for (const court of opts.courts) {
-    const mappingCourt = findCourtMapping(opts.mapping, court)
-    if (!mappingCourt?.external?.aloplay) continue
-
-    const starts = buildSessionStarts(
-      court.effectiveOpenHour,
-      court.effectiveCloseHour,
-      opts.sessionDurationMinutes,
-    )
-
-    for (const startTime of starts) {
-      if (availableSet.has(startTime)) continue
-
+  for (const startTime of sessionTimes) {
+    const payloads: unknown[] = []
+    for (const productGender of ALOPLAY_GENDERS) {
       try {
-        const byTime = await fetchAloPlayJson('v1/Product/GetByTime', {
+        const payload = await fetchByTimePayload({
           clubId,
           date: opts.date,
           time: startTime,
           productGender,
         })
-        const stillAvailable = collectAvailableTimes(byTime)
-        if (stillAvailable.includes(startTime)) continue
-      } catch {
-        // Keep inverse-of-GetAvailableTime when GetByTime is unavailable.
+        if (payload != null) payloads.push(payload)
+      } catch (error) {
+        errors.push(
+          error instanceof Error
+            ? error.message
+            : `GetByTime ${startTime} gender ${productGender} failed`,
+        )
       }
+    }
+
+    if (!payloads.length) continue
+    occupiedByTime.set(startTime, unionOccupiedProductIds(payloads))
+  }
+
+  const occupied: ExternalOccupiedSlot[] = []
+  for (const { court, productId, starts } of mappedCourts) {
+    for (const startTime of starts) {
+      const occupiedProducts = occupiedByTime.get(startTime)
+      if (!occupiedProducts?.has(productId)) continue
 
       occupied.push({
         courtKey: court.id,
@@ -140,6 +148,13 @@ export async function fetchAloPlayOccupied(opts: {
     }
   }
 
+  if (!occupied.length && errors.length && occupiedByTime.size === 0) {
+    return { occupied: [], error: errors.join('; ') }
+  }
+
   await writeCached(cacheKey, occupied)
-  return { occupied }
+  return {
+    occupied,
+    error: errors.length ? errors.join('; ') : undefined,
+  }
 }
