@@ -34,8 +34,9 @@ rm -rf modules/inbox-external-calendar
 
 | Source | Status |
 |--------|--------|
-| AloPlay | club **10887** (`/v1/PublicClub/GetAvailableTime`) |
-| AloVarzesh | products **2796** (زمین ۱), **3335** (زمین ۲) — HTML timetable |
+| AloPlay | club **10887** — per-court `productId` via `/v1/Product/GetByTime` (`remainedCapacity===0`); genders **1+2** union |
+| AloPlay courts | **56921** (زمین ۱), **317335** (زمین ۲), **112282** (زمین ۳ غیراستاندارد) |
+| AloVarzesh | products **2796** (زمین ۱), **3335** (زمین ۲), **3336** (زمین ۳) — HTML timetable |
 | Courtic | stub (`supported: false`) |
 
 ## تست
@@ -48,5 +49,5 @@ npx vitest run --config modules/inbox-external-calendar/vitest.config.ts
 
 - بدون migration / env جدید
 - Courtic: stub
-- AloPlay availability is club-level (not per-court) for the public time list
+- AloPlay occupancy is per-court from GetByTime; a court missing from an hour is unknown (not marked occupied)
 - polling ~۲۵ث؛ cache adapter ~۴۵ث

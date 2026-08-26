@@ -62,7 +62,7 @@ export interface UnsupportedSourceConfig {
 }
 
 export interface CourtExternalMapping {
-  aloplay?: { courtId: number | null }
+  aloplay?: { productId: number | null }
   alovarzesh?: { productId: number | null }
   courtic?: UnsupportedSourceConfig
 }
