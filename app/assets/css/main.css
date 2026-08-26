@@ -623,6 +623,41 @@
     padding-block-start: 2.65rem;
   }
 
+  /* Coach discovery rail — square tiles, red CTA like venue cards */
+  .canva-coach-grid {
+    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
+  }
+  .canva-coach-card {
+    @apply relative block aspect-square w-full overflow-hidden bg-[#2a1818] text-white shadow-venus-sm;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-coach-card img {
+    @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
+    opacity: 0.75;
+    filter: brightness(0.72) saturate(0.85);
+  }
+  .canva-coach-card::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(180deg, rgba(20, 12, 12, 0.15) 0%, rgba(20, 12, 12, 0.82) 100%);
+  }
+  .canva-coach-card-body {
+    @apply relative z-10 flex h-full flex-col items-center justify-end gap-2 p-2 pb-2 text-center sm:gap-2.5 sm:p-3 sm:pb-2;
+  }
+  .canva-coach-card-copy {
+    @apply flex w-full flex-col items-center gap-0.5 text-center;
+  }
+  .canva-coach-card-title {
+    @apply line-clamp-2 text-center text-sm font-bold leading-tight sm:text-base;
+  }
+  .canva-coach-card-meta {
+    @apply line-clamp-1 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
+  }
+  .canva-coach-card-cta {
+    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
+    border-radius: var(--sz-canva-radius);
+  }
+
   /* Competition discovery rail — tournament gold #B68A3B, square tiles */
   .canva-competition-grid {
     @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;

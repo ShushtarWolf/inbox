@@ -257,6 +257,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </AppModal>
 
+      <CoachDiscoveryRail />
       <CompetitionDiscoveryRail />
 
       <section class="space-y-3">

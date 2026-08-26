@@ -23,7 +23,7 @@ const { data: competitions } = await useFetch<CompetitionRailItem[]>('/api/compe
 })
 
 const items = computed(() => (competitions.value || []).slice(0, 3))
-const visible = computed(() => competitionsEnabled.value && items.value.length > 0)
+const visible = computed(() => competitionsEnabled.value)
 
 function cardImage(item: CompetitionRailItem) {
   if (item.club.image) return item.club.image
@@ -54,7 +54,8 @@ function cardMeta(item: CompetitionRailItem) {
         <AppIcon name="chevron_left" size="sm" />
       </NuxtLink>
     </div>
-    <div class="canva-competition-grid">
+
+    <div v-if="items.length" class="canva-competition-grid">
       <NuxtLink
         v-for="item in items"
         :key="item.id"
@@ -81,5 +82,11 @@ function cardMeta(item: CompetitionRailItem) {
         </div>
       </NuxtLink>
     </div>
+
+    <CanvaEmptyState
+      v-else
+      :title="t('competitions.comingSoon')"
+      icon="emoji_events"
+    />
   </section>
 </template>

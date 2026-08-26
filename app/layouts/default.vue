@@ -6,18 +6,34 @@ const localePath = useLocalePath()
 const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath, dashboardPathForRole } = useAuth()
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
+const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
 
 async function handleLogout() {
   await logout()
 }
 
 const nav = computed((): NavItem[] => {
-  // Court booking is primary; coach discovery is off main nav (and gated by pilotNoCoach).
   // Guest: no bottom tab bar — login lives in CanvaPublicChrome / AppTopBar only.
   const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
   ]
+
+  if (!pilotNoCoach.value) {
+    items.push({
+      to: localePath('/coaches'),
+      label: t('nav.coaches'),
+      icon: 'sports',
+    })
+  }
+
+  if (competitionsEnabled.value) {
+    items.push({
+      to: localePath('/competitions'),
+      label: t('competitions.nav'),
+      icon: 'emoji_events',
+    })
+  }
 
   if (user.value) {
     items.push({
