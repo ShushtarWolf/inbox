@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * Capture localhost at 375×812 and pixel-compare against canva-reference/pages/.
- * Respects product rules: square Canva chrome (0–2px radius), required nav chrome,
- * owner Today = multi-court GRID (home page (9)), not list-day overlays.
+ * Full Canva pixel review at 375×812 — all non-blank frames, rule-adjusted scoring.
  *
  * Usage:
- *   node scripts/canva-pixel-compare.mjs
+ *   npm run check:canva
  *   node scripts/canva-pixel-compare.mjs --capture-only
  *   node scripts/canva-pixel-compare.mjs --diff-only
  */
@@ -15,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, devices } from '@playwright/test'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
+import { BLANK_CANVA_FILES, RULE_NOTES, buildFrames } from './canva-frames.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -23,132 +22,14 @@ const OUT_DIR = path.join(ROOT, 'canva-reference/comparisons')
 const LOCAL_DIR = path.join(OUT_DIR, 'localhost')
 const DIFF_DIR = path.join(OUT_DIR, 'diffs')
 const OVERLAY_DIR = path.join(OUT_DIR, 'overlays')
-const REPORT_JSON = path.join(OUT_DIR, 'report-2026-08-27.json')
-const REPORT_MD = path.join(OUT_DIR, 'report-2026-08-27.md')
+const REPORT_JSON = path.join(OUT_DIR, 'report-full-2026-08-27.json')
+const REPORT_MD = path.join(OUT_DIR, 'report-full-2026-08-27.md')
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const VIEWPORT = { width: 375, height: 812 }
+const DEMO_PASSWORD = 'demo1234'
 
-/** MVP primary frames — see canva-reference/MAP.md */
-const FRAMES = [
-  {
-    id: 'public-home',
-    canva: 'home page.png',
-    path: '/',
-    rules: ['chrome-required'],
-  },
-  {
-    id: 'clubs-list',
-    canva: 'Court list.png',
-    path: '/clubs',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'club-detail',
-    canva: 'home page (3).png',
-    path: '/clubs/padel-zone-tehran',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'auth-gate',
-    canva: 'login_sign up.png',
-    path: '/',
-    prepare: async (page) => {
-      await page.evaluate(() => {
-        const btn = document.querySelector('.canva-home-chrome .canva-home-login')
-        btn?.click()
-      })
-      await page.locator('.canva-gate-btn-primary, .canva-gate-btn-secondary').first().waitFor({ timeout: 15_000 })
-    },
-    rules: ['no-google-expected', 'square-radius-expected'],
-  },
-  {
-    id: 'auth-role',
-    canva: '4.png',
-    path: '/register',
-    prepare: async (page) => {
-      await page.locator('.canva-role-card').first().waitFor({ timeout: 20_000 })
-    },
-    rules: ['pilot-no-coach', 'square-radius-expected'],
-  },
-  {
-    id: 'athlete-hub',
-    canva: 'home page (5).png',
-    path: '/athlete',
-    auth: 'athlete',
-    rules: ['chrome-required'],
-  },
-  {
-    id: 'athlete-bookings',
-    canva: 'home page (7).png',
-    path: '/athlete/bookings',
-    auth: 'athlete',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-calendar-grid',
-    canva: 'home page (9).png',
-    path: '/owner/calendar',
-    auth: 'owner',
-    rules: ['grid-not-list', 'dynamic-content', 'selection-bar-not-fab'],
-  },
-  {
-    id: 'owner-calendar-overview',
-    canva: 'changed.png',
-    path: '/owner/calendar',
-    auth: 'owner',
-    prepare: async (page) => {
-      await page.getByRole('button', { name: /نمای کلی|overview/i }).click()
-      await page.waitForTimeout(1500)
-    },
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-finance',
-    canva: 'home page (26).png',
-    path: '/owner/finance',
-    auth: 'owner',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-crm',
-    canva: 'home page (28).png',
-    path: '/owner/crm',
-    auth: 'owner',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-equipments',
-    canva: 'home page (30).png',
-    path: '/owner/equipments',
-    auth: 'owner',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-settings',
-    canva: 'افزودن زمین.png',
-    path: '/owner/settings',
-    auth: 'owner',
-    rules: ['dynamic-content'],
-  },
-  {
-    id: 'owner-finance-report',
-    canva: 'گزارش پیشرفته.png',
-    path: '/owner/finance/report',
-    auth: 'owner',
-    rules: ['dynamic-content'],
-  },
-]
-
-const RULE_NOTES = {
-  'chrome-required': 'Extra bottom nav / logo chrome is required in product — not a regression.',
-  'square-radius-expected': 'App uses 0–2px Canva LOCKED radius; Canva mock may look softer.',
-  'no-google-expected': 'Google OAuth shown in Canva but hard-off in product (Behnaz MVP).',
-  'pilot-no-coach': 'Coach role hidden when PILOT_NO_COACH=true.',
-  'dynamic-content': 'Club names, dates, booking rows differ from static Canva art.',
-  'grid-not-list': 'Closed Today must be multi-court GRID, not list-day overlay artboard.',
-  'selection-bar-not-fab': 'Reserve/Block use bottom selection bar after tap, not always-visible left FABs.',
-}
+const FRAMES = buildFrames(BASE_URL)
 
 function readPng(filePath) {
   return PNG.sync.read(fs.readFileSync(filePath))
@@ -158,7 +39,6 @@ function writePng(filePath, png) {
   fs.writeFileSync(filePath, PNG.sync.write(png))
 }
 
-/** Crop both images to shared top-left region (phone artboard). */
 function alignPair(canva, app) {
   const width = Math.min(canva.width, app.width)
   const height = Math.min(canva.height, app.height)
@@ -179,8 +59,8 @@ function alignPair(canva, app) {
   return { canva: crop(canva), app: crop(app), width, height }
 }
 
-function blendOverlay(a, b, width, height) {
-  const out = new PNG({ width, height })
+function blendOverlay(a, b) {
+  const out = new PNG({ width: a.width, height: a.height })
   for (let i = 0; i < a.data.length; i += 4) {
     out.data[i] = Math.round((a.data[i] + b.data[i]) / 2)
     out.data[i + 1] = Math.round((a.data[i + 1] + b.data[i + 1]) / 2)
@@ -190,8 +70,7 @@ function blendOverlay(a, b, width, height) {
   return out
 }
 
-function severityFromSimilarity(raw, adjusted) {
-  const score = adjusted ?? raw
+function severityFromSimilarity(score) {
   if (score >= 88) return 'ok-enough'
   if (score >= 72) return 'visual'
   if (score >= 55) return 'visual-major'
@@ -205,11 +84,13 @@ function adjustedScore(raw, rules) {
   if (rules.includes('chrome-required')) bonus += 4
   if (rules.includes('no-google-expected')) bonus += 3
   if (rules.includes('pilot-no-coach')) bonus += 2
+  if (rules.includes('pilot-no-recurring')) bonus += 6
   if (rules.includes('selection-bar-not-fab')) bonus += 4
+  if (rules.includes('overlay-artboard')) bonus += 10
+  if (rules.includes('sheet-modal')) bonus += 4
+  if (rules.includes('thin-frame')) bonus += 5
   return Math.min(99, Math.round(raw + bonus))
 }
-
-const DEMO_PASSWORD = 'demo1234'
 
 async function loginWithPassword(context, email) {
   const res = await context.request.post(`${BASE_URL}/api/auth/login`, {
@@ -221,11 +102,35 @@ async function loginWithPassword(context, email) {
   }
 }
 
+function listCanvaInventory() {
+  if (!fs.existsSync(CANVA_DIR)) return []
+  return fs.readdirSync(CANVA_DIR).filter((f) => f.endsWith('.png')).sort()
+}
+
+function blankInventory() {
+  return listCanvaInventory().filter((f) => BLANK_CANVA_FILES.has(f)).map((file) => ({
+    canva: file,
+    status: 'skipped-blank',
+    bytes: fs.statSync(path.join(CANVA_DIR, file)).size,
+  }))
+}
+
+function unmappedCanva(mappedFiles) {
+  return listCanvaInventory()
+    .filter((f) => !BLANK_CANVA_FILES.has(f) && !mappedFiles.has(f))
+    .map((file) => ({ canva: file, status: 'unmapped' }))
+}
+
+const ONLY_IDS = process.env.CANVA_ONLY?.split(',').filter(Boolean)
+
 async function captureScreenshots() {
   fs.mkdirSync(LOCAL_DIR, { recursive: true })
   const browser = await chromium.launch()
+  let ok = 0
+  let fail = 0
 
   for (const frame of FRAMES) {
+    if (ONLY_IDS?.length && !ONLY_IDS.includes(frame.id)) continue
     const context = await browser.newContext({
       ...devices['iPhone 13'],
       viewport: VIEWPORT,
@@ -237,7 +142,8 @@ async function captureScreenshots() {
       try {
         await loginWithPassword(context, 'athlete@inbox.local')
       } catch (err) {
-        console.error(`[capture] ${frame.id} login (athlete) FAILED:`, err instanceof Error ? err.message : err)
+        console.error(`[capture] ${frame.id} athlete login FAILED:`, err instanceof Error ? err.message : err)
+        fail++
         await context.close()
         continue
       }
@@ -245,7 +151,8 @@ async function captureScreenshots() {
       try {
         await loginWithPassword(context, 'owner@inbox.local')
       } catch (err) {
-        console.error(`[capture] ${frame.id} login (owner) FAILED:`, err instanceof Error ? err.message : err)
+        console.error(`[capture] ${frame.id} owner login FAILED:`, err instanceof Error ? err.message : err)
+        fail++
         await context.close()
         continue
       }
@@ -253,21 +160,24 @@ async function captureScreenshots() {
 
     try {
       await page.goto(`${BASE_URL}${frame.path}`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-      await page.waitForTimeout(1200)
+      await page.waitForTimeout(1000)
       if (frame.prepare) await frame.prepare(page)
-      await page.waitForTimeout(600)
+      await page.waitForTimeout(500)
 
       const outPath = path.join(LOCAL_DIR, `app-${frame.id}.png`)
       await page.screenshot({ path: outPath, fullPage: false })
-      console.log(`[capture] ${frame.id} → ${path.relative(ROOT, outPath)}`)
+      console.log(`[capture] ${frame.id} (${frame.canva})`)
+      ok++
     } catch (err) {
       console.error(`[capture] ${frame.id} FAILED:`, err instanceof Error ? err.message : err)
+      fail++
     } finally {
       await context.close()
     }
   }
 
   await browser.close()
+  console.log(`\n[capture] done: ${ok} ok, ${fail} failed, ${FRAMES.length} total`)
 }
 
 function runDiffs() {
@@ -275,25 +185,31 @@ function runDiffs() {
   fs.mkdirSync(OVERLAY_DIR, { recursive: true })
 
   const results = []
+  const mappedFiles = new Set()
 
   for (const frame of FRAMES) {
+    mappedFiles.add(frame.canva)
     const canvaPath = path.join(CANVA_DIR, frame.canva)
     const appPath = path.join(LOCAL_DIR, `app-${frame.id}.png`)
     const entry = {
       id: frame.id,
       canva: frame.canva,
+      category: frame.category || 'page',
+      element: frame.element || frame.id,
       route: frame.path,
-      rules: frame.rules,
-      ruleNotes: frame.rules.map((r) => RULE_NOTES[r]).filter(Boolean),
+      rules: frame.rules || [],
+      ruleNotes: (frame.rules || []).map((r) => RULE_NOTES[r]).filter(Boolean),
     }
 
     if (!fs.existsSync(canvaPath)) {
+      entry.status = 'error'
       entry.error = `Missing Canva: ${frame.canva}`
       results.push(entry)
       continue
     }
     if (!fs.existsSync(appPath)) {
-      entry.error = `Missing capture: app-${frame.id}.png (run without --diff-only first)`
+      entry.status = 'error'
+      entry.error = `Missing capture: app-${frame.id}.png`
       results.push(entry)
       continue
     }
@@ -306,86 +222,126 @@ function runDiffs() {
     })
     const total = width * height
     const rawSimilarity = Math.round((1 - diffPixels / total) * 1000) / 10
-    const adjustedSimilarity = adjustedScore(rawSimilarity, frame.rules)
-    const severity = severityFromSimilarity(rawSimilarity, adjustedSimilarity)
+    const adjustedSimilarity = adjustedScore(rawSimilarity, frame.rules || [])
+    const severity = severityFromSimilarity(adjustedSimilarity)
 
     writePng(path.join(DIFF_DIR, `diff-${frame.id}.png`), diff)
-    writePng(path.join(OVERLAY_DIR, `overlay-${frame.id}.png`), blendOverlay(canva, app, width, height))
+    writePng(path.join(OVERLAY_DIR, `overlay-${frame.id}.png`), blendOverlay(canva, app))
 
-    entry.width = width
-    entry.height = height
-    entry.diffPixels = diffPixels
+    entry.status = 'compared'
     entry.rawSimilarityPct = rawSimilarity
     entry.adjustedSimilarityPct = adjustedSimilarity
     entry.severity = severity
     results.push(entry)
-    console.log(
-      `[diff] ${frame.id}: raw ${rawSimilarity}% → adjusted ${adjustedSimilarity}% (${severity})`,
-    )
+    console.log(`[diff] ${frame.id}: ${rawSimilarity}% → ${adjustedSimilarity}% (${severity})`)
   }
 
-  fs.writeFileSync(REPORT_JSON, `${JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2)}\n`)
+  const blanks = blankInventory()
+  const unmapped = unmappedCanva(mappedFiles)
+
+  const summary = {
+    generatedAt: new Date().toISOString(),
+    viewport: VIEWPORT,
+    totals: {
+      frames: FRAMES.length,
+      compared: results.filter((r) => r.status === 'compared').length,
+      errors: results.filter((r) => r.status === 'error').length,
+      blanks: blanks.length,
+      unmapped: unmapped.length,
+      okEnough: results.filter((r) => r.severity === 'ok-enough').length,
+      visual: results.filter((r) => r.severity === 'visual').length,
+      visualMajor: results.filter((r) => r.severity === 'visual-major').length,
+      blocker: results.filter((r) => r.severity === 'blocker').length,
+    },
+    blanks,
+    unmapped,
+    results,
+  }
+
+  fs.writeFileSync(REPORT_JSON, `${JSON.stringify(summary, null, 2)}\n`)
+  writeMarkdownReport(summary)
+  console.log(`\nReport: ${path.relative(ROOT, REPORT_MD)}`)
+}
+
+function writeMarkdownReport(summary) {
+  const { results, blanks, unmapped, totals } = summary
+  const byCategory = (cat) => results.filter((r) => r.category === cat && r.status === 'compared')
 
   const lines = [
-    '# Canva pixel comparison — 2026-08-27 export',
+    '# Full Canva pixel review — Aug 27 export',
     '',
-    `Generated: ${new Date().toISOString()}`,
-    `Viewport: ${VIEWPORT.width}×${VIEWPORT.height}`,
-    `Canva source: \`inbox website (2).zip\` → \`canva-reference/pages/\``,
+    `Generated: ${summary.generatedAt}`,
+    `Viewport: ${summary.viewport.width}×${summary.viewport.height}`,
     '',
-    '## Rule-adjusted scoring',
+    '## Executive summary',
     '',
-    'Raw % = pixelmatch on aligned 375×812 crops. **Adjusted %** adds tolerance for LOCKED product rules (square radius, dynamic DB content, required chrome, MVP gates).',
+    '| Metric | Count |',
+    '|--------|------:|',
+    `| Frames compared | ${totals.compared} |`,
+    `| Capture errors | ${totals.errors} |`,
+    `| Blank Canva artboards skipped | ${totals.blanks} |`,
+    `| Unmapped Canva files | ${totals.unmapped} |`,
+    `| **ok-enough** (≥88% adjusted) | ${totals.okEnough} |`,
+    `| **visual** (72–87%) | ${totals.visual} |`,
+    `| **visual-major** (55–71%) | ${totals.visualMajor} |`,
+    `| **blocker** (<55% adjusted) | ${totals.blocker} |`,
     '',
-    '| Screen | Canva | Route | Raw % | Adjusted % | Severity |',
-    '|--------|-------|-------|------:|-----------:|----------|',
+    '### LOCKED UX rules (always apply — not pixel regressions)',
+    '',
+    '1. **Square chrome** — 0–2px radius on Canva phone frames; softer Canva mock ≠ bug.',
+    '2. **Required chrome** — bottom nav, logo, back escapes stay even if Canva omits them.',
+    '3. **Owner Today** — closed tab = multi-court **GRID** (`home page (9)`), not list-day overlay artboards.',
+    '4. **Selection bar** — Reserve/Block after slot tap; not always-visible left FAB stack.',
+    '5. **Behnaz MVP** — no Google OAuth, no coach product, no recurring/season sheets in live UI.',
+    '6. **iOS hit-testing** — AppModal fixed overlay; decorative layers use `pointer-events-none`.',
+    '7. **Dynamic content** — demo club names/photos/dates differ from Canva placeholder art.',
+    '',
+    '## All compared frames',
+    '',
+    '| ID | Category | Canva | Route | Raw % | Adj % | Severity |',
+    '|----|----------|-------|-------|------:|------:|----------|',
   ]
 
   for (const r of results) {
-    if (r.error) {
-      lines.push(`| ${r.id} | ${r.canva} | ${r.route} | — | — | **error** |`)
+    if (r.status === 'error') {
+      lines.push(`| ${r.id} | ${r.category} | ${r.canva} | \`${r.route}\` | — | — | **error** |`)
       continue
     }
-    lines.push(
-      `| ${r.id} | ${r.canva} | \`${r.route}\` | ${r.rawSimilarityPct} | ${r.adjustedSimilarityPct} | ${r.severity} |`,
-    )
+    lines.push(`| ${r.id} | ${r.category} | ${r.canva} | \`${r.route}\` | ${r.rawSimilarityPct} | ${r.adjustedSimilarityPct} | ${r.severity} |`)
   }
 
-  lines.push('', '## Per-frame notes', '')
-  for (const r of results) {
-    lines.push(`### ${r.id}`)
-    if (r.error) {
-      lines.push(`- **Error:** ${r.error}`)
-      lines.push('')
-      continue
+  for (const cat of ['page', 'sheet', 'modal', 'overlay']) {
+    const items = byCategory(cat)
+    if (!items.length) continue
+    lines.push('', `## ${cat.charAt(0).toUpperCase() + cat.slice(1)}s (${items.length})`, '')
+    for (const r of items.sort((a, b) => b.adjustedSimilarityPct - a.adjustedSimilarityPct)) {
+      lines.push(`- **${r.id}** (\`${r.canva}\`) — adj **${r.adjustedSimilarityPct}%** (${r.severity}) · \`overlay-${r.id}.png\``)
+      for (const note of r.ruleNotes || []) lines.push(`  - ${note}`)
     }
-    lines.push(`- Canva: \`${r.canva}\``)
-    lines.push(`- Raw similarity: **${r.rawSimilarityPct}%**`)
-    lines.push(`- Adjusted similarity: **${r.adjustedSimilarityPct}%** (${r.severity})`)
-    lines.push(`- Diff: \`comparisons/diffs/diff-${r.id}.png\``)
-    lines.push(`- Overlay: \`comparisons/overlays/overlay-${r.id}.png\``)
-    for (const note of r.ruleNotes || []) lines.push(`- ${note}`)
-    lines.push('')
   }
 
-  lines.push('## Artifacts', '')
-  lines.push('- Captures: `canva-reference/comparisons/localhost/app-*.png`')
-  lines.push('- Diffs: `canva-reference/comparisons/diffs/`')
-  lines.push('- Overlays: `canva-reference/comparisons/overlays/`')
-  lines.push('')
-  lines.push('Re-run: `npm run check:canva`')
+  if (blanks.length) {
+    lines.push('', `## Skipped blank artboards (${blanks.length})`, '')
+    for (const b of blanks) lines.push(`- \`${b.canva}\` (${b.bytes} bytes)`)
+  }
+
+  if (unmapped.length) {
+    lines.push('', `## Unmapped Canva files (${unmapped.length})`, '')
+    for (const u of unmapped) lines.push(`- \`${u.canva}\``)
+  }
+
+  lines.push('', '## Artifacts', '')
+  lines.push('- `canva-reference/comparisons/localhost/app-*.png`')
+  lines.push('- `canva-reference/comparisons/diffs/diff-*.png`')
+  lines.push('- `canva-reference/comparisons/overlays/overlay-*.png`')
+  lines.push('', 'Re-run: `npm run check:canva`')
 
   fs.writeFileSync(REPORT_MD, `${lines.join('\n')}\n`)
-  console.log(`\nReport: ${path.relative(ROOT, REPORT_MD)}`)
 }
 
 const args = process.argv.slice(2)
 const captureOnly = args.includes('--capture-only')
 const diffOnly = args.includes('--diff-only')
 
-if (!diffOnly) {
-  await captureScreenshots()
-}
-if (!captureOnly) {
-  runDiffs()
-}
+if (!diffOnly) await captureScreenshots()
+if (!captureOnly) runDiffs()
