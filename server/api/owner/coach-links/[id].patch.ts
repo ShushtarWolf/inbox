@@ -27,6 +27,14 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  // Primary display club must stay an ACTIVE affiliation.
+  if (updated.status !== 'ACTIVE') {
+    await prisma.coach.updateMany({
+      where: { id: link.coachId, clubId: link.clubId },
+      data: { clubId: null },
+    })
+  }
+
   return {
     id: updated.id,
     status: updated.status,

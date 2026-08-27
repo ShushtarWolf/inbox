@@ -270,7 +270,17 @@
     "dayLabel": "Day {day}",
     "bioFa": "Biography (FA)",
     "bioEn": "Biography (EN)",
-    "photoUrl": "Profile photo URL"
+    "photoUrl": "Profile photo URL",
+    "clubLinksTitle": "My clubs",
+    "clubLinksHint": "Clubs where you can run sessions. After a club accepts you, pick one as your primary club (shown under your name).",
+    "clubLinksEmpty": "You have not requested a club yet",
+    "clubLinkDiscount": "Court discount: {percent}%",
+    "primaryClub": "Primary club",
+    "primaryClubBadge": "Primary",
+    "setPrimaryClub": "Set as primary club",
+    "primaryClubEmpty": "No primary club yet. After a club accepts you, mark it as primary so it appears under your name.",
+    "primaryClubMustBeActive": "Only accepted clubs can be set as the primary club.",
+    "primaryClubSet": "Primary club updated."
   },
   "notifications": {
     "title": "Notifications",

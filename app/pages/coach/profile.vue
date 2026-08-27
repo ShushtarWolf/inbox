@@ -4,6 +4,7 @@ import {
   dayOfWeekFromWeekdayKey,
   weekdayKeyFromDayOfWeek,
 } from '#shared/recurringSessions.ts'
+import { fetchErrorMessage } from '~/composables/useFetchError'
 
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
@@ -20,11 +21,18 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   availability?: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>
   media?: Array<{ id: string; url: string }>
 }>('/api/coach/profile')
-const { data: clubs } = await useFetch<Array<{ id: string; nameFa: string; nameEn: string; city: string }>>('/api/clubs/options')
 
 type ClubOption = { id: string; nameFa: string; nameEn: string; city: string }
+type ClubLink = {
+  id: string
+  status: 'PENDING' | 'ACTIVE' | 'BLOCKED'
+  courtDiscountPercent: number
+  club: ClubOption
+}
+
 const { data: clubLinks, refresh: refreshClubLinks } = await useAuthedFetch<{
-  links: Array<{ id: string; status: 'PENDING' | 'ACTIVE' | 'BLOCKED'; courtDiscountPercent: number; club: ClubOption }>
+  primaryClubId: string | null
+  links: ClubLink[]
   availableClubs: ClubOption[]
 }>('/api/coach/clubs')
 
@@ -36,15 +44,30 @@ function weekdayLabel(dayOfWeek: number) {
 
 const linkClubId = ref('')
 const linkBusy = ref(false)
+const primaryBusy = ref(false)
+const clubActionError = ref('')
+const clubActionOk = ref('')
+
+const primaryClubId = computed(() => data.value?.clubId || clubLinks.value?.primaryClubId || null)
+
+function isPrimaryLink(link: ClubLink) {
+  return Boolean(primaryClubId.value && link.club.id === primaryClubId.value && link.status === 'ACTIVE')
+}
 
 async function requestClubLink() {
   if (!linkClubId.value || linkBusy.value) return
   linkBusy.value = true
+  clubActionError.value = ''
+  clubActionOk.value = ''
   try {
     await $fetch('/api/coach/clubs', { method: 'POST', body: { clubId: linkClubId.value } })
     linkClubId.value = ''
     await refreshClubLinks()
-  } finally {
+  }
+  catch (err) {
+    clubActionError.value = fetchErrorMessage(err, t('common.retry'), t)
+  }
+  finally {
     linkBusy.value = false
   }
 }
@@ -52,11 +75,35 @@ async function requestClubLink() {
 async function removeClubLink(id: string) {
   if (linkBusy.value) return
   linkBusy.value = true
+  clubActionError.value = ''
+  clubActionOk.value = ''
   try {
     await $fetch(`/api/coach/clubs/${id}`, { method: 'DELETE' })
-    await refreshClubLinks()
-  } finally {
+    await Promise.all([refreshClubLinks(), refresh()])
+  }
+  catch (err) {
+    clubActionError.value = fetchErrorMessage(err, t('common.retry'), t)
+  }
+  finally {
     linkBusy.value = false
+  }
+}
+
+async function setPrimaryClub(clubId: string) {
+  if (primaryBusy.value || !clubId) return
+  primaryBusy.value = true
+  clubActionError.value = ''
+  clubActionOk.value = ''
+  try {
+    await $fetch('/api/coach/profile', { method: 'PATCH', body: { clubId } })
+    await Promise.all([refresh(), refreshClubLinks(), fetch()])
+    clubActionOk.value = t('coach.primaryClubSet')
+  }
+  catch (err) {
+    clubActionError.value = fetchErrorMessage(err, t('coach.primaryClubMustBeActive'), t)
+  }
+  finally {
+    primaryBusy.value = false
   }
 }
 
@@ -64,7 +111,6 @@ const bioFa = ref('')
 const bioEn = ref('')
 const price = ref(0)
 const photo = ref('')
-const clubId = ref('')
 const credentialsText = ref('')
 const newDayKey = ref<(typeof IRAN_WEEKDAY_ORDER)[number]>('Mon')
 const newStart = ref('09:00')
@@ -79,7 +125,6 @@ watch(data, (d) => {
     bioEn.value = d.bioEn || ''
     price.value = d.sessionPrice
     photo.value = d.photo || ''
-    clubId.value = d.clubId || ''
     credentialsText.value = (() => {
       try {
         return (d.credentialsJson ? JSON.parse(d.credentialsJson) : []).join('\n')
@@ -118,7 +163,6 @@ async function save() {
       bioEn: bioEn.value,
       sessionPrice: price.value,
       photo: photo.value || null,
-      clubId: clubId.value || undefined,
       credentials,
     },
   })
@@ -163,14 +207,79 @@ async function removeGalleryImage(id: string) {
     <div class="venus-form-stack">
       <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
       <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
-      <AppFormField :label="$t('register.selectClub')">
-        <select v-model="clubId" class="neo-select">
-          <option value="">{{ $t('register.selectClubPlaceholder') }}</option>
-          <option v-for="club in clubs || []" :key="club.id" :value="club.id">
-            {{ club.nameFa }} — {{ club.city }}
-          </option>
-        </select>
-      </AppFormField>
+
+      <section class="ios-card space-y-3 p-4">
+        <h2 class="font-bold">{{ $t('coach.clubLinksTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksHint') }}</p>
+        <p v-if="!primaryClubId" class="text-xs text-amber-800">{{ $t('coach.primaryClubEmpty') }}</p>
+        <p v-if="clubActionError" class="text-xs text-red-600">{{ clubActionError }}</p>
+        <p v-if="clubActionOk" class="text-xs text-brand-primary">{{ clubActionOk }}</p>
+        <ul class="space-y-2 text-sm">
+          <li
+            v-for="link in clubLinks?.links || []"
+            :key="link.id"
+            class="space-y-2 border border-brand-gray-100 p-3"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-bold text-brand-navy">{{ link.club.nameFa }}</p>
+                  <span
+                    v-if="isPrimaryLink(link)"
+                    class="neo-badge text-[10px]"
+                  >
+                    {{ $t('coach.primaryClubBadge') }}
+                  </span>
+                </div>
+                <p class="text-xs text-brand-gray-600">
+                  {{ link.club.city }}
+                  · {{ $t(`owner.coachLinkStatus.${link.status}`) }}
+                  <template v-if="link.status === 'ACTIVE'">
+                    · {{ $t('coach.clubLinkDiscount', { percent: link.courtDiscountPercent }) }}
+                  </template>
+                </p>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 text-xs text-red-600"
+                :disabled="linkBusy || primaryBusy"
+                @click="removeClubLink(link.id)"
+              >
+                {{ $t('common.delete') }}
+              </button>
+            </div>
+            <button
+              v-if="link.status === 'ACTIVE' && !isPrimaryLink(link)"
+              type="button"
+              class="btn-secondary w-full text-xs"
+              :disabled="linkBusy || primaryBusy"
+              @click="setPrimaryClub(link.club.id)"
+            >
+              {{ $t('coach.setPrimaryClub') }}
+            </button>
+          </li>
+          <li v-if="!clubLinks?.links?.length" class="text-xs text-brand-gray-600">
+            {{ $t('coach.clubLinksEmpty') }}
+          </li>
+        </ul>
+        <div class="flex gap-2">
+          <select v-model="linkClubId" class="neo-select flex-1">
+            <option value="">{{ $t('register.selectClubPlaceholder') }}</option>
+            <option v-for="club in clubLinks?.availableClubs || []" :key="club.id" :value="club.id">
+              {{ club.nameFa }} — {{ club.city }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn-secondary px-4"
+            :disabled="!linkClubId || linkBusy"
+            @click="requestClubLink"
+          >
+            {{ $t('common.add') }}
+          </button>
+        </div>
+      </section>
+
       <AppFormField :label="$t('coach.bioFa')">
         <textarea v-model="bioFa" class="neo-textarea" rows="3" />
       </AppFormField>
@@ -183,7 +292,7 @@ async function removeGalleryImage(id: string) {
       <AppFormField :label="$t('owner.packagePage.coachPlaceholder')" numeric>
         <AppNumericInput v-model="price" :min="0" />
       </AppFormField>
-      <section class="ios-card p-4 space-y-3">
+      <section class="ios-card space-y-3 p-4">
         <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
         <div v-if="data?.availability?.length" class="overflow-hidden border border-brand-gray-100">
           <table class="w-full text-sm">
@@ -224,44 +333,11 @@ async function removeGalleryImage(id: string) {
         <button type="button" class="btn-secondary w-full" @click="addAvailability">{{ $t('common.add') }}</button>
       </section>
 
-      <section class="ios-card p-4 space-y-3">
-        <h2 class="font-bold">{{ $t('coach.clubLinksTitle') }}</h2>
-        <p class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksHint') }}</p>
-        <ul class="space-y-2 text-sm">
-          <li v-for="link in clubLinks?.links || []" :key="link.id" class="flex items-start justify-between gap-2 border p-2">
-            <div>
-              <p class="font-bold">{{ link.club.nameFa }}</p>
-              <p class="text-xs text-brand-gray-600">
-                {{ $t(`owner.coachLinkStatus.${link.status}`) }}
-                <template v-if="link.status === 'ACTIVE'">
-                  · {{ $t('coach.clubLinkDiscount', { percent: link.courtDiscountPercent }) }}
-                </template>
-              </p>
-            </div>
-            <button type="button" class="text-xs text-red-600" :disabled="linkBusy" @click="removeClubLink(link.id)">
-              {{ $t('common.delete') }}
-            </button>
-          </li>
-          <li v-if="!clubLinks?.links?.length" class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksEmpty') }}</li>
-        </ul>
-        <div class="flex gap-2">
-          <select v-model="linkClubId" class="neo-select flex-1">
-            <option value="">{{ $t('register.selectClubPlaceholder') }}</option>
-            <option v-for="club in clubLinks?.availableClubs || []" :key="club.id" :value="club.id">
-              {{ club.nameFa }} — {{ club.city }}
-            </option>
-          </select>
-          <button type="button" class="btn-secondary px-4" :disabled="!linkClubId || linkBusy" @click="requestClubLink">
-            {{ $t('common.add') }}
-          </button>
-        </div>
-      </section>
-
-      <section class="ios-card p-4 space-y-3">
+      <section class="ios-card space-y-3 p-4">
         <h2 class="font-bold">{{ $t('register.clubGallery') }}</h2>
         <div class="flex flex-wrap gap-2">
           <div v-for="item in data?.media || []" :key="item.id" class="relative">
-            <img :src="item.url" alt="" class="h-20 w-20 object-cover border" />
+            <img :src="item.url" alt="" class="h-20 w-20 border object-cover" />
             <button type="button" class="mt-1 block text-xs text-red-600" @click="removeGalleryImage(item.id)">
               {{ $t('common.delete') }}
             </button>

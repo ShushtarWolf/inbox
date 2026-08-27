@@ -15,13 +15,26 @@ export default defineEventHandler(async (event) => {
     sessionPrice?: number
     photo?: string | null
     locale?: string
-    clubId?: string
+    clubId?: string | null
     credentials?: string[]
   }>(event)
 
-  if (body.clubId) {
-    const club = await prisma.club.findFirst({ where: { id: body.clubId, status: 'ACTIVE' } })
-    if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })
+  let nextClubId: string | null | undefined
+  if (Object.prototype.hasOwnProperty.call(body, 'clubId')) {
+    const requested = typeof body.clubId === 'string' ? body.clubId.trim() : body.clubId
+    if (!requested) {
+      nextClubId = null
+    }
+    else {
+      const link = await prisma.coachClubLink.findFirst({
+        where: { coachId: coach.id, clubId: requested, status: 'ACTIVE' },
+        select: { id: true },
+      })
+      if (!link) {
+        throw createError({ statusCode: 400, statusMessage: 'COACH_PRIMARY_CLUB_NOT_ACTIVE' })
+      }
+      nextClubId = requested
+    }
   }
 
   await prisma.user.update({
@@ -44,7 +57,7 @@ export default defineEventHandler(async (event) => {
       bioEn: body.bioEn ?? body.bioFa,
       sessionPrice: body.sessionPrice !== undefined ? Math.round(body.sessionPrice) : undefined,
       photo,
-      clubId: body.clubId || undefined,
+      ...(nextClubId !== undefined ? { clubId: nextClubId } : {}),
       credentialsJson: body.credentials !== undefined ? JSON.stringify(body.credentials) : undefined,
     },
   })
