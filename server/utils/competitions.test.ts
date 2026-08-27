@@ -125,6 +125,10 @@ vi.mock('./refunds', () => ({
   refundPaymentForCancellation: (...args: unknown[]) => refundPaymentForCancellation(...args),
 }))
 
+vi.mock('./settlement', () => ({
+  creditOwnerForPaidPayment: vi.fn().mockResolvedValue({ credited: true, reason: 'ok' }),
+}))
+
 vi.mock('./discountCodes', () => ({
   createCompetitionPrizeDiscountCode: (...args: unknown[]) => createCompetitionPrizeDiscountCode(...args),
 }))

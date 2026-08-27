@@ -48,6 +48,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Club is not ready for public booking': 'booking.errors.clubNotBookable',
     'Cancellation window has passed': 'booking.errors.cancellationWindowPassed',
     'Insufficient wallet balance': 'booking.errors.insufficientWallet',
+    'Insufficient withdrawable balance': 'athlete.withdrawInsufficient',
     'SHEBA is required before withdraw': 'athlete.withdrawNeedSheba',
     'Invalid SHEBA': 'athlete.shebaInvalid',
     'image must be a valid URL': 'owner.settingsPage.errors.imageInvalid',

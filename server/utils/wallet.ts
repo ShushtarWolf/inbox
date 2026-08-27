@@ -1,5 +1,5 @@
 import type { Prisma, WalletTransactionType } from '@prisma/client'
-import { canCoverBookingWithWallet, shouldCreditTopUp } from '#shared/walletTopUp.ts'
+import { canCoverBookingWithWallet, computeWithdrawableBalance, shouldCreditTopUp } from '#shared/walletTopUp.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -16,9 +16,31 @@ export async function getWalletBalance(userId: string) {
   return wallet?.balance ?? 0
 }
 
-/** All current credit sources are cash-backed, so the full balance is withdrawable. */
+/**
+ * Bank-withdrawable balance: cash-backed coach settlement nets only.
+ * Athlete top-ups, refund credits, and prize ADJUSTMENT are closed-loop (not withdrawable).
+ * Cap by current balance so prior WITHDRAW / HOLD rows are respected.
+ */
 export async function getWalletWithdrawableBalance(userId: string) {
-  return getWalletBalance(userId)
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      balance: true,
+      transactions: {
+        where: { type: { in: ['SETTLEMENT_CREDIT', 'SETTLEMENT_CLAWBACK'] } },
+        select: { amount: true, type: true },
+      },
+    },
+  })
+  if (!wallet || wallet.balance <= 0) return 0
+  let creditSum = 0
+  let clawbackSum = 0
+  for (const row of wallet.transactions) {
+    if (row.type === 'SETTLEMENT_CREDIT') creditSum += row.amount
+    else clawbackSum += row.amount
+  }
+  return computeWithdrawableBalance(wallet.balance, creditSum, clawbackSum)
 }
 
 export async function creditWallet(

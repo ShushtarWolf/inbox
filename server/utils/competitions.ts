@@ -26,6 +26,7 @@ import { notifyCompetitionCancelled } from './competitionNotify'
 import { refundPaymentForCancellation } from './refunds'
 import { createCompetitionPrizeDiscountCode } from './discountCodes'
 import { creditWallet } from './wallet'
+import { creditOwnerForPaidPayment } from './settlement'
 import { prisma } from './prisma'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -1021,6 +1022,8 @@ export async function markCompetitionEntryPaid(opts: {
   const payment = entry.payment
   if (payment) {
     if (payment.status === 'PAID') {
+      // Settle if a prior competition PAID never created a ledger row (idempotent).
+      await creditOwnerForPaidPayment(payment.id)
       return confirmEntry({
         entryId: entry.id,
         paymentId: payment.id,
@@ -1031,6 +1034,7 @@ export async function markCompetitionEntryPaid(opts: {
       throw createError({ statusCode: 409, statusMessage: 'Payment not awaiting desk confirmation' })
     }
 
+    const previousStatus = payment.status
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
@@ -1039,6 +1043,7 @@ export async function markCompetitionEntryPaid(opts: {
         provider: payment.provider || 'pay_at_club',
       },
     })
+    await creditOwnerForPaidPayment(payment.id, previousStatus)
 
     return confirmEntry({
       entryId: entry.id,

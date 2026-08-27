@@ -1,4 +1,4 @@
-import { creditWallet, debitWallet, getOrCreateWallet } from './wallet'
+import { creditWallet, debitWallet, getOrCreateWallet, getWalletWithdrawableBalance } from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 
 export async function requestUserWithdraw(options: {
@@ -20,6 +20,10 @@ export async function requestUserWithdraw(options: {
     const wallet = await getOrCreateWallet(options.userId, tx)
     if (wallet.balance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+    }
+    const withdrawable = await getWalletWithdrawableBalance(options.userId)
+    if (withdrawable < amount) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
 
     const request = await tx.userWithdrawRequest.create({

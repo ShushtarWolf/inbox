@@ -35,3 +35,17 @@ export function shouldCreditTopUp(opts: {
 export function canCoverBookingWithWallet(balance: number, amount: number): boolean {
   return amount > 0 && balance >= amount
 }
+
+/**
+ * Bank-withdrawable amount: cash-backed settlement nets only, capped by balance.
+ * Clawback amounts are negative; athlete top-up/refund/prize are excluded by not summing them.
+ */
+export function computeWithdrawableBalance(
+  balance: number,
+  settlementCreditSum: number,
+  settlementClawbackSum: number,
+) {
+  if (!Number.isFinite(balance) || balance <= 0) return 0
+  const settlementNet = (settlementCreditSum || 0) + (settlementClawbackSum || 0)
+  return Math.max(0, Math.min(balance, settlementNet))
+}

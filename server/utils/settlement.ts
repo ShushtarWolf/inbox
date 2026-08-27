@@ -133,6 +133,7 @@ async function resolveClubIdForPayment(
     include: {
       booking: { include: { slot: { include: { court: true } } } },
       packageBooking: { include: { package: true } },
+      competitionEntry: { include: { competition: { select: { clubId: true } } } },
     },
   })
   if (!payment || payment.purpose === 'topup') return null
@@ -141,6 +142,12 @@ async function resolveClubIdForPayment(
   }
   if (payment.packageBooking?.package?.clubId) {
     return { clubId: payment.packageBooking.package.clubId, bookingId: payment.packageBookingId }
+  }
+  if (payment.competitionEntry?.competition?.clubId) {
+    return {
+      clubId: payment.competitionEntry.competition.clubId,
+      bookingId: payment.competitionEntry.id,
+    }
   }
   return null
 }
@@ -168,7 +175,8 @@ async function resolveCoachForLessonPayment(
 /**
  * Credit payee net-after-commission when a payment becomes PAID.
  * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 10%).
- * - Club bookings / packages / coach-lesson-court → club wallet (0 bps for court charge).
+ * - Club bookings / packages / competition entries / coach-lesson-court → club wallet
+ *   (0 bps for court charge).
  * Idempotent on paymentId via SettlementLedgerEntry unique constraint.
  */
 export async function creditOwnerForPaidPayment(
