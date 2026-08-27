@@ -10,9 +10,9 @@ Related: [PAYMENTS.md](./PAYMENTS.md) · [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIS
 |-------|--------|
 | Deploy `a8bc6f4` (P0/P1 + phone invite) | **PASS** — run 33076760845 |
 | Deploy `7556846` (P2 money) | **PASS** — run 33078244055 |
-| Deploy competition late-pay + settlement backfill (this doc refresh) | Pending — fill after `gh workflow run deploy.yml` green |
+| Deploy `ce91d32` (competition late-pay + settlement backfill) | **PASS** — [run 33097654020](https://github.com/ShushtarWolf/inbox/actions/runs/33097654020) |
 | `prisma migrate deploy` on boot | Via `start-production.mjs` |
-| Local dump after P2 deploy | `/Users/siamakghodsi/Projects/inbox/backups/inbox-db-20260827-172625.dump` |
+| Local dump after this deploy | `/Users/siamakghodsi/Projects/inbox/backups/inbox-db-20260827-210944.dump` |
 | Public `GET /api/payments/mode` | `mode=live`, `onlineCheckoutEnabled=true` |
 | Homepage | HTTP 200 |
 
@@ -25,7 +25,7 @@ Related: [PAYMENTS.md](./PAYMENTS.md) · [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIS
 | M-03 | SEP live on production | **LIVE** | Confirm `liveReady` via admin `payments-status` — do **not** flip `PAYMENTS_MODE` |
 | M-04 | Manual SEP checklist in PAYMENTS.md | **OPS** | Spot-check cancel reverse, double callback, SMS |
 | M-05 | Historical competition PAID without ledger | **OPS** | `npm run db:backfill-competition-settlements` (idempotent) |
-| M-06 | Competition late IPG after cancel/expire | **CODE** | verify→refund; never revive entry / no settle |
+| M-06 | Competition late IPG after cancel/expire | **LIVE** | verify→refund; never revive entry / no settle |
 
 ## SEP live verify (ops — mode already `live`)
 
