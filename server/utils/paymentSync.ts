@@ -299,6 +299,7 @@ export async function confirmPaymentAndSync(
     },
     include: {
       booking: { select: { id: true, status: true, userId: true } },
+      competitionEntry: { select: { id: true, status: true, athleteId: true } },
     },
   })
   const previousStatus = before?.status || ''
@@ -335,6 +336,43 @@ export async function confirmPaymentAndSync(
       return toSafeIntent(after || { ...intent, status: 'REFUNDED' })
     }
     return intent
+  }
+
+  // Competition entry cancelled/expired (paymentId often nulled) — verify-then-refund; never revive.
+  if (before?.purpose === 'competition') {
+    const { findCompetitionLatePayTarget } = await import('./competitions')
+    const lateTarget = await findCompetitionLatePayTarget(before)
+    if (lateTarget) {
+      if (before.status === 'REFUNDED') {
+        return toSafeIntent(before)
+      }
+      if (before.status === 'PAID') {
+        const { refundPaymentForCancellation } = await import('./refunds')
+        await refundPaymentForCancellation({
+          paymentId: before.id,
+          userId: lateTarget.userId || before.userId,
+          reason: 'Late pay after cancelled competition entry',
+        })
+        const after = await prisma.payment.findUnique({ where: { id: before.id } })
+        return toSafeIntent(after || before)
+      }
+
+      // PENDING_ONLINE or FAILED (expire marks FAILED) — still verify; bank may have settled.
+      const service = getPaymentService(providerName)
+      const intent = await service.confirm(providerRef, opts)
+      await syncPaymentToParent(intent.id)
+      if (intent.status === 'PAID') {
+        const { refundPaymentForCancellation } = await import('./refunds')
+        await refundPaymentForCancellation({
+          paymentId: intent.id,
+          userId: lateTarget.userId || before.userId,
+          reason: 'Late pay after cancelled competition entry',
+        })
+        const after = await prisma.payment.findUnique({ where: { id: intent.id } })
+        return toSafeIntent(after || { ...intent, status: 'REFUNDED' })
+      }
+      return intent
+    }
   }
 
   const service = getPaymentService(providerName)

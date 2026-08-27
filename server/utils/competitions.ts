@@ -1116,6 +1116,44 @@ async function resolveCompetitionEntryForPayment(
   return candidate
 }
 
+/**
+ * Competition IPG settled after cancel/expire (entry paymentId often nulled).
+ * Caller must verify-then-refund — never revive CANCELLED/REFUNDED entries or settle the club.
+ */
+export async function findCompetitionLatePayTarget(payment: {
+  purpose: string | null
+  userId: string | null
+  metadataJson: string | null
+  competitionEntry?: { id: string; status: string; athleteId: string } | null
+}): Promise<{ entryId: string | null; userId: string | null } | null> {
+  if (payment.purpose !== 'competition') return null
+
+  let entry = payment.competitionEntry ?? null
+  if (!entry) {
+    const meta = parsePaymentMetadata(payment.metadataJson)
+    const entryId = typeof meta.competitionEntryId === 'string' ? meta.competitionEntryId : null
+    if (entryId) {
+      entry = await prisma.competitionEntry.findUnique({
+        where: { id: entryId },
+        select: { id: true, status: true, athleteId: true },
+      })
+    }
+  }
+
+  if (!entry) {
+    return { entryId: null, userId: payment.userId }
+  }
+
+  if (entry.status === 'PENDING' || entry.status === 'CONFIRMED') {
+    return null
+  }
+
+  return {
+    entryId: entry.id,
+    userId: payment.userId || entry.athleteId,
+  }
+}
+
 export async function cancelCompetitionEntry(opts: {
   entryId: string
   athleteId: string
@@ -1132,7 +1170,7 @@ export async function cancelCompetitionEntry(opts: {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' })
   }
   if (entry.status === 'CANCELLED' || entry.status === 'REFUNDED') {
-    return entry
+    return { entry, refund: null, refundPending: false }
   }
 
   if (!canCancelCompetitionEntry(
@@ -1150,10 +1188,11 @@ export async function cancelCompetitionEntry(opts: {
   }
 
   if (entry.status === 'PENDING') {
-    return prisma.competitionEntry.update({
+    const updated = await prisma.competitionEntry.update({
       where: { id: entry.id },
       data: { status: 'CANCELLED', paymentId: null, ...cancelData },
     })
+    return { entry: updated, refund: null, refundPending: false }
   }
 
   if (entry.status === 'CONFIRMED' && entry.payment?.status === 'PAID') {
@@ -1163,32 +1202,36 @@ export async function cancelCompetitionEntry(opts: {
       reason: opts.reason || 'Competition entry cancelled',
     })
 
-    if (refundResult.refunded || refundResult.walletCredited) {
-      return prisma.competitionEntry.update({
-        where: { id: entry.id },
-        data: { status: 'REFUNDED', paymentId: null, ...cancelData },
+    // IPG reverse failed and wallet fallback also failed — ops must reverse manually in SEP.
+    const refundPending = !refundResult.gatewayRefunded && !refundResult.walletCredited
+    if (refundPending) {
+      const meta = entry.payment.metadataJson
+        ? JSON.parse(entry.payment.metadataJson) as Record<string, unknown>
+        : {}
+      await prisma.payment.update({
+        where: { id: entry.payment.id },
+        data: {
+          metadataJson: JSON.stringify({
+            ...meta,
+            refundPending: true,
+            refundPendingAt: now.toISOString(),
+          }),
+        },
       })
     }
 
-    const meta = entry.payment.metadataJson
-      ? JSON.parse(entry.payment.metadataJson) as Record<string, unknown>
-      : {}
-    await prisma.payment.update({
-      where: { id: entry.payment.id },
-      data: {
-        metadataJson: JSON.stringify({ ...meta, refundPending: true, refundPendingAt: now.toISOString() }),
-      },
-    })
-    return prisma.competitionEntry.update({
+    const updated = await prisma.competitionEntry.update({
       where: { id: entry.id },
       data: { status: 'REFUNDED', paymentId: null, ...cancelData },
     })
+    return { entry: updated, refund: refundResult, refundPending }
   }
 
-  return prisma.competitionEntry.update({
+  const updated = await prisma.competitionEntry.update({
     where: { id: entry.id },
     data: { status: 'CANCELLED', paymentId: null, ...cancelData },
   })
+  return { entry: updated, refund: null, refundPending: false }
 }
 
 /** Cancel stale PENDING entries whose payment never settled — releases reserved seats. */

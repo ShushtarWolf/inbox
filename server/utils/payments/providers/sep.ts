@@ -194,6 +194,8 @@ export function sepProvider(): PaymentService {
         return toPaymentIntent(payment)
       }
 
+      // FAILED / PENDING_ONLINE may still verify (e.g. competition expire marked FAILED while
+      // athlete finished IPG). Upstream confirmPaymentAndSync refunds orphaned competition pays.
       const meta = parseMetadata(payment.metadataJson)
       const simulated = Boolean(meta.simulated) || isSepSimulatedRef(providerRef)
 

@@ -1,5 +1,6 @@
 # Optional: ping competition admin cron endpoints on production.
-# Liara dashboard cron is equally valid — see docs/OPERATIONS.md § Competition cron jobs.
+# Liara dashboard cron is the reliable ~15 min path — see docs/OPERATIONS.md.
+# GitHub schedule is best-effort (often delayed); use as backup only.
 #
 # Requires repo secret: ADMIN_PROVISION_SECRET (same as Liara inbox app).
 # Does NOT deploy or change PAYMENTS_MODE.
@@ -8,7 +9,7 @@ name: Competition cron
 
 on:
   schedule:
-    # Every 15 minutes (UTC). Adjust if Liara cron preferred.
+    # Every 15 minutes (UTC). Prefer Liara cron for reliability.
     - cron: '*/15 * * * *'
   workflow_dispatch:
 

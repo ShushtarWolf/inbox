@@ -118,7 +118,12 @@ import {
 } from './competitions'
 import { MAX_COMPETITION_ENTRY_FEE } from '#shared/competition.ts'
 
-const refundPaymentForCancellation = vi.fn().mockResolvedValue({ refunded: true, walletCredited: true, amount: 200000 })
+const refundPaymentForCancellation = vi.fn().mockResolvedValue({
+  refunded: true,
+  walletCredited: true,
+  gatewayRefunded: false,
+  amount: 200000,
+})
 const creditWallet = vi.fn().mockResolvedValue({ balance: 400000 })
 
 vi.mock('./refunds', () => ({
@@ -391,9 +396,14 @@ describe('cancelCompetitionEntry partner cancel', () => {
       },
     })
     updateEntry.mockResolvedValue({ id: 'entry-1', status: 'REFUNDED' })
-    refundPaymentForCancellation.mockResolvedValue({ refunded: true, walletCredited: true, amount: 200000 })
+    refundPaymentForCancellation.mockResolvedValue({
+      refunded: true,
+      walletCredited: true,
+      gatewayRefunded: false,
+      amount: 200000,
+    })
 
-    await cancelCompetitionEntry({
+    const result = await cancelCompetitionEntry({
       entryId: 'entry-1',
       athleteId: 'partner-1',
       reason: 'Partner cancelled',
@@ -402,12 +412,58 @@ describe('cancelCompetitionEntry partner cancel', () => {
     expect(refundPaymentForCancellation).toHaveBeenCalledWith(
       expect.objectContaining({ paymentId: 'pay-1', userId: 'athlete-1' }),
     )
+    expect(result.refundPending).toBe(false)
+    expect(result.refund?.walletCredited).toBe(true)
     expect(updateEntry).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'entry-1' },
         data: expect.objectContaining({
           status: 'REFUNDED',
           cancelledBy: 'partner-1',
+        }),
+      }),
+    )
+  })
+
+  it('sets refundPending when IPG reverse and wallet fallback both fail', async () => {
+    findUniqueEntry.mockResolvedValue({
+      id: 'entry-1',
+      status: 'CONFIRMED',
+      athleteId: 'athlete-1',
+      partnerAthleteId: null,
+      payment: {
+        id: 'pay-1',
+        status: 'PAID',
+        amount: 200000,
+        metadataJson: JSON.stringify({ refNum: '9911' }),
+      },
+      competition: {
+        ...openCompetition,
+        eventAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        club: { cancellationWindowHours: 24 },
+      },
+    })
+    updateEntry.mockResolvedValue({ id: 'entry-1', status: 'REFUNDED' })
+    updatePayment.mockResolvedValue({})
+    refundPaymentForCancellation.mockResolvedValue({
+      refunded: true,
+      walletCredited: false,
+      gatewayRefunded: false,
+      amount: 200000,
+    })
+
+    const result = await cancelCompetitionEntry({
+      entryId: 'entry-1',
+      athleteId: 'athlete-1',
+      reason: 'Cancel',
+    })
+
+    expect(result.refundPending).toBe(true)
+    expect(updatePayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'pay-1' },
+        data: expect.objectContaining({
+          metadataJson: expect.stringContaining('refundPending'),
         }),
       }),
     )

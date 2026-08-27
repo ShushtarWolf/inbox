@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' })
   }
 
-  const updated = await cancelCompetitionEntry({
+  const result = await cancelCompetitionEntry({
     entryId: entry.id,
     athleteId: user.id,
     reason: body.reason,
@@ -23,10 +23,19 @@ export default defineEventHandler(async (event) => {
 
   return {
     entry: {
-      id: updated.id,
-      status: updated.status,
-      cancelledAt: updated.cancelledAt,
-      cancelReason: updated.cancelReason,
+      id: result.entry.id,
+      status: result.entry.status,
+      cancelledAt: result.entry.cancelledAt,
+      cancelReason: result.entry.cancelReason,
     },
+    refund: result.refund
+      ? {
+          refunded: result.refund.refunded,
+          walletCredited: result.refund.walletCredited,
+          gatewayRefunded: result.refund.gatewayRefunded,
+          amount: result.refund.amount,
+        }
+      : null,
+    refundPending: result.refundPending,
   }
 })

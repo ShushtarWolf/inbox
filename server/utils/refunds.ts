@@ -8,6 +8,8 @@ import { creditWallet } from './wallet'
 export interface RefundResult {
   refunded: boolean
   walletCredited: boolean
+  /** True when the IPG reverse/refund call succeeded (or simulated). */
+  gatewayRefunded: boolean
   amount: number
 }
 
@@ -24,15 +26,15 @@ export async function refundPaymentForCancellation(options: {
 }): Promise<RefundResult> {
   const payment = await prisma.payment.findUnique({ where: { id: options.paymentId } })
   if (!payment || !isPaymentRefundable(payment.status)) {
-    return { refunded: false, walletCredited: false, amount: 0 }
+    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
   let walletCredited = false
+  let gatewayRefunded = false
 
   const walletUserId = options.skipWallet ? null : options.userId
 
   if (isOnlineGatewayPayment(payment)) {
-    let gatewayRefunded = false
     try {
       const service = getPaymentService(payment.provider)
       await service.refund(payment.id)
@@ -82,7 +84,7 @@ export async function refundPaymentForCancellation(options: {
     } catch (err) {
       console.error('[refunds:ownerClawback]', payment.id, err)
     }
-    return { refunded: true, walletCredited: false, amount: payment.amount }
+    return { refunded: true, walletCredited: false, gatewayRefunded: false, amount: payment.amount }
   }
 
   await prisma.payment.update({
@@ -97,5 +99,5 @@ export async function refundPaymentForCancellation(options: {
     console.error('[refunds:ownerClawback]', payment.id, err)
   }
 
-  return { refunded: true, walletCredited, amount: payment.amount }
+  return { refunded: true, walletCredited, gatewayRefunded, amount: payment.amount }
 }

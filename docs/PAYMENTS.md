@@ -21,9 +21,9 @@ We ship a **real SEP / سامان کیش** adapter (not a fake live stub). Reaso
 | `test` (recommended locally / pre-SEP on Liara) | Default provider **sep**. Without `SEP_TERMINAL_ID`, checkout redirects to `/payments/test-gateway` (simulate OK/NOK). With terminal id, uses real SEP request/verify (SEP has no public sandbox host). |
 | `live` | Real SEP production API. Requires `SEP_TERMINAL_ID`. **Never** marks `PAID` without verify success (`0`/`2`). **Do not enable until checklist passes.** |
 
-## Ops status (after secrets)
+## Ops status (after secrets) — confirm liveReady without flipping env
 
-Never prints `SEP_TERMINAL_ID`:
+Never prints `SEP_TERMINAL_ID`. **Do not** set or change `PAYMENTS_MODE` from this checklist — only read status.
 
 ```bash
 npm run payments:status
@@ -32,7 +32,15 @@ curl -H "x-admin-secret: $ADMIN_PROVISION_SECRET" \
   https://inboxs.ir/api/admin/payments-status
 ```
 
-Expect `paymentsMode` + `hasSepTerminalId` + `liveReady` (true only when mode=`live` and terminal is set). Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
+Expect JSON fields: `paymentsMode`, `hasSepTerminalId`, `liveReady`.
+
+| Field | Meaning |
+|-------|---------|
+| `paymentsMode` | Current mode (`pay_at_club` / `test` / `live`) — already set on Liara for production |
+| `hasSepTerminalId` | `true` when `SEP_TERMINAL_ID` is present (value never returned) |
+| `liveReady` | `true` **only** when `paymentsMode=live` **and** terminal is set |
+
+If production is already `live` and `liveReady=true`, no env change is needed — proceed with the manual SEP spot checks below. Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
 
 ## Env vars
 

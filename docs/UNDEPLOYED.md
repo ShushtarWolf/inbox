@@ -1,9 +1,9 @@
 # Undeployed changes
 
-None — competition + coach go-live shipped.
+Competition late-pay refund + settlement backfill + cron/docs — **pending deploy** after commit on `main`.
 
-**Last live deploy:** `2481896` via GitHub Actions Deploy to Liara ([run 32799653293](https://github.com/ShushtarWolf/inbox/actions/runs/32799653293))  
-**Post-deploy local dump:** `backups/inbox-db-20260825-054736.dump`  
-**Liara flags:** `COMPETITIONS_ENABLED=true`, `COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis`, `PILOT_NO_COACH=false`
+**Last live deploy:** `66d08e4` (staff invite) — confirm via latest green Deploy to Liara run before treating this file as clear.  
+**Prior go/no-go dumps:** see [PRODUCTION_GONOGO_2026-08-27.md](./PRODUCTION_GONOGO_2026-08-27.md)  
+**Liara flags:** `COMPETITIONS_ENABLED=true`, `COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis`, `PILOT_NO_COACH=false`, `PAYMENTS_MODE=live` (do not flip from chat)
 
-Clear / re-add commits here when `main` moves past the last live deploy again.
+Clear this file to “None” after deploy + local dump succeed.

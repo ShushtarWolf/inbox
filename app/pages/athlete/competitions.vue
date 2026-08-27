@@ -40,6 +40,7 @@ const router = useRouter()
 const cancelPending = ref<string | null>(null)
 const actionError = ref('')
 const paymentFlash = ref('')
+const refundNotice = ref('')
 
 watch(
   () => route.query.payment,
@@ -79,9 +80,20 @@ function canCancelEntry(entry: NonNullable<typeof data.value>[number]) {
 
 async function cancelEntry(competitionId: string) {
   actionError.value = ''
+  refundNotice.value = ''
   cancelPending.value = competitionId
   try {
-    await $fetch(`/api/competitions/${competitionId}/cancel-entry`, { method: 'POST' })
+    const result = await $fetch<{
+      refund?: { walletCredited?: boolean; refunded?: boolean; gatewayRefunded?: boolean } | null
+      refundPending?: boolean
+    }>(`/api/competitions/${competitionId}/cancel-entry`, { method: 'POST' })
+    if (result.refundPending) {
+      refundNotice.value = t('competitions.refundPending')
+    } else if (result.refund?.walletCredited) {
+      refundNotice.value = t('competitions.refundToWallet')
+    } else if (result.refund?.gatewayRefunded || result.refund?.refunded) {
+      refundNotice.value = t('competitions.refundToGateway')
+    }
     await refresh()
   } catch (err) {
     actionError.value = fetchErrorMessage(err)
@@ -110,6 +122,9 @@ async function cancelEntry(competitionId: string) {
 
     <p v-if="paymentFlash" class="text-sm text-emerald-700">
       {{ paymentFlash }}
+    </p>
+    <p v-if="refundNotice" class="text-sm text-emerald-700">
+      {{ refundNotice }}
     </p>
     <p v-if="pending" class="text-sm text-gray-500">
       {{ t('common.loading') }}

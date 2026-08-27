@@ -73,7 +73,7 @@ Related: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md) · [OP
 | FM-09 | Cross-club owner awards prizes | Wrong club payout | Club scoping on owner routes → 404 | Verified S-02 |
 | FM-10 | Join spam / bot | Seat exhaustion / DoS | Rate limit `competitions:join` 10/min | Verified S-03 |
 | FM-11 | Live IPG misconfigured | Failed payments / stuck PENDING | Pilot uses `pay_at_club` or wallet; **do not** enable `live` | [DECISION NEEDED] live cutover criteria |
-| FM-12 | IPG refund fails on cancel | Athlete charged, entry REFUNDED | `refundPending` metadata on payment; manual SEP refund per OPS-02 | Manual ops |
+| FM-12 | IPG refund fails on cancel | Athlete charged, entry REFUNDED | `refundPending` metadata on payment; athlete FA copy `competitions.refundPending`; manual SEP refund per OPS-02 | Manual ops |
 | FM-13 | Calendar overlap on event time | Scheduling conflict | Read-only warning on publish; owner decides | No auto-block |
 | FM-14 | Doubles without partner | Invalid roster | `400 Partner required for doubles` | Verified F-08 |
 | FM-15 | Feature flag left on globally | Non-pilot clubs expose competitions | `COMPETITIONS_PILOT_CLUB_SLUG` restricts list/join/publish | Misconfiguration ops error |
@@ -96,7 +96,7 @@ Mapped in [i18n/locales/fa.json](../i18n/locales/fa.json) under `competitions.*`
 
 **[DECISION NEEDED]** Formal terms-of-service paragraph for competition entry fees, prize tax reporting, and sponsor liability — not yet in `/terms` or club contract templates.
 
-**[DECISION NEEDED]** Standard FA copy when `refundPending` (IPG refund failed) — athlete currently sees generic error paths; ops handles manually.
+**Resolved:** `refundPending` FA — athlete `competitions.refundPending`; owner ops copy `competitions.refundPendingOwner` (support handles SEP reverse; club takes no action).
 
 ---
 
@@ -105,7 +105,7 @@ Mapped in [i18n/locales/fa.json](../i18n/locales/fa.json) under `competitions.*`
 | ID | Question | Default / current behavior |
 |----|----------|---------------------------|
 | DN-01 | When to set `PAYMENTS_MODE=live` for competition entry fees? | Blocked; wallet + pay_at_club + test only |
-| DN-03 | Cron host: Liara dashboard vs GitHub Actions | Both documented in [OPERATIONS.md](./OPERATIONS.md); neither auto-enabled in repo deploy |
+| DN-03 | Cron host: Liara dashboard vs GitHub Actions | **Liara cron required for reliable ~15 min**; GHA workflow is best-effort backup only — see [OPERATIONS.md](./OPERATIONS.md) |
 | DN-04 | Auto-block publish when calendar overlap > 0? | Warning only today |
 | DN-05 | Competition waitlist for full events? | Not implemented |
 | DN-08 | Notify athletes on auto-cancel below min participants? | `notifyCompetitionCancelled()` exists in [server/utils/competitionNotify.ts](../server/utils/competitionNotify.ts) — verify SMS/email config before relying on it |
@@ -117,6 +117,7 @@ Mapped in [i18n/locales/fa.json](../i18n/locales/fa.json) under `competitions.*`
 | DN-02 | Pilot club slug canonicalization | **Canonical:** `COMPETITIONS_PILOT_CLUB_SLUG` must be `iust-tennis` (`PILOT_CLUB_SLUG` in [shared/pilotClub.ts](../shared/pilotClub.ts)). Docs / Liara sheet / `.env.example` use that value. **Legacy env aliases** `iust` and `بهناز` normalize to `iust-tennis` with a one-line `console.warn` (see `normalizeCompetitionsPilotClubSlug`). Club slug `iust` alone does **not** match the live club — only the canonical slug (or aliased env) does. Retired Behnaz club names are never the live pilot. |
 | DN-06 | Maximum entry fee cap for pilot | **`MAX_COMPETITION_ENTRY_FEE = 5_000_000` toman** in [shared/competition.ts](../shared/competition.ts); enforced in `assertCompetitionDraftValid` / owner update (`ENTRY_FEE_TOO_HIGH` → FA on owner create). |
 | DN-07 | Legal ToS / refund policy page link on detail screen | Competition detail links prize copy to [`/terms`](../app/pages/terms.vue) and cancel policy to [`/cancellation`](../app/pages/cancellation.vue). |
+| DN-09 | FA copy when `refundPending` | Athlete sees `competitions.refundPending` after cancel; owner messaging `competitions.refundPendingOwner` (ops/SEP manual reverse). |
 
 ---
 

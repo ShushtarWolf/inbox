@@ -189,16 +189,27 @@ curl -s -X POST "https://inboxs.ir/api/admin/competitions/expire-pending" \
   -H "x-admin-secret: $ADMIN_PROVISION_SECRET" | jq .
 ```
 
-**Liara dashboard (recommended):** `inbox` app → Cron Jobs → add two HTTP POST jobs (or one if you only use `process-registration-close`):
+**Liara dashboard (required for reliable ~15 min):** `inbox` app → Cron Jobs → add **at least** one HTTP POST job:
 
 - Schedule: `*/15 * * * *` (every 15 minutes; use `Asia/Tehran` if the dashboard supports timezone)
 - URL: `https://inboxs.ir/api/admin/competitions/process-registration-close`
 - Header: `x-admin-secret` = `ADMIN_PROVISION_SECRET`
-- Optional second job: same schedule → `…/expire-pending`
+- Optional second job: same schedule → `…/expire-pending` (bundled already in `process-registration-close`)
 
-**GitHub Actions (optional):** workflow [`.github/workflows/competition-cron.yml`](../.github/workflows/competition-cron.yml) runs the same curls on `*/15 * * * *` when repo secret `ADMIN_PROVISION_SECRET` is set. Use **either** Liara cron **or** GitHub — not both required.
+**GitHub Actions (optional backup only):** workflow [`.github/workflows/competition-cron.yml`](../.github/workflows/competition-cron.yml) is scheduled `*/15 * * * *` when repo secret `ADMIN_PROVISION_SECRET` is set. GitHub cron is **best-effort** (often delayed by hours) — do **not** rely on it alone for seat release / below-min cancel. Prefer Liara cron; running both is harmless (endpoints are idempotent).
 
 Pilot enablement and dispute runbook: [docs/COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md). Risk register: [docs/COMPETITION_RISK_SPEC.md](./COMPETITION_RISK_SPEC.md).
+
+### Historical competition settlement backfill (ops)
+
+Pre-P2 competition `PAID` rows may lack `SettlementLedgerEntry`. Idempotent script (CONFIRMED entries only → `creditOwnerForPaidPayment`):
+
+```bash
+npm run db:backfill-competition-settlements -- --dry-run
+DATABASE_URL='…production…' npm run db:backfill-competition-settlements
+```
+
+Do **not** run against production without a fresh local dump first (see post-deploy backup rule).
 
 ### Live reservation SMS cutover (later — do not enable now)
 
