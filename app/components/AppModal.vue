@@ -18,6 +18,8 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLElement | null>(null)
 const previousFocus = ref<HTMLElement | null>(null)
+/** True while this instance holds a slot in the shared body-scroll lock. */
+const holdsBodyLock = ref(false)
 
 /**
  * Visual viewport → CSS vars only (keyboard-aware max-height for sheet bodies).
@@ -86,10 +88,22 @@ function onDialogFocusIn(event: FocusEvent) {
   scrollFocusedFieldIntoView(event.target)
 }
 
+function acquireLock() {
+  if (holdsBodyLock.value) return
+  acquireModalBodyLock()
+  holdsBodyLock.value = true
+}
+
+function releaseLock() {
+  if (!holdsBodyLock.value) return
+  releaseModalBodyLock()
+  holdsBodyLock.value = false
+}
+
 watch(() => props.open, (isOpen) => {
   if (!import.meta.client) return
-  document.body.style.overflow = isOpen ? 'hidden' : ''
   if (isOpen) {
+    acquireLock()
     previousFocus.value = document.activeElement as HTMLElement | null
     syncVisualViewport()
     window.visualViewport?.addEventListener('resize', syncVisualViewport)
@@ -104,8 +118,13 @@ watch(() => props.open, (isOpen) => {
     window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
     window.removeEventListener('resize', syncVisualViewport)
     document.removeEventListener('keydown', onDialogKeydown)
-    document.body.style.overflow = ''
-    previousFocus.value?.focus()
+    releaseLock()
+    // Avoid focusing a hidden file input (Safari tap dead-zone after photo pick).
+    const restore = previousFocus.value
+    previousFocus.value = null
+    if (restore && restore.isConnected && restore.getAttribute('type') !== 'file') {
+      restore.focus()
+    }
   }
 })
 
@@ -122,7 +141,7 @@ onUnmounted(() => {
     window.visualViewport?.removeEventListener('resize', syncVisualViewport)
     window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
     window.removeEventListener('resize', syncVisualViewport)
-    document.body.style.overflow = ''
+    releaseLock()
   }
 })
 </script>

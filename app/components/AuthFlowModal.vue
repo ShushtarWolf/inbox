@@ -707,7 +707,7 @@ watch(
               <input
                 ref="licenseInputOtpRef"
                 type="file"
-                class="sr-only"
+                class="pointer-events-none sr-only"
                 :accept="licenseAccept"
                 :disabled="licenseUploading"
                 @change="onLicenseFile"
@@ -816,7 +816,7 @@ watch(
               <input
                 ref="licenseInputPasswordRef"
                 type="file"
-                class="sr-only"
+                class="pointer-events-none sr-only"
                 :accept="licenseAccept"
                 :disabled="licenseUploading"
                 @change="onLicenseFile"

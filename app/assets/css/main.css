@@ -2503,12 +2503,12 @@
   transform: translateY(-6px);
 }
 
-/* Modal transition — leave must not steal taps after close on iOS Safari. */
+/* Modal transition — enter/leave must not steal taps on iOS Safari (opacity:0 stays hittable). */
 .venus-modal-enter-active,
 .venus-modal-leave-active {
   transition: opacity 0.2s ease;
+  pointer-events: none !important;
 }
-.venus-modal-leave-active,
 .venus-modal-leave-to {
   pointer-events: none !important;
 }

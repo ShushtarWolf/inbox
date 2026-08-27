@@ -73,7 +73,13 @@ async function onFileChange(event: Event) {
 }
 
 async function onCropConfirm(file: File) {
+  // Close crop first so its leave transition gets pointer-events:none before upload
+  // (and any failure sheet) mounts — Safari otherwise stacks ghost full-screen hit targets.
   closeCrop()
+  await nextTick()
+  await new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 220)
+  })
   const result = await upload(file)
   if (result?.url) emit('update:modelValue', result.url)
 }
@@ -100,7 +106,7 @@ onUnmounted(() => {
         ref="inputRef"
         type="file"
         :accept="accept"
-        class="absolute h-px w-px overflow-hidden opacity-0"
+        class="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
         tabindex="-1"
         aria-hidden="true"
         @change="onFileChange"

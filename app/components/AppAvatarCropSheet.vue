@@ -20,6 +20,7 @@ const OUTPUT = 512
 const MIN_ZOOM = 1
 const MAX_ZOOM = 3
 
+const stageRef = ref<HTMLElement | null>(null)
 const img = ref<HTMLImageElement | null>(null)
 const naturalW = ref(0)
 const naturalH = ref(0)
@@ -30,6 +31,7 @@ const dragging = ref(false)
 const lastX = ref(0)
 const lastY = ref(0)
 const exporting = ref(false)
+const activePointerId = ref<number | null>(null)
 
 const baseScale = computed(() => {
   if (!naturalW.value || !naturalH.value) return 1
@@ -59,6 +61,21 @@ function resetView() {
   offsetY.value = 0
 }
 
+function releaseStagePointer(pointerId?: number | null) {
+  dragging.value = false
+  const id = pointerId ?? activePointerId.value
+  activePointerId.value = null
+  const stage = stageRef.value
+  if (!stage || id == null) return
+  try {
+    if (stage.hasPointerCapture?.(id)) {
+      stage.releasePointerCapture(id)
+    }
+  } catch {
+    /* already released / element gone */
+  }
+}
+
 function onImageLoad(event: Event) {
   const el = event.target as HTMLImageElement
   naturalW.value = el.naturalWidth
@@ -73,12 +90,17 @@ watch(() => props.sourceUrl, () => {
   resetView()
 })
 
+watch(() => props.open, (isOpen) => {
+  if (!isOpen) releaseStagePointer()
+})
+
 watch(zoom, () => {
   nextTick(clampOffsets)
 })
 
 function onPointerDown(event: PointerEvent) {
   dragging.value = true
+  activePointerId.value = event.pointerId
   lastX.value = event.clientX
   lastY.value = event.clientY
   ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
@@ -93,12 +115,13 @@ function onPointerMove(event: PointerEvent) {
   clampOffsets()
 }
 
-function onPointerUp() {
-  dragging.value = false
+function onPointerUp(event: PointerEvent) {
+  releaseStagePointer(event.pointerId)
 }
 
 async function confirmCrop() {
   if (!naturalW.value || exporting.value) return
+  releaseStagePointer()
   exporting.value = true
   try {
     const canvas = document.createElement('canvas')
@@ -158,6 +181,7 @@ async function confirmCrop() {
       <p class="text-center text-sm text-brand-gray-600">{{ t('upload.cropHint') }}</p>
 
       <div
+        ref="stageRef"
         class="avatar-crop-stage relative mx-auto touch-none overflow-hidden bg-[#1a1a18]"
         :style="{ width: `${STAGE}px`, height: `${STAGE}px` }"
         @pointerdown="onPointerDown"

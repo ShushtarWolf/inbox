@@ -379,7 +379,7 @@ watch([statusFilter, kindFilter], () => {
                   <input
                     :ref="(el) => setFileInput(row.id, el)"
                     type="file"
-                    class="hidden"
+                    class="pointer-events-none hidden"
                     :accept="acceptDocs"
                     multiple
                     @change="onDocumentsSelected(row, $event)"

@@ -63,7 +63,7 @@ async function onFileChange(event: Event) {
 </script>
 
 <template>
-  <div class="canva-photo-slots-wrap">
+  <div class="canva-photo-slots-wrap relative">
     <div class="canva-photo-slots" role="list">
       <button
         v-for="(url, index) in slots"
@@ -89,7 +89,7 @@ async function onFileChange(event: Event) {
       ref="inputRef"
       type="file"
       :accept="accept"
-      class="absolute h-px w-px overflow-hidden opacity-0"
+      class="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
       tabindex="-1"
       aria-hidden="true"
       @change="onFileChange"

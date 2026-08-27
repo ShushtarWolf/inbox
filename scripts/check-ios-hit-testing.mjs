@@ -67,6 +67,46 @@ if (!css.includes('.page-enter-active')) {
 if (!css.includes('.venus-modal-leave-active') || !css.includes('pointer-events: none !important')) {
   errors.push('modal transition must set pointer-events: none on .venus-modal-leave-active')
 }
+if (!css.includes('.venus-modal-enter-active')) {
+  errors.push('missing .venus-modal-enter-active in main.css')
+} else {
+  const enterIdx = css.indexOf('.venus-modal-enter-active')
+  const enterBlock = css.slice(enterIdx, enterIdx + 220)
+  if (!enterBlock.includes('pointer-events: none') && !enterBlock.includes('pointer-events-none')) {
+    errors.push('modal transition must set pointer-events: none on .venus-modal-enter-active')
+  }
+}
+
+/** Programmatic file pickers must not remain hittable on iOS Safari after the photo sheet returns. */
+const filePickerComponents = [
+  'app/components/AppImageUpload.vue',
+  'app/components/AppImageGallery.vue',
+  'app/components/owner/PhotoSlots.vue',
+  'app/components/AuthFlowModal.vue',
+  'app/pages/admin/withdrawals/index.vue',
+]
+for (const file of filePickerComponents) {
+  const src = readFileSync(file, 'utf8')
+  const chunks = src.split(/type=["']file["']/)
+  for (let i = 1; i < chunks.length; i++) {
+    const nearby = chunks[i].slice(0, 280)
+    if (!nearby.includes('pointer-events-none')) {
+      errors.push(`${file}: <input type="file"> must include pointer-events-none (opened via .click() only)`)
+    }
+  }
+}
+
+if (!readFileSync('app/utils/modalBodyLock.ts', 'utf8').includes('acquireModalBodyLock')) {
+  errors.push('missing shared modal body lock helper (nested AppModal overflow)')
+}
+const appModal = readFileSync('app/components/AppModal.vue', 'utf8')
+if (!appModal.includes('acquireModalBodyLock') || !appModal.includes('releaseModalBodyLock')) {
+  errors.push('AppModal must use shared modalBodyLock for nested sheets')
+}
+const cropSheet = readFileSync('app/components/AppAvatarCropSheet.vue', 'utf8')
+if (!cropSheet.includes('releasePointerCapture')) {
+  errors.push('AppAvatarCropSheet must releasePointerCapture (Safari tap dead-zone after crop)')
+}
 
 if (errors.length) {
   console.error('[check:ios-hit-testing] FAILED\n')

@@ -93,7 +93,7 @@ function removeAt(index: number) {
       type="file"
       :accept="accept"
       multiple
-      class="absolute h-px w-px overflow-hidden opacity-0"
+      class="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
       tabindex="-1"
       aria-hidden="true"
       @change="onFileChange"

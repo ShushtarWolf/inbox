@@ -17,7 +17,9 @@ Safari on iPhone keeps full-bleed and fading layers **hittable** even when invis
 
 4. **Transitions** — Any page/modal `<Transition>` leave (and enter) state must set `pointer-events: none` while opacity animates. Match `.page-*` and `.venus-modal-*` patterns in `main.css`.
 
-5. **PWA cache** — When changing modal overlay, transition, or hit-testing CSS, bump `PWA_RESET_VERSION` in `nuxt.config.ts` in the same change.
+5. **Uploads / crop** — Hidden `<input type="file">` opened via `.click()` must include `pointer-events-none`. Crop sheets must `releasePointerCapture` on pointer up/cancel/close. Nested `AppModal` must use `modalBodyLock` (never toggle `body.style.overflow` alone). After crop confirm, wait for leave (~220ms) before opening another sheet.
+
+6. **PWA cache** — When changing modal overlay, transition, upload hit-testing, or hit-testing CSS, bump `PWA_RESET_VERSION` in `nuxt.config.ts` in the same change.
 
 ## Done gate (real iPhone or Playwright WebKit)
 
@@ -25,6 +27,7 @@ Safari on iPhone keeps full-bleed and fading layers **hittable** even when invis
 - Open booking confirm / date sheet → close → tap page control again.
 - Athlete home hero: notification + profile icons respond.
 - Club detail: gallery arrows + dots respond.
+- Profile: open avatar crop → cancel → tap Save (must work).
 
 ## CI
 
