@@ -8,6 +8,9 @@ const { t } = useI18n()
 const { formatCurrency, formatTimeRange } = useFormatters()
 const { onlineEnabled, redirectToPaymentGateway } = useCheckout()
 
+const route = useRoute()
+const { today } = useLocalDate()
+
 type ClubOption = { id: string; nameFa: string; nameEn: string; city: string }
 type CourtSlot = {
   id: string
@@ -19,7 +22,10 @@ type CourtSlot = {
   courtCharge: number
 }
 
-const today = new Date().toISOString().slice(0, 10)
+const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date)
+  ? route.query.date
+  : today()
+const initialTime = typeof route.query.time === 'string' ? route.query.time.slice(0, 5) : ''
 
 const { data: clubLinks, pending, error } = await useAuthedFetch<{
   links: Array<{ id: string; status: 'PENDING' | 'ACTIVE' | 'BLOCKED'; courtDiscountPercent: number; club: ClubOption }>
@@ -30,7 +36,7 @@ const activeLinks = computed(() => (clubLinks.value?.links || []).filter((link) 
 
 // Club links already resolved above, so the first club is known before the slot query is built.
 const clubId = ref(activeLinks.value[0]?.club.id || '')
-const date = ref(today)
+const date = ref(initialDate)
 const selectedSlotId = ref('')
 const studentPhone = ref('')
 const studentName = ref('')
@@ -46,6 +52,12 @@ const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await u
   query: computed(() => ({ clubId: clubId.value, date: date.value })),
   immediate: Boolean(clubId.value),
 })
+
+watch(slotData, (next) => {
+  if (!next?.slots?.length || selectedSlotId.value || !initialTime) return
+  const match = next.slots.find((slot) => slot.startTime.slice(0, 5) === initialTime)
+  if (match) selectedSlotId.value = match.id
+}, { immediate: true })
 
 const selectedSlot = computed(() => (slotData.value?.slots || []).find((slot) => slot.id === selectedSlotId.value) || null)
 const canSubmit = computed(() => Boolean(selectedSlot.value && studentPhone.value.trim() && !submitting.value))

@@ -2111,6 +2111,9 @@
   .canva-cal-grid-cell-bar-free {
     background: transparent;
   }
+  .coach-cal-bar-free {
+    background: #3B82F6;
+  }
   .canva-cal-grid-note {
     @apply absolute top-0.5 z-[2] text-xs font-black leading-none text-[#E8B84A];
     inset-inline-start: 0.35rem;
