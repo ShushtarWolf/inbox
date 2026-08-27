@@ -11,6 +11,9 @@ function redirectForPayment(
   if (payment?.purpose === 'topup') {
     return `/athlete/wallet?payment=${outcome}`
   }
+  if (payment?.purpose === 'competition') {
+    return `/athlete/competitions?payment=${outcome}`
+  }
   if (payment?.metadataJson) {
     try {
       const meta = JSON.parse(payment.metadataJson) as { receiptToken?: string }

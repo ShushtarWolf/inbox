@@ -207,6 +207,9 @@ async function removeGalleryImage(id: string) {
 <template>
   <div class="tail-page-stack">
     <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
+    <div class="mb-4">
+      <RoleDashboardSwitcher current="COACH" />
+    </div>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
     <div class="venus-form-stack">
       <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />

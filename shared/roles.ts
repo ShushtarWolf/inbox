@@ -55,3 +55,24 @@ export function assignAddedRole(
   const secondaryRole = combined.find((r) => r !== role)!
   return { role, secondaryRole }
 }
+
+/** Staff desk COACH → platform COACH; other staff roles → CLUB_ADMIN. */
+export function platformRoleForStaffInvite(staffRole: string): PlatformRole {
+  return staffRole === 'COACH' ? 'COACH' : 'CLUB_ADMIN'
+}
+
+/**
+ * Resolve platform-role upgrade when inviting an existing user onto club staff.
+ * - already_has: no User update needed
+ * - slot_full: cannot add a third role (409 USER_ROLE_SLOT_FULL)
+ * - otherwise: new role + secondaryRole to persist
+ */
+export function resolveInviteRoleUpgrade(
+  user: { role: string; secondaryRole?: string | null },
+  target: PlatformRole,
+): { role: PlatformRole; secondaryRole: PlatformRole } | 'already_has' | 'slot_full' {
+  if (hasRole(user, target)) return 'already_has'
+  const assigned = assignAddedRole(user, target)
+  if (!assigned) return 'slot_full'
+  return assigned
+}

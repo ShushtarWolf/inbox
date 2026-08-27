@@ -93,6 +93,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     PARTNER_NOT_REGISTERED: 'competitions.errors.partnerNotRegistered',
     PARTNER_PHONE_INVALID: 'competitions.errors.partnerPhoneInvalid',
     ENTRY_FEE_TOO_HIGH: 'owner.competitionsPage.errorEntryFeeTooHigh',
+    USER_ROLE_SLOT_FULL: 'owner.inviteRoleSlotFull',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

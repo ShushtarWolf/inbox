@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ALL_OWNER_PERMISSIONS, defaultPermissionsForRole, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+import { fetchErrorMessage } from '~/composables/useFetchError'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 const { t } = useI18n()
@@ -116,8 +117,8 @@ async function sendInvite() {
     inviteName.value = ''
     invitePermissions.value = [...defaultPermissionsForRole(inviteRole.value)]
     await refresh()
-  } catch {
-    inviteError.value = t('common.error')
+  } catch (err) {
+    inviteError.value = fetchErrorMessage(err, t('common.error'), t)
   } finally {
     inviting.value = false
   }

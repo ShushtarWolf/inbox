@@ -489,6 +489,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
 
+    <div class="mb-4">
+      <RoleDashboardSwitcher current="CLUB_ADMIN" />
+    </div>
+
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <form class="canva-settings-wide" @submit.prevent="save">
         <!-- مجموعه -->

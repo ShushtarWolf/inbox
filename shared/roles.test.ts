@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { assignAddedRole, canAddRole, hasRole, pickPrimaryRole, userRoles } from './roles'
+import {
+  assignAddedRole,
+  canAddRole,
+  hasRole,
+  pickPrimaryRole,
+  platformRoleForStaffInvite,
+  resolveInviteRoleUpgrade,
+  userRoles,
+} from './roles'
 
 describe('roles helpers', () => {
   it('lists primary and secondary without duplicates', () => {
@@ -41,5 +49,33 @@ describe('roles helpers', () => {
   it('pickPrimaryRole prefers owner over coach over athlete', () => {
     expect(pickPrimaryRole(['ATHLETE', 'CLUB_ADMIN'])).toBe('CLUB_ADMIN')
     expect(pickPrimaryRole(['COACH', 'ATHLETE'])).toBe('COACH')
+  })
+
+  it('maps staff invite roles to platform roles', () => {
+    expect(platformRoleForStaffInvite('COACH')).toBe('COACH')
+    expect(platformRoleForStaffInvite('MANAGER')).toBe('CLUB_ADMIN')
+    expect(platformRoleForStaffInvite('FRONT_DESK')).toBe('CLUB_ADMIN')
+  })
+
+  it('resolveInviteRoleUpgrade upgrades athlete invited as manager', () => {
+    expect(resolveInviteRoleUpgrade({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toEqual({
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'ATHLETE',
+    })
+  })
+
+  it('resolveInviteRoleUpgrade is idempotent when role already held', () => {
+    expect(resolveInviteRoleUpgrade({ role: 'COACH' }, 'COACH')).toBe('already_has')
+    expect(resolveInviteRoleUpgrade(
+      { role: 'CLUB_ADMIN', secondaryRole: 'ATHLETE' },
+      'CLUB_ADMIN',
+    )).toBe('already_has')
+  })
+
+  it('resolveInviteRoleUpgrade returns slot_full at two roles', () => {
+    expect(resolveInviteRoleUpgrade(
+      { role: 'ATHLETE', secondaryRole: 'COACH' },
+      'CLUB_ADMIN',
+    )).toBe('slot_full')
   })
 })

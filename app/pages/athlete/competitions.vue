@@ -35,8 +35,31 @@ const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   }
 }>>('/api/athlete/competitions', { immediate: competitionsEnabled.value })
 
+const route = useRoute()
+const router = useRouter()
 const cancelPending = ref<string | null>(null)
 const actionError = ref('')
+const paymentFlash = ref('')
+
+watch(
+  () => route.query.payment,
+  async (value) => {
+    if (value === 'success') {
+      paymentFlash.value = t('booking.paymentSuccess')
+      await refresh()
+    } else if (value === 'cancelled') {
+      paymentFlash.value = t('booking.paymentCancelled')
+    } else if (value === 'error') {
+      paymentFlash.value = t('booking.paymentError')
+    } else {
+      return
+    }
+    const query = { ...route.query }
+    delete query.payment
+    router.replace({ path: route.path, query })
+  },
+  { immediate: true },
+)
 
 function prizeStatusLabel(entry: NonNullable<typeof data.value>[number]) {
   if (entry.prizeGoesToRegistrant) return t('competitions.prizeGoesToRegistrant')
@@ -51,8 +74,7 @@ function statusLabel(status: string) {
 }
 
 function canCancelEntry(entry: NonNullable<typeof data.value>[number]) {
-  return entry.isPrimaryRegistrant
-    && (entry.status === 'PENDING' || entry.status === 'CONFIRMED')
+  return entry.status === 'PENDING' || entry.status === 'CONFIRMED'
 }
 
 async function cancelEntry(competitionId: string) {
@@ -86,6 +108,9 @@ async function cancelEntry(competitionId: string) {
         {{ t('competitions.browse') }}
       </NuxtLink>
 
+    <p v-if="paymentFlash" class="text-sm text-emerald-700">
+      {{ paymentFlash }}
+    </p>
     <p v-if="pending" class="text-sm text-gray-500">
       {{ t('common.loading') }}
     </p>
@@ -134,12 +159,6 @@ async function cancelEntry(competitionId: string) {
         >
           {{ t('competitions.cancelEntry') }}
         </button>
-        <p
-          v-else-if="!entry.isPrimaryRegistrant && (entry.status === 'PENDING' || entry.status === 'CONFIRMED')"
-          class="mt-2 text-xs text-gray-500"
-        >
-          {{ t('competitions.partnerCannotCancel') }}
-        </p>
       </li>
     </ul>
     </template>

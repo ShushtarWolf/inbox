@@ -175,6 +175,9 @@ async function handleLogout() {
         <span class="flex-1">{{ t('athlete.logoutAccount') }}</span>
       </button>
     </div>
+    <div class="mt-4 px-1">
+      <RoleDashboardSwitcher current="ATHLETE" />
+    </div>
     </div>
 
     <p class="sr-only">{{ formatCurrency(spendTotal) }}</p>

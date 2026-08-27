@@ -297,26 +297,44 @@ export async function confirmPaymentAndSync(
       providerRef,
       ...(providerName ? { provider: providerName } : {}),
     },
-    include: { booking: { select: { id: true, status: true } } },
+    include: {
+      booking: { select: { id: true, status: true, userId: true } },
+    },
   })
   const previousStatus = before?.status || ''
 
-  // Hold already released — do not confirm/credit against a cancelled booking.
+  // Hold already released — verify with bank then refund; never revive the booking.
   if (before?.booking?.status === 'CANCELLED') {
-    if (before.status !== 'PAID' && before.status !== 'REFUNDED' && before.status !== 'FAILED') {
-      await prisma.payment.update({
-        where: { id: before.id },
-        data: { status: 'FAILED' },
+    if (before.status === 'REFUNDED' || before.status === 'FAILED') {
+      return toSafeIntent(before)
+    }
+    if (before.status === 'PAID') {
+      const { refundPaymentForCancellation } = await import('./refunds')
+      await refundPaymentForCancellation({
+        paymentId: before.id,
+        userId: before.userId || before.booking.userId,
+        reason: 'Late pay after cancelled hold',
+        bookingId: before.booking.id,
       })
-      await syncPaymentToParent(before.id)
+      const after = await prisma.payment.findUnique({ where: { id: before.id } })
+      return toSafeIntent(after || before)
     }
-    return {
-      id: before.id,
-      amount: before.amount,
-      status: 'FAILED' as const,
-      provider: before.provider,
-      providerRef: before.providerRef,
+
+    const service = getPaymentService(providerName)
+    const intent = await service.confirm(providerRef, opts)
+    await syncPaymentToParent(intent.id)
+    if (intent.status === 'PAID') {
+      const { refundPaymentForCancellation } = await import('./refunds')
+      await refundPaymentForCancellation({
+        paymentId: intent.id,
+        userId: before.userId || before.booking.userId,
+        reason: 'Late pay after cancelled hold',
+        bookingId: before.booking.id,
+      })
+      const after = await prisma.payment.findUnique({ where: { id: intent.id } })
+      return toSafeIntent(after || { ...intent, status: 'REFUNDED' })
     }
+    return intent
   }
 
   const service = getPaymentService(providerName)

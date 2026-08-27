@@ -107,6 +107,7 @@ import {
   assertCompetitionJoinable,
   awardCompetitionPrizes,
   cancelCompetition,
+  cancelCompetitionEntry,
   confirmEntry,
   confirmEntryFromPayment,
   createPendingEntry,
@@ -364,6 +365,68 @@ describe('cancelCompetition / status transitions', () => {
       competitionId: 'comp-1',
       toStatus: 'COMPLETED',
     })).rejects.toThrow('Invalid competition status transition')
+  })
+})
+
+describe('cancelCompetitionEntry partner cancel', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('allows partner to cancel and refunds the primary registrant', async () => {
+    findUniqueEntry.mockResolvedValue({
+      id: 'entry-1',
+      status: 'CONFIRMED',
+      athleteId: 'athlete-1',
+      partnerAthleteId: 'partner-1',
+      payment: { id: 'pay-1', status: 'PAID', amount: 200000, metadataJson: null },
+      competition: {
+        ...openCompetition,
+        eventAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        club: { cancellationWindowHours: 24 },
+      },
+    })
+    updateEntry.mockResolvedValue({ id: 'entry-1', status: 'REFUNDED' })
+    refundPaymentForCancellation.mockResolvedValue({ refunded: true, walletCredited: true, amount: 200000 })
+
+    await cancelCompetitionEntry({
+      entryId: 'entry-1',
+      athleteId: 'partner-1',
+      reason: 'Partner cancelled',
+    })
+
+    expect(refundPaymentForCancellation).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentId: 'pay-1', userId: 'athlete-1' }),
+    )
+    expect(updateEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'entry-1' },
+        data: expect.objectContaining({
+          status: 'REFUNDED',
+          cancelledBy: 'partner-1',
+        }),
+      }),
+    )
+  })
+
+  it('rejects cancel from unrelated athlete', async () => {
+    findUniqueEntry.mockResolvedValue({
+      id: 'entry-1',
+      status: 'CONFIRMED',
+      athleteId: 'athlete-1',
+      partnerAthleteId: 'partner-1',
+      payment: { id: 'pay-1', status: 'PAID' },
+      competition: {
+        ...openCompetition,
+        eventAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        club: { cancellationWindowHours: 24 },
+      },
+    })
+
+    await expect(cancelCompetitionEntry({
+      entryId: 'entry-1',
+      athleteId: 'stranger',
+    })).rejects.toMatchObject({ statusCode: 404 })
   })
 })
 

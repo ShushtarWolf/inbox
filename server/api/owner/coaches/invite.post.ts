@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import type { StaffRole } from '@prisma/client'
 import { defaultPermissionsForRole, normalizePermissions } from '#shared/ownerPermissions.ts'
+import {
+  platformRoleForStaffInvite,
+  resolveInviteRoleUpgrade,
+} from '#shared/roles.ts'
 
 const validRoles = new Set<StaffRole>(['MANAGER', 'ANALYST', 'FRONT_DESK', 'COACH'])
 
@@ -17,6 +21,7 @@ export default defineEventHandler(async (event) => {
   if (!email) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   if (!permissions.length) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
 
+  const targetPlatformRole = platformRoleForStaffInvite(role)
   let user = await prisma.user.findUnique({ where: { email } })
   const tempPassword = randomBytes(12).toString('base64url')
   let createdPassword: string | undefined
@@ -27,11 +32,26 @@ export default defineEventHandler(async (event) => {
         email,
         name,
         nameEn: name,
-        role: role === 'COACH' ? 'COACH' : 'CLUB_ADMIN',
+        role: targetPlatformRole,
         passwordHash: hashSecret(tempPassword),
       },
     })
     createdPassword = tempPassword
+  }
+  else {
+    const upgrade = resolveInviteRoleUpgrade(user, targetPlatformRole)
+    if (upgrade === 'slot_full') {
+      throw createError({ statusCode: 409, statusMessage: 'USER_ROLE_SLOT_FULL' })
+    }
+    if (upgrade !== 'already_has') {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          role: upgrade.role,
+          secondaryRole: upgrade.secondaryRole,
+        },
+      })
+    }
   }
 
   let coach = role === 'COACH'

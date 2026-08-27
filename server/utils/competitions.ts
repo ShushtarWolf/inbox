@@ -1123,7 +1123,7 @@ export async function cancelCompetitionEntry(opts: {
       payment: true,
     },
   })
-  if (!entry || entry.athleteId !== opts.athleteId) {
+  if (!entry || (entry.athleteId !== opts.athleteId && entry.partnerAthleteId !== opts.athleteId)) {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' })
   }
   if (entry.status === 'CANCELLED' || entry.status === 'REFUNDED') {
@@ -1154,7 +1154,7 @@ export async function cancelCompetitionEntry(opts: {
   if (entry.status === 'CONFIRMED' && entry.payment?.status === 'PAID') {
     const refundResult = await refundPaymentForCancellation({
       paymentId: entry.payment.id,
-      userId: opts.athleteId,
+      userId: entry.athleteId,
       reason: opts.reason || 'Competition entry cancelled',
     })
 
