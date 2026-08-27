@@ -101,7 +101,7 @@ async function sendInvite() {
   inviteError.value = ''
   inviteResult.value = ''
   try {
-    const res = await $fetch<{ phone?: string; created?: boolean }>('/api/owner/coaches/invite', {
+    const res = await $fetch<{ phone?: string; created?: boolean }>('/api/owner/staff/invite', {
       method: 'POST',
       body: {
         phone: invitePhone.value,

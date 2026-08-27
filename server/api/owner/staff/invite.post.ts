@@ -1,6 +1,9 @@
 import { inviteClubStaffByPhone } from '../../../utils/staffInvite'
 
-/** @deprecated Prefer POST /api/owner/staff/invite — kept for coaches UI compatibility. */
+/**
+ * Invite desk/manager staff by Iranian mobile so they can OTP sign in.
+ * Does not require the coach product (unlike /api/owner/coaches/invite for COACH role).
+ */
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'team')
   const body = await readBody<{
@@ -10,13 +13,12 @@ export default defineEventHandler(async (event) => {
     permissions?: string[]
   }>(event)
 
-  // Default role here remains COACH for the coaches page; staffInvite gates COACH on pilot.
   return inviteClubStaffByPhone({
     event,
     club,
     phoneRaw: body.phone || '',
     name: body.name,
-    role: body.role || 'COACH',
+    role: body.role,
     permissions: body.permissions,
   })
 })

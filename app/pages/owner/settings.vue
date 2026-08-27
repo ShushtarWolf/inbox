@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ALL_OWNER_PERMISSIONS, BASE_OWNER_PERMISSIONS, FINANCE_SUB_PERMISSIONS, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
+import {
+  ALL_OWNER_PERMISSIONS,
+  BASE_OWNER_PERMISSIONS,
+  FINANCE_SUB_PERMISSIONS,
+  defaultPermissionsForRole,
+  parsePermissions,
+  type OwnerPermission,
+} from '#shared/ownerPermissions.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 import { isValidSheba } from '#shared/settlement.ts'
 
@@ -97,6 +104,17 @@ const staffMembers = computed(() => {
 const staffSaving = ref<Record<string, boolean>>({})
 const staffError = ref('')
 const staffSuccess = ref('')
+const invitePhone = ref('')
+const inviteName = ref('')
+const inviteRole = ref<'MANAGER' | 'FRONT_DESK' | 'ANALYST' | 'COACH'>('FRONT_DESK')
+const invitePermissions = ref<OwnerPermission[]>(defaultPermissionsForRole('FRONT_DESK'))
+const inviting = ref(false)
+const inviteError = ref('')
+const inviteResult = ref('')
+
+watch(inviteRole, (role) => {
+  invitePermissions.value = [...defaultPermissionsForRole(role)]
+})
 
 watch(isOwner, (owner) => {
   if (owner) refreshStaff()
@@ -207,6 +225,45 @@ async function saveMemberPermissions(member: OwnerStaffMember) {
     staffError.value = fetchErrorMessage(err, t('common.error'))
   } finally {
     staffSaving.value[member.id] = false
+  }
+}
+
+function toggleInvitePermission(permission: OwnerPermission) {
+  if (invitePermissions.value.includes(permission)) {
+    invitePermissions.value = invitePermissions.value.filter((item) => item !== permission)
+  }
+  else {
+    invitePermissions.value = [...invitePermissions.value, permission]
+  }
+}
+
+async function sendStaffInvite() {
+  inviting.value = true
+  inviteError.value = ''
+  inviteResult.value = ''
+  try {
+    const res = await $fetch<{ phone?: string; created?: boolean }>('/api/owner/staff/invite', {
+      method: 'POST',
+      body: {
+        phone: invitePhone.value,
+        name: inviteName.value,
+        role: inviteRole.value,
+        permissions: invitePermissions.value,
+      },
+    })
+    inviteResult.value = res.created
+      ? t('owner.inviteCreated')
+      : t('owner.inviteSent')
+    invitePhone.value = ''
+    inviteName.value = ''
+    invitePermissions.value = [...defaultPermissionsForRole(inviteRole.value)]
+    await refreshStaff()
+  }
+  catch (err: unknown) {
+    inviteError.value = fetchErrorMessage(err, t('common.error'))
+  }
+  finally {
+    inviting.value = false
   }
 }
 
@@ -717,6 +774,56 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
         <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.staffAccess') }}</h2>
           <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
+
+          <div class="space-y-3 rounded border border-brand-gray-100 bg-brand-lavender/20 p-3">
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.inviteStaff') }}</h3>
+            <AppFormField :label="t('common.mobile')" required>
+              <input
+                v-model="invitePhone"
+                type="tel"
+                inputmode="numeric"
+                dir="ltr"
+                class="neo-input"
+                autocomplete="tel"
+                :placeholder="t('auth.phonePlaceholder')"
+              >
+            </AppFormField>
+            <AppFormField :label="t('auth.name')" required>
+              <input v-model="inviteName" class="neo-input" autocomplete="name">
+            </AppFormField>
+            <AppFormField :label="t('owner.settingsPage.role')">
+              <select v-model="inviteRole" class="neo-select">
+                <option value="FRONT_DESK">{{ t('owner.roles.FRONT_DESK') }}</option>
+                <option value="MANAGER">{{ t('owner.roles.MANAGER') }}</option>
+                <option value="ANALYST">{{ t('owner.roles.ANALYST') }}</option>
+                <option v-if="!pilotNoCoach" value="COACH">{{ t('owner.roles.COACH') }}</option>
+              </select>
+            </AppFormField>
+            <div class="ios-card bg-white/70 p-3">
+              <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissionsTitle') }}</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <label v-for="permission in ALL_OWNER_PERMISSIONS" :key="`invite-${permission}`" class="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    :checked="invitePermissions.includes(permission)"
+                    @change="toggleInvitePermission(permission)"
+                  >
+                  <span>{{ permissionLabel(permission) }}</span>
+                </label>
+              </div>
+            </div>
+            <p v-if="inviteError" class="text-sm text-red-600">{{ inviteError }}</p>
+            <p v-if="inviteResult" class="text-sm text-green-700">{{ inviteResult }}</p>
+            <button
+              type="button"
+              class="canva-settings-edit-btn w-full"
+              :disabled="inviting || !invitePhone.trim() || !inviteName.trim()"
+              @click="sendStaffInvite"
+            >
+              {{ inviting ? t('common.loading') : t('owner.sendInvite') }}
+            </button>
+          </div>
+
           <p v-if="staffError" class="text-sm text-red-600">{{ staffError }}</p>
           <p v-if="staffSuccess" class="text-sm text-green-700">{{ staffSuccess }}</p>
           <ul class="space-y-3">
