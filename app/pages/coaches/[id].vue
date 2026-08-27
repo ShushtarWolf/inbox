@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
+import { weekdayKeyFromDayOfWeek } from '#shared/recurringSessions.ts'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -12,6 +13,10 @@ const { data: coach, pending, error } = await useFetch(`/api/coaches/${id}`)
 
 function specialtyLabel(value: string) {
   return translateCoachSpecialty(t, value)
+}
+
+function weekdayLabel(dayOfWeek: number) {
+  return t(`owner.weekdays.${weekdayKeyFromDayOfWeek(dayOfWeek)}`)
 }
 </script>
 
@@ -52,11 +57,29 @@ function specialtyLabel(value: string) {
 
     <section class="ios-card p-4">
       <h2 class="mb-2 font-bold">{{ t('coaches.availability') }}</h2>
-      <div class="flex flex-wrap gap-2 text-xs">
-        <span v-for="item in coach.availability" :key="item.id" class="rounded-full border px-3 py-1">
-          {{ t('coach.dayLabel', { day: item.dayOfWeek }) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
-        </span>
+      <div v-if="coach.availability?.length" class="overflow-hidden border border-brand-gray-100">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-brand-gray-100 bg-brand-gray-50 text-xs text-brand-gray-600">
+              <th class="px-3 py-2 text-start font-bold">{{ t('coach.availabilityDay') }}</th>
+              <th class="px-3 py-2 text-start font-bold">{{ t('coach.availabilityHours') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in coach.availability"
+              :key="item.id"
+              class="border-b border-brand-gray-100 last:border-b-0"
+            >
+              <td class="px-3 py-2 font-medium text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</td>
+              <td class="px-3 py-2 tabular-nums">
+                <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+      <p v-else class="text-xs text-brand-gray-600">{{ t('coach.noAvailability') }}</p>
     </section>
 
     <section v-if="coach.packages?.length" class="ios-card p-4">

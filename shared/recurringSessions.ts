@@ -7,6 +7,16 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 /** Display order for Iranian week (Saturday first). */
 export const IRAN_WEEKDAY_ORDER = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const
 
+/** JS `Date.getDay()` (0=Sun … 6=Sat) → `owner.weekdays.*` key. */
+export function weekdayKeyFromDayOfWeek(dayOfWeek: number): (typeof DAY_NAMES)[number] {
+  const index = ((Math.trunc(dayOfWeek) % 7) + 7) % 7
+  return DAY_NAMES[index] ?? 'Sun'
+}
+
+export function dayOfWeekFromWeekdayKey(key: string): number {
+  return DAY_MAP[key] ?? 0
+}
+
 export type DayTimeRange = { start: string; end: string }
 
 export function sortIranWeekdays(days: string[]): string[] {

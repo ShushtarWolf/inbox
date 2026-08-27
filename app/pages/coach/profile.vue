@@ -1,6 +1,13 @@
 <script setup lang="ts">
+import {
+  IRAN_WEEKDAY_ORDER,
+  dayOfWeekFromWeekdayKey,
+  weekdayKeyFromDayOfWeek,
+} from '#shared/recurringSessions.ts'
+
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
+const { t } = useI18n()
 const { fetch } = useAuth()
 const { formatTimeRange } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
@@ -20,6 +27,12 @@ const { data: clubLinks, refresh: refreshClubLinks } = await useAuthedFetch<{
   links: Array<{ id: string; status: 'PENDING' | 'ACTIVE' | 'BLOCKED'; courtDiscountPercent: number; club: ClubOption }>
   availableClubs: ClubOption[]
 }>('/api/coach/clubs')
+
+const weekdayOptions = IRAN_WEEKDAY_ORDER
+
+function weekdayLabel(dayOfWeek: number) {
+  return t(`owner.weekdays.${weekdayKeyFromDayOfWeek(dayOfWeek)}`)
+}
 
 const linkClubId = ref('')
 const linkBusy = ref(false)
@@ -53,7 +66,7 @@ const price = ref(0)
 const photo = ref('')
 const clubId = ref('')
 const credentialsText = ref('')
-const newDay = ref(1)
+const newDayKey = ref<(typeof IRAN_WEEKDAY_ORDER)[number]>('Mon')
 const newStart = ref('09:00')
 const newEnd = ref('17:00')
 const galleryUrl = ref('')
@@ -116,7 +129,11 @@ async function save() {
 async function addAvailability() {
   await $fetch('/api/coach/availability', {
     method: 'POST',
-    body: { dayOfWeek: newDay.value, startTime: newStart.value, endTime: newEnd.value },
+    body: {
+      dayOfWeek: dayOfWeekFromWeekdayKey(newDayKey.value),
+      startTime: newStart.value,
+      endTime: newEnd.value,
+    },
   })
   refresh()
 }
@@ -168,14 +185,39 @@ async function removeGalleryImage(id: string) {
       </AppFormField>
       <section class="ios-card p-4 space-y-3">
         <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
-        <div class="flex flex-wrap gap-2 text-xs">
-          <span v-for="item in data?.availability || []" :key="item.id" class="rounded-full border px-3 py-1 flex items-center gap-2">
-            {{ $t('coach.dayLabel', { day: item.dayOfWeek }) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
-            <button type="button" class="text-red-600" @click="removeAvailability(item.id)">×</button>
-          </span>
+        <div v-if="data?.availability?.length" class="overflow-hidden border border-brand-gray-100">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-brand-gray-100 bg-brand-gray-50 text-xs text-brand-gray-600">
+                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityDay') }}</th>
+                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityHours') }}</th>
+                <th class="w-10 px-2 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in data.availability"
+                :key="item.id"
+                class="border-b border-brand-gray-100 last:border-b-0"
+              >
+                <td class="px-3 py-2 font-medium text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</td>
+                <td class="px-3 py-2 tabular-nums">
+                  <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
+                </td>
+                <td class="px-2 py-2 text-center">
+                  <button type="button" class="text-red-600" :aria-label="$t('common.delete')" @click="removeAvailability(item.id)">×</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <p v-else class="text-xs text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
         <div class="grid grid-cols-3 gap-2">
-          <AppNumericInput v-model="newDay" :min="0" :max="6" />
+          <select v-model="newDayKey" class="neo-select">
+            <option v-for="day in weekdayOptions" :key="day" :value="day">
+              {{ $t(`owner.weekdays.${day}`) }}
+            </option>
+          </select>
           <input v-model="newStart" type="time" dir="ltr" class="neo-input tabular-nums" />
           <input v-model="newEnd" type="time" dir="ltr" class="neo-input tabular-nums" />
         </div>

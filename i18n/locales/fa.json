@@ -418,6 +418,8 @@
     "noUpcomingSessions": "جلسه آینده‌ای برنامه‌ریزی نشده",
     "noAvailability": "هنوز بازه زمانی در دسترس ثبت نشده",
     "dayLabel": "روز {day}",
+    "availabilityDay": "روز",
+    "availabilityHours": "بازه زمانی",
     "bioFa": "بیو فارسی",
     "bioEn": "بیو انگلیسی",
     "photoUrl": "آدرس تصویر پروفایل",
