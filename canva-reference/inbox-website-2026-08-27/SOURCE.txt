@@ -1,0 +1,2 @@
+Source: Downloads/inbox website (2).zip (synced 2026-08-27).
+Extracted frames in pages/ and raw/ (gitignored).
