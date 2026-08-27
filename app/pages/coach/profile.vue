@@ -17,6 +17,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   sessionPrice: number
   photo?: string | null
   clubId?: string | null
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
   credentialsJson?: string | null
   availability?: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>
   media?: Array<{ id: string; url: string }>
@@ -63,6 +64,9 @@ async function requestClubLink() {
     await $fetch('/api/coach/clubs', { method: 'POST', body: { clubId: linkClubId.value } })
     linkClubId.value = ''
     await refreshClubLinks()
+    clubActionOk.value = data.value?.approvalStatus === 'APPROVED'
+      ? t('coach.clubLinkRequested')
+      : t('coach.clubLinkQueued')
   }
   catch (err) {
     clubActionError.value = fetchErrorMessage(err, t('common.retry'), t)
@@ -211,6 +215,14 @@ async function removeGalleryImage(id: string) {
       <section class="ios-card space-y-3 p-4">
         <h2 class="font-bold">{{ $t('coach.clubLinksTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksHint') }}</p>
+        <p
+          v-if="data?.approvalStatus === 'PENDING'"
+          class="text-xs text-amber-800"
+        >{{ $t('coach.approvalPending') }}</p>
+        <p
+          v-else-if="data?.approvalStatus === 'REJECTED'"
+          class="text-xs text-red-600"
+        >{{ $t('coach.approvalRejected') }}</p>
         <p v-if="!primaryClubId" class="text-xs text-amber-800">{{ $t('coach.primaryClubEmpty') }}</p>
         <p v-if="clubActionError" class="text-xs text-red-600">{{ clubActionError }}</p>
         <p v-if="clubActionOk" class="text-xs text-brand-primary">{{ clubActionOk }}</p>
@@ -272,7 +284,7 @@ async function removeGalleryImage(id: string) {
           <button
             type="button"
             class="btn-secondary px-4"
-            :disabled="!linkClubId || linkBusy"
+            :disabled="!linkClubId || linkBusy || data?.approvalStatus === 'REJECTED'"
             @click="requestClubLink"
           >
             {{ $t('common.add') }}

@@ -10,8 +10,9 @@ export default defineEventHandler(async (event) => {
     select: { id: true, approvalStatus: true },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach profile not found' })
-  if (coach.approvalStatus !== 'APPROVED') {
-    throw createError({ statusCode: 403, statusMessage: 'COACH_NOT_APPROVED' })
+  // Allow PENDING coaches to queue affiliation requests; owner list only shows platform-APPROVED coaches.
+  if (coach.approvalStatus === 'REJECTED') {
+    throw createError({ statusCode: 403, statusMessage: 'COACH_REJECTED' })
   }
 
   const club = await prisma.club.findFirst({ where: { id: clubId, status: 'ACTIVE' }, select: { id: true } })
@@ -24,8 +25,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Coach already requested this club' })
   }
 
-  const link = await prisma.coachClubLink.create({
-    data: { coachId: coach.id, clubId: club.id },
-  })
+  const link = await ensurePendingCoachClubLink(coach.id, club.id)
   return { id: link.id, status: link.status }
 })

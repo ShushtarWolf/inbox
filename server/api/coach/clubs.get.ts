@@ -1,11 +1,21 @@
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   const user = await requireRole(event, 'COACH')
-  const coach = await prisma.coach.findUnique({
+  let coach = await prisma.coach.findUnique({
     where: { userId: user.id },
     select: { id: true, clubId: true },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach profile not found' })
+
+  // Heal legacy Coach.clubId-without-link so the club owner can approve the request.
+  if (coach.clubId) {
+    await backfillClubLinkFromPrimaryClub(coach)
+    coach = await prisma.coach.findUnique({
+      where: { userId: user.id },
+      select: { id: true, clubId: true },
+    })
+    if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach profile not found' })
+  }
 
   const [links, clubs] = await Promise.all([
     prisma.coachClubLink.findMany({

@@ -34,6 +34,13 @@ export default defineEventHandler(async (event) => {
       data: { clubId: null },
     })
   }
+  else if (status === 'ACTIVE') {
+    // First accepted club becomes primary when the coach has none yet.
+    await prisma.coach.updateMany({
+      where: { id: link.coachId, clubId: null },
+      data: { clubId: link.clubId },
+    })
+  }
 
   return {
     id: updated.id,

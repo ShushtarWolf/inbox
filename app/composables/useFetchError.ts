@@ -80,6 +80,8 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Invalid email': 'contact.messageEmailInvalid',
     'errors.rateLimited': 'errors.rateLimited',
     'COACH_PRIMARY_CLUB_NOT_ACTIVE': 'coach.primaryClubMustBeActive',
+    'COACH_NOT_APPROVED': 'coach.book.errorNotApproved',
+    'COACH_REJECTED': 'coach.clubLinkRejected',
     COMPETITION_FULL: 'competitions.errors.full',
     COMPETITION_NOT_JOINABLE: 'competitions.errors.notJoinable',
     COMPETITION_CANCELLED: 'competitions.errors.notJoinable',

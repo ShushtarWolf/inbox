@@ -66,7 +66,8 @@ export default defineEventHandler(async (event) => {
         nameEn: name,
         city: club?.city || 'تهران',
         sportId: sport.id,
-        clubId: club?.id || null,
+        // Primary club is ACTIVE-link only; signup queues a PENDING affiliation instead.
+        clubId: null,
         userId: user.id,
         bioFa: body.bioFa?.trim() || null,
         bioEn: body.bioEn?.trim() || body.bioFa?.trim() || null,
@@ -78,6 +79,12 @@ export default defineEventHandler(async (event) => {
         appliedAt: new Date(),
       },
     })
+
+    if (club) {
+      await tx.coachClubLink.create({
+        data: { coachId: coach.id, clubId: club.id },
+      })
+    }
 
     const defaultDays = [1, 2, 3, 4, 5]
     await tx.coachAvailability.createMany({

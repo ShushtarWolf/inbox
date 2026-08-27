@@ -2,6 +2,19 @@ export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   const { club } = await requireOwnerClub(event, 'team')
 
+  // Heal legacy coaches who set this club as home without creating a CoachClubLink.
+  const orphanCoaches = await prisma.coach.findMany({
+    where: {
+      clubId: club.id,
+      approvalStatus: 'APPROVED',
+      clubLinks: { none: { clubId: club.id } },
+    },
+    select: { id: true, clubId: true },
+  })
+  for (const orphan of orphanCoaches) {
+    await backfillClubLinkFromPrimaryClub(orphan)
+  }
+
   const links = await prisma.coachClubLink.findMany({
     where: { clubId: club.id },
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
