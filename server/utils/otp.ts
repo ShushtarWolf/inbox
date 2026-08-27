@@ -40,9 +40,12 @@ export async function createAndSendPhoneOtp(opts: {
   })
 
   // Anti-enumeration: login/reset always look successful; SMS only if phone exists.
+  // Ops: when an invited employee gets no SMS, check server logs for this skip —
+  // usually the owner never invited them (Workers list ≠ dashboard login).
   if (opts.purpose === 'login' || opts.purpose === 'password_reset') {
     const match = await findUserForPhoneOtp(phone)
     if (!match) {
+      console.info(`[otp] ${opts.purpose} skip send — phone not registered`)
       return uniformOk()
     }
   } else if (await isPhoneRegistered(phone)) {
