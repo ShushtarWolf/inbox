@@ -258,9 +258,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </AppModal>
 
-      <CoachDiscoveryRail v-if="!pilotNoCoach" />
-      <CompetitionDiscoveryRail v-if="competitionsEnabled" />
-
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
@@ -361,6 +358,9 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           </NuxtLink>
         </div>
       </section>
+
+      <CoachDiscoveryRail v-if="!pilotNoCoach" />
+      <CompetitionDiscoveryRail v-if="competitionsEnabled" />
     </div>
   </AppAsyncState>
 </template>
