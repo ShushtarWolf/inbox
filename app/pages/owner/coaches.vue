@@ -66,7 +66,7 @@ async function updateLink(link: CoachLink, patch: { status?: CoachLink['status']
   }
 }
 
-const inviteEmail = ref('')
+const invitePhone = ref('')
 const inviteName = ref('')
 const inviteRole = ref('COACH')
 const invitePermissions = ref<OwnerPermission[]>(defaultPermissionsForRole('COACH'))
@@ -101,19 +101,19 @@ async function sendInvite() {
   inviteError.value = ''
   inviteResult.value = ''
   try {
-    const res = await $fetch<{ temporaryPassword?: string }>('/api/owner/coaches/invite', {
+    const res = await $fetch<{ phone?: string; created?: boolean }>('/api/owner/coaches/invite', {
       method: 'POST',
       body: {
-        email: inviteEmail.value,
+        phone: invitePhone.value,
         name: inviteName.value,
         role: inviteRole.value,
         permissions: invitePermissions.value,
       },
     })
-    inviteResult.value = res.temporaryPassword
-      ? t('owner.inviteCreated', { password: res.temporaryPassword })
+    inviteResult.value = res.created
+      ? t('owner.inviteCreated')
       : t('owner.inviteSent')
-    inviteEmail.value = ''
+    invitePhone.value = ''
     inviteName.value = ''
     invitePermissions.value = [...defaultPermissionsForRole(inviteRole.value)]
     await refresh()
@@ -138,8 +138,16 @@ async function deactivate(memberId: string) {
       <section class="ios-card p-4">
         <h2 class="mb-3 font-bold">{{ t('owner.inviteStaff') }}</h2>
         <div class="venus-form-stack">
-          <AppFormField :label="t('auth.email')" required>
-            <input v-model="inviteEmail" type="email" dir="ltr" class="neo-input" autocomplete="email" />
+          <AppFormField :label="t('common.mobile')" required>
+            <input
+              v-model="invitePhone"
+              type="tel"
+              inputmode="numeric"
+              dir="ltr"
+              class="neo-input"
+              autocomplete="tel"
+              :placeholder="t('auth.phonePlaceholder')"
+            />
           </AppFormField>
           <AppFormField :label="t('auth.name')" required>
             <input v-model="inviteName" class="neo-input" autocomplete="name" />
@@ -166,7 +174,7 @@ async function deactivate(memberId: string) {
           </div>
           <p v-if="inviteError" class="text-sm text-red-600">{{ inviteError }}</p>
           <p v-if="inviteResult" class="text-sm text-brand-gray-600">{{ inviteResult }}</p>
-          <button type="button" class="btn-primary w-full" :disabled="inviting || !inviteEmail.trim() || !inviteName.trim()" @click="sendInvite">{{ inviting ? t('common.loading') : t('owner.sendInvite') }}</button>
+          <button type="button" class="btn-primary w-full" :disabled="inviting || !invitePhone.trim() || !inviteName.trim()" @click="sendInvite">{{ inviting ? t('common.loading') : t('owner.sendInvite') }}</button>
         </div>
         <h2 class="mb-3 mt-6 font-bold">{{ $t('owner.coaches') }}</h2>
         <ul class="space-y-2">

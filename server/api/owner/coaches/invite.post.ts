@@ -1,5 +1,5 @@
-import { randomBytes } from 'node:crypto'
 import type { StaffRole } from '@prisma/client'
+import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
 import { defaultPermissionsForRole, normalizePermissions } from '#shared/ownerPermissions.ts'
 import {
   platformRoleForStaffInvite,
@@ -11,32 +11,32 @@ const validRoles = new Set<StaffRole>(['MANAGER', 'ANALYST', 'FRONT_DESK', 'COAC
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   const { club } = await requireOwnerClub(event, 'team')
-  const body = await readBody<{ email?: string; role?: StaffRole; name?: string; permissions?: string[] }>(event)
-  const email = body.email?.trim().toLowerCase()
+  const body = await readBody<{ phone?: string; role?: StaffRole; name?: string; permissions?: string[] }>(event)
+  const phone = normalizeIranPhone(body.phone)
   const role = body.role && validRoles.has(body.role) ? body.role : 'COACH'
-  const name = body.name?.trim() || email?.split('@')[0] || 'Coach'
+  const name = body.name?.trim() || phone || 'Coach'
   const permissions = body.permissions?.length
     ? normalizePermissions(body.permissions)
     : defaultPermissionsForRole(role)
-  if (!email) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
+  if (!phone) throw createError({ statusCode: 400, statusMessage: 'Invalid phone' })
   if (!permissions.length) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
 
   const targetPlatformRole = platformRoleForStaffInvite(role)
-  let user = await prisma.user.findUnique({ where: { email } })
-  const tempPassword = randomBytes(12).toString('base64url')
-  let createdPassword: string | undefined
+  let user = await prisma.user.findUnique({ where: { phone } })
+  let created = false
 
   if (!user) {
     user = await prisma.user.create({
       data: {
-        email,
+        email: phoneToSyntheticEmail(phone),
+        phone,
         name,
         nameEn: name,
         role: targetPlatformRole,
-        passwordHash: hashSecret(tempPassword),
+        locale: 'fa',
       },
     })
-    createdPassword = tempPassword
+    created = true
   }
   else {
     const upgrade = resolveInviteRoleUpgrade(user, targetPlatformRole)
@@ -104,5 +104,5 @@ export default defineEventHandler(async (event) => {
     update: { active: true, coachId: coach?.id, permissionsJson: JSON.stringify(permissions) },
   })
 
-  return { id: membership.id, email, temporaryPassword: createdPassword }
+  return { id: membership.id, phone, created }
 })
