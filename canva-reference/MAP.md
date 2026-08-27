@@ -2,7 +2,7 @@
 
 Source of truth (Aug 27 sync): `canva-reference/inbox-website-2026-08-27/` and `canva-reference/pages/` (from `Downloads/inbox website (2).zip`). Prior Aug 12 export: `inbox-website-2026-08-12/`.
 
-Prior overlays live in `comparisons/overlays/`; app captures in `comparisons/localhost/`. Pixel report: `comparisons/report-2026-08-27.md` (`npm run check:canva`).
+Prior overlays live in `comparisons/overlays/`; app captures in `comparisons/localhost/`. **Full pixel review:** `comparisons/report-full-2026-08-27.md` (`npm run check:canva`).
 
 Behnaz court-booking MVP screen list (FA only): [`docs/MVP_SCREEN_INVENTORY.md`](../docs/MVP_SCREEN_INVENTORY.md).
 

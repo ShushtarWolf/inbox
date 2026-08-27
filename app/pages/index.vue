@@ -4,6 +4,7 @@ import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
+const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
 
 const sport = ref<string>('')
 const city = ref<string>('')
@@ -257,8 +258,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </AppModal>
 
-      <CoachDiscoveryRail />
-      <CompetitionDiscoveryRail />
+      <CoachDiscoveryRail v-if="!pilotNoCoach" />
+      <CompetitionDiscoveryRail v-if="competitionsEnabled" />
 
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">

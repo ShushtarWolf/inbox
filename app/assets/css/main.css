@@ -819,7 +819,7 @@
   }
   .canva-dash-hero {
     @apply relative -mx-4 max-w-[100vw] overflow-hidden bg-brand-primary px-4 pb-9 pt-7 text-white sm:-mx-0;
-    border-radius: 0 0 1.5rem 1.5rem;
+    border-radius: 0;
     box-sizing: border-box;
     background-image:
       radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.16), transparent 42%),
@@ -1033,6 +1033,12 @@
   /* LOCKED centered auth/gate dialog — square, not rounded-xl */
   .canva-modal-frame {
     border-radius: var(--sz-canva-radius);
+  }
+  .canva-owner-date-modal .canva-owner-date-body {
+    @apply px-4 pb-5 pt-1;
+  }
+  .canva-owner-date-modal .jalali-calendar-owner {
+    max-width: none;
   }
   .canva-flash {
     @apply border px-4 py-3 text-sm font-bold shadow-venus-sm;
@@ -2533,7 +2539,7 @@
     max-width: none;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
-    padding-top: 0.65rem;
+    padding-top: 0.35rem;
     padding-bottom: 1rem;
     background: var(--sz-bg);
   }

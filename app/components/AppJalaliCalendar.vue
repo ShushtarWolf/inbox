@@ -211,7 +211,7 @@ function cellClass(cell: { iso: string | null }) {
   box-sizing: border-box;
 }
 .jalali-calendar-default {
-  border-radius: 0.75rem;
+  border-radius: var(--sz-canva-radius, 0);
   border: 1px solid var(--sz-border);
   background: #fff;
   padding: 1rem;
@@ -239,7 +239,7 @@ function cellClass(cell: { iso: string | null }) {
   width: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
+  border-radius: var(--sz-canva-radius, 2px);
   border: 1px solid var(--sz-border);
   background: var(--sz-bg);
   color: var(--sz-accent);
@@ -267,7 +267,7 @@ function cellClass(cell: { iso: string | null }) {
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
-  border-radius: 0.75rem;
+  border-radius: var(--sz-canva-radius, 2px);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--sz-navy);

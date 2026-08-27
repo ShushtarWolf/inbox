@@ -166,8 +166,13 @@ onUnmounted(() => {
               <div v-if="sheet" class="flex shrink-0 justify-center pt-3" aria-hidden="true">
                 <span class="canva-sheet-handle" />
               </div>
-              <div v-if="title" class="venus-modal-title-bar shrink-0" :class="sheet ? 'border-transparent bg-transparent pt-1' : ''">
-                <h2 class="min-w-0 flex-1 truncate text-base font-bold text-brand-navy">{{ title }}</h2>
+              <div
+                v-if="title || closeIcon"
+                class="venus-modal-title-bar shrink-0"
+                :class="sheet ? 'border-transparent bg-transparent pt-1' : ''"
+              >
+                <h2 v-if="title" class="min-w-0 flex-1 truncate text-base font-bold text-brand-navy">{{ title }}</h2>
+                <span v-else class="min-w-0 flex-1" aria-hidden="true" />
                 <button
                   type="button"
                   :class="closeIcon

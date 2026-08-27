@@ -2272,11 +2272,11 @@ const legend = [
     <AppModal
       :open="showDatePicker"
       patterned
-      :title="t('owner.pickDate')"
-      max-width-class="canva-phone-shell max-w-sm"
+      close-icon
+      max-width-class="canva-phone-shell canva-owner-date-modal max-w-sm"
       @close="showDatePicker = false"
     >
-      <div class="px-4 pb-5 pt-2">
+      <div class="canva-owner-date-body">
         <AppJalaliCalendar
           v-model="date"
           variant="owner"

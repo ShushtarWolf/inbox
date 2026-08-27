@@ -25,13 +25,9 @@ export const RULE_NOTES = {
 export function ownerHelpers(baseUrl) {
   async function ready(page) {
     await page.goto(`${baseUrl}/owner/calendar`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-    await page.waitForTimeout(1500)
-    const grid = page.locator('.canva-cal-grid')
-    const empty = page.locator('.canva-empty-state, [class*="CanvaEmpty"]')
-    await Promise.race([
-      grid.first().waitFor({ timeout: 25_000 }),
-      empty.first().waitFor({ timeout: 25_000 }),
-    ]).catch(() => {})
+    await page.waitForLoadState('networkidle').catch(() => {})
+    await page.locator('.canva-cal-date-nav-label, .canva-cal-grid, .canva-empty-state').first().waitFor({ timeout: 30_000 })
+    await page.waitForTimeout(600)
   }
 
   async function clickFirstFreeSlot(page) {
@@ -85,7 +81,8 @@ export function ownerHelpers(baseUrl) {
   async function openDatePicker(page) {
     await ready(page)
     await page.locator('.canva-cal-date-nav-label').click()
-    await page.locator('.venus-modal-panel .jalali-calendar, .jalali-calendar-owner').first().waitFor({ timeout: 20_000 })
+    await page.locator('[role="dialog"] .jalali-calendar-owner').first().waitFor({ timeout: 20_000 })
+    await page.waitForTimeout(350)
   }
 
   async function openOverview(page) {
@@ -142,10 +139,10 @@ export function buildFrames(baseUrl) {
       path: '/',
       rules: ['no-google-expected', 'square-radius-expected', 'sheet-modal'],
       prepare: async (page) => {
-        const btn = page.locator('header.canva-home-chrome .canva-home-login')
-        if (await btn.count()) await btn.first().click()
-        else await page.getByRole('button', { name: /ورود\/ثبت نام/i }).first().click()
-        await page.locator('.canva-gate-btn-primary').first().waitFor({ timeout: 20_000 })
+        await page.locator('header.canva-home-chrome .canva-home-login').first().waitFor({ state: 'visible', timeout: 20_000 })
+        await page.locator('header.canva-home-chrome .canva-home-login').first().click()
+        await page.locator('.canva-gate-btn-primary').first().waitFor({ state: 'visible', timeout: 20_000 })
+        await page.waitForTimeout(350)
       },
     },
     {

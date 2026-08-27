@@ -160,7 +160,8 @@ async function captureScreenshots() {
 
     try {
       await page.goto(`${BASE_URL}${frame.path}`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-      await page.waitForTimeout(1000)
+      await page.waitForLoadState('networkidle').catch(() => {})
+      await page.waitForTimeout(800)
       if (frame.prepare) await frame.prepare(page)
       await page.waitForTimeout(500)
 

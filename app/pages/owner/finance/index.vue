@@ -336,7 +336,7 @@ function closeTx() {
 
     <section class="canva-finance-hero-card">
       <p class="text-xs text-white/75">{{ heroTitle }}</p>
-      <p class="mt-2 text-3xl font-bold tabular-nums text-brand-primary">{{ formatCurrency(heroAmount) }}</p>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-white">{{ formatCurrency(heroAmount) }}</p>
       <p
         v-if="period === 'day'"
         class="mt-1 text-xs"
