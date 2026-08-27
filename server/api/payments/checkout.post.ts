@@ -227,7 +227,7 @@ export default defineEventHandler(async (event) => {
 
   const service = getPaymentService()
   const idempotencyKey = body.competitionEntryId && competitionId
-    ? competitionJoinIdempotencyKey(competitionId, user.id)
+    ? competitionJoinIdempotencyKey(competitionId, user.id, body.competitionEntryId)
     : randomBytes(16).toString('hex')
 
   const session = await service.createIntent({

@@ -12,7 +12,9 @@ const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   id: string
   status: string
   placement: number | null
+  isPrimaryRegistrant: boolean
   prizeStatus: 'none' | 'pending' | 'credited'
+  prizeGoesToRegistrant: boolean
   prizeAward: {
     prizeType: string
     amount: number | null
@@ -37,6 +39,7 @@ const cancelPending = ref<string | null>(null)
 const actionError = ref('')
 
 function prizeStatusLabel(entry: NonNullable<typeof data.value>[number]) {
+  if (entry.prizeGoesToRegistrant) return t('competitions.prizeGoesToRegistrant')
   if (entry.prizeStatus === 'pending') return t('competitions.prizePending')
   if (entry.prizeStatus === 'credited') return t('competitions.prizeCredited')
   return ''
@@ -45,6 +48,11 @@ function prizeStatusLabel(entry: NonNullable<typeof data.value>[number]) {
 function statusLabel(status: string) {
   const key = `competitions.entryStatus.${status}` as const
   return t(key)
+}
+
+function canCancelEntry(entry: NonNullable<typeof data.value>[number]) {
+  return entry.isPrimaryRegistrant
+    && (entry.status === 'PENDING' || entry.status === 'CONFIRMED')
 }
 
 async function cancelEntry(competitionId: string) {
@@ -118,7 +126,7 @@ async function cancelEntry(competitionId: string) {
           {{ t('competitions.prizeDiscountCode', { code: entry.prizeAward.discountCode }) }}
         </p>
         <button
-          v-if="entry.status === 'PENDING' || entry.status === 'CONFIRMED'"
+          v-if="canCancelEntry(entry)"
           type="button"
           class="mt-2 text-sm text-red-600 disabled:opacity-50"
           :disabled="cancelPending === entry.competition.id"
@@ -126,6 +134,12 @@ async function cancelEntry(competitionId: string) {
         >
           {{ t('competitions.cancelEntry') }}
         </button>
+        <p
+          v-else-if="!entry.isPrimaryRegistrant && (entry.status === 'PENDING' || entry.status === 'CONFIRMED')"
+          class="mt-2 text-xs text-gray-500"
+        >
+          {{ t('competitions.partnerCannotCancel') }}
+        </p>
       </li>
     </ul>
     </template>

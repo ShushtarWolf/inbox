@@ -22,6 +22,9 @@ export default defineEventHandler(async (event) => {
     where: { coachId_clubId: { coachId: coach.id, clubId: club.id } },
   })
   if (existing) {
+    if (existing.status === 'BLOCKED') {
+      throw createError({ statusCode: 403, statusMessage: 'COACH_CLUB_LINK_BLOCKED' })
+    }
     throw createError({ statusCode: 409, statusMessage: 'Coach already requested this club' })
   }
 

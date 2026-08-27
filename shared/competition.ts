@@ -118,8 +118,11 @@ export function resolveEntryPrizeStatus(opts: {
   competitionStatus: CompetitionStatus
   prizesAwardedAt: Date | string | null | undefined
   hasAward: boolean
+  /** Phase 1: only the primary registrant receives wallet/discount prizes. */
+  isPrizeRecipient?: boolean
 }): EntryPrizeStatus {
   if (!opts.placement) return 'none'
+  if (opts.isPrizeRecipient === false) return 'none'
   if (opts.hasAward) return 'credited'
   if (opts.competitionStatus === 'COMPLETED' && !opts.prizesAwardedAt) return 'pending'
   return 'none'
@@ -327,9 +330,17 @@ export function isCompetitionJoinable(
 /** Unpaid PENDING entries older than this are auto-cancelled (releases seat). */
 export const PENDING_ENTRY_EXPIRY_MINUTES = 10
 
-/** Stable idempotency key for join payment — prevents duplicate charges on retry. */
-export function competitionJoinIdempotencyKey(competitionId: string, athleteId: string) {
-  return `competition-entry:${competitionId}:${athleteId}`
+/** Stable idempotency key for join payment — prevents duplicate charges on retry.
+ * When entryId is set, cancel→rejoin gets a fresh payment instead of colliding on @unique paymentId.
+ */
+export function competitionJoinIdempotencyKey(
+  competitionId: string,
+  athleteId: string,
+  entryId?: string,
+) {
+  return entryId
+    ? `competition-entry:${competitionId}:${athleteId}:${entryId}`
+    : `competition-entry:${competitionId}:${athleteId}`
 }
 
 /** Pay-at-club is only allowed when the platform is in desk mode (not online-only). */

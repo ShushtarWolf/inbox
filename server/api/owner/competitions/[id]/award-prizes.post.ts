@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     ok: true,
-    alreadyAwarded: Boolean(existing.prizesAwardedAt),
+    alreadyAwarded: Boolean(existing.prizesAwardedAt) || result.awards.every((a) => a.skipped),
     competition: result.competition,
     awards: result.awards,
     audit: result.audit,

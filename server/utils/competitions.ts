@@ -227,6 +227,10 @@ export async function updateCompetition(opts: {
     validatePrizeConfig(patch.prizeType ?? competition.prizeType, patch.prizeConfigJson)
     data.prizeConfigJson = patch.prizeConfigJson
   }
+  else if (patch.prizeType !== undefined && patch.prizeType !== competition.prizeType) {
+    // Switching WALLET ↔ DISCOUNT must still validate the stored config shape.
+    validatePrizeConfig(patch.prizeType, competition.prizeConfigJson)
+  }
 
   if (patch.registrationOpens !== undefined) {
     data.registrationOpens = parseDateField(patch.registrationOpens, 'registrationOpens')
@@ -240,8 +244,12 @@ export async function updateCompetition(opts: {
 
   const nextOpens = (data.registrationOpens as Date | undefined) ?? competition.registrationOpens
   const nextCloses = (data.registrationCloses as Date | undefined) ?? competition.registrationCloses
+  const nextEventAt = (data.eventAt as Date | undefined) ?? competition.eventAt
   if (nextCloses < nextOpens) {
     throw createError({ statusCode: 400, statusMessage: 'registrationCloses before registrationOpens' })
+  }
+  if (nextEventAt < nextCloses) {
+    throw createError({ statusCode: 400, statusMessage: 'eventAt before registrationCloses' })
   }
 
   const nextEntryFee = (data.entryFee as number | undefined) ?? competition.entryFee
@@ -806,6 +814,9 @@ export function assertCompetitionDraftValid(input: CompetitionCreateInput) {
   if (input.registrationCloses < input.registrationOpens) {
     throw createError({ statusCode: 400, statusMessage: 'registrationCloses before registrationOpens' })
   }
+  if (input.eventAt < input.registrationCloses) {
+    throw createError({ statusCode: 400, statusMessage: 'eventAt before registrationCloses' })
+  }
 }
 
 async function assertAthleteNotInActiveEntry(
@@ -872,7 +883,12 @@ async function linkCompetitionPayment(
     provider?: string
   },
 ) {
-  const idempotencyKey = competitionJoinIdempotencyKey(opts.competitionId, opts.athleteId)
+  // Entry-scoped key so cancel→rejoin never fights the previous entry's @unique paymentId.
+  const idempotencyKey = competitionJoinIdempotencyKey(
+    opts.competitionId,
+    opts.athleteId,
+    opts.entryId,
+  )
   const existing = await tx.payment.findUnique({ where: { idempotencyKey } })
   if (existing) {
     await tx.competitionEntry.update({
@@ -1131,7 +1147,7 @@ export async function cancelCompetitionEntry(opts: {
   if (entry.status === 'PENDING') {
     return prisma.competitionEntry.update({
       where: { id: entry.id },
-      data: { status: 'CANCELLED', ...cancelData },
+      data: { status: 'CANCELLED', paymentId: null, ...cancelData },
     })
   }
 
@@ -1145,7 +1161,7 @@ export async function cancelCompetitionEntry(opts: {
     if (refundResult.refunded || refundResult.walletCredited) {
       return prisma.competitionEntry.update({
         where: { id: entry.id },
-        data: { status: 'REFUNDED', ...cancelData },
+        data: { status: 'REFUNDED', paymentId: null, ...cancelData },
       })
     }
 
@@ -1160,13 +1176,13 @@ export async function cancelCompetitionEntry(opts: {
     })
     return prisma.competitionEntry.update({
       where: { id: entry.id },
-      data: { status: 'REFUNDED', ...cancelData },
+      data: { status: 'REFUNDED', paymentId: null, ...cancelData },
     })
   }
 
   return prisma.competitionEntry.update({
     where: { id: entry.id },
-    data: { status: 'CANCELLED', ...cancelData },
+    data: { status: 'CANCELLED', paymentId: null, ...cancelData },
   })
 }
 
@@ -1188,6 +1204,7 @@ export async function expireStalePendingEntries(now = new Date()) {
       where: { id: entry.id },
       data: {
         status: 'CANCELLED',
+        paymentId: null,
         cancelledAt: now,
         cancelReason: 'Payment timeout',
       },

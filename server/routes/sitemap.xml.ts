@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const coaches = pilotNoCoach
     ? []
     : await prisma.coach.findMany({
-        where: { isBookable: true },
+        where: { isBookable: true, approvalStatus: 'APPROVED' },
         select: { id: true },
         take: 500,
       })

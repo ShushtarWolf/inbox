@@ -15,13 +15,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Coach application not found' })
   }
 
-  const updated = await prisma.coach.update({
-    where: { id },
-    data: {
-      approvalStatus: 'REJECTED',
-      approvalNote: body.note?.trim() || null,
-      reviewedAt: new Date(),
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.coach.update({
+      where: { id },
+      data: {
+        approvalStatus: 'REJECTED',
+        approvalNote: body.note?.trim() || null,
+        reviewedAt: new Date(),
+        clubId: null,
+      },
+    })
+    // Revoke club affiliations so a later re-approve needs fresh owner consent.
+    await tx.coachClubLink.updateMany({
+      where: { coachId: id, status: { in: ['PENDING', 'ACTIVE'] } },
+      data: { status: 'BLOCKED' },
+    })
+    return next
   })
 
   await notifyCoachApplicationReviewed({

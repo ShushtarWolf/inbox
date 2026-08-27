@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
         select: { id: true, nameFa: true, nameEn: true, category: true, price: true, quantity: true },
       },
       coaches: {
-        where: { isBookable: true },
+        where: { isBookable: true, approvalStatus: 'APPROVED' },
         take: 4,
         orderBy: [{ featured: 'desc' }, { rating: 'desc' }],
         select: {

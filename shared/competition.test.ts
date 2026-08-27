@@ -125,6 +125,16 @@ describe('entry prize status', () => {
       hasAward: true,
     })).toBe('credited')
   })
+
+  it('hides pending/credited from non-recipient doubles partners', () => {
+    expect(resolveEntryPrizeStatus({
+      placement: 1,
+      competitionStatus: 'COMPLETED',
+      prizesAwardedAt: null,
+      hasAward: false,
+      isPrizeRecipient: false,
+    })).toBe('none')
+  })
 })
 
 describe('free entry rules', () => {
@@ -231,6 +241,13 @@ describe('join idempotency key', () => {
   it('is stable per competition and athlete', () => {
     expect(competitionJoinIdempotencyKey('c1', 'a1')).toBe('competition-entry:c1:a1')
     expect(competitionJoinIdempotencyKey('c1', 'a1')).toBe(competitionJoinIdempotencyKey('c1', 'a1'))
+  })
+
+  it('scopes by entry when provided so cancel-rejoin gets a fresh payment', () => {
+    expect(competitionJoinIdempotencyKey('c1', 'a1', 'e1')).toBe('competition-entry:c1:a1:e1')
+    expect(competitionJoinIdempotencyKey('c1', 'a1', 'e2')).not.toBe(
+      competitionJoinIdempotencyKey('c1', 'a1', 'e1'),
+    )
   })
 })
 

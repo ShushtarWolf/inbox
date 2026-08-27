@@ -36,19 +36,24 @@ export default defineEventHandler(async (event) => {
   })
 
   return entries.map((entry) => {
+    const isPrimaryRegistrant = entry.athleteId === user.id
     const award = entry.prizeAwards[0] ?? null
     const prizeStatus = resolveEntryPrizeStatus({
       placement: entry.placement,
       competitionStatus: entry.competition.status,
       prizesAwardedAt: entry.competition.prizesAwardedAt,
       hasAward: Boolean(award),
+      isPrizeRecipient: isPrimaryRegistrant,
     })
 
     return {
       id: entry.id,
       status: entry.status,
       placement: entry.placement,
+      isPrimaryRegistrant,
       prizeStatus,
+      /** Doubles partner viewing a placed entry — prize credits the primary registrant only. */
+      prizeGoesToRegistrant: Boolean(entry.placement) && !isPrimaryRegistrant,
       prizeAward: award
         ? {
             prizeType: award.prizeType,

@@ -32,17 +32,44 @@ export default defineEventHandler(async (event) => {
       },
     })
     createdPassword = tempPassword
-    if (role === 'COACH') {
-      const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
-      await prisma.coach.create({
-        data: { nameFa: name, nameEn: name, city: club.city, sportId: sport.id, clubId: club.id, userId: user.id },
-      })
-    }
   }
 
-  const coach = role === 'COACH'
-    ? await prisma.coach.findFirst({ where: { userId: user.id, clubId: club.id } })
+  let coach = role === 'COACH'
+    ? await prisma.coach.findFirst({ where: { userId: user.id } })
     : null
+
+  if (role === 'COACH') {
+    if (!coach) {
+      const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
+      coach = await prisma.coach.create({
+        data: {
+          nameFa: name,
+          nameEn: name,
+          city: club.city,
+          sportId: sport.id,
+          clubId: club.id,
+          userId: user.id,
+          approvalStatus: 'APPROVED',
+          reviewedAt: new Date(),
+        },
+      })
+    }
+    else {
+      // Existing coach invited as staff: keep primary club if unset; ensure APPROVED for booking.
+      await prisma.coach.update({
+        where: { id: coach.id },
+        data: {
+          ...(coach.clubId ? {} : { clubId: club.id }),
+          ...(coach.approvalStatus === 'APPROVED'
+            ? {}
+            : { approvalStatus: 'APPROVED', approvalNote: null, reviewedAt: new Date() }),
+        },
+      })
+      if (!coach.clubId) coach = { ...coach, clubId: club.id }
+    }
+
+    await ensureActiveCoachClubLink(coach.id, club.id)
+  }
 
   const membership = await prisma.staffMembership.upsert({
     where: { userId_clubId_role: { userId: user.id, clubId: club.id, role } },

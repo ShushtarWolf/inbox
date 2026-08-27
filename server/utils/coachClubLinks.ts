@@ -32,9 +32,36 @@ export async function ensurePendingCoachClubLink(
 }
 
 /**
+ * Staff-invited coaches are already trusted by the club — ACTIVE link, no owner re-accept.
+ * Idempotent: upgrades PENDING → ACTIVE; leaves BLOCKED alone.
+ */
+export async function ensureActiveCoachClubLink(
+  coachId: string,
+  clubId: string,
+  db: DbClient = prisma,
+  courtDiscountPercent = 0,
+) {
+  const existing = await db.coachClubLink.findUnique({
+    where: { coachId_clubId: { coachId, clubId } },
+  })
+  if (existing) {
+    if (existing.status === 'ACTIVE') return existing
+    if (existing.status === 'BLOCKED') return existing
+    return db.coachClubLink.update({
+      where: { id: existing.id },
+      data: { status: 'ACTIVE', courtDiscountPercent },
+    })
+  }
+  return db.coachClubLink.create({
+    data: { coachId, clubId, status: 'ACTIVE', courtDiscountPercent },
+  })
+}
+
+/**
  * Legacy coaches may have Coach.clubId set without a CoachClubLink. Heal that so the
  * club owner sees a PENDING request under مربی‌های مستقل.
- * Primary display club must remain ACTIVE-only — clear primary until the owner accepts.
+ * Staff-invited coaches get an ACTIVE link instead (never dump them into independent requests).
+ * Primary display club must remain ACTIVE-only for independent affiliations.
  */
 export async function backfillClubLinkFromPrimaryClub(
   coach: { id: string; clubId: string | null },
@@ -47,6 +74,15 @@ export async function backfillClubLinkFromPrimaryClub(
     await db.coach.update({ where: { id: coach.id }, data: { clubId: null } })
     return null
   }
+
+  const staffAtClub = await db.staffMembership.findFirst({
+    where: { coachId: coach.id, clubId: club.id, active: true },
+    select: { id: true },
+  })
+  if (staffAtClub) {
+    return ensureActiveCoachClubLink(coach.id, club.id, db)
+  }
+
   const link = await ensurePendingCoachClubLink(coach.id, club.id, db)
   if (link.status !== 'ACTIVE') {
     await db.coach.updateMany({

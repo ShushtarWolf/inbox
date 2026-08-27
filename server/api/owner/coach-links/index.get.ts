@@ -15,6 +15,17 @@ export default defineEventHandler(async (event) => {
     await backfillClubLinkFromPrimaryClub(orphan)
   }
 
+  const staffCoachIds = new Set(
+    (
+      await prisma.staffMembership.findMany({
+        where: { clubId: club.id, active: true, coachId: { not: null } },
+        select: { coachId: true },
+      })
+    )
+      .map((row) => row.coachId)
+      .filter((id): id is string => Boolean(id)),
+  )
+
   const links = await prisma.coachClubLink.findMany({
     where: { clubId: club.id },
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
@@ -37,6 +48,7 @@ export default defineEventHandler(async (event) => {
   return {
     links: links
       .filter((link) => link.coach.approvalStatus === 'APPROVED')
+      .filter((link) => !staffCoachIds.has(link.coach.id))
       .map((link) => ({
         id: link.id,
         status: link.status,
