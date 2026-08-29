@@ -6,7 +6,7 @@ const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatNumber } = useFormatters()
 const showFilters = ref(false)
 
 const filters = reactive({
@@ -100,7 +100,7 @@ async function syncRoute() {
           </div>
           <p class="text-xs text-brand-gray-600">
             {{ c.city }}
-            <template v-if="c.reviewCount > 0"> · ⭐ {{ c.rating }} · {{ c.reviewCount }} {{ t('clubs.reviews') }}</template>
+            <template v-if="c.reviewCount > 0"> · ⭐ {{ formatNumber(c.rating) }} · {{ formatNumber(c.reviewCount) }} {{ t('clubs.reviews') }}</template>
             <template v-else> · {{ t('coaches.noReviewsYet') }}</template>
           </p>
           <p v-if="c.specialties?.length" class="truncate text-xs text-brand-gray-600">{{ formatSpecialties(c.specialties) }}</p>

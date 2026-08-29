@@ -3,7 +3,7 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 
 const localePath = useLocalePath()
 const { t } = useI18n()
-const { formatIsoDate, formatTimeRange } = useFormatters()
+const { formatIsoDate, formatTimeRange, formatPhone } = useFormatters()
 const { data, pending, error } = await useAuthedFetch<{
   coach?: { approvalStatus?: string; approvalNote?: string | null }
   sessions?: Array<{
@@ -55,7 +55,7 @@ const approvalStatus = computed(() => data.value?.coach?.approvalStatus || 'APPR
     <div v-for="s in data?.sessions" :key="s.id" class="ios-card p-3">
       <p class="font-bold">{{ s.athlete.name }}</p>
       <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(s.startTime, s.endTime) }}</bdi></p>
-      <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ s.athlete.phone }}</bdi></p>
+      <p class="text-xs text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ formatPhone(s.athlete.phone) }}</bdi></p>
     </div>
     <p v-if="!data?.sessions?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">{{ $t('coach.noSessionsToday') }}</p>
 

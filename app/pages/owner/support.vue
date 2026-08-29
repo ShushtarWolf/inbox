@@ -18,7 +18,7 @@ type OwnerSmsStatusResponse = {
 }
 
 const { t } = useI18n()
-const { formatDate } = useFormatters()
+const { formatDate, formatPhone } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: smsStatus, refresh: refreshSmsStatus } = await useAuthedFetch<OwnerSmsStatusResponse>('/api/owner/sms-status')
@@ -135,7 +135,7 @@ async function submitTicket() {
         <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.contactTitle') }}</h2>
         <p class="text-sm text-brand-navy">
           <span class="font-bold">{{ t('common.mobile') }}:</span>
-          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.phone || t('common.empty') }}</bdi>
+          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.phone ? formatPhone(data.club.phone) : t('common.empty') }}</bdi>
         </p>
         <p class="text-sm text-brand-navy">
           <span class="font-bold">{{ t('common.whatsapp') }}:</span>

@@ -66,7 +66,7 @@ const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const { t, te } = useI18n()
 const { localizedField } = useLocalizedField()
-const { formatNumber, formatYear, formatWeekday, formatTimeLabel } = useFormatters()
+const { formatNumber, formatYear, formatWeekday, formatTimeLabel, formatPhone } = useFormatters()
 const { today } = useLocalDate()
 const rawSlug = route.params.slug as string
 const slug = resolveClubSlugAlias(rawSlug)
@@ -984,7 +984,7 @@ async function shareClub() {
               </div>
               <div v-if="club.phone">
                 <p class="canva-club-more-label">{{ t('clubs.contactLabel') }}</p>
-                <a class="canva-club-more-value canva-club-detail-link" dir="ltr" :href="`tel:${club.phone}`">{{ club.phone }}</a>
+                <a class="canva-club-more-value canva-club-detail-link" dir="ltr" :href="`tel:${club.phone}`">{{ formatPhone(club.phone) }}</a>
               </div>
             </div>
             <div class="canva-club-more-map">
@@ -1026,7 +1026,7 @@ async function shareClub() {
                 <p class="text-sm font-bold text-brand-navy">{{ item.authorName }}</p>
                 <p class="canva-court-card-rating !mt-0 text-brand-navy">
                   <span class="canva-court-card-star" aria-hidden="true">★</span>
-                  {{ item.rating }}
+                  {{ formatNumber(item.rating) }}
                 </p>
               </div>
               <p class="mt-1 text-sm text-brand-gray-600">{{ item.body }}</p>

@@ -31,13 +31,7 @@ type HourRow =
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { today } = useLocalDate()
-const {
-  formatDayNumber,
-  formatWeekday,
-  formatMonth,
-  formatTimeLabel,
-  formatTimeRange,
-} = useFormatters()
+const { formatDayNumber, formatWeekday, formatMonth, formatTimeLabel, formatTimeRange, formatPhone } = useFormatters()
 
 const date = ref(today())
 const showDatePicker = ref(false)
@@ -220,7 +214,7 @@ function bookLinkFor(startTime: string) {
                     <p class="canva-cal-grid-cell-label">{{ row.session.athlete.name }}</p>
                     <p class="canva-cal-grid-cell-sub">
                       <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(row.session.startTime, row.session.endTime) }}</bdi>
-                      · <bdi dir="ltr" class="tabular-nums">{{ row.session.athlete.phone }}</bdi>
+                      · <bdi dir="ltr" class="tabular-nums">{{ formatPhone(row.session.athlete.phone) }}</bdi>
                     </p>
                   </template>
                   <template v-else-if="row.kind === 'past'">

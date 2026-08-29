@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatDate } = useFormatters()
+const { formatDate, formatPhone } = useFormatters()
 
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
 type TicketSource = 'CONTACT' | 'ATHLETE' | 'OWNER'
@@ -213,7 +213,7 @@ watch(statusFilter, () => {
               <tr v-if="expandedId === row.id">
                 <td colspan="4" class="bg-brand-gray-50 p-4 text-start">
                   <div class="space-y-3">
-                    <p v-if="row.phone || row.user?.phone" class="text-xs" dir="ltr">{{ row.phone || row.user?.phone }}</p>
+                    <p v-if="row.phone || row.user?.phone" class="text-xs" dir="ltr">{{ formatPhone(row.phone || row.user?.phone) }}</p>
                     <p v-if="row.bookingId" class="text-xs" dir="ltr">{{ t('admin.ticketBookingId') }}: {{ row.bookingId }}</p>
                     <NuxtLink
                       v-if="row.club"

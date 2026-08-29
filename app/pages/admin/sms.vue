@@ -3,7 +3,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t, te } = useI18n()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatNumber } = useFormatters()
+const { formatNumber, formatIsoDate } = useFormatters()
 
 type SmsStatus = {
   ok: boolean
@@ -426,7 +426,7 @@ watch(secret, (value) => {
               </li>
               <li class="flex justify-between gap-2">
                 <span>{{ t('admin.smsPage.dailyOwnerDate') }}</span>
-                <strong dir="ltr">{{ dailyResult.date }}</strong>
+                <strong>{{ formatIsoDate(dailyResult.date) }}</strong>
               </li>
             </ul>
             <p class="text-xs text-brand-gray-600" dir="ltr">{{ dailyResult.note }}</p>

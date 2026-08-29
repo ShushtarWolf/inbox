@@ -1,6 +1,7 @@
 import { PrismaClient, SlotDisplayStatus } from '@prisma/client'
 import { hashSecret } from '../server/utils/password.ts'
 import { formatHour, hourEnd, todayDateStr } from '../server/utils/slots.ts'
+import { toFaDigits } from '../shared/courtBulk.ts'
 import { addDaysToIsoDate } from '../shared/localDate.ts'
 import { productionDemoSeedMessage, shouldRefuseProductionDemoSeed } from '../shared/seedSafety.ts'
 import { DEFAULT_EQUIPMENT } from '../shared/defaultEquipment.ts'
@@ -253,7 +254,7 @@ async function main() {
     for (let i = 1; i <= 4; i++) {
       await prisma.court.create({
         data: {
-          nameFa: `زمین ${i}`,
+          nameFa: `زمین ${toFaDigits(i)}`,
           nameEn: `Court ${i}`,
           price: c.priceFrom + i * 50000,
           clubId: club.id,

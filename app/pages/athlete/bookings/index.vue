@@ -72,7 +72,7 @@ type HistoryItem = {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate } = useFormatters()
+const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate, formatFaDigits } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
@@ -308,10 +308,10 @@ function monthKeyJalali(iso: string) {
 const historyItems = computed((): HistoryItem[] => {
   const items: HistoryItem[] = []
   for (const b of (data.value?.courtBookings || []) as CourtBooking[]) {
-    const courtName = localizedField(b.slot.court, 'nameFa', 'nameEn')
+    const courtName = formatFaDigits(localizedField(b.slot.court, 'nameFa', 'nameEn'))
     const clubName = localizedField(b.slot.court.club, 'nameFa', 'nameEn')
     const equipLines = (b.bookingEquipments || []).map((row) => {
-      const name = row.equipment ? localizedField(row.equipment, 'nameFa', 'nameEn') : ''
+      const name = row.equipment ? formatFaDigits(localizedField(row.equipment, 'nameFa', 'nameEn')) : ''
       if (!name) return ''
       const qty = Math.max(1, row.quantity || 1)
       return t('athlete.historyEquipmentQty', { qty: formatNumber(qty), name })
@@ -696,7 +696,7 @@ function dateLine(item: HistoryItem) {
               style="border-radius: var(--sz-canva-radius);"
               @click="rescheduleSlotId = slot.id"
             >
-              {{ localizedField(slot.court, 'nameFa', 'nameEn') }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
+              {{ formatFaDigits(localizedField(slot.court, 'nameFa', 'nameEn')) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
             </button>
             <p v-if="replacementSlots && !replacementSlots.length" class="text-sm text-brand-gray-600">
               {{ t('booking.noSlots') }}

@@ -5,7 +5,7 @@ import { fetchErrorMessage } from '~/composables/useFetchError'
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
 const { t } = useI18n()
-const { formatCurrency, formatTimeRange } = useFormatters()
+const { formatCurrency, formatTimeRange, formatNumber, formatFaDigits } = useFormatters()
 const { onlineEnabled, redirectToPaymentGateway } = useCheckout()
 
 const route = useRoute()
@@ -193,7 +193,7 @@ async function startTopUp() {
         <AppFormField :label="$t('coach.book.club')">
           <select v-model="clubId" class="neo-select">
             <option v-for="link in activeLinks" :key="link.id" :value="link.club.id">
-              {{ link.club.nameFa }} — {{ $t('coach.clubLinkDiscount', { percent: link.courtDiscountPercent }) }}
+              {{ formatFaDigits(link.club.nameFa) }} — {{ $t('coach.clubLinkDiscount', { percent: formatNumber(link.courtDiscountPercent) }) }}
             </option>
           </select>
         </AppFormField>

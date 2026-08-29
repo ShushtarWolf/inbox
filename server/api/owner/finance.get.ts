@@ -1,5 +1,5 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { isoToJalaali, jalaaliToIso } from '#shared/jalali.ts'
+import { formatSmsJalaliDate, formatSmsTime, isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
@@ -169,11 +169,12 @@ export default defineEventHandler(async (event) => {
       amount: amountOfBooking(booking),
       bookingStatus: booking.status,
       kind: 'court' as const,
-      reservationLabel: `${booking.slot.court.nameFa} · ${booking.slot.startTime} · ${booking.slot.date}`,
+      reservationLabel: `${toPersianDigits(booking.slot.court.nameFa)} · ${formatSmsTime(booking.slot.startTime)} · ${formatSmsJalaliDate(booking.slot.date)}`,
       equipmentSummary: booking.bookingEquipments
         .map((item) => {
           const qty = Math.max(1, item.quantity || 1)
-          return qty > 1 ? `${item.equipment.nameFa} ×${qty}` : item.equipment.nameFa
+          const name = toPersianDigits(item.equipment.nameFa)
+          return qty > 1 ? `${name} ×${toPersianDigits(String(qty))}` : name
         })
         .join(', ') || null,
       unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
@@ -187,7 +188,7 @@ export default defineEventHandler(async (event) => {
       amount: amountOfSession(session),
       bookingStatus: session.status,
       kind: 'coach' as const,
-      reservationLabel: `${session.date} · ${session.startTime}`,
+      reservationLabel: `${formatSmsJalaliDate(session.date)} · ${formatSmsTime(session.startTime)}`,
       coachName: session.coach.nameFa,
       unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(session)),
     })),

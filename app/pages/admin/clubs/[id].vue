@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const { localizedField } = useLocalizedField()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatCurrency, formatNumber, formatDate } = useFormatters()
+const { formatCurrency, formatNumber, formatDate, formatPhone } = useFormatters()
 
 type ClubDetail = {
   id: string
@@ -166,8 +166,8 @@ function walletTxLabel(type: string) {
             <h2 class="tail-section-title mb-3">{{ t('admin.clubDetails') }}</h2>
             <ul class="space-y-2 text-sm">
               <li class="flex justify-between gap-2"><span>{{ t('admin.address') }}</span><span class="text-end">{{ club.addressFa }}</span></li>
-              <li v-if="club.phone" class="flex justify-between gap-2"><span>{{ t('admin.phone') }}</span><span dir="ltr">{{ club.phone }}</span></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.hours') }}</span><span dir="ltr">{{ club.openHour }}–{{ club.closeHour }}</span></li>
+              <li v-if="club.phone" class="flex justify-between gap-2"><span>{{ t('admin.phone') }}</span><span dir="ltr">{{ formatPhone(club.phone) }}</span></li>
+              <li class="flex justify-between gap-2"><span>{{ t('admin.hours') }}</span><span dir="ltr">{{ formatNumber(club.openHour) }}–{{ formatNumber(club.closeHour) }}</span></li>
               <li class="flex justify-between gap-2"><span>{{ t('admin.priceFrom') }}</span><span dir="ltr">{{ formatCurrency(club.priceFrom) }}</span></li>
             </ul>
           </div>
@@ -176,7 +176,7 @@ function walletTxLabel(type: string) {
             <template v-if="club.owner">
               <p class="font-bold">{{ club.owner.name }}</p>
               <p class="text-sm text-brand-gray-600" dir="ltr">{{ club.owner.email }}</p>
-              <p v-if="club.owner.phone" class="text-sm text-brand-gray-600" dir="ltr">{{ club.owner.phone }}</p>
+              <p v-if="club.owner.phone" class="text-sm text-brand-gray-600" dir="ltr">{{ formatPhone(club.owner.phone) }}</p>
               <p v-if="club.owner.disabledAt" class="mt-2 text-xs font-bold text-red-700">{{ t('admin.userDisabled') }}</p>
             </template>
             <p v-else class="text-sm text-brand-gray-500">—</p>

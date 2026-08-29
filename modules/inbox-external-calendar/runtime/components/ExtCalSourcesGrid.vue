@@ -96,6 +96,7 @@ const formattedDate = computed(() => {
       month: 'long',
       day: 'numeric',
       timeZone: 'Asia/Tehran',
+      ...(locale.value === 'fa' ? { calendar: 'persian', numberingSystem: 'arabext' } : {}),
     }).format(new Date(`${props.date}T12:00:00`))
   } catch {
     return props.date

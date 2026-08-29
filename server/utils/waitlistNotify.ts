@@ -1,3 +1,4 @@
+import { formatSmsJalaliDate, formatSmsTime } from '#shared/jalali.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifySmsSoft } from './bookingNotify'
 import { createInAppNotification, sendNotification } from './notify'
@@ -85,8 +86,8 @@ async function notifyWaitlistForFreedSlotInner(opts: {
           await createInAppNotification({
             userId: entry.userId,
             type: 'WAITLIST_SLOT_AVAILABLE',
-            title: 'Slot available',
-            body: `A slot opened at ${clubName || 'club'} — ${opts.date} ${opts.startTime}`,
+            title: 'نوبت آزاد شد',
+            body: `نوبت آزاد شد در «${clubName || 'باشگاه'}» — ${formatSmsJalaliDate(opts.date)} ${formatSmsTime(opts.startTime)}`,
             metadata: {
               clubId: opts.clubId,
               courtId: opts.courtId,

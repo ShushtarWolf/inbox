@@ -10,7 +10,7 @@ definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 
 
 const { t } = useI18n()
 const { fetch } = useAuth()
-const { formatTimeRange } = useFormatters()
+const { formatTimeRange, formatNumber } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   bioFa?: string | null
   bioEn?: string | null
@@ -250,7 +250,7 @@ async function removeGalleryImage(id: string) {
                   {{ link.club.city }}
                   · {{ $t(`owner.coachLinkStatus.${link.status}`) }}
                   <template v-if="link.status === 'ACTIVE'">
-                    · {{ $t('coach.clubLinkDiscount', { percent: link.courtDiscountPercent }) }}
+                    · {{ $t('coach.clubLinkDiscount', { percent: formatNumber(link.courtDiscountPercent) }) }}
                   </template>
                 </p>
               </div>

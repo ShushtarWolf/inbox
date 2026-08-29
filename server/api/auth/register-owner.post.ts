@@ -1,6 +1,7 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
 import { assignAddedRole, canAddRole } from '#shared/roles.ts'
+import { toFaDigits } from '#shared/courtBulk.ts'
 import { uniqueClubSlug } from '../../utils/slug'
 import {
   normalizeOwnerCourtCount,
@@ -143,7 +144,7 @@ export default defineEventHandler(async (event) => {
       const sport = sportBySlug[slug]!
       await tx.court.create({
         data: {
-          nameFa: `زمین ${index + 1}`,
+          nameFa: `زمین ${toFaDigits(index + 1)}`,
           nameEn: `Court ${index + 1}`,
           clubId: club.id,
           sportId: sport.id,

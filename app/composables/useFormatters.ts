@@ -84,6 +84,19 @@ export function useFormatters() {
     })).format(toDate(value))
   }
 
+  /** Any display string that may contain Latin digits (court names, codes, etc.). */
+  function formatFaDigits(value: string | number | null | undefined) {
+    if (value == null || value === '') return ''
+    const text = String(value)
+    return locale.value === 'fa' ? toPersianDigits(text) : text
+  }
+
+  /** Display phones with Persian digits; keep tel: hrefs in Latin ASCII. */
+  function formatPhone(value: string | null | undefined) {
+    if (!value) return ''
+    return formatFaDigits(value)
+  }
+
   function formatHours(count: number | string | null | undefined) {
     return t('common.hoursShort', { count: formatNumber(count) })
   }
@@ -104,6 +117,8 @@ export function useFormatters() {
     formatTimeLabel,
     formatTimeRange,
     formatDateTime,
+    formatFaDigits,
+    formatPhone,
     formatHours,
     formatDistanceKm,
   }

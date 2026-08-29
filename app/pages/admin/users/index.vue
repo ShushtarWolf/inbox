@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
+const { formatPhone } = useFormatters()
 const { t } = useI18n()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
 
@@ -172,7 +173,7 @@ watch([roleFilter, disabledFilter], () => {
               </td>
               <td class="p-3">
                 <div dir="ltr">{{ user.email }}</div>
-                <div v-if="user.phone" class="text-xs text-brand-gray-600" dir="ltr">{{ user.phone }}</div>
+                <div v-if="user.phone" class="text-xs text-brand-gray-600" dir="ltr">{{ formatPhone(user.phone) }}</div>
               </td>
               <td class="p-3">
                 <select

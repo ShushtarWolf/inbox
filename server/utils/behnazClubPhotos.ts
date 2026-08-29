@@ -19,6 +19,7 @@ import {
   PILOT_OWNER_PHONE,
   PILOT_SPORT_SLUG,
 } from '#shared/pilotClub.ts'
+import { toFaDigits } from '#shared/courtBulk.ts'
 
 type Db = typeof prisma
 
@@ -26,8 +27,9 @@ function findCourt(
   courts: Array<{ id: string; nameEn: string; nameFa: string }>,
   n: number,
 ) {
+  const fa = `زمین ${toFaDigits(n)}`
   return (
-    courts.find((c) => c.nameEn === `Court ${n}` || c.nameFa === `زمین ${n}`)
+    courts.find((c) => c.nameEn === `Court ${n}` || c.nameFa === fa || c.nameFa === `زمین ${n}`)
     || null
   )
 }
@@ -105,7 +107,7 @@ export async function ensurePilotCourts(db: Db, clubId: string) {
     if (!court) {
       court = await db.court.create({
         data: {
-          nameFa: `زمین ${n}`,
+          nameFa: `زمین ${toFaDigits(n)}`,
           nameEn: `Court ${n}`,
           clubId,
           sportId: sport.id,

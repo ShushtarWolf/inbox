@@ -127,7 +127,7 @@ type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season
 const { t, locale } = useI18n()
 const { fetchErrorMessage } = useFetchError()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const { pilotNoCoach } = usePilotFlags()
@@ -292,7 +292,7 @@ const overviewStats = computed(() => {
     const pct = courtSlots.length ? Math.round((used / courtSlots.length) * 100) : 0
     return {
       id: court.id,
-      name: localizedField(court, 'nameFa', 'nameEn'),
+      name: formatFaDigits(localizedField(court, 'nameFa', 'nameEn')),
       pct,
       total: courtSlots.length,
       used,
@@ -384,7 +384,7 @@ const selectedSlotsFull = computed(() => {
 function slotCourtName(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
   const court = courts.value.find((item) => item.id === slot.courtId)
-  return court ? localizedField(court, 'nameFa', 'nameEn') : ''
+  return court ? formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) : ''
 }
 function slotCellLabel(slot: OwnerCalendarSlot) {
   const name = slotCourtName(slot)
@@ -402,7 +402,7 @@ const payConfirmCourtsLabel = computed(() => {
   if (fromSelection) return fromSelection
   const id = selectedSlot.value?.courtId || selectionCourtId.value || activeCourtId.value
   const court = courts.value.find((item) => item.id === id)
-  return court ? localizedField(court, 'nameFa', 'nameEn') : ''
+  return court ? formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) : ''
 })
 const batchMode = computed(() =>
   selectedSlotIds.value.length > 1
@@ -633,7 +633,7 @@ function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
 }
 
 function courtColumnLabel(court: { nameFa: string; nameEn: string }, index: number) {
-  const name = localizedField(court, 'nameFa', 'nameEn')
+  const name = formatFaDigits(localizedField(court, 'nameFa', 'nameEn'))
   return name || t('booking.courtNumber', { n: formatNumber(index + 1) })
 }
 

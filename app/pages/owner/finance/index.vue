@@ -70,7 +70,7 @@ const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<Ow
   immediate: false,
   watch: false,
 })
-const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth } = useFormatters()
+const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth, formatPhone } = useFormatters()
 const { today } = useLocalDate()
 const { pilotNoCoach } = usePilotFlags()
 const { fetchErrorMessage } = useFetchError()
@@ -590,7 +590,7 @@ function closeTx() {
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.guestMobile') }}</span>
-          <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedTx.guestMobile || '—' }}</bdi>
+          <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedTx.guestMobile ? formatPhone(selectedTx.guestMobile) : '—' }}</bdi>
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.method') }}</span>

@@ -6,7 +6,7 @@ const route = useRoute()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatTimeRange } = useFormatters()
+const { formatCurrency, formatTimeRange, formatNumber } = useFormatters()
 const id = route.params.id as string
 
 const { data: coach, pending, error } = await useFetch(`/api/coaches/${id}`)
@@ -34,7 +34,7 @@ function weekdayLabel(dayOfWeek: number) {
       <div class="flex items-center justify-center gap-2">
         <span v-if="coach.verifiedAt" class="neo-badge">{{ t('clubs.verified') }}</span>
       </div>
-      <p v-if="coach.reviewSummary?.count" class="mt-1 text-xs text-brand-gray-600">⭐ {{ coach.reviewSummary?.average || coach.rating }} · {{ coach.reviewSummary?.count }} {{ t('clubs.reviews') }}</p>
+      <p v-if="coach.reviewSummary?.count" class="mt-1 text-xs text-brand-gray-600">⭐ {{ formatNumber(coach.reviewSummary?.average || coach.rating) }} · {{ formatNumber(coach.reviewSummary?.count) }} {{ t('clubs.reviews') }}</p>
       <p v-else class="mt-1 text-xs text-brand-gray-600">{{ t('coaches.noReviewsYet') }}</p>
     </div>
     <p class="text-center text-sm text-brand-gray-600">{{ localizedField(coach, 'bioFa', 'bioEn') }}</p>
@@ -111,7 +111,7 @@ function weekdayLabel(dayOfWeek: number) {
         <div v-for="item in coach.testimonials" :key="item.id" class="ios-card p-3">
           <div class="flex items-center justify-between gap-3">
             <p class="font-bold">{{ item.authorName }}</p>
-            <p class="text-xs text-brand-gray-600">⭐ {{ item.rating }}</p>
+            <p class="text-xs text-brand-gray-600">⭐ {{ formatNumber(item.rating) }}</p>
           </div>
           <p class="mt-1 text-sm text-brand-gray-600">{{ item.body }}</p>
         </div>

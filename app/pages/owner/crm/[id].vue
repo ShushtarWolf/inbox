@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const route = useRoute()
 const localePath = useLocalePath()
 const { t } = useI18n()
-const { formatNumber, formatCurrency, formatIsoDate } = useFormatters()
+const { formatNumber, formatCurrency, formatIsoDate, formatPhone } = useFormatters()
 const id = route.params.id as string
 
 const { data, pending, error } = await useAuthedFetch<{
@@ -41,7 +41,7 @@ function campaignStatusLabel(status: string) {
       <div v-if="contact" class="venus-page-stack">
         <section class="canva-dash-hero hidden max-[430px]:block">
           <h1 class="mt-2 font-display text-2xl font-bold text-white">{{ contact.name }}</h1>
-          <p class="mt-1 text-sm text-white/85"><bdi dir="ltr" class="tabular-nums">{{ contact.mobile || '—' }}</bdi></p>
+          <p class="mt-1 text-sm text-white/85"><bdi dir="ltr" class="tabular-nums">{{ contact.mobile ? formatPhone(contact.mobile) : '—' }}</bdi></p>
           <span
             class="canva-chip mt-3 inline-flex w-fit items-center gap-1 px-2.5 py-1 text-xs font-bold"
             style="border-radius: var(--sz-canva-radius);"

@@ -59,7 +59,7 @@ type OwnerSmsStatusResponse = {
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { formatHours } = useFormatters()
+const { formatHours, formatPhone } = useFormatters()
 const { today } = useLocalDate()
 const selectedSegment = ref('all')
 
@@ -327,7 +327,7 @@ async function send() {
         >
           <div class="min-w-0 flex-1 text-start">
             <p class="font-bold text-brand-navy">{{ c.name }}</p>
-            <p class="mt-0.5 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.mobile || '—' }}</bdi></p>
+            <p class="mt-0.5 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ c.mobile ? formatPhone(c.mobile) : '—' }}</bdi></p>
           </div>
           <span
             v-if="contactBadge(c)"

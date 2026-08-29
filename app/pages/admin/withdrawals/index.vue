@@ -10,7 +10,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatCurrency, formatDate } = useFormatters()
+const { formatCurrency, formatDate, formatPhone } = useFormatters()
 
 type WithdrawStatus = 'PENDING' | 'PAID' | 'REJECTED'
 type KindFilter = 'club' | 'athlete'
@@ -331,7 +331,7 @@ watch([statusFilter, kindFilter], () => {
                 </template>
                 <template v-else>
                   <span class="font-bold text-brand-navy">{{ row.user.name }}</span>
-                  <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.user.phone || row.user.email }}</div>
+                  <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.user.phone ? formatPhone(row.user.phone) : row.user.email }}</div>
                 </template>
               </td>
               <td class="p-3 tabular-nums" dir="ltr">{{ formatCurrency(row.amount) }}</td>

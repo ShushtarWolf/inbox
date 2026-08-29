@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   return {
     trackingCode: toPersianDigits(bookingTrackingCode(booking.id)),
     guestName,
-    mobile,
+    mobile: mobile ? toPersianDigits(mobile) : '',
     clubName: (club.nameFa || club.nameEn || '').trim() || 'باشگاه',
     reserveDate: formatSmsJalaliLongDate(booking.slot.date),
     paymentStatus: paymentStatusFa(payStatus, booking.status),
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
       date: formatSmsJalaliLongDate(booking.slot.date),
       startTime: formatSmsTime(booking.slot.startTime),
       endTime: booking.slot.endTime ? formatSmsTime(booking.slot.endTime) : '',
-      courtName: (booking.slot.court.nameFa || booking.slot.court.nameEn || '').trim(),
+      courtName: toPersianDigits((booking.slot.court.nameFa || booking.slot.court.nameEn || '').trim()),
       price: amount,
     },
     amount,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { formatPhone } = useFormatters()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
@@ -154,7 +155,7 @@ useHead({
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.mobileLabel') }}</dt>
         <dd>
-          <a :href="`tel:${mobileTel}`" class="tabular-nums text-brand-primary" dir="ltr">{{ mobile }}</a>
+          <a :href="`tel:${mobileTel}`" class="tabular-nums text-brand-primary" dir="ltr">{{ formatPhone(mobile) }}</a>
         </dd>
       </div>
 

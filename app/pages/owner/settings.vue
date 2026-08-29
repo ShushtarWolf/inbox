@@ -83,7 +83,7 @@ interface OwnerStaffResponse {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatNumber, formatCurrency } = useFormatters()
+const { formatNumber, formatCurrency, formatPhone, formatFaDigits } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
@@ -686,7 +686,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             >
               <div class="min-w-0 flex-1 text-start">
                 <p class="text-sm font-bold text-brand-navy">
-                  {{ localizedField(court, 'nameFa', 'nameEn') }}
+                  {{ formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) }}
                   <span class="ms-2 font-medium text-brand-gray-600">{{ localizedField(court.sport, 'nameFa', 'nameEn') }}</span>
                 </p>
                 <p class="text-xs text-brand-gray-600">
@@ -833,7 +833,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                   <p class="font-bold">{{ (!pilotNoCoach && member.coach) ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
                   <p class="text-xs text-brand-gray-600">
                     <span class="canva-chip canva-settings-chip-idle px-2 py-0.5">{{ staffRoleLabel(member.role) }}</span>
-                    <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></span>
+                    <span class="ms-2"><bdi dir="ltr" class="tabular-nums">{{ member.user.phone ? formatPhone(member.user.phone) : member.user.email }}</bdi></span>
                   </p>
                 </div>
                 <button

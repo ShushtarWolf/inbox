@@ -4,7 +4,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatFaDigits } = useFormatters()
 const step = ref(1)
 const saving = ref(false)
 const saveError = ref('')
@@ -197,7 +197,7 @@ async function finish() {
         <p class="text-xs text-brand-gray-500">{{ t('owner.setupCourtsHint') }}</p>
         <ul class="space-y-2 text-sm">
           <li v-for="court in courts" :key="court.id" class="ios-card flex items-center justify-between gap-2 p-2">
-            <span class="font-bold">{{ court.nameFa }} / {{ court.nameEn }}</span>
+            <span class="font-bold">{{ formatFaDigits(court.nameFa) }} / {{ court.nameEn }}</span>
             <span class="tabular-nums text-brand-gray-600" dir="ltr">{{ formatCurrency(court.price) }}</span>
           </li>
         </ul>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { formatPhone } = useFormatters()
 export type GuestSearchHit = { name: string; mobile: string; source?: string }
 
 defineProps<{
@@ -34,7 +35,7 @@ const emit = defineEmits<{
       @mousedown.prevent="emit('select', guest)"
     >
       <span class="min-w-0 truncate font-bold text-brand-navy">{{ guest.name || '—' }}</span>
-      <bdi v-if="guest.mobile" dir="ltr" class="shrink-0 tabular-nums text-xs text-brand-gray-600">{{ guest.mobile }}</bdi>
+      <bdi v-if="guest.mobile" dir="ltr" class="shrink-0 tabular-nums text-xs text-brand-gray-600">{{ formatPhone(guest.mobile) }}</bdi>
     </button>
   </div>
 </template>

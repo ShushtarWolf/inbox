@@ -15,6 +15,7 @@ import {
   PILOT_SPORT_SLUG,
 } from '#shared/pilotClub.ts'
 import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhotos.ts'
+import { toFaDigits } from '#shared/courtBulk.ts'
 import { hashSecret } from '../../utils/password'
 import { applyPilotCourtPhotos } from '../../utils/behnazClubPhotos'
 import { seedDefaultEquipment } from '../../utils/seedDefaultEquipment'
@@ -112,7 +113,7 @@ export default defineEventHandler(async (event) => {
     for (let i = 1; i <= PILOT_COURT_COUNT; i++) {
       await tx.court.create({
         data: {
-          nameFa: `زمین ${i}`,
+          nameFa: `زمین ${toFaDigits(i)}`,
           nameEn: `Court ${i}`,
           clubId: club.id,
           sportId: sport.id,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
+const { formatPhone } = useFormatters()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
@@ -181,7 +182,7 @@ function resetForm() {
         >
           <p class="font-bold">{{ t('admin.provisionSuccess') }}</p>
           <p dir="ltr">{{ result.email }} · {{ result.role }}</p>
-          <p v-if="result.phone" class="text-xs" dir="ltr">{{ result.phone }}</p>
+          <p v-if="result.phone" class="text-xs" dir="ltr">{{ formatPhone(result.phone) }}</p>
           <p v-if="result.clubName" class="text-xs">
             {{ result.clubName }}
             <span v-if="result.clubSlug" dir="ltr"> · {{ result.clubSlug }}</span>

@@ -10,7 +10,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 const localePath = useLocalePath()
 const { t } = useI18n()
 const { displayName, avatarUrl, initials, firstName, user, logout } = useAuth()
-const { formatCurrency, formatNumber } = useFormatters()
+const { formatCurrency, formatNumber, formatPhone } = useFormatters()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
 
@@ -125,7 +125,7 @@ async function handleLogout() {
         </div>
         <div class="min-w-0 text-start">
           <h1 class="truncate text-xl font-bold text-white">{{ displayName || firstName }}</h1>
-          <p v-if="phone" class="mt-0.5 truncate text-sm tabular-nums text-white/85" dir="ltr">{{ phone }}</p>
+          <p v-if="phone" class="mt-0.5 truncate text-sm tabular-nums text-white/85" dir="ltr">{{ formatPhone(phone) }}</p>
           <p v-else class="mt-0.5 text-sm text-white/70">{{ addMobileHint }}</p>
         </div>
       </div>

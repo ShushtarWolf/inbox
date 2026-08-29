@@ -23,7 +23,7 @@ const { t } = useI18n()
 const { pilotNoCoach } = usePilotFlags()
 const { data, pending, error, refresh } = await useAuthedFetch<WorkerItem[]>('/api/owner/workers')
 useOwnerClubRefresh(refresh)
-const { formatTimeRange } = useFormatters()
+const { formatTimeRange, formatPhone } = useFormatters()
 
 const weekdayOptions = IRAN_WEEKDAY_ORDER
 const DEFAULT_DAY_RANGE: DayTimeRange = { start: '08:00', end: '17:00' }
@@ -261,7 +261,7 @@ async function confirmDelete() {
                 >{{ positionLabel(worker.position) }}</span>
               </p>
               <p class="mt-2 text-sm">
-                <bdi dir="ltr" class="tabular-nums">{{ worker.mobile }}</bdi>
+                <bdi dir="ltr" class="tabular-nums">{{ formatPhone(worker.mobile) }}</bdi>
                 <span v-if="worker.emergencyMobile" class="ms-2 text-brand-gray-600">
                   · {{ t('owner.workersPage.emergency') }}: <bdi dir="ltr" class="tabular-nums">{{ worker.emergencyMobile }}</bdi>
                 </span>

@@ -181,6 +181,8 @@ describe('bookingNotify SMS', () => {
       title: 'رزرو تایید شد',
       body: expect.stringContaining('باشگاه تست'),
     }))
+    expect(createInAppNotification.mock.calls[0]![0].body).toMatch(/۱۴۰۵|۱۴۰۴/)
+    expect(createInAppNotification.mock.calls[0]![0].body).toMatch(/[۰-۹]{1,2}:[۰-۹]{2}/)
 
     await notifyBookingCancelled(baseOpts)
     expect(createInAppNotification).toHaveBeenCalledWith(expect.objectContaining({

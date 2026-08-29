@@ -10,6 +10,7 @@ import {
 } from '../../../utils/phoneAuth'
 import { enforceOtpVerifyPhoneLimit } from '../../../utils/rateLimit'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { toFaDigits } from '#shared/courtBulk.ts'
 import {
   normalizeOwnerCourtCount,
   normalizeOwnerSport,
@@ -143,7 +144,7 @@ export default defineEventHandler(async (event) => {
         const sport = sportBySlug[sportSlug]!
         await tx.court.create({
           data: {
-            nameFa: `زمین ${index + 1}`,
+            nameFa: `زمین ${toFaDigits(index + 1)}`,
             nameEn: `Court ${index + 1}`,
             clubId: club.id,
             sportId: sport.id,

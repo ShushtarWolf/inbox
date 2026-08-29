@@ -6,7 +6,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
+const { formatCurrency, formatDate, formatTimeLabel, formatPhone } = useFormatters()
 
 const PAYMENT_FILTERS = ['ALL', 'IPG', 'ON_SITE', 'PENDING_ONLINE', 'FAILED', 'REFUNDED'] as const
 type PaymentFilter = (typeof PAYMENT_FILTERS)[number]
@@ -369,7 +369,7 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       </li>
                       <li v-if="row.guestMobile && row.user" class="flex justify-between gap-2">
                         <span>{{ t('admin.phone') }}</span>
-                        <span dir="ltr">{{ row.guestMobile }}</span>
+                        <span dir="ltr">{{ formatPhone(row.guestMobile) }}</span>
                       </li>
                     </ul>
                     <p class="mt-2 text-brand-gray-500">{{ t('admin.bookingsReadOnlyNote') }}</p>

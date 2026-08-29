@@ -114,6 +114,10 @@ describe('waitlistNotify', () => {
 
     expect(sendNotification.mock.calls.filter((c) => c[0]?.channel === 'sms')).toHaveLength(0)
     expect(createInAppNotification).toHaveBeenCalled()
+    expect(createInAppNotification).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'نوبت آزاد شد',
+      body: expect.stringMatching(/۱۴۰۵|۱۴۰۴/),
+    }))
     expect(logSpy).toHaveBeenCalledWith(
       '[waitlistNotify:sms:skip]',
       'WAITLIST_SLOT_AVAILABLE',

@@ -1,4 +1,5 @@
 import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
@@ -72,7 +73,7 @@ export function clubNotifyName(club: { nameFa?: string | null; nameEn?: string |
 }
 
 export function courtNotifyName(court: { nameFa?: string | null; nameEn?: string | null }) {
-  return (court.nameFa || court.nameEn || '').trim()
+  return toPersianDigits((court.nameFa || court.nameEn || '').trim())
 }
 
 export function personNotifyName(...parts: Array<string | null | undefined>) {
@@ -228,10 +229,11 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
 }
 
 function whenLine(opts: BookingNotifyOpts) {
-  const start = opts.startTime
-  const end = opts.endTime
+  const start = opts.startTime ? formatSmsTime(opts.startTime) : ''
+  const end = opts.endTime ? formatSmsTime(opts.endTime) : ''
   const time = start && end && end !== start ? `از ${start} تا ${end}` : start
-  const when = [opts.date, time].filter(Boolean).join(' ')
+  const date = opts.date ? formatSmsJalaliDate(opts.date) : ''
+  const when = [date, time].filter(Boolean).join(' ')
   return when || '—'
 }
 

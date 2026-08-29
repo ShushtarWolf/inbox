@@ -43,7 +43,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<OwnerStaffPage>('
 const { data: linkData, refresh: refreshLinks } = await useAuthedFetch<{ links: CoachLink[] }>('/api/owner/coach-links')
 useOwnerClubRefresh(refresh)
 useOwnerClubRefresh(refreshLinks)
-const { formatIsoDate, formatTimeRange, formatCurrency } = useFormatters()
+const { formatIsoDate, formatTimeRange, formatCurrency, formatPhone } = useFormatters()
 const { localizedField } = useLocalizedField()
 
 const linkBusyId = ref('')
@@ -181,7 +181,7 @@ async function deactivate(memberId: string) {
           <li v-for="member in data?.staff" :key="member.id" class="flex items-start justify-between gap-2 ios-card p-3">
             <div>
               <p class="font-bold">{{ member.coach ? localizedField(member.coach, 'nameFa', 'nameEn') : member.user.name }}</p>
-              <p class="text-xs text-brand-gray-600">{{ staffRoleLabel(member.role) }} · <bdi dir="ltr" class="tabular-nums">{{ member.user.phone || member.user.email }}</bdi></p>
+              <p class="text-xs text-brand-gray-600">{{ staffRoleLabel(member.role) }} · <bdi dir="ltr" class="tabular-nums">{{ member.user.phone ? formatPhone(member.user.phone) : member.user.email }}</bdi></p>
               <p v-if="member.permissionsJson" class="mt-1 text-[11px] text-brand-gray-500">
                 {{ parsePermissions(member.permissionsJson).map((p) => permissionLabel(p as OwnerPermission)).join(' · ') }}
               </p>
