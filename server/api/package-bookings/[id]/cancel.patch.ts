@@ -1,7 +1,10 @@
 import { notifyBookingCancelled } from '../../../utils/bookingNotify'
+import { assertPackageCancelAllowed } from '../../../utils/packages'
 import { cancelPackageBooking } from '../../../utils/cancellations'
+import { assertPackagesEnabled } from '../../../utils/packagesGate'
 
 export default defineEventHandler(async (event) => {
+  assertPackagesEnabled(event)
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const booking = await prisma.packageBooking.findFirst({
@@ -11,11 +14,13 @@ export default defineEventHandler(async (event) => {
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
   if (booking.status === 'CANCELLED') return { ok: true }
 
+  assertPackageCancelAllowed(booking.package)
+
   const result = await cancelPackageBooking({
     packageBookingId: id!,
     actorUserId: user.id,
     reason: 'athlete-cancel',
-    paymentId: booking.payment?.id,
+    paymentId: booking.payment?.status === 'PAID' ? booking.payment.id : null,
     userId: user.id,
   })
 

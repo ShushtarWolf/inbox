@@ -211,6 +211,10 @@ export default defineNuxtConfig({
           || process.env.COMPETITIONS_PILOT_CLUB_SLUG
           || '',
         ) || '',
+      // Class packages (owner + coach create). Default off; independent of recurring desk reserve.
+      packagesEnabled:
+        process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
+        || process.env.PACKAGES_ENABLED === 'true',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE

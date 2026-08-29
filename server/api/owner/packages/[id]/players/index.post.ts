@@ -1,44 +1,43 @@
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
+import { assertPackagesEnabled } from '../../../../../utils/packagesGate'
+import { countActivePackageSeats, lockPackageRow } from '../../../../../utils/packages'
 
 export default defineEventHandler(async (event) => {
-  if (!isRecurringReserveEnabled()) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'RECURRING_RESERVE_DISABLED',
-    })
-  }
+  assertPackagesEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const packageId = getRouterParam(event, 'id')
-  const body = await readBody<{ guestName?: string; guestMobile?: string; level?: number }>(event)
+  if (!packageId) throw createError({ statusCode: 400, statusMessage: 'id required' })
 
-  const pkg = await prisma.packageDraft.findFirst({ where: { id: packageId, clubId: club.id } })
-  if (!pkg) throw createError({ statusCode: 404, statusMessage: 'Package not found' })
+  const body = await readBody<{
+    guestName?: string
+    guestMobile?: string
+    level?: number
+    athleteId?: string
+  }>(event)
 
-  const [bookingCount, playerCount] = await Promise.all([
-    prisma.packageBooking.count({ where: { packageId: pkg.id, status: { not: 'CANCELLED' } } }),
-    prisma.packagePlayer.count({ where: { packageId: pkg.id } }),
-  ])
-  if (bookingCount + playerCount >= pkg.capacity) {
-    throw createError({ statusCode: 409, statusMessage: 'Package is full' })
+  if (!body.guestName?.trim()) {
+    throw createError({ statusCode: 400, statusMessage: 'guestName required' })
   }
 
-  const guestName = body.guestName?.trim()
-  if (!guestName) throw createError({ statusCode: 400, statusMessage: 'guestName required' })
+  return prisma.$transaction(async (tx) => {
+    await lockPackageRow(tx, packageId)
+    const pkg = await tx.packageDraft.findFirst({
+      where: { id: packageId, clubId: club.id },
+    })
+    if (!pkg) throw createError({ statusCode: 404, statusMessage: 'Package not found' })
 
-  let athleteId: string | null = null
-  const phone = body.guestMobile?.trim()
-  if (phone) {
-    const athlete = await prisma.user.findFirst({ where: { phone } })
-    if (athlete) athleteId = athlete.id
-  }
+    const seats = await countActivePackageSeats(pkg.id, tx)
+    if (seats >= pkg.capacity) {
+      throw createError({ statusCode: 409, statusMessage: 'Package is full' })
+    }
 
-  return prisma.packagePlayer.create({
-    data: {
-      packageId: pkg.id,
-      guestName,
-      guestMobile: phone || null,
-      level: body.level ?? null,
-      athleteId,
-    },
+    return tx.packagePlayer.create({
+      data: {
+        packageId: pkg.id,
+        guestName: body.guestName!.trim(),
+        guestMobile: body.guestMobile?.trim() || null,
+        level: body.level ?? null,
+        athleteId: body.athleteId || null,
+      },
+    })
   })
 })

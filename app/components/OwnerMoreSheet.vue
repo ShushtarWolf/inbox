@@ -7,7 +7,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user } = useAuth()
-const { pilotNoCoach, competitionsVisibleForClub } = usePilotFlags()
+const { pilotNoCoach, competitionsVisibleForClub, packagesEnabled } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 
 const activeMembership = computed(() => {
@@ -15,7 +15,7 @@ const activeMembership = computed(() => {
   return memberships.find((m) => m.club.id === selectedClubId.value) || memberships[0]
 })
 
-/** Canva More grid — Packages stays omitted (product exclusion); Coaches follows the pilot flag. */
+/** Canva More grid — Packages behind PACKAGES_ENABLED; Coaches follow the pilot flag. */
 const tiles = computed(() => {
   const membership = activeMembership.value
   const role = membership?.role
@@ -24,6 +24,7 @@ const tiles = computed(() => {
 
   const items = [
     { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
+    { path: '/owner/packages', labelKey: 'owner.packages', icon: 'inventory_2' },
     { path: '/owner/coaches', labelKey: 'owner.coaches', icon: 'sports' },
     { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
     { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
@@ -35,6 +36,7 @@ const tiles = computed(() => {
   return items
     .filter((item) => {
       if (item.path === '/owner/workers' && !isOwner) return false
+      if (item.path === '/owner/packages' && !packagesEnabled.value) return false
       if (item.path === '/owner/coaches' && pilotNoCoach.value) return false
       if (item.path === '/owner/competitions' && !competitionsVisibleForClub(membership?.club?.slug)) return false
       return canAccessOwnerNav(item.path, permissions, isOwner)

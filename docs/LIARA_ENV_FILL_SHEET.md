@@ -137,6 +137,24 @@ Detail: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md).
 
 ---
 
+## F2. Class packages (optional — off by default)
+
+Independent of desk season/package recurring (`isRecurringReserveEnabled` stays false).
+
+| ☐ | Variable | Fill with | Notes |
+|---|----------|-----------|--------|
+| ☐ | `PACKAGES_ENABLED` | unset / `false` | **Default off.** Set `true` to unlock owner + coach class-package create/publish |
+| ☐ | `NUXT_PUBLIC_PACKAGES_ENABLED` | optional mirror | Client nav / `/owner/packages` / `/coach/packages` |
+
+```bash
+PACKAGES_ENABLED=true
+NUXT_PUBLIC_PACKAGES_ENABLED=true
+```
+
+Requires DB migration `20260829173000_class_packages_safety`. Cron (optional): `POST /api/admin/packages/expire-pending` with admin secret to clear unpaid online PENDING seats (~10 min).
+
+---
+
 ## G. After env is filled (you deploy — not the agent)
 
 1. `liara deploy --app inbox` (your step).

@@ -236,10 +236,12 @@ async function confirmCancel() {
   cancelPending.value = true
   actionError.value = ''
   try {
-    if (kind === 'court' || kind === 'coach') {
+    if (kind === 'court' || kind === 'coach' || kind === 'package') {
       const endpoint = kind === 'court'
         ? `/api/bookings/${id}/cancel`
-        : `/api/coach-sessions/${id}/cancel`
+        : kind === 'coach'
+          ? `/api/coach-sessions/${id}/cancel`
+          : `/api/package-bookings/${id}/cancel`
       const result = await $fetch<{ refund?: { walletCredited?: boolean; refunded?: boolean } }>(endpoint, { method: 'PATCH' })
       if (result.refund?.walletCredited) noticeBody.value = t('booking.refundToWallet')
       else if (result.refund?.refunded) noticeBody.value = t('booking.refundToGateway')
@@ -264,7 +266,9 @@ async function payBooking(item: HistoryItem, useWallet = false) {
     await startCheckout(
       item.kind === 'coach'
         ? { coachSessionId: item.id, useWallet }
-        : { bookingId: item.id, useWallet },
+        : item.kind === 'package'
+          ? { packageBookingId: item.id, useWallet }
+          : { bookingId: item.id, useWallet },
     )
     await refresh()
   }
@@ -611,7 +615,7 @@ function dateLine(item: HistoryItem) {
                 <span v-if="item.kind === 'coach'" class="canva-history-meta-chip">{{ t('home.findCoach') }}</span>
               </div>
               <p
-                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && isPayAtClubStatus(item.paymentStatus)"
+                v-if="item.status !== 'CANCELLED' && isPayAtClubStatus(item.paymentStatus)"
                 class="mt-1 text-[11px] text-brand-gray-600"
               >{{ t('booking.payAtClubDetail') }}</p>
               <p
@@ -638,7 +642,7 @@ function dateLine(item: HistoryItem) {
               >{{ t('athlete.historyRebook') }}</NuxtLink>
 
               <button
-                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
+                v-if="item.status !== 'CANCELLED' && onlineEnabled && canPayOnline(item.paymentStatus)"
                 type="button"
                 class="canva-history-btn-secondary"
                 :class="{ 'canva-cta-busy': payingId === item.id }"
@@ -646,7 +650,7 @@ function dateLine(item: HistoryItem) {
                 @click="payBooking(item)"
               >{{ payingId === item.id ? t('booking.redirectingToGateway') : t('booking.payNow') }}</button>
               <button
-                v-if="item.kind !== 'package' && item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
+                v-if="item.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, item.price, item.paymentStatus)"
                 type="button"
                 class="canva-history-btn-secondary"
                 :disabled="payingId === item.id"

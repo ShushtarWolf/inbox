@@ -122,7 +122,10 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
   if (payment.packageBookingId) {
     await db.packageBooking.update({
       where: { id: payment.packageBookingId },
-      data: { paymentStatus: payment.status },
+      data: {
+        paymentStatus: payment.status,
+        ...(payment.status === 'PAID' ? { status: 'CONFIRMED' as const } : {}),
+      },
     })
   }
 }

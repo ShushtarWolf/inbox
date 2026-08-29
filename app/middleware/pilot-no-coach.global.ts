@@ -11,7 +11,7 @@ function stripLocale(path: string) {
 }
 
 export default defineNuxtRouteMiddleware((to) => {
-  const { pilotNoCoach } = usePilotFlags()
+  const { pilotNoCoach, packagesEnabled } = usePilotFlags()
   if (!pilotNoCoach.value) return
 
   const path = stripLocale(to.path)
@@ -21,6 +21,9 @@ export default defineNuxtRouteMiddleware((to) => {
   if (/^\/owner\/coaches(\/|$)/.test(path)) {
     return navigateTo(localePath('/owner/calendar'), { replace: true })
   }
+
+  // Class packages: coach create UI is allowed when PACKAGES_ENABLED even if coach marketing is frozen.
+  if (packagesEnabled.value && /^\/coach\/packages(\/|$)/.test(path)) return
 
   if (!PUBLIC_COACH_BLOCKED.some((re) => re.test(path))) return
   return navigateTo(localePath('/clubs'), { replace: true })

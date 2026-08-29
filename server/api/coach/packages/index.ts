@@ -1,15 +1,26 @@
-import { assertPackagesEnabled, packagesEnabledForEvent } from '../../../utils/packagesGate'
-import { assertDateNotInPast } from '../../../utils/reservations'
+import { assertPackagesEnabled, packagesEnabledForEvent } from '../../utils/packagesGate'
+import { requireApprovedCoach, requireActiveCoachClubLink } from '../../utils/coachClubLinks'
+import { assertDateNotInPast } from '../../utils/reservations'
+import { publishPackageDraft } from '../../utils/packages'
 
 export default defineEventHandler(async (event) => {
-  const { club, user } = await requireOwnerClub(event, 'calendar')
-
   if (event.method === 'GET') {
+    const user = await requireRole(event, 'COACH')
     if (!packagesEnabledForEvent(event)) return []
+    const coach = await requireApprovedCoach(user.id)
+    const query = getQuery(event)
+    const clubId = typeof query.clubId === 'string' ? query.clubId : ''
+    if (!clubId) {
+      throw createError({ statusCode: 400, statusMessage: 'clubId required' })
+    }
+    await requireActiveCoachClubLink(coach.id, clubId)
     return prisma.packageDraft.findMany({
-      where: { clubId: club.id, status: { not: 'CANCELLED' } },
+      where: {
+        clubId,
+        coachId: coach.id,
+        status: { not: 'CANCELLED' },
+      },
       include: {
-        coach: true,
         court: true,
         _count: { select: { bookings: true, players: true } },
       },
@@ -18,7 +29,10 @@ export default defineEventHandler(async (event) => {
   }
 
   assertPackagesEnabled(event)
+  const user = await requireRole(event, 'COACH')
+  const coach = await requireApprovedCoach(user.id)
   const body = await readBody<{
+    clubId?: string
     title?: string
     capacity?: number
     price?: number
@@ -26,7 +40,6 @@ export default defineEventHandler(async (event) => {
     level?: number
     startDate?: string
     finishDate?: string
-    coachId?: string | null
     courtId?: string
     comment?: string
     daysJson?: string
@@ -36,26 +49,16 @@ export default defineEventHandler(async (event) => {
     publish?: boolean
   }>(event)
 
+  if (!body.clubId) throw createError({ statusCode: 400, statusMessage: 'clubId required' })
+  await requireActiveCoachClubLink(coach.id, body.clubId)
+
   if (!body.courtId) {
     throw createError({ statusCode: 400, statusMessage: 'courtId required' })
   }
   const court = await prisma.court.findFirst({
-    where: { id: body.courtId, clubId: club.id },
+    where: { id: body.courtId, clubId: body.clubId },
   })
   if (!court) throw createError({ statusCode: 404, statusMessage: 'Court not found' })
-
-  if (body.coachId) {
-    const coach = await prisma.coach.findFirst({
-      where: {
-        id: body.coachId,
-        OR: [
-          { clubId: club.id },
-          { clubLinks: { some: { clubId: club.id, status: 'ACTIVE' } } },
-        ],
-      },
-    })
-    if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
-  }
 
   if (body.startDate) assertDateNotInPast(body.startDate)
   if (body.startDate && body.finishDate && body.finishDate < body.startDate) {
@@ -69,8 +72,9 @@ export default defineEventHandler(async (event) => {
 
   const draft = await prisma.packageDraft.create({
     data: {
-      clubId: club.id,
+      clubId: body.clubId,
       courtId: body.courtId,
+      coachId: coach.id,
       title: body.title?.trim() || 'پکیج جدید',
       capacity: body.capacity || 8,
       price: body.price || 0,
@@ -80,23 +84,20 @@ export default defineEventHandler(async (event) => {
       finishDate: body.finishDate,
       daysJson,
       timesJson,
-      coachId: body.coachId || null,
       comment: body.comment,
       createdByUserId: user.id,
       status: 'DRAFT',
     },
     include: {
-      coach: true,
       court: true,
       _count: { select: { bookings: true, players: true } },
     },
   })
 
   if (body.publish) {
-    const { publishPackageDraft } = await import('../../../utils/packages')
     return publishPackageDraft({
       packageId: draft.id,
-      clubId: club.id,
+      clubId: body.clubId,
       actorUserId: user.id,
     })
   }

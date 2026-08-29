@@ -37,6 +37,14 @@ export default defineNitroPlugin(() => {
     }
   }
 
+  if (process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true' || process.env.PACKAGES_ENABLED === 'true') {
+    try {
+      publicConfig.packagesEnabled = true
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_PACKAGES_ENABLED instead.
+    }
+  }
+
   const competitionsPilotClubSlug = normalizeCompetitionsPilotClubSlug(
     process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
     || process.env.COMPETITIONS_PILOT_CLUB_SLUG

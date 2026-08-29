@@ -2,6 +2,7 @@ export function usePilotFlags() {
   const config = useRuntimeConfig()
   const pilotNoCoach = computed(() => Boolean(config.public.pilotNoCoach))
   const competitionsEnabled = computed(() => Boolean(config.public.competitionsEnabled))
+  const packagesEnabled = computed(() => Boolean(config.public.packagesEnabled))
   const competitionsPilotClubSlug = computed(() => {
     const slug = String(config.public.competitionsPilotClubSlug || '').trim()
     return slug || null
@@ -16,6 +17,7 @@ export function usePilotFlags() {
   return {
     pilotNoCoach,
     competitionsEnabled,
+    packagesEnabled,
     competitionsPilotClubSlug,
     competitionsVisibleForClub,
   }

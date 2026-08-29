@@ -168,6 +168,12 @@ enum CompetitionEntryStatus {
   REFUNDED
 }
 
+enum PackageStatus {
+  DRAFT
+  OPEN
+  CANCELLED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -486,6 +492,7 @@ model Court {
 
   slots Slot[]
   waitlistEntries WaitlistEntry[]
+  packages PackageDraft[]
 }
 
 model Slot {
@@ -532,11 +539,16 @@ model Booking {
   slot   Slot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
   coachId String?
   coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  /** Class-package court hold — set when an OPEN PackageDraft claims this slot. */
+  packageDraftId String?
+  packageDraft   PackageDraft? @relation(fields: [packageDraftId], references: [id], onDelete: SetNull)
   payment Payment?
   events  ReservationEvent[]
   review  Review?
   bookingEquipments BookingEquipment[]
   coachSession CoachSession? @relation("CoachSessionCourt")
+
+  @@index([packageDraftId])
 }
 
 model SeasonBooking {
@@ -778,25 +790,35 @@ model SmsLog {
 }
 
 model PackageDraft {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   title      String
-  capacity   Int      @default(8)
+  capacity   Int           @default(8)
   price      Int
-  discount   Int      @default(0)
+  discount   Int           @default(0)
   level      Int?
+  status     PackageStatus @default(DRAFT)
   startDate  String?
   finishDate String?
   daysJson   String?
   timesJson  String?
   comment    String?
-  createdAt  DateTime @default(now())
+  publishedAt DateTime?
+  createdAt  DateTime      @default(now())
+  createdByUserId String?
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId String?
+  court   Court? @relation(fields: [courtId], references: [id], onDelete: SetNull)
   coachId String?
   coach   Coach? @relation(fields: [coachId], references: [id], onDelete: SetNull)
   bookings PackageBooking[]
   players  PackagePlayer[]
+  slotHolds Booking[]
+
+  @@index([clubId, status])
+  @@index([courtId, status])
+  @@index([coachId, status])
 }
 
 model PackagePlayer {
@@ -816,7 +838,7 @@ model PackagePlayer {
 
 model PackageBooking {
   id            String        @id @default(cuid())
-  status        BookingStatus @default(CONFIRMED)
+  status        BookingStatus @default(PENDING)
   paymentStatus PaymentStatus @default(PAY_AT_CLUB)
   price         Int
   daysJson      String?
@@ -832,6 +854,7 @@ model PackageBooking {
 
   @@index([packageId, status])
   @@index([athleteId])
+  @@index([status, createdAt])
 }
 
 model WaitlistEntry {

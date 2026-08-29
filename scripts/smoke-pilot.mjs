@@ -202,7 +202,7 @@ async function main() {
     expectStatus: 200,
   })
   assert(packagesPage.status === 200, `/owner/packages → ${packagesPage.status}`)
-  console.log('ok  packages UI/API disabled (stub + 403 create)')
+  console.log('ok  packages UI/API disabled (flag off → 403 create)')
 
   // Notify path: mark paid with guestMobile only (no userId) — must not 500 in log SMS mode
   const { res: paidRes, data: paid } = await apiFetch(base, '/api/owner/reserve', {
