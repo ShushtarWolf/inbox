@@ -68,11 +68,23 @@ export function pickPrimaryRole(roles: PlatformRole[]): PlatformRole {
 
 /**
  * Assign another platform role on the same account (max 3).
+ * Keeps the existing primary `role` so becoming a coach/owner does not feel like
+ * a full identity swap — the user picks panels via /choose-role or the switcher.
  * Returns null when the role is already held or the slot is full.
  */
 export function assignAddedRole(user: RolesUser, newRole: PlatformRole): RoleSlots | null {
   if (!canAddRole(user, newRole)) return null
-  return packRoleSlots([...userRoles(user), newRole])
+  const roles = [...userRoles(user), newRole]
+  const currentPrimary = asPlatformRole(user.role)
+  if (currentPrimary && roles.includes(currentPrimary)) {
+    const rest = ROLE_PRIORITY.filter((r) => r !== currentPrimary && roles.includes(r))
+    return {
+      role: currentPrimary,
+      secondaryRole: rest[0] ?? null,
+      tertiaryRole: rest[1] ?? null,
+    }
+  }
+  return packRoleSlots(roles)
 }
 
 /** Staff desk COACH → platform COACH; other staff roles → CLUB_ADMIN. */

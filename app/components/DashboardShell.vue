@@ -36,6 +36,9 @@ const open = ref(false)
 const accountOpen = ref(false)
 const accountAnchor = ref<HTMLElement | null>(null)
 const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
+const { heldRoles } = usePlatformRoles()
+
+const canSwitchRole = computed(() => heldRoles.value.length >= 2)
 
 async function handleLogout() {
   if (props.customLogout) {
@@ -154,6 +157,13 @@ function goBack() {
             </div>
             <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
             <div class="flex min-w-0 items-center gap-2">
+              <NuxtLink
+                v-if="canSwitchRole"
+                :to="localePath('/choose-role')"
+                class="btn-ghost px-3 py-2 text-xs"
+              >
+                {{ t('auth.changeRole') }}
+              </NuxtLink>
               <AppUserShortcut
                 v-if="displayName && !hideUser"
                 :to="profilePath"
@@ -218,6 +228,13 @@ function goBack() {
             </button>
           </div>
           <div class="flex items-center gap-2">
+            <NuxtLink
+              v-if="canSwitchRole"
+              :to="localePath('/choose-role')"
+              class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+            >
+              {{ t('auth.changeRole') }}
+            </NuxtLink>
             <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
               <AppUserShortcut
                 :name="displayName"

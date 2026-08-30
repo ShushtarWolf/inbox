@@ -59,6 +59,10 @@ const approvalStatus = computed(() => data.value?.coach?.approvalStatus || 'APPR
     </div>
     <p v-if="!data?.sessions?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">{{ $t('coach.noSessionsToday') }}</p>
 
+    <div class="mt-2">
+      <RoleDashboardSwitcher current="COACH" />
+    </div>
+
     <section class="space-y-2">
       <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.upcomingSessions') }}</h2>
       <div v-for="s in data?.upcomingSessions" :key="`upcoming-${s.id}`" class="ios-card p-3">

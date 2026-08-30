@@ -47,10 +47,15 @@ describe('roles helpers', () => {
     expect(canAddRole({ role: 'ATHLETE' }, 'ATHLETE')).toBe(false)
   })
 
-  it('promotes club admin when adding owner role to athlete', () => {
+  it('keeps athlete primary when adding owner or coach (no identity swap)', () => {
     expect(assignAddedRole({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toEqual({
-      role: 'CLUB_ADMIN',
-      secondaryRole: 'ATHLETE',
+      role: 'ATHLETE',
+      secondaryRole: 'CLUB_ADMIN',
+      tertiaryRole: null,
+    })
+    expect(assignAddedRole({ role: 'ATHLETE' }, 'COACH')).toEqual({
+      role: 'ATHLETE',
+      secondaryRole: 'COACH',
       tertiaryRole: null,
     })
   })
@@ -93,10 +98,10 @@ describe('roles helpers', () => {
     expect(platformRoleForStaffInvite('FRONT_DESK')).toBe('CLUB_ADMIN')
   })
 
-  it('resolveInviteRoleUpgrade upgrades athlete invited as manager', () => {
+  it('resolveInviteRoleUpgrade adds manager without swapping athlete primary', () => {
     expect(resolveInviteRoleUpgrade({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toEqual({
-      role: 'CLUB_ADMIN',
-      secondaryRole: 'ATHLETE',
+      role: 'ATHLETE',
+      secondaryRole: 'CLUB_ADMIN',
       tertiaryRole: null,
     })
   })
