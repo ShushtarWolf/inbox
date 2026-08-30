@@ -1,4 +1,8 @@
-import { unionOccupiedProductIds } from '../../../../lib/aloplayParse'
+import {
+  parseAvailableTimePayload,
+  suspectedOccupiedFromFreeSet,
+  unionFreeSlots,
+} from '../../../../lib/aloplayParse'
 import type { ClubMapping, ExternalOccupiedSlot } from '../types'
 import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
@@ -6,7 +10,7 @@ import { checkAdapterRateLimit } from '../rateLimit'
 import { addMinutes, buildSessionStarts } from '../time'
 
 const ALOPLAY_BASE = 'https://ws.aloplay.io/api'
-const ALOPLAY_GENDERS = [1, 2] as const
+const DEFAULT_GENDERS = [1, 2] as const
 
 async function fetchAloPlayJson(path: string, query: Record<string, string | number>) {
   const params = new URLSearchParams()
@@ -36,20 +40,26 @@ async function fetchAloPlayJson(path: string, query: Record<string, string | num
   }
 }
 
-async function fetchByTimePayload(opts: {
+function resolveAloPlayGenders(mapping: ClubMapping): number[] {
+  const aloplay = mapping.sources?.aloplay
+  const genders = (aloplay as { genders?: number[] } | undefined)?.genders
+  if (genders?.length) return genders
+  if (aloplay?.productGender != null) return [aloplay.productGender]
+  return [...DEFAULT_GENDERS]
+}
+
+async function fetchAvailableTimePayload(opts: {
   clubId: number
   date: string
-  time: string
   productGender: number
 }): Promise<unknown | null> {
-  const cacheKey = `ext-cal:aloplay-bytimes:${opts.clubId}:${opts.date}:${opts.time}:g${opts.productGender}`
+  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}`
   const cached = await readCached<unknown>(cacheKey)
   if (cached) return cached
 
-  const payload = await fetchAloPlayJson('v1/Product/GetByTime', {
+  const payload = await fetchAloPlayJson('v1/PublicClub/GetAvailableTime', {
     clubId: opts.clubId,
     date: opts.date,
-    time: opts.time,
     productGender: opts.productGender,
   })
   if (payload != null) {
@@ -90,7 +100,7 @@ export async function fetchAloPlayOccupied(opts: {
       const productId = aloplay?.productId ?? aloplay?.courtId
       if (productId == null) return null
       return {
-        court,
+        courtKey: court.id,
         productId,
         starts: buildSessionStarts(
           court.effectiveOpenHour,
@@ -105,56 +115,55 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay productId is not mapped for any court (TODO).' }
   }
 
-  const sessionTimes = [...new Set(mappedCourts.flatMap((item) => item.starts))].sort()
-  const occupiedByTime = new Map<string, Set<number>>()
-  const errors: string[] = []
+  const genders = resolveAloPlayGenders(opts.mapping)
+  const parseResults: Array<{ freeSlots: Set<string>; error?: string }> = []
+  const fetchErrors: string[] = []
 
-  for (const startTime of sessionTimes) {
-    const payloads: unknown[] = []
-    for (const productGender of ALOPLAY_GENDERS) {
-      try {
-        const payload = await fetchByTimePayload({
-          clubId,
-          date: opts.date,
-          time: startTime,
-          productGender,
-        })
-        if (payload != null) payloads.push(payload)
-      } catch (error) {
-        errors.push(
-          error instanceof Error
-            ? error.message
-            : `GetByTime ${startTime} gender ${productGender} failed`,
-        )
-      }
-    }
-
-    if (!payloads.length) continue
-    occupiedByTime.set(startTime, unionOccupiedProductIds(payloads))
-  }
-
-  const occupied: ExternalOccupiedSlot[] = []
-  for (const { court, productId, starts } of mappedCourts) {
-    for (const startTime of starts) {
-      const occupiedProducts = occupiedByTime.get(startTime)
-      if (!occupiedProducts?.has(productId)) continue
-
-      occupied.push({
-        courtKey: court.id,
-        startTime,
-        endTime: addMinutes(startTime, opts.sessionDurationMinutes),
-        source: 'aloplay',
+  for (const productGender of genders) {
+    try {
+      const payload = await fetchAvailableTimePayload({
+        clubId,
+        date: opts.date,
+        productGender,
       })
+      if (payload == null) {
+        fetchErrors.push(`GetAvailableTime gender ${productGender} returned empty body`)
+        continue
+      }
+      parseResults.push(parseAvailableTimePayload(payload))
+    } catch (error) {
+      fetchErrors.push(
+        error instanceof Error
+          ? error.message
+          : `GetAvailableTime gender ${productGender} failed`,
+      )
     }
   }
 
-  if (!occupied.length && errors.length && occupiedByTime.size === 0) {
-    return { occupied: [], error: errors.join('; ') }
+  const successfulParses = parseResults.filter((result) => !result.error)
+  if (!successfulParses.length) {
+    const errors = [
+      ...fetchErrors,
+      ...parseResults.map((result) => result.error).filter((message): message is string => Boolean(message)),
+    ]
+    return {
+      occupied: [],
+      error: errors.join('; ') || 'GetAvailableTime failed for all genders',
+    }
   }
+
+  const freeSlots = unionFreeSlots(successfulParses)
+  const suspected = suspectedOccupiedFromFreeSet(mappedCourts, freeSlots)
+  const occupied: ExternalOccupiedSlot[] = suspected.map(({ courtKey, startTime }) => ({
+    courtKey,
+    startTime,
+    endTime: addMinutes(startTime, opts.sessionDurationMinutes),
+    source: 'aloplay',
+  }))
 
   await writeCached(cacheKey, occupied)
   return {
     occupied,
-    error: errors.length ? errors.join('; ') : undefined,
+    error: fetchErrors.length ? fetchErrors.join('; ') : undefined,
   }
 }

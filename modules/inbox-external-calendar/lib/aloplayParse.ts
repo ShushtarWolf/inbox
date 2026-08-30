@@ -1,30 +1,69 @@
-/** Products with remainedCapacity===0 from AloPlay GetByTime `data` array. */
-export function occupiedProductIdsFromByTime(payload: unknown): Set<number> {
-  const occupied = new Set<number>()
-  if (!payload || typeof payload !== 'object') return occupied
+import { normalizeClockTime } from '../runtime/server/lib/time'
 
-  const record = payload as Record<string, unknown>
-  const rows = Array.isArray(record.data) ? record.data : null
-  if (!rows) return occupied
-
-  for (const row of rows) {
-    if (!row || typeof row !== 'object') continue
-    const product = row as Record<string, unknown>
-    const productId = product.productId
-    if (typeof productId !== 'number') continue
-    if (product.remainedCapacity === 0) occupied.add(productId)
-  }
-
-  return occupied
+/** Stable key for a free AloPlay slot: productId + session start (HH:mm). */
+export function freeSlotKey(productId: number, startTime: string): string {
+  return `${productId}:${startTime}`
 }
 
-/** Union occupied product ids across gender-specific GetByTime responses. */
-export function unionOccupiedProductIds(payloads: unknown[]): Set<number> {
-  const union = new Set<number>()
-  for (const payload of payloads) {
-    for (const productId of occupiedProductIdsFromByTime(payload)) {
-      union.add(productId)
-    }
+export function isAloPlaySlotFree(freeSlots: Set<string>, productId: number, startTime: string): boolean {
+  const normalized = normalizeClockTime(startTime)
+  if (!normalized) return false
+  return freeSlots.has(freeSlotKey(productId, normalized))
+}
+
+/** Parse AloPlay GetAvailableTime `{ data: [{ fromTime, toTime, productId }] }`. */
+export function parseAvailableTimePayload(payload: unknown): { freeSlots: Set<string>; error?: string } {
+  if (!payload || typeof payload !== 'object') {
+    return { freeSlots: new Set(), error: 'GetAvailableTime response is not an object' }
+  }
+
+  const record = payload as Record<string, unknown>
+  if (typeof record.statusCode === 'number' && record.statusCode !== 0) {
+    const message = typeof record.message === 'string' ? record.message : 'GetAvailableTime failed'
+    return { freeSlots: new Set(), error: message }
+  }
+
+  const rows = record.data
+  if (rows == null) {
+    return { freeSlots: new Set(), error: 'GetAvailableTime missing data array' }
+  }
+  if (!Array.isArray(rows)) {
+    return { freeSlots: new Set(), error: 'GetAvailableTime data is not an array' }
+  }
+
+  const freeSlots = new Set<string>()
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue
+    const item = row as Record<string, unknown>
+    const productId = item.productId
+    const fromTime = normalizeClockTime(String(item.fromTime ?? ''))
+    if (typeof productId !== 'number' || !fromTime) continue
+    freeSlots.add(freeSlotKey(productId, fromTime))
+  }
+
+  return { freeSlots }
+}
+
+export function unionFreeSlots(results: Array<{ freeSlots: Set<string> }>): Set<string> {
+  const union = new Set<string>()
+  for (const result of results) {
+    for (const key of result.freeSlots) union.add(key)
   }
   return union
+}
+
+/** Slots not listed in GetAvailableTime union are suspected occupied. */
+export function suspectedOccupiedFromFreeSet(
+  mappedCourts: Array<{ courtKey: string; productId: number; starts: string[] }>,
+  freeSlots: Set<string>,
+): Array<{ courtKey: string; startTime: string }> {
+  const occupied: Array<{ courtKey: string; startTime: string }> = []
+  for (const { courtKey, productId, starts } of mappedCourts) {
+    for (const startTime of starts) {
+      if (!isAloPlaySlotFree(freeSlots, productId, startTime)) {
+        occupied.push({ courtKey, startTime })
+      }
+    }
+  }
+  return occupied
 }
