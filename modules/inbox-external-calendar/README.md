@@ -48,9 +48,24 @@ rm -rf modules/inbox-external-calendar
 npx vitest run --config modules/inbox-external-calendar/vitest.config.ts
 ```
 
+## AloPlay session (future dates)
+
+Public `GetAvailableTime` works **today-only** without login. Tomorrow and later need an authenticated AloPlay client session on the server (Liara runs in Iran; `ws.aloplay.io` is 403 from non-Iran IPs).
+
+Optional Liara env (never commit values):
+
+| Variable | Description |
+|----------|-------------|
+| `ALOPLAY_MOBILE` or `NUXT_ALOPLAY_MOBILE` | Iranian mobile used for AloPlay password login |
+| `ALOPLAY_PASSWORD` or `NUXT_ALOPLAY_PASSWORD` | Account password (SMS OTP not required when password is set) |
+| `ALOPLAY_DIAL_CODE` or `NUXT_ALOPLAY_DIAL_CODE` | Optional; default `98` |
+
+When unset, behavior is unchanged: public GetAvailableTime for today only; no crash. Passwords and tokens are never logged.
+
+Login flow (from AloPlay Flutter client): `GET v1/User/IsExsist`, then `POST v1/Authentication` → `Authorization: Bearer {token}` on subsequent GETs. Session is cached ~30 minutes (or until token expiration); 401/403 triggers one re-login retry.
+
 ## محدودیت‌ها
 
-- بدون migration / env جدید
 - Courtic: stub
 - AloPlay occupancy: slots **not** in GetAvailableTime for mapped `productId` are suspected occupied; `remainedCapacity` from GetByTime is ignored
 - polling ~۲۵ث؛ cache adapter ~۴۵ث

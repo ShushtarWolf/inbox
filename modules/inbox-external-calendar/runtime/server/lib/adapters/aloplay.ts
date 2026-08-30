@@ -3,42 +3,15 @@ import {
   suspectedOccupiedFromFreeSet,
   unionFreeSlots,
 } from '../../../../lib/aloplayParse'
+import { needsAloPlaySession } from '../../../../lib/aloplaySession'
 import type { ClubMapping, ExternalOccupiedSlot } from '../types'
 import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
+import { fetchAloPlayWithSession } from '../aloplaySessionStore'
 import { checkAdapterRateLimit } from '../rateLimit'
 import { addMinutes, buildSessionStarts } from '../time'
 
-const ALOPLAY_BASE = 'https://ws.aloplay.io/api'
 const DEFAULT_GENDERS = [1, 2] as const
-
-async function fetchAloPlayJson(path: string, query: Record<string, string | number>) {
-  const params = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
-    params.set(key, String(value))
-  }
-  const url = `${ALOPLAY_BASE}/${path}?${params.toString()}`
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Origin: 'https://aloplay.io',
-      Referer: 'https://aloplay.io/',
-    },
-    signal: AbortSignal.timeout(8_000),
-  })
-  if (!response.ok) {
-    throw new Error(`AloPlay ${path} HTTP ${response.status}`)
-  }
-  const text = await response.text()
-  if (!text.trim()) return null
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
 
 function resolveAloPlayGenders(mapping: ClubMapping): number[] {
   const aloplay = mapping.sources?.aloplay
@@ -52,20 +25,30 @@ async function fetchAvailableTimePayload(opts: {
   clubId: number
   date: string
   productGender: number
-}): Promise<unknown | null> {
+}): Promise<{ payload: unknown | null; error?: string }> {
   const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}`
   const cached = await readCached<unknown>(cacheKey)
-  if (cached) return cached
+  if (cached) return { payload: cached }
 
-  const payload = await fetchAloPlayJson('v1/PublicClub/GetAvailableTime', {
-    clubId: opts.clubId,
-    date: opts.date,
-    productGender: opts.productGender,
-  })
-  if (payload != null) {
-    await writeCached(cacheKey, payload)
+  const requireAuth = needsAloPlaySession(opts.date)
+  const result = await fetchAloPlayWithSession(
+    'v1/PublicClub/GetAvailableTime',
+    {
+      clubId: opts.clubId,
+      date: opts.date,
+      productGender: opts.productGender,
+    },
+    { requireAuth },
+  )
+
+  if (result.error && result.payload == null) {
+    return { payload: null, error: result.error }
   }
-  return payload
+
+  if (result.payload != null) {
+    await writeCached(cacheKey, result.payload)
+  }
+  return { payload: result.payload, error: result.error }
 }
 
 export async function fetchAloPlayOccupied(opts: {
@@ -120,24 +103,20 @@ export async function fetchAloPlayOccupied(opts: {
   const fetchErrors: string[] = []
 
   for (const productGender of genders) {
-    try {
-      const payload = await fetchAvailableTimePayload({
-        clubId,
-        date: opts.date,
-        productGender,
-      })
-      if (payload == null) {
-        fetchErrors.push(`GetAvailableTime gender ${productGender} returned empty body`)
-        continue
-      }
-      parseResults.push(parseAvailableTimePayload(payload))
-    } catch (error) {
-      fetchErrors.push(
-        error instanceof Error
-          ? error.message
-          : `GetAvailableTime gender ${productGender} failed`,
-      )
+    const { payload, error } = await fetchAvailableTimePayload({
+      clubId,
+      date: opts.date,
+      productGender,
+    })
+    if (error && payload == null) {
+      fetchErrors.push(error)
+      continue
     }
+    if (payload == null) {
+      fetchErrors.push(`GetAvailableTime gender ${productGender} returned empty body`)
+      continue
+    }
+    parseResults.push(parseAvailableTimePayload(payload))
   }
 
   const successfulParses = parseResults.filter((result) => !result.error)
