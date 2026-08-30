@@ -154,6 +154,25 @@ async function main() {
   if (freeSlots.length >= 1) {
     const seasonSlot = freeSlots[0]
     const weekday = DAY_NAMES[new Date(`${seasonSlot.date}T12:00:00Z`).getUTCDay()]
+    const seasonFinish = dateOffset(28)
+    const previewRes = await fetch(`${base}/api/owner/recurring-preview`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: cookieJar.get('owner') || '',
+      },
+      body: JSON.stringify({
+        slotId: seasonSlot.id,
+        startDate: seasonSlot.date,
+        finishDate: seasonFinish,
+        days: [weekday],
+        times: [seasonSlot.startTime.slice(0, 5)],
+      }),
+    })
+    if (previewRes.status !== 200) {
+      throw new Error(`recurring preview expected 200, got ${previewRes.status}`)
+    }
+    const preview = await previewRes.json()
     const seasonRes = await fetch(`${base}/api/owner/season`, {
       method: 'POST',
       headers: {
@@ -166,22 +185,31 @@ async function main() {
         guestMobile: '09120000099',
         slotId: seasonSlot.id,
         startDate: seasonSlot.date,
-        finishDate: dateOffset(56),
+        finishDate: seasonFinish,
         days: [weekday],
         times: [seasonSlot.startTime.slice(0, 5)],
+        acceptSkips: true,
       }),
     })
-    if (seasonRes.status !== 403) {
-      throw new Error(`season reserve expected 403 (MVP disabled), got ${seasonRes.status}`)
+    if (seasonRes.status !== 200) {
+      throw new Error(`season reserve expected 200, got ${seasonRes.status}`)
     }
-    console.log('ok  season reserve disabled (403)')
+    const seasonBody = await seasonRes.json()
+    if (!seasonBody.slotsCreated || seasonBody.slotsCreated < 1) {
+      throw new Error(`season reserve expected slotsCreated>=1, got ${seasonBody.slotsCreated}`)
+    }
+    if (preview.willCreateCount && seasonBody.slotsCreated > preview.willCreateCount) {
+      throw new Error('season reserve created more slots than preview allowed')
+    }
+    console.log(`ok  season reserve (${seasonBody.slotsCreated} created, ${seasonBody.slotsSkipped || 0} skipped)`)
   }
 
-  const packageDate = dateOffset(28)
+  const packageDate = dateOffset(35)
   const packageCalendar = await check(`/api/owner/calendar?date=${packageDate}`, { session: 'owner' })
   const packageSlot = (packageCalendar.slots || []).find((slot) => slot.displayStatus === 'FREE')
   if (packageSlot) {
     const weekday = DAY_NAMES[new Date(`${packageSlot.date}T12:00:00Z`).getUTCDay()]
+    const packageFinish = dateOffset(42)
     const packageRes = await fetch(`${base}/api/owner/package-reserve`, {
       method: 'POST',
       headers: {
@@ -194,15 +222,20 @@ async function main() {
         guestMobile: '09120000098',
         slotId: packageSlot.id,
         startDate: packageSlot.date,
-        finishDate: dateOffset(84),
+        finishDate: packageFinish,
         days: [weekday],
         times: [packageSlot.startTime.slice(0, 5)],
+        acceptSkips: true,
       }),
     })
-    if (packageRes.status !== 403) {
-      throw new Error(`package reserve expected 403 (MVP disabled), got ${packageRes.status}`)
+    if (packageRes.status !== 200) {
+      throw new Error(`package reserve expected 200, got ${packageRes.status}`)
     }
-    console.log('ok  package reserve disabled (403)')
+    const packageBody = await packageRes.json()
+    if (!packageBody.slotsCreated || packageBody.slotsCreated < 1) {
+      throw new Error(`package reserve expected slotsCreated>=1, got ${packageBody.slotsCreated}`)
+    }
+    console.log(`ok  package reserve (${packageBody.slotsCreated} created, ${packageBody.slotsSkipped || 0} skipped)`)
   }
   const smsResult = await check('/api/owner/sms', {
     method: 'POST',

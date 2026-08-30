@@ -60,6 +60,8 @@ export default defineEventHandler(async (event) => {
     equipmentId?: string
     paymentMethod?: string
     paymentStatus?: string
+    /** Required when preview would skip occupied/past slots. */
+    acceptSkips?: boolean
   }>(event)
 
   if (!body.startDate || !body.finishDate) {
@@ -80,6 +82,48 @@ export default defineEventHandler(async (event) => {
 
   const { storedJson, expanded } = resolveDayTimes(body.dayTimes, body.times, body.days)
   const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
+  const hasSchedule = Boolean(body.days?.length && Object.keys(expanded).length)
+
+  if (!body.slotId || !hasSchedule) {
+    throw createError({ statusCode: 400, statusMessage: 'slotId and schedule are required' })
+  }
+
+  const slot = await prisma.slot.findFirst({
+    where: { id: body.slotId, court: { clubId: club.id } },
+  })
+  if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
+
+  const preview = await generateRecurringCourtSlots({
+    clubId: club.id,
+    courtId: slot.courtId,
+    anchorDate: body.startDate,
+    weekdays: body.days!,
+    dayTimes: expanded,
+    startDate: body.startDate,
+    finishDate: body.finishDate,
+    displayStatus: 'RESERVED',
+    dryRun: true,
+  })
+
+  if (preview.created === 0) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'RECURRING_NO_FREE_SLOTS',
+      data: { conflicts: preview.conflicts, skippedCount: preview.skipped },
+    })
+  }
+  if (preview.skipped > 0 && !body.acceptSkips) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'RECURRING_CONFLICTS_NEED_CONFIRM',
+      data: {
+        willCreateCount: preview.created,
+        skippedCount: preview.skipped,
+        willCreate: preview.willCreate,
+        conflicts: preview.conflicts,
+      },
+    })
+  }
 
   const record = await prisma.seasonBooking.create({
     data: {
@@ -97,41 +141,40 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  let slotsCreated = 0
-  const hasSchedule = body.days?.length && Object.keys(expanded).length
-  if (body.slotId && hasSchedule) {
-    const slot = await prisma.slot.findFirst({
-      where: { id: body.slotId, court: { clubId: club.id } },
+  const result = await generateRecurringCourtSlots({
+    clubId: club.id,
+    courtId: slot.courtId,
+    anchorDate: body.startDate,
+    weekdays: body.days!,
+    dayTimes: expanded,
+    startDate: body.startDate,
+    finishDate: body.finishDate,
+    displayStatus: 'RESERVED',
+    guestInfo: {
+      guestName: guest.guestName,
+      guestFamily: guest.guestFamily,
+      guestMobile: body.guestMobile || '',
+      comments: body.comments,
+      paymentMethod: getPaymentsMode() === 'pay_at_club'
+        ? 'CASH'
+        : ((body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'),
+      paymentStatus: body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB',
+      equipmentId: body.equipmentId,
+      equipmentPrice,
+    },
+  })
+
+  if (result.created === 0) {
+    await prisma.seasonBooking.delete({ where: { id: record.id } }).catch(() => {})
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'RECURRING_NO_FREE_SLOTS',
+      data: { conflicts: result.conflicts, skippedCount: result.skipped },
     })
-    if (slot) {
-      const result = await generateRecurringCourtSlots({
-        clubId: club.id,
-        courtId: slot.courtId,
-        anchorDate: body.startDate,
-        weekdays: body.days!,
-        dayTimes: expanded,
-        startDate: body.startDate,
-        finishDate: body.finishDate,
-        displayStatus: 'RESERVED',
-        guestInfo: {
-          guestName: guest.guestName,
-          guestFamily: guest.guestFamily,
-          guestMobile: body.guestMobile || '',
-          comments: body.comments,
-          paymentMethod: getPaymentsMode() === 'pay_at_club'
-            ? 'CASH'
-            : ((body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'),
-          paymentStatus: body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB',
-          equipmentId: body.equipmentId,
-          equipmentPrice,
-        },
-      })
-      slotsCreated = result.created
-    }
   }
 
   const phone = body.guestMobile?.trim() || null
-  if (phone) {
+  if (phone && result.created > 0) {
     await notifyBookingConfirmed({
       phone,
       kind: 'court',
@@ -146,5 +189,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return { ...record, slotsCreated }
+  return {
+    ...record,
+    slotsCreated: result.created,
+    slotsSkipped: result.skipped,
+    conflicts: result.conflicts,
+  }
 })

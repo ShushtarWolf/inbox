@@ -124,6 +124,13 @@ interface OwnerStaffResponse {
 
 type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | 'external' | null
 
+type RecurringPreview = {
+  willCreateCount: number
+  skippedCount: number
+  willCreate: Array<{ date: string; startTime: string }>
+  conflicts: Array<{ date: string; startTime: string; reason: string }>
+}
+
 const { t, locale } = useI18n()
 const { fetchErrorMessage } = useFetchError()
 const { localizedField } = useLocalizedField()
@@ -187,6 +194,11 @@ const packageForm = reactive({
   equipmentId: '',
   comments: '',
 })
+
+const seasonPreview = ref<RecurringPreview | null>(null)
+const seasonAcceptSkips = ref(false)
+const packagePreview = ref<RecurringPreview | null>(null)
+const packageAcceptSkips = ref(false)
 
 const { data: equipments } = await useAuthedFetch<OwnerEquipment[]>('/api/owner/equipments')
 const { data: staffData } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff')
@@ -1188,14 +1200,22 @@ async function doSaveExternalNote() {
   }
 }
 
+function clearRecurringPreview() {
+  seasonPreview.value = null
+  seasonAcceptSkips.value = false
+  packagePreview.value = null
+  packageAcceptSkips.value = false
+}
+
 function openSeasonForm() {
   if (!canShowSeasonReserve()) return
+  clearRecurringPreview()
   activePanel.value = 'season'
 }
 
 function openPackageForm() {
-  // Same kill switch as season — package recurring reserve stays frozen.
-  if (!canShowSeasonReserve()) return
+  if (!canShowPackageReserve()) return
+  clearRecurringPreview()
   activePanel.value = 'package'
 }
 
@@ -1206,6 +1226,7 @@ function openEquipmentForm() {
 function closeMenu() {
   showMenu.value = false
   resetPanels()
+  clearRecurringPreview()
   cancelReason.value = ''
   actionError.value = ''
   lastPayLink.value = null
@@ -1290,6 +1311,8 @@ function toggleSeasonDay(day: string) {
   const fallback = Object.values(seasonForm.dayTimes)[0] || defaultDayRange(selectedSlotFull.value || { startTime: '12:00', endTime: '13:00' })
   seasonForm.days = nextDays
   seasonForm.dayTimes = ensureDayTimesForDays(seasonForm.dayTimes, nextDays, fallback)
+  seasonPreview.value = null
+  seasonAcceptSkips.value = false
 }
 
 function togglePackageDay(day: string) {
@@ -1297,6 +1320,8 @@ function togglePackageDay(day: string) {
   const fallback = Object.values(packageForm.dayTimes)[0] || defaultDayRange(selectedSlotFull.value || { startTime: '12:00', endTime: '13:00' })
   packageForm.days = nextDays
   packageForm.dayTimes = ensureDayTimesForDays(packageForm.dayTimes, nextDays, fallback)
+  packagePreview.value = null
+  packageAcceptSkips.value = false
 }
 
 function reserveDisplayStatus() {
@@ -1315,6 +1340,22 @@ const deskSlotStatuses = computed(() => {
   if (pilotNoCoach.value) return ['RESERVED', 'PENDING'] as const
   return editableSlotStatuses
 })
+
+watch(
+  () => [seasonForm.startDate, seasonForm.finishDate, JSON.stringify(seasonForm.dayTimes)] as const,
+  () => {
+    seasonPreview.value = null
+    seasonAcceptSkips.value = false
+  },
+)
+
+watch(
+  () => [packageForm.startDate, packageForm.finishDate, JSON.stringify(packageForm.dayTimes)] as const,
+  () => {
+    packagePreview.value = null
+    packageAcceptSkips.value = false
+  },
+)
 
 watch(deskSlotStatuses, (allowed) => {
   if (!(allowed as readonly string[]).includes(form.displayStatus)) {
@@ -1665,12 +1706,60 @@ async function doUnblock() {
   }
 }
 
+async function fetchRecurringPreview(kind: 'season' | 'package') {
+  if (!selectedSlot.value) return null
+  const formState = kind === 'season' ? seasonForm : packageForm
+  return await $fetch<RecurringPreview>('/api/owner/recurring-preview', {
+    method: 'POST',
+    body: {
+      slotId: selectedSlot.value.id,
+      startDate: formState.startDate,
+      finishDate: formState.finishDate,
+      days: formState.days,
+      dayTimes: formState.dayTimes,
+    },
+  })
+}
+
+function applyRecurringConflictError(kind: 'season' | 'package', error: unknown) {
+  const err = error as { data?: { statusMessage?: string; data?: RecurringPreview & { skippedCount?: number } }; statusMessage?: string }
+  const status = err?.data?.statusMessage || err?.statusMessage || ''
+  const payload = err?.data?.data
+  if (status === 'RECURRING_CONFLICTS_NEED_CONFIRM' && payload) {
+    if (kind === 'season') seasonPreview.value = payload as RecurringPreview
+    else packagePreview.value = payload as RecurringPreview
+    actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    return
+  }
+  if (status === 'RECURRING_NO_FREE_SLOTS') {
+    actionError.value = t('owner.seasonPage.noFreeSlots')
+    return
+  }
+  actionError.value = fetchErrorMessage(error, t('common.error'))
+}
+
 async function doSeasonReserve() {
   if (!canShowSeasonReserve()) return
   if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
+    if (!seasonPreview.value) {
+      const preview = await fetchRecurringPreview('season')
+      seasonPreview.value = preview
+      if (!preview || preview.willCreateCount === 0) {
+        actionError.value = t('owner.seasonPage.noFreeSlots')
+        return
+      }
+      if (preview.skippedCount > 0 && !seasonAcceptSkips.value) {
+        actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+        return
+      }
+    } else if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) {
+      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+      return
+    }
+
     const guest = guestNamePayload()
     await $fetch('/api/owner/season', {
       method: 'POST',
@@ -1687,22 +1776,39 @@ async function doSeasonReserve() {
         equipmentId: seasonForm.equipmentId || undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
+        acceptSkips: seasonAcceptSkips.value || (seasonPreview.value?.skippedCount ?? 0) === 0,
       },
     })
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (error) {
+    applyRecurringConflictError('season', error)
   } finally {
     saving.value = false
   }
 }
 
 async function doPackageReserve() {
-  if (!canShowSeasonReserve()) return
+  if (!canShowPackageReserve()) return
   if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) return
   saving.value = true
   actionError.value = ''
   try {
+    if (!packagePreview.value) {
+      const preview = await fetchRecurringPreview('package')
+      packagePreview.value = preview
+      if (!preview || preview.willCreateCount === 0) {
+        actionError.value = t('owner.seasonPage.noFreeSlots')
+        return
+      }
+      if (preview.skippedCount > 0 && !packageAcceptSkips.value) {
+        actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+        return
+      }
+    } else if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) {
+      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+      return
+    }
+
     const guest = guestNamePayload()
     await $fetch('/api/owner/package-reserve', {
       method: 'POST',
@@ -1720,11 +1826,12 @@ async function doPackageReserve() {
         equipmentId: packageForm.equipmentId || undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
+        acceptSkips: packageAcceptSkips.value || (packagePreview.value?.skippedCount ?? 0) === 0,
       },
     })
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (error) {
+    applyRecurringConflictError('package', error)
   } finally {
     saving.value = false
   }
@@ -1781,9 +1888,13 @@ function canReserveSlot() {
   return selectedSlot.value?.displayStatus !== 'CLOSED' && selectedSlot.value?.displayStatus !== 'BLOCKED'
 }
 
-/** Court-booking MVP: season/package recurring reserve hidden (API also rejects). */
 function canShowSeasonReserve() {
   return isRecurringReserveEnabled()
+}
+
+/** Package recurring stays hidden while coach product is frozen. */
+function canShowPackageReserve() {
+  return isRecurringReserveEnabled() && !pilotNoCoach.value
 }
 
 function canMarkPaid() {
@@ -2677,6 +2788,20 @@ const legend = [
               @click="isNewReservation() ? openPayConfirm() : doReserve()"
             >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
+              v-if="canShowSeasonReserve() && isNewReservation()"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving"
+              @click="openSeasonForm"
+            >{{ t('owner.seasonReserve') }}</button>
+            <button
+              v-if="canShowPackageReserve() && isNewReservation()"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving"
+              @click="openPackageForm"
+            >{{ t('owner.packageReserve') }}</button>
+            <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
               class="canva-gate-btn-primary"
@@ -3016,6 +3141,23 @@ const legend = [
             <p v-if="seasonSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ seasonSessionLabel }}
             </p>
+            <div
+              v-if="seasonPreview"
+              class="mt-4 space-y-2 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <p>{{ t('owner.seasonPage.previewSummary', { create: seasonPreview.willCreateCount, skip: seasonPreview.skippedCount }) }}</p>
+              <ul v-if="seasonPreview.conflicts.length" class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`${item.date}-${item.startTime}-${idx}`">
+                  {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
+                </li>
+              </ul>
+              <label v-if="seasonPreview.skippedCount > 0" class="canva-recurring-check">
+                <input v-model="seasonAcceptSkips" type="checkbox" class="canva-settings-checkbox">
+                <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
+              </label>
+            </div>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
@@ -3026,11 +3168,16 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid()" @click="doSeasonReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (Boolean(seasonPreview?.skippedCount) && !seasonAcceptSkips)"
+              @click="doSeasonReserve"
+            >{{ saving ? t('common.loading') : (seasonPreview ? t('owner.seasonPage.confirm') : t('common.save')) }}</button>
           </div>
         </div>
 
-        <div v-if="canShowSeasonReserve() && activePanel === 'package'" class="venus-modal-panel">
+        <div v-if="canShowPackageReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
               <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
@@ -3107,6 +3254,23 @@ const legend = [
             <p v-if="packageSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ packageSessionLabel }}
             </p>
+            <div
+              v-if="packagePreview"
+              class="mt-4 space-y-2 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <p>{{ t('owner.seasonPage.previewSummary', { create: packagePreview.willCreateCount, skip: packagePreview.skippedCount }) }}</p>
+              <ul v-if="packagePreview.conflicts.length" class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                <li v-for="(item, idx) in packagePreview.conflicts.slice(0, 12)" :key="`${item.date}-${item.startTime}-${idx}`">
+                  {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
+                </li>
+              </ul>
+              <label v-if="packagePreview.skippedCount > 0" class="canva-recurring-check">
+                <input v-model="packageAcceptSkips" type="checkbox" class="canva-settings-checkbox">
+                <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
+              </label>
+            </div>
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
@@ -3118,7 +3282,12 @@ const legend = [
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid || !guestFieldsValid()" @click="doPackageReserve">{{ saving ? t('common.loading') : t('common.save') }}</button>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid || !guestFieldsValid() || (Boolean(packagePreview?.skippedCount) && !packageAcceptSkips)"
+              @click="doPackageReserve"
+            >{{ saving ? t('common.loading') : (packagePreview ? t('owner.seasonPage.confirm') : t('common.save')) }}</button>
           </div>
         </div>
 

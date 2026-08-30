@@ -1,7 +1,9 @@
-/** Court-booking MVP: season/package recurring reserve is off until overwrite-safe. */
+/** Desk season/package recurring reserve — overwrite-safe FREE-only claims. */
 export function isRecurringReserveEnabled(): boolean {
-  return false
+  return true
 }
+
+export type RecurringConflictReason = 'OCCUPIED' | 'PAST' | 'OUTSIDE_HOURS' | 'CLAIM_RACE'
 
 /**
  * Whether generateRecurringCourtSlots may claim this existing slot.

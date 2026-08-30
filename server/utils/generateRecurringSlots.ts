@@ -1,7 +1,10 @@
 import { datesForWeekdays, datesForWeekdaysInRange, hourFromTime } from './seasonSlots'
 import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { canClaimExistingSlotForRecurring } from '#shared/recurringReserve.ts'
+import {
+  canClaimExistingSlotForRecurring,
+  type RecurringConflictReason,
+} from '#shared/recurringReserve.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
@@ -22,7 +25,20 @@ export type RecurringGuestInfo = {
   equipmentPrice?: number
 }
 
-export async function generateRecurringCourtSlots(opts: {
+export type RecurringConflict = {
+  date: string
+  startTime: string
+  reason: RecurringConflictReason
+}
+
+export type RecurringGenerateResult = {
+  created: number
+  skipped: number
+  willCreate: Array<{ date: string; startTime: string }>
+  conflicts: RecurringConflict[]
+}
+
+type GenerateOpts = {
   clubId: string
   courtId: string
   anchorDate: string
@@ -34,7 +50,20 @@ export async function generateRecurringCourtSlots(opts: {
   finishDate?: string
   displayStatus?: 'RESERVED' | 'TEAM' | 'PENDING'
   guestInfo?: RecurringGuestInfo
-}) {
+  /** When true, inspect only — no slot/booking writes. */
+  dryRun?: boolean
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return Boolean(
+    error
+    && typeof error === 'object'
+    && 'code' in error
+    && (error as { code?: string }).code === 'P2002',
+  )
+}
+
+export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<RecurringGenerateResult> {
   const court = await prisma.court.findFirst({
     where: { id: opts.courtId, clubId: opts.clubId },
     include: { club: true },
@@ -62,6 +91,8 @@ export async function generateRecurringCourtSlots(opts: {
   }))
   let created = 0
   let skipped = 0
+  const willCreate: Array<{ date: string; startTime: string }> = []
+  const conflicts: RecurringConflict[] = []
 
   for (const date of dates) {
     await ensureSlotsForDate(opts.clubId, date)
@@ -71,9 +102,17 @@ export async function generateRecurringCourtSlots(opts: {
       const hour = hourFromTime(time)
       const openHour = court.openHour ?? court.club.openHour
       const closeHour = court.closeHour ?? court.club.closeHour
-      if (hour < openHour || hour >= closeHour) continue
+      if (hour < openHour || hour >= closeHour) {
+        skipped += 1
+        conflicts.push({ date, startTime: formatHour(hour), reason: 'OUTSIDE_HOURS' })
+        continue
+      }
       const startTime = formatHour(hour)
-      if (isSlotStartInPast(date, startTime)) continue
+      if (isSlotStartInPast(date, startTime)) {
+        skipped += 1
+        conflicts.push({ date, startTime, reason: 'PAST' })
+        continue
+      }
       const duration = court.club.defaultSessionDurationMinutes || 60
       const endTime = duration === 60 ? hourEnd(hour) : addMinutes(startTime, duration)
       const slotPrice = computeListedSlotPrice(court.price, startTime, court.pricingJson)
@@ -92,42 +131,71 @@ export async function generateRecurringCourtSlots(opts: {
       // Never overwrite PLATFORM/live bookings or non-FREE desk holds.
       if (!canClaimExistingSlotForRecurring(existing)) {
         skipped += 1
+        conflicts.push({ date, startTime, reason: 'OCCUPIED' })
         continue
       }
 
-      let slotId: string
-      if (existing) {
-        await prisma.slot.update({
-          where: { id: existing.id },
-          data: { displayStatus: status },
-        })
-        slotId = existing.id
-      } else {
-        const slot = await prisma.slot.create({
-          data: {
-            courtId: court.id,
-            date,
-            startTime,
-            endTime,
-            price: slotPrice,
-            displayStatus: status,
-          },
-        })
-        slotId = slot.id
+      if (opts.dryRun) {
+        willCreate.push({ date, startTime })
+        created += 1
+        continue
       }
 
-      if (guest) {
-        const staleCancelled = existing?.booking?.status === 'CANCELLED' ? existing.booking : null
-        const linkedUser = await findUserByPhone(guest.guestMobile)
-        const linkedUserId = linkedUser?.id ?? null
-        const guestNamePair = linkedUser?.name?.trim()
-          ? normalizeGuestNamePair(linkedUser.name, '')
-          : { guestName: guest.guestName, guestFamily: guest.guestFamily }
-        let recurringBookingId: string | null = null
-        await prisma.$transaction(async (tx) => {
-          if (staleCancelled) {
-            await tx.booking.delete({ where: { id: staleCancelled.id } })
+      try {
+        const linkedUser = guest ? await findUserByPhone(guest.guestMobile) : null
+        const claimed = await prisma.$transaction(async (tx) => {
+          let slotId: string
+          let staleCancelledId: string | null = null
+
+          if (existing) {
+            const fresh = await tx.slot.findFirst({
+              where: { id: existing.id },
+              include: { booking: true },
+            })
+            if (!canClaimExistingSlotForRecurring(fresh)) return null
+            // Atomic FREE claim — loses the race if another writer took the slot.
+            const claimedRows = await tx.slot.updateMany({
+              where: { id: existing.id, displayStatus: 'FREE' },
+              data: { displayStatus: status },
+            })
+            if (claimedRows.count !== 1) return null
+            slotId = existing.id
+            if (fresh?.booking?.status === 'CANCELLED') staleCancelledId = fresh.booking.id
+            const liveBooking = await tx.booking.findFirst({
+              where: { slotId, status: { not: 'CANCELLED' } },
+            })
+            if (liveBooking) {
+              await tx.slot.update({ where: { id: slotId }, data: { displayStatus: 'FREE' } })
+              return null
+            }
+          } else {
+            try {
+              const slot = await tx.slot.create({
+                data: {
+                  courtId: court.id,
+                  date,
+                  startTime,
+                  endTime,
+                  price: slotPrice,
+                  displayStatus: status,
+                },
+              })
+              slotId = slot.id
+            } catch (error) {
+              if (isUniqueViolation(error)) return null
+              throw error
+            }
           }
+
+          if (!guest) return { slotId, bookingId: null as string | null }
+
+          if (staleCancelledId) {
+            await tx.booking.delete({ where: { id: staleCancelledId } })
+          }
+          const linkedUserId = linkedUser?.id ?? null
+          const guestNamePair = linkedUser?.name?.trim()
+            ? normalizeGuestNamePair(linkedUser.name, '')
+            : { guestName: guest.guestName, guestFamily: guest.guestFamily }
           const booking = await tx.booking.create({
             data: {
               slotId,
@@ -143,7 +211,6 @@ export async function generateRecurringCourtSlots(opts: {
               source: 'CLUB',
             },
           })
-          recurringBookingId = booking.id
           await syncBookingEquipments(tx, booking.id, equipmentBookingItems)
           await tx.payment.create({
             data: {
@@ -160,14 +227,29 @@ export async function generateRecurringCourtSlots(opts: {
               metadataJson: JSON.stringify({ source: 'owner-recurring' }),
             },
           })
+          return { slotId, bookingId: booking.id }
         })
-        if (recurringBookingId) {
-          await syncClubContactForBooking(recurringBookingId)
-        }
-      }
 
-      created += 1
+        if (!claimed) {
+          skipped += 1
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          continue
+        }
+
+        if (claimed.bookingId) {
+          await syncClubContactForBooking(claimed.bookingId)
+        }
+        willCreate.push({ date, startTime })
+        created += 1
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          skipped += 1
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          continue
+        }
+        throw error
+      }
     }
   }
-  return { created, skipped }
+  return { created, skipped, willCreate, conflicts }
 }

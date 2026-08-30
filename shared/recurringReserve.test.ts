@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { canClaimExistingSlotForRecurring, isRecurringReserveEnabled } from './recurringReserve'
 
 describe('isRecurringReserveEnabled', () => {
-  it('is off for court-booking MVP', () => {
-    expect(isRecurringReserveEnabled()).toBe(false)
+  it('is on with overwrite-safe recurring claims', () => {
+    expect(isRecurringReserveEnabled()).toBe(true)
   })
 })
 
