@@ -485,7 +485,8 @@
       "errorLinkInactive": "این باشگاه هنوز شما را نپذیرفته است.",
       "errorNotApproved": "پروفایل مربی‌گری شما هنوز تأیید نشده است.",
       "errorSelfStudent": "نمی‌توانید برای خودتان جلسه ثبت کنید.",
-      "errorGeneric": "ثبت رزرو انجام نشد. دوباره تلاش کنید."
+      "errorGeneric": "ثبت رزرو انجام نشد. دوباره تلاش کنید.",
+      "externalOccupiedHint": "این سانس در اینباکس آزاد است ولی در سایت دیگر رزرو شده — قابل انتخاب نیست."
     }
   },
   "notifications": {
@@ -784,6 +785,7 @@
     "userDisabled": "غیرفعال",
     "clubNotFound": "باشگاه پیدا نشد",
     "backToClubs": "بازگشت به باشگاه‌ها",
+    "calendarSourcesLink": "منابع تقویم (همپوشانی سایت‌ها)",
     "clubDetails": "جزئیات باشگاه",
     "address": "آدرس",
     "phone": "تلفن",

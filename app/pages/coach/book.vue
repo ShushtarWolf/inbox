@@ -14,6 +14,7 @@ const { today } = useLocalDate()
 type ClubOption = { id: string; nameFa: string; nameEn: string; city: string }
 type CourtSlot = {
   id: string
+  courtId: string
   courtNameFa: string
   courtNameEn: string
   startTime: string
@@ -53,9 +54,25 @@ const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await u
   immediate: Boolean(clubId.value),
 })
 
+const {
+  isExternalOnlyOccupied,
+  externalSiteBadge,
+  refreshExternalOverlay,
+} = useCoachExternalCalendarOverlay({ clubId, date })
+
+const bookableSlots = computed(() =>
+  (slotData.value?.slots || []).filter((slot) => !isExternalOnlyOccupied(slot)),
+)
+
+const blockedExternalSlots = computed(() =>
+  (slotData.value?.slots || []).filter((slot) => isExternalOnlyOccupied(slot)),
+)
+
 watch(slotData, (next) => {
   if (!next?.slots?.length || selectedSlotId.value || !initialTime) return
-  const match = next.slots.find((slot) => slot.startTime.slice(0, 5) === initialTime)
+  const match = next.slots.find((slot) =>
+    slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot),
+  )
   if (match) selectedSlotId.value = match.id
 }, { immediate: true })
 
@@ -70,6 +87,10 @@ watch([clubId, date], () => {
   errorKey.value = ''
   successMessage.value = ''
 })
+
+async function refreshSlotsAndOverlay() {
+  await Promise.all([refreshSlots(), refreshExternalOverlay()])
+}
 
 /** Server statusMessages are stable identifiers; map them so the coach sees why it failed. */
 function messageToKey(message: string) {
@@ -103,7 +124,7 @@ async function submit() {
     selectedSlotId.value = ''
     studentPhone.value = ''
     studentName.value = ''
-    await Promise.all([refreshSlots(), refreshWallet()])
+    await Promise.all([refreshSlotsAndOverlay(), refreshWallet()])
   }
   catch (err) {
     errorKey.value = messageToKey(String((err as { statusMessage?: string })?.statusMessage || ''))
@@ -206,9 +227,12 @@ async function startTopUp() {
           <p v-else-if="!slotData?.slots?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
             {{ $t('coach.book.noSlots') }}
           </p>
+          <p v-else-if="!bookableSlots.length && blockedExternalSlots.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
+            {{ $t('coach.book.noSlots') }}
+          </p>
           <div v-else class="grid gap-2 sm:grid-cols-2">
             <button
-              v-for="slot in slotData.slots"
+              v-for="slot in bookableSlots"
               :key="slot.id"
               type="button"
               class="ios-card p-3 text-start"
@@ -222,6 +246,17 @@ async function startTopUp() {
                 <span class="font-bold text-brand-primary"> {{ formatCurrency(slot.courtCharge) }}</span>
               </p>
             </button>
+            <div
+              v-for="slot in blockedExternalSlots"
+              :key="`ext-${slot.id}`"
+              class="ios-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
+              aria-disabled="true"
+            >
+              <p class="text-sm font-bold text-brand-gray-600">{{ slot.courtNameFa }}</p>
+              <p class="text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi></p>
+              <p class="mt-1 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
+              <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+            </div>
           </div>
         </section>
 

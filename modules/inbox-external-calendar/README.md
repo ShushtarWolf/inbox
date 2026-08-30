@@ -11,13 +11,16 @@
 - اسلات **قابل انتخاب** می‌ماند (قفل سخت نیست).
 - API عمومی: `GET /api/public/external-suspected?club=…&date=…` → `{ suspected: [{ slotId?, startTime, courtId, suspected: true }] }` — **بدون** شناسه پلتفرم.
 
-### مالک / ادمین
+### مالک / ادمین / مربی
 
 | URL | نقش |
 |-----|-----|
 | `/owner/calendar` | تقویم اصلی مالک — اشغال الوپلی/الوورزش با **نام سایت** روی سلول‌های آزاد اینباکس |
 | `/owner/calendar-sources` | نمای مرجع همپوشانی (همان داده) |
 | `/admin/calendar-sources` | ادمین (`x-admin-secret`) — `clubSlug` در query/فرم |
+| `/coach/book` | رزرو زمین مربی — سانس‌های اشغال در سایت دیگر با **نام سایت**، غیرقابل انتخاب |
+
+API مربی: `GET /api/coach/calendar-sources?clubId=&date=` (COACH + لینک ACTIVE باشگاه).
 
 تقویم اصلی مالک منبع را نشان می‌دهد: «الوپلی»، «الوورزش»، … (+ عنوان باشگاه در آن سایت در شیت جزئیات). ورزشکار همچنان فقط «مشکوک به رزرو» می‌بیند.
 
@@ -27,7 +30,7 @@
 rm -rf modules/inbox-external-calendar
 ```
 
-- تنها ویرایش بیرون از پوشه: `nuxt.config.ts` (`existsSync`) + **قلاب اختیاری** `useExternalSuspectedSlots` / `useOwnerExternalCalendarOverlay` و چند خط در `clubs/[slug].vue` و `owner/calendar.vue` که بدون ماژول no-op می‌شوند.
+- تنها ویرایش بیرون از پوشه: `nuxt.config.ts` (`existsSync`) + **قلاب اختیاری** `useExternalSuspectedSlots` / `useOwnerExternalCalendarOverlay` / `useCoachExternalCalendarOverlay` و چند خط در `clubs/[slug].vue`، `owner/calendar.vue` و `coach/book.vue` که بدون ماژول no-op می‌شوند.
 - تقویم مالک اصلی (`/owner/calendar`) بدون ماژول مثل قبل کار می‌کند؛ با ماژول، overlay منابع خارجی را با نام سایت نشان می‌دهد.
 
 ## mapping (`iust-tennis`)
