@@ -19,6 +19,7 @@ describe('formatSourceBadge', () => {
   it('joins overlap sources in stable order', () => {
     expect(formatSourceBadge(['aloplay', 'inbox'])).toBe('اینباکس + الوپلی')
     expect(formatSourceBadge(['courtic', 'alovarzesh', 'inbox'])).toBe('اینباکس + الوورزش + کورتیک')
+    expect(formatSourceBadge(['aloplay', 'alovarzesh'])).toBe('الوپلی + الوورزش')
   })
 })
 
@@ -60,6 +61,76 @@ describe('mergeOccupancy', () => {
     expect(merged[0]?.inboxStatus).toBe('FREE')
     expect(merged[0]?.badge).toBe('الوپلی')
   })
+
+  it('merges AloPlay + AloVarzesh conflict on same court+startTime', () => {
+    const merged = mergeOccupancy(
+      [{
+        courtId: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        displayStatus: 'FREE',
+      }],
+      [
+        {
+          courtKey: 'c1',
+          startTime: '10:00',
+          endTime: '11:00',
+          source: 'aloplay',
+        },
+        {
+          courtKey: 'c1',
+          startTime: '10:00',
+          endTime: '11:00',
+          source: 'alovarzesh',
+        },
+      ],
+    )
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0]?.sources).toEqual(['aloplay', 'alovarzesh'])
+    expect(merged[0]?.badge).toBe('الوپلی + الوورزش')
+    expect(merged[0]?.occupied).toBe(true)
+  })
+
+  it('shows AloPlay only when AloVarzesh is free', () => {
+    const merged = mergeOccupancy(
+      [{
+        courtId: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        displayStatus: 'FREE',
+      }],
+      [{
+        courtKey: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        source: 'aloplay',
+      }],
+    )
+
+    expect(merged[0]?.sources).toEqual(['aloplay'])
+    expect(merged[0]?.badge).toBe('الوپلی')
+  })
+
+  it('shows AloVarzesh only when AloPlay is free', () => {
+    const merged = mergeOccupancy(
+      [{
+        courtId: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        displayStatus: 'FREE',
+      }],
+      [{
+        courtKey: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        source: 'alovarzesh',
+      }],
+    )
+
+    expect(merged[0]?.sources).toEqual(['alovarzesh'])
+    expect(merged[0]?.badge).toBe('الوورزش')
+  })
 })
 
 describe('isInboxOccupied', () => {
@@ -96,6 +167,30 @@ describe('computeSuspectedSlots', () => {
       [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'aloplay' }],
     )
     expect(suspected).toEqual([])
+  })
+
+  it('flags suspected from AloVarzesh when inbox is free', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'FREE', id: 's1' }],
+      [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'alovarzesh' }],
+    )
+    expect(suspected).toEqual([{
+      slotId: 's1',
+      startTime: '10:00',
+      courtId: 'c1',
+      suspected: true,
+    }])
+  })
+
+  it('flags suspected when both AloPlay and AloVarzesh occupy inbox-free slot', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'FREE', id: 's1' }],
+      [
+        { courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'aloplay' },
+        { courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'alovarzesh' },
+      ],
+    )
+    expect(suspected).toHaveLength(1)
   })
 })
 
