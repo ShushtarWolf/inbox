@@ -1083,10 +1083,12 @@
   }
   .canva-sheet-dialog {
     /* Keep the sheet inside the overlay (padding ~2rem). Never drop max-height on
-       desktop — sm:max-h-none let multi-slot confirm grow past the viewport. */
+       desktop — sm:max-h-none let multi-slot confirm grow past the viewport.
+       Floor with 100dvh so a stale/zero --app-vv-height cannot collapse the sheet
+       into an invisible dialog under a full-screen hit-blocking overlay. */
     max-height: min(
       100%,
-      calc(var(--app-vv-height, 100dvh) - 2rem),
+      max(12rem, calc(var(--app-vv-height, 100dvh) - 2rem)),
       calc(100dvh - 2rem)
     );
     @apply mt-auto flex min-h-0 flex-col overflow-hidden sm:mt-0;
@@ -1789,7 +1791,11 @@
     color: #8a8680;
   }
   /* Summary + square CTA in-section (not sticky TailAdmin bar) */
-  /* Sticky above AppBottomNav (z-50) so تایید و ادامه stays tappable on phone. */
+  /* Sticky above the map iframe / following sections so تایید و ادامه stays tappable.
+     Bottom offset clears AppBottomNav; z-index beats OSM iframe paint order (Windows Chrome). */
+  .canva-club-detail-book {
+    @apply relative z-20;
+  }
   .canva-club-book-footer {
     @apply sticky z-30 mt-3 flex flex-col gap-2 border border-brand-gray-200 bg-brand-cream p-2.5;
     border-radius: var(--sz-canva-radius);
@@ -2722,7 +2728,7 @@
   .canva-club-detail-more {
     grid-area: more;
     position: relative;
-    z-index: 1;
+    z-index: 0;
   }
   .canva-club-detail-reviews {
     grid-area: reviews;

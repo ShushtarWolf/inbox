@@ -103,6 +103,18 @@ const appModal = readFileSync('app/components/AppModal.vue', 'utf8')
 if (!appModal.includes('acquireModalBodyLock') || !appModal.includes('releaseModalBodyLock')) {
   errors.push('AppModal must use shared modalBodyLock for nested sheets')
 }
+// Overlay root must dismiss on click — the flex-1 centering shell sits above the
+// backdrop and used to swallow taps (club slots dead after تایید و ادامه).
+if (!appModal.includes('data-app-modal-overlay') || !/@click="close"/.test(appModal)) {
+  errors.push('AppModal overlay root must @click="close" (backdrop under flex shell is not hittable)')
+}
+if (!appModal.includes('@click.stop')) {
+  errors.push('AppModal dialog must @click.stop so content taps do not dismiss')
+}
+// --app-vv-height must never publish 0 (collapses canva-sheet-dialog max-height).
+if (!appModal.includes('Math.max(1') && !appModal.includes('Math.max(1,')) {
+  errors.push('AppModal syncVisualViewport must floor --app-vv-height to >= 1')
+}
 const cropSheet = readFileSync('app/components/AppAvatarCropSheet.vue', 'utf8')
 if (!cropSheet.includes('releasePointerCapture')) {
   errors.push('AppAvatarCropSheet must releasePointerCapture (Safari tap dead-zone after crop)')

@@ -29,12 +29,15 @@ const holdsBodyLock = ref(false)
 function syncVisualViewport() {
   if (!import.meta.client) return
   const vv = window.visualViewport
+  const fallback = Math.max(1, Math.round(window.innerHeight || 0))
   if (!vv) {
-    document.documentElement.style.setProperty('--app-vv-height', `${window.innerHeight}px`)
+    document.documentElement.style.setProperty('--app-vv-height', `${fallback}px`)
     document.documentElement.style.setProperty('--app-keyboard-inset', '0px')
     return
   }
-  const height = Math.max(0, Math.round(vv.height))
+  // Never publish 0 — sheet max-height uses this var; 0 collapses the dialog and
+  // leaves a full-screen inert wrapper that blocks club slot taps (Windows Chrome).
+  const height = Math.max(1, Math.round(vv.height) || fallback)
   const keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
   document.documentElement.style.setProperty('--app-vv-height', `${height}px`)
   document.documentElement.style.setProperty('--app-keyboard-inset', `${keyboardInset}px`)
@@ -149,17 +152,23 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="venus-modal">
+      <!--
+        Click-to-dismiss MUST live on this root (or the flex shell). The centered
+        flex-1 shell paints above the backdrop and used to swallow clicks without
+        closing — after تایید و ادامه the page looked open but slots/CTA were dead.
+      -->
       <div
         v-if="open"
         class="fixed inset-0 flex flex-col overflow-y-auto overscroll-contain p-4 pb-[max(1rem,var(--sz-safe-bottom))] sm:p-6"
         :class="overlayClass || 'z-[55]'"
         role="presentation"
+        data-app-modal-overlay
+        @click="close"
       >
         <!-- Dedicated backdrop: always inset-0. Do not size via visualViewport (Safari hit-test bug). -->
         <div
           class="absolute inset-0 z-0 bg-[#2c2c2a]/60 backdrop-blur-[2px]"
           aria-hidden="true"
-          @click="close"
         />
         <div
           class="relative z-[1] flex min-h-0 w-full flex-1 justify-center"

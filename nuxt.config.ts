@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '8'
+const PWA_RESET_VERSION = '9'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')

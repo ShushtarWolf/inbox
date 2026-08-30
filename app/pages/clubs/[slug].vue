@@ -436,7 +436,8 @@ const confirmSlots = computed(() =>
 )
 
 function openConfirmSheet() {
-  if (!selectedSlotIds.value.length) return
+  // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
+  if (!selectedSlots.value.length) return
   if (!user.value) {
     openLogin({
       returnTo: buildReturnTo(route.path, {
@@ -654,9 +655,18 @@ function toggleSlot(slot: ClubSlot) {
   }
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
+  // Always include the slot's court + focused court so an empty chip selection
+  // cannot no-op toggleHourOnCourts (selection looks dead, CTA stays disabled).
+  const slotCourt = slotCourtId(slot)
+  if (slotCourt && focusedCourtId.value !== slotCourt) {
+    focusedCourtId.value = slotCourt
+  }
   const applyCourtIds = uniqueOrdered(
-    [...selectedCourtIds.value, focusedCourtId.value].filter((id): id is string => Boolean(id)),
+    [...selectedCourtIds.value, focusedCourtId.value, slotCourt].filter((id): id is string => Boolean(id)),
   )
+  if (!selectedCourtIds.value.length && slotCourt) {
+    selectedCourtIds.value = [slotCourt]
+  }
   selectedSlotIds.value = toggleHourOnCourts({
     selectedSlotIds: selectedSlotIds.value,
     selectedCourtIds: applyCourtIds,
@@ -977,7 +987,7 @@ async function shareClub() {
               v-else
               type="button"
               class="canva-cta canva-club-book-cta"
-              :disabled="!selectedSlotIds.length"
+              :disabled="!selectedSlots.length"
               @click="openConfirmSheet"
             >
               {{ t('auth.continueConfirm') }}
