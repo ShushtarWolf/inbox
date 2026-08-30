@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     await setUserSession(event, { user: toSessionUser(user) })
     await touchLastLogin(user.id)
 
-    const target = await ownerPostLoginRedirect(user, returnTo)
+    const target = await ownerPostLoginRedirect(user, returnTo, event)
     const separator = target.includes('?') ? '&' : '?'
     return sendRedirect(event, `${target}${separator}${stamp}`)
   } catch {

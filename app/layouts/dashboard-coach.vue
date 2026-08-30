@@ -1,11 +1,26 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const { fetch: fetchAuth } = useAuth()
 const { packagesEnabled } = usePilotFlags()
+const { fetch: fetchRoles, coachStatus } = usePlatformRoles()
 
-onMounted(() => {
-  fetchAuth()
+const pendingAllowed = computed(() => {
+  const path = route.path.replace(/\/+$/, '') || '/'
+  return path.endsWith('/coach/pending') || path.endsWith('/coach/profile')
+})
+
+onMounted(async () => {
+  await fetchAuth()
+  await fetchRoles()
+})
+
+watch([coachStatus, () => route.path], ([status]) => {
+  if (!status) return
+  if ((status === 'PENDING' || status === 'REJECTED') && !pendingAllowed.value) {
+    navigateTo(localePath('/coach/pending'), { replace: true })
+  }
 })
 
 const nav = computed(() => {

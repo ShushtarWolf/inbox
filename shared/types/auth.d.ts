@@ -6,6 +6,7 @@ declare module '#auth-utils' {
     nameEn?: string | null
     role: string
     secondaryRole?: string | null
+    tertiaryRole?: string | null
     locale?: string | null
     avatarUrl?: string | null
   }

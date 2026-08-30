@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
             OR: [
               { role: role as Role },
               { secondaryRole: role as Role },
+              { tertiaryRole: role as Role },
             ],
           }
         : {}),
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
       nameEn: true,
       role: true,
       secondaryRole: true,
+      tertiaryRole: true,
       phone: true,
       locale: true,
       disabledAt: true,
@@ -55,6 +57,7 @@ export default defineEventHandler(async (event) => {
       nameEn: user.nameEn,
       role: user.role,
       secondaryRole: user.secondaryRole,
+      tertiaryRole: user.tertiaryRole,
       phone: user.phone,
       locale: user.locale,
       disabled: Boolean(user.disabledAt),

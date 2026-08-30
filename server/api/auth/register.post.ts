@@ -77,8 +77,9 @@ export default defineEventHandler(async (event) => {
     name: user.name,
     role: user.role,
     secondaryRole: user.secondaryRole,
+    tertiaryRole: user.tertiaryRole,
     locale: user.locale,
     phone: user.phone,
-    redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
+    redirectTo: await ownerPostLoginRedirect(user, body.returnTo, event),
   }
 })

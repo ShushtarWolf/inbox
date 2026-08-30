@@ -19,7 +19,7 @@ import {
 } from '../../../utils/ownerOnboarding'
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../../utils/adminNotify'
-import { ownerPostLoginRedirect, postLoginRedirectPath, toSessionUser } from '../../../utils/auth'
+import { ownerPostLoginRedirect, toSessionUser } from '../../../utils/auth'
 import { seedDefaultEquipment } from '../../../utils/seedDefaultEquipment'
 import type { Prisma, User } from '@prisma/client'
 
@@ -69,9 +69,10 @@ export default defineEventHandler(async (event) => {
       name: updated.name,
       role: updated.role,
       secondaryRole: updated.secondaryRole,
+      tertiaryRole: updated.tertiaryRole,
       locale: updated.locale,
       phone,
-      redirectTo: await ownerPostLoginRedirect(updated, body.returnTo),
+      redirectTo: await ownerPostLoginRedirect(updated, body.returnTo, event),
     }
   }
 
@@ -199,6 +200,7 @@ export default defineEventHandler(async (event) => {
       name: result.user.name,
       role: result.user.role,
       secondaryRole: result.user.secondaryRole,
+      tertiaryRole: result.user.tertiaryRole,
       locale: result.user.locale,
       phone: result.user.phone,
       clubId: result.club.id,
@@ -271,10 +273,11 @@ export default defineEventHandler(async (event) => {
       name: result.user.name,
       role: result.user.role,
       secondaryRole: result.user.secondaryRole,
+      tertiaryRole: result.user.tertiaryRole,
       locale: result.user.locale,
       phone: result.user.phone,
       coachId: result.coach.id,
-      redirectTo: postLoginRedirectPath(result.user, locale, body.returnTo),
+      redirectTo: '/coach/pending',
     }
   }
 
@@ -288,9 +291,10 @@ export default defineEventHandler(async (event) => {
       name: user.name,
       role: user.role,
       secondaryRole: user.secondaryRole,
+      tertiaryRole: user.tertiaryRole,
       locale: user.locale,
       phone: user.phone,
-      redirectTo: await ownerPostLoginRedirect(user, body.returnTo),
+      redirectTo: await ownerPostLoginRedirect(user, body.returnTo, event),
     }
   }
 
@@ -314,9 +318,10 @@ export default defineEventHandler(async (event) => {
     name: user.name,
     role: user.role,
     secondaryRole: user.secondaryRole,
+    tertiaryRole: user.tertiaryRole,
     locale: user.locale,
     phone: user.phone,
-    redirectTo: postLoginRedirectPath(user, locale, body.returnTo),
+    redirectTo: await ownerPostLoginRedirect(user, body.returnTo, event),
   }
 })
 
@@ -335,6 +340,7 @@ async function applySecondRole(
     data: {
       role: assigned.role,
       secondaryRole: assigned.secondaryRole,
+      tertiaryRole: assigned.tertiaryRole,
       phoneVerifiedAt: new Date(),
       // Keep the established display name unless empty.
       ...(existing.name?.trim() ? {} : { name: opts.name, nameEn: opts.name }),

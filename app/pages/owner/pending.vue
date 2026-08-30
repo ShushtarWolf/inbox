@@ -66,6 +66,12 @@ onMounted(() => {
       >
         {{ t('owner.pendingRefresh') }}
       </button>
+      <NuxtLink
+        :to="localePath('/choose-role')"
+        class="px-4 py-3 text-center text-sm font-bold text-brand-primary"
+      >
+        {{ t('auth.chooseRole.backToPicker') }}
+      </NuxtLink>
     </div>
   </div>
 </template>

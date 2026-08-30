@@ -1,0 +1,603 @@
+hoe <!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>inbox — انتخاب نقش (موبایل)</title>
+  <style>
+    :root {
+      --bg: #f4efe9;
+      --text: #2c2c2a;
+      --muted: #6b6b67;
+      --red: #c41e1e;
+      --red-dark: #4a1420;
+      --red-soft: rgba(196, 30, 30, 0.10);
+      --gold: #b68a3b;
+      --gold-soft: rgba(182, 138, 59, 0.14);
+      --border: rgba(44, 44, 42, 0.10);
+      --white: #fff;
+      --radius: 0;
+      --phone-w: 375px;
+      --phone-h: 812px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Vazirmatn", "Tahoma", system-ui, sans-serif;
+      background: #1a1a18;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 24px 16px 48px;
+    }
+    h1.doc-title {
+      color: #f4efe9;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.6;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      max-width: 420px;
+    }
+    .tabs button {
+      border: 1px solid rgba(244, 239, 233, 0.25);
+      background: transparent;
+      color: #f4efe9;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .tabs button.active {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .stage {
+      width: var(--phone-w);
+      height: var(--phone-h);
+      background: var(--bg);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+      position: relative;
+      border: 3px solid #2c2c2a;
+    }
+    .screen { display: none; height: 100%; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* chrome */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 18px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .top-chrome {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo {
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+      color: var(--red-dark);
+    }
+    .logo span { color: var(--red); }
+    .chrome-action {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--red);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 28px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .headline {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.35;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .phone-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      border-radius: var(--radius);
+    }
+    .phone-chip .dot {
+      width: 8px; height: 8px;
+      background: #2f9e44;
+    }
+
+    /* role cards */
+    .role-list { display: flex; flex-direction: column; gap: 10px; }
+    .role-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 14px 14px 12px;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer;
+      text-align: start;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .role-card:hover, .role-card:focus-visible {
+      border-color: var(--red);
+      outline: none;
+      background: #fffafa;
+    }
+    .role-card.pending {
+      opacity: 0.92;
+      border-style: dashed;
+    }
+    .role-card.disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .role-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--red-soft);
+      color: var(--red);
+      font-size: 18px;
+      font-weight: 900;
+      border-radius: var(--radius);
+    }
+    .role-card.owner .role-icon { background: var(--gold-soft); color: var(--gold); }
+    .role-card.coach .role-icon { background: rgba(74, 20, 32, 0.08); color: var(--red-dark); }
+    .role-meta h3 {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .role-meta p {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      white-space: nowrap;
+    }
+    .badge-live { background: #e8f5e9; color: #1b7a2e; }
+    .badge-wait { background: var(--gold-soft); color: #8a6420; }
+    .badge-current { background: var(--red-soft); color: var(--red); }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 22px 0 16px;
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .add-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .add-btn {
+      width: 100%;
+      border: 1px dashed rgba(44,44,42,0.25);
+      background: transparent;
+      padding: 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: start;
+      cursor: pointer;
+      border-radius: var(--radius);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .add-btn span { color: var(--muted); font-size: 11px; font-weight: 600; }
+    .add-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .cta {
+      width: 100%;
+      border: none;
+      background: var(--red);
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 14px;
+      margin-top: 18px;
+      cursor: pointer;
+      border-radius: var(--radius);
+    }
+    .cta.ghost {
+      background: #fff;
+      color: var(--red);
+      border: 1px solid var(--red);
+      margin-top: 8px;
+    }
+    .note {
+      margin-top: 14px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+      text-align: start;
+    }
+
+    /* in-dashboard switcher sheet */
+    .dash-header {
+      padding: 4px 16px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dash-title { font-size: 16px; font-weight: 900; }
+    .pill-fake {
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--red-soft);
+      color: var(--red);
+      padding: 6px 10px;
+      border-radius: var(--radius);
+    }
+    .fake-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-radius: var(--radius);
+    }
+    .fake-card h4 { font-size: 13px; font-weight: 800; margin-bottom: 6px; }
+    .fake-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .switcher-box {
+      margin-top: 18px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: var(--radius);
+    }
+    .switcher-box .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .switcher-box a, .switcher-box button.linkish {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background: var(--red);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 12px;
+      margin-top: 8px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      border-radius: var(--radius);
+    }
+    .bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--border);
+      background: #fff;
+      padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+      flex-shrink: 0;
+    }
+    .bottom-nav span {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .bottom-nav span.active { color: var(--red); }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(44, 44, 42, 0.45);
+      display: flex;
+      align-items: flex-end;
+      z-index: 5;
+    }
+    .sheet {
+      width: 100%;
+      background: var(--bg);
+      padding: 12px 16px 28px;
+      border-top: 1px solid var(--border);
+    }
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(44,44,42,0.2);
+      margin: 0 auto 14px;
+    }
+    .sheet h2 {
+      font-size: 16px;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+    .sheet .sub { margin-bottom: 14px; }
+
+    .legend {
+      max-width: 420px;
+      color: rgba(244,239,233,0.7);
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .legend strong { color: #f4efe9; }
+  </style>
+</head>
+<body>
+  <h1 class="doc-title">موکاپ موبایل — یک شماره، تا ۳ داشبورد (انتخاب نقش مثل پونیشا)</h1>
+
+  <div class="tabs" id="tabs">
+    <button type="button" class="active" data-screen="picker">۱. بعد از ورود</button>
+    <button type="button" data-screen="pending">۲. در انتظار تأیید</button>
+    <button type="button" data-screen="athlete">۳. داخل پنل + سوییچ</button>
+    <button type="button" data-screen="sheet">۴. شیت تعویض نقش</button>
+  </div>
+
+  <div class="stage" aria-label="375px phone frame">
+    <!-- Screen 1: post-login role picker -->
+    <div class="screen active" id="picker">
+      <div class="status-bar"><span>۹:۴۱</span><span>▮▮▮</span></div>
+      <div class="top-chrome">
+        <button class="chrome-action" type="button">خروج</button>
+        <div class="logo">in<span>box</span></div>
+      </div>
+      <div class="body">
+        <p class="eyebrow">حساب شما</p>
+        <h2 class="headline">کدام پنل را باز کنیم؟</h2>
+        <p class="sub">با یک شماره می‌توانید بازیکن، مربی و مدیر باشگاه باشید. هر نقش داشبورد خودش را دارد.</p>
+        <div class="phone-chip"><span class="dot"></span> ۰۹۱۲ ••• ۴۵۶۷</div>
+
+        <div class="role-list">
+          <button type="button" class="role-card athlete">
+            <div class="role-icon">ب</div>
+            <div class="role-meta">
+              <h3>پنل بازیکن</h3>
+              <p>رزرو زمین، مربی، کیف پول</p>
+            </div>
+            <span class="badge badge-live">فعال</span>
+          </button>
+          <button type="button" class="role-card coach">
+            <div class="role-icon">م</div>
+            <div class="role-meta">
+              <h3>پنل مربی</h3>
+              <p>جلسات، شاگردان، زمان‌بندی</p>
+            </div>
+            <span class="badge badge-live">فعال</span>
+          </button>
+          <button type="button" class="role-card owner">
+            <div class="role-icon">ص</div>
+            <div class="role-meta">
+              <h3>پنل باشگاه</h3>
+              <p>تقویم، مالی، پکیج، پرسنل</p>
+            </div>
+            <span class="badge badge-live">فعال</span>
+          </button>
+        </div>
+
+        <p class="note">آخرین انتخاب شما ذخیره می‌شود؛ دفعه بعد مستقیم همان پنل باز می‌شود. از تنظیمات هم می‌توانید نقش را عوض کنید.</p>
+      </div>
+    </div>
+
+    <!-- Screen 2: pending approvals -->
+    <div class="screen" id="pending">
+      <div class="status-bar"><span>۹:۴۱</span><span>▮▮▮</span></div>
+      <div class="top-chrome">
+        <button class="chrome-action" type="button">خروج</button>
+        <div class="logo">in<span>box</span></div>
+      </div>
+      <div class="body">
+        <p class="eyebrow">حساب شما</p>
+        <h2 class="headline">کدام پنل را باز کنیم؟</h2>
+        <p class="sub">مربی و باشگاه تا تأیید ادمین، داشبورد کامل ندارند — فقط وضعیت درخواست دیده می‌شود.</p>
+        <div class="phone-chip"><span class="dot"></span> ۰۹۱۲ ••• ۴۵۶۷</div>
+
+        <div class="role-list">
+          <button type="button" class="role-card athlete">
+            <div class="role-icon">ب</div>
+            <div class="role-meta">
+              <h3>پنل بازیکن</h3>
+              <p>الان می‌توانید وارد شوید</p>
+            </div>
+            <span class="badge badge-live">فعال</span>
+          </button>
+          <button type="button" class="role-card coach pending">
+            <div class="role-icon">م</div>
+            <div class="role-meta">
+              <h3>پنل مربی</h3>
+              <p>درخواست ارسال شده — منتظر ادمین</p>
+            </div>
+            <span class="badge badge-wait">در انتظار</span>
+          </button>
+          <button type="button" class="role-card owner pending">
+            <div class="role-icon">ص</div>
+            <div class="role-meta">
+              <h3>پنل باشگاه</h3>
+              <p>باشگاه «آفتاب» هنوز تأیید نشده</p>
+            </div>
+            <span class="badge badge-wait">در انتظار</span>
+          </button>
+        </div>
+
+        <button type="button" class="cta">ورود به پنل بازیکن</button>
+        <button type="button" class="cta ghost">پیگیری درخواست‌ها</button>
+        <p class="note">با زدن کارت «در انتظار» یک صفحه وضعیت باز می‌شود (نه داشبورد کامل). بعد از تأیید ادمین، همان کارت «فعال» می‌شود.</p>
+      </div>
+    </div>
+
+    <!-- Screen 3: athlete dashboard with switcher -->
+    <div class="screen" id="athlete">
+      <div class="status-bar"><span>۹:۴۱</span><span>▮▮▮</span></div>
+      <div class="dash-header">
+        <div>
+          <div class="dash-title">سلام، سیامک</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">پنل بازیکن</div>
+        </div>
+        <span class="pill-fake">نقش: بازیکن</span>
+      </div>
+      <div class="body" style="padding-top:8px">
+        <div class="fake-card">
+          <h4>رزرو بعدی</h4>
+          <p>شنبه ۱۸:۰۰ · زمین ۳ · باشگاه آفتاب</p>
+        </div>
+        <div class="fake-card">
+          <h4>کیف پول</h4>
+          <p>موجودی نمونه — برای موکاپ</p>
+        </div>
+
+        <div class="switcher-box">
+          <p class="hint">نقش‌های دیگر این حساب</p>
+          <button type="button" class="linkish" data-goto="sheet">رفتن به پنل مربی</button>
+          <button type="button" class="linkish" data-goto="sheet">رفتن به پنل باشگاه</button>
+        </div>
+        <p class="note">این بلوک در پروفایل / تنظیمات هر داشبورد می‌آید. با یک ضربه همان داشبورد یکتای نقش باز می‌شود.</p>
+      </div>
+      <div class="bottom-nav">
+        <span class="active">خانه</span>
+        <span>رزروها</span>
+        <span>کیف پول</span>
+        <span>من</span>
+      </div>
+    </div>
+
+    <!-- Screen 4: bottom sheet role switch -->
+    <div class="screen" id="sheet" style="position:relative">
+      <div class="status-bar"><span>۹:۴۱</span><span>▮▮▮</span></div>
+      <div class="dash-header">
+        <div>
+          <div class="dash-title">سلام، سیامک</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">پنل بازیکن</div>
+        </div>
+        <button type="button" class="pill-fake" style="border:none;cursor:pointer" id="openSheet">تعویض نقش ▾</button>
+      </div>
+      <div class="body" style="padding-top:8px">
+        <div class="fake-card"><h4>رزرو بعدی</h4><p>شنبه ۱۸:۰۰ · زمین ۳</p></div>
+        <div class="fake-card"><h4>پیشنهاد باشگاه</h4><p>نزدیک شما · موکاپ</p></div>
+      </div>
+      <div class="bottom-nav">
+        <span class="active">خانه</span>
+        <span>رزروها</span>
+        <span>کیف پول</span>
+        <span>من</span>
+      </div>
+
+      <div class="overlay" id="sheetOverlay">
+        <div class="sheet">
+          <div class="sheet-handle"></div>
+          <h2>تعویض نقش</h2>
+          <p class="sub">شماره یکی است؛ داشبورد عوض می‌شود.</p>
+          <div class="role-list">
+            <button type="button" class="role-card athlete">
+              <div class="role-icon">ب</div>
+              <div class="role-meta">
+                <h3>بازیکن</h3>
+                <p>الان اینجا هستید</p>
+              </div>
+              <span class="badge badge-current">فعلی</span>
+            </button>
+            <button type="button" class="role-card coach">
+              <div class="role-icon">م</div>
+              <div class="role-meta">
+                <h3>مربی</h3>
+                <p>جلسات امروز و شاگردان</p>
+              </div>
+              <span class="badge badge-live">فعال</span>
+            </button>
+            <button type="button" class="role-card owner">
+              <div class="role-icon">ص</div>
+              <div class="role-meta">
+                <h3>مدیر باشگاه</h3>
+                <p>تقویم و عملیات سالن</p>
+              </div>
+              <span class="badge badge-live">فعال</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="legend">
+    <strong>موبایل ۳۷۵px</strong> · گوشه‌های مربعی (Canva) · بدون pill ·
+    تأیید ادمین برای مربی/باشگاه با بج «در انتظار»
+  </p>
+
+  <script>
+    const tabs = document.getElementById('tabs')
+    const screens = [...document.querySelectorAll('.screen')]
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-screen]')
+      if (!btn) return
+      tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn))
+      screens.forEach((s) => s.classList.toggle('active', s.id === btn.dataset.screen))
+    })
+    document.querySelectorAll('[data-goto]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-goto')
+        tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.screen === id))
+        screens.forEach((s) => s.classList.toggle('active', s.id === id))
+      })
+    })
+  </script>
+</body>
+</html>

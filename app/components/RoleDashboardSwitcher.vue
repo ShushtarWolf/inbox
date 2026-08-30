@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { hasRole, type PlatformRole } from '#shared/roles.ts'
-import { roleDashboardPath } from '#shared/returnTo.ts'
+import { type PlatformRole } from '#shared/roles.ts'
 
 const props = defineProps<{
   /** Dashboard the user is currently viewing. */
@@ -9,56 +8,75 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user } = useAuth()
 const { pilotNoCoach } = usePilotFlags()
+const {
+  heldRoles,
+  roleCardState,
+  pathForRole,
+  rememberRole,
+  canOfferCoach,
+  canOfferOwner,
+  showNewRoleSection,
+} = usePlatformRoles()
 
 const switchTargets = computed(() => {
-  const session = user.value
-  if (!session?.role) return []
-
-  const rolesUser = { role: session.role, secondaryRole: session.secondaryRole }
-  const candidates: Array<{ role: PlatformRole; label: string; to: string }> = []
-
-  if (props.current !== 'ATHLETE' && hasRole(rolesUser, 'ATHLETE')) {
+  const candidates: Array<{ role: PlatformRole; label: string; to: string; pending: boolean }> = []
+  for (const role of heldRoles.value) {
+    if (role === props.current) continue
+    if (role === 'COACH' && pilotNoCoach.value) continue
     candidates.push({
-      role: 'ATHLETE',
-      label: t('auth.switchToAthlete'),
-      to: localePath(roleDashboardPath('ATHLETE')),
+      role,
+      label: role === 'ATHLETE'
+        ? t('auth.switchToAthlete')
+        : role === 'COACH'
+          ? t('auth.switchToCoach')
+          : t('auth.switchToOwner'),
+      to: localePath(pathForRole(role)),
+      pending: roleCardState(role) === 'pending',
     })
   }
-  if (
-    props.current !== 'COACH'
-    && hasRole(rolesUser, 'COACH')
-    && !pilotNoCoach.value
-  ) {
-    candidates.push({
-      role: 'COACH',
-      label: t('auth.switchToCoach'),
-      to: localePath(roleDashboardPath('COACH')),
-    })
-  }
-  if (props.current !== 'CLUB_ADMIN' && hasRole(rolesUser, 'CLUB_ADMIN')) {
-    candidates.push({
-      role: 'CLUB_ADMIN',
-      label: t('auth.switchToOwner'),
-      to: localePath(roleDashboardPath('CLUB_ADMIN')),
-    })
-  }
-
   return candidates
 })
+
+function onSwitch(role: PlatformRole) {
+  rememberRole(role)
+}
 </script>
 
 <template>
-  <div v-if="switchTargets.length" class="space-y-2">
-    <p class="text-xs text-brand-gray-600 text-start">{{ t('auth.switchRoleHint') }}</p>
-    <NuxtLink
-      v-for="target in switchTargets"
-      :key="target.role"
-      :to="target.to"
-      class="canva-gate-btn-primary block w-full text-center text-sm"
-    >
-      {{ target.label }}
-    </NuxtLink>
+  <div v-if="switchTargets.length || showNewRoleSection()" class="space-y-2">
+    <template v-if="switchTargets.length">
+      <p class="text-xs text-brand-gray-600 text-start">{{ t('auth.switchRoleHint') }}</p>
+      <NuxtLink
+        v-for="target in switchTargets"
+        :key="target.role"
+        :to="target.to"
+        class="canva-gate-btn-primary block w-full text-center text-sm"
+        @click="onSwitch(target.role)"
+      >
+        {{ target.label }}
+        <span v-if="target.pending" class="ms-1 text-[11px] font-semibold opacity-90">
+          ({{ t('auth.chooseRole.badgePending') }})
+        </span>
+      </NuxtLink>
+    </template>
+
+    <template v-if="showNewRoleSection()">
+      <p class="pt-2 text-xs font-bold text-brand-navy text-start">{{ t('auth.chooseRole.newRoleTitle') }}</p>
+      <NuxtLink
+        v-if="canOfferCoach()"
+        :to="localePath('/register/coach')"
+        class="canva-gate-btn-secondary block w-full text-center text-sm"
+      >
+        {{ t('auth.chooseRole.applyCoach') }}
+      </NuxtLink>
+      <NuxtLink
+        v-if="canOfferOwner()"
+        :to="localePath('/register/owner')"
+        class="canva-gate-btn-secondary block w-full text-center text-sm"
+      >
+        {{ t('auth.chooseRole.applyOwner') }}
+      </NuxtLink>
+    </template>
   </div>
 </template>

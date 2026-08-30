@@ -102,6 +102,7 @@ export default defineEventHandler(async (event) => {
         data: {
           role: assigned.role,
           secondaryRole: assigned.secondaryRole,
+          tertiaryRole: assigned.tertiaryRole,
           passwordHash: hashSecret(password),
           ...(phone && !existingUser.phone ? { phone } : {}),
           avatarUrl: body.avatarUrl?.trim() || existingUser.avatarUrl,
@@ -214,6 +215,7 @@ export default defineEventHandler(async (event) => {
     name: result.user.name,
     role: result.user.role,
     secondaryRole: result.user.secondaryRole,
+    tertiaryRole: result.user.tertiaryRole,
     locale: result.user.locale,
     clubId: result.club.id,
     clubStatus: 'PENDING' as const,

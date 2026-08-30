@@ -39,6 +39,15 @@ describe('toSessionUser', () => {
       locale: 'fa',
       avatarUrl: 'https://cdn.example/a.webp',
     }).avatarUrl).toBe('https://cdn.example/a.webp')
+    expect(toSessionUser({
+      id: 'u1',
+      email: 'a@example.com',
+      name: 'سیامک',
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'ATHLETE',
+      tertiaryRole: 'COACH',
+      locale: 'fa',
+    }).tertiaryRole).toBe('COACH')
   })
 
   it('normalizes a missing avatar to null', () => {

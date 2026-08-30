@@ -12,6 +12,7 @@ type UserRow = {
   nameEn: string | null
   role: 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
   secondaryRole: 'ATHLETE' | 'COACH' | 'CLUB_ADMIN' | null
+  tertiaryRole: 'ATHLETE' | 'COACH' | 'CLUB_ADMIN' | null
   phone: string | null
   locale: string
   disabled: boolean
@@ -192,6 +193,12 @@ watch([roleFilter, disabledFilter], () => {
                   class="mt-1 text-xs text-brand-gray-600"
                 >
                   + {{ t(`admin.roles.${user.secondaryRole}`) }}
+                </div>
+                <div
+                  v-if="user.tertiaryRole"
+                  class="mt-1 text-xs text-brand-gray-600"
+                >
+                  + {{ t(`admin.roles.${user.tertiaryRole}`) }}
                 </div>
               </td>
               <td class="p-3">

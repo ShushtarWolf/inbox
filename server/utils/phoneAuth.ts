@@ -79,8 +79,8 @@ export async function linkOrphanBookingsByPhone(
 }
 
 /**
- * Find an existing phone user who can still accept `role` as a second platform role.
- * Returns null when the phone is free, already has the role, or already has two roles.
+ * Find an existing phone user who can still accept `role` as another platform role.
+ * Returns null when the phone is free, already has the role, or already has three roles.
  */
 export async function findUserForAdditionalRole(
   phoneRaw: string,

@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     include: {
       club: {
         include: {
-          owner: { select: { id: true, email: true, name: true, phone: true, role: true, secondaryRole: true } },
+          owner: { select: { id: true, email: true, name: true, phone: true, role: true, secondaryRole: true, tertiaryRole: true } },
         },
       },
     },
@@ -114,13 +114,14 @@ export default defineEventHandler(async (event) => {
     } else if (!hasRole(user, 'CLUB_ADMIN')) {
       const assigned = assignAddedRole(user, 'CLUB_ADMIN')
       if (!assigned) {
-        throw createError({ statusCode: 409, statusMessage: 'User already has two roles' })
+        throw createError({ statusCode: 409, statusMessage: 'USER_ROLE_SLOT_FULL' })
       }
       user = await tx.user.update({
         where: { id: user.id },
         data: {
           role: assigned.role,
           secondaryRole: assigned.secondaryRole,
+          tertiaryRole: assigned.tertiaryRole,
         },
       })
     }

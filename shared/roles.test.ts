@@ -3,6 +3,7 @@ import {
   assignAddedRole,
   canAddRole,
   hasRole,
+  packRoleSlots,
   pickPrimaryRole,
   platformRoleForStaffInvite,
   resolveInviteRoleUpgrade,
@@ -10,25 +11,39 @@ import {
 } from './roles'
 
 describe('roles helpers', () => {
-  it('lists primary and secondary without duplicates', () => {
+  it('lists primary, secondary, and tertiary without duplicates', () => {
     expect(userRoles({ role: 'ATHLETE' })).toEqual(['ATHLETE'])
     expect(userRoles({ role: 'CLUB_ADMIN', secondaryRole: 'ATHLETE' })).toEqual([
       'CLUB_ADMIN',
       'ATHLETE',
     ])
+    expect(userRoles({
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'COACH',
+      tertiaryRole: 'ATHLETE',
+    })).toEqual(['CLUB_ADMIN', 'COACH', 'ATHLETE'])
     expect(userRoles({ role: 'ATHLETE', secondaryRole: 'ATHLETE' })).toEqual(['ATHLETE'])
   })
 
-  it('hasRole checks both slots', () => {
-    const user = { role: 'CLUB_ADMIN', secondaryRole: 'ATHLETE' as const }
+  it('hasRole checks all slots', () => {
+    const user = {
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'ATHLETE' as const,
+      tertiaryRole: 'COACH' as const,
+    }
     expect(hasRole(user, 'CLUB_ADMIN')).toBe(true)
     expect(hasRole(user, 'ATHLETE')).toBe(true)
-    expect(hasRole(user, 'COACH')).toBe(false)
+    expect(hasRole(user, 'COACH')).toBe(true)
   })
 
-  it('allows at most two distinct roles', () => {
+  it('allows at most three distinct roles', () => {
     expect(canAddRole({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toBe(true)
-    expect(canAddRole({ role: 'ATHLETE', secondaryRole: 'COACH' }, 'CLUB_ADMIN')).toBe(false)
+    expect(canAddRole({ role: 'ATHLETE', secondaryRole: 'COACH' }, 'CLUB_ADMIN')).toBe(true)
+    expect(canAddRole({
+      role: 'ATHLETE',
+      secondaryRole: 'COACH',
+      tertiaryRole: 'CLUB_ADMIN',
+    }, 'CLUB_ADMIN')).toBe(false)
     expect(canAddRole({ role: 'ATHLETE' }, 'ATHLETE')).toBe(false)
   })
 
@@ -36,6 +51,7 @@ describe('roles helpers', () => {
     expect(assignAddedRole({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toEqual({
       role: 'CLUB_ADMIN',
       secondaryRole: 'ATHLETE',
+      tertiaryRole: null,
     })
   })
 
@@ -43,6 +59,26 @@ describe('roles helpers', () => {
     expect(assignAddedRole({ role: 'CLUB_ADMIN' }, 'ATHLETE')).toEqual({
       role: 'CLUB_ADMIN',
       secondaryRole: 'ATHLETE',
+      tertiaryRole: null,
+    })
+  })
+
+  it('fills tertiary when adding a third role', () => {
+    expect(assignAddedRole(
+      { role: 'CLUB_ADMIN', secondaryRole: 'ATHLETE' },
+      'COACH',
+    )).toEqual({
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'ATHLETE',
+      tertiaryRole: 'COACH',
+    })
+  })
+
+  it('packRoleSlots orders by priority with owner primary', () => {
+    expect(packRoleSlots(['ATHLETE', 'COACH', 'CLUB_ADMIN'])).toEqual({
+      role: 'CLUB_ADMIN',
+      secondaryRole: 'ATHLETE',
+      tertiaryRole: 'COACH',
     })
   })
 
@@ -61,6 +97,7 @@ describe('roles helpers', () => {
     expect(resolveInviteRoleUpgrade({ role: 'ATHLETE' }, 'CLUB_ADMIN')).toEqual({
       role: 'CLUB_ADMIN',
       secondaryRole: 'ATHLETE',
+      tertiaryRole: null,
     })
   })
 
@@ -72,10 +109,15 @@ describe('roles helpers', () => {
     )).toBe('already_has')
   })
 
-  it('resolveInviteRoleUpgrade returns slot_full at two roles', () => {
+  it('resolveInviteRoleUpgrade is already_has when all three roles are held', () => {
+    // With only three PlatformRoles, a full account always already_has any target.
     expect(resolveInviteRoleUpgrade(
-      { role: 'ATHLETE', secondaryRole: 'COACH' },
+      { role: 'ATHLETE', secondaryRole: 'COACH', tertiaryRole: 'CLUB_ADMIN' },
       'CLUB_ADMIN',
-    )).toBe('slot_full')
+    )).toBe('already_has')
+    expect(canAddRole(
+      { role: 'ATHLETE', secondaryRole: 'COACH', tertiaryRole: 'CLUB_ADMIN' },
+      'ATHLETE',
+    )).toBe(false)
   })
 })

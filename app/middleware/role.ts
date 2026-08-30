@@ -13,11 +13,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
       query: { returnTo: to.fullPath },
     }))
   }
-  const sessionUser = user.value as { role?: string; secondaryRole?: string | null } | null
+  const sessionUser = user.value as {
+    role?: string
+    secondaryRole?: string | null
+    tertiaryRole?: string | null
+  } | null
   if (!sessionUser?.role) {
     return navigateTo(localePath(roleDashboardPath('ATHLETE')))
   }
-  const rolesUser = { role: sessionUser.role, secondaryRole: sessionUser.secondaryRole }
+  const rolesUser = {
+    role: sessionUser.role,
+    secondaryRole: sessionUser.secondaryRole,
+    tertiaryRole: sessionUser.tertiaryRole,
+  }
   if (!hasRole(rolesUser, role)) {
     if (hasRole(rolesUser, 'CLUB_ADMIN')) return navigateTo(localePath('/owner/calendar'))
     if (hasRole(rolesUser, 'COACH')) return navigateTo(localePath('/coach'))

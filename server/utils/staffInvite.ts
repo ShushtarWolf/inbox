@@ -69,6 +69,7 @@ export async function inviteClubStaffByPhone(opts: {
         data: {
           role: upgrade.role,
           secondaryRole: upgrade.secondaryRole,
+          tertiaryRole: upgrade.tertiaryRole,
         },
       })
     }

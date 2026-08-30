@@ -13,9 +13,11 @@ type AuthUser = {
   nameEn?: string | null
   role: string
   secondaryRole?: string | null
+  tertiaryRole?: string | null
   phone?: string | null
   locale?: string | null
   avatarUrl?: string | null
+  coachApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null
   memberships?: Array<{
     role: string
     isPrimary: boolean

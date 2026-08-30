@@ -1,8 +1,15 @@
 import type { H3Event } from 'h3'
 import type { Role, User } from '@prisma/client'
-import { resolvePostLoginPath, sanitizeReturnTo } from '#shared/returnTo.ts'
+import { resolvePostLoginPath, roleDashboardPath, sanitizeReturnTo } from '#shared/returnTo.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { hasRole } from '#shared/roles.ts'
+import {
+  hasRole,
+  isPlatformRole,
+  LAST_PLATFORM_ROLE_COOKIE,
+  userRoles,
+  type PlatformRole,
+  type RolesUser,
+} from '#shared/roles.ts'
 import { hasOwnerPermission, parsePermissions, type OwnerPermission } from '#shared/ownerPermissions.ts'
 
 export async function findUserForPasswordLogin(identifier: string) {
@@ -33,29 +40,76 @@ export function postLoginRedirectPath(
   return resolvePostLoginPath(user.role, 'fa', returnTo)
 }
 
-/** If the owner's primary club is still awaiting admin acceptance, send them to /owner/pending. */
+/** Dashboard path for a held role, with coach/owner admin-acceptance gates. */
+export async function pathForPlatformRole(
+  user: { id: string } & RolesUser,
+  role: PlatformRole,
+): Promise<string> {
+  if (role === 'CLUB_ADMIN') {
+    const membership = await prisma.staffMembership.findFirst({
+      where: { userId: user.id, active: true },
+      include: { club: { select: { status: true } } },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    })
+    const status = membership?.club.status
+    if (status === 'PENDING' || status === 'SUSPENDED') {
+      return '/owner/pending'
+    }
+    return roleDashboardPath('CLUB_ADMIN')
+  }
+  if (role === 'COACH') {
+    const coach = await prisma.coach.findFirst({
+      where: { userId: user.id },
+      select: { approvalStatus: true },
+    })
+    if (coach && coach.approvalStatus !== 'APPROVED') {
+      return '/coach/pending'
+    }
+    return roleDashboardPath('COACH')
+  }
+  return roleDashboardPath('ATHLETE')
+}
+
+/**
+ * Post-login redirect:
+ * - sanitized returnTo wins (except bare /owner hub → pending gate)
+ * - 2+ roles → last chosen cookie if still held, else /choose-role
+ * - 1 role → that dashboard (with pending gates)
+ */
 export async function ownerPostLoginRedirect(
-  user: { id: string; role: string; secondaryRole?: string | null; locale?: string | null },
+  user: { id: string; locale?: string | null } & RolesUser,
   returnTo?: string,
+  event?: H3Event,
 ) {
-  const base = postLoginRedirectPath(user, user.locale ?? undefined, returnTo)
-  if (!hasRole(user, 'CLUB_ADMIN')) return base
-  if (returnTo && sanitizeReturnTo(returnTo)) {
+  const clean = returnTo ? sanitizeReturnTo(returnTo) : null
+  if (clean) {
     // Explicit deep-link wins (e.g. /owner/setup) unless it is the generic /owner hub.
-    const clean = sanitizeReturnTo(returnTo)!
-    if (clean !== '/owner' && clean !== '/owner/') return base
+    if (clean !== '/owner' && clean !== '/owner/') {
+      return resolvePostLoginPath(user.role, 'fa', clean)
+    }
+    if (hasRole(user, 'CLUB_ADMIN')) {
+      return pathForPlatformRole(user, 'CLUB_ADMIN')
+    }
+    return resolvePostLoginPath(user.role, 'fa', clean)
   }
 
-  const membership = await prisma.staffMembership.findFirst({
-    where: { userId: user.id, active: true },
-    include: { club: { select: { status: true } } },
-    orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-  })
-  const status = membership?.club.status
-  if (status === 'PENDING' || status === 'SUSPENDED') {
-    return '/owner/pending'
+  const roles = userRoles(user)
+  if (roles.length >= 2 && event) {
+    const last = getCookie(event, LAST_PLATFORM_ROLE_COOKIE)
+    if (isPlatformRole(last) && hasRole(user, last)) {
+      return pathForPlatformRole(user, last)
+    }
+    return '/choose-role'
   }
-  return base
+  if (roles.length >= 2) {
+    // No request cookie available (tests / callers without event) — keep primary dashboard.
+    return pathForPlatformRole(user, roles.includes('CLUB_ADMIN')
+      ? 'CLUB_ADMIN'
+      : roles.includes('COACH') ? 'COACH' : 'ATHLETE')
+  }
+
+  const only = (roles[0] || 'ATHLETE') as PlatformRole
+  return pathForPlatformRole(user, only)
 }
 
 export function toSessionUser(user: {
@@ -65,6 +119,7 @@ export function toSessionUser(user: {
   nameEn?: string | null
   role: string
   secondaryRole?: string | null
+  tertiaryRole?: string | null
   locale: string
   avatarUrl?: string | null
 }) {
@@ -75,6 +130,7 @@ export function toSessionUser(user: {
     nameEn: user.nameEn,
     role: user.role,
     secondaryRole: user.secondaryRole || null,
+    tertiaryRole: user.tertiaryRole || null,
     locale: user.locale,
     avatarUrl: user.avatarUrl || null,
   }
@@ -112,6 +168,7 @@ export async function requireUser(event: H3Event) {
     name: dbUser.name,
     role: dbUser.role as Role,
     secondaryRole: (dbUser.secondaryRole as Role | null) || null,
+    tertiaryRole: (dbUser.tertiaryRole as Role | null) || null,
     locale: dbUser.locale,
     phone: dbUser.phone,
   }

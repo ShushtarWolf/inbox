@@ -181,8 +181,10 @@ model User {
   name          String
   nameEn        String?
   role          Role     @default(ATHLETE)
-  /** Optional second platform role on the same phone/account (max 2 including `role`). */
+  /** Optional second platform role on the same phone/account (max 3 including `role` + tertiaryRole). */
   secondaryRole Role?
+  /** Optional third platform role on the same phone/account (additive; existing users stay null). */
+  tertiaryRole  Role?
   locale        String   @default("fa")
   phone         String?  @unique
   phoneVerifiedAt DateTime?

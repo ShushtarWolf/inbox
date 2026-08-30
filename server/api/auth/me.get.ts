@@ -10,10 +10,11 @@ export default defineEventHandler(async (event) => {
       nameEn: true,
       role: true,
       secondaryRole: true,
+      tertiaryRole: true,
       phone: true,
       locale: true,
       avatarUrl: true,
-      coachProfile: { select: { photo: true } },
+      coachProfile: { select: { photo: true, approvalStatus: true } },
       memberships: {
         where: { active: true },
         select: {
@@ -41,6 +42,7 @@ export default defineEventHandler(async (event) => {
     user: {
       ...rest,
       avatarUrl: rest.avatarUrl || coachProfile?.photo || null,
+      coachApprovalStatus: coachProfile?.approvalStatus || null,
     },
   }
 })
