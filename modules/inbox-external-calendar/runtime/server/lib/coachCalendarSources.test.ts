@@ -140,6 +140,40 @@ describe('buildCalendarSourcesResponse coach occupancy', () => {
     expect(cell?.occupied).toBe(true)
     expect(cell?.sourceDetails?.find((detail) => detail.source === 'aloplay')?.siteLabel).toBe('الوپلی')
   })
+
+  it('shows both AloPlay and AloVarzesh labels on double-booked cells', async () => {
+    vi.mocked(fetchExternalOccupancy).mockResolvedValue({
+      occupied: [
+        {
+          courtKey: 'court-1',
+          startTime: '10:00',
+          endTime: '11:00',
+          source: 'aloplay',
+        },
+        {
+          courtKey: 'court-1',
+          startTime: '10:00',
+          endTime: '11:00',
+          source: 'alovarzesh',
+        },
+      ],
+      adapters: [],
+    })
+
+    const { buildCalendarSourcesResponse: buildReal } = await vi.importActual<typeof import('./calendarSources')>('./calendarSources')
+    vi.mocked(buildCalendarSourcesResponse).mockImplementation(buildReal)
+
+    const payload = await buildCalendarSourcesResponse({
+      clubId: 'club-iust',
+      clubSlug: 'iust-tennis',
+      date: '2026-08-30',
+    })
+
+    const cell = payload.cells[0]
+    expect(cell?.sources).toEqual(['aloplay', 'alovarzesh'])
+    expect(cell?.badge).toBe('الوپلی + الوورزش')
+    expect(cell?.sourceDetails?.map((detail) => detail.siteLabel)).toEqual(['الوپلی', 'الوورزش'])
+  })
 })
 
 describe('handleCoachCalendarSourcesRequest auth', () => {

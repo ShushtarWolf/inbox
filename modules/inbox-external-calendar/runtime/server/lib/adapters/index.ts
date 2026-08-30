@@ -1,23 +1,7 @@
 import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
-import { preferAloPlayOverAlovarzesh } from '../preferAloPlay'
-import { findCourtMapping } from '../courtMatch'
 import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
 import { fetchCourticOccupancy } from './courtic'
-
-function aloPlayMappedCourtIds(
-  mapping: ClubMapping,
-  courts: Array<{ id: string; nameFa: string; nameEn?: string | null }>,
-): Set<string> {
-  const ids = new Set<string>()
-  for (const court of courts) {
-    const mappingCourt = findCourtMapping(mapping, court)
-    const aloplay = mappingCourt?.external?.aloplay
-    const productId = aloplay?.productId ?? aloplay?.courtId
-    if (productId != null) ids.add(court.id)
-  }
-  return ids
-}
 
 function aloplaySupported(mapping: ClubMapping): boolean {
   return mapping.sources?.aloplay?.clubId != null
@@ -44,36 +28,35 @@ export async function fetchExternalOccupancy(opts: {
     return { occupied: [], adapters: [] }
   }
 
-  const adapters: ExternalAdapterResult[] = []
-  const occupied: ExternalOccupiedSlot[] = []
+  const [aloplay, alovarzesh] = await Promise.all([
+    fetchAloPlayOccupied({
+      mapping: opts.mapping,
+      date: opts.date,
+      courts: opts.courts,
+      sessionDurationMinutes: opts.sessionDurationMinutes,
+    }),
+    fetchAloVarzeshOccupancy({
+      mapping: opts.mapping,
+      date: opts.date,
+      courts: opts.courts,
+      sessionDurationMinutes: opts.sessionDurationMinutes,
+    }),
+  ])
 
-  const aloplay = await fetchAloPlayOccupied({
-    mapping: opts.mapping,
-    date: opts.date,
-    courts: opts.courts,
-    sessionDurationMinutes: opts.sessionDurationMinutes,
-  })
-  adapters.push({
-    source: 'aloplay',
-    occupied: aloplay.occupied,
-    supported: aloplaySupported(opts.mapping),
-    error: aloplay.error,
-  })
-  occupied.push(...aloplay.occupied)
+  const adapters: ExternalAdapterResult[] = [
+    {
+      source: 'aloplay',
+      occupied: aloplay.occupied,
+      supported: aloplaySupported(opts.mapping),
+      error: aloplay.error,
+    },
+    alovarzesh,
+  ]
 
-  const alovarzesh = await fetchAloVarzeshOccupancy({
-    mapping: opts.mapping,
-    date: opts.date,
-    courts: opts.courts,
-    sessionDurationMinutes: opts.sessionDurationMinutes,
-  })
-  adapters.push(alovarzesh)
-  const alovarzeshOccupied = preferAloPlayOverAlovarzesh(
-    aloplay,
-    alovarzesh.occupied,
-    aloPlayMappedCourtIds(opts.mapping, opts.courts),
-  )
-  occupied.push(...alovarzeshOccupied)
+  const occupied: ExternalOccupiedSlot[] = [
+    ...aloplay.occupied,
+    ...alovarzesh.occupied,
+  ]
 
   const courtic = await fetchCourticOccupancy()
   adapters.push(courtic)
