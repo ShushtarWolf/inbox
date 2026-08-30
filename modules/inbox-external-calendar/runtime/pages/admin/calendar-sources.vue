@@ -7,10 +7,12 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
 const { today } = useLocalDate()
 
-const clubSlug = ref(PILOT_CLUB_SLUG)
+const initialClubSlug = typeof route.query.clubSlug === 'string' ? route.query.clubSlug : PILOT_CLUB_SLUG
+const clubSlug = ref(initialClubSlug)
 const date = ref(today())
 const data = ref<CalendarSourcesPayload | null>(null)
 const pending = ref(false)
