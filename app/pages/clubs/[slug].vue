@@ -588,7 +588,7 @@ function slotAriaLabel(slot: ClubSlot) {
   if (isSlotSelected(slot.id)) return t('clubs.slotAriaSelected', { time })
   if (waitlistSlotId.value === slot.id) return t('clubs.slotAriaWaitlist', { time })
   if (isSlotBooked(slot)) return t('clubs.slotAriaBooked', { time })
-  if (isSlotSuspected(slot)) return `${time} — مشکوک به رزرو`
+  if (isSlotSuspected(slot)) return t('clubs.slotAriaSuspected', { time })
   return t('clubs.slotAriaFree', { time })
 }
 
@@ -886,7 +886,7 @@ async function shareClub() {
             </span>
             <span v-if="externalSuspectedEnabled" class="canva-club-legend-item" role="listitem">
               <span class="canva-club-legend-swatch canva-club-legend-suspected" aria-hidden="true" />
-              مشکوک به رزرو
+              {{ t('clubs.slotLegendSuspected') }}
             </span>
           </div>
 
@@ -970,7 +970,7 @@ async function shareClub() {
                     v-if="!isSlotBooked(slot) && isSlotSuspected(slot) && !isSlotSelected(slot.id)"
                     class="canva-club-slot-suspected-label"
                   >
-                    مشکوک به رزرو
+                    {{ t('clubs.slotSuspectedLabel') }}
                   </span>
                 </button>
                 <p v-if="!courtSlots.length" class="canva-club-detail-desc col-span-full">

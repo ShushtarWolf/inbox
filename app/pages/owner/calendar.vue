@@ -361,7 +361,7 @@ function clearLongPressTimer() {
 }
 
 function onSlotPointerDown(slot: OwnerCalendarSlot) {
-  if (slot.displayStatus !== 'FREE' || isExternalOnlyOccupied(slot)) return
+  if (slot.displayStatus !== 'FREE') return
   longPressFired = false
   clearLongPressTimer()
   longPressTimer = setTimeout(() => {
@@ -953,7 +953,7 @@ function isSlotSelected(slot: OwnerCalendarSlot) {
 }
 
 function toggleFreeSlot(slot: OwnerCalendarSlot) {
-  if (slot.displayStatus !== 'FREE' || isExternalOnlyOccupied(slot)) return
+  if (slot.displayStatus !== 'FREE') return
   if (isSlotSelected(slot)) {
     selectedSlotIds.value = selectedSlotIds.value.filter((id) => id !== slot.id)
     if (!selectedSlotIds.value.length) selectionCourtId.value = null
@@ -994,6 +994,12 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   }
   const fullSlot = (data.value?.slots?.find((s) => s.id === slot.id) || slot) as OwnerCalendarSlot
   if (isExternalOnlyOccupied(fullSlot)) {
+    // Multi-select (after long-press) toggles like free; otherwise open override sheet.
+    if (multiSelectMode.value || isSlotSelected(fullSlot)) {
+      bookedSiblingIds.value = []
+      toggleFreeSlot(fullSlot)
+      return
+    }
     openSlot(fullSlot)
     return
   }
@@ -1005,6 +1011,20 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
   bookedSiblingIds.value = []
   multiSelectMode.value = true
   toggleFreeSlot(fullSlot)
+}
+
+/** External overlay is advisory — Inbox can still take a walk-in / phone cancel. */
+function openExternalReserve() {
+  const slot = selectedSlotFull.value
+  if (!slot || slot.displayStatus !== 'FREE') return
+  bookedSiblingIds.value = []
+  selectionCourtId.value = slot.courtId
+  if (!selectedSlotIds.value.includes(slot.id)) {
+    selectedSlotIds.value = [slot.id]
+  }
+  multiSelectMode.value = true
+  activePanel.value = 'reserve'
+  actionError.value = ''
 }
 
 function openSelectionReserve() {
@@ -1278,8 +1298,10 @@ const slotModalTitle = computed(() => {
       return t('owner.blockFormTitle')
     case 'detail':
       return t('owner.currentBooking')
-    case 'external':
-      return t('owner.externalBookingTitle')
+    case 'external': {
+      const badge = externalSiteBadge(selectedSlotFull.value)
+      return badge || t('owner.externalBookingTitle')
+    }
     case 'cancel':
       return t('owner.cancel')
     case 'comments':
@@ -2326,7 +2348,7 @@ const legend = [
                   class="canva-cal-grid-cell"
                   :class="gridCellClasses(court.id, hour)"
                   :title="slotCellTitle(cellSlot(court.id, hour))"
-                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' && !isExternalOnlyOccupied(cellSlot(court.id, hour)) ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
+                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
@@ -2352,7 +2374,7 @@ const legend = [
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
-                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE' && !isExternalOnlyOccupied(cellSlot(court.id, hour))"
+                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
                     class="canva-cal-grid-check"
                     :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
                     aria-hidden="true"
@@ -2535,6 +2557,9 @@ const legend = [
               <span class="text-brand-gray-500">{{ t('owner.externalBookingStatus') }}</span>
               <span class="font-bold text-brand-navy">{{ externalSiteBadge(selectedSlotFull) }}</span>
             </div>
+            <p class="mt-3 text-start text-xs font-medium text-brand-gray-600">
+              {{ t('owner.externalBookingReserveHint') }}
+            </p>
             <div class="venus-form-stack mt-3">
               <AppFormField :label="t('owner.comments')" field-id="owner-external-note">
                 <textarea
@@ -2551,6 +2576,13 @@ const legend = [
             <button
               type="button"
               class="canva-gate-btn-primary mt-4"
+              @click="openExternalReserve"
+            >
+              {{ t('owner.externalBookingReserve') }}
+            </button>
+            <button
+              type="button"
+              class="canva-gate-btn-secondary mt-2"
               :disabled="saving || (!form.comments.trim() && !externalOwnerNote(selectedSlotFull))"
               @click="doSaveExternalNote"
             >
