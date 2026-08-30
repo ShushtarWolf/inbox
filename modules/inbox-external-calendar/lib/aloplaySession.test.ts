@@ -47,15 +47,27 @@ describe('resolveAloPlayCredentials', () => {
 })
 
 describe('needsAloPlaySession', () => {
-  it('does not require session for today in Tehran', () => {
-    const now = new Date('2026-08-30T10:00:00.000Z')
-    const today = formatGregorianDateInTimeZone(now, 'Asia/Tehran')
-    expect(needsAloPlaySession(today, now)).toBe(false)
+  const now = new Date('2026-08-30T10:00:00.000Z')
+  const today = formatGregorianDateInTimeZone(now, 'Asia/Tehran')
+  const credEnv = {
+    ALOPLAY_MOBILE: '09121234567',
+    ALOPLAY_PASSWORD: 'secret',
+  }
+
+  it('does not require session for today when credentials are missing', () => {
+    expect(needsAloPlaySession(today, now, {})).toBe(false)
   })
 
-  it('requires session for dates after today in Tehran', () => {
-    const now = new Date('2026-08-30T10:00:00.000Z')
-    expect(needsAloPlaySession('2026-08-31', now)).toBe(true)
+  it('requires session for future dates when credentials are missing', () => {
+    expect(needsAloPlaySession('2026-08-31', now, {})).toBe(true)
+  })
+
+  it('requires session for today when credentials are set', () => {
+    expect(needsAloPlaySession(today, now, credEnv)).toBe(true)
+  })
+
+  it('requires session for future dates when credentials are set', () => {
+    expect(needsAloPlaySession('2026-09-04', now, credEnv)).toBe(true)
   })
 })
 
@@ -136,6 +148,50 @@ describe('fetchAloPlayApiJson', () => {
 
     expect(result.usedAuth).toBe(false)
     expect(result.payload).toEqual({ statusCode: 0, data: [] })
+  })
+
+  it('calls GetAvailableTime with Bearer token for today when credentials are set', async () => {
+    let authHeader = ''
+    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const target = String(url)
+      if (target.includes('Authentication')) {
+        return new Response(
+          JSON.stringify({
+            statusCode: 0,
+            data: { message: 'Success', token: 'session-token' },
+          }),
+          { status: 200 },
+        )
+      }
+      authHeader = String((init?.headers as Record<string, string>).Authorization || '')
+      expect(target).toContain('GetAvailableTime')
+      expect(target).toContain('date=2026-08-30')
+      return new Response(
+        JSON.stringify({
+          statusCode: 0,
+          data: [{ fromTime: '17:00:00', toTime: '18:00:00', productId: 56921 }],
+        }),
+        { status: 200 },
+      )
+    })
+
+    const cache = {
+      read: vi.fn(async () => null),
+      write: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+    }
+
+    const result = await fetchAloPlayApiJson(
+      fetchImpl as typeof fetch,
+      'v1/PublicClub/GetAvailableTime',
+      { clubId: 10887, date: '2026-08-30', productGender: 2 },
+      { requireAuth: true, credentials, cache },
+    )
+
+    expect(result.usedAuth).toBe(true)
+    expect(authHeader).toBe('Bearer session-token')
+    expect(result.payload).toMatchObject({ statusCode: 0 })
+    expect(cache.write).toHaveBeenCalled()
   })
 
   it('calls GetAvailableTime with Bearer token for future dates', async () => {
