@@ -2239,6 +2239,13 @@
   .canva-session-radios {
     @apply flex flex-wrap gap-4;
   }
+  .canva-session-coach-chip {
+    @apply inline-flex items-center gap-0.5 bg-brand-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-session-coach-chip .material-symbols-rounded {
+    @apply text-sm leading-none;
+  }
   .canva-equip-row {
     @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2.5 text-sm;
   }

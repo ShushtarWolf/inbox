@@ -2527,6 +2527,14 @@ const legend = [
                   <span class="canva-settings-radio-box" :class="sessionType === 'coach' ? 'canva-settings-radio-box-on' : ''" />
                   <input v-model="sessionType" type="radio" value="coach" class="sr-only">
                   <span>{{ t('owner.sessionTypeCoach') }}</span>
+                  <span
+                    v-if="sessionType === 'coach'"
+                    class="canva-session-coach-chip"
+                    aria-hidden="true"
+                  >
+                    <AppIcon name="sports" size="sm" />
+                    {{ t('owner.sessionTypeCoach') }}
+                  </span>
                 </label>
               </div>
             </div>
