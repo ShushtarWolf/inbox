@@ -51,6 +51,8 @@ export interface ExternalSourceConfig {
 
 export interface AloPlaySourceConfig extends ExternalSourceConfig {
   clubId: number | null
+  /** ProductGender values to union (e.g. [2, 1] = Male + Female). */
+  genders?: number[]
 }
 
 export interface AloVarzeshSourceConfig extends ExternalSourceConfig {
