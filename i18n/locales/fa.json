@@ -1618,6 +1618,7 @@
     "externalBookingTitle": "رزرو در سایت دیگر",
     "externalBookingHint": "این سانس در اینباکس آزاد است ولی در سایت رزرو دیگر اشغال دیده می‌شود. نام سایت فقط برای شما نمایش داده می‌شود.",
     "externalBookingStatus": "سایت",
+    "externalBookingNoteHint": "یادداشت فقط برای شماست (مثلاً فامیل مشتری). روی سایت دیگر تغییری ایجاد نمی‌کند.",
     "slotPayPaid": "پرداخت‌شده",
     "slotPayUnpaid": "پرداخت‌نشده",
     "slotPast": "گذشته",

@@ -473,6 +473,7 @@ model Club {
   supportTickets    SupportTicket[]
   competitions      Competition[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
+  ownerExternalNotes OwnerExternalNote[]
 }
 
 model Court {
@@ -496,6 +497,7 @@ model Court {
   waitlistEntries WaitlistEntry[]
   packages PackageDraft[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
+  ownerExternalNotes OwnerExternalNote[]
 }
 
 model Slot {
@@ -535,6 +537,27 @@ model ExternalOccupancySnapshot {
   @@unique([courtId, date, startTime, source])
   @@index([clubId, date])
   @@index([courtId, date])
+}
+
+/**
+ * Owner-only desk notes for hours occupied on another booking site.
+ * Independent of Booking and ExternalOccupancySnapshot so sync cannot wipe them.
+ */
+model OwnerExternalNote {
+  id        String   @id @default(cuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId   String
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  date      String
+  startTime String
+  endTime   String?
+  note      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courtId, date, startTime])
+  @@index([clubId, date])
 }
 
 model Booking {

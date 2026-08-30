@@ -31,6 +31,8 @@ export interface MergedCell {
   badge: string
   occupied: boolean
   sourceDetails?: SourceDetail[]
+  /** Owner desk note for this hour (external overlay only). */
+  ownerNote?: string | null
 }
 
 export interface InboxCalendarSlot {

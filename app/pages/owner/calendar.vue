@@ -199,6 +199,7 @@ const {
   isExternalOnlyOccupied,
   externalSiteBadge,
   externalSourceDetails,
+  externalOwnerNote,
   refreshExternalOverlay,
 } = useOwnerExternalCalendarOverlay({ date })
 
@@ -573,13 +574,17 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot || slot.displayStatus === 'FREE') return ''
+  if (!slot) return ''
+  if (isExternalOnlyOccupied(slot)) return externalOwnerNote(slot)
+  if (slot.displayStatus === 'FREE') return ''
   return activeBooking(slot)?.comments?.trim() || ''
 }
 
 function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
-  if (isExternalOnlyOccupied(slot)) return externalSiteBadge(slot)
+  if (isExternalOnlyOccupied(slot)) {
+    return [externalSiteBadge(slot), externalOwnerNote(slot)].filter(Boolean).join(' — ')
+  }
   if (slot.displayStatus === 'FREE') {
     return isPastFreeSlot(slot) ? t('owner.slotPast') : ''
   }
@@ -638,6 +643,7 @@ function courtColumnLabel(court: { nameFa: string; nameEn: string }, index: numb
 }
 
 function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
+  if (isExternalOnlyOccupied(slot)) return Boolean(externalOwnerNote(slot))
   return Boolean(activeBooking(slot)?.comments?.trim())
 }
 
@@ -1028,7 +1034,11 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
     ? 'CASH'
     : (existingMethod === 'IPG' && !payAtClubMode.value ? 'IPG' : 'CASH')
   form.paymentStatus = isFree ? 'PAY_AT_CLUB' : (booking?.payment?.status || booking?.paymentStatus || 'PAY_AT_CLUB')
-  form.comments = isFree ? '' : (booking?.comments || '')
+  form.comments = isExternalOnlyOccupied(fullSlot)
+    ? externalOwnerNote(fullSlot)
+    : isFree
+      ? ''
+      : (booking?.comments || '')
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
   const equipmentIds = isFree ? [] : (booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
@@ -1138,6 +1148,36 @@ async function doSaveNote() {
       body: {
         slotId: slot.id,
         comments,
+      },
+    })
+    await finishSlotAction()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doSaveExternalNote() {
+  const slot = selectedSlotFull.value
+  if (!slot || saving.value) return
+  const note = form.comments.trim()
+  const existing = externalOwnerNote(slot)
+  if (!note && !existing) {
+    actionError.value = t('owner.noteRequired')
+    return
+  }
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/external-note', {
+      method: 'POST',
+      body: {
+        courtId: slot.courtId,
+        date: slot.date || date.value,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        note,
       },
     })
     await finishSlotAction()
@@ -2384,7 +2424,28 @@ const legend = [
               <span class="text-brand-gray-500">{{ t('owner.externalBookingStatus') }}</span>
               <span class="font-bold text-brand-navy">{{ externalSiteBadge(selectedSlotFull) }}</span>
             </div>
-            <button type="button" class="canva-gate-btn-secondary mt-4" @click="closeMenu">
+            <div class="venus-form-stack mt-3">
+              <AppFormField :label="t('owner.comments')" field-id="owner-external-note">
+                <textarea
+                  id="owner-external-note"
+                  v-model="form.comments"
+                  class="neo-textarea"
+                  rows="3"
+                  :placeholder="t('owner.externalBookingNoteHint')"
+                />
+              </AppFormField>
+              <p class="text-start text-xs text-brand-gray-600">{{ t('owner.externalBookingNoteHint') }}</p>
+            </div>
+            <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary mt-4"
+              :disabled="saving || (!form.comments.trim() && !externalOwnerNote(selectedSlotFull))"
+              @click="doSaveExternalNote"
+            >
+              {{ saving ? t('common.loading') : t('owner.confirmNote') }}
+            </button>
+            <button type="button" class="canva-gate-btn-secondary mt-2" @click="closeMenu">
               {{ t('common.close') }}
             </button>
           </div>

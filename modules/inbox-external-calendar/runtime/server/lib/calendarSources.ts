@@ -37,6 +37,18 @@ export async function buildCalendarSourcesResponse(opts: {
     mapping,
   )
 
+  const noteRows = await prisma.ownerExternalNote.findMany({
+    where: { clubId: opts.clubId, date: opts.date },
+    select: { courtId: true, startTime: true, note: true },
+  })
+  const noteByKey = new Map(
+    noteRows.map((row) => [`${row.courtId}:${row.startTime.slice(0, 5)}`, row.note] as const),
+  )
+  const cellsWithNotes = cells.map((cell) => ({
+    ...cell,
+    ownerNote: noteByKey.get(`${cell.courtId}:${cell.startTime.slice(0, 5)}`) || null,
+  }))
+
   return {
     date: opts.date,
     clubSlug: opts.clubSlug,
@@ -46,7 +58,7 @@ export async function buildCalendarSourcesResponse(opts: {
       ? null
       : 'این نمای همپوشانی فقط برای باشگاه‌هایی است که علاوه بر اینباکس در سایت دیگری هم لیست شده‌اند.',
     courts: inbox.courts,
-    cells,
+    cells: cellsWithNotes,
     sessionDurationMinutes: inbox.sessionDurationMinutes,
     pollIntervalMs: POLL_INTERVAL_MS,
     adapters: external.adapters.map((adapter: ExternalAdapterResult) => ({

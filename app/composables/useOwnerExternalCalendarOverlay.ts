@@ -12,6 +12,7 @@ type OwnerExternalCell = {
   badge: string
   occupied: boolean
   sourceDetails?: OwnerExternalSourceDetail[]
+  ownerNote?: string | null
 }
 
 type OwnerExternalCalendarPayload = {
@@ -105,6 +106,14 @@ export function useOwnerExternalCalendarOverlay(opts: {
     return (cell.sourceDetails || []).filter((detail) => detail.source !== 'inbox')
   }
 
+  function externalOwnerNote(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): string {
+    const cell = externalCellFor(slot)
+    return cell?.ownerNote?.trim() || ''
+  }
+
   let pollTimer: ReturnType<typeof setInterval> | null = null
 
   function stopPolling() {
@@ -133,6 +142,7 @@ export function useOwnerExternalCalendarOverlay(opts: {
     isExternalOnlyOccupied,
     externalSiteBadge,
     externalSourceDetails,
+    externalOwnerNote,
     refreshExternalOverlay: refreshIfEnabled,
   }
 }
