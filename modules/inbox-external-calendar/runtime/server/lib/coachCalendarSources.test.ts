@@ -18,6 +18,10 @@ vi.mock('./adapters', () => ({
   fetchExternalOccupancy: vi.fn(),
 }))
 
+vi.mock('./occupancySnapshots', () => ({
+  persistAndMergeExternalOccupancy: vi.fn(async ({ liveOccupied }) => liveOccupied),
+}))
+
 vi.mock('./mappings', () => ({
   getClubMapping: vi.fn(),
   hasExternalMapping: vi.fn(),

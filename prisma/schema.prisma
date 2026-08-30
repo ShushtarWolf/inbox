@@ -51,6 +51,13 @@ enum BookingSource {
   CLUB
 }
 
+/** Occupancy seen on third-party booking sites (AloPlay / AloVarzesh / …). */
+enum ExternalOccupancySource {
+  ALOPLAY
+  ALOVARZESH
+  COURTIC
+}
+
 enum EquipmentCategory {
   CLUB
   RENTAL
@@ -465,6 +472,7 @@ model Club {
   settlementEntries SettlementLedgerEntry[]
   supportTickets    SupportTicket[]
   competitions      Competition[]
+  externalOccupancySnapshots ExternalOccupancySnapshot[]
 }
 
 model Court {
@@ -487,6 +495,7 @@ model Court {
   slots Slot[]
   waitlistEntries WaitlistEntry[]
   packages PackageDraft[]
+  externalOccupancySnapshots ExternalOccupancySnapshot[]
 }
 
 model Slot {
@@ -503,6 +512,28 @@ model Slot {
   booking Booking?
 
   @@unique([courtId, date, startTime])
+  @@index([courtId, date])
+}
+
+/**
+ * Durable overlay of slots occupied on external booking sites.
+ * Upserted whenever adapters see occupancy; never auto-deleted so past days stay visible.
+ */
+model ExternalOccupancySnapshot {
+  id          String                   @id @default(cuid())
+  clubId      String
+  club        Club                     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId     String
+  court       Court                    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  date        String
+  startTime   String
+  endTime     String
+  source      ExternalOccupancySource
+  firstSeenAt DateTime                 @default(now())
+  lastSeenAt  DateTime                 @default(now())
+
+  @@unique([courtId, date, startTime, source])
+  @@index([clubId, date])
   @@index([courtId, date])
 }
 

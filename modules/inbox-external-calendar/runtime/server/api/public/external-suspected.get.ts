@@ -1,5 +1,6 @@
 import { getClubMapping, hasExternalMapping } from '../../lib/mappings'
 import { fetchExternalOccupancy } from '../../lib/adapters'
+import { persistAndMergeExternalOccupancy } from '../../lib/occupancySnapshots'
 import { computeSuspectedSlots } from '../../lib/suspected'
 import { loadPublicClubSlots, resolveActiveClubBySlug } from '../../lib/publicClubSlots'
 
@@ -37,7 +38,13 @@ export default defineEventHandler(async (event) => {
     sessionDurationMinutes: club.defaultSessionDurationMinutes,
   })
 
+  const occupied = await persistAndMergeExternalOccupancy({
+    clubId: club.id,
+    date,
+    liveOccupied: external.occupied,
+  })
+
   return {
-    suspected: computeSuspectedSlots(inboxSlots, external.occupied),
+    suspected: computeSuspectedSlots(inboxSlots, occupied),
   }
 })

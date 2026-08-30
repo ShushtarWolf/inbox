@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAloVarzeshOccupiedTimes } from './alovarzeshParse'
+import { mergeLiveWithStoredOccupancy } from './occupancySnapshots'
 import { formatSourceBadge } from '../runtime/server/lib/badges'
 import { isInboxOccupied, mergeOccupancy } from '../runtime/server/lib/merge'
 import { computeSuspectedSlots } from '../runtime/server/lib/suspected'
@@ -239,5 +240,66 @@ describe('parseAloVarzeshOccupiedTimes', () => {
       </div>
     `
     expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03')).toEqual(['07:00', '10:00'])
+  })
+})
+
+describe('mergeLiveWithStoredOccupancy', () => {
+  it('keeps stored AloVarzesh occupancy when live returns empty', () => {
+    const merged = mergeLiveWithStoredOccupancy(
+      [],
+      [{
+        courtKey: 'c1',
+        startTime: '09:00',
+        endTime: '10:00',
+        source: 'alovarzesh',
+      }],
+    )
+    expect(merged).toEqual([{
+      courtKey: 'c1',
+      startTime: '09:00',
+      endTime: '10:00',
+      source: 'alovarzesh',
+    }])
+  })
+
+  it('unions live AloPlay with stored AloVarzesh on different slots', () => {
+    const merged = mergeLiveWithStoredOccupancy(
+      [{
+        courtKey: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        source: 'aloplay',
+      }],
+      [{
+        courtKey: 'c1',
+        startTime: '09:00',
+        endTime: '10:00',
+        source: 'alovarzesh',
+      }],
+    )
+    expect(merged).toHaveLength(2)
+    expect(merged.map((slot) => `${slot.source}:${slot.startTime}`)).toEqual([
+      'alovarzesh:09:00',
+      'aloplay:10:00',
+    ])
+  })
+
+  it('prefers stored row when live and stored share the same key', () => {
+    const merged = mergeLiveWithStoredOccupancy(
+      [{
+        courtKey: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        source: 'aloplay',
+      }],
+      [{
+        courtKey: 'c1',
+        startTime: '10:00',
+        endTime: '11:00',
+        source: 'aloplay',
+      }],
+    )
+    expect(merged).toHaveLength(1)
+    expect(merged[0]?.source).toBe('aloplay')
   })
 })

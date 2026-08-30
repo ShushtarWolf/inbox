@@ -2,6 +2,7 @@ import { getClubMapping, hasExternalMapping } from './mappings'
 import { loadInboxOwnerCalendar } from './inboxCalendar'
 import { fetchExternalOccupancy } from './adapters'
 import { mergeOccupancy } from './merge'
+import { persistAndMergeExternalOccupancy } from './occupancySnapshots'
 import { enrichCellsWithSourceDetails } from './sourceDetails'
 import { SOURCE_LABELS, type ExternalAdapterResult, type ExternalSourceId } from './types'
 
@@ -23,8 +24,16 @@ export async function buildCalendarSourcesResponse(opts: {
     sessionDurationMinutes: inbox.sessionDurationMinutes,
   })
 
+  const occupied = mapped
+    ? await persistAndMergeExternalOccupancy({
+        clubId: opts.clubId,
+        date: opts.date,
+        liveOccupied: external.occupied,
+      })
+    : external.occupied
+
   const cells = enrichCellsWithSourceDetails(
-    mergeOccupancy(inbox.slots, external.occupied),
+    mergeOccupancy(inbox.slots, occupied),
     mapping,
   )
 
