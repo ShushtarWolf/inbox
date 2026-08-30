@@ -31,8 +31,18 @@ export function resolveAloPlayCredentials(
   return { mobile, password, dialCode }
 }
 
-/** Public GetAvailableTime is today-only; future dates need an authenticated session. */
-export function needsAloPlaySession(date: string, now: Date = new Date()): boolean {
+/**
+ * When AloPlay credentials are configured, always use the logged-in session for
+ * GetAvailableTime (today and any future date the calendar request asks for).
+ * Without credentials, public GetAvailableTime is today-only; future dates still
+ * report requireAuth so the adapter degrades gracefully instead of crashing.
+ */
+export function needsAloPlaySession(
+  date: string,
+  now: Date = new Date(),
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (resolveAloPlayCredentials(env)) return true
   const today = formatGregorianDateInTimeZone(now, TEHRAN_TIME_ZONE)
   return date > today
 }

@@ -48,9 +48,9 @@ rm -rf modules/inbox-external-calendar
 npx vitest run --config modules/inbox-external-calendar/vitest.config.ts
 ```
 
-## AloPlay session (future dates)
+## AloPlay session
 
-Public `GetAvailableTime` works **today-only** without login. Tomorrow and later need an authenticated AloPlay client session on the server (Liara runs in Iran; `ws.aloplay.io` is 403 from non-Iran IPs).
+Public `GetAvailableTime` works **today-only** without login. When server credentials are set, the adapter uses a logged-in session for **whatever single date** the calendar request asks for (today or any future day). Without credentials, only today uses the public API; future dates degrade gracefully (empty overlay + adapter error).
 
 Optional Liara env (never commit values):
 
