@@ -119,6 +119,8 @@ const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
 const selectedCourtIds = ref<string[]>(deepLinkCourtIds)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
+/** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
+const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
 const { data: slots, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
   query: computed(() => ({
@@ -225,7 +227,11 @@ watch(
         selectedCourtIds.value = courtIds
         focusedCourtId.value = courtIds[0]!
       }
-      confirmOpen.value = true
+      // Guests: keep selection + login CTA — do not open confirm until signed in.
+      if (user.value) {
+        resumeConfirmAfterAuth.value = false
+        confirmOpen.value = true
+      }
     }
     deepLinkSlotsPending.value = false
     nextTick(() => {
@@ -286,6 +292,23 @@ const selectedSlots = computed(() => {
     .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
+
+function maybeResumeConfirm() {
+  if (!user.value || !resumeConfirmAfterAuth.value) return
+  if (!selectedSlots.value.length) return
+  resumeConfirmAfterAuth.value = false
+  waitlistSlotId.value = null
+  confirmOpen.value = true
+}
+
+watch(
+  () => [Boolean(user.value), selectedSlots.value.map((s) => s.id).join(',')] as const,
+  () => maybeResumeConfirm(),
+)
+
+const bookConfirmCtaLabel = computed(() =>
+  user.value ? t('auth.continueConfirm') : t('booking.loginToContinue'),
+)
 
 const bookingSummary = computed(() => {
   const picked = selectedSlots.value
@@ -439,6 +462,7 @@ function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
   if (!user.value) {
+    resumeConfirmAfterAuth.value = true
     openLogin({
       returnTo: buildReturnTo(route.path, {
         date: selectedDate.value,
@@ -449,11 +473,13 @@ function openConfirmSheet() {
     })
     return
   }
+  resumeConfirmAfterAuth.value = false
   waitlistSlotId.value = null
   confirmOpen.value = true
 }
 
 function onConfirmSuccess() {
+  resumeConfirmAfterAuth.value = false
   selectedSlotIds.value = []
   waitlistSlotId.value = null
 }
@@ -990,7 +1016,7 @@ async function shareClub() {
               :disabled="!selectedSlots.length"
               @click="openConfirmSheet"
             >
-              {{ t('auth.continueConfirm') }}
+              {{ bookConfirmCtaLabel }}
             </button>
           </div>
         </section>
