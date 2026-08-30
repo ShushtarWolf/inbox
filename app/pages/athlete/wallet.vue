@@ -14,6 +14,7 @@ const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   balance?: number
   withdrawableBalance?: number
+  pendingClassBalance?: number
   sheba?: string | null
   pendingWithdraws?: Array<{ id: string; amount: number }>
   transactions?: Array<{
@@ -48,6 +49,7 @@ const topUpAmount = computed(() => {
 })
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
+const pendingClassBalance = computed(() => Number(data.value?.pendingClassBalance || 0))
 
 const canTopUp = computed(() => {
   const amount = topUpAmount.value
@@ -205,6 +207,12 @@ watch(
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
       <p class="mt-2 text-xs text-white/80 text-start">
         {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
+      </p>
+      <p
+        v-if="pendingClassBalance > 0"
+        class="mt-1 text-xs text-white/70 text-start"
+      >
+        {{ t('athlete.pendingClassBalance', { amount: formatCurrency(pendingClassBalance) }) }}
       </p>
     </section>
 

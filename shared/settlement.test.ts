@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_PLATFORM_COMMISSION_BPS,
+  isSettlementCashoutEligible,
   isValidSheba,
   normalizeSheba,
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
+  sumEligibleSettlementNet,
 } from './settlement.ts'
 
 describe('splitSettlement', () => {
@@ -60,6 +62,35 @@ describe('splitSettlement', () => {
     const clawback = paid.ownerNet
     expect(clawback).toBe(540_000)
     expect(paid.commission + clawback).toBe(paid.gross)
+  })
+})
+
+describe('isSettlementCashoutEligible', () => {
+  const now = new Date('2026-08-30T12:00:00+03:30')
+
+  it('allows null/blank classDate immediately', () => {
+    expect(isSettlementCashoutEligible(null, now)).toBe(true)
+    expect(isSettlementCashoutEligible('', now)).toBe(true)
+    expect(isSettlementCashoutEligible('  ', now)).toBe(true)
+  })
+
+  it('holds same-day and future classes; releases day after', () => {
+    expect(isSettlementCashoutEligible('2026-08-30', now)).toBe(false)
+    expect(isSettlementCashoutEligible('2026-08-31', now)).toBe(false)
+    expect(isSettlementCashoutEligible('2026-08-29', now)).toBe(true)
+  })
+})
+
+describe('sumEligibleSettlementNet', () => {
+  const now = new Date('2026-08-30T12:00:00+03:30')
+
+  it('splits eligible vs pending and skips clawed rows', () => {
+    expect(sumEligibleSettlementNet([
+      { ownerNet: 100_000, classDate: '2026-08-29' },
+      { ownerNet: 50_000, classDate: '2026-08-30' },
+      { ownerNet: 25_000, classDate: null },
+      { ownerNet: 10_000, classDate: '2026-08-20', clawedBackAt: new Date() },
+    ], now)).toEqual({ eligible: 125_000, pending: 50_000 })
   })
 })
 

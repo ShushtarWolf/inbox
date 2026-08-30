@@ -1,4 +1,5 @@
 import type { Prisma, WalletTransactionType } from '@prisma/client'
+import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import { canCoverBookingWithWallet, computeWithdrawableBalance, shouldCreditTopUp } from '#shared/walletTopUp.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -19,9 +20,10 @@ export async function getWalletBalance(userId: string) {
 /**
  * Bank-withdrawable balance: cash-backed coach settlement nets only.
  * Athlete top-ups, refund credits, and prize ADJUSTMENT are closed-loop (not withdrawable).
+ * Class SETTLEMENT_CREDIT rows count only after the Tehran day after classDate.
  * Cap by current balance so prior WITHDRAW / HOLD rows are respected.
  */
-export async function getWalletWithdrawableBalance(userId: string) {
+export async function getWalletWithdrawableBalance(userId: string, now = new Date()) {
   const wallet = await prisma.wallet.findUnique({
     where: { userId },
     select: {
@@ -29,18 +31,67 @@ export async function getWalletWithdrawableBalance(userId: string) {
       balance: true,
       transactions: {
         where: { type: { in: ['SETTLEMENT_CREDIT', 'SETTLEMENT_CLAWBACK'] } },
-        select: { amount: true, type: true },
+        select: { amount: true, type: true, paymentId: true },
       },
     },
   })
   if (!wallet || wallet.balance <= 0) return 0
+
+  const paymentIds = wallet.transactions
+    .map((row) => row.paymentId)
+    .filter((id): id is string => Boolean(id))
+  const ledgerRows = paymentIds.length
+    ? await prisma.settlementLedgerEntry.findMany({
+        where: { paymentId: { in: paymentIds } },
+        select: { paymentId: true, classDate: true },
+      })
+    : []
+  const classDateByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row.classDate]))
+
   let creditSum = 0
   let clawbackSum = 0
   for (const row of wallet.transactions) {
-    if (row.type === 'SETTLEMENT_CREDIT') creditSum += row.amount
-    else clawbackSum += row.amount
+    if (row.type === 'SETTLEMENT_CLAWBACK') {
+      clawbackSum += row.amount
+      continue
+    }
+    const classDate = row.paymentId ? classDateByPayment.get(row.paymentId) : null
+    // Missing ledger → treat as eligible; future classDate → hold until day after.
+    if (!isSettlementCashoutEligible(classDate ?? null, now)) continue
+    creditSum += row.amount
   }
   return computeWithdrawableBalance(wallet.balance, creditSum, clawbackSum)
+}
+
+/** Settlement nets still held until the day after class (coach wallet). */
+export async function getWalletPendingClassBalance(userId: string, now = new Date()) {
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId },
+    select: {
+      transactions: {
+        where: { type: 'SETTLEMENT_CREDIT' },
+        select: { amount: true, paymentId: true },
+      },
+    },
+  })
+  if (!wallet) return 0
+  const paymentIds = wallet.transactions
+    .map((row) => row.paymentId)
+    .filter((id): id is string => Boolean(id))
+  if (!paymentIds.length) return 0
+  const ledgerRows = await prisma.settlementLedgerEntry.findMany({
+    where: { paymentId: { in: paymentIds }, clawedBackAt: null },
+    select: { paymentId: true, classDate: true },
+  })
+  const classDateByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row.classDate]))
+  let pending = 0
+  for (const row of wallet.transactions) {
+    if (!row.paymentId) continue
+    const classDate = classDateByPayment.get(row.paymentId)
+    if (classDate == null) continue
+    if (!isSettlementCashoutEligible(classDate, now)) pending += row.amount
+  }
+  return pending
 }
 
 export async function creditWallet(

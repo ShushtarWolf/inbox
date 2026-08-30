@@ -1138,6 +1138,11 @@ model SettlementLedgerEntry {
   ownerNet      Int
   createdAt     DateTime  @default(now())
   clawedBackAt  DateTime?
+  /**
+   * Court/coach class day (YYYY-MM-DD, Tehran). Cashout allowed the calendar day after.
+   * Null = immediately withdrawable (packages, competitions, legacy rows).
+   */
+  classDate String?
 
   /** Club court/package settlement. Null when payee is a coach (lesson fee). */
   clubId    String?
@@ -1150,6 +1155,8 @@ model SettlementLedgerEntry {
 
   @@index([clubId, createdAt])
   @@index([coachId, createdAt])
+  @@index([clubId, classDate])
+  @@index([coachId, classDate])
 }
 
 model WithdrawRequest {

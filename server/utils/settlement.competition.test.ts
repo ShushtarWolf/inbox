@@ -84,6 +84,7 @@ describe('creditOwnerForPaidPayment competition entry', () => {
           clubId: 'club-1',
           paymentId: 'pay-1',
           bookingId: 'entry-1',
+          classDate: null,
           gross: 200_000,
           ownerNet: 180_000,
         }),

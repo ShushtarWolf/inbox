@@ -39,6 +39,7 @@ export function canCoverBookingWithWallet(balance: number, amount: number): bool
 /**
  * Bank-withdrawable amount: cash-backed settlement nets only, capped by balance.
  * Clawback amounts are negative; athlete top-up/refund/prize are excluded by not summing them.
+ * Pass only cashout-eligible settlement credits (day after class); clawbacks always included.
  */
 export function computeWithdrawableBalance(
   balance: number,

@@ -50,6 +50,7 @@ type OwnerSettlementWithdraw = {
 type OwnerSettlementLedgerEntry = {
   id: string
   ownerNet: number
+  classDate?: string | null
   clawedBackAt?: string | Date | null
 }
 
@@ -57,6 +58,8 @@ type OwnerSettlementResponse = {
   sheba?: string | null
   commissionBps?: number
   balance?: number
+  withdrawableBalance?: number
+  pendingClassBalance?: number
   pendingWithdraws?: OwnerSettlementWithdraw[]
   ledger?: OwnerSettlementLedgerEntry[]
 }
@@ -143,9 +146,15 @@ async function submitWithdraw() {
       payoutError.value = t('owner.financePage.withdrawNeedSheba')
       return
     }
+    const amount = Number(withdrawAmount.value ?? 0)
+    const withdrawable = Number(settlement.value?.withdrawableBalance ?? 0)
+    if (amount > withdrawable) {
+      payoutError.value = t('owner.financePage.withdrawInsufficient')
+      return
+    }
     await $fetch('/api/owner/withdraw', {
       method: 'POST',
-      body: { amount: withdrawAmount.value ?? 0 },
+      body: { amount },
     })
     payoutSuccess.value = t('owner.financePage.withdrawSuccess')
     withdrawAmount.value = null
@@ -496,8 +505,17 @@ function closeTx() {
         </p>
         <div class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-brand-cream px-3 py-3" style="border-radius: var(--sz-canva-radius);">
           <span class="text-sm text-brand-gray-600">{{ t('owner.financePage.walletBalance') }}</span>
-          <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.balance || 0) }}</span>
+          <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.withdrawableBalance ?? settlement?.balance ?? 0) }}</span>
         </div>
+        <p
+          v-if="Number(settlement?.pendingClassBalance || 0) > 0"
+          class="text-xs text-brand-gray-600 text-start"
+        >
+          {{ t('owner.financePage.pendingClassBalance', { amount: formatCurrency(settlement?.pendingClassBalance || 0) }) }}
+        </p>
+        <p class="text-xs text-brand-gray-500 text-start">
+          {{ t('owner.financePage.cashoutAfterClassNote') }}
+        </p>
 
         <label class="block text-sm text-start">
           <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.shebaLabel') }}</span>
@@ -530,7 +548,7 @@ function closeTx() {
         <button
           type="button"
           class="canva-cta w-full"
-          :disabled="payoutBusy || !settlement?.sheba || !withdrawAmount"
+          :disabled="payoutBusy || !settlement?.sheba || !withdrawAmount || Number(withdrawAmount) > Number(settlement?.withdrawableBalance ?? 0)"
           @click="submitWithdraw"
         >
           {{ t('owner.financePage.withdrawRequest') }}

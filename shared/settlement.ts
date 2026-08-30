@@ -1,7 +1,40 @@
 import { toAsciiDigits } from './digits.ts'
+import { isPastDate } from './localDate.ts'
 
 /** Default 10% platform fee when PLATFORM_COMMISSION_BPS / COACH_COMMISSION_BPS is unset. */
 export const DEFAULT_PLATFORM_COMMISSION_BPS = 1000
+
+/**
+ * Cashout opens the Tehran calendar day after the class date.
+ * Missing/blank classDate → immediately eligible (packages, competitions, legacy).
+ */
+export function isSettlementCashoutEligible(
+  classDate: string | null | undefined,
+  now = new Date(),
+  timeZone = 'Asia/Tehran',
+): boolean {
+  const date = typeof classDate === 'string' ? classDate.trim() : ''
+  if (!date) return true
+  return isPastDate(date, now, timeZone)
+}
+
+/** Sum ownerNet for ledger rows that are cashout-eligible (and not clawed back). */
+export function sumEligibleSettlementNet(
+  entries: Array<{ ownerNet: number; clawedBackAt?: Date | string | null; classDate?: string | null }>,
+  now = new Date(),
+  timeZone = 'Asia/Tehran',
+) {
+  let eligible = 0
+  let pending = 0
+  for (const entry of entries) {
+    if (entry.clawedBackAt) continue
+    const net = Number(entry.ownerNet) || 0
+    if (net <= 0) continue
+    if (isSettlementCashoutEligible(entry.classDate, now, timeZone)) eligible += net
+    else pending += net
+  }
+  return { eligible, pending }
+}
 
 export type SettlementSplit = {
   gross: number

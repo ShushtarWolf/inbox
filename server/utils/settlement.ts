@@ -3,7 +3,9 @@ import {
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
+  sumEligibleSettlementNet,
 } from '#shared/settlement.ts'
+import { computeWithdrawableBalance } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 import { creditWallet, debitWallet } from './wallet'
 
@@ -31,6 +33,29 @@ export async function getOrCreateClubWallet(clubId: string, db: DbClient = prism
 export async function getClubWalletBalance(clubId: string) {
   const wallet = await prisma.clubWallet.findUnique({ where: { clubId } })
   return wallet?.balance ?? 0
+}
+
+/**
+ * Bank-withdrawable club balance: settlement nets for classes whose Tehran day has passed
+ * (cashout opens the day after classDate). Packages/comps (null classDate) count immediately.
+ * Capped by current wallet balance so WITHDRAW_HOLD rows are respected.
+ */
+export async function getClubWithdrawableBalance(clubId: string, now = new Date()) {
+  const [wallet, entries] = await Promise.all([
+    prisma.clubWallet.findUnique({ where: { clubId }, select: { balance: true } }),
+    prisma.settlementLedgerEntry.findMany({
+      where: { clubId, clawedBackAt: null },
+      select: { ownerNet: true, classDate: true, clawedBackAt: true },
+    }),
+  ])
+  const balance = wallet?.balance ?? 0
+  if (balance <= 0) return { balance, withdrawableBalance: 0, pendingClassBalance: 0 }
+  const { eligible, pending } = sumEligibleSettlementNet(entries, now)
+  return {
+    balance,
+    withdrawableBalance: computeWithdrawableBalance(balance, eligible, 0),
+    pendingClassBalance: pending,
+  }
 }
 
 async function creditClubWallet(
@@ -127,7 +152,7 @@ async function debitClubWallet(
 async function resolveClubIdForPayment(
   paymentId: string,
   db: DbClient,
-): Promise<{ clubId: string; bookingId: string | null } | null> {
+): Promise<{ clubId: string; bookingId: string | null; classDate: string | null } | null> {
   const payment = await db.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -138,15 +163,24 @@ async function resolveClubIdForPayment(
   })
   if (!payment || payment.purpose === 'topup') return null
   if (payment.booking?.slot?.court?.clubId) {
-    return { clubId: payment.booking.slot.court.clubId, bookingId: payment.booking.id }
+    return {
+      clubId: payment.booking.slot.court.clubId,
+      bookingId: payment.booking.id,
+      classDate: payment.booking.slot.date || null,
+    }
   }
   if (payment.packageBooking?.package?.clubId) {
-    return { clubId: payment.packageBooking.package.clubId, bookingId: payment.packageBookingId }
+    return {
+      clubId: payment.packageBooking.package.clubId,
+      bookingId: payment.packageBookingId,
+      classDate: null,
+    }
   }
   if (payment.competitionEntry?.competition?.clubId) {
     return {
       clubId: payment.competitionEntry.competition.clubId,
       bookingId: payment.competitionEntry.id,
+      classDate: null,
     }
   }
   return null
@@ -155,7 +189,7 @@ async function resolveClubIdForPayment(
 async function resolveCoachForLessonPayment(
   paymentId: string,
   db: DbClient,
-): Promise<{ coachId: string; userId: string; coachSessionId: string } | null> {
+): Promise<{ coachId: string; userId: string; coachSessionId: string; classDate: string | null } | null> {
   const payment = await db.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -169,6 +203,7 @@ async function resolveCoachForLessonPayment(
     coachId: payment.coachSession.coach.id,
     userId,
     coachSessionId: payment.coachSessionId,
+    classDate: payment.coachSession.date || null,
   }
 }
 
@@ -177,6 +212,7 @@ async function resolveCoachForLessonPayment(
  * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 10%).
  * - Club bookings / packages / competition entries / coach-lesson-court → club wallet
  *   (0 bps for court charge).
+ * Court/coach class settlements store classDate; cashout opens the Tehran day after.
  * Idempotent on paymentId via SettlementLedgerEntry unique constraint.
  */
 export async function creditOwnerForPaidPayment(
@@ -219,6 +255,7 @@ export async function creditOwnerForPaidPayment(
           coachId: coachPayee.coachId,
           paymentId,
           bookingId: coachPayee.coachSessionId,
+          classDate: coachPayee.classDate,
           gross: split.gross,
           commissionBps: split.commissionBps,
           commission: split.commission,
@@ -264,6 +301,7 @@ export async function creditOwnerForPaidPayment(
         clubId: resolved.clubId,
         paymentId,
         bookingId: resolved.bookingId,
+        classDate: resolved.classDate,
         gross: split.gross,
         commissionBps: split.commissionBps,
         commission: split.commission,
@@ -362,10 +400,23 @@ export async function requestClubWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
+  const { withdrawableBalance } = await getClubWithdrawableBalance(options.clubId)
+  if (withdrawableBalance < amount) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+  }
+
   return prisma.$transaction(async (tx) => {
     const wallet = await getOrCreateClubWallet(options.clubId, tx)
     if (wallet.balance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
+    }
+    const entries = await tx.settlementLedgerEntry.findMany({
+      where: { clubId: options.clubId, clawedBackAt: null },
+      select: { ownerNet: true, classDate: true, clawedBackAt: true },
+    })
+    const { eligible } = sumEligibleSettlementNet(entries)
+    if (computeWithdrawableBalance(wallet.balance, eligible, 0) < amount) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
 
     const request = await tx.withdrawRequest.create({
