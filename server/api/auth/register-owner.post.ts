@@ -1,4 +1,5 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
+import { parseGender } from '#shared/gender.ts'
 import { isPasswordLongEnough, resolvePasswordRegisterIdentity } from '#shared/passwordAuth.ts'
 import { assignAddedRole, canAddRole } from '#shared/roles.ts'
 import { toFaDigits } from '#shared/courtBulk.ts'
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
     password?: string
     locale?: string
     phone?: string
+    gender?: string
     clubNameFa?: string
     clubNameEn?: string
     city?: string
@@ -40,6 +42,7 @@ export default defineEventHandler(async (event) => {
   const clubNameEn = body.clubNameEn?.trim() || clubNameFa
   const name = body.name?.trim() || clubNameFa
   const password = body.password ?? ''
+  const gender = parseGender(body.gender)
   const identity = resolvePasswordRegisterIdentity({
     phone: body.phone,
     email: body.email,
@@ -56,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const courtCount = normalizeOwnerCourtCount(body.courtCount)
   const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
 
-  if (!name || !email || !isPasswordLongEnough(password) || !clubNameFa) {
+  if (!name || !email || !isPasswordLongEnough(password) || !clubNameFa || !gender) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
@@ -105,6 +108,7 @@ export default defineEventHandler(async (event) => {
           tertiaryRole: assigned.tertiaryRole,
           passwordHash: hashSecret(password),
           ...(phone && !existingUser.phone ? { phone } : {}),
+          ...(!existingUser.gender ? { gender } : {}),
           avatarUrl: body.avatarUrl?.trim() || existingUser.avatarUrl,
         },
       })
@@ -117,6 +121,7 @@ export default defineEventHandler(async (event) => {
           role: 'CLUB_ADMIN',
           passwordHash: hashSecret(password),
           locale,
+          gender,
           phone,
           phoneVerifiedAt: null,
           avatarUrl: body.avatarUrl?.trim() || null,

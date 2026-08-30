@@ -1,4 +1,5 @@
 import { assignAddedRole, canAddRole } from '#shared/roles.ts'
+import { parseGender } from '#shared/gender.ts'
 import { toSessionUser, touchLastLogin } from '../../utils/auth'
 
 /**
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
     phone?: string
     password?: string
     locale?: string
+    gender?: string
     clubId?: string
     bioFa?: string
     bioEn?: string
@@ -29,8 +31,9 @@ export default defineEventHandler(async (event) => {
   const password = body.password ?? ''
   const clubId = body.clubId?.trim() || ''
   const phone = body.phone?.trim() || undefined
+  const gender = parseGender(body.gender)
 
-  if (!name || !email || password.length < 6) {
+  if (!name || !email || password.length < 6 || !gender) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
@@ -78,6 +81,7 @@ export default defineEventHandler(async (event) => {
             ...assignAddedRole(existingUser, 'COACH')!,
             passwordHash: hashSecret(password),
             ...(phone && !existingUser.phone ? { phone } : {}),
+            ...(!existingUser.gender ? { gender } : {}),
             avatarUrl: body.avatarUrl?.trim() || existingUser.avatarUrl,
           },
         })
@@ -89,6 +93,7 @@ export default defineEventHandler(async (event) => {
             role: 'COACH',
             passwordHash: hashSecret(password),
             locale,
+            gender,
             phone: phone || null,
             avatarUrl: body.avatarUrl?.trim() || null,
           },

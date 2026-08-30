@@ -25,6 +25,7 @@ const phone = ref('')
 const email = ref('')
 const identifier = ref('')
 const password = ref('')
+const gender = ref<'MALE' | 'FEMALE' | ''>('')
 const clubNameFa = ref('')
 const addressFa = ref('')
 const sport = ref<'padel' | 'tennis' | 'both'>('padel')
@@ -116,6 +117,7 @@ function resetForm() {
   email.value = ''
   identifier.value = ''
   password.value = ''
+  gender.value = ''
   clubNameFa.value = ''
   addressFa.value = ''
   sport.value = 'padel'
@@ -314,6 +316,10 @@ async function loginWithPassword() {
 
 async function registerWithPassword() {
   error.value = ''
+  if (!gender.value) {
+    error.value = t('auth.genderRequired')
+    return
+  }
   if (role.value === 'CLUB_ADMIN') {
     if (!clubNameFa.value.trim() || !phone.value.trim() || password.value.length < 6) {
       error.value = t('auth.registerOwnerRequired')
@@ -335,6 +341,7 @@ async function registerWithPassword() {
           phone: phone.value || undefined,
           email: email.value || undefined,
           password: password.value,
+          gender: gender.value,
           clubNameFa: clubNameFa.value,
           addressFa: addressFa.value.trim() || undefined,
           city: 'تهران',
@@ -363,6 +370,7 @@ async function registerWithPassword() {
           email: coachEmail,
           phone: phone.value || undefined,
           password: password.value,
+          gender: gender.value,
           returnTo: returnPath,
         },
       })
@@ -378,6 +386,7 @@ async function registerWithPassword() {
         phone: phone.value || undefined,
         email: email.value || undefined,
         password: password.value,
+        gender: gender.value,
         returnTo: returnPath,
       },
     })
@@ -391,6 +400,7 @@ async function registerWithPassword() {
     if (status === 404 && /coach product/i.test(message)) error.value = t('auth.coachDisabledInPilot')
     else if (status === 409 && /phone/i.test(message)) error.value = t('auth.phoneTaken')
     else if (status === 409) error.value = t('auth.emailTaken')
+    else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
     else if (status === 400 && /phone/i.test(message)) error.value = t('auth.invalidPhone')
     else if (status === 400) error.value = t('auth.registerIdentityRequired')
     else if (status === 429) error.value = t('errors.rateLimited')
@@ -402,6 +412,10 @@ async function registerWithPassword() {
 
 async function requestOtp() {
   error.value = ''
+  if (purpose.value === 'register' && !gender.value) {
+    error.value = t('auth.genderRequired')
+    return
+  }
   if (purpose.value === 'register' && role.value === 'CLUB_ADMIN') {
     if (!clubNameFa.value.trim() || !phone.value.trim()) {
       error.value = t('auth.registerOwnerRequired')
@@ -424,6 +438,7 @@ async function requestOtp() {
         name: purpose.value === 'register'
           ? (role.value === 'CLUB_ADMIN' ? (name.value.trim() || clubNameFa.value.trim()) : name.value)
           : undefined,
+        gender: purpose.value === 'register' ? gender.value || undefined : undefined,
         clubNameFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? clubNameFa.value : undefined,
         addressFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? addressFa.value.trim() || undefined : undefined,
         sport: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? sport.value : undefined,
@@ -443,19 +458,20 @@ async function requestOtp() {
     otpAutofillGen.value += 1
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
-    if (status === 404 && /coach product/i.test(String((err as { statusMessage?: string })?.statusMessage || ''))) {
+    const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
+      || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
+      || '')
+    if (status === 404 && /coach product/i.test(message)) {
       error.value = t('auth.coachDisabledInPilot')
     }
     else if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
+    else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
     else if (status === 400) error.value = t('auth.invalidPhone')
     else if (status === 429) error.value = t('errors.rateLimited')
     else if (status === 503 || status === 500) error.value = t('auth.otpServerUnavailable')
     else if (status === 502) {
-      const msg = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
-        || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
-        || '')
-      error.value = /account-owner phone|صاحب حساب|technical|operational/i.test(msg)
+      error.value = /account-owner phone|صاحب حساب|technical|operational/i.test(message)
         ? t('auth.otpTemplateNotOperational')
         : t('auth.otpSendFailed')
     }
@@ -659,6 +675,13 @@ watch(
             <AppFormField field-id="auth-otp-club" :label="t('auth.clubName')">
               <input id="auth-otp-club" v-model="clubNameFa" class="neo-input bg-white/95" required />
             </AppFormField>
+            <AppFormField field-id="auth-otp-gender" :label="t('common.gender')">
+              <select id="auth-otp-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
+            </AppFormField>
             <AppFormField field-id="auth-otp-phone" :label="t('auth.ownerPhone')" numeric>
               <input
                 id="auth-otp-phone"
@@ -718,6 +741,13 @@ watch(
             <AppFormField field-id="auth-otp-name" :label="t('auth.fullName')">
               <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
             </AppFormField>
+            <AppFormField field-id="auth-otp-gender" :label="t('common.gender')">
+              <select id="auth-otp-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
+            </AppFormField>
             <AppFormField field-id="auth-otp-phone" :label="t('common.mobile')" numeric>
               <input
                 id="auth-otp-phone"
@@ -762,6 +792,13 @@ watch(
                 :placeholder="t('auth.clubName')"
                 required
               />
+            </AppFormField>
+            <AppFormField field-id="auth-gender" :label="t('common.gender')">
+              <select id="auth-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
             </AppFormField>
             <AppFormField field-id="auth-phone" :label="t('auth.ownerPhone')" numeric>
               <input
@@ -847,6 +884,13 @@ watch(
                 autocomplete="name"
                 required
               />
+            </AppFormField>
+            <AppFormField field-id="auth-gender" :label="t('common.gender')">
+              <select id="auth-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
             </AppFormField>
             <AppFormField field-id="auth-phone" :label="t('common.mobile')" numeric>
               <input

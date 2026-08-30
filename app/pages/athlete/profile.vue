@@ -9,6 +9,7 @@ const { data: wallet, pending: walletPending } = useAuthedFetch<{ balance?: numb
 const { multiReady } = useSmsCapability()
 const name = ref('')
 const phone = ref('')
+const gender = ref<'MALE' | 'FEMALE' | ''>('')
 const avatarUrl = ref('')
 const saving = ref(false)
 const savingAvatar = ref(false)
@@ -34,6 +35,7 @@ onMounted(async () => {
   await fetch()
   name.value = user.value?.name || ''
   phone.value = user.value?.phone || ''
+  gender.value = user.value?.gender === 'MALE' || user.value?.gender === 'FEMALE' ? user.value.gender : ''
   const stored = normalizeAvatar(user.value?.avatarUrl || '')
   if (!avatarUrl.value) {
     avatarUrl.value = stored
@@ -93,7 +95,12 @@ async function save() {
   try {
     await $fetch('/api/profile', {
       method: 'PATCH',
-      body: { name: name.value, phone: phone.value, avatarUrl: avatarUrl.value || null },
+      body: {
+        name: name.value,
+        phone: phone.value,
+        gender: gender.value || null,
+        avatarUrl: avatarUrl.value || null,
+      },
     })
     await fetch()
     saved.value = true
@@ -137,6 +144,13 @@ async function save() {
       <p v-if="savingAvatar" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
       <AppFormField :label="t('common.name')">
         <input v-model="name" class="neo-input" />
+      </AppFormField>
+      <AppFormField :label="t('common.gender')">
+        <select v-model="gender" class="neo-select">
+          <option value="">{{ t('auth.genderPlaceholder') }}</option>
+          <option value="MALE">{{ t('common.genderMale') }}</option>
+          <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+        </select>
       </AppFormField>
       <AppFormField :label="t('common.mobile')" numeric>
         <input v-model="phone" dir="ltr" class="neo-input tabular-nums" />

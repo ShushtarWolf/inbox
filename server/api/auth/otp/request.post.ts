@@ -1,4 +1,5 @@
 import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
+import { parseGender } from '#shared/gender.ts'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-request')
@@ -7,6 +8,7 @@ export default defineEventHandler(async (event) => {
     purpose?: OtpPurpose
     role?: OtpRole
     name?: string
+    gender?: string
     clubNameFa?: string
     city?: string
     addressFa?: string
@@ -23,11 +25,17 @@ export default defineEventHandler(async (event) => {
     assertCoachProductEnabled(event)
   }
 
+  let gender: 'MALE' | 'FEMALE' | undefined
   if (purpose === 'register') {
     const name = body.name?.trim()
     if (!name) {
       throw createError({ statusCode: 400, statusMessage: 'Name required' })
     }
+    const parsedGender = parseGender(body.gender)
+    if (!parsedGender) {
+      throw createError({ statusCode: 400, statusMessage: 'Gender required' })
+    }
+    gender = parsedGender
     if (role === 'CLUB_ADMIN' && !body.clubNameFa?.trim()) {
       throw createError({ statusCode: 400, statusMessage: 'Club name required' })
     }
@@ -40,6 +48,7 @@ export default defineEventHandler(async (event) => {
     payload: purpose === 'register'
       ? {
           name: body.name?.trim(),
+          gender,
           clubNameFa: body.clubNameFa?.trim(),
           city: body.city?.trim() || 'تهران',
           addressFa: body.addressFa?.trim(),

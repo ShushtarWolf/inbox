@@ -121,6 +121,7 @@ export function toSessionUser(user: {
   secondaryRole?: string | null
   tertiaryRole?: string | null
   locale: string
+  gender?: string | null
   avatarUrl?: string | null
 }) {
   return {
@@ -132,6 +133,7 @@ export function toSessionUser(user: {
     secondaryRole: user.secondaryRole || null,
     tertiaryRole: user.tertiaryRole || null,
     locale: user.locale,
+    gender: user.gender || null,
     avatarUrl: user.avatarUrl || null,
   }
 }

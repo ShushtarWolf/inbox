@@ -1,4 +1,5 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
+import { parseGender, type GenderValue } from '#shared/gender.ts'
 import { phoneToSyntheticEmail } from '#shared/phone.ts'
 import { assignAddedRole, type PlatformRole } from '#shared/roles.ts'
 import { uniqueClubSlug } from '../../../utils/slug'
@@ -80,6 +81,10 @@ export default defineEventHandler(async (event) => {
   if (!name) {
     throw createError({ statusCode: 400, statusMessage: 'Name required' })
   }
+  const gender = parseGender(consumed.payload.gender)
+  if (!gender) {
+    throw createError({ statusCode: 400, statusMessage: 'Gender required' })
+  }
 
   const role = (consumed.role || 'ATHLETE') as PlatformRole
   const email = phoneToSyntheticEmail(consumed.phone)
@@ -112,7 +117,7 @@ export default defineEventHandler(async (event) => {
 
     const result = await prisma.$transaction(async (tx) => {
       const user = existing
-        ? await applySecondRole(tx, existing, 'CLUB_ADMIN', { name })
+        ? await applySecondRole(tx, existing, 'CLUB_ADMIN', { name, gender })
         : await tx.user.create({
             data: {
               name,
@@ -120,6 +125,7 @@ export default defineEventHandler(async (event) => {
               email,
               role: 'CLUB_ADMIN',
               locale,
+              gender,
               phone: consumed.phone,
               phoneVerifiedAt: new Date(),
             },
@@ -215,7 +221,7 @@ export default defineEventHandler(async (event) => {
     const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
     const result = await prisma.$transaction(async (tx) => {
       const user = existing
-        ? await applySecondRole(tx, existing, 'COACH', { name })
+        ? await applySecondRole(tx, existing, 'COACH', { name, gender })
         : await tx.user.create({
             data: {
               name,
@@ -223,6 +229,7 @@ export default defineEventHandler(async (event) => {
               email,
               role: 'COACH',
               locale,
+              gender,
               phone: consumed.phone,
               phoneVerifiedAt: new Date(),
             },
@@ -282,7 +289,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (existing) {
-    const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { name }))
+    const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { name, gender }))
     await linkOrphanBookingsByPhone(user.id, user.phone || consumed.phone)
     await setUserSession(event, { user: toSessionUser(user) })
     return {
@@ -293,6 +300,7 @@ export default defineEventHandler(async (event) => {
       secondaryRole: user.secondaryRole,
       tertiaryRole: user.tertiaryRole,
       locale: user.locale,
+      gender: user.gender,
       phone: user.phone,
       redirectTo: await ownerPostLoginRedirect(user, body.returnTo, event),
     }
@@ -305,6 +313,7 @@ export default defineEventHandler(async (event) => {
       email,
       role: 'ATHLETE',
       locale,
+      gender,
       phone: consumed.phone,
       phoneVerifiedAt: new Date(),
     },
@@ -320,6 +329,7 @@ export default defineEventHandler(async (event) => {
     secondaryRole: user.secondaryRole,
     tertiaryRole: user.tertiaryRole,
     locale: user.locale,
+    gender: user.gender,
     phone: user.phone,
     redirectTo: await ownerPostLoginRedirect(user, body.returnTo, event),
   }
@@ -329,7 +339,7 @@ async function applySecondRole(
   tx: Prisma.TransactionClient,
   existing: User,
   newRole: PlatformRole,
-  opts: { name: string },
+  opts: { name: string; gender?: GenderValue },
 ) {
   const assigned = assignAddedRole(existing, newRole)
   if (!assigned) {
@@ -344,6 +354,7 @@ async function applySecondRole(
       phoneVerifiedAt: new Date(),
       // Keep the established display name unless empty.
       ...(existing.name?.trim() ? {} : { name: opts.name, nameEn: opts.name }),
+      ...(!existing.gender && opts.gender ? { gender: opts.gender } : {}),
     },
   })
 }

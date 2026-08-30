@@ -13,6 +13,12 @@ enum Role {
   CLUB_ADMIN
 }
 
+/** Athlete/coach/owner account gender (asked at signup; editable in profile). */
+enum Gender {
+  MALE
+  FEMALE
+}
+
 enum SlotDisplayStatus {
   FREE
   RESERVED
@@ -193,6 +199,8 @@ model User {
   /** Optional third platform role on the same phone/account (additive; existing users stay null). */
   tertiaryRole  Role?
   locale        String   @default("fa")
+  /** Optional until set at signup or profile; new signups collect it. */
+  gender        Gender?
   phone         String?  @unique
   phoneVerifiedAt DateTime?
   avatarUrl     String?

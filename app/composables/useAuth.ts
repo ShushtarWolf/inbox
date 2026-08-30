@@ -16,6 +16,7 @@ type AuthUser = {
   tertiaryRole?: string | null
   phone?: string | null
   locale?: string | null
+  gender?: 'MALE' | 'FEMALE' | null
   avatarUrl?: string | null
   coachApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null
   memberships?: Array<{

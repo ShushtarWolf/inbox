@@ -8,6 +8,7 @@ declare module '#auth-utils' {
     secondaryRole?: string | null
     tertiaryRole?: string | null
     locale?: string | null
+    gender?: 'MALE' | 'FEMALE' | null
     avatarUrl?: string | null
   }
 

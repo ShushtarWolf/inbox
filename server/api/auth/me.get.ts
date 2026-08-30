@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
       tertiaryRole: true,
       phone: true,
       locale: true,
+      gender: true,
       avatarUrl: true,
       coachProfile: { select: { photo: true, approvalStatus: true } },
       memberships: {
