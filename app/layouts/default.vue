@@ -3,7 +3,7 @@ import type { NavItem } from '#shared/nav.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath, dashboardPathForRole } = useAuth()
+const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
@@ -14,6 +14,7 @@ async function handleLogout() {
 
 const nav = computed((): NavItem[] => {
   // Guest: no bottom tab bar — login lives in CanvaPublicChrome / AppTopBar only.
+  // Logged-in: home/clubs/coaches/competitions only — dashboard is via name/avatar chrome.
   const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
@@ -32,14 +33,6 @@ const nav = computed((): NavItem[] => {
       to: localePath('/competitions'),
       label: t('competitions.nav'),
       icon: 'emoji_events',
-    })
-  }
-
-  if (user.value) {
-    items.push({
-      to: dashboardPathForRole(user.value.role),
-      label: t('nav.me'),
-      icon: 'account_circle',
     })
   }
 
