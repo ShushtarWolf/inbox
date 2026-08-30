@@ -7,7 +7,7 @@ import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
 import { syncClubContactForBooking } from './contactSync'
-import { findUserIdByPhone } from './phoneAuth'
+import { findUserByPhone } from './phoneAuth'
 
 export type RecurringGuestInfo = {
   guestName: string
@@ -118,7 +118,11 @@ export async function generateRecurringCourtSlots(opts: {
 
       if (guest) {
         const staleCancelled = existing?.booking?.status === 'CANCELLED' ? existing.booking : null
-        const linkedUserId = await findUserIdByPhone(guest.guestMobile)
+        const linkedUser = await findUserByPhone(guest.guestMobile)
+        const linkedUserId = linkedUser?.id ?? null
+        const guestNamePair = linkedUser?.name?.trim()
+          ? normalizeGuestNamePair(linkedUser.name, '')
+          : { guestName: guest.guestName, guestFamily: guest.guestFamily }
         let recurringBookingId: string | null = null
         await prisma.$transaction(async (tx) => {
           if (staleCancelled) {
@@ -128,8 +132,8 @@ export async function generateRecurringCourtSlots(opts: {
             data: {
               slotId,
               userId: linkedUserId || undefined,
-              guestName: guest.guestName,
-              guestFamily: guest.guestFamily,
+              guestName: guestNamePair.guestName,
+              guestFamily: guestNamePair.guestFamily,
               guestMobile: guest.guestMobile,
               comments: guest.comments,
               coachId: guest.coachId || null,

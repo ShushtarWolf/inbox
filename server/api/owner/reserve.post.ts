@@ -8,7 +8,7 @@ import {
   parseEquipmentSelections,
   syncBookingEquipments,
 } from '../../utils/bookingTotal'
-import { findUserIdByPhone } from '../../utils/phoneAuth'
+import { findUserByPhone } from '../../utils/phoneAuth'
 import {
   notifyBookingConfirmed,
   notifyBookingPaid,
@@ -75,9 +75,13 @@ export default defineEventHandler(async (event) => {
     notifyEndTime?: string
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
-  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
   const guestMobile = resolveGuestMobile(body.guestMobile)
-  const linkedUserId = await findUserIdByPhone(guestMobile)
+  const linkedUser = await findUserByPhone(guestMobile)
+  // Registered account name wins over desk typos for the same phone.
+  const guest = linkedUser?.name?.trim()
+    ? normalizeGuestNamePair(linkedUser.name, '')
+    : normalizeGuestNamePair(body.guestName, body.guestFamily)
+  const linkedUserId = linkedUser?.id ?? null
 
   await releaseExpiredOnlinePaymentHolds({ slotIds: [body.slotId], clubId: club.id })
 

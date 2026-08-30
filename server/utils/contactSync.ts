@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { countsTowardRevenue } from '#shared/bookingPayment.ts'
-import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { iranPhoneStorageVariants, normalizeIranPhone } from '#shared/phone.ts'
 
 type Db = Prisma.TransactionClient | typeof prisma
@@ -41,8 +41,17 @@ export function daysSinceIsoDate(isoDate: string, now = new Date()): number {
 }
 
 export function resolveContactName(bookings: ContactBookingRow[]): string {
+  // Prefer any linked account name first so one desk typo cannot rename the CRM contact.
   for (const booking of bookings) {
-    const name = formatGuestDisplayName(booking.guestName, booking.guestFamily) || booking.user?.name || ''
+    const account = booking.user?.name?.trim()
+    if (account) return account
+  }
+  for (const booking of bookings) {
+    const name = resolveLinkedGuestDisplayName({
+      guestName: booking.guestName,
+      guestFamily: booking.guestFamily,
+      userName: booking.user?.name,
+    })
     if (name) return name
   }
   return ''

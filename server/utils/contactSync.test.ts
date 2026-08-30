@@ -62,6 +62,26 @@ describe('contactSync metrics', () => {
     expect(name).toBe('مریم کریمی')
   })
 
+  it('prefers linked account name over a newer desk typo', () => {
+    const name = resolveContactName([
+      {
+        status: 'CONFIRMED',
+        guestName: 'avid',
+        guestFamily: null,
+        user: { name: 'الهه ربیعی', phone: '09364916923' },
+        slot: { date: '2026-08-23', price: 0 },
+      },
+      {
+        status: 'CONFIRMED',
+        guestName: 'الهه',
+        guestFamily: 'ربیعی',
+        user: { name: 'الهه ربیعی', phone: '09364916923' },
+        slot: { date: '2026-08-20', price: 0 },
+      },
+    ])
+    expect(name).toBe('الهه ربیعی')
+  })
+
   it('uses payment row status when present', () => {
     expect(paymentStatusOf({ paymentStatus: 'PAY_AT_CLUB', payment: { status: 'PAID' } })).toBe('PAID')
     expect(bookingSpendAmount({

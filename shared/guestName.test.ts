@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { formatGuestDisplayName, normalizeGuestNamePair } from './guestName'
+import { formatGuestDisplayName, normalizeGuestNamePair, resolveLinkedGuestDisplayName } from './guestName'
 
 describe('formatGuestDisplayName', () => {
   it('shows a full first name once when family is empty', () => {
@@ -72,6 +72,24 @@ describe('normalizeGuestNamePair', () => {
       guestName: 'علی محمدی',
       guestFamily: '',
     })
+  })
+})
+
+describe('resolveLinkedGuestDisplayName', () => {
+  it('prefers registered account name over desk guest fields', () => {
+    expect(resolveLinkedGuestDisplayName({
+      guestName: 'avid',
+      guestFamily: null,
+      userName: 'الهه ربیعی',
+    })).toBe('الهه ربیعی')
+  })
+
+  it('falls back to guest fields when no account name', () => {
+    expect(resolveLinkedGuestDisplayName({
+      guestName: 'الهه',
+      guestFamily: 'ربیعی',
+      userName: null,
+    })).toBe('الهه ربیعی')
   })
 })
 

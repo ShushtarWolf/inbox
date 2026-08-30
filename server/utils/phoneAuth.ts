@@ -42,11 +42,22 @@ export async function isPhoneRegistered(phoneRaw: string): Promise<boolean> {
   return Boolean(existing)
 }
 
-/** Link desk/guest bookings to a registered athlete when the mobile matches User.phone. */
-export async function findUserIdByPhone(phoneRaw: string | null | undefined): Promise<string | null> {
+/** Resolve registered user id+name when the mobile matches User.phone. */
+export async function findUserByPhone(
+  phoneRaw: string | null | undefined,
+): Promise<{ id: string; name: string } | null> {
   const phone = normalizeIranPhone(phoneRaw)
   if (!phone) return null
-  const existing = await prisma.user.findUnique({ where: { phone }, select: { id: true } })
+  const existing = await prisma.user.findUnique({
+    where: { phone },
+    select: { id: true, name: true },
+  })
+  return existing
+}
+
+/** Link desk/guest bookings to a registered athlete when the mobile matches User.phone. */
+export async function findUserIdByPhone(phoneRaw: string | null | undefined): Promise<string | null> {
+  const existing = await findUserByPhone(phoneRaw)
   return existing?.id ?? null
 }
 

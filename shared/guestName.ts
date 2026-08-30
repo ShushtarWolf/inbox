@@ -40,3 +40,17 @@ export function normalizeGuestNamePair(
   if (nameContains(family, first)) return { guestName: family, guestFamily: '' }
   return { guestName: first, guestFamily: family }
 }
+
+/**
+ * When a desk/guest row is linked to a registered User, the account name wins.
+ * Prevents stale typos (e.g. "avid") from beating "الهه ربیعی" in search/CRM.
+ */
+export function resolveLinkedGuestDisplayName(opts: {
+  guestName?: string | null
+  guestFamily?: string | null
+  userName?: string | null
+}): string {
+  const account = trimPart(opts.userName)
+  if (account) return account
+  return formatGuestDisplayName(opts.guestName, opts.guestFamily)
+}
