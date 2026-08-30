@@ -10,7 +10,7 @@ import {
   loginAloPlayWithFetch,
   type AloPlaySessionCache,
 } from '../../../lib/aloplaySessionClient'
-import { readCached, writeCached } from '../cache'
+import { readCached, writeCached } from './cache'
 
 const SESSION_CACHE_KEY = 'ext-cal:aloplay-session'
 
