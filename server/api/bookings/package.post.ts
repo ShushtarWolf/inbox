@@ -1,10 +1,12 @@
 import { assertPackagesEnabled } from '../../utils/packagesGate'
 import { bookPackageSeat } from '../../utils/packages'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 
 export default defineEventHandler(async (event) => {
   assertPackagesEnabled(event)
   const user = await requireUser(event)
+  requireOnlinePaymentsForAthlete()
   const body = await readBody<{ packageId?: string; days?: string[]; times?: string[] }>(event)
   if (!body.packageId) {
     throw createError({ statusCode: 400, statusMessage: 'packageId required' })

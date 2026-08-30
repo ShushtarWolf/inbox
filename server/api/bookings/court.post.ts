@@ -1,4 +1,5 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
+import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
@@ -21,6 +22,7 @@ import { assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  requireOnlinePaymentsForAthlete()
   const body = await readBody<{
     slotId?: string
     slotIds?: string[]

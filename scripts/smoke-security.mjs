@@ -161,7 +161,7 @@ async function main() {
   }
   const checkoutBody = typeof checkout.data === 'object' ? checkout.data : {}
   const checkoutMsg = `${checkoutBody.statusMessage || ''} ${checkoutBody.message || ''}`
-  if (checkout.res.status < 500 && /pay at the club|pay_at_club|disabled/i.test(checkoutMsg)) {
+  if (checkout.res.status < 500 && /ONLINE_PAYMENTS_REQUIRED|pay at the club|pay_at_club|disabled/i.test(checkoutMsg)) {
     console.log('ok  online checkout rejected (pay_at_club)')
   } else {
     console.log(`ok  online checkout blocked (${checkout.res.status})`)

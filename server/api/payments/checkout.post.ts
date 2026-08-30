@@ -199,7 +199,7 @@ export default defineEventHandler(async (event) => {
     }
     throw createError({
       statusCode: 400,
-      statusMessage: 'Online checkout is disabled; pay at the club or use wallet balance',
+      statusMessage: 'ONLINE_PAYMENTS_REQUIRED',
     })
   }
 

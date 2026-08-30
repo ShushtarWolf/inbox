@@ -1,4 +1,4 @@
-import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { initialStaffPaymentFields } from '#shared/bookingPayment.ts'
 import { computeCoachCourtCharge } from '#shared/coachCourt.ts'
 import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
 import { notifyBookingConfirmed, clubNotifyLocation, clubNotifyName, personNotifyName } from '../../utils/bookingNotify'
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
   }
-  const lessonPayment = initialPlatformPaymentFields(coach.sessionPrice)
+  const lessonPayment = initialStaffPaymentFields(coach.sessionPrice)
   const endTime = slot.endTime || addOneHour(slot.startTime)
 
   let created: { sessionId: string; bookingId: string; courtPaymentId: string }

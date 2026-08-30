@@ -384,21 +384,31 @@ async function main() {
     session: 'athlete',
     method: 'POST',
     body: { slotId: athleteSlot.id },
+    expectStatus: runtimePaymentsMode === 'pay_at_club' ? 503 : 200,
   })
-  assert(bookRes.ok, `athlete book → ${bookRes.status}: ${JSON.stringify(booking)}`)
-  assert(booking.id, 'athlete booking missing id')
+  if (runtimePaymentsMode === 'pay_at_club') {
+    assert(bookRes.status === 503, `athlete book in pay_at_club expected 503, got ${bookRes.status}`)
+    assert(
+      /ONLINE_PAYMENTS_REQUIRED/i.test(booking?.statusMessage || booking?.message || ''),
+      `expected ONLINE_PAYMENTS_REQUIRED, got ${JSON.stringify(booking)}`,
+    )
+    console.log('ok  athlete self-serve book blocked when PAYMENTS_MODE=pay_at_club')
+  } else {
+    assert(bookRes.ok, `athlete book → ${bookRes.status}: ${JSON.stringify(booking)}`)
+    assert(booking.id, 'athlete booking missing id')
 
-  const { res: mineRes, data: mine } = await apiFetch(base, '/api/bookings/mine', {
-    jar,
-    session: 'athlete',
-  })
-  assert(mineRes.ok, `bookings/mine → ${mineRes.status}`)
-  const courtBookings = mine.courtBookings || []
-  assert(
-    courtBookings.some((row) => row.id === booking.id),
-    'athlete booking not in /api/bookings/mine',
-  )
-  console.log('ok  athlete book + mine')
+    const { res: mineRes, data: mine } = await apiFetch(base, '/api/bookings/mine', {
+      jar,
+      session: 'athlete',
+    })
+    assert(mineRes.ok, `bookings/mine → ${mineRes.status}`)
+    const courtBookings = mine.courtBookings || []
+    assert(
+      courtBookings.some((row) => row.id === booking.id),
+      'athlete booking not in /api/bookings/mine',
+    )
+    console.log('ok  athlete book + mine')
+  }
 
   const { res: bookingsPage } = await fetchPage(base, '/athlete/bookings', {
     jar,
@@ -461,6 +471,13 @@ async function main() {
   console.log('ok  waitlist clean fail when off')
 
   // --- 4b. Online pay (test mode) → PAID → cancel refund → wallet top-up ---
+  if (runtimePaymentsMode === 'pay_at_club' || !booking?.id) {
+    assert(
+      runtimePaymentsMode === 'pay_at_club',
+      `online pay skipped but PAYMENTS_MODE=${runtimePaymentsMode || 'n/a'} (set test/live or pay_at_club)`,
+    )
+    console.log('ok  pay_at_club mode — athlete online pay path skipped by design')
+  } else {
   const { res: checkoutRes, data: checkout } = await apiFetch(base, '/api/payments/checkout', {
     jar,
     session: 'athlete',
@@ -613,10 +630,11 @@ async function main() {
     console.log('ok  wallet spend (useWallet checkout)')
   } else {
     assert(
-      runtimePaymentsMode === 'pay_at_club',
-      `online pay skipped but PAYMENTS_MODE=${runtimePaymentsMode || 'n/a'} (set test/live or pay_at_club)`,
+      runtimePaymentsMode === 'test' || runtimePaymentsMode === 'live',
+      `online pay skipped but PAYMENTS_MODE=${runtimePaymentsMode || 'n/a'} (set test/live)`,
     )
-    console.log('ok  pay_at_club mode — online pay path skipped by design')
+    console.log('ok  online pay path — checkout did not return PENDING_ONLINE')
+  }
   }
 
   // --- 5. Freeze gates: recurring always off; coach when pilotNoCoach ---

@@ -76,25 +76,15 @@ COMPETITIONS_ENABLED=true PILOT_NO_COACH=true PAYMENTS_MODE=test BASE_URL=http:/
 | F-07 | **award-prizes twice** → no duplicate credits | **PASS** | Unit: `awardCompetitionPrizes` idempotent (`creditWallet` called once) |
 | F-08 | **Doubles:** cannot confirm without valid partner | **PASS** | `400 Partner required for doubles` without `partnerAthleteId` |
 | F-09 | **Guest/unauthenticated** cannot join | **PASS** | `401` on `POST .../join` without session |
-| F-10 | **Pay-at-club** owner mark-paid confirms entry | **PASS** | `POST .../entries/:entryId/mark-paid` → `CONFIRMED`; double mark → `409`; requires `PAYMENTS_MODE=pay_at_club` on server |
+| F-10 | **Athlete pay-at-club rejected** | **PASS** | `POST .../join` with `payAtClub:true` → `400 PAY_AT_CLUB_NOT_ALLOWED` |
 
-### F-10 — pay-at-club mark paid (curl)
+### F-10 — athlete pay-at-club blocked (curl)
 
 ```bash
-# Server must run with PAYMENTS_MODE=pay_at_club
-JOIN=$(curl -s -X POST "$BASE_URL/api/competitions/$COMP_ID/join" \
+curl -s -X POST "$BASE_URL/api/competitions/$COMP_ID/join" \
   -H "Content-Type: application/json" -b athlete.txt \
-  -d '{"payAtClub":true}')
-ENTRY_ID=$(echo "$JOIN" | jq -r '.entry.id')
-# Expect entry.status=PENDING, payment.status=PAY_AT_CLUB
-
-curl -s -X POST "$BASE_URL/api/owner/competitions/$COMP_ID/entries/$ENTRY_ID/mark-paid" \
-  -b owner.txt | jq '.entry.status'
-# Expect: CONFIRMED
-
-curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-  "$BASE_URL/api/owner/competitions/$COMP_ID/entries/$ENTRY_ID/mark-paid" -b owner.txt
-# Expect: 409
+  -d '{"payAtClub":true}'
+# Expect: 400 PAY_AT_CLUB_NOT_ALLOWED
 ```
 
 ### F-01 — concurrent join (curl)

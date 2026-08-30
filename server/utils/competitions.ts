@@ -1,6 +1,6 @@
 import type { Competition, CompetitionEntry, Payment, Prisma } from '@prisma/client'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
-import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
+import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import {
   ACTIVE_ENTRY_STATUSES,
   assertCompetitionEntryFeeWithinCap,
@@ -13,7 +13,6 @@ import {
   competitionPrizeWalletNote,
   DISCOUNT_PRIZE_VALIDITY_DAYS,
   isCompetitionJoinable,
-  isCompetitionPayAtClubAllowed,
   isCompetitionsVisibleForClub,
   isPaymentLinkedForEntryConfirm,
   PENDING_ENTRY_EXPIRY_MINUTES,
@@ -948,25 +947,11 @@ export async function joinCompetition(opts: {
   }
 
   if (opts.payAtClub) {
-    if (!isCompetitionPayAtClubAllowed()) {
-      throw createError({ statusCode: 400, statusMessage: 'PAY_AT_CLUB_NOT_ALLOWED' })
-    }
-    const payment = await prisma.$transaction(async (tx) => {
-      return linkCompetitionPayment(tx, {
-        entryId: entry.id,
-        competitionId: competition.id,
-        athleteId: opts.athleteId,
-        amount: competition.entryFee,
-        method: 'CASH',
-        status: 'PAY_AT_CLUB',
-        provider: 'pay_at_club',
-      })
-    })
-    const hydrated = await prisma.competitionEntry.findUniqueOrThrow({
-      where: { id: entry.id },
-      include: { payment: true, competition: true },
-    })
-    return { entry: hydrated, payment, created: true as const }
+    throw createError({ statusCode: 400, statusMessage: 'PAY_AT_CLUB_NOT_ALLOWED' })
+  }
+
+  if (!isOnlinePaymentsEnabled()) {
+    throw createError({ statusCode: 503, statusMessage: 'ONLINE_PAYMENTS_REQUIRED' })
   }
 
   const platformFields = initialPlatformPaymentFields(competition.entryFee)

@@ -4,7 +4,38 @@ export function isOnlinePaymentsEnabled(): boolean {
   return getPaymentsMode() !== 'pay_at_club'
 }
 
+/**
+ * Athlete / public self-serve bookings: SEP gateway or wallet only.
+ * Never creates pay-at-club rows — desk cash is owner/coach only.
+ */
 export function initialPlatformPaymentFields(amount: number): {
+  paymentStatus: 'PENDING_ONLINE'
+  payment: {
+    amount: number
+    method: 'NOT_PAID'
+    status: 'PENDING_ONLINE'
+    provider: PaymentProvider
+  }
+} {
+  if (!isOnlinePaymentsEnabled()) {
+    throw new Error('ONLINE_PAYMENTS_REQUIRED')
+  }
+  return {
+    paymentStatus: 'PENDING_ONLINE',
+    payment: {
+      amount,
+      method: 'NOT_PAID',
+      status: 'PENDING_ONLINE',
+      provider: resolvePaymentProvider(),
+    },
+  }
+}
+
+/**
+ * Coach-initiated lesson fees (and similar staff flows): pay-at-club when the
+ * platform is in desk mode; otherwise pending online like athletes.
+ */
+export function initialStaffPaymentFields(amount: number): {
   paymentStatus: 'PAY_AT_CLUB' | 'PENDING_ONLINE'
   payment: {
     amount: number

@@ -20,6 +20,7 @@ import { hourFromTime } from './seasonSlots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { refundPaymentForCancellation } from './refunds'
 import { prisma } from './prisma'
+import { requireOnlinePaymentsForAthlete } from './requireOnlinePayments'
 
 type DbClient = PrismaClient | Prisma.TransactionClient
 
@@ -466,6 +467,7 @@ export async function bookPackageSeat(opts: {
   days?: string[]
   times?: string[]
 }) {
+  requireOnlinePaymentsForAthlete()
   return prisma.$transaction(async (tx) => {
     await lockPackageRow(tx, opts.packageId)
     const pkg = await tx.packageDraft.findUnique({

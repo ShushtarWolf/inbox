@@ -90,15 +90,6 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
           <p class="mt-0.5 text-xs font-medium text-brand-gray-500">{{ t('athlete.payOnlineMethodBody') }}</p>
         </div>
       </div>
-      <div class="canva-dash-menu-item pointer-events-none">
-        <span class="canva-dash-menu-icon">
-          <AppIcon name="storefront" size="sm" />
-        </span>
-        <div class="min-w-0 flex-1 text-start">
-          <p>{{ t('athlete.payAtClubMethod') }}</p>
-          <p class="mt-0.5 text-xs font-medium text-brand-gray-500">{{ t('athlete.payAtClubMethodBody') }}</p>
-        </div>
-      </div>
       <NuxtLink :to="localePath('/athlete/wallet')" class="canva-dash-menu-item">
         <span class="canva-dash-menu-icon">
           <AppIcon name="account_balance_wallet" size="sm" />

@@ -123,6 +123,12 @@ export function useCourtBooking() {
       return null
     }
 
+    if (!onlineEnabled.value) {
+      feedbackTone.value = 'error'
+      feedback.value = t('booking.onlinePaymentsRequired')
+      return null
+    }
+
     confirming.value = true
     feedback.value = ''
     try {
@@ -152,7 +158,7 @@ export function useCourtBooking() {
       bookedTotal.value = result.totalAmount ?? null
       done.value = true
       feedbackTone.value = 'success'
-      feedback.value = onlineEnabled.value ? t('booking.successCourtOnline') : t('booking.successCourt')
+      feedback.value = t('booking.successCourtOnline')
 
       const amount = result.totalAmount ?? 0
       const useWallet = Boolean(
@@ -243,8 +249,8 @@ export function useCourtBooking() {
     if (paying.value) return t('booking.redirectingToGateway')
     if (confirming.value) return t('common.loading')
     if (!user.value) return t('booking.loginToContinue')
-    if (onlineEnabled.value) return t('booking.pay')
-    return t('booking.confirmPayAtClub')
+    if (!onlineEnabled.value) return t('booking.onlinePaymentsRequired')
+    return t('booking.pay')
   })
 
   return {

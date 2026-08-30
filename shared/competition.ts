@@ -1,4 +1,3 @@
-import { isOnlinePaymentsEnabled } from './bookingPayment.ts'
 import { PILOT_CLUB_SLUG } from './pilotClub.ts'
 
 export type CompetitionsGateOptions = {
@@ -343,9 +342,12 @@ export function competitionJoinIdempotencyKey(
     : `competition-entry:${competitionId}:${athleteId}`
 }
 
-/** Pay-at-club is only allowed when the platform is in desk mode (not online-only). */
+/**
+ * Athletes cannot self-select pay-at-club for competition entry.
+ * Desk settlement is owner mark-paid only (after gateway/wallet join).
+ */
 export function isCompetitionPayAtClubAllowed(): boolean {
-  return !isOnlinePaymentsEnabled()
+  return false
 }
 
 /** Whether athlete may cancel/refund before the event (uses club cancellation window). */

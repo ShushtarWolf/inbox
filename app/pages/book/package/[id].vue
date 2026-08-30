@@ -36,6 +36,10 @@ async function bookSeat() {
     await navigateTo(localePath('/login'))
     return
   }
+  if (!onlineEnabled.value) {
+    actionError.value = t('booking.onlinePaymentsRequired')
+    return
+  }
   busy.value = true
   actionError.value = ''
   try {
@@ -102,7 +106,8 @@ async function pay(useWallet = false) {
           {{ t('booking.confirm') }}
         </button>
         <template v-else>
-          <p class="text-sm font-bold text-brand-navy">{{ t('booking.payAtClubDetail') }}</p>
+          <p class="text-sm font-bold text-brand-navy">{{ t('booking.successCourtOnline') }}</p>
+          <p v-if="!onlineEnabled" class="text-sm text-brand-error">{{ t('booking.onlinePaymentsRequired') }}</p>
           <button
             v-if="onlineEnabled"
             type="button"
@@ -114,6 +119,7 @@ async function pay(useWallet = false) {
             {{ t('booking.payNow') }}
           </button>
           <button
+            v-if="onlineEnabled"
             type="button"
             class="canva-cta inline-flex w-full items-center justify-center px-4 py-3 text-sm font-bold"
             style="border-radius: var(--sz-canva-radius);"

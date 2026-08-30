@@ -411,7 +411,7 @@ async function submit(preferWallet = false) {
       </div>
 
       <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
-        <template v-if="done && (!onlineEnabled || lastPaymentStatus === 'PAID')">
+        <template v-if="done && lastPaymentStatus === 'PAID'">
           <p class="text-center text-base font-bold text-brand-primary">✓ {{ feedback || t('booking.successCourt') }}</p>
         </template>
 
@@ -604,7 +604,7 @@ async function submit(preferWallet = false) {
       </div>
 
       <div class="shrink-0 space-y-2 px-5 pb-6">
-        <template v-if="done && (!onlineEnabled || lastPaymentStatus === 'PAID')">
+        <template v-if="done && lastPaymentStatus === 'PAID'">
           <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
             {{ t('booking.viewBookings') }}
           </NuxtLink>

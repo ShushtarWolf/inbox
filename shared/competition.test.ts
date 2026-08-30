@@ -266,9 +266,9 @@ describe('cancellation window', () => {
 })
 
 describe('pay at club policy', () => {
-  it('follows platform payment mode', () => {
+  it('never allows athlete competition pay-at-club', () => {
     process.env.PAYMENTS_MODE = 'pay_at_club'
-    expect(isCompetitionPayAtClubAllowed()).toBe(true)
+    expect(isCompetitionPayAtClubAllowed()).toBe(false)
     process.env.PAYMENTS_MODE = 'test'
     expect(isCompetitionPayAtClubAllowed()).toBe(false)
     delete process.env.PAYMENTS_MODE

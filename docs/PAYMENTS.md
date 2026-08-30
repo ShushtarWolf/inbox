@@ -17,7 +17,7 @@ We ship a **real SEP / سامان کیش** adapter (not a fake live stub). Reaso
 
 | `PAYMENTS_MODE` | Behavior |
 |-----------------|----------|
-| `pay_at_club` | Legacy / desk-only. Online checkout hidden; bookings `PAY_AT_CLUB`. **OK launch fallback.** Still supported for walk-ins and if someone toggles back. |
+| `pay_at_club` | Desk-only for **owner/coach** walk-ins and mark-paid. Athlete self-serve booking/join requires online (`test`/`live`) — gateway or wallet. **OK launch fallback for desk**; do not leave athletes on this mode alone. |
 | `test` (recommended locally / pre-SEP on Liara) | Default provider **sep**. Without `SEP_TERMINAL_ID`, checkout redirects to `/payments/test-gateway` (simulate OK/NOK). With terminal id, uses real SEP request/verify (SEP has no public sandbox host). |
 | `live` | Real SEP production API. Requires `SEP_TERMINAL_ID`. **Never** marks `PAID` without verify success (`0`/`2`). **Do not enable until checklist passes.** |
 
@@ -106,7 +106,7 @@ Rejected when `PAYMENTS_MODE=pay_at_club`. Refunds still credit wallet on cancel
 
 ## Desk collection
 
-Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PENDING_ONLINE` / `FAILED`). Public athlete flow offers **پرداخت آنلاین** when `PAYMENTS_MODE` is `test` or `live` (not when `pay_at_club`).
+Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PENDING_ONLINE` / `FAILED`). Public athlete flow offers **پرداخت آنلاین** and **wallet** when `PAYMENTS_MODE` is `test` or `live` — athletes cannot self-select pay-at-club.
 
 Owner desk **ارسال لینک پرداخت** (not shown in `pay_at_club` — that button is **رزرو بدون دریافت وجه**) creates an unpaid IPG booking, SMS a token10-safe pay pin, and shows a copy/WhatsApp URL to `https://inboxs.ir/p/{pin}` (opens the receipt Pay CTA). Checkout still requires `PAYMENTS_MODE=test` or `live`.
 

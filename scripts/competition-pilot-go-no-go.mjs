@@ -440,44 +440,22 @@ async function main() {
     record('OPS-01', defaultOff && pilotOnly, 'isCompetitionsEnabled / isCompetitionsVisibleForClub')
   }
 
-  // F-10 Pay-at-club mark paid confirms entry (requires PAYMENTS_MODE=pay_at_club on server)
+  // F-10 Athletes cannot self-select pay-at-club for competition entry
   {
-    if (process.env.PAYMENTS_MODE !== 'pay_at_club') {
-      record('F-10', true, 'skipped — server must run with PAYMENTS_MODE=pay_at_club')
-    } else {
-      const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
-      const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
-        jar: athletes[0].jar,
-        session: athletes[0].session,
-        method: 'POST',
-        body: { payAtClub: true },
-      })
-      assert(join.res.ok, `pay-at-club join → ${join.res.status}`)
-      assert(join.data?.entry?.status === 'PENDING', `expected PENDING, got ${join.data?.entry?.status}`)
-      assert(join.data?.payment?.status === 'PAY_AT_CLUB', `expected PAY_AT_CLUB payment`)
-
-      const markPaid = await apiFetch(
-        base,
-        `/api/owner/competitions/${comp.id}/entries/${join.data.entry.id}/mark-paid`,
-        { jar, session: 'owner', method: 'POST' },
-      )
-      assert(markPaid.res.ok, `mark-paid → ${markPaid.res.status}: ${JSON.stringify(markPaid.data)}`)
-      assert(markPaid.data?.entry?.status === 'CONFIRMED', 'mark-paid should confirm entry')
-
-      const doubleMark = await apiFetch(
-        base,
-        `/api/owner/competitions/${comp.id}/entries/${join.data.entry.id}/mark-paid`,
-        { jar, session: 'owner', method: 'POST', expectStatus: 409 },
-      )
-
-      const { data: detail } = await apiFetch(base, `/api/owner/competitions/${comp.id}`, { jar, session: 'owner' })
-      const confirmed = detail.entries?.filter((e) => e.status === 'CONFIRMED').length ?? 0
-      record(
-        'F-10',
-        doubleMark.res.status === 409 && confirmed === 1,
-        `confirmed=${confirmed} doubleMark=${doubleMark.res.status}`,
-      )
-    }
+    const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
+    const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
+      jar: athletes[0].jar,
+      session: athletes[0].session,
+      method: 'POST',
+      body: { payAtClub: true },
+      expectStatus: 400,
+    })
+    const msg = String(join.data?.statusMessage || join.data?.message || '')
+    record(
+      'F-10',
+      join.res.status === 400 && /PAY_AT_CLUB_NOT_ALLOWED/i.test(msg),
+      `status=${join.res.status} msg=${msg || JSON.stringify(join.data)}`,
+    )
   }
 
   // S-03 Rate limit on join — run last so the burst does not break earlier join tests

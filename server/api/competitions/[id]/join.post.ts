@@ -2,6 +2,7 @@ import { normalizeIranPhone } from '#shared/phone.ts'
 import { joinCompetition } from '../../../utils/competitions'
 import { assertCompetitionAccessById } from '../../../utils/competitionsGate'
 import { findUserIdByPhone } from '../../../utils/phoneAuth'
+import { requireOnlinePaymentsForAthlete } from '../../../utils/requireOnlinePayments'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'competitions:join')
@@ -16,6 +17,19 @@ export default defineEventHandler(async (event) => {
     partnerPhone?: string | null
     payAtClub?: boolean
   }>(event)
+
+  if (body.payAtClub) {
+    throw createError({ statusCode: 400, statusMessage: 'PAY_AT_CLUB_NOT_ALLOWED' })
+  }
+
+  const competition = await prisma.competition.findUnique({
+    where: { id: competitionId },
+    select: { entryFee: true },
+  })
+  if (!competition) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+  if (competition.entryFee > 0) {
+    requireOnlinePaymentsForAthlete()
+  }
 
   let partnerAthleteId = body.partnerAthleteId ?? null
   const partnerPhoneRaw = typeof body.partnerPhone === 'string' ? body.partnerPhone.trim() : ''
@@ -34,7 +48,7 @@ export default defineEventHandler(async (event) => {
     competitionId,
     athleteId: user.id,
     partnerAthleteId,
-    payAtClub: Boolean(body.payAtClub),
+    payAtClub: false,
   })
 
   return {

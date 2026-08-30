@@ -620,7 +620,7 @@ describe('join → pay → confirm flow', () => {
     expect(updateEntry).not.toHaveBeenCalled()
   })
 
-  it('pay-at-club join stays PENDING until owner mark-paid', async () => {
+  it('rejects athlete pay-at-club competition join', async () => {
     const prevMode = process.env.PAYMENTS_MODE
     process.env.PAYMENTS_MODE = 'pay_at_club'
     try {
@@ -630,28 +630,38 @@ describe('join → pay → confirm flow', () => {
         status: 'PENDING',
         competitionId: 'comp-1',
         athleteId: 'athlete-1',
-        paymentId: 'pay-1',
-      })
-      createPayment.mockResolvedValue({ id: 'pay-1', amount: 200000, status: 'PAY_AT_CLUB', method: 'CASH' })
-      findUniqueEntry.mockResolvedValue({
-        id: 'entry-1',
-        status: 'PENDING',
-        paymentId: 'pay-1',
-        payment: { id: 'pay-1', status: 'PAY_AT_CLUB', amount: 200000, provider: 'pay_at_club' },
-        competition: openCompetition,
+        paymentId: null,
       })
 
-      const result = await joinCompetition({
+      await expect(joinCompetition({
         competitionId: 'comp-1',
         athleteId: 'athlete-1',
         payAtClub: true,
+      })).rejects.toThrow('PAY_AT_CLUB_NOT_ALLOWED')
+    } finally {
+      if (prevMode === undefined) delete process.env.PAYMENTS_MODE
+      else process.env.PAYMENTS_MODE = prevMode
+    }
+  })
+
+  it('requires online payments for paid competition join', async () => {
+    const prevMode = process.env.PAYMENTS_MODE
+    process.env.PAYMENTS_MODE = 'pay_at_club'
+    try {
+      findFirstEntry.mockResolvedValue(null)
+      createEntry.mockResolvedValue({
+        id: 'entry-1',
+        status: 'PENDING',
+        competitionId: 'comp-1',
+        athleteId: 'athlete-1',
+        paymentId: null,
       })
 
-      expect(result.entry.status).toBe('PENDING')
-      expect(result.payment?.status).toBe('PAY_AT_CLUB')
-      expect(updateEntry).not.toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 'CONFIRMED' }) }),
-      )
+      await expect(joinCompetition({
+        competitionId: 'comp-1',
+        athleteId: 'athlete-1',
+        payAtClub: false,
+      })).rejects.toThrow('ONLINE_PAYMENTS_REQUIRED')
     } finally {
       if (prevMode === undefined) delete process.env.PAYMENTS_MODE
       else process.env.PAYMENTS_MODE = prevMode

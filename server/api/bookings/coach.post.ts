@@ -2,11 +2,13 @@ import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
 import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
+import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   const user = await requireUser(event)
+  requireOnlinePaymentsForAthlete()
   const body = await readBody<{ coachId?: string; date?: string; startTime?: string }>(event)
   if (!body.coachId || !body.date || !body.startTime) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })

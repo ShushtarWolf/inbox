@@ -4,6 +4,7 @@ import {
   countActiveAthleteBookings,
   countsTowardRevenue,
   initialPlatformPaymentFields,
+  initialStaffPaymentFields,
   isOnlinePaymentsEnabled,
   isPaymentChannel,
   isPaymentPayableOnline,
@@ -47,9 +48,30 @@ describe('initialPlatformPaymentFields', () => {
     process.env.PAYMENTS_MODE = original
   })
 
-  it('defaults to pay at club', () => {
+  it('requires online payments (no athlete pay-at-club)', () => {
     process.env.PAYMENTS_MODE = 'pay_at_club'
-    expect(initialPlatformPaymentFields(500_000)).toEqual({
+    expect(() => initialPlatformPaymentFields(500_000)).toThrow('ONLINE_PAYMENTS_REQUIRED')
+  })
+
+  it('uses pending online in test mode', () => {
+    process.env.PAYMENTS_MODE = 'test'
+    const fields = initialPlatformPaymentFields(500_000)
+    expect(fields.paymentStatus).toBe('PENDING_ONLINE')
+    expect(fields.payment.status).toBe('PENDING_ONLINE')
+    expect(fields.payment.method).toBe('NOT_PAID')
+  })
+})
+
+describe('initialStaffPaymentFields', () => {
+  const original = process.env.PAYMENTS_MODE
+
+  afterEach(() => {
+    process.env.PAYMENTS_MODE = original
+  })
+
+  it('allows pay at club for coach/owner desk mode', () => {
+    process.env.PAYMENTS_MODE = 'pay_at_club'
+    expect(initialStaffPaymentFields(500_000)).toEqual({
       paymentStatus: 'PAY_AT_CLUB',
       payment: {
         amount: 500_000,
@@ -60,11 +82,10 @@ describe('initialPlatformPaymentFields', () => {
     })
   })
 
-  it('uses pending online in test mode', () => {
+  it('uses pending online when gateway is on', () => {
     process.env.PAYMENTS_MODE = 'test'
-    const fields = initialPlatformPaymentFields(500_000)
+    const fields = initialStaffPaymentFields(500_000)
     expect(fields.paymentStatus).toBe('PENDING_ONLINE')
-    expect(fields.payment.status).toBe('PENDING_ONLINE')
     expect(fields.payment.method).toBe('NOT_PAID')
   })
 })

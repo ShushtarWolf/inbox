@@ -80,6 +80,11 @@ async function confirm() {
       query: { returnTo: route.fullPath },
     }))
   }
+  if (!onlineEnabled.value) {
+    feedbackTone.value = 'error'
+    feedback.value = t('booking.onlinePaymentsRequired')
+    return
+  }
   if (!startTime.value) {
     feedbackTone.value = 'error'
     feedback.value = t('booking.selectTime')
@@ -93,7 +98,7 @@ async function confirm() {
     bookedPrice.value = availability.value?.sessionPrice || coach.value?.sessionPrice || null
     done.value = true
     feedbackTone.value = 'success'
-    feedback.value = t('booking.successCoach')
+    feedback.value = t('booking.successCoachOnline')
   } catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
@@ -173,7 +178,7 @@ onMounted(() => {
         ]"
         :total-label="t('booking.costTotal')"
         :total-amount="formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0)"
-        :payment-note="t('booking.costPayAtClubNote')"
+        :payment-note="onlineEnabled ? t('booking.costOnlineNote') : t('booking.onlinePaymentsRequired')"
         :cancel-note="t('booking.costCancelHint')"
       />
 
@@ -181,7 +186,13 @@ onMounted(() => {
         v-if="!done"
         class="venus-sticky-action space-y-2"
       >
-        <button v-if="availability?.slots?.length" type="button" class="btn-primary w-full" @click="confirm">{{ t('booking.confirm') }}</button>
+        <button
+          v-if="availability?.slots?.length"
+          type="button"
+          class="btn-primary w-full"
+          :disabled="!onlineEnabled"
+          @click="confirm"
+        >{{ onlineEnabled ? t('booking.confirm') : t('booking.onlinePaymentsRequired') }}</button>
         <button v-else type="button" class="w-full btn-ghost w-full" @click="joinWaitlist">
           {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
         </button>
@@ -189,7 +200,7 @@ onMounted(() => {
     </AppAsyncState>
 
     <div v-if="done" class="ios-card space-y-2 p-4 text-center">
-      <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoach') }}</p>
+      <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoachOnline') }}</p>
       <p
         v-if="!user?.phone?.trim()"
         class="text-sm text-brand-gray-600"
@@ -202,12 +213,10 @@ onMounted(() => {
       <p v-else-if="smsPhase === 'SINGLE'" class="text-sm text-brand-gray-600">
         {{ t('booking.smsDeliveryNoteSingle') }}
       </p>
-      <template v-if="!onlineEnabled">
-        <p class="text-sm font-bold">{{ t('booking.payAtClub') }}</p>
-        <p class="text-sm text-brand-gray-600">{{ t('booking.payAtClubDetail') }}</p>
-        <p v-if="bookedPrice != null" class="text-sm font-bold">{{ t('booking.payAtClubAmount', { amount: formatCurrency(bookedPrice) }) }}</p>
+      <template v-if="onlineEnabled">
+        <p class="text-sm text-brand-gray-600">{{ t('booking.payNow') }}</p>
       </template>
-      <p v-else class="text-sm text-brand-gray-600">{{ t('booking.payNow') }}</p>
+      <p v-else class="text-sm text-brand-error">{{ t('booking.onlinePaymentsRequired') }}</p>
       <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
   </div>

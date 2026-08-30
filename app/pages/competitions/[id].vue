@@ -36,7 +36,6 @@ const partnerPhone = ref('')
 const joinPending = ref(false)
 const joinError = ref('')
 const joinSuccess = ref('')
-const payAtClub = ref(false)
 
 const prizeDescription = computed(() => {
   const config = competition.value?.prizeConfig
@@ -59,6 +58,11 @@ async function join(useWallet = false) {
     openLogin()
     return
   }
+  const fee = competition.value?.entryFee || 0
+  if (fee > 0 && !onlineEnabled.value) {
+    joinError.value = t('booking.onlinePaymentsRequired')
+    return
+  }
   joinPending.value = true
   try {
     const result = await $fetch<{
@@ -68,18 +72,11 @@ async function join(useWallet = false) {
       method: 'POST',
       body: {
         partnerPhone: partnerPhone.value.trim() || undefined,
-        payAtClub: payAtClub.value,
       },
     })
 
     if (result.entry.status === 'CONFIRMED') {
       joinSuccess.value = t('competitions.joinConfirmed')
-      await refresh()
-      return
-    }
-
-    if (result.payment && result.payment.status === 'PAY_AT_CLUB') {
-      joinSuccess.value = t('competitions.joinPayAtClub')
       await refresh()
       return
     }
@@ -195,16 +192,15 @@ async function join(useWallet = false) {
           >
         </div>
 
-        <label v-if="!onlineEnabled" class="flex items-center gap-2 text-sm">
-          <input v-model="payAtClub" type="checkbox">
-          {{ t('competitions.payAtClub') }}
+        <label v-if="competition.entryFee > 0 && !onlineEnabled" class="text-sm text-red-600">
+          {{ t('booking.onlinePaymentsRequired') }}
         </label>
 
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
             class="rounded-sm bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            :disabled="joinPending"
+            :disabled="joinPending || (competition.entryFee > 0 && !onlineEnabled)"
             @click="join(false)"
           >
             {{ competition.entryFee > 0 && onlineEnabled ? t('competitions.joinAndPay') : t('competitions.join') }}

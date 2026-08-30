@@ -26,14 +26,14 @@ function applyAthleteCancel(booking: {
 }
 
 describe('platform court booking payment defaults', () => {
-  it('creates CONFIRMED booking with PAY_AT_CLUB payment in offline mode', () => {
+  it('creates pending online booking for athlete self-serve', () => {
     const created = {
-      status: 'CONFIRMED',
-      paymentStatus: 'PAY_AT_CLUB',
+      status: 'PENDING',
+      paymentStatus: 'PENDING_ONLINE',
       source: 'PLATFORM',
-      payment: { method: 'CASH', status: 'PAY_AT_CLUB', amount: 500_000 },
+      payment: { method: 'NOT_PAID', status: 'PENDING_ONLINE', amount: 500_000 },
     }
-    expect(created.paymentStatus).toBe('PAY_AT_CLUB')
+    expect(created.paymentStatus).toBe('PENDING_ONLINE')
   })
 })
 
