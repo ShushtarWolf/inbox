@@ -1,9 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { canClaimExistingSlotForRecurring, isRecurringReserveEnabled } from './recurringReserve'
+import {
+  canClaimExistingSlotForRecurring,
+  isOwnerRecurringBooking,
+  isRecurringReserveEnabled,
+} from './recurringReserve'
 
 describe('isRecurringReserveEnabled', () => {
   it('is on with overwrite-safe recurring claims', () => {
     expect(isRecurringReserveEnabled()).toBe(true)
+  })
+})
+
+describe('isOwnerRecurringBooking', () => {
+  it('is false for empty booking', () => {
+    expect(isOwnerRecurringBooking(null)).toBe(false)
+    expect(isOwnerRecurringBooking({})).toBe(false)
+  })
+
+  it('treats packageDraftId as recurring', () => {
+    expect(isOwnerRecurringBooking({ packageDraftId: 'pkg-1' })).toBe(true)
+  })
+
+  it('detects season/package CREATED event metadata', () => {
+    expect(isOwnerRecurringBooking({
+      events: [{ metadataJson: JSON.stringify({ source: 'owner-recurring' }) }],
+    })).toBe(true)
+  })
+
+  it('detects class-package CREATED event metadata', () => {
+    expect(isOwnerRecurringBooking({
+      events: [{ metadataJson: JSON.stringify({ source: 'class-package', packageId: 'x' }) }],
+    })).toBe(true)
+  })
+
+  it('honors explicit isRecurring flag from API', () => {
+    expect(isOwnerRecurringBooking({ isRecurring: true })).toBe(true)
   })
 })
 

@@ -1300,6 +1300,7 @@
       "RESERVED": "Reserved",
       "RESERVED_CASH": "Cash reserve",
       "RESERVED_IPG": "Online reserve",
+      "RESERVED_RECURRING": "Recurring reserve",
       "FREE": "Free",
       "CANCELLED": "Cancelled",
       "PENDING": "Pending",

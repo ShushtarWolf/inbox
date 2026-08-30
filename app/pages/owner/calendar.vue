@@ -11,7 +11,7 @@ import {
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
+import { isOwnerRecurringBooking, isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import {
@@ -51,6 +51,9 @@ interface OwnerCalendarBooking {
   guestFamily?: string | null
   guestMobile?: string | null
   coachId?: string | null
+  packageDraftId?: string | null
+  /** Season / package series or class-package court hold — from calendar API. */
+  isRecurring?: boolean | null
   payment?: { method?: string; status?: string; amount?: number } | null
   paymentMethod?: string | null
   paymentStatus?: string | null
@@ -519,6 +522,10 @@ function isIpgReservedSlot(slot?: OwnerCalendarSlot | null) {
   return isReservedDisplayStatus(slot?.displayStatus || '') && slotPaymentChannel(slot) === 'IPG'
 }
 
+function isRecurringReservedSlot(slot?: OwnerCalendarSlot | null) {
+  return isReservedDisplayStatus(slot?.displayStatus || '') && isOwnerRecurringBooking(activeBooking(slot))
+}
+
 function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const map: Record<string, string> = {
     FREE: 'slot-free',
@@ -533,6 +540,8 @@ function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const base = map[status] || 'slot-free'
   if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
   if (isReservedDisplayStatus(status)) {
+    // Recurring series gets its own grid color (paid/unpaid still in cell badge / detail).
+    if (isRecurringReservedSlot(slot)) return `${base} slot-reserved-recurring`
     // Unpaid wins over channel so desk unpaid / pending-online never look like settled pink.
     if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return `${base} slot-reserved-unpaid`
     if (slotPaymentChannel(slot) === 'IPG') return `${base} slot-reserved-ipg`
@@ -663,6 +672,7 @@ function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
   if (isExternalOnlyOccupied(slot)) return 'canva-cal-grid-cell-bar-blocked'
   const status = slot?.displayStatus || 'FREE'
   if (isReservedDisplayStatus(status)) {
+    if (isRecurringReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-recurring'
     if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return 'canva-cal-grid-cell-bar-reserved-unpaid'
     if (isIpgReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-ipg'
     return 'canva-cal-grid-cell-bar-reserved-cash'
@@ -2192,6 +2202,7 @@ const legend = [
   { status: 'RESERVED_PAID', color: palette.calendarGrid.RESERVED_PAID },
   { status: 'RESERVED_UNPAID', color: palette.calendarGrid.RESERVED_UNPAID },
   { status: 'RESERVED_IPG', color: palette.calendarGrid.RESERVED_IPG },
+  { status: 'RESERVED_RECURRING', color: palette.calendarGrid.RESERVED_RECURRING },
   { status: 'PENDING', color: palette.calendarGrid.PENDING },
   { status: 'BLOCKED', color: palette.calendarGrid.BLOCKED },
 ]
@@ -3634,6 +3645,11 @@ const legend = [
 
 :deep(.canva-cal-grid-cell.slot-reserved-ipg) {
   background: var(--sz-cal-grid-reserved-ipg);
+  color: #2c2c2a;
+}
+
+:deep(.canva-cal-grid-cell.slot-reserved-recurring) {
+  background: var(--sz-cal-grid-reserved-recurring);
   color: #2c2c2a;
 }
 

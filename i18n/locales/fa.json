@@ -1855,6 +1855,7 @@
       "RESERVED_PAID": "پرداخت‌شده",
       "RESERVED_UNPAID": "پرداخت‌نشده",
       "RESERVED_IPG": "رزرو آنلاین",
+      "RESERVED_RECURRING": "رزرو تکراری",
       "FREE": "آزاد",
       "CANCELLED": "لغو شده",
       "PENDING": "در انتظار",

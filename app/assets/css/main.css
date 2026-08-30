@@ -1182,6 +1182,10 @@
     background: #4A1420 !important;
     color: #fff;
   }
+  .canva-slot-row.slot-reserved-recurring {
+    background: #6B4C9A !important;
+    color: #fff;
+  }
   .canva-slot-row.slot-pending {
     background: #E8B84A !important;
     color: #2C2C2A;
@@ -2066,6 +2070,7 @@
   .canva-cal-grid-cell.slot-reserved-cash .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-reserved-unpaid .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-reserved-ipg .canva-cal-grid-cell-label,
+  .canva-cal-grid-cell.slot-reserved-recurring .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label,
@@ -2106,6 +2111,9 @@
   }
   .canva-cal-grid-cell-bar-reserved-ipg {
     background: #4A1420;
+  }
+  .canva-cal-grid-cell-bar-reserved-recurring {
+    background: #6B4C9A;
   }
   .canva-cal-grid-cell-bar-pending {
     background: #E8B84A;
@@ -2435,6 +2443,7 @@
   .slot-reserved-cash { @apply font-medium; }
   .slot-reserved-unpaid { @apply font-medium; }
   .slot-reserved-ipg { @apply font-medium; }
+  .slot-reserved-recurring { @apply font-medium; }
   .slot-public { @apply font-medium; }
   .slot-team { @apply font-medium; }
   .slot-pending { @apply font-medium; }

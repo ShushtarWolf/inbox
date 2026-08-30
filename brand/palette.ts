@@ -66,6 +66,8 @@ export const palette = {
     RESERVED_PAID: '#f3d4d4',
     RESERVED_UNPAID: '#fcd9a8',
     RESERVED_IPG: '#d4dce8',
+    /** Season / package series — distinct from paid / unpaid / online */
+    RESERVED_RECURRING: '#ddd4e8',
     PENDING: '#e8d4a8',
     BLOCKED: '#d4d2ce',
   },

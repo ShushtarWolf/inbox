@@ -1,3 +1,5 @@
+import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
+
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const query = getQuery(event)
@@ -40,6 +42,11 @@ export default defineEventHandler(async (event) => {
         include: {
           payment: true,
           bookingEquipments: { include: { equipment: true } },
+          events: {
+            where: { type: 'CREATED' },
+            select: { metadataJson: true },
+            take: 8,
+          },
         },
       },
       court: true,
@@ -51,10 +58,21 @@ export default defineEventHandler(async (event) => {
     date,
     courts,
     // Cancelled rows still hold unique Booking.slotId — hide them so FREE hours reopen for desk reserve.
-    slots: slots.map((slot) => ({
-      ...slot,
-      booking: slot.booking?.status === 'CANCELLED' ? null : slot.booking,
-    })),
+    slots: slots.map((slot) => {
+      const booking = slot.booking?.status === 'CANCELLED' ? null : slot.booking
+      if (!booking) return { ...slot, booking: null }
+      const { events, ...rest } = booking
+      return {
+        ...slot,
+        booking: {
+          ...rest,
+          isRecurring: isOwnerRecurringBooking({
+            packageDraftId: booking.packageDraftId,
+            events,
+          }),
+        },
+      }
+    }),
     clubOpenHour: club.openHour,
     clubCloseHour: club.closeHour,
     sessionDurationMinutes: club.defaultSessionDurationMinutes,
