@@ -2,7 +2,8 @@ import { createError } from 'h3'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../../server/utils/coachClubLinks', () => ({
-  requireActiveCoachClubLink: vi.fn(),
+  requireActiveClub: vi.fn(),
+  requireApprovedCoach: vi.fn(async () => ({ id: 'coach-1' })),
 }))
 
 vi.mock('./calendarSources', () => ({
@@ -27,7 +28,7 @@ vi.mock('./sourceDetails', async (importOriginal) => {
   return actual
 })
 
-import { requireActiveCoachClubLink } from '../../../../../server/utils/coachClubLinks'
+import { requireActiveClub, requireApprovedCoach } from '../../../../../server/utils/coachClubLinks'
 import { fetchExternalOccupancy } from './adapters'
 import { buildCoachCalendarSourcesForClub } from './coachCalendarSources'
 import { buildCalendarSourcesResponse } from './calendarSources'
@@ -39,10 +40,10 @@ describe('buildCoachCalendarSourcesForClub', () => {
     vi.clearAllMocks()
   })
 
-  it('delegates to buildCalendarSourcesResponse for an active club link', async () => {
-    vi.mocked(requireActiveCoachClubLink).mockResolvedValue({
-      club: { id: 'club-iust', slug: 'iust-tennis', status: 'ACTIVE' },
-    } as Awaited<ReturnType<typeof requireActiveCoachClubLink>>)
+  it('delegates to buildCalendarSourcesResponse for an active club', async () => {
+    vi.mocked(requireActiveClub).mockResolvedValue({
+      id: 'club-iust', slug: 'iust-tennis', status: 'ACTIVE',
+    } as Awaited<ReturnType<typeof requireActiveClub>>)
     vi.mocked(buildCalendarSourcesResponse).mockResolvedValue({
       date: '2026-08-30',
       mapped: true,
@@ -55,7 +56,7 @@ describe('buildCoachCalendarSourcesForClub', () => {
       date: '2026-08-30',
     })
 
-    expect(requireActiveCoachClubLink).toHaveBeenCalledWith('coach-1', 'club-iust')
+    expect(requireActiveClub).toHaveBeenCalledWith('club-iust')
     expect(buildCalendarSourcesResponse).toHaveBeenCalledWith({
       clubId: 'club-iust',
       clubSlug: 'iust-tennis',
@@ -64,16 +65,16 @@ describe('buildCoachCalendarSourcesForClub', () => {
     expect(result.mapped).toBe(true)
   })
 
-  it('403 when coach has no active club link', async () => {
-    vi.mocked(requireActiveCoachClubLink).mockRejectedValue(
-      createError({ statusCode: 403, statusMessage: 'COACH_CLUB_LINK_NOT_ACTIVE' }),
+  it('404 when club is not active', async () => {
+    vi.mocked(requireActiveClub).mockRejectedValue(
+      createError({ statusCode: 404, statusMessage: 'Club not found' }),
     )
 
     await expect(buildCoachCalendarSourcesForClub({
       coachId: 'coach-1',
       clubId: 'club-iust',
       date: '2026-08-30',
-    })).rejects.toMatchObject({ statusCode: 403 })
+    })).rejects.toMatchObject({ statusCode: 404 })
   })
 })
 
@@ -195,14 +196,15 @@ describe('handleCoachCalendarSourcesRequest auth', () => {
       .rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('403 when coach lacks active club link', async () => {
+  it('404 when club is not active', async () => {
     vi.stubGlobal('requireRole', vi.fn(async () => ({ id: 'user-1' })))
-    vi.mocked(requireActiveCoachClubLink).mockRejectedValue(
-      createError({ statusCode: 403, statusMessage: 'COACH_CLUB_LINK_NOT_ACTIVE' }),
+    vi.mocked(requireApprovedCoach).mockResolvedValue({ id: 'coach-1' } as Awaited<ReturnType<typeof requireApprovedCoach>>)
+    vi.mocked(requireActiveClub).mockRejectedValue(
+      createError({ statusCode: 404, statusMessage: 'Club not found' }),
     )
 
     const { handleCoachCalendarSourcesRequest } = await import('./coachCalendarSources')
     await expect(handleCoachCalendarSourcesRequest({} as import('h3').H3Event))
-      .rejects.toMatchObject({ statusCode: 403 })
+      .rejects.toMatchObject({ statusCode: 404 })
   })
 })

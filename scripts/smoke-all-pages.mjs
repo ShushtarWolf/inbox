@@ -65,7 +65,7 @@ const redirectPaths = [
 
 const ownerPaths = [
   '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/discounts', '/owner/packages',
-  '/owner/crm', '/owner/coaches', '/owner/support', '/owner/settings',
+  '/owner/crm', '/owner/support', '/owner/settings',
   '/owner/setup', '/owner/reserve/season', '/owner/reserve/package',
 ]
 /** Dashboard entry points that forward to their real landing page. */
@@ -196,7 +196,7 @@ async function main() {
       console.log(`ok  owner ${path}`)
     }
     for (const path of ownerPaths) {
-      await check(path, { session: 'owner', expectRedirect: pilotNoCoach && path === '/owner/coaches', label: `owner ${path}` })
+      await check(path, { session: 'owner', label: `owner ${path}` })
       console.log(`ok  owner ${path}`)
     }
     for (const path of coachPaths) {

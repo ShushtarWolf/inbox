@@ -2,7 +2,7 @@ import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
 import { computeCoachCourtCharge } from '#shared/coachCourt.ts'
 import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
 import { notifyBookingConfirmed, clubNotifyLocation, clubNotifyName, personNotifyName } from '../../utils/bookingNotify'
-import { requireActiveCoachClubLink, requireApprovedCoach } from '../../utils/coachClubLinks'
+import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLinks'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour, assertSlotBookable } from '../../utils/reservations'
@@ -12,7 +12,7 @@ import { debitWallet } from '../../utils/wallet'
 /**
  * A coach reserves a club court for a private lesson: the student is billed the coach's
  * session fee as usual, while the court itself is charged straight to the coach's wallet
- * at the discount that club agreed on the link.
+ * at the full listed price (no club–coach discount relationship).
  */
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
-  const link = await requireActiveCoachClubLink(coach.id, slot.court.clubId)
+  await requireActiveClub(slot.court.clubId)
   assertSlotBookable(slot.date, slot.startTime)
 
   const staleCancelledBooking = slot.displayStatus === 'FREE' && slot.booking?.status === 'CANCELLED'
@@ -72,7 +72,6 @@ export default defineEventHandler(async (event) => {
     courtPrice: slot.court.price,
     startTime: slot.startTime,
     pricingJson: slot.court.pricingJson,
-    discountPercent: link.courtDiscountPercent,
   })
   const lessonPayment = initialPlatformPaymentFields(coach.sessionPrice)
   const endTime = slot.endTime || addOneHour(slot.startTime)
@@ -124,7 +123,6 @@ export default defineEventHandler(async (event) => {
             source: 'coach-lesson-court',
             coachId: coach.id,
             listedPrice: price.listed,
-            discountPercent: link.courtDiscountPercent,
           }),
         },
       })
@@ -197,7 +195,6 @@ export default defineEventHandler(async (event) => {
     courtBookingId: created.bookingId,
     listedPrice: price.listed,
     courtCharge: price.charge,
-    discountPercent: link.courtDiscountPercent,
     sessionPrice: coach.sessionPrice,
   }
 })

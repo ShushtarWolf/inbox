@@ -1,5 +1,5 @@
 import { assertPackagesEnabled, packagesEnabledForEvent } from '../../../utils/packagesGate'
-import { requireApprovedCoach, requireActiveCoachClubLink } from '../../../utils/coachClubLinks'
+import { requireApprovedCoach, requireActiveClub } from '../../../utils/coachClubLinks'
 import { assertDateNotInPast } from '../../../utils/reservations'
 import { publishPackageDraft } from '../../../utils/packages'
 
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     if (!clubId) {
       throw createError({ statusCode: 400, statusMessage: 'clubId required' })
     }
-    await requireActiveCoachClubLink(coach.id, clubId)
+    await requireActiveClub(clubId)
     return prisma.packageDraft.findMany({
       where: {
         clubId,
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   if (!body.clubId) throw createError({ statusCode: 400, statusMessage: 'clubId required' })
-  await requireActiveCoachClubLink(coach.id, body.clubId)
+  await requireActiveClub(body.clubId)
 
   if (!body.courtId) {
     throw createError({ statusCode: 400, statusMessage: 'courtId required' })

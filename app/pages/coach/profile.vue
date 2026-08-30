@@ -4,111 +4,27 @@ import {
   dayOfWeekFromWeekdayKey,
   weekdayKeyFromDayOfWeek,
 } from '#shared/recurringSessions.ts'
-import { fetchErrorMessage } from '~/composables/useFetchError'
 
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { t } = useI18n()
 const { fetch } = useAuth()
-const { formatTimeRange, formatNumber } = useFormatters()
+const { formatTimeRange } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   bioFa?: string | null
   bioEn?: string | null
   sessionPrice: number
   photo?: string | null
-  clubId?: string | null
   approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
   credentialsJson?: string | null
   availability?: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>
   media?: Array<{ id: string; url: string }>
 }>('/api/coach/profile')
 
-type ClubOption = { id: string; nameFa: string; nameEn: string; city: string }
-type ClubLink = {
-  id: string
-  status: 'PENDING' | 'ACTIVE' | 'BLOCKED'
-  courtDiscountPercent: number
-  club: ClubOption
-}
-
-const { data: clubLinks, refresh: refreshClubLinks } = await useAuthedFetch<{
-  primaryClubId: string | null
-  links: ClubLink[]
-  availableClubs: ClubOption[]
-}>('/api/coach/clubs')
-
 const weekdayOptions = IRAN_WEEKDAY_ORDER
 
 function weekdayLabel(dayOfWeek: number) {
   return t(`owner.weekdays.${weekdayKeyFromDayOfWeek(dayOfWeek)}`)
-}
-
-const linkClubId = ref('')
-const linkBusy = ref(false)
-const primaryBusy = ref(false)
-const clubActionError = ref('')
-const clubActionOk = ref('')
-
-const primaryClubId = computed(() => data.value?.clubId || clubLinks.value?.primaryClubId || null)
-
-function isPrimaryLink(link: ClubLink) {
-  return Boolean(primaryClubId.value && link.club.id === primaryClubId.value && link.status === 'ACTIVE')
-}
-
-async function requestClubLink() {
-  if (!linkClubId.value || linkBusy.value) return
-  linkBusy.value = true
-  clubActionError.value = ''
-  clubActionOk.value = ''
-  try {
-    await $fetch('/api/coach/clubs', { method: 'POST', body: { clubId: linkClubId.value } })
-    linkClubId.value = ''
-    await refreshClubLinks()
-    clubActionOk.value = data.value?.approvalStatus === 'APPROVED'
-      ? t('coach.clubLinkRequested')
-      : t('coach.clubLinkQueued')
-  }
-  catch (err) {
-    clubActionError.value = fetchErrorMessage(err, t('common.retry'), t)
-  }
-  finally {
-    linkBusy.value = false
-  }
-}
-
-async function removeClubLink(id: string) {
-  if (linkBusy.value) return
-  linkBusy.value = true
-  clubActionError.value = ''
-  clubActionOk.value = ''
-  try {
-    await $fetch(`/api/coach/clubs/${id}`, { method: 'DELETE' })
-    await Promise.all([refreshClubLinks(), refresh()])
-  }
-  catch (err) {
-    clubActionError.value = fetchErrorMessage(err, t('common.retry'), t)
-  }
-  finally {
-    linkBusy.value = false
-  }
-}
-
-async function setPrimaryClub(clubId: string) {
-  if (primaryBusy.value || !clubId) return
-  primaryBusy.value = true
-  clubActionError.value = ''
-  clubActionOk.value = ''
-  try {
-    await $fetch('/api/coach/profile', { method: 'PATCH', body: { clubId } })
-    await Promise.all([refresh(), refreshClubLinks(), fetch()])
-    clubActionOk.value = t('coach.primaryClubSet')
-  }
-  catch (err) {
-    clubActionError.value = fetchErrorMessage(err, t('coach.primaryClubMustBeActive'), t)
-  }
-  finally {
-    primaryBusy.value = false
-  }
 }
 
 const bioFa = ref('')
@@ -214,86 +130,6 @@ async function removeGalleryImage(id: string) {
     <div class="venus-form-stack">
       <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
       <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
-
-      <section class="ios-card space-y-3 p-4">
-        <h2 class="font-bold">{{ $t('coach.clubLinksTitle') }}</h2>
-        <p class="text-xs text-brand-gray-600">{{ $t('coach.clubLinksHint') }}</p>
-        <p
-          v-if="data?.approvalStatus === 'PENDING'"
-          class="text-xs text-amber-800"
-        >{{ $t('coach.approvalPending') }}</p>
-        <p
-          v-else-if="data?.approvalStatus === 'REJECTED'"
-          class="text-xs text-red-600"
-        >{{ $t('coach.approvalRejected') }}</p>
-        <p v-if="!primaryClubId" class="text-xs text-amber-800">{{ $t('coach.primaryClubEmpty') }}</p>
-        <p v-if="clubActionError" class="text-xs text-red-600">{{ clubActionError }}</p>
-        <p v-if="clubActionOk" class="text-xs text-brand-primary">{{ clubActionOk }}</p>
-        <ul class="space-y-2 text-sm">
-          <li
-            v-for="link in clubLinks?.links || []"
-            :key="link.id"
-            class="space-y-2 border border-brand-gray-100 p-3"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="font-bold text-brand-navy">{{ link.club.nameFa }}</p>
-                  <span
-                    v-if="isPrimaryLink(link)"
-                    class="neo-badge text-[10px]"
-                  >
-                    {{ $t('coach.primaryClubBadge') }}
-                  </span>
-                </div>
-                <p class="text-xs text-brand-gray-600">
-                  {{ link.club.city }}
-                  · {{ $t(`owner.coachLinkStatus.${link.status}`) }}
-                  <template v-if="link.status === 'ACTIVE'">
-                    · {{ $t('coach.clubLinkDiscount', { percent: formatNumber(link.courtDiscountPercent) }) }}
-                  </template>
-                </p>
-              </div>
-              <button
-                type="button"
-                class="shrink-0 text-xs text-red-600"
-                :disabled="linkBusy || primaryBusy"
-                @click="removeClubLink(link.id)"
-              >
-                {{ $t('common.delete') }}
-              </button>
-            </div>
-            <button
-              v-if="link.status === 'ACTIVE' && !isPrimaryLink(link)"
-              type="button"
-              class="btn-secondary w-full text-xs"
-              :disabled="linkBusy || primaryBusy"
-              @click="setPrimaryClub(link.club.id)"
-            >
-              {{ $t('coach.setPrimaryClub') }}
-            </button>
-          </li>
-          <li v-if="!clubLinks?.links?.length" class="text-xs text-brand-gray-600">
-            {{ $t('coach.clubLinksEmpty') }}
-          </li>
-        </ul>
-        <div class="flex gap-2">
-          <select v-model="linkClubId" class="neo-select flex-1">
-            <option value="">{{ $t('register.selectClubPlaceholder') }}</option>
-            <option v-for="club in clubLinks?.availableClubs || []" :key="club.id" :value="club.id">
-              {{ club.nameFa }} — {{ club.city }}
-            </option>
-          </select>
-          <button
-            type="button"
-            class="btn-secondary px-4"
-            :disabled="!linkClubId || linkBusy || data?.approvalStatus === 'REJECTED'"
-            @click="requestClubLink"
-          >
-            {{ $t('common.add') }}
-          </button>
-        </div>
-      </section>
 
       <AppFormField :label="$t('coach.bioFa')">
         <textarea v-model="bioFa" class="neo-textarea" rows="3" />

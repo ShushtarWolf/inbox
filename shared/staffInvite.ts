@@ -1,4 +1,5 @@
-export const INVITEABLE_STAFF_ROLES = ['MANAGER', 'ANALYST', 'FRONT_DESK', 'COACH'] as const
+/** Desk / ops staff only — coaches are independent and are not club staff. */
+export const INVITEABLE_STAFF_ROLES = ['MANAGER', 'ANALYST', 'FRONT_DESK'] as const
 export type InviteableStaffRole = (typeof INVITEABLE_STAFF_ROLES)[number]
 
 const validRoles = new Set<string>(INVITEABLE_STAFF_ROLES)

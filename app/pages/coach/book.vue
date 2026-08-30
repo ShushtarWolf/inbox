@@ -5,7 +5,7 @@ import { fetchErrorMessage } from '~/composables/useFetchError'
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
 const { t } = useI18n()
-const { formatCurrency, formatTimeRange, formatNumber, formatFaDigits } = useFormatters()
+const { formatCurrency, formatTimeRange, formatFaDigits } = useFormatters()
 const { onlineEnabled, redirectToPaymentGateway } = useCheckout()
 
 const route = useRoute()
@@ -28,15 +28,15 @@ const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$
   : today()
 const initialTime = typeof route.query.time === 'string' ? route.query.time.slice(0, 5) : ''
 
-const { data: clubLinks, pending, error } = await useAuthedFetch<{
-  links: Array<{ id: string; status: 'PENDING' | 'ACTIVE' | 'BLOCKED'; courtDiscountPercent: number; club: ClubOption }>
+const { data: clubsData, pending, error } = await useAuthedFetch<{
+  clubs: ClubOption[]
 }>('/api/coach/clubs')
 const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet')
 
-const activeLinks = computed(() => (clubLinks.value?.links || []).filter((link) => link.status === 'ACTIVE'))
+const clubs = computed(() => clubsData.value?.clubs || [])
 
-// Club links already resolved above, so the first club is known before the slot query is built.
-const clubId = ref(activeLinks.value[0]?.club.id || '')
+// Clubs list already resolved above, so the first club is known before the slot query is built.
+const clubId = ref(clubs.value[0]?.id || '')
 const date = ref(initialDate)
 const selectedSlotId = ref('')
 const studentPhone = ref('')
@@ -46,7 +46,6 @@ const errorKey = ref('')
 const successMessage = ref('')
 
 const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await useAuthedFetch<{
-  discountPercent: number
   sessionPrice: number
   slots: CourtSlot[]
 }>('/api/coach/court-slots', {
@@ -97,7 +96,6 @@ function messageToKey(message: string) {
   if (message.includes('Insufficient wallet balance')) return 'coach.book.errorInsufficient'
   if (message.includes('Slot not available')) return 'coach.book.errorSlotTaken'
   if (message.includes('already booked')) return 'coach.book.errorCoachBusy'
-  if (message.includes('COACH_CLUB_LINK_NOT_ACTIVE')) return 'coach.book.errorLinkInactive'
   if (message.includes('COACH_NOT_APPROVED')) return 'coach.book.errorNotApproved'
   if (message.includes('own student')) return 'coach.book.errorSelfStudent'
   return 'coach.book.errorGeneric'
@@ -206,15 +204,15 @@ async function startTopUp() {
         </div>
       </div>
 
-      <p v-if="!activeLinks.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
-        {{ $t('coach.book.noActiveClubs') }}
+      <p v-if="!clubs.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
+        {{ $t('coach.book.noClubs') }}
       </p>
 
       <div v-else class="venus-form-stack">
         <AppFormField :label="$t('coach.book.club')">
           <select v-model="clubId" class="neo-select">
-            <option v-for="link in activeLinks" :key="link.id" :value="link.club.id">
-              {{ formatFaDigits(link.club.nameFa) }} — {{ $t('coach.clubLinkDiscount', { percent: formatNumber(link.courtDiscountPercent) }) }}
+            <option v-for="club in clubs" :key="club.id" :value="club.id">
+              {{ formatFaDigits(club.nameFa) }} — {{ formatFaDigits(club.city) }}
             </option>
           </select>
         </AppFormField>
@@ -242,8 +240,7 @@ async function startTopUp() {
               <p class="text-sm font-bold">{{ slot.courtNameFa }}</p>
               <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi></p>
               <p class="text-xs text-brand-gray-600" dir="auto">
-                <span v-if="slot.courtCharge < slot.listedPrice" class="line-through">{{ formatCurrency(slot.listedPrice) }}</span>
-                <span class="font-bold text-brand-primary"> {{ formatCurrency(slot.courtCharge) }}</span>
+                <span class="font-bold text-brand-primary">{{ formatCurrency(slot.courtCharge) }}</span>
               </p>
             </button>
             <div

@@ -48,7 +48,7 @@ Migrations required: `20260824120000_coach_marketplace_approval_and_club_links`,
 |----|--------|
 | C-01 | Signup creates Coach `PENDING`; not listed on `/coaches` |
 | C-02 | Admin `/admin/coach-applications` approve → bookable |
-| C-03 | Owner accepts `CoachClubLink` + sets `courtDiscountPercent` |
+| C-03 | Coach books court at any ACTIVE club at **full listed price** (no owner affiliation / discount) |
 | C-04 | `/coach/book` underfunded wallet rejected; funded book succeeds |
 | C-05 | Cancel lesson → court FREE + coach wallet credited once |
 | C-06 | Court MVP smoke still green; packages still `403` |

@@ -1,5 +1,5 @@
 import { assertPackagesEnabled } from '../../../utils/packagesGate'
-import { requireApprovedCoach, requireActiveCoachClubLink } from '../../../utils/coachClubLinks'
+import { requireApprovedCoach, requireActiveClub } from '../../../utils/coachClubLinks'
 import { expandPackageSessions, findPackageConflicts } from '../../../utils/packages'
 import {
   expandDayTimeRanges,
@@ -9,7 +9,7 @@ import {
 export default defineEventHandler(async (event) => {
   assertPackagesEnabled(event)
   const user = await requireRole(event, 'COACH')
-  const coach = await requireApprovedCoach(user.id)
+  await requireApprovedCoach(user.id)
   const body = await readBody<{
     clubId?: string
     courtId?: string
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!body.clubId || !body.courtId || !body.startDate || !body.finishDate || !body.days?.length) {
     throw createError({ statusCode: 400, statusMessage: 'clubId, courtId, dates, and days required' })
   }
-  await requireActiveCoachClubLink(coach.id, body.clubId)
+  await requireActiveClub(body.clubId)
 
   const club = await prisma.club.findFirst({ where: { id: body.clubId, status: 'ACTIVE' } })
   if (!club) throw createError({ statusCode: 404, statusMessage: 'Club not found' })

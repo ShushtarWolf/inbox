@@ -1,17 +1,17 @@
-import { requireActiveCoachClubLink } from '../../../../../server/utils/coachClubLinks'
+import { requireActiveClub, requireApprovedCoach } from '../../../../../server/utils/coachClubLinks'
 import type { H3Event } from 'h3'
 import { buildCalendarSourcesResponse } from './calendarSources'
 
-/** Coach overlay — same merge/sourceDetails as owner; requires ACTIVE club link. */
+/** Coach overlay — same merge/sourceDetails as owner; any active club (no affiliation). */
 export async function buildCoachCalendarSourcesForClub(opts: {
   coachId: string
   clubId: string
   date: string
 }) {
-  const link = await requireActiveCoachClubLink(opts.coachId, opts.clubId)
+  const club = await requireActiveClub(opts.clubId)
   return buildCalendarSourcesResponse({
-    clubId: link.club.id,
-    clubSlug: link.club.slug,
+    clubId: club.id,
+    clubSlug: club.slug,
     date: opts.date,
   })
 }

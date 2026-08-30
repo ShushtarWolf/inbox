@@ -7,7 +7,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { formatCurrency, formatIsoDate, formatNumber } = useFormatters()
-const { packagesEnabled, pilotNoCoach } = usePilotFlags()
+const { packagesEnabled } = usePilotFlags()
 
 interface PackageRow {
   id: string
@@ -49,10 +49,6 @@ const { data, pending, error, refresh } = await useAuthedFetch<PackageRow[]>('/a
   immediate: packagesEnabled.value,
 })
 const { data: courtsData } = await useAuthedFetch<CourtRow[]>('/api/owner/courts')
-const { data: coachLinksData } = await useAuthedFetch<{ links: Array<{ status: string; coach: CoachRow }> }>(
-  '/api/owner/coach-links',
-  { immediate: packagesEnabled.value && !pilotNoCoach.value },
-)
 useOwnerClubRefresh(refresh)
 
 const showForm = ref(false)
@@ -84,11 +80,8 @@ const preview = ref<{
 } | null>(null)
 
 const courts = computed(() => courtsData.value || [])
-const coaches = computed(() =>
-  (coachLinksData.value?.links || [])
-    .filter((link) => link.status === 'ACTIVE')
-    .map((link) => link.coach),
-)
+/** Coaches are independent — owner packages do not attach a club-affiliated coach. */
+const coaches = computed(() => [] as CoachRow[])
 const packages = computed(() => data.value || [])
 const hasConflicts = computed(() => (preview.value?.conflicts.length || 0) > 0)
 const canSubmitConfirm = computed(() =>

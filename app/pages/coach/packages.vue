@@ -35,9 +35,10 @@ interface ConflictRow {
 }
 
 const { data: metaData } = await useAuthedFetch<{
-  links: Array<{
-    status: string
-    club: { id: string; nameFa: string; nameEn: string }
+  clubs: Array<{
+    id: string
+    nameFa: string
+    nameEn: string
     courts?: CourtRow[]
   }>
 }>('/api/coach/packages/meta', {
@@ -46,13 +47,13 @@ const { data: metaData } = await useAuthedFetch<{
 
 const clubId = ref('')
 const courts = computed(() => {
-  const link = (metaData.value?.links || []).find((l) => l.club.id === clubId.value)
-  return link?.courts || []
+  const club = (metaData.value?.clubs || []).find((c) => c.id === clubId.value)
+  return club?.courts || []
 })
 
 watchEffect(() => {
-  const active = (metaData.value?.links || [])[0]
-  if (!clubId.value && active) clubId.value = active.club.id
+  const first = (metaData.value?.clubs || [])[0]
+  if (!clubId.value && first) clubId.value = first.id
 })
 
 const { data, pending, error, refresh } = await useAuthedFetch<PackageRow[]>(
@@ -65,7 +66,9 @@ watch(clubId, () => {
 })
 
 const packages = computed(() => data.value || [])
-const activeClubs = computed(() => metaData.value?.links || [])
+const activeClubs = computed(() =>
+  (metaData.value?.clubs || []).map((club) => ({ club })),
+)
 
 const showForm = ref(false)
 const showConfirm = ref(false)

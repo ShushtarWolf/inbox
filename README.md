@@ -144,7 +144,7 @@ To verify offline locally: enable PWA, load the app once online, then go offline
 - Manual reserve / cancel / season / package flows
 - CRM: contact list + stats + campaign composer; SMS is log/dry-run by default, or live Kavenegar when `SMS_ENABLED` + `SMS_PROVIDER=live` + `KAVENEGAR_API_KEY` are set
 - Package creator saves drafts (public classes = phase 2)
-- Owner coaches page: read-only staff list (invite/edit flows = post-MVP)
+- Owner coaches page: removed — coaches are independent (no club staff / affiliation)
 - Staff `permissionsJson`: stored in DB; nav gating deferred to post-MVP (all `CLUB_ADMIN` see full owner nav)
 
 ## Brand assets

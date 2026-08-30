@@ -106,7 +106,7 @@ const staffError = ref('')
 const staffSuccess = ref('')
 const invitePhone = ref('')
 const inviteName = ref('')
-const inviteRole = ref<'MANAGER' | 'FRONT_DESK' | 'ANALYST' | 'COACH'>('FRONT_DESK')
+const inviteRole = ref<'MANAGER' | 'FRONT_DESK' | 'ANALYST'>('FRONT_DESK')
 const invitePermissions = ref<OwnerPermission[]>(defaultPermissionsForRole('FRONT_DESK'))
 const inviting = ref(false)
 const inviteError = ref('')
@@ -796,7 +796,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 <option value="FRONT_DESK">{{ t('owner.roles.FRONT_DESK') }}</option>
                 <option value="MANAGER">{{ t('owner.roles.MANAGER') }}</option>
                 <option value="ANALYST">{{ t('owner.roles.ANALYST') }}</option>
-                <option v-if="!pilotNoCoach" value="COACH">{{ t('owner.roles.COACH') }}</option>
               </select>
             </AppFormField>
             <div class="ios-card bg-white/70 p-3">

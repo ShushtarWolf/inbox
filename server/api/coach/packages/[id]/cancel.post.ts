@@ -1,5 +1,5 @@
 import { assertPackagesEnabled } from '../../../../utils/packagesGate'
-import { requireApprovedCoach, requireActiveCoachClubLink } from '../../../../utils/coachClubLinks'
+import { requireApprovedCoach, requireActiveClub } from '../../../../utils/coachClubLinks'
 import { cancelPackageDraft } from '../../../../utils/packages'
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     where: { id, coachId: coach.id },
   })
   if (!pkg) throw createError({ statusCode: 404, statusMessage: 'Package not found' })
-  await requireActiveCoachClubLink(coach.id, pkg.clubId)
+  await requireActiveClub(pkg.clubId)
 
   return cancelPackageDraft({ packageId: pkg.id, clubId: pkg.clubId })
 })

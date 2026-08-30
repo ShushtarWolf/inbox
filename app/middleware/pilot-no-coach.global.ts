@@ -17,9 +17,9 @@ export default defineNuxtRouteMiddleware((to) => {
   const path = stripLocale(to.path)
   const localePath = useLocalePath()
 
-  // Owner coaches invite surface: stay in owner desk, not public /clubs.
+  // Owner coaches desk removed — redirect legacy bookmarks into settings.
   if (/^\/owner\/coaches(\/|$)/.test(path)) {
-    return navigateTo(localePath('/owner/calendar'), { replace: true })
+    return navigateTo(localePath('/owner/settings'), { replace: true })
   }
 
   // Class packages: coach create UI is allowed when PACKAGES_ENABLED even if coach marketing is frozen.

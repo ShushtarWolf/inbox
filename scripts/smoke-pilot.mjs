@@ -678,10 +678,10 @@ async function main() {
     })
     const ownerLoc = ownerCoaches.res.headers.get('location') || ''
     assert(
-      /\/owner(\/calendar)?/.test(ownerLoc),
-      `/owner/coaches redirect expected /owner/calendar, got ${ownerLoc || ownerCoaches.res.status}`,
+      /\/owner\/settings/.test(ownerLoc) || /\/owner(\/calendar)?/.test(ownerLoc),
+      `/owner/coaches redirect expected /owner/settings (or pilot calendar), got ${ownerLoc || ownerCoaches.res.status}`,
     )
-    console.log('ok  /owner/coaches redirects to owner calendar')
+    console.log('ok  /owner/coaches redirects away from coaches desk')
 
     const { html: ownerHtml } = await fetchPage(base, '/owner/calendar', { jar, session: 'owner' })
     assert(hasPilotNoCoach(ownerHtml), 'owner calendar missing pilotNoCoach runtime flag')

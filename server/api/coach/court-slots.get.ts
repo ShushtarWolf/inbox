@@ -1,9 +1,9 @@
 import { computeCoachCourtCharge } from '#shared/coachCourt.ts'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
-import { requireActiveCoachClubLink, requireApprovedCoach } from '../../utils/coachClubLinks'
+import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLinks'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 
-/** Free courts at a linked club, priced at what this coach's wallet would actually be charged. */
+/** Free courts at any active club, priced at the full listed rate for the coach wallet. */
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
   const user = await requireRole(event, 'COACH')
@@ -13,10 +13,10 @@ export default defineEventHandler(async (event) => {
   if (!clubId) throw createError({ statusCode: 400, statusMessage: 'clubId required' })
 
   const coach = await requireApprovedCoach(user.id)
-  const link = await requireActiveCoachClubLink(coach.id, clubId)
+  await requireActiveClub(clubId)
 
   if (isPastDate(date)) {
-    return { date, discountPercent: link.courtDiscountPercent, slots: [] }
+    return { date, slots: [] }
   }
 
   await ensureSlotsForDate(clubId, date)
@@ -30,7 +30,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     date,
-    discountPercent: link.courtDiscountPercent,
     sessionPrice: coach.sessionPrice,
     slots: slots
       .filter((slot) => !isSlotStartInPast(slot.date, slot.startTime))
@@ -39,7 +38,6 @@ export default defineEventHandler(async (event) => {
           courtPrice: slot.court.price,
           startTime: slot.startTime,
           pricingJson: slot.court.pricingJson,
-          discountPercent: link.courtDiscountPercent,
         })
         return {
           id: slot.id,

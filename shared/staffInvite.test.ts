@@ -8,10 +8,13 @@ describe('parseInviteStaffRole', () => {
     expect(parseInviteStaffRole('NOPE')).toBe('FRONT_DESK')
   })
 
-  it('accepts inviteable staff roles', () => {
+  it('accepts inviteable desk staff roles only', () => {
     expect(parseInviteStaffRole('MANAGER')).toBe('MANAGER')
     expect(parseInviteStaffRole('FRONT_DESK')).toBe('FRONT_DESK')
     expect(parseInviteStaffRole('ANALYST')).toBe('ANALYST')
-    expect(parseInviteStaffRole('COACH')).toBe('COACH')
+  })
+
+  it('does not treat COACH as inviteable staff', () => {
+    expect(parseInviteStaffRole('COACH')).toBe('FRONT_DESK')
   })
 })

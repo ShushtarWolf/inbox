@@ -322,13 +322,6 @@ enum CoachApprovalStatus {
   REJECTED
 }
 
-/** Coach asks to work at a club; the club owner accepts and sets the court discount. */
-enum CoachClubLinkStatus {
-  PENDING
-  ACTIVE
-  BLOCKED
-}
-
 enum ApplicationStatus {
   PENDING
   APPROVED
@@ -457,7 +450,6 @@ model Club {
   packages    PackageDraft[]
   seasonBooks SeasonBooking[]
   coaches     Coach[]
-  coachLinks  CoachClubLink[]
   media       ClubMedia[]
   reviews     Review[]
   waitlistEntries WaitlistEntry[]
@@ -613,26 +605,7 @@ model Coach {
   reviews      Review[]
   waitlistEntries WaitlistEntry[]
   membershipLinks StaffMembership[] @relation("MembershipCoach")
-  clubLinks    CoachClubLink[]
   settlementEntries SettlementLedgerEntry[]
-}
-
-/** Independent coaches work across clubs; each link carries that club's court discount for the coach. */
-model CoachClubLink {
-  id     String              @id @default(cuid())
-  status CoachClubLinkStatus @default(PENDING)
-  /** Owner-set percent off the court price when this coach pays for a lesson court. */
-  courtDiscountPercent Int      @default(0)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  coachId String
-  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  clubId  String
-  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
-
-  @@unique([coachId, clubId])
-  @@index([clubId, status])
 }
 
 model CoachSession {

@@ -14,21 +14,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Coach application not found' })
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const next = await tx.coach.update({
-      where: { id },
-      data: {
-        approvalStatus: 'APPROVED',
-        approvalNote: null,
-        reviewedAt: new Date(),
-      },
-    })
-    // Legacy: Coach.clubId without CoachClubLink left owners with an empty مربی‌های مستقل list.
-    await backfillClubLinkFromPrimaryClub(
-      { id: next.id, clubId: coach.clubId },
-      tx,
-    )
-    return next
+  const updated = await prisma.coach.update({
+    where: { id },
+    data: {
+      approvalStatus: 'APPROVED',
+      approvalNote: null,
+      reviewedAt: new Date(),
+    },
   })
 
   await notifyCoachApplicationReviewed({

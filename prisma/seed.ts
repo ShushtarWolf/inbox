@@ -465,7 +465,6 @@ async function main() {
       verifiedAt: new Date('2026-02-01T10:00:00.000Z'),
       verificationNote: 'Identity and certificate verified',
       experienceYears: 7,
-      clubId: ownerClub.id,
     },
   })
   const reza = await prisma.coach.create({
@@ -485,7 +484,6 @@ async function main() {
       sportId: tennis.id,
       featured: true,
       experienceYears: 5,
-      clubId: clubBySlug['mashhad-tennis-center'],
     },
   })
   const maryam = await prisma.coach.create({
@@ -504,7 +502,6 @@ async function main() {
       languagesJson: json(['فارسی']),
       sportId: padel.id,
       experienceYears: 6,
-      clubId: clubBySlug['isfahan-padel-club'],
     },
   })
   const amir = await prisma.coach.create({
@@ -523,21 +520,10 @@ async function main() {
       languagesJson: json(['فارسی', 'English']),
       sportId: tennis.id,
       experienceYears: 4,
-      clubId: clubBySlug['shiraz-tennis-academy'],
     },
   })
 
-  await prisma.staffMembership.create({
-    data: {
-      userId: coachUser.id,
-      clubId: ownerClub.id,
-      role: 'COACH',
-      permissionsJson: json(['schedule']),
-      active: true,
-      isPrimary: true,
-      coachId: sara.id,
-    },
-  })
+  // Coaches are independent — no staff membership on the club.
 
   for (const coach of [sara, reza, maryam, amir]) {
     for (const day of [0, 1, 2, 3, 4]) {

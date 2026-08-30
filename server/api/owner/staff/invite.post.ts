@@ -2,7 +2,7 @@ import { inviteClubStaffByPhone } from '../../../utils/staffInvite'
 
 /**
  * Invite desk/manager staff by Iranian mobile so they can OTP sign in.
- * Does not require the coach product (unlike /api/owner/coaches/invite for COACH role).
+ * Does not invite coaches — coaches are independent of club staff.
  */
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'team')

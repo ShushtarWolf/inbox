@@ -9,7 +9,11 @@ export default defineEventHandler(async (event) => {
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
   })
   const upcomingSessions = await prisma.coachSession.findMany({
-    where: { coach: { clubId: club.id }, date: { gte: todayDateStr() }, status: { not: 'CANCELLED' } },
+    where: {
+      date: { gte: todayDateStr() },
+      status: { not: 'CANCELLED' },
+      courtBooking: { slot: { court: { clubId: club.id } } },
+    },
     include: { coach: true },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     take: 20,

@@ -48,10 +48,7 @@ export default defineEventHandler(async (event) => {
     const coach = await prisma.coach.findFirst({
       where: {
         id: body.coachId,
-        OR: [
-          { clubId: club.id },
-          { clubLinks: { some: { clubId: club.id, status: 'ACTIVE' } } },
-        ],
+        approvalStatus: 'APPROVED',
       },
     })
     if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })

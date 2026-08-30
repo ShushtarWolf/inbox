@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
   let coachSessionPrice = 0
   if (body.coachId) {
     const coach = await prisma.coach.findFirst({
-      where: { id: body.coachId, clubId: club.id },
+      where: { id: body.coachId, approvalStatus: 'APPROVED' },
     })
     if (coach) coachSessionPrice = coach.sessionPrice
   }
