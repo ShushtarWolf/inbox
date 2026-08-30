@@ -15,6 +15,7 @@ import {
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
+import { buildReturnTo } from '#shared/returnTo.ts'
 
 type ClubSlot = {
   id: string
@@ -436,6 +437,17 @@ const confirmSlots = computed(() =>
 
 function openConfirmSheet() {
   if (!selectedSlotIds.value.length) return
+  if (!user.value) {
+    openLogin({
+      returnTo: buildReturnTo(route.path, {
+        date: selectedDate.value,
+        court: selectedCourtIdsForReturn.value || undefined,
+        slots: selectedSlotIds.value.join(','),
+      }),
+      notice: t('booking.loginToConfirmNotice'),
+    })
+    return
+  }
   waitlistSlotId.value = null
   confirmOpen.value = true
 }
