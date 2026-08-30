@@ -286,7 +286,7 @@ export async function creditOwnerForPaidPayment(
     return { credited: false as const, reason: 'no_club' as const }
   }
 
-  // Coach already paid the discounted court fee from their wallet — club gets 100%.
+  // Coach already paid the listed court fee from their wallet — club gets 100%.
   // Skimming PLATFORM_COMMISSION_BPS would leave a phantom gap (coach −charge, club +90%).
   const metaSource = parsePaymentMetaSource(payment.metadataJson)
   const bps = metaSource === 'coach-lesson-court' ? 0 : resolvePlatformCommissionBps()

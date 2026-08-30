@@ -30,3 +30,12 @@ jobs:
             -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
         env:
           ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+
+      # Safe when PACKAGES_ENABLED is off (endpoint is admin-secret only, no packages gate).
+      - name: Expire stale PENDING package seats
+        run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/packages/expire-pending" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+        continue-on-error: true

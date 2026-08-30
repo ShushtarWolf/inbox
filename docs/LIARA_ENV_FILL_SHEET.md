@@ -151,7 +151,7 @@ PACKAGES_ENABLED=true
 NUXT_PUBLIC_PACKAGES_ENABLED=true
 ```
 
-Requires DB migration `20260829173000_class_packages_safety`. Cron (optional): `POST /api/admin/packages/expire-pending` with admin secret to clear unpaid online PENDING seats (~10 min).
+Requires DB migration `20260829173000_class_packages_safety`. Cron: `POST /api/admin/packages/expire-pending` with admin secret (also best-effort in `.github/workflows/competition-cron.yml`) clears unpaid online PENDING seats (~10 min).
 
 ---
 

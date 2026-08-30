@@ -7,7 +7,7 @@ import { syncClubContactForBooking } from '../../utils/contactSync'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour, assertSlotBookable } from '../../utils/reservations'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
-import { debitWallet } from '../../utils/wallet'
+import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
 /**
  * A coach reserves a club court for a private lesson: the student is billed the coach's
@@ -73,6 +73,13 @@ export default defineEventHandler(async (event) => {
     startTime: slot.startTime,
     pricingJson: slot.court.pricingJson,
   })
+  // Fail-fast before claiming the slot; debitWallet still re-checks atomically in the txn.
+  if (price.charge > 0) {
+    const balance = await getWalletBalance(user.id)
+    if (balance < price.charge) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+    }
+  }
   const lessonPayment = initialPlatformPaymentFields(coach.sessionPrice)
   const endTime = slot.endTime || addOneHour(slot.startTime)
 

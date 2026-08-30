@@ -567,9 +567,17 @@ export async function expireStalePendingPackageBookings(now = new Date()) {
   // Pay-at-club seats stay until desk collects or package starts — only online holds expire.
   let expired = 0
   for (const booking of stale) {
-    await prisma.packageBooking.update({
-      where: { id: booking.id },
-      data: { status: 'CANCELLED', cancelledAt: now },
+    await prisma.$transaction(async (tx) => {
+      await tx.packageBooking.update({
+        where: { id: booking.id },
+        data: { status: 'CANCELLED', cancelledAt: now, paymentStatus: 'FAILED' },
+      })
+      if (booking.payment && ['PENDING_ONLINE', 'FAILED'].includes(booking.payment.status)) {
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: 'FAILED' },
+        })
+      }
     })
     expired += 1
   }

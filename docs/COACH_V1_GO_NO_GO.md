@@ -20,11 +20,12 @@ Competitions (if enabled) stay pilot-scoped to `iust-tennis` — independent of 
 
 ## Money invariants
 
-1. Coach wallet must cover discounted court charge **before** slot claim succeeds (`debitWallet` atomic).
-2. Court payment metadata `source: coach-lesson-court` → owner settlement at **0 bps** (club gets full charge; no phantom platform skim).
-3. Athlete lesson fee PAID → coach user wallet credited **net after** `COACH_COMMISSION_BPS` / platform default **10%** (`SETTLEMENT_CREDIT`); club is not the lesson payee.
+1. Coach wallet must cover **full listed** court charge; underfunded rejects via atomic `debitWallet` (same txn as slot claim — claim rolls back on shortfall).
+2. Court payment metadata `source: coach-lesson-court` → owner settlement at **0 bps** (club gets full charge; no phantom platform skim). Covered by `server/utils/settlement.coach.test.ts`.
+3. Athlete lesson fee PAID → coach user wallet credited **net after** `COACH_COMMISSION_BPS` / platform default **10%** (`SETTLEMENT_CREDIT`); club is not the lesson payee. Same test file.
 4. Cancel either lesson or court unwinds the sibling: student lesson fee refunded once + coach settlement clawed; coach court fee credited once; slot `FREE`.
 5. Wallet top-up requires `PAYMENTS_MODE=test|live` (production is `live`).
+6. Public list / book APIs use `PUBLIC_COACH_WHERE` / `assertCoachApproved` — PENDING coaches are 404. Covered by `server/utils/coaches.test.ts`.
 
 ---
 
@@ -58,3 +59,15 @@ Migrations required: `20260824120000_coach_marketplace_approval_and_club_links`,
 ## Ops note
 
 After enable: approve real coaches deliberately; do not auto-approve PENDING marketplace signups.
+
+## Prompt 2 readiness (2026-08-30)
+
+| Area | Status |
+|------|--------|
+| Coach lesson settlement + 0 bps court | unit tests `settlement.coach.test.ts` |
+| Approval / public list gate | unit tests `coaches.test.ts` |
+| Cancel lesson↔court unwind | unit tests `cancellations.coach.test.ts` |
+| Underfunded wallet fail-fast | `lessons.post.ts` balance check + atomic debit |
+| Class packages Phase 4 pay/cancel | athlete book + checkout + cancel APIs present |
+| Package unpaid expiry | `expireStalePendingPackageBookings` + cron step + `packages.expire.test.ts` |
+| `PACKAGES_ENABLED` on Liara | **still off** — turn on only after ops go-no-go |

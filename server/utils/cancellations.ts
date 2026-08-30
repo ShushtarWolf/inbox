@@ -2,7 +2,7 @@ import { syncClubContactForBooking } from './contactSync'
 import { refundPaymentForCancellation } from './refunds'
 
 // A coach-booked lesson court and its lesson are two halves of one reservation: the student
-// pays the coach fee, the coach's wallet pays the discounted court fee. Cancelling either half
+// pays the coach fee, the coach's wallet pays the full listed court fee. Cancelling either half
 // must unwind the other, or one side keeps money for a lesson that will not happen. The two
 // cancel functions below call each other with the sibling's skip flag set, which bounds recursion.
 
@@ -122,7 +122,7 @@ export async function cancelCoachSession(options: {
   return { ok: true, refund }
 }
 
-/** Free the court the coach reserved and put the discounted court fee back in their wallet. */
+/** Free the court the coach reserved and put the listed court fee back in their wallet. */
 async function releaseCourtForCancelledLesson(sessionId: string, actorUserId: string | undefined, reason: string) {
   const session = await prisma.coachSession.findUnique({
     where: { id: sessionId },
