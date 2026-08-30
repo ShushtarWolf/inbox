@@ -1,7 +1,23 @@
 import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
+import { preferAloPlayOverAlovarzesh } from '../preferAloPlay'
+import { findCourtMapping } from '../courtMatch'
 import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
 import { fetchCourticOccupancy } from './courtic'
+
+function aloPlayMappedCourtIds(
+  mapping: ClubMapping,
+  courts: Array<{ id: string; nameFa: string; nameEn?: string | null }>,
+): Set<string> {
+  const ids = new Set<string>()
+  for (const court of courts) {
+    const mappingCourt = findCourtMapping(mapping, court)
+    const aloplay = mappingCourt?.external?.aloplay
+    const productId = aloplay?.productId ?? aloplay?.courtId
+    if (productId != null) ids.add(court.id)
+  }
+  return ids
+}
 
 function aloplaySupported(mapping: ClubMapping): boolean {
   return mapping.sources?.aloplay?.clubId != null
@@ -52,7 +68,12 @@ export async function fetchExternalOccupancy(opts: {
     sessionDurationMinutes: opts.sessionDurationMinutes,
   })
   adapters.push(alovarzesh)
-  occupied.push(...alovarzesh.occupied)
+  const alovarzeshOccupied = preferAloPlayOverAlovarzesh(
+    aloplay,
+    alovarzesh.occupied,
+    aloPlayMappedCourtIds(opts.mapping, opts.courts),
+  )
+  occupied.push(...alovarzeshOccupied)
 
   const courtic = await fetchCourticOccupancy()
   adapters.push(courtic)
