@@ -1,4 +1,4 @@
-import { assertPackagesEnabled } from '../../../../../../utils/packagesGate'
+import { assertPackagesEnabled } from '../../../../../utils/packagesGate'
 
 export default defineEventHandler(async (event) => {
   assertPackagesEnabled(event)

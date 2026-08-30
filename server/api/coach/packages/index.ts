@@ -1,7 +1,7 @@
-import { assertPackagesEnabled, packagesEnabledForEvent } from '../../utils/packagesGate'
-import { requireApprovedCoach, requireActiveCoachClubLink } from '../../utils/coachClubLinks'
-import { assertDateNotInPast } from '../../utils/reservations'
-import { publishPackageDraft } from '../../utils/packages'
+import { assertPackagesEnabled, packagesEnabledForEvent } from '../../../utils/packagesGate'
+import { requireApprovedCoach, requireActiveCoachClubLink } from '../../../utils/coachClubLinks'
+import { assertDateNotInPast } from '../../../utils/reservations'
+import { publishPackageDraft } from '../../../utils/packages'
 
 export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
