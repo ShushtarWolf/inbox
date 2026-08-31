@@ -9,7 +9,11 @@ export type NavItem = {
 
 /** True when this nav item should show as active for the current path. */
 export function isNavItemActive(path: string, to: string, items: NavItem[]): boolean {
-  const hasChildNav = items.some((item) => item.to !== to && item.to.startsWith(`${to}/`))
-  if (hasChildNav) return path === to
-  return path === to || path.startsWith(`${to}/`)
+  const toPath = to.split('?')[0] ?? to
+  const hasChildNav = items.some((item) => {
+    const itemPath = item.to.split('?')[0] ?? item.to
+    return itemPath !== toPath && itemPath.startsWith(`${toPath}/`)
+  })
+  if (hasChildNav) return path === toPath
+  return path === toPath || path.startsWith(`${toPath}/`)
 }

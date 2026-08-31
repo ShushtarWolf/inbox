@@ -77,6 +77,28 @@ describe('mergeOccupancy', () => {
     expect(merged[0]?.badge).toBe('الوپلی')
   })
 
+  it('coalesces inbox HH:mm:ss with external HH:mm on the same cell', () => {
+    const merged = mergeOccupancy(
+      [{
+        courtId: 'c1',
+        startTime: '08:00:00',
+        endTime: '09:00:00',
+        displayStatus: 'FREE',
+      }],
+      [{
+        courtKey: 'c1',
+        startTime: '08:00',
+        endTime: '09:00',
+        source: 'aloplay',
+      }],
+    )
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0]?.sources).toEqual(['aloplay'])
+    expect(merged[0]?.occupied).toBe(true)
+    expect(merged[0]?.startTime).toBe('08:00')
+  })
+
   it('merges AloPlay + AloVarzesh conflict on same court+startTime', () => {
     const merged = mergeOccupancy(
       [{
