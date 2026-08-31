@@ -32,15 +32,37 @@ type CoachBookingDetail = {
   club?: CoachBookingClub | null
 }
 
+type CoachAvailabilitySlot = {
+  startTime: string
+  endTime?: string
+  available?: boolean
+}
+
 type CoachAvailability = {
   sessionPrice?: number
-  slots?: Array<{ startTime: string; endTime?: string; available?: boolean }>
+  slots?: CoachAvailabilitySlot[]
 }
 
 const { data: coach } = await useFetch<CoachBookingDetail>(`/api/coaches/${id}`)
 const { data: availability, pending, error } = await useFetch<CoachAvailability>(`/api/coaches/${id}/availability`, {
   query: computed(() => ({ date: date.value })),
 })
+
+const availableSlots = computed(() => availability.value?.slots || [])
+
+function selectSlot(slot: CoachAvailabilitySlot) {
+  startTime.value = slot.startTime
+  if (feedbackTone.value === 'error') {
+    feedback.value = ''
+  }
+}
+
+function slotAriaLabel(slot: CoachAvailabilitySlot) {
+  const time = formatTimeRange(slot.startTime, slot.endTime)
+  return startTime.value === slot.startTime
+    ? t('clubs.slotAriaSelected', { time })
+    : t('clubs.slotAriaFree', { time })
+}
 
 function syncBookingQuery() {
   router.replace({
@@ -159,9 +181,30 @@ onMounted(() => {
     </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <select v-if="!done" v-model="startTime" dir="ltr" class="neo-input tabular-nums">
-        <option v-for="slot in availability?.slots || []" :key="slot.startTime" :value="slot.startTime">{{ formatTimeRange(slot.startTime, slot.endTime) }}</option>
-      </select>
+      <div v-if="!done" class="canva-club-book-slots">
+        <p class="canva-club-book-slots-label">{{ t('booking.selectSlotLabel') }}</p>
+        <div
+          v-if="availableSlots.length"
+          class="canva-club-slot-grid"
+          role="listbox"
+          :aria-label="t('booking.selectSlotLabel')"
+        >
+          <button
+            v-for="slot in availableSlots"
+            :key="slot.startTime"
+            type="button"
+            role="option"
+            class="canva-club-slot"
+            :class="{ 'canva-club-slot-active': startTime === slot.startTime }"
+            :aria-label="slotAriaLabel(slot)"
+            :aria-selected="startTime === slot.startTime"
+            @click="selectSlot(slot)"
+          >
+            <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+          </button>
+        </div>
+        <p v-else class="text-sm text-brand-gray-600">{{ t('booking.noSlots') }}</p>
+      </div>
 
       <div v-if="!done && (availability?.sessionPrice || coach?.sessionPrice)" class="ios-card p-4 text-sm">
         <div class="flex items-center justify-between gap-3">
@@ -187,7 +230,7 @@ onMounted(() => {
         class="venus-sticky-action space-y-2"
       >
         <button
-          v-if="availability?.slots?.length"
+          v-if="availableSlots.length"
           type="button"
           class="btn-primary w-full"
           :disabled="!onlineEnabled"
