@@ -34,6 +34,18 @@ export function usePlatformRoles() {
 
   const heldRoles = computed(() => (rolesUser.value ? userRoles(rolesUser.value) : []))
 
+  /** Last chosen panel if still held; otherwise session primary / first held role. */
+  const activeRole = computed((): PlatformRole | null => {
+    if (!heldRoles.value.length) return null
+    const last = lastRole.value
+    if (isPlatformRole(last) && heldRoles.value.includes(last)) return last
+    const primary = rolesUser.value?.role
+    if (isPlatformRole(primary) && heldRoles.value.includes(primary)) return primary
+    return heldRoles.value[0] ?? null
+  })
+
+  const canSwitchRole = computed(() => heldRoles.value.length >= 2)
+
   const coachStatus = computed(() => user.value?.coachApprovalStatus || null)
 
   const ownerClubStatus = computed(() => {
@@ -93,6 +105,8 @@ export function usePlatformRoles() {
     fetch,
     rolesUser,
     heldRoles,
+    activeRole,
+    canSwitchRole,
     coachStatus,
     ownerClubStatus,
     roleCardState,

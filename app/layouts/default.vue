@@ -7,6 +7,13 @@ const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profil
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
+const { activeRole, canSwitchRole } = usePlatformRoles()
+
+const activeRoleLabel = computed(() => {
+  const role = activeRole.value
+  if (!role) return ''
+  return t(`admin.roles.${role}`)
+})
 
 async function handleLogout() {
   await logout()
@@ -65,6 +72,19 @@ onMounted(() => {
             </button>
           </template>
           <template v-else>
+            <span
+              v-if="activeRoleLabel"
+              class="hidden text-xs font-semibold text-brand-navy sm:inline"
+            >
+              {{ activeRoleLabel }}
+            </span>
+            <NuxtLink
+              v-if="canSwitchRole"
+              :to="localePath('/choose-role')"
+              class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+            >
+              {{ t('auth.changeRole') }}
+            </NuxtLink>
             <AppUserShortcut
               :to="profilePath"
               :name="displayName"

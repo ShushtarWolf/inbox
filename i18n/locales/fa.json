@@ -71,6 +71,7 @@
     "coachSessionsLabel": "جلسات خصوصی",
     "eyebrow": "صفحه اصلی اپ",
     "welcome": "سلام، {name}",
+    "welcomeWithRole": "سلام، {name} · {role}",
     "guestName": "دوست ورزشکار",
     "heroBody": "رزرو زمین پدل و تنیس، پیدا کردن باشگاه، و پیگیری رزرو — ساده و سریع.",
     "bookCourtHint": "باشگاه‌ها و سانس‌های آزاد برای ورزش انتخابی",

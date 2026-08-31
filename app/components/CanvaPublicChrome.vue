@@ -15,9 +15,22 @@ const localePath = useLocalePath()
 const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
-const { heldRoles, lastRole, pathForRole } = usePlatformRoles()
+const { heldRoles, lastRole, pathForRole, activeRole, canSwitchRole } = usePlatformRoles()
 
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
+
+const activeRoleLabel = computed(() => {
+  const role = activeRole.value
+  if (!role) return ''
+  return t(`admin.roles.${role}`)
+})
+
+const welcomeLabel = computed(() => {
+  if (activeRoleLabel.value) {
+    return t('home.welcomeWithRole', { name: firstNameOrGuest.value, role: activeRoleLabel.value })
+  }
+  return t('home.welcome', { name: firstNameOrGuest.value })
+})
 
 /** Multi-role: last chosen panel, else role picker — never force primary-only swap. */
 const signedInHome = computed(() => {
@@ -76,12 +89,20 @@ onMounted(() => {
     >
       {{ t('auth.loginRegister') }}
     </button>
-    <NuxtLink
-      v-else
-      :to="signedInHome"
-      class="canva-home-login canva-home-login-soft shrink-0"
-    >
-      {{ t('home.welcome', { name: firstNameOrGuest }) }}
-    </NuxtLink>
+    <div v-else class="flex max-w-[58%] shrink-0 flex-col items-stretch gap-1">
+      <NuxtLink
+        :to="signedInHome"
+        class="canva-home-login canva-home-login-soft max-w-full truncate text-center"
+      >
+        {{ welcomeLabel }}
+      </NuxtLink>
+      <NuxtLink
+        v-if="canSwitchRole"
+        :to="localePath('/choose-role')"
+        class="text-center text-[11px] font-semibold text-brand-primary"
+      >
+        {{ t('auth.changeRole') }}
+      </NuxtLink>
+    </div>
   </header>
 </template>
