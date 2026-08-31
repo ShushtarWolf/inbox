@@ -20,6 +20,26 @@ const dialogRef = ref<HTMLElement | null>(null)
 const previousFocus = ref<HTMLElement | null>(null)
 /** True while this instance holds a slot in the shared body-scroll lock. */
 const holdsBodyLock = ref(false)
+/**
+ * Backdrop dismiss is armed only after the opening gesture finishes.
+ * Without this, the same click that opens the sheet (تایید و ادامه / login)
+ * can hit the freshly mounted overlay and close it immediately — looks like a
+ * dead button (common on Windows Chrome).
+ */
+const dismissArmed = ref(false)
+let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearDismissArmTimer() {
+  if (dismissArmTimer != null) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
+}
+
+function onOverlayClick() {
+  if (!dismissArmed.value) return
+  close()
+}
 
 /**
  * Visual viewport → CSS vars only (keyboard-aware max-height for sheet bodies).
@@ -105,6 +125,8 @@ function releaseLock() {
 
 watch(() => props.open, (isOpen) => {
   if (!import.meta.client) return
+  clearDismissArmTimer()
+  dismissArmed.value = false
   if (isOpen) {
     acquireLock()
     previousFocus.value = document.activeElement as HTMLElement | null
@@ -112,6 +134,11 @@ watch(() => props.open, (isOpen) => {
     window.visualViewport?.addEventListener('resize', syncVisualViewport)
     window.visualViewport?.addEventListener('scroll', syncVisualViewport)
     window.addEventListener('resize', syncVisualViewport)
+    // Longer than venus-modal enter (200ms) so the opening click cannot dismiss.
+    dismissArmTimer = setTimeout(() => {
+      dismissArmed.value = true
+      dismissArmTimer = null
+    }, 320)
     nextTick(() => {
       dialogRef.value?.focus()
       document.addEventListener('keydown', onDialogKeydown)
@@ -139,6 +166,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (import.meta.client) {
+    clearDismissArmTimer()
     document.removeEventListener('keydown', onKeydown)
     document.removeEventListener('keydown', onDialogKeydown)
     window.visualViewport?.removeEventListener('resize', syncVisualViewport)
@@ -163,7 +191,7 @@ onUnmounted(() => {
         :class="overlayClass || 'z-[55]'"
         role="presentation"
         data-app-modal-overlay
-        @click="close"
+        @click="onOverlayClick"
       >
         <!-- Dedicated backdrop: always inset-0. Do not size via visualViewport (Safari hit-test bug). -->
         <div

@@ -1830,7 +1830,9 @@
     @apply w-[46%] shrink-0;
   }
   .canva-club-more-map-frame {
-    @apply h-36 w-full border-0;
+    /* Decorative embed — «باز کردن نقشه» is the real control. pointer-events-none
+       stops OSM iframe from stealing sticky CTA taps on Windows Chrome. */
+    @apply pointer-events-none h-36 w-full border-0;
     border-radius: var(--sz-canva-radius);
   }
   .canva-club-more-map-empty {

@@ -475,7 +475,11 @@ function openConfirmSheet() {
   }
   resumeConfirmAfterAuth.value = false
   waitlistSlotId.value = null
-  confirmOpen.value = true
+  // Defer so the opening click cannot land on the new AppModal overlay and
+  // instantly dismiss the confirm sheet (dead «تایید و ادامه» on Windows Chrome).
+  nextTick(() => {
+    confirmOpen.value = true
+  })
 }
 
 function onConfirmSuccess() {

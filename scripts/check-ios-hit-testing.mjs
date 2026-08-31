@@ -42,6 +42,7 @@ const requiredPointerNone = [
   '.canva-venue-card img',
   '.canva-competition-card img',
   '.canva-court-card img',
+  '.canva-club-more-map-frame',
 ]
 for (const selector of requiredPointerNone) {
   const idx = css.indexOf(selector)
@@ -105,8 +106,13 @@ if (!appModal.includes('acquireModalBodyLock') || !appModal.includes('releaseMod
 }
 // Overlay root must dismiss on click — the flex-1 centering shell sits above the
 // backdrop and used to swallow taps (club slots dead after تایید و ادامه).
-if (!appModal.includes('data-app-modal-overlay') || !/@click="close"/.test(appModal)) {
-  errors.push('AppModal overlay root must @click="close" (backdrop under flex shell is not hittable)')
+// Dismiss must be gated (onOverlayClick / dismissArmed) so the opening click
+// cannot instantly close the sheet.
+if (!appModal.includes('data-app-modal-overlay') || !appModal.includes('onOverlayClick')) {
+  errors.push('AppModal overlay root must @click="onOverlayClick" (backdrop under flex shell is not hittable)')
+}
+if (!appModal.includes('dismissArmed')) {
+  errors.push('AppModal must gate backdrop dismiss with dismissArmed (open-click race)')
 }
 if (!appModal.includes('@click.stop')) {
   errors.push('AppModal dialog must @click.stop so content taps do not dismiss')
