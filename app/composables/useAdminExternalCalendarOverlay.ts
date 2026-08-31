@@ -26,8 +26,8 @@ function occupancyKey(courtId: string, startTime: string) {
 }
 
 /**
- * Optional overlay for admin mother calendar — no-ops when external calendar module is absent.
- * Shows AloPlay / AloVarzesh site names on FREE inbox cells occupied externally.
+ * Optional overlay for admin calendar — no-ops when external calendar module is absent.
+ * Badge formatting matches useCoachExternalCalendarOverlay.
  */
 export function useAdminExternalCalendarOverlay(opts: {
   clubSlug: MaybeRefOrGetter<string>
@@ -104,29 +104,19 @@ export function useAdminExternalCalendarOverlay(opts: {
     return cell.sources.some((source) => source !== 'inbox')
   }
 
-  function externalSiteLabels(slot: {
-    courtId: string
-    startTime: string
-    displayStatus?: string
-  } | null | undefined): string[] {
-    if (!isExternalOnlyOccupied(slot)) return []
-    const cell = externalCellFor(slot)
-    if (!cell) return []
-    const labels = (cell.sourceDetails || [])
-      .filter((detail) => detail.source !== 'inbox')
-      .map((detail) => detail.siteLabel)
-      .filter(Boolean)
-    if (labels.length) return labels
-    if (!cell.badge) return []
-    return cell.badge.split(' + ').filter((label) => label && label !== 'اینباکس')
-  }
-
   function externalSiteBadge(slot: {
     courtId: string
     startTime: string
     displayStatus?: string
   } | null | undefined): string {
-    return externalSiteLabels(slot).join(' + ')
+    if (!isExternalOnlyOccupied(slot)) return ''
+    const cell = externalCellFor(slot)
+    if (!cell) return ''
+    const labels = (cell.sourceDetails || [])
+      .filter((detail) => detail.source !== 'inbox')
+      .map((detail) => detail.siteLabel)
+    if (labels.length) return labels.join(' + ')
+    return cell.badge || ''
   }
 
   let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -156,7 +146,6 @@ export function useAdminExternalCalendarOverlay(opts: {
     externalOverlayPending: pending,
     externalOverlayError: error,
     isExternalOnlyOccupied,
-    externalSiteLabels,
     externalSiteBadge,
     refreshExternalOverlay: refreshIfEnabled,
   }
