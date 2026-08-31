@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseAloVarzeshOccupiedTimes } from './alovarzeshParse'
 import { mergeLiveWithStoredOccupancy } from './occupancySnapshots'
-import { formatSourceBadge } from '../runtime/server/lib/badges'
+import { formatSourceBadge, formatExternalSourceLabels, formatSourceLabelList } from '../runtime/server/lib/badges'
 import { isInboxOccupied, mergeOccupancy } from '../runtime/server/lib/merge'
 import { computeSuspectedSlots } from '../runtime/server/lib/suspected'
 import { sourceDetailsForCell } from '../runtime/server/lib/sourceDetails'
@@ -21,6 +21,20 @@ describe('formatSourceBadge', () => {
     expect(formatSourceBadge(['aloplay', 'inbox'])).toBe('اینباکس + الوپلی')
     expect(formatSourceBadge(['courtic', 'alovarzesh', 'inbox'])).toBe('اینباکس + الوورزش + کورتیک')
     expect(formatSourceBadge(['aloplay', 'alovarzesh'])).toBe('الوپلی + الوورزش')
+  })
+})
+
+describe('formatSourceLabelList', () => {
+  it('returns ordered labels without join separator', () => {
+    expect(formatSourceLabelList(['aloplay', 'alovarzesh'])).toEqual(['الوپلی', 'الوورزش'])
+    expect(formatSourceLabelList(['courtic', 'alovarzesh', 'inbox'])).toEqual(['اینباکس', 'الوورزش', 'کورتیک'])
+  })
+})
+
+describe('formatExternalSourceLabels', () => {
+  it('excludes inbox for stacked external-only badges', () => {
+    expect(formatExternalSourceLabels(['aloplay', 'inbox'])).toEqual(['الوپلی'])
+    expect(formatExternalSourceLabels(['aloplay', 'alovarzesh'])).toEqual(['الوپلی', 'الوورزش'])
   })
 })
 

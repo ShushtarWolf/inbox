@@ -63,29 +63,34 @@ const initialClubSlug = typeof route.query.clubSlug === 'string' ? route.query.c
 const clubSlug = ref(initialClubSlug)
 const date = ref(today())
 const data = ref<AdminCalendarResponse | null>(null)
-const pending = ref(false)
+const calendarPending = ref(false)
 const loadError = ref('')
 
 const {
   externalOverlayEnabled,
+  externalOverlayPending,
+  externalOverlayError,
   isExternalOnlyOccupied,
+  externalSiteLabels,
   externalSiteBadge,
   refreshExternalOverlay,
 } = useAdminExternalCalendarOverlay({
   clubSlug,
   date,
+  secret,
   adminFetch,
 })
 
 async function loadCalendar() {
   if (!secret.value || !clubSlug.value.trim()) return
-  pending.value = true
+  calendarPending.value = true
   loadError.value = ''
   try {
     data.value = await adminFetch<AdminCalendarResponse>(
       `/api/admin/calendar?clubSlug=${encodeURIComponent(clubSlug.value.trim())}&date=${encodeURIComponent(date.value)}`,
     )
-    await refreshExternalOverlay()
+    // Overlay loads independently — never block the Inbox grid on AloPlay/AloVarzesh.
+    void refreshExternalOverlay()
   } catch (err: unknown) {
     data.value = null
     const status = (err as { statusCode?: number })?.statusCode
@@ -96,7 +101,7 @@ async function loadCalendar() {
       loadError.value = t('common.error')
     }
   } finally {
-    pending.value = false
+    calendarPending.value = false
   }
 }
 
@@ -118,7 +123,7 @@ const courts = computed(() => data.value?.courts || [])
 
 const gridTemplateColumns = computed(() => {
   const courtCount = Math.max(courts.value.length, 1)
-  return `var(--canva-cal-gutter, 2.75rem) repeat(${courtCount}, minmax(var(--canva-cal-court-min, 5.5rem), 1fr))`
+  return `var(--canva-cal-gutter, 2.75rem) repeat(${courtCount}, minmax(var(--canva-cal-court-min, 6.75rem), 1fr))`
 })
 
 function shiftDate(delta: number) {
@@ -187,6 +192,14 @@ function slotGuestLine(slot: AdminCalendarSlot | null | undefined) {
   const fullName = formatGuestDisplayName(booking?.guestName, booking?.guestFamily)
   return fullName || statusLabel(slot.displayStatus)
 }
+
+function externalLabelsFor(courtId: string, hour: string) {
+  return externalSiteLabels(cellSlot(courtId, hour))
+}
+
+const showCalendarGrid = computed(() =>
+  Boolean(data.value && courts.value.length && hours.value.length),
+)
 
 function slotNoteLine(slot: AdminCalendarSlot | null | undefined) {
   if (!slot) return ''
@@ -317,8 +330,8 @@ const calendarSourcesHref = computed(() =>
         <span>clubSlug</span>
         <input id="admin-calendar-club-slug" v-model="clubSlug" dir="ltr" class="neo-input mt-1 block min-w-[12rem]">
       </label>
-      <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="loadCalendar">
-        {{ pending ? t('common.loading') : 'بارگذاری' }}
+      <button type="button" class="canva-gate-btn-secondary" :disabled="calendarPending" @click="loadCalendar">
+        {{ calendarPending ? t('common.loading') : 'بارگذاری' }}
       </button>
       <NuxtLink :to="calendarSourcesHref" class="text-xs font-bold text-brand-primary underline">
         {{ t('admin.calendarSourcesLink') }}
@@ -327,7 +340,7 @@ const calendarSourcesHref = computed(() =>
 
     <p v-if="loadError" class="text-sm text-red-700">{{ loadError }}</p>
 
-    <section v-else class="space-y-3">
+    <section v-else class="min-w-0 space-y-3">
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
           <span
@@ -342,7 +355,27 @@ const calendarSourcesHref = computed(() =>
         </span>
       </div>
 
-      <div class="canva-cal-grid-shell">
+      <div class="canva-cal-grid-shell admin-cal-shell">
+        <div
+          v-if="externalOverlayEnabled && (externalOverlayPending || externalOverlayError)"
+          class="admin-cal-overlay-banner"
+          :class="externalOverlayError ? 'admin-cal-overlay-banner-error' : 'admin-cal-overlay-banner-loading'"
+          role="status"
+        >
+          <p class="admin-cal-overlay-banner-text">
+            {{ externalOverlayError || t('admin.calendarOverlayLoading') }}
+          </p>
+          <button
+            v-if="externalOverlayError"
+            type="button"
+            class="admin-cal-overlay-retry"
+            :disabled="externalOverlayPending"
+            @click="refreshExternalOverlay()"
+          >
+            {{ t('admin.calendarOverlayRetry') }}
+          </button>
+        </div>
+
         <div class="canva-cal-date-nav">
           <div class="canva-cal-date-nav-center">
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
@@ -356,22 +389,22 @@ const calendarSourcesHref = computed(() =>
         </div>
 
         <div class="canva-cal-body">
-          <p v-if="pending && !data" class="px-4 py-8 text-center text-sm text-brand-navy/70">
+          <p v-if="calendarPending && !showCalendarGrid" class="px-4 py-8 text-center text-sm text-brand-navy/70">
             {{ t('common.loading') }}
           </p>
-          <div v-else-if="!courts.length">
+          <div v-else-if="data && !courts.length">
             <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
           </div>
-          <div v-else-if="!hours.length">
+          <div v-else-if="data && !hours.length">
             <CanvaEmptyState :title="t('owner.emptySlotsTitle')" :body="t('owner.emptySlotsBody')" doodle="seat" />
           </div>
-          <div v-else class="canva-cal-grid-scroll">
-            <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
+          <div v-else-if="showCalendarGrid" class="canva-cal-grid-scroll admin-cal-grid-scroll">
+            <div class="canva-cal-grid admin-cal-grid" :style="{ gridTemplateColumns }">
               <div class="canva-cal-grid-corner" />
               <div
                 v-for="(court, idx) in courts"
                 :key="court.id"
-                class="canva-cal-grid-court"
+                class="canva-cal-grid-court admin-cal-grid-court"
                 :title="courtColumnLabel(court, idx)"
               >
                 {{ courtColumnLabel(court, idx) }}
@@ -384,7 +417,10 @@ const calendarSourcesHref = computed(() =>
                   v-for="court in courts"
                   :key="`${court.id}-${hour}`"
                   class="canva-cal-grid-cell"
-                  :class="gridCellClasses(court.id, hour)"
+                  :class="[
+                    ...gridCellClasses(court.id, hour),
+                    isExternalOnlyOccupied(cellSlot(court.id, hour)) ? 'admin-cal-cell-external' : '',
+                  ]"
                   :title="slotCellTitle(cellSlot(court.id, hour))"
                 >
                   <span
@@ -393,7 +429,17 @@ const calendarSourcesHref = computed(() =>
                     :class="gridCellBarClass(cellSlot(court.id, hour))"
                   />
                   <span class="canva-cal-grid-cell-body">
-                    <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
+                    <span
+                      v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))"
+                      class="canva-cal-grid-cell-label"
+                    >{{ t('owner.slotPast') }}</span>
+                    <template v-else-if="externalLabelsFor(court.id, hour).length">
+                      <span
+                        v-for="label in externalLabelsFor(court.id, hour)"
+                        :key="label"
+                        class="canva-cal-grid-cell-label admin-cal-ext-label"
+                      >{{ label }}</span>
+                    </template>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
                       v-if="slotPaymentBadge(cellSlot(court.id, hour))"
@@ -413,6 +459,103 @@ const calendarSourcesHref = computed(() =>
 </template>
 
 <style scoped>
+.admin-cal-shell {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-cal-grid-scroll {
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.admin-cal-grid {
+  --canva-cal-court-min: 6.75rem;
+  min-width: max(100%, calc(var(--canva-cal-gutter, 2.75rem) + 3 * var(--canva-cal-court-min, 6.75rem)));
+  width: max-content;
+}
+
+.admin-cal-grid-court {
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.2;
+  hyphens: auto;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.35rem;
+  font-size: 0.625rem;
+}
+
+.admin-cal-overlay-banner {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-cal-overlay-banner-loading {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+
+.admin-cal-overlay-banner-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.admin-cal-overlay-banner-text {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.admin-cal-overlay-retry {
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+}
+
+.admin-cal-overlay-retry:disabled {
+  opacity: 0.55;
+}
+
+:deep(.admin-cal-grid .canva-cal-grid-cell) {
+  min-height: 4rem;
+}
+
+:deep(.canva-cal-grid-cell.admin-cal-cell-external) {
+  background: #cbd5e1;
+}
+
+:deep(.canva-cal-grid-cell.admin-cal-cell-external .canva-cal-grid-cell-label) {
+  color: #1e293b;
+}
+
+:deep(.admin-cal-ext-label) {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  font-size: 0.625rem;
+  line-height: 1.15;
+}
+
 :deep(.canva-cal-grid-cell.slot-free) {
   background: var(--canva-cal-free-bg, #f8fafc);
 }
