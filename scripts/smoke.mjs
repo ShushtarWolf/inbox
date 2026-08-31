@@ -6,6 +6,28 @@ const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const cookieJar = new Map()
 const oneDayMs = 24 * 60 * 60 * 1000
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const payAtClub = (process.env.PAYMENTS_MODE || process.env.NUXT_PUBLIC_PAYMENTS_MODE || 'pay_at_club') === 'pay_at_club'
+
+function sessionHeaders(session) {
+  const headers = new Headers()
+  if (session && cookieJar.has(session)) {
+    headers.set('cookie', cookieJar.get(session))
+  }
+  return headers
+}
+
+async function expectStatus(path, status, opts = {}) {
+  const headers = new Headers(opts.headers || {})
+  if (opts.session) {
+    const sessionCookie = cookieJar.get(opts.session)
+    if (sessionCookie) headers.set('cookie', sessionCookie)
+  }
+  const res = await fetch(`${base}${path}`, { ...opts, headers })
+  if (res.status !== status) {
+    throw new Error(`${path} → expected ${status}, got ${res.status}`)
+  }
+  return res.json().catch(() => ({}))
+}
 
 function dateOffset(days) {
   return new Date(Date.now() + days * oneDayMs).toISOString().slice(0, 10)
@@ -87,51 +109,75 @@ async function main() {
 
   const slots = await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
   if (slots.length >= 2) {
-    const createdBooking = await check('/api/bookings/court', {
-      method: 'POST',
-      session: 'athlete',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slotId: slots[0].id }),
-    })
-    await check(`/api/bookings/${createdBooking.id}/reschedule`, {
-      method: 'PATCH',
-      session: 'athlete',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slotId: slots[1].id }),
-    })
-    await check(`/api/bookings/${createdBooking.id}/cancel`, {
-      method: 'PATCH',
-      session: 'athlete',
-    })
+    if (payAtClub) {
+      await expectStatus('/api/bookings/court', 503, {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slotId: slots[0].id }),
+      })
+      console.log('ok  athlete court book blocked (pay_at_club)')
+    } else {
+      const createdBooking = await check('/api/bookings/court', {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slotId: slots[0].id }),
+      })
+      await check(`/api/bookings/${createdBooking.id}/reschedule`, {
+        method: 'PATCH',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slotId: slots[1].id }),
+      })
+      await check(`/api/bookings/${createdBooking.id}/cancel`, {
+        method: 'PATCH',
+        session: 'athlete',
+      })
+    }
   }
 
   if (!pilotNoCoach && availability.slots.length >= 2) {
-    const createdCoachSession = await check('/api/bookings/coach', {
-      method: 'POST',
-      session: 'athlete',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        coachId: coaches[0].id,
-        date: coachDate,
-        startTime: availability.slots[0].startTime,
-      }),
-    })
-    await check(`/api/coach-sessions/${createdCoachSession.id}/reschedule`, {
-      method: 'PATCH',
-      session: 'athlete',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        date: coachDate,
-        startTime: availability.slots[1].startTime,
-      }),
-    })
-    await check('/api/payments/checkout', {
-      method: 'POST',
-      session: 'athlete',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ coachSessionId: createdCoachSession.id }),
-    })
-    console.log('ok  coach session checkout')
+    if (payAtClub) {
+      await expectStatus('/api/bookings/coach', 503, {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          coachId: coaches[0].id,
+          date: coachDate,
+          startTime: availability.slots[0].startTime,
+        }),
+      })
+      console.log('ok  athlete coach book blocked (pay_at_club)')
+    } else {
+      const createdCoachSession = await check('/api/bookings/coach', {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          coachId: coaches[0].id,
+          date: coachDate,
+          startTime: availability.slots[0].startTime,
+        }),
+      })
+      await check(`/api/coach-sessions/${createdCoachSession.id}/reschedule`, {
+        method: 'PATCH',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          date: coachDate,
+          startTime: availability.slots[1].startTime,
+        }),
+      })
+      await check('/api/payments/checkout', {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ coachSessionId: createdCoachSession.id }),
+      })
+      console.log('ok  coach session checkout')
+    }
   }
 
   await check('/api/owner/contacts?segment=vip', { session: 'owner' })
@@ -282,7 +328,7 @@ async function main() {
   })
   await check('/api/notifications', { session: 'athlete' })
 
-  if (slots.length >= 1) {
+  if (slots.length >= 1 && !payAtClub) {
     const booking = await check('/api/bookings/court', {
       method: 'POST',
       session: 'athlete',
