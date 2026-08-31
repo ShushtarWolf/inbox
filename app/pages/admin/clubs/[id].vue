@@ -114,12 +114,20 @@ function walletTxLabel(type: string) {
             <h1 class="tail-page-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</h1>
             <p class="mt-1 text-sm text-brand-gray-600" dir="ltr">{{ club.slug }}</p>
             <p class="mt-1 text-sm text-brand-gray-600">{{ club.city }}{{ club.district ? ` · ${club.district}` : '' }}</p>
-            <NuxtLink
-              :to="localePath({ path: '/admin/calendar-sources', query: { clubSlug: club.slug } })"
-              class="mt-2 inline-block text-xs font-bold text-brand-primary underline"
-            >
-              {{ t('admin.calendarSourcesLink') }}
-            </NuxtLink>
+            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <NuxtLink
+                :to="localePath({ path: '/admin/calendar', query: { clubSlug: club.slug } })"
+                class="text-xs font-bold text-brand-primary underline"
+              >
+                {{ t('admin.calendarLink') }}
+              </NuxtLink>
+              <NuxtLink
+                :to="localePath({ path: '/admin/calendar-sources', query: { clubSlug: club.slug } })"
+                class="text-xs font-bold text-brand-primary underline"
+              >
+                {{ t('admin.calendarSourcesLink') }}
+              </NuxtLink>
+            </div>
           </div>
           <span
             class="px-3 py-1 text-xs font-bold"
