@@ -85,6 +85,11 @@ describe('buildCoachCalendarSourcesForClub', () => {
 describe('buildCalendarSourcesResponse coach occupancy', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal('prisma', {
+      ownerExternalNote: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    })
     vi.mocked(hasExternalMapping).mockReturnValue(true)
     vi.mocked(getClubMapping).mockReturnValue({
       inboxSlug: 'iust-tennis',
