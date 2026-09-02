@@ -2470,7 +2470,7 @@ const legend = [
       </div>
     </AppModal>
 
-    <AppModal :open="showMenu" patterned sheet :title="slotModalTitle" max-width-class="canva-phone-shell" @close="closeMenu">
+    <AppModal :open="showMenu" patterned sheet :title="slotModalTitle" max-width-class="canva-owner-slot-modal" @close="closeMenu">
       <div class="venus-modal-shell min-h-0 flex-1">
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-body !pt-1">
@@ -2675,60 +2675,62 @@ const legend = [
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
-            <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
-              <div class="relative">
-                <input
-                  id="owner-reserve-guest-full"
-                  v-model="guestFullName"
-                  class="neo-input"
-                  autocomplete="off"
-                  required
-                  :aria-required="true"
-                  :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
-                  aria-autocomplete="list"
-                  aria-controls="owner-reserve-guest-suggestions-name"
-                  :placeholder="t('owner.guestSearchHint')"
-                  @input="onGuestFullNameInput"
-                  @focus="onGuestFullNameInput"
-                  @blur="closeGuestSearchSoon"
-                >
-                <OwnerGuestSearchDropdown
-                  list-id="owner-reserve-guest-suggestions-name"
-                  :open="guestSearchOpen && guestSearchSource === 'name'"
-                  :pending="guestSearchPending"
-                  :suggestions="guestSuggestions"
-                  @select="selectGuestSuggestion"
-                />
-              </div>
-            </AppFormField>
-            <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
-              <div class="relative">
-                <input
-                  id="owner-reserve-guest-mobile"
-                  v-model="form.guestMobile"
-                  dir="ltr"
-                  class="neo-input tabular-nums"
-                  autocomplete="tel"
-                  inputmode="tel"
-                  required
-                  :aria-required="true"
-                  :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
-                  aria-autocomplete="list"
-                  aria-controls="owner-reserve-guest-suggestions-mobile"
-                  :placeholder="t('owner.guestSearchHint')"
-                  @input="onGuestMobileInput"
-                  @focus="onGuestMobileInput"
-                  @blur="closeGuestSearchSoon"
-                >
-                <OwnerGuestSearchDropdown
-                  list-id="owner-reserve-guest-suggestions-mobile"
-                  :open="guestSearchOpen && guestSearchSource === 'mobile'"
-                  :pending="guestSearchPending"
-                  :suggestions="guestSuggestions"
-                  @select="selectGuestSuggestion"
-                />
-              </div>
-            </AppFormField>
+            <div class="venus-form-grid">
+              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
+                <div class="relative">
+                  <input
+                    id="owner-reserve-guest-full"
+                    v-model="guestFullName"
+                    class="neo-input"
+                    autocomplete="off"
+                    required
+                    :aria-required="true"
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-reserve-guest-suggestions-name"
+                    :placeholder="t('owner.guestSearchHint')"
+                    @input="onGuestFullNameInput"
+                    @focus="onGuestFullNameInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-reserve-guest-suggestions-name"
+                    :open="guestSearchOpen && guestSearchSource === 'name'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
+              </AppFormField>
+              <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
+                <div class="relative">
+                  <input
+                    id="owner-reserve-guest-mobile"
+                    v-model="form.guestMobile"
+                    dir="ltr"
+                    class="neo-input tabular-nums"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    required
+                    :aria-required="true"
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-reserve-guest-suggestions-mobile"
+                    :placeholder="t('owner.guestSearchHint')"
+                    @input="onGuestMobileInput"
+                    @focus="onGuestMobileInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-reserve-guest-suggestions-mobile"
+                    :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
+              </AppFormField>
+            </div>
 
             <div v-if="!pilotNoCoach">
               <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.sessionType') }}</p>
@@ -2830,20 +2832,25 @@ const legend = [
               :disabled="!canSubmitReserve()"
               @click="isNewReservation() ? openPayConfirm() : doReserve()"
             >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
-            <button
-              v-if="canShowSeasonReserve() && isNewReservation()"
-              type="button"
-              class="canva-gate-btn-secondary"
-              :disabled="saving"
-              @click="openSeasonForm"
-            >{{ t('owner.seasonReserve') }}</button>
-            <button
-              v-if="canShowPackageReserve() && isNewReservation()"
-              type="button"
-              class="canva-gate-btn-secondary"
-              :disabled="saving"
-              @click="openPackageForm"
-            >{{ t('owner.packageReserve') }}</button>
+            <div
+              v-if="isNewReservation() && (canShowSeasonReserve() || canShowPackageReserve())"
+              class="flex flex-col gap-2 sm:flex-row"
+            >
+              <button
+                v-if="canShowSeasonReserve()"
+                type="button"
+                class="canva-gate-btn-secondary sm:flex-1"
+                :disabled="saving"
+                @click="openSeasonForm"
+              >{{ t('owner.seasonReserve') }}</button>
+              <button
+                v-if="canShowPackageReserve()"
+                type="button"
+                class="canva-gate-btn-secondary sm:flex-1"
+                :disabled="saving"
+                @click="openPackageForm"
+              >{{ t('owner.packageReserve') }}</button>
+            </div>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"

@@ -1040,6 +1040,29 @@
   .canva-owner-date-modal .jalali-calendar-owner {
     max-width: none;
   }
+  /*
+   * Owner calendar slot sheet — keep phone width on handsets; widen on desk so
+   * guest name/mobile entry is not a cramped 375px scroll strip.
+   */
+  .canva-owner-slot-modal {
+    width: 100%;
+    max-width: var(--sz-phone-width);
+  }
+  @media (min-width: 640px) {
+    .canva-owner-slot-modal {
+      max-width: 32rem;
+    }
+  }
+  .canva-sheet-dialog.canva-owner-slot-modal .venus-modal-shell {
+    @apply border-0 shadow-none;
+  }
+  .canva-owner-slot-modal .neo-input,
+  .canva-owner-slot-modal .neo-select,
+  .canva-owner-slot-modal .neo-textarea,
+  .canva-owner-slot-modal .neo-equipment-picker,
+  .canva-owner-slot-modal .neo-equipment-option {
+    border-radius: var(--sz-canva-radius);
+  }
   .canva-flash {
     @apply border px-4 py-3 text-sm font-bold shadow-venus-sm;
     border-radius: var(--sz-canva-radius);
