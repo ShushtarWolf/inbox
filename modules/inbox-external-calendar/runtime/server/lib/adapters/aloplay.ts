@@ -26,10 +26,10 @@ async function fetchAvailableTimePayload(opts: {
   clubId: number
   date: string
   productGender: number
-}): Promise<{ payload: unknown | null; error?: string }> {
-  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}`
+}): Promise<{ payload: unknown | null; error?: string; usedAuth?: boolean }> {
+  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}:auth`
   const cached = await readCached<unknown>(cacheKey)
-  if (cached) return { payload: cached }
+  if (cached) return { payload: cached, usedAuth: true }
 
   const requireAuth = needsAloPlaySession(opts.date)
   const result = await fetchAloPlayWithSession(
@@ -43,13 +43,20 @@ async function fetchAvailableTimePayload(opts: {
   )
 
   if (result.error && result.payload == null) {
-    return { payload: null, error: result.error }
+    return { payload: null, error: result.error, usedAuth: result.usedAuth }
+  }
+  if (!result.usedAuth) {
+    return {
+      payload: null,
+      error: 'GetAvailableTime without session is a stub — not using it for occupancy',
+      usedAuth: false,
+    }
   }
 
   if (result.payload != null) {
     await writeCached(cacheKey, result.payload)
   }
-  return { payload: result.payload, error: result.error }
+  return { payload: result.payload, error: result.error, usedAuth: true }
 }
 
 export async function fetchAloPlayOccupied(opts: {
@@ -68,7 +75,7 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay clubId is not mapped yet (TODO).' }
   }
 
-  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}`
+  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:v2`
   const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
   if (cached) return { occupied: cached }
 
@@ -102,13 +109,15 @@ export async function fetchAloPlayOccupied(opts: {
   const genders = resolveAloPlayGenders(opts.mapping)
   const parseResults: Array<{ freeSlots: Set<string>; error?: string }> = []
   const fetchErrors: string[] = []
+  let anyAuth = false
 
   for (const productGender of genders) {
-    const { payload, error } = await fetchAvailableTimePayload({
+    const { payload, error, usedAuth } = await fetchAvailableTimePayload({
       clubId,
       date: opts.date,
       productGender,
     })
+    if (usedAuth) anyAuth = true
     if (error && payload == null) {
       fetchErrors.push(error)
       continue
@@ -118,6 +127,11 @@ export async function fetchAloPlayOccupied(opts: {
       continue
     }
     parseResults.push(parseAvailableTimePayload(payload))
+  }
+
+  if (!anyAuth) {
+    // Public GetAvailableTime is a one-row stub (today: 07:00 only). Wipe AloPlay occupancy.
+    return { occupied: [] }
   }
 
   const successfulParses = parseResults.filter((result) => !result.error)
