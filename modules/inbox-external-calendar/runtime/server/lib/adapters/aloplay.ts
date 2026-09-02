@@ -1,4 +1,5 @@
 import {
+  isTruncatedAloPlayFreeSet,
   parseAvailableTimePayload,
   suspectedOccupiedFromFreeSet,
   unionFreeSlots,
@@ -137,6 +138,10 @@ export async function fetchAloPlayOccupied(opts: {
       occupied: [],
       error: 'GetAvailableTime returned no free slots — refusing to mark entire day occupied',
     }
+  }
+  if (isTruncatedAloPlayFreeSet(freeSlots)) {
+    // No error: live success with empty occupied so persist wipes poison AloPlay snapshots.
+    return { occupied: [] }
   }
 
   const suspected = suspectedOccupiedFromFreeSet(mappedCourts, freeSlots)
