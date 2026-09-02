@@ -1656,6 +1656,12 @@
     "sessionType": "نوع سانس",
     "sessionTypeFree": "آزاد",
     "sessionTypeCoach": "مربی",
+    "sessionTypeFilterAll": "همه",
+    "sessionTypeFilterHint": "فیلتر سانس",
+    "sessionTypeCoachRequired": "برای سانس مربی، مربی را انتخاب کنید.",
+    "sessionTypeCoachEmpty": "مربی تاییدشده‌ای در باشگاه ثبت نشده است.",
+    "coachPlaceholder": "انتخاب مربی",
+    "slotSessionCoach": "مربی",
     "recurringWanted": "این سانس را نیاز دارم به صورت روزانه / هفتگی رزرو کنم.",
     "recurringWantedHint": "فعلاً فقط همین سانس ثبت می‌شود؛ رزرو تکرارشونده به‌زودی فعال می‌شود.",
     "quickNotes": "نکات سریع",
@@ -1868,6 +1874,7 @@
       "RESERVED_UNPAID": "پرداخت‌نشده",
       "RESERVED_IPG": "رزرو آنلاین",
       "RESERVED_RECURRING": "رزرو تکراری",
+      "RESERVED_COACH": "مربی",
       "FREE": "آزاد",
       "CANCELLED": "لغو شده",
       "PENDING": "در انتظار",
@@ -1906,7 +1913,11 @@
       "kind": {
         "court": "رزرو زمین",
         "coach": "جلسه مربی"
-      }
+      },
+      "sessionFilterAll": "همه",
+      "sessionFilterFree": "آزاد",
+      "sessionFilterCoach": "مربی",
+      "sessionCoachTag": "مربی"
     },
     "equipmentsPage": {
       "club": "تجهیزات باشگاه",

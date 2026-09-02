@@ -2272,6 +2272,20 @@
   .canva-session-radios {
     @apply flex flex-wrap gap-4;
   }
+  .canva-session-filter-row {
+    @apply flex flex-wrap gap-2;
+  }
+  .canva-session-filter-btn {
+    @apply border border-brand-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-session-filter-btn-on {
+    @apply border-brand-primary bg-brand-primary-soft text-brand-primary;
+  }
+  .canva-slot-coach-chip {
+    @apply inline-flex max-w-full truncate bg-brand-primary px-1 py-0.5 text-[9px] font-bold leading-none text-white;
+    border-radius: var(--sz-canva-radius);
+  }
   .canva-session-coach-chip {
     @apply inline-flex items-center gap-0.5 bg-brand-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-brand-primary;
     border-radius: var(--sz-canva-radius);

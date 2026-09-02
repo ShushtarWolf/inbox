@@ -164,6 +164,8 @@ const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(nul
 const payLinkCopied = ref(false)
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
+/** Grid filter: all reserved types, free-play only, or coach-tagged only. */
+const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 
 const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
@@ -177,6 +179,7 @@ const form = reactive({
   equipmentIds: [] as string[],
   equipmentQuantities: {} as Record<string, number>,
   displayStatus: 'RESERVED',
+  coachId: '',
 })
 
 const seasonForm = reactive({
@@ -526,6 +529,11 @@ function isRecurringReservedSlot(slot?: OwnerCalendarSlot | null) {
   return isReservedDisplayStatus(slot?.displayStatus || '') && isOwnerRecurringBooking(activeBooking(slot))
 }
 
+function isCoachReservedSlot(slot?: OwnerCalendarSlot | null) {
+  if (pilotNoCoach.value) return false
+  return Boolean(activeBooking(slot)?.coachId)
+}
+
 function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const map: Record<string, string> = {
     FREE: 'slot-free',
@@ -540,14 +548,27 @@ function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
   const base = map[status] || 'slot-free'
   if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
   if (isReservedDisplayStatus(status)) {
+    const parts = [base]
     // Recurring series gets its own grid color (paid/unpaid still in cell badge / detail).
-    if (isRecurringReservedSlot(slot)) return `${base} slot-reserved-recurring`
+    if (isRecurringReservedSlot(slot)) parts.push('slot-reserved-recurring')
     // Unpaid wins over channel so desk unpaid / pending-online never look like settled pink.
-    if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return `${base} slot-reserved-unpaid`
-    if (slotPaymentChannel(slot) === 'IPG') return `${base} slot-reserved-ipg`
-    return `${base} slot-reserved-cash`
+    else if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) parts.push('slot-reserved-unpaid')
+    else if (slotPaymentChannel(slot) === 'IPG') parts.push('slot-reserved-ipg')
+    else parts.push('slot-reserved-cash')
+    if (isCoachReservedSlot(slot)) parts.push('slot-reserved-coach')
+    return parts.join(' ')
   }
   return base
+}
+
+function slotMatchesSessionFilter(slot?: OwnerCalendarSlot | null) {
+  if (!slot || sessionFilter.value === 'all' || pilotNoCoach.value) return true
+  if (slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
+    return sessionFilter.value === 'free'
+  }
+  if (!isReservedDisplayStatus(slot.displayStatus) && slot.displayStatus !== 'PENDING') return true
+  const coach = isCoachReservedSlot(slot)
+  return sessionFilter.value === 'coach' ? coach : !coach
 }
 
 function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
@@ -560,11 +581,13 @@ function gridCellClasses(courtId: string, hour: string) {
     return [
       'slot-blocked',
       slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+      slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
     ]
   }
   return [
     slotClass(slot?.displayStatus || 'FREE', slot),
     slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+    slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
   ]
 }
 
@@ -610,8 +633,9 @@ function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
     return isPastFreeSlot(slot) ? t('owner.slotPast') : ''
   }
   const pay = slotPaymentBadge(slot)
+  const coach = slotCoachBadge(slot)
   const source = bookingSourceLabel(activeBooking(slot)?.source)
-  return [slotGuestLine(slot), source, pay, slotNoteLine(slot)].filter(Boolean).join(' — ')
+  return [slotGuestLine(slot), coach, source, pay, slotNoteLine(slot)].filter(Boolean).join(' — ')
 }
 
 function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
@@ -643,6 +667,16 @@ function slotPaymentBadgeClass(slot: OwnerCalendarSlot | null | undefined) {
   const status = slotPaymentStatus(slot)
   if (!status) return ''
   return isUnpaidPaymentStatus(status) ? 'canva-slot-pay-unpaid' : 'canva-slot-pay-paid'
+}
+
+function slotCoachBadge(slot: OwnerCalendarSlot | null | undefined) {
+  if (!isCoachReservedSlot(slot)) return ''
+  return t('owner.slotSessionCoach')
+}
+
+function resolveReserveCoachId(): string | null {
+  if (pilotNoCoach.value || sessionType.value !== 'coach') return null
+  return form.coachId.trim() || null
 }
 
 function resetPanels() {
@@ -1070,6 +1104,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   form.guestName = isFree ? '' : (booking?.guestName || '')
   form.guestFamily = isFree ? '' : (booking?.guestFamily || '')
   form.guestMobile = isFree ? '' : (booking?.guestMobile || '')
+  form.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   clearGuestSearch()
   const existingMethod = booking?.payment?.method || booking?.paymentMethod || 'CASH'
   form.paymentMethod = isFree
@@ -1497,6 +1532,7 @@ async function doReserve() {
               : undefined,
             complimentary: activePanel.value === 'payConfirm' && deskPayMode.value === 'complimentary',
             displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : reserveDisplayStatus(),
+            coachId: resolveReserveCoachId(),
             skipNotify: !isLast,
             notifyStartTime: range.startTime,
             notifyEndTime: range.endTime,
@@ -1597,6 +1633,7 @@ function deskCashPaymentBody(
       (booking?.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),
     ),
     displayStatus: slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus,
+    coachId: booking?.coachId || null,
     skipNotify: opts?.skipNotify,
     notifyStartTime: opts?.notifyStartTime,
     notifyEndTime: opts?.notifyEndTime,
@@ -1888,6 +1925,7 @@ async function saveEquipmentSelection() {
         equipmentIds: form.equipmentIds,
         equipmentQuantities: equipmentQuantitiesPayload(),
         displayStatus: reserveDisplayStatus(),
+        coachId: activeBooking(selectedSlot.value)?.coachId || null,
       },
     })
     await finishSlotAction()
@@ -2186,6 +2224,10 @@ function slotIsInPast(slot: OwnerCalendarSlot) {
 function canSubmitReserve() {
   if (saving.value) return false
   if (!guestFieldsValid()) return false
+  if (!pilotNoCoach.value && sessionType.value === 'coach') {
+    if (!clubCoaches.value.length) return false
+    if (!form.coachId.trim()) return false
+  }
   return true
 }
 
@@ -2197,15 +2239,41 @@ function confirmReserveLabel() {
   return isNewReservation() ? t('owner.confirmReserve') : t('common.save')
 }
 
-const legend = [
-  { status: 'FREE', color: palette.calendarGrid.FREE },
-  { status: 'RESERVED_PAID', color: palette.calendarGrid.RESERVED_PAID },
-  { status: 'RESERVED_UNPAID', color: palette.calendarGrid.RESERVED_UNPAID },
-  { status: 'RESERVED_IPG', color: palette.calendarGrid.RESERVED_IPG },
-  { status: 'RESERVED_RECURRING', color: palette.calendarGrid.RESERVED_RECURRING },
-  { status: 'PENDING', color: palette.calendarGrid.PENDING },
-  { status: 'BLOCKED', color: palette.calendarGrid.BLOCKED },
-]
+const legend = computed(() => {
+  const items = [
+    { status: 'FREE', color: palette.calendarGrid.FREE },
+    { status: 'RESERVED_PAID', color: palette.calendarGrid.RESERVED_PAID },
+    { status: 'RESERVED_UNPAID', color: palette.calendarGrid.RESERVED_UNPAID },
+    { status: 'RESERVED_IPG', color: palette.calendarGrid.RESERVED_IPG },
+    { status: 'RESERVED_RECURRING', color: palette.calendarGrid.RESERVED_RECURRING },
+    { status: 'PENDING', color: palette.calendarGrid.PENDING },
+    { status: 'BLOCKED', color: palette.calendarGrid.BLOCKED },
+  ]
+  if (!pilotNoCoach.value) {
+    items.splice(5, 0, { status: 'RESERVED_COACH', color: palette.calendarGrid.RESERVED_COACH })
+  }
+  return items
+})
+
+const sessionFilterOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.sessionTypeFilterAll') },
+  { value: 'free' as const, label: t('owner.sessionTypeFree') },
+  { value: 'coach' as const, label: t('owner.sessionTypeCoach') },
+]))
+
+watch(sessionType, (next) => {
+  if (pilotNoCoach.value || next !== 'coach') {
+    if (next === 'free') form.coachId = ''
+    return
+  }
+  if (!form.coachId && clubCoaches.value.length === 1) {
+    form.coachId = clubCoaches.value[0]!.id
+  }
+})
+
+watch(pilotNoCoach, (off) => {
+  if (off) sessionFilter.value = 'all'
+})
 </script>
 
 <template>
@@ -2295,6 +2363,18 @@ const legend = [
 
     <section v-else class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
       <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
+      <div v-if="!pilotNoCoach" class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
+        <button
+          v-for="opt in sessionFilterOptions"
+          :key="opt.value"
+          type="button"
+          class="canva-session-filter-btn"
+          :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
+          @click="sessionFilter = opt.value"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
           <span
@@ -2377,6 +2457,10 @@ const legend = [
                   <span class="canva-cal-grid-cell-body">
                     <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
+                    <span
+                      v-if="slotCoachBadge(cellSlot(court.id, hour))"
+                      class="canva-slot-coach-chip"
+                    >{{ slotCoachBadge(cellSlot(court.id, hour)) }}</span>
                     <span
                       v-if="slotPaymentBadge(cellSlot(court.id, hour))"
                       class="canva-slot-pay-chip"
@@ -2754,6 +2838,29 @@ const legend = [
                   </span>
                 </label>
               </div>
+              <AppFormField
+                v-if="sessionType === 'coach'"
+                class="mt-3"
+                :label="t('owner.coachLabel')"
+                field-id="owner-reserve-coach"
+              >
+                <select
+                  id="owner-reserve-coach"
+                  v-model="form.coachId"
+                  class="neo-select"
+                >
+                  <option value="">{{ t('owner.coachPlaceholder') }}</option>
+                  <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">
+                    {{ localizedField(coach, 'nameFa', 'nameEn') }}
+                  </option>
+                </select>
+                <p v-if="!clubCoaches.length" class="mt-1 text-xs text-brand-primary">
+                  {{ t('owner.sessionTypeCoachEmpty') }}
+                </p>
+                <p v-else-if="!form.coachId" class="mt-1 text-xs text-brand-gray-500">
+                  {{ t('owner.sessionTypeCoachRequired') }}
+                </p>
+              </AppFormField>
             </div>
 
             <div>
@@ -3654,6 +3761,14 @@ const legend = [
 :deep(.canva-cal-grid-cell.slot-reserved-recurring) {
   background: var(--sz-cal-grid-reserved-recurring);
   color: #2c2c2a;
+}
+
+:deep(.canva-cal-grid-cell.slot-reserved-coach) {
+  box-shadow: inset 0 0 0 2px var(--sz-brand-primary, #c41e1e);
+}
+
+:deep(.canva-cal-grid-cell.canva-cal-grid-cell-filtered-out) {
+  opacity: 0.28;
 }
 
 :deep(.canva-cal-grid-cell.slot-pending) {

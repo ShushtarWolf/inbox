@@ -68,6 +68,8 @@ export const palette = {
     RESERVED_IPG: '#d4dce8',
     /** Season / package series — distinct from paid / unpaid / online */
     RESERVED_RECURRING: '#ddd4e8',
+    /** Desk coach-tagged court booking accent */
+    RESERVED_COACH: '#f0c4b8',
     PENDING: '#e8d4a8',
     BLOCKED: '#d4d2ce',
   },

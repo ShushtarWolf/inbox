@@ -14,6 +14,8 @@ type OwnerFinanceTransaction = {
   amount: number
   bookingStatus: string
   kind?: string
+  sessionType?: 'free' | 'coach' | string
+  coachName?: string | null
   reservationLabel: string
   unpaid?: boolean
 }
@@ -81,6 +83,7 @@ const { fetchErrorMessage } = useFetchError()
 onMounted(() => { fetchAuth() })
 
 const period = ref<'day' | 'week' | 'month'>('day')
+const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
 const withdrawAmount = ref<number | null>(null)
@@ -289,10 +292,24 @@ const ipgPct = computed(() => {
 })
 
 const visibleTransactions = computed(() => {
-  const list = data.value?.transactions || []
-  if (!pilotNoCoach.value) return list
-  return list.filter((tx) => tx.kind !== 'coach')
+  let list = data.value?.transactions || []
+  if (pilotNoCoach.value) list = list.filter((tx) => tx.kind !== 'coach')
+  if (pilotNoCoach.value || sessionFilter.value === 'all') return list
+  return list.filter((tx) => {
+    const isCoach = tx.kind === 'coach' || tx.sessionType === 'coach'
+    return sessionFilter.value === 'coach' ? isCoach : !isCoach
+  })
 })
+
+const sessionFilterOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.financePage.sessionFilterAll') },
+  { value: 'free' as const, label: t('owner.financePage.sessionFilterFree') },
+  { value: 'coach' as const, label: t('owner.financePage.sessionFilterCoach') },
+]))
+
+function isCoachTx(tx: OwnerFinanceTransaction) {
+  return tx.kind === 'coach' || tx.sessionType === 'coach'
+}
 
 function openTx(tx: OwnerFinanceTransaction) {
   selectedTx.value = tx
@@ -444,6 +461,23 @@ function closeTx() {
 
       <div v-if="showTransactions" class="canva-finance-tx-col space-y-3">
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
+        <div
+          v-if="!pilotNoCoach"
+          class="canva-session-filter-row"
+          role="group"
+          :aria-label="t('owner.sessionTypeFilterHint')"
+        >
+          <button
+            v-for="opt in sessionFilterOptions"
+            :key="opt.value"
+            type="button"
+            class="canva-session-filter-btn"
+            :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
+            @click="sessionFilter = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
         <div v-if="visibleTransactions.length" class="canva-finance-tx-grid">
           <button
             v-for="tx in visibleTransactions"
@@ -455,6 +489,10 @@ function closeTx() {
             <div class="min-w-0 flex-1 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ tx.reservationLabel }}</p>
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+              <span
+                v-if="isCoachTx(tx)"
+                class="canva-slot-coach-chip mt-1"
+              >{{ t('owner.financePage.sessionCoachTag') }}</span>
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>

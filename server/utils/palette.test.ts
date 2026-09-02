@@ -30,6 +30,8 @@ describe('brandbook palette', () => {
     expect(palette.calendarGrid.RESERVED_RECURRING).toBe('#ddd4e8')
     expect(palette.calendarGrid.RESERVED_RECURRING).not.toBe(palette.calendarGrid.RESERVED_IPG)
     expect(palette.calendarGrid.RESERVED_RECURRING).not.toBe(palette.calendarGrid.RESERVED_PAID)
+    expect(palette.calendarGrid.RESERVED_COACH).toBe('#f0c4b8')
+    expect(palette.calendarGrid.RESERVED_COACH).not.toBe(palette.calendarGrid.RESERVED_PAID)
   })
 
   it('uses warm gray text scale', () => {

@@ -73,6 +73,8 @@ export default defineEventHandler(async (event) => {
     skipNotify?: boolean
     notifyStartTime?: string
     notifyEndTime?: string
+    /** Desk session type: set/clear coach; omit to leave existing booking coach unchanged. */
+    coachId?: string | null
   }>(event)
   if (!body.slotId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
   const guestMobile = resolveGuestMobile(body.guestMobile)
@@ -82,6 +84,7 @@ export default defineEventHandler(async (event) => {
     ? normalizeGuestNamePair(linkedUser.name, '')
     : normalizeGuestNamePair(body.guestName, body.guestFamily)
   const linkedUserId = linkedUser?.id ?? null
+  const coachIdProvided = Object.prototype.hasOwnProperty.call(body, 'coachId')
 
   await releaseExpiredOnlinePaymentHolds({ slotIds: [body.slotId], clubId: club.id })
 
@@ -93,6 +96,29 @@ export default defineEventHandler(async (event) => {
 
   const staleCancelled = slot.booking?.status === 'CANCELLED' ? slot.booking : null
   const existing = activeSlotBooking(slot.booking)
+
+  let resolvedCoachId: string | null | undefined
+  let coachSessionPrice = 0
+  if (coachIdProvided) {
+    const raw = typeof body.coachId === 'string' ? body.coachId.trim() : ''
+    if (!raw) {
+      resolvedCoachId = null
+    } else {
+      const coach = await prisma.coach.findFirst({
+        where: { id: raw, approvalStatus: 'APPROVED' },
+        select: { id: true, sessionPrice: true },
+      })
+      if (!coach) throw createError({ statusCode: 400, statusMessage: 'Invalid coach' })
+      resolvedCoachId = coach.id
+      coachSessionPrice = coach.sessionPrice || 0
+    }
+  } else if (existing?.coachId) {
+    const coach = await prisma.coach.findFirst({
+      where: { id: existing.coachId, approvalStatus: 'APPROVED' },
+      select: { sessionPrice: true },
+    })
+    coachSessionPrice = coach?.sessionPrice || 0
+  }
 
   if (!existing) {
     // Desk create: only FREE slots — never silently overwrite BLOCKED/RESERVED/etc.
@@ -127,6 +153,7 @@ export default defineEventHandler(async (event) => {
   let totalAmount = calculateSessionTotal({
     courtPrice: slot.price,
     equipmentPrices: equipmentItems.map((item) => equipmentLineTotal(item)),
+    coachPrice: coachSessionPrice,
   })
   const subtotalAmount = totalAmount
   let discountMeta: Record<string, unknown> | null = null
@@ -216,6 +243,7 @@ export default defineEventHandler(async (event) => {
           status: 'CONFIRMED',
           // Attach to athlete when desk phone matches a registered user; never clear an existing link.
           ...(linkedUserId ? { userId: linkedUserId } : {}),
+          ...(coachIdProvided ? { coachId: resolvedCoachId ?? null } : {}),
         },
       })
       await syncBookingEquipments(tx, existing.id, equipmentItems)
@@ -332,6 +360,7 @@ export default defineEventHandler(async (event) => {
             source: 'CLUB',
             status: 'CONFIRMED',
             paymentStatus,
+            coachId: coachIdProvided ? (resolvedCoachId ?? null) : null,
           },
         })
         await syncBookingEquipments(tx, booking.id, equipmentItems)

@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
       slot: { include: { court: true } },
       payment: true,
       user: { select: { name: true, phone: true } },
+      coach: { select: { id: true, nameFa: true, nameEn: true } },
       bookingEquipments: { include: { equipment: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -160,25 +161,34 @@ export default defineEventHandler(async (event) => {
   const cancellationsThisMonth = cancelsMonthBookings + cancelsMonthSessions
 
   const transactions = [
-    ...bookings.map((booking) => ({
-      id: booking.id,
-      guestName: booking.guestName || booking.user?.name || 'Guest',
-      guestMobile: booking.guestMobile || booking.user?.phone || null,
-      paymentMethod: booking.payment?.method || booking.paymentMethod,
-      paymentStatus: paymentStatusOf(booking),
-      amount: amountOfBooking(booking),
-      bookingStatus: booking.status,
-      kind: 'court' as const,
-      reservationLabel: `${toPersianDigits(booking.slot.court.nameFa)} · ${formatSmsTime(booking.slot.startTime)} · ${formatSmsJalaliDate(booking.slot.date)}`,
-      equipmentSummary: booking.bookingEquipments
-        .map((item) => {
-          const qty = Math.max(1, item.quantity || 1)
-          const name = toPersianDigits(item.equipment.nameFa)
-          return qty > 1 ? `${name} ×${toPersianDigits(String(qty))}` : name
-        })
-        .join(', ') || null,
-      unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
-    })),
+    ...bookings.map((booking) => {
+      const isCoachSession = Boolean(booking.coachId)
+      const courtBit = `${toPersianDigits(booking.slot.court.nameFa)} · ${formatSmsTime(booking.slot.startTime)} · ${formatSmsJalaliDate(booking.slot.date)}`
+      return {
+        id: booking.id,
+        guestName: booking.guestName || booking.user?.name || 'Guest',
+        guestMobile: booking.guestMobile || booking.user?.phone || null,
+        paymentMethod: booking.payment?.method || booking.paymentMethod,
+        paymentStatus: paymentStatusOf(booking),
+        amount: amountOfBooking(booking),
+        bookingStatus: booking.status,
+        kind: 'court' as const,
+        sessionType: isCoachSession ? ('coach' as const) : ('free' as const),
+        coachId: booking.coachId || null,
+        coachName: booking.coach?.nameFa || null,
+        reservationLabel: isCoachSession
+          ? `مربی${booking.coach?.nameFa ? ` · ${toPersianDigits(booking.coach.nameFa)}` : ''} · ${courtBit}`
+          : courtBit,
+        equipmentSummary: booking.bookingEquipments
+          .map((item) => {
+            const qty = Math.max(1, item.quantity || 1)
+            const name = toPersianDigits(item.equipment.nameFa)
+            return qty > 1 ? `${name} ×${toPersianDigits(String(qty))}` : name
+          })
+          .join(', ') || null,
+        unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
+      }
+    }),
     ...coachSessions.map((session) => ({
       id: session.id,
       guestName: session.athlete.name,
@@ -188,8 +198,10 @@ export default defineEventHandler(async (event) => {
       amount: amountOfSession(session),
       bookingStatus: session.status,
       kind: 'coach' as const,
-      reservationLabel: `${formatSmsJalaliDate(session.date)} · ${formatSmsTime(session.startTime)}`,
+      sessionType: 'coach' as const,
+      coachId: session.coachId,
       coachName: session.coach.nameFa,
+      reservationLabel: `${formatSmsJalaliDate(session.date)} · ${formatSmsTime(session.startTime)}`,
       unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(session)),
     })),
   ]

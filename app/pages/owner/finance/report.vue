@@ -11,6 +11,8 @@ type OwnerFinanceTransaction = {
   amount: number
   bookingStatus: string
   kind?: string
+  sessionType?: 'free' | 'coach' | string
+  coachName?: string | null
   reservationLabel: string
   unpaid?: boolean
 }
@@ -52,6 +54,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceRespo
 useOwnerClubRefresh(refresh)
 const { formatCurrency, formatNumber } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
+const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 
 onMounted(() => {
   fetchAuth()
@@ -130,10 +133,24 @@ const noShowRateLabel = computed(() => {
 })
 
 const visibleTransactions = computed(() => {
-  const list = data.value?.transactions || []
-  if (!pilotNoCoach.value) return list
-  return list.filter((tx) => tx.kind !== 'coach')
+  let list = data.value?.transactions || []
+  if (pilotNoCoach.value) list = list.filter((tx) => tx.kind !== 'coach')
+  if (pilotNoCoach.value || sessionFilter.value === 'all') return list
+  return list.filter((tx) => {
+    const isCoach = tx.kind === 'coach' || tx.sessionType === 'coach'
+    return sessionFilter.value === 'coach' ? isCoach : !isCoach
+  })
 })
+
+const sessionFilterOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.financePage.sessionFilterAll') },
+  { value: 'free' as const, label: t('owner.financePage.sessionFilterFree') },
+  { value: 'coach' as const, label: t('owner.financePage.sessionFilterCoach') },
+]))
+
+function isCoachTx(tx: OwnerFinanceTransaction) {
+  return tx.kind === 'coach' || tx.sessionType === 'coach'
+}
 
 function downloadReport() {
   if (!import.meta.client || !data.value) return
@@ -213,6 +230,23 @@ function downloadReport() {
 
         <div class="space-y-3 canva-report-span">
           <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
+          <div
+            v-if="!pilotNoCoach"
+            class="canva-session-filter-row"
+            role="group"
+            :aria-label="t('owner.sessionTypeFilterHint')"
+          >
+            <button
+              v-for="opt in sessionFilterOptions"
+              :key="opt.value"
+              type="button"
+              class="canva-session-filter-btn"
+              :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
+              @click="sessionFilter = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
           <CanvaEmptyState v-if="!visibleTransactions.length" :title="t('common.empty')" icon="receipt_long" />
           <div v-else class="space-y-2">
             <div
@@ -224,6 +258,10 @@ function downloadReport() {
               <div class="min-w-0 flex-1 text-start">
                 <p class="text-sm font-bold text-brand-navy">{{ tx.reservationLabel }}</p>
                 <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+                <span
+                  v-if="isCoachTx(tx)"
+                  class="canva-slot-coach-chip mt-1"
+                >{{ t('owner.financePage.sessionCoachTag') }}</span>
                 <p class="mt-1 text-[11px] text-brand-gray-500">
                   {{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}
                 </p>
