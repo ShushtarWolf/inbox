@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import { WALLET_TOPUP_MAX_IRR, WALLET_TOPUP_MIN_IRR } from '#shared/walletTopUp.ts'
 import { fetchErrorMessage } from '~/composables/useFetchError'
 
@@ -22,6 +23,13 @@ type CourtSlot = {
   listedPrice: number
   courtCharge: number
 }
+type CourtGroup = {
+  courtId: string
+  courtNameFa: string
+  courtNameEn: string
+  bookable: CourtSlot[]
+  blocked: CourtSlot[]
+}
 
 const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date)
   ? route.query.date
@@ -38,6 +46,7 @@ const clubs = computed(() => clubsData.value?.clubs || [])
 // Clubs list already resolved above, so the first club is known before the slot query is built.
 const clubId = ref(clubs.value[0]?.id || '')
 const date = ref(initialDate)
+const selectedCourtId = ref('')
 const selectedSlotId = ref('')
 const studentPhone = ref('')
 const studentName = ref('')
@@ -67,12 +76,61 @@ const blockedExternalSlots = computed(() =>
   (slotData.value?.slots || []).filter((slot) => isExternalOnlyOccupied(slot)),
 )
 
+/** Courts as a list first — hours only appear under the selected court. */
+const courtGroups = computed((): CourtGroup[] => {
+  const map = new Map<string, CourtGroup>()
+  function ensure(slot: CourtSlot): CourtGroup {
+    let group = map.get(slot.courtId)
+    if (!group) {
+      group = {
+        courtId: slot.courtId,
+        courtNameFa: slot.courtNameFa,
+        courtNameEn: slot.courtNameEn,
+        bookable: [],
+        blocked: [],
+      }
+      map.set(slot.courtId, group)
+    }
+    return group
+  }
+  for (const slot of bookableSlots.value) ensure(slot).bookable.push(slot)
+  for (const slot of blockedExternalSlots.value) ensure(slot).blocked.push(slot)
+  for (const group of map.values()) {
+    group.bookable.sort((a, b) => a.startTime.localeCompare(b.startTime))
+    group.blocked.sort((a, b) => a.startTime.localeCompare(b.startTime))
+  }
+  return sortCourtsByOrdinal([...map.values()])
+})
+
+const selectedCourtGroup = computed(() =>
+  courtGroups.value.find((group) => group.courtId === selectedCourtId.value) || null,
+)
+
 watch(slotData, (next) => {
   if (!next?.slots?.length || selectedSlotId.value || !initialTime) return
   const match = next.slots.find((slot) =>
     slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot),
   )
-  if (match) selectedSlotId.value = match.id
+  if (match) {
+    selectedCourtId.value = match.courtId
+    selectedSlotId.value = match.id
+  }
+}, { immediate: true })
+
+watch(courtGroups, (groups) => {
+  if (!groups.length) {
+    selectedCourtId.value = ''
+    return
+  }
+  if (selectedCourtId.value && groups.some((group) => group.courtId === selectedCourtId.value)) return
+  const fromSlot = selectedSlotId.value
+    ? groups.find((group) =>
+        group.bookable.some((slot) => slot.id === selectedSlotId.value)
+        || group.blocked.some((slot) => slot.id === selectedSlotId.value),
+      )
+    : null
+  const withBookable = groups.find((group) => group.bookable.length > 0)
+  selectedCourtId.value = (fromSlot || withBookable || groups[0])!.courtId
 }, { immediate: true })
 
 const selectedSlot = computed(() => (slotData.value?.slots || []).find((slot) => slot.id === selectedSlotId.value) || null)
@@ -81,7 +139,14 @@ const shortfall = computed(() =>
   selectedSlot.value ? Math.max(0, selectedSlot.value.courtCharge - (wallet.value?.balance || 0)) : 0,
 )
 
+function selectCourt(courtId: string) {
+  if (selectedCourtId.value === courtId) return
+  selectedCourtId.value = courtId
+  selectedSlotId.value = ''
+}
+
 watch([clubId, date], () => {
+  selectedCourtId.value = ''
   selectedSlotId.value = ''
   errorKey.value = ''
   successMessage.value = ''
@@ -219,7 +284,7 @@ async function startTopUp() {
 
         <AppDateInput v-model="date" :label="$t('common.date')" :min-date="today" />
 
-        <section class="space-y-2">
+        <section class="space-y-3">
           <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.book.pickSlot') }}</h2>
           <p v-if="slotsPending" class="text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
           <p v-else-if="!slotData?.slots?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
@@ -228,33 +293,64 @@ async function startTopUp() {
           <p v-else-if="!bookableSlots.length && blockedExternalSlots.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
             {{ $t('coach.book.noSlots') }}
           </p>
-          <div v-else class="grid gap-2 sm:grid-cols-2">
-            <button
-              v-for="slot in bookableSlots"
-              :key="slot.id"
-              type="button"
-              class="ios-card p-3 text-start"
-              :class="slot.id === selectedSlotId ? 'border-2 border-brand-primary' : ''"
-              @click="selectedSlotId = slot.id"
-            >
-              <p class="text-sm font-bold">{{ slot.courtNameFa }}</p>
-              <p class="text-sm"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi></p>
-              <p class="text-xs text-brand-gray-600" dir="auto">
-                <span class="font-bold text-brand-primary">{{ formatCurrency(slot.courtCharge) }}</span>
-              </p>
-            </button>
-            <div
-              v-for="slot in blockedExternalSlots"
-              :key="`ext-${slot.id}`"
-              class="ios-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
-              aria-disabled="true"
-            >
-              <p class="text-sm font-bold text-brand-gray-600">{{ slot.courtNameFa }}</p>
-              <p class="text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi></p>
-              <p class="mt-1 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
-              <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+          <template v-else>
+            <div>
+              <p class="mb-2 text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickCourt') }}</p>
+              <div class="flex flex-wrap gap-2" role="listbox" :aria-label="$t('coach.book.pickCourt')">
+                <button
+                  v-for="group in courtGroups"
+                  :key="group.courtId"
+                  type="button"
+                  role="option"
+                  class="ios-card px-3 py-2 text-sm font-bold"
+                  :class="group.courtId === selectedCourtId ? 'border-2 border-brand-primary' : ''"
+                  :aria-selected="group.courtId === selectedCourtId"
+                  @click="selectCourt(group.courtId)"
+                >
+                  {{ formatFaDigits(group.courtNameFa) }}
+                </button>
+              </div>
             </div>
-          </div>
+
+            <div v-if="selectedCourtGroup">
+              <p class="mb-2 text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickTime') }}</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                  v-for="slot in selectedCourtGroup.bookable"
+                  :key="slot.id"
+                  type="button"
+                  class="ios-card p-3 text-start"
+                  :class="slot.id === selectedSlotId ? 'border-2 border-brand-primary' : ''"
+                  @click="selectedSlotId = slot.id"
+                >
+                  <p class="text-sm font-bold">
+                    <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                  </p>
+                  <p class="mt-1 text-xs text-brand-gray-600" dir="auto">
+                    <span class="font-bold text-brand-primary">{{ formatCurrency(slot.courtCharge) }}</span>
+                  </p>
+                </button>
+                <div
+                  v-for="slot in selectedCourtGroup.blocked"
+                  :key="`ext-${slot.id}`"
+                  class="ios-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
+                  aria-disabled="true"
+                >
+                  <p class="text-sm font-bold text-brand-gray-600">
+                    <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                  </p>
+                  <p class="mt-1 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
+                  <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+                </div>
+              </div>
+              <p
+                v-if="!selectedCourtGroup.bookable.length && !selectedCourtGroup.blocked.length"
+                class="ios-card border-dashed p-4 text-sm text-brand-gray-600"
+              >
+                {{ $t('coach.book.noSlots') }}
+              </p>
+            </div>
+          </template>
         </section>
 
         <AppFormField :label="$t('coach.book.studentPhone')">
