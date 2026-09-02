@@ -18,7 +18,20 @@ const { t, locale } = useI18n()
 const { formatDate, formatNumber, formatYear } = useFormatters()
 
 const isFa = computed(() => locale.value === 'fa')
-const effectiveMinDate = computed(() => props.minDate || '')
+/** Guard against `:min-date="today"` (function) which string-compares as after every ISO date. */
+const effectiveMinDate = computed(() => {
+  const raw = props.minDate as unknown
+  if (typeof raw === 'function') {
+    try {
+      const result = (raw as () => string)()
+      return typeof result === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(result) ? result : ''
+    }
+    catch {
+      return ''
+    }
+  }
+  return typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : ''
+})
 
 const jalaliYear = ref(1404)
 const jalaliMonth = ref(1)

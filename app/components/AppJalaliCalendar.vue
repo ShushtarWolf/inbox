@@ -77,10 +77,29 @@ function nextMonth() {
 
 const todayIso = computed(() => today())
 
+/** Only ISO YYYY-MM-DD counts — a bare `:min-date="today"` passes the function and would disable every day. */
+const effectiveMinDate = computed(() => {
+  const raw = props.minDate as unknown
+  if (typeof raw === 'function') {
+    try {
+      const result = (raw as () => string)()
+      return typeof result === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(result) ? result : ''
+    }
+    catch {
+      return ''
+    }
+  }
+  return typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : ''
+})
+
 const isViewingTodayMonth = computed(() => {
   const j = isoToJalaali(todayIso.value)
   return viewYear.value === j.jy && viewMonth.value === j.jm
 })
+
+const isOnToday = computed(() => model.value === todayIso.value)
+
+const showTodayButton = computed(() => !isOnToday.value || !isViewingTodayMonth.value)
 
 function goToToday() {
   const j = isoToJalaali(todayIso.value)
@@ -110,7 +129,7 @@ function isRangeEnd(cell: { iso: string | null }) {
 }
 
 function selectDay(iso: string) {
-  if (props.minDate && iso < props.minDate) return
+  if (effectiveMinDate.value && iso < effectiveMinDate.value) return
   if (props.mode === 'range') {
     if (!model.value || rangeEnd.value) {
       model.value = iso
@@ -139,7 +158,7 @@ function isSelected(cell: { iso: string | null }) {
 }
 
 function isDisabled(cell: { iso: string | null }) {
-  return Boolean(cell.iso && props.minDate && cell.iso < props.minDate)
+  return Boolean(cell.iso && effectiveMinDate.value && cell.iso < effectiveMinDate.value)
 }
 
 function cellClass(cell: { iso: string | null }) {
@@ -162,7 +181,7 @@ function cellClass(cell: { iso: string | null }) {
       <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
         <p class="jalali-calendar-month truncate text-sm font-bold">{{ monthLabel }}</p>
         <button
-          v-if="variant !== 'owner' && !isViewingTodayMonth"
+          v-if="variant !== 'owner' && showTodayButton"
           type="button"
           class="jalali-calendar-today shrink-0"
           @click="goToToday"
@@ -199,6 +218,15 @@ function cellClass(cell: { iso: string | null }) {
         </button>
       </span>
     </div>
+
+    <button
+      v-if="variant === 'owner' && showTodayButton"
+      type="button"
+      class="jalali-calendar-today-footer mt-3 w-full"
+      @click="goToToday"
+    >
+      {{ t('calendar.today') }}
+    </button>
   </div>
 </template>
 
@@ -257,6 +285,18 @@ function cellClass(cell: { iso: string | null }) {
   color: var(--sz-accent);
 }
 .jalali-calendar-today:hover {
+  background: var(--sz-bg-elevated);
+}
+.jalali-calendar-today-footer {
+  border-radius: 2px;
+  border: 1px solid var(--sz-border);
+  background: var(--sz-bg);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sz-accent);
+}
+.jalali-calendar-today-footer:hover {
   background: var(--sz-bg-elevated);
 }
 .jalali-calendar-day {

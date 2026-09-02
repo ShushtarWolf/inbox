@@ -18,7 +18,20 @@ const { formatDate } = useFormatters()
 const { today } = useLocalDate()
 
 const isFa = computed(() => locale.value === 'fa')
-const effectiveMinDate = computed(() => props.minDate || today())
+const effectiveMinDate = computed(() => {
+  const raw = props.minDate as unknown
+  if (typeof raw === 'function') {
+    try {
+      const result = (raw as () => string)()
+      return typeof result === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(result) ? result : today()
+    }
+    catch {
+      return today()
+    }
+  }
+  if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  return today()
+})
 
 const startLabelText = computed(() => props.startLabel || t('owner.packagesPage.startDate'))
 const endLabelText = computed(() => props.endLabel || t('owner.packagesPage.finishDate'))
