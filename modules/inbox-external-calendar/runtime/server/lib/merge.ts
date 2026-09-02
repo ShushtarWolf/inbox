@@ -1,5 +1,6 @@
 import type { ExternalOccupiedSlot, ExternalSourceId, InboxCalendarSlot, MergedCell } from './types'
 import { formatSourceBadge } from './badges'
+import { normalizeClockTime } from './time'
 
 export function isInboxOccupied(displayStatus: string): boolean {
   return displayStatus !== 'FREE'
@@ -7,8 +8,12 @@ export function isInboxOccupied(displayStatus: string): boolean {
     && displayStatus !== 'CLOSED'
 }
 
+function normalizeSlotTime(value: string): string {
+  return normalizeClockTime(value) ?? value.slice(0, 5)
+}
+
 function cellKey(courtId: string, startTime: string) {
-  return `${courtId}:${startTime}`
+  return `${courtId}:${normalizeSlotTime(startTime)}`
 }
 
 export function mergeOccupancy(
@@ -22,8 +27,8 @@ export function mergeOccupancy(
     if (isInboxOccupied(slot.displayStatus)) sources.push('inbox')
     map.set(cellKey(slot.courtId, slot.startTime), {
       courtId: slot.courtId,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+      startTime: normalizeSlotTime(slot.startTime),
+      endTime: normalizeSlotTime(slot.endTime),
       inboxStatus: slot.displayStatus,
       sources,
       badge: formatSourceBadge(sources),
@@ -37,8 +42,8 @@ export function mergeOccupancy(
     if (!cell) {
       cell = {
         courtId: ext.courtKey,
-        startTime: ext.startTime,
-        endTime: ext.endTime,
+        startTime: normalizeSlotTime(ext.startTime),
+        endTime: normalizeSlotTime(ext.endTime),
         inboxStatus: 'FREE',
         sources: [],
         badge: '',

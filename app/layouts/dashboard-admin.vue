@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** Admin unlock gate — secret-header console (NO CANVA phone frame). Clean FA ops UI. */
+import { PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
@@ -16,6 +18,11 @@ const verifying = ref(false)
 
 const nav = computed(() => [
   { to: localePath('/admin'), label: t('admin.nav.overview'), icon: 'dashboard' },
+  {
+    to: localePath({ path: '/admin/calendar', query: { clubSlug: PILOT_CLUB_SLUG } }),
+    label: t('admin.nav.calendar'),
+    icon: 'calendar_month',
+  },
   { to: localePath('/admin/tickets'), label: t('admin.nav.tickets'), icon: 'support_agent' },
   { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals'), icon: 'account_balance' },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs'), icon: 'stadium' },

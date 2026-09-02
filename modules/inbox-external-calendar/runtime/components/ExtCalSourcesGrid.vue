@@ -62,9 +62,20 @@ const { localizedField } = useLocalizedField()
 
 const courts = computed(() => props.data?.courts || [])
 
+const cellByKey = computed(() => {
+  const map = new Map<string, CalendarSourcesCell>()
+  for (const cell of props.data?.cells || []) {
+    map.set(`${cell.courtId}:${cell.startTime.slice(0, 5)}`, cell)
+  }
+  return map
+})
+
 const hours = computed(() => {
   const set = new Set<string>()
-  for (const cell of props.data?.cells || []) set.add(cell.startTime)
+  const courtIds = new Set(courts.value.map((court) => court.id))
+  for (const cell of props.data?.cells || []) {
+    if (courtIds.has(cell.courtId)) set.add(cell.startTime.slice(0, 5))
+  }
   return [...set].sort()
 })
 
@@ -74,10 +85,17 @@ const gridTemplateColumns = computed(() => {
 })
 
 function cellFor(courtId: string, startTime: string) {
-  return (props.data?.cells || []).find((cell) => cell.courtId === courtId && cell.startTime === startTime)
+  return cellByKey.value.get(`${courtId}:${startTime.slice(0, 5)}`)
 }
 
-function cellClass(cell: CalendarSourcesCell | undefined) {
+function cellSlotClass(cell: CalendarSourcesCell | undefined) {
+  if (!cell?.occupied) return 'slot-free'
+  if (cell.sources.length > 1) return 'slot-pending'
+  if (cell.sources.includes('inbox')) return 'slot-reserved-cash'
+  return 'slot-blocked'
+}
+
+function cellBarClass(cell: CalendarSourcesCell | undefined) {
   if (!cell?.occupied) return 'canva-cal-grid-cell-bar-free'
   if (cell.sources.length > 1) return 'canva-cal-grid-cell-bar-pending'
   if (cell.sources.includes('inbox')) return 'canva-cal-grid-cell-bar-reserved-cash'
@@ -174,22 +192,23 @@ function sourceDetailLine(detail: SourceDetail) {
 
               <template v-for="hour in hours" :key="hour">
                 <div class="canva-cal-grid-time">{{ hour }}</div>
-                <div v-for="court in courts" :key="`${court.id}-${hour}`" class="canva-cal-grid-cell">
-                  <div class="canva-cal-grid-cell-bar" :class="cellClass(cellFor(court.id, hour))">
+                <div v-for="court in courts" :key="`${court.id}-${hour}`" class="canva-cal-grid-cell" :class="cellSlotClass(cellFor(court.id, hour))">
+                  <span class="canva-cal-grid-cell-bar" :class="cellBarClass(cellFor(court.id, hour))" />
+                  <span class="canva-cal-grid-cell-body">
                     <span
                       v-if="cellFor(court.id, hour)?.badge"
-                      class="block px-1 text-[10px] font-bold leading-tight text-white"
+                      class="canva-cal-grid-cell-label"
                     >
                       {{ cellFor(court.id, hour)?.badge }}
                     </span>
                     <span
                       v-for="detail in cellFor(court.id, hour)?.sourceDetails || []"
                       :key="detail.source"
-                      class="canva-ext-cal-source-detail"
+                      class="canva-cal-grid-cell-sub"
                     >
                       {{ sourceDetailLine(detail) }}
                     </span>
-                  </div>
+                  </span>
                 </div>
               </template>
             </div>
@@ -203,3 +222,21 @@ function sourceDetailLine(detail: SourceDetail) {
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.canva-cal-grid-cell.slot-free) {
+  background: #f8fafc;
+}
+
+:deep(.canva-cal-grid-cell.slot-reserved-cash) {
+  background: #fce7f3;
+}
+
+:deep(.canva-cal-grid-cell.slot-pending) {
+  background: #ffedd5;
+}
+
+:deep(.canva-cal-grid-cell.slot-blocked) {
+  background: #e2e8f0;
+}
+</style>

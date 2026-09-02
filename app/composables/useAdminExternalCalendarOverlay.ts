@@ -26,42 +26,59 @@ function occupancyKey(courtId: string, startTime: string) {
 }
 
 /**
- * Optional overlay for admin mother calendar — no-ops when external calendar module is absent.
- * Shows AloPlay / AloVarzesh site names on FREE inbox cells occupied externally.
+ * Optional overlay for admin calendar — no-ops when external calendar module is absent.
+ * Badge formatting matches useCoachExternalCalendarOverlay.
  */
 export function useAdminExternalCalendarOverlay(opts: {
   clubSlug: MaybeRefOrGetter<string>
   date: MaybeRefOrGetter<string>
+  secret: MaybeRefOrGetter<string>
   adminFetch: (url: string) => Promise<unknown>
 }) {
   const config = useRuntimeConfig()
+  const { t } = useI18n()
   const enabled = computed(() => Boolean(config.public.externalCalendarModule))
 
   const data = ref<AdminExternalCalendarPayload | null>(null)
   const pending = ref(false)
+  const error = ref('')
 
   async function refreshIfEnabled() {
     const slug = toValue(opts.clubSlug)?.trim()
     const date = toValue(opts.date)
-    if (!enabled.value || !slug) {
+    const secret = toValue(opts.secret)?.trim()
+    if (!enabled.value || !slug || !secret) {
       data.value = null
+      error.value = ''
+      pending.value = false
       return
     }
     pending.value = true
+    error.value = ''
     try {
       data.value = await opts.adminFetch(
         `/api/admin/calendar-sources?clubSlug=${encodeURIComponent(slug)}&date=${encodeURIComponent(date)}`,
       ) as AdminExternalCalendarPayload
-    } catch {
+    } catch (err: unknown) {
       data.value = null
+      const status = (err as { statusCode?: number })?.statusCode
+      if (status === 403) {
+        error.value = t('admin.invalidSecret')
+      } else {
+        error.value = t('admin.calendarOverlayError')
+      }
     } finally {
       pending.value = false
     }
   }
 
-  watch([enabled, () => toValue(opts.clubSlug), () => toValue(opts.date)], () => {
-    void refreshIfEnabled()
-  }, { immediate: true })
+  watch(
+    [enabled, () => toValue(opts.clubSlug), () => toValue(opts.date), () => toValue(opts.secret)],
+    () => {
+      void refreshIfEnabled()
+    },
+    { immediate: true },
+  )
 
   const cellByKey = computed(() => {
     const map = new Map<string, AdminExternalCell>()
@@ -127,6 +144,7 @@ export function useAdminExternalCalendarOverlay(opts: {
   return {
     externalOverlayEnabled: enabled,
     externalOverlayPending: pending,
+    externalOverlayError: error,
     isExternalOnlyOccupied,
     externalSiteBadge,
     refreshExternalOverlay: refreshIfEnabled,

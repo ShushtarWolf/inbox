@@ -3,6 +3,7 @@ import { loadInboxOwnerCalendar } from './inboxCalendar'
 import { fetchExternalOccupancy } from './adapters'
 import { mergeOccupancy } from './merge'
 import { persistAndMergeExternalOccupancy } from './occupancySnapshots'
+import { remapExternalOccupancyCourtKeys } from './remapExternalCourtKeys'
 import { enrichCellsWithSourceDetails } from './sourceDetails'
 import { SOURCE_LABELS, type ExternalAdapterResult, type ExternalSourceId } from './types'
 
@@ -24,7 +25,7 @@ export async function buildCalendarSourcesResponse(opts: {
     sessionDurationMinutes: inbox.sessionDurationMinutes,
   })
 
-  const occupied = mapped
+  const occupiedRaw = mapped
     ? await persistAndMergeExternalOccupancy({
         clubId: opts.clubId,
         date: opts.date,
@@ -32,6 +33,12 @@ export async function buildCalendarSourcesResponse(opts: {
         adapters: external.adapters,
       })
     : external.occupied
+
+  const occupied = await remapExternalOccupancyCourtKeys({
+    courts: inbox.courts,
+    mapping,
+    occupied: occupiedRaw,
+  })
 
   const cells = enrichCellsWithSourceDetails(
     mergeOccupancy(inbox.slots, occupied),
