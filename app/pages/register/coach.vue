@@ -1,12 +1,14 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'guest' })
-
+/**
+ * Deep-link into coach signup. No guest middleware — logged-in users adding
+ * COACH as another role must reach openRegister (guest MW used to bounce them).
+ */
 const localePath = useLocalePath()
 const { openRegister } = useAuthFlow()
 
 onMounted(async () => {
-  openRegister({ role: 'COACH' })
-  await navigateTo(localePath('/'))
+  openRegister({ role: 'COACH', returnTo: localePath('/coach') })
+  await navigateTo(localePath('/'), { replace: true })
 })
 </script>
 

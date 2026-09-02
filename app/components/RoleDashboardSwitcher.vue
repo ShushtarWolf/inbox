@@ -8,6 +8,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { openRegister } = useAuthFlow()
 const { pilotNoCoach } = usePilotFlags()
 const {
   heldRoles,
@@ -41,6 +42,15 @@ const switchTargets = computed(() => {
 function onSwitch(role: PlatformRole) {
   rememberRole(role)
 }
+
+/** Open register sheet in-place — do not navigate to /register/* (guest middleware bounces logged-in users). */
+function applyCoach() {
+  openRegister({ role: 'COACH', returnTo: localePath('/coach') })
+}
+
+function applyOwner() {
+  openRegister({ role: 'CLUB_ADMIN', returnTo: localePath('/owner') })
+}
 </script>
 
 <template>
@@ -63,20 +73,22 @@ function onSwitch(role: PlatformRole) {
 
     <template v-if="showNewRoleSection()">
       <p class="pt-2 text-xs font-bold text-brand-navy text-start">{{ t('auth.chooseRole.newRoleTitle') }}</p>
-      <NuxtLink
+      <button
         v-if="canOfferCoach()"
-        :to="localePath('/register/coach')"
+        type="button"
         class="canva-gate-btn-secondary block w-full text-center text-sm"
+        @click="applyCoach"
       >
         {{ t('auth.chooseRole.applyCoach') }}
-      </NuxtLink>
-      <NuxtLink
+      </button>
+      <button
         v-if="canOfferOwner()"
-        :to="localePath('/register/owner')"
+        type="button"
         class="canva-gate-btn-secondary block w-full text-center text-sm"
+        @click="applyOwner"
       >
         {{ t('auth.chooseRole.applyOwner') }}
-      </NuxtLink>
+      </button>
     </template>
   </div>
 </template>

@@ -6,7 +6,7 @@ import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
 const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { fetch: fetchAuth } = useAuth()
+const { user, fetch: fetchAuth } = useAuth()
 const {
   open,
   step,
@@ -39,6 +39,8 @@ const error = ref('')
 const debugCode = ref('')
 const maskedPhone = ref('')
 const selectedRole = ref<AuthFlowRole>('ATHLETE')
+/** When adding a role on an existing session, keep phone on this account. */
+const phoneLocked = ref(false)
 
 const { smsMode, smsPhase, smsLive } = useSmsCapability()
 const {
@@ -130,6 +132,18 @@ function resetForm() {
   maskedPhone.value = ''
   pending.value = false
   selectedRole.value = 'ATHLETE'
+  phoneLocked.value = false
+}
+
+/** Prefill identity from the logged-in session so "نقش جدید" merges onto the same account. */
+function prefillFromSessionIfAddingRole() {
+  if (purpose.value !== 'register') return
+  const session = user.value
+  if (!session?.phone) return
+  phone.value = session.phone
+  phoneLocked.value = true
+  if (session.name?.trim()) name.value = session.name.trim()
+  if (session.gender === 'MALE' || session.gender === 'FEMALE') gender.value = session.gender
 }
 
 function handleClose() {
@@ -521,7 +535,11 @@ function restartSmsOtpAutofill() {
 }
 
 watch(open, (isOpen) => {
-  if (!isOpen) resetForm()
+  if (!isOpen) {
+    resetForm()
+    return
+  }
+  prefillFromSessionIfAddingRole()
 })
 
 watch([open, step, otpAutofillGen], restartSmsOtpAutofill)
@@ -540,6 +558,7 @@ watch(smsLive, (live) => {
 
 watch(step, (next) => {
   if (next === 'role') selectedRole.value = role.value
+  if (next === 'register') prefillFromSessionIfAddingRole()
 })
 
 // Dismiss leftover session notice when user navigates to a public page (e.g. club detail).
@@ -689,8 +708,10 @@ watch(
                 dir="ltr"
                 inputmode="tel"
                 class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
                 placeholder="09xxxxxxxxx"
                 autocomplete="tel"
+                :readonly="phoneLocked"
                 required
               />
             </AppFormField>
@@ -755,8 +776,10 @@ watch(
                 dir="ltr"
                 inputmode="tel"
                 class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
                 placeholder="09xxxxxxxxx"
                 autocomplete="tel"
+                :readonly="phoneLocked"
                 required
               />
             </AppFormField>
@@ -807,8 +830,10 @@ watch(
                 dir="ltr"
                 inputmode="tel"
                 class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
                 :placeholder="t('auth.ownerPhone')"
                 autocomplete="tel"
+                :readonly="phoneLocked"
                 required
               />
             </AppFormField>
@@ -899,8 +924,10 @@ watch(
                 dir="ltr"
                 inputmode="tel"
                 class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
                 :placeholder="t('common.mobile')"
                 autocomplete="tel"
+                :readonly="phoneLocked"
               />
             </AppFormField>
             <AppFormField field-id="auth-email" :label="t('auth.emailOptional')">

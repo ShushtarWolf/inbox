@@ -5,6 +5,7 @@ definePageMeta({ middleware: ['auth'], ssr: false })
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { openRegister } = useAuthFlow()
 const {
   user,
   fetch,
@@ -15,6 +16,15 @@ const {
   canOfferOwner,
   showNewRoleSection,
 } = usePlatformRoles()
+
+/** Open register sheet in-place — /register/* uses guest middleware and bounces logged-in users. */
+function applyCoach() {
+  openRegister({ role: 'COACH', returnTo: localePath('/coach') })
+}
+
+function applyOwner() {
+  openRegister({ role: 'CLUB_ADMIN', returnTo: localePath('/owner') })
+}
 
 const loading = ref(true)
 
@@ -113,24 +123,26 @@ async function onPick(role: PlatformRole) {
       <div class="my-6 border-t border-brand-gray-200" />
       <p class="text-xs font-extrabold text-brand-navy">{{ t('auth.chooseRole.newRoleTitle') }}</p>
       <div class="mt-3 flex flex-col gap-2 sm:grid sm:grid-cols-2">
-        <NuxtLink
+        <button
           v-if="canOfferCoach()"
-          :to="localePath('/register/coach')"
+          type="button"
           class="flex items-center justify-between border border-dashed border-brand-gray-300 px-4 py-3.5 text-sm font-bold text-brand-navy transition hover:border-brand-primary hover:text-brand-primary"
           style="border-radius: 2px;"
+          @click="applyCoach"
         >
           <span>{{ t('auth.chooseRole.applyCoach') }}</span>
           <span class="text-[11px] font-semibold text-brand-gray-600">{{ t('auth.chooseRole.needsAdmin') }}</span>
-        </NuxtLink>
-        <NuxtLink
+        </button>
+        <button
           v-if="canOfferOwner()"
-          :to="localePath('/register/owner')"
+          type="button"
           class="flex items-center justify-between border border-dashed border-brand-gray-300 px-4 py-3.5 text-sm font-bold text-brand-navy transition hover:border-brand-primary hover:text-brand-primary"
           style="border-radius: 2px;"
+          @click="applyOwner"
         >
           <span>{{ t('auth.chooseRole.applyOwner') }}</span>
           <span class="text-[11px] font-semibold text-brand-gray-600">{{ t('auth.chooseRole.needsAdmin') }}</span>
-        </NuxtLink>
+        </button>
       </div>
     </template>
 

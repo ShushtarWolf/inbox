@@ -1,6 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'guest' })
-
+/**
+ * Deep-link into signup. No guest middleware — logged-in users adding another
+ * role (e.g. ?role=owner) must reach openRegister without being bounced.
+ */
 const localePath = useLocalePath()
 const route = useRoute()
 const { openRegister } = useAuthFlow()
@@ -13,14 +15,14 @@ const returnTo = computed(() => {
 onMounted(async () => {
   const role = route.query.role
   if (role === 'owner') {
-    openRegister({ returnTo: returnTo.value || undefined, role: 'CLUB_ADMIN' })
+    openRegister({ returnTo: returnTo.value || localePath('/owner'), role: 'CLUB_ADMIN' })
   } else if (role === 'athlete') {
     openRegister({ returnTo: returnTo.value || undefined, role: 'ATHLETE' })
   } else {
     // Bare /register (and legacy ?role=coach) → athlete/owner picker only.
     openRegister({ returnTo: returnTo.value || undefined })
   }
-  await navigateTo(localePath('/'))
+  await navigateTo(localePath('/'), { replace: true })
 })
 </script>
 
