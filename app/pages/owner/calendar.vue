@@ -3135,58 +3135,56 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
-              <div class="min-w-0 flex-1 venus-form-stack">
-                <div class="venus-form-grid">
-                  <AppFormField :label="t('owner.guestName')" required>
-                    <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
-                  </AppFormField>
-                  <AppFormField :label="t('owner.guestFamily')" required>
-                    <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
-                  </AppFormField>
+            <div class="venus-form-stack">
+              <div class="venus-form-grid">
+                <AppFormField :label="t('owner.guestName')" required>
+                  <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
+                </AppFormField>
+                <AppFormField :label="t('owner.guestFamily')" required>
+                  <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+                </AppFormField>
+              </div>
+              <AppFormField :label="t('owner.guestMobile')" required>
+                <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+              </AppFormField>
+              <AppFormField :label="t('owner.packagesPage.dateRange')" required>
+                <AppDateRangeInput
+                  v-model:start="seasonForm.startDate"
+                  v-model:end="seasonForm.finishDate"
+                  :invalid="seasonDateRangeInvalid || seasonStartInPast"
+                  :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
+                />
+              </AppFormField>
+              <div>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="day in weekdayOptions"
+                    :key="day"
+                    type="button"
+                    class="canva-chip"
+                    :class="seasonForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                    @click="toggleSeasonDay(day)"
+                  >
+                    {{ t(`owner.weekdays.${day}`) }}
+                  </button>
                 </div>
-                <AppFormField :label="t('owner.guestMobile')" required>
-                  <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
-                </AppFormField>
-                <AppFormField :label="t('owner.packagesPage.dateRange')" required>
-                  <AppDateRangeInput
-                    v-model:start="seasonForm.startDate"
-                    v-model:end="seasonForm.finishDate"
-                    :invalid="seasonDateRangeInvalid || seasonStartInPast"
-                    :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
-                  />
-                </AppFormField>
-                <div>
-                  <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      v-for="day in weekdayOptions"
-                      :key="day"
-                      type="button"
-                      class="canva-chip"
-                      :class="seasonForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
-                      @click="toggleSeasonDay(day)"
-                    >
-                      {{ t(`owner.weekdays.${day}`) }}
-                    </button>
-                  </div>
-                </div>
-                <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-                  <select v-model="seasonForm.equipmentId" class="neo-select">
-                    <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                    <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                  </select>
-                </AppFormField>
-                <AppFormField :label="t('owner.comments')">
-                  <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
-                </AppFormField>
               </div>
               <OwnerDayTimeSchedules
                 v-model:day-times="seasonForm.dayTimes"
                 :days="seasonForm.days"
                 :options="scheduleTimeOptions"
-                class="w-full shrink-0 lg:w-52"
+                compact
               />
+              <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+                <select v-model="seasonForm.equipmentId" class="neo-select">
+                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                </select>
+              </AppFormField>
+              <AppFormField :label="t('owner.comments')">
+                <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
+              </AppFormField>
             </div>
             <p v-if="seasonSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ seasonSessionLabel }}
@@ -3240,66 +3238,64 @@ const legend = [
             </div>
           </div>
           <div class="venus-modal-panel-body">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
-              <div class="min-w-0 flex-1 venus-form-stack">
-                <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
-                  <select v-model="packageForm.coachId" class="neo-select">
-                    <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
-                    <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">
-                      {{ localizedField(coach, 'nameFa', 'nameEn') }} — {{ formatCurrency(coach.sessionPrice) }}
-                    </option>
-                  </select>
+            <div class="venus-form-stack">
+              <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
+                <select v-model="packageForm.coachId" class="neo-select">
+                  <option value="">{{ t('owner.packagePage.coachPlaceholder') }}</option>
+                  <option v-for="coach in clubCoaches" :key="coach.id" :value="coach.id">
+                    {{ localizedField(coach, 'nameFa', 'nameEn') }} — {{ formatCurrency(coach.sessionPrice) }}
+                  </option>
+                </select>
+              </AppFormField>
+              <div class="venus-form-grid">
+                <AppFormField :label="t('owner.guestName')" required>
+                  <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
                 </AppFormField>
-                <div class="venus-form-grid">
-                  <AppFormField :label="t('owner.guestName')" required>
-                    <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
-                  </AppFormField>
-                  <AppFormField :label="t('owner.guestFamily')" required>
-                    <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
-                  </AppFormField>
+                <AppFormField :label="t('owner.guestFamily')" required>
+                  <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
+                </AppFormField>
+              </div>
+              <AppFormField :label="t('owner.guestMobile')" required>
+                <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+              </AppFormField>
+              <AppFormField :label="t('owner.packagesPage.dateRange')" required>
+                <AppDateRangeInput
+                  v-model:start="packageForm.startDate"
+                  v-model:end="packageForm.finishDate"
+                  :invalid="packageDateRangeInvalid || packageStartInPast"
+                  :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
+                />
+              </AppFormField>
+              <div>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="day in weekdayOptions"
+                    :key="day"
+                    type="button"
+                    class="canva-chip"
+                    :class="packageForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                    @click="togglePackageDay(day)"
+                  >
+                    {{ t(`owner.weekdays.${day}`) }}
+                  </button>
                 </div>
-                <AppFormField :label="t('owner.guestMobile')" required>
-                  <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
-                </AppFormField>
-                <AppFormField :label="t('owner.packagesPage.dateRange')" required>
-                  <AppDateRangeInput
-                    v-model:start="packageForm.startDate"
-                    v-model:end="packageForm.finishDate"
-                    :invalid="packageDateRangeInvalid || packageStartInPast"
-                    :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
-                  />
-                </AppFormField>
-                <div>
-                  <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      v-for="day in weekdayOptions"
-                      :key="day"
-                      type="button"
-                      class="canva-chip"
-                      :class="packageForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
-                      @click="togglePackageDay(day)"
-                    >
-                      {{ t(`owner.weekdays.${day}`) }}
-                    </button>
-                  </div>
-                </div>
-                <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-                  <select v-model="packageForm.equipmentId" class="neo-select">
-                    <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                    <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                  </select>
-                </AppFormField>
-                <AppFormField :label="t('owner.comments')">
-                  <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
-                </AppFormField>
               </div>
               <OwnerDayTimeSchedules
                 v-model:day-times="packageForm.dayTimes"
                 :days="packageForm.days"
                 :options="scheduleTimeOptions"
-                class="w-full shrink-0 lg:w-52"
+                compact
               />
+              <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
+                <select v-model="packageForm.equipmentId" class="neo-select">
+                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
+                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
+                </select>
+              </AppFormField>
+              <AppFormField :label="t('owner.comments')">
+                <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
+              </AppFormField>
             </div>
             <p v-if="packageSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ packageSessionLabel }}
