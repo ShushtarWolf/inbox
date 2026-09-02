@@ -52,6 +52,18 @@ export function unionFreeSlots(results: Array<{ freeSlots: Set<string> }>): Set<
   return union
 }
 
+
+/** Keys are `productId:HH:mm`. One distinct clock time is a truncated payload, not a booked-out club. */
+export function isTruncatedAloPlayFreeSet(freeSlots: Set<string>): boolean {
+  const starts = new Set<string>()
+  for (const key of freeSlots) {
+    const colon = key.indexOf(':')
+    if (colon === -1) continue
+    starts.add(key.slice(colon + 1))
+  }
+  return starts.size < 2
+}
+
 /** Slots not listed in GetAvailableTime union are suspected occupied. */
 export function suspectedOccupiedFromFreeSet(
   mappedCourts: Array<{ courtKey: string; productId: number; starts: string[] }>,
