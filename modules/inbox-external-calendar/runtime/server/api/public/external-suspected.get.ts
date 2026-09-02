@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
     clubId: club.id,
     date,
     liveOccupied: external.occupied,
+    adapters: external.adapters,
   })
 
   return {

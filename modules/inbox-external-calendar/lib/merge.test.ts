@@ -244,7 +244,7 @@ describe('parseAloVarzeshOccupiedTimes', () => {
 })
 
 describe('mergeLiveWithStoredOccupancy', () => {
-  it('keeps stored AloVarzesh occupancy when live returns empty', () => {
+  it('falls back to stored AloVarzesh when live fetch failed', () => {
     const merged = mergeLiveWithStoredOccupancy(
       [],
       [{
@@ -253,6 +253,7 @@ describe('mergeLiveWithStoredOccupancy', () => {
         endTime: '10:00',
         source: 'alovarzesh',
       }],
+      { alovarzesh: false },
     )
     expect(merged).toEqual([{
       courtKey: 'c1',
@@ -262,7 +263,7 @@ describe('mergeLiveWithStoredOccupancy', () => {
     }])
   })
 
-  it('unions live AloPlay with stored AloVarzesh on different slots', () => {
+  it('uses live AloPlay and live AloVarzesh independently when both succeed', () => {
     const merged = mergeLiveWithStoredOccupancy(
       [{
         courtKey: 'c1',
@@ -276,6 +277,7 @@ describe('mergeLiveWithStoredOccupancy', () => {
         endTime: '10:00',
         source: 'alovarzesh',
       }],
+      { aloplay: true, alovarzesh: false },
     )
     expect(merged).toHaveLength(2)
     expect(merged.map((slot) => `${slot.source}:${slot.startTime}`)).toEqual([
@@ -284,22 +286,55 @@ describe('mergeLiveWithStoredOccupancy', () => {
     ])
   })
 
-  it('prefers stored row when live and stored share the same key', () => {
+  it('drops stored rows when live succeeded and returned fewer slots (occupancy shrinks)', () => {
     const merged = mergeLiveWithStoredOccupancy(
       [{
         courtKey: 'c1',
-        startTime: '10:00',
-        endTime: '11:00',
+        startTime: '17:00',
+        endTime: '18:00',
         source: 'aloplay',
       }],
+      [
+        {
+          courtKey: 'c1',
+          startTime: '07:00',
+          endTime: '08:00',
+          source: 'aloplay',
+        },
+        {
+          courtKey: 'c1',
+          startTime: '08:00',
+          endTime: '09:00',
+          source: 'aloplay',
+        },
+        {
+          courtKey: 'c1',
+          startTime: '17:00',
+          endTime: '18:00',
+          source: 'aloplay',
+        },
+      ],
+      { aloplay: true },
+    )
+    expect(merged).toEqual([{
+      courtKey: 'c1',
+      startTime: '17:00',
+      endTime: '18:00',
+      source: 'aloplay',
+    }])
+  })
+
+  it('returns empty live AloVarzesh when fetch succeeded and all slots are free', () => {
+    const merged = mergeLiveWithStoredOccupancy(
+      [],
       [{
         courtKey: 'c1',
-        startTime: '10:00',
-        endTime: '11:00',
-        source: 'aloplay',
+        startTime: '16:00',
+        endTime: '17:00',
+        source: 'alovarzesh',
       }],
+      { alovarzesh: true },
     )
-    expect(merged).toHaveLength(1)
-    expect(merged[0]?.source).toBe('aloplay')
+    expect(merged).toEqual([])
   })
 })

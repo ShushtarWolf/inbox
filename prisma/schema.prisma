@@ -527,7 +527,8 @@ model Slot {
 
 /**
  * Durable overlay of slots occupied on external booking sites.
- * Upserted whenever adapters see occupancy; never auto-deleted so past days stay visible.
+ * Upserted whenever a live adapter fetch succeeds; replaced per club+date+source so occupancy can shrink.
+ * Failed live fetches keep the last stored rows as fallback.
  */
 model ExternalOccupancySnapshot {
   id          String                   @id @default(cuid())

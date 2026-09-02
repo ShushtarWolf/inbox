@@ -29,6 +29,7 @@ export async function buildCalendarSourcesResponse(opts: {
         clubId: opts.clubId,
         date: opts.date,
         liveOccupied: external.occupied,
+        adapters: external.adapters,
       })
     : external.occupied
 
