@@ -42,7 +42,7 @@ describe('parseAvailableTimePayload', () => {
     expect(isAloPlaySlotFree(freeSlots, 112282, '10:00')).toBe(false)
   })
 
-  it('treats valid empty data as no free slots (not an error)', () => {
+  it('treats valid empty data as no free slots at parse time (adapter rejects empty free set)', () => {
     const { freeSlots, error } = parseAvailableTimePayload({ data: [], statusCode: 0 })
     expect(error).toBeUndefined()
     expect(freeSlots.size).toBe(0)
@@ -97,5 +97,14 @@ describe('suspectedOccupiedFromFreeSet', () => {
     const union = unionFreeSlots([fromAvailable])
     const occupied = suspectedOccupiedFromFreeSet(court3Mapping, union)
     expect(occupied.some((slot) => slot.courtKey === 'court-3' && slot.startTime === '17:00')).toBe(false)
+  })
+})
+
+describe('empty GetAvailableTime must not paint whole day', () => {
+  it('empty free set would mark every mapped hour without the adapter guard', () => {
+    const { freeSlots } = parseAvailableTimePayload({ data: [], statusCode: 0 })
+    expect(freeSlots.size).toBe(0)
+    const occupied = suspectedOccupiedFromFreeSet(allCourtsMapping, freeSlots)
+    expect(occupied.length).toBe(allCourtsMapping.reduce((count, court) => count + court.starts.length, 0))
   })
 })

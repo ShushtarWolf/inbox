@@ -69,4 +69,4 @@ Login flow (from AloPlay Flutter client): `GET v1/User/IsExsist`, then `POST v1/
 - Courtic: stub
 - AloPlay occupancy: slots **not** in GetAvailableTime for mapped `productId` are suspected occupied; `remainedCapacity` from GetByTime is ignored
 - polling ~۲۵ث؛ cache adapter ~۴۵ث
-- Occupancy snapshots: live AloPlay/AloVarzesh hits are upserted into `ExternalOccupancySnapshot` and merged back for past days (rows are never auto-deleted)
+- Occupancy snapshots: successful live AloPlay/AloVarzesh fetches **replace** DB rows for that club+date+source (occupancy can shrink). Failed live fetches fall back to the last stored rows. Empty GetAvailableTime never paints the whole day occupied.

@@ -1,10 +1,11 @@
 import type { ExternalOccupancySource } from '@prisma/client'
 import {
+  buildLiveSucceededBySource,
   isPersistableExternalSource,
   mergeLiveWithStoredOccupancy,
   type PersistableExternalSource,
 } from '../../../lib/occupancySnapshots'
-import type { ExternalOccupiedSlot, ExternalSourceId } from './types'
+import type { ExternalAdapterResult, ExternalOccupiedSlot, ExternalSourceId } from './types'
 
 const SOURCE_TO_PRISMA: Record<PersistableExternalSource, ExternalOccupancySource> = {
   aloplay: 'ALOPLAY',
@@ -18,7 +19,7 @@ const PRISMA_TO_SOURCE: Record<ExternalOccupancySource, PersistableExternalSourc
   COURTIC: 'courtic',
 }
 
-export { mergeLiveWithStoredOccupancy }
+export { mergeLiveWithStoredOccupancy, buildLiveSucceededBySource }
 
 export async function persistExternalOccupancySnapshots(opts: {
   clubId: string
@@ -58,6 +59,26 @@ export async function persistExternalOccupancySnapshots(opts: {
   }))
 }
 
+async function replaceExternalOccupancySnapshotsForSource(opts: {
+  clubId: string
+  date: string
+  source: PersistableExternalSource
+  occupied: ExternalOccupiedSlot[]
+}): Promise<void> {
+  await prisma.externalOccupancySnapshot.deleteMany({
+    where: {
+      clubId: opts.clubId,
+      date: opts.date,
+      source: SOURCE_TO_PRISMA[opts.source],
+    },
+  })
+  await persistExternalOccupancySnapshots({
+    clubId: opts.clubId,
+    date: opts.date,
+    occupied: opts.occupied,
+  })
+}
+
 export async function loadExternalOccupancySnapshots(opts: {
   clubId: string
   date: string
@@ -73,20 +94,32 @@ export async function loadExternalOccupancySnapshots(opts: {
   }))
 }
 
-/** Persist live occupancy, then return live ∪ stored snapshots for this club+date. */
+/**
+ * When live fetch succeeds for a source, replace DB snapshots (occupancy can shrink).
+ * When live fetch fails, keep last snapshots and use them as fallback.
+ */
 export async function persistAndMergeExternalOccupancy(opts: {
   clubId: string
   date: string
   liveOccupied: ExternalOccupiedSlot[]
+  adapters: ExternalAdapterResult[]
 }): Promise<ExternalOccupiedSlot[]> {
-  await persistExternalOccupancySnapshots({
-    clubId: opts.clubId,
-    date: opts.date,
-    occupied: opts.liveOccupied,
-  })
+  const liveSucceededBySource = buildLiveSucceededBySource(opts.adapters)
+
+  for (const source of ['aloplay', 'alovarzesh', 'courtic'] as PersistableExternalSource[]) {
+    if (!liveSucceededBySource[source]) continue
+    const sourceLive = opts.liveOccupied.filter((slot) => slot.source === source)
+    await replaceExternalOccupancySnapshotsForSource({
+      clubId: opts.clubId,
+      date: opts.date,
+      source,
+      occupied: sourceLive,
+    })
+  }
+
   const stored = await loadExternalOccupancySnapshots({
     clubId: opts.clubId,
     date: opts.date,
   })
-  return mergeLiveWithStoredOccupancy(opts.liveOccupied, stored) as ExternalOccupiedSlot[]
+  return mergeLiveWithStoredOccupancy(opts.liveOccupied, stored, liveSucceededBySource) as ExternalOccupiedSlot[]
 }

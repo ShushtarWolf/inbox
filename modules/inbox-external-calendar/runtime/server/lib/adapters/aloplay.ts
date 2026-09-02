@@ -132,6 +132,13 @@ export async function fetchAloPlayOccupied(opts: {
   }
 
   const freeSlots = unionFreeSlots(successfulParses)
+  if (freeSlots.size === 0) {
+    return {
+      occupied: [],
+      error: 'GetAvailableTime returned no free slots — refusing to mark entire day occupied',
+    }
+  }
+
   const suspected = suspectedOccupiedFromFreeSet(mappedCourts, freeSlots)
   const occupied: ExternalOccupiedSlot[] = suspected.map(({ courtKey, startTime }) => ({
     courtKey,
