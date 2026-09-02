@@ -1,5 +1,4 @@
 import { addOneHour } from '../../utils/reservations'
-import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -31,17 +30,15 @@ export default defineEventHandler(async (event) => {
   })
 
   const takenTimes = new Set(sessions.map((session) => session.startTime))
+  // Include elapsed free hours so coaches can backfill lessons for finance (same as club desk).
   const freeSlots: Array<{ startTime: string; endTime: string }> = []
-
-  if (!isPastDate(date)) {
-    for (const window of windows) {
-      const startHour = Number(window.startTime.split(':')[0] || 0)
-      const endHour = Number(window.endTime.split(':')[0] || 0)
-      for (let hour = startHour; hour < endHour; hour++) {
-        const startTime = `${String(hour).padStart(2, '0')}:00`
-        if (!takenTimes.has(startTime) && !isSlotStartInPast(date, startTime)) {
-          freeSlots.push({ startTime, endTime: addOneHour(startTime) })
-        }
+  for (const window of windows) {
+    const startHour = Number(window.startTime.split(':')[0] || 0)
+    const endHour = Number(window.endTime.split(':')[0] || 0)
+    for (let hour = startHour; hour < endHour; hour++) {
+      const startTime = `${String(hour).padStart(2, '0')}:00`
+      if (!takenTimes.has(startTime)) {
+        freeSlots.push({ startTime, endTime: addOneHour(startTime) })
       }
     }
   }

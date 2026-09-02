@@ -5,7 +5,7 @@ import { notifyBookingConfirmed, clubNotifyLocation, clubNotifyName, personNotif
 import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLinks'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
-import { addOneHour, assertSlotBookable } from '../../utils/reservations'
+import { addOneHour } from '../../utils/reservations'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
   await requireActiveClub(slot.court.clubId)
-  assertSlotBookable(slot.date, slot.startTime)
+  // Coaches may book elapsed hours for backfill / finance; athletes still hit assertSlotBookable.
 
   const staleCancelledBooking = slot.displayStatus === 'FREE' && slot.booking?.status === 'CANCELLED'
     ? slot.booking

@@ -24,7 +24,7 @@ type SchedulePayload = {
 
 type HourRow =
   | { kind: 'booked'; startTime: string; endTime: string; session: ScheduleSession }
-  | { kind: 'free'; startTime: string; endTime: string }
+  | { kind: 'free'; startTime: string; endTime: string; past: boolean }
   | { kind: 'past'; startTime: string; endTime: string }
   | { kind: 'closed'; startTime: string; endTime: string }
 
@@ -78,7 +78,12 @@ const hourRows = computed<HourRow[]>(() => {
       return { kind: 'booked' as const, startTime, endTime: session.endTime.slice(0, 5), session }
     }
     if (freeStarts.has(startTime)) {
-      return { kind: 'free' as const, startTime, endTime }
+      return {
+        kind: 'free' as const,
+        startTime,
+        endTime,
+        past: isSlotStartInPast(payload.date, startTime),
+      }
     }
     if (isSlotStartInPast(payload.date, startTime)) {
       return { kind: 'past' as const, startTime, endTime }
@@ -106,14 +111,16 @@ function closeDatePicker() {
 
 function cellClass(row: HourRow) {
   if (row.kind === 'booked') return 'slot-reserved-cash'
-  if (row.kind === 'free') return 'slot-free'
+  if (row.kind === 'free') return row.past ? 'slot-past' : 'slot-free'
   if (row.kind === 'past') return 'slot-past'
   return 'slot-closed'
 }
 
 function barClass(row: HourRow) {
   if (row.kind === 'booked') return 'canva-cal-grid-cell-bar-reserved-cash'
-  if (row.kind === 'free') return 'canva-cal-grid-cell-bar-free'
+  if (row.kind === 'free') {
+    return row.past ? 'canva-cal-grid-cell-bar-blocked' : 'canva-cal-grid-cell-bar-free coach-cal-bar-free'
+  }
   if (row.kind === 'past') return 'canva-cal-grid-cell-bar-blocked'
   return 'canva-cal-grid-cell-bar-blocked'
 }
@@ -195,11 +202,14 @@ function bookLinkFor(startTime: string) {
               <NuxtLink
                 v-if="row.kind === 'free'"
                 :to="bookLinkFor(row.startTime)"
-                class="canva-cal-grid-cell slot-free"
+                class="canva-cal-grid-cell"
+                :class="cellClass(row)"
               >
-                <span class="canva-cal-grid-cell-bar canva-cal-grid-cell-bar-free coach-cal-bar-free" />
+                <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
                 <div class="canva-cal-grid-cell-body">
-                  <p class="canva-cal-grid-cell-label">{{ $t('coach.scheduleFreeSlot') }}</p>
+                  <p class="canva-cal-grid-cell-label">
+                    {{ row.past ? $t('coach.schedulePastSlot') : $t('coach.scheduleFreeSlot') }}
+                  </p>
                   <p class="canva-cal-grid-cell-sub">{{ $t('coach.scheduleBookCta') }}</p>
                 </div>
               </NuxtLink>

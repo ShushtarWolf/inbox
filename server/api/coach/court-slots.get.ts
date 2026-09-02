@@ -1,5 +1,4 @@
 import { computeCoachCourtCharge } from '#shared/coachCourt.ts'
-import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLinks'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 
@@ -15,10 +14,6 @@ export default defineEventHandler(async (event) => {
   const coach = await requireApprovedCoach(user.id)
   await requireActiveClub(clubId)
 
-  if (isPastDate(date)) {
-    return { date, slots: [] }
-  }
-
   await ensureSlotsForDate(clubId, date)
   await releaseExpiredOnlinePaymentHolds({ clubId })
 
@@ -28,27 +23,26 @@ export default defineEventHandler(async (event) => {
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })
 
+  // Past FREE hours stay selectable for coach backfill (mirrors owner desk reserve).
   return {
     date,
     sessionPrice: coach.sessionPrice,
-    slots: slots
-      .filter((slot) => !isSlotStartInPast(slot.date, slot.startTime))
-      .map((slot) => {
-        const price = computeCoachCourtCharge({
-          courtPrice: slot.court.price,
-          startTime: slot.startTime,
-          pricingJson: slot.court.pricingJson,
-        })
-        return {
-          id: slot.id,
-          courtId: slot.courtId,
-          courtNameFa: slot.court.nameFa,
-          courtNameEn: slot.court.nameEn,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          listedPrice: price.listed,
-          courtCharge: price.charge,
-        }
-      }),
+    slots: slots.map((slot) => {
+      const price = computeCoachCourtCharge({
+        courtPrice: slot.court.price,
+        startTime: slot.startTime,
+        pricingJson: slot.court.pricingJson,
+      })
+      return {
+        id: slot.id,
+        courtId: slot.courtId,
+        courtNameFa: slot.court.nameFa,
+        courtNameEn: slot.court.nameEn,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        listedPrice: price.listed,
+        courtCharge: price.charge,
+      }
+    }),
   }
 })

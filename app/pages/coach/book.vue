@@ -282,7 +282,7 @@ async function startTopUp() {
           </select>
         </AppFormField>
 
-        <AppDateInput v-model="date" :label="$t('common.date')" :min-date="today" />
+        <AppDateInput v-model="date" :label="$t('common.date')" />
 
         <section class="space-y-3">
           <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.book.pickSlot') }}</h2>
