@@ -1,18 +1,30 @@
 <template>
-  <div class="tail-card overflow-hidden" role="status" aria-live="polite" aria-busy="true">
-    <div class="border-b border-brand-gray-200 px-5 py-5 sm:px-7">
-      <div class="tail-skeleton h-3 w-28" />
-      <div class="tail-skeleton mt-3 h-7 w-40" />
-      <div class="tail-skeleton mt-2 h-4 w-56" />
-      <div class="tail-skeleton mt-5 h-10 w-44 rounded-full" />
+  <div
+    class="overflow-hidden rounded-[2px] border border-brand-gray-200 bg-white"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <div class="border-b border-brand-gray-200 px-3 py-3">
+      <div class="tail-skeleton h-4 w-36" />
+      <div class="mt-3 flex gap-2">
+        <div class="tail-skeleton h-9 w-20 rounded-[2px]" />
+        <div class="tail-skeleton h-9 w-20 rounded-[2px]" />
+      </div>
     </div>
-    <div class="p-5 sm:p-7">
-      <div class="grid grid-cols-[5.5rem_1fr_1fr_1fr] gap-3">
+    <div class="p-2">
+      <div class="mb-2 grid grid-cols-[3.5rem_1fr_1fr_1fr] gap-1">
         <div />
-        <div v-for="column in 3" :key="`head-${column}`" class="tail-skeleton h-10 rounded-lg" />
-        <template v-for="row in 4" :key="`row-${row}`">
-          <div class="tail-skeleton h-16 rounded-lg" />
-          <div v-for="column in 3" :key="`cell-${row}-${column}`" class="tail-skeleton h-24 rounded-lg" />
+        <div v-for="column in 3" :key="`head-${column}`" class="tail-skeleton h-8 rounded-[2px]" />
+      </div>
+      <div class="grid grid-cols-[3.5rem_1fr_1fr_1fr] gap-1">
+        <template v-for="row in 8" :key="`row-${row}`">
+          <div class="tail-skeleton h-[3.5rem] rounded-[2px]" />
+          <div
+            v-for="column in 3"
+            :key="`cell-${row}-${column}`"
+            class="tail-skeleton min-h-[3.5rem] rounded-[2px]"
+          />
         </template>
       </div>
     </div>

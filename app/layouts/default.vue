@@ -3,7 +3,9 @@ import type { NavItem } from '#shared/nav.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
+const { user, loggedIn, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
+/** Reserve tab-bar space from session cookie before profile hydrates (CLS on /coaches). */
+const reserveTabBar = computed(() => Boolean(user.value || loggedIn.value))
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
@@ -54,7 +56,7 @@ onMounted(() => {
 <template>
   <div
     class="flex min-h-dvh flex-col min-[431px]:pb-0"
-    :class="user ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))]' : ''"
+    :class="reserveTabBar ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))]' : ''"
   >
     <div class="hidden min-[431px]:block">
       <AppTopBar :nav="nav">
@@ -106,7 +108,7 @@ onMounted(() => {
     </main>
     <footer
       class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-6xl min-[431px]:pb-4"
-      :class="user
+      :class="reserveTabBar
         ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)]'
         : 'pb-[calc(var(--sz-safe-bottom)+0.5rem)]'"
     >

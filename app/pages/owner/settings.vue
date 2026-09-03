@@ -546,7 +546,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
 
-    <div class="mb-4">
+    <div class="mb-4 min-h-[2.75rem]">
       <RoleDashboardSwitcher current="CLUB_ADMIN" />
     </div>
 
