@@ -2587,13 +2587,16 @@
   transform: translateY(-6px);
 }
 
-/* Modal transition — enter/leave must not steal taps on iOS Safari (opacity:0 stays hittable). */
-.venus-modal-enter-active,
-.venus-modal-leave-active {
+/* Modal transition — leave must not steal taps (Safari keeps opacity:0 hittable).
+ * Enter keeps pointer-events so the full-screen overlay blocks the page behind
+ * during fade-in (otherwise early taps fall through to CTAs under the sheet). */
+.venus-modal-enter-active {
   transition: opacity 0.2s ease;
-  pointer-events: none !important;
+  pointer-events: auto !important;
 }
+.venus-modal-leave-active,
 .venus-modal-leave-to {
+  transition: opacity 0.2s ease;
   pointer-events: none !important;
 }
 .venus-modal-enter-active .animate-venus-fade-up,

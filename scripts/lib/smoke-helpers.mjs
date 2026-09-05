@@ -213,6 +213,7 @@ export async function registerAthlete(base, jar, session = 'athlete', overrides 
   const password = overrides.password || `Smoke${id.slice(0, 8)}!`
 
   if (overrides.viaOtp) {
+    const gender = overrides.gender === 'FEMALE' ? 'FEMALE' : 'MALE'
     const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
       method: 'POST',
       body: {
@@ -220,6 +221,7 @@ export async function registerAthlete(base, jar, session = 'athlete', overrides 
         purpose: 'register',
         role: 'ATHLETE',
         name,
+        gender,
       },
     })
     if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}: ${JSON.stringify(reqData)}`)

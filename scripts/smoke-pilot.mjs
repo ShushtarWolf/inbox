@@ -151,19 +151,19 @@ async function main() {
   assert(reservedSlot?.booking?.guestMobile === guestMobile, 'desk reserve missing guestMobile')
   console.log('ok  desk reserve (guestMobile, RESERVED)')
 
-  // Season recurring reserve (overwrite-safe): preview + acceptSkips create
+  // Season recurring stays frozen unless RECURRING_RESERVE_ENABLED=true
   const seasonDate = dateOffset(21)
   const { data: seasonCal } = await apiFetch(base, `/api/owner/calendar?date=${seasonDate}`, {
     jar,
     session: 'owner',
   })
   const seasonSlot = (seasonCal.slots || []).find((slot) => slot.displayStatus === 'FREE')
-  assert(seasonSlot, 'need a FREE slot for season smoke')
+  assert(seasonSlot, 'need a FREE slot for season freeze check')
   const seasonWeekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
     new Date(`${seasonSlot.date}T12:00:00Z`).getUTCDay()
   ]
   const seasonFinish = dateOffset(28)
-  const { data: preview } = await apiFetch(base, '/api/owner/recurring-preview', {
+  const { res: previewRes } = await apiFetch(base, '/api/owner/recurring-preview', {
     jar,
     session: 'owner',
     method: 'POST',
@@ -175,8 +175,8 @@ async function main() {
       times: [seasonSlot.startTime.slice(0, 5)],
     },
   })
-  assert(preview.willCreateCount >= 1, 'season preview should find free slots')
-  const { data: seasonBody, res: seasonRes } = await apiFetch(base, '/api/owner/season', {
+  assert(previewRes.status === 403, `recurring preview expected 403 while frozen, got ${previewRes.status}`)
+  const { res: seasonRes } = await apiFetch(base, '/api/owner/season', {
     jar,
     session: 'owner',
     method: 'POST',
@@ -192,30 +192,11 @@ async function main() {
       acceptSkips: true,
     },
   })
-  assert(seasonRes.status === 200, `season reserve expected 200, got ${seasonRes.status}`)
-  assert(seasonBody.slotsCreated >= 1, `season slotsCreated=${seasonBody.slotsCreated}`)
-  console.log(`ok  season reserve (${seasonBody.slotsCreated} created, overwrite-safe)`)
+  assert(seasonRes.status === 403, `season reserve expected 403 while frozen, got ${seasonRes.status}`)
+  console.log('ok  season/recurring APIs frozen (403)')
 
-  // Occupied anchor must not be overwritten by a second season pass without free targets
-  const { res: conflictRes } = await apiFetch(base, '/api/owner/season', {
-    jar,
-    session: 'owner',
-    method: 'POST',
-    body: {
-      guestName: 'Pilot',
-      guestFamily: 'Conflict',
-      guestMobile,
-      slotId: seasonSlot.id,
-      startDate: seasonSlot.date,
-      finishDate: seasonSlot.date,
-      days: [seasonWeekday],
-      times: [seasonSlot.startTime.slice(0, 5)],
-      acceptSkips: true,
-    },
-    expectStatus: 409,
-  })
-  assert(conflictRes.status === 409, `occupied season rebook expected 409, got ${conflictRes.status}`)
-  console.log('ok  season overwrite blocked (409)')
+  // Occupied overwrite path is unreachable while freeze is on — skip conflict smoke
+  console.log('ok  season overwrite check skipped (recurring freeze)')
 
   const { res: ownerPackagesCreate } = await apiFetch(base, '/api/owner/packages', {
     jar,

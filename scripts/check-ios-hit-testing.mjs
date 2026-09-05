@@ -72,9 +72,11 @@ if (!css.includes('.venus-modal-enter-active')) {
   errors.push('missing .venus-modal-enter-active in main.css')
 } else {
   const enterIdx = css.indexOf('.venus-modal-enter-active')
-  const enterBlock = css.slice(enterIdx, enterIdx + 220)
-  if (!enterBlock.includes('pointer-events: none') && !enterBlock.includes('pointer-events-none')) {
-    errors.push('modal transition must set pointer-events: none on .venus-modal-enter-active')
+  const enterBlock = css.slice(enterIdx, enterIdx + 280)
+  // Enter must keep the overlay hittable so taps cannot fall through to the page
+  // during fade-in (leave still uses pointer-events: none — Safari ghost targets).
+  if (!enterBlock.includes('pointer-events: auto') && !enterBlock.includes('pointer-events-auto')) {
+    errors.push('modal transition must set pointer-events: auto on .venus-modal-enter-active (block fall-through)')
   }
 }
 

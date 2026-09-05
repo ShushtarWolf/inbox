@@ -215,10 +215,9 @@ async function main() {
         times: [seasonSlot.startTime.slice(0, 5)],
       }),
     })
-    if (previewRes.status !== 200) {
-      throw new Error(`recurring preview expected 200, got ${previewRes.status}`)
+    if (previewRes.status !== 403) {
+      throw new Error(`recurring preview expected 403 while frozen, got ${previewRes.status}`)
     }
-    const preview = await previewRes.json()
     const seasonRes = await fetch(`${base}/api/owner/season`, {
       method: 'POST',
       headers: {
@@ -237,17 +236,10 @@ async function main() {
         acceptSkips: true,
       }),
     })
-    if (seasonRes.status !== 200) {
-      throw new Error(`season reserve expected 200, got ${seasonRes.status}`)
+    if (seasonRes.status !== 403) {
+      throw new Error(`season reserve expected 403 while frozen, got ${seasonRes.status}`)
     }
-    const seasonBody = await seasonRes.json()
-    if (!seasonBody.slotsCreated || seasonBody.slotsCreated < 1) {
-      throw new Error(`season reserve expected slotsCreated>=1, got ${seasonBody.slotsCreated}`)
-    }
-    if (preview.willCreateCount && seasonBody.slotsCreated > preview.willCreateCount) {
-      throw new Error('season reserve created more slots than preview allowed')
-    }
-    console.log(`ok  season reserve (${seasonBody.slotsCreated} created, ${seasonBody.slotsSkipped || 0} skipped)`)
+    console.log('ok  season/recurring APIs frozen (403)')
   }
 
   const packageDate = dateOffset(35)
@@ -274,14 +266,10 @@ async function main() {
         acceptSkips: true,
       }),
     })
-    if (packageRes.status !== 200) {
-      throw new Error(`package reserve expected 200, got ${packageRes.status}`)
+    if (packageRes.status !== 403) {
+      throw new Error(`package reserve expected 403 while frozen, got ${packageRes.status}`)
     }
-    const packageBody = await packageRes.json()
-    if (!packageBody.slotsCreated || packageBody.slotsCreated < 1) {
-      throw new Error(`package reserve expected slotsCreated>=1, got ${packageBody.slotsCreated}`)
-    }
-    console.log(`ok  package reserve (${packageBody.slotsCreated} created, ${packageBody.slotsSkipped || 0} skipped)`)
+    console.log('ok  package-reserve frozen (403)')
   }
   const smsResult = await check('/api/owner/sms', {
     method: 'POST',

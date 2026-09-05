@@ -15,7 +15,7 @@ Safari on iPhone keeps full-bleed and fading layers **hittable** even when invis
 
 3. **Overflow** — Never `overflow-x: clip` on `html`, `body`, or phone-shell main. Use `overflow-x: hidden`.
 
-4. **Transitions** — Any page/modal `<Transition>` leave (and enter) state must set `pointer-events: none` while opacity animates. Match `.page-*` and `.venus-modal-*` patterns in `main.css`.
+4. **Transitions** — Page/modal `<Transition>` **leave** (and page enter) must set `pointer-events: none` while opacity animates. Modal **enter** must keep `pointer-events: auto` on the full-screen overlay so taps cannot fall through to the page during fade-in. Match `.page-*` and `.venus-modal-*` patterns in `main.css`.
 
 5. **Uploads / crop** — Hidden `<input type="file">` opened via `.click()` must include `pointer-events-none`. Crop sheets must `releasePointerCapture` on pointer up/cancel/close. Nested `AppModal` must use `modalBodyLock` (never toggle `body.style.overflow` alone). After crop confirm, wait for leave (~220ms) before opening another sheet.
 

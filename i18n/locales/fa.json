@@ -108,7 +108,7 @@
     "padelTitle": "زمین پدل",
     "bookNow": "رزرو کن",
     "bookIt": "رزرو آن",
-    "pilotStudentOffer": "20% off for {club}",
+    "pilotStudentOffer": "۲۰٪ تخفیف برای {club}",
     "competitionsRailTitle": "مسابقات با جایزه",
     "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها"
   },
@@ -395,10 +395,10 @@
     "favoritesPricePending": "قیمت پس از انتخاب سانس",
     "removeFavorite": "حذف از علاقه‌مندی",
     "addFavorite": "افزودن به علاقه‌مندی",
-    "homePromo": "20% off for students",
-    "homePromoShort": "20% off for students",
-    "homePromoAskClub": "ask for the code from club",
-    "homePromoCodeHint": "20% off for students — ask for the code from club.",
+    "homePromo": "۲۰٪ تخفیف دانشجویی",
+    "homePromoShort": "۲۰٪ تخفیف دانشجویی",
+    "homePromoAskClub": "کد را از باشگاه بگیرید",
+    "homePromoCodeHint": "۲۰٪ تخفیف دانشجویی — کد را از باشگاه بگیرید.",
     "homeGreeting": "سلام {name}",
     "favoritesBrowseClubs": "مشاهده باشگاه‌ها",
     "favoritesBookIt": "رزرو آن",
@@ -1757,8 +1757,8 @@
       "startDateInPast": "تاریخ شروع نمی‌تواند در گذشته باشد."
     },
     "reserveRedirect": {
-      "title": "رزرو از تقویم",
-      "body": "رزرو فصلی از تقویم مالک در دسترس است. برای رزرو تکرارشونده یک سانس آزاد را باز کنید.",
+      "title": "رزرو فصلی فعلاً در دسترس نیست",
+      "body": "نسخه فعلی فقط رزرو تک‌سانس را پشتیبانی می‌کند. رزرو فصلی و تکرارشونده بعداً فعال می‌شود.",
       "cta": "باز کردن تقویم"
     },
     "packagesDisabled": {

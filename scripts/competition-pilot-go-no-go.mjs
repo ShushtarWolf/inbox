@@ -394,16 +394,16 @@ async function main() {
     record('R-03', [301, 302, 307, 308].includes(res.status) && !loc.includes('/coaches'), `redirect ${res.status} → ${loc}`)
   }
 
-  // R-04 Season recurring enabled but overwrite-safe (empty body → 400 validation)
+  // R-04 Season/package recurring frozen (empty body → 403 RECURRING_RESERVE_DISABLED)
   {
     const { res } = await apiFetch(base, '/api/owner/season', {
       jar,
       session: 'owner',
       method: 'POST',
       body: {},
-      expectStatus: 400,
+      expectStatus: 403,
     })
-    record('R-04', res.status === 400)
+    record('R-04', res.status === 403)
   }
 
   // OPS-01 competition feature gate

@@ -1,6 +1,13 @@
-/** Desk season/package recurring reserve — overwrite-safe FREE-only claims. */
+/**
+ * Desk season/package recurring reserve — overwrite-safe FREE-only claims.
+ * Behnaz MVP freeze: keep OFF unless explicitly enabled (server + public mirror).
+ */
 export function isRecurringReserveEnabled(): boolean {
-  return true
+  if (typeof process === 'undefined' || !process.env) return false
+  return (
+    process.env.RECURRING_RESERVE_ENABLED === 'true'
+    || process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+  )
 }
 
 export type RecurringConflictReason = 'OCCUPIED' | 'PAST' | 'OUTSIDE_HOURS' | 'CLAIM_RACE'

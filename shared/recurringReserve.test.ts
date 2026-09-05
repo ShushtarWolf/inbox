@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
 import {
   canClaimExistingSlotForRecurring,
   isOwnerRecurringBooking,
@@ -6,7 +6,25 @@ import {
 } from './recurringReserve'
 
 describe('isRecurringReserveEnabled', () => {
-  it('is on with overwrite-safe recurring claims', () => {
+  const prev = process.env.RECURRING_RESERVE_ENABLED
+  const prevPublic = process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
+
+  afterEach(() => {
+    if (prev === undefined) delete process.env.RECURRING_RESERVE_ENABLED
+    else process.env.RECURRING_RESERVE_ENABLED = prev
+    if (prevPublic === undefined) delete process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
+    else process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED = prevPublic
+  })
+
+  it('is off by default (Behnaz freeze)', () => {
+    delete process.env.RECURRING_RESERVE_ENABLED
+    delete process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
+    expect(isRecurringReserveEnabled()).toBe(false)
+  })
+
+  it('opts in via RECURRING_RESERVE_ENABLED', () => {
+    process.env.RECURRING_RESERVE_ENABLED = 'true'
+    delete process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
     expect(isRecurringReserveEnabled()).toBe(true)
   })
 })

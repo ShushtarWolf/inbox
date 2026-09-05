@@ -585,8 +585,9 @@ watch(
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
-          class="inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
-          @click="step === 'welcome' ? dismissWelcome() : handleClose()"
+          class="relative z-10 inline-flex min-h-11 min-w-11 items-center gap-1 text-xs font-bold text-brand-gray-600"
+          style="pointer-events: auto; -webkit-tap-highlight-color: transparent;"
+          @click.stop.prevent="step === 'welcome' ? dismissWelcome() : handleClose()"
         >
           <AppIcon name="close" size="sm" />
           {{ t('common.close') }}

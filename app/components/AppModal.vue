@@ -236,7 +236,7 @@ onUnmounted(() => {
                     : 'btn-ghost px-3 py-1.5 text-xs'"
                   :style="closeIcon ? { borderRadius: 'var(--sz-canva-radius)' } : undefined"
                   :aria-label="$t('common.close')"
-                  @click="close"
+                  @click.stop.prevent="close"
                 >
                   <AppIcon v-if="closeIcon" name="close" size="sm" />
                   <template v-else>{{ $t('common.close') }}</template>
