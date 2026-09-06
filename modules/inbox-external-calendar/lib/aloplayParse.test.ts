@@ -122,6 +122,17 @@ describe('isTruncatedAloPlayFreeSet', () => {
     expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(true)
   })
 
+  it('treats two clock times as truncated (live stub shape)', () => {
+    const { freeSlots } = parseAvailableTimePayload({
+      data: [
+        { fromTime: '19:00:00', toTime: '20:00:00', productId: 112282 },
+        { fromTime: '22:00:00', toTime: '23:00:00', productId: 112282 },
+      ],
+      statusCode: 0,
+    })
+    expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(true)
+  })
+
   it('does not treat a spread of free hours as truncated', () => {
     const { freeSlots } = parseAvailableTimePayload(maleAvailableTime)
     expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(false)
