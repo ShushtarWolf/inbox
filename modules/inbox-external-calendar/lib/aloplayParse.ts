@@ -52,6 +52,18 @@ export function unionFreeSlots(results: Array<{ freeSlots: Set<string> }>): Set<
   return union
 }
 
+
+/** Keys are `productId:HH:mm`. Fewer than 3 distinct clock times is a stub, not a real free map. */
+export function isTruncatedAloPlayFreeSet(freeSlots: Set<string>): boolean {
+  const starts = new Set<string>()
+  for (const key of freeSlots) {
+    const colon = key.indexOf(':')
+    if (colon === -1) continue
+    starts.add(key.slice(colon + 1))
+  }
+  return starts.size < 3
+}
+
 /** Slots not listed in GetAvailableTime union are suspected occupied. */
 export function suspectedOccupiedFromFreeSet(
   mappedCourts: Array<{ courtKey: string; productId: number; starts: string[] }>,

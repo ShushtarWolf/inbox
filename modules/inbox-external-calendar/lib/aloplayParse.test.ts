@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isAloPlaySlotFree,
+  isTruncatedAloPlayFreeSet,
   parseAvailableTimePayload,
   suspectedOccupiedFromFreeSet,
   unionFreeSlots,
@@ -108,3 +109,37 @@ describe('empty GetAvailableTime must not paint whole day', () => {
     expect(occupied.length).toBe(allCourtsMapping.reduce((count, court) => count + court.starts.length, 0))
   })
 })
+
+describe('isTruncatedAloPlayFreeSet', () => {
+  it('treats a single clock time across products as truncated', () => {
+    const { freeSlots } = parseAvailableTimePayload({
+      data: [
+        { fromTime: '07:00:00', toTime: '08:00:00', productId: 56921 },
+        { fromTime: '07:00:00', toTime: '08:00:00', productId: 112282 },
+      ],
+      statusCode: 0,
+    })
+    expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(true)
+  })
+
+  it('treats two clock times as truncated (live stub shape)', () => {
+    const { freeSlots } = parseAvailableTimePayload({
+      data: [
+        { fromTime: '19:00:00', toTime: '20:00:00', productId: 112282 },
+        { fromTime: '22:00:00', toTime: '23:00:00', productId: 112282 },
+      ],
+      statusCode: 0,
+    })
+    expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(true)
+  })
+
+  it('does not treat a spread of free hours as truncated', () => {
+    const { freeSlots } = parseAvailableTimePayload(maleAvailableTime)
+    expect(isTruncatedAloPlayFreeSet(freeSlots)).toBe(false)
+  })
+
+  it('treats an empty free set as truncated', () => {
+    expect(isTruncatedAloPlayFreeSet(new Set())).toBe(true)
+  })
+})
+
