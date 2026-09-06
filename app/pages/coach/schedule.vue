@@ -131,7 +131,8 @@ function bookLinkFor(startTime: string) {
 </script>
 
 <template>
-  <div class="tail-page-stack">
+  <div class="venus-page-stack">
+    <CanvaCoachPhotoHero />
     <div class="flex items-center justify-between gap-3">
       <h1 class="tail-page-title mb-0">{{ $t('coach.schedule') }}</h1>
       <button
@@ -145,7 +146,7 @@ function bookLinkFor(startTime: string) {
     </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <div class="canva-cal-grid-shell ios-card overflow-hidden p-3">
+      <div class="canva-cal-grid-shell canva-panel overflow-hidden p-3">
         <div class="canva-cal-date-nav">
           <div class="canva-cal-date-nav-center">
             <button
@@ -250,7 +251,7 @@ function bookLinkFor(startTime: string) {
         </div>
       </div>
 
-      <section class="ios-card space-y-2 p-4">
+      <section class="canva-panel space-y-2 p-4">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-bold text-brand-navy">{{ $t('coaches.availability') }}</h2>
           <NuxtLink :to="localePath('/coach/profile')" class="text-xs font-bold text-brand-primary">
@@ -298,7 +299,7 @@ function bookLinkFor(startTime: string) {
           v-model="date"
           @select="closeDatePicker"
         />
-        <button type="button" class="btn-secondary mt-3 w-full" @click="goToday">
+        <button type="button" class="canva-owner-secondary-cta mt-3" @click="goToday">
           {{ $t('calendar.today') }}
         </button>
       </div>

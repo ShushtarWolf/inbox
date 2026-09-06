@@ -14,10 +14,11 @@ const { data, pending, error } = await useAuthedFetch<{
 </script>
 
 <template>
-  <div class="tail-page-stack">
+  <div class="venus-page-stack">
+    <CanvaCoachPhotoHero />
     <h1 class="tail-page-title">{{ $t('coach.clients') }}</h1>
     <AppAsyncState :pending="pending" :error="error" :empty="!data?.clients?.length" skeleton-variant="table">
-    <div v-for="c in data?.clients" :key="c.id" class="ios-card p-3">
+    <div v-for="c in data?.clients" :key="c.id" class="canva-list-card p-3">
       <p class="font-bold">{{ c.name }}</p>
       <p class="text-sm text-brand-gray-600"><bdi dir="ltr" class="tabular-nums">{{ formatPhone(c.phone) }}</bdi></p>
       <p class="text-xs text-brand-gray-600">{{ $t('coach.nextSession') }}: <bdi dir="ltr" class="tabular-nums">{{ c.nextSessionDate }} · {{ c.nextSessionTime }}</bdi></p>

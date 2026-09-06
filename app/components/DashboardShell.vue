@@ -91,6 +91,11 @@ const dashboardRoot = computed(() => {
   const pool = drawerItems.value
   const ownerCal = pool.find((item) => item.to.includes('/owner/calendar'))
   if (ownerCal) return ownerCal.to
+  const coachToday = pool.find((item) => {
+    const path = item.to.replace(/\/$/, '')
+    return path.endsWith('/coach') || path === localePath('/coach')
+  })
+  if (coachToday) return coachToday.to
   const athleteHub = pool.find((item) => {
     const path = item.to.replace(/\/$/, '')
     return path.endsWith('/athlete') || path === localePath('/athlete')

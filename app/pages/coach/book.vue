@@ -245,12 +245,13 @@ async function startTopUp() {
 </script>
 
 <template>
-  <div class="tail-page-stack">
+  <div class="venus-page-stack">
+    <CanvaCoachPhotoHero />
     <h1 class="tail-page-title">{{ $t('coach.book.title') }}</h1>
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <p class="text-sm text-brand-gray-600">{{ $t('coach.book.subtitle') }}</p>
 
-      <div class="ios-card space-y-3 p-4">
+      <div class="canva-panel space-y-3 p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-xs text-brand-gray-600">{{ $t('coach.book.walletBalance') }}</p>
@@ -263,13 +264,13 @@ async function startTopUp() {
         <div v-if="topUpOpen" class="space-y-2 border-t pt-3">
           <AppNumericInput v-model="topUpAmount" :min="WALLET_TOPUP_MIN_IRR" :max="WALLET_TOPUP_MAX_IRR" />
           <p v-if="topUpError" class="venus-alert-error p-2 text-xs">{{ topUpError }}</p>
-          <button type="button" class="btn-secondary w-full" :disabled="topUpBusy" @click="startTopUp">
+          <button type="button" class="canva-owner-secondary-cta" :disabled="topUpBusy" @click="startTopUp">
             {{ topUpBusy ? $t('common.loading') : $t('coach.book.topUpConfirm') }}
           </button>
         </div>
       </div>
 
-      <p v-if="!clubs.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
+      <p v-if="!clubs.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
         {{ $t('coach.book.noClubs') }}
       </p>
 
@@ -287,10 +288,10 @@ async function startTopUp() {
         <section class="space-y-3">
           <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.book.pickSlot') }}</h2>
           <p v-if="slotsPending" class="text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
-          <p v-else-if="!slotData?.slots?.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
+          <p v-else-if="!slotData?.slots?.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
             {{ $t('coach.book.noSlots') }}
           </p>
-          <p v-else-if="!bookableSlots.length && blockedExternalSlots.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
+          <p v-else-if="!bookableSlots.length && blockedExternalSlots.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
             {{ $t('coach.book.noSlots') }}
           </p>
           <template v-else>
@@ -302,8 +303,8 @@ async function startTopUp() {
                   :key="group.courtId"
                   type="button"
                   role="option"
-                  class="ios-card px-3 py-2 text-sm font-bold"
-                  :class="group.courtId === selectedCourtId ? 'border-2 border-brand-primary' : ''"
+                  class="canva-chip border border-brand-gray-200 bg-white"
+                  :class="group.courtId === selectedCourtId ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : 'text-brand-navy'"
                   :aria-selected="group.courtId === selectedCourtId"
                   @click="selectCourt(group.courtId)"
                 >
@@ -319,8 +320,8 @@ async function startTopUp() {
                   v-for="slot in selectedCourtGroup.bookable"
                   :key="slot.id"
                   type="button"
-                  class="ios-card p-3 text-start"
-                  :class="slot.id === selectedSlotId ? 'border-2 border-brand-primary' : ''"
+                  class="canva-list-card p-3 text-start"
+                  :class="slot.id === selectedSlotId ? 'border-brand-primary' : ''"
                   @click="selectedSlotId = slot.id"
                 >
                   <p class="text-sm font-bold">
@@ -333,7 +334,7 @@ async function startTopUp() {
                 <div
                   v-for="slot in selectedCourtGroup.blocked"
                   :key="`ext-${slot.id}`"
-                  class="ios-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
+                  class="canva-list-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
                   aria-disabled="true"
                 >
                   <p class="text-sm font-bold text-brand-gray-600">
@@ -345,7 +346,7 @@ async function startTopUp() {
               </div>
               <p
                 v-if="!selectedCourtGroup.bookable.length && !selectedCourtGroup.blocked.length"
-                class="ios-card border-dashed p-4 text-sm text-brand-gray-600"
+                class="canva-panel border-dashed p-4 text-sm text-brand-gray-600"
               >
                 {{ $t('coach.book.noSlots') }}
               </p>
@@ -360,7 +361,7 @@ async function startTopUp() {
           <input v-model="studentName" type="text" class="neo-input" />
         </AppFormField>
 
-        <div v-if="selectedSlot" class="ios-card space-y-1 p-4 text-sm">
+        <div v-if="selectedSlot" class="canva-panel space-y-1 p-4 text-sm">
           <p class="flex justify-between gap-2">
             <span>{{ $t('coach.book.studentPays') }}</span>
             <span class="font-bold" dir="auto">{{ formatCurrency(slotData?.sessionPrice || 0) }}</span>
@@ -375,9 +376,9 @@ async function startTopUp() {
         </div>
 
         <p v-if="errorKey" class="venus-alert-error p-3 text-sm">{{ $t(errorKey) }}</p>
-        <p v-if="successMessage" class="ios-card p-3 text-sm text-green-700" dir="auto">{{ successMessage }}</p>
+        <p v-if="successMessage" class="canva-panel p-3 text-sm text-green-700" dir="auto">{{ successMessage }}</p>
 
-        <button type="button" class="btn-primary w-full" :disabled="!canSubmit" @click="submit">
+        <button type="button" class="canva-gate-btn-primary" :disabled="!canSubmit" @click="submit">
           {{ submitting ? $t('common.loading') : $t('coach.book.confirm') }}
         </button>
       </div>

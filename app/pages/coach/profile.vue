@@ -121,7 +121,8 @@ async function removeGalleryImage(id: string) {
 </script>
 
 <template>
-  <div class="tail-page-stack">
+  <div class="venus-page-stack">
+    <CanvaCoachPhotoHero />
     <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
     <div class="mb-4">
       <RoleDashboardSwitcher current="COACH" />
@@ -143,7 +144,7 @@ async function removeGalleryImage(id: string) {
       <AppFormField :label="$t('owner.packagePage.coachPlaceholder')" numeric>
         <AppNumericInput v-model="price" :min="0" />
       </AppFormField>
-      <section class="ios-card space-y-3 p-4">
+      <section class="canva-panel space-y-3 p-4">
         <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
         <div v-if="data?.availability?.length" class="overflow-hidden border border-brand-gray-100">
           <table class="w-full text-sm">
@@ -181,26 +182,26 @@ async function removeGalleryImage(id: string) {
           <input v-model="newStart" type="time" dir="ltr" class="neo-input tabular-nums" />
           <input v-model="newEnd" type="time" dir="ltr" class="neo-input tabular-nums" />
         </div>
-        <button type="button" class="btn-secondary w-full" @click="addAvailability">{{ $t('common.add') }}</button>
+        <button type="button" class="canva-owner-secondary-cta" @click="addAvailability">{{ $t('common.add') }}</button>
       </section>
 
-      <section class="ios-card space-y-3 p-4">
+      <section class="canva-panel space-y-3 p-4">
         <h2 class="font-bold">{{ $t('register.clubGallery') }}</h2>
         <div class="flex flex-wrap gap-2">
           <div v-for="item in data?.media || []" :key="item.id" class="relative">
-            <img :src="item.url" alt="" class="h-20 w-20 border object-cover" />
+            <img :src="item.url" alt="" class="h-20 w-20 border object-cover" style="border-radius: var(--sz-canva-radius);" />
             <button type="button" class="mt-1 block text-xs text-red-600" @click="removeGalleryImage(item.id)">
               {{ $t('common.delete') }}
             </button>
           </div>
         </div>
         <AppImageUpload v-model="galleryUrl" />
-        <button type="button" class="btn-secondary w-full" :disabled="!galleryUrl" @click="addGalleryImage(galleryUrl)">
+        <button type="button" class="canva-owner-secondary-cta" :disabled="!galleryUrl" @click="addGalleryImage(galleryUrl)">
           {{ $t('upload.addPhoto') }}
         </button>
       </section>
 
-      <button type="button" class="btn-primary w-full" @click="save">{{ $t('common.save') }}</button>
+      <button type="button" class="canva-gate-btn-primary" @click="save">{{ $t('common.save') }}</button>
     </div>
     </AppAsyncState>
   </div>

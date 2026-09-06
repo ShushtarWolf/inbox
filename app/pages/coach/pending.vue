@@ -17,7 +17,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md space-y-4 px-4 py-8 text-start">
+  <div class="venus-page-stack">
+    <CanvaCoachPhotoHero />
+    <div class="mx-auto w-full space-y-4 text-start">
     <div
       class="border border-amber-200 bg-amber-50 p-5"
       style="border-radius: 2px;"
@@ -31,15 +33,13 @@ onMounted(() => {
     <div class="flex flex-col gap-2">
       <NuxtLink
         :to="localePath('/coach/profile')"
-        class="border border-brand-gray-300 bg-white px-4 py-3 text-center text-sm font-bold text-brand-navy transition hover:border-brand-primary/40"
-        style="border-radius: 2px;"
+        class="canva-owner-secondary-cta text-center"
       >
         {{ t('coach.pendingProfileCta') }}
       </NuxtLink>
       <button
         type="button"
-        class="bg-brand-primary px-4 py-3 text-sm font-bold text-white transition hover:brightness-110"
-        style="border-radius: 2px;"
+        class="canva-gate-btn-primary"
         @click="fetch()"
       >
         {{ t('coach.pendingRefresh') }}
@@ -50,6 +50,7 @@ onMounted(() => {
       >
         {{ t('auth.chooseRole.backToPicker') }}
       </NuxtLink>
+    </div>
     </div>
   </div>
 </template>

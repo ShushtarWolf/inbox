@@ -36,10 +36,25 @@ const nav = computed(() => {
   items.push({ to: localePath('/coach/profile'), label: t('nav.profile'), icon: 'person' })
   return items
 })
+
+/** Packages page is out of Slice 1 content scope; still needs chrome under hide-mobile-header. */
+const showLayoutPhotoHero = computed(() => {
+  const path = route.path.replace(/\/+$/, '') || '/'
+  return path.endsWith('/coach/packages')
+})
 </script>
 
 <template>
-  <DashboardShell :title="t('dashboard.coach')" :items="nav" :dark-nav="true">
+  <DashboardShell
+    :title="t('dashboard.coach')"
+    :items="nav"
+    :wide="true"
+    :dark-nav="false"
+    hide-mobile-header
+    phone-shell
+    hide-user
+  >
+    <CanvaCoachPhotoHero v-if="showLayoutPhotoHero" />
     <slot />
   </DashboardShell>
 </template>
