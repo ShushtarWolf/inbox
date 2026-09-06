@@ -123,86 +123,112 @@ async function removeGalleryImage(id: string) {
 <template>
   <div class="venus-page-stack">
     <CanvaCoachPhotoHero />
-    <h1 class="tail-page-title">{{ $t('nav.profile') }}</h1>
-    <div class="mb-4">
-      <RoleDashboardSwitcher current="COACH" />
-    </div>
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-    <div class="venus-form-stack">
-      <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
-      <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+      <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
+        {{ $t('nav.profile') }}
+      </h1>
 
-      <AppFormField :label="$t('coach.bioFa')">
-        <textarea v-model="bioFa" class="neo-textarea" rows="3" />
-      </AppFormField>
-      <AppFormField :label="$t('coach.bioEn')">
-        <textarea v-model="bioEn" class="neo-textarea" rows="3" dir="ltr" />
-      </AppFormField>
-      <AppFormField :label="$t('coaches.credentials')">
-        <textarea v-model="credentialsText" class="neo-textarea" rows="3" :placeholder="$t('register.credentialsHint')" />
-      </AppFormField>
-      <AppFormField :label="$t('owner.packagePage.coachPlaceholder')" numeric>
-        <AppNumericInput v-model="price" :min="0" />
-      </AppFormField>
-      <section class="canva-panel space-y-3 p-4">
-        <h2 class="font-bold">{{ $t('coaches.availability') }}</h2>
-        <div v-if="data?.availability?.length" class="overflow-hidden border border-brand-gray-100">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-brand-gray-100 bg-brand-gray-50 text-xs text-brand-gray-600">
-                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityDay') }}</th>
-                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityHours') }}</th>
-                <th class="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
+      <div class="min-h-[2.75rem]">
+        <RoleDashboardSwitcher current="COACH" />
+      </div>
+
+      <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
+        <div class="venus-form-stack">
+          <section class="canva-panel space-y-3">
+            <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.photoUrl') }}</h2>
+            <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
+            <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>
+
+            <AppFormField :label="$t('coach.bioFa')">
+              <textarea v-model="bioFa" class="neo-textarea" rows="3" />
+            </AppFormField>
+            <AppFormField :label="$t('coach.bioEn')">
+              <textarea v-model="bioEn" class="neo-textarea" rows="3" dir="ltr" />
+            </AppFormField>
+            <AppFormField :label="$t('coaches.credentials')">
+              <textarea v-model="credentialsText" class="neo-textarea" rows="3" :placeholder="$t('register.credentialsHint')" />
+            </AppFormField>
+            <AppFormField :label="$t('owner.packagePage.coachPlaceholder')" numeric>
+              <AppNumericInput v-model="price" :min="0" />
+            </AppFormField>
+          </section>
+
+          <section class="canva-panel space-y-3">
+            <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coaches.availability') }}</h2>
+            <div v-if="data?.availability?.length" class="flex flex-col gap-2">
+              <article
                 v-for="item in data.availability"
                 :key="item.id"
-                class="border-b border-brand-gray-100 last:border-b-0"
+                class="canva-finance-tx-card"
               >
-                <td class="px-3 py-2 font-medium text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</td>
-                <td class="px-3 py-2 tabular-nums">
-                  <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
-                </td>
-                <td class="px-2 py-2 text-center">
-                  <button type="button" class="text-red-600" :aria-label="$t('common.delete')" @click="removeAvailability(item.id)">×</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-else class="text-xs text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
-        <div class="grid grid-cols-3 gap-2">
-          <select v-model="newDayKey" class="neo-select">
-            <option v-for="day in weekdayOptions" :key="day" :value="day">
-              {{ $t(`owner.weekdays.${day}`) }}
-            </option>
-          </select>
-          <input v-model="newStart" type="time" dir="ltr" class="neo-input tabular-nums" />
-          <input v-model="newEnd" type="time" dir="ltr" class="neo-input tabular-nums" />
-        </div>
-        <button type="button" class="canva-owner-secondary-cta" @click="addAvailability">{{ $t('common.add') }}</button>
-      </section>
-
-      <section class="canva-panel space-y-3 p-4">
-        <h2 class="font-bold">{{ $t('register.clubGallery') }}</h2>
-        <div class="flex flex-wrap gap-2">
-          <div v-for="item in data?.media || []" :key="item.id" class="relative">
-            <img :src="item.url" alt="" class="h-20 w-20 border object-cover" style="border-radius: var(--sz-canva-radius);" />
-            <button type="button" class="mt-1 block text-xs text-red-600" @click="removeGalleryImage(item.id)">
-              {{ $t('common.delete') }}
+                <div class="min-w-0 flex-1 text-start">
+                  <p class="text-sm font-bold text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</p>
+                  <p class="mt-0.5 text-xs font-medium text-brand-gray-600 tabular-nums">
+                    <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="canva-cal-date-select shrink-0 text-red-600"
+                  :aria-label="$t('common.delete')"
+                  @click="removeAvailability(item.id)"
+                >
+                  {{ $t('common.delete') }}
+                </button>
+              </article>
+            </div>
+            <p v-else class="text-start text-xs text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
+            <div class="grid grid-cols-3 gap-2">
+              <select v-model="newDayKey" class="neo-select">
+                <option v-for="day in weekdayOptions" :key="day" :value="day">
+                  {{ $t(`owner.weekdays.${day}`) }}
+                </option>
+              </select>
+              <input v-model="newStart" type="time" dir="ltr" class="neo-input tabular-nums" />
+              <input v-model="newEnd" type="time" dir="ltr" class="neo-input tabular-nums" />
+            </div>
+            <button type="button" class="canva-owner-secondary-cta" @click="addAvailability">
+              {{ $t('common.add') }}
             </button>
-          </div>
-        </div>
-        <AppImageUpload v-model="galleryUrl" />
-        <button type="button" class="canva-owner-secondary-cta" :disabled="!galleryUrl" @click="addGalleryImage(galleryUrl)">
-          {{ $t('upload.addPhoto') }}
-        </button>
-      </section>
+          </section>
 
-      <button type="button" class="canva-gate-btn-primary" @click="save">{{ $t('common.save') }}</button>
+          <section class="canva-panel space-y-3">
+            <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('register.clubGallery') }}</h2>
+            <div v-if="data?.media?.length" class="canva-photo-slots" role="list">
+              <div
+                v-for="item in data.media"
+                :key="item.id"
+                class="canva-photo-slot"
+                role="listitem"
+              >
+                <img :src="item.url" alt="" class="canva-photo-slot-media" />
+                <button
+                  type="button"
+                  class="canva-photo-slot-plus !bg-white text-red-600"
+                  :aria-label="$t('common.delete')"
+                  @click="removeGalleryImage(item.id)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <p v-else class="canva-photo-slots-hint text-start">{{ $t('upload.addPhoto') }}</p>
+            <AppImageUpload v-model="galleryUrl" />
+            <button
+              type="button"
+              class="canva-owner-secondary-cta"
+              :disabled="!galleryUrl"
+              @click="addGalleryImage(galleryUrl)"
+            >
+              {{ $t('upload.addPhoto') }}
+            </button>
+          </section>
+
+          <button type="button" class="canva-gate-btn-primary" @click="save">
+            {{ $t('common.save') }}
+          </button>
+        </div>
+      </AppAsyncState>
     </div>
-    </AppAsyncState>
   </div>
 </template>
