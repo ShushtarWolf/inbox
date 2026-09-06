@@ -21,13 +21,19 @@ const previousFocus = ref<HTMLElement | null>(null)
 /** True while this instance holds a slot in the shared body-scroll lock. */
 const holdsBodyLock = ref(false)
 /**
- * Backdrop dismiss is armed only after the opening gesture finishes.
- * Without this, the same click that opens the sheet (تایید و ادامه / login)
- * can hit the freshly mounted overlay and close it immediately — looks like a
- * dead button (common on Windows Chrome).
+ * Backdrop dismiss is armed only after the opening pointer gesture finishes.
+ * Timer-only was not enough: the same click that opens (تایید و ادامه / login)
+ * can hit the freshly mounted overlay and close it immediately — dead CTA on
+ * Chrome, Firefox, and mobile WebKit.
+ *
+ * Extra gate: only dismiss when pointerdown started on the backdrop *after*
+ * arming — synthetic clicks without a backdrop pointerdown cannot close.
  */
 const dismissArmed = ref(false)
+/** True when the current gesture's pointerdown landed on the overlay chrome. */
+const backdropGestureActive = ref(false)
 let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
+let removeOpenGestureListeners: (() => void) | null = null
 
 function clearDismissArmTimer() {
   if (dismissArmTimer != null) {
@@ -36,8 +42,82 @@ function clearDismissArmTimer() {
   }
 }
 
+function clearOpenGestureListeners() {
+  removeOpenGestureListeners?.()
+  removeOpenGestureListeners = null
+}
+
+function armDismiss() {
+  if (!props.open) return
+  dismissArmed.value = true
+  clearDismissArmTimer()
+  clearOpenGestureListeners()
+}
+
+/**
+ * Arm dismiss only after the opening gesture's pointer is fully released.
+ * If open was programmatic (no in-flight pointer), double-rAF + fallback timer.
+ */
+function scheduleDismissArm() {
+  clearDismissArmTimer()
+  clearOpenGestureListeners()
+  dismissArmed.value = false
+  backdropGestureActive.value = false
+
+  let armed = false
+  const tryArm = () => {
+    if (armed || !props.open) return
+    armed = true
+    armDismiss()
+  }
+
+  const onPointerReleased = () => {
+    // One frame after pointerup so the releasing click cannot dismiss.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(tryArm)
+    })
+  }
+
+  window.addEventListener('pointerup', onPointerReleased, true)
+  window.addEventListener('pointercancel', onPointerReleased, true)
+  // Mouse-only fallbacks (older engines / hybrid input).
+  window.addEventListener('mouseup', onPointerReleased, true)
+  window.addEventListener('touchend', onPointerReleased, true)
+
+  removeOpenGestureListeners = () => {
+    window.removeEventListener('pointerup', onPointerReleased, true)
+    window.removeEventListener('pointercancel', onPointerReleased, true)
+    window.removeEventListener('mouseup', onPointerReleased, true)
+    window.removeEventListener('touchend', onPointerReleased, true)
+  }
+
+  // Soft arm after paint when the opening gesture already completed before mount
+  // (click fires after pointerup — the common CTA path).
+  requestAnimationFrame(() => {
+    requestAnimationFrame(tryArm)
+  })
+
+  // Hard fallback so dismiss cannot stay locked forever.
+  dismissArmTimer = setTimeout(tryArm, 500)
+}
+
+function onOverlayPointerDown(event: PointerEvent) {
+  // Record backdrop presses even before arming — click may arrive after arm.
+  // Dialog uses @pointerdown.stop so presses inside the sheet never reach here.
+  const dialog = dialogRef.value
+  if (dialog && event.target instanceof Node && dialog.contains(event.target)) {
+    backdropGestureActive.value = false
+    return
+  }
+  backdropGestureActive.value = true
+}
+
 function onOverlayClick() {
-  if (!dismissArmed.value) return
+  if (!dismissArmed.value || !backdropGestureActive.value) {
+    backdropGestureActive.value = false
+    return
+  }
+  backdropGestureActive.value = false
   close()
 }
 
@@ -56,7 +136,7 @@ function syncVisualViewport() {
     return
   }
   // Never publish 0 — sheet max-height uses this var; 0 collapses the dialog and
-  // leaves a full-screen inert wrapper that blocks club slot taps (Windows Chrome).
+  // leaves a full-screen inert wrapper that blocks club slot taps.
   const height = Math.max(1, Math.round(vv.height) || fallback)
   const keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
   document.documentElement.style.setProperty('--app-vv-height', `${height}px`)
@@ -91,6 +171,7 @@ function close() {
 
 function onKeydown(event: KeyboardEvent) {
   if (props.open && event.key === 'Escape') {
+    if (!dismissArmed.value) return
     event.preventDefault()
     close()
   }
@@ -126,7 +207,9 @@ function releaseLock() {
 watch(() => props.open, (isOpen) => {
   if (!import.meta.client) return
   clearDismissArmTimer()
+  clearOpenGestureListeners()
   dismissArmed.value = false
+  backdropGestureActive.value = false
   if (isOpen) {
     acquireLock()
     previousFocus.value = document.activeElement as HTMLElement | null
@@ -134,11 +217,7 @@ watch(() => props.open, (isOpen) => {
     window.visualViewport?.addEventListener('resize', syncVisualViewport)
     window.visualViewport?.addEventListener('scroll', syncVisualViewport)
     window.addEventListener('resize', syncVisualViewport)
-    // Longer than venus-modal enter (200ms) so the opening click cannot dismiss.
-    dismissArmTimer = setTimeout(() => {
-      dismissArmed.value = true
-      dismissArmTimer = null
-    }, 320)
+    scheduleDismissArm()
     nextTick(() => {
       dialogRef.value?.focus()
       document.addEventListener('keydown', onDialogKeydown)
@@ -167,6 +246,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (import.meta.client) {
     clearDismissArmTimer()
+    clearOpenGestureListeners()
     document.removeEventListener('keydown', onKeydown)
     document.removeEventListener('keydown', onDialogKeydown)
     window.visualViewport?.removeEventListener('resize', syncVisualViewport)
@@ -191,6 +271,7 @@ onUnmounted(() => {
         :class="overlayClass || 'z-[55]'"
         role="presentation"
         data-app-modal-overlay
+        @pointerdown="onOverlayPointerDown"
         @click="onOverlayClick"
       >
         <!-- Dedicated backdrop: always inset-0. Do not size via visualViewport (Safari hit-test bug). -->
@@ -215,6 +296,7 @@ onUnmounted(() => {
               /* LOCKED: Canva phone frames ≤2px — never rounded-xl soft card */
               sheet ? 'canva-sheet-dialog' : (patterned ? 'canva-modal-frame' : 'rounded-xl'),
             ]"
+            @pointerdown.stop
             @click.stop
             @focusin="onDialogFocusIn"
           >

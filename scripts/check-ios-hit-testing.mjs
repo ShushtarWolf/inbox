@@ -109,15 +109,35 @@ if (!appModal.includes('acquireModalBodyLock') || !appModal.includes('releaseMod
 // Overlay root must dismiss on click — the flex-1 centering shell sits above the
 // backdrop and used to swallow taps (club slots dead after تایید و ادامه).
 // Dismiss must be gated (onOverlayClick / dismissArmed) so the opening click
-// cannot instantly close the sheet.
+// cannot instantly close the sheet. Prefer pointer-lifecycle + backdrop gesture
+// gate over timer-only (Chrome/Firefox/WebKit all hit this race).
 if (!appModal.includes('data-app-modal-overlay') || !appModal.includes('onOverlayClick')) {
   errors.push('AppModal overlay root must @click="onOverlayClick" (backdrop under flex shell is not hittable)')
 }
 if (!appModal.includes('dismissArmed')) {
   errors.push('AppModal must gate backdrop dismiss with dismissArmed (open-click race)')
 }
+if (!appModal.includes('backdropGestureActive') || !appModal.includes('onOverlayPointerDown')) {
+  errors.push('AppModal must require backdrop pointerdown before dismiss (synthetic open-click race)')
+}
+if (!appModal.includes('scheduleDismissArm') && !appModal.includes('pointerup')) {
+  errors.push('AppModal must arm dismiss after opening pointer lifecycle (not timer-only)')
+}
 if (!appModal.includes('@click.stop')) {
   errors.push('AppModal dialog must @click.stop so content taps do not dismiss')
+}
+if (!appModal.includes('@pointerdown.stop')) {
+  errors.push('AppModal dialog must @pointerdown.stop so dialog presses do not count as backdrop')
+}
+const clubSlugPage = readFileSync('app/pages/clubs/[slug].vue', 'utf8')
+if (clubSlugPage.includes('if (focusedCourtId.value !== courtId)')) {
+  errors.push('clubs/[slug] toggleCourt must not use focus-first deselect (one click must toggle off)')
+}
+if (clubSlugPage.includes('if (focusedCourtId.value === courtId) return true')) {
+  errors.push('clubs/[slug] isCourtChipActive must not treat focus-only as selected')
+}
+if (!clubSlugPage.includes('requestAnimationFrame') || !clubSlugPage.includes('confirmOpen.value = true')) {
+  errors.push('clubs/[slug] openConfirmSheet must defer confirmOpen past the opening gesture')
 }
 // --app-vv-height must never publish 0 (collapses canva-sheet-dialog max-height).
 if (!appModal.includes('Math.max(1') && !appModal.includes('Math.max(1,')) {

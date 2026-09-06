@@ -66,4 +66,34 @@ test.describe('iOS Safari tap guard', () => {
     await saveBtn.click()
     await expect(page.getByText('با موفقیت ذخیره شد').or(page.getByText(/خطا/))).toBeVisible({ timeout: 15_000 })
   })
+
+  test('club confirm CTA opens sheet and close restores taps', async ({ page }) => {
+    await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
+    await page.goto('/clubs/iust-tennis')
+    await expect(page.locator('.canva-club-book-cta')).toBeVisible({ timeout: 15_000 })
+
+    const freeSlot = page.locator('.canva-club-slot:not(.canva-club-slot-booked):not([disabled])').first()
+    await expect(freeSlot).toBeVisible({ timeout: 15_000 })
+    await freeSlot.click()
+    await expect(freeSlot).toHaveClass(/canva-club-slot-active/)
+
+    const cta = page.locator('.canva-club-book-cta')
+    await expect(cta).toBeEnabled()
+    await cta.click()
+
+    const overlay = page.locator('[data-app-modal-overlay]')
+    await expect(overlay).toBeVisible({ timeout: 10_000 })
+    // Must stay open — open-click race used to dismiss immediately.
+    await page.waitForTimeout(400)
+    await expect(overlay).toBeVisible()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    await page.getByRole('button', { name: 'بستن' }).click()
+    await expect(overlay).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
+
+    await expect(cta).toBeEnabled()
+    await cta.click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+  })
 })

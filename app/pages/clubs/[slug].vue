@@ -260,8 +260,16 @@ function courtNumberLabel(courtId: string) {
   return t('booking.courtNumber', { n: formatNumber(n) })
 }
 
+const selectedSlots = computed(() => {
+  const courtOrder = courts.value.map((c) => c.id)
+  const picked = selectedSlotIds.value
+    .map((id) => allSlots.value.find((s) => s.id === id))
+    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
+  return sortSlotsByTimeThenCourt(picked, courtOrder)
+})
+
+/** Chip green = selected and/or still has basket slots — never focus-only. */
 function isCourtChipActive(courtId: string) {
-  if (focusedCourtId.value === courtId) return true
   if (selectedCourtIds.value.includes(courtId)) return true
   return selectedSlots.value.some((s) => slotCourtId(s) === courtId)
 }
@@ -270,28 +278,32 @@ function toggleCourt(courtId: string) {
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   const selected = selectedCourtIds.value
-  if (selected.includes(courtId)) {
-    if (focusedCourtId.value !== courtId) {
-      focusedCourtId.value = courtId
+  const chipOn = selected.includes(courtId)
+    || selectedSlots.value.some((s) => slotCourtId(s) === courtId)
+  if (chipOn) {
+    // One click off: drop chip + that court's basket slots (no focus-first step).
+    const nextSelected = selected.filter((id) => id !== courtId)
+    selectedCourtIds.value = nextSelected
+    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, allSlots.value)
+    if (nextSelected.length) {
+      focusedCourtId.value = nextSelected.includes(focusedCourtId.value || '')
+        ? focusedCourtId.value
+        : nextSelected[0]!
       return
     }
-    selectedCourtIds.value = selected.filter((id) => id !== courtId)
-    // Drop this court's basket slots so chips/hours cannot stay green as orphans.
-    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, allSlots.value)
-    focusedCourtId.value = selectedCourtIds.value[0] || courtId
+    // Prefer a court that still has basket hours; else first court for browsing
+    // (focus alone must not light the chip — see isCourtChipActive).
+    const basketCourts = courtIdsFromSlots(
+      selectedSlotIds.value
+        .map((id) => allSlots.value.find((s) => s.id === id))
+        .filter((s): s is ClubSlot => Boolean(s)),
+    )
+    focusedCourtId.value = basketCourts[0] || courts.value[0]?.id || null
     return
   }
   selectedCourtIds.value = [...selected, courtId]
   focusedCourtId.value = courtId
 }
-
-const selectedSlots = computed(() => {
-  const courtOrder = courts.value.map((c) => c.id)
-  const picked = selectedSlotIds.value
-    .map((id) => allSlots.value.find((s) => s.id === id))
-    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
-  return sortSlotsByTimeThenCourt(picked, courtOrder)
-})
 
 function maybeResumeConfirm() {
   if (!user.value || !resumeConfirmAfterAuth.value) return
@@ -475,10 +487,12 @@ function openConfirmSheet() {
   }
   resumeConfirmAfterAuth.value = false
   waitlistSlotId.value = null
-  // Defer so the opening click cannot land on the new AppModal overlay and
-  // instantly dismiss the confirm sheet (dead «تایید و ادامه» on Windows Chrome).
+  // Defer past the opening click so AppModal mounts after the gesture ends
+  // (otherwise the same click can dismiss the sheet — dead «تایید و ادامه»).
   nextTick(() => {
-    confirmOpen.value = true
+    requestAnimationFrame(() => {
+      confirmOpen.value = true
+    })
   })
 }
 
