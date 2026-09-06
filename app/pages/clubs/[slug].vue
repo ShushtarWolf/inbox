@@ -116,7 +116,10 @@ let suppressSlotClear = deepLinkSlotsPending.value
 const gallerySlide = ref(0)
 const selectedDate = ref(deepLinkDate || today())
 const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
-const selectedCourtIds = ref<string[]>(deepLinkCourtIds)
+/** Only seed court multi-select from the URL when a slot/time handoff is pending. */
+const selectedCourtIds = ref<string[]>(
+  deepLinkSlotIds.length || deepLinkTimes.length ? deepLinkCourtIds : [],
+)
 const selectedSlotIds = ref<string[]>([])
 const confirmOpen = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
@@ -182,6 +185,7 @@ watch(
 watch(selectedDate, () => {
   if (suppressSlotClear) return
   selectedSlotIds.value = []
+  selectedCourtIds.value = []
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
 })
@@ -273,18 +277,26 @@ const selectedSlots = computed(() => {
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
 
-/** Chip green = selected and/or still has basket slots — never focus-only. */
+/** Solid green = this court has basket hours (matches slot legend). Never focus-only. */
 function isCourtChipActive(courtId: string) {
-  if (selectedCourtIds.value.includes(courtId)) return true
   return selectedSlots.value.some((s) => slotCourtId(s) === courtId)
+}
+
+/** Armed for multi-court hour apply, but no basket hours yet — outline, not green. */
+function isCourtChipTargeted(courtId: string) {
+  if (isCourtChipActive(courtId)) return false
+  return selectedCourtIds.value.includes(courtId)
+}
+
+function courtHasChipSelection(courtId: string) {
+  return isCourtChipActive(courtId) || isCourtChipTargeted(courtId)
 }
 
 function toggleCourt(courtId: string) {
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   const selected = selectedCourtIds.value
-  const chipOn = selected.includes(courtId)
-    || selectedSlots.value.some((s) => slotCourtId(s) === courtId)
+  const chipOn = courtHasChipSelection(courtId)
   if (chipOn) {
     // One click off: drop chip + that court's basket slots (no focus-first step).
     const nextSelected = selected.filter((id) => id !== courtId)
@@ -306,8 +318,14 @@ function toggleCourt(courtId: string) {
     focusedCourtId.value = basketCourts[0] || courts.value[0]?.id || null
     return
   }
-  selectedCourtIds.value = [...selected, courtId]
   focusedCourtId.value = courtId
+  // Empty basket: browsing only — do not accumulate empty multi-select greens.
+  // With basket hours: add this court so the next hour applies across the set.
+  if (selectedSlots.value.length) {
+    selectedCourtIds.value = [...selected, courtId]
+  } else {
+    selectedCourtIds.value = []
+  }
 }
 
 function maybeResumeConfirm() {
@@ -962,16 +980,23 @@ async function shareClub() {
                   :key="court.id"
                   type="button"
                   class="canva-club-court-num"
-                  :class="isCourtChipActive(court.id) ? 'canva-club-court-num-active' : ''"
+                  :class="{
+                    'canva-club-court-num-active': isCourtChipActive(court.id),
+                    'canva-club-court-num-target': isCourtChipTargeted(court.id),
+                    'canva-club-court-num-focus': focusedCourtId === court.id
+                      && !isCourtChipActive(court.id)
+                      && !isCourtChipTargeted(court.id),
+                  }"
                   :aria-label="t('booking.courtNumber', { n: formatNumber(courtDisplayNumber(court, idx)) })"
-                  :aria-pressed="isCourtChipActive(court.id)"
+                  :aria-pressed="courtHasChipSelection(court.id)"
+                  :aria-current="focusedCourtId === court.id ? 'true' : undefined"
                   @click="toggleCourt(court.id)"
                 >
                   {{ formatNumber(courtDisplayNumber(court, idx)) }}
                 </button>
               </div>
               <p
-                v-if="selectedCourtIds.length > 1"
+                v-if="selectedCourtIds.length > 1 || courtIdsFromSlots(selectedSlots).length > 1"
                 class="mb-2 text-start text-[11px] leading-snug text-brand-gray-600"
               >
                 {{ t('clubs.multiCourtTimeHint') }}

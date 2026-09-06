@@ -1792,6 +1792,18 @@
     border: 1px solid #d4d0ca;
     background: #fff;
   }
+  /* Browsing which court’s hours are shown — not a booking selection. */
+  .canva-club-court-num-focus {
+    border-color: #1b2b4b;
+    border-width: 2px;
+  }
+  /* In multi-court set but no hour yet — outline only; green is reserved for basket hours. */
+  .canva-club-court-num-target {
+    border-color: #2f9e44;
+    border-width: 2px;
+    background: #fff;
+    color: #2f9e44;
+  }
   .canva-club-court-num-active {
     border-color: #2f9e44;
     background: #2f9e44;
