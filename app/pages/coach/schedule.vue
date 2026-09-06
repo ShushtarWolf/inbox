@@ -111,7 +111,9 @@ function closeDatePicker() {
 
 function cellClass(row: HourRow) {
   if (row.kind === 'booked') return 'slot-reserved-cash'
-  if (row.kind === 'free') return row.past ? 'slot-past' : 'slot-free'
+  if (row.kind === 'free') {
+    return row.past ? 'slot-past' : 'slot-free coach-cal-free-bookable'
+  }
   if (row.kind === 'past') return 'slot-past'
   return 'slot-closed'
 }
@@ -133,175 +135,186 @@ function bookLinkFor(startTime: string) {
 <template>
   <div class="venus-page-stack">
     <CanvaCoachPhotoHero />
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="tail-page-title mb-0">{{ $t('coach.schedule') }}</h1>
-      <button
-        v-if="!isToday"
-        type="button"
-        class="text-sm font-bold text-brand-primary"
-        @click="goToday"
-      >
-        {{ $t('calendar.today') }}
-      </button>
-    </div>
-
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <div class="canva-cal-grid-shell canva-panel overflow-hidden p-3">
-        <div class="canva-cal-date-nav">
-          <div class="canva-cal-date-nav-center">
-            <button
-              type="button"
-              class="canva-cal-date-nav-btn"
-              :aria-label="$t('calendar.prevMonth')"
-              @click="shiftDate(-1)"
-            >
-              <AppIcon name="chevron_right" size="sm" />
-            </button>
-            <button
-              type="button"
-              class="canva-cal-date-nav-label"
-              :aria-label="$t('owner.pickDate')"
-              @click="showDatePicker = true"
-            >
-              {{ dateNavLabel }}
-            </button>
-            <button
-              type="button"
-              class="canva-cal-date-nav-btn"
-              :aria-label="$t('calendar.nextMonth')"
-              @click="shiftDate(1)"
-            >
-              <AppIcon name="chevron_left" size="sm" />
-            </button>
-          </div>
-        </div>
-
-        <div class="mb-3 flex flex-wrap gap-3 text-[10px] font-bold text-brand-gray-600">
-          <span class="inline-flex items-center gap-1.5">
-            <span class="inline-block h-2.5 w-1 bg-[#C41E1E]" />
-            {{ $t('coach.scheduleLegendBooked') }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <span class="inline-block h-2.5 w-1 bg-[#3B82F6]" />
-            {{ $t('coach.scheduleLegendFree') }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <span class="inline-block h-2.5 w-1 bg-brand-gray-400" />
-            {{ $t('coach.scheduleLegendPast') }}
-          </span>
-        </div>
-
-        <div v-if="hourRows.length" class="canva-cal-grid-scroll">
-          <div
-            class="canva-cal-grid"
-            style="grid-template-columns: var(--canva-cal-gutter, 2.75rem) minmax(0, 1fr)"
-          >
-            <template v-for="row in hourRows" :key="row.startTime">
-              <div class="canva-cal-grid-time">
-                <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(row.startTime) }}</bdi>
-              </div>
-              <NuxtLink
-                v-if="row.kind === 'free'"
-                :to="bookLinkFor(row.startTime)"
-                class="canva-cal-grid-cell"
-                :class="cellClass(row)"
-              >
-                <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
-                <div class="canva-cal-grid-cell-body">
-                  <p class="canva-cal-grid-cell-label">
-                    {{ row.past ? $t('coach.schedulePastSlot') : $t('coach.scheduleFreeSlot') }}
-                  </p>
-                  <p class="canva-cal-grid-cell-sub">{{ $t('coach.scheduleBookCta') }}</p>
-                </div>
-              </NuxtLink>
-              <div
-                v-else
-                class="canva-cal-grid-cell"
-                :class="cellClass(row)"
-              >
-                <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
-                <div class="canva-cal-grid-cell-body">
-                  <template v-if="row.kind === 'booked'">
-                    <p class="canva-cal-grid-cell-label">{{ row.session.athlete.name }}</p>
-                    <p class="canva-cal-grid-cell-sub">
-                      <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(row.session.startTime, row.session.endTime) }}</bdi>
-                      · <bdi dir="ltr" class="tabular-nums">{{ formatPhone(row.session.athlete.phone) }}</bdi>
-                    </p>
-                  </template>
-                  <template v-else-if="row.kind === 'past'">
-                    <p class="canva-cal-grid-cell-label">{{ $t('coach.schedulePastSlot') }}</p>
-                  </template>
-                  <template v-else>
-                    <p class="canva-cal-grid-cell-label">{{ $t('coach.scheduleClosedSlot') }}</p>
-                  </template>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div v-else class="border border-dashed border-brand-gray-100 p-4 text-sm text-brand-gray-600">
-          <p>{{ $t('coach.scheduleEmptyDay') }}</p>
-          <NuxtLink
-            :to="localePath('/coach/profile')"
-            class="mt-2 inline-block text-sm font-bold text-brand-primary"
-          >
-            {{ $t('coach.scheduleEditAvailability') }}
-          </NuxtLink>
-        </div>
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
+          {{ $t('coach.schedule') }}
+        </h1>
+        <button
+          v-if="!isToday"
+          type="button"
+          class="canva-cal-date-select shrink-0"
+          @click="goToday"
+        >
+          {{ $t('calendar.today') }}
+        </button>
       </div>
 
-      <section class="canva-panel space-y-2 p-4">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-sm font-bold text-brand-navy">{{ $t('coaches.availability') }}</h2>
-          <NuxtLink :to="localePath('/coach/profile')" class="text-xs font-bold text-brand-primary">
-            {{ $t('common.edit') }}
-          </NuxtLink>
+      <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
+        <div class="canva-legend-row">
+          <div class="canva-legend-item">
+            <span class="canva-legend-swatch" style="background: #C41E1E" />
+            {{ $t('coach.scheduleLegendBooked') }}
+          </div>
+          <div class="canva-legend-item">
+            <span class="canva-legend-swatch" style="background: #3B82F6" />
+            {{ $t('coach.scheduleLegendFree') }}
+          </div>
+          <div class="canva-legend-item">
+            <span class="canva-legend-swatch bg-brand-gray-400" />
+            {{ $t('coach.scheduleLegendPast') }}
+          </div>
         </div>
-        <div
-          v-if="data?.weeklyAvailability?.length"
-          class="overflow-hidden border border-brand-gray-100"
-        >
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-brand-gray-100 bg-brand-gray-50 text-xs text-brand-gray-600">
-                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityDay') }}</th>
-                <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityHours') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in data.weeklyAvailability"
-                :key="item.id"
-                class="border-b border-brand-gray-100 last:border-b-0"
+
+        <!-- Single-column day timeline (NOT owner multi-court grid). -->
+        <div class="canva-cal-grid-shell">
+          <div class="canva-cal-date-nav">
+            <div class="canva-cal-date-nav-center">
+              <button
+                type="button"
+                class="canva-cal-date-nav-btn"
+                :aria-label="$t('calendar.prevMonth')"
+                @click="shiftDate(-1)"
               >
-                <td class="px-3 py-2 font-medium text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</td>
-                <td class="px-3 py-2 tabular-nums">
-                  <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <AppIcon name="chevron_right" size="sm" />
+              </button>
+              <button
+                type="button"
+                class="canva-cal-date-nav-label"
+                :aria-label="$t('owner.pickDate')"
+                @click="showDatePicker = true"
+              >
+                {{ dateNavLabel }}
+              </button>
+              <button
+                type="button"
+                class="canva-cal-date-nav-btn"
+                :aria-label="$t('calendar.nextMonth')"
+                @click="shiftDate(1)"
+              >
+                <AppIcon name="chevron_left" size="sm" />
+              </button>
+            </div>
+          </div>
+
+          <div class="canva-cal-body">
+            <div v-if="hourRows.length" class="canva-cal-grid-scroll">
+              <div
+                class="canva-cal-grid"
+                style="grid-template-columns: var(--canva-cal-gutter, 2.75rem) minmax(0, 1fr)"
+              >
+                <template v-for="row in hourRows" :key="row.startTime">
+                  <div class="canva-cal-grid-time">
+                    <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(row.startTime) }}</bdi>
+                  </div>
+                  <NuxtLink
+                    v-if="row.kind === 'free' && !row.past"
+                    :to="bookLinkFor(row.startTime)"
+                    class="canva-cal-grid-cell"
+                    :class="cellClass(row)"
+                  >
+                    <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
+                    <div class="canva-cal-grid-cell-body">
+                      <p class="canva-cal-grid-cell-label">{{ $t('coach.scheduleFreeSlot') }}</p>
+                      <p class="canva-cal-grid-cell-sub">{{ $t('coach.scheduleBookCta') }}</p>
+                    </div>
+                  </NuxtLink>
+                  <div
+                    v-else
+                    class="canva-cal-grid-cell"
+                    :class="cellClass(row)"
+                  >
+                    <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
+                    <div class="canva-cal-grid-cell-body">
+                      <template v-if="row.kind === 'booked'">
+                        <p class="canva-cal-grid-cell-label">{{ row.session.athlete.name }}</p>
+                        <p class="canva-cal-grid-cell-sub">
+                          <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(row.session.startTime, row.session.endTime) }}</bdi>
+                          · <bdi dir="ltr" class="tabular-nums">{{ formatPhone(row.session.athlete.phone) }}</bdi>
+                        </p>
+                      </template>
+                      <template v-else-if="row.kind === 'free'">
+                        <p class="canva-cal-grid-cell-label">{{ $t('coach.schedulePastSlot') }}</p>
+                      </template>
+                      <template v-else-if="row.kind === 'past'">
+                        <p class="canva-cal-grid-cell-label">{{ $t('coach.schedulePastSlot') }}</p>
+                      </template>
+                      <template v-else>
+                        <p class="canva-cal-grid-cell-label">{{ $t('coach.scheduleClosedSlot') }}</p>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div
+              v-else
+              class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <p>{{ $t('coach.scheduleEmptyDay') }}</p>
+              <NuxtLink
+                :to="localePath('/coach/profile')"
+                class="mt-3 inline-block text-sm font-bold text-brand-primary no-underline"
+              >
+                {{ $t('coach.scheduleEditAvailability') }}
+              </NuxtLink>
+            </div>
+          </div>
         </div>
-        <p v-else class="text-xs text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
-      </section>
-    </AppAsyncState>
+
+        <section class="canva-panel space-y-2 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coaches.availability') }}</h2>
+            <NuxtLink :to="localePath('/coach/profile')" class="text-xs font-bold text-brand-primary no-underline">
+              {{ $t('common.edit') }}
+            </NuxtLink>
+          </div>
+          <div
+            v-if="data?.weeklyAvailability?.length"
+            class="overflow-hidden border border-brand-gray-100"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-brand-gray-100 bg-brand-gray-50 text-xs text-brand-gray-600">
+                  <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityDay') }}</th>
+                  <th class="px-3 py-2 text-start font-bold">{{ $t('coach.availabilityHours') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in data.weeklyAvailability"
+                  :key="item.id"
+                  class="border-b border-brand-gray-100 last:border-b-0"
+                >
+                  <td class="px-3 py-2 font-medium text-brand-navy">{{ weekdayLabel(item.dayOfWeek) }}</td>
+                  <td class="px-3 py-2 tabular-nums">
+                    <bdi dir="ltr">{{ formatTimeRange(item.startTime, item.endTime) }}</bdi>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-else class="text-start text-xs text-brand-gray-600">{{ $t('coach.noAvailability') }}</p>
+        </section>
+      </AppAsyncState>
+    </div>
 
     <AppModal
       :open="showDatePicker"
       patterned
       close-icon
-      max-width-class="canva-phone-shell max-w-sm"
+      max-width-class="canva-phone-shell canva-owner-date-modal max-w-sm"
       @close="closeDatePicker"
     >
-      <div class="p-4">
+      <div class="canva-owner-date-body">
         <AppJalaliCalendar
           v-model="date"
+          variant="owner"
           @select="closeDatePicker"
         />
-        <button type="button" class="canva-owner-secondary-cta mt-3" @click="goToday">
-          {{ $t('calendar.today') }}
-        </button>
       </div>
     </AppModal>
   </div>

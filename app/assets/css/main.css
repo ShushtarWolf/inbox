@@ -2146,6 +2146,11 @@
     color: #dedcd8;
     font-size: 0.6875rem;
   }
+  /* Shared owner/coach day-grid cell fills (single-column coach + multi-court owner). */
+  .canva-cal-grid-cell.slot-free {
+    background: var(--sz-cal-grid-free);
+    color: #4a4a46;
+  }
   .canva-cal-grid-cell.slot-past {
     background: #dedcd8;
     color: #8e8c88;
@@ -2156,6 +2161,44 @@
   }
   .canva-cal-grid-cell.slot-past .canva-cal-grid-check:not(.canva-cal-grid-check-on) {
     opacity: 0.4;
+  }
+  .canva-cal-grid-cell.slot-reserved,
+  .canva-cal-grid-cell.slot-reserved-cash,
+  .canva-cal-grid-cell.slot-public,
+  .canva-cal-grid-cell.slot-team {
+    background: var(--sz-cal-grid-reserved-paid);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-blocked {
+    background: var(--sz-cal-grid-blocked);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-reserved-unpaid {
+    background: var(--sz-cal-grid-reserved-unpaid);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-reserved-ipg {
+    background: var(--sz-cal-grid-reserved-ipg);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-reserved-recurring {
+    background: var(--sz-cal-grid-reserved-recurring);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-pending {
+    background: var(--sz-cal-grid-pending);
+    color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-cancel {
+    background: #eceae6;
+    color: #4a4a46;
+  }
+  .canva-cal-grid-cell.slot-closed {
+    background: #2a2a28;
+    color: #fff;
+  }
+  .canva-cal-grid-cell.slot-free.coach-cal-free-bookable {
+    background: #e8f0fe;
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-reserved-cash,
