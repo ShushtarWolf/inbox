@@ -5,6 +5,7 @@ import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
 import { checkAdapterRateLimit } from '../rateLimit'
 import { addMinutes } from '../time'
+import { formatGregorianDateInTimeZone } from '../../../../lib/aloplaySession'
 
 const ALOVARZESH_BASE = 'https://alo-varzesh.com'
 
@@ -15,6 +16,20 @@ export function gregorianToJalaliDate(isoDate: string): string {
   const { jy, jm, jd } = isoToJalaali(isoDate)
   return `${jy}-${String(jm).padStart(2, '0')}-${String(jd).padStart(2, '0')}`
 }
+
+const TEHRAN_TIME_ZONE = 'Asia/Tehran'
+
+/** Current HH:00 in Tehran — past public slots before this are not treated as reserved. */
+export function tehranIgnoreBeforeHour(now: Date = new Date()): string {
+  const hour = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TEHRAN_TIME_ZONE,
+    hour: '2-digit',
+    hour12: false,
+  }).format(now)
+  const n = Number.parseInt(hour, 10)
+  return `${String(Number.isFinite(n) ? n : 0).padStart(2, '0')}:00`
+}
+
 
 function mappingHasAlovarzesh(mapping: ClubMapping): boolean {
   const source = mapping.sources?.alovarzesh
@@ -56,7 +71,7 @@ export async function fetchAloVarzeshOccupancy(opts: {
     }
   }
 
-  const cacheKey = `ext-cal:alovarzesh:${opts.mapping.inboxSlug}:${opts.date}`
+  const cacheKey = `ext-cal:alovarzesh:${opts.mapping.inboxSlug}:${opts.date}:v2`
   const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
   if (cached) {
     return { source: 'alovarzesh', occupied: cached, supported: true }
@@ -73,6 +88,8 @@ export async function fetchAloVarzeshOccupancy(opts: {
   }
 
   const jalaliDate = gregorianToJalaliDate(opts.date)
+  const todayTehran = formatGregorianDateInTimeZone(new Date(), TEHRAN_TIME_ZONE)
+  const ignoreBefore = opts.date === todayTehran ? tehranIgnoreBeforeHour() : null
   const occupied: ExternalOccupiedSlot[] = []
   const errors: string[] = []
 
@@ -83,7 +100,7 @@ export async function fetchAloVarzeshOccupancy(opts: {
 
     try {
       const html = await fetchProductHtml(productId, opts.date)
-      const times = parseAloVarzeshOccupiedTimes(html, jalaliDate)
+      const times = parseAloVarzeshOccupiedTimes(html, jalaliDate, { ignoreBefore })
       for (const startTime of times) {
         occupied.push({
           courtKey: court.id,
