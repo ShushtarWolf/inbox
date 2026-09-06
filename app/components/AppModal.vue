@@ -22,18 +22,22 @@ const previousFocus = ref<HTMLElement | null>(null)
 const holdsBodyLock = ref(false)
 /**
  * Backdrop dismiss is armed only after the opening pointer gesture finishes.
- * Timer-only was not enough: the same click that opens (تایید و ادامه / login)
- * can hit the freshly mounted overlay and close it immediately — dead CTA on
- * Chrome, Firefox, and mobile WebKit.
+ * Timer-only / double-rAF-on-mount was not enough: the same click that opens
+ * (تایید و ادامه / login) can hit the freshly mounted overlay and close it —
+ * dead CTA on Chrome, Firefox, and mobile WebKit.
  *
- * Extra gate: only dismiss when pointerdown started on the backdrop *after*
- * arming — synthetic clicks without a backdrop pointerdown cannot close.
+ * Gates (both required):
+ * 1. dismissArmed — false until opening gesture settles (or fallback timeout)
+ * 2. backdropGestureActive — pointerdown on backdrop *after* arming only
+ *    (pre-arm pointerdowns must not count; that was the remaining race)
  */
 const dismissArmed = ref(false)
-/** True when the current gesture's pointerdown landed on the overlay chrome. */
+/** True when pointerdown landed on backdrop chrome after dismiss was armed. */
 const backdropGestureActive = ref(false)
 let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
 let removeOpenGestureListeners: (() => void) | null = null
+/** Ignore pointerup that belonged to the opening gesture (already in flight). */
+let ignorePointerReleaseUntil = 0
 
 function clearDismissArmTimer() {
   if (dismissArmTimer != null) {
@@ -50,19 +54,24 @@ function clearOpenGestureListeners() {
 function armDismiss() {
   if (!props.open) return
   dismissArmed.value = true
+  // Drop any pre-arm backdrop press so it cannot pair with a post-arm click.
+  backdropGestureActive.value = false
   clearDismissArmTimer()
   clearOpenGestureListeners()
 }
 
 /**
- * Arm dismiss only after the opening gesture's pointer is fully released.
- * If open was programmatic (no in-flight pointer), double-rAF + fallback timer.
+ * Arm dismiss after the opening gesture fully ends.
+ * Do NOT soft-arm on the next paint — that re-opens the open→instant-close race
+ * when a delayed/synthetic click lands on the new overlay.
  */
 function scheduleDismissArm() {
   clearDismissArmTimer()
   clearOpenGestureListeners()
   dismissArmed.value = false
   backdropGestureActive.value = false
+  // Opening CTA click: pointerup already fired; ignore stray release for a beat.
+  ignorePointerReleaseUntil = Date.now() + 50
 
   let armed = false
   const tryArm = () => {
@@ -72,6 +81,7 @@ function scheduleDismissArm() {
   }
 
   const onPointerReleased = () => {
+    if (Date.now() < ignorePointerReleaseUntil) return
     // One frame after pointerup so the releasing click cannot dismiss.
     requestAnimationFrame(() => {
       requestAnimationFrame(tryArm)
@@ -80,7 +90,6 @@ function scheduleDismissArm() {
 
   window.addEventListener('pointerup', onPointerReleased, true)
   window.addEventListener('pointercancel', onPointerReleased, true)
-  // Mouse-only fallbacks (older engines / hybrid input).
   window.addEventListener('mouseup', onPointerReleased, true)
   window.addEventListener('touchend', onPointerReleased, true)
 
@@ -91,18 +100,17 @@ function scheduleDismissArm() {
     window.removeEventListener('touchend', onPointerReleased, true)
   }
 
-  // Soft arm after paint when the opening gesture already completed before mount
-  // (click fires after pointerup — the common CTA path).
-  requestAnimationFrame(() => {
-    requestAnimationFrame(tryArm)
-  })
-
-  // Hard fallback so dismiss cannot stay locked forever.
-  dismissArmTimer = setTimeout(tryArm, 500)
+  // Fallback when open was programmatic (deep-link) or opening gesture already ended.
+  dismissArmTimer = setTimeout(tryArm, 400)
 }
 
 function onOverlayPointerDown(event: PointerEvent) {
-  // Record backdrop presses even before arming — click may arrive after arm.
+  // Only gestures that start *after* arming can dismiss. Pre-arm presses are the
+  // open-click race (CTA / login under the newly mounted full-screen overlay).
+  if (!dismissArmed.value) {
+    backdropGestureActive.value = false
+    return
+  }
   // Dialog uses @pointerdown.stop so presses inside the sheet never reach here.
   const dialog = dialogRef.value
   if (dialog && event.target instanceof Node && dialog.contains(event.target)) {
@@ -217,6 +225,7 @@ watch(() => props.open, (isOpen) => {
     window.visualViewport?.addEventListener('resize', syncVisualViewport)
     window.visualViewport?.addEventListener('scroll', syncVisualViewport)
     window.addEventListener('resize', syncVisualViewport)
+    // post: dialogRef exists; schedule arm after mount so open-click cannot pair.
     scheduleDismissArm()
     nextTick(() => {
       dialogRef.value?.focus()
@@ -235,7 +244,7 @@ watch(() => props.open, (isOpen) => {
       restore.focus()
     }
   }
-})
+}, { flush: 'post' })
 
 onMounted(() => {
   if (import.meta.client) {

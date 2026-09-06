@@ -120,6 +120,12 @@ if (!appModal.includes('dismissArmed')) {
 if (!appModal.includes('backdropGestureActive') || !appModal.includes('onOverlayPointerDown')) {
   errors.push('AppModal must require backdrop pointerdown before dismiss (synthetic open-click race)')
 }
+if (!appModal.includes('!dismissArmed.value') && !appModal.includes('if (!dismissArmed.value)')) {
+  errors.push('AppModal must ignore backdrop pointerdown before dismissArmed (pre-arm open-click race)')
+}
+if (appModal.includes('requestAnimationFrame(() => {\n    requestAnimationFrame(tryArm)\n  })') && appModal.includes('Soft arm after paint')) {
+  errors.push('AppModal must not soft-arm dismiss on next paint (reopens open→instant-close race)')
+}
 if (!appModal.includes('scheduleDismissArm') && !appModal.includes('pointerup')) {
   errors.push('AppModal must arm dismiss after opening pointer lifecycle (not timer-only)')
 }

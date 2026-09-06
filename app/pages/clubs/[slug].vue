@@ -230,7 +230,12 @@ watch(
       // Guests: keep selection + login CTA — do not open confirm until signed in.
       if (user.value) {
         resumeConfirmAfterAuth.value = false
-        confirmOpen.value = true
+        // Same deferral as openConfirmSheet — instant open races AppModal dismiss.
+        nextTick(() => {
+          requestAnimationFrame(() => {
+            confirmOpen.value = true
+          })
+        })
       }
     }
     deepLinkSlotsPending.value = false
@@ -310,7 +315,11 @@ function maybeResumeConfirm() {
   if (!selectedSlots.value.length) return
   resumeConfirmAfterAuth.value = false
   waitlistSlotId.value = null
-  confirmOpen.value = true
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      confirmOpen.value = true
+    })
+  })
 }
 
 watch(
