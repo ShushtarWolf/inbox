@@ -83,7 +83,7 @@ function specialtyLine(coach: CoachRailItem) {
             <p class="canva-coach-card-meta">{{ coachMeta(coach) }}</p>
             <p v-if="specialtyLine(coach)" class="canva-coach-card-meta">{{ specialtyLine(coach) }}</p>
           </div>
-          <span class="canva-coach-card-cta">{{ t('home.coachCta') }}</span>
+          <span class="canva-coach-card-cta">{{ t('home.bookNow') }}</span>
         </div>
       </NuxtLink>
     </div>

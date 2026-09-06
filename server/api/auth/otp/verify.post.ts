@@ -218,7 +218,20 @@ export default defineEventHandler(async (event) => {
 
   if (role === 'COACH') {
     assertCoachProductEnabled(event)
-    const sport = await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
+    const sportKey = String(consumed.payload.sport || '')
+    const sportSlug = sportKey === 'tennis' ? 'tennis' : 'padel'
+    const sport = await prisma.sport.findFirstOrThrow({ where: { slug: sportSlug } })
+    const sessionPriceRaw = consumed.payload.sessionPrice
+    const sessionPrice = typeof sessionPriceRaw === 'number' && Number.isFinite(sessionPriceRaw)
+      ? Math.max(0, Math.round(sessionPriceRaw))
+      : 400000
+    const experienceRaw = consumed.payload.experienceYears
+    const experienceYears = typeof experienceRaw === 'number' && Number.isFinite(experienceRaw)
+      ? Math.max(0, Math.min(40, Math.round(experienceRaw)))
+      : 0
+    const credentialUrls = Array.isArray(consumed.payload.credentialUrls)
+      ? (consumed.payload.credentialUrls as unknown[]).filter((u): u is string => typeof u === 'string' && Boolean(u.trim()))
+      : []
     const result = await prisma.$transaction(async (tx) => {
       const user = existing
         ? await applySecondRole(tx, existing, 'COACH', { name, gender })
@@ -247,7 +260,9 @@ export default defineEventHandler(async (event) => {
           city: 'تهران',
           sportId: sport.id,
           userId: user.id,
-          sessionPrice: 400000,
+          sessionPrice,
+          experienceYears,
+          credentialsJson: credentialUrls.length ? JSON.stringify(credentialUrls) : null,
           isBookable: true,
           approvalStatus: 'PENDING',
           appliedAt: new Date(),

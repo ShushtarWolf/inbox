@@ -21,6 +21,8 @@ export default defineEventHandler(async (event) => {
     bioFa?: string
     bioEn?: string
     sessionPrice?: number
+    sport?: string
+    experienceYears?: number
     avatarUrl?: string
     credentialUrls?: string[]
     returnTo?: string
@@ -69,9 +71,13 @@ export default defineEventHandler(async (event) => {
   const court = club
     ? await prisma.court.findFirst({ where: { clubId: club.id }, include: { sport: true } })
     : null
-  const sport = court?.sport || await prisma.sport.findFirstOrThrow({ where: { slug: 'padel' } })
+  const sportSlug = body.sport === 'tennis' ? 'tennis' : 'padel'
+  const sport = court?.sport || await prisma.sport.findFirstOrThrow({ where: { slug: sportSlug } })
   const locale = body.locale === 'en' ? 'en' : 'fa'
   const sessionPrice = body.sessionPrice !== undefined ? Math.max(0, Math.round(body.sessionPrice)) : 400000
+  const experienceYears = body.experienceYears !== undefined
+    ? Math.max(0, Math.min(40, Math.round(body.experienceYears)))
+    : 0
 
   const result = await prisma.$transaction(async (tx) => {
     const user = existingUser
@@ -111,6 +117,7 @@ export default defineEventHandler(async (event) => {
         bioFa: body.bioFa?.trim() || null,
         bioEn: body.bioEn?.trim() || body.bioFa?.trim() || null,
         sessionPrice,
+        experienceYears,
         photo: body.avatarUrl?.trim() || null,
         credentialsJson: body.credentialUrls?.length ? JSON.stringify(body.credentialUrls) : null,
         isBookable: true,

@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
     addressFa?: string
     sport?: string
     courtCount?: number | string
+    sessionPrice?: number
+    experienceYears?: number
     credentialUrls?: string[]
     returnTo?: string
   }>(event)
@@ -54,6 +56,8 @@ export default defineEventHandler(async (event) => {
           addressFa: body.addressFa?.trim(),
           sport: body.sport,
           courtCount: body.courtCount,
+          sessionPrice: typeof body.sessionPrice === 'number' ? body.sessionPrice : undefined,
+          experienceYears: typeof body.experienceYears === 'number' ? body.experienceYears : undefined,
           credentialUrls: Array.isArray(body.credentialUrls) ? body.credentialUrls.filter(Boolean) : undefined,
         }
       : undefined,

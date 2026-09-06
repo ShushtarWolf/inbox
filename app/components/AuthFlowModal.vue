@@ -30,6 +30,8 @@ const clubNameFa = ref('')
 const addressFa = ref('')
 const sport = ref<'padel' | 'tennis' | 'both'>('padel')
 const courtCount = ref<1 | 2 | 3>(1)
+const sessionPrice = ref('')
+const experienceYears = ref<2 | 4 | 6>(4)
 const credentialUrls = ref<string[]>([])
 const licenseName = ref('')
 const code = ref('')
@@ -79,6 +81,12 @@ const courtCountOptions = [
   { value: 3 as const, labelKey: 'auth.courtCount3Plus' },
 ]
 
+const coachExperienceOptions = [
+  { value: 2 as const, labelKey: 'auth.coachExperienceUnder3' },
+  { value: 4 as const, labelKey: 'auth.coachExperience3to5' },
+  { value: 6 as const, labelKey: 'auth.coachExperienceOver5' },
+]
+
 const title = computed(() => {
   if (step.value === 'gate' || step.value === 'welcome') return ''
   if (step.value === 'role') return t('auth.register')
@@ -124,6 +132,8 @@ function resetForm() {
   addressFa.value = ''
   sport.value = 'padel'
   courtCount.value = 1
+  sessionPrice.value = ''
+  experienceYears.value = 4
   credentialUrls.value = []
   licenseName.value = ''
   code.value = ''
@@ -294,7 +304,14 @@ async function dismissWelcome() {
 function welcomeVariantForAuth(kind: 'login' | 'register', authRole?: string): AuthWelcomeVariant {
   if (kind === 'login') return 'login'
   if (authRole === 'CLUB_ADMIN') return 'owner'
+  if (authRole === 'COACH') return 'coach'
   return 'athlete'
+}
+
+function parsedSessionPrice(): number | undefined {
+  const raw = sessionPrice.value.replace(/[^\d]/g, '')
+  if (!raw) return undefined
+  return Math.max(0, Math.round(Number(raw)))
 }
 
 /** Prefer role dashboard when API omits redirectTo (OTP / password happy path). */
@@ -385,11 +402,15 @@ async function registerWithPassword() {
           phone: phone.value || undefined,
           password: password.value,
           gender: gender.value,
+          sessionPrice: parsedSessionPrice(),
+          sport: sport.value,
+          experienceYears: experienceYears.value,
+          credentialUrls: credentialUrls.value.length ? credentialUrls.value : undefined,
           returnTo: returnPath,
         },
       })
       await fetchAuth()
-      await showWelcome('athlete', data.redirectTo || localePath('/coach'))
+      await showWelcome('coach', data.redirectTo || localePath('/coach/pending'))
       return
     }
 
@@ -455,9 +476,15 @@ async function requestOtp() {
         gender: purpose.value === 'register' ? gender.value || undefined : undefined,
         clubNameFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? clubNameFa.value : undefined,
         addressFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? addressFa.value.trim() || undefined : undefined,
-        sport: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? sport.value : undefined,
+        sport: purpose.value === 'register' && (role.value === 'CLUB_ADMIN' || role.value === 'COACH')
+          ? sport.value
+          : undefined,
         courtCount: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? courtCount.value : undefined,
-        credentialUrls: purpose.value === 'register' && role.value === 'CLUB_ADMIN' && credentialUrls.value.length
+        sessionPrice: purpose.value === 'register' && role.value === 'COACH' ? parsedSessionPrice() : undefined,
+        experienceYears: purpose.value === 'register' && role.value === 'COACH' ? experienceYears.value : undefined,
+        credentialUrls: purpose.value === 'register'
+          && (role.value === 'CLUB_ADMIN' || role.value === 'COACH')
+          && credentialUrls.value.length
           ? credentialUrls.value
           : undefined,
         returnTo: safeReturnTo.value,
@@ -539,6 +566,7 @@ watch(open, (isOpen) => {
     resetForm()
     return
   }
+  selectedRole.value = role.value
   prefillFromSessionIfAddingRole()
 })
 
@@ -631,6 +659,9 @@ watch(
           <p class="canva-auth-welcome-title">{{ t('auth.welcomeInbox') }}</p>
           <p v-if="welcomeVariant === 'owner'" class="mt-3 text-center text-xs text-brand-gray-600">
             {{ t('auth.welcomeOwnerReview') }}
+          </p>
+          <p v-else-if="welcomeVariant === 'coach'" class="mt-3 text-center text-xs text-brand-gray-600">
+            {{ t('auth.welcomeCoachReview') }}
           </p>
           <button type="button" class="canva-gate-btn-primary mt-5" @click="dismissWelcome">
             {{ t('auth.welcomeCta') }}
@@ -739,6 +770,81 @@ watch(
               <div class="min-w-0 flex-1 text-start">
                 <p class="text-xs font-bold text-brand-navy">{{ t('auth.licenseUpload') }}</p>
                 <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.licenseHint') }}</p>
+                <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
+              </div>
+              <button
+                type="button"
+                class="canva-auth-upload-btn"
+                :disabled="licenseUploading"
+                @click="openLicensePicker('otp')"
+              >
+                {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
+              </button>
+              <input
+                ref="licenseInputOtpRef"
+                type="file"
+                class="pointer-events-none sr-only"
+                :accept="licenseAccept"
+                :disabled="licenseUploading"
+                @change="onLicenseFile"
+              >
+            </div>
+          </template>
+          <template v-else-if="role === 'COACH'">
+            <AppFormField field-id="auth-otp-coach-name" :label="t('auth.fullName')">
+              <input id="auth-otp-coach-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
+            </AppFormField>
+            <AppFormField field-id="auth-otp-coach-gender" :label="t('common.gender')">
+              <select id="auth-otp-coach-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
+            </AppFormField>
+            <AppFormField field-id="auth-otp-coach-phone" :label="t('common.mobile')" numeric>
+              <input
+                id="auth-otp-coach-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
+                placeholder="09xxxxxxxxx"
+                autocomplete="tel"
+                :readonly="phoneLocked"
+                required
+              />
+            </AppFormField>
+            <AppFormField field-id="auth-otp-coach-price" :label="t('auth.coachSessionPrice')" numeric>
+              <input
+                id="auth-otp-coach-price"
+                v-model="sessionPrice"
+                dir="ltr"
+                inputmode="numeric"
+                class="neo-input bg-white/95"
+                :placeholder="t('auth.coachSessionPrice')"
+              />
+            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-otp-coach-exp" :label="t('auth.coachExperience')">
+                <select id="auth-otp-coach-exp" v-model.number="experienceYears" class="neo-select bg-white/95">
+                  <option v-for="opt in coachExperienceOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+              <AppFormField field-id="auth-otp-coach-sport" :label="t('auth.sport')">
+                <select id="auth-otp-coach-sport" v-model="sport" class="neo-select bg-white/95">
+                  <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+            </div>
+            <div class="canva-auth-upload">
+              <div class="min-w-0 flex-1 text-start">
+                <p class="text-xs font-bold text-brand-navy">{{ t('auth.coachCertUpload') }}</p>
+                <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.coachCertHint') }}</p>
                 <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
               </div>
               <button
@@ -894,6 +1000,107 @@ watch(
                 v-model="password"
                 type="password"
                 class="neo-input bg-white/95"
+                autocomplete="new-password"
+                required
+                minlength="6"
+              />
+            </AppFormField>
+          </template>
+
+          <template v-else-if="role === 'COACH'">
+            <AppFormField field-id="auth-coach-name" :label="t('auth.fullName')">
+              <SmoothCaretInput
+                id="auth-coach-name"
+                v-model="name"
+                :placeholder="t('auth.fullName')"
+                autocomplete="name"
+                required
+              />
+            </AppFormField>
+            <AppFormField field-id="auth-coach-gender" :label="t('common.gender')">
+              <select id="auth-coach-gender" v-model="gender" class="neo-select bg-white/95" required>
+                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
+                <option value="MALE">{{ t('common.genderMale') }}</option>
+                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
+              </select>
+            </AppFormField>
+            <AppFormField field-id="auth-coach-phone" :label="t('common.mobile')" numeric>
+              <input
+                id="auth-coach-phone"
+                v-model="phone"
+                dir="ltr"
+                inputmode="tel"
+                class="neo-input bg-white/95"
+                :class="phoneLocked ? 'opacity-80' : ''"
+                :placeholder="t('common.mobile')"
+                autocomplete="tel"
+                :readonly="phoneLocked"
+              />
+            </AppFormField>
+            <AppFormField field-id="auth-coach-price" :label="t('auth.coachSessionPrice')" numeric>
+              <input
+                id="auth-coach-price"
+                v-model="sessionPrice"
+                dir="ltr"
+                inputmode="numeric"
+                class="neo-input bg-white/95"
+                :placeholder="t('auth.coachSessionPrice')"
+              />
+            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-coach-exp" :label="t('auth.coachExperience')">
+                <select id="auth-coach-exp" v-model.number="experienceYears" class="neo-select bg-white/95">
+                  <option v-for="opt in coachExperienceOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+              <AppFormField field-id="auth-coach-sport" :label="t('auth.sport')">
+                <select id="auth-coach-sport" v-model="sport" class="neo-select bg-white/95">
+                  <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
+                    {{ t(opt.labelKey) }}
+                  </option>
+                </select>
+              </AppFormField>
+            </div>
+            <div class="canva-auth-upload">
+              <div class="min-w-0 flex-1 text-start">
+                <p class="text-xs font-bold text-brand-navy">{{ t('auth.coachCertUpload') }}</p>
+                <p class="mt-0.5 text-[10px] text-brand-gray-500">{{ t('auth.coachCertHint') }}</p>
+                <p v-if="licenseName" class="mt-1 truncate text-[10px] text-brand-primary">{{ licenseName }}</p>
+              </div>
+              <button
+                type="button"
+                class="canva-auth-upload-btn"
+                :disabled="licenseUploading"
+                @click="openLicensePicker('password')"
+              >
+                {{ licenseUploading ? t('common.loading') : t('auth.selectFile') }}
+              </button>
+              <input
+                ref="licenseInputPasswordRef"
+                type="file"
+                class="pointer-events-none sr-only"
+                :accept="licenseAccept"
+                :disabled="licenseUploading"
+                @change="onLicenseFile"
+              >
+            </div>
+            <AppFormField field-id="auth-coach-email" :label="t('auth.emailOptional')">
+              <input
+                id="auth-coach-email"
+                v-model="email"
+                dir="ltr"
+                type="email"
+                class="neo-input bg-white/95"
+                autocomplete="email"
+              />
+            </AppFormField>
+            <AppFormField field-id="auth-coach-password" :label="t('auth.password')">
+              <SmoothCaretInput
+                id="auth-coach-password"
+                v-model="password"
+                type="password"
                 autocomplete="new-password"
                 required
                 minlength="6"

@@ -12,7 +12,7 @@ export type AuthFlowChannel = 'password' | 'otp'
 
 export type AuthFlowRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
 
-export type AuthWelcomeVariant = 'athlete' | 'owner' | 'login'
+export type AuthWelcomeVariant = 'athlete' | 'coach' | 'owner' | 'login'
 
 function defaultAuthChannel(_smsLive?: boolean): AuthFlowChannel {
   return 'otp'
