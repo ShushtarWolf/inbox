@@ -40,8 +40,8 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | `home page (3).png` | `/clubs/[slug]` club detail | Gallery · amenities · cal R / courts+slots L · confirm CTA; deep-link `?date=` |
 | `home page (4).png` | Court booking **confirm sheet** on `/clubs/[slug]` | Green title · red club name · **پرداخت** (athlete) |
 | `login_sign up.png` | AuthFlow **gate** | Square CTAs; **Google in Canva is OUT OF MVP** (product hard-off) |
-| `4.png` | AuthFlow **role** picker | Athlete / Owner for Behnaz (`PILOT_NO_COACH`); Coach frame exists but gated |
-| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | Phone OTP; coach register path frozen for Behnaz |
+| `4.png` | AuthFlow **role** picker | Athlete / Coach / Owner (`PILOT_NO_COACH=false` in current ops) |
+| `5.png`–`16.png` (auth variants) | AuthFlow login/register/OTP sheets | Phone OTP; coach register path live when coach product is ON |
 | `home page (8).png` | `/athlete/home` | Photo hero + curve + ۲۰٪ + **3-field search** + rails + bottom nav |
 | `home page (6).png` | `/athlete/favorites` | Not required for Behnaz MVP inventory |
 | `home page (5).png` | `/athlete` hub menu | Circular avatar OK (Canva); links to profile / payments / wallet |
@@ -49,9 +49,9 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | — | `/athlete/profile`, `/athlete/wallet`, `/athlete/payments` | **In product**; no dedicated Canva page — entered from hub `(5)` |
 | `home page (9).png` + `(13)` | `/owner/calendar` **Today GRID** | Closed Today = multi-court columns + time gutter + FABs; date picker on GRID |
 | `home page (22\|23\|24\|25\|27\|42).png` | `/owner/calendar` overlay artboards | List-day is overlay-friendly restatement of Today — **not** the closed default |
-| `home page (29\|32\|38).png` | Owner **More** sheet on calendar | CRM / equipments / support / workers; coaches+packages shown but OUT OF MVP |
+| `home page (29\|32\|38).png` | Owner **More** sheet on calendar | CRM / equipments / support / workers; packages still OUT OF MVP (coach product is ON in ops) |
 | `home page (17).png` | Free-slot **action menu** sheet | رزرو حضوری / مسدود / یادداشت |
-| `home page (10\|18).png` | Walk-in **reserve** desk sheet | Coach radio + recurring checkbox = OUT OF MVP UI in Canva |
+| `home page (10\|18).png` | Walk-in **reserve** desk sheet | Recurring checkbox = OUT OF MVP; coach radio is product-real when coach is ON |
 | `home page (20).png` | **Note** desk sheet | — |
 | `home page (21).png` | **Block** desk sheet | Daily/weekly/season steppers = OUT OF MVP |
 | `home page (11).png` | Owner recurring / continue-book sheet | **OUT OF MVP** (season/package gated) |
@@ -69,13 +69,15 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | `home page (31).png` | Equipments **edit** sheet | — |
 | More → پشتیبانی `(38)` | `/owner/support` | No dedicated full-page Canva ops guide in this export |
 
-### Routing notes (Behnaz MVP freeze)
+### Routing notes (ops + remaining freezes)
 
 - **Primary court book UX** = `/clubs/[slug]` + confirm sheet (`(3)` / `(4)`). Do not send athletes through a standalone book page.
 - **Legacy** `/book/court/:slug` → replace-redirect to `/clubs/:slug` (preserves `date` / `slot` / `court` query).
 - **Athlete booking detail** `/athlete/bookings/[id]` → `/athlete/bookings?booking=` (list is primary).
-- **Coach / package / Google / EN**: **OUT OF MVP** for Behnaz — `PILOT_NO_COACH=true`, recurring APIs `403`, Google UI hard-off, `defaultLocale: fa`.
+- **Coach product:** **ON** in current ops (`PILOT_NO_COACH=false` / unset). Older Behnaz “freeze coach” notes below are **stale** — do not re-freeze from docs alone.
+- **Still frozen:** package / season / recurring (`isRecurringReserveEnabled() === false` → API `403`), Google UI hard-off, `defaultLocale: fa`.
 - **Owner Today** = multi-court GRID (`(9)`): time rows × court columns, FABs, date chevrons. Overview tab = `changed.png`. List-day `(22+)` documents overlay states, not closed Today.
+- **Coach dashboard frames:** none in Canva — Path B borrows owner Canva language (`phone-shell`, photo hero, square CTAs).
 
 ## Severity legend
 
@@ -102,7 +104,7 @@ Do **not** trust July code comments that still say equipments = `(20)/(21)` — 
 | `home page` / `(2)` | `/` | **ok-enough** | 3-field search (sport · city · date → `?date=`), rails, bottom nav kept |
 | `Court list` | `/clubs` | **ok-enough** | Square mustard chips; CTA **رزرو کن**; date query preserved |
 | `(3)` / `(4)` | club detail + confirm | **ok-enough** | Interactive slots + sheet; product wallet/pay CTAs kept |
-| `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Owner for Behnaz; no Google in product |
+| `login_sign up` / `4` | AuthFlow | **ok-enough** | Athlete / Coach / Owner; no Google in product |
 | `(8)` / `(5)` / `(7)` | athlete | **ok-enough** | Hub + bookings; wallet/profile via hub |
 | `(9)` GRID | owner calendar Today | **blocker if list-day** | Closed Today is multi-court grid; list-day is overlay artboard only |
 | `(22+)` + sheets | owner calendar overlays | **visual** | Detail / 3-action / More sit on list-day crops |
@@ -127,7 +129,7 @@ Phone frames in Canva often omit shared chrome. **Live app must keep escape hatc
 ## Recommended next
 
 1. Re-capture overlays after UI changes
-2. Keep Behnaz freeze: `PILOT_NO_COACH=true` (do not flip coach on for this pilot)
+2. Keep coach **ON** (`PILOT_NO_COACH=false` / unset) — do not re-freeze from stale Behnaz notes
 3. Owner desk pay sheets `(12|19)` polish if needed
 4. Refresh stale Canva comments in Vue files (`(20)/(21)` equipments → `(30)/(31)`)
 

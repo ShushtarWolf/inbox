@@ -21,8 +21,10 @@ Copy/paste checklist. Mark each row when set.
 
 ## B. Pilot flags
 
-| ☐ | Variable | Court-only MVP | Competition + Coach go-live |
-|---|----------|----------------|------------------------------|
+**Current ops:** coach is **ON** — use the Competition + Coach column (`false` / unset). Do not set `PILOT_NO_COACH=true` from stale Behnaz freeze notes.
+
+| ☐ | Variable | Court-only era (historical) | Current ops (Competition + Coach) |
+|---|----------|------------------------------|-----------------------------------|
 | ☐ | `PILOT_NO_COACH` | `true` | `false` (or unset) — unlocks coach signup, `/coaches`, wallet court book |
 | ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; redeploy after change |
 

@@ -34,7 +34,8 @@ Related: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md) · [OP
 | Item | Notes |
 |------|--------|
 | Live SEP / IPG for entry fees in production | `PAYMENTS_MODE=live` blocked for pilot; desk `pay_at_club` or wallet/test path only |
-| Coach / season / package / recurring | Frozen by `PILOT_NO_COACH` and `isRecurringReserveEnabled() === false` |
+| Season / package / recurring | Frozen by `isRecurringReserveEnabled() === false` |
+| Coach product | **ON** in current ops (`PILOT_NO_COACH=false`); freeze-era notes that lump coach with packages are stale |
 | Competition waitlist | UI string exists; no waitlist join API |
 | Bracket generation / live scoring | Owner records placements manually |
 | Multi-club prize escrow / sponsor billing | `sponsorFunded` flag only; no sponsor wallet |
@@ -133,7 +134,7 @@ COMPETITIONS_ENABLED=true PAYMENTS_MODE=test BASE_URL=http://localhost:3000 npm 
 # UX (375px)
 npm run test:e2e -- e2e/competition-detail.spec.ts
 
-# Court booking regression
+# Court booking regression (optional coach-freeze coverage — not current ops)
 PILOT_NO_COACH=true PAYMENTS_MODE=test npm run smoke:pilot
 ```
 

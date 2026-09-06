@@ -35,8 +35,8 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `KAVENEGAR_TEMPLATE_NOTIFY` | Required for booking/CRM SMS | Default `inbox-notify`. Panel body must be `%token10%`. Live service lines often reject free-text `sms/send` (412 invalid sender) while OTP lookup still works. |
 | `KAVENEGAR_TEMPLATE_PAY_LINK` | Optional tappable pay SMS | Panel template (e.g. `inbox-pay`) whose body includes `https://inboxs.ir/p/%token%`. `%token%` is the 8-char pay pin. Without this, desk “ارسال لینک پرداخت” still SMS a token10-safe pay pin and shows the owner a copy/WhatsApp URL. |
 | `KAVENEGAR_SENDER` | Free-text fallback | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است`. Needed only when notify lookup is disabled or OTP has no template. |
-| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional; `PILOT_NO_COACH` alone is synced to client at runtime via Nitro plugin |
-| `PILOT_NO_COACH` | Pilot | Prefer this for IUST MVP: server-only coach API/sitemap gate; also drives client redirects at runtime |
+| `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional mirror; server `PILOT_NO_COACH` synced to client via Nitro plugin. **Current ops: false / unset (coach ON)** |
+| `PILOT_NO_COACH` | Pilot | When `true`, hides coach APIs/routes. **Current ops: false / unset — coach ON.** Do not re-freeze from stale Behnaz notes |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
 | `SENTRY_ENVIRONMENT` | No | Sentry environment tag (default: `NODE_ENV` / `development`) |
 | `GIT_COMMIT_SHA` | No | Optional release tag (also accepts `GITHUB_SHA`) |
@@ -144,7 +144,7 @@ Same Kavenegar live/log gate as OTP (`SMS_ENABLED` + `SMS_PROVIDER` + `KAVENEGAR
 
 **Delivery:** live notify/campaign SMS use Verify Lookup `KAVENEGAR_TEMPLATE_NOTIFY` (default `inbox-notify`, body `%token10%`). `token10` is sanitized to letters/digits only with ≤5 spaces (Kavenegar API 431 otherwise). Punctuation in URLs (`://`, `/`, `.`) is stripped, so lookup **cannot** deliver a tappable `https://…` link. Desk pay links therefore SMS an 8-character **pay pin** (opens `/p/{pin}`) and show the owner a copyable URL. Optional `KAVENEGAR_TEMPLATE_PAY_LINK` (panel body must include `https://inboxs.ir/p/%token%`) sends a second lookup SMS with a tappable URL. Do not rely on free-text `sms/send` for booking texts on service lines (prod sender returns 412).
 
-Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Pilot: `PILOT_NO_COACH` — no coach SMS product work. CRM campaigns keep using the same SMS pipeline; do not expand from this path.
+Log mode: booking SMS is **dry-run audited** — full Persian body + phone + template via `[bookingNotify:sms] log …`, routed through the log SMS provider (`[sms:log]`, `SmsLog` when `clubId` present). `sent: false` — never claims live delivery. Waitlist still uses `[waitlistNotify:sms:skip]` until aligned. Live failures never fail the HTTP booking/cancel after DB success. Coach SMS product follows coach ON (`PILOT_NO_COACH=false`). CRM campaigns keep using the same SMS pipeline; do not expand from this path.
 
 ### Liara cron (daily owner SMS)
 
@@ -521,7 +521,7 @@ One-step: creates `CLUB_ADMIN` + `ACTIVE` club + 3 priced tennis courts (hours 8
 4. Confirm Overview **Pilot checklist** shows bookable (ACTIVE, courts, hours, pricing; owner login after step 3)
 5. Public catalog: `/clubs` · book on club detail: `/clubs/{slug}` (athlete account needed to complete a booking). Legacy `/book/court/{slug}` redirects there.
 
-Pilot (IUST/Behnaz): prefer `PILOT_NO_COACH=true` on Liara (server APIs/sitemap; no rebuild). Client nav/URL redirects need `NUXT_PUBLIC_PILOT_NO_COACH=true` or a build that already baked `public.pilotNoCoach` — set the public flag only if UI is still showing coach paths. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Payments: `npm run payments:status` or `GET /api/admin/payments-status` — **do not** set `PAYMENTS_MODE=live` until SEP verified; `pay_at_club` is OK fallback. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step. Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
+Pilot (IUST/Behnaz): **coach is ON** — keep `PILOT_NO_COACH=false` (or unset) on Liara; do not re-freeze from older freeze-era docs. Live OTP/SMS: set `SMS_ENABLED=true`, `SMS_PROVIDER=live` (or `kavenegar`), and `KAVENEGAR_API_KEY` when ready — check `/admin/sms` or `npm run sms:status`. Payments: `npm run payments:status` or `GET /api/admin/payments-status` — **do not** set `PAYMENTS_MODE=live` until SEP verified; `pay_at_club` is OK fallback. Live email: `EMAIL_ENABLED=true` + `SMTP_*` — check `/admin` or `npm run email:status`. Do not flip Liara env from this runbook without an explicit ops step. Liara fill sheet: [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md).
 
 ### Review club applications
 

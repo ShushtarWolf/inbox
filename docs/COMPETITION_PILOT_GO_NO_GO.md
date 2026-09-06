@@ -1,12 +1,14 @@
 # Competition Pilot Go/No-Go — IUST (Behnaz)
 
+> **Note:** Freeze-era checklists below may assume `PILOT_NO_COACH=true`. **Current ops has coach ON** (`false` / unset). Season/package/Google/EN freezes still apply; do not re-freeze coach from this doc.
+
 Short checklist before enabling **competitions** for real athletes at the IUST pilot club.  
 Style mirrors [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md). **Do not deploy** or set `PAYMENTS_MODE=live` from this doc.
 
 **Pilot club:** live IUST club slug is `iust-tennis` (`PILOT_CLUB_SLUG` in `shared/pilotClub.ts`). Set `COMPETITIONS_PILOT_CLUB_SLUG=iust-tennis` (legacy env aliases `iust` / `بهناز` normalize with a warning).  
 **Local runner:** `npm run competition:go-no-go` (needs server + `ADMIN_PROVISION_SECRET` + applied competition migrations).  
 **Risk register:** [COMPETITION_RISK_SPEC.md](./COMPETITION_RISK_SPEC.md) (Phase 1 scope, failure modes, invariants).  
-**Regression:** `npm run smoke:pilot` (court booking freeze unchanged).
+**Regression:** `npm run smoke:pilot` (court booking; coach freeze only when flag explicitly true).
 
 ---
 
@@ -16,11 +18,12 @@ Per [MVP_SCREEN_INVENTORY.md](./MVP_SCREEN_INVENTORY.md), competitions are **add
 
 | Surface | How it stays off | Check |
 |---------|------------------|-------|
-| Coach product | `PILOT_NO_COACH=true` + middleware | **PASS** — `smoke:pilot` + `/coaches` → redirect |
 | Season / package / recurring | `isRecurringReserveEnabled() === false` → API `403` | **PASS** — `smoke:pilot` + go-no-go `R-04` |
 | Google OAuth | `/auth/google` 404; UI hard-off | **PASS** — `smoke:pilot` |
 | EN product UI | `defaultLocale: fa` + `/en` redirect | **PASS** — `smoke:pilot` |
 | Live IPG for entry fees | Only when `PAYMENTS_MODE=test\|live`; **not** `live` until SEP verified | **PASS** — local `PAYMENTS_MODE=test`; no live IPG in this run |
+
+**Coach:** ON in current ops — not part of this freeze table. Historical runs that asserted `/coaches` → `/clubs` required `PILOT_NO_COACH=true` and are not current ops truth.
 
 Competition routes (`/competitions`, `/athlete/competitions`, `/owner/competitions`) are **not** in the Behnaz MVP inventory — treat as a **pilot add-on** gated by ops flag (see §OPS).
 
@@ -31,7 +34,7 @@ Competition routes (`/competitions`, `/athlete/competitions`, `/owner/competitio
 | Variable | Pilot value | Notes |
 |----------|-------------|--------|
 | `PAYMENTS_MODE` | `test` (local) or `pay_at_club` (desk-only entry) | **Do not** set `live` until [PAYMENTS.md](./PAYMENTS.md) verify |
-| `PILOT_NO_COACH` | `true` | Unchanged |
+| `PILOT_NO_COACH` | `false` / unset (current ops) | Coach ON; set `true` only for deliberate freeze regression |
 | `COMPETITIONS_ENABLED` | **`false` default**; `true` only when enabling pilot | **PASS** — `isCompetitionsEnabled()` in `shared/competition.ts`; Nuxt `runtimeConfig.public.competitionsEnabled` |
 | `COMPETITIONS_PILOT_CLUB_SLUG` | `iust-tennis` (`PILOT_CLUB_SLUG`) | **PASS** — `isCompetitionsVisibleForClub(slug)`; optional single-club pilot |
 | `ADMIN_PROVISION_SECRET` | set | Cron + admin competition jobs |
@@ -52,11 +55,12 @@ npm run payments:status
 # Unit (status machines, idempotency, prize caps)
 npm test -- shared/competition.test.ts server/utils/competitions.test.ts
 
-# Court-booking regression (Behnaz freeze)
+# Court-booking regression (optional freeze coverage — not current ops)
 PILOT_NO_COACH=true PAYMENTS_MODE=test npm run smoke:pilot
 
 # Competition integration (local, mutates test DB; server must have COMPETITIONS_ENABLED=true)
-COMPETITIONS_ENABLED=true PILOT_NO_COACH=true PAYMENTS_MODE=test BASE_URL=http://localhost:3000 npm run competition:go-no-go
+# Prefer current ops coach ON; historical freeze-era runs used PILOT_NO_COACH=true
+COMPETITIONS_ENABLED=true PILOT_NO_COACH=false PAYMENTS_MODE=test BASE_URL=http://localhost:3000 npm run competition:go-no-go
 ```
 
 **Last local run (2026-08-24):** unit **44/44 PASS**; `smoke:pilot` **PASS**; go-no-go **16/16 PASS** (`COMPETITIONS_ENABLED=true`, `PAYMENTS_MODE=test`; F-10 skipped — requires `pay_at_club` on server); Playwright `e2e/competition-detail.spec.ts` **PASS in CI** (375px U-01).
@@ -175,7 +179,7 @@ curl -s -X POST "$BASE_URL/api/owner/competitions/$COMP_ID/award-prizes" -b owne
 |----|--------|--------|-----|
 | R-01 | Normal **court booking** same club/date | **PASS** | `npm run smoke:pilot` — athlete book → pay(test) → cancel |
 | R-02 | Owner **calendar** unaffected (no ghost slots) | **PASS** | Competitions use read-only overlap warning only; no slot rows created |
-| R-03 | `PILOT_NO_COACH` still enforced | **PASS** | `/coaches` → redirect `/clubs` |
+| R-03 | Coach product stays reachable when ON | **PASS** (current ops) | `/coaches` lists; freeze redirect only if flag true |
 | R-04 | Package/recurring still **403** | **PASS** | `POST /api/owner/season` → 403 |
 
 ### R-01 — court book same day (manual)
@@ -316,7 +320,7 @@ GitHub optional: `.github/workflows/competition-cron.yml` (requires repo secret 
 | Area | Verdict |
 |------|---------|
 | Functional | **GO** — F-02 IPG confirm path **fixed**; OPS-01 gate **fixed**; S-03 rate limit **fixed** |
-| Regression | **GO** — court booking + freeze intact |
+| Regression | **GO** — court booking intact (coach freeze optional / not current ops) |
 | Security | **GO** — join rate limit enforced (10/min IP + user) |
 | UX / trust | **GO** — U-01 Playwright @375px in CI; Canva radius OK |
 | Ops | **GO** — OPS-01 gate **PASS**; OPS-02 runbook + cron documented |
@@ -329,8 +333,9 @@ GitHub optional: `.github/workflows/competition-cron.yml` (requires repo secret 
 
 ```bash
 npm test -- shared/competition.test.ts server/utils/competitions.test.ts
+# Optional freeze regression only:
 PILOT_NO_COACH=true PAYMENTS_MODE=test npm run smoke:pilot
-COMPETITIONS_ENABLED=true PILOT_NO_COACH=true PAYMENTS_MODE=test BASE_URL=http://localhost:3000 npm run competition:go-no-go
+COMPETITIONS_ENABLED=true PILOT_NO_COACH=false PAYMENTS_MODE=test BASE_URL=http://localhost:3000 npm run competition:go-no-go
 npm run test:e2e -- e2e/competition-detail.spec.ts
 ```
 

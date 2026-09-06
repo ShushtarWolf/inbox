@@ -5,13 +5,14 @@ Production: **Liara** app `inbox` → `https://inboxs.ir`. **You deploy manually
 
 **Liara secrets fill sheet (copy/paste):** [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md)
 
-Out of scope for this launch: coach product, matchmaking, Google OAuth, season/package products, new CRM features, EN UI.
+Out of scope for this launch checklist’s **remaining freezes**: matchmaking, Google OAuth, season/package products, new CRM features, EN UI.
+
+**Coach product:** **ON** in current ops (`PILOT_NO_COACH=false` / unset). Do not flip it back on from this doc. See [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md) / [UNDEPLOYED.md](./UNDEPLOYED.md).
 
 ### Freeze — keep OFF (do not re-enable)
 
 | Surface | How it stays off |
 |---------|------------------|
-| Coach product | `PILOT_NO_COACH=true` + middleware `/coaches`, `/book/coach`, `/owner/coaches`, `/register/coach` |
 | Season / package reserve | `isRecurringReserveEnabled() === false` → API `403`; calendar openers gated |
 | Google OAuth | `/auth/google` 404; UI hard-off (`googleAuthEnabled: false`) |
 | EN product UI | `defaultLocale: fa` + `/en` redirect |
@@ -33,12 +34,12 @@ Use the fill sheet above. Summary:
 | `ADMIN_PROVISION_SECRET` | long random (provision + admin APIs) |
 | `SEED_ON_EMPTY` | unset / `false` after first catalog seed |
 
-### Pilot (coach off)
+### Pilot (coach ON in current ops)
 
 | Variable | Value | Notes |
 |----------|--------|--------|
-| `PILOT_NO_COACH` | `true` | Server APIs + sitemap; also synced to client at runtime |
-| `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | Optional belt-and-suspenders for client nav |
+| `PILOT_NO_COACH` | `false` or unset | Coach signup, `/coaches`, `/coach/*` live |
+| `NUXT_PUBLIC_PILOT_NO_COACH` | `false` or unset | Must match server |
 
 ### SMS / OTP (Kavenegar) — required for real athlete + owner login
 
@@ -153,7 +154,7 @@ Run locally in log/test mode where noted. **After you deploy to Liara with secre
 | 4 | Cancel → SMS + slot `FREE` | Cancel API frees slot; SMS skip/log | Live cancel SMS; slot free on calendar |
 | 5 | Waitlist OK or off | Join when enabled; 404 when off | Same on prod club setting |
 | 6 | Season/package hidden | No packages nav; `/owner/packages` stub; season/package APIs `403` | Same |
-| 7 | `/coaches` redirected/hidden | With `PILOT_NO_COACH` → `/clubs` | Same |
+| 7 | `/coaches` reachable when coach ON | `PILOT_NO_COACH=false` → list/detail; only redirects if flag true | Same |
 | 8 | Legal/contact load | `/contact` `/privacy` `/terms` 200 | Same on `inboxs.ir` |
 | 9 | No Google OAuth UI | `/login` has no Google button | Same |
 
@@ -180,7 +181,7 @@ Prefer `smoke:pilot` over broad `npm run smoke` on wiped pilot prod.
 ### Before deploy (local, log SMS + test IPG)
 
 1. Server up with `PAYMENTS_MODE=test` **or** `pay_at_club`, `SMS_PROVIDER=log` (or `SMS_ENABLED` off / log), `ADMIN_PROVISION_SECRET` set.
-2. For coach freeze coverage: `PILOT_NO_COACH=true` (and optional `NUXT_PUBLIC_PILOT_NO_COACH=true`), then restart.
+2. Current ops keeps coach **ON** (`PILOT_NO_COACH=false` / unset). Only set `PILOT_NO_COACH=true` if deliberately re-testing freeze coverage.
 3. Run:
 
 ```bash

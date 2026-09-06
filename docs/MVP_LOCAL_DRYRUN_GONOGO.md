@@ -1,5 +1,7 @@
 # MVP local dry-run — go / no-go (inboxs.ir)
 
+> **Historical snapshot (2026-08-14).** This dry-run exercised **`PILOT_NO_COACH=true`**. **Current ops has coach ON** (`PILOT_NO_COACH=false`) — do not treat freeze rows below as live truth.
+
 **Date:** 2026-08-14  
 **Scope:** Section 4 of [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md) — **local column** only  
 **Agent constraint:** **Do not deploy.** Production cutover to Liara (`inbox` → `https://inboxs.ir`) is a **human** step after secrets are filled.

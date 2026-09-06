@@ -1,6 +1,8 @@
 # Coach v1 Go / No-Go
 
-Short checklist before setting **`PILOT_NO_COACH=false`** on Liara (`inbox` / inboxs.ir).
+Checklist used for the cutover to **`PILOT_NO_COACH=false`** on Liara (`inbox` / inboxs.ir).
+
+**Current ops:** coach is **ON** (`PILOT_NO_COACH=false` / unset per [UNDEPLOYED.md](./UNDEPLOYED.md)). Do **not** flip the flag back to `true` from stale Behnaz freeze docs.
 
 Related: [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md) · [PAYMENTS.md](./PAYMENTS.md) · [LIARA_ENV_FILL_SHEET.md](./LIARA_ENV_FILL_SHEET.md)
 

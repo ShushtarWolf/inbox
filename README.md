@@ -52,7 +52,7 @@ npm run db:migrate:deploy # production: apply pending migrations only
 
 Production (`start-production.mjs`) runs `prisma migrate deploy` before starting the server.
 
-**Liara env vars:** see [docs/LIARA_ENV_FILL_SHEET.md](docs/LIARA_ENV_FILL_SHEET.md). Summary: `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PILOT_NO_COACH=true`, Kavenegar SMS vars, `PAYMENTS_MODE=pay_at_club` (OK fallback) or `test` until SEP terminal verified — **do not** set `live` until then (docs/PAYMENTS.md).
+**Liara env vars:** see [docs/LIARA_ENV_FILL_SHEET.md](docs/LIARA_ENV_FILL_SHEET.md). Summary: `DATABASE_URL` (Liara Postgres), `NUXT_SESSION_PASSWORD`, `NUXT_PUBLIC_SITE_URL=https://inboxs.ir`, `SEED_ON_EMPTY=true` (first deploy only), `ADMIN_PROVISION_SECRET`, `PILOT_NO_COACH=false` (coach ON — do not re-freeze from stale docs), Kavenegar SMS vars, `PAYMENTS_MODE=pay_at_club` (OK fallback) or `test` until SEP terminal verified — **do not** set `live` until then (docs/PAYMENTS.md).
 
 Deploy from repo root:
 
@@ -80,7 +80,7 @@ Run `FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed` to wipe and recr
 
 ## Routes
 
-**Public:** `/` · `/clubs` · `/clubs/:slug` (court booking) · `/coaches` · `/book/coach/:id` (coach product; pilot-gated)
+**Public:** `/` · `/clubs` · `/clubs/:slug` (court booking) · `/coaches` · `/book/coach/:id` (coach product ON in current ops)
 
 Legacy: `/book/court/:slug` → redirect to `/clubs/:slug` (+ query)
 
