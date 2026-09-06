@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   availableEquipmentQty,
+  availableSellEquipmentQty,
+  isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
   sumBookedEquipmentFromSlots,
+  sumSoldEquipmentFromSlots,
   type SlotEquipmentSnapshot,
 } from '#shared/equipmentAvailability.ts'
 
@@ -77,6 +80,60 @@ describe('availableEquipmentQty', () => {
   it('subtracts booked units from stock', () => {
     expect(availableEquipmentQty(7, 5)).toBe(2)
     expect(availableEquipmentQty(7, 8)).toBe(0)
+  })
+})
+
+describe('sumSoldEquipmentFromSlots', () => {
+  const slots: SlotEquipmentSnapshot[] = [
+    {
+      date: '2026-08-24',
+      startTime: '17:00',
+      booking: {
+        id: 'b1',
+        status: 'CONFIRMED',
+        bookingEquipments: [{ equipmentId: 'ball', quantity: 3 }],
+      },
+    },
+    {
+      date: '2026-08-25',
+      startTime: '10:00',
+      booking: {
+        id: 'b2',
+        status: 'CONFIRMED',
+        bookingEquipments: [{ equipmentId: 'ball', quantity: 2 }],
+      },
+    },
+    {
+      date: '2026-08-25',
+      startTime: '10:00',
+      booking: {
+        id: 'b3',
+        status: 'CANCELLED',
+        bookingEquipments: [{ equipmentId: 'ball', quantity: 9 }],
+      },
+    },
+  ]
+
+  it('sums sales across all dates and times', () => {
+    expect(sumSoldEquipmentFromSlots(slots, 'ball')).toBe(5)
+  })
+
+  it('excludes a booking being edited', () => {
+    expect(sumSoldEquipmentFromSlots(slots, 'ball', 'b1')).toBe(2)
+  })
+})
+
+describe('availableSellEquipmentQty', () => {
+  it('subtracts lifetime sold from stock', () => {
+    expect(availableSellEquipmentQty(100, 40)).toBe(60)
+    expect(availableSellEquipmentQty(10, 12)).toBe(0)
+  })
+})
+
+describe('isSellEquipmentCategory', () => {
+  it('detects SELL only', () => {
+    expect(isSellEquipmentCategory('SELL')).toBe(true)
+    expect(isSellEquipmentCategory('RENTAL')).toBe(false)
   })
 })
 

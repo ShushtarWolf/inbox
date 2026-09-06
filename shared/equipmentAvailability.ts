@@ -61,6 +61,44 @@ export function availableEquipmentQty(totalStock: number, booked: number): numbe
   return Math.max(0, stock - Math.max(0, booked))
 }
 
+/** True when quantity is permanent inventory (sale), not concurrent rental capacity. */
+export function isSellEquipmentCategory(category?: string | null): boolean {
+  return category === 'SELL'
+}
+
+/**
+ * Sum units already sold (non-cancelled) across any date/time.
+ * Used for SELL stock — items do not return after a session.
+ */
+export function sumSoldEquipmentFromSlots(
+  slots: SlotEquipmentSnapshot[],
+  equipmentId: string,
+  excludeBookingId?: string,
+): number {
+  let sum = 0
+  const seenBookings = new Set<string>()
+  for (const slot of slots) {
+    const booking = slot.booking
+    if (!booking || booking.status === 'CANCELLED') continue
+    if (excludeBookingId && booking.id === excludeBookingId) continue
+    if (booking.id) {
+      if (seenBookings.has(booking.id)) continue
+      seenBookings.add(booking.id)
+    }
+    for (const row of booking.bookingEquipments || []) {
+      if (row.equipmentId === equipmentId) {
+        sum += Math.max(1, row.quantity || 1)
+      }
+    }
+  }
+  return sum
+}
+
+/** Remaining sellable units from catalog stock minus lifetime sold. */
+export function availableSellEquipmentQty(totalStock: number, sold: number): number {
+  return availableEquipmentQty(totalStock, sold)
+}
+
 /** Minimum available across one or more time slices (strictest for multi-slot picks). */
 export function minAvailableEquipmentAcrossTimes(
   slots: SlotEquipmentSnapshot[],

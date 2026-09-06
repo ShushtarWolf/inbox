@@ -1,5 +1,10 @@
 import type { Equipment, Prisma } from '@prisma/client'
-import { availableEquipmentAtTime, type EquipmentSlotContext } from './equipmentAvailability'
+import { isSellEquipmentCategory } from '#shared/equipmentAvailability.ts'
+import {
+  availableEquipmentAtTime,
+  availableSellEquipment,
+  type EquipmentSlotContext,
+} from './equipmentAvailability'
 
 export type EquipmentRow = Pick<Equipment, 'id' | 'price' | 'category'>
 
@@ -66,7 +71,16 @@ export async function loadEquipmentForBooking(
     if (!row) continue
     const stock = Math.max(0, row.quantity ?? 1)
     let maxQty = stock
-    if (slotContext) {
+    if (isSellEquipmentCategory(row.category)) {
+      // SELL: permanent inventory — depletes across all bookings, not per session.
+      maxQty = await availableSellEquipment({
+        clubId,
+        equipmentId: row.id,
+        totalStock: stock,
+        excludeBookingId: slotContext?.excludeBookingId,
+      })
+    }
+    else if (slotContext) {
       maxQty = await availableEquipmentAtTime({
         clubId,
         equipmentId: row.id,
@@ -74,6 +88,7 @@ export async function loadEquipmentForBooking(
         startTime: slotContext.startTime,
         totalStock: stock,
         excludeBookingId: slotContext.excludeBookingId,
+        category: row.category,
       })
     }
     if (maxQty < 1) {

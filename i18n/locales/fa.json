@@ -1936,7 +1936,10 @@
       "priceHint": "صفر به معنی رایگان است",
       "quantity": "تعداد",
       "quantityHint": "حداکثر تعداد قابل رزرو در هر نوبت",
+      "quantityHintSell": "موجودی کل انبار (با هر فروش کم می‌شود)",
+      "quantityLabelSell": "موجودی",
       "stockLabel": "{qty} عدد",
+      "stockLabelSell": "موجودی: {qty} عدد",
       "confirmDelete": "این مورد حذف شود؟",
       "selectForBooking": "انتخاب تجهیزات برای این رزرو"
     },

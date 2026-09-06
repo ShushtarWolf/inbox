@@ -30,6 +30,7 @@ import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestNam
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import {
+  isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
 } from '#shared/equipmentAvailability.ts'
@@ -880,8 +881,43 @@ function reserveEquipmentStartTimes() {
   return uniqueOrdered(slots.map((slot) => normalizeSlotTime(slot.startTime)).filter(Boolean))
 }
 
-/** Available units at selected slot time(s), accounting for other bookings the same hour. */
-function equipmentAvailable(item: { id: string; quantity?: number }) {
+const equipmentLiveAvailability = ref<Record<string, number>>({})
+
+async function refreshEquipmentLiveAvailability() {
+  const clubId = selectedClubId.value
+  const sellIds = (equipments.value || [])
+    .filter((item) => isSellEquipmentCategory(item.category))
+    .map((item) => item.id)
+  if (!clubId || !sellIds.length) {
+    equipmentLiveAvailability.value = {}
+    return
+  }
+  try {
+    const startTimes = reserveEquipmentStartTimes()
+    const result = await $fetch<{ available: Record<string, number> }>('/api/equipment/availability', {
+      method: 'POST',
+      body: {
+        clubId,
+        date: date.value,
+        startTimes: startTimes.length ? startTimes : undefined,
+        equipmentIds: sellIds,
+        excludeBookingId: reserveEquipmentExcludeBookingId(),
+      },
+    })
+    equipmentLiveAvailability.value = result.available || {}
+  }
+  catch {
+    equipmentLiveAvailability.value = {}
+  }
+}
+
+/** Available units: SELL = remaining inventory; RENTAL = concurrent at selected slot time(s). */
+function equipmentAvailable(item: { id: string; quantity?: number; category?: string }) {
+  if (isSellEquipmentCategory(item.category)) {
+    const live = equipmentLiveAvailability.value[item.id]
+    if (live != null) return Math.max(0, live)
+    return equipmentStock(item)
+  }
   const slots = slotsForReserve()
   if (!slots.length) return equipmentStock(item)
   return minAvailableEquipmentAcrossTimes(
@@ -2114,13 +2150,17 @@ function clampReserveEquipmentToAvailability() {
 watch(
   () => [
     date.value,
+    selectedClubId.value,
     selectedSlotIds.value.join(','),
     selectedSlot.value?.id,
+    (equipments.value || []).filter((item) => isSellEquipmentCategory(item.category)).map((item) => item.id).join(','),
     data.value?.slots?.map((slot) => `${slot.id}:${slot.booking?.id || ''}`).join('|'),
   ],
   () => {
-    if (!form.equipmentIds.length) return
-    clampReserveEquipmentToAvailability()
+    void refreshEquipmentLiveAvailability().then(() => {
+      if (!form.equipmentIds.length) return
+      clampReserveEquipmentToAvailability()
+    })
   },
 )
 

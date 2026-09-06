@@ -1350,7 +1350,10 @@
       "priceHint": "Zero means free",
       "quantity": "Quantity",
       "quantityHint": "Max units bookable per reservation",
+      "quantityHintSell": "Total stock on hand (decreases with each sale)",
+      "quantityLabelSell": "Stock",
       "stockLabel": "{qty} units",
+      "stockLabelSell": "Stock: {qty} units",
       "confirmDelete": "Delete this item?",
       "selectForBooking": "Select equipment for this booking"
     },

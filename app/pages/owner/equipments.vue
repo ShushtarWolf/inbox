@@ -51,7 +51,22 @@ function formatEquipmentPrice(item: EquipmentItem) {
 
 function formatEquipmentStock(item: EquipmentItem) {
   if (item.category === 'CLUB') return ''
+  if (item.category === 'SELL') {
+    return t('owner.equipmentsPage.stockLabelSell', { qty: formatNumber(Math.max(0, item.quantity || 0)) })
+  }
   return t('owner.equipmentsPage.stockLabel', { qty: formatNumber(Math.max(1, item.quantity || 1)) })
+}
+
+function quantityFieldLabel() {
+  return modalCategory.value === 'SELL'
+    ? t('owner.equipmentsPage.quantityLabelSell')
+    : t('owner.equipmentsPage.quantity')
+}
+
+function quantityFieldHint() {
+  return modalCategory.value === 'SELL'
+    ? t('owner.equipmentsPage.quantityHintSell')
+    : t('owner.equipmentsPage.quantityHint')
 }
 
 function openAdd(category: EquipmentCategory) {
@@ -199,9 +214,9 @@ async function confirmDelete() {
           <AppNumericInput v-model="modalPrice" :min="0" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.priceHint') }}</p>
         </AppFormField>
-        <AppFormField v-if="modalCategory !== 'CLUB'" :label="t('owner.equipmentsPage.quantity')" numeric>
+        <AppFormField v-if="modalCategory !== 'CLUB'" :label="quantityFieldLabel()" numeric>
           <AppNumericInput v-model="modalQuantity" :min="1" :max="999" />
-          <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.quantityHint') }}</p>
+          <p class="mt-1 text-xs text-brand-gray-600">{{ quantityFieldHint() }}</p>
         </AppFormField>
         <p v-if="modalError" class="venus-alert-error">{{ modalError }}</p>
         <button

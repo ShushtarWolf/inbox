@@ -1,5 +1,5 @@
-import { minAvailableEquipmentAcrossTimes } from '../../utils/equipmentAvailability'
-import { normalizeSlotTime } from '#shared/equipmentAvailability.ts'
+import { minAvailableEquipmentAcrossTimes, availableSellEquipment } from '../../utils/equipmentAvailability'
+import { isSellEquipmentCategory, normalizeSlotTime } from '#shared/equipmentAvailability.ts'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
   const equipmentIds = [...new Set((body.equipmentIds || []).filter(Boolean))]
   const startTimes = [...new Set((body.startTimes || []).map((t) => normalizeSlotTime(t)).filter(Boolean))]
 
-  if (!clubId || !date || !equipmentIds.length || !startTimes.length) {
-    throw createError({ statusCode: 400, statusMessage: 'clubId, date, startTimes, and equipmentIds required' })
+  if (!clubId || !equipmentIds.length) {
+    throw createError({ statusCode: 400, statusMessage: 'clubId and equipmentIds required' })
   }
 
   const club = await prisma.club.findFirst({
@@ -27,12 +27,25 @@ export default defineEventHandler(async (event) => {
 
   const rows = await prisma.equipment.findMany({
     where: { clubId, id: { in: equipmentIds } },
-    select: { id: true, quantity: true },
+    select: { id: true, quantity: true, category: true },
   })
 
   const available: Record<string, number> = {}
   for (const row of rows) {
     const totalStock = Math.max(0, row.quantity ?? 1)
+    if (isSellEquipmentCategory(row.category)) {
+      available[row.id] = await availableSellEquipment({
+        clubId,
+        equipmentId: row.id,
+        totalStock,
+        excludeBookingId: body.excludeBookingId,
+      })
+      continue
+    }
+    if (!date || !startTimes.length) {
+      available[row.id] = totalStock
+      continue
+    }
     available[row.id] = await minAvailableEquipmentAcrossTimes({
       clubId,
       equipmentId: row.id,
@@ -40,6 +53,7 @@ export default defineEventHandler(async (event) => {
       startTimes,
       totalStock,
       excludeBookingId: body.excludeBookingId,
+      category: row.category,
     })
   }
 

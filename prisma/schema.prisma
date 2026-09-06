@@ -773,7 +773,8 @@ model Equipment {
   nameEn   String
   category EquipmentCategory
   price    Int               @default(0)
-  /// Club stock for this item (RENTAL/SELL/SERVICE). Caps how many can be booked per reservation.
+  /// RENTAL/SERVICE: concurrent units bookable per overlapping slot.
+  /// SELL: total inventory on hand (depletes across all non-cancelled sales).
   quantity Int               @default(1)
 
   clubId String
