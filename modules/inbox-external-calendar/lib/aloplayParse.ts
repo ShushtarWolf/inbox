@@ -53,7 +53,7 @@ export function unionFreeSlots(results: Array<{ freeSlots: Set<string> }>): Set<
 }
 
 
-/** Keys are `productId:HH:mm`. One distinct clock time is a truncated payload, not a booked-out club. */
+/** Keys are `productId:HH:mm`. Fewer than 3 distinct clock times is a stub, not a real free map. */
 export function isTruncatedAloPlayFreeSet(freeSlots: Set<string>): boolean {
   const starts = new Set<string>()
   for (const key of freeSlots) {
@@ -61,7 +61,7 @@ export function isTruncatedAloPlayFreeSet(freeSlots: Set<string>): boolean {
     if (colon === -1) continue
     starts.add(key.slice(colon + 1))
   }
-  return starts.size < 2
+  return starts.size < 3
 }
 
 /** Slots not listed in GetAvailableTime union are suspected occupied. */
