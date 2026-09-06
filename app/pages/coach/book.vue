@@ -247,141 +247,193 @@ async function startTopUp() {
 <template>
   <div class="venus-page-stack">
     <CanvaCoachPhotoHero />
-    <h1 class="tail-page-title">{{ $t('coach.book.title') }}</h1>
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <p class="text-sm text-brand-gray-600">{{ $t('coach.book.subtitle') }}</p>
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+      <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
+        {{ $t('coach.book.title') }}
+      </h1>
+      <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
+        <p class="text-start text-sm text-brand-gray-600">{{ $t('coach.book.subtitle') }}</p>
 
-      <div class="canva-panel space-y-3 p-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs text-brand-gray-600">{{ $t('coach.book.walletBalance') }}</p>
-            <p class="font-bold" dir="auto">{{ formatCurrency(wallet?.balance || 0) }}</p>
-          </div>
-          <button type="button" class="text-sm font-bold text-brand-primary" @click="topUpOpen ? topUpOpen = false : openTopUp()">
-            {{ $t('coach.book.topUp') }}
-          </button>
-        </div>
-        <div v-if="topUpOpen" class="space-y-2 border-t pt-3">
-          <AppNumericInput v-model="topUpAmount" :min="WALLET_TOPUP_MIN_IRR" :max="WALLET_TOPUP_MAX_IRR" />
-          <p v-if="topUpError" class="venus-alert-error p-2 text-xs">{{ topUpError }}</p>
-          <button type="button" class="canva-owner-secondary-cta" :disabled="topUpBusy" @click="startTopUp">
-            {{ topUpBusy ? $t('common.loading') : $t('coach.book.topUpConfirm') }}
-          </button>
-        </div>
-      </div>
-
-      <p v-if="!clubs.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
-        {{ $t('coach.book.noClubs') }}
-      </p>
-
-      <div v-else class="venus-form-stack">
-        <AppFormField :label="$t('coach.book.club')">
-          <select v-model="clubId" class="neo-select">
-            <option v-for="club in clubs" :key="club.id" :value="club.id">
-              {{ formatFaDigits(club.nameFa) }} — {{ formatFaDigits(club.city) }}
-            </option>
-          </select>
-        </AppFormField>
-
-        <AppDateInput v-model="date" :label="$t('common.date')" />
-
-        <section class="space-y-3">
-          <h2 class="text-sm font-bold text-brand-gray-600">{{ $t('coach.book.pickSlot') }}</h2>
-          <p v-if="slotsPending" class="text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
-          <p v-else-if="!slotData?.slots?.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
-            {{ $t('coach.book.noSlots') }}
-          </p>
-          <p v-else-if="!bookableSlots.length && blockedExternalSlots.length" class="canva-panel border-dashed p-4 text-sm text-brand-gray-600">
-            {{ $t('coach.book.noSlots') }}
-          </p>
-          <template v-else>
-            <div>
-              <p class="mb-2 text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickCourt') }}</p>
-              <div class="flex flex-wrap gap-2" role="listbox" :aria-label="$t('coach.book.pickCourt')">
-                <button
-                  v-for="group in courtGroups"
-                  :key="group.courtId"
-                  type="button"
-                  role="option"
-                  class="canva-chip border border-brand-gray-200 bg-white"
-                  :class="group.courtId === selectedCourtId ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : 'text-brand-navy'"
-                  :aria-selected="group.courtId === selectedCourtId"
-                  @click="selectCourt(group.courtId)"
-                >
-                  {{ formatFaDigits(group.courtNameFa) }}
-                </button>
-              </div>
-            </div>
-
-            <div v-if="selectedCourtGroup">
-              <p class="mb-2 text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickTime') }}</p>
-              <div class="grid gap-2 sm:grid-cols-2">
-                <button
-                  v-for="slot in selectedCourtGroup.bookable"
-                  :key="slot.id"
-                  type="button"
-                  class="canva-list-card p-3 text-start"
-                  :class="slot.id === selectedSlotId ? 'border-brand-primary' : ''"
-                  @click="selectedSlotId = slot.id"
-                >
-                  <p class="text-sm font-bold">
-                    <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
-                  </p>
-                  <p class="mt-1 text-xs text-brand-gray-600" dir="auto">
-                    <span class="font-bold text-brand-primary">{{ formatCurrency(slot.courtCharge) }}</span>
-                  </p>
-                </button>
-                <div
-                  v-for="slot in selectedCourtGroup.blocked"
-                  :key="`ext-${slot.id}`"
-                  class="canva-list-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
-                  aria-disabled="true"
-                >
-                  <p class="text-sm font-bold text-brand-gray-600">
-                    <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
-                  </p>
-                  <p class="mt-1 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
-                  <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
-                </div>
-              </div>
-              <p
-                v-if="!selectedCourtGroup.bookable.length && !selectedCourtGroup.blocked.length"
-                class="canva-panel border-dashed p-4 text-sm text-brand-gray-600"
-              >
-                {{ $t('coach.book.noSlots') }}
+        <section class="canva-panel space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1 text-start">
+              <p class="text-xs font-bold text-brand-gray-600">{{ $t('coach.book.walletBalance') }}</p>
+              <p class="mt-0.5 text-base font-bold text-brand-navy tabular-nums" dir="auto">
+                {{ formatCurrency(wallet?.balance || 0) }}
               </p>
             </div>
-          </template>
+            <button
+              type="button"
+              class="canva-cal-date-select shrink-0"
+              @click="topUpOpen ? topUpOpen = false : openTopUp()"
+            >
+              {{ $t('coach.book.topUp') }}
+            </button>
+          </div>
+          <div v-if="topUpOpen" class="space-y-2 border-t border-brand-gray-100 pt-3">
+            <AppNumericInput v-model="topUpAmount" :min="WALLET_TOPUP_MIN_IRR" :max="WALLET_TOPUP_MAX_IRR" />
+            <p v-if="topUpError" class="venus-alert-error p-2 text-start text-xs">{{ topUpError }}</p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :class="{ 'canva-cta-busy': topUpBusy }"
+              :disabled="topUpBusy"
+              :aria-busy="topUpBusy"
+              @click="startTopUp"
+            >
+              {{ topUpBusy ? $t('common.loading') : $t('coach.book.topUpConfirm') }}
+            </button>
+          </div>
         </section>
 
-        <AppFormField :label="$t('coach.book.studentPhone')">
-          <input v-model="studentPhone" type="tel" dir="ltr" inputmode="tel" class="neo-input tabular-nums" />
-        </AppFormField>
-        <AppFormField :label="$t('coach.book.studentName')">
-          <input v-model="studentName" type="text" class="neo-input" />
-        </AppFormField>
+        <p
+          v-if="!clubs.length"
+          class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
+          style="border-radius: var(--sz-canva-radius);"
+        >
+          {{ $t('coach.book.noClubs') }}
+        </p>
 
-        <div v-if="selectedSlot" class="canva-panel space-y-1 p-4 text-sm">
-          <p class="flex justify-between gap-2">
-            <span>{{ $t('coach.book.studentPays') }}</span>
-            <span class="font-bold" dir="auto">{{ formatCurrency(slotData?.sessionPrice || 0) }}</span>
-          </p>
-          <p class="flex justify-between gap-2">
-            <span>{{ $t('coach.book.youPay') }}</span>
-            <span class="font-bold" dir="auto">{{ formatCurrency(selectedSlot.courtCharge) }}</span>
-          </p>
-          <p v-if="shortfall > 0" class="venus-alert-error p-2 text-xs" dir="auto">
-            {{ $t('coach.book.prefundHint', { amount: formatCurrency(shortfall) }) }}
-          </p>
+        <div v-else class="venus-form-stack">
+          <section class="canva-panel space-y-3">
+            <AppFormField :label="$t('coach.book.club')">
+              <select v-model="clubId" class="neo-select">
+                <option v-for="club in clubs" :key="club.id" :value="club.id">
+                  {{ formatFaDigits(club.nameFa) }} — {{ formatFaDigits(club.city) }}
+                </option>
+              </select>
+            </AppFormField>
+
+            <AppDateInput v-model="date" :label="$t('common.date')" />
+          </section>
+
+          <section class="space-y-3">
+            <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.book.pickSlot') }}</h2>
+            <p v-if="slotsPending" class="text-start text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
+            <p
+              v-else-if="!slotData?.slots?.length"
+              class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              {{ $t('coach.book.noSlots') }}
+            </p>
+            <p
+              v-else-if="!bookableSlots.length && blockedExternalSlots.length"
+              class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              {{ $t('coach.book.noSlots') }}
+            </p>
+            <template v-else>
+              <div>
+                <p class="mb-2 text-start text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickCourt') }}</p>
+                <div class="flex flex-wrap gap-2" role="listbox" :aria-label="$t('coach.book.pickCourt')">
+                  <button
+                    v-for="group in courtGroups"
+                    :key="group.courtId"
+                    type="button"
+                    role="option"
+                    class="canva-court-chip"
+                    :class="group.courtId === selectedCourtId ? 'canva-court-chip-active' : 'canva-court-chip-idle'"
+                    :aria-selected="group.courtId === selectedCourtId"
+                    @click="selectCourt(group.courtId)"
+                  >
+                    {{ formatFaDigits(group.courtNameFa) }}
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="selectedCourtGroup">
+                <p class="mb-2 text-start text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickTime') }}</p>
+                <div class="flex flex-col gap-2">
+                  <button
+                    v-for="slot in selectedCourtGroup.bookable"
+                    :key="slot.id"
+                    type="button"
+                    class="canva-finance-tx-card"
+                    :class="slot.id === selectedSlotId ? 'border-brand-primary bg-brand-primary-soft' : ''"
+                    @click="selectedSlotId = slot.id"
+                  >
+                    <div class="min-w-0 flex-1 text-start">
+                      <p class="text-sm font-bold text-brand-navy">
+                        <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                      </p>
+                      <p class="mt-0.5 text-xs font-bold text-brand-primary" dir="auto">
+                        {{ formatCurrency(slot.courtCharge) }}
+                      </p>
+                    </div>
+                  </button>
+                  <div
+                    v-for="slot in selectedCourtGroup.blocked"
+                    :key="`ext-${slot.id}`"
+                    class="canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80"
+                    aria-disabled="true"
+                  >
+                    <div class="min-w-0 flex-1 text-start">
+                      <p class="text-sm font-bold text-brand-gray-600">
+                        <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+                      </p>
+                      <p class="mt-0.5 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
+                      <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+                    </div>
+                  </div>
+                </div>
+                <p
+                  v-if="!selectedCourtGroup.bookable.length && !selectedCourtGroup.blocked.length"
+                  class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
+                  style="border-radius: var(--sz-canva-radius);"
+                >
+                  {{ $t('coach.book.noSlots') }}
+                </p>
+              </div>
+            </template>
+          </section>
+
+          <section class="canva-panel space-y-3">
+            <AppFormField :label="$t('coach.book.studentPhone')">
+              <input v-model="studentPhone" type="tel" dir="ltr" inputmode="tel" class="neo-input tabular-nums" />
+            </AppFormField>
+            <AppFormField :label="$t('coach.book.studentName')">
+              <input v-model="studentName" type="text" class="neo-input" />
+            </AppFormField>
+
+            <div v-if="selectedSlot" class="space-y-2 border-t border-brand-gray-100 pt-3 text-sm">
+              <p class="flex justify-between gap-2 text-start">
+                <span class="text-brand-gray-600">{{ $t('coach.book.studentPays') }}</span>
+                <span class="font-bold text-brand-navy tabular-nums" dir="auto">{{ formatCurrency(slotData?.sessionPrice || 0) }}</span>
+              </p>
+              <p class="flex justify-between gap-2 text-start">
+                <span class="text-brand-gray-600">{{ $t('coach.book.youPay') }}</span>
+                <span class="font-bold text-brand-navy tabular-nums" dir="auto">{{ formatCurrency(selectedSlot.courtCharge) }}</span>
+              </p>
+              <p v-if="shortfall > 0" class="venus-alert-error p-2 text-xs text-start" dir="auto">
+                {{ $t('coach.book.prefundHint', { amount: formatCurrency(shortfall) }) }}
+              </p>
+            </div>
+
+            <p v-if="errorKey" class="venus-alert-error p-3 text-start text-sm">{{ $t(errorKey) }}</p>
+            <p
+              v-if="successMessage"
+              class="border border-green-200 bg-green-50 p-3 text-start text-sm text-green-700"
+              style="border-radius: var(--sz-canva-radius);"
+              dir="auto"
+            >
+              {{ successMessage }}
+            </p>
+
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              :class="{ 'canva-cta-busy': submitting }"
+              :disabled="!canSubmit"
+              :aria-busy="submitting"
+              @click="submit"
+            >
+              {{ submitting ? $t('common.loading') : $t('coach.book.confirm') }}
+            </button>
+          </section>
         </div>
-
-        <p v-if="errorKey" class="venus-alert-error p-3 text-sm">{{ $t(errorKey) }}</p>
-        <p v-if="successMessage" class="canva-panel p-3 text-sm text-green-700" dir="auto">{{ successMessage }}</p>
-
-        <button type="button" class="canva-gate-btn-primary" :disabled="!canSubmit" @click="submit">
-          {{ submitting ? $t('common.loading') : $t('coach.book.confirm') }}
-        </button>
-      </div>
-    </AppAsyncState>
+      </AppAsyncState>
+    </div>
   </div>
 </template>
