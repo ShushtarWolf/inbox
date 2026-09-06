@@ -4,7 +4,7 @@ import {
   suspectedOccupiedFromFreeSet,
   unionFreeSlots,
 } from '../../../../lib/aloplayParse'
-import { needsAloPlaySession } from '../../../../lib/aloplaySession'
+import { resolveAloPlayCredentials } from '../../../../lib/aloplaySession'
 import type { ClubMapping, ExternalOccupiedSlot } from '../types'
 import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
@@ -22,16 +22,21 @@ function resolveAloPlayGenders(mapping: ClubMapping): number[] {
   return [...DEFAULT_GENDERS]
 }
 
+/** Fail closed: clear AloPlay paint (and let persist wipe snapshots). Rate-limit keeps last good via error. */
+function wipeAloPlay(): { occupied: ExternalOccupiedSlot[] } {
+  return { occupied: [] }
+}
+
 async function fetchAvailableTimePayload(opts: {
   clubId: number
   date: string
   productGender: number
-}): Promise<{ payload: unknown | null; error?: string; usedAuth?: boolean }> {
-  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}:auth`
+}): Promise<{ payload: unknown | null; error?: string; usedAuth: boolean }> {
+  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}:authed-v3`
   const cached = await readCached<unknown>(cacheKey)
   if (cached) return { payload: cached, usedAuth: true }
 
-  const requireAuth = needsAloPlaySession(opts.date)
+  // Occupancy never uses the public stub — only a logged-in GetAvailableTime.
   const result = await fetchAloPlayWithSession(
     'v1/PublicClub/GetAvailableTime',
     {
@@ -39,16 +44,16 @@ async function fetchAvailableTimePayload(opts: {
       date: opts.date,
       productGender: opts.productGender,
     },
-    { requireAuth },
+    { requireAuth: true },
   )
 
   if (result.error && result.payload == null) {
-    return { payload: null, error: result.error, usedAuth: result.usedAuth }
+    return { payload: null, error: result.error, usedAuth: Boolean(result.usedAuth) }
   }
   if (!result.usedAuth) {
     return {
       payload: null,
-      error: 'GetAvailableTime without session is a stub — not using it for occupancy',
+      error: 'GetAvailableTime must use AloPlay session',
       usedAuth: false,
     }
   }
@@ -75,12 +80,18 @@ export async function fetchAloPlayOccupied(opts: {
     return { occupied: [], error: 'AloPlay clubId is not mapped yet (TODO).' }
   }
 
-  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:v2`
+  if (!resolveAloPlayCredentials()) {
+    // Misconfigured env: do not paint from public stub; wipe any poison.
+    return wipeAloPlay()
+  }
+
+  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:v3`
   const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
   if (cached) return { occupied: cached }
 
   const limit = checkAdapterRateLimit(`aloplay:${clubId}`)
   if (!limit.allowed) {
+    // Keep last snapshots on rate limit only.
     return { occupied: [], error: 'AloPlay rate limited — retry shortly.' }
   }
 
@@ -130,32 +141,19 @@ export async function fetchAloPlayOccupied(opts: {
   }
 
   if (!anyAuth) {
-    // Public GetAvailableTime is a one-row stub (today: 07:00 only). Wipe AloPlay occupancy.
-    return { occupied: [] }
+    return wipeAloPlay()
   }
 
   const successfulParses = parseResults.filter((result) => !result.error)
   if (!successfulParses.length) {
-    const errors = [
-      ...fetchErrors,
-      ...parseResults.map((result) => result.error).filter((message): message is string => Boolean(message)),
-    ]
-    return {
-      occupied: [],
-      error: errors.join('; ') || 'GetAvailableTime failed for all genders',
-    }
+    // Auth path failed to parse — wipe rather than keep poison snapshots.
+    return wipeAloPlay()
   }
 
   const freeSlots = unionFreeSlots(successfulParses)
-  if (freeSlots.size === 0) {
-    return {
-      occupied: [],
-      error: 'GetAvailableTime returned no free slots — refusing to mark entire day occupied',
-    }
-  }
-  if (isTruncatedAloPlayFreeSet(freeSlots)) {
-    // No error: live success with empty occupied so persist wipes poison AloPlay snapshots.
-    return { occupied: [] }
+  // Empty or stub free-set would paint the whole day occupied — refuse and wipe.
+  if (freeSlots.size === 0 || isTruncatedAloPlayFreeSet(freeSlots)) {
+    return wipeAloPlay()
   }
 
   const suspected = suspectedOccupiedFromFreeSet(mappedCourts, freeSlots)
