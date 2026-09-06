@@ -8,14 +8,12 @@ const props = defineProps<{
   backTo?: string
 }>()
 
-import { isPlatformRole, type PlatformRole } from '#shared/roles.ts'
-
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, fetch: fetchAuth, firstName, dashboardPathForRole } = useAuth()
+const { user, fetch: fetchAuth, firstName } = useAuth()
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
-const { heldRoles, lastRole, pathForRole, activeRole, canSwitchRole } = usePlatformRoles()
+const { activeRole, canSwitchRole, signedInHomePath } = usePlatformRoles()
 
 const firstNameOrGuest = computed(() => firstName.value || t('home.guestName'))
 
@@ -30,19 +28,6 @@ const welcomeLabel = computed(() => {
     return t('home.welcomeWithRole', { name: firstNameOrGuest.value, role: activeRoleLabel.value })
   }
   return t('home.welcome', { name: firstNameOrGuest.value })
-})
-
-/** Multi-role: last chosen panel, else role picker — never force primary-only swap. */
-const signedInHome = computed(() => {
-  if (!user.value) return localePath('/')
-  if (heldRoles.value.length >= 2) {
-    const last = lastRole.value
-    if (isPlatformRole(last) && heldRoles.value.includes(last)) {
-      return localePath(pathForRole(last as PlatformRole))
-    }
-    return localePath('/choose-role')
-  }
-  return dashboardPathForRole(user.value.role)
 })
 
 const backHref = computed(() => {
@@ -91,7 +76,7 @@ onMounted(() => {
     </button>
     <div v-else class="flex max-w-[58%] shrink-0 flex-col items-stretch gap-1">
       <NuxtLink
-        :to="signedInHome"
+        :to="signedInHomePath"
         class="canva-home-login canva-home-login-soft max-w-full truncate text-center"
       >
         {{ welcomeLabel }}

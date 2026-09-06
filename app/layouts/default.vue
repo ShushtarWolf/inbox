@@ -3,13 +3,13 @@ import type { NavItem } from '#shared/nav.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, loggedIn, fetch: fetchAuth, logout, displayName, initials, avatarUrl, profilePath } = useAuth()
+const { user, loggedIn, fetch: fetchAuth, logout, displayName, initials, avatarUrl } = useAuth()
 /** Reserve tab-bar space from session cookie before profile hydrates (CLS on /coaches). */
 const reserveTabBar = computed(() => Boolean(user.value || loggedIn.value))
 const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
-const { activeRole, canSwitchRole } = usePlatformRoles()
+const { activeRole, canSwitchRole, signedInHomePath } = usePlatformRoles()
 
 const activeRoleLabel = computed(() => {
   const role = activeRole.value
@@ -23,7 +23,7 @@ async function handleLogout() {
 
 const nav = computed((): NavItem[] => {
   // Guest: no bottom tab bar — login lives in CanvaPublicChrome / AppTopBar only.
-  // Logged-in: home/clubs/coaches/competitions only — dashboard is via name/avatar chrome.
+  // Logged-in: home/clubs/coaches/competitions only — dashboard/schedule via name/avatar chrome.
   const items: NavItem[] = [
     { to: localePath('/'), label: t('nav.home'), icon: 'home' },
     { to: localePath('/clubs'), label: t('nav.clubs'), icon: 'sports_tennis' },
@@ -88,7 +88,7 @@ onMounted(() => {
               {{ t('auth.changeRole') }}
             </NuxtLink>
             <AppUserShortcut
-              :to="profilePath"
+              :to="signedInHomePath"
               :name="displayName"
               :avatar-url="avatarUrl"
               :initials="initials"

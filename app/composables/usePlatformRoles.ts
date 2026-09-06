@@ -73,6 +73,32 @@ export function usePlatformRoles() {
     return roleDashboardPath(role)
   }
 
+  const localePath = useLocalePath()
+
+  /**
+   * Public chrome name/avatar target (phone + desktop).
+   * Coaches land on schedule (تقویم/برنامه); other roles use their dashboard entry.
+   * Multi-role users without a remembered panel go to the role picker.
+   */
+  function publicEntryForRole(role: PlatformRole) {
+    if (role === 'COACH' && roleCardState(role) === 'live') return '/coach/schedule'
+    return pathForRole(role)
+  }
+
+  const signedInHomePath = computed(() => {
+    if (!user.value) return localePath('/')
+    if (heldRoles.value.length >= 2) {
+      const last = lastRole.value
+      if (isPlatformRole(last) && heldRoles.value.includes(last)) {
+        return localePath(publicEntryForRole(last as PlatformRole))
+      }
+      return localePath('/choose-role')
+    }
+    const role = activeRole.value
+    if (role) return localePath(publicEntryForRole(role))
+    return localePath(roleDashboardPath(user.value.role))
+  })
+
   function rememberRole(role: PlatformRole) {
     lastRole.value = role
   }
@@ -96,7 +122,6 @@ export function usePlatformRoles() {
     if (!isPlatformRole(role)) return
     if (!rolesUser.value || !hasRole(rolesUser.value, role)) return
     rememberRole(role)
-    const localePath = useLocalePath()
     await navigateTo(localePath(pathForRole(role)))
   }
 
@@ -111,6 +136,8 @@ export function usePlatformRoles() {
     ownerClubStatus,
     roleCardState,
     pathForRole,
+    publicEntryForRole,
+    signedInHomePath,
     rememberRole,
     canOfferCoach,
     canOfferOwner,
