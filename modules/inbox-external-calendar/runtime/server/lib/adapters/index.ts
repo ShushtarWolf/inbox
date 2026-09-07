@@ -20,8 +20,8 @@ function alovarzeshSupported(mapping: ClubMapping): boolean {
  * `occupied` is confirmed EXTERNAL_BUSY after cross-source reconcile — NOT a raw union.
  * `persistOccupied` keeps per-adapter confirmed BUSY for snapshot persistence.
  *
- * Supported adapters that wipe with empty slotVerdicts are padded as UNKNOWN hours
- * so a lone BUSY from another source cannot paint EXTERNAL_BUSY.
+ * Supported adapters that fail/wipe/total-fail with empty slotVerdicts are padded
+ * as UNKNOWN (via health/completeness/error/anomalies). Successful empty stays silent.
  */
 export async function fetchExternalOccupancy(opts: {
   mapping: ClubMapping | null

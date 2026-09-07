@@ -6,9 +6,18 @@ export type CourtHours = {
   effectiveCloseHour: number
 }
 
+export type AdapterHealth = 'HEALTHY' | 'DEGRADED' | 'SUSPICIOUS' | 'OFFLINE'
+export type AdapterCompleteness = 'COMPLETE' | 'PARTIAL' | 'UNKNOWN'
+
 export type AdapterVerdictInput = {
   supported: boolean
   source: string
+  /** Existing ExternalAdapterResult.health — wipe/fail paths set OFFLINE/SUSPICIOUS/DEGRADED. */
+  health?: AdapterHealth
+  /** Existing ExternalAdapterResult.completeness — wipe/fail paths set UNKNOWN. */
+  completeness?: AdapterCompleteness
+  error?: string
+  anomalies?: string[]
   slotVerdicts?: Array<{
     courtKey: string
     startTime: string
@@ -63,6 +72,24 @@ function asSourceName(source: string): SourceName | null {
 }
 
 /**
+ * Use existing ExternalAdapterResult signals — no new abstraction.
+ * Pad only when a supported adapter failed / wiped / total-failed with empty hour verdicts.
+ * Successful empty (HEALTHY + COMPLETE, no error/anomalies) stays silent.
+ */
+export function isFailedOrWipedEmpty(adapter: AdapterVerdictInput): boolean {
+  if (!adapter.supported) return false
+  if (adapter.slotVerdicts?.length) return false
+
+  if (adapter.health === 'OFFLINE' || adapter.health === 'SUSPICIOUS' || adapter.health === 'DEGRADED') {
+    return true
+  }
+  if (adapter.completeness === 'UNKNOWN') return true
+  if (adapter.error) return true
+  if (adapter.anomalies?.length) return true
+  return false
+}
+
+/**
  * When a supported adapter wipes / total-fails with empty slotVerdicts, emit UNKNOWN
  * for every court hour so another source's lone BUSY cannot become EXTERNAL_BUSY.
  */
@@ -93,8 +120,9 @@ export function unknownVerdictsForCourtHours(
 
 /**
  * Build the verdict list fed into reconcileConfirmedBusy.
- * Supported + empty slotVerdicts → pad UNKNOWN (availability-first).
- * Unsupported → contribute nothing (single mapped source BUSY may still confirm).
+ * Supported + failed/wiped empty → pad UNKNOWN.
+ * Supported + successful/valid empty → silent (preserve prior semantics).
+ * Unsupported → silent (single mapped source BUSY may still confirm).
  */
 export function verdictsForReconcile(opts: {
   adapters: AdapterVerdictInput[]
@@ -106,7 +134,7 @@ export function verdictsForReconcile(opts: {
     const source = asSourceName(adapter.source)
     if (!source) continue
 
-    if (adapter.supported && !(adapter.slotVerdicts?.length)) {
+    if (isFailedOrWipedEmpty(adapter)) {
       out.push(
         ...unknownVerdictsForCourtHours(opts.courts, source, opts.sessionDurationMinutes),
       )
@@ -127,7 +155,8 @@ export function verdictsForReconcile(opts: {
       continue
     }
 
-    // Legacy fallback: occupied without slotVerdicts on unsupported/odd paths → BUSY rows.
+    // Successful empty or unsupported empty: do not invent UNKNOWN.
+    // Legacy fallback only when occupied rows exist without slotVerdicts.
     for (const slot of adapter.occupied ?? []) {
       out.push({
         courtKey: slot.courtKey,
