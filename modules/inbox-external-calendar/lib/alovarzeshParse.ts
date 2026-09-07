@@ -19,6 +19,9 @@ function isBeforeClock(time: string, ignoreBefore: string): boolean {
   return time < ignoreBefore
 }
 
+/** Match each timetable day-box opening tag (avoid zero-width split dropping the first box). */
+const DAY_BOX_OPEN_RE = /<div\b[^>]*\bclass="([^"]*\bday-box\b[^"]*)"[^>]*>/gi
+
 /**
  * Parse AloVarzesh product HTML timetable into per-hour verdicts.
  *
@@ -36,17 +39,26 @@ export function parseAloVarzeshSlotStates(
 ): AloVarzeshSlotState[] {
   const byTime = new Map<string, AloVarzeshSlotState>()
   const ignoreBefore = opts.ignoreBefore ? normalizeClockTime(opts.ignoreBefore) : null
-  const parts = html.split(/(?=<div[^>]*class="day-box)/i)
 
-  for (const part of parts.slice(1)) {
-    const classMatch = part.match(/^<div[^>]*class="(day-box[^"]*)"/i)
-    if (!classMatch) continue
-    const cls = classMatch[1] ?? ''
-    const isSoftHold = /reserve-over/i.test(cls)
+  const opens: Array<{ index: number; cls: string }> = []
+  DAY_BOX_OPEN_RE.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = DAY_BOX_OPEN_RE.exec(html)) !== null) {
+    opens.push({ index: match.index, cls: match[1] ?? '' })
+  }
+
+  for (let i = 0; i < opens.length; i++) {
+    const { index: start, cls } = opens[i]!
+    const end = i + 1 < opens.length
+      ? opens[i + 1]!.index
+      : Math.min(html.length, start + 4000)
+    const chunk = html.slice(start, end)
+
+    const isSoftHold = /\breserve-over\b/i.test(cls)
     const isDisabled = /\bbg-disabled\b/i.test(cls)
-    const isReservedStyle = /reserve-time|box-green-reserve-time/i.test(cls)
+    // Matches both `reserve-time` and `box-green-reserve-time`.
+    const isReservedStyle = /\breserve-time\b/i.test(cls)
 
-    const chunk = part.slice(0, 3000)
     const scheduleMatch = chunk.match(/product_schedule"\s+value="([^"]+)"/i)
       || chunk.match(/data-schedule="([^"]+)"/i)
     let time: string | null = null
@@ -67,7 +79,6 @@ export function parseAloVarzeshSlotStates(
     }
 
     if (!isSoftHold && ignoreBefore && isBeforeClock(time, ignoreBefore)) {
-      // Past disabled UI — not a reservation signal.
       byTime.set(time, { time, verdict: 'UNKNOWN', reason: 'past_disabled' })
       continue
     }
@@ -88,7 +99,7 @@ export function parseAloVarzeshSlotStates(
   return [...byTime.values()].sort((a, b) => a.time.localeCompare(b.time))
 }
 
-/** @deprecated Prefer parseAloVarzeshSlotStates — only confirmed BUSY times. */
+/** Confirmed BUSY times only — FREE / UNKNOWN are excluded. */
 export function parseAloVarzeshOccupiedTimes(
   html: string,
   jalaliDate: string,
