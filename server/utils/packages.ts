@@ -65,6 +65,8 @@ function resolveExpandedDayTimes(input: PackageScheduleInput): Record<string, st
 export function expandPackageSessions(
   input: PackageScheduleInput,
   sessionDurationMinutes = 60,
+  /** Injectable clock for tests; production omits and uses wall clock (Tehran via isSlotStartInPast). */
+  now: Date = new Date(),
 ): PackageSession[] {
   const days = input.days.length
     ? input.days
@@ -76,7 +78,7 @@ export function expandPackageSessions(
     const weekday = weekdayNameFromDate(date)
     const times = expanded[weekday] || []
     for (const startTime of times) {
-      if (isSlotStartInPast(date, startTime)) continue
+      if (isSlotStartInPast(date, startTime, now)) continue
       const hour = hourFromTime(startTime)
       const endTime = sessionDurationMinutes === 60
         ? hourEnd(hour)
