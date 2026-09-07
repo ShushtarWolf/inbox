@@ -1,5 +1,6 @@
+import { verdictsForReconcile } from '../../../../lib/padFailedSourceUnknown'
 import { reconcileConfirmedBusy } from '../../../../lib/reconcile'
-import type { AdapterSlotVerdict, ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
+import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
 import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
 import { fetchCourticOccupancy } from './courtic'
@@ -14,21 +15,13 @@ function alovarzeshSupported(mapping: ClubMapping): boolean {
   return Boolean(mapping.courts?.some((court) => court.external?.alovarzesh?.productId != null))
 }
 
-function occupiedAsBusyVerdicts(adapter: ExternalAdapterResult): AdapterSlotVerdict[] {
-  if (adapter.slotVerdicts?.length) return adapter.slotVerdicts
-  return adapter.occupied.map((slot) => ({
-    courtKey: slot.courtKey,
-    startTime: slot.startTime,
-    endTime: slot.endTime,
-    verdict: 'BUSY' as const,
-    source: adapter.source,
-  }))
-}
-
 /**
  * Fetch external occupancy with availability-first reconciliation.
  * `occupied` is confirmed EXTERNAL_BUSY after cross-source reconcile — NOT a raw union.
  * `persistOccupied` keeps per-adapter confirmed BUSY for snapshot persistence.
+ *
+ * Supported adapters that wipe with empty slotVerdicts are padded as UNKNOWN hours
+ * so a lone BUSY from another source cannot paint EXTERNAL_BUSY.
  */
 export async function fetchExternalOccupancy(opts: {
   mapping: ClubMapping | null
@@ -73,7 +66,11 @@ export async function fetchExternalOccupancy(opts: {
   const courtic = await fetchCourticOccupancy()
   const adapters: ExternalAdapterResult[] = [aloplay, alovarzesh, courtic]
 
-  const allVerdicts = adapters.flatMap(occupiedAsBusyVerdicts)
+  const allVerdicts = verdictsForReconcile({
+    adapters,
+    courts: opts.courts,
+    sessionDurationMinutes: opts.sessionDurationMinutes,
+  })
   const reconciled = reconcileConfirmedBusy(allVerdicts, opts.sessionDurationMinutes)
 
   const occupied: ExternalOccupiedSlot[] = reconciled.map((row) => ({
