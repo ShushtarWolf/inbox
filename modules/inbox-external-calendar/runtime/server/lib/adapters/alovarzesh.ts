@@ -162,6 +162,19 @@ export async function fetchAloVarzeshOccupancy(opts: {
       }
     } catch (error) {
       errors.push(error instanceof Error ? error.message : `product ${productId} failed`)
+      // PARTIAL: failed court must be UNKNOWN (not absent) so lone AloPlay BUSY cannot confirm.
+      const open = court.effectiveOpenHour ?? 7
+      const close = court.effectiveCloseHour ?? 23
+      const starts = buildSessionStarts(open, close, opts.sessionDurationMinutes)
+      for (const startTime of starts) {
+        slotVerdicts.push({
+          courtKey: court.id,
+          startTime,
+          endTime: addMinutes(startTime, opts.sessionDurationMinutes),
+          verdict: 'UNKNOWN',
+          source: 'alovarzesh',
+        })
+      }
     }
   }
 

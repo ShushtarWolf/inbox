@@ -235,4 +235,14 @@ describe('availabilityFirst golden scenarios', () => {
     })
     expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
   })
+
+  it('21. AloVarzesh PARTIAL failed court UNKNOWN + AloPlay BUSY → Available', () => {
+    const confirmed = reconcileConfirmedBusy([
+      { courtKey: 'courtB', startTime: '10:00', verdict: 'BUSY', source: 'aloplay' },
+      { courtKey: 'courtB', startTime: '10:00', verdict: 'UNKNOWN', source: 'alovarzesh' },
+      { courtKey: 'courtA', startTime: '10:00', verdict: 'FREE', source: 'alovarzesh' },
+    ], 60)
+    expect(confirmed.find((r) => r.courtKey === 'courtB')).toBeUndefined()
+  })
+
 })
