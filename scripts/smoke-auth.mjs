@@ -203,6 +203,7 @@ async function main() {
       name: 'Password Athlete',
       phone: pwPhone,
       password: 'demo1234',
+      gender: 'MALE',
     },
   })
   if (!pwRegister.res.ok) throw new Error(`password register expected 200, got ${pwRegister.res.status}`)
@@ -229,6 +230,7 @@ async function main() {
       password: 'demo1234',
       role: 'CLUB_ADMIN',
       locale: 'en',
+      gender: 'MALE',
     }),
   })
   if (!escalate.ok) throw new Error(`athlete register expected 200, got ${escalate.status}`)
