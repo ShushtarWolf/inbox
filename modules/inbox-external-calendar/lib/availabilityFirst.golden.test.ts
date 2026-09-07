@@ -10,6 +10,7 @@ import { parseAloVarzeshOccupiedTimes, parseAloVarzeshSlotStates } from './alova
 import { displayBlocksExternal, displayIsAvailable } from './observation'
 import { filterStaleFromDisplay } from './occupancySnapshots'
 import { reconcileConfirmedBusy, reconcileSourceVerdicts } from './reconcile'
+import { verdictsForReconcile } from './padFailedSourceUnknown'
 import { computeSuspectedSlots } from '../runtime/server/lib/suspected'
 import { mergeOccupancy } from '../runtime/server/lib/merge'
 
@@ -177,5 +178,61 @@ describe('availabilityFirst golden scenarios', () => {
       { courtKey: 'c1', startTime: '10:00', verdict: 'FREE', source: 'alovarzesh' },
     ])
     expect(confirmed).toEqual([])
+  })
+
+  it('20a. supported failed/wiped empty + other BUSY → Available', () => {
+    const verdicts = verdictsForReconcile({
+      adapters: [
+        {
+          supported: true,
+          source: 'aloplay',
+          health: 'OFFLINE',
+          completeness: 'UNKNOWN',
+          error: 'AloPlay credentials missing',
+          anomalies: ['no_auth'],
+          slotVerdicts: [],
+          occupied: [],
+        },
+        {
+          supported: true,
+          source: 'alovarzesh',
+          health: 'HEALTHY',
+          completeness: 'COMPLETE',
+          slotVerdicts: [
+            { courtKey: 'c1', startTime: '10:00', endTime: '11:00', verdict: 'BUSY', source: 'alovarzesh' },
+          ],
+        },
+      ],
+      courts: [{ id: 'c1', effectiveOpenHour: 10, effectiveCloseHour: 11 }],
+      sessionDurationMinutes: 60,
+    })
+    expect(reconcileConfirmedBusy(verdicts, 60)).toEqual([])
+  })
+
+  it('20b. supported successful empty + other BUSY → EXTERNAL_BUSY (no pad)', () => {
+    const verdicts = verdictsForReconcile({
+      adapters: [
+        {
+          supported: true,
+          source: 'aloplay',
+          health: 'HEALTHY',
+          completeness: 'COMPLETE',
+          slotVerdicts: [],
+          occupied: [],
+        },
+        {
+          supported: true,
+          source: 'alovarzesh',
+          health: 'HEALTHY',
+          completeness: 'COMPLETE',
+          slotVerdicts: [
+            { courtKey: 'c1', startTime: '10:00', endTime: '11:00', verdict: 'BUSY', source: 'alovarzesh' },
+          ],
+        },
+      ],
+      courts: [{ id: 'c1', effectiveOpenHour: 10, effectiveCloseHour: 11 }],
+      sessionDurationMinutes: 60,
+    })
+    expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
   })
 })
