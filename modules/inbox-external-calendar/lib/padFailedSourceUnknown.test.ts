@@ -36,7 +36,7 @@ describe('padFailedSourceUnknown', () => {
     ])
   })
 
-  it('1. supported + failed/wiped + empty → UNKNOWN pad (BUSY + UNKNOWN → Available)', () => {
+  it('1. supported + failed/wiped + empty → UNKNOWN pad; other BUSY still EXTERNAL_BUSY', () => {
     const wiped = {
       supported: true,
       source: 'aloplay',
@@ -54,9 +54,11 @@ describe('padFailedSourceUnknown', () => {
       courts,
       sessionDurationMinutes: 60,
     })
-    expect(reconcileConfirmedBusy(verdicts, 60)).toEqual([])
-    expect(reconcileSourceVerdicts({ aloplay: 'UNKNOWN', alovarzesh: 'BUSY' })).toBe('UNKNOWN')
-    expect(displayBlocksExternal('UNKNOWN')).toBe(false)
+    const confirmed = reconcileConfirmedBusy(verdicts, 60)
+    expect(confirmed).toHaveLength(1)
+    expect(confirmed[0]?.state).toBe('EXTERNAL_BUSY')
+    expect(reconcileSourceVerdicts({ aloplay: 'UNKNOWN', alovarzesh: 'BUSY' })).toBe('EXTERNAL_BUSY')
+    expect(displayBlocksExternal('EXTERNAL_BUSY')).toBe(true)
   })
 
   it('2. supported + successful/valid empty → no pad (lone BUSY may still EXTERNAL_BUSY)', () => {

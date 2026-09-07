@@ -22,7 +22,7 @@ function displayFromState(state: ReturnType<typeof reconcileSourceVerdicts>): Di
 
 /**
  * Golden scenarios for Phase 2 availability-first occupancy.
- * Final display: only EXTERNAL_BUSY → BUSY; everything else → AVAILABLE.
+ * Final display: EXTERNAL_BUSY (any confident source BUSY) → BUSY; else → AVAILABLE.
  */
 describe('availabilityFirst golden scenarios', () => {
   const mapped = [{ courtKey: 'c1', productId: 112282, starts: ['10:00', '17:00', '20:00'] }]
@@ -35,13 +35,13 @@ describe('availabilityFirst golden scenarios', () => {
     expect(displayFromState(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'BUSY' }))).toBe('BUSY')
   })
 
-  it('3. BUSY + FREE → CONFLICT → display AVAILABLE', () => {
-    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' })).toBe('CONFLICT')
-    expect(displayFromState(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' }))).toBe('AVAILABLE')
+  it('3. BUSY + FREE → EXTERNAL_BUSY → display BUSY', () => {
+    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' })).toBe('EXTERNAL_BUSY')
+    expect(displayFromState(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' }))).toBe('BUSY')
   })
 
-  it('4. BUSY + UNKNOWN → UNKNOWN → display AVAILABLE', () => {
-    expect(displayFromState(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'UNKNOWN' }))).toBe('AVAILABLE')
+  it('4. BUSY + UNKNOWN → EXTERNAL_BUSY → display BUSY', () => {
+    expect(displayFromState(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'UNKNOWN' }))).toBe('BUSY')
   })
 
   it('5. FREE + UNKNOWN → UNKNOWN → display AVAILABLE', () => {
@@ -172,15 +172,16 @@ describe('availabilityFirst golden scenarios', () => {
     expect(mergedSkip[0]?.occupied).toBe(false)
     expect(mergedSkip[0]?.externalState).toBe('AVAILABLE')
 
-    // Cross-source: BUSY+FREE must not become display occupied via reconcileConfirmedBusy
+    // Cross-source: BUSY+FREE becomes EXTERNAL_BUSY (one confident busy blocks)
     const confirmed = reconcileConfirmedBusy([
       { courtKey: 'c1', startTime: '10:00', verdict: 'BUSY', source: 'aloplay' },
       { courtKey: 'c1', startTime: '10:00', verdict: 'FREE', source: 'alovarzesh' },
     ])
-    expect(confirmed).toEqual([])
+    expect(confirmed).toHaveLength(1)
+    expect(confirmed[0]?.state).toBe('EXTERNAL_BUSY')
   })
 
-  it('20a. supported failed/wiped empty + other BUSY → Available', () => {
+  it('20a. supported failed/wiped empty + other BUSY → EXTERNAL_BUSY', () => {
     const verdicts = verdictsForReconcile({
       adapters: [
         {
@@ -206,7 +207,8 @@ describe('availabilityFirst golden scenarios', () => {
       courts: [{ id: 'c1', effectiveOpenHour: 10, effectiveCloseHour: 11 }],
       sessionDurationMinutes: 60,
     })
-    expect(reconcileConfirmedBusy(verdicts, 60)).toEqual([])
+    expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
+    expect(reconcileConfirmedBusy(verdicts, 60)[0]?.state).toBe('EXTERNAL_BUSY')
   })
 
   it('20b. supported successful empty + other BUSY → EXTERNAL_BUSY (no pad)', () => {
@@ -236,13 +238,13 @@ describe('availabilityFirst golden scenarios', () => {
     expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
   })
 
-  it('21. AloVarzesh PARTIAL failed court UNKNOWN + AloPlay BUSY → Available', () => {
+  it('21. AloVarzesh PARTIAL failed court UNKNOWN + AloPlay BUSY → EXTERNAL_BUSY', () => {
     const confirmed = reconcileConfirmedBusy([
       { courtKey: 'courtB', startTime: '10:00', verdict: 'BUSY', source: 'aloplay' },
       { courtKey: 'courtB', startTime: '10:00', verdict: 'UNKNOWN', source: 'alovarzesh' },
       { courtKey: 'courtA', startTime: '10:00', verdict: 'FREE', source: 'alovarzesh' },
     ], 60)
-    expect(confirmed.find((r) => r.courtKey === 'courtB')).toBeUndefined()
+    expect(confirmed.find((r) => r.courtKey === 'courtB')?.state).toBe('EXTERNAL_BUSY')
   })
 
 })

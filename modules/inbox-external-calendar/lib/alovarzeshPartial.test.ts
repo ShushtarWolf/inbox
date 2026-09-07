@@ -48,7 +48,7 @@ describe('AloVarzesh PARTIAL failed-court UNKNOWN', () => {
     expect(forB.every((r) => r.verdict === 'UNKNOWN')).toBe(true)
   })
 
-  it('2. failed Court + AloPlay BUSY → Available (not EXTERNAL_BUSY)', () => {
+  it('2. failed Court UNKNOWN + AloPlay BUSY → EXTERNAL_BUSY', () => {
     const av = alovarzeshPartialVerdicts({
       successCourtId: 'courtA',
       failedCourtId: 'courtB',
@@ -90,9 +90,10 @@ describe('AloVarzesh PARTIAL failed-court UNKNOWN', () => {
     })
 
     const confirmed = reconcileConfirmedBusy(verdicts, 60)
-    expect(confirmed.filter((r) => r.courtKey === 'courtB')).toEqual([])
-    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'UNKNOWN' })).toBe('UNKNOWN')
-    expect(displayBlocksExternal('UNKNOWN')).toBe(false)
+    expect(confirmed.filter((r) => r.courtKey === 'courtB')).toHaveLength(1)
+    expect(confirmed.find((r) => r.courtKey === 'courtB')?.state).toBe('EXTERNAL_BUSY')
+    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'UNKNOWN' })).toBe('EXTERNAL_BUSY')
+    expect(displayBlocksExternal('EXTERNAL_BUSY')).toBe(true)
   })
 
   it('3. successful Courts keep their real verdicts', () => {
@@ -119,7 +120,7 @@ describe('AloVarzesh PARTIAL failed-court UNKNOWN', () => {
     expect(failed.some((r) => r.verdict === 'FREE' || r.verdict === 'BUSY')).toBe(false)
   })
 
-  it('5. total-fail empty (PR #39) still pads UNKNOWN', () => {
+  it('5. total-fail empty still pads UNKNOWN; other BUSY → EXTERNAL_BUSY', () => {
     expect(
       isFailedOrWipedEmpty({
         supported: true,
@@ -160,13 +161,14 @@ describe('AloVarzesh PARTIAL failed-court UNKNOWN', () => {
       courts: [{ id: 'courtB', effectiveOpenHour: 10, effectiveCloseHour: 11 }],
       sessionDurationMinutes: 60,
     })
-    expect(reconcileConfirmedBusy(verdicts, 60)).toEqual([])
+    expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
+    expect(reconcileConfirmedBusy(verdicts, 60)[0]?.state).toBe('EXTERNAL_BUSY')
   })
 
-  it('invariants: BUSY+BUSY / BUSY+FREE still hold', () => {
+  it('invariants: any BUSY blocks including BUSY+FREE', () => {
     expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'BUSY' })).toBe('EXTERNAL_BUSY')
     expect(displayBlocksExternal('EXTERNAL_BUSY')).toBe(true)
-    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' })).toBe('CONFLICT')
-    expect(displayBlocksExternal('CONFLICT')).toBe(false)
+    expect(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' })).toBe('EXTERNAL_BUSY')
+    expect(displayBlocksExternal(reconcileSourceVerdicts({ aloplay: 'BUSY', alovarzesh: 'FREE' }))).toBe(true)
   })
 })
