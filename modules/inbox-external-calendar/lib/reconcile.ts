@@ -6,18 +6,19 @@ export type SourceName = 'aloplay' | 'alovarzesh' | 'courtic'
 export type PerSourceVerdict = Partial<Record<SourceName, SourceSlotVerdict>>
 
 /**
- * Cross-source reconciliation (availability-first).
- * Only EXTERNAL_BUSY when every contributing source that has a definite verdict
- * agrees BUSY, and at least one BUSY, with no FREE opposing.
+ * Cross-source reconciliation (double-book prevention).
+ * Any definite BUSY from a source blocks the cell as EXTERNAL_BUSY —
+ * even if another source says FREE or UNKNOWN.
+ *
+ * Confident BUSY still comes only from adapter COMPLETE/confirmed paths;
+ * wipe/fail emit UNKNOWN and do not invent BUSY by themselves.
  *
  * Spec mapping:
+ * - any BUSY (+ FREE / UNKNOWN / STALE / alone) → EXTERNAL_BUSY
  * - both FREE → AVAILABLE
- * - both BUSY → EXTERNAL_BUSY
- * - BUSY + FREE → CONFLICT
- * - BUSY + UNKNOWN/STALE → UNKNOWN (do not block)
- * - FREE + UNKNOWN → UNKNOWN
+ * - FREE + UNKNOWN/STALE → UNKNOWN
  * - both UNKNOWN → UNKNOWN
- * - any STALE without confirmed dual BUSY → STALE or UNKNOWN
+ * - only STALE → STALE
  */
 export function reconcileSourceVerdicts(verdicts: PerSourceVerdict): ExternalCellState {
   const values = Object.values(verdicts).filter(Boolean) as SourceSlotVerdict[]
@@ -28,12 +29,11 @@ export function reconcileSourceVerdicts(verdicts: PerSourceVerdict): ExternalCel
   const hasUnknown = values.includes('UNKNOWN')
   const hasStale = values.includes('STALE')
 
-  if (hasBusy && hasFree) return 'CONFLICT'
-  if (hasBusy && (hasUnknown || hasStale)) return 'UNKNOWN'
-  if (hasBusy && !hasFree && !hasUnknown && !hasStale) return 'EXTERNAL_BUSY'
-  if (hasFree && !hasBusy && !hasUnknown && !hasStale) return 'AVAILABLE'
-  if (hasFree && (hasUnknown || hasStale) && !hasBusy) return 'UNKNOWN'
-  if (hasStale && !hasBusy && !hasFree) return 'STALE'
+  // One confident external reservation is enough to block Inboxs booking.
+  if (hasBusy) return 'EXTERNAL_BUSY'
+  if (hasFree && !hasUnknown && !hasStale) return 'AVAILABLE'
+  if (hasFree && (hasUnknown || hasStale)) return 'UNKNOWN'
+  if (hasStale && !hasFree) return 'STALE'
   return 'UNKNOWN'
 }
 
@@ -43,7 +43,7 @@ export function reconcileBlocksBooking(verdicts: PerSourceVerdict): boolean {
 
 export type SlotKey = string // courtId:HH:mm
 
-export function slotKey(courtId: string, startTime: string): SlotKey {
+export function slotKey(courtId: string, startTime: string): string {
   return `${courtId}:${startTime.slice(0, 5)}`
 }
 
@@ -65,7 +65,8 @@ export type ReconciledBusySlot = {
 
 /**
  * Group per-source hour verdicts and emit occupied rows ONLY for EXTERNAL_BUSY.
- * Never a simple union of per-adapter busy lists.
+ * Never a simple union of raw adapter lists without verdict reconciliation —
+ * but any contributing BUSY is enough to confirm EXTERNAL_BUSY.
  */
 export function reconcileConfirmedBusy(
   slotVerdicts: ReconcileInputVerdict[],
@@ -102,7 +103,6 @@ export function reconcileConfirmedBusy(
   for (const acc of byKey.values()) {
     const state = reconcileSourceVerdicts(acc.perSource)
     if (state !== 'EXTERNAL_BUSY') continue
-    // Prefer first BUSY source for badge labeling; order aloplay → alovarzesh → courtic.
     const sourceOrder: SourceName[] = ['aloplay', 'alovarzesh', 'courtic']
     const busySource = sourceOrder.find((s) => acc.perSource[s] === 'BUSY') ?? 'aloplay'
     out.push({
