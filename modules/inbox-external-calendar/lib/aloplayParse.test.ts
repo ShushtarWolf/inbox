@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aloPlayHourVerdicts,
+  assessAloPlayCompleteness,
+  confirmedBusyFromFreeSet,
   isAloPlaySlotFree,
   isTruncatedAloPlayFreeSet,
   parseAvailableTimePayload,
@@ -74,7 +77,7 @@ describe('unionFreeSlots', () => {
   })
 })
 
-describe('suspectedOccupiedFromFreeSet', () => {
+describe('suspectedOccupiedFromFreeSet (deprecated — COMPLETE only)', () => {
   it('does not mark court 3 occupied at 17:00 when GetAvailableTime lists it free', () => {
     const { freeSlots } = parseAvailableTimePayload(maleAvailableTime)
     const occupied = suspectedOccupiedFromFreeSet(court3Mapping, freeSlots)
@@ -101,12 +104,31 @@ describe('suspectedOccupiedFromFreeSet', () => {
   })
 })
 
+describe('confirmedBusyFromFreeSet / aloPlayHourVerdicts', () => {
+  it('never emits BUSY when completeness is not COMPLETE', () => {
+    const { freeSlots } = parseAvailableTimePayload(maleAvailableTime)
+    expect(confirmedBusyFromFreeSet(court3Mapping, freeSlots, 'UNKNOWN')).toEqual([])
+    expect(confirmedBusyFromFreeSet(court3Mapping, freeSlots, 'PARTIAL')).toEqual([])
+    expect(aloPlayHourVerdicts(court3Mapping, freeSlots, 'PARTIAL').find((r) => r.startTime === '10:00')?.verdict).toBe('UNKNOWN')
+  })
+
+  it('emits BUSY for missing hours only when COMPLETE', () => {
+    const { freeSlots } = parseAvailableTimePayload(maleAvailableTime)
+    expect(assessAloPlayCompleteness({ freeSlots, mappedProductIds: [112282] })).toBe('COMPLETE')
+    const busy = confirmedBusyFromFreeSet(court3Mapping, freeSlots, 'COMPLETE')
+    expect(busy).toContainEqual({ courtKey: 'court-3', startTime: '10:00' })
+    expect(busy.some((b) => b.startTime === '17:00')).toBe(false)
+  })
+})
+
 describe('empty GetAvailableTime must not paint whole day', () => {
   it('empty free set would mark every mapped hour without the adapter guard', () => {
     const { freeSlots } = parseAvailableTimePayload({ data: [], statusCode: 0 })
     expect(freeSlots.size).toBe(0)
     const occupied = suspectedOccupiedFromFreeSet(allCourtsMapping, freeSlots)
     expect(occupied.length).toBe(allCourtsMapping.reduce((count, court) => count + court.starts.length, 0))
+    // Availability-first path must not call suspectedOccupiedFromFreeSet when UNKNOWN.
+    expect(confirmedBusyFromFreeSet(allCourtsMapping, freeSlots, 'UNKNOWN')).toEqual([])
   })
 })
 
@@ -142,4 +164,3 @@ describe('isTruncatedAloPlayFreeSet', () => {
     expect(isTruncatedAloPlayFreeSet(new Set())).toBe(true)
   })
 })
-

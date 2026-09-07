@@ -1,6 +1,8 @@
 import type { ExternalOccupancySource } from '@prisma/client'
 import {
   buildLiveSucceededBySource,
+  displayOccupiedWithoutStale,
+  filterStaleFromDisplay,
   isPersistableExternalSource,
   mergeLiveWithStoredOccupancy,
   type PersistableExternalSource,
@@ -19,7 +21,12 @@ const PRISMA_TO_SOURCE: Record<ExternalOccupancySource, PersistableExternalSourc
   COURTIC: 'courtic',
 }
 
-export { mergeLiveWithStoredOccupancy, buildLiveSucceededBySource }
+export {
+  mergeLiveWithStoredOccupancy,
+  buildLiveSucceededBySource,
+  filterStaleFromDisplay,
+  displayOccupiedWithoutStale,
+}
 
 export async function persistExternalOccupancySnapshots(opts: {
   clubId: string
@@ -95,20 +102,24 @@ export async function loadExternalOccupancySnapshots(opts: {
 }
 
 /**
- * When live fetch succeeds for a source, replace DB snapshots (occupancy can shrink).
- * When live fetch fails, keep last snapshots and use them as fallback.
+ * Persist per-source confirmed BUSY when live succeeds.
+ * Display return value NEVER includes stored STALE fallback (availability-first).
+ * DB rows remain for diagnostics when live fails.
  */
 export async function persistAndMergeExternalOccupancy(opts: {
   clubId: string
   date: string
   liveOccupied: ExternalOccupiedSlot[]
   adapters: ExternalAdapterResult[]
+  /** Prefer adapter-local confirmed busy for DB replace; defaults to liveOccupied. */
+  persistOccupied?: ExternalOccupiedSlot[]
 }): Promise<ExternalOccupiedSlot[]> {
   const liveSucceededBySource = buildLiveSucceededBySource(opts.adapters)
+  const toPersist = opts.persistOccupied ?? opts.liveOccupied
 
   for (const source of ['aloplay', 'alovarzesh', 'courtic'] as PersistableExternalSource[]) {
     if (!liveSucceededBySource[source]) continue
-    const sourceLive = opts.liveOccupied.filter((slot) => slot.source === source)
+    const sourceLive = toPersist.filter((slot) => slot.source === source)
     await replaceExternalOccupancySnapshotsForSource({
       clubId: opts.clubId,
       date: opts.date,
@@ -117,9 +128,15 @@ export async function persistAndMergeExternalOccupancy(opts: {
     })
   }
 
-  const stored = await loadExternalOccupancySnapshots({
+  // Diagnostics-only load (not used for display paint).
+  await loadExternalOccupancySnapshots({
     clubId: opts.clubId,
     date: opts.date,
   })
-  return mergeLiveWithStoredOccupancy(opts.liveOccupied, stored, liveSucceededBySource) as ExternalOccupiedSlot[]
+
+  // Display: live reconciled occupied only when source live-succeeded; never stale paint.
+  return filterStaleFromDisplay(
+    opts.liveOccupied,
+    liveSucceededBySource,
+  ) as ExternalOccupiedSlot[]
 }

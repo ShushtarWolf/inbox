@@ -9,10 +9,30 @@ export const SOURCE_LABELS: Record<ExternalSourceId, string> = {
 
 export const SOURCE_ORDER: ExternalSourceId[] = ['inbox', 'aloplay', 'alovarzesh', 'courtic']
 
+export type Completeness = 'COMPLETE' | 'PARTIAL' | 'UNKNOWN'
+export type SourceHealth = 'HEALTHY' | 'DEGRADED' | 'SUSPICIOUS' | 'OFFLINE'
+export type ExternalCellState =
+  | 'AVAILABLE'
+  | 'EXTERNAL_BUSY'
+  | 'UNKNOWN'
+  | 'STALE'
+  | 'CONFLICT'
+export type SourceSlotVerdict = 'FREE' | 'BUSY' | 'UNKNOWN' | 'STALE'
+
 export interface ExternalOccupiedSlot {
   courtKey: string
   startTime: string
   endTime: string
+  source: ExternalSourceId
+  /** Optional state; suspected/display must only treat EXTERNAL_BUSY as blocking. */
+  state?: ExternalCellState
+}
+
+export interface AdapterSlotVerdict {
+  courtKey: string
+  startTime: string
+  endTime?: string
+  verdict: SourceSlotVerdict
   source: ExternalSourceId
 }
 
@@ -29,10 +49,18 @@ export interface MergedCell {
   inboxStatus: string
   sources: ExternalSourceId[]
   badge: string
+  /**
+   * Shows as occupied for overlay.
+   * External contribution only when EXTERNAL_BUSY after reconcile; inbox occupancy still sets occupied.
+   */
   occupied: boolean
   sourceDetails?: SourceDetail[]
   /** Owner desk note for this hour (external overlay only). */
   ownerNote?: string | null
+  /** Reconciled external observation (availability-first). */
+  externalState?: ExternalCellState
+  freshness?: string
+  confidence?: string
 }
 
 export interface InboxCalendarSlot {
@@ -98,7 +126,12 @@ export interface ClubMapping {
 
 export interface ExternalAdapterResult {
   source: ExternalSourceId
+  /** Confirmed BUSY slots for this adapter only (never UNKNOWN/STALE guesses). */
   occupied: ExternalOccupiedSlot[]
   supported: boolean
   error?: string
+  completeness?: Completeness
+  health?: SourceHealth
+  slotVerdicts?: AdapterSlotVerdict[]
+  anomalies?: string[]
 }

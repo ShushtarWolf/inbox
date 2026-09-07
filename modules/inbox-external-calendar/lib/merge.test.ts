@@ -256,7 +256,7 @@ describe('addMinutes', () => {
 })
 
 describe('parseAloVarzeshOccupiedTimes', () => {
-  it('flags bg-disabled rows for the requested Jalali day', () => {
+  it('flags only confirmed reserved rows (not bare bg-disabled)', () => {
     const html = `
       <div class="day-box flex-timetable row bg-disabled ">
         <span class="time-value">07:00</span>
@@ -275,7 +275,8 @@ describe('parseAloVarzeshOccupiedTimes', () => {
         <input type="hidden" name="product_schedule" value="1405-06-03 10:00">
       </div>
     `
-    expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03')).toEqual(['07:00', '10:00'])
+    // Bare bg-disabled → UNKNOWN; reserve-over → BUSY
+    expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03')).toEqual(['10:00'])
   })
 })
 

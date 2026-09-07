@@ -1,4 +1,7 @@
 import { normalizeClockTime } from '../runtime/server/lib/time'
+import { assessAloPlayCompleteness, distinctClockTimes } from './completeness'
+import type { Completeness } from './observation'
+import type { SourceSlotVerdict } from './observation'
 
 /** Stable key for a free AloPlay slot: productId + session start (HH:mm). */
 export function freeSlotKey(productId: number, startTime: string): string {
@@ -53,15 +56,9 @@ export function unionFreeSlots(results: Array<{ freeSlots: Set<string> }>): Set<
 }
 
 
-/** Keys are `productId:HH:mm`. Fewer than 3 distinct clock times is a stub, not a real free map. */
+/** @deprecated Prefer assessAloPlayCompleteness — truncated free-sets are UNKNOWN, never BUSY. */
 export function isTruncatedAloPlayFreeSet(freeSlots: Set<string>): boolean {
-  const starts = new Set<string>()
-  for (const key of freeSlots) {
-    const colon = key.indexOf(':')
-    if (colon === -1) continue
-    starts.add(key.slice(colon + 1))
-  }
-  return starts.size < 3
+  return distinctClockTimes(freeSlots).size < 3
 }
 
 /** Slots not listed in GetAvailableTime union are suspected occupied. */
@@ -79,3 +76,42 @@ export function suspectedOccupiedFromFreeSet(
   }
   return occupied
 }
+
+/**
+ * Per mapped hour verdict from AloPlay free-set.
+ * missing → BUSY only when completeness === COMPLETE.
+ * Otherwise missing → UNKNOWN (availability-first).
+ */
+export function aloPlayHourVerdicts(
+  mappedCourts: Array<{ courtKey: string; productId: number; starts: string[] }>,
+  freeSlots: Set<string>,
+  completeness: Completeness,
+): Array<{ courtKey: string; startTime: string; verdict: SourceSlotVerdict }> {
+  const out: Array<{ courtKey: string; startTime: string; verdict: SourceSlotVerdict }> = []
+  for (const { courtKey, productId, starts } of mappedCourts) {
+    for (const startTime of starts) {
+      if (isAloPlaySlotFree(freeSlots, productId, startTime)) {
+        out.push({ courtKey, startTime, verdict: 'FREE' })
+      } else if (completeness === 'COMPLETE') {
+        out.push({ courtKey, startTime, verdict: 'BUSY' })
+      } else {
+        out.push({ courtKey, startTime, verdict: 'UNKNOWN' })
+      }
+    }
+  }
+  return out
+}
+
+/** Confirmed EXTERNAL_BUSY hours only (COMPLETE + missing). */
+export function confirmedBusyFromFreeSet(
+  mappedCourts: Array<{ courtKey: string; productId: number; starts: string[] }>,
+  freeSlots: Set<string>,
+  completeness: Completeness,
+): Array<{ courtKey: string; startTime: string }> {
+  if (completeness !== 'COMPLETE') return []
+  return aloPlayHourVerdicts(mappedCourts, freeSlots, completeness)
+    .filter((row) => row.verdict === 'BUSY')
+    .map(({ courtKey, startTime }) => ({ courtKey, startTime }))
+}
+
+export { assessAloPlayCompleteness }
