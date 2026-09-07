@@ -14,13 +14,19 @@ function occupancyKey(courtId: string, startTime: string) {
   return `${courtId}:${startTime.slice(0, 5)}`
 }
 
-/** Athlete-facing: inbox FREE + external occupied — no platform identifiers. */
+/**
+ * Athlete-facing: inbox FREE + external confirmed EXTERNAL_BUSY — no platform identifiers.
+ *
+ * INVARIANT: `externalSlots` must already be reconciled confirmed EXTERNAL_BUSY only.
+ * UNKNOWN / STALE / CONFLICT / PARTIAL must never appear here or yellow-paint athletes.
+ */
 export function computeSuspectedSlots(
   inboxSlots: InboxSlotWithId[],
   externalSlots: ExternalOccupiedSlot[],
 ): PublicSuspectedSlot[] {
+  const confirmed = externalSlots.filter((slot) => !slot.state || slot.state === 'EXTERNAL_BUSY')
   const externalKeys = new Set(
-    externalSlots.map((slot) => occupancyKey(slot.courtKey, slot.startTime)),
+    confirmed.map((slot) => occupancyKey(slot.courtKey, slot.startTime)),
   )
   const suspected: PublicSuspectedSlot[] = []
 
@@ -37,4 +43,12 @@ export function computeSuspectedSlots(
   }
 
   return suspected
+}
+
+/** Same as computeSuspectedSlots — explicit name for call sites that pass state-bearing rows. */
+export function computeSuspectedSlotsFromStates(
+  inboxSlots: InboxSlotWithId[],
+  externalSlots: ExternalOccupiedSlot[],
+): PublicSuspectedSlot[] {
+  return computeSuspectedSlots(inboxSlots, externalSlots)
 }

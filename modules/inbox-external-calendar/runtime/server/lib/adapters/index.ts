@@ -1,4 +1,5 @@
-import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
+import { reconcileConfirmedBusy } from '../../../../lib/reconcile'
+import type { AdapterSlotVerdict, ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
 import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
 import { fetchCourticOccupancy } from './courtic'
@@ -13,6 +14,22 @@ function alovarzeshSupported(mapping: ClubMapping): boolean {
   return Boolean(mapping.courts?.some((court) => court.external?.alovarzesh?.productId != null))
 }
 
+function occupiedAsBusyVerdicts(adapter: ExternalAdapterResult): AdapterSlotVerdict[] {
+  if (adapter.slotVerdicts?.length) return adapter.slotVerdicts
+  return adapter.occupied.map((slot) => ({
+    courtKey: slot.courtKey,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    verdict: 'BUSY' as const,
+    source: adapter.source,
+  }))
+}
+
+/**
+ * Fetch external occupancy with availability-first reconciliation.
+ * `occupied` is confirmed EXTERNAL_BUSY after cross-source reconcile — NOT a raw union.
+ * `persistOccupied` keeps per-adapter confirmed BUSY for snapshot persistence.
+ */
 export async function fetchExternalOccupancy(opts: {
   mapping: ClubMapping | null
   date: string
@@ -23,12 +40,16 @@ export async function fetchExternalOccupancy(opts: {
     effectiveCloseHour: number
   }>
   sessionDurationMinutes: number
-}): Promise<{ occupied: ExternalOccupiedSlot[]; adapters: ExternalAdapterResult[] }> {
+}): Promise<{
+  occupied: ExternalOccupiedSlot[]
+  adapters: ExternalAdapterResult[]
+  persistOccupied: ExternalOccupiedSlot[]
+}> {
   if (!opts.mapping) {
-    return { occupied: [], adapters: [] }
+    return { occupied: [], adapters: [], persistOccupied: [] }
   }
 
-  const [aloplay, alovarzesh] = await Promise.all([
+  const [aloplayRaw, alovarzesh] = await Promise.all([
     fetchAloPlayOccupied({
       mapping: opts.mapping,
       date: opts.date,
@@ -43,26 +64,33 @@ export async function fetchExternalOccupancy(opts: {
     }),
   ])
 
-  const adapters: ExternalAdapterResult[] = [
-    {
-      source: 'aloplay',
-      occupied: aloplay.occupied,
-      supported: aloplaySupported(opts.mapping),
-      error: aloplay.error,
-    },
-    alovarzesh,
-  ]
-
-  const occupied: ExternalOccupiedSlot[] = [
-    ...aloplay.occupied,
-    ...alovarzesh.occupied,
-  ]
+  const aloplay: ExternalAdapterResult = {
+    ...aloplayRaw,
+    source: 'aloplay',
+    supported: aloplaySupported(opts.mapping),
+  }
 
   const courtic = await fetchCourticOccupancy()
-  adapters.push(courtic)
-  occupied.push(...courtic.occupied)
+  const adapters: ExternalAdapterResult[] = [aloplay, alovarzesh, courtic]
 
-  return { occupied, adapters }
+  const allVerdicts = adapters.flatMap(occupiedAsBusyVerdicts)
+  const reconciled = reconcileConfirmedBusy(allVerdicts, opts.sessionDurationMinutes)
+
+  const occupied: ExternalOccupiedSlot[] = reconciled.map((row) => ({
+    courtKey: row.courtKey,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    source: row.source,
+    state: 'EXTERNAL_BUSY',
+  }))
+
+  const persistOccupied: ExternalOccupiedSlot[] = [
+    ...aloplay.occupied,
+    ...alovarzesh.occupied,
+    ...courtic.occupied,
+  ]
+
+  return { occupied, adapters, persistOccupied }
 }
 
-export { alovarzeshSupported, aloplaySupported }
+export { alovarzeshSupported, aloplaySupported, reconcileConfirmedBusy }

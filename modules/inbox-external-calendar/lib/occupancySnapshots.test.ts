@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildLiveSucceededBySource,
+  filterStaleFromDisplay,
   isExternalAdapterLiveSuccess,
   mergeLiveWithStoredOccupancy,
 } from './occupancySnapshots'
@@ -52,7 +53,7 @@ describe('buildLiveSucceededBySource', () => {
   })
 })
 
-describe('mergeLiveWithStoredOccupancy per-source fallback', () => {
+describe('mergeLiveWithStoredOccupancy (diagnostics only)', () => {
   it('keeps AloPlay snapshots when live failed but uses live AloVarzesh when it succeeded', () => {
     const merged = mergeLiveWithStoredOccupancy(
       [{
@@ -77,25 +78,32 @@ describe('mergeLiveWithStoredOccupancy per-source fallback', () => {
       ],
       { aloplay: false, alovarzesh: true },
     )
-    expect(merged).toEqual([
-      {
-        courtKey: 'c1',
-        startTime: '07:00',
-        endTime: '08:00',
-        source: 'aloplay',
-      },
-      {
-        courtKey: 'c1',
-        startTime: '08:00',
-        endTime: '09:00',
-        source: 'aloplay',
-      },
-      {
-        courtKey: 'c1',
-        startTime: '16:00',
-        endTime: '17:00',
-        source: 'alovarzesh',
-      },
+    expect(merged.map((s) => `${s.source}:${s.startTime}`)).toEqual([
+      'aloplay:07:00',
+      'aloplay:08:00',
+      'alovarzesh:16:00',
     ])
+  })
+})
+
+describe('filterStaleFromDisplay (availability-first)', () => {
+  it('does not paint stored/stale busy when live failed', () => {
+    const display = filterStaleFromDisplay(
+      [
+        { courtKey: 'c1', startTime: '07:00', endTime: '08:00', source: 'aloplay' },
+        { courtKey: 'c1', startTime: '16:00', endTime: '17:00', source: 'alovarzesh' },
+      ],
+      { aloplay: false, alovarzesh: true },
+    )
+    expect(display).toEqual([
+      { courtKey: 'c1', startTime: '16:00', endTime: '17:00', source: 'alovarzesh' },
+    ])
+  })
+
+  it('returns empty when all sources failed live fetch', () => {
+    expect(filterStaleFromDisplay(
+      [{ courtKey: 'c1', startTime: '07:00', endTime: '08:00', source: 'aloplay' }],
+      { aloplay: false },
+    )).toEqual([])
   })
 })

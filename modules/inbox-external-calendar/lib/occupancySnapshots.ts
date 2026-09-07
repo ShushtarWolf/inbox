@@ -43,9 +43,8 @@ export function buildLiveSucceededBySource(
 }
 
 /**
- * Merge live adapter rows with durable DB snapshots.
- * When live succeeded for a source, live replaces stored for that source (occupancy can shrink).
- * When live failed, fall back to stored snapshots for that source only.
+ * Diagnostics merge: when live failed, keep stored snapshots for that source.
+ * Not for calendar display — STALE must not paint BUSY on the grid.
  */
 export function mergeLiveWithStoredOccupancy(
   live: SnapshotOccupiedSlot[],
@@ -97,4 +96,33 @@ export function mergeLiveWithStoredOccupancy(
     || a.courtKey.localeCompare(b.courtKey)
     || a.source.localeCompare(b.source),
   )
+}
+
+/**
+ * Display path (availability-first): only live rows from sources whose fetch succeeded.
+ * Failed / unsupported / error → treat as AVAILABLE (do not paint stored STALE as BUSY).
+ */
+export function filterStaleFromDisplay(
+  live: SnapshotOccupiedSlot[],
+  liveSucceededBySource: Partial<Record<PersistableExternalSource, boolean>> = {},
+): SnapshotOccupiedSlot[] {
+  return live
+    .filter((slot) => {
+      if (!isPersistableExternalSource(slot.source)) return false
+      return liveSucceededBySource[slot.source] === true
+    })
+    .sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+      || a.courtKey.localeCompare(b.courtKey)
+      || a.source.localeCompare(b.source),
+    )
+}
+
+/** @deprecated Prefer filterStaleFromDisplay — alias for clarity at call sites. */
+export function displayOccupiedWithoutStale(
+  live: SnapshotOccupiedSlot[],
+  _stored: SnapshotOccupiedSlot[],
+  liveSucceededBySource: Partial<Record<PersistableExternalSource, boolean>> = {},
+): SnapshotOccupiedSlot[] {
+  return filterStaleFromDisplay(live, liveSucceededBySource)
 }

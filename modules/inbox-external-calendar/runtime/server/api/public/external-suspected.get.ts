@@ -38,10 +38,12 @@ export default defineEventHandler(async (event) => {
     sessionDurationMinutes: club.defaultSessionDurationMinutes,
   })
 
+  // Same reconcile path as owner calendar — confirmed EXTERNAL_BUSY only.
   const occupied = await persistAndMergeExternalOccupancy({
     clubId: club.id,
     date,
     liveOccupied: external.occupied,
+    persistOccupied: external.persistOccupied,
     adapters: external.adapters,
   })
 

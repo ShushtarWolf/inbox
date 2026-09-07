@@ -1,7 +1,7 @@
 import { getClubMapping, hasExternalMapping } from './mappings'
 import { loadInboxOwnerCalendar } from './inboxCalendar'
 import { fetchExternalOccupancy } from './adapters'
-import { mergeOccupancy } from './merge'
+import { mergeOccupancy, mergeOccupancyFromVerdicts } from './merge'
 import { persistAndMergeExternalOccupancy } from './occupancySnapshots'
 import { remapExternalOccupancyCourtKeys } from './remapExternalCourtKeys'
 import { enrichCellsWithSourceDetails } from './sourceDetails'
@@ -30,6 +30,7 @@ export async function buildCalendarSourcesResponse(opts: {
         clubId: opts.clubId,
         date: opts.date,
         liveOccupied: external.occupied,
+        persistOccupied: external.persistOccupied,
         adapters: external.adapters,
       })
     : external.occupied
@@ -40,10 +41,12 @@ export async function buildCalendarSourcesResponse(opts: {
     occupied: occupiedRaw,
   })
 
-  const cells = enrichCellsWithSourceDetails(
-    mergeOccupancy(inbox.slots, occupied),
-    mapping,
-  )
+  const allVerdicts = external.adapters.flatMap((adapter) => adapter.slotVerdicts ?? [])
+  const merged = allVerdicts.length
+    ? mergeOccupancyFromVerdicts(inbox.slots, allVerdicts, occupied)
+    : mergeOccupancy(inbox.slots, occupied)
+
+  const cells = enrichCellsWithSourceDetails(merged, mapping)
 
   const noteRows = await prisma.ownerExternalNote.findMany({
     where: { clubId: opts.clubId, date: opts.date },
@@ -75,6 +78,9 @@ export async function buildCalendarSourcesResponse(opts: {
       supported: adapter.supported,
       error: adapter.error ?? null,
       slotCount: adapter.occupied.length,
+      completeness: adapter.completeness ?? null,
+      health: adapter.health ?? null,
+      anomalies: adapter.anomalies ?? [],
       externalClubTitle: mapping?.sources?.[adapter.source as keyof NonNullable<typeof mapping.sources>]
         ? (mapping.sources[adapter.source as keyof NonNullable<typeof mapping.sources>] as { clubTitle?: string | null }).clubTitle ?? null
         : null,

@@ -1,15 +1,20 @@
 import { isoToJalaali } from '#shared/jalali.ts'
-import { parseAloVarzeshOccupiedTimes } from '../../../../lib/alovarzeshParse'
-import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
+import { parseAloVarzeshOccupiedTimes, parseAloVarzeshSlotStates } from '../../../../lib/alovarzeshParse'
+import type {
+  AdapterSlotVerdict,
+  ClubMapping,
+  ExternalAdapterResult,
+  ExternalOccupiedSlot,
+} from '../types'
 import { readCached, writeCached } from '../cache'
 import { findCourtMapping } from '../courtMatch'
 import { checkAdapterRateLimit } from '../rateLimit'
-import { addMinutes } from '../time'
+import { addMinutes, buildSessionStarts } from '../time'
 import { formatGregorianDateInTimeZone } from '../../../../lib/aloplaySession'
 
 const ALOVARZESH_BASE = 'https://alo-varzesh.com'
 
-export { parseAloVarzeshOccupiedTimes }
+export { parseAloVarzeshOccupiedTimes, parseAloVarzeshSlotStates }
 
 /** Convert Gregorian YYYY-MM-DD → Jalali YYYY-MM-DD used in AloVarzesh product_schedule. */
 export function gregorianToJalaliDate(isoDate: string): string {
@@ -29,7 +34,6 @@ export function tehranIgnoreBeforeHour(now: Date = new Date()): string {
   const n = Number.parseInt(hour, 10)
   return `${String(Number.isFinite(n) ? n : 0).padStart(2, '0')}:00`
 }
-
 
 function mappingHasAlovarzesh(mapping: ClubMapping): boolean {
   const source = mapping.sources?.alovarzesh
@@ -59,6 +63,8 @@ export async function fetchAloVarzeshOccupancy(opts: {
   courts: Array<{
     id: string
     nameFa: string
+    effectiveOpenHour?: number
+    effectiveCloseHour?: number
   }>
   sessionDurationMinutes: number
 }): Promise<ExternalAdapterResult> {
@@ -68,13 +74,26 @@ export async function fetchAloVarzeshOccupancy(opts: {
       occupied: [],
       supported: false,
       error: 'الوورزش mapping is not configured for this club.',
+      completeness: 'UNKNOWN',
+      health: 'OFFLINE',
+      slotVerdicts: [],
     }
   }
 
-  const cacheKey = `ext-cal:alovarzesh:${opts.mapping.inboxSlug}:${opts.date}:v2`
-  const cached = await readCached<ExternalOccupiedSlot[]>(cacheKey)
-  if (cached) {
-    return { source: 'alovarzesh', occupied: cached, supported: true }
+  const cacheKey = `ext-cal:alovarzesh:${opts.mapping.inboxSlug}:${opts.date}:v3`
+  const cached = await readCached<{
+    occupied: ExternalOccupiedSlot[]
+    slotVerdicts: AdapterSlotVerdict[]
+  }>(cacheKey)
+  if (cached?.occupied && cached.slotVerdicts) {
+    return {
+      source: 'alovarzesh',
+      occupied: cached.occupied,
+      supported: true,
+      completeness: 'COMPLETE',
+      health: 'HEALTHY',
+      slotVerdicts: cached.slotVerdicts,
+    }
   }
 
   const limit = checkAdapterRateLimit(`alovarzesh:${opts.mapping.inboxSlug}`)
@@ -84,6 +103,10 @@ export async function fetchAloVarzeshOccupancy(opts: {
       occupied: [],
       supported: true,
       error: 'الوورزش rate limited — retry shortly.',
+      completeness: 'UNKNOWN',
+      health: 'DEGRADED',
+      slotVerdicts: [],
+      anomalies: ['rate_limited'],
     }
   }
 
@@ -91,43 +114,85 @@ export async function fetchAloVarzeshOccupancy(opts: {
   const todayTehran = formatGregorianDateInTimeZone(new Date(), TEHRAN_TIME_ZONE)
   const ignoreBefore = opts.date === todayTehran ? tehranIgnoreBeforeHour() : null
   const occupied: ExternalOccupiedSlot[] = []
+  const slotVerdicts: AdapterSlotVerdict[] = []
   const errors: string[] = []
+  let anySuccess = false
 
   for (const court of opts.courts) {
     const mappingCourt = findCourtMapping(opts.mapping, court)
     const productId = mappingCourt?.external?.alovarzesh?.productId
-    if (productId == null) continue
-
-    try {
-      const html = await fetchProductHtml(productId, opts.date)
-      const times = parseAloVarzeshOccupiedTimes(html, jalaliDate, { ignoreBefore })
-      for (const startTime of times) {
-        occupied.push({
+    if (productId == null) {
+      const open = court.effectiveOpenHour ?? 7
+      const close = court.effectiveCloseHour ?? 23
+      const starts = buildSessionStarts(open, close, opts.sessionDurationMinutes)
+      for (const startTime of starts) {
+        slotVerdicts.push({
           courtKey: court.id,
           startTime,
           endTime: addMinutes(startTime, opts.sessionDurationMinutes),
+          verdict: 'UNKNOWN',
           source: 'alovarzesh',
         })
+      }
+      continue
+    }
+
+    try {
+      const html = await fetchProductHtml(productId, opts.date)
+      const states = parseAloVarzeshSlotStates(html, jalaliDate, { ignoreBefore })
+      anySuccess = true
+      for (const row of states) {
+        const endTime = addMinutes(row.time, opts.sessionDurationMinutes)
+        slotVerdicts.push({
+          courtKey: court.id,
+          startTime: row.time,
+          endTime,
+          verdict: row.verdict,
+          source: 'alovarzesh',
+        })
+        if (row.verdict === 'BUSY') {
+          occupied.push({
+            courtKey: court.id,
+            startTime: row.time,
+            endTime,
+            source: 'alovarzesh',
+            state: 'EXTERNAL_BUSY',
+          })
+        }
       }
     } catch (error) {
       errors.push(error instanceof Error ? error.message : `product ${productId} failed`)
     }
   }
 
-  if (!occupied.length && errors.length) {
+  // Total failure: empty occupied + error + OFFLINE; do not write cache (no stale busy paint).
+  if (!anySuccess && errors.length) {
     return {
       source: 'alovarzesh',
       occupied: [],
       supported: true,
       error: errors.join('; '),
+      completeness: 'UNKNOWN',
+      health: 'OFFLINE',
+      slotVerdicts: [],
+      anomalies: ['fetch_failed'],
     }
   }
 
-  await writeCached(cacheKey, occupied)
+  const completeness = errors.length && anySuccess ? 'PARTIAL' : (anySuccess ? 'COMPLETE' : 'UNKNOWN')
+  const health = errors.length
+    ? (anySuccess ? 'DEGRADED' : 'SUSPICIOUS')
+    : 'HEALTHY'
+
+  await writeCached(cacheKey, { occupied, slotVerdicts })
   return {
     source: 'alovarzesh',
     occupied,
     supported: true,
     error: errors.length ? errors.join('; ') : undefined,
+    completeness,
+    health,
+    slotVerdicts,
+    anomalies: errors.length ? ['partial_court_fetch'] : undefined,
   }
 }
