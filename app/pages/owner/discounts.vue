@@ -222,7 +222,7 @@ async function saveItem() {
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.discountsPage.maxRedemptionsHint') }}</p>
         </AppFormField>
         <AppFormField :label="t('owner.discountsPage.endsAt')">
-          <input v-model="modalEndsAt" type="date" dir="ltr" class="neo-input" />
+          <AppDateInput v-model="modalEndsAt" :show-formatted-hint="false" />
           <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.discountsPage.endsAtHint') }}</p>
         </AppFormField>
         <label v-if="editing" class="flex items-center gap-2 text-sm font-bold text-brand-navy">

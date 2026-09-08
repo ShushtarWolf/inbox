@@ -330,14 +330,12 @@ function conflictLabel(c: ConflictRow) {
             <input v-model.number="form.price" type="number" min="0" class="canva-input w-full" >
           </AppFormField>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <AppFormField :label="t('owner.packagesPage.startDate')">
-            <input v-model="form.startDate" type="date" class="canva-input w-full" >
-          </AppFormField>
-          <AppFormField :label="t('owner.packagesPage.finishDate')">
-            <input v-model="form.finishDate" type="date" class="canva-input w-full" >
-          </AppFormField>
-        </div>
+        <AppFormField :label="t('owner.packagesPage.dateRange')" required>
+          <AppDateRangeInput
+            v-model:start="form.startDate"
+            v-model:end="form.finishDate"
+          />
+        </AppFormField>
         <div class="flex flex-wrap gap-1">
           <button
             v-for="day in IRAN_WEEKDAY_ORDER"
