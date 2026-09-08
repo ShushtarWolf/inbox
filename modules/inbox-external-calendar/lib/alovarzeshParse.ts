@@ -25,11 +25,13 @@ const DAY_BOX_OPEN_RE = /<div\b[^>]*\bclass="([^"]*\bday-box\b[^"]*)"[^>]*>/gi
 /**
  * Parse AloVarzesh product HTML timetable into per-hour verdicts.
  *
- * Reserved (BUSY) only when:
+ * Reserved (BUSY) when:
  * - soft hold `reserve-over`, or
- * - `bg-disabled` AND reserved styling (`reserve-time` / `box-green-reserve-time`)
+ * - `bg-disabled` + reserved styling (`reserve-time` / `box-green-reserve-time`), or
+ * - future `bg-disabled` without bookable affordance (permanent / blocked slots often
+ *   ship as bare `bg-disabled` with no `reserve-time` — verified live on IUST court 1)
  *
- * Bare `bg-disabled` (past / unbookable / unclear) → UNKNOWN (never BUSY).
+ * Past bare `bg-disabled` (ignoreBefore) → UNKNOWN (never BUSY).
  * Bookable boxes (no disabled/hold) → FREE.
  */
 export function parseAloVarzeshSlotStates(
@@ -78,21 +80,28 @@ export function parseAloVarzeshSlotStates(
       continue
     }
 
+    // Past public disabled hours are not evidence of a booking.
     if (!isSoftHold && ignoreBefore && isBeforeClock(time, ignoreBefore)) {
       byTime.set(time, { time, verdict: 'UNKNOWN', reason: 'past_disabled' })
       continue
     }
 
-    if (isSoftHold || (isDisabled && isReservedStyle)) {
-      byTime.set(time, {
-        time,
-        verdict: 'BUSY',
-        reason: isSoftHold ? 'reserve_over' : 'reserved_disabled',
-      })
+    if (isSoftHold) {
+      byTime.set(time, { time, verdict: 'BUSY', reason: 'reserve_over' })
       continue
     }
 
-    // Bare bg-disabled without reserved styling → UNKNOWN (availability-first).
+    if (isDisabled && isReservedStyle) {
+      byTime.set(time, { time, verdict: 'BUSY', reason: 'reserved_disabled' })
+      continue
+    }
+
+    // Future bare bg-disabled: not clickable/bookable on public page (often "دائم").
+    if (isDisabled) {
+      byTime.set(time, { time, verdict: 'BUSY', reason: 'future_disabled' })
+      continue
+    }
+
     byTime.set(time, { time, verdict: 'UNKNOWN', reason: 'disabled_unspecified' })
   }
 

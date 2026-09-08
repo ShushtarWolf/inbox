@@ -8,15 +8,16 @@ function dayBox(cls: string, jalaliDate: string, time: string): string {
 describe('parseAloVarzeshSlotStates (availability-first)', () => {
   const date = '1405-06-15'
 
-  it('treats bare bg-disabled as UNKNOWN (never BUSY)', () => {
+  it('treats future bare bg-disabled as BUSY (permanent / blocked public slots)', () => {
     const html = [
       dayBox('day-box flex-timetable row bg-disabled', date, '10:00'),
       dayBox('day-box flex-timetable row', date, '11:00'),
     ].join('')
     const states = parseAloVarzeshSlotStates(html, date)
-    expect(states.find((s) => s.time === '10:00')?.verdict).toBe('UNKNOWN')
+    expect(states.find((s) => s.time === '10:00')?.verdict).toBe('BUSY')
+    expect(states.find((s) => s.time === '10:00')?.reason).toBe('future_disabled')
     expect(states.find((s) => s.time === '11:00')?.verdict).toBe('FREE')
-    expect(parseAloVarzeshOccupiedTimes(html, date)).toEqual([])
+    expect(parseAloVarzeshOccupiedTimes(html, date)).toEqual(['10:00'])
   })
 
   it('marks past bare bg-disabled as UNKNOWN when ignoreBefore is set', () => {
@@ -27,9 +28,9 @@ describe('parseAloVarzeshSlotStates (availability-first)', () => {
     const states = parseAloVarzeshSlotStates(html, date, { ignoreBefore: '18:00' })
     expect(states.find((s) => s.time === '10:00')?.verdict).toBe('UNKNOWN')
     expect(states.find((s) => s.time === '10:00')?.reason).toBe('past_disabled')
-    // Future bare disabled still UNKNOWN (not BUSY)
-    expect(states.find((s) => s.time === '18:00')?.verdict).toBe('UNKNOWN')
-    expect(parseAloVarzeshOccupiedTimes(html, date, { ignoreBefore: '18:00' })).toEqual([])
+    // Future bare disabled = BUSY (دائم / blocked)
+    expect(states.find((s) => s.time === '18:00')?.verdict).toBe('BUSY')
+    expect(parseAloVarzeshOccupiedTimes(html, date, { ignoreBefore: '18:00' })).toEqual(['18:00'])
   })
 
   it('marks reserve-over as BUSY even before ignoreBefore', () => {
@@ -46,5 +47,18 @@ describe('parseAloVarzeshSlotStates (availability-first)', () => {
   it('marks bookable boxes as FREE', () => {
     const html = dayBox('day-box flex-timetable row', date, '12:00')
     expect(parseAloVarzeshSlotStates(html, date)[0]).toMatchObject({ verdict: 'FREE', reason: 'bookable' })
+  })
+
+  it('live IUST pattern: morning past UNKNOWN, midday FREE, evening permanent BUSY', () => {
+    const dateLive = '1405-06-17'
+    const html = [
+      dayBox('day-box flex-timetable  row  bg-disabled  ', dateLive, '07:00'),
+      dayBox('day-box flex-timetable  row ', dateLive, '12:00'),
+      dayBox('day-box flex-timetable  row  bg-disabled  ', dateLive, '17:00'),
+    ].join('')
+    const states = parseAloVarzeshSlotStates(html, dateLive, { ignoreBefore: '12:00' })
+    expect(states.find((s) => s.time === '07:00')?.verdict).toBe('UNKNOWN')
+    expect(states.find((s) => s.time === '12:00')?.verdict).toBe('FREE')
+    expect(states.find((s) => s.time === '17:00')?.verdict).toBe('BUSY')
   })
 })
