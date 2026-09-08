@@ -184,7 +184,7 @@ async function runPreview() {
     showConfirm.value = true
   }
   catch (err: unknown) {
-    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPreview'))
+    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPreview'), t)
   }
   finally {
     previewing.value = false
@@ -219,7 +219,7 @@ async function confirmPublish() {
     await refresh()
   }
   catch (err: unknown) {
-    confirmError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPublish'))
+    confirmError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPublish'), t)
   }
   finally {
     saving.value = false
@@ -232,7 +232,7 @@ async function cancelPackage(id: string) {
     await refresh()
   }
   catch (err: unknown) {
-    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorCancel'))
+    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorCancel'), t)
   }
 }
 

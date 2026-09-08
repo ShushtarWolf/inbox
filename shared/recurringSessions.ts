@@ -152,23 +152,26 @@ export function hasValidDayTimes(dayTimes: Record<string, DayTimeRange>, days: s
 
 export function parseSeasonTimesJson(
   timesJson: string | null | undefined,
-  days: string[],
+  days: string[] = [],
   fallback?: DayTimeRange,
 ): Record<string, DayTimeRange> {
   if (!timesJson) {
-    return fallback ? Object.fromEntries(days.map((day) => [day, { ...fallback }])) : {}
+    return fallback && days.length
+      ? Object.fromEntries(days.map((day) => [day, { ...fallback }]))
+      : {}
   }
   try {
     const parsed = JSON.parse(timesJson)
     if (Array.isArray(parsed)) {
-      if (!parsed.length || !fallback) return {}
+      if (!parsed.length || !fallback || !days.length) return {}
       const start = parsed[0]
       const end = formatHour(hourFromTime(parsed[parsed.length - 1]) + 1)
       return Object.fromEntries(days.map((day) => [day, { start, end }]))
     }
     if (parsed && typeof parsed === 'object') {
       const result: Record<string, DayTimeRange> = {}
-      for (const day of days) {
+      const keys = days.length ? days : Object.keys(parsed)
+      for (const day of keys) {
         const entry = parsed[day]
         if (entry && typeof entry === 'object' && entry.start && entry.end) {
           result[day] = { start: entry.start, end: entry.end }
