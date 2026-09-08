@@ -17,3 +17,22 @@ export function formatSourceLabelList(sources: ExternalSourceId[]): string[] {
 export function formatExternalSourceLabels(sources: ExternalSourceId[]): string[] {
   return formatSourceLabelList(sources.filter((source) => source !== 'inbox'))
 }
+
+export type ExternalDisplayKind = 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
+
+/** Owner / coach / admin overlay badge for the three staff-visible modes. */
+export function formatExternalDisplayBadge(
+  kind: ExternalDisplayKind | undefined,
+  sources: ExternalSourceId[],
+): string {
+  const labels = formatExternalSourceLabels(sources)
+  if (kind === 'busy_single' || kind === 'busy_multi') {
+    return labels.length ? `مشغول · ${labels.join(' + ')}` : 'مشغول'
+  }
+  if (kind === 'uncertain') {
+    return labels.length
+      ? `مشکوک — با ${labels.join(' و ')} هماهنگ کنید`
+      : 'مشکوک'
+  }
+  return formatSourceBadge(sources)
+}

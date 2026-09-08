@@ -12,6 +12,7 @@ type CoachExternalCell = {
   badge: string
   occupied: boolean
   sourceDetails?: CoachExternalSourceDetail[]
+  externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
 }
 
 type CoachExternalCalendarPayload = {
@@ -73,7 +74,7 @@ export function useCoachExternalCalendarOverlay(opts: {
     return cellByKey.value.get(occupancyKey(slot.courtId, slot.startTime)) || null
   }
 
-  /** Inbox FREE but occupied on another booking site — show site name(s). */
+  /** Confirmed EXTERNAL_BUSY on another booking site. */
   function isExternalOnlyOccupied(slot: {
     courtId: string
     startTime: string
@@ -81,21 +82,32 @@ export function useCoachExternalCalendarOverlay(opts: {
     if (!slot) return false
     const cell = externalCellFor(slot)
     if (!cell?.occupied) return false
+    if (cell.externalKind === 'uncertain') return false
     return cell.sources.some((source) => source !== 'inbox')
+  }
+
+  function isExternalUncertain(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): boolean {
+    if (!slot) return false
+    if (isExternalOnlyOccupied(slot)) return false
+    return externalCellFor(slot)?.externalKind === 'uncertain'
   }
 
   function externalSiteBadge(slot: {
     courtId: string
     startTime: string
   } | null | undefined): string {
-    if (!isExternalOnlyOccupied(slot)) return ''
+    if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
+    if (cell.badge) return cell.badge
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return cell.badge || ''
+    return ''
   }
 
   let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -124,6 +136,7 @@ export function useCoachExternalCalendarOverlay(opts: {
     externalOverlayEnabled: enabled,
     externalOverlayPending: pending,
     isExternalOnlyOccupied,
+    isExternalUncertain,
     externalSiteBadge,
     refreshExternalOverlay: refreshIfEnabled,
   }

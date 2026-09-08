@@ -65,6 +65,7 @@ const {
   externalOverlayPending,
   externalOverlayError,
   isExternalOnlyOccupied,
+  isExternalUncertain,
   externalSiteBadge,
   refreshExternalOverlay,
 } = useAdminExternalCalendarOverlay({
@@ -131,11 +132,15 @@ const freeSlotCards = computed(() =>
 )
 
 const bookableSlots = computed(() =>
-  freeSlotCards.value.filter((slot) => !isExternalOnlyOccupied(slot)),
+  freeSlotCards.value.filter((slot) => !isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)),
 )
 
 const blockedExternalSlots = computed(() =>
   freeSlotCards.value.filter((slot) => isExternalOnlyOccupied(slot)),
+)
+
+const uncertainExternalSlots = computed(() =>
+  freeSlotCards.value.filter((slot) => isExternalUncertain(slot)),
 )
 
 const bookedSlots = computed(() =>
@@ -146,12 +151,13 @@ const bookedSlots = computed(() =>
   ),
 )
 
-type AdminSlotKind = 'bookable' | 'external' | 'booked'
+type AdminSlotKind = 'bookable' | 'external' | 'uncertain' | 'booked'
 
 const orderedSlotCards = computed(() => {
   const items: { kind: AdminSlotKind; slot: AdminSlotCard }[] = [
     ...bookableSlots.value.map((slot) => ({ kind: 'bookable' as const, slot })),
     ...blockedExternalSlots.value.map((slot) => ({ kind: 'external' as const, slot })),
+    ...uncertainExternalSlots.value.map((slot) => ({ kind: 'uncertain' as const, slot })),
     ...bookedSlots.value.map((slot) => ({ kind: 'booked' as const, slot })),
   ]
   return items.sort((a, b) =>
@@ -262,7 +268,7 @@ const calendarSourcesHref = computed(() =>
           {{ t('coach.book.noSlots') }}
         </p>
         <p
-          v-else-if="data && !bookableSlots.length && !blockedExternalSlots.length && !bookedSlots.length"
+          v-else-if="data && !bookableSlots.length && !blockedExternalSlots.length && !uncertainExternalSlots.length && !bookedSlots.length"
           class="ios-card border-dashed p-4 text-sm text-brand-gray-600"
         >
           {{ t('coach.book.noSlots') }}
@@ -296,7 +302,7 @@ const calendarSourcesHref = computed(() =>
             </div>
 
             <div
-              v-else
+              v-else-if="kind === 'external'"
               class="ios-card border border-brand-gray-200 bg-brand-gray-50 p-3 text-start opacity-80"
               aria-disabled="true"
             >
@@ -306,6 +312,19 @@ const calendarSourcesHref = computed(() =>
               </p>
               <p class="mt-1 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
               <p class="text-[10px] text-brand-gray-500">{{ t('coach.book.externalOccupiedHint') }}</p>
+            </div>
+
+            <div
+              v-else
+              class="ios-card border border-amber-300 bg-amber-50 p-3 text-start opacity-90"
+              aria-disabled="true"
+            >
+              <p class="text-sm font-bold text-amber-900">{{ courtLabel(slot) }}</p>
+              <p class="text-sm text-amber-900">
+                <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
+              </p>
+              <p class="mt-1 text-xs font-bold text-amber-900">{{ externalSiteBadge(slot) }}</p>
+              <p class="text-[10px] text-amber-800">{{ t('coach.book.externalUncertainHint') }}</p>
             </div>
           </template>
         </div>

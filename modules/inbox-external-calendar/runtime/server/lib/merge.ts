@@ -5,10 +5,17 @@ import type {
   InboxCalendarSlot,
   MergedCell,
 } from './types'
-import { formatSourceBadge } from './badges'
+import { formatExternalDisplayBadge, formatSourceBadge } from './badges'
 import { normalizeClockTime } from './time'
 import { displayBlocksExternal } from '../../../lib/observation'
-import { reconcileCellStates, slotKey, type ReconcileInputVerdict } from '../../../lib/reconcile'
+import { classifyExternalDisplay } from '../../../lib/externalDisplay'
+import {
+  reconcileCellStates,
+  reconcilePerSourceMap,
+  slotKey,
+  type ReconcileInputVerdict,
+  type SourceName,
+} from '../../../lib/reconcile'
 
 export function isInboxOccupied(displayStatus: string): boolean {
   return displayStatus !== 'FREE'
@@ -47,6 +54,7 @@ export function mergeOccupancy(
       badge: formatSourceBadge(sources),
       occupied: sources.length > 0,
       externalState: 'AVAILABLE',
+      externalKind: 'clear',
     })
   }
 
@@ -65,6 +73,7 @@ export function mergeOccupancy(
         badge: '',
         occupied: false,
         externalState: 'AVAILABLE',
+        externalKind: 'clear',
       }
       map.set(key, cell)
     }
@@ -79,8 +88,12 @@ export function mergeOccupancy(
   )
 }
 
+function asExternalSourceId(source: SourceName): ExternalSourceId {
+  return source
+}
+
 /**
- * Prefer when full per-source verdicts are available: annotate externalState from reconcile,
+ * Prefer when full per-source verdicts are available: annotate externalState + externalKind,
  * and only treat EXTERNAL_BUSY as external occupied contribution.
  */
 export function mergeOccupancyFromVerdicts(
@@ -90,43 +103,81 @@ export function mergeOccupancyFromVerdicts(
 ): MergedCell[] {
   const cells = mergeOccupancy(inboxSlots, confirmedBusy)
   const states = reconcileCellStates(verdicts)
-  for (const cell of cells) {
-    const key = slotKey(cell.courtId, cell.startTime)
-    const state = states.get(key)
-    if (state) {
-      cell.externalState = state
-      // Re-assert occupied from external only when EXTERNAL_BUSY; inbox may still occupy.
-      const externalBusy = displayBlocksExternal(state)
+  const perSource = reconcilePerSourceMap(verdicts)
+  const byKey = new Map(cells.map((c) => [slotKey(c.courtId, c.startTime), c] as const))
+
+  for (const [key, cell] of byKey) {
+    const verdict = perSource.get(key)
+    if (verdict) {
+      const info = classifyExternalDisplay(verdict)
+      cell.externalState = info.reconciled
+      cell.externalKind = info.kind
+      cell.busySources = info.busySources.map(asExternalSourceId)
+      cell.uncertainSources = info.uncertainSources.map(asExternalSourceId)
+
       const inboxBusy = cell.sources.includes('inbox')
-      if (!externalBusy && !inboxBusy) {
+      const externalBusy = displayBlocksExternal(info.reconciled)
+
+      if (externalBusy) {
+        // Ensure all BUSY sources appear (not only preferred first).
+        const next: ExternalSourceId[] = inboxBusy ? ['inbox'] : []
+        for (const s of info.busySources) {
+          const id = asExternalSourceId(s)
+          if (!next.includes(id)) next.push(id)
+        }
+        cell.sources = next
+        cell.occupied = true
+        cell.badge = formatExternalDisplayBadge(info.kind, next)
+      } else if (info.kind === 'uncertain') {
+        cell.sources = inboxBusy
+          ? ['inbox', ...info.uncertainSources.map(asExternalSourceId)]
+          : info.uncertainSources.map(asExternalSourceId)
+        cell.occupied = inboxBusy
+        cell.badge = formatExternalDisplayBadge('uncertain', cell.sources)
+      } else if (!inboxBusy) {
         cell.occupied = false
-        cell.sources = cell.sources.filter((s) => s === 'inbox')
-        cell.badge = formatSourceBadge(cell.sources)
-      } else if (!externalBusy && inboxBusy) {
-        cell.sources = cell.sources.filter((s) => s === 'inbox')
+        cell.sources = []
+        cell.badge = ''
+        cell.externalKind = 'clear'
+      } else {
+        cell.sources = ['inbox']
         cell.occupied = true
         cell.badge = formatSourceBadge(cell.sources)
+        cell.externalKind = 'clear'
       }
-    } else if (!cell.sources.some((s) => s !== 'inbox')) {
-      cell.externalState = 'AVAILABLE'
+    } else {
+      const state = states.get(key)
+      if (state) cell.externalState = state
+      else if (!cell.sources.some((s) => s !== 'inbox')) {
+        cell.externalState = 'AVAILABLE'
+        cell.externalKind = 'clear'
+      }
     }
   }
 
   // Ensure cells that have verdicts but no inbox row still appear with correct externalState.
-  for (const [key, state] of states) {
-    if (cells.some((c) => slotKey(c.courtId, c.startTime) === key)) continue
-    if (state === 'EXTERNAL_BUSY') continue // already created via confirmedBusy
+  for (const [key, verdict] of perSource) {
+    if (byKey.has(key)) continue
+    const info = classifyExternalDisplay(verdict)
+    if (info.kind === 'clear') continue
     const [courtId, startTime] = key.split(':')
     if (!courtId || !startTime) continue
+    const sources: ExternalSourceId[] =
+      info.kind === 'uncertain'
+        ? info.uncertainSources.map(asExternalSourceId)
+        : info.busySources.map(asExternalSourceId)
     cells.push({
       courtId,
       startTime,
       endTime: startTime,
       inboxStatus: 'FREE',
-      sources: [],
-      badge: '',
-      occupied: false,
-      externalState: state as ExternalCellState,
+      sources,
+      badge: formatExternalDisplayBadge(info.kind, sources),
+      occupied: info.kind === 'busy_single' || info.kind === 'busy_multi',
+      externalState: info.reconciled as ExternalCellState,
+      externalKind: info.kind,
+      busySources: info.busySources.map(asExternalSourceId),
+      uncertainSources: info.uncertainSources.map(asExternalSourceId),
     })
   }
 

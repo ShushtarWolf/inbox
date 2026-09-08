@@ -2173,6 +2173,15 @@
     background: var(--sz-cal-grid-blocked);
     color: #2c2c2a;
   }
+
+  .canva-cal-grid-cell.slot-external-uncertain {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+  .canva-cal-grid-cell.slot-external-uncertain .canva-cal-grid-cell-label {
+    color: #92400e;
+  }
+
   .canva-cal-grid-cell.slot-reserved-unpaid {
     background: var(--sz-cal-grid-reserved-unpaid);
     color: #2c2c2a;

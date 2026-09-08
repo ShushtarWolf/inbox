@@ -12,6 +12,7 @@ type AdminExternalCell = {
   badge: string
   occupied: boolean
   sourceDetails?: AdminExternalSourceDetail[]
+  externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
 }
 
 type AdminExternalCalendarPayload = {
@@ -101,7 +102,18 @@ export function useAdminExternalCalendarOverlay(opts: {
     if (!slot || slot.displayStatus !== 'FREE') return false
     const cell = externalCellFor(slot)
     if (!cell?.occupied) return false
+    if (cell.externalKind === 'uncertain') return false
     return cell.sources.some((source) => source !== 'inbox')
+  }
+
+  function isExternalUncertain(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isExternalOnlyOccupied(slot)) return false
+    return externalCellFor(slot)?.externalKind === 'uncertain'
   }
 
   function externalSiteBadge(slot: {
@@ -109,14 +121,15 @@ export function useAdminExternalCalendarOverlay(opts: {
     startTime: string
     displayStatus?: string
   } | null | undefined): string {
-    if (!isExternalOnlyOccupied(slot)) return ''
+    if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
+    if (cell.badge) return cell.badge
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return cell.badge || ''
+    return ''
   }
 
   let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -146,6 +159,7 @@ export function useAdminExternalCalendarOverlay(opts: {
     externalOverlayPending: pending,
     externalOverlayError: error,
     isExternalOnlyOccupied,
+    isExternalUncertain,
     externalSiteBadge,
     refreshExternalOverlay: refreshIfEnabled,
   }
