@@ -64,16 +64,21 @@ const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await u
 
 const {
   isExternalOnlyOccupied,
+  isExternalUncertain,
   externalSiteBadge,
   refreshExternalOverlay,
 } = useCoachExternalCalendarOverlay({ clubId, date })
 
 const bookableSlots = computed(() =>
-  (slotData.value?.slots || []).filter((slot) => !isExternalOnlyOccupied(slot)),
+  (slotData.value?.slots || []).filter((slot) => !isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)),
 )
 
 const blockedExternalSlots = computed(() =>
   (slotData.value?.slots || []).filter((slot) => isExternalOnlyOccupied(slot)),
+)
+
+const uncertainExternalSlots = computed(() =>
+  (slotData.value?.slots || []).filter((slot) => isExternalUncertain(slot)),
 )
 
 /** Courts as a list first — hours only appear under the selected court. */
@@ -95,6 +100,7 @@ const courtGroups = computed((): CourtGroup[] => {
   }
   for (const slot of bookableSlots.value) ensure(slot).bookable.push(slot)
   for (const slot of blockedExternalSlots.value) ensure(slot).blocked.push(slot)
+  for (const slot of uncertainExternalSlots.value) ensure(slot).blocked.push(slot)
   for (const group of map.values()) {
     group.bookable.sort((a, b) => a.startTime.localeCompare(b.startTime))
     group.blocked.sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -109,7 +115,7 @@ const selectedCourtGroup = computed(() =>
 watch(slotData, (next) => {
   if (!next?.slots?.length || selectedSlotId.value || !initialTime) return
   const match = next.slots.find((slot) =>
-    slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot),
+    slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot) && !isExternalUncertain(slot),
   )
   if (match) {
     selectedCourtId.value = match.courtId
@@ -318,7 +324,7 @@ async function startTopUp() {
               {{ $t('coach.book.noSlots') }}
             </p>
             <p
-              v-else-if="!bookableSlots.length && blockedExternalSlots.length"
+              v-else-if="!bookableSlots.length && (blockedExternalSlots.length || uncertainExternalSlots.length)"
               class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
               style="border-radius: var(--sz-canva-radius);"
             >
@@ -366,7 +372,7 @@ async function startTopUp() {
                   <div
                     v-for="slot in selectedCourtGroup.blocked"
                     :key="`ext-${slot.id}`"
-                    class="canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80"
+                    :class="isExternalUncertain(slot) ? 'canva-finance-tx-card border-amber-300 bg-amber-50 opacity-90' : 'canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80'"
                     aria-disabled="true"
                   >
                     <div class="min-w-0 flex-1 text-start">
@@ -374,7 +380,7 @@ async function startTopUp() {
                         <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
                       </p>
                       <p class="mt-0.5 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
-                      <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+                      <p class="text-[10px] text-brand-gray-500">{{ isExternalUncertain(slot) ? $t('coach.book.externalUncertainHint') : $t('coach.book.externalOccupiedHint') }}</p>
                     </div>
                   </div>
                 </div>

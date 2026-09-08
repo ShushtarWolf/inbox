@@ -219,6 +219,7 @@ const {
   externalSiteBadge,
   externalSourceDetails,
   externalOwnerNote,
+  isExternalUncertain,
   refreshExternalOverlay,
 } = useOwnerExternalCalendarOverlay({ date })
 
@@ -585,6 +586,13 @@ function gridCellClasses(courtId: string, hour: string) {
       slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
     ]
   }
+  if (isExternalUncertain(slot)) {
+    return [
+      'slot-external-uncertain',
+      slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+      slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
+    ]
+  }
   return [
     slotClass(slot?.displayStatus || 'FREE', slot),
     slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
@@ -608,7 +616,7 @@ function bookingSourceLabel(source?: string | null) {
 
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
-  if (isExternalOnlyOccupied(slot)) return externalSiteBadge(slot)
+  if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return externalSiteBadge(slot)
   if (slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
     return t('owner.slotBlockedLabel')
@@ -627,7 +635,7 @@ function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
 
 function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
-  if (isExternalOnlyOccupied(slot)) {
+  if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) {
     return [externalSiteBadge(slot), externalOwnerNote(slot)].filter(Boolean).join(' — ')
   }
   if (slot.displayStatus === 'FREE') {
@@ -685,7 +693,7 @@ function resetPanels() {
 }
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
-  if (isExternalOnlyOccupied(slot)) return 'external'
+  if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return 'external'
   if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
   if (activeBooking(slot) || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
@@ -2676,7 +2684,7 @@ watch(pilotNoCoach, (off) => {
         <div v-if="activePanel === 'external'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-body !pt-1">
             <p class="mb-3 text-start text-sm leading-6 text-brand-navy/80">
-              {{ t('owner.externalBookingHint') }}
+              {{ isExternalUncertain(selectedSlotFull) ? t('owner.externalUncertainHint') : t('owner.externalBookingHint') }}
             </p>
             <div
               v-for="detail in externalSourceDetails(selectedSlotFull)"

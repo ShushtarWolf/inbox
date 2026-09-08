@@ -5,6 +5,7 @@ import { mergeOccupancy, mergeOccupancyFromVerdicts } from './merge'
 import { persistAndMergeExternalOccupancy } from './occupancySnapshots'
 import { remapExternalOccupancyCourtKeys } from './remapExternalCourtKeys'
 import { enrichCellsWithSourceDetails } from './sourceDetails'
+import { verdictsForReconcile } from '../../../lib/padFailedSourceUnknown'
 import { SOURCE_LABELS, type ExternalAdapterResult, type ExternalSourceId } from './types'
 
 const POLL_INTERVAL_MS = 25_000
@@ -41,7 +42,11 @@ export async function buildCalendarSourcesResponse(opts: {
     occupied: occupiedRaw,
   })
 
-  const allVerdicts = external.adapters.flatMap((adapter) => adapter.slotVerdicts ?? [])
+  const allVerdicts = verdictsForReconcile({
+    adapters: external.adapters,
+    courts: inbox.courts,
+    sessionDurationMinutes: inbox.sessionDurationMinutes,
+  })
   const merged = allVerdicts.length
     ? mergeOccupancyFromVerdicts(inbox.slots, allVerdicts, occupied)
     : mergeOccupancy(inbox.slots, occupied)

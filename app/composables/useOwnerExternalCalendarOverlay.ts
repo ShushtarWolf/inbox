@@ -13,6 +13,8 @@ type OwnerExternalCell = {
   occupied: boolean
   sourceDetails?: OwnerExternalSourceDetail[]
   ownerNote?: string | null
+  externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
+  externalState?: string
 }
 
 type OwnerExternalCalendarPayload = {
@@ -70,7 +72,7 @@ export function useOwnerExternalCalendarOverlay(opts: {
     return cellByKey.value.get(occupancyKey(slot.courtId, slot.startTime)) || null
   }
 
-  /** Inbox FREE but occupied on another booking site — show site name(s). */
+  /** Inbox FREE but confirmed EXTERNAL_BUSY on another booking site. */
   function isExternalOnlyOccupied(slot: {
     courtId: string
     startTime: string
@@ -79,7 +81,27 @@ export function useOwnerExternalCalendarOverlay(opts: {
     if (!slot || slot.displayStatus !== 'FREE') return false
     const cell = externalCellFor(slot)
     if (!cell?.occupied) return false
+    if (cell.externalKind === 'uncertain') return false
     return cell.sources.some((source) => source !== 'inbox')
+  }
+
+  /** Inbox FREE but external data is incomplete / UNKNOWN — yellow advisory. */
+  function isExternalUncertain(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isExternalOnlyOccupied(slot)) return false
+    const cell = externalCellFor(slot)
+    return cell?.externalKind === 'uncertain'
+  }
+
+  function externalKind(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): OwnerExternalCell['externalKind'] | null {
+    return externalCellFor(slot)?.externalKind ?? null
   }
 
   function externalSiteBadge(slot: {
@@ -87,14 +109,15 @@ export function useOwnerExternalCalendarOverlay(opts: {
     startTime: string
     displayStatus?: string
   } | null | undefined): string {
-    if (!isExternalOnlyOccupied(slot)) return ''
+    if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
+    if (cell.badge) return cell.badge
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return cell.badge || ''
+    return ''
   }
 
   function externalSourceDetails(slot: {
@@ -140,6 +163,8 @@ export function useOwnerExternalCalendarOverlay(opts: {
     externalOverlayEnabled: enabled,
     externalOverlayPending: pending,
     isExternalOnlyOccupied,
+    isExternalUncertain,
+    externalKind,
     externalSiteBadge,
     externalSourceDetails,
     externalOwnerNote,
