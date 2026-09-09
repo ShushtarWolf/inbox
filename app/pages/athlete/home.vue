@@ -9,6 +9,7 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { firstName, displayName } = useAuth()
 const { competitionsEnabled } = usePilotFlags()
+const { canSwitchRole } = usePlatformRoles()
 
 const sport = ref('')
 const city = ref('')
@@ -122,12 +123,21 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
         <InboxWordmark home-link class="text-base text-white" />
-        <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
-            <AppIcon name="notifications" size="sm" />
-          </NuxtLink>
-          <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
-            <AppIcon name="person" size="sm" />
+        <div class="flex flex-col items-stretch gap-1">
+          <div class="flex items-center gap-3 text-white">
+            <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
+              <AppIcon name="notifications" size="sm" />
+            </NuxtLink>
+            <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
+              <AppIcon name="person" size="sm" />
+            </NuxtLink>
+          </div>
+          <NuxtLink
+            v-if="canSwitchRole"
+            :to="localePath('/choose-role')"
+            class="text-center text-[11px] font-semibold text-white"
+          >
+            {{ t('auth.changeRole') }}
           </NuxtLink>
         </div>
       </div>

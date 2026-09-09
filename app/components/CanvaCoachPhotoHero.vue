@@ -13,6 +13,7 @@ withDefaults(defineProps<{
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { initials, avatarUrl } = useAuth()
+const { canSwitchRole } = usePlatformRoles()
 </script>
 
 <template>
@@ -29,15 +30,24 @@ const { initials, avatarUrl } = useAuth()
         <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert">
         <InboxWordmark text="INBOX" class="text-base text-white" />
       </NuxtLink>
-      <div class="flex items-center gap-3 text-white">
+      <div class="flex flex-col items-stretch gap-1">
+        <div class="flex items-center gap-3 text-white">
+          <NuxtLink
+            :to="localePath('/coach/profile')"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-[#c41e1e] text-[10px] font-bold text-white"
+            style="border-radius: var(--sz-canva-radius);"
+            :aria-label="t('nav.profile')"
+          >
+            <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
+            <span v-else>{{ initials }}</span>
+          </NuxtLink>
+        </div>
         <NuxtLink
-          :to="localePath('/coach/profile')"
-          class="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-[#c41e1e] text-[10px] font-bold text-white"
-          style="border-radius: var(--sz-canva-radius);"
-          :aria-label="t('nav.profile')"
+          v-if="canSwitchRole"
+          :to="localePath('/choose-role')"
+          class="text-center text-[11px] font-semibold text-white"
         >
-          <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
-          <span v-else>{{ initials }}</span>
+          {{ t('auth.changeRole') }}
         </NuxtLink>
       </div>
     </div>

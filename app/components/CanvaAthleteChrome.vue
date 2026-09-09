@@ -10,6 +10,7 @@ defineProps<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { canSwitchRole } = usePlatformRoles()
 </script>
 
 <template>
@@ -18,10 +19,20 @@ const localePath = useLocalePath()
       <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
       <InboxWordmark class="text-base" :class="dark ? 'text-white' : 'text-brand-primary'" />
     </NuxtLink>
-    <div class="flex items-center gap-3" :class="dark ? 'text-white' : 'text-brand-navy'">
-      <slot />
-      <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
-        <AppIcon name="person" size="sm" />
+    <div class="flex flex-col items-stretch gap-1">
+      <div class="flex items-center gap-3" :class="dark ? 'text-white' : 'text-brand-navy'">
+        <slot />
+        <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
+          <AppIcon name="person" size="sm" />
+        </NuxtLink>
+      </div>
+      <NuxtLink
+        v-if="canSwitchRole"
+        :to="localePath('/choose-role')"
+        class="text-center text-[11px] font-semibold"
+        :class="dark ? 'text-white' : 'text-brand-primary'"
+      >
+        {{ t('auth.changeRole') }}
       </NuxtLink>
     </div>
   </header>
