@@ -36,15 +36,17 @@ const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$
   : today()
 const initialTime = typeof route.query.time === 'string' ? route.query.time.slice(0, 5) : ''
 
+// Lazy fetches so Nuxt Suspense + page out-in does not leave an empty cream main while APIs run.
 const { data: clubsData, pending, error } = await useAuthedFetch<{
   clubs: ClubOption[]
-}>('/api/coach/clubs')
-const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet')
+}>('/api/coach/clubs', { lazy: true })
+const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet', {
+  lazy: true,
+})
 
 const clubs = computed(() => clubsData.value?.clubs || [])
 
-// Clubs list already resolved above, so the first club is known before the slot query is built.
-const clubId = ref(clubs.value[0]?.id || '')
+const clubId = ref('')
 const date = ref(initialDate)
 const selectedCourtId = ref('')
 const selectedSlotId = ref('')
@@ -54,12 +56,25 @@ const submitting = ref(false)
 const errorKey = ref('')
 const successMessage = ref('')
 
+watch(clubs, (list) => {
+  if (!list.length) {
+    clubId.value = ''
+    return
+  }
+  if (!clubId.value || !list.some((club) => club.id === clubId.value)) {
+    clubId.value = list[0]!.id
+  }
+}, { immediate: true })
+
 const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await useAuthedFetch<{
   sessionPrice: number
   slots: CourtSlot[]
 }>('/api/coach/court-slots', {
   query: computed(() => ({ clubId: clubId.value, date: date.value })),
-  immediate: Boolean(clubId.value),
+  immediate: false,
+  lazy: true,
+  // Avoid 400 when clubId is still empty; refresh only once a club is selected.
+  watch: false,
 })
 
 const {
@@ -156,7 +171,8 @@ watch([clubId, date], () => {
   selectedSlotId.value = ''
   errorKey.value = ''
   successMessage.value = ''
-})
+  if (clubId.value) void refreshSlots()
+}, { immediate: true })
 
 async function refreshSlotsAndOverlay() {
   await Promise.all([refreshSlots(), refreshExternalOverlay()])
