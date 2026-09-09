@@ -48,9 +48,12 @@ interface ConflictRow {
 const { data, pending, error, refresh } = await useAuthedFetch<PackageRow[]>('/api/owner/packages', {
   immediate: packagesEnabled.value,
 })
-const { data: courtsData } = await useAuthedFetch<CourtRow[]>('/api/owner/courts')
-const { data: coachesData } = await useAuthedFetch<CoachRow[]>('/api/owner/coaches', {
-  immediate: packagesEnabled.value && !pilotNoCoach.value,
+/** Form-only deps — do not block the packages list LCP. */
+const { data: courtsData, refresh: refreshCourts } = useAuthedFetch<CourtRow[]>('/api/owner/courts', {
+  immediate: false,
+})
+const { data: coachesData, refresh: refreshCoaches } = useAuthedFetch<CoachRow[]>('/api/owner/coaches', {
+  immediate: false,
 })
 useOwnerClubRefresh(refresh)
 
@@ -130,9 +133,15 @@ function resetForm() {
   preview.value = null
 }
 
-function openCreate() {
+async function openCreate() {
   resetForm()
   showForm.value = true
+  const tasks: Promise<unknown>[] = [refreshCourts()]
+  if (!pilotNoCoach.value) tasks.push(refreshCoaches())
+  await Promise.all(tasks)
+  if (!form.courtId && courts.value[0]?.id) {
+    form.courtId = courts.value[0].id
+  }
 }
 
 function closeForm() {
@@ -273,7 +282,7 @@ const selectedCoach = computed(() => coaches.value.find((c) => c.id === form.coa
 
       <p v-if="formError && !showForm" class="text-sm text-brand-error">{{ formError }}</p>
 
-      <AppAsyncState :pending="pending" :error="error" :empty="!packages.length" @retry="refresh">
+      <AppAsyncState :pending="pending" :error="error" :empty="!packages.length" skeleton-variant="table" @retry="refresh">
         <div class="space-y-3">
           <article
             v-for="pkg in packages"

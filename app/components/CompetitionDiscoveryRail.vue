@@ -62,7 +62,7 @@ function cardMeta(item: CompetitionRailItem) {
         :to="localePath(`/competitions/${item.id}`)"
         class="canva-competition-card"
       >
-        <img :src="cardImage(item)" :alt="item.title" loading="lazy" decoding="async" />
+        <CanvaHeroImg :src="cardImage(item)" :alt="item.title" loading="lazy" />
         <span class="canva-competition-card-badge">
           <AppIcon name="emoji_events" size="sm" />
         </span>

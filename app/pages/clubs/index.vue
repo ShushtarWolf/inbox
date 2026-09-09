@@ -17,9 +17,11 @@ const query = computed(() => ({
   city: route.query.city as string | undefined,
 }))
 
-const { data: clubs, pending, error } = await useFetch('/api/clubs', { query })
-const { data: sports } = await useFetch('/api/sports')
-const { data: catalogClubs } = await useFetch('/api/clubs', { key: 'clubs-catalog' })
+const [{ data: clubs, pending, error }, { data: sports }, { data: catalogClubs }] = await Promise.all([
+  useFetch('/api/clubs', { query }),
+  useFetch('/api/sports'),
+  useFetch('/api/clubs', { key: 'clubs-catalog' }),
+])
 
 const listedSports = computed(() => {
   const set = new Set<string>()
@@ -167,13 +169,12 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
     <CanvaPublicChrome />
 
     <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
-      <img
+      <CanvaHeroImg
         :key="activeHero?.image"
-        :src="activeHero?.image"
+        :src="activeHero?.image || '/hero/tennis-court.jpg'"
         :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
-        class="canva-hero-media canva-hero-media-bw"
+        img-class="canva-hero-media canva-hero-media-bw"
         fetchpriority="high"
-        decoding="async"
       />
       <div class="canva-hero-scrim" aria-hidden="true" />
       <div class="canva-hero-content canva-hero-home-content">
@@ -278,7 +279,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-court-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <div class="canva-court-card-body">
               <!-- RTL: text first → right; CTA second → left -->
               <div class="canva-court-card-copy">

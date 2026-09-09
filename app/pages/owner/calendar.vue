@@ -2309,11 +2309,12 @@ watch(pilotNoCoach, (off) => {
 <template>
   <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }">
     <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
-      <img
+      <CanvaHeroImg
         :src="clubHeroImage"
         alt=""
-        class="canva-photo-hero-media"
-        style="filter: grayscale(0.55) brightness(0.72);"
+        img-class="canva-photo-hero-media"
+        img-style="filter: grayscale(0.55) brightness(0.72);"
+        fetchpriority="high"
       />
       <div class="canva-photo-hero-wash" />
       <CanvaOwnerHeroChrome />

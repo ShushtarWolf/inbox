@@ -17,13 +17,12 @@ const { initials, avatarUrl } = useAuth()
 
 <template>
   <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
-    <img
+    <CanvaHeroImg
       :src="src"
       alt=""
-      class="canva-photo-hero-media"
-      style="filter: grayscale(0.55) brightness(0.72);"
-      decoding="async"
-    >
+      img-class="canva-photo-hero-media"
+      img-style="filter: grayscale(0.55) brightness(0.72);"
+    />
     <div class="canva-photo-hero-wash" />
     <div class="canva-photo-hero-top">
       <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">

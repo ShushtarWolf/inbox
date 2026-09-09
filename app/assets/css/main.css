@@ -445,6 +445,14 @@
     border-radius: var(--sz-canva-radius);
     box-shadow: none;
   }
+  /* picture wrappers for CanvaHeroImg — keep absolute media non-hittable on Safari */
+  .canva-hero > picture,
+  .canva-photo-hero > picture,
+  .canva-venue-card > picture,
+  .canva-court-card > picture,
+  .canva-competition-card > picture {
+    @apply pointer-events-none absolute inset-0 block;
+  }
   .canva-hero-media {
     /* pointer-events-none: Safari treats absolute media as a tap barrier over siblings/chrome */
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover opacity-55;

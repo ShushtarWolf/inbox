@@ -12,12 +12,13 @@ const date = ref<string>('')
 const heroSlide = ref(0)
 const showDatePicker = ref(false)
 
-const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
+/** Lazy: do not block first paint / LCP hero on catalog APIs. */
+const { data: sports, pending: sportsPending } = await useFetch('/api/sports', { lazy: true })
 
 /** Catalog rails from live /api/clubs only — no seed placeholders. */
-const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
+const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs', { lazy: true })
 
-const pagePending = computed(() => sportsPending.value || clubsPending.value)
+const railsPending = computed(() => sportsPending.value || clubsPending.value)
 const { formatDayNumber, formatMonth, formatWeekday } = useFormatters()
 
 const cityOptions = computed(() => {
@@ -96,6 +97,13 @@ function clubHref(slug: string) {
   return localePath({ path: `/clubs/${slug}`, query })
 }
 
+function openHomeDatePicker() {
+  // Defer sheet open so the tap paints first (helps INP on mid-tier phones).
+  requestAnimationFrame(() => {
+    showDatePicker.value = true
+  })
+}
+
 function onHomeDatePicked() {
   showDatePicker.value = false
 }
@@ -137,6 +145,16 @@ useHead({
   meta: [
     { name: 'description', content: () => t('home.subtitle') },
   ],
+  link: [
+    {
+      rel: 'preload',
+      as: 'image',
+      href: '/hero/tennis-court.webp',
+      type: 'image/webp',
+      imageSrcSet: '/hero/tennis-court.webp 750w, /hero/tennis-court-1125.webp 1125w',
+      imageSizes: '(max-width: 430px) 100vw, 430px',
+    },
+  ],
 })
 
 function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
@@ -145,119 +163,118 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 </script>
 
 <template>
-  <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
-    <div class="tail-page-stack animate-fade-in tail-stagger">
-      <CanvaPublicChrome />
+  <div class="tail-page-stack animate-fade-in tail-stagger">
+    <CanvaPublicChrome />
 
-      <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
-        <img
-          :key="activeHero?.image"
-          :src="activeHero?.image"
-          :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
-          class="canva-hero-media canva-hero-media-bw"
-          fetchpriority="high"
-          decoding="async"
-        />
-        <div class="canva-hero-scrim" aria-hidden="true" />
-        <div class="canva-hero-content canva-hero-home-content">
-          <div class="space-y-2" :key="heroSlide">
-            <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
-            <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
-          </div>
-
-          <div class="mt-5 flex items-center justify-between">
-            <button
-              type="button"
-              class="canva-hero-arrow"
-              :aria-label="t('calendar.prevMonth')"
-              @click.stop.prevent="prevHero"
-            >
-              <AppIcon name="chevron_right" size="md" />
-            </button>
-            <div class="flex gap-2">
-              <button
-                v-for="(_, index) in heroSlides"
-                :key="index"
-                type="button"
-                class="canva-hero-dot"
-                :class="index === heroSlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
-                :aria-label="t('common.carouselSlide', { current: index + 1, total: heroSlides.length })"
-                :aria-current="index === heroSlide ? 'true' : undefined"
-                @click.stop.prevent="heroSlide = index"
-              />
-            </div>
-            <button
-              type="button"
-              class="canva-hero-arrow"
-              :aria-label="t('calendar.nextMonth')"
-              @click.stop.prevent="nextHero"
-            >
-              <AppIcon name="chevron_left" size="md" />
-            </button>
-          </div>
+    <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
+      <CanvaHeroImg
+        :key="activeHero?.image"
+        :src="activeHero?.image || '/hero/tennis-court.jpg'"
+        :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
+        img-class="canva-hero-media canva-hero-media-bw"
+        fetchpriority="high"
+      />
+      <div class="canva-hero-scrim" aria-hidden="true" />
+      <div class="canva-hero-content canva-hero-home-content">
+        <div class="space-y-2" :key="heroSlide">
+          <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
+          <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
         </div>
-      </section>
 
-      <section class="canva-search-row">
-        <!-- Canva: sport · city · date + square جستجو -->
-        <div class="canva-search-fields">
-          <div class="canva-search-field">
-            <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
-            <select
-              id="home-sport-select"
-              v-model="sport"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': sport }"
-            >
-              <option value="">{{ t('home.sportsTitle') }}</option>
-              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
-                {{ localizedField(s, 'nameFa', 'nameEn') }}
-              </option>
-            </select>
-          </div>
-          <div class="canva-search-field canva-search-field-wide">
-            <label class="sr-only" for="home-city-select">{{ t('home.heroSearchWhere') }}</label>
-            <select
-              id="home-city-select"
-              v-model="city"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': city }"
-            >
-              <option value="">{{ t('home.heroSearchWhereHint') }}</option>
-              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
-          <div class="canva-search-field">
-            <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
+        <div class="mt-5 flex items-center justify-between">
+          <button
+            type="button"
+            class="canva-hero-arrow"
+            :aria-label="t('calendar.prevMonth')"
+            @click.stop.prevent="prevHero"
+          >
+            <AppIcon name="chevron_right" size="md" />
+          </button>
+          <div class="flex gap-2">
             <button
-              id="home-date-btn"
+              v-for="(_, index) in heroSlides"
+              :key="index"
               type="button"
-              class="canva-search-placeholder w-full text-center"
-              :class="{ 'canva-search-placeholder-filled': date }"
-              @click="showDatePicker = true"
-            >
-              {{ dateFieldLabel }}
-            </button>
+              class="canva-hero-dot"
+              :class="index === heroSlide ? 'canva-hero-dot-active' : 'canva-hero-dot-idle'"
+              :aria-label="t('common.carouselSlide', { current: index + 1, total: heroSlides.length })"
+              :aria-current="index === heroSlide ? 'true' : undefined"
+              @click.stop.prevent="heroSlide = index"
+            />
           </div>
+          <button
+            type="button"
+            class="canva-hero-arrow"
+            :aria-label="t('calendar.nextMonth')"
+            @click.stop.prevent="nextHero"
+          >
+            <AppIcon name="chevron_left" size="md" />
+          </button>
         </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-          {{ t('home.searchWithFilters') }}
-        </NuxtLink>
-      </section>
+      </div>
+    </section>
 
-      <AppModal
-        :open="showDatePicker"
-        sheet
-        patterned
-        :title="t('home.heroSearchDateHint')"
-        max-width-class="canva-phone-shell max-w-sm"
-        @close="showDatePicker = false"
-      >
-        <div class="px-4 pb-5 pt-2">
-          <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
+    <section class="canva-search-row">
+      <!-- Canva: sport · city · date + square جستجو -->
+      <div class="canva-search-fields">
+        <div class="canva-search-field">
+          <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
+          <select
+            id="home-sport-select"
+            v-model="sport"
+            class="canva-search-placeholder"
+            :class="{ 'canva-search-placeholder-filled': sport }"
+          >
+            <option value="">{{ t('home.sportsTitle') }}</option>
+            <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
+              {{ localizedField(s, 'nameFa', 'nameEn') }}
+            </option>
+          </select>
         </div>
-      </AppModal>
+        <div class="canva-search-field canva-search-field-wide">
+          <label class="sr-only" for="home-city-select">{{ t('home.heroSearchWhere') }}</label>
+          <select
+            id="home-city-select"
+            v-model="city"
+            class="canva-search-placeholder"
+            :class="{ 'canva-search-placeholder-filled': city }"
+          >
+            <option value="">{{ t('home.heroSearchWhereHint') }}</option>
+            <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
+        <div class="canva-search-field">
+          <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
+          <button
+            id="home-date-btn"
+            type="button"
+            class="canva-search-placeholder w-full text-center"
+            :class="{ 'canva-search-placeholder-filled': date }"
+            @click="openHomeDatePicker"
+          >
+            {{ dateFieldLabel }}
+          </button>
+        </div>
+      </div>
+      <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+        {{ t('home.searchWithFilters') }}
+      </NuxtLink>
+    </section>
 
+    <AppModal
+      :open="showDatePicker"
+      sheet
+      patterned
+      :title="t('home.heroSearchDateHint')"
+      max-width-class="canva-phone-shell max-w-sm"
+      @close="showDatePicker = false"
+    >
+      <div class="px-4 pb-5 pt-2">
+        <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
+      </div>
+    </AppModal>
+
+    <AppAsyncState :pending="railsPending" skeleton-variant="stat-grid">
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
@@ -276,7 +293,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -310,7 +327,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -344,7 +361,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -361,6 +378,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 
       <CoachDiscoveryRail v-if="!pilotNoCoach" />
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
-    </div>
-  </AppAsyncState>
+    </AppAsyncState>
+  </div>
 </template>
