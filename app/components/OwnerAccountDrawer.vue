@@ -14,6 +14,7 @@ const { localizedField } = useLocalizedField()
 const panelRef = ref<HTMLElement | null>(null)
 const closeBtnRef = ref<HTMLButtonElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
+const holdsBodyLock = ref(false)
 let restoreFocus: HTMLElement | null = null
 
 const memberships = computed(() => user.value?.memberships || [])
@@ -113,6 +114,18 @@ function onViewportChange() {
   if (props.open) positionPanel()
 }
 
+function acquireLock() {
+  if (holdsBodyLock.value) return
+  acquireModalBodyLock()
+  holdsBodyLock.value = true
+}
+
+function releaseLock() {
+  if (!holdsBodyLock.value) return
+  releaseModalBodyLock()
+  holdsBodyLock.value = false
+}
+
 let resizeObserver: ResizeObserver | null = null
 
 function attachPanelObserver() {
@@ -125,6 +138,7 @@ function attachPanelObserver() {
 watch(() => props.open, async (isOpen) => {
   if (!import.meta.client) return
   if (isOpen) {
+    acquireLock()
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     await nextTick()
     attachPanelObserver()
@@ -140,6 +154,7 @@ watch(() => props.open, async (isOpen) => {
   else {
     resizeObserver?.disconnect()
     resizeObserver = null
+    releaseLock()
     restoreFocus?.focus()
     restoreFocus = null
   }
@@ -162,83 +177,91 @@ onUnmounted(() => {
   window.removeEventListener('resize', onViewportChange)
   window.removeEventListener('scroll', onViewportChange, true)
   resizeObserver?.disconnect()
+  releaseLock()
 })
 </script>
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="canva-account-drawer-overlay"
-      role="presentation"
-      @click.self="emit('close')"
-    >
-      <aside
-        ref="panelRef"
-        class="canva-account-drawer"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="t('owner.account.title')"
-        :style="panelStyle"
-        @click.stop
+    <Transition name="venus-modal">
+      <!--
+        Overlay stays fixed inset-0 (never sized via visualViewport).
+        Panel position may use visualViewport for placement only.
+      -->
+      <div
+        v-if="open"
+        class="canva-account-drawer-overlay"
+        role="presentation"
+        data-account-drawer-overlay
+        @click.self="emit('close')"
       >
-        <div class="canva-account-drawer-head">
-          <div class="canva-owner-avatar canva-owner-avatar-lg" aria-hidden="true">
-            <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
-            <span v-else>{{ initials }}</span>
+        <aside
+          ref="panelRef"
+          class="canva-account-drawer"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="t('owner.account.title')"
+          :style="panelStyle"
+          @click.stop
+        >
+          <div class="canva-account-drawer-head">
+            <div class="canva-owner-avatar canva-owner-avatar-lg" aria-hidden="true">
+              <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
+              <span v-else>{{ initials }}</span>
+            </div>
+            <div class="min-w-0 flex-1 text-start">
+              <p class="truncate text-sm font-bold text-brand-navy">{{ displayName }}</p>
+              <p class="mt-0.5 text-xs font-bold text-brand-gray-500">{{ roleLabel }}</p>
+            </div>
+            <button
+              ref="closeBtnRef"
+              type="button"
+              class="canva-account-drawer-close"
+              :aria-label="t('common.close')"
+              @click="emit('close')"
+            >
+              <AppIcon name="close" size="sm" />
+            </button>
           </div>
-          <div class="min-w-0 flex-1 text-start">
-            <p class="truncate text-sm font-bold text-brand-navy">{{ displayName }}</p>
-            <p class="mt-0.5 text-xs font-bold text-brand-gray-500">{{ roleLabel }}</p>
-          </div>
-          <button
-            ref="closeBtnRef"
-            type="button"
-            class="canva-account-drawer-close"
-            :aria-label="t('common.close')"
-            @click="emit('close')"
-          >
-            <AppIcon name="close" size="sm" />
-          </button>
-        </div>
 
-        <label v-if="memberships.length > 1" class="canva-account-drawer-clubs">
-          <span class="text-[11px] font-bold text-brand-gray-500">{{ t('owner.account.myClubs') }}</span>
-          <select v-model="selectedClubId" class="canva-cal-club-select mt-1">
-            <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
-              {{ localizedField(item.club, 'nameFa', 'nameEn') }}
-            </option>
-          </select>
-        </label>
-        <p v-else class="canva-account-drawer-clubs text-start text-sm font-bold text-brand-navy">
-          {{ t('owner.account.myClubs') }}
-          <span class="mt-1 block text-xs font-bold text-brand-gray-500">
-            {{ activeMembership?.club ? localizedField(activeMembership.club, 'nameFa', 'nameEn') : '—' }}
-          </span>
-        </p>
+          <label v-if="memberships.length > 1" class="canva-account-drawer-clubs">
+            <span class="text-[11px] font-bold text-brand-gray-500">{{ t('owner.account.myClubs') }}</span>
+            <select v-model="selectedClubId" class="canva-cal-club-select mt-1">
+              <option v-for="item in memberships" :key="item.club.id" :value="item.club.id">
+                {{ localizedField(item.club, 'nameFa', 'nameEn') }}
+              </option>
+            </select>
+          </label>
+          <p v-else class="canva-account-drawer-clubs text-start text-sm font-bold text-brand-navy">
+            {{ t('owner.account.myClubs') }}
+            <span class="mt-1 block text-xs font-bold text-brand-gray-500">
+              {{ activeMembership?.club ? localizedField(activeMembership.club, 'nameFa', 'nameEn') : '—' }}
+            </span>
+          </p>
 
-        <nav class="canva-account-menu">
-          <NuxtLink
-            v-for="item in links"
-            :key="item.label"
-            :to="item.to"
-            class="canva-account-menu-item"
-            :title="item.label"
-            @click="onNavigate"
-          >
-            <span class="canva-account-menu-icon">
-              <AppIcon :name="item.icon" size="sm" />
-            </span>
-            <span class="canva-account-menu-label">{{ item.label }}</span>
-          </NuxtLink>
-          <button type="button" class="canva-account-menu-item canva-account-menu-logout" @click="handleLogout">
-            <span class="canva-account-menu-icon">
-              <AppIcon name="logout" size="sm" />
-            </span>
-            <span class="canva-account-menu-label">{{ t('athlete.logoutAccount') }}</span>
-          </button>
-        </nav>
-      </aside>
-    </div>
+          <nav class="canva-account-menu">
+            <NuxtLink
+              v-for="item in links"
+              :key="item.label"
+              :to="item.to"
+              class="canva-account-menu-item"
+              :title="item.label"
+              @click="onNavigate"
+            >
+              <span class="canva-account-menu-icon">
+                <AppIcon :name="item.icon" size="sm" />
+              </span>
+              <span class="canva-account-menu-label">{{ item.label }}</span>
+            </NuxtLink>
+            <button type="button" class="canva-account-menu-item canva-account-menu-logout" @click="handleLogout">
+              <span class="canva-account-menu-icon">
+                <AppIcon name="logout" size="sm" />
+              </span>
+              <span class="canva-account-menu-label">{{ t('athlete.logoutAccount') }}</span>
+            </button>
+          </nav>
+        </aside>
+      </div>
+    </Transition>
   </Teleport>
 </template>

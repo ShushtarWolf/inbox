@@ -154,6 +154,31 @@ if (!cropSheet.includes('releasePointerCapture')) {
   errors.push('AppAvatarCropSheet must releasePointerCapture (Safari tap dead-zone after crop)')
 }
 
+const accountDrawer = readFileSync('app/components/OwnerAccountDrawer.vue', 'utf8')
+if (!accountDrawer.includes('acquireModalBodyLock') || !accountDrawer.includes('releaseModalBodyLock')) {
+  errors.push('OwnerAccountDrawer must use shared modalBodyLock')
+}
+if (!accountDrawer.includes('name="venus-modal"') && !accountDrawer.includes("name='venus-modal'")) {
+  errors.push('OwnerAccountDrawer must use venus-modal Transition (leave pointer-events:none)')
+}
+if (!accountDrawer.includes('canva-account-drawer-overlay') || !accountDrawer.includes('fixed inset-0')) {
+  // overlay class is in CSS; ensure component still uses the overlay class
+  if (!accountDrawer.includes('canva-account-drawer-overlay')) {
+    errors.push('OwnerAccountDrawer must keep canva-account-drawer-overlay (fixed inset-0)')
+  }
+}
+
+const dashboardShell = readFileSync('app/components/DashboardShell.vue', 'utf8')
+if (!dashboardShell.includes('data-dashboard-nav-overlay')) {
+  errors.push('DashboardShell mobile nav backdrop must use data-dashboard-nav-overlay')
+}
+if (!dashboardShell.includes('name="venus-modal"') && !dashboardShell.includes("name='venus-modal'")) {
+  errors.push('DashboardShell nav backdrop must use venus-modal Transition')
+}
+if (!dashboardShell.includes('acquireModalBodyLock')) {
+  errors.push('DashboardShell must use shared modalBodyLock for nav overlay')
+}
+
 if (errors.length) {
   console.error('[check:ios-hit-testing] FAILED\n')
   for (const err of errors) console.error(`  • ${err}`)

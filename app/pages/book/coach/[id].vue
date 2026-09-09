@@ -169,14 +169,18 @@ onMounted(() => {
   <div class="venus-page-stack">
     <PageHeaderNav :title="t('home.findCoach')" :home-to="localePath('/')" :back-to="localePath(`/coaches/${id}`)" />
     <AppDateInput v-model="date" :min-date="today()" />
-    <div v-if="coach" class="ios-card p-4 text-sm">
-      <p class="font-bold">{{ t('booking.cancellationPolicy') }}</p>
-      <p class="mt-1 text-brand-gray-600">{{ formatHours(coach.club?.rescheduleWindowHours || 24) }} {{ t('booking.rescheduleWindow') }}</p>
+    <div v-if="coach" class="canva-panel text-sm">
+      <p class="font-bold text-brand-navy">{{ t('booking.cancellationPolicy') }}</p>
+      <p class="mt-1 text-start text-brand-gray-600">{{ formatHours(coach.club?.rescheduleWindowHours || 24) }} {{ t('booking.rescheduleWindow') }}</p>
       <NuxtLink :to="localePath('/cancellation')" class="mt-2 inline-block text-xs font-bold text-brand-primary underline">
         {{ t('legal.cancellation') }}
       </NuxtLink>
     </div>
-    <div v-if="feedback && !done" class="ios-card p-4 text-sm" :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'">
+    <div
+      v-if="feedback && !done"
+      class="canva-panel text-sm"
+      :class="feedbackTone === 'success' ? 'text-brand-primary' : 'text-red-600'"
+    >
       {{ feedback }}
     </div>
 
@@ -206,7 +210,7 @@ onMounted(() => {
         <p v-else class="text-sm text-brand-gray-600">{{ t('booking.noSlots') }}</p>
       </div>
 
-      <div v-if="!done && (availability?.sessionPrice || coach?.sessionPrice)" class="ios-card p-4 text-sm">
+      <div v-if="!done && (availability?.sessionPrice || coach?.sessionPrice)" class="canva-panel text-sm">
         <div class="flex items-center justify-between gap-3">
           <span class="font-medium text-brand-gray-600">{{ t('booking.sessionPrice') }}</span>
           <span class="font-bold text-brand-navy">{{ formatCurrency(availability?.sessionPrice || coach?.sessionPrice || 0) }}</span>
@@ -232,17 +236,17 @@ onMounted(() => {
         <button
           v-if="availableSlots.length"
           type="button"
-          class="btn-primary w-full"
+          class="canva-gate-btn-primary w-full"
           :disabled="!onlineEnabled"
           @click="confirm"
         >{{ onlineEnabled ? t('booking.confirm') : t('booking.onlinePaymentsRequired') }}</button>
-        <button v-else type="button" class="w-full btn-ghost w-full" @click="joinWaitlist">
+        <button v-else type="button" class="canva-gate-btn-secondary w-full" @click="joinWaitlist">
           {{ joiningWaitlist ? t('common.loading') : t('booking.joinWaitlist') }}
         </button>
       </div>
     </AppAsyncState>
 
-    <div v-if="done" class="ios-card space-y-2 p-4 text-center">
+    <div v-if="done" class="canva-panel space-y-2 text-center">
       <p class="font-bold text-brand-primary">✓ {{ t('booking.successCoachOnline') }}</p>
       <p
         v-if="!user?.phone?.trim()"
@@ -260,7 +264,7 @@ onMounted(() => {
         <p class="text-sm text-brand-gray-600">{{ t('booking.payNow') }}</p>
       </template>
       <p v-else class="text-sm text-brand-error">{{ t('booking.onlinePaymentsRequired') }}</p>
-      <NuxtLink :to="localePath('/athlete/bookings')" class="btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
+      <NuxtLink :to="localePath('/athlete/bookings')" class="canva-gate-btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
   </div>
 </template>

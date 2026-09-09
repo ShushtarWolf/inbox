@@ -10,7 +10,25 @@ async function loginWithPhoneOtp(page: Page, phone: string, destination: RegExp)
   await page.locator('#login-phone').fill(phone)
   await page.locator('button[type="submit"]').click()
   await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('#login-otp')).not.toHaveValue('')
+  // Log/dry-run autofills; if rate-limited or live SMS, pull the on-screen debug code.
+  const otp = page.locator('#login-otp')
+  await expect.poll(async () => {
+    const value = await otp.inputValue()
+    if (value) return value
+    const hint = await page.locator('.text-brand-navy\\/80, [class*="debug"]').first().textContent().catch(() => '')
+    const match = (hint || '').match(/\d{4,8}/)
+    if (match) {
+      await otp.fill(match[0]!)
+      return match[0]!
+    }
+    const body = await page.locator('body').innerText()
+    const fromBody = body.match(/(?:کد آزمایشی|debug)[^\d]*(\d{4,8})/i)
+    if (fromBody?.[1]) {
+      await otp.fill(fromBody[1])
+      return fromBody[1]
+    }
+    return ''
+  }, { timeout: 15_000 }).not.toEqual('')
   await page.locator('button[type="submit"]').click()
   await page.getByRole('button', { name: 'متوجه شدم' }).click({ timeout: 15_000 })
   await page.waitForURL(destination)
@@ -23,10 +41,11 @@ test.describe('iOS Safari tap guard', () => {
 
     const loginBtn = page.getByRole('button', { name: 'ورود/ثبت نام' })
     await loginBtn.click()
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
 
     await page.getByRole('button', { name: 'بستن' }).click()
-    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 10_000 })
+    await expect(page.locator('[data-app-modal-overlay]')).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
 
     const searchLink = page.getByRole('link', { name: 'جستجو' })
     await expect(searchLink).toBeVisible()
@@ -37,13 +56,14 @@ test.describe('iOS Safari tap guard', () => {
   test('date picker modal close does not block login behind it', async ({ page }) => {
     await page.goto('/')
     await page.locator('#home-date-btn').click()
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
 
     await page.getByRole('button', { name: 'بستن' }).click()
-    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 10_000 })
+    await expect(page.locator('[data-app-modal-overlay]')).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
 
     await page.getByRole('button', { name: 'ورود/ثبت نام' }).click()
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('avatar crop close does not block profile save behind it', async ({ page }) => {
@@ -61,6 +81,32 @@ test.describe('iOS Safari tap guard', () => {
 
     // Leave transition (~200ms) must not leave a ghost full-screen hit target.
     await page.waitForTimeout(250)
+    const saveBtn = page.getByRole('button', { name: 'ذخیره' })
+    await expect(saveBtn).toBeEnabled()
+    await saveBtn.click()
+    await expect(page.getByText('با موفقیت ذخیره شد').or(page.getByText(/خطا/))).toBeVisible({ timeout: 15_000 })
+  })
+
+  test('nested crop confirm then page controls remain tappable', async ({ page }) => {
+    await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
+    await page.goto('/athlete/profile')
+
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'انتخاب تصویر' }).click()
+    const fileChooser = await fileChooserPromise
+    await fileChooser.setFiles('public/icons/icon-192.png')
+
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+    const confirmCrop = page.getByRole('button', { name: 'تأیید و بارگذاری' })
+    await expect(confirmCrop).toBeEnabled({ timeout: 15_000 })
+    const uploadPromise = page.waitForResponse((res) => res.url().includes('/api/uploads') && res.request().method() === 'POST')
+    await confirmCrop.click()
+    const uploadRes = await uploadPromise
+    expect(uploadRes.ok()).toBeTruthy()
+
+    await expect(page.locator('[data-app-modal-overlay]')).toHaveCount(0, { timeout: 15_000 })
+    await page.waitForTimeout(250)
+
     const saveBtn = page.getByRole('button', { name: 'ذخیره' })
     await expect(saveBtn).toBeEnabled()
     await saveBtn.click()
@@ -94,6 +140,63 @@ test.describe('iOS Safari tap guard', () => {
 
     await expect(cta).toBeEnabled()
     await cta.click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('owner account drawer close restores calendar taps', async ({ page }) => {
+    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await page.goto('/owner/calendar')
+    await expect(page.locator('.canva-owner-avatar').first()).toBeVisible({ timeout: 15_000 })
+
+    await page.locator('.canva-owner-avatar').first().click()
+    await expect(page.locator('[data-account-drawer-overlay]')).toBeVisible({ timeout: 10_000 })
+
+    await page.locator('[data-account-drawer-overlay]').getByRole('button', { name: 'بستن' }).click()
+    await expect(page.locator('[data-account-drawer-overlay]')).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
+
+    // Date label behind the drawer must accept taps again.
+    await page.locator('.canva-cal-date-nav-label').click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('owner more sheet close restores bottom nav taps', async ({ page }) => {
+    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await page.goto('/owner/calendar')
+
+    const moreTab = page.getByRole('button', { name: 'بیشتر' })
+    await expect(moreTab).toBeVisible({ timeout: 15_000 })
+    await moreTab.click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'بستن' }).click()
+    await expect(page.locator('[data-app-modal-overlay]')).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
+
+    const financeTab = page.getByRole('link', { name: 'مالی' })
+    await expect(financeTab).toBeVisible()
+    await financeTab.click()
+    await page.waitForURL(/\/owner\/finance/, { timeout: 15_000 })
+  })
+
+  test('owner packages create sheet close restores page CTA', async ({ page }) => {
+    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await page.goto('/owner/packages')
+    const addBtn = page.getByRole('button', { name: '+ پکیج' })
+    // Packages may be gated off in some envs — skip softly.
+    if (!(await addBtn.isVisible().catch(() => false))) {
+      test.skip()
+      return
+    }
+    await addBtn.click()
+    await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'بستن' }).click()
+    await expect(page.locator('[data-app-modal-overlay]')).toHaveCount(0, { timeout: 10_000 })
+    await page.waitForTimeout(250)
+
+    await expect(addBtn).toBeEnabled()
+    await addBtn.click()
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
 })

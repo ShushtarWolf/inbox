@@ -798,7 +798,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 <option value="ANALYST">{{ t('owner.roles.ANALYST') }}</option>
               </select>
             </AppFormField>
-            <div class="ios-card bg-white/70 p-3">
+            <div class="canva-panel bg-white/70 p-3">
               <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.permissionsTitle') }}</p>
               <div class="grid gap-2 sm:grid-cols-2">
                 <label v-for="permission in ALL_OWNER_PERMISSIONS" :key="`invite-${permission}`" class="flex items-center gap-2 text-sm">

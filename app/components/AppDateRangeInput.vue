@@ -13,11 +13,10 @@ const props = withDefaults(defineProps<{
   minDate: '',
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { formatDate } = useFormatters()
 const { today } = useLocalDate()
 
-const isFa = computed(() => locale.value === 'fa')
 const effectiveMinDate = computed(() => {
   const raw = props.minDate as unknown
   if (typeof raw === 'function') {
@@ -32,9 +31,6 @@ const effectiveMinDate = computed(() => {
   if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
   return today()
 })
-
-const startLabelText = computed(() => props.startLabel || t('owner.packagesPage.startDate'))
-const endLabelText = computed(() => props.endLabel || t('owner.packagesPage.finishDate'))
 
 const rangeHint = computed(() => {
   if (!start.value && !end.value) return ''
@@ -56,38 +52,14 @@ const calendarStart = computed({
 
 <template>
   <div class="space-y-2">
-    <template v-if="isFa">
-      <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
-      <AppJalaliCalendar
-        v-model="calendarStart"
-        v-model:range-end="end"
-        mode="range"
-        :min-date="effectiveMinDate"
-      />
-      <p v-if="rangeHint" class="text-xs text-brand-gray-600" dir="auto">{{ rangeHint }}</p>
-    </template>
-    <template v-else>
-      <label class="block space-y-1">
-        <span class="text-sm font-bold text-brand-gray-600">{{ startLabelText }}</span>
-        <input
-          v-model="start"
-          type="date"
-          dir="ltr"
-          class="neo-input tabular-nums"
-          :min="effectiveMinDate"
-        >
-      </label>
-      <label class="block space-y-1">
-        <span class="text-sm font-bold text-brand-gray-600">{{ endLabelText }}</span>
-        <input
-          v-model="end"
-          type="date"
-          dir="ltr"
-          class="neo-input tabular-nums"
-          :min="start || effectiveMinDate"
-        >
-      </label>
-    </template>
+    <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
+    <AppJalaliCalendar
+      v-model="calendarStart"
+      v-model:range-end="end"
+      mode="range"
+      :min-date="effectiveMinDate"
+    />
+    <p v-if="rangeHint" class="text-xs text-brand-gray-600" dir="auto">{{ rangeHint }}</p>
     <p v-if="invalid && invalidMessage" class="text-sm text-red-600">{{ invalidMessage }}</p>
   </div>
 </template>

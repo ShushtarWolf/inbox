@@ -58,9 +58,12 @@ const modalEntryFee = ref(0)
 const modalSponsorFunded = ref(false)
 const modalMaxParticipants = ref(8)
 const modalMinParticipants = ref(2)
-const modalRegistrationOpens = ref('')
-const modalRegistrationCloses = ref('')
-const modalEventAt = ref('')
+const modalRegistrationOpensDate = ref('')
+const modalRegistrationOpensTime = ref('09:00')
+const modalRegistrationClosesDate = ref('')
+const modalRegistrationClosesTime = ref('21:00')
+const modalEventDate = ref('')
+const modalEventTime = ref('10:00')
 const modalPrizeType = ref<'WALLET' | 'DISCOUNT'>('WALLET')
 const modalPrizeAmount = ref(500000)
 const modalPrizePercent = ref(20)
@@ -86,6 +89,11 @@ function statusLabel(status: string) {
   return t(`owner.competitionsPage.status.${status}` as 'owner.competitionsPage.status.DRAFT')
 }
 
+function combineDateTime(date: string, time: string) {
+  if (!date.trim() || !time.trim()) return ''
+  return `${date.trim()}T${time.trim()}`
+}
+
 function openAdd() {
   modalTitle.value = ''
   modalFormat.value = 'knockout'
@@ -95,9 +103,12 @@ function openAdd() {
   modalSponsorFunded.value = false
   modalMaxParticipants.value = 8
   modalMinParticipants.value = 2
-  modalRegistrationOpens.value = ''
-  modalRegistrationCloses.value = ''
-  modalEventAt.value = ''
+  modalRegistrationOpensDate.value = ''
+  modalRegistrationOpensTime.value = '09:00'
+  modalRegistrationClosesDate.value = ''
+  modalRegistrationClosesTime.value = '21:00'
+  modalEventDate.value = ''
+  modalEventTime.value = '10:00'
   modalPrizeType.value = 'WALLET'
   modalPrizeAmount.value = 500000
   modalPrizePercent.value = 20
@@ -138,6 +149,13 @@ async function saveItem() {
     modalError.value = t('common.required')
     return
   }
+  const registrationOpens = combineDateTime(modalRegistrationOpensDate.value, modalRegistrationOpensTime.value)
+  const registrationCloses = combineDateTime(modalRegistrationClosesDate.value, modalRegistrationClosesTime.value)
+  const eventAt = combineDateTime(modalEventDate.value, modalEventTime.value)
+  if (!registrationOpens || !registrationCloses || !eventAt) {
+    modalError.value = t('common.required')
+    return
+  }
   saving.value = true
   modalError.value = ''
   calendarWarning.value = null
@@ -156,9 +174,9 @@ async function saveItem() {
         sponsorFunded: modalSponsorFunded.value,
         maxParticipants: modalMaxParticipants.value,
         minParticipants: modalMinParticipants.value,
-        registrationOpens: modalRegistrationOpens.value,
-        registrationCloses: modalRegistrationCloses.value,
-        eventAt: modalEventAt.value,
+        registrationOpens,
+        registrationCloses,
+        eventAt,
         prizeType: modalPrizeType.value,
         prizeConfigJson: prizeConfigJson(),
         publish: modalPublish.value,
@@ -264,13 +282,22 @@ async function saveItem() {
           <AppNumericInput v-model="modalMinParticipants" :min="1" />
         </AppFormField>
         <AppFormField :label="t('owner.competitionsPage.registrationOpens')">
-          <input v-model="modalRegistrationOpens" type="datetime-local" dir="ltr" class="neo-input" />
+          <div class="space-y-2">
+            <AppDateInput v-model="modalRegistrationOpensDate" :use-calendar="false" :show-formatted-hint="false" />
+            <input v-model="modalRegistrationOpensTime" type="time" dir="ltr" class="neo-input tabular-nums" :aria-label="t('owner.hour')">
+          </div>
         </AppFormField>
         <AppFormField :label="t('owner.competitionsPage.registrationCloses')">
-          <input v-model="modalRegistrationCloses" type="datetime-local" dir="ltr" class="neo-input" />
+          <div class="space-y-2">
+            <AppDateInput v-model="modalRegistrationClosesDate" :use-calendar="false" :show-formatted-hint="false" />
+            <input v-model="modalRegistrationClosesTime" type="time" dir="ltr" class="neo-input tabular-nums" :aria-label="t('owner.hour')">
+          </div>
         </AppFormField>
         <AppFormField :label="t('owner.competitionsPage.eventAt')">
-          <input v-model="modalEventAt" type="datetime-local" dir="ltr" class="neo-input" />
+          <div class="space-y-2">
+            <AppDateInput v-model="modalEventDate" :use-calendar="false" :show-formatted-hint="false" />
+            <input v-model="modalEventTime" type="time" dir="ltr" class="neo-input tabular-nums" :aria-label="t('owner.hour')">
+          </div>
         </AppFormField>
         <AppFormField :label="t('owner.competitionsPage.prizeType')">
           <select v-model="modalPrizeType" class="neo-input">

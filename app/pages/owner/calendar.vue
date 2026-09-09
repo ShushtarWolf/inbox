@@ -108,24 +108,6 @@ interface OwnerStaffCoach {
   sessionPrice?: number
 }
 
-interface OwnerStaffMember {
-  id: string
-  role: string
-  permissionsJson?: string | null
-  coach?: OwnerStaffCoach | null
-  user: {
-    id?: string
-    name: string
-    nameEn?: string | null
-    email?: string | null
-    phone?: string | null
-  }
-}
-
-interface OwnerStaffResponse {
-  staff: OwnerStaffMember[]
-}
-
 type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season' | 'package' | 'comments' | 'equipment' | 'block' | 'detail' | 'external' | null
 
 type RecurringPreview = {
@@ -208,7 +190,9 @@ const packagePreview = ref<RecurringPreview | null>(null)
 const packageAcceptSkips = ref(false)
 
 const { data: equipments } = await useAuthedFetch<OwnerEquipment[]>('/api/owner/equipments')
-const { data: staffData } = await useAuthedFetch<OwnerStaffResponse>('/api/owner/staff')
+const { data: coachesData } = await useAuthedFetch<OwnerStaffCoach[]>('/api/owner/coaches', {
+  immediate: !pilotNoCoach.value,
+})
 
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerCalendarResponse>('/api/owner/calendar', {
   query: computed(() => ({ date: date.value })),
@@ -387,9 +371,7 @@ function onSlotPointerEnd() {
 const currentDate = computed(() => new Date(`${date.value}T12:00:00`))
 const clubCoaches = computed(() => {
   if (pilotNoCoach.value) return [] as OwnerStaffCoach[]
-  return (staffData.value?.staff ?? [])
-    .map((member) => member.coach)
-    .filter((coach): coach is OwnerStaffCoach => coach != null)
+  return coachesData.value || []
 })
 const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
