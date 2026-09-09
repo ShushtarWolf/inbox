@@ -42,6 +42,15 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
     expect(fetchErrorMessage(err('This session time is already booked'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.sessionTaken')
   })
+
+  it('maps reschedule window and target-slot conflicts', () => {
+    expect(fetchErrorMessage(err('Reschedule window has passed'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.rescheduleWindowPassed')
+    expect(fetchErrorMessage(err('BOOKING_TOO_SOON'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.startTimeTooSoon')
+    expect(fetchErrorMessage(err('Target slot is not available'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.slotNotAvailable')
+  })
 })
 
 describe('isSlotConflictError', () => {

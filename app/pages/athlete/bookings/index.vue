@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** Canva home page (7): Jalali month grid + dotted days, history cards with Cancel/Rebook. */
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import { minutesUntilSlotStart } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -30,6 +31,7 @@ interface CourtBooking {
         nameEn: string
         image?: string | null
         cancellationWindowHours: number
+        rescheduleWindowHours?: number
       }
     }
   }
@@ -202,6 +204,42 @@ const { data: replacementSlots, refresh: refreshSlots } = await useAuthedFetch<A
   immediate: false,
 })
 
+const rescheduleWindowHours = computed(() =>
+  rescheduleTarget.value?.slot?.court?.club?.rescheduleWindowHours ?? 24,
+)
+
+function withinRescheduleWindow(date: string, startTime: string, hours = rescheduleWindowHours.value) {
+  return minutesUntilSlotStart(date, startTime) >= hours * 60
+}
+
+/** Available API omits past slots only — hide ones still inside the club reschedule window. */
+const visibleReplacementSlots = computed(() => {
+  const date = rescheduleDate.value
+  const hours = rescheduleWindowHours.value
+  return (replacementSlots.value || []).filter((slot) =>
+    withinRescheduleWindow(date, slot.startTime, hours),
+  )
+})
+
+const rescheduleEmptyMessage = computed(() => {
+  if (!rescheduleTarget.value || !replacementSlots.value) return ''
+  if (replacementSlots.value.length === 0) return t('booking.noSlots')
+  if (visibleReplacementSlots.value.length === 0) return t('booking.noSlotsInWindow')
+  return ''
+})
+
+watch(rescheduleDate, () => {
+  if (!rescheduleTarget.value) return
+  rescheduleSlotId.value = ''
+  actionError.value = ''
+})
+
+watch(visibleReplacementSlots, (slots) => {
+  if (rescheduleSlotId.value && !slots.some((slot) => slot.id === rescheduleSlotId.value)) {
+    rescheduleSlotId.value = ''
+  }
+})
+
 async function openReschedule(booking: CourtBooking) {
   actionError.value = ''
   rescheduleTarget.value = booking
@@ -214,6 +252,7 @@ function closeReschedule() {
   if (reschedulePending.value) return
   rescheduleTarget.value = null
   rescheduleSlotId.value = ''
+  actionError.value = ''
 }
 
 function requestCancel(item: HistoryItem) {
@@ -282,6 +321,19 @@ async function payBooking(item: HistoryItem, useWallet = false) {
 
 async function rescheduleCourt() {
   if (!rescheduleTarget.value || !rescheduleSlotId.value) return
+  const target = visibleReplacementSlots.value.find((slot) => slot.id === rescheduleSlotId.value)
+  if (!target || !withinRescheduleWindow(rescheduleDate.value, target.startTime)) {
+    actionError.value = t('booking.errors.startTimeTooSoon')
+    rescheduleSlotId.value = ''
+    return
+  }
+  if (!withinRescheduleWindow(
+    rescheduleTarget.value.slot.date,
+    rescheduleTarget.value.slot.startTime,
+  )) {
+    actionError.value = t('booking.errors.rescheduleWindowPassed')
+    return
+  }
   actionError.value = ''
   reschedulePending.value = true
   try {
@@ -290,6 +342,8 @@ async function rescheduleCourt() {
       body: { slotId: rescheduleSlotId.value },
     })
     rescheduleTarget.value = null
+    rescheduleSlotId.value = ''
+    actionError.value = ''
     await refresh()
   }
   catch (err: unknown) {
@@ -479,6 +533,14 @@ function canCancel(item: HistoryItem) {
   return item.status !== 'CANCELLED' && historyStatus(item) !== 'done'
 }
 
+function canReschedule(item: HistoryItem) {
+  if (item.kind !== 'court' || item.status === 'CANCELLED' || historyStatus(item) !== 'pending') return false
+  const booking = item.raw
+  if (!booking?.slot) return false
+  const hours = booking.slot.court.club.rescheduleWindowHours ?? 24
+  return withinRescheduleWindow(booking.slot.date, booking.slot.startTime, hours)
+}
+
 function canRebook(item: HistoryItem) {
   return item.status === 'CANCELLED' || historyStatus(item) === 'done'
 }
@@ -570,7 +632,7 @@ function dateLine(item: HistoryItem) {
     >
       {{ paymentFlash }}
     </p>
-    <p v-if="actionError" class="canva-flash-error">{{ actionError }}</p>
+    <p v-if="actionError && !rescheduleTarget" class="canva-flash-error">{{ actionError }}</p>
 
     <AppAsyncState :pending="pending" :error="error" :empty="Boolean(data) && !hasAnyBookings" skeleton-variant="table">
       <CanvaEmptyState
@@ -657,7 +719,7 @@ function dateLine(item: HistoryItem) {
                 @click="payBooking(item, true)"
               >{{ t('booking.payWithWallet') }}</button>
               <button
-                v-if="item.kind === 'court' && item.status !== 'CANCELLED' && historyStatus(item) === 'pending'"
+                v-if="canReschedule(item)"
                 type="button"
                 class="canva-history-btn-secondary"
                 @click="openReschedule(item.raw as CourtBooking)"
@@ -692,22 +754,23 @@ function dateLine(item: HistoryItem) {
           <AppDateInput v-model="rescheduleDate" :min-date="today()" />
           <div class="space-y-2">
             <button
-              v-for="slot in replacementSlots"
+              v-for="slot in visibleReplacementSlots"
               :key="slot.id"
               type="button"
               class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
               :class="rescheduleSlotId === slot.id ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
               style="border-radius: var(--sz-canva-radius);"
-              @click="rescheduleSlotId = slot.id"
+              @click="actionError = ''; rescheduleSlotId = slot.id"
             >
               {{ formatFaDigits(localizedField(slot.court, 'nameFa', 'nameEn')) }} · <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime) }}</bdi>
             </button>
-            <p v-if="replacementSlots && !replacementSlots.length" class="text-sm text-brand-gray-600">
-              {{ t('booking.noSlots') }}
+            <p v-if="rescheduleEmptyMessage" class="text-sm text-brand-gray-600">
+              {{ rescheduleEmptyMessage }}
             </p>
           </div>
         </div>
-        <div class="shrink-0 space-y-2 px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-1">
+        <div class="relative z-[1] shrink-0 space-y-2 px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-1">
+          <p v-if="actionError && rescheduleTarget" class="canva-flash-error text-start text-xs">{{ actionError }}</p>
           <button
             type="button"
             class="canva-gate-btn-primary w-full"
