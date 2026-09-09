@@ -311,22 +311,31 @@ function cellClass(cell: { iso: string | null }) {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--sz-navy);
+  /* Safari/iOS: allow custom background on <button> (preflight uses appearance: button). */
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
 }
 .jalali-calendar-owner .jalali-calendar-day {
   border-radius: 2px;
 }
-.jalali-calendar-day:hover {
-  background: var(--sz-bg-elevated);
+/* Touch sticky :hover must not wash selected days to white-on-white. */
+@media (hover: hover) {
+  .jalali-calendar-day:hover:not(:disabled):not(.jalali-calendar-day-selected):not(.jalali-calendar-day-in-range) {
+    background-color: var(--sz-bg-elevated);
+  }
 }
-.jalali-calendar-day-selected {
-  background: var(--sz-accent);
+.jalali-calendar-day.jalali-calendar-day-selected {
+  background-color: var(--sz-accent);
   color: #fff;
 }
-.jalali-calendar-day-selected:hover {
-  background: var(--sz-accent-dark);
+.jalali-calendar-day.jalali-calendar-day-selected:hover,
+.jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
+  background-color: var(--sz-accent-dark);
+  color: #fff;
 }
-.jalali-calendar-day-in-range {
-  background: color-mix(in srgb, var(--sz-accent) 18%, transparent);
+.jalali-calendar-day.jalali-calendar-day-in-range {
+  background-color: color-mix(in srgb, var(--sz-accent) 18%, transparent);
   color: var(--sz-navy);
 }
 .jalali-calendar-day-disabled {
@@ -334,8 +343,10 @@ function cellClass(cell: { iso: string | null }) {
   color: var(--sz-border);
   opacity: 0.45;
 }
-.jalali-calendar-day-disabled:hover {
-  background: transparent;
+@media (hover: hover) {
+  .jalali-calendar-day-disabled:hover {
+    background-color: transparent;
+  }
 }
 .jalali-day-dot {
   display: block;
