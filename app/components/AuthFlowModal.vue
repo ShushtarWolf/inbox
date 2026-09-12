@@ -607,7 +607,7 @@ watch(
 </script>
 
 <template>
-  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
+  <AppModal :open="open" :title="title || t('auth.title')" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1]">
       <div class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
@@ -891,7 +891,7 @@ watch(
               />
             </AppFormField>
           </template>
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
@@ -1160,7 +1160,7 @@ watch(
             </AppFormField>
           </template>
 
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
@@ -1205,7 +1205,7 @@ watch(
               required
             />
           </AppFormField>
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
@@ -1252,7 +1252,7 @@ watch(
               required
             />
           </AppFormField>
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
@@ -1289,7 +1289,7 @@ watch(
             {{ t('auth.debugOtpHint', { code: debugCode }) }}
             <span class="mt-1 block font-medium text-brand-navy/80">{{ t('auth.debugOtpDevOnly') }}</span>
           </p>
-          <p v-if="error" class="venus-alert-error text-start">{{ error }}</p>
+          <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>

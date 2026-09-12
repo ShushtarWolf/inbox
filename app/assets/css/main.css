@@ -168,6 +168,15 @@
   .tail-textarea:focus {
     @apply border-0 shadow-none;
   }
+  .neo-input:focus-visible,
+  .neo-select:focus-visible,
+  .neo-textarea:focus-visible,
+  .tail-input:focus-visible,
+  .tail-select:focus-visible,
+  .tail-textarea:focus-visible {
+    outline: 3px solid var(--brand-primary, #173f5f);
+    outline-offset: 2px;
+  }
   .neo-textarea,
   .tail-textarea {
     @apply min-h-[4.5rem] shrink-0 resize-y;

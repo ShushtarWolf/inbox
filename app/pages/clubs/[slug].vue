@@ -125,7 +125,7 @@ const confirmOpen = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
-const { data: slots, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
+const { data: slots, pending: slotsPending, error: slotsError, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
   query: computed(() => ({
     club: slug,
     date: selectedDate.value,
@@ -1002,7 +1002,15 @@ async function shareClub() {
                 {{ t('clubs.multiCourtTimeHint') }}
               </p>
               <div class="canva-club-slot-grid">
+                <div v-if="slotsPending" class="col-span-full py-8 text-center text-sm text-brand-gray-600" role="status">
+                  {{ t('common.loading') }}
+                </div>
+                <div v-else-if="slotsError" class="col-span-full space-y-3 py-8 text-center text-sm text-red-700" role="alert">
+                  <p>{{ t('common.error') }}</p>
+                  <button type="button" class="btn-secondary" @click="refreshSlots">{{ t('common.retry') }}</button>
+                </div>
                 <button
+                  v-else
                   v-for="slot in courtSlots"
                   :key="slot.id"
                   type="button"
@@ -1025,7 +1033,7 @@ async function shareClub() {
                     {{ t('clubs.slotSuspectedLabel') }}
                   </span>
                 </button>
-                <p v-if="!courtSlots.length" class="canva-club-detail-desc col-span-full">
+                <p v-if="!slotsPending && !slotsError && !courtSlots.length" class="canva-club-detail-desc col-span-full">
                   {{ t('common.empty') }}
                 </p>
               </div>

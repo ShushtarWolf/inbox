@@ -150,10 +150,18 @@ export async function consumePhoneOtp(opts: {
     throw createError({ statusCode: 400, statusMessage: 'Invalid OTP' })
   }
 
-  await prisma.phoneOtp.update({
-    where: { id: record.id },
+  const claimed = await prisma.phoneOtp.updateMany({
+    where: {
+      id: record.id,
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+      attempts: { lt: MAX_ATTEMPTS },
+    },
     data: { consumedAt: new Date() },
   })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 400, statusMessage: 'OTP expired or already used' })
+  }
 
   return {
     phone,

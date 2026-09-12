@@ -85,7 +85,7 @@ export function splitSettlement(gross: number, commissionBps: number = resolvePl
 /** Normalize Iranian SHEBA / IBAN to uppercase IR + 24 digits (no spaces). */
 export function normalizeSheba(raw: string | null | undefined): string | null {
   if (!raw) return null
-  const cleaned = toAsciiDigits(String(raw)).replace(/[\s\-]/g, '').toUpperCase()
+  const cleaned = toAsciiDigits(String(raw)).replace(/[\s-]/g, '').toUpperCase()
   if (!cleaned) return null
   const withIr = cleaned.startsWith('IR') ? cleaned : `IR${cleaned}`
   return withIr

@@ -278,6 +278,7 @@ model WalletTransaction {
   withdrawRequestId String?
 
   @@index([walletId, createdAt])
+  @@unique([paymentId, type])
 }
 
 /** Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest. */

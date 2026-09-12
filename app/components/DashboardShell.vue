@@ -69,42 +69,42 @@ async function handleLogout() {
 
 const resolvedLogoutLabel = computed(() => props.logoutLabel || t('nav.logout'))
 
-/** Phone artboard only ≤430px — never lock desktop/laptop to 375 / max-w-lg. */
+/** Keep the collapsible mobile shell until the fixed 290px sidebar can fit. */
 const mainClass = computed(() => {
   if (props.phoneShell) {
-    return 'mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] overflow-x-hidden px-4 pb-5 pt-0 min-[431px]:mx-0 min-[431px]:max-w-none min-[431px]:overflow-visible min-[431px]:px-8 min-[431px]:py-6'
+    return 'mx-auto w-full max-[767px]:max-w-[var(--sz-phone-width)] overflow-x-hidden px-4 pb-5 pt-0 min-[768px]:mx-0 min-[768px]:max-w-none min-[768px]:overflow-visible min-[768px]:px-8 min-[768px]:py-6'
   }
   return props.wide
-    ? 'w-full px-4 py-5 min-[431px]:px-8 min-[431px]:py-8'
-    : 'mx-auto w-full max-[430px]:max-w-lg px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8'
+    ? 'w-full px-4 py-5 min-[768px]:px-8 min-[768px]:py-8'
+    : 'mx-auto w-full max-[767px]:max-w-lg px-4 py-5 min-[768px]:max-w-6xl min-[768px]:px-6 min-[768px]:py-8'
 })
 
 const rootClass = computed(() => {
-  const base = 'flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] min-[431px]:flex-row min-[431px]:pb-0'
+  const base = 'flex min-h-dvh flex-col pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))] min-[768px]:flex-row min-[768px]:pb-0'
   return base
 })
 
-const backdropClass = 'fixed inset-0 z-40 bg-black/60 min-[431px]:hidden'
+const backdropClass = 'fixed inset-0 z-40 bg-black/60 min-[768px]:hidden'
 
 const drawerWrapClass = computed(() => {
-  const desktop = 'min-[431px]:static min-[431px]:flex min-[431px]:h-dvh min-[431px]:sticky min-[431px]:top-0 min-[431px]:shrink-0 min-[431px]:!translate-x-0'
+  const desktop = 'min-[768px]:static min-[768px]:flex min-[768px]:h-dvh min-[768px]:sticky min-[768px]:top-0 min-[768px]:shrink-0 min-[768px]:!translate-x-0'
   if (props.phoneShell) {
-    return `z-50 max-[430px]:hidden min-[431px]:relative ${desktop}`
+    return `z-50 max-[767px]:hidden min-[768px]:relative ${desktop}`
   }
   return `fixed inset-y-0 z-50 transition-transform ltr:left-0 rtl:right-0 ${desktop}`
 })
 
 const drawerStateClass = computed(() => {
   if (props.phoneShell) {
-    return 'min-[431px]:!translate-x-0'
+    return 'min-[768px]:!translate-x-0'
   }
   const openState = open.value ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
-  return `${openState} min-[431px]:!translate-x-0`
+  return `${openState} min-[768px]:!translate-x-0`
 })
 
-const glassHeaderClass = 'glass-bar sticky top-0 z-30 px-4 py-3 min-[431px]:hidden'
+const glassHeaderClass = 'glass-bar sticky top-0 z-30 px-4 py-3 min-[768px]:hidden'
 
-const compactHeaderClass = 'sticky top-0 z-30 flex items-center justify-between gap-2 bg-brand-cream/95 px-4 py-2 backdrop-blur min-[431px]:hidden'
+const compactHeaderClass = 'sticky top-0 z-30 flex items-center justify-between gap-2 bg-brand-cream/95 px-4 py-2 backdrop-blur min-[768px]:hidden'
 
 const dashboardRoot = computed(() => {
   const pool = drawerItems.value
