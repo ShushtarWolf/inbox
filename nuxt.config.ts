@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '15'
+const PWA_RESET_VERSION = '16'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -64,8 +64,9 @@ export default defineNuxtConfig({
         },
       ],
       link: [
+        { rel: 'icon', type: 'image/png', sizes: '64x64', href: '/icons/favicon.png' },
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.svg' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/icons/apple-touch-icon.png' },
       ],
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
@@ -150,7 +151,7 @@ export default defineNuxtConfig({
       start_url: '/',
       categories: ['sports', 'lifestyle'],
       icons: [
-        { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        { src: '/icons/favicon.png', sizes: '64x64', type: 'image/png', purpose: 'any' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
