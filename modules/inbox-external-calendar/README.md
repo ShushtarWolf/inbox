@@ -50,7 +50,9 @@ npx vitest run --config modules/inbox-external-calendar/vitest.config.ts
 
 ## AloPlay session
 
-Public `GetAvailableTime` works **today-only** without login. When server credentials are set, the adapter uses a logged-in session for **whatever single date** the calendar request asks for (today or any future day). Without credentials, only today uses the public API; future dates degrade gracefully (empty overlay + adapter error).
+Public `GetAvailableTime` works **today-only** without login. When server credentials are set, the adapter uses a logged-in session for **whatever single date** the calendar request asks for (today or any future day). Without credentials, **today** uses the public API (`requireAuth: false`); future dates degrade gracefully (UNKNOWN overlay + adapter error, no false BUSY).
+
+Booking APIs (`POST /api/bookings/court`, `POST /api/coach/lessons`) call live `fetchExternalOccupancy` and reject only on reconciled **EXTERNAL_BUSY** (never DB snapshots).
 
 Optional Liara env (never commit values):
 
