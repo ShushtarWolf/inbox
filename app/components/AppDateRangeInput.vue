@@ -81,6 +81,9 @@ const calendarStart = computed({
     <p v-if="!rangeComplete && start" class="text-start text-[11px] font-medium text-brand-gray-500">
       {{ t('owner.packagesPage.rangePickEndHint') }}
     </p>
+    <p v-else-if="rangeComplete" class="text-start text-[11px] font-medium text-brand-gray-500">
+      {{ t('owner.packagesPage.rangeAdjustHint') }}
+    </p>
     <p v-if="invalid && invalidMessage" class="text-sm text-red-600">{{ invalidMessage }}</p>
   </div>
 </template>

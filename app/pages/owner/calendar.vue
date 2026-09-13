@@ -2845,6 +2845,10 @@ watch(pilotNoCoach, (off) => {
                     <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
+                      v-else-if="cellSlot(court.id, hour)?.displayStatus === 'FREE' && isSlotSelected(cellSlot(court.id, hour)!)"
+                      class="canva-cal-grid-cell-label"
+                    >{{ t('owner.slotSelected') }}</span>
+                    <span
                       v-if="slotCoachBadge(cellSlot(court.id, hour))"
                       class="canva-slot-coach-chip"
                     >{{ slotCoachBadge(cellSlot(court.id, hour)) }}</span>
@@ -4320,6 +4324,12 @@ watch(pilotNoCoach, (off) => {
 :deep(.canva-cal-grid-cell.slot-free) {
   background: var(--sz-cal-grid-free);
   color: #4a4a46;
+}
+
+:deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected) {
+  background: #bbf7d0;
+  color: #14532d;
+  box-shadow: inset 0 0 0 2px #16a34a;
 }
 
 :deep(.canva-cal-grid-cell.slot-past) {

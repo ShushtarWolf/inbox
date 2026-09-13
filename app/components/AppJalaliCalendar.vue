@@ -131,16 +131,39 @@ function isRangeEnd(cell: { iso: string | null }) {
 function selectDay(iso: string) {
   if (effectiveMinDate.value && iso < effectiveMinDate.value) return
   if (props.mode === 'range') {
-    if (!model.value || rangeEnd.value) {
+    // Incomplete range: first tap = start, second = end.
+    if (!model.value) {
       model.value = iso
       rangeEnd.value = ''
       return
     }
-    if (iso < model.value) {
-      rangeEnd.value = model.value
+    if (!rangeEnd.value) {
+      if (iso < model.value) {
+        rangeEnd.value = model.value
+        model.value = iso
+      } else if (iso === model.value) {
+        // Same day twice → single-day range.
+        rangeEnd.value = iso
+      } else {
+        rangeEnd.value = iso
+      }
+      emit('select')
+      return
+    }
+    // Complete range: adjust nearer endpoint — never wipe the whole selection.
+    if (iso <= model.value) {
       model.value = iso
-    } else {
+    } else if (iso >= rangeEnd.value) {
       rangeEnd.value = iso
+    } else {
+      const startMs = Date.parse(`${model.value}T12:00:00Z`)
+      const endMs = Date.parse(`${rangeEnd.value}T12:00:00Z`)
+      const tapMs = Date.parse(`${iso}T12:00:00Z`)
+      if (Math.abs(tapMs - startMs) <= Math.abs(tapMs - endMs)) {
+        model.value = iso
+      } else {
+        rangeEnd.value = iso
+      }
     }
     emit('select')
     return
@@ -330,15 +353,15 @@ function jumpToRangeStart() {
 }
 .jalali-calendar-range-jump {
   border-radius: 2px;
-  border: 1px solid var(--sz-accent);
-  background: #fde8e8;
+  border: 1px solid #16a34a;
+  background: #dcfce7;
   padding: 0.4rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--sz-accent);
+  color: #14532d;
 }
 .jalali-calendar-range-jump:hover {
-  background: #fad1d1;
+  background: #bbf7d0;
 }
 .jalali-calendar-day {
   display: flex;
@@ -356,6 +379,7 @@ function jumpToRangeStart() {
   -webkit-appearance: none;
   appearance: none;
   background-color: transparent;
+  border: 0;
 }
 .jalali-calendar-owner .jalali-calendar-day {
   border-radius: 2px;
@@ -366,21 +390,28 @@ function jumpToRangeStart() {
     background-color: var(--sz-bg-elevated);
   }
 }
+/* Fail-safe selected: green fill + navy number (never white-on-missing-bg). */
 .jalali-calendar-day.jalali-calendar-day-selected {
-  background-color: var(--sz-accent);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px var(--sz-accent-dark, #9b1c1c);
+  background-color: #16a34a !important;
+  color: #0b1f12 !important;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 2px #166534;
+}
+.jalali-calendar-day.jalali-calendar-day-selected > span {
+  color: #0b1f12 !important;
 }
 .jalali-calendar-day.jalali-calendar-day-selected:hover,
 .jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
-  background-color: var(--sz-accent-dark);
-  color: #fff;
+  background-color: #15803d !important;
+  color: #0b1f12 !important;
 }
 .jalali-calendar-day.jalali-calendar-day-in-range {
-  /* Solid wash — color-mix was nearly invisible on some phones / Safari. */
-  background-color: #fde8e8;
-  color: var(--sz-navy);
-  box-shadow: inset 0 0 0 1px #f5b5b5;
+  background-color: #dcfce7 !important;
+  color: #14532d !important;
+  box-shadow: inset 0 0 0 1px #86efac;
+}
+.jalali-calendar-day.jalali-calendar-day-in-range > span {
+  color: #14532d !important;
 }
 .jalali-calendar-day-disabled {
   cursor: not-allowed;
