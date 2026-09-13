@@ -176,6 +176,9 @@ const seasonForm = reactive({
   comments: '',
 })
 
+/** Default season span so «ثبت رزرو» is not stuck on an empty finish date. */
+const SEASON_DEFAULT_SPAN_DAYS = 90
+
 const packageForm = reactive({
   coachId: '',
   startDate: '',
@@ -187,6 +190,8 @@ const packageForm = reactive({
 })
 
 const seasonPreview = ref<RecurringPreview | null>(null)
+/** When true, Back from block/note/season returns to the walk-in reserve sheet. */
+const reserveFlowReturn = ref(false)
 const seasonAcceptSkips = ref(false)
 const packagePreview = ref<RecurringPreview | null>(null)
 const packageAcceptSkips = ref(false)
@@ -1160,14 +1165,14 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   const anchorDay = weekdayNameFromDate(anchorDate)
   // Keep the tapped/selected day as season start — do not wipe the date context.
   seasonForm.startDate = anchorDate
-  seasonForm.finishDate = ''
+  seasonForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   seasonForm.days = [anchorDay]
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = booking?.comments || ''
   packageForm.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   packageForm.startDate = anchorDate
-  packageForm.finishDate = ''
+  packageForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.equipmentId = equipmentIds[0] || ''
@@ -1303,12 +1308,22 @@ function clearRecurringPreview() {
   packageAcceptSkips.value = false
 }
 
+function ensureSeasonDateDefaults(anchorDate: string) {
+  if (!seasonForm.startDate) seasonForm.startDate = anchorDate
+  if (!seasonForm.finishDate) {
+    seasonForm.finishDate = addDaysToIsoDate(seasonForm.startDate || anchorDate, SEASON_DEFAULT_SPAN_DAYS)
+  }
+}
+
 function openSeasonForm() {
-  if (!canShowSeasonReserve()) return
+  if (!canShowSeasonReserve()) {
+    actionError.value = t('owner.seasonPage.disabled')
+    return
+  }
   clearRecurringPreview()
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value
   const anchorDate = slot?.date || data.value?.date || date.value || today()
-  if (!seasonForm.startDate) seasonForm.startDate = anchorDate
+  ensureSeasonDateDefaults(anchorDate)
   const anchorDay = weekdayNameFromDate(anchorDate)
   if (!seasonForm.days.length) {
     seasonForm.days = [anchorDay]
@@ -1333,7 +1348,42 @@ function openSeasonFormFromReserve() {
     actionError.value = t('owner.guestRequired')
     return
   }
+  if (!canShowSeasonReserve()) {
+    actionError.value = t('owner.seasonPage.disabled')
+    return
+  }
+  reserveFlowReturn.value = true
   openSeasonForm()
+}
+
+function openBlockFromReserve() {
+  actionError.value = ''
+  reserveFlowReturn.value = true
+  activePanel.value = 'block'
+}
+
+function openNoteFromReserve() {
+  actionError.value = ''
+  reserveFlowReturn.value = true
+  activePanel.value = 'comments'
+}
+
+function openFabBlock() {
+  if (!canBatchBlock.value) return
+  openSelectionBlock()
+}
+
+function openFabCancel() {
+  const booked = selectedSlotsFull.value.filter((slot) => isCancellableBookedSlot(slot))
+  if (booked.length) {
+    openBookedSlot(booked[0]!)
+    openCancelForm()
+    return
+  }
+  if (selectedSlot.value && canCancelSlot()) {
+    showMenu.value = true
+    openCancelForm()
+  }
 }
 
 function openPackageForm() {
@@ -1350,6 +1400,7 @@ function closeMenu() {
   showMenu.value = false
   resetPanels()
   clearRecurringPreview()
+  reserveFlowReturn.value = false
   cancelReason.value = ''
   actionError.value = ''
   lastPayLink.value = null
@@ -1385,6 +1436,16 @@ function hasBookedDetailContext() {
 }
 
 function backToMenu() {
+  if (
+    reserveFlowReturn.value
+    && (activePanel.value === 'block' || activePanel.value === 'comments' || activePanel.value === 'season')
+  ) {
+    reserveFlowReturn.value = false
+    activePanel.value = 'reserve'
+    actionError.value = ''
+    return
+  }
+  reserveFlowReturn.value = false
   if (hasBookedDetailContext()) {
     activePanel.value = 'detail'
   } else {
@@ -2298,23 +2359,24 @@ function reserveFormTitle() {
 }
 
 function confirmReserveLabel() {
+  if (isNewReservation() && recurringWanted.value && canShowSeasonReserve()) {
+    return t('owner.continueSeasonReserve')
+  }
   return isNewReservation() ? t('owner.confirmReserve') : t('common.save')
 }
 
-const legend = computed(() => {
-  const items = [
-    { status: 'FREE', color: palette.calendarGrid.FREE },
-    { status: 'RESERVED_PAID', color: palette.calendarGrid.RESERVED_PAID },
-    { status: 'RESERVED_UNPAID', color: palette.calendarGrid.RESERVED_UNPAID },
-    { status: 'RESERVED_IPG', color: palette.calendarGrid.RESERVED_IPG },
-    { status: 'RESERVED_RECURRING', color: palette.calendarGrid.RESERVED_RECURRING },
-    { status: 'PENDING', color: palette.calendarGrid.PENDING },
-    { status: 'BLOCKED', color: palette.calendarGrid.BLOCKED },
-  ]
-  if (!pilotNoCoach.value) {
-    items.splice(5, 0, { status: 'RESERVED_COACH', color: palette.calendarGrid.RESERVED_COACH })
-  }
-  return items
+/** Canva today legend: آزاد / رزرو شده / در انتظار / مسدود / پرداخت */
+const legend = computed(() => [
+  { status: 'FREE', color: palette.calendarGrid.FREE, swatch: 'free' as const },
+  { status: 'RESERVED', color: '#E8B84A', swatch: 'box' as const },
+  { status: 'PENDING', color: '#C41E1E', swatch: 'box' as const },
+  { status: 'BLOCKED', color: '#1A1A18', swatch: 'box' as const },
+  { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
+])
+
+const canFabCancel = computed(() => {
+  if (selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot))) return true
+  return Boolean(selectedSlot.value && canCancelSlot())
 })
 
 const sessionFilterOptions = computed(() => ([
@@ -2441,11 +2503,17 @@ watch(pilotNoCoach, (off) => {
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
           <span
-            class="canva-legend-swatch"
-            :class="item.status === 'FREE' ? 'canva-legend-swatch-free' : ''"
-            :style="item.status === 'FREE' ? undefined : { background: item.color }"
+            v-if="item.swatch === 'dot'"
+            class="canva-legend-paid-dot"
+            aria-hidden="true"
           />
-          {{ statusLabel(item.status) }}
+          <span
+            v-else
+            class="canva-legend-swatch"
+            :class="item.swatch === 'free' ? 'canva-legend-swatch-free' : ''"
+            :style="item.swatch === 'free' ? undefined : { background: item.color }"
+          />
+          {{ item.status === 'PAID_DOT' ? t('owner.legendPaid') : statusLabel(item.status) }}
         </div>
         <span class="canva-cal-legend-note">
           <span aria-hidden="true">★</span>
@@ -2455,6 +2523,24 @@ watch(pilotNoCoach, (off) => {
 
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
+          <div class="canva-cal-date-fabs" role="group" :aria-label="t('owner.selectionBar.title')">
+            <button
+              type="button"
+              class="canva-cal-fab canva-cal-fab-block"
+              :disabled="!canBatchBlock"
+              @click="openFabBlock"
+            >
+              {{ t('owner.block') }}
+            </button>
+            <button
+              type="button"
+              class="canva-cal-fab canva-cal-fab-cancel"
+              :disabled="!canFabCancel"
+              @click="openFabCancel"
+            >
+              {{ t('owner.cancel') }}
+            </button>
+          </div>
           <div class="canva-cal-date-nav-center">
             <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
               <AppIcon name="chevron_right" size="sm" />
@@ -2801,14 +2887,27 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
-            <div class="flex items-center gap-2">
+            <div class="canva-reserve-head">
               <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backToMenu">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
                 </span>
               </button>
-              <h3 class="font-bold text-brand-navy">{{ reserveMenuLabel() }}</h3>
+              <h3 class="canva-reserve-title">
+                <AppIcon name="person_add" size="sm" class="text-brand-primary" />
+                {{ reserveMenuLabel() }}
+              </h3>
+            </div>
+            <div v-if="isNewReservation()" class="canva-reserve-head-links">
+              <button type="button" class="canva-reserve-head-link" @click="openBlockFromReserve">
+                <AppIcon name="block" size="sm" />
+                {{ t('owner.blockThisHour') }}
+              </button>
+              <button type="button" class="canva-reserve-head-link" @click="openNoteFromReserve">
+                <AppIcon name="add" size="sm" />
+                {{ t('owner.addNote') }}
+              </button>
             </div>
             <div v-if="slotsForReserve().length" class="mt-1 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600">
               <span
@@ -2990,10 +3089,16 @@ watch(pilotNoCoach, (off) => {
             </AppFormField>
 
             <template v-if="isNewReservation() && canShowSeasonReserve()">
-              <label class="canva-recurring-check">
-                <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox">
-                <span>{{ t('owner.recurringWanted') }}</span>
-              </label>
+              <button
+                type="button"
+                class="canva-recurring-ask"
+                :class="{ 'canva-recurring-ask-on': recurringWanted }"
+                :aria-pressed="recurringWanted"
+                @click="recurringWanted = !recurringWanted"
+              >
+                <span class="canva-recurring-ask-star" aria-hidden="true">*</span>
+                <span class="text-start">{{ t('owner.recurringWanted') }}</span>
+              </button>
               <p v-if="recurringWanted" class="text-start text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
             </template>
           </form>
@@ -3394,13 +3499,14 @@ watch(pilotNoCoach, (off) => {
               show-estimated
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">{{ t('owner.packagesPage.dateRangeInvalid') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"
               class="canva-gate-btn-primary"
               :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (Boolean(seasonPreview?.skippedCount) && !seasonAcceptSkips)"
               @click="doSeasonReserve"
-            >{{ saving ? t('common.loading') : (seasonPreview ? t('owner.seasonPage.confirm') : t('common.save')) }}</button>
+            >{{ saving ? t('common.loading') : (seasonPreview ? t('owner.seasonPage.confirm') : t('owner.seasonPage.preview')) }}</button>
           </div>
         </div>
 
