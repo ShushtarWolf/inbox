@@ -177,8 +177,8 @@ const seasonForm = reactive({
   comments: '',
 })
 
-/** Default season span — 4 weeks (safer than a silent 90-day fill). */
-const SEASON_DEFAULT_SPAN_DAYS = 28
+/** Default season span — 27 days ≈ 4 weekly occurrences (inclusive +28 often yields 5). */
+const SEASON_DEFAULT_SPAN_DAYS = 27
 /** Hint after narrowing multi-court / gapped hour selection for season. */
 const seasonSelectionHint = ref('')
 
@@ -228,8 +228,9 @@ watch(date, () => {
   void refreshCalendar()
 })
 
-async function loadOccupancyMarks() {
-  const j = isoToJalaali(date.value)
+async function loadOccupancyMarks(anchorIso?: string) {
+  const base = anchorIso || date.value
+  const j = isoToJalaali(base)
   const from = jalaaliToIso(j.jy, j.jm, 1)
   const to = jalaaliToIso(j.jy, j.jm, jalaaliDaysInMonth(j.jy, j.jm))
   try {
@@ -248,6 +249,19 @@ async function loadOccupancyMarks() {
 watch(showDatePicker, (open) => {
   if (open) loadOccupancyMarks()
 })
+
+watch(activePanel, (panel) => {
+  if (panel === 'season') void loadOccupancyMarks(seasonForm.startDate || date.value)
+  else if (panel === 'package') void loadOccupancyMarks(packageForm.startDate || date.value)
+})
+
+watch(
+  () => [seasonForm.startDate, packageForm.startDate, activePanel.value] as const,
+  ([seasonStart, packageStart, panel]) => {
+    if (panel === 'season' && seasonStart) void loadOccupancyMarks(seasonStart)
+    if (panel === 'package' && packageStart) void loadOccupancyMarks(packageStart)
+  },
+)
 
 const hours = computed(() => {
   const set = new Set<string>()
@@ -1017,6 +1031,13 @@ const seasonSessionLabel = computed(() => {
     timeRange: t('owner.seasonPage.perDayTimes'),
   })
 })
+/** Prefer previewed free-slot count so the footer total matches what will actually book. */
+const seasonBillableSessionCount = computed(() => {
+  if (seasonPreview.value && seasonPreview.value.willCreateCount > 0) {
+    return seasonPreview.value.willCreateCount
+  }
+  return seasonSessionCount.value
+})
 const packageSessionLabel = computed(() => {
   if (!packageSessionCount.value || !packageForm.days.length || !packageDatesValid.value) return ''
   const dayLabels = packageForm.days.map((day) => t(`owner.weekdays.${day}`)).join(locale.value === 'fa' ? ' و ' : ' & ')
@@ -1027,6 +1048,12 @@ const packageSessionLabel = computed(() => {
     days: dayLabels,
     timeRange: t('owner.seasonPage.perDayTimes'),
   })
+})
+const packageBillableSessionCount = computed(() => {
+  if (packagePreview.value && packagePreview.value.willCreateCount > 0) {
+    return packagePreview.value.willCreateCount
+  }
+  return packageSessionCount.value
 })
 
 function clearSelection() {
@@ -3565,16 +3592,20 @@ watch(pilotNoCoach, (off) => {
           <div class="venus-modal-panel-body">
             <div
               v-if="slotsForReserve().length"
-              class="mb-3 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600"
+              class="mb-3 space-y-1"
             >
-              <span
-                v-for="slot in slotsForReserve()"
-                :key="slot.id"
-                class="bg-brand-lavender px-2 py-0.5"
-                style="border-radius: var(--sz-canva-radius);"
-              >
-                {{ slotCellLabel(slot) }}
-              </span>
+              <p class="text-start text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.anchorSlotLabel') }}</p>
+              <div class="flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-navy">
+                <span
+                  v-for="slot in slotsForReserve()"
+                  :key="slot.id"
+                  class="border border-brand-primary bg-brand-lavender px-2 py-1"
+                  style="border-radius: var(--sz-canva-radius);"
+                >
+                  {{ slotCellLabel(slot) }}
+                  · {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
+                </span>
+              </div>
             </div>
             <p v-if="seasonSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
               {{ seasonSelectionHint }}
@@ -3604,6 +3635,8 @@ watch(pilotNoCoach, (off) => {
                 <AppDateRangeInput
                   v-model:start="seasonForm.startDate"
                   v-model:end="seasonForm.finishDate"
+                  hide-label
+                  :day-marks="occupancyMarks"
                   :invalid="seasonDateRangeInvalid || seasonStartInPast || !seasonForm.finishDate"
                   :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))"
                 />
@@ -3640,21 +3673,35 @@ watch(pilotNoCoach, (off) => {
                 <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
               </AppFormField>
             </div>
-            <p v-if="seasonSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
+            <p v-if="seasonSessionLabel && !seasonPreview" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ seasonSessionLabel }}
             </p>
             <div
               v-if="seasonPreview"
-              class="mt-4 space-y-2 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              class="mt-4 space-y-3 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
               style="border-radius: var(--sz-canva-radius);"
             >
               <p>{{ t('owner.seasonPage.previewSummary', { create: seasonPreview.willCreateCount, skip: seasonPreview.skippedCount }) }}</p>
-              <ul v-if="seasonPreview.conflicts.length" class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
-                <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`${item.date}-${item.startTime}-${idx}`">
-                  {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
-                  — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
-                </li>
-              </ul>
+              <div v-if="seasonPreview.willCreate.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.willCreateTitle') }}</p>
+                <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
+                  <li
+                    v-for="(item, idx) in seasonPreview.willCreate"
+                    :key="`create-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  </li>
+                </ul>
+              </div>
+              <div v-if="seasonPreview.conflicts.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
+                <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                  <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`skip-${item.date}-${item.startTime}-${idx}`">
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                    — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
+                  </li>
+                </ul>
+              </div>
               <label v-if="seasonPreview.skippedCount > 0" class="canva-recurring-check">
                 <input v-model="seasonAcceptSkips" type="checkbox" class="canva-settings-checkbox">
                 <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
@@ -3665,12 +3712,19 @@ watch(pilotNoCoach, (off) => {
             <OwnerBookingPriceSummary
               :court-price="seasonCourtPrice"
               :equipment-price="seasonEquipmentPrice"
-              :session-count="seasonSessionCount"
+              :session-count="seasonBillableSessionCount"
+              :preview-confirmed="Boolean(seasonPreview?.willCreateCount)"
               show-estimated
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
             <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">
               {{ seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')) }}
+            </p>
+            <p
+              v-else-if="!seasonPreview && seasonDatesValid && guestFieldsValid() && seasonForm.days.length && seasonScheduleValid()"
+              class="text-start text-xs font-medium text-brand-primary"
+            >
+              {{ t('owner.seasonPage.previewRequired') }}
             </p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
@@ -3707,16 +3761,20 @@ watch(pilotNoCoach, (off) => {
           <div class="venus-modal-panel-body">
             <div
               v-if="slotsForReserve().length"
-              class="mb-3 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600"
+              class="mb-3 space-y-1"
             >
-              <span
-                v-for="slot in slotsForReserve()"
-                :key="slot.id"
-                class="bg-brand-lavender px-2 py-0.5"
-                style="border-radius: var(--sz-canva-radius);"
-              >
-                {{ slotCellLabel(slot) }}
-              </span>
+              <p class="text-start text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.anchorSlotLabel') }}</p>
+              <div class="flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-navy">
+                <span
+                  v-for="slot in slotsForReserve()"
+                  :key="slot.id"
+                  class="border border-brand-primary bg-brand-lavender px-2 py-1"
+                  style="border-radius: var(--sz-canva-radius);"
+                >
+                  {{ slotCellLabel(slot) }}
+                  · {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
+                </span>
+              </div>
             </div>
             <div class="venus-form-stack">
               <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
@@ -3751,6 +3809,8 @@ watch(pilotNoCoach, (off) => {
                 <AppDateRangeInput
                   v-model:start="packageForm.startDate"
                   v-model:end="packageForm.finishDate"
+                  hide-label
+                  :day-marks="occupancyMarks"
                   :invalid="packageDateRangeInvalid || packageStartInPast || !packageForm.finishDate"
                   :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : (!packageForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))"
                 />
@@ -3787,36 +3847,57 @@ watch(pilotNoCoach, (off) => {
                 <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
               </AppFormField>
             </div>
-            <p v-if="packageSessionLabel" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
+            <p v-if="packageSessionLabel && !packagePreview" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
               {{ packageSessionLabel }}
             </p>
             <div
               v-if="packagePreview"
-              class="mt-4 space-y-2 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              class="mt-4 space-y-3 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
               style="border-radius: var(--sz-canva-radius);"
             >
               <p>{{ t('owner.seasonPage.previewSummary', { create: packagePreview.willCreateCount, skip: packagePreview.skippedCount }) }}</p>
-              <ul v-if="packagePreview.conflicts.length" class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
-                <li v-for="(item, idx) in packagePreview.conflicts.slice(0, 12)" :key="`${item.date}-${item.startTime}-${idx}`">
-                  {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
-                  — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
-                </li>
-              </ul>
+              <div v-if="packagePreview.willCreate.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.willCreateTitle') }}</p>
+                <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
+                  <li
+                    v-for="(item, idx) in packagePreview.willCreate"
+                    :key="`pkg-create-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  </li>
+                </ul>
+              </div>
+              <div v-if="packagePreview.conflicts.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
+                <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                  <li v-for="(item, idx) in packagePreview.conflicts.slice(0, 12)" :key="`pkg-skip-${item.date}-${item.startTime}-${idx}`">
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                    — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
+                  </li>
+                </ul>
+              </div>
               <label v-if="packagePreview.skippedCount > 0" class="canva-recurring-check">
                 <input v-model="packageAcceptSkips" type="checkbox" class="canva-settings-checkbox">
                 <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
               </label>
             </div>
           </div>
-          <div class="venus-modal-footer">
+          <div class="venus-modal-footer space-y-2">
             <OwnerBookingPriceSummary
               :court-price="packageCourtPrice"
               :coach-price="packageForm.coachId && selectedCoach ? selectedCoach.sessionPrice : undefined"
               :equipment-price="packageEquipmentPrice"
-              :session-count="packageSessionCount"
+              :session-count="packageBillableSessionCount"
+              :preview-confirmed="Boolean(packagePreview?.willCreateCount)"
               show-estimated
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p
+              v-else-if="!packagePreview && packageDatesValid && guestFieldsValid() && packageForm.days.length && packageScheduleValid()"
+              class="text-start text-xs font-medium text-brand-primary"
+            >
+              {{ t('owner.seasonPage.previewRequired') }}
+            </p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"

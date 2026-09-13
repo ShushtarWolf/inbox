@@ -8,9 +8,14 @@ const props = withDefaults(defineProps<{
   invalid?: boolean
   invalidMessage?: string
   minDate?: string
+  /** When wrapped in AppFormField, hide the duplicate inner label. */
+  hideLabel?: boolean
+  dayMarks?: Record<string, 'busy' | 'soft'>
 }>(), {
   invalid: false,
   minDate: '',
+  hideLabel: false,
+  dayMarks: () => ({}),
 })
 
 const { t } = useI18n()
@@ -35,11 +40,16 @@ const effectiveMinDate = computed(() => {
 const rangeHint = computed(() => {
   if (!start.value && !end.value) return ''
   if (start.value && end.value) {
-    return `${formatDate(start.value)} – ${formatDate(end.value)}`
+    return t('owner.packagesPage.rangeSelected', {
+      start: formatDate(start.value),
+      end: formatDate(end.value),
+    })
   }
-  if (start.value) return formatDate(start.value)
+  if (start.value) return t('owner.packagesPage.rangePickEnd', { start: formatDate(start.value) })
   return ''
 })
+
+const rangeComplete = computed(() => Boolean(start.value && end.value))
 
 // FA range calendar needs a bound start for v-model; use today placeholder until set
 const calendarStart = computed({
@@ -52,14 +62,25 @@ const calendarStart = computed({
 
 <template>
   <div class="space-y-2">
-    <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
+    <p v-if="!hideLabel" class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
+    <p
+      v-if="rangeHint"
+      class="text-start text-xs font-bold"
+      :class="rangeComplete ? 'text-brand-primary' : 'text-brand-gray-600'"
+      dir="auto"
+    >
+      {{ rangeHint }}
+    </p>
     <AppJalaliCalendar
       v-model="calendarStart"
       v-model:range-end="end"
       mode="range"
       :min-date="effectiveMinDate"
+      :day-marks="dayMarks"
     />
-    <p v-if="rangeHint" class="text-xs text-brand-gray-600" dir="auto">{{ rangeHint }}</p>
+    <p v-if="!rangeComplete && start" class="text-start text-[11px] font-medium text-brand-gray-500">
+      {{ t('owner.packagesPage.rangePickEndHint') }}
+    </p>
     <p v-if="invalid && invalidMessage" class="text-sm text-red-600">{{ invalidMessage }}</p>
   </div>
 </template>

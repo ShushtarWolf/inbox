@@ -168,7 +168,27 @@ function cellClass(cell: { iso: string | null }) {
     if (isRangeStart(cell) || isRangeEnd(cell)) return 'jalali-calendar-day-selected'
     return 'jalali-calendar-day-in-range'
   }
+  // Range pick in progress: still mark the start day when end is empty.
+  if (props.mode === 'range' && isRangeStart(cell) && !rangeEnd.value) {
+    return 'jalali-calendar-day-selected'
+  }
   return isSelected(cell) ? 'jalali-calendar-day-selected' : ''
+}
+
+const rangeOutsideView = computed(() => {
+  if (props.mode !== 'range' || !model.value || !rangeEnd.value) return false
+  const start = model.value <= rangeEnd.value ? model.value : rangeEnd.value
+  const end = model.value <= rangeEnd.value ? rangeEnd.value : model.value
+  const monthStart = jalaaliToIso(viewYear.value, viewMonth.value, 1)
+  const monthEnd = jalaaliToIso(viewYear.value, viewMonth.value, jalaaliDaysInMonth(viewYear.value, viewMonth.value))
+  return end < monthStart || start > monthEnd
+})
+
+function jumpToRangeStart() {
+  if (!model.value) return
+  const j = isoToJalaali(model.value)
+  viewYear.value = j.jy
+  viewMonth.value = j.jm
 }
 </script>
 
@@ -198,6 +218,15 @@ function cellClass(cell: { iso: string | null }) {
       <span v-for="weekday in PERSIAN_WEEKDAYS" :key="weekday">{{ weekday }}</span>
     </div>
 
+    <button
+      v-if="rangeOutsideView"
+      type="button"
+      class="jalali-calendar-range-jump mt-2 w-full"
+      @click="jumpToRangeStart"
+    >
+      {{ t('calendar.showSelectedRange') }}
+    </button>
+
     <div class="mt-1 grid grid-cols-7 gap-1">
       <span v-for="(cell, index) in calendarCells" :key="index">
         <button
@@ -210,7 +239,7 @@ function cellClass(cell: { iso: string | null }) {
         >
           <span>{{ formatNumber(cell.day) }}</span>
           <i
-            v-if="variant === 'owner' && cell.iso && dayMarks[cell.iso]"
+            v-if="cell.iso && dayMarks[cell.iso]"
             class="jalali-day-dot"
             :class="dayMarks[cell.iso] === 'busy' ? 'jalali-day-dot-busy' : 'jalali-day-dot-soft'"
             aria-hidden="true"
@@ -299,6 +328,18 @@ function cellClass(cell: { iso: string | null }) {
 .jalali-calendar-today-footer:hover {
   background: var(--sz-bg-elevated);
 }
+.jalali-calendar-range-jump {
+  border-radius: 2px;
+  border: 1px solid var(--sz-accent);
+  background: #fde8e8;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sz-accent);
+}
+.jalali-calendar-range-jump:hover {
+  background: #fad1d1;
+}
 .jalali-calendar-day {
   display: flex;
   height: 2.25rem;
@@ -328,6 +369,7 @@ function cellClass(cell: { iso: string | null }) {
 .jalali-calendar-day.jalali-calendar-day-selected {
   background-color: var(--sz-accent);
   color: #fff;
+  box-shadow: inset 0 0 0 1px var(--sz-accent-dark, #9b1c1c);
 }
 .jalali-calendar-day.jalali-calendar-day-selected:hover,
 .jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
@@ -335,8 +377,10 @@ function cellClass(cell: { iso: string | null }) {
   color: #fff;
 }
 .jalali-calendar-day.jalali-calendar-day-in-range {
-  background-color: color-mix(in srgb, var(--sz-accent) 18%, transparent);
+  /* Solid wash — color-mix was nearly invisible on some phones / Safari. */
+  background-color: #fde8e8;
   color: var(--sz-navy);
+  box-shadow: inset 0 0 0 1px #f5b5b5;
 }
 .jalali-calendar-day-disabled {
   cursor: not-allowed;
