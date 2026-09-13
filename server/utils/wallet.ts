@@ -110,32 +110,24 @@ export async function creditWallet(
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
   const type = meta.type || 'REFUND_CREDIT'
-  const wallet = await getOrCreateWallet(userId, db)
+  // Idempotent retries: one credit of these types per paymentId (unique on paymentId+type).
   const idempotent = Boolean(meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT' || type === 'SETTLEMENT_CREDIT'))
-  if (idempotent) {
-    try {
-      await db.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          amount,
-          type,
-          paymentId: meta.paymentId,
-          bookingId: meta.bookingId,
-          withdrawRequestId: meta.withdrawRequestId,
-          note: meta.note,
-        },
+
+  const apply = async (tx: DbClient) => {
+    const wallet = await getOrCreateWallet(userId, tx)
+    if (idempotent) {
+      const existing = await tx.walletTransaction.findFirst({
+        where: { paymentId: meta.paymentId, type },
       })
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return wallet
-      throw error
+      if (existing) return wallet
     }
-  }
-  const updated = await db.wallet.update({
-    where: { id: wallet.id },
-    data: { balance: { increment: amount } },
-  })
-  if (!idempotent) {
-    await db.walletTransaction.create({
+    // Balance + ledger in one transaction so a failed ledger write cannot leave a credit without a row
+    // (and a lost unique race rolls the balance increment back).
+    const updated = await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: amount } },
+    })
+    await tx.walletTransaction.create({
       data: {
         walletId: wallet.id,
         amount,
@@ -146,8 +138,22 @@ export async function creditWallet(
         note: meta.note,
       },
     })
+    return updated
   }
-  return updated
+
+  if ('$transaction' in db && typeof db.$transaction === 'function') {
+    try {
+      return await db.$transaction((tx) => apply(tx))
+    } catch (error) {
+      if (idempotent && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return getOrCreateWallet(userId, prisma)
+      }
+      throw error
+    }
+  }
+
+  // Already inside a caller transaction — apply in-place; unique race aborts the parent tx.
+  return apply(db)
 }
 
 /**
