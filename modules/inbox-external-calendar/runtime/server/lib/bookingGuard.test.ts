@@ -17,6 +17,9 @@ const prismaMock = vi.hoisted(() => ({
   court: {
     findMany: vi.fn(),
   },
+  manualAvailabilityOverride: {
+    findMany: vi.fn(),
+  },
 }))
 
 vi.stubGlobal('prisma', prismaMock)
@@ -31,6 +34,7 @@ describe('assertExternalBookingAllowed', () => {
     prismaMock.court.findMany.mockResolvedValue([
       { id: 'court-1', nameFa: 'زمین ۱', openHour: null, closeHour: null },
     ])
+    prismaMock.manualAvailabilityOverride.findMany.mockResolvedValue([])
   })
 
   it('skips when club has no external mapping', async () => {
@@ -141,6 +145,111 @@ describe('assertExternalBookingAllowed', () => {
       policy: 'fail_open_unknown',
       error: 'Network timeout',
     }))
+  })
+
+  it('allows booking when EXTERNAL_BUSY has RELEASE override for exact slot', async () => {
+    vi.mocked(fetchExternalOccupancy).mockResolvedValue({
+      occupied: [{
+        courtKey: 'court-1',
+        startTime: '18:00',
+        endTime: '19:00',
+        source: 'alovarzesh',
+        state: 'EXTERNAL_BUSY',
+      }],
+      adapters: [],
+      persistOccupied: [],
+    })
+    prismaMock.manualAvailabilityOverride.findMany.mockResolvedValue([{
+      courtId: 'court-1',
+      date: '2026-09-14',
+      startTime: '18:00',
+      type: 'RELEASE',
+    }])
+
+    await expect(assertExternalBookingAllowed({
+      club: {
+        id: 'club-iust',
+        slug: 'iust-tennis',
+        defaultSessionDurationMinutes: 60,
+        openHour: 7,
+        closeHour: 23,
+      },
+      slots: [{ courtId: 'court-1', date: '2026-09-14', startTime: '18:00' }],
+    })).resolves.toBeUndefined()
+  })
+
+  it('rejects booking when BLOCK override exists on externally free slot', async () => {
+    vi.mocked(fetchExternalOccupancy).mockResolvedValue({
+      occupied: [],
+      adapters: [],
+      persistOccupied: [],
+    })
+    prismaMock.manualAvailabilityOverride.findMany.mockResolvedValue([{
+      courtId: 'court-1',
+      date: '2026-09-14',
+      startTime: '18:00',
+      type: 'BLOCK',
+    }])
+
+    await expect(assertExternalBookingAllowed({
+      club: {
+        id: 'club-iust',
+        slug: 'iust-tennis',
+        defaultSessionDurationMinutes: 60,
+        openHour: 7,
+        closeHour: 23,
+      },
+      slots: [{ courtId: 'court-1', date: '2026-09-14', startTime: '18:00' }],
+    })).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage: 'Slot not available',
+    })
+  })
+
+  it('RELEASE on 18:00 does not release 19:00 EXTERNAL_BUSY', async () => {
+    vi.mocked(fetchExternalOccupancy).mockResolvedValue({
+      occupied: [
+        {
+          courtKey: 'court-1',
+          startTime: '18:00',
+          endTime: '19:00',
+          source: 'alovarzesh',
+          state: 'EXTERNAL_BUSY',
+        },
+        {
+          courtKey: 'court-1',
+          startTime: '19:00',
+          endTime: '20:00',
+          source: 'alovarzesh',
+          state: 'EXTERNAL_BUSY',
+        },
+      ],
+      adapters: [],
+      persistOccupied: [],
+    })
+    prismaMock.manualAvailabilityOverride.findMany.mockResolvedValue([{
+      courtId: 'court-1',
+      date: '2026-09-14',
+      startTime: '18:00',
+      type: 'RELEASE',
+    }])
+
+    await expect(assertExternalBookingAllowed({
+      club: {
+        id: 'club-iust',
+        slug: 'iust-tennis',
+        defaultSessionDurationMinutes: 60,
+        openHour: 7,
+        closeHour: 23,
+      },
+      slots: [
+        { courtId: 'court-1', date: '2026-09-14', startTime: '18:00' },
+        { courtId: 'court-1', date: '2026-09-14', startTime: '19:00' },
+      ],
+    })).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage: 'Slot occupied on external booking site',
+    })
   })
 
   it('still rejects EXTERNAL_BUSY when fetch succeeds after a prior date failure', async () => {

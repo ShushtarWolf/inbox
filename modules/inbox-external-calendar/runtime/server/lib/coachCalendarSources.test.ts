@@ -89,6 +89,9 @@ describe('buildCalendarSourcesResponse coach occupancy', () => {
       ownerExternalNote: {
         findMany: vi.fn().mockResolvedValue([]),
       },
+      manualAvailabilityOverride: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     })
     vi.mocked(hasExternalMapping).mockReturnValue(true)
     vi.mocked(getClubMapping).mockReturnValue({

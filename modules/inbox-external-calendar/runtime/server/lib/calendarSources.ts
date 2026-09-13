@@ -6,6 +6,7 @@ import { persistAndMergeExternalOccupancy } from './occupancySnapshots'
 import { remapExternalOccupancyCourtKeys } from './remapExternalCourtKeys'
 import { enrichCellsWithSourceDetails } from './sourceDetails'
 import { verdictsForReconcile } from '../../../lib/padFailedSourceUnknown'
+import { effectiveBlocksBooking } from '../../../lib/manualOverrideLogic'
 import { SOURCE_LABELS, type ExternalAdapterResult, type ExternalSourceId } from './types'
 
 const POLL_INTERVAL_MS = 25_000
@@ -53,17 +54,40 @@ export async function buildCalendarSourcesResponse(opts: {
 
   const cells = enrichCellsWithSourceDetails(merged, mapping)
 
-  const noteRows = await prisma.ownerExternalNote.findMany({
-    where: { clubId: opts.clubId, date: opts.date },
-    select: { courtId: true, startTime: true, note: true },
-  })
+  const [noteRows, overrideRows] = await Promise.all([
+    prisma.ownerExternalNote.findMany({
+      where: { clubId: opts.clubId, date: opts.date },
+      select: { courtId: true, startTime: true, note: true },
+    }),
+    prisma.manualAvailabilityOverride.findMany({
+      where: { clubId: opts.clubId, date: opts.date },
+      select: { id: true, courtId: true, startTime: true, type: true },
+    }),
+  ])
   const noteByKey = new Map(
     noteRows.map((row) => [`${row.courtId}:${row.startTime.slice(0, 5)}`, row.note] as const),
   )
-  const cellsWithNotes = cells.map((cell) => ({
-    ...cell,
-    ownerNote: noteByKey.get(`${cell.courtId}:${cell.startTime.slice(0, 5)}`) || null,
-  }))
+  const overrideByKey = new Map(
+    overrideRows.map((row) => [
+      `${row.courtId}:${row.startTime.slice(0, 5)}`,
+      { id: row.id, type: row.type },
+    ] as const),
+  )
+  const cellsWithNotes = cells.map((cell) => {
+    const key = `${cell.courtId}:${cell.startTime.slice(0, 5)}`
+    const override = overrideByKey.get(key)
+    const manualOverride = override?.type ?? null
+    return {
+      ...cell,
+      ownerNote: noteByKey.get(key) || null,
+      manualOverride,
+      manualOverrideId: override?.id ?? null,
+      effectiveBlocksBooking: effectiveBlocksBooking({
+        externalState: cell.externalState,
+        manualOverride,
+      }),
+    }
+  })
 
   return {
     date: opts.date,
