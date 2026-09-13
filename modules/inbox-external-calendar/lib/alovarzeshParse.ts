@@ -25,11 +25,12 @@ const DAY_BOX_OPEN_RE = /<div\b[^>]*\bclass="([^"]*\bday-box\b[^"]*)"[^>]*>/gi
 /**
  * Parse AloVarzesh product HTML timetable into per-hour verdicts.
  *
- * Reserved (BUSY) only when:
+ * BUSY when:
  * - soft hold `reserve-over`, or
- * - `bg-disabled` AND reserved styling (`reserve-time` / `box-green-reserve-time`)
+ * - `bg-disabled` AND reserved styling (`reserve-time` / `box-green-reserve-time`), or
+ * - future `bg-disabled` without reserved styling (production marks these "رزرو شده" / 0 sessions)
  *
- * Bare `bg-disabled` (past / unbookable / unclear) → UNKNOWN (never BUSY).
+ * Past `bg-disabled` before `ignoreBefore` → UNKNOWN (morning hours greyed on today's page).
  * Bookable boxes (no disabled/hold) → FREE.
  */
 export function parseAloVarzeshSlotStates(
@@ -92,8 +93,9 @@ export function parseAloVarzeshSlotStates(
       continue
     }
 
-    // Bare bg-disabled without reserved styling → UNKNOWN (availability-first).
-    byTime.set(time, { time, verdict: 'UNKNOWN', reason: 'disabled_unspecified' })
+    if (isDisabled) {
+      byTime.set(time, { time, verdict: 'BUSY', reason: 'disabled_unavailable' })
+    }
   }
 
   return [...byTime.values()].sort((a, b) => a.time.localeCompare(b.time))
