@@ -4,6 +4,7 @@ export type ExternalCollectionLogEvent =
   | 'booking_guard_start'
   | 'booking_guard_done'
   | 'booking_guard_blocked'
+  | 'booking_guard_fetch_failed'
 
 export function logExternalCollection(
   event: ExternalCollectionLogEvent,

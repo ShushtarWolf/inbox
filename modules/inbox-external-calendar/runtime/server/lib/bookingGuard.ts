@@ -52,12 +52,26 @@ export async function assertExternalBookingAllowed(opts: {
 
   for (const date of [...new Set(opts.slots.map((slot) => slot.date))]) {
     const dateSlots = opts.slots.filter((slot) => slot.date === date)
-    const external = await fetchExternalOccupancy({
-      mapping,
-      date,
-      courts,
-      sessionDurationMinutes: opts.club.defaultSessionDurationMinutes,
-    })
+    let external: Awaited<ReturnType<typeof fetchExternalOccupancy>>
+    try {
+      external = await fetchExternalOccupancy({
+        mapping,
+        date,
+        courts,
+        sessionDurationMinutes: opts.club.defaultSessionDurationMinutes,
+      })
+    } catch (error) {
+      // Availability-first: unexpected fetch failure → UNKNOWN, never block booking.
+      logExternalCollection('booking_guard_fetch_failed', {
+        clubSlug: opts.club.slug,
+        clubId: opts.club.id,
+        date,
+        slotCount: dateSlots.length,
+        error: error instanceof Error ? error.message : String(error),
+        policy: 'fail_open_unknown',
+      })
+      continue
+    }
 
     const dateBlocked = findExternallyBlockedSlots(dateSlots, external.occupied)
     for (const row of dateBlocked) {
