@@ -147,6 +147,8 @@ const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(nul
 const payLinkCopied = ref(false)
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
+/** Canva (11): daily/weekly ask on walk-in reserve → season panel when enabled. */
+const recurringWanted = ref(false)
 /** Grid filter: all reserved types, free-play only, or coach-tagged only. */
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 
@@ -1125,6 +1127,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   refundToWallet.value = true
   actionError.value = ''
   sessionType.value = activeBooking(fullSlot)?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
+  recurringWanted.value = false
   const isFree = fullSlot.displayStatus === 'FREE' || !activeBooking(fullSlot)
   const booking = activeBooking(fullSlot)
   form.guestName = isFree ? '' : (booking?.guestName || '')
@@ -1153,15 +1156,17 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   }
   form.equipmentQuantities = quantities
   const defaultRange = defaultDayRange(fullSlot)
-  const anchorDay = weekdayNameFromDate(fullSlot.date || data.value?.date || today())
-  seasonForm.startDate = ''
+  const anchorDate = fullSlot.date || data.value?.date || today()
+  const anchorDay = weekdayNameFromDate(anchorDate)
+  // Keep the tapped/selected day as season start — do not wipe the date context.
+  seasonForm.startDate = anchorDate
   seasonForm.finishDate = ''
   seasonForm.days = [anchorDay]
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = booking?.comments || ''
   packageForm.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
-  packageForm.startDate = ''
+  packageForm.startDate = anchorDate
   packageForm.finishDate = ''
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
@@ -1301,7 +1306,34 @@ function clearRecurringPreview() {
 function openSeasonForm() {
   if (!canShowSeasonReserve()) return
   clearRecurringPreview()
+  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value
+  const anchorDate = slot?.date || data.value?.date || date.value || today()
+  if (!seasonForm.startDate) seasonForm.startDate = anchorDate
+  const anchorDay = weekdayNameFromDate(anchorDate)
+  if (!seasonForm.days.length) {
+    seasonForm.days = [anchorDay]
+    seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
+  }
+  // Multi-select free slots: seed weekdays/times from the basket so dates stay visible.
+  if (selectedSlotsFull.value.length > 1 && selectedSlotsFull.value.every((s) => s.displayStatus === 'FREE')) {
+    const days = uniqueOrdered(selectedSlotsFull.value.map((s) => weekdayNameFromDate(s.date || anchorDate)))
+    const ranges: Record<string, DayTimeRange> = { ...seasonForm.dayTimes }
+    for (const s of selectedSlotsFull.value) {
+      const day = weekdayNameFromDate(s.date || anchorDate)
+      ranges[day] = defaultDayRange(s)
+    }
+    seasonForm.days = days
+    seasonForm.dayTimes = ensureDayTimesForDays(ranges, days, defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
+  }
   activePanel.value = 'season'
+}
+
+function openSeasonFormFromReserve() {
+  if (!guestFieldsValid()) {
+    actionError.value = t('owner.guestRequired')
+    return
+  }
+  openSeasonForm()
 }
 
 function openPackageForm() {
@@ -2789,7 +2821,7 @@ watch(pilotNoCoach, (off) => {
               </span>
             </div>
           </div>
-          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
+          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()">
             <div class="venus-form-grid">
               <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
                 <div class="relative">
@@ -2956,6 +2988,14 @@ watch(pilotNoCoach, (off) => {
             <AppFormField :label="t('owner.comments')" field-id="owner-reserve-comments">
               <textarea id="owner-reserve-comments" v-model="form.comments" class="neo-textarea" rows="2" />
             </AppFormField>
+
+            <template v-if="isNewReservation() && canShowSeasonReserve()">
+              <label class="canva-recurring-check">
+                <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox">
+                <span>{{ t('owner.recurringWanted') }}</span>
+              </label>
+              <p v-if="recurringWanted" class="text-start text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
+            </template>
           </form>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
@@ -2968,27 +3008,15 @@ watch(pilotNoCoach, (off) => {
               type="button"
               class="canva-gate-btn-primary"
               :disabled="!canSubmitReserve()"
-              @click="isNewReservation() ? openPayConfirm() : doReserve()"
+              @click="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()"
             >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
-            <div
-              v-if="isNewReservation() && (canShowSeasonReserve() || canShowPackageReserve())"
-              class="flex flex-col gap-2 sm:flex-row"
-            >
-              <button
-                v-if="canShowSeasonReserve()"
-                type="button"
-                class="canva-gate-btn-secondary sm:flex-1"
-                :disabled="saving"
-                @click="openSeasonForm"
-              >{{ t('owner.seasonReserve') }}</button>
-              <button
-                v-if="canShowPackageReserve()"
-                type="button"
-                class="canva-gate-btn-secondary sm:flex-1"
-                :disabled="saving"
-                @click="openPackageForm"
-              >{{ t('owner.packageReserve') }}</button>
-            </div>
+            <button
+              v-if="isNewReservation() && canShowPackageReserve()"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving"
+              @click="openPackageForm"
+            >{{ t('owner.packageReserve') }}</button>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
@@ -3273,6 +3301,19 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <div class="venus-modal-panel-body">
+            <div
+              v-if="slotsForReserve().length"
+              class="mb-3 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600"
+            >
+              <span
+                v-for="slot in slotsForReserve()"
+                :key="slot.id"
+                class="bg-brand-lavender px-2 py-0.5"
+                style="border-radius: var(--sz-canva-radius);"
+              >
+                {{ slotCellLabel(slot) }}
+              </span>
+            </div>
             <div class="venus-form-stack">
               <div class="venus-form-grid">
                 <AppFormField :label="t('owner.guestName')" required>
@@ -3376,6 +3417,19 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <div class="venus-modal-panel-body">
+            <div
+              v-if="slotsForReserve().length"
+              class="mb-3 flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-gray-600"
+            >
+              <span
+                v-for="slot in slotsForReserve()"
+                :key="slot.id"
+                class="bg-brand-lavender px-2 py-0.5"
+                style="border-radius: var(--sz-canva-radius);"
+              >
+                {{ slotCellLabel(slot) }}
+              </span>
+            </div>
             <div class="venus-form-stack">
               <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
                 <select v-model="packageForm.coachId" class="neo-select">

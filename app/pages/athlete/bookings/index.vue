@@ -158,8 +158,19 @@ function nextMonth() {
 }
 
 function selectDay(iso: string) {
-  monthAnchor.value = iso
-  selectedDayIso.value = selectedDayIso.value === iso ? null : iso
+  // Keep the tapped day selected (second tap clears). Do not bounce monthAnchor first —
+  // that remount feel made the highlight look like it disappeared.
+  if (selectedDayIso.value === iso) {
+    selectedDayIso.value = null
+    return
+  }
+  selectedDayIso.value = iso
+  const j = isoToJalaali(iso)
+  if (j.jy !== viewYear.value || j.jm !== viewMonth.value) {
+    viewYear.value = j.jy
+    viewMonth.value = j.jm
+    monthAnchor.value = iso
+  }
 }
 
 function clearCalendarFilter() {
@@ -430,7 +441,11 @@ watch(
   { immediate: true },
 )
 
-const visibleHistory = computed(() => historyItems.value)
+const visibleHistory = computed(() => {
+  // Scope to the visible Jalali month so past months do not dump into the list.
+  const key = `${viewYear.value}-${String(viewMonth.value).padStart(2, '0')}`
+  return historyItems.value.filter((item) => monthKeyJalali(item.date) === key)
+})
 
 const activeDaySet = computed(() => {
   const key = `${viewYear.value}-${String(viewMonth.value).padStart(2, '0')}`
@@ -470,7 +485,7 @@ const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
 const historyEmptyTitle = computed(() => {
   if (selectedDayIso.value) return t('athlete.historyEmptyDay')
-  return t('booking.emptyState')
+  return t('athlete.historyEmptyMonth')
 })
 
 const historyEmptyBody = computed(() => {
@@ -479,7 +494,7 @@ const historyEmptyBody = computed(() => {
       ? t('athlete.historyEmptyDayFilterBody')
       : t('athlete.historyEmptyDayBody')
   }
-  return ''
+  return t('athlete.historyEmptyMonthBody')
 })
 
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
