@@ -151,7 +151,7 @@ async function main() {
   assert(reservedSlot?.booking?.guestMobile === guestMobile, 'desk reserve missing guestMobile')
   console.log('ok  desk reserve (guestMobile, RESERVED)')
 
-  // Season recurring stays frozen unless RECURRING_RESERVE_ENABLED=true
+  // Season recurring: 403 when frozen; allow when RECURRING_RESERVE_ENABLED=true
   const seasonDate = dateOffset(21)
   const { data: seasonCal } = await apiFetch(base, `/api/owner/calendar?date=${seasonDate}`, {
     jar,
@@ -175,25 +175,32 @@ async function main() {
       times: [seasonSlot.startTime.slice(0, 5)],
     },
   })
-  assert(previewRes.status === 403, `recurring preview expected 403 while frozen, got ${previewRes.status}`)
-  const { res: seasonRes } = await apiFetch(base, '/api/owner/season', {
-    jar,
-    session: 'owner',
-    method: 'POST',
-    body: {
-      guestName: 'Pilot',
-      guestFamily: 'Season',
-      guestMobile,
-      slotId: seasonSlot.id,
-      startDate: seasonSlot.date,
-      finishDate: seasonFinish,
-      days: [seasonWeekday],
-      times: [seasonSlot.startTime.slice(0, 5)],
-      acceptSkips: true,
-    },
-  })
-  assert(seasonRes.status === 403, `season reserve expected 403 while frozen, got ${seasonRes.status}`)
-  console.log('ok  season/recurring APIs frozen (403)')
+  const recurringOn = process.env.RECURRING_RESERVE_ENABLED === 'true'
+    || process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+  if (recurringOn) {
+    assert(previewRes.status !== 403, `recurring preview should be unlocked when enabled, got ${previewRes.status}`)
+    console.log('ok  recurring preview unlocked (RECURRING_RESERVE_ENABLED)')
+  } else {
+    assert(previewRes.status === 403, `recurring preview expected 403 while frozen, got ${previewRes.status}`)
+    const { res: seasonRes } = await apiFetch(base, '/api/owner/season', {
+      jar,
+      session: 'owner',
+      method: 'POST',
+      body: {
+        guestName: 'Pilot',
+        guestFamily: 'Season',
+        guestMobile,
+        slotId: seasonSlot.id,
+        startDate: seasonSlot.date,
+        finishDate: seasonFinish,
+        days: [seasonWeekday],
+        times: [seasonSlot.startTime.slice(0, 5)],
+        acceptSkips: true,
+      },
+    })
+    assert(seasonRes.status === 403, `season reserve expected 403 while frozen, got ${seasonRes.status}`)
+    console.log('ok  season/recurring APIs frozen (403)')
+  }
 
   // Occupied overwrite path is unreachable while freeze is on — skip conflict smoke
   console.log('ok  season overwrite check skipped (recurring freeze)')

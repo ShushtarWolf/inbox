@@ -1,10 +1,10 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { getPaymentsMode } from '#shared/payments.ts'
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
+import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 
 function resolveDayTimes(
@@ -39,12 +39,7 @@ function firstScheduleTime(expanded: Record<string, string[]>, times?: string[])
 }
 
 export default defineEventHandler(async (event) => {
-  if (!isRecurringReserveEnabled()) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'RECURRING_RESERVE_DISABLED',
-    })
-  }
+  assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     guestName?: string

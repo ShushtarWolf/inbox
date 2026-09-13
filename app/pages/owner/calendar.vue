@@ -11,7 +11,7 @@ import {
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
-import { isOwnerRecurringBooking, isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
+import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import {
@@ -123,7 +123,7 @@ const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
-const { pilotNoCoach } = usePilotFlags()
+const { pilotNoCoach, recurringReserveEnabled } = usePilotFlags()
 const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
 
 const date = ref(today())
@@ -1985,12 +1985,12 @@ function canReserveSlot() {
 }
 
 function canShowSeasonReserve() {
-  return isRecurringReserveEnabled()
+  return recurringReserveEnabled.value
 }
 
 /** Package recurring stays hidden while coach product is frozen. */
 function canShowPackageReserve() {
-  return isRecurringReserveEnabled() && !pilotNoCoach.value
+  return recurringReserveEnabled.value && !pilotNoCoach.value
 }
 
 function canMarkPaid() {

@@ -1,6 +1,6 @@
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
+import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 
 function resolveExpanded(
@@ -25,12 +25,7 @@ function resolveExpanded(
 
 /** Dry-run conflict preview for season / package recurring desk reserve. */
 export default defineEventHandler(async (event) => {
-  if (!isRecurringReserveEnabled()) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'RECURRING_RESERVE_DISABLED',
-    })
-  }
+  assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string

@@ -394,16 +394,22 @@ async function main() {
     record('R-03', [301, 302, 307, 308].includes(res.status) && !loc.includes('/coaches'), `redirect ${res.status} → ${loc}`)
   }
 
-  // R-04 Season/package recurring frozen (empty body → 403 RECURRING_RESERVE_DISABLED)
+  // R-04 Season/package recurring: 403 when frozen; unlocked when RECURRING_RESERVE_ENABLED=true
   {
+    const recurringOn = process.env.RECURRING_RESERVE_ENABLED === 'true'
+      || process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
     const { res } = await apiFetch(base, '/api/owner/season', {
       jar,
       session: 'owner',
       method: 'POST',
       body: {},
-      expectStatus: 403,
+      expectStatus: recurringOn ? undefined : 403,
     })
-    record('R-04', res.status === 403)
+    record(
+      'R-04',
+      recurringOn ? res.status !== 403 : res.status === 403,
+      recurringOn ? `unlocked status=${res.status}` : undefined,
+    )
   }
 
   // OPS-01 competition feature gate

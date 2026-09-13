@@ -28,7 +28,7 @@ Copy/paste checklist. Mark each row when set.
 | ☐ | `PILOT_NO_COACH` | `true` | `false` (or unset) — unlocks coach signup, `/coaches`, wallet court book |
 | ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; redeploy after change |
 
-When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Keep packages/recurring frozen.
+When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Class packages and season/recurring desk reserve are independent env gates.
 
 ---
 
@@ -141,7 +141,7 @@ Detail: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md).
 
 ## F2. Class packages (optional — off by default)
 
-Independent of desk season/package recurring (`isRecurringReserveEnabled` stays false).
+Independent of desk season/package recurring (`RECURRING_RESERVE_ENABLED`).
 
 | ☐ | Variable | Fill with | Notes |
 |---|----------|-----------|--------|
@@ -154,6 +154,22 @@ NUXT_PUBLIC_PACKAGES_ENABLED=true
 ```
 
 Requires DB migration `20260829173000_class_packages_safety`. Cron: `POST /api/admin/packages/expire-pending` with admin secret (also best-effort in `.github/workflows/competition-cron.yml`) clears unpaid online PENDING seats (~10 min).
+
+---
+
+## F3. Season / package recurring desk reserve (optional — off by default)
+
+Unlocks owner calendar **رزرو فصلی** / package recurring sheets and `/api/owner/season` + `/api/owner/package-reserve`. Set both mirrors; redeploy so `runtimeConfig.public` picks them up.
+
+| ☐ | Variable | Fill with | Notes |
+|---|----------|-----------|--------|
+| ☐ | `RECURRING_RESERVE_ENABLED` | `true` | Server APIs |
+| ☐ | `NUXT_PUBLIC_RECURRING_RESERVE_ENABLED` | `true` | Client calendar openers (required) |
+
+```bash
+RECURRING_RESERVE_ENABLED=true
+NUXT_PUBLIC_RECURRING_RESERVE_ENABLED=true
+```
 
 ---
 

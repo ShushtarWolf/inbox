@@ -3,6 +3,7 @@ export function usePilotFlags() {
   const pilotNoCoach = computed(() => Boolean(config.public.pilotNoCoach))
   const competitionsEnabled = computed(() => Boolean(config.public.competitionsEnabled))
   const packagesEnabled = computed(() => Boolean(config.public.packagesEnabled))
+  const recurringReserveEnabled = computed(() => Boolean(config.public.recurringReserveEnabled))
   const competitionsPilotClubSlug = computed(() => {
     const slug = String(config.public.competitionsPilotClubSlug || '').trim()
     return slug || null
@@ -18,6 +19,7 @@ export function usePilotFlags() {
     pilotNoCoach,
     competitionsEnabled,
     packagesEnabled,
+    recurringReserveEnabled,
     competitionsPilotClubSlug,
     competitionsVisibleForClub,
   }

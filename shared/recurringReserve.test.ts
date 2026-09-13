@@ -27,6 +27,13 @@ describe('isRecurringReserveEnabled', () => {
     delete process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
     expect(isRecurringReserveEnabled()).toBe(true)
   })
+
+  it('honors explicit enabled override (runtimeConfig)', () => {
+    delete process.env.RECURRING_RESERVE_ENABLED
+    delete process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED
+    expect(isRecurringReserveEnabled({ enabled: true })).toBe(true)
+    expect(isRecurringReserveEnabled({ enabled: false })).toBe(false)
+  })
 })
 
 describe('isOwnerRecurringBooking', () => {

@@ -1,12 +1,21 @@
+export type RecurringReserveGateOptions = {
+  env?: NodeJS.ProcessEnv
+  /** Explicit override (e.g. Nuxt runtimeConfig.public.recurringReserveEnabled). */
+  enabled?: boolean
+}
+
 /**
  * Desk season/package recurring reserve — overwrite-safe FREE-only claims.
- * Behnaz MVP freeze: keep OFF unless explicitly enabled (server + public mirror).
+ * Default OFF; opt in via RECURRING_RESERVE_ENABLED / NUXT_PUBLIC_ mirror,
+ * or pass enabled from runtimeConfig on the client.
  */
-export function isRecurringReserveEnabled(): boolean {
-  if (typeof process === 'undefined' || !process.env) return false
+export function isRecurringReserveEnabled(options?: RecurringReserveGateOptions): boolean {
+  if (typeof options?.enabled === 'boolean') return options.enabled
+  const env = options?.env ?? (typeof process !== 'undefined' ? process.env : undefined)
+  if (!env) return false
   return (
-    process.env.RECURRING_RESERVE_ENABLED === 'true'
-    || process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+    env.RECURRING_RESERVE_ENABLED === 'true'
+    || env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
   )
 }
 

@@ -216,6 +216,10 @@ export default defineNuxtConfig({
       packagesEnabled:
         process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
         || process.env.PACKAGES_ENABLED === 'true',
+      // Season/package recurring desk reserve. Default off; set on Liara to unlock calendar sheets.
+      recurringReserveEnabled:
+        process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+        || process.env.RECURRING_RESERVE_ENABLED === 'true',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE
