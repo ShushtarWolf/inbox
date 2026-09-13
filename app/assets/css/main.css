@@ -2415,16 +2415,14 @@
     @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2.5 text-sm;
   }
   .canva-recurring-check {
-    @apply flex items-start gap-2 text-xs font-bold text-brand-navy;
+    @apply flex w-full items-start gap-2 text-xs font-bold text-brand-navy;
   }
-  .canva-recurring-ask {
-    @apply flex w-full items-start gap-1.5 border-0 bg-transparent p-0 text-start text-xs font-bold text-brand-navy;
+  .canva-recurring-check .canva-recurring-checkbox {
+    @apply mt-0.5 h-[1.05rem] w-[1.05rem] border-brand-gray-400;
   }
-  .canva-recurring-ask-on {
-    @apply text-brand-primary;
-  }
-  .canva-recurring-ask-star {
-    @apply shrink-0 text-sm font-black leading-none text-brand-primary;
+  .canva-recurring-check .canva-recurring-checkbox:checked {
+    border-color: var(--color-brand-primary, #c8102e);
+    background-color: var(--color-brand-primary, #c8102e);
   }
   .canva-reserve-head {
     @apply flex flex-wrap items-center gap-2;

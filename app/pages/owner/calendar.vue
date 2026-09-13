@@ -1363,6 +1363,17 @@ function openSeasonFormFromReserve() {
   openSeasonForm()
 }
 
+/** Secondary «رزرو فصلی» — same season sheet, guest fields optional until confirm. */
+function openSeasonReserveButton() {
+  if (!canShowSeasonReserve()) {
+    actionError.value = t('owner.seasonPage.disabled')
+    return
+  }
+  recurringWanted.value = true
+  reserveFlowReturn.value = true
+  openSeasonForm()
+}
+
 function openBlockFromReserve() {
   actionError.value = ''
   reserveFlowReturn.value = true
@@ -1396,6 +1407,7 @@ function openFabCancel() {
 function openPackageForm() {
   if (!canShowPackageReserve()) return
   clearRecurringPreview()
+  reserveFlowReturn.value = true
   activePanel.value = 'package'
 }
 
@@ -1445,7 +1457,12 @@ function hasBookedDetailContext() {
 function backToMenu() {
   if (
     reserveFlowReturn.value
-    && (activePanel.value === 'block' || activePanel.value === 'comments' || activePanel.value === 'season')
+    && (
+      activePanel.value === 'block'
+      || activePanel.value === 'comments'
+      || activePanel.value === 'season'
+      || activePanel.value === 'package'
+    )
   ) {
     reserveFlowReturn.value = false
     activePanel.value = 'reserve'
@@ -2366,9 +2383,6 @@ function reserveFormTitle() {
 }
 
 function confirmReserveLabel() {
-  if (isNewReservation() && recurringWanted.value && canShowSeasonReserve()) {
-    return t('owner.continueSeasonReserve')
-  }
   return isNewReservation() ? t('owner.confirmReserve') : t('common.save')
 }
 
@@ -3103,17 +3117,10 @@ watch(pilotNoCoach, (off) => {
             </AppFormField>
 
             <template v-if="isNewReservation() && canShowSeasonReserve()">
-              <button
-                type="button"
-                class="canva-recurring-ask"
-                :class="{ 'canva-recurring-ask-on': recurringWanted }"
-                :aria-pressed="recurringWanted"
-                @click="recurringWanted = !recurringWanted"
-              >
-                <span class="canva-recurring-ask-star" aria-hidden="true">*</span>
+              <label class="canva-recurring-check">
+                <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox canva-recurring-checkbox">
                 <span class="text-start">{{ t('owner.recurringWanted') }}</span>
-              </button>
-              <p v-if="recurringWanted" class="text-start text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
+              </label>
             </template>
           </form>
           <div class="venus-modal-footer">
@@ -3129,13 +3136,25 @@ watch(pilotNoCoach, (off) => {
               :disabled="!canSubmitReserve()"
               @click="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()"
             >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
-            <button
-              v-if="isNewReservation() && canShowPackageReserve()"
-              type="button"
-              class="canva-gate-btn-secondary"
-              :disabled="saving"
-              @click="openPackageForm"
-            >{{ t('owner.packageReserve') }}</button>
+            <div
+              v-if="isNewReservation() && (canShowSeasonReserve() || canShowPackageReserve())"
+              class="flex flex-col gap-2 sm:flex-row"
+            >
+              <button
+                v-if="canShowSeasonReserve()"
+                type="button"
+                class="canva-gate-btn-secondary sm:flex-1"
+                :disabled="saving"
+                @click="openSeasonReserveButton"
+              >{{ t('owner.seasonReserve') }}</button>
+              <button
+                v-if="canShowPackageReserve()"
+                type="button"
+                class="canva-gate-btn-secondary sm:flex-1"
+                :disabled="saving"
+                @click="openPackageForm"
+              >{{ t('owner.packageReserve') }}</button>
+            </div>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
@@ -3545,7 +3564,12 @@ watch(pilotNoCoach, (off) => {
         <div v-if="canShowPackageReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
+              <button
+                type="button"
+                class="btn-ghost px-2 py-1 text-xs"
+                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
+                @click="backToMenu"
+              >
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
