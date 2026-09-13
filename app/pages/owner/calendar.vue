@@ -7,6 +7,7 @@ import {
   countRecurringSessionsByDayInRange,
   ensureDayTimesForDays,
   hasValidDayTimes,
+  timesInRange,
   weekdayNameFromDate,
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
@@ -176,8 +177,10 @@ const seasonForm = reactive({
   comments: '',
 })
 
-/** Default season span so «ثبت رزرو» is not stuck on an empty finish date. */
-const SEASON_DEFAULT_SPAN_DAYS = 90
+/** Default season span — 4 weeks (safer than a silent 90-day fill). */
+const SEASON_DEFAULT_SPAN_DAYS = 28
+/** Hint after narrowing multi-court / gapped hour selection for season. */
+const seasonSelectionHint = ref('')
 
 const packageForm = reactive({
   coachId: '',
@@ -449,6 +452,14 @@ const courtPrice = computed(() => {
   }
   return selectedSlotFull.value?.price ?? 0
 })
+/** Season estimate: one court × one session price (not sum of multi-select chips). */
+const seasonCourtPrice = computed(() => {
+  const slot = selectedSlotFull.value
+    || selectedSlotsFull.value.find((s) => s.id === selectedSlot.value?.id)
+    || selectedSlotsFull.value[0]
+  return slot?.price ?? 0
+})
+const packageCourtPrice = computed(() => seasonCourtPrice.value)
 const selectedCoach = computed(() => {
   if (!packageForm.coachId) return null
   return clubCoaches.value.find((coach) => coach.id === packageForm.coachId) || null
@@ -1322,13 +1333,81 @@ function ensureSeasonDateDefaults(anchorDate: string) {
   }
 }
 
-function openSeasonForm() {
+function ensurePackageDateDefaults(anchorDate: string) {
+  if (!packageForm.startDate) packageForm.startDate = anchorDate
+  if (!packageForm.finishDate) {
+    packageForm.finishDate = addDaysToIsoDate(packageForm.startDate || anchorDate, SEASON_DEFAULT_SPAN_DAYS)
+  }
+}
+
+/** Prefer walk-in sheet values when entering the season panel. */
+function syncSeasonFormFromWalkIn() {
+  if (form.comments.trim()) seasonForm.comments = form.comments.trim()
+  if (form.equipmentIds.length) seasonForm.equipmentId = form.equipmentIds[0] || ''
+}
+
+/**
+ * Season API is single-court. Keep only the anchor court; merge same-weekday hours
+ * into one start–end range (warn if the merge fills gaps the owner did not select).
+ */
+function narrowSeasonSelectionToAnchorCourt() {
+  seasonSelectionHint.value = ''
+  const anchor = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
+  if (!anchor) return
+  const anchorDate = anchor.date || data.value?.date || date.value || today()
+  const courtId = anchor.courtId
+  const freeSelected = selectedSlotsFull.value.filter((s) => s.displayStatus === 'FREE')
+  const hadOtherCourts = freeSelected.some((s) => s.courtId !== courtId)
+  const pool = (freeSelected.filter((s) => s.courtId === courtId).length
+    ? freeSelected.filter((s) => s.courtId === courtId)
+    : [anchor]) as OwnerCalendarSlot[]
+
+  selectedSlotIds.value = uniqueOrdered(pool.map((s) => s.id))
+  selectedSlot.value = pool[0] || anchor
+  selectionCourtId.value = courtId
+  multiSelectMode.value = selectedSlotIds.value.length > 1
+
+  const byDay: Record<string, OwnerCalendarSlot[]> = {}
+  for (const s of pool) {
+    const day = weekdayNameFromDate(s.date || anchorDate)
+    if (!byDay[day]) byDay[day] = []
+    byDay[day]!.push(s)
+  }
+  const days = uniqueOrdered(Object.keys(byDay))
+  const ranges: Record<string, DayTimeRange> = {}
+  let hasGap = false
+  for (const day of days) {
+    const daySlots = byDay[day] || []
+    const starts = daySlots.map((s) => s.startTime.slice(0, 5)).sort()
+    const ends = daySlots.map((s) => s.endTime.slice(0, 5)).sort()
+    const start = starts[0] || '12:00'
+    const end = ends[ends.length - 1] || '13:00'
+    ranges[day] = { start, end }
+    const covered = new Set(
+      daySlots.flatMap((s) => timesInRange(s.startTime.slice(0, 5), s.endTime.slice(0, 5))),
+    )
+    if (timesInRange(start, end).some((t) => !covered.has(t))) hasGap = true
+  }
+  if (days.length) {
+    seasonForm.days = days
+    seasonForm.dayTimes = ensureDayTimesForDays(ranges, days, defaultDayRange(anchor))
+  }
+
+  const hints: string[] = []
+  if (hadOtherCourts) hints.push(t('owner.seasonPage.singleCourtHint'))
+  if (hasGap) hints.push(t('owner.seasonPage.timeGapHint'))
+  seasonSelectionHint.value = hints.join(' ')
+}
+
+function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
     return
   }
   clearRecurringPreview()
-  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value
+  if (opts?.fromWalkIn) syncSeasonFormFromWalkIn()
+  narrowSeasonSelectionToAnchorCourt()
+  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
   const anchorDate = slot?.date || data.value?.date || date.value || today()
   ensureSeasonDateDefaults(anchorDate)
   const anchorDay = weekdayNameFromDate(anchorDate)
@@ -1336,34 +1415,19 @@ function openSeasonForm() {
     seasonForm.days = [anchorDay]
     seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
   }
-  // Multi-select free slots: seed weekdays/times from the basket so dates stay visible.
-  if (selectedSlotsFull.value.length > 1 && selectedSlotsFull.value.every((s) => s.displayStatus === 'FREE')) {
-    const days = uniqueOrdered(selectedSlotsFull.value.map((s) => weekdayNameFromDate(s.date || anchorDate)))
-    const ranges: Record<string, DayTimeRange> = { ...seasonForm.dayTimes }
-    for (const s of selectedSlotsFull.value) {
-      const day = weekdayNameFromDate(s.date || anchorDate)
-      ranges[day] = defaultDayRange(s)
-    }
-    seasonForm.days = days
-    seasonForm.dayTimes = ensureDayTimesForDays(ranges, days, defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
-  }
   activePanel.value = 'season'
 }
 
 function openSeasonFormFromReserve() {
-  if (!guestFieldsValid()) {
-    actionError.value = t('owner.guestRequired')
-    return
-  }
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
     return
   }
   reserveFlowReturn.value = true
-  openSeasonForm()
+  openSeasonForm({ fromWalkIn: true })
 }
 
-/** Secondary «رزرو فصلی» — same season sheet, guest fields optional until confirm. */
+/** Secondary «رزرو فصلی» — same season sheet; guest validated on confirm. */
 function openSeasonReserveButton() {
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
@@ -1371,7 +1435,7 @@ function openSeasonReserveButton() {
   }
   recurringWanted.value = true
   reserveFlowReturn.value = true
-  openSeasonForm()
+  openSeasonForm({ fromWalkIn: true })
 }
 
 function openBlockFromReserve() {
@@ -1404,9 +1468,24 @@ function openFabCancel() {
   }
 }
 
+function syncPackageFormFromWalkIn() {
+  if (form.comments.trim()) packageForm.comments = form.comments.trim()
+  if (form.equipmentIds.length) packageForm.equipmentId = form.equipmentIds[0] || ''
+}
+
 function openPackageForm() {
   if (!canShowPackageReserve()) return
   clearRecurringPreview()
+  syncPackageFormFromWalkIn()
+  narrowSeasonSelectionToAnchorCourt()
+  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
+  const anchorDate = slot?.date || data.value?.date || date.value || today()
+  ensurePackageDateDefaults(anchorDate)
+  const anchorDay = weekdayNameFromDate(anchorDate)
+  if (!packageForm.days.length) {
+    packageForm.days = [anchorDay]
+    packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
+  }
   reserveFlowReturn.value = true
   activePanel.value = 'package'
 }
@@ -1420,6 +1499,7 @@ function closeMenu() {
   resetPanels()
   clearRecurringPreview()
   reserveFlowReturn.value = false
+  seasonSelectionHint.value = ''
   cancelReason.value = ''
   actionError.value = ''
   lastPayLink.value = null
@@ -1950,28 +2030,54 @@ function applyRecurringConflictError(kind: 'season' | 'package', error: unknown)
   actionError.value = fetchErrorMessage(error, t('common.error'))
 }
 
-async function doSeasonReserve() {
+async function runSeasonPreview() {
   if (!canShowSeasonReserve()) return
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) return
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+    if (!guestFieldsValid()) actionError.value = t('owner.guestRequired')
+    else if (!seasonDatesValid.value) {
+      actionError.value = seasonStartInPast.value
+        ? t('owner.errors.startDateInPast')
+        : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
+    }
+    return
+  }
   saving.value = true
   actionError.value = ''
   try {
-    if (!seasonPreview.value) {
-      const preview = await fetchRecurringPreview('season')
-      seasonPreview.value = preview
-      if (!preview || preview.willCreateCount === 0) {
-        actionError.value = t('owner.seasonPage.noFreeSlots')
-        return
-      }
-      if (preview.skippedCount > 0 && !seasonAcceptSkips.value) {
-        actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-        return
-      }
-    } else if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) {
-      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    const preview = await fetchRecurringPreview('season')
+    seasonPreview.value = preview
+    if (!preview || preview.willCreateCount === 0) {
+      actionError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
+    if (preview.skippedCount > 0 && !seasonAcceptSkips.value) {
+      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    }
+  } catch (error) {
+    applyRecurringConflictError('season', error)
+  } finally {
+    saving.value = false
+  }
+}
 
+async function doSeasonReserve() {
+  if (!canShowSeasonReserve()) return
+  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+    if (!guestFieldsValid()) actionError.value = t('owner.guestRequired')
+    return
+  }
+  if (!seasonPreview.value) {
+    await runSeasonPreview()
+    if (!seasonPreview.value?.willCreateCount) return
+    if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) return
+  } else if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) {
+    actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    return
+  }
+
+  saving.value = true
+  actionError.value = ''
+  try {
     const guest = guestNamePayload()
     await $fetch('/api/owner/season', {
       method: 'POST',
@@ -1983,7 +2089,7 @@ async function doSeasonReserve() {
         finishDate: seasonForm.finishDate,
         days: seasonForm.days,
         dayTimes: seasonForm.dayTimes,
-        comments: seasonForm.comments,
+        comments: seasonForm.comments || form.comments || undefined,
         slotId: selectedSlot.value.id,
         equipmentId: seasonForm.equipmentId || undefined,
         paymentMethod: form.paymentMethod,
@@ -3121,6 +3227,7 @@ watch(pilotNoCoach, (off) => {
                 <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox canva-recurring-checkbox">
                 <span class="text-start">{{ t('owner.recurringWanted') }}</span>
               </label>
+              <p class="text-start text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
             </template>
           </form>
           <div class="venus-modal-footer">
@@ -3453,7 +3560,6 @@ watch(pilotNoCoach, (off) => {
                   {{ t('common.back') }}
                 </span>
               </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.seasonPage.title') }}</h3>
             </div>
           </div>
           <div class="venus-modal-panel-body">
@@ -3470,25 +3576,38 @@ watch(pilotNoCoach, (off) => {
                 {{ slotCellLabel(slot) }}
               </span>
             </div>
+            <p v-if="seasonSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
+              {{ seasonSelectionHint }}
+            </p>
             <div class="venus-form-stack">
-              <div class="venus-form-grid">
-                <AppFormField :label="t('owner.guestName')" required>
-                  <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
-                </AppFormField>
-                <AppFormField :label="t('owner.guestFamily')" required>
-                  <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
-                </AppFormField>
-              </div>
-              <AppFormField :label="t('owner.guestMobile')" required>
-                <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-season-guest-full">
+                <input
+                  id="owner-season-guest-full"
+                  v-model="guestFullName"
+                  class="neo-input"
+                  autocomplete="name"
+                  required
+                >
+              </AppFormField>
+              <AppFormField :label="t('owner.guestMobile')" required field-id="owner-season-guest-mobile">
+                <input
+                  id="owner-season-guest-mobile"
+                  v-model="form.guestMobile"
+                  dir="ltr"
+                  class="neo-input tabular-nums"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  required
+                >
               </AppFormField>
               <AppFormField :label="t('owner.packagesPage.dateRange')" required>
                 <AppDateRangeInput
                   v-model:start="seasonForm.startDate"
                   v-model:end="seasonForm.finishDate"
-                  :invalid="seasonDateRangeInvalid || seasonStartInPast"
-                  :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
+                  :invalid="seasonDateRangeInvalid || seasonStartInPast || !seasonForm.finishDate"
+                  :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))"
                 />
+                <p class="mt-1 text-start text-[11px] text-brand-gray-500">{{ t('owner.seasonPage.defaultRangeHint') }}</p>
               </AppFormField>
               <div>
                 <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
@@ -3542,22 +3661,30 @@ watch(pilotNoCoach, (off) => {
               </label>
             </div>
           </div>
-          <div class="venus-modal-footer">
+          <div class="venus-modal-footer space-y-2">
             <OwnerBookingPriceSummary
-              :court-price="courtPrice"
+              :court-price="seasonCourtPrice"
               :equipment-price="seasonEquipmentPrice"
               :session-count="seasonSessionCount"
               show-estimated
             />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
-            <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">{{ t('owner.packagesPage.dateRangeInvalid') }}</p>
+            <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">
+              {{ seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')) }}
+            </p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid()"
+              @click="runSeasonPreview"
+            >{{ saving && !seasonPreview ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
+            <button
+              type="button"
               class="canva-gate-btn-primary"
-              :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (Boolean(seasonPreview?.skippedCount) && !seasonAcceptSkips)"
+              :disabled="saving || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid()"
               @click="doSeasonReserve"
-            >{{ saving ? t('common.loading') : (seasonPreview ? t('owner.seasonPage.confirm') : t('owner.seasonPage.preview')) }}</button>
+            >{{ saving && seasonPreview ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
           </div>
         </div>
 
@@ -3575,7 +3702,6 @@ watch(pilotNoCoach, (off) => {
                   {{ t('common.back') }}
                 </span>
               </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.packagePage.title') }}</h3>
             </div>
           </div>
           <div class="venus-modal-panel-body">
@@ -3601,24 +3727,34 @@ watch(pilotNoCoach, (off) => {
                   </option>
                 </select>
               </AppFormField>
-              <div class="venus-form-grid">
-                <AppFormField :label="t('owner.guestName')" required>
-                  <input v-model="form.guestName" class="neo-input" autocomplete="given-name">
-                </AppFormField>
-                <AppFormField :label="t('owner.guestFamily')" required>
-                  <input v-model="form.guestFamily" class="neo-input" autocomplete="family-name">
-                </AppFormField>
-              </div>
-              <AppFormField :label="t('owner.guestMobile')" required>
-                <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" autocomplete="tel">
+              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-package-guest-full">
+                <input
+                  id="owner-package-guest-full"
+                  v-model="guestFullName"
+                  class="neo-input"
+                  autocomplete="name"
+                  required
+                >
+              </AppFormField>
+              <AppFormField :label="t('owner.guestMobile')" required field-id="owner-package-guest-mobile">
+                <input
+                  id="owner-package-guest-mobile"
+                  v-model="form.guestMobile"
+                  dir="ltr"
+                  class="neo-input tabular-nums"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  required
+                >
               </AppFormField>
               <AppFormField :label="t('owner.packagesPage.dateRange')" required>
                 <AppDateRangeInput
                   v-model:start="packageForm.startDate"
                   v-model:end="packageForm.finishDate"
-                  :invalid="packageDateRangeInvalid || packageStartInPast"
-                  :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : t('owner.packagesPage.dateRangeInvalid')"
+                  :invalid="packageDateRangeInvalid || packageStartInPast || !packageForm.finishDate"
+                  :invalid-message="packageStartInPast ? t('owner.errors.startDateInPast') : (!packageForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))"
                 />
+                <p class="mt-1 text-start text-[11px] text-brand-gray-500">{{ t('owner.seasonPage.defaultRangeHint') }}</p>
               </AppFormField>
               <div>
                 <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
@@ -3674,7 +3810,7 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
-              :court-price="courtPrice"
+              :court-price="packageCourtPrice"
               :coach-price="packageForm.coachId && selectedCoach ? selectedCoach.sessionPrice : undefined"
               :equipment-price="packageEquipmentPrice"
               :session-count="packageSessionCount"
