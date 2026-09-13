@@ -67,6 +67,11 @@ export interface MergedCell {
   uncertainSources?: ExternalSourceId[]
   freshness?: string
   confidence?: string
+  /** Manual owner override for this hour (does not mutate externalState). */
+  manualOverride?: 'RELEASE' | 'BLOCK' | null
+  manualOverrideId?: string | null
+  /** Final booking block after override layer (staff + guard). */
+  effectiveBlocksBooking?: boolean
 }
 
 export interface InboxCalendarSlot {

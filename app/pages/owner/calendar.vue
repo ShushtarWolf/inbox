@@ -209,11 +209,16 @@ const { data, pending, error, refresh } = await useAuthedFetch<OwnerCalendarResp
 })
 
 const {
+  externalOverlayEnabled,
   isExternalOnlyOccupied,
   externalSiteBadge,
   externalSourceDetails,
   externalOwnerNote,
   isExternalUncertain,
+  isManuallyReleased,
+  isManuallyBlocked,
+  manualOverrideIdFor,
+  externalStateLabel,
   refreshExternalOverlay,
 } = useOwnerExternalCalendarOverlay({ date })
 
@@ -593,6 +598,22 @@ function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
 
 function gridCellClasses(courtId: string, hour: string) {
   const slot = cellSlot(courtId, hour)
+  if (isManuallyBlocked(slot)) {
+    return [
+      'slot-blocked',
+      'slot-manual-block',
+      slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+      slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
+    ]
+  }
+  if (isManuallyReleased(slot)) {
+    return [
+      'slot-free',
+      'slot-manual-release',
+      slot && isSlotSelected(slot) ? 'canva-cal-grid-cell-selected' : '',
+      slot && !slotMatchesSessionFilter(slot) ? 'canva-cal-grid-cell-filtered-out' : '',
+    ]
+  }
   if (isExternalOnlyOccupied(slot)) {
     return [
       'slot-blocked',
@@ -630,6 +651,8 @@ function bookingSourceLabel(source?: string | null) {
 
 function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
+  if (isManuallyReleased(slot)) return t('owner.manualOverrideReleased')
+  if (isManuallyBlocked(slot)) return t('owner.manualOverrideBlocked')
   if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return externalSiteBadge(slot)
   if (slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
@@ -707,7 +730,7 @@ function resetPanels() {
 }
 
 function defaultPanelForSlot(slot: OwnerCalendarSlot): ActivePanel {
-  if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return 'external'
+  if (isManuallyBlocked(slot) || isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return 'external'
   if (slot.displayStatus === 'BLOCKED') return 'block'
   if (slot.displayStatus === 'CLOSED') return 'comments'
   if (activeBooking(slot) || (slot.displayStatus !== 'FREE' && slot.displayStatus !== 'BLOCKED')) return 'detail'
@@ -726,6 +749,8 @@ function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
+  if (isManuallyBlocked(slot)) return 'canva-cal-grid-cell-bar-blocked'
+  if (isManuallyReleased(slot)) return 'canva-cal-grid-cell-bar-free'
   if (isExternalOnlyOccupied(slot)) return 'canva-cal-grid-cell-bar-blocked'
   const status = slot?.displayStatus || 'FREE'
   if (isReservedDisplayStatus(status)) {
@@ -1108,7 +1133,11 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     return
   }
   const fullSlot = (data.value?.slots?.find((s) => s.id === slot.id) || slot) as OwnerCalendarSlot
-  if (isExternalOnlyOccupied(fullSlot)) {
+  if (isManuallyBlocked(fullSlot)) {
+    openSlot(fullSlot)
+    return
+  }
+  if (isExternalOnlyOccupied(fullSlot) || isExternalUncertain(fullSlot)) {
     // Multi-select (after long-press) toggles like free; otherwise open override sheet.
     if (multiSelectMode.value || isSlotSelected(fullSlot)) {
       bookedSiblingIds.value = []
@@ -1308,6 +1337,54 @@ async function doSaveNote() {
         comments,
       },
     })
+    await finishSlotAction()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doSelectionManualBlock() {
+  const slot = selectedSlotsFull.value[0]
+  if (!slot || saving.value) return
+  openSlot(slot, { keepSelection: true })
+  activePanel.value = 'external'
+  await doCreateManualOverride('BLOCK')
+}
+
+async function doCreateManualOverride(type: 'RELEASE' | 'BLOCK') {
+  const slot = selectedSlotFull.value
+  if (!slot || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/availability-override', {
+      method: 'POST',
+      body: {
+        courtId: slot.courtId,
+        date: slot.date || date.value,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        type,
+      },
+    })
+    await finishSlotAction()
+  } catch {
+    actionError.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function doRemoveManualOverride() {
+  const slot = selectedSlotFull.value
+  const overrideId = manualOverrideIdFor(slot)
+  if (!slot || !overrideId || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch(`/api/owner/availability-override/${overrideId}`, { method: 'DELETE' })
     await finishSlotAction()
   } catch {
     actionError.value = t('common.error')
@@ -2759,7 +2836,7 @@ watch(pilotNoCoach, (off) => {
                   @click="handleSlotClick(cellSlot(court.id, hour))"
                 >
                   <span
-                    v-if="cellSlot(court.id, hour) && (cellSlot(court.id, hour)!.displayStatus !== 'FREE' || isExternalOnlyOccupied(cellSlot(court.id, hour)))"
+                    v-if="cellSlot(court.id, hour) && (cellSlot(court.id, hour)!.displayStatus !== 'FREE' || isExternalOnlyOccupied(cellSlot(court.id, hour)) || isManuallyBlocked(cellSlot(court.id, hour)) || isManuallyReleased(cellSlot(court.id, hour)))"
                     class="canva-cal-grid-cell-bar"
                     :class="gridCellBarClass(cellSlot(court.id, hour))"
                   />
@@ -2836,6 +2913,15 @@ watch(pilotNoCoach, (off) => {
             </button>
             <button type="button" class="canva-selection-bar-btn-secondary" :disabled="!canBatchBlock" @click="openSelectionBlock">
               {{ t('owner.block') }}
+            </button>
+            <button
+              v-if="externalOverlayEnabled && selectedSlotsFull.length === 1 && selectedSlotsFull[0]?.displayStatus === 'FREE' && !isManuallyBlocked(selectedSlotsFull[0]) && !isExternalOnlyOccupied(selectedSlotsFull[0]) && !isExternalUncertain(selectedSlotsFull[0])"
+              type="button"
+              class="canva-selection-bar-btn-secondary"
+              :disabled="saving"
+              @click="doSelectionManualBlock"
+            >
+              {{ t('owner.manualOverrideBlockAction') }}
             </button>
             <button type="button" class="canva-selection-bar-btn-secondary" @click="clearSelection(); multiSelectMode = false">
               {{ t('owner.selectionBar.clear') }}
@@ -2958,11 +3044,25 @@ watch(pilotNoCoach, (off) => {
                 {{ detail.externalClubTitle ? `${detail.siteLabel} — ${detail.externalClubTitle}` : detail.siteLabel }}
               </span>
             </div>
-            <div class="canva-detail-row border-b-0">
-              <span class="text-brand-gray-500">{{ t('owner.externalBookingStatus') }}</span>
-              <span class="font-bold text-brand-navy">{{ externalSiteBadge(selectedSlotFull) }}</span>
+            <div class="canva-detail-row">
+              <span class="text-brand-gray-500">{{ t('owner.manualOverrideExternalState') }}</span>
+              <span class="font-bold text-brand-navy">{{ externalStateLabel(selectedSlotFull) || t('owner.manualOverrideExternalFree') }}</span>
             </div>
-            <p class="mt-3 text-start text-xs font-medium text-brand-gray-600">
+            <div v-if="isManuallyReleased(selectedSlotFull) || isManuallyBlocked(selectedSlotFull)" class="canva-detail-row">
+              <span class="text-brand-gray-500">{{ t('owner.manualOverrideLabel') }}</span>
+              <span class="font-bold text-brand-navy">
+                {{ isManuallyReleased(selectedSlotFull) ? t('owner.manualOverrideReleased') : t('owner.manualOverrideBlocked') }}
+              </span>
+            </div>
+            <div class="canva-detail-row border-b-0">
+              <span class="text-brand-gray-500">{{ t('owner.manualOverrideFinalState') }}</span>
+              <span class="font-bold text-brand-navy">
+                {{ isManuallyReleased(selectedSlotFull) || (!isManuallyBlocked(selectedSlotFull) && !isExternalOnlyOccupied(selectedSlotFull) && !isExternalUncertain(selectedSlotFull))
+                  ? t('owner.manualOverrideFinalAvailable')
+                  : t('owner.manualOverrideFinalBlocked') }}
+              </span>
+            </div>
+            <p v-if="!isManuallyBlocked(selectedSlotFull)" class="mt-3 text-start text-xs font-medium text-brand-gray-600">
               {{ t('owner.externalBookingReserveHint') }}
             </p>
             <div class="venus-form-stack mt-3">
@@ -2979,8 +3079,36 @@ watch(pilotNoCoach, (off) => {
             </div>
             <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
             <button
+              v-if="externalOverlayEnabled && !isManuallyReleased(selectedSlotFull) && !isManuallyBlocked(selectedSlotFull) && (isExternalOnlyOccupied(selectedSlotFull) || isExternalUncertain(selectedSlotFull))"
               type="button"
               class="canva-gate-btn-primary mt-4"
+              :disabled="saving"
+              @click="doCreateManualOverride('RELEASE')"
+            >
+              {{ saving ? t('common.loading') : t('owner.manualOverrideReleaseAction') }}
+            </button>
+            <button
+              v-if="externalOverlayEnabled && !isManuallyReleased(selectedSlotFull) && !isManuallyBlocked(selectedSlotFull) && selectedSlotFull?.displayStatus === 'FREE' && !isExternalOnlyOccupied(selectedSlotFull) && !isExternalUncertain(selectedSlotFull)"
+              type="button"
+              class="canva-gate-btn-primary mt-4"
+              :disabled="saving"
+              @click="doCreateManualOverride('BLOCK')"
+            >
+              {{ saving ? t('common.loading') : t('owner.manualOverrideBlockAction') }}
+            </button>
+            <button
+              v-if="externalOverlayEnabled && (isManuallyReleased(selectedSlotFull) || isManuallyBlocked(selectedSlotFull))"
+              type="button"
+              class="canva-gate-btn-primary mt-4"
+              :disabled="saving"
+              @click="doRemoveManualOverride"
+            >
+              {{ saving ? t('common.loading') : t('owner.manualOverrideRestoreAction') }}
+            </button>
+            <button
+              v-if="!isManuallyBlocked(selectedSlotFull)"
+              type="button"
+              class="canva-gate-btn-secondary mt-2"
               @click="openExternalReserve"
             >
               {{ t('owner.externalBookingReserve') }}

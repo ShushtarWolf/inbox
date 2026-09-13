@@ -15,6 +15,9 @@ type OwnerExternalCell = {
   ownerNote?: string | null
   externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
   externalState?: string
+  manualOverride?: 'RELEASE' | 'BLOCK' | null
+  manualOverrideId?: string | null
+  effectiveBlocksBooking?: boolean
 }
 
 type OwnerExternalCalendarPayload = {
@@ -72,6 +75,36 @@ export function useOwnerExternalCalendarOverlay(opts: {
     return cellByKey.value.get(occupancyKey(slot.courtId, slot.startTime)) || null
   }
 
+  function manualOverrideFor(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined) {
+    return externalCellFor(slot)?.manualOverride ?? null
+  }
+
+  function manualOverrideIdFor(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined) {
+    return externalCellFor(slot)?.manualOverrideId ?? null
+  }
+
+  function isManuallyReleased(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    return manualOverrideFor(slot) === 'RELEASE'
+  }
+
+  function isManuallyBlocked(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    return manualOverrideFor(slot) === 'BLOCK'
+  }
+
   /** Inbox FREE but confirmed EXTERNAL_BUSY on another booking site. */
   function isExternalOnlyOccupied(slot: {
     courtId: string
@@ -79,6 +112,7 @@ export function useOwnerExternalCalendarOverlay(opts: {
     displayStatus?: string
   } | null | undefined): boolean {
     if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isManuallyReleased(slot)) return false
     const cell = externalCellFor(slot)
     if (!cell?.occupied) return false
     if (cell.externalKind === 'uncertain') return false
@@ -92,9 +126,22 @@ export function useOwnerExternalCalendarOverlay(opts: {
     displayStatus?: string
   } | null | undefined): boolean {
     if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isManuallyReleased(slot)) return false
     if (isExternalOnlyOccupied(slot)) return false
     const cell = externalCellFor(slot)
     return cell?.externalKind === 'uncertain'
+  }
+
+  function externalStateLabel(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): string {
+    const cell = externalCellFor(slot)
+    if (!cell) return ''
+    if (cell.externalKind === 'uncertain') return cell.badge || 'UNKNOWN'
+    if (cell.sources.some((source) => source !== 'inbox')) return cell.badge || 'BUSY'
+    if (cell.externalState && cell.externalState !== 'AVAILABLE') return cell.externalState
+    return 'FREE'
   }
 
   function externalKind(slot: {
@@ -164,6 +211,11 @@ export function useOwnerExternalCalendarOverlay(opts: {
     externalOverlayPending: pending,
     isExternalOnlyOccupied,
     isExternalUncertain,
+    isManuallyReleased,
+    isManuallyBlocked,
+    manualOverrideFor,
+    manualOverrideIdFor,
+    externalStateLabel,
     externalKind,
     externalSiteBadge,
     externalSourceDetails,

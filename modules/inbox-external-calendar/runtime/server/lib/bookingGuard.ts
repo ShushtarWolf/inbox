@@ -1,6 +1,7 @@
 import { createError } from 'h3'
-import { findExternallyBlockedSlots } from '../../../lib/bookingGuardLogic'
+import { slotOccupancyKey } from '../../../lib/bookingGuardLogic'
 import { logExternalCollection } from '../../../lib/collectionLog'
+import { findBookingGuardBlockedSlots, type ManualOverrideRow } from '../../../lib/manualOverrideLogic'
 import { fetchExternalOccupancy } from './adapters'
 import { getClubMapping, hasExternalMapping } from './mappings'
 
@@ -49,8 +50,23 @@ export async function assertExternalBookingAllowed(opts: {
 
   const mapping = getClubMapping(opts.club.slug)
   const blocked: Array<{ courtId: string; startTime: string; date: string }> = []
+  const dates = [...new Set(opts.slots.map((slot) => slot.date))]
+  const overrideRows = await prisma.manualAvailabilityOverride.findMany({
+    where: { clubId: opts.club.id, date: { in: dates } },
+    select: { courtId: true, date: true, startTime: true, type: true },
+  })
+  const overridesByDate = new Map<string, ManualOverrideRow[]>()
+  for (const row of overrideRows) {
+    const list = overridesByDate.get(row.date) ?? []
+    list.push({
+      courtId: row.courtId,
+      startTime: row.startTime.slice(0, 5),
+      type: row.type,
+    })
+    overridesByDate.set(row.date, list)
+  }
 
-  for (const date of [...new Set(opts.slots.map((slot) => slot.date))]) {
+  for (const date of dates) {
     const dateSlots = opts.slots.filter((slot) => slot.date === date)
     let external: Awaited<ReturnType<typeof fetchExternalOccupancy>>
     try {
@@ -73,22 +89,34 @@ export async function assertExternalBookingAllowed(opts: {
       continue
     }
 
-    const dateBlocked = findExternallyBlockedSlots(dateSlots, external.occupied)
+    const dateBlocked = findBookingGuardBlockedSlots(
+      dateSlots,
+      external.occupied,
+      overridesByDate.get(date) ?? [],
+    )
     for (const row of dateBlocked) {
       blocked.push({ ...row, date })
     }
   }
 
   if (blocked.length) {
+    const manualOnly = blocked.every((row) => {
+      const key = slotOccupancyKey(row.courtId, row.startTime)
+      const override = overridesByDate.get(row.date)?.find(
+        (item) => slotOccupancyKey(item.courtId, item.startTime) === key,
+      )
+      return override?.type === 'BLOCK'
+    })
     logExternalCollection('booking_guard_blocked', {
       clubSlug: opts.club.slug,
       clubId: opts.club.id,
       blocked,
+      manualOnly,
       durationMs: Date.now() - started,
     })
     throw createError({
       statusCode: 409,
-      statusMessage: 'Slot occupied on external booking site',
+      statusMessage: manualOnly ? 'Slot not available' : 'Slot occupied on external booking site',
     })
   }
 
