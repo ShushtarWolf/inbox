@@ -11,6 +11,7 @@ import { findCourtMapping } from '../courtMatch'
 import { checkAdapterRateLimit } from '../rateLimit'
 import { addMinutes, buildSessionStarts } from '../time'
 import { formatGregorianDateInTimeZone } from '../../../../lib/aloplaySession'
+import { logExternalCollection } from '../../../../lib/collectionLog'
 
 const ALOVARZESH_BASE = 'https://alo-varzesh.com'
 
@@ -113,6 +114,12 @@ export async function fetchAloVarzeshOccupancy(opts: {
   const jalaliDate = gregorianToJalaliDate(opts.date)
   const todayTehran = formatGregorianDateInTimeZone(new Date(), TEHRAN_TIME_ZONE)
   const ignoreBefore = opts.date === todayTehran ? tehranIgnoreBeforeHour() : null
+  logExternalCollection('adapter_fetch_start', {
+    provider: 'alovarzesh',
+    clubSlug: opts.mapping.inboxSlug,
+    date: opts.date,
+  })
+  const fetchStarted = Date.now()
   const occupied: ExternalOccupiedSlot[] = []
   const slotVerdicts: AdapterSlotVerdict[] = []
   const errors: string[] = []
@@ -180,6 +187,14 @@ export async function fetchAloVarzeshOccupancy(opts: {
 
   // Total failure: empty occupied + error + OFFLINE; do not write cache (no stale busy paint).
   if (!anySuccess && errors.length) {
+    logExternalCollection('adapter_fetch_done', {
+      provider: 'alovarzesh',
+      clubSlug: opts.mapping.inboxSlug,
+      date: opts.date,
+      ok: false,
+      error: errors.join('; '),
+      durationMs: Date.now() - fetchStarted,
+    })
     return {
       source: 'alovarzesh',
       occupied: [],
@@ -198,6 +213,16 @@ export async function fetchAloVarzeshOccupancy(opts: {
     : 'HEALTHY'
 
   await writeCached(cacheKey, { occupied, slotVerdicts })
+  logExternalCollection('adapter_fetch_done', {
+    provider: 'alovarzesh',
+    clubSlug: opts.mapping.inboxSlug,
+    date: opts.date,
+    ok: true,
+    occupiedCount: occupied.length,
+    completeness,
+    health,
+    durationMs: Date.now() - fetchStarted,
+  })
   return {
     source: 'alovarzesh',
     occupied,

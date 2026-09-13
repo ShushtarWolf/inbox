@@ -19,6 +19,7 @@ import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
+import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -68,6 +69,21 @@ export default defineEventHandler(async (event) => {
 
   // Preserve caller order for primary-slot payment grouping.
   const orderedSlots = slotIds.map((id) => slots.find((s) => s.id === id)!)
+
+  await assertExternalBookingAllowedIfEnabled({
+    club: {
+      id: club.id,
+      slug: club.slug,
+      defaultSessionDurationMinutes: club.defaultSessionDurationMinutes,
+      openHour: club.openHour,
+      closeHour: club.closeHour,
+    },
+    slots: orderedSlots.map((slot) => ({
+      courtId: slot.courtId,
+      date: slot.date,
+      startTime: slot.startTime,
+    })),
+  })
 
   const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
   const primarySlot = orderedSlots[0]!
