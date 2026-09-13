@@ -5,7 +5,8 @@ import {
   parseAvailableTimePayload,
   unionFreeSlots,
 } from '../../../../lib/aloplayParse'
-import { resolveAloPlayCredentials } from '../../../../lib/aloplaySession'
+import { needsAloPlaySession, resolveAloPlayCredentials } from '../../../../lib/aloplaySession'
+import { logExternalCollection } from '../../../../lib/collectionLog'
 import type {
   AdapterSlotVerdict,
   Completeness,
@@ -52,11 +53,12 @@ async function fetchAvailableTimePayload(opts: {
   clubId: number
   date: string
   productGender: number
+  requireAuth: boolean
 }): Promise<{ payload: unknown | null; error?: string; usedAuth: boolean }> {
-  // Bump cache keys so prior poisoned busy paints are ignored.
-  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}:authed-v4`
+  const mode = opts.requireAuth ? 'authed' : 'public'
+  const cacheKey = `ext-cal:aloplay-available:${opts.clubId}:${opts.date}:g${opts.productGender}:${mode}-v5`
   const cached = await readCached<unknown>(cacheKey)
-  if (cached) return { payload: cached, usedAuth: true }
+  if (cached) return { payload: cached, usedAuth: opts.requireAuth }
 
   const result = await fetchAloPlayWithSession(
     'v1/PublicClub/GetAvailableTime',
@@ -65,13 +67,13 @@ async function fetchAvailableTimePayload(opts: {
       date: opts.date,
       productGender: opts.productGender,
     },
-    { requireAuth: true },
+    { requireAuth: opts.requireAuth },
   )
 
   if (result.error && result.payload == null) {
     return { payload: null, error: result.error, usedAuth: Boolean(result.usedAuth) }
   }
-  if (!result.usedAuth) {
+  if (opts.requireAuth && !result.usedAuth) {
     return {
       payload: null,
       error: 'GetAvailableTime must use AloPlay session',
@@ -82,7 +84,7 @@ async function fetchAvailableTimePayload(opts: {
   if (result.payload != null) {
     await writeCached(cacheKey, result.payload)
   }
-  return { payload: result.payload, error: result.error, usedAuth: true }
+  return { payload: result.payload, error: result.error, usedAuth: Boolean(result.usedAuth) }
 }
 
 export async function fetchAloPlayOccupied(opts: {
@@ -109,16 +111,18 @@ export async function fetchAloPlayOccupied(opts: {
     }
   }
 
-  if (!resolveAloPlayCredentials()) {
+  const credentials = resolveAloPlayCredentials()
+  const requireAuth = Boolean(credentials)
+  if (!credentials && needsAloPlaySession(opts.date)) {
     return wipeAloPlay({
-      error: 'AloPlay credentials missing',
+      error: 'AloPlay credentials missing for future date',
       health: 'OFFLINE',
       completeness: 'UNKNOWN',
       anomalies: ['no_auth'],
     })
   }
 
-  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:v4`
+  const cacheKey = `ext-cal:aloplay:${clubId}:${opts.date}:${requireAuth ? 'authed' : 'public'}-v5`
   const cached = await readCached<{
     occupied: ExternalOccupiedSlot[]
     slotVerdicts: AdapterSlotVerdict[]
@@ -191,16 +195,23 @@ export async function fetchAloPlayOccupied(opts: {
   const genders = resolveAloPlayGenders(opts.mapping)
   const parseResults: Array<{ freeSlots: Set<string>; error?: string }> = []
   const fetchErrors: string[] = []
-  let anyAuth = false
   let genderSuccesses = 0
+
+  logExternalCollection('adapter_fetch_start', {
+    provider: 'aloplay',
+    clubId,
+    date: opts.date,
+    mode: requireAuth ? 'authed' : 'public_today',
+  })
+  const fetchStarted = Date.now()
 
   for (const productGender of genders) {
     const { payload, error, usedAuth } = await fetchAvailableTimePayload({
       clubId,
       date: opts.date,
       productGender,
+      requireAuth,
     })
-    if (usedAuth) anyAuth = true
     if (error && payload == null) {
       fetchErrors.push(error)
       continue
@@ -212,14 +223,29 @@ export async function fetchAloPlayOccupied(opts: {
     const parsed = parseAvailableTimePayload(payload)
     parseResults.push(parsed)
     if (!parsed.error) genderSuccesses += 1
+    else if (parsed.error) fetchErrors.push(parsed.error)
+    if (!requireAuth && !usedAuth && !parsed.error) {
+      // public today path — expected
+    }
   }
 
-  if (!anyAuth) {
+  if (!genderSuccesses) {
+    logExternalCollection('adapter_fetch_done', {
+      provider: 'aloplay',
+      clubId,
+      date: opts.date,
+      mode: requireAuth ? 'authed' : 'public_today',
+      ok: false,
+      error: fetchErrors.join('; ') || 'AloPlay fetch failed',
+      durationMs: Date.now() - fetchStarted,
+    })
     return wipeAloPlay({
-      error: 'GetAvailableTime must use AloPlay session',
+      error: fetchErrors.join('; ') || (requireAuth
+        ? 'GetAvailableTime must use AloPlay session'
+        : 'AloPlay public GetAvailableTime failed'),
       health: 'OFFLINE',
       completeness: 'UNKNOWN',
-      anomalies: ['no_auth'],
+      anomalies: requireAuth ? ['no_auth'] : ['public_fetch_failed'],
     })
   }
 
@@ -289,6 +315,18 @@ export async function fetchAloPlayOccupied(opts: {
   const health: SourceHealth = fetchErrors.length
     ? (completeness === 'PARTIAL' ? 'DEGRADED' : 'SUSPICIOUS')
     : 'HEALTHY'
+
+  logExternalCollection('adapter_fetch_done', {
+    provider: 'aloplay',
+    clubId,
+    date: opts.date,
+    mode: requireAuth ? 'authed' : 'public_today',
+    ok: true,
+    occupiedCount: occupied.length,
+    completeness,
+    health,
+    durationMs: Date.now() - fetchStarted,
+  })
 
   return {
     source: 'aloplay',
