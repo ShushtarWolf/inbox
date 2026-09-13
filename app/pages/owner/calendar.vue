@@ -1246,6 +1246,13 @@ function openCommentsForm() {
 }
 
 async function doSaveNote() {
+  // Walk-in reserve sheet: note is draft on the form until ثبت رزرو (do not PENDING the FREE slot).
+  if (reserveFlowReturn.value && isNewReservation()) {
+    reserveFlowReturn.value = false
+    activePanel.value = 'reserve'
+    actionError.value = ''
+    return
+  }
   const slot = selectedSlotFull.value
   if (!slot || saving.value) return
   const comments = form.comments.trim()
@@ -2376,6 +2383,13 @@ const legend = computed(() => [
 
 const canFabCancel = computed(() => {
   if (selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot))) return true
+  // Free multi-select must not enable لغو from a stale booked selectedSlot.
+  if (
+    selectedSlotsFull.value.length
+    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
+  ) {
+    return false
+  }
   return Boolean(selectedSlot.value && canCancelSlot())
 })
 
@@ -3304,7 +3318,12 @@ watch(pilotNoCoach, (off) => {
         <div v-if="activePanel === 'block'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
+              <button
+                type="button"
+                class="btn-ghost px-2 py-1 text-xs"
+                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
+                @click="backToMenu"
+              >
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -3366,7 +3385,12 @@ watch(pilotNoCoach, (off) => {
         <div v-if="activePanel === 'comments'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
+              <button
+                type="button"
+                class="btn-ghost px-2 py-1 text-xs"
+                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
+                @click="backToMenu"
+              >
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -3385,10 +3409,13 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="saving || (!form.comments.trim() && !activeBooking(selectedSlot))"
+              :disabled="saving || (!reserveFlowReturn && !form.comments.trim() && !activeBooking(selectedSlot))"
               @click="doSaveNote"
             >
-              {{ saving ? t('common.loading') : t('owner.confirmNote') }}
+              {{ saving ? t('common.loading') : (reserveFlowReturn ? t('common.save') : t('owner.confirmNote')) }}
+            </button>
+            <button v-if="reserveFlowReturn" type="button" class="canva-gate-btn-secondary" @click="backToMenu">
+              {{ t('common.back') }}
             </button>
           </div>
         </div>
@@ -3396,7 +3423,12 @@ watch(pilotNoCoach, (off) => {
         <div v-if="canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
+              <button
+                type="button"
+                class="btn-ghost px-2 py-1 text-xs"
+                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
+                @click="backToMenu"
+              >
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}

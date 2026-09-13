@@ -2075,6 +2075,7 @@
   /* Canva multi-court today grid (home page 9) — date centered; block/cancel FABs on inline-end */
   .canva-cal-date-nav {
     @apply relative mb-2 flex min-h-[2.5rem] items-center justify-center pt-0.5 text-sm font-bold text-[#3B82F6];
+    padding-inline-end: 7.25rem;
   }
   .canva-cal-date-fabs {
     @apply absolute inset-y-0 end-0 z-[2] flex items-center gap-1.5;
