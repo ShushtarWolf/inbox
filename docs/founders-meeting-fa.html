@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>وضعیت پروژه، هزینه‌ها، مسئولیت‌ها و فرآیند پیشنهادی تا تعیین سهام</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2")
+          format("woff2");
+      }
+
+      :root {
+        --text: #1a1a1a;
+        --muted: #6b6b6b;
+        --accent: #8f241d;
+        --header: #8f241d;
+        --label-bg: #f7ebea;
+        --total-bg: #e3ecec;
+        --row-alt: #f7ebea;
+        --line: #222222;
+        --radius: 8px;
+      }
+
+      @page {
+        size: A4;
+        margin: 14mm 12mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Vazirmatn", Tahoma, sans-serif;
+        color: var(--text);
+        background: #fff;
+        font-size: 11pt;
+        font-weight: 400;
+        line-height: 1.85;
+        direction: rtl;
+        text-align: right;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      h2,
+      h3 {
+        margin: 0;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1.45;
+      }
+
+      h2 {
+        font-size: 14.5pt;
+        margin: 0 0 10px;
+      }
+
+      h3 {
+        font-size: 12.5pt;
+        margin: 0 0 8px;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      ul {
+        margin: 0;
+        padding: 0 18px 0 0;
+        list-style: disc;
+      }
+
+      ul li {
+        margin: 0 0 4px;
+        padding: 0;
+      }
+
+      ul li::marker {
+        color: var(--text);
+        font-size: 0.75em;
+      }
+
+      .page {
+        break-after: page;
+        page-break-after: always;
+      }
+
+      .page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .brand {
+        display: flex;
+        justify-content: center;
+        margin: 4px 0 18px;
+      }
+
+      .brand img {
+        width: 56px;
+        height: 56px;
+        display: block;
+        object-fit: cover;
+      }
+
+      .doc-title {
+        font-size: 10.5pt;
+        font-weight: 400;
+        color: var(--muted);
+        margin: 0 0 4px;
+        line-height: 1.7;
+        text-align: right;
+      }
+
+      .doc-meta {
+        font-size: 9.5pt;
+        font-weight: 400;
+        color: var(--muted);
+        margin: 0 0 22px;
+        text-align: right;
+      }
+
+      .section {
+        margin: 0 0 22px;
+      }
+
+      .section-tight {
+        margin-bottom: 14px;
+      }
+
+      .intro {
+        margin: 0 0 12px;
+        font-size: 11pt;
+      }
+
+      .card {
+        background: var(--label-bg);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px 16px 12px;
+        margin: 16px 0 22px;
+      }
+
+      .card h3 {
+        color: var(--accent);
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 11pt;
+        line-height: 1.85;
+      }
+
+      /* Wrapper gives reliable print border-radius */
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin: 0 0 18px;
+        background: #fff;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .data-table,
+      .role-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        margin: 0;
+        font-size: 10.5pt;
+      }
+
+      .data-table th,
+      .data-table td,
+      .role-table th,
+      .role-table td {
+        border-bottom: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        padding: 12px 14px;
+        vertical-align: middle;
+        text-align: right;
+        font-weight: 400;
+      }
+
+      .data-table tr > *:last-child,
+      .role-table tr > *:last-child {
+        border-left: none;
+      }
+
+      .data-table tr:last-child > *,
+      .role-table tr:last-child > * {
+        border-bottom: none;
+      }
+
+      .data-table thead th {
+        background: var(--header);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .data-table thead th.amount,
+      .data-table td.amount {
+        text-align: left;
+        direction: ltr;
+        unicode-bidi: isolate;
+        width: 32%;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .data-table tbody tr:nth-child(even) td {
+        background: var(--row-alt);
+      }
+
+      .data-table tfoot td {
+        background: var(--total-bg);
+        font-weight: 700;
+      }
+
+      .role-table th,
+      .role-table td {
+        vertical-align: top;
+        padding: 11px 12px;
+      }
+
+      .role-table .role-head th,
+      .role-table .role-head td {
+        background: var(--header);
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 14px;
+        vertical-align: middle;
+      }
+
+      .role-table .label {
+        width: 28%;
+        background: var(--label-bg);
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .role-table .role-head .label {
+        background: var(--header);
+        color: #fff;
+      }
+
+      .role-table .value {
+        background: #fff;
+        font-weight: 400;
+      }
+
+      .role-table .role-head .value {
+        background: var(--header);
+        color: #fff;
+      }
+
+      .continue-list {
+        margin-bottom: 22px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="brand">
+        <img src="./inbox-founders-logo.png" alt="inbox" width="56" height="56" />
+      </div>
+
+      <p class="doc-title">
+        وضعیت پروژه، هزینه‌ها، مسئولیت‌ها و فرآیند پیشنهادی تا تعیین سهام
+      </p>
+      <p class="doc-meta">تهران — تیر ۱۴۰۵</p>
+
+      <section class="section section-tight">
+        <h2>۱. گزارش هزینه‌های پروژه</h2>
+        <p class="intro">
+          هزینه‌های زیر مربوط به دوره فعالیت پروژه تا ۲ تیر است و تا امروز
+          به‌طور کامل توسط یکی از اعضا پرداخت شده است.
+        </p>
+
+        <div class="panel">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>شرح</th>
+                <th class="amount">مبلغ (تومان)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>دامنه</td>
+                <td class="amount">۱۰۰٬۰۰۰</td>
+              </tr>
+              <tr>
+                <td>هاست و سرور (سالانه)</td>
+                <td class="amount">۱۸٬۰۰۰٬۰۰۰</td>
+              </tr>
+              <tr>
+                <td>توکن‌ها و ابزارهای هوش مصنوعی</td>
+                <td class="amount">۴۰٬۰۰۰٬۰۰۰</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>جمع کل</td>
+                <td class="amount">۵۸٬۱۰۰٬۰۰۰</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>ارزش تقریبی کار انجام‌شده تا امروز</h3>
+          <p>
+            با توجه به توسعه کلی نسخه وب و لانچ‌شدن سایت، ارزش تقریبی کاری که تا
+            امروز انجام شده، بین ۵۰۰ تا ۶۵۰ میلیون تومان برآورد می‌شود. این
+            برآورد، هزینه‌های پشتیبانی و توسعه آینده سایت را شامل نمی‌شود.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>۲. وضعیت فعلی پروژه</h2>
+        <ul>
+          <li>شرکت هنوز به‌صورت رسمی ثبت نشده است.</li>
+          <li>سهامی میان اعضا تقسیم نشده است.</li>
+          <li>قرارداد رسمی همکاری میان اعضا تنظیم نشده است.</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="page">
+      <ul class="continue-list">
+        <li>تاکنون هیچ‌یک از اعضا حقوقی از پروژه دریافت نکرده‌اند.</li>
+        <li>نسخه وب محصول در مراحل پایانی آماده‌سازی قرار دارد.</li>
+        <li>
+          بخشی از مسئولیت‌های پیش‌بینی‌شده، مانند جذب باشگاه و بازاریابی، هنوز
+          به سطح مورد انتظار نرسیده‌اند.
+        </li>
+      </ul>
+
+      <section class="section">
+        <h2>۳. مسائل نیازمند تصمیم</h2>
+        <p class="intro">موارد زیر در کنار هم بررسی می‌شوند:</p>
+        <ul>
+          <li>نحوه مدیریت و تسویه هزینه‌های انجام‌شده تا امروز</li>
+          <li>نحوه جبران زحمات مربوط به توسعه محصول</li>
+          <li>مدل تأمین مالی پروژه تا رسیدن به درآمدزایی</li>
+          <li>تقسیم دقیق مسئولیت‌ها میان اعضا</li>
+          <li>فرآیند تصمیم‌گیری در دوره پیش از ثبت شرکت</li>
+          <li>زمان مناسب برای تعیین نهایی سهام مؤسسان</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>۴. تقسیم مسئولیت‌ها</h2>
+        <p class="intro">
+          جدول‌های زیر مسئولیت، خروجی قابل اندازه‌گیری، مهلت و وضعیت انجام هر نقش
+          را مشخص می‌کنند. تکمیل ستون‌های مهلت و وضعیت انجام، با گفت‌وگو در جلسه
+          مؤسسان صورت خواهد گرفت.
+        </p>
+
+        <div class="panel">
+          <table class="role-table">
+            <tr class="role-head">
+              <th class="label">نقش</th>
+              <td class="value">هماهنگ‌کننده پروژه و توسعه‌دهنده</td>
+            </tr>
+            <tr>
+              <th class="label">مسئولیت</th>
+              <td class="value">
+                پرداخت هزینه‌های جاری پروژه؛ مدیریت روند توسعه؛ مشارکت در طراحی
+                محصول؛ هماهنگی کلی بین اعضا
+              </td>
+            </tr>
+            <tr>
+              <th class="label">خروجی قابل اندازه‌گیری</th>
+              <td class="value">
+                برنامه‌ریزی و پیگیری فازهای توسعه؛ هماهنگی جلسات تصمیم‌گیری؛ گزارش
+                دوره‌ای وضعیت پروژه
+              </td>
+            </tr>
+            <tr>
+              <th class="label">مهلت</th>
+              <td class="value">تعیین‌شده در جلسه مؤسسان</td>
+            </tr>
+            <tr>
+              <th class="label">وضعیت انجام</th>
+              <td class="value">در انتظار شروع دوره ارزیابی</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="page">
+      <div class="panel">
+        <table class="role-table">
+          <tr class="role-head">
+            <th class="label">نقش</th>
+            <td class="value">توسعه‌دهنده فنی</td>
+          </tr>
+          <tr>
+            <th class="label">مسئولیت</th>
+            <td class="value">
+              توسعه فنی محصول؛ مشارکت اصلی در ساخت و نگهداری سایت
+            </td>
+          </tr>
+          <tr>
+            <th class="label">خروجی قابل اندازه‌گیری</th>
+            <td class="value">
+              تکمیل و پایدارسازی نسخه وب؛ رفع اشکالات فنی؛ مستندسازی فنی پایه
+            </td>
+          </tr>
+          <tr>
+            <th class="label">مهلت</th>
+            <td class="value">تعیین‌شده در جلسه مؤسسان</td>
+          </tr>
+          <tr>
+            <th class="label">وضعیت انجام</th>
+            <td class="value">در انتظار شروع دوره ارزیابی</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="panel">
+        <table class="role-table">
+          <tr class="role-head">
+            <th class="label">نقش</th>
+            <td class="value">مربی و مالک زمین ورزشی</td>
+          </tr>
+          <tr>
+            <th class="label">مسئولیت</th>
+            <td class="value">
+              جذب باشگاه‌ها و زمین‌های ورزشی؛ توسعه بازار در حوزه تنیس
+            </td>
+          </tr>
+          <tr>
+            <th class="label">خروجی قابل اندازه‌گیری</th>
+            <td class="value">
+              فهرست باشگاه‌ها و زمین‌های جذب‌شده؛ گزارش پیشرفت مذاکرات با شرکای
+              بالقوه
+            </td>
+          </tr>
+          <tr>
+            <th class="label">مهلت</th>
+            <td class="value">تعیین‌شده در جلسه مؤسسان</td>
+          </tr>
+          <tr>
+            <th class="label">وضعیت انجام</th>
+            <td class="value">در انتظار شروع دوره ارزیابی</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="page">
+      <div class="panel">
+        <table class="role-table">
+          <tr class="role-head">
+            <th class="label">نقش</th>
+            <td class="value">مسئول ارتباطات بازار</td>
+          </tr>
+          <tr>
+            <th class="label">مسئولیت</th>
+            <td class="value">بازاریابی و جذب مشتری؛ توسعه ارتباطات تجاری</td>
+          </tr>
+          <tr>
+            <th class="label">خروجی قابل اندازه‌گیری</th>
+            <td class="value">
+              برنامه بازاریابی مشخص؛ گزارش نتایج اقدامات جذب مشتری
+            </td>
+          </tr>
+          <tr>
+            <th class="label">مهلت</th>
+            <td class="value">تعیین‌شده در جلسه مؤسسان</td>
+          </tr>
+          <tr>
+            <th class="label">وضعیت انجام</th>
+            <td class="value">در انتظار شروع دوره ارزیابی</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="panel">
+        <table class="role-table">
+          <tr class="role-head">
+            <th class="label">نقش</th>
+            <td class="value">طراح رابط و تجربه کاربری</td>
+          </tr>
+          <tr>
+            <th class="label">مسئولیت</th>
+            <td class="value">
+              طراحی رابط کاربری؛ طراحی بصری؛ بهبود تجربه کاربری بر اساس بازخورد
+            </td>
+          </tr>
+          <tr>
+            <th class="label">خروجی قابل اندازه‌گیری</th>
+            <td class="value">
+              تحویل فایل‌های طراحی نهایی؛ ثبت و پیگیری بازخوردهای تجربه کاربری
+            </td>
+          </tr>
+          <tr>
+            <th class="label">مهلت</th>
+            <td class="value">تعیین‌شده در جلسه مؤسسان</td>
+          </tr>
+          <tr>
+            <th class="label">وضعیت انجام</th>
+            <td class="value">در انتظار شروع دوره ارزیابی</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
