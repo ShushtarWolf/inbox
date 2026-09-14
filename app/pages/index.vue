@@ -5,10 +5,11 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
+const { today } = useLocalDate()
 
 const sport = ref<string>('')
 const city = ref<string>('')
-const date = ref<string>('')
+const date = ref<string>(today())
 const heroSlide = ref(0)
 const showDatePicker = ref(false)
 

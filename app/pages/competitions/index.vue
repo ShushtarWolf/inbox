@@ -7,6 +7,10 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency, formatIsoDate } = useFormatters()
 const { competitionsEnabled } = usePilotFlags()
 
+useHead({
+  title: () => t('competitions.title'),
+})
+
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const cityFilter = ref<string>((route.query.city as string) || '')
 

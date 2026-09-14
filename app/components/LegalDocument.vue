@@ -7,6 +7,11 @@ const props = defineProps<{
 
 const { t, tm, rt } = useI18n()
 const config = useRuntimeConfig()
+
+useHead({
+  title: () => t(props.titleKey),
+})
+
 const { data: paymentsModePayload } = useFetch<{ mode?: string }>('/api/payments/mode', {
   default: () => ({ mode: String(config.public.paymentsMode || 'pay_at_club') }),
 })
