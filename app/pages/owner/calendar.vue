@@ -28,6 +28,7 @@ import {
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
 import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import {
@@ -143,7 +144,10 @@ const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
 const refundToWallet = ref(true)
 const saving = ref(false)
+const previewing = ref(false)
+const confirming = ref(false)
 const actionError = ref('')
+const flashMessage = ref('')
 const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
 const payLinkCopied = ref(false)
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
@@ -152,6 +156,8 @@ const sessionType = ref<'free' | 'coach'>('free')
 const recurringWanted = ref(false)
 /** Grid filter: all reserved types, free-play only, or coach-tagged only. */
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+/** After season/package preview → desk pay sheet before create. */
+const pendingRecurringPay = ref<'season' | 'package' | null>(null)
 
 const weekdayOptions = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
@@ -181,6 +187,13 @@ const seasonForm = reactive({
 const SEASON_DEFAULT_SPAN_DAYS = 27
 /** Hint after narrowing multi-court / gapped hour selection for season. */
 const seasonSelectionHint = ref('')
+const packageSelectionHint = ref('')
+const seasonSelectionHasGap = ref(false)
+const packageSelectionHasGap = ref(false)
+const seasonAcceptGap = ref(false)
+const packageAcceptGap = ref(false)
+/** Walk-in multi-equipment/qty cannot all be posted to season/package (single item API). */
+const recurringEquipmentDropHint = ref('')
 
 const packageForm = reactive({
   coachId: '',
@@ -1198,6 +1211,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   cancelReason.value = 'CUSTOMER_REQUEST'
   refundToWallet.value = true
   actionError.value = ''
+  flashMessage.value = ''
   sessionType.value = activeBooking(fullSlot)?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
   recurringWanted.value = false
   const isFree = fullSlot.displayStatus === 'FREE' || !activeBooking(fullSlot)
@@ -1270,12 +1284,37 @@ function onDeskPercentInput() {
 
 function openPayConfirm() {
   if (!canSubmitReserve()) return
+  pendingRecurringPay.value = null
   deskDiscountInput.value = ''
   deskDiscountError.value = ''
   deskDiscount.value = null
   deskPercentInput.value = ''
   deskPayMode.value = 'cash'
   activePanel.value = 'payConfirm'
+}
+
+function openRecurringPayConfirm(kind: 'season' | 'package') {
+  pendingRecurringPay.value = kind
+  deskDiscountInput.value = ''
+  deskDiscountError.value = ''
+  deskDiscount.value = null
+  deskPercentInput.value = ''
+  deskPayMode.value = 'cash'
+  activePanel.value = 'payConfirm'
+}
+
+function backFromPayConfirm() {
+  const kind = pendingRecurringPay.value
+  pendingRecurringPay.value = null
+  if (kind === 'season') {
+    activePanel.value = 'season'
+    return
+  }
+  if (kind === 'package') {
+    activePanel.value = 'package'
+    return
+  }
+  activePanel.value = 'reserve'
 }
 
 async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
@@ -1286,6 +1325,15 @@ async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
   } else {
     form.paymentMethod = payAtClubMode.value ? 'CASH' : 'IPG'
     form.paymentStatus = 'PAY_AT_CLUB'
+  }
+  const recurring = pendingRecurringPay.value
+  if (recurring === 'season') {
+    await doSeasonReserve({ fromPayConfirm: true })
+    return
+  }
+  if (recurring === 'package') {
+    await doPackageReserve({ fromPayConfirm: true })
+    return
   }
   await doReserve()
 }
@@ -1444,20 +1492,41 @@ function ensurePackageDateDefaults(anchorDate: string) {
   }
 }
 
-/** Prefer walk-in sheet values when entering the season panel. */
+function walkInDropsEquipmentForRecurring() {
+  const qtyOverOne = Object.values(form.equipmentQuantities).some((qty) => qty > 1)
+  return form.equipmentIds.length > 1 || qtyOverOne
+}
+
+function refreshRecurringEquipmentDropHint() {
+  recurringEquipmentDropHint.value = walkInDropsEquipmentForRecurring()
+    ? t('owner.seasonPage.equipmentDropHint')
+    : ''
+}
+
+/** Prefer walk-in sheet values when entering the season panel (including clears). */
 function syncSeasonFormFromWalkIn() {
-  if (form.comments.trim()) seasonForm.comments = form.comments.trim()
-  if (form.equipmentIds.length) seasonForm.equipmentId = form.equipmentIds[0] || ''
+  seasonForm.comments = form.comments.trim()
+  seasonForm.equipmentId = form.equipmentIds[0] || ''
+  refreshRecurringEquipmentDropHint()
+}
+
+type NarrowedSelection = {
+  days: string[]
+  dayTimes: Record<string, DayTimeRange>
+  hints: string[]
+  hasGap: boolean
+  slotIds: string[]
+  courtId: string
+  anchor: OwnerCalendarSlot
 }
 
 /**
- * Season API is single-court. Keep only the anchor court; merge same-weekday hours
- * into one start–end range (warn if the merge fills gaps the owner did not select).
+ * Season/package API is single-court. Keep only the anchor court; merge same-weekday hours
+ * into one start–end range (gap merge requires explicit accept before preview/confirm).
  */
-function narrowSeasonSelectionToAnchorCourt() {
-  seasonSelectionHint.value = ''
+function computeNarrowedSelectionToAnchorCourt(): NarrowedSelection | null {
   const anchor = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
-  if (!anchor) return
+  if (!anchor) return null
   const anchorDate = anchor.date || data.value?.date || date.value || today()
   const courtId = anchor.courtId
   const freeSelected = selectedSlotsFull.value.filter((s) => s.displayStatus === 'FREE')
@@ -1465,11 +1534,6 @@ function narrowSeasonSelectionToAnchorCourt() {
   const pool = (freeSelected.filter((s) => s.courtId === courtId).length
     ? freeSelected.filter((s) => s.courtId === courtId)
     : [anchor]) as OwnerCalendarSlot[]
-
-  selectedSlotIds.value = uniqueOrdered(pool.map((s) => s.id))
-  selectedSlot.value = pool[0] || anchor
-  selectionCourtId.value = courtId
-  multiSelectMode.value = selectedSlotIds.value.length > 1
 
   const byDay: Record<string, OwnerCalendarSlot[]> = {}
   for (const s of pool) {
@@ -1492,15 +1556,47 @@ function narrowSeasonSelectionToAnchorCourt() {
     )
     if (timesInRange(start, end).some((t) => !covered.has(t))) hasGap = true
   }
-  if (days.length) {
-    seasonForm.days = days
-    seasonForm.dayTimes = ensureDayTimesForDays(ranges, days, defaultDayRange(anchor))
-  }
 
   const hints: string[] = []
   if (hadOtherCourts) hints.push(t('owner.seasonPage.singleCourtHint'))
   if (hasGap) hints.push(t('owner.seasonPage.timeGapHint'))
-  seasonSelectionHint.value = hints.join(' ')
+
+  return {
+    days,
+    dayTimes: days.length
+      ? ensureDayTimesForDays(ranges, days, defaultDayRange(anchor))
+      : {},
+    hints,
+    hasGap,
+    slotIds: uniqueOrdered(pool.map((s) => s.id)),
+    courtId,
+    anchor: pool[0] || anchor,
+  }
+}
+
+function applyNarrowedSelection(kind: 'season' | 'package', narrowed: NarrowedSelection) {
+  selectedSlotIds.value = narrowed.slotIds
+  selectedSlot.value = narrowed.anchor
+  selectionCourtId.value = narrowed.courtId
+  multiSelectMode.value = narrowed.slotIds.length > 1
+
+  if (kind === 'season') {
+    if (narrowed.days.length) {
+      seasonForm.days = narrowed.days
+      seasonForm.dayTimes = narrowed.dayTimes
+    }
+    seasonSelectionHint.value = narrowed.hints.join(' ')
+    seasonSelectionHasGap.value = narrowed.hasGap
+    seasonAcceptGap.value = false
+  } else {
+    if (narrowed.days.length) {
+      packageForm.days = narrowed.days
+      packageForm.dayTimes = narrowed.dayTimes
+    }
+    packageSelectionHint.value = narrowed.hints.join(' ')
+    packageSelectionHasGap.value = narrowed.hasGap
+    packageAcceptGap.value = false
+  }
 }
 
 function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
@@ -1509,8 +1605,11 @@ function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
     return
   }
   clearRecurringPreview()
+  pendingRecurringPay.value = null
   if (opts?.fromWalkIn) syncSeasonFormFromWalkIn()
-  narrowSeasonSelectionToAnchorCourt()
+  else recurringEquipmentDropHint.value = ''
+  const narrowed = computeNarrowedSelectionToAnchorCourt()
+  if (narrowed) applyNarrowedSelection('season', narrowed)
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
   const anchorDate = slot?.date || data.value?.date || date.value || today()
   ensureSeasonDateDefaults(anchorDate)
@@ -1523,6 +1622,19 @@ function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
 }
 
 function openSeasonFormFromReserve() {
+  if (!pilotNoCoach.value && sessionType.value === 'coach') {
+    if (!form.coachId.trim()) {
+      actionError.value = t('owner.sessionTypeCoachRequired')
+      return
+    }
+    if (!canShowPackageReserve()) {
+      actionError.value = t('owner.seasonPage.disabled')
+      return
+    }
+    reserveFlowReturn.value = true
+    openPackageForm({ fromWalkIn: true })
+    return
+  }
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
     return
@@ -1531,8 +1643,22 @@ function openSeasonFormFromReserve() {
   openSeasonForm({ fromWalkIn: true })
 }
 
-/** Secondary «رزرو فصلی» — same season sheet; guest validated on confirm. */
+/** Secondary «رزرو فصلی» — same season sheet; guest validated on preview/confirm. */
 function openSeasonReserveButton() {
+  if (!pilotNoCoach.value && sessionType.value === 'coach') {
+    if (!form.coachId.trim()) {
+      actionError.value = t('owner.sessionTypeCoachRequired')
+      return
+    }
+    if (!canShowPackageReserve()) {
+      actionError.value = t('owner.seasonPage.disabled')
+      return
+    }
+    recurringWanted.value = true
+    reserveFlowReturn.value = true
+    openPackageForm({ fromWalkIn: true })
+    return
+  }
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
     return
@@ -1573,15 +1699,25 @@ function openFabCancel() {
 }
 
 function syncPackageFormFromWalkIn() {
-  if (form.comments.trim()) packageForm.comments = form.comments.trim()
-  if (form.equipmentIds.length) packageForm.equipmentId = form.equipmentIds[0] || ''
+  packageForm.comments = form.comments.trim()
+  packageForm.equipmentId = form.equipmentIds[0] || ''
+  packageForm.coachId = pilotNoCoach.value ? '' : (form.coachId || '')
+  refreshRecurringEquipmentDropHint()
 }
 
-function openPackageForm() {
+function openPackageForm(opts?: { fromWalkIn?: boolean }) {
   if (!canShowPackageReserve()) return
+  if (!pilotNoCoach.value && sessionType.value === 'coach' && !form.coachId.trim()) {
+    actionError.value = t('owner.sessionTypeCoachRequired')
+    return
+  }
   clearRecurringPreview()
-  syncPackageFormFromWalkIn()
-  narrowSeasonSelectionToAnchorCourt()
+  pendingRecurringPay.value = null
+  const fromWalkIn = opts?.fromWalkIn !== false
+  if (fromWalkIn) syncPackageFormFromWalkIn()
+  else recurringEquipmentDropHint.value = ''
+  const narrowed = computeNarrowedSelectionToAnchorCourt()
+  if (narrowed) applyNarrowedSelection('package', narrowed)
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
   const anchorDate = slot?.date || data.value?.date || date.value || today()
   ensurePackageDateDefaults(anchorDate)
@@ -1590,6 +1726,7 @@ function openPackageForm() {
     packageForm.days = [anchorDay]
     packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
   }
+  if (!pilotNoCoach.value && form.coachId) packageForm.coachId = form.coachId
   reserveFlowReturn.value = true
   activePanel.value = 'package'
 }
@@ -1603,7 +1740,14 @@ function closeMenu() {
   resetPanels()
   clearRecurringPreview()
   reserveFlowReturn.value = false
+  pendingRecurringPay.value = null
   seasonSelectionHint.value = ''
+  packageSelectionHint.value = ''
+  seasonSelectionHasGap.value = false
+  packageSelectionHasGap.value = false
+  seasonAcceptGap.value = false
+  packageAcceptGap.value = false
+  recurringEquipmentDropHint.value = ''
   cancelReason.value = ''
   actionError.value = ''
   lastPayLink.value = null
@@ -1665,7 +1809,8 @@ function backToMenu() {
 const slotModalTitle = computed(() => {
   switch (activePanel.value) {
     case 'reserve':
-      return reserveMenuLabel()
+      // Canva (11): in-sheet title only — avoid AppModal h2 + inner h3 duplicate.
+      return ''
     case 'block':
       return t('owner.blockFormTitle')
     case 'detail':
@@ -1685,7 +1830,7 @@ const slotModalTitle = computed(() => {
     case 'season':
       return t('owner.seasonPage.title')
     case 'package':
-      return t('owner.packagesPage.title')
+      return t('owner.packagePage.title')
     case 'equipment':
       return t('owner.equipments')
     default:
@@ -1736,7 +1881,13 @@ const deskSlotStatuses = computed(() => {
 })
 
 watch(
-  () => [seasonForm.startDate, seasonForm.finishDate, JSON.stringify(seasonForm.dayTimes)] as const,
+  () => [
+    seasonForm.startDate,
+    seasonForm.finishDate,
+    JSON.stringify(seasonForm.days),
+    JSON.stringify(seasonForm.dayTimes),
+    seasonForm.equipmentId,
+  ] as const,
   () => {
     seasonPreview.value = null
     seasonAcceptSkips.value = false
@@ -1744,7 +1895,14 @@ watch(
 )
 
 watch(
-  () => [packageForm.startDate, packageForm.finishDate, JSON.stringify(packageForm.dayTimes)] as const,
+  () => [
+    packageForm.startDate,
+    packageForm.finishDate,
+    JSON.stringify(packageForm.days),
+    JSON.stringify(packageForm.dayTimes),
+    packageForm.equipmentId,
+    packageForm.coachId,
+  ] as const,
   () => {
     packagePreview.value = null
     packageAcceptSkips.value = false
@@ -2136,16 +2294,20 @@ function applyRecurringConflictError(kind: 'season' | 'package', error: unknown)
 
 async function runSeasonPreview() {
   if (!canShowSeasonReserve()) return
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
-    if (!guestFieldsValid()) actionError.value = t('owner.guestRequired')
-    else if (!seasonDatesValid.value) {
-      actionError.value = seasonStartInPast.value
+  if (previewing.value || confirming.value) return
+  if (!selectedSlot.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+    actionError.value = guestFieldsErrorMessage() || (
+      seasonStartInPast.value
         ? t('owner.errors.startDateInPast')
         : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
-    }
+    )
     return
   }
-  saving.value = true
+  if (seasonSelectionHasGap.value && !seasonAcceptGap.value) {
+    actionError.value = t('owner.seasonPage.acceptGapRequired')
+    return
+  }
+  previewing.value = true
   actionError.value = ''
   try {
     const preview = await fetchRecurringPreview('season')
@@ -2160,14 +2322,19 @@ async function runSeasonPreview() {
   } catch (error) {
     applyRecurringConflictError('season', error)
   } finally {
-    saving.value = false
+    previewing.value = false
   }
 }
 
-async function doSeasonReserve() {
+async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
   if (!canShowSeasonReserve()) return
-  if (!selectedSlot.value || saving.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
-    if (!guestFieldsValid()) actionError.value = t('owner.guestRequired')
+  if (previewing.value || confirming.value || saving.value) return
+  if (!selectedSlot.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+    actionError.value = guestFieldsErrorMessage() || t('owner.guestRequired')
+    return
+  }
+  if (seasonSelectionHasGap.value && !seasonAcceptGap.value) {
+    actionError.value = t('owner.seasonPage.acceptGapRequired')
     return
   }
   if (!seasonPreview.value) {
@@ -2179,16 +2346,21 @@ async function doSeasonReserve() {
     return
   }
 
-  saving.value = true
+  if (!opts?.fromPayConfirm) {
+    openRecurringPayConfirm('season')
+    return
+  }
+
+  confirming.value = true
   actionError.value = ''
   try {
     const guest = guestNamePayload()
-    await $fetch('/api/owner/season', {
+    const result = await $fetch<{ slotsCreated?: number }>('/api/owner/season', {
       method: 'POST',
       body: {
         guestName: guest.guestName,
         guestFamily: guest.guestFamily,
-        guestMobile: form.guestMobile,
+        guestMobile: normalizeIranPhone(form.guestMobile) || form.guestMobile,
         startDate: seasonForm.startDate,
         finishDate: seasonForm.finishDate,
         days: seasonForm.days,
@@ -2201,43 +2373,91 @@ async function doSeasonReserve() {
         acceptSkips: seasonAcceptSkips.value || (seasonPreview.value?.skippedCount ?? 0) === 0,
       },
     })
+    if (result.slotsCreated) {
+      flashMessage.value = t('owner.seasonPage.slotsCreatedFlash', { count: result.slotsCreated })
+    }
+    pendingRecurringPay.value = null
     await finishSlotAction()
   } catch (error) {
     applyRecurringConflictError('season', error)
   } finally {
-    saving.value = false
+    confirming.value = false
   }
 }
 
-async function doPackageReserve() {
+async function runPackagePreview() {
   if (!canShowPackageReserve()) return
-  if (!selectedSlot.value || saving.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) return
-  saving.value = true
+  if (previewing.value || confirming.value) return
+  if (!selectedSlot.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) {
+    actionError.value = guestFieldsErrorMessage() || t('owner.guestRequired')
+    return
+  }
+  if (!pilotNoCoach.value && sessionType.value === 'coach' && !packageForm.coachId.trim()) {
+    actionError.value = t('owner.sessionTypeCoachRequired')
+    return
+  }
+  if (packageSelectionHasGap.value && !packageAcceptGap.value) {
+    actionError.value = t('owner.seasonPage.acceptGapRequired')
+    return
+  }
+  previewing.value = true
   actionError.value = ''
   try {
-    if (!packagePreview.value) {
-      const preview = await fetchRecurringPreview('package')
-      packagePreview.value = preview
-      if (!preview || preview.willCreateCount === 0) {
-        actionError.value = t('owner.seasonPage.noFreeSlots')
-        return
-      }
-      if (preview.skippedCount > 0 && !packageAcceptSkips.value) {
-        actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-        return
-      }
-    } else if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) {
-      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    const preview = await fetchRecurringPreview('package')
+    packagePreview.value = preview
+    if (!preview || preview.willCreateCount === 0) {
+      actionError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
+    if (preview.skippedCount > 0 && !packageAcceptSkips.value) {
+      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    }
+  } catch (error) {
+    applyRecurringConflictError('package', error)
+  } finally {
+    previewing.value = false
+  }
+}
 
+async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
+  if (!canShowPackageReserve()) return
+  if (previewing.value || confirming.value || saving.value) return
+  if (!selectedSlot.value || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid.value || !guestFieldsValid()) {
+    actionError.value = guestFieldsErrorMessage() || t('owner.guestRequired')
+    return
+  }
+  if (!pilotNoCoach.value && sessionType.value === 'coach' && !packageForm.coachId.trim()) {
+    actionError.value = t('owner.sessionTypeCoachRequired')
+    return
+  }
+  if (packageSelectionHasGap.value && !packageAcceptGap.value) {
+    actionError.value = t('owner.seasonPage.acceptGapRequired')
+    return
+  }
+  if (!packagePreview.value) {
+    await runPackagePreview()
+    if (!packagePreview.value?.willCreateCount) return
+    if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) return
+  } else if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) {
+    actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
+    return
+  }
+
+  if (!opts?.fromPayConfirm) {
+    openRecurringPayConfirm('package')
+    return
+  }
+
+  confirming.value = true
+  actionError.value = ''
+  try {
     const guest = guestNamePayload()
-    await $fetch('/api/owner/package-reserve', {
+    const result = await $fetch<{ slotsCreated?: number }>('/api/owner/package-reserve', {
       method: 'POST',
       body: {
         guestName: guest.guestName,
         guestFamily: guest.guestFamily,
-        guestMobile: form.guestMobile,
+        guestMobile: normalizeIranPhone(form.guestMobile) || form.guestMobile,
         coachId: pilotNoCoach.value ? undefined : (packageForm.coachId || undefined),
         startDate: packageForm.startDate,
         finishDate: packageForm.finishDate,
@@ -2251,11 +2471,15 @@ async function doPackageReserve() {
         acceptSkips: packageAcceptSkips.value || (packagePreview.value?.skippedCount ?? 0) === 0,
       },
     })
+    if (result.slotsCreated) {
+      flashMessage.value = t('owner.seasonPage.slotsCreatedFlash', { count: result.slotsCreated })
+    }
+    pendingRecurringPay.value = null
     await finishSlotAction()
   } catch (error) {
     applyRecurringConflictError('package', error)
   } finally {
-    saving.value = false
+    confirming.value = false
   }
 }
 
@@ -2387,7 +2611,13 @@ function isNewReservation() {
 
 function guestFieldsValid() {
   // Canva single full-name field → family may be empty for one-word names.
-  return Boolean(form.guestName.trim() && form.guestMobile.trim())
+  return Boolean(form.guestName.trim() && normalizeIranPhone(form.guestMobile))
+}
+
+function guestFieldsErrorMessage() {
+  if (!form.guestName.trim() || !form.guestMobile.trim()) return t('owner.guestRequired')
+  if (!normalizeIranPhone(form.guestMobile)) return t('owner.guestMobileInvalid')
+  return ''
 }
 
 function toggleReserveEquipment(id: string) {
@@ -2488,6 +2718,34 @@ const payConfirmDateHeading = computed(() => {
 
 const payConfirmCostLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
+  const recurring = pendingRecurringPay.value
+  if (recurring === 'season' || recurring === 'package') {
+    const sessions = recurring === 'season' ? seasonBillableSessionCount.value : packageBillableSessionCount.value
+    const court = recurring === 'season' ? seasonCourtPrice.value : packageCourtPrice.value
+    const equip = recurring === 'season' ? seasonEquipmentPrice.value : packageEquipmentPrice.value
+    const coach = recurring === 'package' && packageForm.coachId && selectedCoach.value
+      ? (selectedCoach.value.sessionPrice || 0)
+      : 0
+    if (sessions > 0 && court) {
+      lines.push({
+        label: t('owner.priceBreakdown.sessionMultiplier', { count: formatNumber(sessions) }),
+        amount: court * sessions,
+      })
+    }
+    if (coach && sessions > 0) {
+      lines.push({
+        label: t('owner.priceBreakdown.coach'),
+        amount: coach * sessions,
+      })
+    }
+    if (equip && sessions > 0) {
+      lines.push({
+        label: t('owner.priceBreakdown.equipment'),
+        amount: equip * sessions,
+      })
+    }
+    return lines
+  }
   for (const slot of slotsForReserve()) {
     lines.push({
       label: slotCourtName(slot)
@@ -2596,11 +2854,11 @@ function confirmReserveLabel() {
   return isNewReservation() ? t('owner.confirmReserve') : t('common.save')
 }
 
-/** Canva today legend: آزاد / رزرو شده / در انتظار / مسدود / پرداخت */
+/** Canva today legend: آزاد / رزرو شده (red) / در انتظار (yellow) / مسدود / پرداخت */
 const legend = computed(() => [
   { status: 'FREE', color: palette.calendarGrid.FREE, swatch: 'free' as const },
-  { status: 'RESERVED', color: '#E8B84A', swatch: 'box' as const },
-  { status: 'PENDING', color: '#C41E1E', swatch: 'box' as const },
+  { status: 'RESERVED', color: '#C41E1E', swatch: 'box' as const },
+  { status: 'PENDING', color: '#E8B84A', swatch: 'box' as const },
   { status: 'BLOCKED', color: '#1A1A18', swatch: 'box' as const },
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
 ])
@@ -2640,6 +2898,10 @@ watch(pilotNoCoach, (off) => {
 
 <template>
   <div class="venus-page-stack owner-cal-page" :class="{ 'calendar-page-has-selection': selectedSlotIds.length && !showMenu }">
+    <p v-if="flashMessage" class="mx-4 mb-2 bg-brand-lavender px-3 py-2 text-start text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
+      {{ flashMessage }}
+      <button type="button" class="ms-2 text-xs font-bold text-brand-primary" @click="flashMessage = ''">{{ t('common.close') }}</button>
+    </p>
     <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
       <CanvaHeroImg
         :src="clubHeroImage"
@@ -3181,12 +3443,6 @@ watch(pilotNoCoach, (off) => {
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
             <div class="canva-reserve-head">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backToMenu">
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
               <h3 class="canva-reserve-title">
                 <AppIcon name="person_add" size="sm" class="text-brand-primary" />
                 {{ reserveMenuLabel() }}
@@ -3214,62 +3470,60 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()">
-            <div class="venus-form-grid">
-              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
-                <div class="relative">
-                  <input
-                    id="owner-reserve-guest-full"
-                    v-model="guestFullName"
-                    class="neo-input"
-                    autocomplete="off"
-                    required
-                    :aria-required="true"
-                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
-                    aria-autocomplete="list"
-                    aria-controls="owner-reserve-guest-suggestions-name"
-                    :placeholder="t('owner.guestSearchHint')"
-                    @input="onGuestFullNameInput"
-                    @focus="onGuestFullNameInput"
-                    @blur="closeGuestSearchSoon"
-                  >
-                  <OwnerGuestSearchDropdown
-                    list-id="owner-reserve-guest-suggestions-name"
-                    :open="guestSearchOpen && guestSearchSource === 'name'"
-                    :pending="guestSearchPending"
-                    :suggestions="guestSuggestions"
-                    @select="selectGuestSuggestion"
-                  />
-                </div>
-              </AppFormField>
-              <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
-                <div class="relative">
-                  <input
-                    id="owner-reserve-guest-mobile"
-                    v-model="form.guestMobile"
-                    dir="ltr"
-                    class="neo-input tabular-nums"
-                    autocomplete="tel"
-                    inputmode="tel"
-                    required
-                    :aria-required="true"
-                    :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
-                    aria-autocomplete="list"
-                    aria-controls="owner-reserve-guest-suggestions-mobile"
-                    :placeholder="t('owner.guestSearchHint')"
-                    @input="onGuestMobileInput"
-                    @focus="onGuestMobileInput"
-                    @blur="closeGuestSearchSoon"
-                  >
-                  <OwnerGuestSearchDropdown
-                    list-id="owner-reserve-guest-suggestions-mobile"
-                    :open="guestSearchOpen && guestSearchSource === 'mobile'"
-                    :pending="guestSearchPending"
-                    :suggestions="guestSuggestions"
-                    @select="selectGuestSuggestion"
-                  />
-                </div>
-              </AppFormField>
-            </div>
+            <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
+              <div class="relative">
+                <input
+                  id="owner-reserve-guest-full"
+                  v-model="guestFullName"
+                  class="neo-input"
+                  autocomplete="off"
+                  required
+                  :aria-required="true"
+                  :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                  aria-autocomplete="list"
+                  aria-controls="owner-reserve-guest-suggestions-name"
+                  :placeholder="t('owner.guestFullName')"
+                  @input="onGuestFullNameInput"
+                  @focus="onGuestFullNameInput"
+                  @blur="closeGuestSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="owner-reserve-guest-suggestions-name"
+                  :open="guestSearchOpen && guestSearchSource === 'name'"
+                  :pending="guestSearchPending"
+                  :suggestions="guestSuggestions"
+                  @select="selectGuestSuggestion"
+                />
+              </div>
+            </AppFormField>
+            <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
+              <div class="relative">
+                <input
+                  id="owner-reserve-guest-mobile"
+                  v-model="form.guestMobile"
+                  dir="ltr"
+                  class="neo-input tabular-nums"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  required
+                  :aria-required="true"
+                  :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                  aria-autocomplete="list"
+                  aria-controls="owner-reserve-guest-suggestions-mobile"
+                  :placeholder="t('owner.guestMobile')"
+                  @input="onGuestMobileInput"
+                  @focus="onGuestMobileInput"
+                  @blur="closeGuestSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="owner-reserve-guest-suggestions-mobile"
+                  :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                  :pending="guestSearchPending"
+                  :suggestions="guestSuggestions"
+                  @select="selectGuestSuggestion"
+                />
+              </div>
+            </AppFormField>
 
             <div v-if="!pilotNoCoach">
               <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.sessionType') }}</p>
@@ -3386,15 +3640,20 @@ watch(pilotNoCoach, (off) => {
                 <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox canva-recurring-checkbox">
                 <span class="text-start">{{ t('owner.recurringWanted') }}</span>
               </label>
-              <p class="text-start text-[11px] text-brand-gray-500">{{ t('owner.recurringWantedHint') }}</p>
             </template>
+            <p
+              v-else-if="isNewReservation() && !recurringReserveEnabled"
+              class="text-start text-[11px] text-brand-gray-500"
+            >
+              {{ t('owner.recurringDisabledHint') }}
+            </p>
           </form>
           <div class="venus-modal-footer">
             <OwnerBookingPriceSummary
               :court-price="courtPrice"
               :equipment-price="reserveEquipmentPrice"
             />
-            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"
@@ -3446,7 +3705,7 @@ watch(pilotNoCoach, (off) => {
         <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel canva-desk-pay-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="activePanel = 'reserve'">
+              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backFromPayConfirm">
                 <span class="inline-flex items-center gap-1">
                   <AppIcon name="arrow_back" size="sm" />
                   {{ t('common.back') }}
@@ -3485,14 +3744,14 @@ watch(pilotNoCoach, (off) => {
                 <span class="canva-confirm-book-cost-label">{{ line.label }}</span>
                 <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
               </div>
-              <div class="canva-confirm-book-discount">
+              <div v-if="!pendingRecurringPay" class="canva-confirm-book-discount">
                 <div class="canva-confirm-book-discount-row">
                   <input
                     v-model="deskDiscountInput"
                     type="text"
                     class="canva-confirm-book-discount-input"
                     :placeholder="t('booking.discountPlaceholder')"
-                    :disabled="deskDiscountApplying || saving"
+                    :disabled="deskDiscountApplying || saving || confirming"
                     autocomplete="off"
                     @keydown.enter.prevent="applyDeskDiscount"
                   >
@@ -3500,7 +3759,7 @@ watch(pilotNoCoach, (off) => {
                     v-if="deskDiscount"
                     type="button"
                     class="canva-confirm-book-discount-btn"
-                    :disabled="saving"
+                    :disabled="saving || confirming"
                     @click="clearDeskDiscount"
                   >
                     {{ t('booking.discountClear') }}
@@ -3509,7 +3768,7 @@ watch(pilotNoCoach, (off) => {
                     v-else
                     type="button"
                     class="canva-confirm-book-discount-btn"
-                    :disabled="deskDiscountApplying || saving || !deskDiscountInput.trim()"
+                    :disabled="deskDiscountApplying || saving || confirming || !deskDiscountInput.trim()"
                     @click="applyDeskDiscount"
                   >
                     {{ deskDiscountApplying ? t('common.loading') : t('booking.discountApply') }}
@@ -3524,7 +3783,7 @@ watch(pilotNoCoach, (off) => {
                     inputmode="numeric"
                     class="canva-confirm-book-discount-input mt-1 w-full"
                     :placeholder="t('owner.deskPercentPlaceholder')"
-                    :disabled="saving"
+                    :disabled="saving || confirming"
                     autocomplete="off"
                     @input="onDeskPercentInput"
                   >
@@ -3532,7 +3791,7 @@ watch(pilotNoCoach, (off) => {
                 <p v-if="deskDiscountError" class="canva-confirm-book-discount-note text-brand-primary">{{ deskDiscountError }}</p>
                 <p v-else class="canva-confirm-book-discount-note">{{ t('owner.deskPercentHint') }}</p>
               </div>
-              <div class="canva-confirm-book-cost-row">
+              <div v-if="!pendingRecurringPay" class="canva-confirm-book-cost-row">
                 <span class="canva-confirm-book-cost-label">{{ payConfirmDiscountLabel }}</span>
                 <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(payConfirmDiscountAmount) }}</span>
               </div>
@@ -3547,26 +3806,26 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-primary w-full"
-              :disabled="saving"
+              :disabled="saving || confirming"
               @click="confirmDeskPay('cash')"
             >
-              {{ saving && deskPayMode === 'cash' ? t('common.loading') : t('owner.payCash') }}
+              {{ (saving || confirming) && deskPayMode === 'cash' ? t('common.loading') : t('owner.payCash') }}
             </button>
             <button
               type="button"
               class="canva-gate-btn-secondary w-full"
-              :disabled="saving"
+              :disabled="saving || confirming"
               @click="confirmDeskPay('complimentary')"
             >
-              {{ saving && deskPayMode === 'complimentary' ? t('common.loading') : t('owner.payComplimentary') }}
+              {{ (saving || confirming) && deskPayMode === 'complimentary' ? t('common.loading') : t('owner.payComplimentary') }}
             </button>
             <button
               type="button"
               class="canva-desk-pay-tertiary w-full"
-              :disabled="saving"
+              :disabled="saving || confirming"
               @click="confirmDeskPay('unpaid')"
             >
-              {{ saving && deskPayMode === 'unpaid' ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
+              {{ (saving || confirming) && deskPayMode === 'unpaid' ? t('common.loading') : ((payAtClubMode || pendingRecurringPay) ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
             </button>
           </div>
         </div>
@@ -3688,6 +3947,9 @@ watch(pilotNoCoach, (off) => {
             <AppFormField :label="t('owner.comments')">
               <textarea v-model="form.comments" class="neo-textarea" rows="6" />
             </AppFormField>
+            <p v-if="reserveFlowReturn && isNewReservation()" class="text-start text-[11px] text-brand-gray-500">
+              {{ t('owner.noteDraftHint') }}
+            </p>
           </div>
           <div class="venus-modal-footer">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
@@ -3697,7 +3959,7 @@ watch(pilotNoCoach, (off) => {
               :disabled="saving || (!reserveFlowReturn && !form.comments.trim() && !activeBooking(selectedSlot))"
               @click="doSaveNote"
             >
-              {{ saving ? t('common.loading') : (reserveFlowReturn ? t('common.save') : t('owner.confirmNote')) }}
+              {{ saving ? t('common.loading') : (reserveFlowReturn ? t('owner.saveNoteToForm') : t('owner.confirmNote')) }}
             </button>
             <button v-if="reserveFlowReturn" type="button" class="canva-gate-btn-secondary" @click="backToMenu">
               {{ t('common.back') }}
@@ -3742,26 +4004,65 @@ watch(pilotNoCoach, (off) => {
             <p v-if="seasonSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
               {{ seasonSelectionHint }}
             </p>
+            <label v-if="seasonSelectionHasGap" class="canva-recurring-check mb-3">
+              <input v-model="seasonAcceptGap" type="checkbox" class="canva-settings-checkbox">
+              <span>{{ t('owner.seasonPage.acceptGap') }}</span>
+            </label>
+            <p v-if="recurringEquipmentDropHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
+              {{ recurringEquipmentDropHint }}
+            </p>
             <div class="venus-form-stack">
               <AppFormField :label="t('owner.guestFullName')" required field-id="owner-season-guest-full">
-                <input
-                  id="owner-season-guest-full"
-                  v-model="guestFullName"
-                  class="neo-input"
-                  autocomplete="name"
-                  required
-                >
+                <div class="relative">
+                  <input
+                    id="owner-season-guest-full"
+                    v-model="guestFullName"
+                    class="neo-input"
+                    autocomplete="off"
+                    required
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-season-guest-suggestions-name"
+                    :placeholder="t('owner.guestFullName')"
+                    @input="onGuestFullNameInput"
+                    @focus="onGuestFullNameInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-season-guest-suggestions-name"
+                    :open="guestSearchOpen && guestSearchSource === 'name'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
               <AppFormField :label="t('owner.guestMobile')" required field-id="owner-season-guest-mobile">
-                <input
-                  id="owner-season-guest-mobile"
-                  v-model="form.guestMobile"
-                  dir="ltr"
-                  class="neo-input tabular-nums"
-                  autocomplete="tel"
-                  inputmode="tel"
-                  required
-                >
+                <div class="relative">
+                  <input
+                    id="owner-season-guest-mobile"
+                    v-model="form.guestMobile"
+                    dir="ltr"
+                    class="neo-input tabular-nums"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    required
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-season-guest-suggestions-mobile"
+                    :placeholder="t('owner.guestMobile')"
+                    @input="onGuestMobileInput"
+                    @focus="onGuestMobileInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-season-guest-suggestions-mobile"
+                    :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
               <AppFormField :label="t('owner.packagesPage.dateRange')" required>
                 <AppDateRangeInput
@@ -3848,7 +4149,7 @@ watch(pilotNoCoach, (off) => {
               :preview-confirmed="Boolean(seasonPreview?.willCreateCount)"
               show-estimated
             />
-            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
             <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">
               {{ seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')) }}
             </p>
@@ -3862,15 +4163,15 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-secondary"
-              :disabled="saving || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid()"
+              :disabled="previewing || confirming || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
               @click="runSeasonPreview"
-            >{{ saving && !seasonPreview ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
+            >{{ previewing ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="saving || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid()"
-              @click="doSeasonReserve"
-            >{{ saving && seasonPreview ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
+              :disabled="previewing || confirming || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
+              @click="doSeasonReserve()"
+            >{{ confirming ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
           </div>
         </div>
 
@@ -3908,6 +4209,16 @@ watch(pilotNoCoach, (off) => {
                 </span>
               </div>
             </div>
+            <p v-if="packageSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
+              {{ packageSelectionHint }}
+            </p>
+            <label v-if="packageSelectionHasGap" class="canva-recurring-check mb-3">
+              <input v-model="packageAcceptGap" type="checkbox" class="canva-settings-checkbox">
+              <span>{{ t('owner.seasonPage.acceptGap') }}</span>
+            </label>
+            <p v-if="recurringEquipmentDropHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
+              {{ recurringEquipmentDropHint }}
+            </p>
             <div class="venus-form-stack">
               <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
                 <select v-model="packageForm.coachId" class="neo-select">
@@ -3918,24 +4229,56 @@ watch(pilotNoCoach, (off) => {
                 </select>
               </AppFormField>
               <AppFormField :label="t('owner.guestFullName')" required field-id="owner-package-guest-full">
-                <input
-                  id="owner-package-guest-full"
-                  v-model="guestFullName"
-                  class="neo-input"
-                  autocomplete="name"
-                  required
-                >
+                <div class="relative">
+                  <input
+                    id="owner-package-guest-full"
+                    v-model="guestFullName"
+                    class="neo-input"
+                    autocomplete="off"
+                    required
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-package-guest-suggestions-name"
+                    :placeholder="t('owner.guestFullName')"
+                    @input="onGuestFullNameInput"
+                    @focus="onGuestFullNameInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-package-guest-suggestions-name"
+                    :open="guestSearchOpen && guestSearchSource === 'name'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
               <AppFormField :label="t('owner.guestMobile')" required field-id="owner-package-guest-mobile">
-                <input
-                  id="owner-package-guest-mobile"
-                  v-model="form.guestMobile"
-                  dir="ltr"
-                  class="neo-input tabular-nums"
-                  autocomplete="tel"
-                  inputmode="tel"
-                  required
-                >
+                <div class="relative">
+                  <input
+                    id="owner-package-guest-mobile"
+                    v-model="form.guestMobile"
+                    dir="ltr"
+                    class="neo-input tabular-nums"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    required
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-package-guest-suggestions-mobile"
+                    :placeholder="t('owner.guestMobile')"
+                    @input="onGuestMobileInput"
+                    @focus="onGuestMobileInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-package-guest-suggestions-mobile"
+                    :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
               <AppFormField :label="t('owner.packagesPage.dateRange')" required>
                 <AppDateRangeInput
@@ -4023,7 +4366,7 @@ watch(pilotNoCoach, (off) => {
               :preview-confirmed="Boolean(packagePreview?.willCreateCount)"
               show-estimated
             />
-            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ t('owner.guestRequired') }}</p>
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
             <p
               v-else-if="!packagePreview && packageDatesValid && guestFieldsValid() && packageForm.days.length && packageScheduleValid()"
               class="text-start text-xs font-medium text-brand-primary"
@@ -4033,10 +4376,16 @@ watch(pilotNoCoach, (off) => {
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
               type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="previewing || confirming || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid || !guestFieldsValid() || (packageSelectionHasGap && !packageAcceptGap)"
+              @click="runPackagePreview"
+            >{{ previewing ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
+            <button
+              type="button"
               class="canva-gate-btn-primary"
-              :disabled="saving || !packageForm.days.length || !packageScheduleValid() || !packageDatesValid || !guestFieldsValid() || (Boolean(packagePreview?.skippedCount) && !packageAcceptSkips)"
-              @click="doPackageReserve"
-            >{{ saving ? t('common.loading') : (packagePreview ? t('owner.seasonPage.confirm') : t('common.save')) }}</button>
+              :disabled="previewing || confirming || !packagePreview || !packagePreview.willCreateCount || (Boolean(packagePreview.skippedCount) && !packageAcceptSkips) || !guestFieldsValid() || (packageSelectionHasGap && !packageAcceptGap)"
+              @click="doPackageReserve()"
+            >{{ confirming ? t('common.loading') : t('owner.packagePage.confirm') }}</button>
           </div>
         </div>
 

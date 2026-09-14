@@ -2251,22 +2251,22 @@
   .canva-cal-grid-cell-bar-reserved-cash,
   .canva-cal-grid-cell-bar-public,
   .canva-cal-grid-cell-bar-team {
-    background: #E8B84A;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-blocked {
     background: #1A1A18;
   }
   .canva-cal-grid-cell-bar-reserved-unpaid {
-    background: #E8B84A;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-reserved-ipg {
-    background: #E8B84A;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-reserved-recurring {
-    background: #E8B84A;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-pending {
-    background: #C41E1E;
+    background: #E8B84A;
   }
   .canva-cal-grid-cell-bar-closed,
   .canva-cal-grid-cell-bar-cancel {
@@ -2432,16 +2432,16 @@
     background-color: var(--color-brand-primary, #c8102e);
   }
   .canva-reserve-head {
-    @apply flex flex-wrap items-center gap-2;
+    @apply flex flex-wrap items-center justify-start gap-2;
   }
   .canva-reserve-title {
-    @apply inline-flex items-center gap-1.5 font-bold text-brand-navy;
+    @apply inline-flex items-center gap-1.5 text-base font-bold text-brand-navy;
   }
   .canva-reserve-head-links {
-    @apply mt-2 flex flex-wrap items-center justify-start gap-x-4 gap-y-1;
+    @apply mt-2 flex flex-col;
   }
   .canva-reserve-head-link {
-    @apply inline-flex items-center gap-1 text-[11px] font-bold text-brand-gray-500;
+    @apply flex w-full items-center justify-start gap-2 border-b border-brand-gray-100 py-3 text-start text-sm font-bold text-brand-navy;
   }
   .canva-legend-paid-dot {
     @apply inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#16A34A];
