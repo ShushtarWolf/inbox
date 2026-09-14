@@ -28,6 +28,7 @@ import {
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
+  whenLine,
 } from './bookingNotify'
 
 const baseOpts = {
@@ -437,5 +438,33 @@ describe('bookingNotify SMS', () => {
       template: 'OWNER_BOOKING_CANCELLED',
       clubId: 'club-1',
     })
+  })
+})
+
+describe('whenLine series copy', () => {
+  it('describes a recurring date range and session count', () => {
+    expect(whenLine({
+      date: '2026-08-14',
+      finishDate: '2026-09-10',
+      startTime: '18:00',
+      sessionCount: 4,
+    })).toContain('۴ سانس')
+    expect(whenLine({
+      date: '2026-08-14',
+      finishDate: '2026-09-10',
+      startTime: '18:00',
+      sessionCount: 4,
+    })).toMatch(/تا/)
+  })
+
+  it('keeps single-slot copy when sessionCount is 1', () => {
+    const line = whenLine({
+      date: '2026-08-14',
+      finishDate: '2026-09-10',
+      startTime: '18:00',
+      sessionCount: 1,
+    })
+    expect(line).not.toContain('سانس')
+    expect(line).toContain('۱۸:۰۰')
   })
 })

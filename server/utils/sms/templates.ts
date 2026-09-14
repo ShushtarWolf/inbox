@@ -16,11 +16,28 @@ function clubBit(data: Record<string, unknown>) {
 
 function whenBit(data: Record<string, unknown>) {
   const dateRaw = String(data.date || '').trim()
+  const finishRaw = String(data.finishDate || '').trim()
   const startRaw = String(data.time || data.startTime || '').trim()
   const endRaw = String(data.endTime || '').trim()
   const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+  const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
   const start = startRaw ? formatSmsTime(startRaw) : ''
   const end = endRaw ? formatSmsTime(endRaw) : ''
+  const rawCount = data.sessionCount
+  const count = typeof rawCount === 'number' && rawCount > 1
+    ? rawCount
+    : (typeof rawCount === 'string' && Number(rawCount) > 1 ? Number(rawCount) : 0)
+  if (count && date && finish && finish !== date) {
+    const sessions = `${toPersianDigits(String(count))} سانس`
+    const range = `${date} تا ${finish}`
+    if (start && end && end !== start) return `${range} (${sessions}) از ${start} تا ${end}`
+    if (start) return `${range} (${sessions}) ساعت ${start}`
+    return `${range} (${sessions})`
+  }
+  if (count && date) {
+    if (start) return `${date} (${toPersianDigits(String(count))} سانس) ساعت ${start}`
+    return `${date} (${toPersianDigits(String(count))} سانس)`
+  }
   if (date && start && end && end !== start) return `${date} از ${start} تا ${end}`
   if (date && start) return `${date} ساعت ${start}`
   if (start && end && end !== start) return `از ${start} تا ${end}`
@@ -87,8 +104,10 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     if (guest) {
       const club = String(data.clubName || '').trim()
       const dateRaw = String(data.date || '').trim()
+      const finishRaw = String(data.finishDate || '').trim()
       const startRaw = String(data.time || data.startTime || '').trim()
       const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+      const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
       const start = startRaw ? formatSmsTime(startRaw) : ''
       const court = String(data.courtName || '').trim()
       const courtBit = court ? ` (${court})` : ''
@@ -96,9 +115,18 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       const receiptUrl = String(data.receiptUrl || '').trim()
       const payPin = String(data.payPin || '').trim()
       const paid = data.paymentPaid === true
-      const whenLine = date && start
-        ? `برای تاریخ ${date} ساعت ${start}${courtBit} با موفقیت انجام شد.`
-        : 'با موفقیت انجام شد.'
+      const rawCount = data.sessionCount
+      const count = typeof rawCount === 'number' && rawCount > 1
+        ? rawCount
+        : (typeof rawCount === 'string' && Number(rawCount) > 1 ? Number(rawCount) : 0)
+      let whenLine = 'با موفقیت انجام شد.'
+      if (count && date && finish && finish !== date && start) {
+        whenLine = `برای بازه ${date} تا ${finish} (${toPersianDigits(String(count))} سانس) ساعت ${start}${courtBit} با موفقیت انجام شد.`
+      } else if (count && date && start) {
+        whenLine = `برای ${date} (${toPersianDigits(String(count))} سانس) ساعت ${start}${courtBit} با موفقیت انجام شد.`
+      } else if (date && start) {
+        whenLine = `برای تاریخ ${date} ساعت ${start}${courtBit} با موفقیت انجام شد.`
+      }
       const lines = [
         `${guest} عزیز`,
         club ? `رزرو شما در ${club}` : 'رزرو شما',

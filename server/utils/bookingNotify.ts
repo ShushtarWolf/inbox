@@ -17,8 +17,12 @@ type BookingNotifyOpts = {
   phone?: string | null
   clubName: string
   date: string
+  /** Inclusive series end — when set with sessionCount > 1, copy describes a recurring range. */
+  finishDate?: string | null
   startTime: string
   endTime?: string | null
+  /** Number of sessions created in a season/package series. */
+  sessionCount?: number | null
   kind: BookingNotifyKind
   bookingId?: string
   clubId?: string
@@ -213,8 +217,10 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     kind: opts.kind,
     clubName: opts.clubName,
     date: opts.date,
+    finishDate: opts.finishDate || '',
     startTime: opts.startTime,
     endTime: opts.endTime || '',
+    sessionCount: opts.sessionCount ?? null,
     courtName: opts.courtName || '',
     paymentPaid: opts.paymentPaid,
     address: opts.address || '',
@@ -228,11 +234,30 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
   }
 }
 
-function whenLine(opts: BookingNotifyOpts) {
+/** Shared when-line for in-app / admin — supports single slot or series range. */
+export function whenLine(opts: {
+  date?: string | null
+  finishDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  sessionCount?: number | null
+}) {
   const start = opts.startTime ? formatSmsTime(opts.startTime) : ''
   const end = opts.endTime ? formatSmsTime(opts.endTime) : ''
   const time = start && end && end !== start ? `از ${start} تا ${end}` : start
   const date = opts.date ? formatSmsJalaliDate(opts.date) : ''
+  const finish = opts.finishDate ? formatSmsJalaliDate(opts.finishDate) : ''
+  const count = typeof opts.sessionCount === 'number' && opts.sessionCount > 1
+    ? opts.sessionCount
+    : 0
+  if (count && date && finish && finish !== date) {
+    const sessions = `${toPersianDigits(String(count))} سانس`
+    const range = `${date} تا ${finish}`
+    return [range, `(${sessions})`, time].filter(Boolean).join(' ')
+  }
+  if (count && date) {
+    return [`${date} (${toPersianDigits(String(count))} سانس)`, time].filter(Boolean).join(' ')
+  }
   const when = [date, time].filter(Boolean).join(' ')
   return when || '—'
 }

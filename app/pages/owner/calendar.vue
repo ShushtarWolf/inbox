@@ -148,6 +148,18 @@ const previewing = ref(false)
 const confirming = ref(false)
 const actionError = ref('')
 const flashMessage = ref('')
+let flashClearTimer: ReturnType<typeof setTimeout> | null = null
+watch(flashMessage, (msg) => {
+  if (flashClearTimer) {
+    clearTimeout(flashClearTimer)
+    flashClearTimer = null
+  }
+  if (!msg) return
+  flashClearTimer = setTimeout(() => {
+    if (flashMessage.value === msg) flashMessage.value = ''
+    flashClearTimer = null
+  }, 4000)
+})
 const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
 const payLinkCopied = ref(false)
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
@@ -179,7 +191,6 @@ const seasonForm = reactive({
   finishDate: '',
   days: ['Sun'] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
-  equipmentId: '',
   comments: '',
 })
 
@@ -192,8 +203,6 @@ const seasonSelectionHasGap = ref(false)
 const packageSelectionHasGap = ref(false)
 const seasonAcceptGap = ref(false)
 const packageAcceptGap = ref(false)
-/** Walk-in multi-equipment/qty cannot all be posted to season/package (single item API). */
-const recurringEquipmentDropHint = ref('')
 
 const packageForm = reactive({
   coachId: '',
@@ -201,7 +210,6 @@ const packageForm = reactive({
   finishDate: '',
   days: ['Sun'] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
-  equipmentId: '',
   comments: '',
 })
 
@@ -534,6 +542,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick)
   clearLongPressTimer()
+  if (flashClearTimer) clearTimeout(flashClearTimer)
 })
 
 function activeBooking(slot: OwnerCalendarSlot | null | undefined) {
@@ -1020,8 +1029,8 @@ const reserveEquipmentPrice = computed(() => {
   }
   return base
 })
-const seasonEquipmentPrice = computed(() => sumEquipmentIds(seasonForm.equipmentId ? [seasonForm.equipmentId] : []))
-const packageEquipmentPrice = computed(() => sumEquipmentIds(packageForm.equipmentId ? [packageForm.equipmentId] : []))
+const seasonEquipmentPrice = computed(() => sumEquipmentIds(form.equipmentIds, form.equipmentQuantities))
+const packageEquipmentPrice = computed(() => sumEquipmentIds(form.equipmentIds, form.equipmentQuantities))
 const seasonDateRangeInvalid = computed(() =>
   Boolean(seasonForm.startDate && seasonForm.finishDate && seasonForm.finishDate < seasonForm.startDate),
 )
@@ -1249,14 +1258,12 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   seasonForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   seasonForm.days = [anchorDay]
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
-  seasonForm.equipmentId = equipmentIds[0] || ''
   seasonForm.comments = booking?.comments || ''
   packageForm.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   packageForm.startDate = anchorDate
   packageForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
-  packageForm.equipmentId = equipmentIds[0] || ''
   packageForm.comments = booking?.comments || ''
 }
 
@@ -1323,7 +1330,8 @@ async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
     form.paymentMethod = 'CASH'
     form.paymentStatus = 'PAID'
   } else {
-    form.paymentMethod = payAtClubMode.value ? 'CASH' : 'IPG'
+    // Recurring unpaid: always desk cash unpaid — no series pay link.
+    form.paymentMethod = (payAtClubMode.value || pendingRecurringPay.value) ? 'CASH' : 'IPG'
     form.paymentStatus = 'PAY_AT_CLUB'
   }
   const recurring = pendingRecurringPay.value
@@ -1492,22 +1500,9 @@ function ensurePackageDateDefaults(anchorDate: string) {
   }
 }
 
-function walkInDropsEquipmentForRecurring() {
-  const qtyOverOne = Object.values(form.equipmentQuantities).some((qty) => qty > 1)
-  return form.equipmentIds.length > 1 || qtyOverOne
-}
-
-function refreshRecurringEquipmentDropHint() {
-  recurringEquipmentDropHint.value = walkInDropsEquipmentForRecurring()
-    ? t('owner.seasonPage.equipmentDropHint')
-    : ''
-}
-
 /** Prefer walk-in sheet values when entering the season panel (including clears). */
 function syncSeasonFormFromWalkIn() {
   seasonForm.comments = form.comments.trim()
-  seasonForm.equipmentId = form.equipmentIds[0] || ''
-  refreshRecurringEquipmentDropHint()
 }
 
 type NarrowedSelection = {
@@ -1607,7 +1602,6 @@ function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
   clearRecurringPreview()
   pendingRecurringPay.value = null
   if (opts?.fromWalkIn) syncSeasonFormFromWalkIn()
-  else recurringEquipmentDropHint.value = ''
   const narrowed = computeNarrowedSelectionToAnchorCourt()
   if (narrowed) applyNarrowedSelection('season', narrowed)
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
@@ -1700,9 +1694,7 @@ function openFabCancel() {
 
 function syncPackageFormFromWalkIn() {
   packageForm.comments = form.comments.trim()
-  packageForm.equipmentId = form.equipmentIds[0] || ''
   packageForm.coachId = pilotNoCoach.value ? '' : (form.coachId || '')
-  refreshRecurringEquipmentDropHint()
 }
 
 function openPackageForm(opts?: { fromWalkIn?: boolean }) {
@@ -1715,7 +1707,6 @@ function openPackageForm(opts?: { fromWalkIn?: boolean }) {
   pendingRecurringPay.value = null
   const fromWalkIn = opts?.fromWalkIn !== false
   if (fromWalkIn) syncPackageFormFromWalkIn()
-  else recurringEquipmentDropHint.value = ''
   const narrowed = computeNarrowedSelectionToAnchorCourt()
   if (narrowed) applyNarrowedSelection('package', narrowed)
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
@@ -1747,7 +1738,6 @@ function closeMenu() {
   packageSelectionHasGap.value = false
   seasonAcceptGap.value = false
   packageAcceptGap.value = false
-  recurringEquipmentDropHint.value = ''
   cancelReason.value = ''
   actionError.value = ''
   lastPayLink.value = null
@@ -1886,7 +1876,8 @@ watch(
     seasonForm.finishDate,
     JSON.stringify(seasonForm.days),
     JSON.stringify(seasonForm.dayTimes),
-    seasonForm.equipmentId,
+    JSON.stringify(form.equipmentIds),
+    JSON.stringify(form.equipmentQuantities),
   ] as const,
   () => {
     seasonPreview.value = null
@@ -1900,7 +1891,8 @@ watch(
     packageForm.finishDate,
     JSON.stringify(packageForm.days),
     JSON.stringify(packageForm.dayTimes),
-    packageForm.equipmentId,
+    JSON.stringify(form.equipmentIds),
+    JSON.stringify(form.equipmentQuantities),
     packageForm.coachId,
   ] as const,
   () => {
@@ -2367,7 +2359,8 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
         dayTimes: seasonForm.dayTimes,
         comments: seasonForm.comments || form.comments || undefined,
         slotId: selectedSlot.value.id,
-        equipmentId: seasonForm.equipmentId || undefined,
+        equipmentIds: form.equipmentIds.length ? form.equipmentIds : undefined,
+        equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
         acceptSkips: seasonAcceptSkips.value || (seasonPreview.value?.skippedCount ?? 0) === 0,
@@ -2465,7 +2458,8 @@ async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
         dayTimes: packageForm.dayTimes,
         comments: packageForm.comments,
         slotId: selectedSlot.value.id,
-        equipmentId: packageForm.equipmentId || undefined,
+        equipmentIds: form.equipmentIds.length ? form.equipmentIds : undefined,
+        equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
         acceptSkips: packageAcceptSkips.value || (packagePreview.value?.skippedCount ?? 0) === 0,
@@ -3216,7 +3210,16 @@ watch(pilotNoCoach, (off) => {
       </div>
     </AppModal>
 
-    <AppModal :open="showMenu" patterned sheet :title="slotModalTitle" max-width-class="canva-owner-slot-modal" @close="closeMenu">
+    <AppModal
+      :open="showMenu"
+      patterned
+      sheet
+      :title="slotModalTitle"
+      :hide-title-bar="activePanel === 'reserve'"
+      :aria-label="activePanel === 'reserve' ? reserveMenuLabel() : slotModalTitle"
+      max-width-class="canva-owner-slot-modal"
+      @close="closeMenu"
+    >
       <div class="venus-modal-shell min-h-0 flex-1">
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-body !pt-1">
@@ -3631,7 +3634,7 @@ watch(pilotNoCoach, (off) => {
                 <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
               </select>
             </AppFormField>
-            <AppFormField :label="t('owner.comments')" field-id="owner-reserve-comments">
+            <AppFormField v-if="isEditingBooking()" :label="t('owner.comments')" field-id="owner-reserve-comments">
               <textarea id="owner-reserve-comments" v-model="form.comments" class="neo-textarea" rows="2" />
             </AppFormField>
 
@@ -3647,12 +3650,15 @@ watch(pilotNoCoach, (off) => {
             >
               {{ t('owner.recurringDisabledHint') }}
             </p>
+            <AppFormField
+              v-if="isNewReservation() && form.comments.trim()"
+              :label="t('owner.comments')"
+              field-id="owner-reserve-comments-note"
+            >
+              <textarea id="owner-reserve-comments-note" v-model="form.comments" class="neo-textarea" rows="2" />
+            </AppFormField>
           </form>
           <div class="venus-modal-footer">
-            <OwnerBookingPriceSummary
-              :court-price="courtPrice"
-              :equipment-price="reserveEquipmentPrice"
-            />
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
@@ -3680,6 +3686,10 @@ watch(pilotNoCoach, (off) => {
                 @click="openPackageForm"
               >{{ t('owner.packageReserve') }}</button>
             </div>
+            <OwnerBookingPriceSummary
+              :court-price="courtPrice"
+              :equipment-price="reserveEquipmentPrice"
+            />
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
@@ -4008,9 +4018,6 @@ watch(pilotNoCoach, (off) => {
               <input v-model="seasonAcceptGap" type="checkbox" class="canva-settings-checkbox">
               <span>{{ t('owner.seasonPage.acceptGap') }}</span>
             </label>
-            <p v-if="recurringEquipmentDropHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
-              {{ recurringEquipmentDropHint }}
-            </p>
             <div class="venus-form-stack">
               <AppFormField :label="t('owner.guestFullName')" required field-id="owner-season-guest-full">
                 <div class="relative">
@@ -4096,12 +4103,45 @@ watch(pilotNoCoach, (off) => {
                 :options="scheduleTimeOptions"
                 compact
               />
-              <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-                <select v-model="seasonForm.equipmentId" class="neo-select">
-                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                </select>
-              </AppFormField>
+              <div>
+                <p class="mb-1 text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</p>
+                <div v-if="rentalEquipments.length" class="space-y-0">
+                  <label
+                    v-for="item in rentalEquipments"
+                    :key="`season-eq-${item.id}`"
+                    class="canva-equip-row"
+                  >
+                    <span class="inline-flex min-w-0 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        class="canva-settings-checkbox"
+                        :checked="form.equipmentIds.includes(item.id)"
+                        @change="toggleReserveEquipment(item.id)"
+                      >
+                      <span class="text-start">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                    </span>
+                    <span class="inline-flex shrink-0 items-center gap-2">
+                      <span
+                        v-if="form.equipmentIds.includes(item.id)"
+                        class="canva-qty-step"
+                      >
+                        <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) - 1)">−</button>
+                        <span class="tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                        <button
+                          type="button"
+                          class="canva-qty-step-btn"
+                          :disabled="equipmentQty(item.id) >= equipmentAvailable(item)"
+                          @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) + 1)"
+                        >+</button>
+                      </span>
+                      <span class="tabular-nums text-brand-gray-600">
+                        {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <p v-else class="text-xs text-brand-gray-500">{{ t('common.empty') }}</p>
+              </div>
               <AppFormField :label="t('owner.comments')">
                 <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
               </AppFormField>
@@ -4216,9 +4256,6 @@ watch(pilotNoCoach, (off) => {
               <input v-model="packageAcceptGap" type="checkbox" class="canva-settings-checkbox">
               <span>{{ t('owner.seasonPage.acceptGap') }}</span>
             </label>
-            <p v-if="recurringEquipmentDropHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
-              {{ recurringEquipmentDropHint }}
-            </p>
             <div class="venus-form-stack">
               <AppFormField v-if="!pilotNoCoach" :label="t('owner.packagePage.coachPlaceholder')">
                 <select v-model="packageForm.coachId" class="neo-select">
@@ -4312,12 +4349,45 @@ watch(pilotNoCoach, (off) => {
                 :options="scheduleTimeOptions"
                 compact
               />
-              <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
-                <select v-model="packageForm.equipmentId" class="neo-select">
-                  <option value="">{{ t('owner.packagesPage.equipmentPlaceholder') }}</option>
-                  <option v-for="item in rentalEquipments" :key="item.id" :value="item.id">{{ equipmentOptionLabel(item) }}</option>
-                </select>
-              </AppFormField>
+              <div>
+                <p class="mb-1 text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</p>
+                <div v-if="rentalEquipments.length" class="space-y-0">
+                  <label
+                    v-for="item in rentalEquipments"
+                    :key="`package-eq-${item.id}`"
+                    class="canva-equip-row"
+                  >
+                    <span class="inline-flex min-w-0 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        class="canva-settings-checkbox"
+                        :checked="form.equipmentIds.includes(item.id)"
+                        @change="toggleReserveEquipment(item.id)"
+                      >
+                      <span class="text-start">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
+                    </span>
+                    <span class="inline-flex shrink-0 items-center gap-2">
+                      <span
+                        v-if="form.equipmentIds.includes(item.id)"
+                        class="canva-qty-step"
+                      >
+                        <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) - 1)">−</button>
+                        <span class="tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
+                        <button
+                          type="button"
+                          class="canva-qty-step-btn"
+                          :disabled="equipmentQty(item.id) >= equipmentAvailable(item)"
+                          @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) + 1)"
+                        >+</button>
+                      </span>
+                      <span class="tabular-nums text-brand-gray-600">
+                        {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <p v-else class="text-xs text-brand-gray-500">{{ t('common.empty') }}</p>
+              </div>
               <AppFormField :label="t('owner.comments')">
                 <textarea v-model="packageForm.comments" class="neo-textarea" rows="3" />
               </AppFormField>

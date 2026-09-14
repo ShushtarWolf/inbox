@@ -250,4 +250,29 @@ describe('SMS templates', () => {
     if (prev === undefined) delete process.env.NUXT_PUBLIC_SITE_URL
     else process.env.NUXT_PUBLIC_SITE_URL = prev
   })
+
+  it('mentions series range and session count for guest confirmed SMS', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        guestName: 'سارا',
+        clubName: 'بهناز',
+        date: '2026-08-14',
+        finishDate: '2026-09-10',
+        startTime: '18:00',
+        sessionCount: 4,
+        paymentPaid: true,
+      }),
+    ).toContain('۴ سانس')
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        guestName: 'سارا',
+        clubName: 'بهناز',
+        date: '2026-08-14',
+        finishDate: '2026-09-10',
+        startTime: '18:00',
+        sessionCount: 4,
+        paymentPaid: true,
+      }),
+    ).toContain('بازه')
+  })
 })

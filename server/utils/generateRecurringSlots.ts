@@ -8,7 +8,13 @@ import {
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
-import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
+import {
+  calculateSessionTotal,
+  equipmentLineTotal,
+  loadEquipmentForBooking,
+  parseEquipmentSelections,
+  syncBookingEquipments,
+} from './bookingTotal'
 import { syncClubContactForBooking } from './contactSync'
 import { findUserByPhone } from './phoneAuth'
 
@@ -21,7 +27,11 @@ export type RecurringGuestInfo = {
   paymentStatus?: 'PAID' | 'PAY_AT_CLUB'
   coachId?: string
   coachSessionPrice?: number
+  /** @deprecated Prefer equipmentIds + equipmentQuantities */
   equipmentId?: string
+  equipmentIds?: string[]
+  equipmentQuantities?: Record<string, number>
+  /** Optional precomputed session equipment total; otherwise derived from selections. */
   equipmentPrice?: number
 }
 
@@ -79,16 +89,19 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
     : undefined
   const paymentMethod = guest?.paymentMethod || 'CASH'
   const paymentStatus = guest?.paymentStatus || 'PAY_AT_CLUB'
-  const equipmentItems = guest?.equipmentId
-    ? await prisma.equipment.findMany({
-        where: { id: guest.equipmentId, clubId: opts.clubId },
-        select: { id: true, price: true, category: true, quantity: true },
-      })
+  const equipmentSelections = parseEquipmentSelections(
+    guest?.equipmentIds?.length
+      ? guest.equipmentIds
+      : (guest?.equipmentId ? [guest.equipmentId] : []),
+    guest?.equipmentQuantities,
+  )
+  const equipmentBookingItems = equipmentSelections.length
+    ? await loadEquipmentForBooking(opts.clubId, equipmentSelections)
     : []
-  const equipmentBookingItems = equipmentItems.map((item) => ({
-    ...item,
-    quantity: 1,
-  }))
+  if (equipmentSelections.length && equipmentBookingItems.length !== equipmentSelections.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
+  }
+  const equipmentLinePrices = equipmentBookingItems.map((item) => equipmentLineTotal(item))
   let created = 0
   let skipped = 0
   const willCreate: Array<{ date: string; startTime: string }> = []
@@ -119,7 +132,9 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       const sessionAmount = guest
         ? calculateSessionTotal({
             courtPrice: slotPrice,
-            equipmentPrices: guest.equipmentPrice ? [guest.equipmentPrice] : [],
+            equipmentPrices: equipmentLinePrices.length
+              ? equipmentLinePrices
+              : (guest.equipmentPrice ? [guest.equipmentPrice] : []),
             coachPrice: guest.coachSessionPrice || 0,
           })
         : slotPrice
