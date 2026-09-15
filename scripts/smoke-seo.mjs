@@ -161,7 +161,20 @@ async function main() {
   if (!llmsText.includes('زمین پدل تهران') || !llmsText.includes('زمین تنیس تهران')) {
     throw new Error('llms.txt missing Persian hub anchors')
   }
-  console.log('ok  llms.txt lists Tehran hubs')
+  if (!llmsText.includes('## باشگاه‌ها')) {
+    throw new Error('llms.txt missing باشگاه‌ها section')
+  }
+  if (!llmsText.includes('اینباکس چیست') || !llmsText.includes('/clubs/apply')) {
+    throw new Error('llms.txt missing brand / booking / owner-apply copy')
+  }
+  // Prefer live club URLs; fall back to hubs+brand already asserted above.
+  if (!/\/clubs\/(?!tehran(?:\/|$)|apply(?:\/|$))[a-z0-9-]+/i.test(llmsText)) {
+    console.warn('warn  llms.txt باشگاه‌ها section has no ACTIVE club URLs yet')
+  }
+  else {
+    console.log('ok  llms.txt lists ACTIVE club URLs')
+  }
+  console.log('ok  llms.txt lists Tehran hubs + باشگاه‌ها')
 
   // Homepage should expose Organization / WebApplication JSON-LD for search + AI
   const { html: homeHtml } = await fetchPage(base, '/')
@@ -177,7 +190,10 @@ async function main() {
   if (!homeHtml.includes('/clubs/tehran/tennis') || !homeHtml.includes('زمین تنیس تهران')) {
     throw new Error('/ missing Tehran tennis hub discovery link')
   }
-  console.log('ok  / Organization + WebApplication JSON-LD + hub links')
+  if (!homeHtml.includes('FAQPage')) {
+    throw new Error('/ missing sitewide FAQPage JSON-LD')
+  }
+  console.log('ok  / Organization + WebApplication JSON-LD + hub links + FAQ')
 
   const { html: clubsHtml } = await fetchPage(base, '/clubs')
   if (!clubsHtml.includes('/clubs/tehran/padel') || !clubsHtml.includes('زمین پدل تهران')) {
@@ -186,7 +202,18 @@ async function main() {
   if (!clubsHtml.includes('/clubs/tehran/tennis') || !clubsHtml.includes('زمین تنیس تهران')) {
     throw new Error('/clubs missing Tehran tennis hub discovery link')
   }
-  console.log('ok  /clubs hub discovery links')
+  if (!clubsHtml.includes('FAQPage')) {
+    throw new Error('/clubs missing sitewide FAQPage JSON-LD')
+  }
+  console.log('ok  /clubs hub discovery links + FAQ')
+
+  for (const path of ['/clubs/tehran/padel', '/clubs/tehran/tennis']) {
+    const { html } = await fetchPage(base, path)
+    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
+      throw new Error(`${path} missing FAQPage JSON-LD`)
+    }
+    console.log(`ok  ${path} FAQPage JSON-LD`)
+  }
 
   // About / pricing FAQ schema
   for (const path of ['/about', '/pricing']) {

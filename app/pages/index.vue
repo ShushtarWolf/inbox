@@ -441,5 +441,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
     </AppAsyncState>
 
     <GeoSportHubDiscoveryNav />
+    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/" />
   </div>
 </template>

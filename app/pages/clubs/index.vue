@@ -339,5 +339,6 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
     </section>
 
     <GeoSportHubDiscoveryNav />
+    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/clubs" />
   </div>
 </template>

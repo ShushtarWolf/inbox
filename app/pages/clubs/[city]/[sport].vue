@@ -179,5 +179,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </NuxtLink>
       </div>
     </nav>
+
+    <LegalFaq faq-key="legal.sitewideFaq" :page-url-path="hub.path" />
   </div>
 </template>
