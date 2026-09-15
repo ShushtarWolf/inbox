@@ -1,7 +1,7 @@
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { isNotifyLookupDisabled, resolveSmsProvider } from '#shared/sms.ts'
+import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
 import { createInAppNotification, sendNotification } from './notify'
 import { bookingTrackingCode, payUrlForPin, receiptUrlForBooking } from './receipt'
@@ -185,29 +185,47 @@ function payLinkLookupTemplate() {
   return process.env.KAVENEGAR_TEMPLATE_PAY_LINK?.trim() || ''
 }
 
-/** Optional second SMS: Kavenegar panel template with https://inboxs.ir/p/%token% (tappable URL). */
+/**
+ * Optional tappable pay-link SMS via dedicated Verify Lookup template
+ * (e.g. panel `payments` with `https://inboxs.ir/p/%token%`).
+ * Works on Path A too — Lookup is independent of free-text notify.
+ */
+export async function sendBookingPayLinkSms(opts: {
+  phone: string | null | undefined
+  payPin: string
+  payUrl?: string
+  clubId?: string
+}) {
+  const template = payLinkLookupTemplate()
+  const phone = opts.phone
+  const payPin = String(opts.payPin || '').trim()
+  if (!phone || !template || !payPin) {
+    return { sent: false, reason: !template ? 'template_unset' : 'missing_phone_or_pin' as const }
+  }
+  try {
+    const result = await sendSms({
+      to: phone,
+      body: opts.payUrl || payPin,
+      clubId: opts.clubId,
+      purpose: 'notify',
+      template: 'BOOKING_CONFIRMED',
+      lookup: { template, token: payPin },
+    })
+    return { sent: Boolean(result.sent), reason: result.sent ? 'ok' as const : 'not_sent' as const }
+  } catch (err) {
+    console.error('[bookingNotify:sms] BOOKING_PAY_LINK', err)
+    return { sent: false, reason: 'error' as const }
+  }
+}
+
+/** @deprecated use sendBookingPayLinkSms — kept as internal alias for notify path */
 async function sendPayLinkLookup(
   phone: string | null | undefined,
   payPin: string,
   payUrl: string,
   clubId?: string,
 ) {
-  // Path A (dedicated line): all non-OTP go via sms/send — skip Lookup pay-link.
-  if (isNotifyLookupDisabled()) return
-  const template = payLinkLookupTemplate()
-  if (!phone || !template || !payPin) return
-  try {
-    await sendSms({
-      to: phone,
-      body: payUrl || payPin,
-      clubId,
-      purpose: 'notify',
-      template: 'BOOKING_CONFIRMED',
-      lookup: { template, token: payPin },
-    })
-  } catch (err) {
-    console.error('[bookingNotify:sms] BOOKING_PAY_LINK', err)
-  }
+  await sendBookingPayLinkSms({ phone, payPin, payUrl, clubId })
 }
 
 function bookingNotifyData(opts: BookingNotifyOpts) {

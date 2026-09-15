@@ -162,6 +162,9 @@ watch(flashMessage, (msg) => {
 })
 const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
 const payLinkCopied = ref(false)
+const payLinkSmsPending = ref(false)
+const payLinkSmsStatus = ref<'idle' | 'sent' | 'failed'>('idle')
+const payLinkSmsError = ref('')
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
 /** Canva (11): daily/weekly ask on walk-in reserve → season panel when enabled. */
@@ -1363,6 +1366,26 @@ async function copyPayLink() {
   }
 }
 
+async function sendPayLinkSms() {
+  const link = lastPayLink.value
+  if (!link || payLinkSmsPending.value) return
+  payLinkSmsPending.value = true
+  payLinkSmsStatus.value = 'idle'
+  payLinkSmsError.value = ''
+  try {
+    await $fetch('/api/owner/pay-link-sms', {
+      method: 'POST',
+      body: { phone: link.mobile, payPin: link.pin },
+    })
+    payLinkSmsStatus.value = 'sent'
+  } catch (err) {
+    payLinkSmsStatus.value = 'failed'
+    payLinkSmsError.value = fetchErrorMessage(err) || t('owner.payLinkSmsFailed')
+  } finally {
+    payLinkSmsPending.value = false
+  }
+}
+
 function openCommentsForm() {
   actionError.value = ''
   activePanel.value = 'comments'
@@ -1742,6 +1765,9 @@ function closeMenu() {
   actionError.value = ''
   lastPayLink.value = null
   payLinkCopied.value = false
+  payLinkSmsPending.value = false
+  payLinkSmsStatus.value = 'idle'
+  payLinkSmsError.value = ''
   if (!multiSelectMode.value) clearSelection()
 }
 
@@ -2027,6 +2053,9 @@ async function doReserve() {
         mobile: form.guestMobile,
       }
       payLinkCopied.value = false
+      payLinkSmsPending.value = false
+      payLinkSmsStatus.value = 'idle'
+      payLinkSmsError.value = ''
       multiSelectMode.value = false
       clearSelection()
       await refreshCalendar()
@@ -3854,6 +3883,21 @@ watch(pilotNoCoach, (off) => {
             <button type="button" class="canva-gate-btn-primary w-full" @click="copyPayLink">
               {{ payLinkCopied ? t('owner.payLinkCopied') : t('owner.copyPayLink') }}
             </button>
+            <button
+              type="button"
+              class="canva-gate-btn-secondary w-full"
+              :disabled="payLinkSmsPending || !lastPayLink"
+              @click="sendPayLinkSms"
+            >
+              {{
+                payLinkSmsPending
+                  ? t('owner.payLinkSmsSending')
+                  : payLinkSmsStatus === 'sent'
+                    ? t('owner.payLinkSmsSent')
+                    : t('owner.sendPayLinkSms')
+              }}
+            </button>
+            <p v-if="payLinkSmsError" class="text-start text-sm text-red-600">{{ payLinkSmsError }}</p>
             <a
               v-if="payLinkWhatsappHref"
               class="canva-gate-btn-secondary flex w-full items-center justify-center"

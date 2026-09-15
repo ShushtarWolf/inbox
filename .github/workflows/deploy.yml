@@ -27,7 +27,7 @@ jobs:
           liara env set \
             KAVENEGAR_SENDER=9982007609 \
             KAVENEGAR_TEMPLATE_NOTIFY=off \
+            KAVENEGAR_TEMPLATE_PAY_LINK=payments \
             --app=inbox --api-token="$LIARA_TOKEN" --force
-          liara env unset KAVENEGAR_TEMPLATE_PAY_LINK --app=inbox --api-token="$LIARA_TOKEN" --force || true
           # Iran builds often exceed 22m (Nuxt + runtime prisma layer).
           timeout 40m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"

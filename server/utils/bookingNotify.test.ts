@@ -12,7 +12,6 @@ vi.mock('./notify', () => ({
 
 vi.mock('#shared/sms.ts', () => ({
   resolveSmsProvider: () => resolveSmsProvider(),
-  isNotifyLookupDisabled: () => false,
 }))
 
 vi.mock('./sms/service', () => ({
@@ -101,6 +100,7 @@ describe('bookingNotify SMS', () => {
     delete process.env.ADMIN_ALERT_SMS
     delete process.env.ADMIN_ALERT_PHONE
     delete process.env.KAVENEGAR_TEMPLATE_PAY_LINK
+    delete process.env.KAVENEGAR_TEMPLATE_NOTIFY
   })
 
   it('alerts platform admin even when guest SMS is skipped', async () => {
@@ -349,7 +349,7 @@ describe('bookingNotify SMS', () => {
   })
 
   it('sends a tappable pay-link lookup SMS when the panel template is set', async () => {
-    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'inbox-pay'
+    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'payments'
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
     sendSms.mockResolvedValue({ sent: true })
@@ -364,7 +364,26 @@ describe('bookingNotify SMS', () => {
     expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
       to: '09129876543',
       body: 'https://inboxs.ir/p/ab12cd9x',
-      lookup: { template: 'inbox-pay', token: 'ab12cd9x' },
+      lookup: { template: 'payments', token: 'ab12cd9x' },
+    }))
+  })
+
+  it('still sends pay-link Lookup when notify Lookup is off (path A)', async () => {
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = 'off'
+    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'payments'
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+    sendSms.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      paymentPaid: false,
+      payPin: 'ab12cd9x',
+      payUrl: 'https://inboxs.ir/p/ab12cd9x',
+    })
+
+    expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
+      lookup: { template: 'payments', token: 'ab12cd9x' },
     }))
   })
 
