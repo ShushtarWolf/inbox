@@ -1,0 +1,31 @@
+# inbox (اینباکس)
+
+> اینباکس پلتفرم رزرو آنلاین زمین پدل و تنیس در ایران است. ورزشکاران باشگاه و سانس آزاد را پیدا می‌کنند و رزرو ثبت می‌کنند؛ باشگاه‌ها تقویم و ظرفیت را مدیریت می‌کنند.
+
+مخاطب اصلی: ورزشکاران و باشگاه‌های پدل/تنیس در تهران و ایران.
+دامنه رسمی: https://inboxs.ir
+زبان محصول: فارسی (fa-IR)
+
+## صفحات کلیدی
+
+- [صفحه اصلی](https://inboxs.ir/): رزرو زمین پدل و تنیس، جستجوی شهر/تاریخ، باشگاه‌های پیشنهادی
+- [باشگاه‌ها](https://inboxs.ir/clubs): فهرست باشگاه‌های فعال برای رزرو آنلاین
+- [درباره اینباکس](https://inboxs.ir/about): معرفی پلتفرم و نقش باشگاه‌ها
+- [قیمت‌ها](https://inboxs.ir/pricing): شفافیت قیمت سانس و هزینه‌های احتمالی
+- [تماس](https://inboxs.ir/contact): پشتیبانی و ارتباط با اپراتور
+- [سیاست لغو](https://inboxs.ir/cancellation): قواعد کلی لغو و استرداد
+- [حریم خصوصی](https://inboxs.ir/privacy): داده‌های شخصی و حقوق کاربر
+- [شرایط استفاده](https://inboxs.ir/terms): شرایط حساب و رزرو
+
+## درباره
+
+- Name: inbox / اینباکس
+- Type: WebApplication
+- Category: Sports court booking (padel, tennis)
+- Primary locale: fa-IR
+- Contact: support@inboxs.ir
+
+## Optional
+
+- [شکایات](https://inboxs.ir/complaints)
+- [نقشه سایت](https://inboxs.ir/sitemap.xml)

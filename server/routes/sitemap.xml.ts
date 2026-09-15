@@ -16,12 +16,11 @@ export default defineEventHandler(async (event) => {
 
   const pilotNoCoach = isCoachProductDisabled(event)
 
+  // Public discovery pages only — auth chrome (/login, /register) stays crawlable but off sitemap.
   const staticPaths = [
     '/',
     '/clubs',
     ...(pilotNoCoach ? [] : ['/coaches']),
-    '/login',
-    '/register',
     '/about',
     '/contact',
     '/pricing',

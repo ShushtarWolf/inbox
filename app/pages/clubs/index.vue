@@ -143,11 +143,11 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
   return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
 }
 
-useHead({
+useSeoMeta({
   title: () => t('clubs.title'),
-  meta: [
-    { name: 'description', content: () => t('home.subtitle') },
-  ],
+  description: () => t('home.seoDescription'),
+  ogTitle: () => t('clubs.title'),
+  ogDescription: () => t('home.seoDescription'),
 })
 
 function nextHero() {

@@ -2,6 +2,13 @@
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
+
+useSeoMeta({
+  title: () => t('legal.aboutTitle'),
+  description: () => t('legal.aboutSeoDescription'),
+  ogTitle: () => t('legal.aboutTitle'),
+  ogDescription: () => t('legal.aboutSeoDescription'),
+})
 </script>
 
 <template>
@@ -17,5 +24,6 @@ const ownerName = computed(() => String(config.public.contactOwnerName || '').tr
       intro-key="legal.aboutIntro"
       sections-key="legal.aboutSections"
     />
+    <LegalFaq faq-key="legal.aboutFaq" page-url-path="/about" />
   </div>
 </template>

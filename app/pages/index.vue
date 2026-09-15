@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
+import { serializeJsonLd } from '#shared/jsonLd.ts'
 
 const { t } = useI18n()
+const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
@@ -141,21 +143,75 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
   () => heroSlides.value.length,
 )
 
-useHead({
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
+useSeoMeta({
   title: () => t('home.title'),
-  meta: [
-    { name: 'description', content: () => t('home.subtitle') },
-  ],
-  link: [
-    {
-      rel: 'preload',
-      as: 'image',
-      href: '/hero/tennis-court.webp',
-      type: 'image/webp',
-      imageSrcSet: '/hero/tennis-court.webp 750w, /hero/tennis-court-1125.webp 1125w',
-      imageSizes: '(max-width: 430px) 100vw, 430px',
-    },
-  ],
+  description: () => t('home.seoDescription'),
+  ogTitle: () => t('home.title'),
+  ogDescription: () => t('home.seoDescription'),
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+})
+
+useHead(() => {
+  const base = siteBase.value
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${base}/#organization`,
+        name: 'inbox',
+        alternateName: 'اینباکس',
+        url: base,
+        logo: `${base}/icons/apple-touch-icon.png`,
+        email: 'support@inboxs.ir',
+        sameAs: [base],
+        description: t('home.seoDescription'),
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': `${base}/#app`,
+        name: 'inbox',
+        alternateName: 'اینباکس',
+        url: base,
+        applicationCategory: 'SportsApplication',
+        operatingSystem: 'Web',
+        inLanguage: 'fa-IR',
+        description: t('home.seoDescription'),
+        provider: { '@id': `${base}/#organization` },
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'IRR',
+          description: t('home.seoTldr'),
+        },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${base}/#website`,
+        url: base,
+        name: 'inbox',
+        inLanguage: 'fa-IR',
+        publisher: { '@id': `${base}/#organization` },
+      },
+    ],
+  }
+  return {
+    link: [
+      {
+        rel: 'preload',
+        as: 'image',
+        href: '/hero/tennis-court.webp',
+        type: 'image/webp',
+        imageSrcSet: '/hero/tennis-court.webp 750w, /hero/tennis-court-1125.webp 1125w',
+        imageSizes: '(max-width: 430px) 100vw, 430px',
+      },
+      ...(base ? [{ rel: 'canonical', href: `${base}/` }] : []),
+    ],
+    script: [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }],
+  }
 })
 
 function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {

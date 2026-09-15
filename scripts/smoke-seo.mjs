@@ -105,7 +105,18 @@ async function main() {
   if (!robots.ok) throw new Error('robots.txt not found')
   const robotsText = await robots.text()
   if (!robotsText.includes('Sitemap')) throw new Error('robots.txt missing Sitemap directive')
+  if (!robotsText.includes('OAI-SearchBot')) {
+    throw new Error('robots.txt missing explicit AI search crawler allow')
+  }
   console.log('ok  robots.txt present')
+
+  const llms = await fetch(`${base}/llms.txt`)
+  if (!llms.ok) throw new Error('llms.txt not found')
+  const llmsText = await llms.text()
+  if (!llmsText.includes('inboxs.ir') || !llmsText.includes('پدل')) {
+    throw new Error('llms.txt missing brand / product description')
+  }
+  console.log('ok  llms.txt present')
 
   const sitemap = await fetch(`${base}/sitemap.xml`)
   if (!sitemap.ok) throw new Error('sitemap.xml not found')
@@ -114,7 +125,32 @@ async function main() {
   if (sitemapText.includes('/en/')) {
     throw new Error('sitemap.xml still lists /en URLs')
   }
-  console.log('ok  sitemap.xml present (FA-only)')
+  if (sitemapText.includes('/login') || sitemapText.includes('/register')) {
+    throw new Error('sitemap.xml should not prioritize /login or /register')
+  }
+  if (!sitemapText.includes('/about') || !sitemapText.includes('/clubs')) {
+    throw new Error('sitemap.xml missing core discovery URLs')
+  }
+  console.log('ok  sitemap.xml present (FA-only, discovery-focused)')
+
+  // Homepage should expose Organization / WebApplication JSON-LD for search + AI
+  const { html: homeHtml } = await fetchPage(base, '/')
+  if (!homeHtml.includes('application/ld+json') || !homeHtml.includes('Organization')) {
+    throw new Error('/ missing Organization JSON-LD')
+  }
+  if (!homeHtml.includes('WebApplication')) {
+    throw new Error('/ missing WebApplication JSON-LD')
+  }
+  console.log('ok  / Organization + WebApplication JSON-LD')
+
+  // About / pricing FAQ schema
+  for (const path of ['/about', '/pricing']) {
+    const { html } = await fetchPage(base, path)
+    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
+      throw new Error(`${path} missing FAQPage JSON-LD`)
+    }
+    console.log(`ok  ${path} FAQPage JSON-LD`)
+  }
 
   // Login page basic a11y — phone OTP inputs
   const { html: loginHtml } = await fetchPage(base, '/login')

@@ -642,7 +642,7 @@ const clubPageName = computed(() =>
 )
 
 const clubSeoDescription = computed(() => {
-  if (!club.value) return t('home.subtitle')
+  if (!club.value) return t('home.seoDescription')
   return t('clubs.seoDescription', {
     name: clubPageName.value,
     city: club.value.city || 'تهران',
