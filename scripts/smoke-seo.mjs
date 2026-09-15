@@ -118,6 +118,14 @@ async function main() {
   }
   console.log('ok  llms.txt present')
 
+  const gscVerify = await fetch(`${base}/google6944ecb2516e868f.html`)
+  if (!gscVerify.ok) throw new Error('google6944ecb2516e868f.html not found')
+  const gscText = await gscVerify.text()
+  if (!gscText.includes('google-site-verification: google6944ecb2516e868f.html')) {
+    throw new Error('GSC verification file has wrong body')
+  }
+  console.log('ok  GSC verification file present')
+
   const sitemap = await fetch(`${base}/sitemap.xml`)
   if (!sitemap.ok) throw new Error('sitemap.xml not found')
   const sitemapText = await sitemap.text()
