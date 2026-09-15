@@ -25,6 +25,11 @@
 - Primary locale: fa-IR
 - Contact: support@inboxs.ir
 
+## شهر و ورزش
+
+- [زمین پدل تهران](https://inboxs.ir/clubs/tehran/padel): باشگاه‌های پدل تهران؛ سانس آزاد را ببینید و آنلاین رزرو کنید
+- [زمین تنیس تهران](https://inboxs.ir/clubs/tehran/tennis): باشگاه‌های تنیس تهران؛ سانس آزاد را ببینید و آنلاین رزرو کنید
+
 ## Optional
 
 - [شکایات](https://inboxs.ir/complaints)

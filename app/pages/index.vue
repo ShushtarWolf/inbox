@@ -439,5 +439,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <CoachDiscoveryRail v-if="!pilotNoCoach" />
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
     </AppAsyncState>
+
+    <GeoSportHubDiscoveryNav />
   </div>
 </template>

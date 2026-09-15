@@ -337,5 +337,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         </div>
       </AppAsyncState>
     </section>
+
+    <GeoSportHubDiscoveryNav />
   </div>
 </template>

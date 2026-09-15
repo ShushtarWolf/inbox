@@ -139,7 +139,18 @@ async function main() {
   if (!sitemapText.includes('/about') || !sitemapText.includes('/clubs')) {
     throw new Error('sitemap.xml missing core discovery URLs')
   }
+  if (!sitemapText.includes('/clubs/tehran/padel') || !sitemapText.includes('/clubs/tehran/tennis')) {
+    throw new Error('sitemap.xml missing geo/sport hub URLs')
+  }
   console.log('ok  sitemap.xml present (FA-only, discovery-focused)')
+
+  if (!llmsText.includes('/clubs/tehran/padel') || !llmsText.includes('/clubs/tehran/tennis')) {
+    throw new Error('llms.txt missing geo/sport hub URLs')
+  }
+  if (!llmsText.includes('زمین پدل تهران') || !llmsText.includes('زمین تنیس تهران')) {
+    throw new Error('llms.txt missing Persian hub anchors')
+  }
+  console.log('ok  llms.txt lists Tehran hubs')
 
   // Homepage should expose Organization / WebApplication JSON-LD for search + AI
   const { html: homeHtml } = await fetchPage(base, '/')
@@ -149,7 +160,22 @@ async function main() {
   if (!homeHtml.includes('WebApplication')) {
     throw new Error('/ missing WebApplication JSON-LD')
   }
-  console.log('ok  / Organization + WebApplication JSON-LD')
+  if (!homeHtml.includes('/clubs/tehran/padel') || !homeHtml.includes('زمین پدل تهران')) {
+    throw new Error('/ missing Tehran padel hub discovery link')
+  }
+  if (!homeHtml.includes('/clubs/tehran/tennis') || !homeHtml.includes('زمین تنیس تهران')) {
+    throw new Error('/ missing Tehran tennis hub discovery link')
+  }
+  console.log('ok  / Organization + WebApplication JSON-LD + hub links')
+
+  const { html: clubsHtml } = await fetchPage(base, '/clubs')
+  if (!clubsHtml.includes('/clubs/tehran/padel') || !clubsHtml.includes('زمین پدل تهران')) {
+    throw new Error('/clubs missing Tehran padel hub discovery link')
+  }
+  if (!clubsHtml.includes('/clubs/tehran/tennis') || !clubsHtml.includes('زمین تنیس تهران')) {
+    throw new Error('/clubs missing Tehran tennis hub discovery link')
+  }
+  console.log('ok  /clubs hub discovery links')
 
   // About / pricing FAQ schema
   for (const path of ['/about', '/pricing']) {
