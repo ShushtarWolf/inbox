@@ -150,8 +150,11 @@ useSeoMeta({
   description: () => t('home.seoDescription'),
   ogTitle: () => t('home.title'),
   ogDescription: () => t('home.seoDescription'),
+  ogUrl: () => `${siteBase.value}/`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
   ogType: 'website',
   twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
 useHead(() => {

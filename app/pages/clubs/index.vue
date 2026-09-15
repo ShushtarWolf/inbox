@@ -151,6 +151,11 @@ useSeoMeta({
   description: () => t('clubs.indexSeoDescription'),
   ogTitle: () => t('clubs.seoTitle'),
   ogDescription: () => t('clubs.indexSeoDescription'),
+  ogUrl: () => `${siteBase.value}/clubs`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
 useHead(() => ({

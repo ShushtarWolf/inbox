@@ -8,6 +8,11 @@ useSeoMeta({
   description: () => t('legal.pricingSeoDescription'),
   ogTitle: () => t('legal.pricingSeoTitle'),
   ogDescription: () => t('legal.pricingSeoDescription'),
+  ogUrl: () => `${siteBase.value}/pricing`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
 useHead(() => ({

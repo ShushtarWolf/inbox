@@ -84,6 +84,11 @@ useSeoMeta({
   description: () => t('coaches.seoDescription'),
   ogTitle: () => t('coaches.seoTitle'),
   ogDescription: () => t('coaches.seoDescription'),
+  ogUrl: () => `${siteBase.value}/coaches`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
 useHead(() => ({

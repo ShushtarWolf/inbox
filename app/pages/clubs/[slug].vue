@@ -385,6 +385,21 @@ const sportLabel = computed(() => {
   return t('clubs.sportCourtGeneric')
 })
 
+/** Sport name only (پدل/تنیس) — never prefix with «زمین» (SEO templates already include it). */
+const sportSeoLabel = computed(() => {
+  const court = courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
+  const sportKey = court?.sport?.slug
+  if (sportKey === 'padel') return t('clubs.sportPadel')
+  if (sportKey === 'tennis') return t('clubs.sportTennis')
+  const slugs = new Set(
+    courts.value.map((c) => c.sport?.slug).filter((s): s is string => Boolean(s)),
+  )
+  if (slugs.has('padel') && slugs.has('tennis')) return t('home.sportsLabel')
+  if (slugs.has('padel')) return t('clubs.sportPadel')
+  if (slugs.has('tennis')) return t('clubs.sportTennis')
+  return t('home.sportsLabel')
+})
+
 const bookableEquipment = computed(() => {
   const list = club.value?.equipment || []
   return list.filter((item) => {
@@ -641,37 +656,50 @@ const clubPageName = computed(() =>
   club.value ? localizedField(club.value, 'nameFa', 'nameEn') : '',
 )
 
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
+const defaultOgImage = computed(() => `${siteBase.value}/hero/tennis-court.jpg`)
+
+const clubSeoTitle = computed(() => {
+  if (!club.value || !clubPageName.value) return t('clubs.seoTitle')
+  return t('clubs.seoTitleClub', {
+    sport: sportSeoLabel.value,
+    name: clubPageName.value,
+    city: club.value.city || 'تهران',
+  })
+})
+
 const clubSeoDescription = computed(() => {
   if (!club.value) return t('home.seoDescription')
   return t('clubs.seoDescription', {
     name: clubPageName.value,
-    city: club.value.city || 'تهران',
-    sport: sportLabel.value,
+    location: locationLine.value || club.value.city || 'تهران',
+    sport: sportSeoLabel.value,
   })
 })
 
 const clubCanonicalUrl = computed(() => {
-  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
-  if (!base || !club.value) return ''
-  return `${base}${localePath(`/clubs/${slug}`)}`
+  if (!club.value) return ''
+  return `${siteBase.value}${localePath(`/clubs/${slug}`)}`
 })
 
 const clubOgImage = computed(() => {
   const image = club.value?.image || activeGallery.value
-  if (!image) return ''
+  if (!image) return defaultOgImage.value
   if (image.startsWith('http://') || image.startsWith('https://')) return image
-  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
-  return base ? `${base}${image.startsWith('/') ? image : `/${image}`}` : image
+  return `${siteBase.value}${image.startsWith('/') ? image : `/${image}`}`
 })
 
 useSeoMeta({
-  title: () => (clubPageName.value ? `${clubPageName.value} — ${t('clubs.title')}` : t('clubs.title')),
+  title: () => clubSeoTitle.value,
   description: () => clubSeoDescription.value,
-  ogTitle: () => (clubPageName.value ? `${clubPageName.value} — inbox` : 'inbox'),
+  ogTitle: () => clubSeoTitle.value,
   ogDescription: () => clubSeoDescription.value,
-  ogImage: () => clubOgImage.value || undefined,
+  ogImage: () => clubOgImage.value,
+  ogUrl: () => clubCanonicalUrl.value || undefined,
   ogType: 'website',
   twitterCard: 'summary_large_image',
+  twitterImage: () => clubOgImage.value,
 })
 
 useHead(() => {

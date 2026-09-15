@@ -9,6 +9,11 @@ useSeoMeta({
   description: () => t('legal.aboutSeoDescription'),
   ogTitle: () => t('legal.aboutSeoTitle'),
   ogDescription: () => t('legal.aboutSeoDescription'),
+  ogUrl: () => `${siteBase.value}/about`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
 useHead(() => ({
