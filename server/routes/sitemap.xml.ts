@@ -1,3 +1,4 @@
+import { listGeoSportHubPaths } from '#shared/geoSportHubs.ts'
 import { slugify } from '../utils/slug'
 
 function siteUrl() {
@@ -53,8 +54,11 @@ export default defineEventHandler(async (event) => {
         orderBy: { nameEn: 'asc' },
       })
 
+  const hubPaths = listGeoSportHubPaths()
+
   const urls = [
     ...staticPaths.map(({ path, changefreq, priority }) => urlEntry(path, changefreq, priority)),
+    ...hubPaths.map((path) => urlEntry(path, 'weekly', '0.85')),
     ...clubs.map((club) => urlEntry(`/clubs/${club.slug}`, 'weekly', '0.8')),
     ...coaches.map((coach) => urlEntry(coachPublicPath(coach), 'weekly', '0.7')),
   ]
