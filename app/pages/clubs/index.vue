@@ -2,6 +2,7 @@
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber } = useFormatters()
@@ -44,12 +45,12 @@ const listTitle = computed(() => {
   return t('clubs.title')
 })
 
-/* Canva Court list (p2) hero matches home slide copy, including placeholder title */
+/* Directory page owns its own H1 (not the home booking slogan). */
 const heroSlides = computed(() => {
   const slides = [
     {
-      title: t('home.heroSlideTitle'),
-      body: t('home.heroBody'),
+      title: t('clubs.directoryHeroTitle'),
+      body: t('clubs.directoryHeroBody'),
       image: '/hero/tennis-court.jpg',
     },
     {
@@ -143,12 +144,18 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
   return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
 }
 
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
 useSeoMeta({
-  title: () => t('clubs.title'),
-  description: () => t('home.seoDescription'),
-  ogTitle: () => t('clubs.title'),
-  ogDescription: () => t('home.seoDescription'),
+  title: () => t('clubs.seoTitle'),
+  description: () => t('clubs.indexSeoDescription'),
+  ogTitle: () => t('clubs.seoTitle'),
+  ogDescription: () => t('clubs.indexSeoDescription'),
 })
+
+useHead(() => ({
+  link: [{ rel: 'canonical', href: `${siteBase.value}/clubs` }],
+}))
 
 function nextHero() {
   heroSlide.value = (heroSlide.value + 1) % heroSlides.value.length

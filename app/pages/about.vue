@@ -2,13 +2,18 @@
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
 
 useSeoMeta({
-  title: () => t('legal.aboutTitle'),
+  title: () => t('legal.aboutSeoTitle'),
   description: () => t('legal.aboutSeoDescription'),
-  ogTitle: () => t('legal.aboutTitle'),
+  ogTitle: () => t('legal.aboutSeoTitle'),
   ogDescription: () => t('legal.aboutSeoDescription'),
 })
+
+useHead(() => ({
+  link: [{ rel: 'canonical', href: `${siteBase.value}/about` }],
+}))
 </script>
 
 <template>
@@ -23,6 +28,7 @@ useSeoMeta({
       title-key="legal.aboutTitle"
       intro-key="legal.aboutIntro"
       sections-key="legal.aboutSections"
+      :manage-title="false"
     />
     <LegalFaq faq-key="legal.aboutFaq" page-url-path="/about" />
   </div>

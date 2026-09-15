@@ -4,6 +4,7 @@ import { translateCoachSpecialty } from '#shared/coachSpecialty.ts'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatCurrency, formatNumber } = useFormatters()
@@ -76,9 +77,18 @@ async function syncRoute() {
   })
 }
 
-useHead({
-  title: () => t('coaches.title'),
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
+useSeoMeta({
+  title: () => t('coaches.seoTitle'),
+  description: () => t('coaches.seoDescription'),
+  ogTitle: () => t('coaches.seoTitle'),
+  ogDescription: () => t('coaches.seoDescription'),
 })
+
+useHead(() => ({
+  link: [{ rel: 'canonical', href: `${siteBase.value}/coaches` }],
+}))
 </script>
 
 <template>

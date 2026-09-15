@@ -71,7 +71,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#C41E1E' },
-        { name: 'description', content: 'اینباکس (inbox) — رزرو آنلاین زمین پدل و تنیس در تهران و ایران. سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو کنید.' },
+        { name: 'description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
@@ -82,12 +82,12 @@ export default defineNuxtConfig({
         ...(siteUrl
           ? [
               { property: 'og:url', content: siteUrl },
-              { property: 'og:title', content: 'اینباکس — رزرو آنلاین زمین پدل و تنیس' },
-              { property: 'og:description', content: 'رزرو آنلاین زمین پدل و تنیس در تهران و ایران — سانس آزاد باشگاه‌ها با inbox' },
+              { property: 'og:title', content: 'رزرو آنلاین زمین پدل و تنیس در تهران | اینباکس' },
+              { property: 'og:description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
               { property: 'og:image', content: `${siteUrl}/hero/tennis-court.jpg` },
               { name: 'twitter:card', content: 'summary_large_image' },
-              { name: 'twitter:title', content: 'اینباکس — رزرو آنلاین زمین پدل و تنیس' },
-              { name: 'twitter:description', content: 'رزرو آنلاین زمین پدل و تنیس در تهران و ایران — سانس آزاد باشگاه‌ها با inbox' },
+              { name: 'twitter:title', content: 'رزرو آنلاین زمین پدل و تنیس در تهران | اینباکس' },
+              { name: 'twitter:description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
               { name: 'twitter:image', content: `${siteUrl}/hero/tennis-court.jpg` },
             ]
           : [
