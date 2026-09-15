@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { buildClubsItemListJsonLd } from '#shared/clubJsonLd.ts'
+import { serializeJsonLd } from '#shared/jsonLd.ts'
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -158,9 +161,23 @@ useSeoMeta({
   twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
 })
 
-useHead(() => ({
-  link: [{ rel: 'canonical', href: `${siteBase.value}/clubs` }],
-}))
+useHead(() => {
+  const head: { link: Array<{ rel: string; href: string }>; script?: Array<{ type: string; innerHTML: string }> } = {
+    link: [{ rel: 'canonical', href: `${siteBase.value}/clubs` }],
+  }
+  const listUrl = `${siteBase.value}${localePath('/clubs')}`
+  const jsonLd = buildClubsItemListJsonLd(
+    (clubs.value || []).map((club: { slug: string; nameFa?: string; nameEn?: string }) => ({
+      name: localizedField(club, 'nameFa', 'nameEn'),
+      url: `${siteBase.value}${clubHref(club.slug)}`,
+    })),
+    { name: listTitle.value, url: listUrl },
+  )
+  if (jsonLd) {
+    head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
+  }
+  return head
+})
 
 function nextHero() {
   heroSlide.value = (heroSlide.value + 1) % heroSlides.value.length

@@ -14,6 +14,7 @@ import {
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
+import { buildClubSportsActivityLocationJsonLd } from '#shared/clubJsonLd.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 import { buildReturnTo } from '#shared/returnTo.ts'
 
@@ -59,6 +60,8 @@ type ClubDetail = {
   descriptionEn?: string
   amenities?: string[]
   phone?: string
+  openHour?: number | null
+  closeHour?: number | null
   testimonials?: Array<{ id: string; authorName: string; rating: number; body: string }>
 }
 
@@ -709,35 +712,40 @@ useHead(() => {
   }
   if (club.value && clubPageName.value) {
     const address = localizedField(club.value, 'addressFa', 'addressEn') || club.value.city || ''
-    const jsonLd: Record<string, unknown> = {
-      '@context': 'https://schema.org',
-      '@type': 'SportsActivityLocation',
+    const description = localizedField(club.value, 'descriptionFa', 'descriptionEn')
+    const coords = club.value.coordinates
+    const summary = club.value.reviewSummary
+    const sportNames = [...new Set(
+      (club.value.courts || [])
+        .map((court) => {
+          if (court.sport?.slug === 'padel') return t('clubs.sportPadel')
+          if (court.sport?.slug === 'tennis') return t('clubs.sportTennis')
+          return ''
+        })
+        .filter(Boolean),
+    )]
+    const amenityNames = (club.value.amenities || []).map((item) => amenityLabel(item))
+    const jsonLd = buildClubSportsActivityLocationJsonLd({
       name: clubPageName.value,
       url: clubCanonicalUrl.value || undefined,
       image: clubOgImage.value || undefined,
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: club.value.city || undefined,
-        streetAddress: address || undefined,
-        addressCountry: 'IR',
-      },
-    }
-    const coords = club.value.coordinates
-    if (coords?.lat != null && coords?.lng != null) {
-      jsonLd.geo = {
-        '@type': 'GeoCoordinates',
-        latitude: coords.lat,
-        longitude: coords.lng,
-      }
-    }
-    const summary = club.value.reviewSummary
-    if (summary?.count && summary.average != null && summary.average > 0) {
-      jsonLd.aggregateRating = {
-        '@type': 'AggregateRating',
-        ratingValue: summary.average,
-        reviewCount: summary.count,
-      }
-    }
+      description,
+      telephone: club.value.phone,
+      city: club.value.city,
+      streetAddress: address || undefined,
+      lat: coords?.lat,
+      lng: coords?.lng,
+      openHour: club.value.openHour,
+      closeHour: club.value.closeHour,
+      priceFrom: club.value.priceFrom,
+      priceTo: club.value.priceTo,
+      sports: sportNames,
+      amenities: amenityNames,
+      aggregateRating:
+        summary?.count && summary.average != null && summary.average > 0
+          ? { ratingValue: summary.average, reviewCount: summary.count }
+          : null,
+    })
     // Escape `<` so club name/address cannot break out of the LD+JSON script tag.
     head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
   }
