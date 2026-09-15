@@ -29,7 +29,11 @@ jobs:
           sleep 20
           LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
           echo "$LIST_CSV"
-          BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 {print $1; exit}')
+          # CSV columns: Last modified,Size,Name
+          BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 && $3 ~ /^manual\// {print $3; exit}')
+          if [ -z "$BACKUP_NAME" ]; then
+            BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 {print $3; exit}')
+          fi
           if [ -z "$BACKUP_NAME" ]; then
             LIST=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN")
             echo "$LIST"
