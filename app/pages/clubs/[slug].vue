@@ -15,6 +15,11 @@ import {
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import { buildClubSportsActivityLocationJsonLd } from '#shared/clubJsonLd.ts'
+import {
+  buildClubCitationCopy,
+  buildClubFaqPageJsonLd,
+  clubCitationFaqHeading,
+} from '#shared/clubCitationCopy.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 import { buildReturnTo } from '#shared/returnTo.ts'
 
@@ -693,6 +698,43 @@ const clubOgImage = computed(() => {
   return `${siteBase.value}${image.startsWith('/') ? image : `/${image}`}`
 })
 
+/** Localized sport names for JSON-LD + citation copy (پدل/تنیس only when courts say so). */
+const clubSportNames = computed(() => {
+  if (!club.value) return [] as string[]
+  return [...new Set(
+    (club.value.courts || [])
+      .map((court) => {
+        if (court.sport?.slug === 'padel') return t('clubs.sportPadel')
+        if (court.sport?.slug === 'tennis') return t('clubs.sportTennis')
+        return ''
+      })
+      .filter(Boolean),
+  )]
+})
+
+const clubAmenityNames = computed(() =>
+  (club.value?.amenities || []).map((item) => amenityLabel(item)),
+)
+
+/** Crawlable FA prose + FAQs for Google snippets and AI citations — real fields only. */
+const clubCitationCopy = computed(() => {
+  if (!club.value || !clubPageName.value || !clubCanonicalUrl.value) return null
+  return buildClubCitationCopy({
+    name: clubPageName.value,
+    city: club.value.city,
+    district: club.value.district,
+    address: localizedField(club.value, 'addressFa', 'addressEn') || null,
+    sports: clubSportNames.value,
+    amenities: clubAmenityNames.value,
+    openHour: club.value.openHour,
+    closeHour: club.value.closeHour,
+    priceFrom: club.value.priceFrom,
+    priceTo: club.value.priceTo,
+    descriptionFa: club.value.descriptionFa,
+    pageUrl: clubCanonicalUrl.value,
+  })
+})
+
 useSeoMeta({
   title: () => clubSeoTitle.value,
   description: () => clubSeoDescription.value,
@@ -715,16 +757,7 @@ useHead(() => {
     const description = localizedField(club.value, 'descriptionFa', 'descriptionEn')
     const coords = club.value.coordinates
     const summary = club.value.reviewSummary
-    const sportNames = [...new Set(
-      (club.value.courts || [])
-        .map((court) => {
-          if (court.sport?.slug === 'padel') return t('clubs.sportPadel')
-          if (court.sport?.slug === 'tennis') return t('clubs.sportTennis')
-          return ''
-        })
-        .filter(Boolean),
-    )]
-    const amenityNames = (club.value.amenities || []).map((item) => amenityLabel(item))
+    const scripts: Array<{ type: string; innerHTML: string }> = []
     const jsonLd = buildClubSportsActivityLocationJsonLd({
       name: clubPageName.value,
       url: clubCanonicalUrl.value || undefined,
@@ -739,15 +772,25 @@ useHead(() => {
       closeHour: club.value.closeHour,
       priceFrom: club.value.priceFrom,
       priceTo: club.value.priceTo,
-      sports: sportNames,
-      amenities: amenityNames,
+      sports: clubSportNames.value,
+      amenities: clubAmenityNames.value,
       aggregateRating:
         summary?.count && summary.average != null && summary.average > 0
           ? { ratingValue: summary.average, reviewCount: summary.count }
           : null,
     })
     // Escape `<` so club name/address cannot break out of the LD+JSON script tag.
-    head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
+    scripts.push({ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) })
+
+    const faqJsonLd = clubCitationCopy.value
+      ? buildClubFaqPageJsonLd(clubCitationCopy.value.faqs, {
+          url: clubCanonicalUrl.value || undefined,
+        })
+      : null
+    if (faqJsonLd) {
+      scripts.push({ type: 'application/ld+json', innerHTML: serializeJsonLd(faqJsonLd) })
+    }
+    head.script = scripts
   }
   return head
 })
@@ -1178,6 +1221,32 @@ async function shareClub() {
           </div>
           <div v-else class="canva-club-reviews-empty">
             {{ t('clubs.reviewsEmpty') }}
+          </div>
+        </section>
+
+        <!-- 7. Crawlable FA citation copy + FAQ (Google + AI assistants) — real fields only -->
+        <section
+          v-if="clubCitationCopy"
+          class="canva-club-detail-section canva-club-citation"
+          aria-label="اطلاعات باشگاه برای رزرو"
+        >
+          <p class="canva-club-detail-desc">{{ clubCitationCopy.intro }}</p>
+          <div
+            v-for="section in clubCitationCopy.sections"
+            :key="section.heading"
+            class="space-y-1"
+          >
+            <h2 class="canva-club-detail-section-title">{{ section.heading }}</h2>
+            <p class="canva-club-detail-desc">{{ section.body }}</p>
+          </div>
+          <div class="space-y-3" aria-labelledby="club-citation-faq-heading">
+            <h2 id="club-citation-faq-heading" class="canva-club-detail-section-title">
+              {{ clubCitationFaqHeading() }}
+            </h2>
+            <div v-for="(item, idx) in clubCitationCopy.faqs" :key="idx" class="space-y-1">
+              <h3 class="text-sm font-bold text-brand-navy">{{ item.question }}</h3>
+              <p class="canva-club-detail-desc">{{ item.answer }}</p>
+            </div>
           </div>
         </section>
     </div>
