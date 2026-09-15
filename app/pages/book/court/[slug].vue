@@ -7,6 +7,10 @@ import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
 definePageMeta({ ssr: false })
 
+useSeoMeta({
+  robots: 'noindex, nofollow',
+})
+
 const route = useRoute()
 const localePath = useLocalePath()
 const slug = resolveClubSlugAlias(String(route.params.slug || ''))

@@ -12,6 +12,10 @@ const { formatCurrency } = useFormatters()
 const { startCheckout, onlineEnabled } = useCheckout()
 const { user } = useAuth()
 
+useSeoMeta({
+  robots: 'noindex, nofollow',
+})
+
 const id = computed(() => String(route.params.id || ''))
 
 const { data: pkg, pending, error, refresh } = await useAsyncData(

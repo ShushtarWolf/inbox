@@ -11,6 +11,10 @@ const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 
+useSeoMeta({
+  robots: 'noindex, nofollow',
+})
+
 const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
 const startTime = ref(typeof route.query.time === 'string' ? route.query.time : '')
 const done = ref(false)

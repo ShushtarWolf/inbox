@@ -1,6 +1,10 @@
 User-agent: *
 Allow: /
 
+# Thin booking / application chrome — keep off the index while titles stay generic.
+Disallow: /book/
+Disallow: /clubs/apply
+
 # AI search / answer crawlers (explicit allow; * already covers these)
 User-agent: OAI-SearchBot
 Allow: /
