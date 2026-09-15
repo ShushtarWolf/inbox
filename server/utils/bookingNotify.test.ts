@@ -12,6 +12,7 @@ vi.mock('./notify', () => ({
 
 vi.mock('#shared/sms.ts', () => ({
   resolveSmsProvider: () => resolveSmsProvider(),
+  isNotifyLookupDisabled: () => false,
 }))
 
 vi.mock('./sms/service', () => ({

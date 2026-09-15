@@ -122,6 +122,20 @@ export function getSmsMode(): SmsMode {
 }
 
 /**
+ * When true, booking/CRM/admin SMS use free-text `sms/send` + `KAVENEGAR_SENDER`
+ * instead of Verify Lookup (`inbox-notify`).
+ *
+ * - Unset → Lookup enabled (default template `inbox-notify`)
+ * - Empty / `off` / `none` / `disabled` / `-` → Lookup disabled (path A: dedicated line)
+ */
+export function isNotifyLookupDisabled(): boolean {
+  const raw = process.env.KAVENEGAR_TEMPLATE_NOTIFY
+  if (raw === undefined) return false
+  const v = raw.trim().toLowerCase()
+  return v === '' || v === 'off' || v === 'none' || v === 'disabled' || v === '-'
+}
+
+/**
  * Resolve SMS provider name.
  * Live (Kavenegar) only when explicitly enabled and configured; otherwise fail closed to `log`.
  * For OTP in non-production: if live is requested but neither TEMPLATE nor SENDER is set,
@@ -203,9 +217,17 @@ export function getSmsStatusSnapshot(): SmsStatusSnapshot {
     nextActionCodes.push('prefer_template')
   }
   if (provider === 'live' && hasKey && smsEnabledFlag) {
-    // OTP may work while booking/CRM fail — surface the second template requirement.
-    warningCodes.push('notify_lookup_needed')
-    nextActionCodes.push('create_notify_template')
+    if (isNotifyLookupDisabled()) {
+      // Path A: dedicated sender line — do not nag for inbox-notify.
+      if (!hasSender) {
+        warningCodes.push('live_without_template_or_sender')
+        nextActionCodes.push('set_template_or_sender')
+      }
+    } else {
+      // OTP may work while booking/CRM fail — surface the second template requirement.
+      warningCodes.push('notify_lookup_needed')
+      nextActionCodes.push('create_notify_template')
+    }
   }
   if (smsPhase === 'SINGLE') {
     warningCodes.push('phase_single')

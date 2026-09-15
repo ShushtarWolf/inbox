@@ -1,5 +1,6 @@
 import { createError } from 'h3'
 import type { SmsProvider } from '#shared/sms.ts'
+import { isNotifyLookupDisabled } from '#shared/sms.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { registerSmsProvider } from '../registry'
 
@@ -32,7 +33,9 @@ export function extractOtpToken(body: string): string | undefined {
 
 /** Panel template for transactional/CRM lookup — override with KAVENEGAR_TEMPLATE_NOTIFY. */
 export function resolveNotifyLookupTemplate(): string {
-  return process.env.KAVENEGAR_TEMPLATE_NOTIFY?.trim() || DEFAULT_NOTIFY_LOOKUP_TEMPLATE
+  if (isNotifyLookupDisabled()) return DEFAULT_NOTIFY_LOOKUP_TEMPLATE
+  const named = process.env.KAVENEGAR_TEMPLATE_NOTIFY?.trim()
+  return named || DEFAULT_NOTIFY_LOOKUP_TEMPLATE
 }
 
 /** Pack words so the joined string has ≤ TOKEN10_MAX_SPACES spaces. */
@@ -226,8 +229,7 @@ async function sendViaKavenegar(
     })
   }
 
-  const notifyDisabled = process.env.KAVENEGAR_TEMPLATE_NOTIFY?.trim() === ''
-  const useNotifyLookup = (purpose === 'notify' || purpose === 'campaign') && !notifyDisabled
+  const useNotifyLookup = (purpose === 'notify' || purpose === 'campaign') && !isNotifyLookupDisabled()
   if (useNotifyLookup) {
     return kavenegarRequest('verify/lookup.json', {
       receptor,
@@ -266,8 +268,7 @@ export function kavenegarSmsProvider(): SmsProvider {
     },
     async sendBulk(opts) {
       // Prefer same lookup path as single notify (service lines often reject sms/send).
-      const notifyDisabled = process.env.KAVENEGAR_TEMPLATE_NOTIFY?.trim() === ''
-      if (!notifyDisabled) {
+      if (!isNotifyLookupDisabled()) {
         const template = resolveNotifyLookupTemplate()
         const token10 = toKavenegarToken10(opts.body)
         let lastRef = `kavenegar-bulk-${Date.now()}`

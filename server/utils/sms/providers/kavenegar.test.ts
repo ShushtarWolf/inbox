@@ -120,6 +120,57 @@ describe('kavenegarSmsProvider', () => {
     expect(resolveNotifyLookupTemplate()).toBe('custom-notify')
   })
 
+  it('sends notify via sms/send when KAVENEGAR_TEMPLATE_NOTIFY=off (path A)', async () => {
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = 'off'
+    process.env.KAVENEGAR_SENDER = '9982007609'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        return: { status: 200, message: 'OK' },
+        entries: [{ messageid: 77 }],
+      }),
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    await getRegisteredSmsProvider('live')!.send({
+      to: '09121234567',
+      body: 'رزرو تایید شد در باشگاه بهناز',
+      purpose: 'notify',
+    })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    const [calledUrl, init] = fetchMock.mock.calls[0]!
+    expect(String(calledUrl)).toContain('/sms/send.json')
+    expect(String(calledUrl)).not.toContain('verify/lookup')
+    const postBody = init?.body as URLSearchParams
+    expect(postBody?.get?.('sender') ?? String(postBody)).toContain('9982007609')
+  })
+
+  it('bulk CRM uses sms/send when notify lookup is off', async () => {
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = 'off'
+    process.env.KAVENEGAR_SENDER = '9982007609'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        return: { status: 200, message: 'OK' },
+        entries: [{ messageid: 88 }],
+      }),
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    await getRegisteredSmsProvider('live')!.sendBulk({
+      recipients: [{ phone: '09121111111' }, { phone: '09122222222' }],
+      body: 'سلام باشگاه',
+    })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    const calledUrl = String(fetchMock.mock.calls[0]![0])
+    expect(calledUrl).toContain('/sms/send.json')
+    expect(calledUrl).not.toContain('verify/lookup')
+  })
+
   it('sends OTP via sms/send.json when no OTP template is configured', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

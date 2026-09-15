@@ -1,7 +1,7 @@
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { resolveSmsProvider } from '#shared/sms.ts'
+import { isNotifyLookupDisabled, resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
 import { createInAppNotification, sendNotification } from './notify'
 import { bookingTrackingCode, payUrlForPin, receiptUrlForBooking } from './receipt'
@@ -192,6 +192,8 @@ async function sendPayLinkLookup(
   payUrl: string,
   clubId?: string,
 ) {
+  // Path A (dedicated line): all non-OTP go via sms/send — skip Lookup pay-link.
+  if (isNotifyLookupDisabled()) return
   const template = payLinkLookupTemplate()
   if (!phone || !template || !payPin) return
   try {

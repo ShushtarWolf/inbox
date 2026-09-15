@@ -40,9 +40,9 @@ When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Class pac
 | ☐ | `SMS_PROVIDER` | `kavenegar` (or `live`) | Both resolve to Kavenegar |
 | ☐ | `KAVENEGAR_API_KEY` | from Kavenegar panel | Never commit |
 | ☐ | `KAVENEGAR_TEMPLATE` | `inbox-verify-autofill` | OTP + password-reset. Panel body: `code: %token%` / `کد تایید اینباکس` / `@inboxs.ir #%token2%` |
-| ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` (default if unset) | **Required for booking paid/cancel/CRM SMS.** Panel template body must be exactly `%token10%`. Free-text `sms/send` fails on service lines (`ارسال کننده نامعتبر است`). |
-| ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | e.g. `inbox-pay` | **Optional.** Panel body must include `https://inboxs.ir/p/%token%` so desk “ارسال لینک پرداخت” SMS is tappable. Without it, the owner still gets a copy/WhatsApp URL and the athlete gets a pay pin. |
-| ☐ | `KAVENEGAR_SENDER` | approved line | Fallback only for free-text; OTP without template. Lookup uses the line attached to the template. |
+| ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | **`off`** (path A) | Disables Verify Lookup for booking/CRM/admin — free-text via `KAVENEGAR_SENDER`. Values: `off` / empty / `none` / `disabled`. Path B: set to `inbox-notify2` instead. |
+| ☐ | `KAVENEGAR_SENDER` | `9982007609` | **Path A required.** Dedicated line for all non-OTP SMS. |
+| ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | leave unset on path A | Optional Lookup pay-link; skipped when notify is `off`. |
 | ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / cashout / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
 
 Until C is complete, OTP stays **log/dry-run** (`debugCode`) — not production-safe.
