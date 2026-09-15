@@ -105,8 +105,19 @@ async function main() {
   if (!robots.ok) throw new Error('robots.txt not found')
   const robotsText = await robots.text()
   if (!robotsText.includes('Sitemap')) throw new Error('robots.txt missing Sitemap directive')
-  if (!robotsText.includes('OAI-SearchBot')) {
-    throw new Error('robots.txt missing explicit AI search crawler allow')
+  for (const bot of [
+    'OAI-SearchBot',
+    'GPTBot',
+    'PerplexityBot',
+    'Claude-SearchBot',
+    'Claude-User',
+    'ClaudeBot',
+    'Google-Extended',
+    'xAI-SearchBot',
+  ]) {
+    if (!robotsText.includes(bot)) {
+      throw new Error(`robots.txt missing explicit Allow for ${bot}`)
+    }
   }
   console.log('ok  robots.txt present')
 

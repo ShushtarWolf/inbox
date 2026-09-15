@@ -24,7 +24,13 @@ Allow: /
 User-agent: Claude-User
 Allow: /
 
+User-agent: ClaudeBot
+Allow: /
+
 User-agent: Google-Extended
+Allow: /
+
+User-agent: xAI-SearchBot
 Allow: /
 
 Sitemap: https://inboxs.ir/sitemap.xml
