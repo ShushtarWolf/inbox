@@ -1452,6 +1452,56 @@
     border-radius: var(--sz-canva-radius);
     border: 1px solid #e8e4de;
   }
+
+  /*
+   * Card hover — SteveBloX uiverse.io/SteveBloX/dangerous-warthog-85
+   * Motion only (scale + active press). Keep Canva radius / brand surfaces.
+   */
+  .ios-card,
+  .neo-card,
+  .tail-card,
+  .canva-venue-card,
+  .canva-coach-card,
+  .canva-competition-card,
+  .canva-court-card,
+  .canva-fav-card,
+  .canva-list-card,
+  .canva-history-card,
+  .canva-role-card {
+    transition: transform 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .ios-card:hover,
+    .neo-card:hover,
+    .tail-card:hover,
+    .canva-venue-card:hover,
+    .canva-coach-card:hover,
+    .canva-competition-card:hover,
+    .canva-court-card:hover,
+    .canva-fav-card:hover,
+    .canva-list-card:hover,
+    .canva-history-card:hover,
+    .canva-role-card:hover {
+      position: relative;
+      z-index: 2;
+      transform: scale(1.05);
+    }
+
+    .ios-card:active,
+    .neo-card:active,
+    .tail-card:active,
+    .canva-venue-card:active,
+    .canva-coach-card:active,
+    .canva-competition-card:active,
+    .canva-court-card:active,
+    .canva-fav-card:active,
+    .canva-list-card:active,
+    .canva-history-card:active,
+    .canva-role-card:active {
+      transform: scale(0.95) rotateZ(1.7deg);
+    }
+  }
   .canva-history-card-main {
     @apply flex items-stretch gap-2.5;
   }
