@@ -486,11 +486,80 @@
     object-fit: contain;
     object-position: center 68%;
   }
+  /* Scan/cut wordmark — adapted from uiverse.io/kat_2522/rude-robin-51; keep font-display. */
   .inbox-wordmark {
+    position: relative;
     line-height: 1;
     display: inline-flex;
     align-items: center;
+    max-width: fit-content;
     transform: translateY(0.12em);
+  }
+  .inbox-wordmark-text {
+    display: inline-block;
+    animation: inbox-wordmark-cut 2s infinite;
+  }
+  .inbox-wordmark::before,
+  .inbox-wordmark::after {
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 0;
+    width: 100%;
+    border-radius: 2px;
+    pointer-events: none;
+    animation: inbox-wordmark-scan 2s infinite;
+  }
+  .inbox-wordmark::before {
+    height: 0.12em;
+    background-color: #c41e1e;
+    opacity: 0.9;
+    z-index: 1;
+  }
+  .inbox-wordmark::after {
+    height: 0.14em;
+    background-color: #c41e1e91;
+    filter: blur(10px);
+    z-index: 0;
+  }
+  @keyframes inbox-wordmark-scan {
+    0% {
+      top: 0;
+    }
+    25% {
+      top: calc(100% - 0.12em);
+    }
+    50% {
+      top: 0;
+    }
+    75% {
+      top: calc(100% - 0.12em);
+    }
+  }
+  @keyframes inbox-wordmark-cut {
+    0% {
+      clip-path: inset(0 0 0 0);
+    }
+    25% {
+      clip-path: inset(100% 0 0 0);
+    }
+    50% {
+      clip-path: inset(0 0 100% 0);
+    }
+    75% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .inbox-wordmark-text {
+      animation: none;
+    }
+    .inbox-wordmark::before,
+    .inbox-wordmark::after {
+      animation: none;
+      content: none;
+      display: none;
+    }
   }
   .canva-hero {
     touch-action: pan-y;
