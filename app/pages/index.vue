@@ -440,7 +440,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
     </AppAsyncState>
 
-    <GeoSportHubDiscoveryNav />
-    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/" />
+    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/" with-hub-discovery />
   </div>
 </template>

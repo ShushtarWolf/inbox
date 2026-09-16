@@ -7,17 +7,16 @@ const localePath = useLocalePath()
 
 <template>
   <nav
-    class="space-y-2 border border-brand-gray-200 bg-white p-3"
-    style="border-radius: var(--sz-canva-radius);"
+    class="canva-help-hubs"
     :aria-label="t('clubs.hubs.discoveryLabel')"
   >
-    <p class="text-start text-xs font-bold text-brand-gray-600">{{ t('clubs.hubs.discoveryLabel') }}</p>
-    <div class="flex flex-col gap-2">
+    <p class="canva-help-hubs-label">{{ t('clubs.hubs.discoveryLabel') }}</p>
+    <div class="canva-clubs-chip-row">
       <NuxtLink
         v-for="hub in GEO_SPORT_HUBS"
         :key="hub.path"
         :to="localePath(hub.path)"
-        class="text-start text-sm font-bold text-brand-navy underline-offset-2 hover:underline"
+        class="canva-clubs-chip canva-clubs-chip-idle"
       >
         {{ t(`clubs.hubs.${hub.i18nKey}.h1`) }}
       </NuxtLink>

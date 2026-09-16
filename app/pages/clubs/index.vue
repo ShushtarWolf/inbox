@@ -338,7 +338,6 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
       </AppAsyncState>
     </section>
 
-    <GeoSportHubDiscoveryNav />
-    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/clubs" />
+    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/clubs" with-hub-discovery />
   </div>
 </template>

@@ -1239,15 +1239,12 @@ async function shareClub() {
             <h2 class="canva-club-detail-section-title">{{ section.heading }}</h2>
             <p class="canva-club-detail-desc">{{ section.body }}</p>
           </div>
-          <div class="space-y-3" aria-labelledby="club-citation-faq-heading">
-            <h2 id="club-citation-faq-heading" class="canva-club-detail-section-title">
-              {{ clubCitationFaqHeading() }}
-            </h2>
-            <div v-for="(item, idx) in clubCitationCopy.faqs" :key="idx" class="space-y-1">
-              <h3 class="text-sm font-bold text-brand-navy">{{ item.question }}</h3>
-              <p class="canva-club-detail-desc">{{ item.answer }}</p>
-            </div>
-          </div>
+          <AppFaqAccordion
+            :items="clubCitationCopy.faqs"
+            heading-id="club-citation-faq-heading"
+            :heading="clubCitationFaqHeading()"
+            heading-level="h2"
+          />
         </section>
     </div>
 

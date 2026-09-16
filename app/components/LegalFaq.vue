@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   faqKey: string
   pageUrlPath: string
-}>()
+  /** Show city/sport hub chips under the Help heading (home + clubs list). */
+  withHubDiscovery?: boolean
+}>(), {
+  withHubDiscovery: false,
+})
 
 const { t, tm, rt } = useI18n()
 const config = useRuntimeConfig()
@@ -25,6 +29,7 @@ function normalize(text: string) {
 }
 
 const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+const showSection = computed(() => items.value.length > 0 || props.withHubDiscovery)
 
 useHead(() => {
   if (!items.value.length) return {}
@@ -48,11 +53,28 @@ useHead(() => {
 </script>
 
 <template>
-  <section v-if="items.length" class="prose prose-sm mx-auto max-w-2xl px-4 pb-10" aria-labelledby="legal-faq-heading">
-    <h2 id="legal-faq-heading">{{ t('legal.faqHeading') }}</h2>
-    <div v-for="(item, idx) in items" :key="idx" class="mt-4">
-      <h3 class="text-base">{{ item.question }}</h3>
-      <p class="mt-1">{{ item.answer }}</p>
-    </div>
+  <section
+    v-if="showSection"
+    class="canva-help"
+    :aria-labelledby="withHubDiscovery ? 'legal-help-heading' : 'legal-faq-heading'"
+  >
+    <template v-if="withHubDiscovery">
+      <h2 id="legal-help-heading" class="canva-help-title">{{ t('legal.helpHeading') }}</h2>
+      <GeoSportHubDiscoveryNav />
+      <AppFaqAccordion
+        v-if="items.length"
+        :items="items"
+        heading-id="legal-faq-heading"
+        :heading="t('legal.faqHeading')"
+        heading-level="h3"
+      />
+    </template>
+    <AppFaqAccordion
+      v-else-if="items.length"
+      :items="items"
+      heading-id="legal-faq-heading"
+      :heading="t('legal.faqHeading')"
+      heading-level="h2"
+    />
   </section>
 </template>
