@@ -891,7 +891,7 @@ async function shareClub() {
 
 <template>
   <div v-if="pending" class="tail-page-enter">
-    <AppVenusSkeleton :lines="4" />
+    <AppVenusSpinner :label="t('common.loading')" />
   </div>
   <div v-else-if="error || !club" class="space-y-4">
     <CanvaPublicChrome back-to="/clubs" />
@@ -1081,8 +1081,8 @@ async function shareClub() {
                 {{ t('clubs.multiCourtTimeHint') }}
               </p>
               <div class="canva-club-slot-grid">
-                <div v-if="slotsPending" class="col-span-full py-8 text-center text-sm text-brand-gray-600" role="status">
-                  {{ t('common.loading') }}
+                <div v-if="slotsPending" class="col-span-full flex justify-center py-8" role="status">
+                  <AppVenusSpinner size="sm" :label="t('common.loading')" compact />
                 </div>
                 <div v-else-if="slotsError" class="col-span-full space-y-3 py-8 text-center text-sm text-red-700" role="alert">
                   <p>{{ t('common.error') }}</p>

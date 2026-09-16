@@ -331,7 +331,9 @@ async function startTopUp() {
 
           <section class="space-y-3">
             <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.book.pickSlot') }}</h2>
-            <p v-if="slotsPending" class="text-start text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
+            <div v-if="slotsPending" class="flex justify-center py-4">
+              <AppVenusSpinner size="sm" :label="$t('common.loading')" compact />
+            </div>
             <p
               v-else-if="!slotData?.slots?.length"
               class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"

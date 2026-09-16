@@ -263,7 +263,7 @@ const calendarSourcesHref = computed(() =>
       <section class="space-y-2">
         <h2 class="text-sm font-bold text-brand-gray-600">{{ t('coach.book.pickSlot') }}</h2>
 
-        <p v-if="calendarPending && !data" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+        <AppVenusSpinner v-if="calendarPending && !data" size="sm" :label="t('common.loading')" compact />
         <p v-else-if="data && !slotCards.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
           {{ t('coach.book.noSlots') }}
         </p>

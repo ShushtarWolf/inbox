@@ -19,4 +19,11 @@ router.onError(() => {
   <div v-if="isNavigating" class="venus-route-progress" aria-hidden="true">
     <div class="venus-route-progress-bar" />
   </div>
+  <div
+    v-if="isNavigating"
+    class="pointer-events-none fixed inset-0 z-[99] flex items-center justify-center bg-brand-cream/40"
+    aria-hidden="true"
+  >
+    <AppVenusSpinner size="md" compact />
+  </div>
 </template>

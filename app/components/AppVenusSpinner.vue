@@ -2,14 +2,22 @@
 withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'
   label?: string
+  /** Tighter padding for overlays, dropdowns, and inline sections. */
+  compact?: boolean
 }>(), {
   size: 'md',
   label: '',
+  compact: false,
 })
 </script>
 
 <template>
-  <div class="venus-loading-block" role="status" aria-live="polite">
+  <div
+    class="venus-loading-block"
+    :class="{ 'venus-loading-block-compact': compact || size === 'sm' }"
+    role="status"
+    aria-live="polite"
+  >
     <div
       class="venus-fold-spinner"
       :class="{

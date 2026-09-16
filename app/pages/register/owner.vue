@@ -19,7 +19,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex min-h-[40vh] items-center justify-center text-sm text-brand-gray-600">
-    {{ $t('common.loading') }}
+  <div class="flex min-h-[40vh] items-center justify-center">
+    <AppVenusSpinner :label="$t('common.loading')" />
   </div>
 </template>

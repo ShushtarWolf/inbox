@@ -5,7 +5,9 @@ const props = withDefaults(defineProps<{
   error?: boolean | string | Error | null
   empty?: boolean
   loadingLabel?: string
+  /** @deprecated Skeletons replaced by folding-cube spinner; kept for call-site compat. */
   skeletonLines?: number
+  /** @deprecated Skeletons replaced by folding-cube spinner; kept for call-site compat. */
   skeletonVariant?: 'default' | 'table' | 'stat-grid' | 'calendar'
   inline?: boolean
 }>(), {
@@ -31,8 +33,8 @@ const label = computed(() => props.loadingLabel || t('common.loading'))
 
 /**
  * After the default slot has rendered once with real content, keep it mounted
- * during soft refreshes (pending flips true). Avoids skeleton↔content height
- * cliffs that drive Clarity CLS on /coaches, athlete home, owner calendar, etc.
+ * during soft refreshes (pending flips true). Avoids content height cliffs that
+ * drive Clarity CLS on /coaches, athlete home, owner calendar, etc.
  */
 const retainContent = ref(false)
 
@@ -50,25 +52,19 @@ watch(
   { immediate: true },
 )
 
-const showSkeleton = computed(() => props.pending && !retainContent.value)
+const showLoading = computed(() => props.pending && !retainContent.value)
 const showContent = computed(() => {
   if (errorMessage.value) return false
-  if (showSkeleton.value) return false
+  if (showLoading.value) return false
   if (props.empty && !props.pending) return false
   return true
 })
 </script>
 
 <template>
-  <div v-if="showSkeleton" :class="inline ? '' : 'tail-page-enter'">
+  <div v-if="showLoading" :class="inline ? '' : 'tail-page-enter'">
     <slot name="loading">
-      <AppVenusCalendarSkeleton v-if="skeletonVariant === 'calendar'" />
-      <AppVenusSkeleton
-        v-else
-        :lines="skeletonLines"
-        :variant="skeletonVariant === 'table' || skeletonVariant === 'stat-grid' ? skeletonVariant : 'default'"
-      />
-      <AppVenusSpinner v-if="inline" size="sm" :label="label" class="mt-4" />
+      <AppVenusSpinner :size="inline ? 'sm' : 'md'" :label="label" />
     </slot>
   </div>
   <p v-else-if="errorMessage" class="tail-alert-error">
@@ -92,7 +88,7 @@ const showContent = computed(() => {
       class="pointer-events-none absolute inset-0 flex items-start justify-center pt-8"
       aria-hidden="true"
     >
-      <AppVenusSpinner size="sm" />
+      <AppVenusSpinner size="sm" compact />
     </div>
   </div>
 </template>

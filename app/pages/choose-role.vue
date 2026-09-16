@@ -75,8 +75,8 @@ async function onPick(role: PlatformRole) {
       {{ user.phone }}
     </div>
 
-    <div v-if="loading" class="mt-8 text-sm text-brand-gray-600">
-      {{ t('common.loading') }}
+    <div v-if="loading" class="mt-8">
+      <AppVenusSpinner size="sm" :label="t('common.loading')" />
     </div>
 
     <div

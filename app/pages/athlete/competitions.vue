@@ -126,9 +126,7 @@ async function cancelEntry(competitionId: string) {
     <p v-if="refundNotice" class="text-sm text-emerald-700">
       {{ refundNotice }}
     </p>
-    <p v-if="pending" class="text-sm text-gray-500">
-      {{ t('common.loading') }}
-    </p>
+    <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error" class="text-sm text-red-600">
       {{ t('common.error') }}
     </p>

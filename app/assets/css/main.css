@@ -2791,6 +2791,9 @@
   .tail-loading-block {
     @apply flex flex-col items-center justify-center gap-3 py-6 text-center;
   }
+  .venus-loading-block-compact {
+    @apply gap-2 py-2;
+  }
   .venus-loading-label,
   .tail-loading-label {
     @apply text-sm font-medium text-brand-gray-500;
