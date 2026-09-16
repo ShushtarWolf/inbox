@@ -1,4 +1,13 @@
-@import 'material-symbols/rounded.css';
+/* Self-hosted Material Symbols subset (~12KB). Full npm package is ~5MB and
+   often fails on slow phones, showing raw ligature text (e.g. chevron_left).
+   Rebuild: node scripts/subset-material-symbols.mjs */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-rounded-subset.woff2') format('woff2');
+}
 /* Self-host variable fonts with optional display to avoid FOUT CLS (Clarity). */
 @font-face {
   font-family: 'Vazirmatn Variable';
@@ -2821,6 +2830,11 @@
     white-space: nowrap;
     word-wrap: normal;
     direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   }
   .material-symbols-rounded.filled {
