@@ -2707,6 +2707,76 @@
   .material-symbols-rounded.filled {
     font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   }
+  /* Folding cube grid spinner (CodeFronts sp-11, MIT) — brand palette */
+  .venus-fold-spinner,
+  .venus-fold-spinner *,
+  .venus-fold-spinner *::before,
+  .venus-fold-spinner *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  .venus-fold-spinner {
+    --venus-fold-c: #c41e1e;
+    --venus-fold-glow: rgba(196, 30, 30, 0.45);
+    --venus-fold-cell: 14px;
+    --venus-fold-gap: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .venus-fold-spinner-sm {
+    --venus-fold-cell: 10px;
+    --venus-fold-gap: 2px;
+  }
+  .venus-fold-spinner-lg {
+    --venus-fold-cell: 18px;
+    --venus-fold-gap: 4px;
+  }
+  .venus-fold-spinner__grid {
+    display: grid;
+    grid-template-columns: repeat(3, var(--venus-fold-cell));
+    grid-template-rows: repeat(3, var(--venus-fold-cell));
+    gap: var(--venus-fold-gap);
+  }
+  .venus-fold-spinner__cube {
+    width: var(--venus-fold-cell);
+    height: var(--venus-fold-cell);
+    background: var(--venus-fold-c);
+    box-shadow: 0 0 8px var(--venus-fold-glow);
+    border-radius: 2px;
+    animation: venus-fold-spinner-fold 1.8s ease-in-out infinite;
+  }
+  .venus-fold-spinner__cube:nth-child(1) { animation-delay: 0s; }
+  .venus-fold-spinner__cube:nth-child(2) { animation-delay: 0.1s; }
+  .venus-fold-spinner__cube:nth-child(3) { animation-delay: 0.2s; }
+  .venus-fold-spinner__cube:nth-child(4) { animation-delay: 0.3s; }
+  .venus-fold-spinner__cube:nth-child(5) { animation-delay: 0.4s; }
+  .venus-fold-spinner__cube:nth-child(6) { animation-delay: 0.5s; }
+  .venus-fold-spinner__cube:nth-child(7) { animation-delay: 0.6s; }
+  .venus-fold-spinner__cube:nth-child(8) { animation-delay: 0.7s; }
+  .venus-fold-spinner__cube:nth-child(9) { animation-delay: 0.8s; }
+  @keyframes venus-fold-spinner-fold {
+    0%,
+    100% {
+      transform: perspective(60px) rotateX(0deg) rotateY(0deg);
+      opacity: 1;
+    }
+    33% {
+      transform: perspective(60px) rotateX(-90deg) rotateY(0deg);
+      opacity: 0.4;
+    }
+    66% {
+      transform: perspective(60px) rotateX(-90deg) rotateY(90deg);
+      opacity: 0.4;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venus-fold-spinner__cube {
+      animation: none;
+    }
+  }
+  /* Legacy circular spinner aliases kept for any leftover class usage */
   .venus-spinner,
   .tail-spinner {
     @apply inline-block h-8 w-8 rounded-full border-[3px] border-brand-gray-200 border-t-brand-primary animate-venus-spin;
@@ -2719,7 +2789,7 @@
   }
   .venus-loading-block,
   .tail-loading-block {
-    @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
+    @apply flex flex-col items-center justify-center gap-3 py-6 text-center;
   }
   .venus-loading-label,
   .tail-loading-label {

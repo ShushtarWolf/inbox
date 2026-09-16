@@ -90,7 +90,7 @@ async function pay() {
         </NuxtLink>
       </header>
 
-      <p v-if="pending" class="text-sm text-brand-gray-600">{{ t('common.loading') }}</p>
+      <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
       <p v-else-if="error" class="text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
 
       <template v-else-if="data">

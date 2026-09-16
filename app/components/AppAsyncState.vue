@@ -92,7 +92,7 @@ const showContent = computed(() => {
       class="pointer-events-none absolute inset-0 flex items-start justify-center pt-8"
       aria-hidden="true"
     >
-      <AppVenusSpinner v-if="inline" size="sm" :label="label" />
+      <AppVenusSpinner size="sm" />
     </div>
   </div>
 </template>
