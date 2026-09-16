@@ -37,6 +37,7 @@ const { data, error, pending, refresh } = await useFetch<ReceiptPayload>(
   () => `/api/receipts/${encodeURIComponent(token.value)}`,
   { watch: [token] },
 )
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 
 const paymentNotice = computed(() => {
   const q = String(route.query.payment || '')
@@ -90,7 +91,7 @@ async function pay() {
         </NuxtLink>
       </header>
 
-      <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
+      <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
       <p v-else-if="error" class="text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
 
       <template v-else-if="data">

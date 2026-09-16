@@ -59,6 +59,10 @@ const date = ref(today())
 const data = ref<AdminCalendarResponse | null>(null)
 const calendarPending = ref(false)
 const loadError = ref('')
+const showCalendarPending = useHeldPending(
+  () => calendarPending.value && !data.value,
+  { forceRelease: () => Boolean(loadError.value) },
+)
 
 const {
   externalOverlayEnabled,
@@ -263,7 +267,7 @@ const calendarSourcesHref = computed(() =>
       <section class="space-y-2">
         <h2 class="text-sm font-bold text-brand-gray-600">{{ t('coach.book.pickSlot') }}</h2>
 
-        <AppVenusSpinner v-if="calendarPending && !data" size="sm" :label="t('common.loading')" compact />
+        <AppVenusSpinner v-if="showCalendarPending" size="sm" :label="t('common.loading')" compact />
         <p v-else-if="data && !slotCards.length" class="ios-card border-dashed p-4 text-sm text-brand-gray-600">
           {{ t('coach.book.noSlots') }}
         </p>

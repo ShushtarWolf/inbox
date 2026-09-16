@@ -88,6 +88,7 @@ if (rawSlug && slug !== rawSlug) {
 }
 
 const { data: club, pending, error } = await useFetch<ClubDetail>(`/api/clubs/${slug}`)
+const showClubPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
 const { user } = useAuth()
@@ -140,6 +141,7 @@ const { data: slots, pending: slotsPending, error: slotsError, refresh: refreshS
     includeUnavailable: '1',
   })),
 })
+const showSlotsPending = useHeldPending(slotsPending, { forceRelease: () => Boolean(slotsError.value) })
 
 const {
   enabled: externalSuspectedEnabled,
@@ -890,7 +892,7 @@ async function shareClub() {
 </script>
 
 <template>
-  <div v-if="pending" class="tail-page-enter">
+  <div v-if="showClubPending" class="tail-page-enter">
     <AppVenusSpinner :label="t('common.loading')" />
   </div>
   <div v-else-if="error || !club" class="space-y-4">
@@ -1081,7 +1083,7 @@ async function shareClub() {
                 {{ t('clubs.multiCourtTimeHint') }}
               </p>
               <div class="canva-club-slot-grid">
-                <div v-if="slotsPending" class="col-span-full flex justify-center py-8" role="status">
+                <div v-if="showSlotsPending" class="col-span-full flex justify-center py-8" role="status">
                   <AppVenusSpinner size="sm" :label="t('common.loading')" compact />
                 </div>
                 <div v-else-if="slotsError" class="col-span-full space-y-3 py-8 text-center text-sm text-red-700" role="alert">
@@ -1112,7 +1114,7 @@ async function shareClub() {
                     {{ t('clubs.slotSuspectedLabel') }}
                   </span>
                 </button>
-                <p v-if="!slotsPending && !slotsError && !courtSlots.length" class="canva-club-detail-desc col-span-full">
+                <p v-if="!showSlotsPending && !slotsError && !courtSlots.length" class="canva-club-detail-desc col-span-full">
                   {{ t('common.empty') }}
                 </p>
               </div>

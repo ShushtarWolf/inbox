@@ -76,6 +76,7 @@ const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await u
   // Avoid 400 when clubId is still empty; refresh only once a club is selected.
   watch: false,
 })
+const showSlotsPending = useHeldPending(slotsPending)
 
 const {
   isExternalOnlyOccupied,
@@ -331,7 +332,7 @@ async function startTopUp() {
 
           <section class="space-y-3">
             <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.book.pickSlot') }}</h2>
-            <div v-if="slotsPending" class="flex justify-center py-4">
+            <div v-if="showSlotsPending" class="flex justify-center py-4">
               <AppVenusSpinner size="sm" :label="$t('common.loading')" compact />
             </div>
             <p

@@ -9,6 +9,7 @@ const { data, error, pending } = await useFetch<{ token: string }>(
   () => `/api/pay-link/${encodeURIComponent(pin.value)}`,
   { watch: [pin] },
 )
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 
 watch(
   data,
@@ -22,7 +23,7 @@ watch(
 
 <template>
   <div class="min-h-dvh bg-white px-4 py-6">
-    <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
+    <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error || !data?.token" class="text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
   </div>
 </template>

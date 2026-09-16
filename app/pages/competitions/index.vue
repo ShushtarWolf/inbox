@@ -33,6 +33,8 @@ const { data: competitions, pending, error } = await useFetch<Array<{
   sport: { slug: string; nameFa: string; nameEn?: string }
 }>>('/api/competitions', { query, immediate: competitionsEnabled.value })
 
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
+
 const { data: sports } = await useFetch<Array<{ slug: string; nameFa: string; nameEn?: string }>>('/api/sports')
 
 async function applyFilters() {
@@ -80,7 +82,7 @@ async function applyFilters() {
       >
     </div>
 
-    <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
+    <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error" class="text-sm text-red-600">
       {{ t('common.error') }}
     </p>

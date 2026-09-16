@@ -35,6 +35,8 @@ const { data, pending, error, refresh } = await useAuthedFetch<Array<{
   }
 }>>('/api/athlete/competitions', { immediate: competitionsEnabled.value })
 
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
+
 const route = useRoute()
 const router = useRouter()
 const cancelPending = ref<string | null>(null)
@@ -126,7 +128,7 @@ async function cancelEntry(competitionId: string) {
     <p v-if="refundNotice" class="text-sm text-emerald-700">
       {{ refundNotice }}
     </p>
-    <AppVenusSpinner v-if="pending" size="sm" :label="t('common.loading')" />
+    <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error" class="text-sm text-red-600">
       {{ t('common.error') }}
     </p>
