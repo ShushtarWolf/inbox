@@ -99,9 +99,15 @@ const isViewingTodayMonth = computed(() => {
 
 const isOnToday = computed(() => model.value === todayIso.value)
 
-const showTodayButton = computed(() => !isOnToday.value || !isViewingTodayMonth.value)
+/** Idle when tapping Today would not change view or (single) selection. */
+const todayActionIdle = computed(() => {
+  if (!isViewingTodayMonth.value) return false
+  if (props.mode === 'range') return true
+  return isOnToday.value
+})
 
 function goToToday() {
+  if (todayActionIdle.value) return
   const j = isoToJalaali(todayIso.value)
   viewYear.value = j.jy
   viewMonth.value = j.jm
@@ -109,6 +115,10 @@ function goToToday() {
     model.value = todayIso.value
     emit('select')
   }
+}
+
+function isTodayCell(cell: { iso: string | null }) {
+  return Boolean(cell.iso && cell.iso === todayIso.value)
 }
 
 function isInRange(iso: string) {
@@ -186,16 +196,23 @@ function isDisabled(cell: { iso: string | null }) {
 
 function cellClass(cell: { iso: string | null }) {
   if (!cell.iso) return ''
-  if (isDisabled(cell)) return 'jalali-calendar-day-disabled'
-  if (props.mode === 'range' && isInRange(cell.iso)) {
-    if (isRangeStart(cell) || isRangeEnd(cell)) return 'jalali-calendar-day-selected'
-    return 'jalali-calendar-day-in-range'
+  const classes: string[] = []
+  if (isDisabled(cell)) {
+    classes.push('jalali-calendar-day-disabled')
   }
-  // Range pick in progress: still mark the start day when end is empty.
-  if (props.mode === 'range' && isRangeStart(cell) && !rangeEnd.value) {
-    return 'jalali-calendar-day-selected'
+  else if (props.mode === 'range' && isInRange(cell.iso)) {
+    if (isRangeStart(cell) || isRangeEnd(cell)) classes.push('jalali-calendar-day-selected')
+    else classes.push('jalali-calendar-day-in-range')
   }
-  return isSelected(cell) ? 'jalali-calendar-day-selected' : ''
+  else if (props.mode === 'range' && isRangeStart(cell) && !rangeEnd.value) {
+    // Range pick in progress: still mark the start day when end is empty.
+    classes.push('jalali-calendar-day-selected')
+  }
+  else if (isSelected(cell)) {
+    classes.push('jalali-calendar-day-selected')
+  }
+  if (isTodayCell(cell)) classes.push('jalali-calendar-day-today')
+  return classes.join(' ')
 }
 
 const rangeOutsideView = computed(() => {
@@ -221,17 +238,7 @@ function jumpToRangeStart() {
       <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
         <AppIcon name="chevron_left" size="sm" />
       </button>
-      <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
-        <p class="jalali-calendar-month truncate text-sm font-bold">{{ monthLabel }}</p>
-        <button
-          v-if="variant !== 'owner' && showTodayButton"
-          type="button"
-          class="jalali-calendar-today shrink-0"
-          @click="goToToday"
-        >
-          {{ t('calendar.today') }}
-        </button>
-      </div>
+      <p class="jalali-calendar-month min-w-0 flex-1 truncate text-center text-sm font-bold">{{ monthLabel }}</p>
       <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
         <AppIcon name="chevron_right" size="sm" />
       </button>
@@ -258,6 +265,7 @@ function jumpToRangeStart() {
           class="jalali-calendar-day"
           :class="cellClass(cell)"
           :disabled="isDisabled(cell)"
+          :aria-current="isTodayCell(cell) ? 'date' : undefined"
           @click="selectDay(cell.iso!)"
         >
           <span>{{ formatNumber(cell.day) }}</span>
@@ -272,9 +280,10 @@ function jumpToRangeStart() {
     </div>
 
     <button
-      v-if="variant === 'owner' && showTodayButton"
       type="button"
       class="jalali-calendar-today-footer mt-3 w-full"
+      :disabled="todayActionIdle"
+      :aria-disabled="todayActionIdle ? 'true' : undefined"
       @click="goToToday"
     >
       {{ t('calendar.today') }}
@@ -284,9 +293,9 @@ function jumpToRangeStart() {
 
 <style scoped>
 .jalali-calendar {
-  /* Relative to modal/container — 100vw ignores sheet padding and looks zoomed on phone */
+  /* Fill sheet/field width — avoid 100vw (ignores padding) and cramped 18rem cap */
   width: 100%;
-  max-width: 18rem;
+  max-width: none;
   margin-inline: auto;
   box-sizing: border-box;
 }
@@ -294,7 +303,7 @@ function jumpToRangeStart() {
   border-radius: var(--sz-canva-radius, 0);
   border: 1px solid var(--sz-border);
   background: #fff;
-  padding: 1rem;
+  padding: 0.75rem 0.65rem 0.85rem;
   box-shadow: var(--sz-shadow-sm, none);
 }
 .jalali-calendar-owner {
@@ -315,11 +324,11 @@ function jumpToRangeStart() {
 }
 .jalali-calendar-nav {
   display: inline-flex;
-  height: 2rem;
-  width: 2rem;
+  height: 2.5rem;
+  width: 2.5rem;
   align-items: center;
   justify-content: center;
-  border-radius: var(--sz-canva-radius, 2px);
+  border-radius: 2px;
   border: 1px solid var(--sz-border);
   background: var(--sz-bg);
   color: var(--sz-accent);
@@ -327,29 +336,28 @@ function jumpToRangeStart() {
   font-weight: 700;
   line-height: 1;
 }
-.jalali-calendar-today {
-  border-radius: 2px;
-  border: 1px solid var(--sz-border);
-  background: var(--sz-bg);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--sz-accent);
-}
-.jalali-calendar-today:hover {
-  background: var(--sz-bg-elevated);
-}
 .jalali-calendar-today-footer {
+  min-height: 2.75rem;
   border-radius: 2px;
-  border: 1px solid var(--sz-border);
+  border: 1px solid var(--sz-accent);
   background: var(--sz-bg);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 700;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 800;
   color: var(--sz-accent);
+  -webkit-appearance: none;
+  appearance: none;
 }
-.jalali-calendar-today-footer:hover {
-  background: var(--sz-bg-elevated);
+@media (hover: hover) {
+  .jalali-calendar-today-footer:hover:not(:disabled) {
+    background: var(--sz-bg-elevated);
+  }
+}
+.jalali-calendar-today-footer:disabled {
+  cursor: default;
+  opacity: 0.45;
+  border-color: var(--sz-border);
+  color: var(--sz-navy);
 }
 .jalali-calendar-range-jump {
   border-radius: 2px;
@@ -365,13 +373,13 @@ function jumpToRangeStart() {
 }
 .jalali-calendar-day {
   display: flex;
-  height: 2.25rem;
+  height: 2.5rem;
   width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
-  border-radius: var(--sz-canva-radius, 2px);
+  border-radius: 2px;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--sz-navy);
@@ -389,6 +397,11 @@ function jumpToRangeStart() {
   .jalali-calendar-day:hover:not(:disabled):not(.jalali-calendar-day-selected):not(.jalali-calendar-day-in-range) {
     background-color: var(--sz-bg-elevated);
   }
+}
+/* Today (not selected): accent ring — distinct from green selection fill */
+.jalali-calendar-day.jalali-calendar-day-today:not(.jalali-calendar-day-selected):not(.jalali-calendar-day-in-range) {
+  box-shadow: inset 0 0 0 2px var(--sz-accent);
+  font-weight: 800;
 }
 /* Fail-safe selected: green fill + navy number (never white-on-missing-bg). */
 .jalali-calendar-day.jalali-calendar-day-selected {
