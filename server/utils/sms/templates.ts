@@ -119,27 +119,32 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       const count = typeof rawCount === 'number' && rawCount > 1
         ? rawCount
         : (typeof rawCount === 'string' && Number(rawCount) > 1 ? Number(rawCount) : 0)
-      let whenLine = 'با موفقیت انجام شد.'
+      let whenLine = ''
       if (count && date && finish && finish !== date && start) {
-        whenLine = `برای بازه ${date} تا ${finish} (${toPersianDigits(String(count))} سانس) ساعت ${start}${courtBit} با موفقیت انجام شد.`
+        whenLine = `در تاریخ ${date} تا ${finish} (${toPersianDigits(String(count))} سانس) و ساعت ${start}${courtBit}`
       } else if (count && date && start) {
-        whenLine = `برای ${date} (${toPersianDigits(String(count))} سانس) ساعت ${start}${courtBit} با موفقیت انجام شد.`
+        whenLine = `در تاریخ ${date} (${toPersianDigits(String(count))} سانس) و ساعت ${start}${courtBit}`
       } else if (date && start) {
-        whenLine = `برای تاریخ ${date} ساعت ${start}${courtBit} با موفقیت انجام شد.`
+        whenLine = `در تاریخ ${date} و ساعت ${start}${courtBit}`
+      } else if (date) {
+        whenLine = `در تاریخ ${date}${courtBit}`
+      } else if (start) {
+        whenLine = `ساعت ${start}${courtBit}`
       }
       const lines = [
         `${guest} عزیز`,
-        club ? `رزرو شما در ${club}` : 'رزرو شما',
-        whenLine,
+        club
+          ? `رزرو شما با موفقیت در باشگاه ${club} انجام شد`
+          : 'رزرو شما با موفقیت انجام شد',
       ]
+      if (whenLine) lines.push(whenLine)
       if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
       if (!paid && payPin) {
         lines.push('کد پرداخت')
         lines.push(payPin)
-      } else if (!paid && receiptUrl) {
-        lines.push('لینک پرداخت:')
-        lines.push(receiptUrl)
-      } else if (receiptUrl) {
+      }
+      if (receiptUrl) {
+        lines.push('از لینک زیر آدرس و رزرو و قوانین مقررات باشگاه رو می‌تونید پیگیری کنید')
         lines.push(receiptUrl)
       }
       return lines.join('\n')
