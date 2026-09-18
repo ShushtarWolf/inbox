@@ -164,8 +164,14 @@ async function main() {
   if (!llmsText.includes('## باشگاه‌ها')) {
     throw new Error('llms.txt missing باشگاه‌ها section')
   }
-  if (!llmsText.includes('اینباکس چیست') || !llmsText.includes('/clubs/apply')) {
-    throw new Error('llms.txt missing brand / booking / owner-apply copy')
+  if (!llmsText.includes('## چیستی اینباکس') || !llmsText.includes('نه seastudio')) {
+    throw new Error('llms.txt missing چیستی اینباکس brand lines (inboxs.ir, نه seastudio)')
+  }
+  if (!llmsText.includes('اینباکس = پلتفرم رزرو آنلاین پدل/تنیس')) {
+    throw new Error('llms.txt missing brand definition line')
+  }
+  if (!llmsText.includes('## برای صاحبان باشگاه') || !llmsText.includes('/clubs/apply')) {
+    throw new Error('llms.txt missing برای صاحبان باشگاه → /clubs/apply')
   }
   // Prefer live club URLs; fall back to hubs+brand already asserted above.
   if (!/\/clubs\/(?!tehran(?:\/|$)|apply(?:\/|$))[a-z0-9-]+/i.test(llmsText)) {
@@ -174,7 +180,45 @@ async function main() {
   else {
     console.log('ok  llms.txt lists ACTIVE club URLs')
   }
-  console.log('ok  llms.txt lists Tehran hubs + باشگاه‌ها')
+  console.log('ok  llms.txt lists brand + Tehran hubs + باشگاه‌ها + owner apply')
+
+  const sitewideFaqMarkers = [
+    'چطور در اینباکس زمین پدل یا تنیس رزرو کنم؟',
+    'پرداخت رزرو زمین چگونه انجام می‌شود؟',
+    'چطور رزرو را لغو کنم و استرداد چگونه است؟',
+    'چطور باشگاه پدل یا تنیس مناسب پیدا کنم؟',
+    'زمین پدل تهران را از کجا رزرو کنم؟',
+    'زمین تنیس تهران را از کجا رزرو کنم؟',
+    'قیمت سانس و کارمزد اینباکس چطور است؟',
+    'اگر صاحب باشگاه هستم چطور در اینباکس ثبت‌نام کنم؟',
+  ]
+
+  function assertSitewideFaqJsonLd(path, html) {
+    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
+      throw new Error(`${path} missing FAQPage JSON-LD`)
+    }
+    for (const marker of sitewideFaqMarkers) {
+      if (!html.includes(marker)) {
+        throw new Error(`${path} missing sitewide FAQ: ${marker}`)
+      }
+    }
+    const faqBlocks = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    let faqCount = 0
+    for (const match of faqBlocks) {
+      try {
+        const data = JSON.parse(match[1])
+        if (data?.['@type'] === 'FAQPage') {
+          faqCount = Array.isArray(data.mainEntity) ? data.mainEntity.length : 0
+        }
+      }
+      catch {
+        // ignore non-JSON payloads
+      }
+    }
+    if (faqCount !== 8) {
+      throw new Error(`${path} expected 8 sitewide FAQPage entities, got ${faqCount}`)
+    }
+  }
 
   // Homepage should expose Organization / WebApplication JSON-LD for search + AI
   const { html: homeHtml } = await fetchPage(base, '/')
@@ -190,10 +234,8 @@ async function main() {
   if (!homeHtml.includes('/clubs/tehran/tennis') || !homeHtml.includes('زمین تنیس تهران')) {
     throw new Error('/ missing Tehran tennis hub discovery link')
   }
-  if (!homeHtml.includes('FAQPage')) {
-    throw new Error('/ missing sitewide FAQPage JSON-LD')
-  }
-  console.log('ok  / Organization + WebApplication JSON-LD + hub links + FAQ')
+  assertSitewideFaqJsonLd('/', homeHtml)
+  console.log('ok  / Organization + WebApplication JSON-LD + hub links + 8 sitewide FAQs')
 
   const { html: clubsHtml } = await fetchPage(base, '/clubs')
   if (!clubsHtml.includes('/clubs/tehran/padel') || !clubsHtml.includes('زمین پدل تهران')) {
@@ -202,17 +244,13 @@ async function main() {
   if (!clubsHtml.includes('/clubs/tehran/tennis') || !clubsHtml.includes('زمین تنیس تهران')) {
     throw new Error('/clubs missing Tehran tennis hub discovery link')
   }
-  if (!clubsHtml.includes('FAQPage')) {
-    throw new Error('/clubs missing sitewide FAQPage JSON-LD')
-  }
-  console.log('ok  /clubs hub discovery links + FAQ')
+  assertSitewideFaqJsonLd('/clubs', clubsHtml)
+  console.log('ok  /clubs hub discovery links + 8 sitewide FAQs')
 
   for (const path of ['/clubs/tehran/padel', '/clubs/tehran/tennis']) {
     const { html } = await fetchPage(base, path)
-    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
-      throw new Error(`${path} missing FAQPage JSON-LD`)
-    }
-    console.log(`ok  ${path} FAQPage JSON-LD`)
+    assertSitewideFaqJsonLd(path, html)
+    console.log(`ok  ${path} FAQPage JSON-LD (8 sitewide)`)
   }
 
   // About / pricing FAQ schema

@@ -4,10 +4,13 @@ import { buildLlmsTxt } from './llmsTxt.ts'
 describe('buildLlmsTxt', () => {
   it('includes brand, booking, owner apply, and Tehran hubs', () => {
     const text = buildLlmsTxt({ siteUrl: 'https://inboxs.ir' })
-    expect(text).toContain('اینباکس چیست')
+    expect(text).toContain('## چیستی اینباکس')
+    expect(text).toContain('اینباکس = پلتفرم رزرو آنلاین پدل/تنیس')
+    expect(text).toContain('https://inboxs.ir')
+    expect(text).toContain('نه seastudio')
     expect(text).toContain('برای چه کسانی است')
     expect(text).toContain('چطور رزرو کنم')
-    expect(text).toContain('ثبت باشگاه')
+    expect(text).toContain('## برای صاحبان باشگاه')
     expect(text).toContain('/clubs/apply')
     expect(text).toContain('## شهر و ورزش')
     expect(text).toContain('/clubs/tehran/padel')
