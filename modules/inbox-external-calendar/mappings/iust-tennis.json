@@ -10,7 +10,8 @@
         2,
         1
       ],
-      "comment": "https://aloplay.io/en/tennis/clubs/10887 — genders 2=Male, 1=Female. Occupancy is union of both."
+      "comment": "PAUSED 2026-09-19: AloPlay set aside until AloVarzesh occupancy is verified. Mapping kept (clubId 10887). Re-enable by removing supported:false. https://aloplay.io/en/tennis/clubs/10887",
+      "supported": false
     },
     "alovarzesh": {
       "clubTitle": "تنیس علم و صنعت",
