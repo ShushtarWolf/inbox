@@ -125,7 +125,7 @@ const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
-const { pilotNoCoach, recurringReserveEnabled } = usePilotFlags()
+const { packagesEnabled, pilotNoCoach, recurringReserveEnabled } = usePilotFlags()
 const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
 
 const date = ref(today())
@@ -2564,7 +2564,7 @@ function canShowSeasonReserve() {
 
 /** Package recurring stays hidden while coach product is frozen. */
 function canShowPackageReserve() {
-  return recurringReserveEnabled.value && !pilotNoCoach.value
+  return packagesEnabled.value && recurringReserveEnabled.value
 }
 
 function canMarkPaid() {

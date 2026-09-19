@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { addDaysToIsoDate, isSlotStartInPast } from '#shared/localDate.ts'
 import { weekdayKeyFromDayOfWeek } from '#shared/recurringSessions.ts'
+import { fetchErrorMessage } from '~/composables/useFetchError'
 
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
@@ -31,13 +32,19 @@ type HourRow =
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { today } = useLocalDate()
-const { formatDayNumber, formatWeekday, formatMonth, formatTimeLabel, formatTimeRange, formatPhone } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeLabel, formatTimeRange, formatPhone } = useFormatters()
 
 const date = ref(today())
 const showDatePicker = ref(false)
+const selectedSession = ref<ScheduleSession | null>(null)
+const showSessionActions = ref(false)
+const actionPending = ref(false)
+const actionError = ref('')
+const rescheduleDate = ref(today())
+const rescheduleTime = ref('')
 
 const query = computed(() => ({ date: date.value }))
-const { data, pending, error } = await useAuthedFetch<SchedulePayload>('/api/coach/schedule', {
+const { data, pending, error, refresh } = await useAuthedFetch<SchedulePayload>('/api/coach/schedule', {
   query,
   watch: [query],
 })
@@ -107,6 +114,54 @@ function goToday() {
 
 function closeDatePicker() {
   showDatePicker.value = false
+}
+
+function openSessionActions(session: ScheduleSession) {
+  selectedSession.value = session
+  rescheduleDate.value = date.value
+  rescheduleTime.value = session.startTime.slice(0, 5)
+  actionError.value = ''
+  showSessionActions.value = true
+}
+
+function closeSessionActions() {
+  if (actionPending.value) return
+  showSessionActions.value = false
+  selectedSession.value = null
+  actionError.value = ''
+}
+
+async function cancelSelectedSession() {
+  if (!selectedSession.value || actionPending.value) return
+  actionPending.value = true
+  actionError.value = ''
+  try {
+    await $fetch(`/api/coach-sessions/${selectedSession.value.id}/cancel`, { method: 'PATCH' })
+    await refresh()
+    closeSessionActions()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('coach.actionFailed'), t)
+  } finally {
+    actionPending.value = false
+  }
+}
+
+async function rescheduleSelectedSession() {
+  if (!selectedSession.value || actionPending.value || !rescheduleDate.value || !rescheduleTime.value) return
+  actionPending.value = true
+  actionError.value = ''
+  try {
+    await $fetch(`/api/coach-sessions/${selectedSession.value.id}/reschedule`, {
+      method: 'PATCH',
+      body: { date: rescheduleDate.value, startTime: rescheduleTime.value },
+    })
+    await refresh()
+    closeSessionActions()
+  } catch (err: unknown) {
+    actionError.value = fetchErrorMessage(err, t('coach.actionFailed'), t)
+  } finally {
+    actionPending.value = false
+  }
 }
 
 function cellClass(row: HourRow) {
@@ -219,10 +274,15 @@ function bookLinkFor(startTime: string) {
                       <p class="canva-cal-grid-cell-sub">{{ $t('coach.scheduleBookCta') }}</p>
                     </div>
                   </NuxtLink>
+                  <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -->
                   <div
                     v-else
                     class="canva-cal-grid-cell"
                     :class="cellClass(row)"
+                    :role="row.kind === 'booked' ? 'button' : undefined"
+                    :tabindex="row.kind === 'booked' ? 0 : undefined"
+                    @click="row.kind === 'booked' && openSessionActions(row.session)"
+                    @keydown.enter="row.kind === 'booked' && openSessionActions(row.session)"
                   >
                     <span class="canva-cal-grid-cell-bar" :class="barClass(row)" />
                     <div class="canva-cal-grid-cell-body">
@@ -315,6 +375,50 @@ function bookLinkFor(startTime: string) {
           variant="owner"
           @select="closeDatePicker"
         />
+      </div>
+    </AppModal>
+
+    <AppModal
+      :open="showSessionActions"
+      patterned
+      close-icon
+      :title="t('coach.sessionActions')"
+      max-width-class="canva-phone-shell max-w-sm"
+      @close="closeSessionActions"
+    >
+      <div v-if="selectedSession" class="space-y-3 text-start">
+        <div class="canva-panel space-y-1 p-3">
+          <p class="font-bold text-brand-navy">{{ selectedSession.athlete.name }}</p>
+          <p class="text-sm text-brand-gray-600">
+            {{ formatDate(`${date}T12:00:00`) }} · <bdi dir="ltr">{{ formatTimeRange(selectedSession.startTime, selectedSession.endTime) }}</bdi>
+          </p>
+        </div>
+        <label class="block text-sm font-bold text-brand-navy">
+          {{ t('coach.rescheduleDate') }}
+          <input v-model="rescheduleDate" type="date" dir="ltr" class="neo-input mt-1 w-full" />
+        </label>
+        <label class="block text-sm font-bold text-brand-navy">
+          {{ t('coach.rescheduleTime') }}
+          <input v-model="rescheduleTime" type="time" dir="ltr" class="neo-input mt-1 w-full" />
+        </label>
+        <p v-if="actionError" class="venus-alert-error p-3 text-sm">{{ actionError }}</p>
+        <button
+          type="button"
+          class="canva-gate-btn-primary w-full"
+          :disabled="actionPending || !rescheduleDate || !rescheduleTime"
+          :aria-busy="actionPending"
+          @click="rescheduleSelectedSession"
+        >
+          {{ actionPending ? t('common.loading') : t('coach.reschedule') }}
+        </button>
+        <button
+          type="button"
+          class="canva-gate-btn-secondary w-full text-red-700"
+          :disabled="actionPending"
+          @click="cancelSelectedSession"
+        >
+          {{ t('coach.cancelSession') }}
+        </button>
       </div>
     </AppModal>
   </div>

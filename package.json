@@ -2,6 +2,9 @@
   "name": "inbox",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "build": "prisma generate && nuxt build",
     "dev": "TMPDIR=/tmp nuxt dev",

@@ -8,6 +8,7 @@ import {
   sumEquipmentPrices,
 } from '../../utils/bookingTotal'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
+import { assertPackagesEnabled } from '../../utils/packagesGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 
 function resolveDayTimes(
@@ -54,6 +55,7 @@ function resolveRecurringPayment(body: {
 }
 
 export default defineEventHandler(async (event) => {
+  assertPackagesEnabled(event)
   assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
