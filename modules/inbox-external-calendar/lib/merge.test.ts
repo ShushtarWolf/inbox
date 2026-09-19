@@ -229,6 +229,15 @@ describe('computeSuspectedSlots', () => {
     )
     expect(suspected).toHaveLength(1)
   })
+
+  it('RELEASE removes from public suspected (owner opened for renters)', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'FREE', id: 's1' }],
+      [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'alovarzesh', state: 'EXTERNAL_BUSY' }],
+      [{ courtId: 'c1', startTime: '10:00', type: 'RELEASE' }],
+    )
+    expect(suspected).toEqual([])
+  })
 })
 
 describe('sourceDetailsForCell', () => {
