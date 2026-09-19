@@ -81,6 +81,8 @@ describe('availabilityFirst golden scenarios', () => {
   it('10. AloPlay COMPLETE missing hour → BUSY', () => {
     const { freeSlots } = parseAvailableTimePayload({
       data: [
+        { fromTime: '08:00:00', toTime: '09:00:00', productId: 112282 },
+        { fromTime: '12:00:00', toTime: '13:00:00', productId: 112282 },
         { fromTime: '17:00:00', toTime: '18:00:00', productId: 112282 },
         { fromTime: '20:00:00', toTime: '21:00:00', productId: 112282 },
         { fromTime: '22:00:00', toTime: '23:00:00', productId: 112282 },
@@ -92,6 +94,17 @@ describe('availabilityFirst golden scenarios', () => {
     const busy = confirmedBusyFromFreeSet(mapped, freeSlots, completeness)
     expect(busy).toContainEqual({ courtKey: 'c1', startTime: '10:00' })
     expect(busy.some((b) => b.startTime === '17:00')).toBe(false)
+  })
+
+  it('10b. AloPlay clustered free stub (12–14 only) → PARTIAL, missing not BUSY', () => {
+    const freeSlots = new Set([
+      freeSlotKey(112282, '12:00'),
+      freeSlotKey(112282, '13:00'),
+      freeSlotKey(112282, '14:00'),
+    ])
+    const completeness = assessAloPlayCompleteness({ freeSlots, mappedProductIds: [112282] })
+    expect(completeness).toBe('PARTIAL')
+    expect(confirmedBusyFromFreeSet(mapped, freeSlots, completeness)).toEqual([])
   })
 
   it('11. AloPlay PARTIAL (gender partial) → missing UNKNOWN not BUSY', () => {

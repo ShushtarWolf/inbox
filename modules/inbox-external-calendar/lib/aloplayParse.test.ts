@@ -13,6 +13,8 @@ import {
 /** Live 2026-08-30 clubId 10887, productGender=2 — court 3 (112282) free at 17/20/22. */
 const maleAvailableTime = {
   data: [
+    { fromTime: '08:00:00', toTime: '09:00:00', productId: 112282 },
+    { fromTime: '12:00:00', toTime: '13:00:00', productId: 112282 },
     { fromTime: '17:00:00', toTime: '18:00:00', productId: 112282 },
     { fromTime: '20:00:00', toTime: '21:00:00', productId: 112282 },
     { fromTime: '22:00:00', toTime: '23:00:00', productId: 112282 },
