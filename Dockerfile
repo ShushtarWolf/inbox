@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 # Skip postinstall here: it runs Nuxt preparation and Prisma generation, both
 # of which are repeated by the explicit production build below.
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 COPY . .
 RUN npm run build
 
@@ -38,7 +38,7 @@ COPY --from=builder /app/shared ./shared
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
 # on top of the full app package.json without a lockfile in this stage.
 RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
-  && npm install --omit=dev --no-save \
+  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline \
     prisma@6.19.3 \
     @prisma/client@6.19.3 \
     tsx@4.22.4 \
