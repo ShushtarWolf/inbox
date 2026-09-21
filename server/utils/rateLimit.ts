@@ -40,11 +40,10 @@ async function rateLimitStorage() {
   } catch {
     // redis storage not configured
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw createError({
-      statusCode: 503,
-      statusMessage: 'RATE_LIMIT_STORAGE_NOT_CONFIGURED',
-    })
+  // Single-instance / no Redis: in-memory buckets (restores OTP/login).
+  // Prefer REDIS_URL on multi-instance Liara so limits share across replicas.
+  if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+    console.warn('[rateLimit] REDIS_URL unset — using in-memory buckets')
   }
   return useStorage('cache')
 }
