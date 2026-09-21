@@ -10,7 +10,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -25,4 +25,4 @@ jobs:
           npm i -g @liara/cli@9
           # Environment changes restart the app and trigger their own rollout on Liara;
           # keep this workflow to one explicit deployment per requested GitHub dispatch.
-          timeout 40m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
+          timeout 75m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
