@@ -1,12 +1,8 @@
 # Multi-stage: final image is Nitro output + Prisma migrate tools only.
-# Keeps Liara registry push under ~300MB instead of ~2.5GB (full node_modules build).
-
-FROM node:22-bookworm-slim AS builder
+# Alpine keeps the Liara registry push small enough to complete reliably.
+FROM node:22-alpine AS builder
 WORKDIR /app
-
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ca-certificates libc6-compat
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -15,17 +11,12 @@ COPY prisma ./prisma
 RUN npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 COPY . .
 RUN npm run build
-
-FROM node:22-bookworm-slim AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
-
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ca-certificates libc6-compat
 
 # Nitro server (self-contained) + start script + Prisma for migrate/seed on boot
 COPY --from=builder /app/.output ./.output
