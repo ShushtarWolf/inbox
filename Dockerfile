@@ -10,8 +10,9 @@ RUN apt-get update \
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci
-
+# Skip postinstall here: it runs Nuxt preparation and Prisma generation, both
+# of which are repeated by the explicit production build below.
+RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
 
