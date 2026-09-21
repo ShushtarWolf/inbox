@@ -37,6 +37,8 @@ jobs:
       CI: true
       ALLOW_DEMO_AUTH: true
       RATE_LIMIT_MAX: 100
+      OTP_PHONE_SEND_MAX: 100
+      OTP_PHONE_VERIFY_MAX: 100
 
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +93,8 @@ jobs:
       CI: true
       ALLOW_DEMO_AUTH: true
       RATE_LIMIT_MAX: 100
+      OTP_PHONE_SEND_MAX: 100
+      OTP_PHONE_VERIFY_MAX: 100
 
     steps:
       - uses: actions/checkout@v4

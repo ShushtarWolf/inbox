@@ -3,26 +3,90 @@ name: Deploy to Liara
 on:
   workflow_dispatch:
 
+# A second manual dispatch cancels the prior rollout instead of creating
+# concurrent Liara builds. Full browser CI remains in ci.yml and is not a
+# prerequisite for this production deploy path.
 concurrency:
   group: liara-deploy
   cancel-in-progress: true
 
 jobs:
+  smoke:
+    name: Build and auth smoke gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inbox
+          POSTGRES_PASSWORD: inbox
+          POSTGRES_DB: inbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inbox -d inbox"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox
+      NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
+      ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
+      PAYMENTS_MODE: pay_at_club
+      SMS_PROVIDER: log
+      BASE_URL: http://127.0.0.1:3000
+      CI: true
+      ALLOW_DEMO_AUTH: true
+      RATE_LIMIT_MAX: 100
+      OTP_PHONE_SEND_MAX: 100
+      OTP_PHONE_VERIFY_MAX: 100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies without lifecycle duplication
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+      - name: Prepare Nuxt and Prisma
+        run: |
+          npx nuxt prepare
+          npx prisma generate
+          npm run db:migrate:deploy
+      - name: Build production server
+        run: npm run build
+      - name: Start server and run auth smoke
+        run: |
+          node .output/server/index.mjs > /tmp/inbox-smoke-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -sf "$BASE_URL/api/health" >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -sf "$BASE_URL/api/health" >/dev/null
+          status=$(curl -sS -o /tmp/inbox-login-response -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data '{"email":"nobody@example.com","password":"wrong"}' \
+            "$BASE_URL/api/auth/login")
+          test "$status" = "401"
+          ! grep -q 'RATE_LIMIT_STORAGE_NOT_CONFIGURED' /tmp/inbox-login-response
+          cat /tmp/inbox-login-response
+
   deploy:
+    name: Deploy known-good image to Liara
+    needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
       - name: Deploy inbox to Liara
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           npm i -g @liara/cli@9
-          # Environment changes restart the app and trigger their own rollout on Liara;
-          # keep this workflow to one explicit deployment per requested GitHub dispatch.
           timeout 75m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
