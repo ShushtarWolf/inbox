@@ -234,14 +234,17 @@ function jumpToRangeStart() {
 
 <template>
   <div class="jalali-calendar" :class="variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default'">
+    <!-- RTL UX: month on start; prev=→ / next=← (matches owner day nav + Canva frames). -->
     <div class="mb-3 flex items-center justify-between gap-2">
-      <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
-        <AppIcon name="chevron_left" size="sm" />
-      </button>
-      <p class="jalali-calendar-month min-w-0 flex-1 truncate text-center text-sm font-bold">{{ monthLabel }}</p>
-      <button type="button" class="jalali-calendar-nav shrink-0" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
-        <AppIcon name="chevron_right" size="sm" />
-      </button>
+      <p class="jalali-calendar-month min-w-0 flex-1 truncate text-start text-sm font-bold">{{ monthLabel }}</p>
+      <div class="flex shrink-0 gap-0.5">
+        <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
+          <AppIcon name="chevron_right" size="sm" />
+        </button>
+        <button type="button" class="jalali-calendar-nav" :aria-label="t('calendar.nextMonth')" @click="nextMonth">
+          <AppIcon name="chevron_left" size="sm" />
+        </button>
+      </div>
     </div>
 
     <div class="jalali-calendar-weekdays grid grid-cols-7 gap-1 text-center text-xs font-bold">
