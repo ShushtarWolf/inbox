@@ -2799,7 +2799,7 @@
     @apply border-b border-brand-gray-200 bg-brand-gray-50;
   }
   .tail-table th {
-    @apply px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-brand-gray-500;
+    @apply px-4 py-3 text-start text-xs font-medium text-brand-gray-500;
   }
   .tail-table tbody tr {
     @apply border-b border-brand-gray-200 transition hover:bg-brand-gray-50 last:border-b-0;

@@ -128,7 +128,8 @@ function contactLine(row: {
   user: { email: string } | null
   guestMobile?: string | null
 }) {
-  return row.user?.email || row.guestMobile || '—'
+  if (row.user?.email) return row.user.email
+  return row.guestMobile ? formatPhone(row.guestMobile) : '—'
 }
 
 function toggleExpand(id: string) {

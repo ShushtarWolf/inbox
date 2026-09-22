@@ -3,7 +3,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatDate } = useFormatters()
+const { formatDate, formatPhone } = useFormatters()
 
 type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -311,7 +311,7 @@ watch(statusFilter, () => {
               <td class="p-3">
                 <div>{{ app.contactName }}</div>
                 <div class="text-xs text-brand-gray-600" dir="ltr">{{ app.contactEmail }}</div>
-                <div v-if="app.contactPhone" class="text-xs text-brand-gray-600" dir="ltr">{{ app.contactPhone }}</div>
+                <div v-if="app.contactPhone" class="text-xs text-brand-gray-600 tabular-nums" dir="ltr">{{ formatPhone(app.contactPhone) }}</div>
               </td>
               <td class="p-3" dir="ltr">{{ app.sportSlug }}</td>
               <td class="p-3">

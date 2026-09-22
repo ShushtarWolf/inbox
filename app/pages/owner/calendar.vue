@@ -127,7 +127,7 @@ type RecurringPreview = {
 const { t, locale } = useI18n()
 const { fetchErrorMessage } = useFetchError()
 const { localizedField } = useLocalizedField()
-const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits } = useFormatters()
+const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits, formatPhone } = useFormatters()
 const { today } = useLocalDate()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const { packagesEnabled, pilotNoCoach, recurringReserveEnabled } = usePilotFlags()
@@ -3266,7 +3266,7 @@ watch(pilotNoCoach, (off) => {
             </div>
             <div class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.guestMobile') }}</span>
-              <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ activeBooking(selectedSlotFull)?.guestMobile || '—' }}</bdi>
+              <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ activeBooking(selectedSlotFull)?.guestMobile ? formatPhone(activeBooking(selectedSlotFull)?.guestMobile) : '—' }}</bdi>
             </div>
             <div v-if="bookingSourceLabel(activeBooking(selectedSlotFull)?.source)" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.bookingSourceLabel') }}</span>
@@ -4722,7 +4722,7 @@ watch(pilotNoCoach, (off) => {
 .calendar-slot-time {
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   opacity: 0.8;
 }
 
@@ -4746,7 +4746,7 @@ watch(pilotNoCoach, (off) => {
   font-size: 0.62rem;
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   width: fit-content;
   max-width: 100%;
   overflow: hidden;

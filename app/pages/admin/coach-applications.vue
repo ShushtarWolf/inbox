@@ -3,7 +3,7 @@ definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
 const { secret, clearSecret, adminFetch } = useAdminSecret()
-const { formatDate, formatCurrency } = useFormatters()
+const { formatDate, formatCurrency, formatPhone } = useFormatters()
 
 type CoachStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -194,7 +194,7 @@ watch(statusFilter, () => {
               <td class="p-3">
                 <div v-if="app.userName">{{ app.userName }}</div>
                 <div v-if="app.userEmail" class="text-xs text-brand-gray-600" dir="ltr">{{ app.userEmail }}</div>
-                <div v-if="app.userPhone" class="text-xs text-brand-gray-600" dir="ltr">{{ app.userPhone }}</div>
+                <div v-if="app.userPhone" class="text-xs text-brand-gray-600 tabular-nums" dir="ltr">{{ formatPhone(app.userPhone) }}</div>
               </td>
               <td class="p-3 tabular-nums">{{ formatCurrency(app.sessionPrice) }}</td>
               <td class="p-3">

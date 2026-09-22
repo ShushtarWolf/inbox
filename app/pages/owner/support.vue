@@ -139,7 +139,7 @@ async function submitTicket() {
         </p>
         <p class="text-sm text-brand-navy">
           <span class="font-bold">{{ t('common.whatsapp') }}:</span>
-          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.whatsapp || t('common.empty') }}</bdi>
+          <bdi dir="ltr" class="ms-1 tabular-nums">{{ data?.club?.whatsapp ? formatPhone(data.club.whatsapp) : t('common.empty') }}</bdi>
         </p>
         <p class="text-xs text-brand-gray-500">{{ t('owner.supportPage.contactNote') }}</p>
       </section>

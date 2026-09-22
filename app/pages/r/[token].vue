@@ -26,7 +26,7 @@ type ReceiptPayload = {
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const { formatCurrency } = useFormatters()
+const { formatCurrency, formatPhone } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { redirectToPaymentGateway } = useCheckout()
 const token = computed(() => String(route.params.token || ''))
@@ -111,7 +111,7 @@ async function pay() {
           </div>
           <div class="receipt-row">
             <dt>{{ t('booking.receiptMobile') }}</dt>
-            <dd dir="ltr">{{ data.mobile || '—' }}</dd>
+            <dd dir="ltr" class="tabular-nums">{{ data.mobile ? formatPhone(data.mobile) : '—' }}</dd>
           </div>
           <div class="receipt-row">
             <dt>{{ t('booking.receiptClub') }}</dt>
