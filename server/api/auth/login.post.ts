@@ -1,5 +1,5 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { canPasswordAuth } from '#shared/roles.ts'
+import { canPasswordLogin } from '#shared/roles.ts'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:login')
@@ -18,12 +18,12 @@ export default defineEventHandler(async (event) => {
     rejectDemoEmailInProduction(normalizedEmail)
   }
   const user = await findUserForPasswordLogin(identifier)
-  // Same message for missing user, wrong password, athlete-only, or Google-only (no enumeration).
+  // Same message for missing/wrong/athlete/OTP-only staff (no enumeration).
   if (
     !user
     || !user.passwordHash
     || !verifySecret(password, user.passwordHash)
-    || !canPasswordAuth(user)
+    || !canPasswordLogin(user)
   ) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
   }

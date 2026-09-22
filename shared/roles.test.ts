@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   assignAddedRole,
   canAddRole,
+  canOtpLogin,
   canPasswordAuth,
+  canPasswordLogin,
   hasRole,
   packRoleSlots,
   pickPrimaryRole,
@@ -43,6 +45,20 @@ describe('roles helpers', () => {
     expect(canPasswordAuth({ role: 'COACH' })).toBe(true)
     expect(canPasswordAuth({ role: 'ATHLETE', secondaryRole: 'COACH' })).toBe(true)
     expect(canPasswordAuth({ role: 'ATHLETE', secondaryRole: 'CLUB_ADMIN' })).toBe(true)
+  })
+
+  it('staff use OTP or password (XOR), never both; athletes OTP only', () => {
+    expect(canOtpLogin({ role: 'ATHLETE', passwordHash: 'x' })).toBe(true)
+    expect(canPasswordLogin({ role: 'ATHLETE', passwordHash: 'x' })).toBe(false)
+
+    expect(canOtpLogin({ role: 'CLUB_ADMIN' })).toBe(true)
+    expect(canPasswordLogin({ role: 'CLUB_ADMIN' })).toBe(false)
+
+    expect(canOtpLogin({ role: 'CLUB_ADMIN', passwordHash: 'hash' })).toBe(false)
+    expect(canPasswordLogin({ role: 'CLUB_ADMIN', passwordHash: 'hash' })).toBe(true)
+
+    expect(canOtpLogin({ role: 'COACH', passwordHash: 'hash' })).toBe(false)
+    expect(canPasswordLogin({ role: 'COACH', passwordHash: 'hash' })).toBe(true)
   })
 
   it('allows at most three distinct roles', () => {

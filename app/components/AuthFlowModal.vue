@@ -502,6 +502,10 @@ async function requestOtp() {
     if (status === 404 && /coach product/i.test(message)) {
       error.value = t('auth.coachDisabledInPilot')
     }
+    else if (status === 403 && /password/i.test(message)) {
+      error.value = t('auth.usePasswordNotOtp')
+      channel.value = 'password'
+    }
     else if (status === 404) error.value = t('auth.phoneNotFound')
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
@@ -539,7 +543,15 @@ async function verifyOtp() {
     )
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
-    if (status === 400) error.value = t('auth.invalidOtp')
+    const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
+      || (err as { data?: { statusMessage?: string } })?.data?.statusMessage
+      || '')
+    if (status === 403 && /password/i.test(message)) {
+      error.value = t('auth.usePasswordNotOtp')
+      channel.value = 'password'
+      step.value = 'login'
+    }
+    else if (status === 400) error.value = t('auth.invalidOtp')
     else if (status === 429) error.value = t('errors.rateLimited')
     else error.value = t('auth.otpVerifyFailed')
   } finally {

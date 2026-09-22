@@ -1,7 +1,7 @@
 import { ALL_OWNER_PERMISSIONS } from '#shared/ownerPermissions.ts'
 import { parseGender, type GenderValue } from '#shared/gender.ts'
 import { phoneToSyntheticEmail } from '#shared/phone.ts'
-import { assignAddedRole, type PlatformRole } from '#shared/roles.ts'
+import { assignAddedRole, canOtpLogin, type PlatformRole } from '#shared/roles.ts'
 import { uniqueClubSlug } from '../../../utils/slug'
 import { consumePhoneOtp } from '../../../utils/otp'
 import {
@@ -53,6 +53,12 @@ export default defineEventHandler(async (event) => {
     const { user, linkPhone, phone } = match
     if (user.disabledAt) {
       throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+    }
+    if (!canOtpLogin(user)) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Use password sign-in for this account',
+      })
     }
     const updated = await prisma.user.update({
       where: { id: user.id },

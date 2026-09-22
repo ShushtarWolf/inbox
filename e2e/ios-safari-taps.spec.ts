@@ -34,6 +34,16 @@ async function loginWithPhoneOtp(page: Page, phone: string, destination: RegExp)
   await page.waitForURL(destination)
 }
 
+/** Seed owner has a password → password login only (OTP XOR). */
+async function loginOwnerPassword(page: Page, destination: RegExp = /\/owner/) {
+  const res = await page.request.post('/api/auth/login', {
+    data: { email: 'owner@inbox.local', password: 'demo1234' },
+  })
+  expect(res.ok()).toBeTruthy()
+  await page.goto('/owner/calendar')
+  await page.waitForURL(destination)
+}
+
 test.describe('iOS Safari tap guard', () => {
   test('auth modal close does not block search behind it', async ({ page }) => {
     await page.goto('/')
@@ -144,7 +154,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('owner account drawer close restores calendar taps', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await loginOwnerPassword(page, /\/owner/)
     await page.goto('/owner/calendar')
     await expect(page.locator('.canva-owner-avatar').first()).toBeVisible({ timeout: 15_000 })
 
@@ -161,7 +171,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('owner more sheet close restores bottom nav taps', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await loginOwnerPassword(page, /\/owner/)
     await page.goto('/owner/calendar')
 
     const moreTab = page.getByRole('button', { name: 'بیشتر' })
@@ -180,7 +190,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('owner packages create sheet close restores page CTA', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+    await loginOwnerPassword(page, /\/owner/)
     await page.goto('/owner/packages')
     const addBtn = page.getByRole('button', { name: '+ پکیج' })
     // Packages may be gated off in some envs — skip softly.

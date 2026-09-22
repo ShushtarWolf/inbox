@@ -775,7 +775,7 @@ async function main() {
     ],
   })
 
-  const accounts = 'athlete@inbox.local (OTP 09121234567) / coach@inbox.local / owner@inbox.local — staff password: demo1234'
+  const accounts = 'athlete OTP 09121234567 / coach+owner password demo1234 (staff: OTP XOR password)'
   console.log(isProduction
     ? `Production demo seed complete. Demo accounts: ${accounts}`
     : `Seed complete. Demo accounts: ${accounts}`)

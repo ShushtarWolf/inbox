@@ -2,7 +2,7 @@ import { findUserForPasswordLogin, toSessionUser, ownerPostLoginRedirect, touchL
 import { verifySecret } from '../../utils/password'
 import { demoAuthAllowed, isDemoEmail } from '../../utils/demo'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { canPasswordAuth } from '#shared/roles.ts'
+import { canPasswordLogin } from '#shared/roles.ts'
 import { readFormData } from 'h3'
 
 export default defineEventHandler(async (event) => {
@@ -33,12 +33,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     const user = await findUserForPasswordLogin(identifier)
-    // Same error for missing user, wrong password, athlete-only, or Google-only (no enumeration).
+    // Same error for missing/wrong/athlete/OTP-only staff (no enumeration).
     if (
       !user
       || !user.passwordHash
       || !verifySecret(password, user.passwordHash)
-      || !canPasswordAuth(user)
+      || !canPasswordLogin(user)
     ) {
       return sendRedirect(event, `/login?error=invalid`)
     }

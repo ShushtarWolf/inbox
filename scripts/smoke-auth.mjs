@@ -213,6 +213,17 @@ async function main() {
   if (!ownerPwLogin.ok) throw new Error(`owner password login expected 200, got ${ownerPwLogin.status}`)
   console.log('ok  owner password login')
 
+  // Seed/provisioned staff with password cannot also OTP-login (XOR)
+  const ownerOtpReq = await fetch(`${base}/api/auth/otp/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phone: '09124445566', purpose: 'login' }),
+  })
+  if (!skipDemo && ownerOtpReq.status !== 403) {
+    throw new Error(`owner OTP request expected 403 (password account), got ${ownerOtpReq.status}`)
+  }
+  if (!skipDemo) console.log('ok  owner OTP login blocked when password is set')
+
   // Phone OTP register path still works in log mode (debugCode)
   const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete')
   if (otpAthlete.role !== 'ATHLETE') {

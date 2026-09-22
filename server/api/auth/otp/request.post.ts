@@ -1,5 +1,7 @@
 import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
 import { parseGender } from '#shared/gender.ts'
+import { canOtpLogin } from '#shared/roles.ts'
+import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:otp-request')
@@ -25,6 +27,17 @@ export default defineEventHandler(async (event) => {
 
   if (purpose === 'register' && role === 'COACH') {
     assertCoachProductEnabled(event)
+  }
+
+  // Staff with a password use password login only (XOR — not OTP as well).
+  if (purpose === 'login') {
+    const match = await findUserForPhoneOtp(body.phone || '')
+    if (match && !canOtpLogin(match.user)) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Use password sign-in for this account',
+      })
+    }
   }
 
   let gender: 'MALE' | 'FEMALE' | undefined
