@@ -20,7 +20,7 @@ gh workflow run deploy.yml --ref main
 gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-4. Confirm the run is **success**. Report the Actions URL / SHA / image tag.
+4. Confirm the run is **success**. Report the Actions URL / SHA.
 5. **Mandatory:** follow the post-deploy local DB backup rule (`inbox-db` dump under `backups/`). Deploy is not done until the absolute dump path is reported.
 6. If the workflow or backup fails, stop and tell the user. Do not retry blindly or skip the local dump.
 
@@ -31,9 +31,10 @@ Requires repo secret `LIARA_API_TOKEN`.
 - Manual `workflow_dispatch` only (no deploy on push).
 - One deploy at a time (`cancel-in-progress: false`).
 - If **CI already succeeded** for `GITHUB_SHA` → skip duplicate smoke rebuild.
-- Else → build + auth smoke gate.
-- **Build the Docker image on GitHub Actions** (Buildx + GHA cache) → push `ghcr.io/shushtarwolf/inbox:<sha>` (package kept **public** so Liara can pull).
-- **Liara deploy via `--image`** — no source rebuild on Liara (avoids their non-BuildKit builder and double Nuxt compile).
-- Do **not** add Docker BuildKit `--mount=type=cache` to `Dockerfile` for Liara source builds — their builder rejects it. Image builds happen on Actions, not on Liara.
+- Else → build + auth smoke gate (uploads `.output` for reuse).
+- **Build Nuxt once on GitHub Actions**, assemble a thin context (`Dockerfile.runtime` + `.output`).
+- **Liara only packages that context** (Prisma runtime install + image) — no full `npm ci` / Nuxt compile on Liara.
+- Do **not** use GHCR/`--image` unless package visibility is solved (Actions token cannot make GHCR public).
+- Do **not** add Docker BuildKit `--mount=type=cache` — Liara’s builder rejects it.
 
-Do not invent a faster path that skips Actions, smoke/CI, GHCR image publish, or the local dump.
+Do not invent a faster path that skips Actions, smoke/CI, or the local dump.

@@ -11,11 +11,6 @@ concurrency:
 permissions:
   contents: read
   actions: read
-  packages: write
-
-env:
-  # Liara pulls public registry images only — GHCR package is set public below.
-  IMAGE_NAME: ghcr.io/shushtarwolf/inbox
 
 jobs:
   gate:
@@ -105,69 +100,19 @@ jobs:
           test "$status" = "401"
           ! grep -q 'RATE_LIMIT_STORAGE_NOT_CONFIGURED' /tmp/inbox-login-response
           cat /tmp/inbox-login-response
+      - name: Upload smoke .output for deploy reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: nitro-output
+          path: .output
+          retention-days: 1
 
-  build-image:
-    name: Build and push image (GitHub, not Liara)
+  bundle:
+    name: Prepare prebuilt Liara context
     needs: [gate, smoke]
     if: >-
       always()
       && needs.gate.result == 'success'
-      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Image tag
-        id: meta
-        run: |
-          echo "image=${IMAGE_NAME}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          echo "Will push ${IMAGE_NAME}:${GITHUB_SHA}"
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.IMAGE_NAME }}:main
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Make GHCR package public (Liara requires public registries)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Package may not exist until first push; retry briefly.
-          for i in 1 2 3 4 5; do
-            if gh api --method PUT \
-              -H "Accept: application/vnd.github+json" \
-              "/user/packages/container/inbox/visibility" \
-              -f visibility=public; then
-              echo "GHCR package inbox is public"
-              exit 0
-            fi
-            echo "visibility update attempt $i failed; sleeping…"
-            sleep 5
-          done
-          echo "::error::Could not set ghcr.io/shushtarwolf/inbox public — Liara cannot pull private images"
-          exit 1
-
-  deploy:
-    name: Deploy prebuilt image to Liara
-    needs: [gate, smoke, build-image]
-    if: >-
-      always()
-      && needs.gate.result == 'success'
-      && needs.build-image.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -176,20 +121,83 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Deploy inbox image to Liara
+          cache: npm
+      - name: Reuse smoke .output when present
+        id: artifact
+        if: needs.gate.outputs.smoke == 'run'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: nitro-output
+          path: .output
+      - name: Build .output when not reused
+        if: needs.gate.outputs.smoke == 'skip' || steps.artifact.outcome != 'success'
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+          npx nuxt prepare
+          npx prisma generate
+          npm run build
+      - name: Assemble thin deploy context
+        run: |
+          set -euo pipefail
+          rm -rf deploy-context
+          mkdir -p deploy-context/scripts
+          cp Dockerfile.runtime deploy-context/Dockerfile
+          # Empty ignore so root .dockerignore (which excludes .output) is not used.
+          : > deploy-context/.dockerignore
+          cp package.json deploy-context/package.json
+          cp -a .output deploy-context/.output
+          cp -a prisma deploy-context/prisma
+          cp scripts/start-production.mjs deploy-context/scripts/start-production.mjs
+          cp -a scripts/lib deploy-context/scripts/lib
+          cp -a server deploy-context/server
+          cp -a shared deploy-context/shared
+          cat > deploy-context/liara.json <<'EOF'
+          {
+            "app": "inbox",
+            "platform": "docker",
+            "port": 3000,
+            "build": { "location": "iran" }
+          }
+          EOF
+          du -sh deploy-context deploy-context/.output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liara-deploy-context
+          path: deploy-context
+          retention-days: 1
+
+  deploy:
+    name: Deploy prebuilt context to Liara
+    needs: [gate, smoke, bundle]
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && needs.bundle.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: liara-deploy-context
+          path: deploy-context
+      - uses: actions/setup-node@v4
+        with:
+          # No checkout here — match .nvmrc major without needing the file.
+          node-version: '22'
+      - name: Deploy inbox to Liara
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
-          IMAGE: ${{ needs.build-image.outputs.image }}
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
-          echo "Deploying ${IMAGE}"
-          # --image skips Liara source/Docker build (no BuildKit on their builder).
-          timeout 20m liara deploy \
+          # Liara only packages the prebuilt .output (Dockerfile.runtime) — no Nuxt compile.
+          timeout 45m liara deploy \
+            --path=deploy-context \
             --app=inbox \
-            --image="$IMAGE" \
-            --port=3000 \
-            --platform=docker \
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
-            --message "GitHub ${GITHUB_SHA:0:7} image"
+            --build-location=iran \
+            --message "GitHub ${GITHUB_SHA:0:7} prebuilt"

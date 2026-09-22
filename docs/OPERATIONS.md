@@ -496,9 +496,9 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
-**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke gate → build/push `ghcr.io/shushtarwolf/inbox:<sha>` on Actions → `liara deploy --image` (no Liara source rebuild). After success, take a local `inbox-db` dump (post-deploy backup rule).
+**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke gate → build Nuxt once on Actions → thin `Dockerfile.runtime` context → Liara packages only (no Nuxt on Liara). After success, take a local `inbox-db` dump (post-deploy backup rule).
 
-**Emergency fallback** (local network): prefer deploying the already-pushed GHCR tag with `liara deploy --app inbox --image ghcr.io/shushtarwolf/inbox:<sha> --port 3000`. Source `liara deploy --app inbox` rebuilds on Liara and is slower / more fragile.
+**Emergency fallback** (local network): `liara deploy --app inbox` (full source rebuild on Liara — slower).
 
 ## Admin provisioning
 

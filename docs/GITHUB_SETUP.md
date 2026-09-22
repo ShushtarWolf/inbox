@@ -56,13 +56,11 @@ Avoid appending `Co-authored-by: Cursor` on every commit unless you intend to sh
 
 Production deploys are **manual only** — trigger **Deploy to Liara** from the Actions tab or ask the agent to run `gh workflow run deploy.yml --ref main`. Pushes to `main` do not auto-deploy.
 
-`deploy.yml` prefers a green **CI** run for the same commit (skips duplicate smoke rebuild). If CI has not succeeded for that SHA, it runs the auth smoke gate. Then it **builds the Docker image on GitHub Actions**, pushes `ghcr.io/shushtarwolf/inbox:<sha>` (public package — Liara only pulls public registries), and deploys with `liara deploy --image` (no Nuxt rebuild on Liara). Concurrent deploys wait in line (`cancel-in-progress: false`).
+`deploy.yml` prefers a green **CI** run for the same commit (skips duplicate smoke rebuild). If CI has not succeeded for that SHA, it runs the auth smoke gate. Then it builds Nuxt **once on GitHub Actions**, uploads a thin `Dockerfile.runtime` + `.output` context, and Liara only packages that (no full source rebuild). Concurrent deploys wait in line (`cancel-in-progress: false`).
 
 One-time secret (Settings → Secrets and variables → Actions):
 
 - [ ] **`LIARA_API_TOKEN`** — API key from [Liara console → API keys](https://console.liara.ir/settings/api-keys)
-
-`GITHUB_TOKEN` is enough for GHCR push (`packages: write` on the workflow). No extra registry secret.
 
 After each successful deploy, still download a local DB dump per [OPERATIONS.md](./OPERATIONS.md#never-lose-production-data).
 

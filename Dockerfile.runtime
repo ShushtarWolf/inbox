@@ -1,0 +1,29 @@
+# Runtime-only image: expects a prebuilt Nitro `.output` in the build context.
+# Used by GitHub Actions deploy (build on Actions, package on Liara).
+# Do not add BuildKit --mount flags — Liara's builder rejects them.
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3000
+RUN apk add --no-cache openssl ca-certificates libc6-compat
+
+COPY .output ./.output
+COPY prisma ./prisma
+COPY scripts/start-production.mjs ./scripts/start-production.mjs
+COPY scripts/lib ./scripts/lib
+COPY server ./server
+COPY shared ./shared
+
+RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
+  && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline \
+    prisma@6.19.3 \
+    @prisma/client@6.19.3 \
+    tsx@4.22.4 \
+  && npx prisma generate \
+  && npm cache clean --force
+
+COPY package.json ./package.json
+
+EXPOSE 3000
+CMD ["node", "scripts/start-production.mjs"]
