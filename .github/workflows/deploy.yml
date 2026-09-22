@@ -101,7 +101,7 @@ jobs:
           ! grep -q 'RATE_LIMIT_STORAGE_NOT_CONFIGURED' /tmp/inbox-login-response
           cat /tmp/inbox-login-response
       - name: Upload smoke .output for deploy reuse
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nitro-output
           path: .output
@@ -169,7 +169,7 @@ jobs:
           echo "nitro-output size MiB: $OUT_SIZE"
           test "$OUT_SIZE" -ge 5
           du -sh deploy-context deploy-context/nitro-output
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: liara-deploy-context
           path: deploy-context
