@@ -27,7 +27,12 @@ import {
   toggleBookedSlotSelection,
   uniqueOrdered,
 } from '#shared/courtSlotSelection.ts'
-import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
+import {
+  formatGuestDisplayName,
+  normalizeGuestNamePair,
+  readGuestFullNameInput,
+  writeGuestFullNameInput,
+} from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
@@ -804,12 +809,12 @@ function setSelectionReserveError() {
 
 const guestFullName = computed({
   get() {
-    return formatGuestDisplayName(form.guestName, form.guestFamily)
+    return readGuestFullNameInput(form.guestName, form.guestFamily)
   },
   set(value: string) {
-    const parts = value.trim().split(/\s+/)
-    form.guestName = parts[0] || ''
-    form.guestFamily = parts.slice(1).join(' ')
+    const next = writeGuestFullNameInput(value)
+    form.guestName = next.guestName
+    form.guestFamily = next.guestFamily
   },
 })
 
