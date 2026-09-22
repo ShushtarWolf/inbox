@@ -496,7 +496,7 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
-**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke gate → build Nuxt once on Actions → thin `Dockerfile.runtime` context → Liara packages only (no Nuxt on Liara). After success, take a local `inbox-db` dump (post-deploy backup rule).
+**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke → **prebuilt** Actions→Liara Germany → if that fails, **full-source** Iran fallback. After success, take a local `inbox-db` dump (prefer `backup-db.yml` + download when local Liara auth fails).
 
 **Emergency fallback** (local network): `liara deploy --app inbox` (full source rebuild on Liara — slower).
 

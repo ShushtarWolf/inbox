@@ -176,8 +176,8 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  deploy:
-    name: Deploy prebuilt context to Liara
+  deploy-prebuilt:
+    name: Deploy prebuilt context (primary)
     needs: [gate, smoke, bundle]
     if: >-
       always()
@@ -193,7 +193,6 @@ jobs:
           path: deploy-context
       - uses: actions/setup-node@v4
         with:
-          # No checkout here — match .nvmrc major without needing the file.
           node-version: '22'
       - name: Verify prebuilt context before Liara upload
         run: |
@@ -201,13 +200,12 @@ jobs:
           test -f deploy-context/Dockerfile
           test -f deploy-context/nitro-output/server/index.mjs
           du -sh deploy-context deploy-context/nitro-output
-      - name: Deploy inbox to Liara
+      - name: Deploy inbox to Liara (prebuilt)
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
-          # Liara only packages the prebuilt nitro-output (Dockerfile.runtime) — no Nuxt compile.
           timeout 45m liara deploy \
             --path=deploy-context \
             --app=inbox \
@@ -215,3 +213,55 @@ jobs:
             --no-app-logs \
             --build-location=germany \
             --message "GitHub ${GITHUB_SHA:0:7} prebuilt"
+
+  deploy-fallback:
+    name: Full-source Liara fallback
+    needs: [gate, smoke, bundle, deploy-prebuilt]
+    # Runs when prebuilt did not succeed (failed, cancelled, or skipped because bundle failed).
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+      && needs.deploy-prebuilt.result != 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Deploy full source to Liara (fallback)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "::warning::Prebuilt path did not succeed (result=${{ needs.deploy-prebuilt.result }}); falling back to full-source Iran build"
+          npm i -g @liara/cli@9
+          # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
+          timeout 75m liara deploy \
+            --app=inbox \
+            --api-token="$LIARA_TOKEN" \
+            --no-app-logs \
+            --build-location=iran \
+            --message "GitHub ${GITHUB_SHA:0:7} fallback-source"
+
+  deploy-ok:
+    name: Deploy succeeded (prebuilt or fallback)
+    needs: [deploy-prebuilt, deploy-fallback]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require at least one successful deploy path
+        run: |
+          set -euo pipefail
+          pre='${{ needs.deploy-prebuilt.result }}'
+          fb='${{ needs.deploy-fallback.result }}'
+          echo "deploy-prebuilt=$pre"
+          echo "deploy-fallback=$fb"
+          if [ "$pre" = "success" ] || [ "$fb" = "success" ]; then
+            echo "Production deploy OK"
+            exit 0
+          fi
+          echo "::error::Both prebuilt and full-source fallback failed (or were skipped)"
+          exit 1

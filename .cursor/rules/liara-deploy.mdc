@@ -20,9 +20,19 @@ gh workflow run deploy.yml --ref main
 gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-4. Confirm the run is **success**. Report the Actions URL / SHA.
-5. **Mandatory:** follow the post-deploy local DB backup rule (`inbox-db` dump under `backups/`). Deploy is not done until the absolute dump path is reported.
-6. If the workflow or backup fails, stop and tell the user. Do not retry blindly or skip the local dump.
+4. Confirm the run is **success** (job **Deploy succeeded** must be green — prebuilt **or** full-source fallback). Report Actions URL / SHA / which path won.
+5. **Mandatory local DB dump** — prefer Actions backup then download (local Liara CLI auth is often broken):
+
+```bash
+gh workflow run backup-db.yml --ref main
+# wait for the new run, then:
+gh run download <BACKUP_RUN_ID> -n inbox-db-local-backup -D backups/tmp-dl
+mv backups/tmp-dl/*.dump "backups/inbox-db-$(date +%Y%m%d-%H%M%S).dump"
+rm -rf backups/tmp-dl
+```
+
+Report the absolute dump path. Deploy is not done until that path exists and is non-empty.
+6. If the workflow or backup fails, stop and tell the user. Do not retry blindly.
 
 Requires repo secret `LIARA_API_TOKEN`.
 
@@ -30,11 +40,10 @@ Requires repo secret `LIARA_API_TOKEN`.
 
 - Manual `workflow_dispatch` only (no deploy on push).
 - One deploy at a time (`cancel-in-progress: false`).
-- If **CI already succeeded** for `GITHUB_SHA` → skip duplicate smoke rebuild.
-- Else → build + auth smoke gate (uploads `.output` for reuse).
-- **Build Nuxt once on GitHub Actions**, assemble a thin context (`Dockerfile.runtime` + `nitro-output`).
-- **Liara only packages that context** (Prisma runtime install + image) — no full `npm ci` / Nuxt compile on Liara. Prefer `--build-location=germany` for the thin image (Alpine `apk` CDN TLS is flaky on Iran builders).
-- Do **not** use GHCR/`--image` unless package visibility is solved (Actions token cannot make GHCR public).
-- Do **not** add Docker BuildKit `--mount=type=cache` — Liara’s builder rejects it.
+- CI green for SHA → skip smoke; else smoke gate.
+- **Primary:** build Nuxt on Actions → thin `Dockerfile.runtime` + `nitro-output` → Liara Germany package.
+- **Fallback:** if prebuilt does not succeed → full-repo `liara deploy` with multi-stage `Dockerfile` on Iran (slower, proven).
+- Final job fails the workflow unless at least one deploy path succeeded.
+- No GHCR/`--image` (visibility blocked). No BuildKit `--mount` on Dockerfiles Liara builds.
 
-Do not invent a faster path that skips Actions, smoke/CI, or the local dump.
+Do not invent a path that skips Actions, smoke/CI, or the local dump.
