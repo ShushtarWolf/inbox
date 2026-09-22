@@ -45,6 +45,10 @@ function mergeSetCookies(jar, session, setCookies) {
 }
 
 export async function login(base, jar, session, email, password = 'demo1234') {
+  // Seed athlete is OTP-only (password login is owner/coach).
+  if (email === 'athlete@inbox.local') {
+    return loginViaOtp(base, jar, session, '09121234567')
+  }
   let res
   for (let attempt = 0; attempt < 2; attempt++) {
     res = await fetch(`${base}/api/auth/login`, {
@@ -205,56 +209,39 @@ export async function provisionOwner(base, adminSecret, overrides = {}) {
   return { email, password: data.temporaryPassword, ...data }
 }
 
-/** Register a temporary ATHLETE via password (OTP remains available when SMS is live). */
+/** Register a temporary ATHLETE via phone OTP (password register is retired for athletes). */
 export async function registerAthlete(base, jar, session = 'athlete', overrides = {}) {
   const id = stamp()
   const phone = overrides.phone || smokePhone('0912')
   const name = overrides.name || 'Smoke Athlete'
-  const password = overrides.password || `Smoke${id.slice(0, 8)}!`
+  const gender = overrides.gender === 'FEMALE' ? 'FEMALE' : 'MALE'
 
-  if (overrides.viaOtp) {
-    const gender = overrides.gender === 'FEMALE' ? 'FEMALE' : 'MALE'
-    const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
-      method: 'POST',
-      body: {
-        phone,
-        purpose: 'register',
-        role: 'ATHLETE',
-        name,
-        gender,
-      },
-    })
-    if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}: ${JSON.stringify(reqData)}`)
-    const code = reqData.debugCode
-    if (!code) throw new Error('otp request athlete missing debugCode (expected in log SMS mode)')
+  const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
+    method: 'POST',
+    body: {
+      phone,
+      purpose: 'register',
+      role: 'ATHLETE',
+      name,
+      gender,
+    },
+  })
+  if (!reqRes.ok) throw new Error(`otp request athlete → ${reqRes.status}: ${JSON.stringify(reqData)}`)
+  const code = reqData.debugCode
+  if (!code) throw new Error('otp request athlete missing debugCode (expected in log SMS mode)')
 
-    const { res, data } = await apiFetch(base, '/api/auth/otp/verify', {
-      jar,
-      session,
-      method: 'POST',
-      body: {
-        phone: reqData.phone || phone,
-        code,
-        purpose: 'register',
-      },
-    })
-    if (!res.ok) throw new Error(`otp verify athlete → ${res.status}`)
-    return { email: data.email, phone: data.phone || phone, password: null, ...data }
-  }
-
-  const { res, data } = await apiFetch(base, '/api/auth/register', {
+  const { res, data } = await apiFetch(base, '/api/auth/otp/verify', {
     jar,
     session,
     method: 'POST',
     body: {
-      name,
-      phone,
-      password,
-      ...(overrides.email ? { email: overrides.email } : {}),
+      phone: reqData.phone || phone,
+      code,
+      purpose: 'register',
     },
   })
-  if (!res.ok) throw new Error(`password register athlete → ${res.status}`)
-  return { email: data.email, phone: data.phone || phone, password, ...data }
+  if (!res.ok) throw new Error(`otp verify athlete → ${res.status}`)
+  return { email: data.email, phone: data.phone || phone, password: null, ...data }
 }
 
 /** True when runtime public config has pilotNoCoach. */

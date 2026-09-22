@@ -5,7 +5,7 @@
  *
  * Manual human checklist (owner/athlete OTP, pay, SMS) lives in docs/LAUNCH_CHECKLIST.md.
  */
-import { demoLoginsBlocked, isProdSmokeBase } from './lib/smoke-helpers.mjs'
+import { createCookieJar, demoLoginsBlocked, isProdSmokeBase, login as sessionLogin } from './lib/smoke-helpers.mjs'
 
 const base = (process.env.BASE_URL || 'https://inboxs.ir').replace(/\/$/, '')
 
@@ -43,19 +43,10 @@ const accounts = {
   owner: 'owner@inbox.local',
   athlete: 'athlete@inbox.local',
 }
-const cookieJar = new Map()
+const cookieJar = createCookieJar()
 
 async function login(session, email) {
-  const res = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'demo1234' }),
-  })
-  if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
-  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
-  if (setCookies.length) {
-    cookieJar.set(session, setCookies.map((entry) => entry.split(';')[0]).join('; '))
-  }
+  await sessionLogin(base, cookieJar, session, email)
 }
 
 async function check(path, session, { expectRedirect, expectStatus = 200 } = {}) {

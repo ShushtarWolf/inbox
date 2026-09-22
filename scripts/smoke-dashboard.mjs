@@ -1,22 +1,13 @@
 #!/usr/bin/env node
 /** Dashboard route smoke — run with server up: BASE_URL=http://localhost:3000 node scripts/smoke-dashboard.mjs */
-import { isProdSmokeBase } from './lib/smoke-helpers.mjs'
+import { createCookieJar, isProdSmokeBase, login } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 const prodAware = isProdSmokeBase(base)
-const cookieJar = new Map()
+const cookieJar = createCookieJar()
 
-async function login(session, email) {
-  const res = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'demo1234' }),
-  })
-  if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
-  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
-  if (setCookies.length) {
-    cookieJar.set(session, setCookies.map((entry) => entry.split(';')[0]).join('; '))
-  }
+async function loginSession(session, email) {
+  await login(base, cookieJar, session, email)
 }
 
 async function checkHtml(path, session, { allowRedirect, expectRedirect } = {}) {
@@ -52,9 +43,9 @@ async function main() {
     return
   }
 
-  await login('owner', 'owner@inbox.local')
-  await login('coach', 'coach@inbox.local')
-  await login('athlete', 'athlete@inbox.local')
+  await loginSession('owner', 'owner@inbox.local')
+  await loginSession('coach', 'coach@inbox.local')
+  await loginSession('athlete', 'athlete@inbox.local')
 
   const ownerPaths = ['/owner', '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/discounts', '/owner/packages', '/owner/crm', '/owner/support', '/owner/settings']
   const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']

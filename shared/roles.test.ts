@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assignAddedRole,
   canAddRole,
+  canPasswordAuth,
   hasRole,
   packRoleSlots,
   pickPrimaryRole,
@@ -34,6 +35,14 @@ describe('roles helpers', () => {
     expect(hasRole(user, 'CLUB_ADMIN')).toBe(true)
     expect(hasRole(user, 'ATHLETE')).toBe(true)
     expect(hasRole(user, 'COACH')).toBe(true)
+  })
+
+  it('canPasswordAuth is owner/coach only (athletes OTP-only)', () => {
+    expect(canPasswordAuth({ role: 'ATHLETE' })).toBe(false)
+    expect(canPasswordAuth({ role: 'CLUB_ADMIN' })).toBe(true)
+    expect(canPasswordAuth({ role: 'COACH' })).toBe(true)
+    expect(canPasswordAuth({ role: 'ATHLETE', secondaryRole: 'COACH' })).toBe(true)
+    expect(canPasswordAuth({ role: 'ATHLETE', secondaryRole: 'CLUB_ADMIN' })).toBe(true)
   })
 
   it('allows at most three distinct roles', () => {

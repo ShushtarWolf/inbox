@@ -245,6 +245,8 @@ function goRegisterOtp() {
 }
 
 function goRegisterPassword() {
+  // Athletes stay OTP-only; password register is owner/coach desk fallback.
+  if (role.value !== 'CLUB_ADMIN' && role.value !== 'COACH') return
   error.value = ''
   channel.value = 'password'
 }
@@ -347,6 +349,11 @@ async function loginWithPassword() {
 
 async function registerWithPassword() {
   error.value = ''
+  if (role.value !== 'CLUB_ADMIN' && role.value !== 'COACH') {
+    error.value = t('auth.passwordStaffOnly')
+    channel.value = 'otp'
+    return
+  }
   if (!gender.value) {
     error.value = t('auth.genderRequired')
     return
@@ -356,8 +363,12 @@ async function registerWithPassword() {
       error.value = t('auth.registerOwnerRequired')
       return
     }
-  } else if (!name.value.trim() || password.value.length < 6 || (!phone.value.trim() && !email.value.trim())) {
-    error.value = t('auth.registerIdentityRequired')
+  } else if (role.value === 'COACH') {
+    if (!name.value.trim() || password.value.length < 6 || (!phone.value.trim() && !email.value.trim())) {
+      error.value = t('auth.registerIdentityRequired')
+      return
+    }
+  } else {
     return
   }
 
@@ -413,20 +424,6 @@ async function registerWithPassword() {
       await showWelcome('coach', data.redirectTo || localePath('/coach/pending'))
       return
     }
-
-    const data = await $fetch<{ redirectTo?: string }>('/api/auth/register', {
-      method: 'POST',
-      body: {
-        name: name.value,
-        phone: phone.value || undefined,
-        email: email.value || undefined,
-        password: password.value,
-        gender: gender.value,
-        returnTo: returnPath,
-      },
-    })
-    await fetchAuth()
-    await showWelcome('athlete', data.redirectTo || fallbackAuthRedirect('ATHLETE'))
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     const message = String((err as { statusMessage?: string; data?: { statusMessage?: string } })?.statusMessage
@@ -895,14 +892,19 @@ watch(
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goRegisterPassword">
+          <button
+            v-if="role === 'CLUB_ADMIN' || role === 'COACH'"
+            type="button"
+            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            @click="goRegisterPassword"
+          >
             {{ t('auth.registerWithPassword') }}
           </button>
         </form>
 
-        <!-- Password register (desk fallback — not visual primary) -->
+        <!-- Password register (owner/coach desk fallback — athletes OTP-only) -->
         <form
-          v-else-if="step === 'register' && channel === 'password'"
+          v-else-if="step === 'register' && channel === 'password' && (role === 'CLUB_ADMIN' || role === 'COACH')"
           class="space-y-4"
           @submit.prevent="registerWithPassword"
         >
@@ -1108,58 +1110,6 @@ watch(
             </AppFormField>
           </template>
 
-          <template v-else>
-            <AppFormField field-id="auth-name" :label="t('auth.fullName')">
-              <SmoothCaretInput
-                id="auth-name"
-                v-model="name"
-                :placeholder="t('auth.fullName')"
-                autocomplete="name"
-                required
-              />
-            </AppFormField>
-            <AppFormField field-id="auth-gender" :label="t('common.gender')">
-              <select id="auth-gender" v-model="gender" class="neo-select bg-white/95" required>
-                <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
-                <option value="MALE">{{ t('common.genderMale') }}</option>
-                <option value="FEMALE">{{ t('common.genderFemale') }}</option>
-              </select>
-            </AppFormField>
-            <AppFormField field-id="auth-phone" :label="t('common.mobile')" numeric>
-              <input
-                id="auth-phone"
-                v-model="phone"
-                dir="ltr"
-                inputmode="tel"
-                class="neo-input bg-white/95"
-                :class="phoneLocked ? 'opacity-80' : ''"
-                :placeholder="t('common.mobile')"
-                autocomplete="tel"
-                :readonly="phoneLocked"
-              />
-            </AppFormField>
-            <AppFormField field-id="auth-email" :label="t('auth.emailOptional')">
-              <input
-                id="auth-email"
-                v-model="email"
-                dir="ltr"
-                type="email"
-                class="neo-input bg-white/95"
-                autocomplete="email"
-              />
-            </AppFormField>
-            <AppFormField field-id="auth-password" :label="t('auth.password')">
-              <SmoothCaretInput
-                id="auth-password"
-                v-model="password"
-                type="password"
-                autocomplete="new-password"
-                required
-                minlength="6"
-              />
-            </AppFormField>
-          </template>
-
           <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending || licenseUploading">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
@@ -1186,7 +1136,7 @@ watch(
           >
             {{ t('auth.otpLogModeBanner') }}
           </p>
-          <p v-else class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
+          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.emailOrPhonePasswordHint') }}</p>
           <AppFormField field-id="login-identifier" :label="t('auth.emailOrPhone')">
             <SmoothCaretInput
               id="login-identifier"
@@ -1256,7 +1206,11 @@ watch(
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goLoginPassword">
+          <button
+            type="button"
+            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            @click="goLoginPassword"
+          >
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>
@@ -1296,7 +1250,12 @@ watch(
           <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="requestOtp">
             {{ t('auth.resendOtp') }}
           </button>
-          <button type="button" class="hidden w-full text-center text-xs font-bold text-brand-gray-600 underline min-[431px]:block" @click="goLoginPassword">
+          <button
+            v-if="purpose === 'login'"
+            type="button"
+            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            @click="goLoginPassword"
+          >
             {{ t('auth.loginWithPassword') }}
           </button>
         </form>

@@ -52,6 +52,11 @@ export function hasRole(user: RolesUser, role: PlatformRole | string): boolean {
   return userRoles(user).includes(role as PlatformRole)
 }
 
+/** Password sign-in / reset: club owners and coaches only. Athletes stay OTP-only. */
+export function canPasswordAuth(user: RolesUser): boolean {
+  return hasRole(user, 'CLUB_ADMIN') || hasRole(user, 'COACH')
+}
+
 export function canAddRole(user: RolesUser, role: PlatformRole): boolean {
   if (hasRole(user, role)) return false
   return userRoles(user).length < MAX_PLATFORM_ROLES

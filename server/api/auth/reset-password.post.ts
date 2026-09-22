@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { canPasswordAuth } from '#shared/roles.ts'
 import { consumePhoneOtp } from '../../utils/otp'
 import { findUserForPhoneOtp, linkOrphanBookingsByPhone } from '../../utils/phoneAuth'
 import { hashSecret } from '../../utils/password'
@@ -44,6 +45,9 @@ export default defineEventHandler(async (event) => {
     if (!match) {
       throw createError({ statusCode: 404, statusMessage: 'Phone not registered' })
     }
+    if (!canPasswordAuth(match.user)) {
+      throw createError({ statusCode: 403, statusMessage: 'Password auth is for club staff only' })
+    }
 
     await prisma.user.update({
       where: { id: match.user.id },
@@ -71,6 +75,9 @@ export default defineEventHandler(async (event) => {
   })
   if (!record) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid or expired token' })
+  }
+  if (!canPasswordAuth(record.user)) {
+    throw createError({ statusCode: 403, statusMessage: 'Password auth is for club staff only' })
   }
 
   await prisma.$transaction([
