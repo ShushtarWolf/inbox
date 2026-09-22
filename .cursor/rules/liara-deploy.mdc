@@ -1,0 +1,37 @@
+---
+description: When user explicitly asks to deploy — safe Liara CD only (never auto)
+alwaysApply: true
+---
+
+# Liara deploy (explicit ask only)
+
+**Never** deploy unless the user clearly asks in this chat (e.g. “deploy”, “ship to Liara”, “deploy to production”). Agent mode does **not** imply deploy. Commit/push of completed work is separate and does **not** trigger production.
+
+Production host is Liara only: app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Never local `liara deploy` for normal production (emergency fallback only if Actions is unavailable — say so first).
+
+## When the user asks to deploy — do this automatically
+
+1. Ensure deployable commits are on GitHub `main` (`git push` if ahead).
+2. Prefer waiting until **CI** (`ci.yml`) is green for that SHA when it is still running; do not block forever — if CI has not succeeded yet, `deploy.yml` will run its own smoke gate.
+3. Trigger and watch:
+
+```bash
+gh workflow run deploy.yml --ref main
+gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+4. Confirm the run is **success**. Report the Actions URL / SHA.
+5. **Mandatory:** follow the post-deploy local DB backup rule (`inbox-db` dump under `backups/`). Deploy is not done until the absolute dump path is reported.
+6. If the workflow or backup fails, stop and tell the user. Do not retry blindly or skip the local dump.
+
+Requires repo secret `LIARA_API_TOKEN`.
+
+## What `deploy.yml` does (safe + efficient)
+
+- Manual `workflow_dispatch` only (no deploy on push).
+- One deploy at a time (`cancel-in-progress: false`).
+- If **CI already succeeded** for `GITHUB_SHA` → skip duplicate smoke rebuild.
+- Else → build + auth smoke gate, then Liara.
+- Liara builds in Iran (`--build-location=iran`); Dockerfile uses BuildKit npm cache when the builder supports it.
+
+Do not invent a faster path that skips Actions, smoke/CI, or the local dump.

@@ -3,16 +3,43 @@ name: Deploy to Liara
 on:
   workflow_dispatch:
 
-# A second manual dispatch cancels the prior rollout instead of creating
-# concurrent Liara builds. Full browser CI remains in ci.yml and is not a
-# prerequisite for this production deploy path.
+# One deploy at a time. Do not cancel an in-flight rollout — wait instead.
 concurrency:
   group: liara-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
+  gate:
+    name: Prefer green CI for this SHA
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      smoke: ${{ steps.pick.outputs.smoke }}
+    steps:
+      - name: Resolve smoke vs CI skip
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow=ci.yml --commit "$GITHUB_SHA" --json conclusion,status --limit 20)
+          ok=$(echo "$runs" | jq '[.[] | select(.status=="completed" and .conclusion=="success")] | length')
+          if [ "$ok" -gt 0 ]; then
+            echo "smoke=skip" >> "$GITHUB_OUTPUT"
+            echo "CI already green for ${GITHUB_SHA:0:7} — skipping duplicate smoke rebuild"
+          else
+            echo "smoke=run" >> "$GITHUB_OUTPUT"
+            echo "No successful CI for ${GITHUB_SHA:0:7} — running deploy smoke gate"
+          fi
+
   smoke:
     name: Build and auth smoke gate
+    needs: gate
+    if: needs.gate.outputs.smoke == 'run'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -75,8 +102,12 @@ jobs:
           cat /tmp/inbox-login-response
 
   deploy:
-    name: Deploy known-good image to Liara
-    needs: smoke
+    name: Deploy known-good commit to Liara
+    needs: [gate, smoke]
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

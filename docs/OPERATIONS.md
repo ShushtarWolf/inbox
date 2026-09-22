@@ -496,7 +496,7 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
-**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested.
+**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. The workflow skips its smoke rebuild when CI already passed for that SHA; otherwise smoke then Liara. After success, take a local `inbox-db` dump (post-deploy backup rule).
 
 **Emergency fallback** (local network): `liara deploy --app inbox`
 
