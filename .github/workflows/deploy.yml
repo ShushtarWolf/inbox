@@ -260,8 +260,34 @@ jobs:
           echo "deploy-prebuilt=$pre"
           echo "deploy-fallback=$fb"
           if [ "$pre" = "success" ] || [ "$fb" = "success" ]; then
-            echo "Production deploy OK"
+            echo "Production deploy path OK — live verify still required"
             exit 0
           fi
           echo "::error::Both prebuilt and full-source fallback failed (or were skipped)"
+          exit 1
+
+  # Liara "Release created" can still leave public 502. Fail the workflow if prod is dead.
+  verify-live:
+    name: Verify live inboxs.ir
+    needs: [deploy-ok]
+    if: needs.deploy-ok.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe https://inboxs.ir/api/health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /tmp/inbox-health.json -w '%{http_code}' --max-time 20 \
+              https://inboxs.ir/api/health || echo 000)
+            home=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+              https://inboxs.ir || echo 000)
+            echo "try$i health=$code home=$home body=$(head -c 200 /tmp/inbox-health.json 2>/dev/null || true)"
+            if [ "$code" = "200" ] && [ "$home" != "502" ] && grep -q '"ok":true' /tmp/inbox-health.json; then
+              echo "Live probe passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Production is DOWN after deploy (live probe failed). Run liara-iran-deploy.yml."
           exit 1

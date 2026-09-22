@@ -1,18 +1,22 @@
 ---
-description: When user explicitly asks to deploy — safe Liara CD only (never auto)
+description: When user explicitly asks to deploy — Liara CD + mandatory live health check
 alwaysApply: true
 ---
 
 # Liara deploy (explicit ask only)
 
-**Never** deploy unless the user clearly asks in this chat (e.g. “deploy”, “ship to Liara”, “deploy to production”). Agent mode does **not** imply deploy. Commit/push of completed work is separate and does **not** trigger production.
+**Never** deploy unless the user clearly asks (e.g. “deploy”, “ship to Liara”). Agent mode / commit / push do **not** imply deploy.
 
-Production host is Liara only: app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Never local `liara deploy` for normal production (emergency fallback only if Actions is unavailable — say so first).
+Production: Liara app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Prefer GitHub Actions; local `liara deploy` only if Actions is unavailable (say so first).
 
-## When the user asks to deploy — do this automatically
+## Hard lesson (Sep 2026)
 
-1. Ensure deployable commits are on GitHub `main` (`git push` if ahead).
-2. Prefer waiting until **CI** (`ci.yml`) is green for that SHA when it is still running; do not block forever — if CI has not succeeded yet, `deploy.yml` will run its own smoke gate.
+Liara’s “Release created” / container health and a green Actions job can still leave **public 502**. Actions green ≠ site up. **Never tell the user deploy succeeded until a live probe passes.** If the app is dead after deploy, say clearly: **“Production is DOWN (502 / health failed).”** Do not soft-pedal.
+
+## When the user asks to deploy
+
+1. Push deployable commits to GitHub `main` if ahead.
+2. Prefer green CI for that SHA if still running; otherwise `deploy.yml` smoke gate covers it.
 3. Trigger and watch:
 
 ```bash
@@ -20,30 +24,52 @@ gh workflow run deploy.yml --ref main
 gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-4. Confirm the run is **success** (job **Deploy succeeded** must be green — prebuilt **or** full-source fallback). Report Actions URL / SHA / which path won.
-5. **Mandatory local DB dump** — prefer Actions backup then download (local Liara CLI auth is often broken):
+4. Confirm workflow success (**Deploy succeeded** + **Verify live inboxs.ir** must be green). Report Actions URL / SHA / path (prebuilt vs Iran fallback).
+5. **Mandatory live probe** (even if the workflow already probed — agent double-check):
+
+```bash
+# Expect HTTP 200 and JSON ok:true / db:up. Retry ~2 min (15s interval) after release.
+curl -sS -o /tmp/inbox-health -w '%{http_code}' --max-time 20 https://inboxs.ir/api/health
+curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://inboxs.ir
+curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://inbox.liara.run
+```
+
+   - **Pass:** health body has `"ok":true` (and preferably `"db":"up"`) and homepage is not 502.
+   - **Fail (502 / 000 / non-ok):** tell the user **Production is DOWN**. Then run emergency Iran full-source (do not stop after one green prebuilt):
+
+```bash
+gh workflow run liara-iran-deploy.yml --ref main
+gh run watch "$(gh run list --workflow=liara-iran-deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+# Re-run the live probe. Only then call the site up.
+```
+
+6. **Mandatory local DB dump** (Actions backup → download; local Liara CLI auth often broken):
 
 ```bash
 gh workflow run backup-db.yml --ref main
-# wait for the new run, then:
+# wait, then:
 gh run download <BACKUP_RUN_ID> -n inbox-db-local-backup -D backups/tmp-dl
 mv backups/tmp-dl/*.dump "backups/inbox-db-$(date +%Y%m%d-%H%M%S).dump"
 rm -rf backups/tmp-dl
 ```
 
-Report the absolute dump path. Deploy is not done until that path exists and is non-empty.
-6. If the workflow or backup fails, stop and tell the user. Do not retry blindly.
+Report absolute dump path. Deploy is not done until dump exists **and** live probe passed.
+7. If workflow, Iran recovery, live probe, or backup fails after recovery attempts — **stop and tell the user**. Do not claim success.
 
 Requires repo secret `LIARA_API_TOKEN`.
 
-## What `deploy.yml` does (safe + efficient)
+## Runtime image (prebuilt path)
 
-- Manual `workflow_dispatch` only (no deploy on push).
-- One deploy at a time (`cancel-in-progress: false`).
-- CI green for SHA → skip smoke; else smoke gate.
-- **Primary:** build Nuxt on Actions → thin `Dockerfile.runtime` + `nitro-output` → Liara Germany package.
-- **Fallback:** if prebuilt does not succeed → full-repo `liara deploy` with multi-stage `Dockerfile` on Iran (slower, proven).
-- Final job fails the workflow unless at least one deploy path succeeded.
-- No GHCR/`--image` (visibility blocked). No BuildKit `--mount` on Dockerfiles Liara builds.
+`Dockerfile.runtime` (Debian slim) **must** `apt-get install openssl ca-certificates` before Prisma. Missing OpenSSL matched Liara Prisma warnings and dead containers. Do not remove that layer. Full-source `Dockerfile` already installs openssl on Alpine.
 
-Do not invent a path that skips Actions, smoke/CI, or the local dump.
+## What `deploy.yml` does
+
+- Manual `workflow_dispatch` only; one deploy at a time (`cancel-in-progress: false`).
+- CI green → skip smoke; else smoke gate.
+- **Primary:** Actions-built Nitro → `Dockerfile.runtime` → Liara **Germany**.
+- **Fallback:** if prebuilt job fails → full-source `Dockerfile` on **Iran**.
+- **Verify live:** after a successful path, curl `https://inboxs.ir/api/health` until 200/`ok` or fail the workflow.
+- If verify fails but prebuilt “succeeded”: agent runs `liara-iran-deploy.yml` (Germany healthy-but-502 happened in prod).
+- No GHCR/`--image`. No BuildKit `--mount` on Liara-built Dockerfiles.
+
+Do not invent a path that skips Actions, smoke/CI, live probe, or the local dump.
