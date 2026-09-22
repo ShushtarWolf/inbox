@@ -8,7 +8,7 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 RUN apk add --no-cache openssl ca-certificates libc6-compat
 
-COPY .output ./.output
+COPY nitro-output ./.output
 COPY prisma ./prisma
 COPY scripts/start-production.mjs ./scripts/start-production.mjs
 COPY scripts/lib ./scripts/lib

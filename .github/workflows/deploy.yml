@@ -105,6 +105,7 @@ jobs:
         with:
           name: nitro-output
           path: .output
+          include-hidden-files: true
           retention-days: 1
 
   bundle:
@@ -141,18 +142,21 @@ jobs:
       - name: Assemble thin deploy context
         run: |
           set -euo pipefail
+          test -d .output
+          test -f .output/server/index.mjs
           rm -rf deploy-context
           mkdir -p deploy-context/scripts
           cp Dockerfile.runtime deploy-context/Dockerfile
-          # Empty ignore so root .dockerignore (which excludes .output) is not used.
-          : > deploy-context/.dockerignore
+          # Non-hidden name so Actions artifacts + Liara archive keep the build.
+          cp -a .output deploy-context/nitro-output
           cp package.json deploy-context/package.json
-          cp -a .output deploy-context/.output
           cp -a prisma deploy-context/prisma
           cp scripts/start-production.mjs deploy-context/scripts/start-production.mjs
           cp -a scripts/lib deploy-context/scripts/lib
           cp -a server deploy-context/server
           cp -a shared deploy-context/shared
+          # Do not inherit repo gitignore — Liara CLI respects .gitignore when packing.
+          printf '%s\n' '# keep nitro-output' > deploy-context/.gitignore
           cat > deploy-context/liara.json <<'EOF'
           {
             "app": "inbox",
@@ -161,11 +165,15 @@ jobs:
             "build": { "location": "iran" }
           }
           EOF
-          du -sh deploy-context deploy-context/.output
+          OUT_SIZE=$(du -sm deploy-context/nitro-output | awk '{print $1}')
+          echo "nitro-output size MiB: $OUT_SIZE"
+          test "$OUT_SIZE" -ge 5
+          du -sh deploy-context deploy-context/nitro-output
       - uses: actions/upload-artifact@v4
         with:
           name: liara-deploy-context
           path: deploy-context
+          include-hidden-files: true
           retention-days: 1
 
   deploy:
@@ -187,13 +195,19 @@ jobs:
         with:
           # No checkout here — match .nvmrc major without needing the file.
           node-version: '22'
+      - name: Verify prebuilt context before Liara upload
+        run: |
+          set -euo pipefail
+          test -f deploy-context/Dockerfile
+          test -f deploy-context/nitro-output/server/index.mjs
+          du -sh deploy-context deploy-context/nitro-output
       - name: Deploy inbox to Liara
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
-          # Liara only packages the prebuilt .output (Dockerfile.runtime) — no Nuxt compile.
+          # Liara only packages the prebuilt nitro-output (Dockerfile.runtime) — no Nuxt compile.
           timeout 45m liara deploy \
             --path=deploy-context \
             --app=inbox \
