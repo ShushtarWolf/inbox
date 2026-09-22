@@ -21,11 +21,9 @@ describe('three-state staff overlay', () => {
     const single = cells.find((c) => c.startTime === '10:00')!
     const multi = cells.find((c) => c.startTime === '11:00')!
     expect(single.externalKind).toBe('busy_single')
-    expect(single.badge).toContain('مشغول')
-    expect(single.badge).toContain('الوپلی')
+    expect(single.badge).toBe('الوپلی')
     expect(multi.externalKind).toBe('busy_multi')
-    expect(multi.badge).toContain('الوپلی')
-    expect(multi.badge).toContain('الوورزش')
+    expect(multi.badge).toBe('الوپلی + الوورزش')
     expect(multi.sources.filter((s) => s !== 'inbox').sort()).toEqual(['aloplay', 'alovarzesh'])
   })
 

@@ -102,12 +102,13 @@ export function useCoachExternalCalendarOverlay(opts: {
     if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
-    if (cell.badge) return cell.badge
+    if (isExternalUncertain(slot)) return cell.badge || 'مشکوک'
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return ''
+    if (!cell.badge) return ''
+    return cell.badge.replace(/^مشغول\s*[·\-–]\s*/, '').trim() || cell.badge
   }
 
   let pollTimer: ReturnType<typeof setInterval> | null = null

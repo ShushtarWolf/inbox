@@ -26,13 +26,12 @@ export function formatExternalDisplayBadge(
   sources: ExternalSourceId[],
 ): string {
   const labels = formatExternalSourceLabels(sources)
+  // Short grid labels — color/bar already means busy; drop repeated «مشغول ·».
   if (kind === 'busy_single' || kind === 'busy_multi') {
-    return labels.length ? `مشغول · ${labels.join(' + ')}` : 'مشغول'
+    return labels.length ? labels.join(' + ') : 'خارجی'
   }
   if (kind === 'uncertain') {
-    return labels.length
-      ? `مشکوک — با ${labels.join(' و ')} هماهنگ کنید`
-      : 'مشکوک'
+    return labels.length ? `مشکوک · ${labels.join(' + ')}` : 'مشکوک'
   }
   return formatSourceBadge(sources)
 }

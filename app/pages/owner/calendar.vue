@@ -3172,7 +3172,10 @@ watch(pilotNoCoach, (off) => {
       >
         <div class="canva-selection-bar-inner">
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.selectionBar.title') }}</p>
+            <p class="text-xs font-bold text-brand-gray-600">
+              {{ t('owner.selectionBar.title') }}
+              <span class="tabular-nums text-brand-navy">({{ selectedSlotIds.length }})</span>
+            </p>
             <p v-if="selectionCourtsLabel" class="mt-0.5 truncate text-start text-sm font-bold text-brand-navy">
               {{ selectionCourtsLabel }} · {{ formattedDate }}
             </p>
@@ -3211,13 +3214,13 @@ watch(pilotNoCoach, (off) => {
             <button
               v-if="externalOverlayEnabled && selectedSlotsFull.length === 1 && selectedSlotsFull[0]?.displayStatus === 'FREE' && !isManuallyBlocked(selectedSlotsFull[0]) && !isExternalOnlyOccupied(selectedSlotsFull[0]) && !isExternalUncertain(selectedSlotsFull[0])"
               type="button"
-              class="canva-selection-bar-btn-secondary"
+              class="canva-selection-bar-btn-manual"
               :disabled="saving"
               @click="doSelectionManualBlock"
             >
               {{ t('owner.manualOverrideBlockAction') }}
             </button>
-            <button type="button" class="canva-selection-bar-btn-secondary" @click="clearSelection(); multiSelectMode = false">
+            <button type="button" class="canva-selection-bar-btn-ghost" @click="clearSelection(); multiSelectMode = false">
               {{ t('owner.selectionBar.clear') }}
             </button>
           </div>
@@ -4795,9 +4798,9 @@ watch(pilotNoCoach, (off) => {
 }
 
 :deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected) {
-  background: #bbf7d0;
-  color: #14532d;
-  box-shadow: inset 0 0 0 2px #16a34a;
+  background: #dbeafe;
+  color: #1e3a8a;
+  box-shadow: inset 0 0 0 2px #2563eb;
 }
 
 :deep(.canva-cal-grid-cell.slot-past) {

@@ -159,12 +159,14 @@ export function useOwnerExternalCalendarOverlay(opts: {
     if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
-    if (cell.badge) return cell.badge
+    if (isExternalUncertain(slot)) return cell.badge || 'مشکوک'
+    // Prefer short site labels over legacy «مشغول · …» badges for the dense grid.
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return ''
+    if (!cell.badge) return ''
+    return cell.badge.replace(/^مشغول\s*[·\-–]\s*/, '').trim() || cell.badge
   }
 
   function externalSourceDetails(slot: {
