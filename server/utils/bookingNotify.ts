@@ -27,6 +27,12 @@ type BookingNotifyOpts = {
   bookingId?: string
   clubId?: string
   courtName?: string | null
+  /** Court number/label for package SMS («زمین شماره (… )»). */
+  courtNumber?: string | null
+  /** Class package title when kind === 'package'. */
+  packageName?: string | null
+  /** Athlete dashboard link override (defaults to /athlete/bookings). */
+  dashboardUrl?: string | null
   paymentPaid?: boolean
   address?: string | null
   mapsUrl?: string | null
@@ -257,7 +263,10 @@ async function sendPayLinkLookup(
 
 function bookingNotifyData(opts: BookingNotifyOpts) {
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
-  const receiptUrl = opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
+  // Package seats are PackageBooking rows — no court receipt token.
+  const receiptUrl = opts.kind === 'package'
+    ? (opts.receiptUrl || '')
+    : (opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : ''))
   const payPin = String(opts.payPin || '').trim()
   const payUrl = opts.payUrl || (payPin ? payUrlForPin(payPin) : '')
   return {
@@ -269,6 +278,9 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     endTime: opts.endTime || '',
     sessionCount: opts.sessionCount ?? null,
     courtName: opts.courtName || '',
+    courtNumber: opts.courtNumber || opts.courtName || '',
+    packageName: opts.packageName || '',
+    dashboardUrl: opts.dashboardUrl || '',
     paymentPaid: opts.paymentPaid,
     address: opts.address || '',
     mapsUrl: opts.mapsUrl || '',

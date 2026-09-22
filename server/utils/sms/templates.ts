@@ -9,6 +9,14 @@ export function ownerDailyReservationsCalendarUrl(data?: Record<string, unknown>
   return `${base}/owner/calendar`
 }
 
+/** Athlete bookings dashboard. Prod: https://inboxs.ir/athlete/bookings */
+export function athleteBookingsDashboardUrl(data?: Record<string, unknown>) {
+  const explicit = String(data?.dashboardUrl || '').trim()
+  if (explicit) return explicit
+  const base = (process.env.NUXT_PUBLIC_SITE_URL || 'https://inboxs.ir').replace(/\/$/, '')
+  return `${base}/athlete/bookings`
+}
+
 function clubBit(data: Record<string, unknown>) {
   const name = String(data.clubName || '').trim()
   return name ? ` «${name}»` : ''
@@ -101,6 +109,50 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   },
   BOOKING_CONFIRMED: (data) => {
     const guest = String(data.guestName || data.userName || '').trim()
+    const kind = String(data.kind || '').trim().toLowerCase()
+    const packageName = String(data.packageName || data.packageTitle || '').trim()
+    const isPackage = kind === 'package' || Boolean(packageName)
+
+    if (isPackage && guest) {
+      const club = String(data.clubName || '').trim()
+      const pkg = packageName || 'پکیج'
+      const court = String(data.courtNumber || data.courtName || '').trim()
+      const dateRaw = String(data.date || data.startDate || '').trim()
+      const finishRaw = String(data.finishDate || data.endDate || '').trim()
+      const startRaw = String(data.time || data.startTime || '').trim()
+      const endRaw = String(data.endTime || '').trim()
+      const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+      const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
+      const start = startRaw ? formatSmsTime(startRaw) : ''
+      const end = endRaw ? formatSmsTime(endRaw) : ''
+      const rawCount = data.sessionCount
+      const countNum = typeof rawCount === 'number'
+        ? rawCount
+        : (typeof rawCount === 'string' && Number(rawCount) > 0 ? Number(rawCount) : 0)
+      const countLabel = countNum > 0 ? toPersianDigits(String(countNum)) : ''
+      const courtPart = court ? ` زمین شماره (${toPersianDigits(court)})` : ''
+      const clubPart = club ? ` در «${club}»` : ''
+      const countPart = countLabel ? ` برای ${countLabel} جلسه` : ''
+      const rangePart = date && finish && finish !== date
+        ? `، از ${date} تا ${finish}`
+        : date
+          ? `، از ${date}`
+          : ''
+      const timePart = start && end && end !== start
+        ? `، از ساعت ${start} تا ${end}`
+        : start
+          ? `، از ساعت ${start}`
+          : ''
+      const body = `پکیج زمین «${pkg}»${clubPart}${courtPart}${countPart}${rangePart}${timePart} با موفقیت ثبت شد.`
+      return [
+        `${guest} عزیز،`,
+        body,
+        '',
+        'مشاهده برنامه جلسات، حساب‌وکتاب، قوانین و آدرس:',
+        athleteBookingsDashboardUrl(data),
+      ].join('\n')
+    }
+
     if (guest) {
       const club = String(data.clubName || '').trim()
       const dateRaw = String(data.date || '').trim()

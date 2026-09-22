@@ -281,6 +281,31 @@ describe('SMS templates', () => {
     else process.env.NUXT_PUBLIC_SITE_URL = prev
   })
 
+  it('renders package court confirmation with dashboard link', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        kind: 'package',
+        guestName: 'علی رضایی',
+        packageName: 'صبح‌های زوج',
+        clubName: 'بهناز',
+        courtNumber: '۱',
+        sessionCount: 8,
+        date: '2026-08-14',
+        finishDate: '2026-10-10',
+        startTime: '09:00',
+        endTime: '10:00',
+      }),
+    ).toBe(
+      [
+        'علی رضایی عزیز،',
+        'پکیج زمین «صبح‌های زوج» در «بهناز» زمین شماره (۱) برای ۸ جلسه، از ۱۴۰۵/۰۵/۲۳ تا ۱۴۰۵/۰۷/۱۸، از ساعت ۰۹:۰۰ تا ۱۰:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده برنامه جلسات، حساب‌وکتاب، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
+      ].join('\n'),
+    )
+  })
+
   it('mentions series range and session count for guest confirmed SMS', () => {
     expect(
       renderSmsTemplate('BOOKING_CONFIRMED', {
