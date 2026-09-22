@@ -177,6 +177,56 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       ? `پرداخت رزرو ثبت شد${clubBit(data)} — ${when}. اینباکس`
       : `پرداخت رزرو ثبت شد${clubBit(data)}. اینباکس`
   },
+  /**
+   * Owner “سفارش جدید” — full multi-line body for SmsLog / free-text.
+   * Live Verify Lookup still packs via token10 (~100 chars); URL punctuation is stripped.
+   */
+  OWNER_BOOKING_CONFIRMED: (data) => {
+    const code = String(data.trackingCode || data.orderCode || '').trim()
+    const club = String(data.clubName || '').trim()
+    const buyer = String(data.guestName || data.userName || '').trim()
+    const phone = String(data.guestPhone || data.phone || '').trim()
+    const detailUrl = String(data.orderUrl || data.receiptUrl || data.detailUrl || '').trim()
+
+    const sessionLines: string[] = []
+    const rawSessions = data.sessions
+    if (Array.isArray(rawSessions)) {
+      for (const row of rawSessions) {
+        if (!row || typeof row !== 'object') continue
+        const s = row as Record<string, unknown>
+        const court = String(s.courtName || s.court || '').trim()
+        const dateRaw = String(s.date || '').trim()
+        const startRaw = String(s.startTime || s.time || '').trim()
+        const endRaw = String(s.endTime || '').trim()
+        const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+        const start = startRaw ? formatSmsTime(startRaw) : ''
+        const end = endRaw ? formatSmsTime(endRaw) : ''
+        const when = start && end && end !== start
+          ? `${start} تا ${end}`
+          : start || end
+        const line = [court, date, when].filter(Boolean).join(' | ')
+        if (line) sessionLines.push(line)
+      }
+    }
+    if (!sessionLines.length) {
+      const court = String(data.courtName || '').trim()
+      const when = whenBit(data)
+      const line = [court, when].filter(Boolean).join(' | ')
+      if (line) sessionLines.push(line)
+    }
+
+    const header = code
+      ? `Inboxs | سفارش جدید ${toPersianDigits(code)}`
+      : 'Inboxs | سفارش جدید'
+    const meta = [
+      club ? `باشگاه: «${club}»` : '',
+      buyer ? `خریدار: ${buyer}` : '',
+      phone ? `شماره تماس: ${toPersianDigits(phone)}` : '',
+    ].filter(Boolean)
+    const lines = [header, '', ...meta, '', 'مشخصات:', ...sessionLines]
+    if (detailUrl) lines.push('', 'مشاهده جزئیات سفارش:', detailUrl)
+    return lines.join('\n')
+  },
   /** Compact single-line — service-line lookup uses token10 (~100 chars). */
   OWNER_BOOKING_PAID: (data) => {
     const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'

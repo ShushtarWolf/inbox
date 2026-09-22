@@ -42,6 +42,32 @@ type BookingNotifyOpts = {
   skipGuest?: boolean
 }
 
+export type OwnerBookingSessionLine = {
+  courtName?: string | null
+  date: string
+  startTime: string
+  endTime?: string | null
+}
+
+type OwnerBookingConfirmedOpts = {
+  ownerPhone?: string | null
+  clubName: string
+  clubId?: string
+  bookingId?: string
+  guestName?: string | null
+  guestPhone?: string | null
+  trackingCode?: string | null
+  /** Receipt / order detail URL shown under «مشاهده جزئیات سفارش». */
+  orderUrl?: string | null
+  /** One line per court session: زمین | تاریخ | شروع تا پایان */
+  sessions?: OwnerBookingSessionLine[]
+  /** Fallback when sessions is empty — single court/time. */
+  date?: string
+  startTime?: string
+  endTime?: string | null
+  courtName?: string | null
+}
+
 type OwnerBookingPaidOpts = {
   ownerPhone?: string | null
   clubName: string
@@ -61,6 +87,7 @@ type BookingSmsTemplate =
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_CANCELLED'
   | 'BOOKING_PAID'
+  | 'OWNER_BOOKING_CONFIRMED'
   | 'OWNER_BOOKING_PAID'
   | 'OWNER_BOOKING_CANCELLED'
   | 'WAITLIST_SLOT_AVAILABLE'
@@ -368,6 +395,34 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
     await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
   }
   await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
+}
+
+/**
+ * Soft-fail SMS to club owner when an athlete places a new booking («سفارش جدید»).
+ * Full multi-line body is logged; live lookup still packs via token10.
+ */
+export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
+  if (!opts.ownerPhone) return
+  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
+  const orderUrl = opts.orderUrl
+    || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
+  const data: Record<string, unknown> = {
+    clubName: opts.clubName,
+    guestName: opts.guestName || '',
+    guestPhone: opts.guestPhone || '',
+    trackingCode,
+    orderUrl,
+    receiptUrl: orderUrl,
+  }
+  if (opts.sessions?.length) {
+    data.sessions = opts.sessions
+  } else {
+    data.date = opts.date || ''
+    data.startTime = opts.startTime || ''
+    data.endTime = opts.endTime || ''
+    data.courtName = opts.courtName || ''
+  }
+  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_CONFIRMED', data, opts.clubId)
 }
 
 /**

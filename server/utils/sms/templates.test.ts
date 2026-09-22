@@ -62,6 +62,36 @@ describe('SMS templates', () => {
       'پرداخت رزرو | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۵۰۰٬۰۰۰ تومان | ۱۴۰۴/۰۱/۰۱ از ۱۰:۰۰ تا ۱۱:۰۰ | زمین ۱ | اینباکس',
     )
     expect(
+      renderSmsTemplate('OWNER_BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        guestName: 'علی رضایی',
+        guestPhone: '09121234567',
+        trackingCode: '1057128',
+        orderUrl: 'https://inboxs.ir/r/abc',
+        sessions: [
+          { courtName: 'زمین ۱', date: '1404/01/01', startTime: '10:00', endTime: '11:00' },
+          { courtName: 'زمین ۱', date: '1404/01/01', startTime: '11:00', endTime: '12:00' },
+          { courtName: 'زمین ۲', date: '1404/01/02', startTime: '18:00', endTime: '19:00' },
+        ],
+      }),
+    ).toBe(
+      [
+        'Inboxs | سفارش جدید ۱۰۵۷۱۲۸',
+        '',
+        'باشگاه: «بهناز»',
+        'خریدار: علی رضایی',
+        'شماره تماس: ۰۹۱۲۱۲۳۴۵۶۷',
+        '',
+        'مشخصات:',
+        'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۰:۰۰ تا ۱۱:۰۰',
+        'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۱:۰۰ تا ۱۲:۰۰',
+        'زمین ۲ | ۱۴۰۴/۰۱/۰۲ | ۱۸:۰۰ تا ۱۹:۰۰',
+        '',
+        'مشاهده جزئیات سفارش:',
+        'https://inboxs.ir/r/abc',
+      ].join('\n'),
+    )
+    expect(
       renderSmsTemplate('OWNER_BOOKING_CANCELLED', {
         guestName: 'علی رضایی',
         guestPhone: '09121234567',

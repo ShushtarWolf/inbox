@@ -1,5 +1,12 @@
 import { initialPlatformPaymentFields } from '#shared/bookingPayment.ts'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import {
+  clubNotifyLocation,
+  clubNotifyName,
+  notifyBookingConfirmed,
+  notifyOwnerBookingConfirmed,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
@@ -20,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
   const coach = await prisma.coach.findUnique({
     where: { id: coachRecord.id },
-    include: { availability: true, club: true },
+    include: { availability: true, club: { include: { owner: { select: { phone: true } } } } },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
   if (!coach.isBookable) throw createError({ statusCode: 409, statusMessage: 'Coach is not bookable' })
@@ -79,6 +86,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
+  const endTime = addOneHour(body.startTime)
   await notifyBookingConfirmed({
     userId: user.id,
     email: athlete?.email,
@@ -89,11 +97,27 @@ export default defineEventHandler(async (event) => {
     bookingId: session.id,
     date: body.date,
     startTime: body.startTime,
-    endTime: addOneHour(body.startTime),
+    endTime,
     paymentPaid: false,
     guestName: personNotifyName(athlete?.name),
     ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })
+  if (coach.club) {
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: ownerNotifyPhone(coach.club),
+      clubName: clubNotifyName(coach.club),
+      clubId: coach.clubId || undefined,
+      bookingId: session.id,
+      guestName: personNotifyName(athlete?.name),
+      guestPhone: athlete?.phone,
+      sessions: [{
+        courtName: (coach.nameFa || coach.nameEn || 'مربی').trim(),
+        date: body.date,
+        startTime: body.startTime,
+        endTime,
+      }],
+    })
+  }
 
   return session
 })

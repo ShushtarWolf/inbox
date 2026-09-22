@@ -1,6 +1,13 @@
 import { assertPackagesEnabled } from '../../utils/packagesGate'
 import { bookPackageSeat } from '../../utils/packages'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import {
+  clubNotifyLocation,
+  clubNotifyName,
+  notifyBookingConfirmed,
+  notifyOwnerBookingConfirmed,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 
 export default defineEventHandler(async (event) => {
@@ -21,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const pkg = await prisma.packageDraft.findUnique({
     where: { id: body.packageId },
-    include: { club: true },
+    include: { club: { include: { owner: { select: { phone: true } } } } },
   })
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
   if (pkg) {
@@ -38,6 +45,19 @@ export default defineEventHandler(async (event) => {
       paymentPaid: false,
       guestName: personNotifyName(athlete?.name),
       ...clubNotifyLocation(pkg.club),
+    })
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: ownerNotifyPhone(pkg.club),
+      clubName: clubNotifyName(pkg.club),
+      clubId: pkg.clubId,
+      bookingId: booking.id,
+      guestName: personNotifyName(athlete?.name),
+      guestPhone: athlete?.phone,
+      sessions: [{
+        courtName: pkg.title || 'پکیج',
+        date: pkg.startDate || '',
+        startTime: pkg.title || '',
+      }],
     })
   }
 

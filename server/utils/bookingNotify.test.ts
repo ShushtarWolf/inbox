@@ -25,6 +25,7 @@ import {
   notifyBookingConfirmed,
   notifyBookingPaid,
   notifyOwnerBookingCancelled,
+  notifyOwnerBookingConfirmed,
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
@@ -385,6 +386,51 @@ describe('bookingNotify SMS', () => {
     expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
       lookup: { template: 'payments', token: 'ab12cd9x' },
     }))
+  })
+
+  it('sends owner new-order SMS with sessions and detail link', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: '09121112233',
+      clubName: 'بهناز',
+      clubId: 'club-1',
+      bookingId: 'booking-1',
+      guestName: 'علی رضایی',
+      guestPhone: '09121234567',
+      sessions: [
+        { courtName: 'زمین ۱', date: '2026-08-14', startTime: '18:00', endTime: '19:00' },
+        { courtName: 'زمین ۱', date: '2026-08-14', startTime: '19:00', endTime: '20:00' },
+      ],
+    })
+
+    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
+    expect(smsCall?.[0]).toMatchObject({
+      channel: 'sms',
+      to: '09121112233',
+      template: 'OWNER_BOOKING_CONFIRMED',
+      clubId: 'club-1',
+      data: expect.objectContaining({
+        guestName: 'علی رضایی',
+        guestPhone: '09121234567',
+        orderUrl: expect.stringContaining('/r/'),
+        sessions: expect.arrayContaining([
+          expect.objectContaining({ courtName: 'زمین ۱', startTime: '18:00' }),
+        ]),
+      }),
+    })
+  })
+
+  it('skips owner new-order SMS when owner phone is missing', async () => {
+    resolveSmsProvider.mockReturnValue('live')
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: null,
+      clubName: 'بهناز',
+      bookingId: 'booking-1',
+      guestName: 'علی',
+    })
+    expect(sendNotification).not.toHaveBeenCalled()
   })
 
   it('sends owner paid SMS with guest, amount, time, and court', async () => {
