@@ -8,6 +8,11 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
+# Prisma needs OpenSSL at runtime; bookworm-slim does not ship it by default.
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY nitro-output ./.output
 COPY prisma ./prisma
 COPY scripts/start-production.mjs ./scripts/start-production.mjs
