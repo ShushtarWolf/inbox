@@ -1,7 +1,8 @@
 # Multi-stage: final image is Nitro output + Prisma migrate tools only.
-# Alpine keeps the Liara registry push small enough to complete reliably.
-# Note: Liara's Iran Docker builder does not enable BuildKit, so do not use
-# RUN --mount=type=cache here (deploy fails with "requires BuildKit").
+# Alpine keeps the registry push small enough to complete reliably.
+# Production deploy builds this image on GitHub Actions and rolls out with
+# `liara deploy --image` — do not rely on Liara's source Docker builder
+# (no BuildKit; do not add RUN --mount=type=cache here).
 FROM node:22-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl ca-certificates libc6-compat
