@@ -160,9 +160,11 @@ describe('SMS templates', () => {
       }),
     ).toBe(
       [
-        'علی رضایی عزیز',
-        'رزرو شما با موفقیت در باشگاه بهناز انجام شد',
-        'در تاریخ ۱۴۰۵/۰۵/۲۳ و ساعت ۱۸:۰۰ (زمین ۱)',
+        'علی رضایی عزیز،',
+        'رزرو شما در «بهناز» برای ۱۴۰۵/۰۵/۲۳ زمین شماره (زمین ۱) از ساعت ۱۸:۰۰ تا ۲۰:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
       ].join('\n'),
     )
   })
@@ -174,6 +176,7 @@ describe('SMS templates', () => {
         clubName: 'دانشگاه علم وصنعت',
         date: '2026-08-14',
         startTime: '08:00',
+        endTime: '09:00',
         courtName: 'زمین ۳',
         trackingCode: '1057128',
         payPin: 'ab12cd9x',
@@ -181,12 +184,11 @@ describe('SMS templates', () => {
       }),
     ).toBe(
       [
-        'حمید افقه عزیز',
-        'رزرو شما با موفقیت در باشگاه دانشگاه علم وصنعت انجام شد',
-        'در تاریخ ۱۴۰۵/۰۵/۲۳ و ساعت ۰۸:۰۰ (زمین ۳)',
-        'کد رهگیری: ۱۰۵۷۱۲۸',
-        'کد پرداخت',
-        'ab12cd9x',
+        'حمید افقه عزیز،',
+        'رزرو شما در «دانشگاه علم وصنعت» برای ۱۴۰۵/۰۵/۲۳ زمین شماره (زمین ۳) از ساعت ۰۸:۰۰ تا ۰۹:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
       ].join('\n'),
     )
     expect(
@@ -306,7 +308,7 @@ describe('SMS templates', () => {
     )
   })
 
-  it('mentions series range and session count for guest confirmed SMS', () => {
+  it('mentions series range for guest confirmed SMS', () => {
     expect(
       renderSmsTemplate('BOOKING_CONFIRMED', {
         guestName: 'سارا',
@@ -314,37 +316,28 @@ describe('SMS templates', () => {
         date: '2026-08-14',
         finishDate: '2026-09-10',
         startTime: '18:00',
+        endTime: '19:00',
         sessionCount: 4,
         paymentPaid: true,
       }),
-    ).toContain('۴ سانس')
-    expect(
-      renderSmsTemplate('BOOKING_CONFIRMED', {
-        guestName: 'سارا',
-        clubName: 'بهناز',
-        date: '2026-08-14',
-        finishDate: '2026-09-10',
-        startTime: '18:00',
-        sessionCount: 4,
-        paymentPaid: true,
-      }),
-    ).toContain('در تاریخ')
+    ).toContain('برای ۱۴۰۵/۰۵/۲۳ تا ۱۴۰۵/۰۶/۱۹')
     expect(
       renderSmsTemplate('BOOKING_CONFIRMED', {
         guestName: 'بهناز تعبدی',
         clubName: 'علم و صنعت',
         date: '2026-08-14',
         startTime: '18:00',
+        endTime: '19:00',
         paymentPaid: true,
         receiptUrl: 'https://inboxs.ir/r/abc',
       }),
     ).toBe(
       [
-        'بهناز تعبدی عزیز',
-        'رزرو شما با موفقیت در باشگاه علم و صنعت انجام شد',
-        'در تاریخ ۱۴۰۵/۰۵/۲۳ و ساعت ۱۸:۰۰',
-        'از لینک زیر آدرس و رزرو و قوانین مقررات باشگاه رو می‌تونید پیگیری کنید',
-        'https://inboxs.ir/r/abc',
+        'بهناز تعبدی عزیز،',
+        'رزرو شما در «علم و صنعت» برای ۱۴۰۵/۰۵/۲۳ از ساعت ۱۸:۰۰ تا ۱۹:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
       ].join('\n'),
     )
   })

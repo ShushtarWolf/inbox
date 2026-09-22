@@ -158,48 +158,33 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       const dateRaw = String(data.date || '').trim()
       const finishRaw = String(data.finishDate || '').trim()
       const startRaw = String(data.time || data.startTime || '').trim()
+      const endRaw = String(data.endTime || '').trim()
       const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
       const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
       const start = startRaw ? formatSmsTime(startRaw) : ''
-      const court = String(data.courtName || '').trim()
-      const courtBit = court ? ` (${court})` : ''
-      const tracking = String(data.trackingCode || '').trim()
-      const receiptUrl = String(data.receiptUrl || '').trim()
-      const payPin = String(data.payPin || '').trim()
-      const paid = data.paymentPaid === true
-      const rawCount = data.sessionCount
-      const count = typeof rawCount === 'number' && rawCount > 1
-        ? rawCount
-        : (typeof rawCount === 'string' && Number(rawCount) > 1 ? Number(rawCount) : 0)
-      let whenLine = ''
-      if (count && date && finish && finish !== date && start) {
-        whenLine = `در تاریخ ${date} تا ${finish} (${toPersianDigits(String(count))} سانس) و ساعت ${start}${courtBit}`
-      } else if (count && date && start) {
-        whenLine = `در تاریخ ${date} (${toPersianDigits(String(count))} سانس) و ساعت ${start}${courtBit}`
-      } else if (date && start) {
-        whenLine = `در تاریخ ${date} و ساعت ${start}${courtBit}`
-      } else if (date) {
-        whenLine = `در تاریخ ${date}${courtBit}`
-      } else if (start) {
-        whenLine = `ساعت ${start}${courtBit}`
-      }
-      const lines = [
-        `${guest} عزیز`,
-        club
-          ? `رزرو شما با موفقیت در باشگاه ${club} انجام شد`
-          : 'رزرو شما با موفقیت انجام شد',
-      ]
-      if (whenLine) lines.push(whenLine)
-      if (tracking) lines.push(`کد رهگیری: ${toPersianDigits(tracking)}`)
-      if (!paid && payPin) {
-        lines.push('کد پرداخت')
-        lines.push(payPin)
-      }
-      if (receiptUrl) {
-        lines.push('از لینک زیر آدرس و رزرو و قوانین مقررات باشگاه رو می‌تونید پیگیری کنید')
-        lines.push(receiptUrl)
-      }
-      return lines.join('\n')
+      const end = endRaw ? formatSmsTime(endRaw) : ''
+      const court = String(data.courtNumber || data.courtName || '').trim()
+      const clubPart = club ? ` در «${club}»` : ''
+      const datePart = date && finish && finish !== date
+        ? ` برای ${date} تا ${finish}`
+        : date
+          ? ` برای ${date}`
+          : ''
+      const courtPart = court ? ` زمین شماره (${toPersianDigits(court)})` : ''
+      const timePart = start && end && end !== start
+        ? ` از ساعت ${start} تا ${end}`
+        : start
+          ? ` از ساعت ${start}`
+          : ''
+      const body = `رزرو شما${clubPart}${datePart}${courtPart}${timePart} با موفقیت ثبت شد.`
+      const detailUrl = String(data.dashboardUrl || '').trim() || athleteBookingsDashboardUrl(data)
+      return [
+        `${guest} عزیز،`,
+        body,
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        detailUrl,
+      ].join('\n')
     }
     const when = whenBit(data)
     const head = when
