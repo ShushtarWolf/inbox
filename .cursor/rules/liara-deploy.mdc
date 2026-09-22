@@ -32,6 +32,6 @@ Requires repo secret `LIARA_API_TOKEN`.
 - One deploy at a time (`cancel-in-progress: false`).
 - If **CI already succeeded** for `GITHUB_SHA` → skip duplicate smoke rebuild.
 - Else → build + auth smoke gate, then Liara.
-- Liara builds in Iran (`--build-location=iran`); Dockerfile uses BuildKit npm cache when the builder supports it.
+- Liara builds in Iran (`--build-location=iran`). Do not add Docker BuildKit `--mount=type=cache` — Liara’s builder rejects it.
 
 Do not invent a faster path that skips Actions, smoke/CI, or the local dump.

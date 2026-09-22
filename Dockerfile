@@ -1,6 +1,7 @@
-# syntax=docker/dockerfile:1
 # Multi-stage: final image is Nitro output + Prisma migrate tools only.
 # Alpine keeps the Liara registry push small enough to complete reliably.
+# Note: Liara's Iran Docker builder does not enable BuildKit, so do not use
+# RUN --mount=type=cache here (deploy fails with "requires BuildKit").
 FROM node:22-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl ca-certificates libc6-compat
@@ -9,11 +10,9 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 # Skip postinstall here: it runs Nuxt preparation and Prisma generation, both
 # of which are repeated by the explicit production build below.
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+RUN npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
 COPY . .
 RUN npm run build
-
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -31,8 +30,7 @@ COPY --from=builder /app/shared ./shared
 
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
 # on top of the full app package.json without a lockfile in this stage.
-RUN --mount=type=cache,target=/root/.npm \
-    echo '{"name":"inbox-runtime","private":true}' > package.json \
+RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
   && npm install --omit=dev --no-save --ignore-scripts --no-audit --no-fund --prefer-offline \
     prisma@6.19.3 \
     @prisma/client@6.19.3 \
