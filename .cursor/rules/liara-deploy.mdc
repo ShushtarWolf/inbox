@@ -32,8 +32,8 @@ Requires repo secret `LIARA_API_TOKEN`.
 - One deploy at a time (`cancel-in-progress: false`).
 - If **CI already succeeded** for `GITHUB_SHA` → skip duplicate smoke rebuild.
 - Else → build + auth smoke gate (uploads `.output` for reuse).
-- **Build Nuxt once on GitHub Actions**, assemble a thin context (`Dockerfile.runtime` + `.output`).
-- **Liara only packages that context** (Prisma runtime install + image) — no full `npm ci` / Nuxt compile on Liara.
+- **Build Nuxt once on GitHub Actions**, assemble a thin context (`Dockerfile.runtime` + `nitro-output`).
+- **Liara only packages that context** (Prisma runtime install + image) — no full `npm ci` / Nuxt compile on Liara. Prefer `--build-location=germany` for the thin image (Alpine `apk` CDN TLS is flaky on Iran builders).
 - Do **not** use GHCR/`--image` unless package visibility is solved (Actions token cannot make GHCR public).
 - Do **not** add Docker BuildKit `--mount=type=cache` — Liara’s builder rejects it.
 

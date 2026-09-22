@@ -162,7 +162,7 @@ jobs:
             "app": "inbox",
             "platform": "docker",
             "port": 3000,
-            "build": { "location": "iran" }
+            "build": { "location": "germany" }
           }
           EOF
           OUT_SIZE=$(du -sm deploy-context/nitro-output | awk '{print $1}')
@@ -213,5 +213,5 @@ jobs:
             --app=inbox \
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
-            --build-location=iran \
+            --build-location=germany \
             --message "GitHub ${GITHUB_SHA:0:7} prebuilt"
