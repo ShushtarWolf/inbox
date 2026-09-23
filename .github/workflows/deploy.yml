@@ -108,8 +108,38 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
+  # Primary: Iran full-source (proven for public inboxs.ir; Germany can be healthy-but-502).
+  deploy-iran:
+    name: Deploy Iran full-source (primary)
+    needs: [gate, smoke]
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Deploy full source to Liara (Iran)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
+          timeout 75m liara deploy \
+            --app=inbox \
+            --api-token="$LIARA_TOKEN" \
+            --no-app-logs \
+            --build-location=iran \
+            --message "GitHub ${GITHUB_SHA:0:7} iran-primary"
+
+  # Prep Germany fallback in parallel with Iran so a failed Iran build can flip quickly.
   bundle:
-    name: Prepare prebuilt Liara context
+    name: Prepare Germany prebuilt context
     needs: [gate, smoke]
     if: >-
       always()
@@ -176,14 +206,16 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  deploy-prebuilt:
-    name: Deploy prebuilt context (primary)
-    needs: [gate, smoke, bundle]
+  deploy-germany:
+    name: Deploy Germany prebuilt (fallback)
+    needs: [gate, smoke, bundle, deploy-iran]
+    # Only when Iran did not succeed (failed, cancelled, or skipped).
     if: >-
       always()
       && needs.gate.result == 'success'
-      && needs.bundle.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+      && needs.deploy-iran.result != 'success'
+      && needs.bundle.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -200,11 +232,12 @@ jobs:
           test -f deploy-context/Dockerfile
           test -f deploy-context/nitro-output/server/index.mjs
           du -sh deploy-context deploy-context/nitro-output
-      - name: Deploy inbox to Liara (prebuilt)
+      - name: Deploy inbox to Liara (Germany prebuilt)
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
+          echo "::warning::Iran primary did not succeed (result=${{ needs.deploy-iran.result }}); falling back to Germany prebuilt"
           npm i -g @liara/cli@9
           timeout 45m liara deploy \
             --path=deploy-context \
@@ -212,42 +245,11 @@ jobs:
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
             --build-location=germany \
-            --message "GitHub ${GITHUB_SHA:0:7} prebuilt"
-
-  deploy-fallback:
-    name: Full-source Liara fallback
-    needs: [gate, smoke, bundle, deploy-prebuilt]
-    # Runs when prebuilt did not succeed (failed, cancelled, or skipped because bundle failed).
-    if: >-
-      always()
-      && needs.gate.result == 'success'
-      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
-      && needs.deploy-prebuilt.result != 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - name: Deploy full source to Liara (fallback)
-        env:
-          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "::warning::Prebuilt path did not succeed (result=${{ needs.deploy-prebuilt.result }}); falling back to full-source Iran build"
-          npm i -g @liara/cli@9
-          # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
-          timeout 75m liara deploy \
-            --app=inbox \
-            --api-token="$LIARA_TOKEN" \
-            --no-app-logs \
-            --build-location=iran \
-            --message "GitHub ${GITHUB_SHA:0:7} fallback-source"
+            --message "GitHub ${GITHUB_SHA:0:7} germany-fallback"
 
   deploy-ok:
-    name: Deploy succeeded (prebuilt or fallback)
-    needs: [deploy-prebuilt, deploy-fallback]
+    name: Deploy succeeded (Iran or Germany)
+    needs: [deploy-iran, deploy-germany]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -255,22 +257,23 @@ jobs:
       - name: Require at least one successful deploy path
         run: |
           set -euo pipefail
-          pre='${{ needs.deploy-prebuilt.result }}'
-          fb='${{ needs.deploy-fallback.result }}'
-          echo "deploy-prebuilt=$pre"
-          echo "deploy-fallback=$fb"
-          if [ "$pre" = "success" ] || [ "$fb" = "success" ]; then
+          iran='${{ needs.deploy-iran.result }}'
+          de='${{ needs.deploy-germany.result }}'
+          echo "deploy-iran=$iran"
+          echo "deploy-germany=$de"
+          if [ "$iran" = "success" ] || [ "$de" = "success" ]; then
             echo "Production deploy path OK — live verify still required"
             exit 0
           fi
-          echo "::error::Both prebuilt and full-source fallback failed (or were skipped)"
+          echo "::error::Both Iran primary and Germany fallback failed (or were skipped)"
           exit 1
 
   # Liara "Release created" can still leave public 502. Fail the workflow if prod is dead.
+  # always() so a skipped sibling path cannot skip this job when deploy-ok succeeded.
   verify-live:
     name: Verify live inboxs.ir
     needs: [deploy-ok]
-    if: needs.deploy-ok.result == 'success'
+    if: always() && needs.deploy-ok.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

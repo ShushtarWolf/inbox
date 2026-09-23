@@ -1,6 +1,7 @@
 name: Liara Iran full-source deploy
 
-# Emergency path when prebuilt Germany release is healthy-but-502.
+# Force Iran redeploy (same as deploy.yml primary). Use when live probe fails
+# after Germany fallback, or to redeploy Iran without the full smoke/CI gate.
 on:
   workflow_dispatch:
 
