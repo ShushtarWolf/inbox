@@ -434,7 +434,7 @@ describe('bookingNotify SMS', () => {
     expect(sendNotification).not.toHaveBeenCalled()
   })
 
-  it('sends owner paid SMS with guest, amount, time, and court', async () => {
+  it('sends owner new-order SMS on paid (not a separate paid template)', async () => {
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
 
@@ -456,17 +456,17 @@ describe('bookingNotify SMS', () => {
     expect(smsCall?.[0]).toMatchObject({
       channel: 'sms',
       to: '09121112233',
-      template: 'OWNER_BOOKING_PAID',
+      template: 'OWNER_BOOKING_CONFIRMED',
       clubId: 'club-1',
       data: expect.objectContaining({
         guestName: 'علی رضایی',
         guestPhone: '09121234567',
-        amountPaid: 750000,
         courtName: 'زمین ۲',
         startTime: '18:00',
         endTime: '20:00',
       }),
     })
+    expect(smsCall?.[0]?.data).not.toHaveProperty('amountPaid')
   })
 
   it('skips owner paid SMS when owner phone is missing', async () => {

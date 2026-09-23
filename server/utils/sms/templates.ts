@@ -199,15 +199,13 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     const tracking = String(data.trackingCode || '').trim()
     const court = String(data.courtName || '').trim()
     const when = whenBit(data)
-    // Keep short for Kavenegar token10 (inbox-notify lookup).
-    const bits = [
-      guest ? `رزرو ${guest} لغو شد` : `رزرو لغو شد${clubBit(data)}`,
-      court,
-      when,
-      tracking ? `کد ${toPersianDigits(tracking)}` : '',
-      'اینباکس',
-    ].filter(Boolean)
-    return bits.join(' | ')
+    const detail = [court, when, tracking ? `کد ${toPersianDigits(tracking)}` : '']
+      .filter(Boolean)
+      .join(' | ')
+    const lines = [guest ? `رزرو ${guest} لغو شد` : 'رزرو لغو شد']
+    if (detail) lines.push('', detail)
+    lines.push('', 'Inboxs')
+    return lines.join('\n')
   },
   BOOKING_PAID: (data) => {
     const when = whenBit(data)
@@ -263,9 +261,13 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     ].filter(Boolean)
     const lines = [header, '', ...meta, '', 'مشخصات:', ...sessionLines]
     if (detailUrl) lines.push('', 'مشاهده جزئیات سفارش:', detailUrl)
+    lines.push('', 'Inboxs')
     return lines.join('\n')
   },
-  /** Compact single-line — service-line lookup uses token10 (~100 chars). */
+  /**
+   * Kept for email / logs. Live owner SMS after payment uses OWNER_BOOKING_CONFIRMED
+   * (notifyOwnerBookingPaid → notifyOwnerBookingConfirmed) — no separate paid SMS.
+   */
   OWNER_BOOKING_PAID: (data) => {
     const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'
     const guestPhone = String(data.guestPhone || '').trim()
@@ -287,14 +289,12 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     const guestPhone = String(data.guestPhone || '').trim()
     const when = whenBit(data)
     const court = String(data.courtName || '').trim()
-    const bits = [
-      'لغو رزرو',
-      guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest,
-      when,
-      court,
-      'اینباکس',
-    ].filter(Boolean)
-    return bits.join(' | ')
+    const who = guestPhone ? `${guest} (${toPersianDigits(guestPhone)})` : guest
+    const lines = ['Inboxs | لغو رزرو', '', who]
+    if (when) lines.push('', when)
+    if (court) lines.push(court)
+    lines.push('', 'Inboxs')
+    return lines.join('\n')
   },
   /**
    * One short SMS: Persian ping + owner calendar URL. No courts/times/guests.
@@ -305,23 +305,45 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
   OWNER_DAILY_RESERVATIONS: (data) => {
     return [
       'صاحب باشگاه عزیز',
-      'شما از سایت اینباکس رزرو دارید',
+      '',
+      'شما از سایت Inboxs رزرو دارید.',
       '',
       ownerDailyReservationsCalendarUrl(data),
+      '',
+      'Inboxs',
     ].join('\n')
   },
-  CLUB_APPROVED: (data) => `باشگاه «${data.clubName || ''}» در inbox تایید شد`,
-  COACH_APPROVED: (data) => `پروفایل مربی «${data.coachName || ''}» در inbox تایید شد`,
+  CLUB_APPROVED: (data) => [
+    `باشگاه «${data.clubName || ''}»`,
+    'در Inboxs تأیید شد.',
+    '',
+    'Inboxs',
+  ].join('\n'),
+  COACH_APPROVED: (data) => [
+    `پروفایل مربی «${data.coachName || ''}»`,
+    'در Inboxs تأیید شد.',
+    '',
+    'Inboxs',
+  ].join('\n'),
   COACH_REJECTED: (data) => {
     const note = String(data.note || '').trim()
-    const base = `درخواست مربی «${data.coachName || ''}» در inbox تایید نشد`
-    return note ? `${base} — ${note}` : base
+    const lines = [
+      `درخواست مربی «${data.coachName || ''}»`,
+      'در Inboxs تأیید نشد.',
+    ]
+    if (note) lines.push('', note)
+    lines.push('', 'Inboxs')
+    return lines.join('\n')
   },
   WAITLIST_SLOT_AVAILABLE: (data) => {
+    const club = String(data.clubName || '').trim()
     const when = whenBit(data)
-    return when
-      ? `نوبت آزاد شد${clubBit(data)} — ${when}. سریع رزرو کنید`
-      : `نوبت آزاد شد${clubBit(data)}. سریع رزرو کنید`
+    const lines = ['نوبت آزاد شد']
+    if (club || when) lines.push('')
+    if (club) lines.push(`باشگاه: «${club}»`)
+    if (when) lines.push(when)
+    lines.push('', 'سریع رزرو کنید.', '', 'Inboxs')
+    return lines.join('\n')
   },
   /** Compact admin alerts — Verify Lookup token10 (~100 chars). */
   ADMIN_BOOKING_CONFIRMED: (data) => {

@@ -38,7 +38,15 @@ describe('SMS templates', () => {
         date: '1404/01/01',
         startTime: '10:00',
       }),
-    ).toBe('رزرو لغو شد «بهناز» | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | اینباکس')
+    ).toBe(
+      [
+        'رزرو لغو شد',
+        '',
+        '۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰',
+        '',
+        'Inboxs',
+      ].join('\n'),
+    )
     expect(
       renderSmsTemplate('BOOKING_PAID', {
         clubName: 'بهناز',
@@ -89,6 +97,8 @@ describe('SMS templates', () => {
         '',
         'مشاهده جزئیات سفارش:',
         'https://inboxs.ir/r/abc',
+        '',
+        'Inboxs',
       ].join('\n'),
     )
     expect(
@@ -99,14 +109,36 @@ describe('SMS templates', () => {
         startTime: '10:00',
         courtName: 'زمین ۱',
       }),
-    ).toBe('لغو رزرو | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | زمین ۱ | اینباکس')
+    ).toBe(
+      [
+        'Inboxs | لغو رزرو',
+        '',
+        'علی رضایی (۰۹۱۲۱۲۳۴۵۶۷)',
+        '',
+        '۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰',
+        'زمین ۱',
+        '',
+        'Inboxs',
+      ].join('\n'),
+    )
     expect(
       renderSmsTemplate('WAITLIST_SLOT_AVAILABLE', {
         clubName: 'بهناز',
         date: '1404/01/01',
         startTime: '18:00',
       }),
-    ).toBe('نوبت آزاد شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۸:۰۰. سریع رزرو کنید')
+    ).toBe(
+      [
+        'نوبت آزاد شد',
+        '',
+        'باشگاه: «بهناز»',
+        '۱۴۰۴/۰۱/۰۱ ساعت ۱۸:۰۰',
+        '',
+        'سریع رزرو کنید.',
+        '',
+        'Inboxs',
+      ].join('\n'),
+    )
   })
 
   it('includes court, payment status, and location on booking confirmed', () => {
@@ -217,7 +249,15 @@ describe('SMS templates', () => {
         endTime: '10:00',
         trackingCode: '1057128',
       }),
-    ).toBe('رزرو حمید افقه لغو شد | زمین ۳ | ۱۴۰۵/۰۵/۲۳ از ۰۹:۰۰ تا ۱۰:۰۰ | کد ۱۰۵۷۱۲۸ | اینباکس')
+    ).toBe(
+      [
+        'رزرو حمید افقه لغو شد',
+        '',
+        'زمین ۳ | ۱۴۰۵/۰۵/۲۳ از ۰۹:۰۰ تا ۱۰:۰۰ | کد ۱۰۵۷۱۲۸',
+        '',
+        'Inboxs',
+      ].join('\n'),
+    )
   })
 
   it('renders compact admin alert templates', () => {
@@ -283,9 +323,12 @@ describe('SMS templates', () => {
     ).toBe(
       [
         'صاحب باشگاه عزیز',
-        'شما از سایت اینباکس رزرو دارید',
+        '',
+        'شما از سایت Inboxs رزرو دارید.',
         '',
         'https://inboxs.ir/owner/calendar',
+        '',
+        'Inboxs',
       ].join('\n'),
     )
   })

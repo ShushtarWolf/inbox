@@ -86,9 +86,12 @@ describe('processDailyOwnerReservationReminders', () => {
     expect(arg.body).toBe(
       [
         'صاحب باشگاه عزیز',
-        'شما از سایت اینباکس رزرو دارید',
+        '',
+        'شما از سایت Inboxs رزرو دارید.',
         '',
         'https://inboxs.ir/owner/calendar',
+        '',
+        'Inboxs',
       ].join('\n'),
     )
     expect(arg.body).not.toMatch(/زمین|علی|مهمان|جمع:/)

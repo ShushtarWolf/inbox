@@ -429,8 +429,8 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
 
 /**
  * Soft-fail SMS to club owner («سفارش جدید»).
- * Do not call on unpaid athlete soft-holds — owner alert is notifyOwnerBookingPaid
- * from paymentSync after PAID. Full multi-line body is logged; live lookup packs via token10.
+ * Call after payment is final (via notifyOwnerBookingPaid) or for desk paid-at-create.
+ * Full multi-line body is logged; live lookup packs via token10.
  */
 export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
   if (!opts.ownerPhone) return
@@ -458,23 +458,23 @@ export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpt
 
 /**
  * Soft-fail SMS to club owner when a booking becomes PAID.
- * Delivered via Kavenegar Verify Lookup (inbox-notify / token10) on live service lines.
+ * Product: one «سفارش جدید» SMS (OWNER_BOOKING_CONFIRMED) after payment is final —
+ * no separate OWNER_BOOKING_PAID SMS.
  */
 export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
-  if (!opts.ownerPhone) return
-  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
-  const data = {
+  await notifyOwnerBookingConfirmed({
+    ownerPhone: opts.ownerPhone,
     clubName: opts.clubName,
+    clubId: opts.clubId,
+    bookingId: opts.bookingId,
+    guestName: opts.guestName,
+    guestPhone: opts.guestPhone,
+    trackingCode: opts.trackingCode,
     date: opts.date,
     startTime: opts.startTime,
-    endTime: opts.endTime || '',
-    courtName: opts.courtName || '',
-    guestName: opts.guestName || '',
-    guestPhone: opts.guestPhone || '',
-    amountPaid: opts.amountPaid ?? null,
-    trackingCode,
-  }
-  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_PAID', data, opts.clubId)
+    endTime: opts.endTime,
+    courtName: opts.courtName,
+  })
 }
 
 /** Soft-fail SMS to club owner when a booking is cancelled (athlete or desk). */

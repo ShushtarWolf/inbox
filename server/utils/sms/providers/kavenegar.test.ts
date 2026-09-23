@@ -49,9 +49,12 @@ describe('toKavenegarToken10', () => {
   it('strips URL punctuation so token10 cannot carry a tappable https link', () => {
     const body = [
       'صاحب باشگاه عزیز',
-      'شما از سایت اینباکس رزرو دارید',
+      '',
+      'شما از سایت Inboxs رزرو دارید.',
       '',
       'https://inboxs.ir/owner/calendar',
+      '',
+      'Inboxs',
     ].join('\n')
     const out = toKavenegarToken10(body)
     expect(out).not.toContain('://')
