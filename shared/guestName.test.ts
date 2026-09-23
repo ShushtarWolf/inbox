@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { formatGuestDisplayName, normalizeGuestNamePair, resolveLinkedGuestDisplayName } from './guestName'
+import {
+  formatGuestDisplayName,
+  normalizeGuestNamePair,
+  readGuestFullNameInput,
+  resolveLinkedGuestDisplayName,
+  writeGuestFullNameInput,
+} from './guestName'
 
 describe('formatGuestDisplayName', () => {
   it('shows a full first name once when family is empty', () => {
@@ -72,6 +78,23 @@ describe('normalizeGuestNamePair', () => {
       guestName: 'علی محمدی',
       guestFamily: '',
     })
+  })
+})
+
+describe('guest full-name live input', () => {
+  it('keeps a trailing space while typing', () => {
+    const typed = writeGuestFullNameInput('علی ')
+    expect(typed).toEqual({ guestName: 'علی ', guestFamily: '' })
+    expect(readGuestFullNameInput(typed.guestName, typed.guestFamily)).toBe('علی ')
+  })
+
+  it('keeps spaces inside a full name', () => {
+    const typed = writeGuestFullNameInput('سید حمید رضا افقه')
+    expect(readGuestFullNameInput(typed.guestName, typed.guestFamily)).toBe('سید حمید رضا افقه')
+  })
+
+  it('still joins stored first+family when not editing as one field', () => {
+    expect(readGuestFullNameInput('علی', 'محمدی')).toBe('علی محمدی')
   })
 })
 

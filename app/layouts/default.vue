@@ -3,6 +3,7 @@ import type { NavItem } from '#shared/nav.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { formatPhone } = useFormatters()
 const { user, loggedIn, fetch: fetchAuth, logout, displayName, initials, avatarUrl } = useAuth()
 /** Reserve tab-bar space from session cookie before profile hydrates (CLS on /coaches). */
 const reserveTabBar = computed(() => Boolean(user.value || loggedIn.value))
@@ -117,7 +118,7 @@ onMounted(() => {
         ·
         <a href="mailto:info@inboxs.ir" class="px-1 hover:text-brand-primary" dir="ltr">info@inboxs.ir</a>
         ·
-        <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">09124777927</a>
+        <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">{{ formatPhone('09124777927') }}</a>
       </p>
       <div class="mb-2 flex justify-center">
         <EnamadBadge />

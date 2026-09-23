@@ -2,7 +2,7 @@
 /** Full page smoke — public routes + authenticated dashboards. FA-only / prod-aware. */
 import fs from 'node:fs'
 import path from 'node:path'
-import { isProdSmokeBase, isPilotNoCoachRuntime } from './lib/smoke-helpers.mjs'
+import { createCookieJar, isProdSmokeBase, isPilotNoCoachRuntime, login } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
 const prodAware = isProdSmokeBase(base)
@@ -84,19 +84,10 @@ const adminPaths = [
   '/admin/provision',
 ]
 
-const cookieJar = new Map()
+const cookieJar = createCookieJar()
 
-async function login(session, email) {
-  const res = await fetch(`${base}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'demo1234' }),
-  })
-  if (!res.ok) throw new Error(`login ${email} → ${res.status}`)
-  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : []
-  if (setCookies.length) {
-    cookieJar.set(session, setCookies.map((entry) => entry.split(';')[0]).join('; '))
-  }
+async function loginSession(session, email) {
+  await login(base, cookieJar, session, email)
 }
 
 async function check(path, { session, expectRedirect, expectStatus = 200, label } = {}) {
@@ -187,9 +178,9 @@ async function main() {
   if (prodAware) {
     console.log('skip  *@inbox.local dashboard login (prod / SMOKE_SKIP_DEMO)')
   } else {
-    await login('owner', 'owner@inbox.local')
-    await login('coach', 'coach@inbox.local')
-    await login('athlete', 'athlete@inbox.local')
+    await loginSession('owner', 'owner@inbox.local')
+    await loginSession('coach', 'coach@inbox.local')
+    await loginSession('athlete', 'athlete@inbox.local')
 
     for (const path of ownerRedirectPaths) {
       await check(path, { session: 'owner', expectRedirect: true, label: `owner ${path}` })

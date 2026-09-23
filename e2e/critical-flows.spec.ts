@@ -12,6 +12,15 @@ async function loginWithPhoneOtp(page: Page, phone: string, destination: RegExp)
   await page.waitForURL(destination)
 }
 
+async function loginOwnerPassword(page: Page) {
+  const res = await page.request.post('/api/auth/login', {
+    data: { email: 'owner@inbox.local', password: 'demo1234' },
+  })
+  expect(res.ok()).toBeTruthy()
+  await page.goto('/owner/calendar')
+  await page.waitForURL(/\/owner/)
+}
+
 test('guest homepage loads clubs link', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('body')).toBeVisible()
@@ -45,8 +54,8 @@ test('profile photo upload saves avatar', async ({ page }) => {
   await expect(page.locator('img[src*="/uploads/athlete/"]').first()).toBeVisible({ timeout: 15_000 })
 })
 
-test('owner can login via phone OTP and view finance', async ({ page }) => {
-  await loginWithPhoneOtp(page, '09124445566', /\/owner/)
+test('owner can login via password and view finance', async ({ page }) => {
+  await loginOwnerPassword(page)
   await page.goto('/owner/finance')
   await expect(page.locator('body')).toBeVisible()
 })

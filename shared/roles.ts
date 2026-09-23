@@ -52,6 +52,26 @@ export function hasRole(user: RolesUser, role: PlatformRole | string): boolean {
   return userRoles(user).includes(role as PlatformRole)
 }
 
+/** Password sign-in / reset: club owners and coaches only. Athletes stay OTP-only. */
+export function canPasswordAuth(user: RolesUser): boolean {
+  return hasRole(user, 'CLUB_ADMIN') || hasRole(user, 'COACH')
+}
+
+type AuthMethodUser = RolesUser & { passwordHash?: string | null }
+
+/**
+ * Staff pick one method (XOR): password if set, else OTP.
+ * Athletes always OTP — never password.
+ */
+export function canOtpLogin(user: AuthMethodUser): boolean {
+  if (!canPasswordAuth(user)) return true
+  return !user.passwordHash
+}
+
+export function canPasswordLogin(user: AuthMethodUser): boolean {
+  return canPasswordAuth(user) && Boolean(user.passwordHash)
+}
+
 export function canAddRole(user: RolesUser, role: PlatformRole): boolean {
   if (hasRole(user, role)) return false
   return userRoles(user).length < MAX_PLATFORM_ROLES

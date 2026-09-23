@@ -22,9 +22,9 @@ const emit = defineEmits<{
     style="border-radius: 2px;"
     role="listbox"
   >
-    <p v-if="pending && !suggestions.length" class="px-3 py-2 text-xs text-brand-gray-500">
-      {{ $t('common.loading') }}
-    </p>
+    <div v-if="pending && !suggestions.length" class="flex justify-center px-3 py-3">
+      <AppVenusSpinner size="sm" compact />
+    </div>
     <button
       v-for="(guest, idx) in suggestions"
       :key="`${guest.mobile}-${guest.name}-${idx}`"

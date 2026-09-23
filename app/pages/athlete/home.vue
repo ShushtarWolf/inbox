@@ -9,15 +9,23 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { firstName, displayName } = useAuth()
 const { competitionsEnabled } = usePilotFlags()
+const { canSwitchRole } = usePlatformRoles()
 
 const sport = ref('')
 const city = ref('')
 const date = ref('')
 const showDatePicker = ref(false)
 
-const { data: sports, pending: sportsPending } = await useFetch('/api/sports')
+function openAthleteDatePicker() {
+  requestAnimationFrame(() => {
+    showDatePicker.value = true
+  })
+}
 
-const { data: clubs, pending: clubsPending } = await useFetch('/api/clubs')
+const [{ data: sports, pending: sportsPending }, { data: clubs, pending: clubsPending }] = await Promise.all([
+  useFetch('/api/sports'),
+  useFetch('/api/clubs'),
+])
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 const greetName = computed(() => firstName.value || displayName.value || t('home.guestName'))
@@ -105,23 +113,31 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 <template>
   <div class="venus-page-stack">
     <section class="canva-photo-hero -mx-4 sm:-mx-0">
-      <img
+      <CanvaHeroImg
         src="/hero/fitness-venue.jpg"
         :alt="t('athlete.homePickCourt')"
-        class="canva-photo-hero-media"
-        style="filter: grayscale(0.55) brightness(0.72);"
+        img-class="canva-photo-hero-media"
+        img-style="filter: grayscale(0.55) brightness(0.72);"
         fetchpriority="high"
-        decoding="async"
       />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
         <InboxWordmark home-link class="text-base text-white" />
-        <div class="flex items-center gap-3 text-white">
-          <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
-            <AppIcon name="notifications" size="sm" />
-          </NuxtLink>
-          <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
-            <AppIcon name="person" size="sm" />
+        <div class="flex flex-col items-stretch gap-1">
+          <div class="flex items-center gap-3 text-white">
+            <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
+              <AppIcon name="notifications" size="sm" />
+            </NuxtLink>
+            <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
+              <AppIcon name="person" size="sm" />
+            </NuxtLink>
+          </div>
+          <NuxtLink
+            v-if="canSwitchRole"
+            :to="localePath('/choose-role')"
+            class="text-center text-[11px] font-semibold text-white"
+          >
+            {{ t('auth.changeRole') }}
           </NuxtLink>
         </div>
       </div>
@@ -176,7 +192,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
               type="button"
               class="canva-search-placeholder w-full text-center"
               :class="{ 'canva-search-placeholder-filled': date }"
-              @click="showDatePicker = true"
+              @click="openAthleteDatePicker"
             >
               {{ dateFieldLabel }}
             </button>
@@ -217,7 +233,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -248,7 +264,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>
@@ -279,7 +295,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             :to="clubHref(club.slug)"
             class="canva-venue-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" decoding="async" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
               {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
             </span>

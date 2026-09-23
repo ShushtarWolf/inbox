@@ -68,8 +68,7 @@ async function main() {
   console.log('ok  guest blocked from admin API')
 
   let athleteEmail = 'athlete@inbox.local'
-  let athletePassword = 'demo1234'
-  let athletePhone = null
+  let athletePhone = '09121234567'
   let ownerEmail = 'owner@inbox.local'
   let ownerPassword = 'demo1234'
 
@@ -80,10 +79,9 @@ async function main() {
     ownerPassword = owner.password
     const athlete = await registerAthlete(base, jar, 'athlete')
     athleteEmail = athlete.email
-    athletePassword = athlete.password
     athletePhone = athlete.phone
   } else {
-    await login(base, jar, 'athlete', athleteEmail, athletePassword)
+    await loginViaOtp(base, jar, 'athlete', athletePhone)
     await login(base, jar, 'owner', ownerEmail, ownerPassword)
     if (!pilotNoCoach) {
       await login(base, jar, 'coach', 'coach@inbox.local')
@@ -95,14 +93,14 @@ async function main() {
     await login(base, jar, 'owner', ownerEmail, ownerPassword)
   }
 
-  // Open redirect rejected in login response (password path for seed; OTP path for prod)
-  if (athletePassword) {
+  // Open redirect rejected (owner password path; athlete is OTP-only)
+  {
     const openRedirect = await fetch(`${base}/api/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        email: athleteEmail,
-        password: athletePassword,
+        email: ownerEmail,
+        password: ownerPassword,
         returnTo: 'https://evil.com',
       }),
     })
@@ -111,11 +109,6 @@ async function main() {
     if (loginBody.redirectTo?.includes('evil.com')) {
       throw new Error('login accepted external returnTo redirect')
     }
-  } else if (athletePhone) {
-    const otpLogin = await loginViaOtp(base, jar, 'athlete', athletePhone)
-    if (otpLogin.redirectTo?.includes('evil.com')) {
-      throw new Error('OTP login accepted external returnTo redirect')
-    }
   }
   console.log('ok  login sanitizes open redirect')
 
@@ -123,18 +116,12 @@ async function main() {
   if (!meAthlete.ok) throw new Error('authenticated /api/auth/me failed')
   console.log('ok  authenticated /api/auth/me')
 
-  // Session cookie must be HttpOnly (check Set-Cookie from a fresh login)
-  const cookieProbe = athletePassword
-    ? await fetch(`${base}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: athleteEmail, password: athletePassword }),
-      })
-    : await fetch(`${base}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
-      })
+  // Session cookie must be HttpOnly (check Set-Cookie from a fresh staff password login)
+  const cookieProbe = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
+  })
   const setCookies = typeof cookieProbe.headers.getSetCookie === 'function'
     ? cookieProbe.headers.getSetCookie()
     : []
@@ -191,57 +178,54 @@ async function main() {
     console.log('ok  pilot: coach APIs gated')
   }
 
-  // Password athlete register (MVP while SMS OTP is gated)
-  const stamp = Date.now()
-  const pwPhone = `0912${String(stamp).slice(-7)}`
-  const pwJar = createCookieJar()
+  // Athlete password register retired (OTP-only); staff password login still works
   const pwRegister = await apiFetch(base, '/api/auth/register', {
-    jar: pwJar,
+    jar: createCookieJar(),
     session: 'pw-athlete',
     method: 'POST',
     body: {
       name: 'Password Athlete',
-      phone: pwPhone,
+      phone: `0912${String(Date.now()).slice(-7)}`,
       password: 'demo1234',
       gender: 'MALE',
     },
   })
-  if (!pwRegister.res.ok) throw new Error(`password register expected 200, got ${pwRegister.res.status}`)
-  if (pwRegister.data.role !== 'ATHLETE') {
-    throw new Error(`password register escalated to ${pwRegister.data.role}`)
+  if (pwRegister.res.status !== 410) {
+    throw new Error(`athlete password register expected 410, got ${pwRegister.res.status}`)
   }
-  console.log('ok  password athlete register without live SMS')
+  console.log('ok  athlete password register retired (410)')
 
-  const pwLoginPhone = await fetch(`${base}/api/auth/login`, {
+  const athletePwLogin = await fetch(`${base}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: pwPhone, password: 'demo1234' }),
+    body: JSON.stringify({ email: athleteEmail, password: 'demo1234' }),
   })
-  if (!pwLoginPhone.ok) throw new Error(`phone password login expected 200, got ${pwLoginPhone.status}`)
-  console.log('ok  login with phone + password')
+  if (athletePwLogin.status !== 401) {
+    throw new Error(`athlete password login expected 401, got ${athletePwLogin.status}`)
+  }
+  console.log('ok  athlete password login rejected')
 
-  // Body role cannot escalate athlete password register to CLUB_ADMIN
-  const escalate = await fetch(`${base}/api/auth/register`, {
+  const ownerPwLogin = await fetch(`${base}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      name: 'Escalator',
-      email: `escalate-${stamp}@example.com`,
-      password: 'demo1234',
-      role: 'CLUB_ADMIN',
-      locale: 'en',
-      gender: 'MALE',
-    }),
+    body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
   })
-  if (!escalate.ok) throw new Error(`athlete register expected 200, got ${escalate.status}`)
-  const escalateBody = await escalate.json()
-  if (escalateBody.role !== 'ATHLETE') {
-    throw new Error(`password register escalated to ${escalateBody.role}`)
+  if (!ownerPwLogin.ok) throw new Error(`owner password login expected 200, got ${ownerPwLogin.status}`)
+  console.log('ok  owner password login')
+
+  // Seed/provisioned staff with password cannot also OTP-login (XOR)
+  const ownerOtpReq = await fetch(`${base}/api/auth/otp/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phone: '09124445566', purpose: 'login' }),
+  })
+  if (!skipDemo && ownerOtpReq.status !== 403) {
+    throw new Error(`owner OTP request expected 403 (password account), got ${ownerOtpReq.status}`)
   }
-  console.log('ok  password register stays ATHLETE (ignores role escalation)')
+  if (!skipDemo) console.log('ok  owner OTP login blocked when password is set')
 
   // Phone OTP register path still works in log mode (debugCode)
-  const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete', { viaOtp: true })
+  const otpAthlete = await registerAthlete(base, createCookieJar(), 'otp-athlete')
   if (otpAthlete.role !== 'ATHLETE') {
     throw new Error(`OTP register escalated to ${otpAthlete.role}`)
   }

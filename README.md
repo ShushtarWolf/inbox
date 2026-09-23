@@ -2,6 +2,8 @@
 
 Nuxt 4 app for padel & tennis court and coach booking. PWA, FA/EN, three role dashboards.
 
+Persian UI digits/bidi/spacing: see [`.cursor/rules/persian-typography.mdc`](.cursor/rules/persian-typography.mdc) (fonts and Canva look stay locked).
+
 ## Setup
 
 **PostgreSQL is required** — SQLite is not supported. Use Docker Compose:

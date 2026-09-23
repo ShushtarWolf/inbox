@@ -17,12 +17,22 @@ type BookingNotifyOpts = {
   phone?: string | null
   clubName: string
   date: string
+  /** Inclusive series end — when set with sessionCount > 1, copy describes a recurring range. */
+  finishDate?: string | null
   startTime: string
   endTime?: string | null
+  /** Number of sessions created in a season/package series. */
+  sessionCount?: number | null
   kind: BookingNotifyKind
   bookingId?: string
   clubId?: string
   courtName?: string | null
+  /** Court number/label for package SMS («زمین شماره (… )»). */
+  courtNumber?: string | null
+  /** Class package title when kind === 'package'. */
+  packageName?: string | null
+  /** Athlete dashboard link override (defaults to /athlete/bookings). */
+  dashboardUrl?: string | null
   paymentPaid?: boolean
   address?: string | null
   mapsUrl?: string | null
@@ -36,6 +46,32 @@ type BookingNotifyOpts = {
   amountPaid?: number | null
   /** Skip athlete/guest channels but still alert platform admin. */
   skipGuest?: boolean
+}
+
+export type OwnerBookingSessionLine = {
+  courtName?: string | null
+  date: string
+  startTime: string
+  endTime?: string | null
+}
+
+type OwnerBookingConfirmedOpts = {
+  ownerPhone?: string | null
+  clubName: string
+  clubId?: string
+  bookingId?: string
+  guestName?: string | null
+  guestPhone?: string | null
+  trackingCode?: string | null
+  /** Receipt / order detail URL shown under «مشاهده جزئیات سفارش». */
+  orderUrl?: string | null
+  /** One line per court session: زمین | تاریخ | شروع تا پایان */
+  sessions?: OwnerBookingSessionLine[]
+  /** Fallback when sessions is empty — single court/time. */
+  date?: string
+  startTime?: string
+  endTime?: string | null
+  courtName?: string | null
 }
 
 type OwnerBookingPaidOpts = {
@@ -57,6 +93,7 @@ type BookingSmsTemplate =
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_CANCELLED'
   | 'BOOKING_PAID'
+  | 'OWNER_BOOKING_CONFIRMED'
   | 'OWNER_BOOKING_PAID'
   | 'OWNER_BOOKING_CANCELLED'
   | 'WAITLIST_SLOT_AVAILABLE'
@@ -181,41 +218,69 @@ function payLinkLookupTemplate() {
   return process.env.KAVENEGAR_TEMPLATE_PAY_LINK?.trim() || ''
 }
 
-/** Optional second SMS: Kavenegar panel template with https://inboxs.ir/p/%token% (tappable URL). */
+/**
+ * Optional tappable pay-link SMS via dedicated Verify Lookup template
+ * (e.g. panel `payments` with `https://inboxs.ir/p/%token%`).
+ * Works on Path A too — Lookup is independent of free-text notify.
+ */
+export async function sendBookingPayLinkSms(opts: {
+  phone: string | null | undefined
+  payPin: string
+  payUrl?: string
+  clubId?: string
+}) {
+  const template = payLinkLookupTemplate()
+  const phone = opts.phone
+  const payPin = String(opts.payPin || '').trim()
+  if (!phone || !template || !payPin) {
+    return { sent: false, reason: !template ? 'template_unset' : 'missing_phone_or_pin' as const }
+  }
+  try {
+    const result = await sendSms({
+      to: phone,
+      body: opts.payUrl || payPin,
+      clubId: opts.clubId,
+      purpose: 'notify',
+      template: 'BOOKING_CONFIRMED',
+      lookup: { template, token: payPin },
+    })
+    return { sent: Boolean(result.sent), reason: result.sent ? 'ok' as const : 'not_sent' as const }
+  } catch (err) {
+    console.error('[bookingNotify:sms] BOOKING_PAY_LINK', err)
+    return { sent: false, reason: 'error' as const }
+  }
+}
+
+/** @deprecated use sendBookingPayLinkSms — kept as internal alias for notify path */
 async function sendPayLinkLookup(
   phone: string | null | undefined,
   payPin: string,
   payUrl: string,
   clubId?: string,
 ) {
-  const template = payLinkLookupTemplate()
-  if (!phone || !template || !payPin) return
-  try {
-    await sendSms({
-      to: phone,
-      body: payUrl || payPin,
-      clubId,
-      purpose: 'notify',
-      template: 'BOOKING_CONFIRMED',
-      lookup: { template, token: payPin },
-    })
-  } catch (err) {
-    console.error('[bookingNotify:sms] BOOKING_PAY_LINK', err)
-  }
+  await sendBookingPayLinkSms({ phone, payPin, payUrl, clubId })
 }
 
 function bookingNotifyData(opts: BookingNotifyOpts) {
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
-  const receiptUrl = opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
+  // Package seats are PackageBooking rows — no court receipt token.
+  const receiptUrl = opts.kind === 'package'
+    ? (opts.receiptUrl || '')
+    : (opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : ''))
   const payPin = String(opts.payPin || '').trim()
   const payUrl = opts.payUrl || (payPin ? payUrlForPin(payPin) : '')
   return {
     kind: opts.kind,
     clubName: opts.clubName,
     date: opts.date,
+    finishDate: opts.finishDate || '',
     startTime: opts.startTime,
     endTime: opts.endTime || '',
+    sessionCount: opts.sessionCount ?? null,
     courtName: opts.courtName || '',
+    courtNumber: opts.courtNumber || opts.courtName || '',
+    packageName: opts.packageName || '',
+    dashboardUrl: opts.dashboardUrl || '',
     paymentPaid: opts.paymentPaid,
     address: opts.address || '',
     mapsUrl: opts.mapsUrl || '',
@@ -228,11 +293,30 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
   }
 }
 
-function whenLine(opts: BookingNotifyOpts) {
+/** Shared when-line for in-app / admin — supports single slot or series range. */
+export function whenLine(opts: {
+  date?: string | null
+  finishDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  sessionCount?: number | null
+}) {
   const start = opts.startTime ? formatSmsTime(opts.startTime) : ''
   const end = opts.endTime ? formatSmsTime(opts.endTime) : ''
   const time = start && end && end !== start ? `از ${start} تا ${end}` : start
   const date = opts.date ? formatSmsJalaliDate(opts.date) : ''
+  const finish = opts.finishDate ? formatSmsJalaliDate(opts.finishDate) : ''
+  const count = typeof opts.sessionCount === 'number' && opts.sessionCount > 1
+    ? opts.sessionCount
+    : 0
+  if (count && date && finish && finish !== date) {
+    const sessions = `${toPersianDigits(String(count))} سانس`
+    const range = `${date} تا ${finish}`
+    return [range, `(${sessions})`, time].filter(Boolean).join(' ')
+  }
+  if (count && date) {
+    return [`${date} (${toPersianDigits(String(count))} سانس)`, time].filter(Boolean).join(' ')
+  }
   const when = [date, time].filter(Boolean).join(' ')
   return when || '—'
 }
@@ -323,6 +407,34 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
     await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
   }
   await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
+}
+
+/**
+ * Soft-fail SMS to club owner when an athlete places a new booking («سفارش جدید»).
+ * Full multi-line body is logged; live lookup still packs via token10.
+ */
+export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
+  if (!opts.ownerPhone) return
+  const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
+  const orderUrl = opts.orderUrl
+    || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
+  const data: Record<string, unknown> = {
+    clubName: opts.clubName,
+    guestName: opts.guestName || '',
+    guestPhone: opts.guestPhone || '',
+    trackingCode,
+    orderUrl,
+    receiptUrl: orderUrl,
+  }
+  if (opts.sessions?.length) {
+    data.sessions = opts.sessions
+  } else {
+    data.date = opts.date || ''
+    data.startTime = opts.startTime || ''
+    data.endTime = opts.endTime || ''
+    data.courtName = opts.courtName || ''
+  }
+  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_CONFIRMED', data, opts.clubId)
 }
 
 /**

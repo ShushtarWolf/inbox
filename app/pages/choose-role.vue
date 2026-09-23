@@ -5,6 +5,7 @@ definePageMeta({ middleware: ['auth'], ssr: false })
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { formatPhone } = useFormatters()
 const { openRegister } = useAuthFlow()
 const {
   user,
@@ -72,11 +73,11 @@ async function onPick(role: PlatformRole) {
       style="border-radius: 2px;"
     >
       <span class="inline-block h-2 w-2 bg-emerald-600" aria-hidden="true" />
-      {{ user.phone }}
+      <bdi dir="ltr" class="tabular-nums">{{ formatPhone(user.phone) }}</bdi>
     </div>
 
-    <div v-if="loading" class="mt-8 text-sm text-brand-gray-600">
-      {{ t('common.loading') }}
+    <div v-if="loading" class="mt-8">
+      <AppVenusSpinner size="sm" :label="t('common.loading')" />
     </div>
 
     <div

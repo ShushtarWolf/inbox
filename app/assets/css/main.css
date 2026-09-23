@@ -1,4 +1,13 @@
-@import 'material-symbols/rounded.css';
+/* Self-hosted Material Symbols subset (~12KB). Full npm package is ~5MB and
+   often fails on slow phones, showing raw ligature text (e.g. chevron_left).
+   Rebuild: node scripts/subset-material-symbols.mjs */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-rounded-subset.woff2') format('woff2');
+}
 /* Self-host variable fonts with optional display to avoid FOUT CLS (Clarity). */
 @font-face {
   font-family: 'Vazirmatn Variable';
@@ -167,6 +176,15 @@
   .tail-select:focus,
   .tail-textarea:focus {
     @apply border-0 shadow-none;
+  }
+  .neo-input:focus-visible,
+  .neo-select:focus-visible,
+  .neo-textarea:focus-visible,
+  .tail-input:focus-visible,
+  .tail-select:focus-visible,
+  .tail-textarea:focus-visible {
+    outline: 3px solid var(--brand-primary, #173f5f);
+    outline-offset: 2px;
   }
   .neo-textarea,
   .tail-textarea {
@@ -445,6 +463,14 @@
     border-radius: var(--sz-canva-radius);
     box-shadow: none;
   }
+  /* picture wrappers for CanvaHeroImg — keep absolute media non-hittable on Safari */
+  .canva-hero > picture,
+  .canva-photo-hero > picture,
+  .canva-venue-card > picture,
+  .canva-court-card > picture,
+  .canva-competition-card > picture {
+    @apply pointer-events-none absolute inset-0 block;
+  }
   .canva-hero-media {
     /* pointer-events-none: Safari treats absolute media as a tap barrier over siblings/chrome */
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover opacity-55;
@@ -469,11 +495,80 @@
     object-fit: contain;
     object-position: center 68%;
   }
+  /* Scan/cut wordmark — adapted from uiverse.io/kat_2522/rude-robin-51; keep font-display. */
   .inbox-wordmark {
+    position: relative;
     line-height: 1;
     display: inline-flex;
     align-items: center;
+    max-width: fit-content;
     transform: translateY(0.12em);
+  }
+  .inbox-wordmark-text {
+    display: inline-block;
+    animation: inbox-wordmark-cut 2s infinite;
+  }
+  .inbox-wordmark::before,
+  .inbox-wordmark::after {
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 0;
+    width: 100%;
+    border-radius: 2px;
+    pointer-events: none;
+    animation: inbox-wordmark-scan 2s infinite;
+  }
+  .inbox-wordmark::before {
+    height: 0.12em;
+    background-color: #c41e1e;
+    opacity: 0.9;
+    z-index: 1;
+  }
+  .inbox-wordmark::after {
+    height: 0.14em;
+    background-color: #c41e1e91;
+    filter: blur(10px);
+    z-index: 0;
+  }
+  @keyframes inbox-wordmark-scan {
+    0% {
+      top: 0;
+    }
+    25% {
+      top: calc(100% - 0.12em);
+    }
+    50% {
+      top: 0;
+    }
+    75% {
+      top: calc(100% - 0.12em);
+    }
+  }
+  @keyframes inbox-wordmark-cut {
+    0% {
+      clip-path: inset(0 0 0 0);
+    }
+    25% {
+      clip-path: inset(100% 0 0 0);
+    }
+    50% {
+      clip-path: inset(0 0 100% 0);
+    }
+    75% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .inbox-wordmark-text {
+      animation: none;
+    }
+    .inbox-wordmark::before,
+    .inbox-wordmark::after {
+      animation: none;
+      content: none;
+      display: none;
+    }
   }
   .canva-hero {
     touch-action: pan-y;
@@ -1282,8 +1377,9 @@
   .canva-legend-dot {
     @apply h-2.5 w-2.5 rounded-full;
   }
+  /* Above AppBottomNav (z-50) so رزرو stays tappable on phone when slots are selected. */
   .canva-selection-bar {
-    @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
+    @apply fixed inset-x-0 z-[55] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
   }
   .canva-selection-bar-inner {
@@ -1303,7 +1399,9 @@
     @apply flex w-full flex-col gap-2 lg:w-auto lg:shrink-0 lg:flex-row lg:items-stretch;
   }
   .canva-selection-bar-btn-primary,
-  .canva-selection-bar-btn-secondary {
+  .canva-selection-bar-btn-secondary,
+  .canva-selection-bar-btn-manual,
+  .canva-selection-bar-btn-ghost {
     @apply inline-flex shrink-0 items-center justify-center whitespace-nowrap px-3 py-2.5 text-sm font-bold transition w-full lg:w-auto lg:min-w-[5.75rem] lg:flex-none;
     border-radius: var(--sz-canva-radius);
   }
@@ -1318,6 +1416,15 @@
   }
   .canva-selection-bar-btn-secondary:disabled {
     @apply cursor-not-allowed border-brand-gray-300 text-brand-gray-400 hover:bg-white;
+  }
+  .canva-selection-bar-btn-manual {
+    @apply border border-dashed border-brand-gray-400 bg-brand-gray-100 text-brand-navy hover:bg-brand-gray-200;
+  }
+  .canva-selection-bar-btn-manual:disabled {
+    @apply cursor-not-allowed border-brand-gray-300 text-brand-gray-400 hover:bg-brand-gray-100;
+  }
+  .canva-selection-bar-btn-ghost {
+    @apply border border-transparent bg-transparent text-brand-gray-600 hover:bg-brand-gray-100 hover:text-brand-navy;
   }
   .canva-error-brand {
     @apply mx-auto mb-2 h-14 w-auto max-w-[10rem];
@@ -1434,6 +1541,56 @@
     @apply bg-white p-3;
     border-radius: var(--sz-canva-radius);
     border: 1px solid #e8e4de;
+  }
+
+  /*
+   * Card hover — SteveBloX uiverse.io/SteveBloX/dangerous-warthog-85
+   * Motion only (scale + active press). Keep Canva radius / brand surfaces.
+   */
+  .ios-card,
+  .neo-card,
+  .tail-card,
+  .canva-venue-card,
+  .canva-coach-card,
+  .canva-competition-card,
+  .canva-court-card,
+  .canva-fav-card,
+  .canva-list-card,
+  .canva-history-card,
+  .canva-role-card {
+    transition: transform 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .ios-card:hover,
+    .neo-card:hover,
+    .tail-card:hover,
+    .canva-venue-card:hover,
+    .canva-coach-card:hover,
+    .canva-competition-card:hover,
+    .canva-court-card:hover,
+    .canva-fav-card:hover,
+    .canva-list-card:hover,
+    .canva-history-card:hover,
+    .canva-role-card:hover {
+      position: relative;
+      z-index: 2;
+      transform: scale(1.05);
+    }
+
+    .ios-card:active,
+    .neo-card:active,
+    .tail-card:active,
+    .canva-venue-card:active,
+    .canva-coach-card:active,
+    .canva-competition-card:active,
+    .canva-court-card:active,
+    .canva-fav-card:active,
+    .canva-list-card:active,
+    .canva-history-card:active,
+    .canva-role-card:active {
+      transform: scale(0.95) rotateZ(1.7deg);
+    }
   }
   .canva-history-card-main {
     @apply flex items-stretch gap-2.5;
@@ -1691,6 +1848,58 @@
   .canva-club-detail-section-title {
     @apply text-base font-bold text-brand-primary;
   }
+  .canva-club-citation {
+    @apply space-y-4 border-t border-brand-gray-100 pt-3;
+  }
+
+  /* In-app Help / FAQ accordion — square Canva chrome (no pills) */
+  .canva-help {
+    @apply mx-auto w-full max-w-2xl space-y-3 px-4 pb-10 text-start;
+  }
+  .canva-help-title {
+    @apply text-base font-bold text-brand-primary;
+  }
+  .canva-help-hubs {
+    @apply space-y-2 border border-brand-gray-200 bg-white p-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-help-hubs-label {
+    @apply text-start text-xs font-bold text-brand-gray-600;
+  }
+  .canva-faq {
+    @apply space-y-2 text-start;
+  }
+  .canva-faq-title {
+    @apply text-base font-bold text-brand-primary;
+  }
+  .canva-faq-list {
+    @apply space-y-2;
+  }
+  .canva-faq-item {
+    @apply border border-brand-gray-200 bg-white;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-faq-trigger {
+    @apply flex w-full items-center justify-between gap-2 px-3 py-3 text-start;
+  }
+  .canva-faq-question {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-faq-chevron {
+    @apply shrink-0 text-brand-gray-600 transition-transform;
+  }
+  .canva-faq-chevron-open {
+    transform: rotate(180deg);
+  }
+  .canva-faq-panel {
+    @apply border-t border-brand-gray-100 px-3 py-3;
+  }
+  .canva-faq-answer {
+    @apply text-sm leading-relaxed text-brand-gray-600;
+  }
+  .canva-faq-link {
+    @apply font-bold text-brand-primary underline-offset-2 hover:underline;
+  }
   .canva-club-detail-cta {
     @apply w-full px-4 py-3.5 text-sm font-bold;
     border-radius: var(--sz-canva-radius);
@@ -1779,6 +1988,19 @@
     transform: translateX(-50%);
     background: #2f9e44;
     border-radius: var(--sz-canva-radius);
+  }
+  /* Other days that still have basket hours (multi-day pick). */
+  .canva-club-cal-day-basket::after {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    transform: translateX(-50%);
+    background: #2f9e44;
+    border-radius: var(--sz-canva-radius);
+    opacity: 0.55;
   }
   .canva-club-cal-day-disabled {
     @apply cursor-not-allowed opacity-35;
@@ -2055,9 +2277,23 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9) — date centered above the court cells */
+  /* Canva multi-court today grid (home page 9) — date centered; block/reserve FABs on inline-end */
   .canva-cal-date-nav {
     @apply relative mb-2 flex min-h-[2.5rem] items-center justify-center pt-0.5 text-sm font-bold text-[#3B82F6];
+    padding-inline-end: 7.25rem;
+  }
+  .canva-cal-date-fabs {
+    @apply absolute inset-y-0 end-0 z-[2] flex items-center gap-1.5;
+  }
+  .canva-cal-fab {
+    @apply inline-flex h-8 min-w-[3.25rem] items-center justify-center px-2.5 text-[11px] font-bold text-white disabled:opacity-35;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-cal-fab-block {
+    background: #1A1A18;
+  }
+  .canva-cal-fab-reserve {
+    background: #C41E1E;
   }
   .canva-cal-date-nav-center {
     @apply flex min-w-0 items-center justify-center gap-1;
@@ -2108,7 +2344,14 @@
   }
   .canva-cal-grid-cell-selected {
     z-index: 1;
-    box-shadow: inset 0 0 0 2px #3B82F6;
+    box-shadow: inset 0 0 0 2px #2563eb;
+  }
+  .canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected {
+    background: #dbeafe;
+    color: #1e3a8a;
+  }
+  .canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected .canva-cal-grid-cell-label {
+    color: #1e3a8a;
   }
   .canva-cal-grid-cell-bar {
     position: absolute;
@@ -2116,15 +2359,17 @@
     inset-inline-start: 0;
     width: 3px;
     border-radius: 0;
+    pointer-events: none;
+    z-index: 0;
   }
   .canva-cal-grid-cell-body {
-    @apply relative z-[1] flex min-h-[2.6rem] flex-1 flex-col justify-start gap-0.5 pt-1 pe-3.5 ps-2.5;
+    @apply relative z-[1] flex min-h-[2.6rem] min-w-0 flex-1 flex-col justify-start gap-0.5 overflow-hidden pt-1 pe-4 ps-2.5;
   }
   .canva-cal-grid-cell-label {
-    @apply line-clamp-1 text-[11px] font-bold leading-tight text-[#2c2c2a];
+    @apply block max-w-full truncate text-[11px] font-bold leading-tight text-[#2c2c2a];
   }
   .canva-cal-grid-cell-sub {
-    @apply line-clamp-2 text-[10px] font-medium leading-snug text-[#4a4a46];
+    @apply max-w-full truncate text-[10px] font-medium leading-snug text-[#4a4a46];
   }
   .canva-cal-grid-cell.slot-reserved .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-reserved-cash .canva-cal-grid-cell-label,
@@ -2173,6 +2418,15 @@
     background: var(--sz-cal-grid-blocked);
     color: #2c2c2a;
   }
+
+  .canva-cal-grid-cell.slot-external-uncertain {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+  .canva-cal-grid-cell.slot-external-uncertain .canva-cal-grid-cell-label {
+    color: #92400e;
+  }
+
   .canva-cal-grid-cell.slot-reserved-unpaid {
     background: var(--sz-cal-grid-reserved-unpaid);
     color: #2c2c2a;
@@ -2207,16 +2461,16 @@
     background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-blocked {
-    background: var(--sz-slot-blocked);
+    background: #1A1A18;
   }
   .canva-cal-grid-cell-bar-reserved-unpaid {
-    background: #d97706;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-reserved-ipg {
-    background: #4A1420;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-reserved-recurring {
-    background: #6B4C9A;
+    background: #C41E1E;
   }
   .canva-cal-grid-cell-bar-pending {
     background: #E8B84A;
@@ -2246,13 +2500,13 @@
   .canva-cal-grid-check {
     position: absolute;
     z-index: 2;
-    width: 8px;
-    height: 8px;
-    inset-inline-end: 3px;
-    inset-block-end: 3px;
+    width: 14px;
+    height: 14px;
+    inset-inline-end: 4px;
+    inset-block-end: 4px;
     inset-inline-start: auto;
     inset-block-start: auto;
-    border: 1px solid #b8b3aa;
+    border: 1.5px solid #b8b3aa;
     background: #fff;
     border-radius: 1px;
     pointer-events: none;
@@ -2265,7 +2519,7 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-cal-grid-check-on {
-    @apply border-[#3B82F6] bg-[#3B82F6];
+    @apply border-[#2563eb] bg-[#2563eb];
   }
   .canva-owner-avatar {
     @apply inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
@@ -2375,7 +2629,29 @@
     @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2.5 text-sm;
   }
   .canva-recurring-check {
-    @apply flex items-start gap-2 text-xs font-bold text-brand-navy;
+    @apply flex w-full items-start gap-2 text-xs font-bold text-brand-navy;
+  }
+  .canva-recurring-check .canva-recurring-checkbox {
+    @apply mt-0.5 h-[1.05rem] w-[1.05rem] border-brand-gray-400;
+  }
+  .canva-recurring-check .canva-recurring-checkbox:checked {
+    border-color: var(--color-brand-primary, #c8102e);
+    background-color: var(--color-brand-primary, #c8102e);
+  }
+  .canva-reserve-head {
+    @apply flex flex-wrap items-center justify-start gap-2;
+  }
+  .canva-reserve-title {
+    @apply inline-flex items-center gap-1.5 text-base font-bold text-brand-navy;
+  }
+  .canva-reserve-head-links {
+    @apply mt-2 flex flex-col;
+  }
+  .canva-reserve-head-link {
+    @apply flex w-full items-center justify-start gap-2 border-b border-brand-gray-100 py-3 text-start text-sm font-bold text-brand-navy;
+  }
+  .canva-legend-paid-dot {
+    @apply inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#16A34A];
   }
   .canva-cal-club-switch {
     @apply mt-1 block max-w-full;
@@ -2537,7 +2813,7 @@
     @apply border-b border-brand-gray-200 bg-brand-gray-50;
   }
   .tail-table th {
-    @apply px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-brand-gray-500;
+    @apply px-4 py-3 text-start text-xs font-medium text-brand-gray-500;
   }
   .tail-table tbody tr {
     @apply border-b border-brand-gray-200 transition hover:bg-brand-gray-50 last:border-b-0;
@@ -2581,11 +2857,86 @@
     white-space: nowrap;
     word-wrap: normal;
     direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   }
   .material-symbols-rounded.filled {
     font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   }
+  /* Folding cube grid spinner (CodeFronts sp-11, MIT) — brand palette */
+  .venus-fold-spinner,
+  .venus-fold-spinner *,
+  .venus-fold-spinner *::before,
+  .venus-fold-spinner *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  .venus-fold-spinner {
+    --venus-fold-c: #c41e1e;
+    --venus-fold-glow: rgba(196, 30, 30, 0.45);
+    --venus-fold-cell: 14px;
+    --venus-fold-gap: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .venus-fold-spinner-sm {
+    --venus-fold-cell: 10px;
+    --venus-fold-gap: 2px;
+  }
+  .venus-fold-spinner-lg {
+    --venus-fold-cell: 18px;
+    --venus-fold-gap: 4px;
+  }
+  .venus-fold-spinner__grid {
+    display: grid;
+    grid-template-columns: repeat(3, var(--venus-fold-cell));
+    grid-template-rows: repeat(3, var(--venus-fold-cell));
+    gap: var(--venus-fold-gap);
+  }
+  .venus-fold-spinner__cube {
+    width: var(--venus-fold-cell);
+    height: var(--venus-fold-cell);
+    background: var(--venus-fold-c);
+    box-shadow: 0 0 8px var(--venus-fold-glow);
+    border-radius: 2px;
+    animation: venus-fold-spinner-fold 1.8s ease-in-out infinite;
+  }
+  .venus-fold-spinner__cube:nth-child(1) { animation-delay: 0s; }
+  .venus-fold-spinner__cube:nth-child(2) { animation-delay: 0.1s; }
+  .venus-fold-spinner__cube:nth-child(3) { animation-delay: 0.2s; }
+  .venus-fold-spinner__cube:nth-child(4) { animation-delay: 0.3s; }
+  .venus-fold-spinner__cube:nth-child(5) { animation-delay: 0.4s; }
+  .venus-fold-spinner__cube:nth-child(6) { animation-delay: 0.5s; }
+  .venus-fold-spinner__cube:nth-child(7) { animation-delay: 0.6s; }
+  .venus-fold-spinner__cube:nth-child(8) { animation-delay: 0.7s; }
+  .venus-fold-spinner__cube:nth-child(9) { animation-delay: 0.8s; }
+  @keyframes venus-fold-spinner-fold {
+    0%,
+    100% {
+      transform: perspective(60px) rotateX(0deg) rotateY(0deg);
+      opacity: 1;
+    }
+    33% {
+      transform: perspective(60px) rotateX(-90deg) rotateY(0deg);
+      opacity: 0.4;
+    }
+    66% {
+      transform: perspective(60px) rotateX(-90deg) rotateY(90deg);
+      opacity: 0.4;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venus-fold-spinner__cube {
+      animation: none;
+    }
+  }
+  /* Legacy circular spinner aliases kept for any leftover class usage */
   .venus-spinner,
   .tail-spinner {
     @apply inline-block h-8 w-8 rounded-full border-[3px] border-brand-gray-200 border-t-brand-primary animate-venus-spin;
@@ -2598,7 +2949,10 @@
   }
   .venus-loading-block,
   .tail-loading-block {
-    @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
+    @apply flex flex-col items-center justify-center gap-3 py-6 text-center;
+  }
+  .venus-loading-block-compact {
+    @apply gap-2 py-2;
   }
   .venus-loading-label,
   .tail-loading-label {

@@ -35,8 +35,27 @@ const route = useRoute()
 const open = ref(false)
 const accountOpen = ref(false)
 const accountAnchor = ref<HTMLElement | null>(null)
+const holdsNavBodyLock = ref(false)
 const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
 const { heldRoles } = usePlatformRoles()
+
+function acquireNavLock() {
+  if (holdsNavBodyLock.value) return
+  acquireModalBodyLock()
+  holdsNavBodyLock.value = true
+}
+
+function releaseNavLock() {
+  if (!holdsNavBodyLock.value) return
+  releaseModalBodyLock()
+  holdsNavBodyLock.value = false
+}
+
+watch(open, (isOpen) => {
+  if (!import.meta.client || props.phoneShell) return
+  if (isOpen) acquireNavLock()
+  else releaseNavLock()
+})
 
 const canSwitchRole = computed(() => heldRoles.value.length >= 2)
 
@@ -121,6 +140,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (import.meta.client) {
     document.removeEventListener('keydown', onKeydown)
+    releaseNavLock()
   }
 })
 
@@ -135,7 +155,17 @@ function goBack() {
 
 <template>
   <div :class="rootClass">
-    <div v-if="open && !phoneShell" :class="backdropClass" role="presentation" @click="open = false" />
+    <Teleport to="body">
+      <Transition name="venus-modal">
+        <div
+          v-if="open && !phoneShell"
+          :class="backdropClass"
+          role="presentation"
+          data-dashboard-nav-overlay
+          @click="open = false"
+        />
+      </Transition>
+    </Teleport>
 
     <div :class="[drawerWrapClass, drawerStateClass]">
       <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />

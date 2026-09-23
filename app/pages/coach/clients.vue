@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
-const { formatPhone } = useFormatters()
+const { formatPhone, formatIsoDate, formatTimeLabel } = useFormatters()
 const { data, pending, error } = await useAuthedFetch<{
   clients?: Array<{
     id: string
@@ -34,7 +34,7 @@ const { data, pending, error } = await useAuthedFetch<{
               </p>
               <p class="mt-0.5 text-[11px] text-brand-gray-500">
                 {{ $t('coach.nextSession') }}:
-                <bdi dir="ltr" class="tabular-nums">{{ c.nextSessionDate }} · {{ c.nextSessionTime }}</bdi>
+                <bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(c.nextSessionDate) }} · {{ formatTimeLabel(c.nextSessionTime) }}</bdi>
               </p>
             </div>
           </article>

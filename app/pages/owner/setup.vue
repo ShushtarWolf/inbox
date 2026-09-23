@@ -165,7 +165,7 @@ async function finish() {
     <AppAsyncState :pending="pending" :error="fetchError" skeleton-variant="default">
       <p v-if="saveError || finishError" class="text-sm text-red-600">{{ saveError || finishError }}</p>
 
-      <section v-if="step === 1" class="venus-form-stack ios-card p-4">
+      <section v-if="step === 1" class="venus-form-stack canva-panel">
         <h2 class="font-bold">{{ t('owner.setupProfile') }}</h2>
         <AppFormField :label="t('owner.nameFa')">
           <input v-model="profile.nameFa" class="neo-input" required />
@@ -192,11 +192,11 @@ async function finish() {
         </button>
       </section>
 
-      <section v-else class="venus-form-stack ios-card p-4">
+      <section v-else class="venus-form-stack canva-panel">
         <h2 class="font-bold">{{ t('owner.setupCourts') }}</h2>
         <p class="text-xs text-brand-gray-500">{{ t('owner.setupCourtsHint') }}</p>
         <ul class="space-y-2 text-sm">
-          <li v-for="court in courts" :key="court.id" class="ios-card flex items-center justify-between gap-2 p-2">
+          <li v-for="court in courts" :key="court.id" class="canva-settings-court-row">
             <span class="font-bold">{{ formatFaDigits(court.nameFa) }} / {{ court.nameEn }}</span>
             <span class="tabular-nums text-brand-gray-600" dir="ltr">{{ formatCurrency(court.price) }}</span>
           </li>
@@ -213,7 +213,7 @@ async function finish() {
         <AppFormField :label="t('owner.settingsPage.courtCount')" :hint="t('owner.settingsPage.courtCountHint')" numeric>
           <AppNumericInput v-model="newCourt.count" :min="1" :max="30" />
         </AppFormField>
-        <button type="button" class="btn-secondary w-full" :disabled="saving" @click="addCourt">
+        <button type="button" class="canva-gate-btn-secondary w-full" :disabled="saving" @click="addCourt">
           {{ t('owner.addCourt') }}
         </button>
         <button type="button" class="canva-gate-btn-primary w-full" :disabled="saving || !courtsReady" @click="finish">

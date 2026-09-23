@@ -3,6 +3,7 @@ import { fetchExternalOccupancy } from '../../lib/adapters'
 import { persistAndMergeExternalOccupancy } from '../../lib/occupancySnapshots'
 import { computeSuspectedSlots } from '../../lib/suspected'
 import { loadPublicClubSlots, resolveActiveClubBySlug } from '../../lib/publicClubSlots'
+import type { ManualOverrideRow } from '../../../../lib/manualOverrideLogic'
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
@@ -31,6 +32,16 @@ export default defineEventHandler(async (event) => {
     effectiveCloseHour: court.closeHour ?? club.closeHour,
   }))
 
+  const overrideRows = await prisma.manualAvailabilityOverride.findMany({
+    where: { clubId: club.id, date },
+    select: { courtId: true, startTime: true, type: true },
+  })
+  const manualOverrides: ManualOverrideRow[] = overrideRows.map((row) => ({
+    courtId: row.courtId,
+    startTime: row.startTime.slice(0, 5),
+    type: row.type,
+  }))
+
   const external = await fetchExternalOccupancy({
     mapping,
     date,
@@ -48,6 +59,7 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    suspected: computeSuspectedSlots(inboxSlots, occupied),
+    // RELEASE → not suspected on public calendar (owner opened for Inboxs renters).
+    suspected: computeSuspectedSlots(inboxSlots, occupied, manualOverrides),
   }
 })

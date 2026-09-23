@@ -1,12 +1,24 @@
 <script setup lang="ts">
-const props = defineProps<{
-  titleKey: string
-  introKey: string
-  sectionsKey: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    titleKey: string
+    introKey: string
+    sectionsKey: string
+    /** When false, parent page owns document title via useSeoMeta. */
+    manageTitle?: boolean
+  }>(),
+  { manageTitle: true },
+)
 
 const { t, tm, rt } = useI18n()
 const config = useRuntimeConfig()
+
+if (props.manageTitle) {
+  useHead({
+    title: () => t(props.titleKey),
+  })
+}
+
 const { data: paymentsModePayload } = useFetch<{ mode?: string }>('/api/payments/mode', {
   default: () => ({ mode: String(config.public.paymentsMode || 'pay_at_club') }),
 })

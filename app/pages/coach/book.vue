@@ -36,15 +36,17 @@ const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$
   : today()
 const initialTime = typeof route.query.time === 'string' ? route.query.time.slice(0, 5) : ''
 
+// Lazy fetches so Nuxt Suspense + page out-in does not leave an empty cream main while APIs run.
 const { data: clubsData, pending, error } = await useAuthedFetch<{
   clubs: ClubOption[]
-}>('/api/coach/clubs')
-const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet')
+}>('/api/coach/clubs', { lazy: true })
+const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet', {
+  lazy: true,
+})
 
 const clubs = computed(() => clubsData.value?.clubs || [])
 
-// Clubs list already resolved above, so the first club is known before the slot query is built.
-const clubId = ref(clubs.value[0]?.id || '')
+const clubId = ref('')
 const date = ref(initialDate)
 const selectedCourtId = ref('')
 const selectedSlotId = ref('')
@@ -54,26 +56,45 @@ const submitting = ref(false)
 const errorKey = ref('')
 const successMessage = ref('')
 
+watch(clubs, (list) => {
+  if (!list.length) {
+    clubId.value = ''
+    return
+  }
+  if (!clubId.value || !list.some((club) => club.id === clubId.value)) {
+    clubId.value = list[0]!.id
+  }
+}, { immediate: true })
+
 const { data: slotData, pending: slotsPending, refresh: refreshSlots } = await useAuthedFetch<{
   sessionPrice: number
   slots: CourtSlot[]
 }>('/api/coach/court-slots', {
   query: computed(() => ({ clubId: clubId.value, date: date.value })),
-  immediate: Boolean(clubId.value),
+  immediate: false,
+  lazy: true,
+  // Avoid 400 when clubId is still empty; refresh only once a club is selected.
+  watch: false,
 })
+const showSlotsPending = useHeldPending(slotsPending)
 
 const {
   isExternalOnlyOccupied,
+  isExternalUncertain,
   externalSiteBadge,
   refreshExternalOverlay,
 } = useCoachExternalCalendarOverlay({ clubId, date })
 
 const bookableSlots = computed(() =>
-  (slotData.value?.slots || []).filter((slot) => !isExternalOnlyOccupied(slot)),
+  (slotData.value?.slots || []).filter((slot) => !isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)),
 )
 
 const blockedExternalSlots = computed(() =>
   (slotData.value?.slots || []).filter((slot) => isExternalOnlyOccupied(slot)),
+)
+
+const uncertainExternalSlots = computed(() =>
+  (slotData.value?.slots || []).filter((slot) => isExternalUncertain(slot)),
 )
 
 /** Courts as a list first — hours only appear under the selected court. */
@@ -95,6 +116,7 @@ const courtGroups = computed((): CourtGroup[] => {
   }
   for (const slot of bookableSlots.value) ensure(slot).bookable.push(slot)
   for (const slot of blockedExternalSlots.value) ensure(slot).blocked.push(slot)
+  for (const slot of uncertainExternalSlots.value) ensure(slot).blocked.push(slot)
   for (const group of map.values()) {
     group.bookable.sort((a, b) => a.startTime.localeCompare(b.startTime))
     group.blocked.sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -109,7 +131,7 @@ const selectedCourtGroup = computed(() =>
 watch(slotData, (next) => {
   if (!next?.slots?.length || selectedSlotId.value || !initialTime) return
   const match = next.slots.find((slot) =>
-    slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot),
+    slot.startTime.slice(0, 5) === initialTime && !isExternalOnlyOccupied(slot) && !isExternalUncertain(slot),
   )
   if (match) {
     selectedCourtId.value = match.courtId
@@ -150,7 +172,8 @@ watch([clubId, date], () => {
   selectedSlotId.value = ''
   errorKey.value = ''
   successMessage.value = ''
-})
+  if (clubId.value) void refreshSlots()
+}, { immediate: true })
 
 async function refreshSlotsAndOverlay() {
   await Promise.all([refreshSlots(), refreshExternalOverlay()])
@@ -309,7 +332,9 @@ async function startTopUp() {
 
           <section class="space-y-3">
             <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.book.pickSlot') }}</h2>
-            <p v-if="slotsPending" class="text-start text-sm text-brand-gray-600">{{ $t('common.loading') }}</p>
+            <div v-if="showSlotsPending" class="flex justify-center py-4">
+              <AppVenusSpinner size="sm" :label="$t('common.loading')" compact />
+            </div>
             <p
               v-else-if="!slotData?.slots?.length"
               class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
@@ -318,7 +343,7 @@ async function startTopUp() {
               {{ $t('coach.book.noSlots') }}
             </p>
             <p
-              v-else-if="!bookableSlots.length && blockedExternalSlots.length"
+              v-else-if="!bookableSlots.length && (blockedExternalSlots.length || uncertainExternalSlots.length)"
               class="border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500"
               style="border-radius: var(--sz-canva-radius);"
             >
@@ -366,7 +391,7 @@ async function startTopUp() {
                   <div
                     v-for="slot in selectedCourtGroup.blocked"
                     :key="`ext-${slot.id}`"
-                    class="canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80"
+                    :class="isExternalUncertain(slot) ? 'canva-finance-tx-card border-amber-300 bg-amber-50 opacity-90' : 'canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80'"
                     aria-disabled="true"
                   >
                     <div class="min-w-0 flex-1 text-start">
@@ -374,7 +399,7 @@ async function startTopUp() {
                         <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
                       </p>
                       <p class="mt-0.5 text-xs font-bold text-brand-navy">{{ externalSiteBadge(slot) }}</p>
-                      <p class="text-[10px] text-brand-gray-500">{{ $t('coach.book.externalOccupiedHint') }}</p>
+                      <p class="text-[10px] text-brand-gray-500">{{ isExternalUncertain(slot) ? $t('coach.book.externalUncertainHint') : $t('coach.book.externalOccupiedHint') }}</p>
                     </div>
                   </div>
                 </div>

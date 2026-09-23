@@ -7,6 +7,10 @@ import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
 definePageMeta({ ssr: false })
 
+useSeoMeta({
+  robots: 'noindex, nofollow',
+})
+
 const route = useRoute()
 const localePath = useLocalePath()
 const slug = resolveClubSlugAlias(String(route.params.slug || ''))
@@ -30,7 +34,7 @@ await navigateTo(
 </script>
 
 <template>
-  <div class="flex min-h-[40vh] items-center justify-center text-sm text-brand-gray-600">
-    {{ $t('common.loading') }}
+  <div class="flex min-h-[40vh] items-center justify-center">
+    <AppVenusSpinner :label="$t('common.loading')" />
   </div>
 </template>

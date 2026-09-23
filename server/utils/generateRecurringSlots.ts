@@ -3,14 +3,26 @@ import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import {
   canClaimExistingSlotForRecurring,
-  type RecurringConflictReason,
+  mergeRecurringResults,
+  type RecurringConflictRef,
+  type RecurringGenerateResult,
 } from '#shared/recurringReserve.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
-import { calculateSessionTotal, syncBookingEquipments } from './bookingTotal'
+import {
+  calculateSessionTotal,
+  equipmentLineTotal,
+  loadEquipmentForBooking,
+  parseEquipmentSelections,
+  syncBookingEquipments,
+} from './bookingTotal'
 import { syncClubContactForBooking } from './contactSync'
 import { findUserByPhone } from './phoneAuth'
+
+export { mergeRecurringResults }
+export type RecurringConflict = RecurringConflictRef
+export type { RecurringGenerateResult }
 
 export type RecurringGuestInfo = {
   guestName: string
@@ -21,21 +33,12 @@ export type RecurringGuestInfo = {
   paymentStatus?: 'PAID' | 'PAY_AT_CLUB'
   coachId?: string
   coachSessionPrice?: number
+  /** @deprecated Prefer equipmentIds + equipmentQuantities */
   equipmentId?: string
+  equipmentIds?: string[]
+  equipmentQuantities?: Record<string, number>
+  /** Optional precomputed session equipment total; otherwise derived from selections. */
   equipmentPrice?: number
-}
-
-export type RecurringConflict = {
-  date: string
-  startTime: string
-  reason: RecurringConflictReason
-}
-
-export type RecurringGenerateResult = {
-  created: number
-  skipped: number
-  willCreate: Array<{ date: string; startTime: string }>
-  conflicts: RecurringConflict[]
 }
 
 type GenerateOpts = {
@@ -79,19 +82,22 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
     : undefined
   const paymentMethod = guest?.paymentMethod || 'CASH'
   const paymentStatus = guest?.paymentStatus || 'PAY_AT_CLUB'
-  const equipmentItems = guest?.equipmentId
-    ? await prisma.equipment.findMany({
-        where: { id: guest.equipmentId, clubId: opts.clubId },
-        select: { id: true, price: true, category: true, quantity: true },
-      })
+  const equipmentSelections = parseEquipmentSelections(
+    guest?.equipmentIds?.length
+      ? guest.equipmentIds
+      : (guest?.equipmentId ? [guest.equipmentId] : []),
+    guest?.equipmentQuantities,
+  )
+  const equipmentBookingItems = equipmentSelections.length
+    ? await loadEquipmentForBooking(opts.clubId, equipmentSelections)
     : []
-  const equipmentBookingItems = equipmentItems.map((item) => ({
-    ...item,
-    quantity: 1,
-  }))
+  if (equipmentSelections.length && equipmentBookingItems.length !== equipmentSelections.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
+  }
+  const equipmentLinePrices = equipmentBookingItems.map((item) => equipmentLineTotal(item))
   let created = 0
   let skipped = 0
-  const willCreate: Array<{ date: string; startTime: string }> = []
+  const willCreate: RecurringGenerateResult['willCreate'] = []
   const conflicts: RecurringConflict[] = []
 
   for (const date of dates) {
@@ -104,13 +110,13 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       const closeHour = court.closeHour ?? court.club.closeHour
       if (hour < openHour || hour >= closeHour) {
         skipped += 1
-        conflicts.push({ date, startTime: formatHour(hour), reason: 'OUTSIDE_HOURS' })
+        conflicts.push({ date, startTime: formatHour(hour), reason: 'OUTSIDE_HOURS', courtId: court.id })
         continue
       }
       const startTime = formatHour(hour)
       if (isSlotStartInPast(date, startTime)) {
         skipped += 1
-        conflicts.push({ date, startTime, reason: 'PAST' })
+        conflicts.push({ date, startTime, reason: 'PAST', courtId: court.id })
         continue
       }
       const duration = court.club.defaultSessionDurationMinutes || 60
@@ -119,7 +125,9 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       const sessionAmount = guest
         ? calculateSessionTotal({
             courtPrice: slotPrice,
-            equipmentPrices: guest.equipmentPrice ? [guest.equipmentPrice] : [],
+            equipmentPrices: equipmentLinePrices.length
+              ? equipmentLinePrices
+              : (guest.equipmentPrice ? [guest.equipmentPrice] : []),
             coachPrice: guest.coachSessionPrice || 0,
           })
         : slotPrice
@@ -131,12 +139,12 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       // Never overwrite PLATFORM/live bookings or non-FREE desk holds.
       if (!canClaimExistingSlotForRecurring(existing)) {
         skipped += 1
-        conflicts.push({ date, startTime, reason: 'OCCUPIED' })
+        conflicts.push({ date, startTime, reason: 'OCCUPIED', courtId: court.id })
         continue
       }
 
       if (opts.dryRun) {
-        willCreate.push({ date, startTime })
+        willCreate.push({ date, startTime, courtId: court.id })
         created += 1
         continue
       }
@@ -232,19 +240,19 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
 
         if (!claimed) {
           skipped += 1
-          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE', courtId: court.id })
           continue
         }
 
         if (claimed.bookingId) {
           await syncClubContactForBooking(claimed.bookingId)
         }
-        willCreate.push({ date, startTime })
+        willCreate.push({ date, startTime, courtId: court.id })
         created += 1
       } catch (error) {
         if (isUniqueViolation(error)) {
           skipped += 1
-          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE', courtId: court.id })
           continue
         }
         throw error

@@ -61,7 +61,11 @@ describe('reconcileConfirmedBusy', () => {
       { courtKey: 'c1', startTime: '11:00', verdict: 'BUSY', source: 'aloplay' },
       { courtKey: 'c1', startTime: '11:00', verdict: 'BUSY', source: 'alovarzesh' },
     ])
-    expect(busy.map((b) => b.startTime)).toEqual(['10:00', '11:00'])
+    expect(busy.map((b) => b.startTime)).toEqual(['10:00', '11:00', '11:00'])
+    expect(busy.filter((b) => b.startTime === '11:00').map((b) => b.source).sort()).toEqual([
+      'aloplay',
+      'alovarzesh',
+    ])
     expect(busy.every((b) => b.state === 'EXTERNAL_BUSY')).toBe(true)
   })
 

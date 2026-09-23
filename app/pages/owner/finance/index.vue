@@ -323,11 +323,12 @@ function closeTx() {
 <template>
   <div class="venus-page-stack">
     <section class="canva-photo-hero -mx-4 sm:-mx-0">
-      <img
+      <CanvaHeroImg
         src="/hero/fitness-venue.jpg"
         alt=""
-        class="canva-photo-hero-media"
-        style="filter: grayscale(0.55) brightness(0.72);"
+        img-class="canva-photo-hero-media"
+        img-style="filter: grayscale(0.55) brightness(0.72);"
+        fetchpriority="high"
       />
       <div class="canva-photo-hero-wash" />
       <CanvaOwnerHeroChrome />

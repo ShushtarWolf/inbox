@@ -45,6 +45,17 @@ export default defineNitroPlugin(() => {
     }
   }
 
+  if (
+    process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+    || process.env.RECURRING_RESERVE_ENABLED === 'true'
+  ) {
+    try {
+      publicConfig.recurringReserveEnabled = true
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_RECURRING_RESERVE_ENABLED instead.
+    }
+  }
+
   const competitionsPilotClubSlug = normalizeCompetitionsPilotClubSlug(
     process.env.NUXT_PUBLIC_COMPETITIONS_PILOT_CLUB_SLUG
     || process.env.COMPETITIONS_PILOT_CLUB_SLUG

@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { buildClubsItemListJsonLd } from '#shared/clubJsonLd.ts'
+import { serializeJsonLd } from '#shared/jsonLd.ts'
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber } = useFormatters()
@@ -17,9 +21,11 @@ const query = computed(() => ({
   city: route.query.city as string | undefined,
 }))
 
-const { data: clubs, pending, error } = await useFetch('/api/clubs', { query })
-const { data: sports } = await useFetch('/api/sports')
-const { data: catalogClubs } = await useFetch('/api/clubs', { key: 'clubs-catalog' })
+const [{ data: clubs, pending, error }, { data: sports }, { data: catalogClubs }] = await Promise.all([
+  useFetch('/api/clubs', { query }),
+  useFetch('/api/sports'),
+  useFetch('/api/clubs', { key: 'clubs-catalog' }),
+])
 
 const listedSports = computed(() => {
   const set = new Set<string>()
@@ -42,12 +48,12 @@ const listTitle = computed(() => {
   return t('clubs.title')
 })
 
-/* Canva Court list (p2) hero matches home slide copy, including placeholder title */
+/* Directory page owns its own H1 (not the home booking slogan). */
 const heroSlides = computed(() => {
   const slides = [
     {
-      title: t('home.heroSlideTitle'),
-      body: t('home.heroBody'),
+      title: t('clubs.directoryHeroTitle'),
+      body: t('clubs.directoryHeroBody'),
       image: '/hero/tennis-court.jpg',
     },
     {
@@ -141,11 +147,36 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
   return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
 }
 
-useHead({
-  title: () => t('clubs.title'),
-  meta: [
-    { name: 'description', content: () => t('home.subtitle') },
-  ],
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
+useSeoMeta({
+  title: () => t('clubs.seoTitle'),
+  description: () => t('clubs.indexSeoDescription'),
+  ogTitle: () => t('clubs.seoTitle'),
+  ogDescription: () => t('clubs.indexSeoDescription'),
+  ogUrl: () => `${siteBase.value}/clubs`,
+  ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
+})
+
+useHead(() => {
+  const head: { link: Array<{ rel: string; href: string }>; script?: Array<{ type: string; innerHTML: string }> } = {
+    link: [{ rel: 'canonical', href: `${siteBase.value}/clubs` }],
+  }
+  const listUrl = `${siteBase.value}${localePath('/clubs')}`
+  const jsonLd = buildClubsItemListJsonLd(
+    (clubs.value || []).map((club: { slug: string; nameFa?: string; nameEn?: string }) => ({
+      name: localizedField(club, 'nameFa', 'nameEn'),
+      url: `${siteBase.value}${clubHref(club.slug)}`,
+    })),
+    { name: listTitle.value, url: listUrl },
+  )
+  if (jsonLd) {
+    head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
+  }
+  return head
 })
 
 function nextHero() {
@@ -167,13 +198,12 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
     <CanvaPublicChrome />
 
     <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
-      <img
+      <CanvaHeroImg
         :key="activeHero?.image"
-        :src="activeHero?.image"
+        :src="activeHero?.image || '/hero/tennis-court.jpg'"
         :alt="activeHero?.title ? t('home.heroImageAlt', { title: activeHero.title }) : t('home.bookCourt')"
-        class="canva-hero-media canva-hero-media-bw"
+        img-class="canva-hero-media canva-hero-media-bw"
         fetchpriority="high"
-        decoding="async"
       />
       <div class="canva-hero-scrim" aria-hidden="true" />
       <div class="canva-hero-content canva-hero-home-content">
@@ -278,7 +308,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             :to="clubHref(club.slug)"
             class="canva-court-card"
           >
-            <img :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
+            <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <div class="canva-court-card-body">
               <!-- RTL: text first → right; CTA second → left -->
               <div class="canva-court-card-copy">
@@ -307,5 +337,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         </div>
       </AppAsyncState>
     </section>
+
+    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/clubs" with-hub-discovery />
   </div>
 </template>

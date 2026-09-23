@@ -1,10 +1,14 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
-import { getPaymentsMode } from '#shared/payments.ts'
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
-import { equipmentPriceAtBooking } from '../../utils/bookingTotal'
+import {
+  loadEquipmentForBooking,
+  parseEquipmentSelections,
+  sumEquipmentPrices,
+} from '../../utils/bookingTotal'
+import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
+import { assertPackagesEnabled } from '../../utils/packagesGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 
 function resolveDayTimes(
@@ -38,13 +42,21 @@ function firstScheduleTime(expanded: Record<string, string[]>, times?: string[])
   return ''
 }
 
-export default defineEventHandler(async (event) => {
-  if (!isRecurringReserveEnabled()) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'RECURRING_RESERVE_DISABLED',
-    })
+/** Recurring unpaid has no series pay link — always desk cash unpaid. */
+function resolveRecurringPayment(body: {
+  paymentMethod?: string
+  paymentStatus?: string
+}): { paymentMethod: 'CASH'; paymentStatus: 'PAID' | 'PAY_AT_CLUB' } {
+  const paid = body.paymentStatus === 'PAID'
+  return {
+    paymentMethod: 'CASH',
+    paymentStatus: paid ? 'PAID' : 'PAY_AT_CLUB',
   }
+}
+
+export default defineEventHandler(async (event) => {
+  assertPackagesEnabled(event)
+  assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     guestName?: string
@@ -59,6 +71,8 @@ export default defineEventHandler(async (event) => {
     comments?: string
     slotId?: string
     equipmentId?: string
+    equipmentIds?: string[]
+    equipmentQuantities?: Record<string, number>
     paymentMethod?: string
     paymentStatus?: string
     acceptSkips?: boolean
@@ -72,13 +86,18 @@ export default defineEventHandler(async (event) => {
   }
   assertDateNotInPast(body.startDate)
 
-  let equipmentPrice = 0
-  if (body.equipmentId) {
-    const equipment = await prisma.equipment.findFirst({
-      where: { id: body.equipmentId, clubId: club.id },
-    })
-    if (equipment) equipmentPrice = equipmentPriceAtBooking(equipment)
+  const equipmentSelections = parseEquipmentSelections(
+    body.equipmentIds?.length ? body.equipmentIds : (body.equipmentId ? [body.equipmentId] : []),
+    body.equipmentQuantities,
+  )
+  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentSelections)
+  if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
   }
+  const equipmentPrice = sumEquipmentPrices(equipmentItems)
+  const equipmentQuantities = Object.fromEntries(
+    equipmentItems.map((item) => [item.id, item.quantity]),
+  )
 
   let coachSessionPrice = 0
   if (body.coachId) {
@@ -133,6 +152,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const { paymentMethod, paymentStatus } = resolveRecurringPayment(body)
+
   const record = await prisma.seasonBooking.create({
     data: {
       clubId: club.id,
@@ -145,7 +166,7 @@ export default defineEventHandler(async (event) => {
       finishDate: body.finishDate,
       comments: body.comments,
       coachId: body.coachId || null,
-      equipmentId: body.equipmentId || null,
+      equipmentId: equipmentItems[0]?.id || null,
       equipmentPrice,
     },
   })
@@ -166,12 +187,11 @@ export default defineEventHandler(async (event) => {
       comments: body.comments,
       coachId: body.coachId,
       coachSessionPrice,
-      equipmentId: body.equipmentId,
+      equipmentIds: equipmentItems.map((item) => item.id),
+      equipmentQuantities,
       equipmentPrice,
-      paymentMethod: getPaymentsMode() === 'pay_at_club'
-        ? 'CASH'
-        : ((body.paymentMethod as 'IPG' | 'CASH' | undefined) || 'CASH'),
-      paymentStatus: body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB',
+      paymentMethod,
+      paymentStatus,
     },
   })
 
@@ -193,8 +213,10 @@ export default defineEventHandler(async (event) => {
       clubId: club.id,
       bookingId: record.id,
       date: body.startDate,
+      finishDate: body.finishDate,
       startTime: firstScheduleTime(expanded, body.times),
-      paymentPaid: body.paymentStatus === 'PAID',
+      sessionCount: result.created,
+      paymentPaid: paymentStatus === 'PAID',
       guestName: personNotifyName(guest.guestName, guest.guestFamily),
       ...clubNotifyLocation(club),
     })

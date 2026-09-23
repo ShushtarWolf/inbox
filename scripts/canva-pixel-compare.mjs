@@ -93,6 +93,26 @@ function adjustedScore(raw, rules) {
 }
 
 async function loginWithPassword(context, email) {
+  if (email === 'athlete@inbox.local') {
+    const req = await context.request.post(`${BASE_URL}/api/auth/otp/request`, {
+      data: { phone: '09121234567', purpose: 'login' },
+    })
+    if (!req.ok()) throw new Error(`OTP request failed (${req.status()})`)
+    const reqBody = await req.json()
+    if (!reqBody.debugCode) throw new Error('OTP request missing debugCode')
+    const verify = await context.request.post(`${BASE_URL}/api/auth/otp/verify`, {
+      data: {
+        phone: reqBody.phone || '09121234567',
+        code: reqBody.debugCode,
+        purpose: 'login',
+      },
+    })
+    if (!verify.ok()) {
+      const body = await verify.text()
+      throw new Error(`OTP verify failed (${verify.status()}): ${body.slice(0, 200)}`)
+    }
+    return
+  }
   const res = await context.request.post(`${BASE_URL}/api/auth/login`, {
     data: { email, password: DEMO_PASSWORD },
   })

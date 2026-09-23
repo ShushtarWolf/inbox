@@ -1,0 +1,57 @@
+name: Liara Iran full-source deploy
+
+# Force Iran redeploy (same as deploy.yml primary). Use when live probe fails
+# after Germany fallback, or to redeploy Iran without the full smoke/CI gate.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: liara-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-iran:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Deploy full source to Liara (Iran)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          timeout 75m liara deploy \
+            --app=inbox \
+            --api-token="$LIARA_TOKEN" \
+            --no-app-logs \
+            --build-location=iran \
+            --message "GitHub ${GITHUB_SHA:0:7} emergency-iran"
+      - name: Probe live health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://inboxs.ir/api/health || true)
+            echo "try$i=$code"
+            if [ "$code" = "200" ]; then
+              curl -sS --max-time 15 https://inboxs.ir/api/health
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Still not healthy after Iran deploy"
+          curl -sI --max-time 15 https://inboxs.ir | head -15 || true
+          exit 1
+      - name: Fetch recent logs (best effort)
+        if: always()
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Liara REST: list releases + app logs via CLI variants
+          liara release list --app inbox --api-token="$LIARA_TOKEN" || true
+          timeout 60s liara logs --app inbox --api-token="$LIARA_TOKEN" || true
+          timeout 60s liara app logs --app inbox --api-token="$LIARA_TOKEN" || true

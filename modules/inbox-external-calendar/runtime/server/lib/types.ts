@@ -59,8 +59,19 @@ export interface MergedCell {
   ownerNote?: string | null
   /** Reconciled external observation (availability-first). */
   externalState?: ExternalCellState
+  /** Staff overlay: busy_single | busy_multi | uncertain | clear */
+  externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
+  /** Sources that contributed definite BUSY (for multi badge). */
+  busySources?: ExternalSourceId[]
+  /** Sources that are UNKNOWN/STALE (for uncertain badge). */
+  uncertainSources?: ExternalSourceId[]
   freshness?: string
   confidence?: string
+  /** Manual owner override for this hour (does not mutate externalState). */
+  manualOverride?: 'RELEASE' | 'BLOCK' | null
+  manualOverrideId?: string | null
+  /** Final booking block after override layer (staff + guard). */
+  effectiveBlocksBooking?: boolean
 }
 
 export interface InboxCalendarSlot {

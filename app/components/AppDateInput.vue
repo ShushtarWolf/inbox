@@ -78,9 +78,9 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
       <slot name="label">{{ label || t('common.date') }}</slot>
     </span>
 
-    <AppJalaliCalendar v-if="isFa && useCalendar" v-model="model" :min-date="effectiveMinDate" />
+    <AppJalaliCalendar v-if="useCalendar" v-model="model" :min-date="effectiveMinDate" />
 
-    <div v-else-if="isFa" class="flex flex-wrap items-center gap-1">
+    <div v-else class="flex flex-wrap items-center gap-1">
       <select
         v-model.number="jalaliDay"
         class="neo-select px-2 py-2"
@@ -104,15 +104,6 @@ watch([jalaliYear, jalaliMonth, jalaliDay], syncModelFromJalali)
         <option v-for="year in jalaliYears" :key="year" :value="year">{{ formatYear(year) }}</option>
       </select>
     </div>
-
-    <input
-      v-else
-      v-model="model"
-      type="date"
-      dir="ltr"
-      class="neo-input tabular-nums"
-      :min="effectiveMinDate || undefined"
-    >
 
     <p v-if="formattedHint" class="text-xs text-brand-gray-600" dir="auto">{{ formattedHint }}</p>
   </label>

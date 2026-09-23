@@ -1,5 +1,10 @@
 import { isInboxOccupied } from './merge'
 import type { ExternalOccupiedSlot, InboxCalendarSlot } from './types'
+import {
+  indexManualOverrides,
+  manualOverrideKey,
+  type ManualOverrideRow,
+} from '../../../lib/manualOverrideLogic'
 
 export interface PublicSuspectedSlot {
   slotId?: string
@@ -19,21 +24,27 @@ function occupancyKey(courtId: string, startTime: string) {
  *
  * INVARIANT: `externalSlots` must already be reconciled confirmed EXTERNAL_BUSY only.
  * UNKNOWN / STALE / CONFLICT / PARTIAL must never appear here or yellow-paint athletes.
+ *
+ * Owner RELEASE overrides win for public display: those hours look like normal free slots
+ * (not suspected), matching booking-guard behavior.
  */
 export function computeSuspectedSlots(
   inboxSlots: InboxSlotWithId[],
   externalSlots: ExternalOccupiedSlot[],
+  manualOverrides: ManualOverrideRow[] = [],
 ): PublicSuspectedSlot[] {
   const confirmed = externalSlots.filter((slot) => !slot.state || slot.state === 'EXTERNAL_BUSY')
   const externalKeys = new Set(
     confirmed.map((slot) => occupancyKey(slot.courtKey, slot.startTime)),
   )
+  const overrides = indexManualOverrides(manualOverrides)
   const suspected: PublicSuspectedSlot[] = []
 
   for (const slot of inboxSlots) {
     if (isInboxOccupied(slot.displayStatus)) continue
     const key = occupancyKey(slot.courtId, slot.startTime)
     if (!externalKeys.has(key)) continue
+    if (overrides.get(manualOverrideKey(slot.courtId, slot.startTime)) === 'RELEASE') continue
     suspected.push({
       slotId: slot.id,
       startTime: slot.startTime.slice(0, 5),
@@ -49,6 +60,7 @@ export function computeSuspectedSlots(
 export function computeSuspectedSlotsFromStates(
   inboxSlots: InboxSlotWithId[],
   externalSlots: ExternalOccupiedSlot[],
+  manualOverrides: ManualOverrideRow[] = [],
 ): PublicSuspectedSlot[] {
-  return computeSuspectedSlots(inboxSlots, externalSlots)
+  return computeSuspectedSlots(inboxSlots, externalSlots, manualOverrides)
 }

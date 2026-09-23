@@ -25,6 +25,7 @@ const tiles = computed(() => {
   const items = [
     { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
     { path: '/owner/packages', labelKey: 'owner.packages', icon: 'inventory_2' },
+    { path: '/owner/reserve/package', labelKey: 'owner.packageReserve', icon: 'event_available' },
     { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
     { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
     { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
@@ -35,8 +36,10 @@ const tiles = computed(() => {
   return items
     .filter((item) => {
       if (item.path === '/owner/workers' && !isOwner) return false
-      if (item.path === '/owner/packages' && !packagesEnabled.value) return false
+      if ((item.path === '/owner/packages' || item.path === '/owner/reserve/package') && !packagesEnabled.value) return false
       if (item.path === '/owner/competitions' && !competitionsVisibleForClub(membership?.club?.slug)) return false
+      if (item.path === '/owner/reserve/package' && !canAccessOwnerNav('/owner/packages', permissions, isOwner)) return false
+      if (item.path === '/owner/reserve/package') return true
       return canAccessOwnerNav(item.path, permissions, isOwner)
     })
     .map((item) => ({

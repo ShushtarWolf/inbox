@@ -28,7 +28,7 @@ Copy/paste checklist. Mark each row when set.
 | ☐ | `PILOT_NO_COACH` | `true` | `false` (or unset) — unlocks coach signup, `/coaches`, wallet court book |
 | ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; redeploy after change |
 
-When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Keep packages/recurring frozen.
+When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Class packages and season/recurring desk reserve are independent env gates.
 
 ---
 
@@ -40,9 +40,9 @@ When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Keep pack
 | ☐ | `SMS_PROVIDER` | `kavenegar` (or `live`) | Both resolve to Kavenegar |
 | ☐ | `KAVENEGAR_API_KEY` | from Kavenegar panel | Never commit |
 | ☐ | `KAVENEGAR_TEMPLATE` | `inbox-verify-autofill` | OTP + password-reset. Panel body: `code: %token%` / `کد تایید اینباکس` / `@inboxs.ir #%token2%` |
-| ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | `inbox-notify` (default if unset) | **Required for booking paid/cancel/CRM SMS.** Panel template body must be exactly `%token10%`. Free-text `sms/send` fails on service lines (`ارسال کننده نامعتبر است`). |
-| ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | e.g. `inbox-pay` | **Optional.** Panel body must include `https://inboxs.ir/p/%token%` so desk “ارسال لینک پرداخت” SMS is tappable. Without it, the owner still gets a copy/WhatsApp URL and the athlete gets a pay pin. |
-| ☐ | `KAVENEGAR_SENDER` | approved line | Fallback only for free-text; OTP without template. Lookup uses the line attached to the template. |
+| ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | **`off`** (path A) | Disables Verify Lookup for booking/CRM/admin — free-text via `KAVENEGAR_SENDER`. Values: `off` / empty / `none` / `disabled`. Path B: set to `inbox-notify2` instead. |
+| ☐ | `KAVENEGAR_SENDER` | `9982007609` | **Path A required.** Dedicated line for all non-OTP SMS. |
+| ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | `payments` | Desk «ارسال با پیامک اینباکس». Panel body: `لینک پرداخت اینباکس` + `https://inboxs.ir/p/%token%`. Works with Path A. |
 | ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / cashout / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
 
 Until C is complete, OTP stays **log/dry-run** (`debugCode`) — not production-safe.
@@ -141,7 +141,7 @@ Detail: [COMPETITION_PILOT_GO_NO_GO.md](./COMPETITION_PILOT_GO_NO_GO.md).
 
 ## F2. Class packages (optional — off by default)
 
-Independent of desk season/package recurring (`isRecurringReserveEnabled` stays false).
+Independent of desk season/package recurring (`RECURRING_RESERVE_ENABLED`).
 
 | ☐ | Variable | Fill with | Notes |
 |---|----------|-----------|--------|
@@ -154,6 +154,22 @@ NUXT_PUBLIC_PACKAGES_ENABLED=true
 ```
 
 Requires DB migration `20260829173000_class_packages_safety`. Cron: `POST /api/admin/packages/expire-pending` with admin secret (also best-effort in `.github/workflows/competition-cron.yml`) clears unpaid online PENDING seats (~10 min).
+
+---
+
+## F3. Season / package recurring desk reserve (optional — off by default)
+
+Unlocks owner calendar **رزرو فصلی** / package recurring sheets and `/api/owner/season` + `/api/owner/package-reserve`. Set both mirrors; redeploy so `runtimeConfig.public` picks them up.
+
+| ☐ | Variable | Fill with | Notes |
+|---|----------|-----------|--------|
+| ☐ | `RECURRING_RESERVE_ENABLED` | `true` | Server APIs |
+| ☐ | `NUXT_PUBLIC_RECURRING_RESERVE_ENABLED` | `true` | Client calendar openers (required) |
+
+```bash
+RECURRING_RESERVE_ENABLED=true
+NUXT_PUBLIC_RECURRING_RESERVE_ENABLED=true
+```
 
 ---
 

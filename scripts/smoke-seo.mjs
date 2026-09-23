@@ -105,7 +105,37 @@ async function main() {
   if (!robots.ok) throw new Error('robots.txt not found')
   const robotsText = await robots.text()
   if (!robotsText.includes('Sitemap')) throw new Error('robots.txt missing Sitemap directive')
+  for (const bot of [
+    'OAI-SearchBot',
+    'GPTBot',
+    'PerplexityBot',
+    'Claude-SearchBot',
+    'Claude-User',
+    'ClaudeBot',
+    'Google-Extended',
+    'xAI-SearchBot',
+  ]) {
+    if (!robotsText.includes(bot)) {
+      throw new Error(`robots.txt missing explicit Allow for ${bot}`)
+    }
+  }
   console.log('ok  robots.txt present')
+
+  const llms = await fetch(`${base}/llms.txt`)
+  if (!llms.ok) throw new Error('llms.txt not found')
+  const llmsText = await llms.text()
+  if (!llmsText.includes('inboxs.ir') || !llmsText.includes('پدل')) {
+    throw new Error('llms.txt missing brand / product description')
+  }
+  console.log('ok  llms.txt present')
+
+  const gscVerify = await fetch(`${base}/google6944ecb2516e868f.html`)
+  if (!gscVerify.ok) throw new Error('google6944ecb2516e868f.html not found')
+  const gscText = await gscVerify.text()
+  if (!gscText.includes('google-site-verification: google6944ecb2516e868f.html')) {
+    throw new Error('GSC verification file has wrong body')
+  }
+  console.log('ok  GSC verification file present')
 
   const sitemap = await fetch(`${base}/sitemap.xml`)
   if (!sitemap.ok) throw new Error('sitemap.xml not found')
@@ -114,7 +144,123 @@ async function main() {
   if (sitemapText.includes('/en/')) {
     throw new Error('sitemap.xml still lists /en URLs')
   }
-  console.log('ok  sitemap.xml present (FA-only)')
+  if (sitemapText.includes('/login') || sitemapText.includes('/register')) {
+    throw new Error('sitemap.xml should not prioritize /login or /register')
+  }
+  if (!sitemapText.includes('/about') || !sitemapText.includes('/clubs')) {
+    throw new Error('sitemap.xml missing core discovery URLs')
+  }
+  if (!sitemapText.includes('/clubs/tehran/padel') || !sitemapText.includes('/clubs/tehran/tennis')) {
+    throw new Error('sitemap.xml missing geo/sport hub URLs')
+  }
+  console.log('ok  sitemap.xml present (FA-only, discovery-focused)')
+
+  if (!llmsText.includes('/clubs/tehran/padel') || !llmsText.includes('/clubs/tehran/tennis')) {
+    throw new Error('llms.txt missing geo/sport hub URLs')
+  }
+  if (!llmsText.includes('زمین پدل تهران') || !llmsText.includes('زمین تنیس تهران')) {
+    throw new Error('llms.txt missing Persian hub anchors')
+  }
+  if (!llmsText.includes('## باشگاه‌ها')) {
+    throw new Error('llms.txt missing باشگاه‌ها section')
+  }
+  if (!llmsText.includes('## چیستی اینباکس') || !llmsText.includes('نه seastudio')) {
+    throw new Error('llms.txt missing چیستی اینباکس brand lines (inboxs.ir, نه seastudio)')
+  }
+  if (!llmsText.includes('اینباکس = پلتفرم رزرو آنلاین پدل/تنیس')) {
+    throw new Error('llms.txt missing brand definition line')
+  }
+  if (!llmsText.includes('## برای صاحبان باشگاه') || !llmsText.includes('/clubs/apply')) {
+    throw new Error('llms.txt missing برای صاحبان باشگاه → /clubs/apply')
+  }
+  // Prefer live club URLs; fall back to hubs+brand already asserted above.
+  if (!/\/clubs\/(?!tehran(?:\/|$)|apply(?:\/|$))[a-z0-9-]+/i.test(llmsText)) {
+    console.warn('warn  llms.txt باشگاه‌ها section has no ACTIVE club URLs yet')
+  }
+  else {
+    console.log('ok  llms.txt lists ACTIVE club URLs')
+  }
+  console.log('ok  llms.txt lists brand + Tehran hubs + باشگاه‌ها + owner apply')
+
+  const sitewideFaqMarkers = [
+    'چطور در اینباکس زمین پدل یا تنیس رزرو کنم؟',
+    'پرداخت رزرو زمین چگونه انجام می‌شود؟',
+    'چطور رزرو را لغو کنم و استرداد چگونه است؟',
+    'چطور باشگاه پدل یا تنیس مناسب پیدا کنم؟',
+    'زمین پدل تهران را از کجا رزرو کنم؟',
+    'زمین تنیس تهران را از کجا رزرو کنم؟',
+    'قیمت سانس و کارمزد اینباکس چطور است؟',
+    'اگر صاحب باشگاه هستم چطور در اینباکس ثبت‌نام کنم؟',
+  ]
+
+  function assertSitewideFaqJsonLd(path, html) {
+    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
+      throw new Error(`${path} missing FAQPage JSON-LD`)
+    }
+    for (const marker of sitewideFaqMarkers) {
+      if (!html.includes(marker)) {
+        throw new Error(`${path} missing sitewide FAQ: ${marker}`)
+      }
+    }
+    const faqBlocks = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    let faqCount = 0
+    for (const match of faqBlocks) {
+      try {
+        const data = JSON.parse(match[1])
+        if (data?.['@type'] === 'FAQPage') {
+          faqCount = Array.isArray(data.mainEntity) ? data.mainEntity.length : 0
+        }
+      }
+      catch {
+        // ignore non-JSON payloads
+      }
+    }
+    if (faqCount !== 8) {
+      throw new Error(`${path} expected 8 sitewide FAQPage entities, got ${faqCount}`)
+    }
+  }
+
+  // Homepage should expose Organization / WebApplication JSON-LD for search + AI
+  const { html: homeHtml } = await fetchPage(base, '/')
+  if (!homeHtml.includes('application/ld+json') || !homeHtml.includes('Organization')) {
+    throw new Error('/ missing Organization JSON-LD')
+  }
+  if (!homeHtml.includes('WebApplication')) {
+    throw new Error('/ missing WebApplication JSON-LD')
+  }
+  if (!homeHtml.includes('/clubs/tehran/padel') || !homeHtml.includes('زمین پدل تهران')) {
+    throw new Error('/ missing Tehran padel hub discovery link')
+  }
+  if (!homeHtml.includes('/clubs/tehran/tennis') || !homeHtml.includes('زمین تنیس تهران')) {
+    throw new Error('/ missing Tehran tennis hub discovery link')
+  }
+  assertSitewideFaqJsonLd('/', homeHtml)
+  console.log('ok  / Organization + WebApplication JSON-LD + hub links + 8 sitewide FAQs')
+
+  const { html: clubsHtml } = await fetchPage(base, '/clubs')
+  if (!clubsHtml.includes('/clubs/tehran/padel') || !clubsHtml.includes('زمین پدل تهران')) {
+    throw new Error('/clubs missing Tehran padel hub discovery link')
+  }
+  if (!clubsHtml.includes('/clubs/tehran/tennis') || !clubsHtml.includes('زمین تنیس تهران')) {
+    throw new Error('/clubs missing Tehran tennis hub discovery link')
+  }
+  assertSitewideFaqJsonLd('/clubs', clubsHtml)
+  console.log('ok  /clubs hub discovery links + 8 sitewide FAQs')
+
+  for (const path of ['/clubs/tehran/padel', '/clubs/tehran/tennis']) {
+    const { html } = await fetchPage(base, path)
+    assertSitewideFaqJsonLd(path, html)
+    console.log(`ok  ${path} FAQPage JSON-LD (8 sitewide)`)
+  }
+
+  // About / pricing FAQ schema
+  for (const path of ['/about', '/pricing']) {
+    const { html } = await fetchPage(base, path)
+    if (!html.includes('FAQPage') || !html.includes('application/ld+json')) {
+      throw new Error(`${path} missing FAQPage JSON-LD`)
+    }
+    console.log(`ok  ${path} FAQPage JSON-LD`)
+  }
 
   // Login page basic a11y — phone OTP inputs
   const { html: loginHtml } = await fetchPage(base, '/login')

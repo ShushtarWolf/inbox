@@ -59,7 +59,7 @@ type OwnerSmsStatusResponse = {
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { formatHours, formatPhone } = useFormatters()
+const { formatHours, formatPhone, formatNumber } = useFormatters()
 const { today } = useLocalDate()
 const selectedSegment = ref('all')
 
@@ -289,15 +289,15 @@ async function send() {
 
       <div class="canva-crm-stats">
         <div class="canva-crm-stat">
-          <p class="canva-crm-stat-value">{{ data?.stats?.totalContacts || 0 }}</p>
+          <p class="canva-crm-stat-value tabular-nums">{{ formatNumber(data?.stats?.totalContacts || 0) }}</p>
           <p class="canva-crm-stat-label">{{ t('owner.crmPage.stats.contacts') }}</p>
         </div>
         <div class="canva-crm-stat">
-          <p class="canva-crm-stat-value">{{ data?.stats?.smsSent || 0 }}</p>
+          <p class="canva-crm-stat-value tabular-nums">{{ formatNumber(data?.stats?.smsSent || 0) }}</p>
           <p class="canva-crm-stat-label">{{ t('owner.crmPage.stats.smsSent') }}</p>
         </div>
         <div class="canva-crm-stat">
-          <p class="canva-crm-stat-value">{{ data?.stats?.campaigns || 0 }}</p>
+          <p class="canva-crm-stat-value tabular-nums">{{ formatNumber(data?.stats?.campaigns || 0) }}</p>
           <p class="canva-crm-stat-label">{{ t('owner.crmPage.stats.campaigns') }}</p>
         </div>
       </div>

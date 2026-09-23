@@ -1,0 +1,24 @@
+name: Liara app logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch inbox app logs
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          liara app list --api-token="$LIARA_TOKEN" || true
+          echo '===== app info ====='
+          liara app show --app inbox --api-token="$LIARA_TOKEN" || true
+          echo '===== recent logs ====='
+          timeout 90s liara app logs --app inbox --api-token="$LIARA_TOKEN" --since 2h || true

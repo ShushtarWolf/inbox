@@ -3,25 +3,294 @@ name: Deploy to Liara
 on:
   workflow_dispatch:
 
+# One deploy at a time. Do not cancel an in-flight rollout — wait instead.
 concurrency:
   group: liara-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
-  deploy:
+  gate:
+    name: Prefer green CI for this SHA
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
+    outputs:
+      smoke: ${{ steps.pick.outputs.smoke }}
+    steps:
+      - name: Resolve smoke vs CI skip
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow=ci.yml --commit "$GITHUB_SHA" --json conclusion,status --limit 20)
+          ok=$(echo "$runs" | jq '[.[] | select(.status=="completed" and .conclusion=="success")] | length')
+          if [ "$ok" -gt 0 ]; then
+            echo "smoke=skip" >> "$GITHUB_OUTPUT"
+            echo "CI already green for ${GITHUB_SHA:0:7} — skipping duplicate smoke rebuild"
+          else
+            echo "smoke=run" >> "$GITHUB_OUTPUT"
+            echo "No successful CI for ${GITHUB_SHA:0:7} — running deploy smoke gate"
+          fi
+
+  smoke:
+    name: Build and auth smoke gate
+    needs: gate
+    if: needs.gate.outputs.smoke == 'run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inbox
+          POSTGRES_PASSWORD: inbox
+          POSTGRES_DB: inbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inbox -d inbox"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox
+      NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
+      ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
+      PAYMENTS_MODE: pay_at_club
+      SMS_PROVIDER: log
+      BASE_URL: http://127.0.0.1:3000
+      CI: true
+      ALLOW_DEMO_AUTH: true
+      RATE_LIMIT_MAX: 100
+      OTP_PHONE_SEND_MAX: 100
+      OTP_PHONE_VERIFY_MAX: 100
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies without lifecycle duplication
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+      - name: Prepare Nuxt and Prisma
+        run: |
+          npx nuxt prepare
+          npx prisma generate
+          npm run db:migrate:deploy
+      - name: Build production server
+        run: npm run build
+      - name: Start server and run auth smoke
+        run: |
+          node .output/server/index.mjs > /tmp/inbox-smoke-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -sf "$BASE_URL/api/health" >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -sf "$BASE_URL/api/health" >/dev/null
+          status=$(curl -sS -o /tmp/inbox-login-response -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data '{"email":"nobody@example.com","password":"wrong"}' \
+            "$BASE_URL/api/auth/login")
+          test "$status" = "401"
+          ! grep -q 'RATE_LIMIT_STORAGE_NOT_CONFIGURED' /tmp/inbox-login-response
+          cat /tmp/inbox-login-response
+      - name: Upload smoke .output for deploy reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: nitro-output
+          path: .output
+          include-hidden-files: true
+          retention-days: 1
 
-      - name: Deploy inbox to Liara
+  # Primary: Iran full-source (proven for public inboxs.ir; Germany can be healthy-but-502).
+  deploy-iran:
+    name: Deploy Iran full-source (primary)
+    needs: [gate, smoke]
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Deploy full source to Liara (Iran)
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
+          set -euo pipefail
           npm i -g @liara/cli@9
-          # Iran builds often exceed 22m (Nuxt + runtime prisma layer).
-          timeout 40m liara deploy --app=inbox --api-token="$LIARA_TOKEN" --no-app-logs --build-location=iran --message "GitHub ${GITHUB_SHA:0:7}"
+          # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
+          timeout 75m liara deploy \
+            --app=inbox \
+            --api-token="$LIARA_TOKEN" \
+            --no-app-logs \
+            --build-location=iran \
+            --message "GitHub ${GITHUB_SHA:0:7} iran-primary"
+
+  # Prep Germany fallback in parallel with Iran so a failed Iran build can flip quickly.
+  bundle:
+    name: Prepare Germany prebuilt context
+    needs: [gate, smoke]
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Reuse smoke .output when present
+        id: artifact
+        if: needs.gate.outputs.smoke == 'run'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: nitro-output
+          path: .output
+      - name: Build .output when not reused
+        if: needs.gate.outputs.smoke == 'skip' || steps.artifact.outcome != 'success'
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+          npx nuxt prepare
+          npx prisma generate
+          npm run build
+      - name: Assemble thin deploy context
+        run: |
+          set -euo pipefail
+          test -d .output
+          test -f .output/server/index.mjs
+          rm -rf deploy-context
+          mkdir -p deploy-context/scripts
+          cp Dockerfile.runtime deploy-context/Dockerfile
+          # Non-hidden name so Actions artifacts + Liara archive keep the build.
+          cp -a .output deploy-context/nitro-output
+          cp package.json deploy-context/package.json
+          cp -a prisma deploy-context/prisma
+          cp scripts/start-production.mjs deploy-context/scripts/start-production.mjs
+          cp -a scripts/lib deploy-context/scripts/lib
+          cp -a server deploy-context/server
+          cp -a shared deploy-context/shared
+          # Do not inherit repo gitignore — Liara CLI respects .gitignore when packing.
+          printf '%s\n' '# keep nitro-output' > deploy-context/.gitignore
+          cat > deploy-context/liara.json <<'EOF'
+          {
+            "app": "inbox",
+            "platform": "docker",
+            "port": 3000,
+            "build": { "location": "germany" }
+          }
+          EOF
+          OUT_SIZE=$(du -sm deploy-context/nitro-output | awk '{print $1}')
+          echo "nitro-output size MiB: $OUT_SIZE"
+          test "$OUT_SIZE" -ge 5
+          du -sh deploy-context deploy-context/nitro-output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liara-deploy-context
+          path: deploy-context
+          include-hidden-files: true
+          retention-days: 1
+
+  deploy-germany:
+    name: Deploy Germany prebuilt (fallback)
+    needs: [gate, smoke, bundle, deploy-iran]
+    # Only when Iran did not succeed (failed, cancelled, or skipped).
+    if: >-
+      always()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+      && needs.deploy-iran.result != 'success'
+      && needs.bundle.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: liara-deploy-context
+          path: deploy-context
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify prebuilt context before Liara upload
+        run: |
+          set -euo pipefail
+          test -f deploy-context/Dockerfile
+          test -f deploy-context/nitro-output/server/index.mjs
+          du -sh deploy-context deploy-context/nitro-output
+      - name: Deploy inbox to Liara (Germany prebuilt)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "::warning::Iran primary did not succeed (result=${{ needs.deploy-iran.result }}); falling back to Germany prebuilt"
+          npm i -g @liara/cli@9
+          timeout 45m liara deploy \
+            --path=deploy-context \
+            --app=inbox \
+            --api-token="$LIARA_TOKEN" \
+            --no-app-logs \
+            --build-location=germany \
+            --message "GitHub ${GITHUB_SHA:0:7} germany-fallback"
+
+  deploy-ok:
+    name: Deploy succeeded (Iran or Germany)
+    needs: [deploy-iran, deploy-germany]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require at least one successful deploy path
+        run: |
+          set -euo pipefail
+          iran='${{ needs.deploy-iran.result }}'
+          de='${{ needs.deploy-germany.result }}'
+          echo "deploy-iran=$iran"
+          echo "deploy-germany=$de"
+          if [ "$iran" = "success" ] || [ "$de" = "success" ]; then
+            echo "Production deploy path OK — live verify still required"
+            exit 0
+          fi
+          echo "::error::Both Iran primary and Germany fallback failed (or were skipped)"
+          exit 1
+
+  # Liara "Release created" can still leave public 502. Fail the workflow if prod is dead.
+  # always() so a skipped sibling path cannot skip this job when deploy-ok succeeded.
+  verify-live:
+    name: Verify live inboxs.ir
+    needs: [deploy-ok]
+    if: always() && needs.deploy-ok.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe https://inboxs.ir/api/health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /tmp/inbox-health.json -w '%{http_code}' --max-time 20 \
+              https://inboxs.ir/api/health || echo 000)
+            home=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+              https://inboxs.ir || echo 000)
+            echo "try$i health=$code home=$home body=$(head -c 200 /tmp/inbox-health.json 2>/dev/null || true)"
+            if [ "$code" = "200" ] && [ "$home" != "502" ] && grep -q '"ok":true' /tmp/inbox-health.json; then
+              echo "Live probe passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Production is DOWN after deploy (live probe failed). Run liara-iran-deploy.yml."
+          exit 1

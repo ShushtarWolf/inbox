@@ -3,7 +3,15 @@ import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePaymen
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, courtNotifyName, personNotifyName } from '../../utils/bookingNotify'
+import {
+  clubNotifyLocation,
+  clubNotifyName,
+  courtNotifyName,
+  notifyBookingConfirmed,
+  notifyOwnerBookingConfirmed,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import {
   loadEquipmentForBooking,
   parseEquipmentSelections,
@@ -19,6 +27,7 @@ import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
+import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -68,6 +77,21 @@ export default defineEventHandler(async (event) => {
 
   // Preserve caller order for primary-slot payment grouping.
   const orderedSlots = slotIds.map((id) => slots.find((s) => s.id === id)!)
+
+  await assertExternalBookingAllowedIfEnabled({
+    club: {
+      id: club.id,
+      slug: club.slug,
+      defaultSessionDurationMinutes: club.defaultSessionDurationMinutes,
+      openHour: club.openHour,
+      closeHour: club.closeHour,
+    },
+    slots: orderedSlots.map((slot) => ({
+      courtId: slot.courtId,
+      date: slot.date,
+      startTime: slot.startTime,
+    })),
+  })
 
   const equipmentSelections = parseEquipmentSelections(body.equipmentIds, body.equipmentQuantities)
   const primarySlot = orderedSlots[0]!
@@ -240,6 +264,25 @@ export default defineEventHandler(async (event) => {
   for (const bookingId of bookingIds) {
     await syncClubContactForBooking(bookingId)
   }
+
+  const ownerClub = await prisma.club.findUnique({
+    where: { id: clubId },
+    select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
+  })
+  await notifyOwnerBookingConfirmed({
+    ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : null,
+    clubName: clubNotifyName(ownerClub || club),
+    clubId,
+    bookingId: primaryBookingId,
+    guestName: personNotifyName(dbUser.name),
+    guestPhone: dbUser.phone,
+    sessions: orderedSlots.map((slot) => ({
+      courtName: courtNotifyName(slot.court),
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    })),
+  })
 
   // Online soft-holds wait for PAID before "رزرو تایید شد"; pay-at-club confirms now.
   if (!onlineEnabled) {

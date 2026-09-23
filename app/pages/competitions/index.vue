@@ -7,6 +7,10 @@ const { localizedField } = useLocalizedField()
 const { formatCurrency, formatIsoDate } = useFormatters()
 const { competitionsEnabled } = usePilotFlags()
 
+useHead({
+  title: () => t('competitions.title'),
+})
+
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const cityFilter = ref<string>((route.query.city as string) || '')
 
@@ -28,6 +32,8 @@ const { data: competitions, pending, error } = await useFetch<Array<{
   club: { slug: string; nameFa: string; nameEn?: string; city?: string }
   sport: { slug: string; nameFa: string; nameEn?: string }
 }>>('/api/competitions', { query, immediate: competitionsEnabled.value })
+
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 
 const { data: sports } = await useFetch<Array<{ slug: string; nameFa: string; nameEn?: string }>>('/api/sports')
 
@@ -76,9 +82,7 @@ async function applyFilters() {
       >
     </div>
 
-    <p v-if="pending" class="text-sm text-gray-500">
-      {{ t('common.loading') }}
-    </p>
+    <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error" class="text-sm text-red-600">
       {{ t('common.error') }}
     </p>

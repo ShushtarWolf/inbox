@@ -1,4 +1,4 @@
-import type { Prisma, WalletTransactionType } from '@prisma/client'
+import { Prisma, type WalletTransactionType } from '@prisma/client'
 import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import { canCoverBookingWithWallet, computeWithdrawableBalance, shouldCreditTopUp } from '#shared/walletTopUp.ts'
 
@@ -110,32 +110,50 @@ export async function creditWallet(
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
   const type = meta.type || 'REFUND_CREDIT'
-  // Idempotent retries: one credit of these types per paymentId.
-  if (meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT' || type === 'SETTLEMENT_CREDIT')) {
-    const existing = await db.walletTransaction.findFirst({
-      where: { paymentId: meta.paymentId, type },
+  // Idempotent retries: one credit of these types per paymentId (unique on paymentId+type).
+  const idempotent = Boolean(meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT' || type === 'SETTLEMENT_CREDIT'))
+
+  const apply = async (tx: DbClient) => {
+    const wallet = await getOrCreateWallet(userId, tx)
+    if (idempotent) {
+      const existing = await tx.walletTransaction.findFirst({
+        where: { paymentId: meta.paymentId, type },
+      })
+      if (existing) return wallet
+    }
+    // Balance + ledger in one transaction so a failed ledger write cannot leave a credit without a row
+    // (and a lost unique race rolls the balance increment back).
+    const updated = await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: amount } },
     })
-    if (existing) {
-      return getOrCreateWallet(userId, db)
+    await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount,
+        type,
+        paymentId: meta.paymentId,
+        bookingId: meta.bookingId,
+        withdrawRequestId: meta.withdrawRequestId,
+        note: meta.note,
+      },
+    })
+    return updated
+  }
+
+  if ('$transaction' in db && typeof db.$transaction === 'function') {
+    try {
+      return await db.$transaction((tx) => apply(tx))
+    } catch (error) {
+      if (idempotent && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return getOrCreateWallet(userId, prisma)
+      }
+      throw error
     }
   }
-  const wallet = await getOrCreateWallet(userId, db)
-  const updated = await db.wallet.update({
-    where: { id: wallet.id },
-    data: { balance: { increment: amount } },
-  })
-  await db.walletTransaction.create({
-    data: {
-      walletId: wallet.id,
-      amount,
-      type,
-      paymentId: meta.paymentId,
-      bookingId: meta.bookingId,
-      withdrawRequestId: meta.withdrawRequestId,
-      note: meta.note,
-    },
-  })
-  return updated
+
+  // Already inside a caller transaction — apply in-place; unique race aborts the parent tx.
+  return apply(db)
 }
 
 /**

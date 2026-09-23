@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /** Smoke test — run after `npm run dev` or against BASE_URL */
-import { isPilotNoCoachRuntime } from './lib/smoke-helpers.mjs'
+import { isPilotNoCoachRuntime, loginViaOtp, createCookieJar } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:3000'
-const cookieJar = new Map()
+const cookieJar = createCookieJar()
 const oneDayMs = 24 * 60 * 60 * 1000
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const payAtClub = (process.env.PAYMENTS_MODE || process.env.NUXT_PUBLIC_PAYMENTS_MODE || 'pay_at_club') === 'pay_at_club'
@@ -94,18 +94,21 @@ async function main() {
     }
   }
 
-  await check('/api/auth/login', {
-    method: 'POST',
-    session: 'athlete',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'athlete@inbox.local', password: 'demo1234' }),
-  })
+  await loginViaOtp(base, cookieJar, 'athlete', '09121234567')
   await check('/api/auth/login', {
     method: 'POST',
     session: 'owner',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email: 'owner@inbox.local', password: 'demo1234' }),
   })
+
+  // Athletes stay OTP-only
+  await expectStatus('/api/auth/login', 401, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'athlete@inbox.local', password: 'demo1234' }),
+  })
+  console.log('ok  athlete password login rejected')
 
   const slots = await check(`/api/slots/available?club=${clubs[0].slug}&date=${futureDate}`)
   if (slots.length >= 2) {

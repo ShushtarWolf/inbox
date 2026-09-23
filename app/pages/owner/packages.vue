@@ -7,7 +7,7 @@ definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const { formatCurrency, formatIsoDate, formatNumber } = useFormatters()
-const { packagesEnabled } = usePilotFlags()
+const { packagesEnabled, pilotNoCoach } = usePilotFlags()
 
 interface PackageRow {
   id: string
@@ -48,7 +48,13 @@ interface ConflictRow {
 const { data, pending, error, refresh } = await useAuthedFetch<PackageRow[]>('/api/owner/packages', {
   immediate: packagesEnabled.value,
 })
-const { data: courtsData } = await useAuthedFetch<CourtRow[]>('/api/owner/courts')
+/** Form-only deps — do not block the packages list LCP. */
+const { data: courtsData, refresh: refreshCourts } = useAuthedFetch<CourtRow[]>('/api/owner/courts', {
+  immediate: false,
+})
+const { data: coachesData, refresh: refreshCoaches } = useAuthedFetch<CoachRow[]>('/api/owner/coaches', {
+  immediate: false,
+})
 useOwnerClubRefresh(refresh)
 
 const showForm = ref(false)
@@ -80,8 +86,8 @@ const preview = ref<{
 } | null>(null)
 
 const courts = computed(() => courtsData.value || [])
-/** Coaches are independent — owner packages do not attach a club-affiliated coach. */
-const coaches = computed(() => [] as CoachRow[])
+/** Approved marketplace coaches — any can be tagged on a package (no club money link). */
+const coaches = computed(() => coachesData.value || [])
 const packages = computed(() => data.value || [])
 const hasConflicts = computed(() => (preview.value?.conflicts.length || 0) > 0)
 const canSubmitConfirm = computed(() =>
@@ -127,9 +133,15 @@ function resetForm() {
   preview.value = null
 }
 
-function openCreate() {
+async function openCreate() {
   resetForm()
   showForm.value = true
+  const tasks: Promise<unknown>[] = [refreshCourts()]
+  if (!pilotNoCoach.value) tasks.push(refreshCoaches())
+  await Promise.all(tasks)
+  if (!form.courtId && courts.value[0]?.id) {
+    form.courtId = courts.value[0].id
+  }
 }
 
 function closeForm() {
@@ -184,7 +196,7 @@ async function runPreview() {
     showConfirm.value = true
   }
   catch (err: unknown) {
-    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPreview'))
+    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPreview'), t)
   }
   finally {
     previewing.value = false
@@ -219,7 +231,7 @@ async function confirmPublish() {
     await refresh()
   }
   catch (err: unknown) {
-    confirmError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPublish'))
+    confirmError.value = fetchErrorMessage(err, t('owner.packagesPage.errorPublish'), t)
   }
   finally {
     saving.value = false
@@ -232,7 +244,7 @@ async function cancelPackage(id: string) {
     await refresh()
   }
   catch (err: unknown) {
-    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorCancel'))
+    formError.value = fetchErrorMessage(err, t('owner.packagesPage.errorCancel'), t)
   }
 }
 
@@ -270,7 +282,7 @@ const selectedCoach = computed(() => coaches.value.find((c) => c.id === form.coa
 
       <p v-if="formError && !showForm" class="text-sm text-brand-error">{{ formError }}</p>
 
-      <AppAsyncState :pending="pending" :error="error" :empty="!packages.length" @retry="refresh">
+      <AppAsyncState :pending="pending" :error="error" :empty="!packages.length" skeleton-variant="table" @retry="refresh">
         <div class="space-y-3">
           <article
             v-for="pkg in packages"
@@ -347,14 +359,12 @@ const selectedCoach = computed(() => coaches.value.find((c) => c.id === form.coa
         <AppFormField :label="t('owner.packagesPage.discount')" numeric>
           <input v-model.number="form.discount" type="number" min="0" class="canva-input w-full" >
         </AppFormField>
-        <div class="grid grid-cols-2 gap-2">
-          <AppFormField :label="t('owner.packagesPage.startDate')">
-            <input v-model="form.startDate" type="date" class="canva-input w-full" >
-          </AppFormField>
-          <AppFormField :label="t('owner.packagesPage.finishDate')">
-            <input v-model="form.finishDate" type="date" class="canva-input w-full" >
-          </AppFormField>
-        </div>
+        <AppFormField :label="t('owner.packagesPage.dateRange')" required>
+          <AppDateRangeInput
+            v-model:start="form.startDate"
+            v-model:end="form.finishDate"
+          />
+        </AppFormField>
         <div>
           <p class="mb-1 text-xs font-bold text-brand-navy">{{ t('owner.packagesPage.weekdays') }}</p>
           <div class="flex flex-wrap gap-1">

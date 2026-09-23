@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import {
@@ -189,13 +189,7 @@ async function putObjectWithAclFallback(
     Body: params.body,
     ContentType: params.contentType,
   }
-  // Prefer public-read when the provider supports it; Liara may reject ACL — retry without.
-  try {
-    await client.send(new PutObjectCommand({ ...base, ACL: 'public-read' }))
-  } catch (err) {
-    if (!isAclUnsupportedError(err)) throw err
-    await client.send(new PutObjectCommand(base))
-  }
+  await client.send(new PutObjectCommand(base))
 }
 
 /**
@@ -222,7 +216,7 @@ async function uploadObject(buffer: Buffer, options: { folder: string; contentTy
     throw createError({ statusCode: 500, statusMessage: 'Upload write failed' })
   }
 
-  // Best-effort durable copy to S3 when configured (bucket need not be public).
+  // A configured object store is the durable production source of truth.
   const s3 = createS3Client()
   if (s3) {
     try {
@@ -232,8 +226,10 @@ async function uploadObject(buffer: Buffer, options: { folder: string; contentTy
         body: buffer,
         contentType: options.contentType,
       })
-    } catch {
-      // Local file already saved and is what the browser loads via /uploads/*.
+    } catch (error) {
+      await unlink(localPath).catch(() => undefined)
+      console.error('[storage] durable upload failed', error)
+      throw createError({ statusCode: 503, statusMessage: 'Durable upload failed; please retry' })
     }
   }
 

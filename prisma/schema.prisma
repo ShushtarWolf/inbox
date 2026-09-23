@@ -64,6 +64,12 @@ enum ExternalOccupancySource {
   COURTIC
 }
 
+/** Owner manual override on external-calendar slot availability (does not mutate external data). */
+enum ManualAvailabilityOverrideType {
+  RELEASE
+  BLOCK
+}
+
 enum EquipmentCategory {
   CLUB
   RENTAL
@@ -233,6 +239,8 @@ model User {
   competitionPartnerEntries CompetitionEntry[] @relation("CompetitionPartner")
   competitionPrizeAwards    CompetitionPrizeAward[]
   boundDiscountCodes        DiscountCode[]       @relation("DiscountCodeBoundUser")
+  manualOverridesCreated    ManualAvailabilityOverride[] @relation("ManualOverrideCreatedBy")
+  manualOverridesUpdated    ManualAvailabilityOverride[] @relation("ManualOverrideUpdatedBy")
 
   @@unique([oauthProvider, oauthSubject])
 }
@@ -278,6 +286,7 @@ model WalletTransaction {
   withdrawRequestId String?
 
   @@index([walletId, createdAt])
+  @@unique([paymentId, type])
 }
 
 /** Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest. */
@@ -482,6 +491,7 @@ model Club {
   competitions      Competition[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
   ownerExternalNotes OwnerExternalNote[]
+  manualAvailabilityOverrides ManualAvailabilityOverride[]
 }
 
 model Court {
@@ -506,6 +516,7 @@ model Court {
   packages PackageDraft[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
   ownerExternalNotes OwnerExternalNote[]
+  manualAvailabilityOverrides ManualAvailabilityOverride[]
 }
 
 model Slot {
@@ -564,6 +575,32 @@ model OwnerExternalNote {
   note      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([courtId, date, startTime])
+  @@index([clubId, date])
+}
+
+/**
+ * Manual owner override for a single court hour when external calendar disagrees with reality.
+ * RELEASE: external says unavailable but Inboxs should allow booking.
+ * BLOCK: external says available but Inboxs should block booking.
+ */
+model ManualAvailabilityOverride {
+  id          String                         @id @default(cuid())
+  clubId      String
+  club        Club                           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  courtId     String
+  court       Court                          @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  date        String
+  startTime   String
+  endTime     String?
+  type        ManualAvailabilityOverrideType
+  createdById String
+  createdBy   User                           @relation("ManualOverrideCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById String?
+  updatedBy   User?                          @relation("ManualOverrideUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime                       @default(now())
+  updatedAt   DateTime                       @updatedAt
 
   @@unique([courtId, date, startTime])
   @@index([clubId, date])

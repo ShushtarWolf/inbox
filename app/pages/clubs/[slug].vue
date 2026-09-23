@@ -6,19 +6,28 @@ import {
   courtIdsFromSlots,
   isSlotFree,
   joinWithAnd,
+  resolveBasketSlots,
   slotCourtId,
   sortSlotsByTimeThenCourt,
   timesFromSlots,
   removeSlotsForCourt,
   toggleHourOnCourts,
   uniqueOrdered,
+  upsertBasketSlots,
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
+import { buildClubSportsActivityLocationJsonLd } from '#shared/clubJsonLd.ts'
+import {
+  buildClubCitationCopy,
+  buildClubFaqPageJsonLd,
+  clubCitationFaqHeading,
+} from '#shared/clubCitationCopy.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 import { buildReturnTo } from '#shared/returnTo.ts'
 
 type ClubSlot = {
   id: string
+  date?: string
   startTime: string
   endTime?: string
   price?: number
@@ -59,6 +68,8 @@ type ClubDetail = {
   descriptionEn?: string
   amenities?: string[]
   phone?: string
+  openHour?: number | null
+  closeHour?: number | null
   testimonials?: Array<{ id: string; authorName: string; rating: number; body: string }>
 }
 
@@ -80,6 +91,7 @@ if (rawSlug && slug !== rawSlug) {
 }
 
 const { data: club, pending, error } = await useFetch<ClubDetail>(`/api/clubs/${slug}`)
+const showClubPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
 const { user } = useAuth()
@@ -120,18 +132,30 @@ const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
 const selectedCourtIds = ref<string[]>(
   deepLinkSlotIds.length || deepLinkTimes.length ? deepLinkCourtIds : [],
 )
-const selectedSlotIds = ref<string[]>([])
+/** Survive date changes + AuthFlow navigateTo (multi-day basket). */
+const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
+const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
-const { data: slots, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
+function clearBasket() {
+  selectedSlotIds.value = []
+  basketSlotsById.value = {}
+}
+
+function stampSlotDate(slot: ClubSlot, date = selectedDate.value): ClubSlot {
+  return slot.date ? slot : { ...slot, date }
+}
+
+const { data: slots, pending: slotsPending, error: slotsError, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
   query: computed(() => ({
     club: slug,
     date: selectedDate.value,
     includeUnavailable: '1',
   })),
 })
+const showSlotsPending = useHeldPending(slotsPending, { forceRelease: () => Boolean(slotsError.value) })
 
 const {
   enabled: externalSuspectedEnabled,
@@ -184,8 +208,7 @@ watch(
 
 watch(selectedDate, () => {
   if (suppressSlotClear) return
-  selectedSlotIds.value = []
-  selectedCourtIds.value = []
+  // Multi-day basket: keep selectedSlotIds / courts; only reset waitlist for the left day.
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
 })
@@ -198,20 +221,43 @@ const courtSlots = computed(() => {
   return list.filter((s) => slotCourtId(s) === focusedCourtId.value)
 })
 
+function syncBasketFromKnown(known: ClubSlot[]) {
+  const stamped = known.map((slot) => stampSlotDate(slot))
+  basketSlotsById.value = upsertBasketSlots(
+    basketSlotsById.value,
+    selectedSlotIds.value,
+    stamped,
+  )
+}
+
 watch(
   () => slots.value,
   (list) => {
-    if (!deepLinkSlotsPending.value || !list) return
+    if (!list) return
+    // Drop basket hours that became unavailable on the day currently loaded.
+    const drop = new Set(
+      selectedSlotIds.value.filter((id) => {
+        const slot = list.find((s) => s.id === id)
+        return Boolean(slot && (!isSlotFree(slot) || isSlotSuspected(slot)))
+      }),
+    )
+    if (drop.size) {
+      selectedSlotIds.value = selectedSlotIds.value.filter((id) => !drop.has(id))
+      if (!selectedSlotIds.value.length) confirmOpen.value = false
+    }
+    syncBasketFromKnown(list)
+
+    if (!deepLinkSlotsPending.value) return
     const available = list
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
-      return Boolean(slot && isSlotFree(slot))
+      return Boolean(slot && isSlotFree(slot) && !isSlotSuspected(slot))
     })
     // Rebook fallback: match free slots by clock time when prior slot id is gone.
     if (!valid.length && deepLinkTimes.length) {
       valid = available
         .filter((s) => {
-          if (!isSlotFree(s)) return false
+          if (!isSlotFree(s) || isSlotSuspected(s)) return false
           const start = (s.startTime || '').slice(0, 5)
           if (!deepLinkTimes.includes(start)) return false
           if (!deepLinkCourtIds.length) return true
@@ -220,7 +266,13 @@ watch(
         .map((s) => s.id)
     }
     if (valid.length) {
-      selectedSlotIds.value = valid
+      // Keep other-day basket picks; replace only the day currently loaded (deep-link / rebook).
+      const otherDayIds = selectedSlotIds.value.filter((id) => {
+        if (available.some((s) => s.id === id)) return false
+        return Boolean(basketSlotsById.value[id])
+      })
+      selectedSlotIds.value = uniqueOrdered([...otherDayIds, ...valid])
+      syncBasketFromKnown(available)
       const fromSlots = courtIdsFromSlots(
         valid
           .map((id) => available.find((s) => s.id === id))
@@ -269,13 +321,40 @@ function courtNumberLabel(courtId: string) {
   return t('booking.courtNumber', { n: formatNumber(n) })
 }
 
+function formatBasketDateLabel(iso: string) {
+  const j = isoToJalaali(iso)
+  const weekday = formatWeekday(iso, 'long')
+  return `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
+}
+
 const selectedSlots = computed(() => {
   const courtOrder = courts.value.map((c) => c.id)
-  const picked = selectedSlotIds.value
-    .map((id) => allSlots.value.find((s) => s.id === id))
-    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
+  const liveById = new Map(allSlots.value.map((s) => [s.id, s]))
+  const resolved = resolveBasketSlots(
+    selectedSlotIds.value,
+    basketSlotsById.value,
+    allSlots.value.map((s) => stampSlotDate(s)),
+  )
+  const picked = resolved.filter((slot) => {
+    const live = liveById.get(slot.id)
+    if (live) return isSlotFree(live) && !isSlotSuspected(live)
+    // Other calendar day: keep cached pick until that day is loaded again.
+    return Boolean(slot.date)
+  })
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
+
+const basketDates = computed(() =>
+  uniqueOrdered(
+    selectedSlots.value
+      .map((s) => s.date || '')
+      .filter(Boolean),
+  ).sort(),
+)
+
+function dayHasBasket(iso: string) {
+  return basketDates.value.includes(iso)
+}
 
 /** Solid green = this court has basket hours (matches slot legend). Never focus-only. */
 function isCourtChipActive(courtId: string) {
@@ -298,10 +377,15 @@ function toggleCourt(courtId: string) {
   const selected = selectedCourtIds.value
   const chipOn = courtHasChipSelection(courtId)
   if (chipOn) {
-    // One click off: drop chip + that court's basket slots (no focus-first step).
+    // One click off: drop chip + that court's basket slots across all days.
     const nextSelected = selected.filter((id) => id !== courtId)
     selectedCourtIds.value = nextSelected
-    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, allSlots.value)
+    const known = [
+      ...Object.values(basketSlotsById.value),
+      ...allSlots.value.map((s) => stampSlotDate(s)),
+    ]
+    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, known)
+    syncBasketFromKnown(known)
     if (nextSelected.length) {
       focusedCourtId.value = nextSelected.includes(focusedCourtId.value || '')
         ? focusedCourtId.value
@@ -310,11 +394,7 @@ function toggleCourt(courtId: string) {
     }
     // Prefer a court that still has basket hours; else first court for browsing
     // (focus alone must not light the chip — see isCourtChipActive).
-    const basketCourts = courtIdsFromSlots(
-      selectedSlotIds.value
-        .map((id) => allSlots.value.find((s) => s.id === id))
-        .filter((s): s is ClubSlot => Boolean(s)),
-    )
+    const basketCourts = courtIdsFromSlots(selectedSlots.value)
     focusedCourtId.value = basketCourts[0] || courts.value[0]?.id || null
     return
   }
@@ -356,11 +436,9 @@ const bookingSummary = computed(() => {
     courtIdsFromSlots(picked).map((id) => courtNumberLabel(id)).filter(Boolean),
   )
   const times = timesFromSlots(picked).map((time) => formatTimeLabel(time))
-  const j = isoToJalaali(selectedDate.value)
-  const weekday = formatWeekday(selectedDate.value, 'long')
-  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
+  const dateLabels = basketDates.value.map((iso) => formatBasketDateLabel(iso))
   return t('clubs.bookingSummarySelected', {
-    date: dateLabel,
+    date: joinWithAnd(dateLabels),
     courts: joinWithAnd(courtLabels),
     times: joinWithAnd(times),
   })
@@ -383,6 +461,21 @@ const sportLabel = computed(() => {
   if (sportKey === 'padel') return t('clubs.sportCourtPadel')
   if (sportKey === 'tennis') return t('clubs.sportCourtTennis')
   return t('clubs.sportCourtGeneric')
+})
+
+/** Sport name only (پدل/تنیس) — never prefix with «زمین» (SEO templates already include it). */
+const sportSeoLabel = computed(() => {
+  const court = courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
+  const sportKey = court?.sport?.slug
+  if (sportKey === 'padel') return t('clubs.sportPadel')
+  if (sportKey === 'tennis') return t('clubs.sportTennis')
+  const slugs = new Set(
+    courts.value.map((c) => c.sport?.slug).filter((s): s is string => Boolean(s)),
+  )
+  if (slugs.has('padel') && slugs.has('tennis')) return t('home.sportsLabel')
+  if (slugs.has('padel')) return t('clubs.sportPadel')
+  if (slugs.has('tennis')) return t('clubs.sportTennis')
+  return t('home.sportsLabel')
 })
 
 const bookableEquipment = computed(() => {
@@ -489,6 +582,7 @@ const confirmSlots = computed(() =>
     const court = courts.value.find((c) => c.id === courtId)
     return {
       ...slot,
+      date: slot.date || selectedDate.value,
       courtId,
       courtLabel: courtNumberLabel(courtId),
       courtPrice: court?.price,
@@ -497,6 +591,9 @@ const confirmSlots = computed(() =>
   }),
 )
 
+/** Earliest basket day — equipment availability API is single-date (matches server primary). */
+const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.value)
+
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
@@ -504,7 +601,7 @@ function openConfirmSheet() {
     resumeConfirmAfterAuth.value = true
     openLogin({
       returnTo: buildReturnTo(route.path, {
-        date: selectedDate.value,
+        date: confirmPrimaryDate.value,
         court: selectedCourtIdsForReturn.value || undefined,
         slots: selectedSlotIds.value.join(','),
       }),
@@ -525,13 +622,13 @@ function openConfirmSheet() {
 
 function onConfirmSuccess() {
   resumeConfirmAfterAuth.value = false
-  selectedSlotIds.value = []
+  clearBasket()
   waitlistSlotId.value = null
 }
 
 async function onSlotConflict() {
   confirmOpen.value = false
-  selectedSlotIds.value = []
+  clearBasket()
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   await refreshSlots()
@@ -625,6 +722,7 @@ function calendarDayAria(cell: { day: number | null; iso: string | null }) {
   const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
   if (cell.iso < today()) return t('clubs.calendarDayDisabled', { date: dateLabel })
   if (cell.iso === selectedDate.value) return t('clubs.calendarDaySelected', { date: dateLabel })
+  if (dayHasBasket(cell.iso)) return t('clubs.calendarDayBasket', { date: dateLabel })
   return t('clubs.calendarDaySelectable', { date: dateLabel })
 }
 
@@ -641,37 +739,87 @@ const clubPageName = computed(() =>
   club.value ? localizedField(club.value, 'nameFa', 'nameEn') : '',
 )
 
-const clubSeoDescription = computed(() => {
-  if (!club.value) return t('home.subtitle')
-  return t('clubs.seoDescription', {
+const siteBase = computed(() => String(config.public.siteUrl || '').replace(/\/$/, '') || 'https://inboxs.ir')
+
+const defaultOgImage = computed(() => `${siteBase.value}/hero/tennis-court.jpg`)
+
+const clubSeoTitle = computed(() => {
+  if (!club.value || !clubPageName.value) return t('clubs.seoTitle')
+  return t('clubs.seoTitleClub', {
+    sport: sportSeoLabel.value,
     name: clubPageName.value,
     city: club.value.city || 'تهران',
-    sport: sportLabel.value,
+  })
+})
+
+const clubSeoDescription = computed(() => {
+  if (!club.value) return t('home.seoDescription')
+  return t('clubs.seoDescription', {
+    name: clubPageName.value,
+    location: locationLine.value || club.value.city || 'تهران',
+    sport: sportSeoLabel.value,
   })
 })
 
 const clubCanonicalUrl = computed(() => {
-  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
-  if (!base || !club.value) return ''
-  return `${base}${localePath(`/clubs/${slug}`)}`
+  if (!club.value) return ''
+  return `${siteBase.value}${localePath(`/clubs/${slug}`)}`
 })
 
 const clubOgImage = computed(() => {
   const image = club.value?.image || activeGallery.value
-  if (!image) return ''
+  if (!image) return defaultOgImage.value
   if (image.startsWith('http://') || image.startsWith('https://')) return image
-  const base = String(config.public.siteUrl || '').replace(/\/$/, '')
-  return base ? `${base}${image.startsWith('/') ? image : `/${image}`}` : image
+  return `${siteBase.value}${image.startsWith('/') ? image : `/${image}`}`
+})
+
+/** Localized sport names for JSON-LD + citation copy (پدل/تنیس only when courts say so). */
+const clubSportNames = computed(() => {
+  if (!club.value) return [] as string[]
+  return [...new Set(
+    (club.value.courts || [])
+      .map((court) => {
+        if (court.sport?.slug === 'padel') return t('clubs.sportPadel')
+        if (court.sport?.slug === 'tennis') return t('clubs.sportTennis')
+        return ''
+      })
+      .filter(Boolean),
+  )]
+})
+
+const clubAmenityNames = computed(() =>
+  (club.value?.amenities || []).map((item) => amenityLabel(item)),
+)
+
+/** Crawlable FA prose + FAQs for Google snippets and AI citations — real fields only. */
+const clubCitationCopy = computed(() => {
+  if (!club.value || !clubPageName.value || !clubCanonicalUrl.value) return null
+  return buildClubCitationCopy({
+    name: clubPageName.value,
+    city: club.value.city,
+    district: club.value.district,
+    address: localizedField(club.value, 'addressFa', 'addressEn') || null,
+    sports: clubSportNames.value,
+    amenities: clubAmenityNames.value,
+    openHour: club.value.openHour,
+    closeHour: club.value.closeHour,
+    priceFrom: club.value.priceFrom,
+    priceTo: club.value.priceTo,
+    descriptionFa: club.value.descriptionFa,
+    pageUrl: clubCanonicalUrl.value,
+  })
 })
 
 useSeoMeta({
-  title: () => (clubPageName.value ? `${clubPageName.value} — ${t('clubs.title')}` : t('clubs.title')),
+  title: () => clubSeoTitle.value,
   description: () => clubSeoDescription.value,
-  ogTitle: () => (clubPageName.value ? `${clubPageName.value} — inbox` : 'inbox'),
+  ogTitle: () => clubSeoTitle.value,
   ogDescription: () => clubSeoDescription.value,
-  ogImage: () => clubOgImage.value || undefined,
+  ogImage: () => clubOgImage.value,
+  ogUrl: () => clubCanonicalUrl.value || undefined,
   ogType: 'website',
   twitterCard: 'summary_large_image',
+  twitterImage: () => clubOgImage.value,
 })
 
 useHead(() => {
@@ -681,37 +829,43 @@ useHead(() => {
   }
   if (club.value && clubPageName.value) {
     const address = localizedField(club.value, 'addressFa', 'addressEn') || club.value.city || ''
-    const jsonLd: Record<string, unknown> = {
-      '@context': 'https://schema.org',
-      '@type': 'SportsActivityLocation',
+    const description = localizedField(club.value, 'descriptionFa', 'descriptionEn')
+    const coords = club.value.coordinates
+    const summary = club.value.reviewSummary
+    const scripts: Array<{ type: string; innerHTML: string }> = []
+    const jsonLd = buildClubSportsActivityLocationJsonLd({
       name: clubPageName.value,
       url: clubCanonicalUrl.value || undefined,
       image: clubOgImage.value || undefined,
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: club.value.city || undefined,
-        streetAddress: address || undefined,
-        addressCountry: 'IR',
-      },
-    }
-    const coords = club.value.coordinates
-    if (coords?.lat != null && coords?.lng != null) {
-      jsonLd.geo = {
-        '@type': 'GeoCoordinates',
-        latitude: coords.lat,
-        longitude: coords.lng,
-      }
-    }
-    const summary = club.value.reviewSummary
-    if (summary?.count && summary.average != null && summary.average > 0) {
-      jsonLd.aggregateRating = {
-        '@type': 'AggregateRating',
-        ratingValue: summary.average,
-        reviewCount: summary.count,
-      }
-    }
+      description,
+      telephone: club.value.phone,
+      city: club.value.city,
+      streetAddress: address || undefined,
+      lat: coords?.lat,
+      lng: coords?.lng,
+      openHour: club.value.openHour,
+      closeHour: club.value.closeHour,
+      priceFrom: club.value.priceFrom,
+      priceTo: club.value.priceTo,
+      sports: clubSportNames.value,
+      amenities: clubAmenityNames.value,
+      aggregateRating:
+        summary?.count && summary.average != null && summary.average > 0
+          ? { ratingValue: summary.average, reviewCount: summary.count }
+          : null,
+    })
     // Escape `<` so club name/address cannot break out of the LD+JSON script tag.
-    head.script = [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }]
+    scripts.push({ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) })
+
+    const faqJsonLd = clubCitationCopy.value
+      ? buildClubFaqPageJsonLd(clubCitationCopy.value.faqs, {
+          url: clubCanonicalUrl.value || undefined,
+        })
+      : null
+    if (faqJsonLd) {
+      scripts.push({ type: 'application/ld+json', innerHTML: serializeJsonLd(faqJsonLd) })
+    }
+    head.script = scripts
   }
   return head
 })
@@ -719,11 +873,13 @@ useHead(() => {
 function toggleSlot(slot: ClubSlot) {
   if (isSlotBooked(slot)) {
     if (!waitlistEnabled.value) return
-    selectedSlotIds.value = []
+    clearBasket()
     waitlistFeedback.value = ''
     waitlistSlotId.value = waitlistSlotId.value === slot.id ? null : slot.id
     return
   }
+  // External suspected (مشکوک / تماس بگیرید): hard-lock — call club, no Inboxs reserve.
+  if (isSlotSuspected(slot)) return
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   // Always include the slot's court + focused court so an empty chip selection
@@ -738,13 +894,16 @@ function toggleSlot(slot: ClubSlot) {
   if (!selectedCourtIds.value.length && slotCourt) {
     selectedCourtIds.value = [slotCourt]
   }
+  // Only current-day slots participate in hour toggle so other days keep their picks.
   selectedSlotIds.value = toggleHourOnCourts({
     selectedSlotIds: selectedSlotIds.value,
     selectedCourtIds: applyCourtIds,
     startTime: slot.startTime,
-    slots: allSlots.value,
+    // Exclude suspected so multi-court hour apply cannot add EXTERNAL_BUSY hours.
+    slots: allSlots.value.filter((s) => !isSlotSuspected(s)),
     clickedSlotId: slot.id,
   })
+  syncBasketFromKnown(allSlots.value)
 }
 
 async function joinCourtWaitlist() {
@@ -811,8 +970,8 @@ async function shareClub() {
 </script>
 
 <template>
-  <div v-if="pending" class="tail-page-enter">
-    <AppVenusSkeleton :lines="4" />
+  <div v-if="showClubPending" class="tail-page-enter">
+    <AppVenusSpinner :label="t('common.loading')" />
   </div>
   <div v-else-if="error || !club" class="space-y-4">
     <CanvaPublicChrome back-to="/clubs" />
@@ -958,6 +1117,7 @@ async function shareClub() {
                     class="canva-club-cal-day"
                     :class="{
                       'canva-club-cal-day-active': cell.iso === selectedDate,
+                      'canva-club-cal-day-basket': dayHasBasket(cell.iso) && cell.iso !== selectedDate,
                       'canva-club-cal-day-disabled': cell.iso < today(),
                     }"
                     :disabled="cell.iso < today()"
@@ -1002,7 +1162,15 @@ async function shareClub() {
                 {{ t('clubs.multiCourtTimeHint') }}
               </p>
               <div class="canva-club-slot-grid">
+                <div v-if="showSlotsPending" class="col-span-full flex justify-center py-8" role="status">
+                  <AppVenusSpinner size="sm" :label="t('common.loading')" compact />
+                </div>
+                <div v-else-if="slotsError" class="col-span-full space-y-3 py-8 text-center text-sm text-red-700" role="alert">
+                  <p>{{ t('common.error') }}</p>
+                  <button type="button" class="btn-secondary" @click="refreshSlots">{{ t('common.retry') }}</button>
+                </div>
                 <button
+                  v-else
                   v-for="slot in courtSlots"
                   :key="slot.id"
                   type="button"
@@ -1012,20 +1180,20 @@ async function shareClub() {
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
-                  :disabled="isSlotBooked(slot) && !waitlistEnabled"
+                  :disabled="(isSlotBooked(slot) && !waitlistEnabled) || isSlotSuspected(slot)"
                   :aria-label="slotAriaLabel(slot)"
                   :aria-pressed="isSlotSelected(slot.id) || waitlistSlotId === slot.id"
                   @click="toggleSlot(slot)"
                 >
                   {{ formatTimeLabel(slot.startTime) }}
                   <span
-                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot) && !isSlotSelected(slot.id)"
+                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot)"
                     class="canva-club-slot-suspected-label"
                   >
                     {{ t('clubs.slotSuspectedLabel') }}
                   </span>
                 </button>
-                <p v-if="!courtSlots.length" class="canva-club-detail-desc col-span-full">
+                <p v-if="!showSlotsPending && !slotsError && !courtSlots.length" class="canva-club-detail-desc col-span-full">
                   {{ t('common.empty') }}
                 </p>
               </div>
@@ -1136,6 +1304,29 @@ async function shareClub() {
             {{ t('clubs.reviewsEmpty') }}
           </div>
         </section>
+
+        <!-- 7. Crawlable FA citation copy + FAQ (Google + AI assistants) — real fields only -->
+        <section
+          v-if="clubCitationCopy"
+          class="canva-club-detail-section canva-club-citation"
+          aria-label="اطلاعات باشگاه برای رزرو"
+        >
+          <p class="canva-club-detail-desc">{{ clubCitationCopy.intro }}</p>
+          <div
+            v-for="section in clubCitationCopy.sections"
+            :key="section.heading"
+            class="space-y-1"
+          >
+            <h2 class="canva-club-detail-section-title">{{ section.heading }}</h2>
+            <p class="canva-club-detail-desc">{{ section.body }}</p>
+          </div>
+          <AppFaqAccordion
+            :items="clubCitationCopy.faqs"
+            heading-id="club-citation-faq-heading"
+            :heading="clubCitationFaqHeading()"
+            heading-level="h2"
+          />
+        </section>
     </div>
 
       <CourtBookingConfirmSheet
@@ -1145,7 +1336,7 @@ async function shareClub() {
         :location-line="locationLine"
         :sport-label="sportLabel"
         :rating-display="ratingDisplay"
-        :date="selectedDate"
+        :date="confirmPrimaryDate"
         :court-id="selectedCourtIdsForReturn || undefined"
         :court-label="selectedCourtLabel"
         :slots="confirmSlots"

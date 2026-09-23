@@ -37,4 +37,23 @@ describe('expandPackageSessions', () => {
     }, 60, afterRange)
     expect(sessions).toEqual([])
   })
+
+  it('re-expands from stored timesJson alone (publish path, no live dayTimes)', () => {
+    const dayTimes = { Mon: { start: '16:00', end: '17:00' }, Wed: { start: '16:00', end: '17:00' } }
+    const fromLive = expandPackageSessions({
+      startDate: '2026-09-07', // Monday
+      finishDate: '2026-09-10', // Thursday
+      days: ['Mon', 'Wed'],
+      dayTimes,
+    }, 60, FIXED_NOW)
+    const fromStored = expandPackageSessions({
+      startDate: '2026-09-07',
+      finishDate: '2026-09-10',
+      days: ['Mon', 'Wed'],
+      daysJson: JSON.stringify(['Mon', 'Wed']),
+      timesJson: JSON.stringify(dayTimes),
+    }, 60, FIXED_NOW)
+    expect(fromStored.length).toBeGreaterThan(0)
+    expect(fromStored).toEqual(fromLive)
+  })
 })

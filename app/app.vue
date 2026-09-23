@@ -19,6 +19,7 @@ useHead(() => ({
 
 <template>
   <AppRouteProgress />
+  <AppTouchGlow />
   <PwaInstallBanner />
   <NuxtLayout>
     <NuxtPage

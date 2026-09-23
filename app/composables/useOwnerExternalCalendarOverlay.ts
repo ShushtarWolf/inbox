@@ -13,6 +13,11 @@ type OwnerExternalCell = {
   occupied: boolean
   sourceDetails?: OwnerExternalSourceDetail[]
   ownerNote?: string | null
+  externalKind?: 'busy_single' | 'busy_multi' | 'uncertain' | 'clear'
+  externalState?: string
+  manualOverride?: 'RELEASE' | 'BLOCK' | null
+  manualOverrideId?: string | null
+  effectiveBlocksBooking?: boolean
 }
 
 type OwnerExternalCalendarPayload = {
@@ -70,16 +75,80 @@ export function useOwnerExternalCalendarOverlay(opts: {
     return cellByKey.value.get(occupancyKey(slot.courtId, slot.startTime)) || null
   }
 
-  /** Inbox FREE but occupied on another booking site — show site name(s). */
+  function manualOverrideFor(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined) {
+    return externalCellFor(slot)?.manualOverride ?? null
+  }
+
+  function manualOverrideIdFor(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined) {
+    return externalCellFor(slot)?.manualOverrideId ?? null
+  }
+
+  function isManuallyReleased(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    return manualOverrideFor(slot) === 'RELEASE'
+  }
+
+  function isManuallyBlocked(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    return manualOverrideFor(slot) === 'BLOCK'
+  }
+
+  /** Inbox FREE but confirmed EXTERNAL_BUSY on another booking site. */
   function isExternalOnlyOccupied(slot: {
     courtId: string
     startTime: string
     displayStatus?: string
   } | null | undefined): boolean {
     if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isManuallyReleased(slot)) return false
     const cell = externalCellFor(slot)
     if (!cell?.occupied) return false
+    if (cell.externalKind === 'uncertain') return false
     return cell.sources.some((source) => source !== 'inbox')
+  }
+
+  /** Inbox FREE but external data is incomplete / UNKNOWN — yellow advisory. */
+  function isExternalUncertain(slot: {
+    courtId: string
+    startTime: string
+    displayStatus?: string
+  } | null | undefined): boolean {
+    if (!slot || slot.displayStatus !== 'FREE') return false
+    if (isManuallyReleased(slot)) return false
+    if (isExternalOnlyOccupied(slot)) return false
+    const cell = externalCellFor(slot)
+    return cell?.externalKind === 'uncertain'
+  }
+
+  function externalStateLabel(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): string {
+    const cell = externalCellFor(slot)
+    if (!cell) return ''
+    if (cell.externalKind === 'uncertain') return cell.badge || 'UNKNOWN'
+    if (cell.sources.some((source) => source !== 'inbox')) return cell.badge || 'BUSY'
+    if (cell.externalState && cell.externalState !== 'AVAILABLE') return cell.externalState
+    return 'FREE'
+  }
+
+  function externalKind(slot: {
+    courtId: string
+    startTime: string
+  } | null | undefined): OwnerExternalCell['externalKind'] | null {
+    return externalCellFor(slot)?.externalKind ?? null
   }
 
   function externalSiteBadge(slot: {
@@ -87,14 +156,17 @@ export function useOwnerExternalCalendarOverlay(opts: {
     startTime: string
     displayStatus?: string
   } | null | undefined): string {
-    if (!isExternalOnlyOccupied(slot)) return ''
+    if (!isExternalOnlyOccupied(slot) && !isExternalUncertain(slot)) return ''
     const cell = externalCellFor(slot)
     if (!cell) return ''
+    if (isExternalUncertain(slot)) return cell.badge || 'مشکوک'
+    // Prefer short site labels over legacy «مشغول · …» badges for the dense grid.
     const labels = (cell.sourceDetails || [])
       .filter((detail) => detail.source !== 'inbox')
       .map((detail) => detail.siteLabel)
     if (labels.length) return labels.join(' + ')
-    return cell.badge || ''
+    if (!cell.badge) return ''
+    return cell.badge.replace(/^مشغول\s*[·\-–]\s*/, '').trim() || cell.badge
   }
 
   function externalSourceDetails(slot: {
@@ -140,6 +212,13 @@ export function useOwnerExternalCalendarOverlay(opts: {
     externalOverlayEnabled: enabled,
     externalOverlayPending: pending,
     isExternalOnlyOccupied,
+    isExternalUncertain,
+    isManuallyReleased,
+    isManuallyBlocked,
+    manualOverrideFor,
+    manualOverrideIdFor,
+    externalStateLabel,
+    externalKind,
     externalSiteBadge,
     externalSourceDetails,
     externalOwnerNote,

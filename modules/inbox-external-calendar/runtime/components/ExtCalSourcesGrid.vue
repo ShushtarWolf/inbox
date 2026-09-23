@@ -177,9 +177,9 @@ function sourceDetailLine(detail: SourceDetail) {
         </div>
 
         <div class="canva-cal-body">
-          <p v-if="pending && !data" class="px-4 py-8 text-center text-sm text-brand-navy/70">
-            {{ t('common.loading') }}
-          </p>
+          <div v-if="pending && !data" class="flex justify-center px-4 py-8">
+            <AppVenusSpinner size="sm" :label="t('common.loading')" />
+          </div>
           <p v-else-if="error" class="px-4 py-8 text-center text-sm text-red-700">
             {{ t('errors.generic') }}
           </p>

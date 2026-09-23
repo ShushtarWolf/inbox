@@ -32,9 +32,9 @@ Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the
 | `SMS_PROVIDER` | For live SMS | `live` or `kavenegar` for Kavenegar; unset/`log` = dry-run |
 | `KAVENEGAR_API_KEY` | For live SMS | Required with `SMS_ENABLED` + live provider |
 | `KAVENEGAR_TEMPLATE` | Strongly recommended for OTP | `inbox-verify-autofill` — body: `code: %token%` + `کد تایید اینباکس` + `@inboxs.ir #%token2%`. Also password-reset OTP. |
-| `KAVENEGAR_TEMPLATE_NOTIFY` | Required for booking/CRM SMS | Default `inbox-notify`. Panel body must be `%token10%`. Live service lines often reject free-text `sms/send` (412 invalid sender) while OTP lookup still works. |
+| `KAVENEGAR_TEMPLATE_NOTIFY` | Path A: `off` | `off` / empty / `none` / `disabled` → booking/CRM/admin via free-text `sms/send` + `KAVENEGAR_SENDER`. Unset or a template name → Verify Lookup (path B). |
 | `KAVENEGAR_TEMPLATE_PAY_LINK` | Optional tappable pay SMS | Panel template (e.g. `inbox-pay`) whose body includes `https://inboxs.ir/p/%token%`. `%token%` is the 8-char pay pin. Without this, desk “ارسال لینک پرداخت” still SMS a token10-safe pay pin and shows the owner a copy/WhatsApp URL. |
-| `KAVENEGAR_SENDER` | Free-text fallback | Must match an approved Kavenegar line. Missing/invalid → `ارسال کننده نامعتبر است`. Needed only when notify lookup is disabled or OTP has no template. |
+| `KAVENEGAR_SENDER` | Path A required | Dedicated line (e.g. `9982007609`). Used for all non-OTP when notify Lookup is `off`. Missing/invalid → `ارسال کننده نامعتبر است`. |
 | `NUXT_PUBLIC_PILOT_NO_COACH` | Pilot | Optional mirror; server `PILOT_NO_COACH` synced to client via Nitro plugin. **Current ops: false / unset (coach ON)** |
 | `PILOT_NO_COACH` | Pilot | When `true`, hides coach APIs/routes. **Current ops: false / unset — coach ON.** Do not re-freeze from stale Behnaz notes |
 | `SENTRY_DSN` | No | Server + client error tracking when set (`@sentry/node` / `@sentry/vue`). Unset = no-op |
@@ -496,9 +496,9 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
-**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested.
+**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke → **Iran full-source** primary → if that fails, **Germany prebuilt** fallback. After success, take a local `inbox-db` dump (prefer `backup-db.yml` + download when local Liara auth fails).
 
-**Emergency fallback** (local network): `liara deploy --app inbox`
+**Emergency fallback** (local network): `liara deploy --app inbox` (full source rebuild on Liara — slower).
 
 ## Admin provisioning
 

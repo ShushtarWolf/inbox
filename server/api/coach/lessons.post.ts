@@ -8,6 +8,7 @@ import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour } from '../../utils/reservations'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
+import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
 /**
  * A coach reserves a club court for a private lesson: the student is billed the coach's
@@ -42,6 +43,21 @@ export default defineEventHandler(async (event) => {
   if (slot.displayStatus !== 'FREE' || (slot.booking && !staleCancelledBooking)) {
     throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
   }
+
+  await assertExternalBookingAllowedIfEnabled({
+    club: {
+      id: slot.court.club.id,
+      slug: slot.court.club.slug,
+      defaultSessionDurationMinutes: slot.court.club.defaultSessionDurationMinutes,
+      openHour: slot.court.club.openHour,
+      closeHour: slot.court.club.closeHour,
+    },
+    slots: [{
+      courtId: slot.courtId,
+      date: slot.date,
+      startTime: slot.startTime,
+    }],
+  })
 
   const conflicting = await prisma.coachSession.findFirst({
     where: { coachId: coach.id, date: slot.date, startTime: slot.startTime, status: { not: 'CANCELLED' } },

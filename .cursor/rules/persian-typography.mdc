@@ -1,0 +1,43 @@
+---
+description: Persian UI typography for inbox (Nuxt) — digits, bidi, spacing; keep fonts and Canva look
+alwaysApply: true
+---
+
+# Persian typography (inbox)
+
+FA-first product. Apply digit/bidi/spacing cleanup everywhere (including Canva frames and calendars). Do **not** change fonts, Outfit, Canva sizes/leading, or brand-book look.
+
+## Fonts (do not change)
+
+- RTL body/UI: `Vazirmatn Variable` in `app/assets/css/main.css` (`font-display: optional`).
+- LTR / Latin brand: `Outfit Variable` via `[dir='ltr']` / `InboxWordmark`.
+- Do not swap fonts, remove Outfit, introduce Inter/Geist/Roboto/`system-ui`-only stacks, or commercial fonts (IRANSans, Yekan, Dana).
+- Do not change `font-display: optional` to `swap`.
+- Do not use Next.js `next/font` — this is Nuxt + `@fontsource-variable/*`.
+
+## Digits & formatters
+
+- User-visible numbers/times/phones/prices/WhatsApp: Persian digits via `useFormatters()` (`formatNumber`, `formatCurrency`, `formatPhone`, `formatTimeLabel`, `formatFaDigits`, …) or `toPersianDigits` from `#shared/jalali.ts`.
+- Keep Latin digits in values, `v-model`, `tel:` / `mailto:` hrefs, URLs, codes, version strings.
+- Prices/tables/counters: `tabular-nums`.
+- Do not invent `fa()` / VibeFarsi helpers.
+
+## Bidi & mixed text
+
+- Page stays `dir="rtl"`. Never set `dir="ltr"` on a whole Persian paragraph.
+- Phones, times, SKUs, URLs, codes: `<bdi dir="ltr">` (or `dir="ltr"` on the control).
+- Latin brand / wordmark stays `dir="ltr"` with Latin case.
+
+## Spacing (cleanup only — not a redesign)
+
+- `letter-spacing: 0` on Persian text. Never `tracking-tight` / `tracking-wide` / `uppercase` on Persian labels or table headers.
+- Exception: Latin-only brand/wordmark and LTR OTP/PIN digit entry may use tracking.
+- Prefer `text-start` and logical `ms`/`me`/`gap-*`; avoid `text-right` and physical `ml`/`mr` for alignment.
+- Truncate with `line-clamp-*` / `truncate`; do not `slice()` Persian for display.
+- `break-all` only on LTR mono codes; never on Persian prose.
+
+## Explicit non-goals
+
+- Do not raise Canva caption sizes, loosen calendar leading, or restyle phone frames to match prose tables.
+- Canva Phone Frames LOCKED still wins for chrome, radius, and layout.
+- Digit/bidi/spacing fixes on those surfaces are required; visual redesign is not.

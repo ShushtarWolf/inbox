@@ -121,11 +121,11 @@ describe('availabilityFirst golden scenarios', () => {
     expect(displayIsAvailable('UNKNOWN')).toBe(true)
   })
 
-  it('13. AloVarzesh bare bg-disabled → UNKNOWN → not occupied', () => {
+  it('13. AloVarzesh future bare bg-disabled → BUSY → occupied', () => {
     const date = '1405-06-15'
-    const html = `<div class="day-box flex-timetable row bg-disabled"><input name="product_schedule" value="${date} 10:00" /></div>`
-    expect(parseAloVarzeshSlotStates(html, date)[0]?.verdict).toBe('UNKNOWN')
-    expect(parseAloVarzeshOccupiedTimes(html, date)).toEqual([])
+    const html = `<div class="day-box flex-timetable row bg-disabled"><input name="product_schedule" value="${date} 18:00" /></div>`
+    expect(parseAloVarzeshSlotStates(html, date)[0]?.verdict).toBe('BUSY')
+    expect(parseAloVarzeshOccupiedTimes(html, date)).toEqual(['18:00'])
   })
 
   it('14. AloVarzesh reserve-over → BUSY', () => {

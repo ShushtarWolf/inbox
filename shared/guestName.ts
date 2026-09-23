@@ -42,6 +42,22 @@ export function normalizeGuestNamePair(
 }
 
 /**
+ * Live «نام و نام خانوادگی» field: keep mid/trailing spaces while typing.
+ * Persist via normalizeGuestNamePair on submit (trims ends).
+ */
+export function readGuestFullNameInput(
+  guestName?: string | null,
+  guestFamily?: string | null,
+): string {
+  if (!trimPart(guestFamily)) return String(guestName || '')
+  return formatGuestDisplayName(guestName, guestFamily)
+}
+
+export function writeGuestFullNameInput(value: string): { guestName: string; guestFamily: string } {
+  return { guestName: value, guestFamily: '' }
+}
+
+/**
  * When a desk/guest row is linked to a registered User, the account name wins.
  * Prevents stale typos (e.g. "avid") from beating "الهه ربیعی" in search/CRM.
  */

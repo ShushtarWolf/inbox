@@ -2,6 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { initials, avatarUrl } = useAuth()
+const { canSwitchRole } = usePlatformRoles()
 const accountOpen = ref(false)
 const avatarBtn = ref<HTMLButtonElement | null>(null)
 const notificationsPath = computed(() => localePath('/owner/notifications'))
@@ -13,22 +14,31 @@ const notificationsPath = computed(() => localePath('/owner/notifications'))
       <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert">
       <InboxWordmark text="INBOX" class="text-base text-white" />
     </NuxtLink>
-    <div class="flex items-center gap-3 text-white">
-      <NuxtLink :to="notificationsPath" :aria-label="t('notifications.title')">
-        <AppIcon name="notifications" size="sm" />
-      </NuxtLink>
-      <button
-        ref="avatarBtn"
-        type="button"
-        class="canva-owner-avatar"
-        :aria-label="t('owner.account.title')"
-        :aria-expanded="accountOpen"
-        aria-haspopup="dialog"
-        @click="accountOpen = true"
+    <div class="flex flex-col items-stretch gap-1">
+      <div class="flex items-center gap-3 text-white">
+        <NuxtLink :to="notificationsPath" :aria-label="t('notifications.title')">
+          <AppIcon name="notifications" size="sm" />
+        </NuxtLink>
+        <button
+          ref="avatarBtn"
+          type="button"
+          class="canva-owner-avatar"
+          :aria-label="t('owner.account.title')"
+          :aria-expanded="accountOpen"
+          aria-haspopup="dialog"
+          @click="accountOpen = true"
+        >
+          <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
+          <span v-else>{{ initials }}</span>
+        </button>
+      </div>
+      <NuxtLink
+        v-if="canSwitchRole"
+        :to="localePath('/choose-role')"
+        class="text-center text-[11px] font-semibold text-white"
       >
-        <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
-        <span v-else>{{ initials }}</span>
-      </button>
+        {{ t('auth.changeRole') }}
+      </NuxtLink>
     </div>
   </div>
   <OwnerAccountDrawer :open="accountOpen" :anchor="avatarBtn" @close="accountOpen = false" />

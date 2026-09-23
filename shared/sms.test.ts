@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   getSmsMode,
   getSmsStatusSnapshot,
+  isNotifyLookupDisabled,
   isSmsEnabled,
   resolveSmsProvider,
   resolveSmsPhase,
@@ -13,6 +14,7 @@ const ENV_KEYS = [
   'SMS_ENABLED',
   'KAVENEGAR_API_KEY',
   'KAVENEGAR_TEMPLATE',
+  'KAVENEGAR_TEMPLATE_NOTIFY',
   'KAVENEGAR_SENDER',
   'AUTH_OTP_BYPASS_PHONES',
   'ALLOW_OTP_BYPASS',
@@ -154,6 +156,20 @@ describe('getSmsStatusSnapshot', () => {
     expect(snap.warningCodes).toContain('notify_lookup_needed')
     expect(snap.nextActionCodes).toContain('create_notify_template')
     expect(snap.note).toContain('MULTI')
+  })
+
+  it('path A (notify off + sender) skips inbox-notify nag', () => {
+    process.env.SMS_PROVIDER = 'kavenegar'
+    process.env.SMS_ENABLED = 'true'
+    process.env.KAVENEGAR_API_KEY = 'test-key'
+    process.env.KAVENEGAR_TEMPLATE = 'inbox-verify-autofill'
+    process.env.KAVENEGAR_TEMPLATE_NOTIFY = 'off'
+    process.env.KAVENEGAR_SENDER = '9982007609'
+    expect(isNotifyLookupDisabled()).toBe(true)
+    const snap = getSmsStatusSnapshot()
+    expect(snap.smsPhase).toBe('MULTI')
+    expect(snap.warningCodes).not.toContain('notify_lookup_needed')
+    expect(snap.nextActionCodes).not.toContain('create_notify_template')
   })
 
   it('flags obsolete OTP bypass leftovers without returning MSISDNs', () => {

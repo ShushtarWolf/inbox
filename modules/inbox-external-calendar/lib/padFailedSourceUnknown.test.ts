@@ -132,6 +132,7 @@ describe('padFailedSourceUnknown', () => {
       courts,
       sessionDurationMinutes: 60,
     })
-    expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(1)
+    expect(reconcileConfirmedBusy(verdicts, 60)).toHaveLength(2)
+    expect(reconcileConfirmedBusy(verdicts, 60).map((b) => b.source).sort()).toEqual(['aloplay', 'alovarzesh'])
   })
 })

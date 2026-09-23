@@ -62,6 +62,36 @@ describe('SMS templates', () => {
       'پرداخت رزرو | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۵۰۰٬۰۰۰ تومان | ۱۴۰۴/۰۱/۰۱ از ۱۰:۰۰ تا ۱۱:۰۰ | زمین ۱ | اینباکس',
     )
     expect(
+      renderSmsTemplate('OWNER_BOOKING_CONFIRMED', {
+        clubName: 'بهناز',
+        guestName: 'علی رضایی',
+        guestPhone: '09121234567',
+        trackingCode: '1057128',
+        orderUrl: 'https://inboxs.ir/r/abc',
+        sessions: [
+          { courtName: 'زمین ۱', date: '1404/01/01', startTime: '10:00', endTime: '11:00' },
+          { courtName: 'زمین ۱', date: '1404/01/01', startTime: '11:00', endTime: '12:00' },
+          { courtName: 'زمین ۲', date: '1404/01/02', startTime: '18:00', endTime: '19:00' },
+        ],
+      }),
+    ).toBe(
+      [
+        'Inboxs | سفارش جدید ۱۰۵۷۱۲۸',
+        '',
+        'باشگاه: «بهناز»',
+        'خریدار: علی رضایی',
+        'شماره تماس: ۰۹۱۲۱۲۳۴۵۶۷',
+        '',
+        'مشخصات:',
+        'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۰:۰۰ تا ۱۱:۰۰',
+        'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۱:۰۰ تا ۱۲:۰۰',
+        'زمین ۲ | ۱۴۰۴/۰۱/۰۲ | ۱۸:۰۰ تا ۱۹:۰۰',
+        '',
+        'مشاهده جزئیات سفارش:',
+        'https://inboxs.ir/r/abc',
+      ].join('\n'),
+    )
+    expect(
       renderSmsTemplate('OWNER_BOOKING_CANCELLED', {
         guestName: 'علی رضایی',
         guestPhone: '09121234567',
@@ -118,7 +148,7 @@ describe('SMS templates', () => {
     ).toContain('از ۱۸:۰۰ تا ۲۰:۰۰')
     expect(
       renderSmsTemplate('BOOKING_CONFIRMED', {
-        clubName: 'باشگاه',
+        clubName: 'بهناز',
         date: '2026-08-14',
         startTime: '18:00',
         endTime: '20:00',
@@ -130,9 +160,11 @@ describe('SMS templates', () => {
       }),
     ).toBe(
       [
-        'علی رضایی عزیز',
-        'رزرو شما در باشگاه',
-        'برای تاریخ ۱۴۰۵/۰۵/۲۳ ساعت ۱۸:۰۰ (زمین ۱) با موفقیت انجام شد.',
+        'علی رضایی عزیز،',
+        'رزرو شما در «بهناز» برای ۱۴۰۵/۰۵/۲۳ زمین شماره (زمین ۱) از ساعت ۱۸:۰۰ تا ۲۰:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
       ].join('\n'),
     )
   })
@@ -144,6 +176,7 @@ describe('SMS templates', () => {
         clubName: 'دانشگاه علم وصنعت',
         date: '2026-08-14',
         startTime: '08:00',
+        endTime: '09:00',
         courtName: 'زمین ۳',
         trackingCode: '1057128',
         payPin: 'ab12cd9x',
@@ -151,12 +184,11 @@ describe('SMS templates', () => {
       }),
     ).toBe(
       [
-        'حمید افقه عزیز',
-        'رزرو شما در دانشگاه علم وصنعت',
-        'برای تاریخ ۱۴۰۵/۰۵/۲۳ ساعت ۰۸:۰۰ (زمین ۳) با موفقیت انجام شد.',
-        'کد رهگیری: ۱۰۵۷۱۲۸',
-        'کد پرداخت',
-        'ab12cd9x',
+        'حمید افقه عزیز،',
+        'رزرو شما در «دانشگاه علم وصنعت» برای ۱۴۰۵/۰۵/۲۳ زمین شماره (زمین ۳) از ساعت ۰۸:۰۰ تا ۰۹:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
       ].join('\n'),
     )
     expect(
@@ -249,5 +281,64 @@ describe('SMS templates', () => {
     expect(renderSmsTemplate('OWNER_DAILY_RESERVATIONS', {})).toContain('https://example.test/owner/calendar')
     if (prev === undefined) delete process.env.NUXT_PUBLIC_SITE_URL
     else process.env.NUXT_PUBLIC_SITE_URL = prev
+  })
+
+  it('renders package court confirmation with dashboard link', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        kind: 'package',
+        guestName: 'علی رضایی',
+        packageName: 'صبح‌های زوج',
+        clubName: 'بهناز',
+        courtNumber: '۱',
+        sessionCount: 8,
+        date: '2026-08-14',
+        finishDate: '2026-10-10',
+        startTime: '09:00',
+        endTime: '10:00',
+      }),
+    ).toBe(
+      [
+        'علی رضایی عزیز،',
+        'پکیج زمین «صبح‌های زوج» در «بهناز» زمین شماره (۱) برای ۸ جلسه، از ۱۴۰۵/۰۵/۲۳ تا ۱۴۰۵/۰۷/۱۸، از ساعت ۰۹:۰۰ تا ۱۰:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده برنامه جلسات، حساب‌وکتاب، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
+      ].join('\n'),
+    )
+  })
+
+  it('mentions series range for guest confirmed SMS', () => {
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        guestName: 'سارا',
+        clubName: 'بهناز',
+        date: '2026-08-14',
+        finishDate: '2026-09-10',
+        startTime: '18:00',
+        endTime: '19:00',
+        sessionCount: 4,
+        paymentPaid: true,
+      }),
+    ).toContain('برای ۱۴۰۵/۰۵/۲۳ تا ۱۴۰۵/۰۶/۱۹')
+    expect(
+      renderSmsTemplate('BOOKING_CONFIRMED', {
+        guestName: 'بهناز تعبدی',
+        clubName: 'علم و صنعت',
+        date: '2026-08-14',
+        startTime: '18:00',
+        endTime: '19:00',
+        paymentPaid: true,
+        receiptUrl: 'https://inboxs.ir/r/abc',
+      }),
+    ).toBe(
+      [
+        'بهناز تعبدی عزیز،',
+        'رزرو شما در «علم و صنعت» برای ۱۴۰۵/۰۵/۲۳ از ساعت ۱۸:۰۰ تا ۱۹:۰۰ با موفقیت ثبت شد.',
+        '',
+        'مشاهده جزئیات رزرو، قوانین و آدرس:',
+        'https://inboxs.ir/athlete/bookings',
+      ].join('\n'),
+    )
   })
 })

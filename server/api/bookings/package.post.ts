@@ -1,6 +1,14 @@
 import { assertPackagesEnabled } from '../../utils/packagesGate'
-import { bookPackageSeat } from '../../utils/packages'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import { bookPackageSeat, expandPackageSessions } from '../../utils/packages'
+import {
+  clubNotifyLocation,
+  clubNotifyName,
+  courtNotifyName,
+  notifyBookingConfirmed,
+  notifyOwnerBookingConfirmed,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 
 export default defineEventHandler(async (event) => {
@@ -21,10 +29,31 @@ export default defineEventHandler(async (event) => {
 
   const pkg = await prisma.packageDraft.findUnique({
     where: { id: body.packageId },
-    include: { club: true },
+    include: {
+      club: { include: { owner: { select: { phone: true } } } },
+      court: true,
+    },
   })
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
   if (pkg) {
+    const days = body.days?.length
+      ? body.days
+      : (pkg.daysJson ? (JSON.parse(pkg.daysJson) as string[]) : [])
+    const duration = pkg.club.defaultSessionDurationMinutes || 60
+    const sessions = (pkg.startDate && pkg.finishDate)
+      ? expandPackageSessions({
+          startDate: pkg.startDate,
+          finishDate: pkg.finishDate,
+          days,
+          timesJson: body.times?.length ? JSON.stringify(body.times) : pkg.timesJson,
+          daysJson: pkg.daysJson,
+        }, duration)
+      : []
+    const first = sessions[0]
+    const last = sessions[sessions.length - 1]
+    const courtLabel = pkg.court ? courtNotifyName(pkg.court) : ''
+    const guestName = personNotifyName(athlete?.name)
+
     await notifyBookingConfirmed({
       userId: user.id,
       email: athlete?.email,
@@ -33,11 +62,40 @@ export default defineEventHandler(async (event) => {
       clubName: clubNotifyName(pkg.club),
       clubId: pkg.clubId,
       bookingId: booking.id,
+      packageName: pkg.title,
+      courtName: courtLabel,
+      courtNumber: courtLabel,
       date: pkg.startDate || '',
-      startTime: pkg.title,
+      finishDate: pkg.finishDate || '',
+      startTime: first?.startTime || '',
+      endTime: first?.endTime || last?.endTime || '',
+      sessionCount: sessions.length || null,
       paymentPaid: false,
-      guestName: personNotifyName(athlete?.name),
+      guestName,
+      // Package seats use athlete bookings dashboard, not court receipt tokens.
+      receiptUrl: '',
       ...clubNotifyLocation(pkg.club),
+    })
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: ownerNotifyPhone(pkg.club),
+      clubName: clubNotifyName(pkg.club),
+      clubId: pkg.clubId,
+      bookingId: booking.id,
+      guestName,
+      guestPhone: athlete?.phone,
+      sessions: sessions.length
+        ? sessions.slice(0, 8).map((s) => ({
+            courtName: courtLabel || pkg.title,
+            date: s.date,
+            startTime: s.startTime,
+            endTime: s.endTime,
+          }))
+        : [{
+            courtName: courtLabel || pkg.title,
+            date: pkg.startDate || '',
+            startTime: first?.startTime || '',
+            endTime: first?.endTime || '',
+          }],
     })
   }
 

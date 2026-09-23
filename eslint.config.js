@@ -138,8 +138,6 @@ export default [
       'node_modules/**',
       'coverage/**',
       'dist/**',
-      'scripts/**',
-      '**/*.{ts,tsx}',
       '**/*.d.ts',
     ],
   },
@@ -147,7 +145,7 @@ export default [
   ...pluginVue.configs['flat/recommended'],
   ...vueA11y.configs['flat/recommended'],
   {
-    files: ['**/*.{js,mjs,vue}'],
+    files: ['**/*.{js,mjs,ts,tsx,vue}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -169,6 +167,7 @@ export default [
       'vuejs-accessibility/click-events-have-key-events': 'warn',
       'vuejs-accessibility/form-control-has-label': 'warn',
       'no-unused-vars': 'off',
+      'no-undef': 'off',
       // Style noise — not production blockers; keep a11y/security signal.
       'vue/multi-word-component-names': 'off',
       'vue/max-attributes-per-line': 'off',
@@ -177,6 +176,19 @@ export default [
       'vue/html-self-closing': 'off',
       'vue/attributes-order': 'off',
       'vue/first-attribute-linebreak': 'off',
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+      globals: { ...globals.node, ...nuxtGlobals },
+    },
+    rules: {
+      // Nuxt/Nitro auto-imports are generated outside ESLint's static scope.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
     },
   },
 ]

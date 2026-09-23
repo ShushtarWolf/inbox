@@ -13,6 +13,8 @@ import {
 
 export type ConfirmSlot = {
   id: string
+  /** ISO date — required for multi-day baskets; falls back to props.date. */
+  date?: string
   startTime: string
   endTime?: string
   price?: number
@@ -161,29 +163,66 @@ const selectedEquipmentIds = computed(() =>
     .map(([id]) => id),
 )
 
-const dateHeading = computed(() => {
-  if (!props.date) return ''
-  const j = isoToJalaali(props.date)
-  const weekday = formatWeekday(props.date, 'long')
+function formatDateHeading(iso: string) {
+  if (!iso) return ''
+  const j = isoToJalaali(iso)
+  const weekday = formatWeekday(iso, 'long')
   return `${weekday} ${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]}`
+}
+
+function slotDate(slot: ConfirmSlot) {
+  return slot.date || props.date
+}
+
+const slotDateGroups = computed(() => {
+  const groups: Array<{ date: string; heading: string; slots: ConfirmSlot[] }> = []
+  const byDate = new Map<string, ConfirmSlot[]>()
+  for (const slot of props.slots) {
+    const date = slotDate(slot)
+    const list = byDate.get(date) || []
+    list.push(slot)
+    byDate.set(date, list)
+  }
+  for (const date of [...byDate.keys()].sort()) {
+    groups.push({
+      date,
+      heading: formatDateHeading(date),
+      slots: byDate.get(date) || [],
+    })
+  }
+  return groups
 })
+
+const multiDay = computed(() => slotDateGroups.value.length > 1)
 
 const costLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of props.slots) {
     const time = formatTimeLabel(slot.startTime || '')
+    const date = slotDate(slot)
     const listed = slot.courtPrice != null && slot.startTime
       ? computeListedSlotPrice(Number(slot.courtPrice), slot.startTime, slot.pricingJson)
       : Number(slot.price || 0)
-    const amount = props.date && slot.startTime
-      ? computeBookingPrice(listed, slot.pricingJson, props.date, slot.startTime)
+    const amount = date && slot.startTime
+      ? computeBookingPrice(listed, slot.pricingJson, date, slot.startTime)
       : listed
-    lines.push({
-      label: slot.courtLabel
-        ? t('booking.confirmLineSlotCourt', { court: slot.courtLabel, time })
-        : t('booking.confirmLineSlot', { date: dateHeading.value, time }),
-      amount,
-    })
+    const heading = formatDateHeading(date)
+    if (multiDay.value && slot.courtLabel) {
+      lines.push({
+        label: t('booking.confirmLineSlotCourtDate', { date: heading, court: slot.courtLabel, time }),
+        amount,
+      })
+    } else if (slot.courtLabel) {
+      lines.push({
+        label: t('booking.confirmLineSlotCourt', { court: slot.courtLabel, time }),
+        amount,
+      })
+    } else {
+      lines.push({
+        label: t('booking.confirmLineSlot', { date: heading, time }),
+        amount,
+      })
+    }
   }
   for (const item of visibleEquipment.value) {
     const qty = equipmentQty(item.id)
@@ -434,24 +473,26 @@ async function submit(preferWallet = false) {
             </p>
           </div>
 
-          <div class="text-start">
-            <p class="canva-confirm-book-date">{{ dateHeading }}</p>
-            <div
-              class="mt-2 flex justify-start gap-2"
-              :class="multiCourt ? 'flex-col' : 'flex-wrap'"
-            >
-              <span
-                v-for="slot in slots"
-                :key="slot.id"
-                class="canva-confirm-book-time"
-                :class="multiCourt ? 'w-full justify-start' : ''"
+          <div class="space-y-3 text-start">
+            <div v-for="group in slotDateGroups" :key="group.date">
+              <p class="canva-confirm-book-date">{{ group.heading }}</p>
+              <div
+                class="mt-2 flex justify-start gap-2"
+                :class="multiCourt ? 'flex-col' : 'flex-wrap'"
               >
-                <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ formatTimeLabel(slot.startTime || '') }}
-              </span>
+                <span
+                  v-for="slot in group.slots"
+                  :key="slot.id"
+                  class="canva-confirm-book-time"
+                  :class="multiCourt ? 'w-full justify-start' : ''"
+                >
+                  <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ formatTimeLabel(slot.startTime || '') }}
+                </span>
+              </div>
             </div>
             <p
               v-if="displayCourtLabel && !multiCourt"
-              class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
+              class="flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
             >
               <span class="canva-confirm-book-dot" aria-hidden="true" />
               {{ displayCourtLabel }}

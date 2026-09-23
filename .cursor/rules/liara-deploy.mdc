@@ -1,0 +1,85 @@
+---
+description: When user explicitly asks to deploy — Liara CD + mandatory live health check
+alwaysApply: true
+---
+
+# Liara deploy (explicit ask only)
+
+**Never** deploy unless the user clearly asks (e.g. “deploy”, “ship to Liara”). Agent mode / commit / push do **not** imply deploy.
+
+Production: Liara app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Prefer GitHub Actions; local `liara deploy` only if Actions is unavailable (say so first).
+
+## Build location order (locked)
+
+Liara CLI `--build-location` only accepts **`iran`** | **`germany`** (no France option today).
+
+1. **Iran first** — primary path in `deploy.yml` (full-source `Dockerfile` on Iran).
+2. **Germany second** — only if Iran did not succeed (prebuilt `Dockerfile.runtime` on Germany).
+3. Do **not** invent a France build path until Liara documents it.
+
+## Hard lesson (Sep 2026)
+
+Liara’s “Release created” / container health and a green Actions job can still leave **public 502**. Actions green ≠ site up. **Never tell the user deploy succeeded until a live probe passes.** If the app is dead after deploy, say clearly: **“Production is DOWN (502 / health failed).”** Do not soft-pedal.
+
+Germany releases have been healthy-but-502 while Iran full-source restored public traffic — that is why Iran is primary.
+
+## When the user asks to deploy
+
+1. Push deployable commits to GitHub `main` if ahead.
+2. Prefer green CI for that SHA if still running; otherwise `deploy.yml` smoke gate covers it.
+3. Trigger and watch:
+
+```bash
+gh workflow run deploy.yml --ref main
+gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+4. Confirm workflow success (**Deploy succeeded** + **Verify live inboxs.ir** must both be **green**, not skipped). Report Actions URL / SHA / path (Iran primary vs Germany fallback).
+5. **Mandatory live probe** (even if the workflow already probed — agent double-check):
+
+```bash
+# Expect HTTP 200 and JSON ok:true / db:up. Retry ~2 min (15s interval) after release.
+curl -sS -o /tmp/inbox-health -w '%{http_code}' --max-time 20 https://inboxs.ir/api/health
+curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://inboxs.ir
+curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://inbox.liara.run
+```
+
+   - **Pass:** health body has `"ok":true` (and preferably `"db":"up"`) and homepage is not 502.
+   - **Fail (502 / 000 / non-ok):** tell the user **Production is DOWN**. Retry Iran (do not stop after one green Germany release):
+
+```bash
+gh workflow run liara-iran-deploy.yml --ref main
+gh run watch "$(gh run list --workflow=liara-iran-deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+# Re-run the live probe. Only then call the site up.
+```
+
+6. **Mandatory local DB dump** (Actions backup → download; local Liara CLI auth often broken):
+
+```bash
+gh workflow run backup-db.yml --ref main
+# wait, then:
+gh run download <BACKUP_RUN_ID> -n inbox-db-local-backup -D backups/tmp-dl
+mv backups/tmp-dl/*.dump "backups/inbox-db-$(date +%Y%m%d-%H%M%S).dump"
+rm -rf backups/tmp-dl
+```
+
+Report absolute dump path. Deploy is not done until dump exists **and** live probe passed.
+7. If workflow, Iran retry, live probe, or backup fails after recovery attempts — **stop and tell the user**. Do not claim success.
+
+Requires repo secret `LIARA_API_TOKEN`.
+
+## Runtime image (Germany fallback path)
+
+`Dockerfile.runtime` (Debian slim) **must** `apt-get install openssl ca-certificates` before Prisma. Missing OpenSSL matched Liara Prisma warnings and dead containers. Do not remove that layer. Full-source `Dockerfile` already installs openssl on Alpine.
+
+## What `deploy.yml` does
+
+- Manual `workflow_dispatch` only; one deploy at a time (`cancel-in-progress: false`).
+- CI green → skip smoke; else smoke gate.
+- **Primary:** full-source `Dockerfile` → Liara **Iran**.
+- **Fallback:** if Iran job fails → Actions-built Nitro → `Dockerfile.runtime` → Liara **Germany**.
+- **Verify live:** after a successful path, curl `https://inboxs.ir/api/health` until 200/`ok` or fail the workflow. Must not be skipped when a deploy path succeeded.
+- If verify fails: agent runs `liara-iran-deploy.yml` and re-probes.
+- No GHCR/`--image`. No BuildKit `--mount` on Liara-built Dockerfiles.
+
+Do not invent a path that skips Actions, smoke/CI, live probe, or the local dump.

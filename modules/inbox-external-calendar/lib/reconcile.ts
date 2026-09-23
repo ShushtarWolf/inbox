@@ -100,18 +100,21 @@ export function reconcileConfirmedBusy(
   }
 
   const out: ReconciledBusySlot[] = []
+  const sourceOrder: SourceName[] = ['aloplay', 'alovarzesh', 'courtic']
   for (const acc of byKey.values()) {
     const state = reconcileSourceVerdicts(acc.perSource)
     if (state !== 'EXTERNAL_BUSY') continue
-    const sourceOrder: SourceName[] = ['aloplay', 'alovarzesh', 'courtic']
-    const busySource = sourceOrder.find((s) => acc.perSource[s] === 'BUSY') ?? 'aloplay'
-    out.push({
-      courtKey: acc.courtKey,
-      startTime: acc.startTime,
-      endTime: acc.endTime,
-      source: busySource,
-      state: 'EXTERNAL_BUSY',
-    })
+    // One row per confident BUSY source so UI can show single vs multi.
+    for (const source of sourceOrder) {
+      if (acc.perSource[source] !== 'BUSY') continue
+      out.push({
+        courtKey: acc.courtKey,
+        startTime: acc.startTime,
+        endTime: acc.endTime,
+        source,
+        state: 'EXTERNAL_BUSY',
+      })
+    }
   }
 
   return out.sort((a, b) =>
@@ -119,10 +122,11 @@ export function reconcileConfirmedBusy(
   )
 }
 
-/** Map of courtKey:startTime → reconciled ExternalCellState (for merge annotations). */
-export function reconcileCellStates(
+
+/** Map of courtKey:startTime → per-source verdicts (for staff display kinds). */
+export function reconcilePerSourceMap(
   slotVerdicts: ReconcileInputVerdict[],
-): Map<string, ExternalCellState> {
+): Map<string, PerSourceVerdict> {
   const byKey = new Map<string, PerSourceVerdict>()
   for (const row of slotVerdicts) {
     const source = row.source as SourceName
@@ -132,6 +136,14 @@ export function reconcileCellStates(
     current[source] = row.verdict
     byKey.set(key, current)
   }
+  return byKey
+}
+
+/** Map of courtKey:startTime → reconciled ExternalCellState (for merge annotations). */
+export function reconcileCellStates(
+  slotVerdicts: ReconcileInputVerdict[],
+): Map<string, ExternalCellState> {
+  const byKey = reconcilePerSourceMap(slotVerdicts)
   const out = new Map<string, ExternalCellState>()
   for (const [key, verdicts] of byKey) {
     out.set(key, reconcileSourceVerdicts(verdicts))

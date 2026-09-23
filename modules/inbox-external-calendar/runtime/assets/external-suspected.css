@@ -12,7 +12,7 @@
 }
 
 .canva-club-slot-suspected {
-  cursor: pointer;
+  cursor: not-allowed;
   color: #7a5d00;
   border-color: #c9a227;
   background-color: #fff8dc;
@@ -25,11 +25,8 @@
   );
 }
 
-.canva-club-slot-suspected.canva-club-slot-active {
-  background: #2f9e44;
-  border-color: #2f9e44;
-  color: #fff;
-  background-image: none;
+.canva-club-slot-suspected:disabled {
+  opacity: 1;
 }
 
 .canva-club-slot-suspected-label {

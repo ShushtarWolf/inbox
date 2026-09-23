@@ -10,6 +10,10 @@ const props = defineProps<{
   overlayClass?: string
   /** Icon-only header dismiss (X) instead of the «بستن» text button. */
   closeIcon?: boolean
+  /** Hide the title/close row entirely (e.g. Canva walk-in reserve — in-sheet title only). Backdrop / Escape / sheet handle still dismiss. */
+  hideTitleBar?: boolean
+  /** Accessible name when title is empty or title bar is hidden. */
+  ariaLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -296,7 +300,7 @@ onUnmounted(() => {
             ref="dialogRef"
             role="dialog"
             aria-modal="true"
-            :aria-label="title"
+            :aria-label="ariaLabel || title"
             tabindex="-1"
             class="flex min-h-0 w-full flex-col overflow-hidden border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
             :class="[
@@ -314,7 +318,7 @@ onUnmounted(() => {
                 <span class="canva-sheet-handle" />
               </div>
               <div
-                v-if="title || closeIcon"
+                v-if="!hideTitleBar && (title || closeIcon)"
                 class="venus-modal-title-bar shrink-0"
                 :class="sheet ? 'border-transparent bg-transparent pt-1' : ''"
               >

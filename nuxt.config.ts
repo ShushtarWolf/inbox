@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '14'
+const PWA_RESET_VERSION = '26'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -64,13 +64,22 @@ export default defineNuxtConfig({
         },
       ],
       link: [
+        { rel: 'icon', type: 'image/png', sizes: '64x64', href: '/icons/favicon.png' },
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.svg' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/icons/apple-touch-icon.png' },
+        // Critical for AppIcon ligatures — without this, slow phones flash "chevron_left".
+        {
+          rel: 'preload',
+          href: '/fonts/material-symbols-rounded-subset.woff2',
+          as: 'font',
+          type: 'font/woff2',
+          crossorigin: 'anonymous',
+        },
       ],
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#C41E1E' },
-        { name: 'description', content: 'inbox — رزرو زمین پدل و تنیس' },
+        { name: 'description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'inbox' },
@@ -81,12 +90,12 @@ export default defineNuxtConfig({
         ...(siteUrl
           ? [
               { property: 'og:url', content: siteUrl },
-              { property: 'og:title', content: 'inbox — رزرو زمین پدل و تنیس' },
-              { property: 'og:description', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { property: 'og:title', content: 'رزرو آنلاین زمین پدل و تنیس در تهران | اینباکس' },
+              { property: 'og:description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
               { property: 'og:image', content: `${siteUrl}/hero/tennis-court.jpg` },
               { name: 'twitter:card', content: 'summary_large_image' },
-              { name: 'twitter:title', content: 'inbox — رزرو زمین پدل و تنیس' },
-              { name: 'twitter:description', content: 'inbox — رزرو زمین پدل و تنیس' },
+              { name: 'twitter:title', content: 'رزرو آنلاین زمین پدل و تنیس در تهران | اینباکس' },
+              { name: 'twitter:description', content: 'با اینباکس زمین پدل و تنیس را در تهران و ایران آنلاین رزرو کنید؛ سانس‌های آزاد باشگاه‌ها را ببینید و سریع رزرو ثبت کنید.' },
               { name: 'twitter:image', content: `${siteUrl}/hero/tennis-court.jpg` },
             ]
           : [
@@ -117,6 +126,9 @@ export default defineNuxtConfig({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
         'X-Frame-Options': 'SAMEORIGIN',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
       },
     },
     '/_nuxt/**': {
@@ -150,7 +162,7 @@ export default defineNuxtConfig({
       start_url: '/',
       categories: ['sports', 'lifestyle'],
       icons: [
-        { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        { src: '/icons/favicon.png', sizes: '64x64', type: 'image/png', purpose: 'any' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -215,6 +227,10 @@ export default defineNuxtConfig({
       packagesEnabled:
         process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
         || process.env.PACKAGES_ENABLED === 'true',
+      // Season/package recurring desk reserve. Default off; set on Liara to unlock calendar sheets.
+      recurringReserveEnabled:
+        process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
+        || process.env.RECURRING_RESERVE_ENABLED === 'true',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE

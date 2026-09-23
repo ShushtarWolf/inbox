@@ -2,6 +2,9 @@
   "name": "inbox",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "build": "prisma generate && nuxt build",
     "dev": "TMPDIR=/tmp nuxt dev",
@@ -39,7 +42,7 @@
     "smoke:ci": "node scripts/ci-smoke.mjs",
     "test:e2e:ci": "node scripts/ci-e2e.mjs",
     "competition:go-no-go": "node scripts/competition-pilot-go-no-go.mjs",
-    "test": "vitest run",
+    "test": "DATABASE_URL=postgresql://test:test@127.0.0.1:5432/test vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint .",
@@ -48,6 +51,7 @@
     "check:ios-hit-testing": "node scripts/check-ios-hit-testing.mjs",
     "check:canva": "node scripts/canva-pixel-compare.mjs",
     "check:db": "node scripts/check-db.mjs",
+    "fonts:icons": "node scripts/subset-material-symbols.mjs",
     "db:wipe-catalog": "node scripts/wipe-prod-catalog.mjs",
     "fix:domain": "node scripts/fix-liara-domain.mjs",
     "typecheck": "nuxt prepare && nuxi typecheck"
@@ -69,12 +73,10 @@
     "@sentry/vue": "^10.65.0",
     "@types/nodemailer": "^8.0.1",
     "@vite-pwa/nuxt": "^1.1.1",
-    "animejs": "^4.5.0",
     "heic-to": "^1.5.2",
     "jalaali-js": "^2.0.0",
-    "material-symbols": "^0.45.8",
-    "nodemailer": "^9.0.3",
-    "nuxt": "^4.4.7",
+    "nodemailer": "^10.0.8",
+    "nuxt": "^4.5.2",
     "nuxt-auth-utils": "^0.5.29",
     "prisma": "^6.19.3",
     "tsx": "^4.22.4",
@@ -94,6 +96,7 @@
     "globals": "^17.11.0",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
+    "rolldown": "^1.2.8",
     "vitest": "^3.2.4",
     "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^2.2.12"

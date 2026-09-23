@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+/** Local macOS 12 cannot install Playwright WebKit — force Chromium+iPhone for smoke. */
+const iosTapUseChromium = process.env.IOS_TAP_BROWSER === 'chromium'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -20,7 +23,10 @@ export default defineConfig({
     },
     {
       name: 'webkit-mobile',
-      use: { ...devices['iPhone 13'] },
+      use: {
+        ...devices['iPhone 13'],
+        ...(iosTapUseChromium ? { browserName: 'chromium' as const } : {}),
+      },
       testMatch: /ios-safari-taps\.spec\.ts/,
     },
   ],

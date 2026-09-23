@@ -8,16 +8,20 @@ const props = withDefaults(defineProps<{
   invalid?: boolean
   invalidMessage?: string
   minDate?: string
+  /** When wrapped in AppFormField, hide the duplicate inner label. */
+  hideLabel?: boolean
+  dayMarks?: Record<string, 'busy' | 'soft'>
 }>(), {
   invalid: false,
   minDate: '',
+  hideLabel: false,
+  dayMarks: () => ({}),
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { formatDate } = useFormatters()
 const { today } = useLocalDate()
 
-const isFa = computed(() => locale.value === 'fa')
 const effectiveMinDate = computed(() => {
   const raw = props.minDate as unknown
   if (typeof raw === 'function') {
@@ -33,17 +37,19 @@ const effectiveMinDate = computed(() => {
   return today()
 })
 
-const startLabelText = computed(() => props.startLabel || t('owner.packagesPage.startDate'))
-const endLabelText = computed(() => props.endLabel || t('owner.packagesPage.finishDate'))
-
 const rangeHint = computed(() => {
   if (!start.value && !end.value) return ''
   if (start.value && end.value) {
-    return `${formatDate(start.value)} – ${formatDate(end.value)}`
+    return t('owner.packagesPage.rangeSelected', {
+      start: formatDate(start.value),
+      end: formatDate(end.value),
+    })
   }
-  if (start.value) return formatDate(start.value)
+  if (start.value) return t('owner.packagesPage.rangePickEnd', { start: formatDate(start.value) })
   return ''
 })
+
+const rangeComplete = computed(() => Boolean(start.value && end.value))
 
 // FA range calendar needs a bound start for v-model; use today placeholder until set
 const calendarStart = computed({
@@ -56,38 +62,28 @@ const calendarStart = computed({
 
 <template>
   <div class="space-y-2">
-    <template v-if="isFa">
-      <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
-      <AppJalaliCalendar
-        v-model="calendarStart"
-        v-model:range-end="end"
-        mode="range"
-        :min-date="effectiveMinDate"
-      />
-      <p v-if="rangeHint" class="text-xs text-brand-gray-600" dir="auto">{{ rangeHint }}</p>
-    </template>
-    <template v-else>
-      <label class="block space-y-1">
-        <span class="text-sm font-bold text-brand-gray-600">{{ startLabelText }}</span>
-        <input
-          v-model="start"
-          type="date"
-          dir="ltr"
-          class="neo-input tabular-nums"
-          :min="effectiveMinDate"
-        >
-      </label>
-      <label class="block space-y-1">
-        <span class="text-sm font-bold text-brand-gray-600">{{ endLabelText }}</span>
-        <input
-          v-model="end"
-          type="date"
-          dir="ltr"
-          class="neo-input tabular-nums"
-          :min="start || effectiveMinDate"
-        >
-      </label>
-    </template>
+    <p v-if="!hideLabel" class="text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.dateRange') }}</p>
+    <p
+      v-if="rangeHint"
+      class="text-start text-xs font-bold"
+      :class="rangeComplete ? 'text-brand-primary' : 'text-brand-gray-600'"
+      dir="auto"
+    >
+      {{ rangeHint }}
+    </p>
+    <AppJalaliCalendar
+      v-model="calendarStart"
+      v-model:range-end="end"
+      mode="range"
+      :min-date="effectiveMinDate"
+      :day-marks="dayMarks"
+    />
+    <p v-if="!rangeComplete && start" class="text-start text-[11px] font-medium text-brand-gray-500">
+      {{ t('owner.packagesPage.rangePickEndHint') }}
+    </p>
+    <p v-else-if="rangeComplete" class="text-start text-[11px] font-medium text-brand-gray-500">
+      {{ t('owner.packagesPage.rangeAdjustHint') }}
+    </p>
     <p v-if="invalid && invalidMessage" class="text-sm text-red-600">{{ invalidMessage }}</p>
   </div>
 </template>

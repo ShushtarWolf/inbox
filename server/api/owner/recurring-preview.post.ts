@@ -1,7 +1,8 @@
-import { isRecurringReserveEnabled } from '#shared/recurringReserve.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
+import { generateRecurringCourtSlots, mergeRecurringResults } from '../../utils/generateRecurringSlots'
+import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
+import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
 
 function resolveExpanded(
   dayTimes?: Record<string, DayTimeRange>,
@@ -25,15 +26,11 @@ function resolveExpanded(
 
 /** Dry-run conflict preview for season / package recurring desk reserve. */
 export default defineEventHandler(async (event) => {
-  if (!isRecurringReserveEnabled()) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'RECURRING_RESERVE_DISABLED',
-    })
-  }
+  assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string
+    courtIds?: string[]
     days?: string[]
     times?: string[]
     dayTimes?: Record<string, DayTimeRange>
@@ -41,40 +38,38 @@ export default defineEventHandler(async (event) => {
     finishDate?: string
   }>(event)
 
-  if (!body.slotId || !body.startDate || !body.finishDate || !body.days?.length) {
-    throw createError({ statusCode: 400, statusMessage: 'slotId, dates, and days are required' })
+  if (!body.startDate || !body.finishDate || !body.days?.length) {
+    throw createError({ statusCode: 400, statusMessage: 'dates and days are required' })
   }
   if (body.finishDate < body.startDate) {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
   assertDateNotInPast(body.startDate)
 
-  const slot = await prisma.slot.findFirst({
-    where: { id: body.slotId, court: { clubId: club.id } },
-  })
-  if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
-
+  const courtIds = await resolveOwnerCourtIds(club.id, body)
   const expanded = resolveExpanded(body.dayTimes, body.times, body.days)
   if (!Object.keys(expanded).length) {
     throw createError({ statusCode: 400, statusMessage: 'Schedule times are required' })
   }
 
-  const result = await generateRecurringCourtSlots({
+  const parts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
     clubId: club.id,
-    courtId: slot.courtId,
-    anchorDate: body.startDate,
-    weekdays: body.days,
+    courtId,
+    anchorDate: body.startDate!,
+    weekdays: body.days!,
     dayTimes: expanded,
     startDate: body.startDate,
     finishDate: body.finishDate,
     displayStatus: 'RESERVED',
     dryRun: true,
-  })
+  })))
+  const result = mergeRecurringResults(parts)
 
   return {
     willCreateCount: result.created,
     skippedCount: result.skipped,
     willCreate: result.willCreate,
     conflicts: result.conflicts,
+    courtIds,
   }
 })

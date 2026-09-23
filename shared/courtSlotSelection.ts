@@ -2,7 +2,43 @@ import { isPaidPaymentStatus, isUnpaidPaymentStatus } from './bookingPayment.ts'
 import { formatGuestDisplayName } from './guestName.ts'
 import { normalizeIranPhone } from './phone.ts'
 
-/** Multi-court / multi-hour slot basket helpers (same club + same date). */
+/** Multi-court / multi-hour slot basket helpers (same club; may span dates). */
+
+/**
+ * Keep slot payloads in the basket so selection survives per-day slot fetches.
+ * Updates cache from `knownSlots`, then drops ids no longer selected.
+ */
+export function upsertBasketSlots<T extends { id: string }>(
+  basket: Record<string, T>,
+  selectedIds: string[],
+  knownSlots: T[],
+): Record<string, T> {
+  const next: Record<string, T> = { ...basket }
+  const known = new Map(knownSlots.map((slot) => [slot.id, slot]))
+  for (const id of selectedIds) {
+    const slot = known.get(id)
+    if (slot) next[id] = slot
+  }
+  for (const id of Object.keys(next)) {
+    if (!selectedIds.includes(id)) delete next[id]
+  }
+  return next
+}
+
+/** Prefer live `knownSlots`, else cached basket payload (other calendar days). */
+export function resolveBasketSlots<T extends { id: string }>(
+  selectedIds: string[],
+  basket: Record<string, T>,
+  knownSlots: T[],
+): T[] {
+  const known = new Map(knownSlots.map((slot) => [slot.id, slot]))
+  const out: T[] = []
+  for (const id of selectedIds) {
+    const slot = known.get(id) || basket[id]
+    if (slot) out.push(slot)
+  }
+  return out
+}
 
 export type SelectableCourtSlot = {
   id: string
@@ -79,6 +115,7 @@ export function clockTime(value: string): string {
 
 export function sortSlotsByTimeThenCourt<T extends {
   startTime: string
+  date?: string | null
   courtId?: string | null
   court?: { id?: string | null } | null
 }>(slots: T[], courtOrder: string[] = []): T[] {
@@ -88,6 +125,8 @@ export function sortSlotsByTimeThenCourt<T extends {
     return idx < 0 ? Number.MAX_SAFE_INTEGER : idx
   }
   return [...slots].sort((a, b) => {
+    const date = String(a.date || '').localeCompare(String(b.date || ''))
+    if (date) return date
     const time = clockTime(a.startTime).localeCompare(clockTime(b.startTime))
     if (time) return time
     return indexOf(a) - indexOf(b)

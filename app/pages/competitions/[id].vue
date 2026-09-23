@@ -30,6 +30,8 @@ const { data: competition, pending, error, refresh } = await useFetch<{
   sport: { slug: string; nameFa: string; nameEn?: string }
 }>(`/api/competitions/${id}`, { immediate: competitionsEnabled.value })
 
+const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
+
 const { data: wallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet', { lazy: true })
 
 const partnerPhone = ref('')
@@ -109,9 +111,7 @@ async function join(useWallet = false) {
       icon="emoji_events"
     />
 
-    <p v-else-if="pending" class="text-sm text-gray-500">
-      {{ t('common.loading') }}
-    </p>
+    <AppVenusSpinner v-else-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error" class="text-sm text-red-600">
       {{ t('common.error') }}
     </p>

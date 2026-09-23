@@ -229,6 +229,15 @@ describe('computeSuspectedSlots', () => {
     )
     expect(suspected).toHaveLength(1)
   })
+
+  it('RELEASE removes from public suspected (owner opened for renters)', () => {
+    const suspected = computeSuspectedSlots(
+      [{ courtId: 'c1', startTime: '10:00', endTime: '11:00', displayStatus: 'FREE', id: 's1' }],
+      [{ courtKey: 'c1', startTime: '10:00', endTime: '11:00', source: 'alovarzesh', state: 'EXTERNAL_BUSY' }],
+      [{ courtId: 'c1', startTime: '10:00', type: 'RELEASE' }],
+    )
+    expect(suspected).toEqual([])
+  })
 })
 
 describe('sourceDetailsForCell', () => {
@@ -256,7 +265,7 @@ describe('addMinutes', () => {
 })
 
 describe('parseAloVarzeshOccupiedTimes', () => {
-  it('flags only confirmed reserved rows (not bare bg-disabled)', () => {
+  it('flags reserved rows including bare bg-disabled on target date', () => {
     const html = `
       <div class="day-box flex-timetable row bg-disabled ">
         <span class="time-value">07:00</span>
@@ -275,8 +284,8 @@ describe('parseAloVarzeshOccupiedTimes', () => {
         <input type="hidden" name="product_schedule" value="1405-06-03 10:00">
       </div>
     `
-    // Bare bg-disabled → UNKNOWN; reserve-over → BUSY
-    expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03')).toEqual(['10:00'])
+    // Bare bg-disabled on target date → BUSY; reserve-over → BUSY
+    expect(parseAloVarzeshOccupiedTimes(html, '1405-06-03').sort()).toEqual(['07:00', '10:00'])
   })
 })
 

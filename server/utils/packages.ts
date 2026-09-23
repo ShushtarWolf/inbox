@@ -39,13 +39,12 @@ function resolveExpandedDayTimes(input: PackageScheduleInput): Record<string, st
     return expandDayTimeRanges(input.dayTimes)
   }
   if (input.timesJson) {
-    const parsed = parseSeasonTimesJson(input.timesJson)
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const asRanges = parsed as Record<string, DayTimeRange>
-      const first = Object.values(asRanges)[0]
-      if (first && typeof first === 'object' && 'start' in first) {
-        return expandDayTimeRanges(asRanges)
-      }
+    // Must pass days — parseSeasonTimesJson filters object keys by weekday list.
+    // Publish re-expands from stored timesJson only (no live dayTimes); omitting days
+    // returned {} and made publish throw PACKAGE_NO_SESSIONS after a clean preview.
+    const asRanges = parseSeasonTimesJson(input.timesJson, input.days)
+    if (Object.keys(asRanges).length) {
+      return expandDayTimeRanges(asRanges)
     }
     try {
       const arr = JSON.parse(input.timesJson) as string[]

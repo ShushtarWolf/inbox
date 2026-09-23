@@ -7,15 +7,14 @@ At booking time, Inbox must not treat uncertain external observations as busy:
 - `UNKNOWN` / `STALE` / `CONFLICT` / `PARTIAL` / mapping failure / adapter error → **treat as AVAILABLE** (do not block)
 - Only confirmed **`EXTERNAL_BUSY`** after cross-source reconcile may inform a hard block or athlete yellow (“suspected”)
 
-## Scope note
+## Call sites (implemented)
 
-`server/api/bookings/**` (including `court.post.ts`) is **OUT OF SCOPE** for Phase 2 calendar reliability.
+- `server/api/bookings/court.post.ts` — via `assertExternalBookingAllowedIfEnabled`
+- `server/api/coach/lessons.post.ts` — via `assertExternalBookingAllowedIfEnabled`
 
-This document only describes the intended hook surface inside the calendar module so a later booking-phase PR can call into it without re-deriving occupancy rules.
+Both invoke `assertExternalBookingAllowed` in `runtime/server/lib/bookingGuard.ts` after internal FREE checks and before the booking transaction.
 
-## Suggested call site (future)
-
-When implementing booking-time verification:
+## Booking-time verification flow
 
 1. Resolve club mapping + court session grid for the requested date.
 2. Call `fetchExternalOccupancy` from `modules/inbox-external-calendar/runtime/server/lib/adapters`.

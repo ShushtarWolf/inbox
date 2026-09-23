@@ -1,0 +1,58 @@
+name: Backup Liara DB
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: liara-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Create downloadable inbox-db dump
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          liara db backup create --name inbox-db --api-token="$LIARA_TOKEN"
+          # Wait for the manual backup to appear.
+          sleep 20
+          LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
+          echo "$LIST_CSV"
+          # CSV columns: Last modified,Size,Name
+          BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 && $3 ~ /^manual\// {print $3; exit}')
+          if [ -z "$BACKUP_NAME" ]; then
+            BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 {print $3; exit}')
+          fi
+          if [ -z "$BACKUP_NAME" ]; then
+            LIST=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN")
+            echo "$LIST"
+            BACKUP_NAME=$(echo "$LIST" | grep -Eo 'manual/[^[:space:]]+' | head -1 || true)
+          fi
+          if [ -z "$BACKUP_NAME" ]; then
+            echo "Could not resolve newest backup name"
+            exit 1
+          fi
+          echo "Downloading backup: $BACKUP_NAME"
+          mkdir -p backups
+          OUT="backups/inbox-db-$(date -u +%Y%m%d-%H%M%S).dump"
+          liara db backup download --name inbox-db --backup "$BACKUP_NAME" --output "$OUT" --api-token="$LIARA_TOKEN"
+          ls -lh "$OUT"
+          test -s "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inbox-db-local-backup
+          path: backups/*.dump
+          if-no-files-found: error
+          retention-days: 7

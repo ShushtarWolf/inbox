@@ -12,23 +12,14 @@ without waiting for an extra prompt from the user:
 2. Push the current branch to its remote.
 
 Do **not** deploy to Liara (or any host) unless the user explicitly asks to deploy
-in that chat.
+in that chat. Deploy procedure lives in `.cursor/rules/liara-deploy.mdc` — follow
+that rule end-to-end (Actions `deploy.yml` + **live health probe** + local DB dump)
+when asked. Never report deploy success if `inboxs.ir` is 502 / health is not ok.
 
 Guardrails:
 - Apply this only after a coherent, user-requested change is complete.
 - Do not commit partial work, exploratory edits, or broken code on purpose.
 - If commit or push is blocked by missing auth, failing checks, or an ambiguous
   target, stop and ask the user.
-- When the user does ask to deploy: production host is Liara only (`inbox` app,
-  `inboxs.ir`). Do not deploy to Railway.
-- When the user asks to deploy: push `main` first if deployable commits are not
-  on GitHub yet, then trigger GitHub Actions (`.github/workflows/deploy.yml`) —
-  do **not** run local `liara deploy`. Example:
-
-```bash
-gh workflow run deploy.yml --ref main
-gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
-```
-
-Requires `LIARA_API_TOKEN` in GitHub repo secrets. After the workflow succeeds,
-follow the post-deploy local DB backup rule.
+- Production host is Liara only (`inbox` / `inboxs.ir`). Do not deploy to Railway.
+- Never treat commit/push as permission to deploy.

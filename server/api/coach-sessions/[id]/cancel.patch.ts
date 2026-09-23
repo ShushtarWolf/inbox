@@ -7,7 +7,13 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
   const session = await prisma.coachSession.findFirst({
-    where: { id, athleteId: user.id },
+    where: {
+      id,
+      OR: [
+        { athleteId: user.id },
+        { coach: { userId: user.id } },
+      ],
+    },
     include: {
       coach: { include: { club: true, user: true } },
       payment: true,
@@ -15,44 +21,38 @@ export default defineEventHandler(async (event) => {
       courtBooking: { include: { slot: { include: { court: { include: { club: true } } } } } },
     },
   })
+  if (!session) throw createError({ statusCode: 404, statusMessage: 'Session not found' })
+  if (session.status === 'CANCELLED') return { ok: true }
 
-  if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session not found' })
-  }
-
-  if (session.status === 'CANCELLED') {
-    return { ok: true }
-  }
-
-  // Independent coaches have no home club, so the lesson's rules come from the club whose court is booked.
+  const isCoachActor = session.coach.userId === user.id
   const hostClub = session.courtBooking?.slot.court.club || session.coach.club
   if (!canManageReservation(session.date, session.startTime, hostClub?.cancellationWindowHours ?? 24)) {
     throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }
 
+  const reason = isCoachActor ? 'coach-cancel' : 'athlete-cancel'
   const result = await cancelCoachSession({
     sessionId: id!,
     actorUserId: user.id,
-    reason: 'athlete-cancel',
+    reason,
     paymentId: session.payment?.id,
     userId: session.athleteId,
   })
 
   await notifyBookingCancelled({
-    userId: user.id,
-    email: session.athlete?.email,
-    phone: session.athlete?.phone,
+    userId: session.athleteId,
+    email: session.athlete.email,
+    phone: session.athlete.phone,
     kind: 'coach',
     clubName: hostClub?.nameEn || hostClub?.nameFa || session.coach.nameEn || session.coach.nameFa,
     clubId: hostClub?.id || undefined,
     bookingId: session.id,
     date: session.date,
     startTime: session.startTime,
-    reason: 'athlete-cancel',
+    reason,
   })
 
-  // The coach reserved (and paid for) a court for this lesson — they must know it is off.
-  if (session.courtBooking) {
+  if (!isCoachActor && session.courtBooking) {
     await notifyBookingCancelled({
       userId: session.coach.userId,
       email: session.coach.user?.email,
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       bookingId: session.id,
       date: session.date,
       startTime: session.startTime,
-      reason: 'athlete-cancel',
+      reason,
     })
   }
 
