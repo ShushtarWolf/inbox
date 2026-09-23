@@ -475,7 +475,9 @@ const filteredItems = computed(() => {
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
-  return list.sort((a, b) => {
+  // Copy first: in-place .sort on the cached visibleHistory array returns the same
+  // ref, so Vue skips re-render and «مرتب سازی» looks dead when no day filter is on.
+  return [...list].sort((a, b) => {
     const cmp = a.date.localeCompare(b.date) || a.timeLabel.localeCompare(b.timeLabel)
     return sortNewest.value ? -cmp : cmp
   })
