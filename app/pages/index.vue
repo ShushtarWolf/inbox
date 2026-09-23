@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
-import { serializeJsonLd } from '#shared/jsonLd.ts'
+import { serializeBrandJsonLd } from '#shared/brandJsonLd.ts'
 
 const { t } = useI18n()
 const config = useRuntimeConfig()
@@ -150,6 +150,7 @@ useSeoMeta({
   description: () => t('home.seoDescription'),
   ogTitle: () => t('home.title'),
   ogDescription: () => t('home.seoDescription'),
+  ogSiteName: () => t('home.ogSiteName'),
   ogUrl: () => `${siteBase.value}/`,
   ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
   ogType: 'website',
@@ -159,48 +160,6 @@ useSeoMeta({
 
 useHead(() => {
   const base = siteBase.value
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${base}/#organization`,
-        name: 'inbox',
-        alternateName: 'اینباکس',
-        url: base,
-        logo: `${base}/icons/apple-touch-icon.png`,
-        email: 'support@inboxs.ir',
-        sameAs: [base],
-        description: t('home.seoDescription'),
-      },
-      {
-        '@type': 'WebApplication',
-        '@id': `${base}/#app`,
-        name: 'inbox',
-        alternateName: 'اینباکس',
-        url: base,
-        applicationCategory: 'SportsApplication',
-        operatingSystem: 'Web',
-        inLanguage: 'fa-IR',
-        description: t('home.seoDescription'),
-        provider: { '@id': `${base}/#organization` },
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: 'IRR',
-          description: t('home.seoTldr'),
-        },
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${base}/#website`,
-        url: base,
-        name: 'inbox',
-        inLanguage: 'fa-IR',
-        publisher: { '@id': `${base}/#organization` },
-      },
-    ],
-  }
   return {
     link: [
       {
@@ -213,7 +172,14 @@ useHead(() => {
       },
       ...(base ? [{ rel: 'canonical', href: `${base}/` }] : []),
     ],
-    script: [{ type: 'application/ld+json', innerHTML: serializeJsonLd(jsonLd) }],
+    script: [{
+      type: 'application/ld+json',
+      innerHTML: serializeBrandJsonLd({
+        siteUrl: base,
+        description: t('home.brandJsonLdDescription'),
+        appOfferDescription: t('home.seoTldr'),
+      }),
+    }],
   }
 })
 
@@ -440,6 +406,9 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
     </AppAsyncState>
 
+    <p class="canva-help px-0 text-sm leading-relaxed text-brand-navy">
+      {{ t('home.brandIdentity') }}
+    </p>
     <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/" with-hub-discovery />
   </div>
 </template>

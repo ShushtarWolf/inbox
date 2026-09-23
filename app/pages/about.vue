@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { serializeBrandJsonLd } from '#shared/brandJsonLd.ts'
+
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const ownerName = computed(() => String(config.public.contactOwnerName || '').trim())
@@ -9,6 +11,7 @@ useSeoMeta({
   description: () => t('legal.aboutSeoDescription'),
   ogTitle: () => t('legal.aboutSeoTitle'),
   ogDescription: () => t('legal.aboutSeoDescription'),
+  ogSiteName: () => t('home.ogSiteName'),
   ogUrl: () => `${siteBase.value}/about`,
   ogImage: () => `${siteBase.value}/hero/tennis-court.jpg`,
   ogType: 'website',
@@ -18,6 +21,14 @@ useSeoMeta({
 
 useHead(() => ({
   link: [{ rel: 'canonical', href: `${siteBase.value}/about` }],
+  script: [{
+    type: 'application/ld+json',
+    innerHTML: serializeBrandJsonLd({
+      siteUrl: siteBase.value,
+      description: t('home.brandJsonLdDescription'),
+      appOfferDescription: t('home.seoTldr'),
+    }),
+  }],
 }))
 </script>
 
