@@ -1,4 +1,5 @@
 import { linkOrphanBookingsByPhone } from '../../utils/phoneAuth'
+import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -30,5 +31,25 @@ export default defineEventHandler(async (event) => {
     },
     orderBy: { createdAt: 'desc' },
   })
-  return { courtBookings, coachSessions, packageBookings }
+
+  const seasonCounts = new Map<string, number>()
+  for (const booking of courtBookings) {
+    if (booking.status === 'CANCELLED') continue
+    const seasonId = parseSeriesPaymentMeta(booking.payment?.metadataJson).seasonBookingId
+    if (!seasonId) continue
+    seasonCounts.set(seasonId, (seasonCounts.get(seasonId) || 0) + 1)
+  }
+
+  return {
+    courtBookings: courtBookings.map((booking) => {
+      const seasonBookingId = parseSeriesPaymentMeta(booking.payment?.metadataJson).seasonBookingId || null
+      return {
+        ...booking,
+        seasonBookingId,
+        seasonSessionCount: seasonBookingId ? (seasonCounts.get(seasonBookingId) || 0) : null,
+      }
+    }),
+    coachSessions,
+    packageBookings,
+  }
 })

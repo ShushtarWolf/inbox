@@ -152,50 +152,10 @@ export function useCourtBooking() {
         },
       })
 
-      createdBookingId.value = result.id
-      createdBookingIds.value = result.bookingIds?.length ? result.bookingIds : [result.id]
-      lastPaymentStatus.value = result.paymentStatus
-      bookedTotal.value = result.totalAmount ?? null
-      done.value = true
-      feedbackTone.value = 'success'
-      feedback.value = t('booking.successCourtOnline')
-
-      const amount = result.totalAmount ?? 0
-      const useWallet = Boolean(
-        opts.preferWallet
-        && canCoverWithWallet(walletBalance.value, amount, result.paymentStatus),
-      )
-
-      if (useWallet) {
-        paying.value = true
-        try {
-          await startCheckout({ bookingId: result.id, useWallet: true })
-          lastPaymentStatus.value = 'PAID'
-          feedback.value = t('booking.walletPaidSuccess')
-          await refreshWallet()
-        }
-        catch (checkoutError: unknown) {
-          feedbackTone.value = 'error'
-          feedback.value = fetchErrorMessage(checkoutError, t('booking.paymentError'))
-        }
-        finally {
-          paying.value = false
-        }
-      } else if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
-        paying.value = true
-        try {
-          await startCheckout({ bookingId: result.id })
-        }
-        catch (checkoutError: unknown) {
-          feedbackTone.value = 'error'
-          feedback.value = fetchErrorMessage(checkoutError, t('booking.gatewayRedirectStalled'))
-        }
-        finally {
-          paying.value = false
-        }
-      }
-
-      return result
+      return await afterBookingCreated(result, {
+        preferWallet: opts.preferWallet,
+        successMessage: t('booking.successCourtOnline'),
+      })
     }
     catch (error: unknown) {
       feedbackTone.value = 'error'
@@ -208,6 +168,126 @@ export function useCourtBooking() {
     finally {
       confirming.value = false
     }
+  }
+
+  async function createSeasonBookings(opts: {
+    clubId: string
+    courtId: string
+    startDate: string
+    finishDate: string
+    startTime: string
+    endTime?: string
+    slotIds?: string[]
+    preferWallet?: boolean
+  }) {
+    if (confirming.value) return null
+
+    if (gateGuestAuth({
+      date: opts.startDate,
+      courtId: opts.courtId,
+      slotIds: opts.slotIds,
+    })) {
+      return null
+    }
+
+    if (!onlineEnabled.value) {
+      feedbackTone.value = 'error'
+      feedback.value = t('booking.onlinePaymentsRequired')
+      return null
+    }
+
+    confirming.value = true
+    feedback.value = ''
+    try {
+      const result = await $fetch<{
+        id: string
+        paymentStatus: string
+        bookingIds?: string[]
+        totalAmount?: number
+      }>('/api/bookings/season', {
+        method: 'POST',
+        body: {
+          clubId: opts.clubId,
+          courtId: opts.courtId,
+          startDate: opts.startDate,
+          finishDate: opts.finishDate,
+          startTime: opts.startTime,
+          endTime: opts.endTime,
+        },
+      })
+
+      return await afterBookingCreated(result, {
+        preferWallet: opts.preferWallet,
+        successMessage: t('booking.successSeasonOnline'),
+      })
+    }
+    catch (error: unknown) {
+      feedbackTone.value = 'error'
+      feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+      if (isSlotConflictError(error)) {
+        return { conflict: true as const }
+      }
+      return null
+    }
+    finally {
+      confirming.value = false
+    }
+  }
+
+  async function afterBookingCreated(
+    result: {
+      id: string
+      paymentStatus: string
+      bookingIds?: string[]
+      totalAmount?: number
+    },
+    opts: { preferWallet?: boolean; successMessage: string },
+  ) {
+    createdBookingId.value = result.id
+    createdBookingIds.value = result.bookingIds?.length ? result.bookingIds : [result.id]
+    lastPaymentStatus.value = result.paymentStatus
+    bookedTotal.value = result.totalAmount ?? null
+    done.value = true
+    feedbackTone.value = 'success'
+    feedback.value = opts.successMessage
+
+    const amount = result.totalAmount ?? 0
+    const useWallet = Boolean(
+      opts.preferWallet
+      && canCoverWithWallet(walletBalance.value, amount, result.paymentStatus),
+    )
+
+    if (useWallet) {
+      paying.value = true
+      try {
+        await startCheckout({ bookingId: result.id, useWallet: true })
+        lastPaymentStatus.value = 'PAID'
+        feedback.value = t('booking.walletPaidSuccess')
+        await refreshWallet()
+      }
+      catch (checkoutError: unknown) {
+        feedbackTone.value = 'error'
+        feedback.value = fetchErrorMessage(checkoutError, t('booking.paymentError'))
+      }
+      finally {
+        paying.value = false
+      }
+    }
+    else if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
+      paying.value = true
+      try {
+        await startCheckout({ bookingId: result.id })
+      }
+      catch (checkoutError: unknown) {
+        feedbackTone.value = 'error'
+        feedback.value = fetchErrorMessage(checkoutError, t('booking.gatewayRedirectStalled'))
+      }
+      finally {
+        paying.value = false
+      }
+    }
+
+    return result
   }
 
   async function payBooking(bookingId?: string | null) {
@@ -269,6 +349,7 @@ export function useCourtBooking() {
     bookingReturnTo,
     gateGuestAuth,
     createCourtBookings,
+    createSeasonBookings,
     payBooking,
     payBookingWithWallet,
     canPayWithWallet,

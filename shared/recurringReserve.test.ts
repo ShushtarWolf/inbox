@@ -60,6 +60,12 @@ describe('isOwnerRecurringBooking', () => {
     })).toBe(true)
   })
 
+  it('detects athlete-season CREATED event metadata', () => {
+    expect(isOwnerRecurringBooking({
+      events: [{ metadataJson: JSON.stringify({ source: 'athlete-season', seasonBookingId: 's1' }) }],
+    })).toBe(true)
+  })
+
   it('honors explicit isRecurring flag from API', () => {
     expect(isOwnerRecurringBooking({ isRecurring: true })).toBe(true)
   })

@@ -231,6 +231,10 @@ export default defineNuxtConfig({
       recurringReserveEnabled:
         process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
         || process.env.RECURRING_RESERVE_ENABLED === 'true',
+      // Athlete "repeat this slot weekly" on club confirm. Default off; independent of desk/packages.
+      athleteSeasonEnabled:
+        process.env.NUXT_PUBLIC_ATHLETE_SEASON_ENABLED === 'true'
+        || process.env.ATHLETE_SEASON_ENABLED === 'true',
       // Prefer PAYMENTS_MODE on Liara; NUXT_PUBLIC_PAYMENTS_MODE also works (runtime sync).
       paymentsMode:
         process.env.NUXT_PUBLIC_PAYMENTS_MODE

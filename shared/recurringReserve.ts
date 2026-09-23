@@ -62,8 +62,8 @@ export function canClaimExistingSlotForRecurring(existing: {
   return true
 }
 
-/** CREATED-event markers written by season / package-reserve / class-package flows. */
-const RECURRING_EVENT_MARKERS = ['owner-recurring', 'class-package'] as const
+/** CREATED-event markers written by season / package-reserve / class-package / athlete-season flows. */
+const RECURRING_EVENT_MARKERS = ['owner-recurring', 'class-package', 'athlete-season'] as const
 
 /**
  * Owner calendar: season/package series or class-package court hold.

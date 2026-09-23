@@ -10,6 +10,10 @@ import {
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
 } from '#shared/equipmentAvailability.ts'
+import {
+  defaultAthleteSeasonFinishDate,
+  MAX_ATHLETE_SEASON_OCCURRENCES,
+} from '#shared/athleteSeason.ts'
 
 export type ConfirmSlot = {
   id: string
@@ -61,6 +65,7 @@ const { formatCurrency, formatNumber, formatWeekday, formatTimeLabel } = useForm
 const { localizedField } = useLocalizedField()
 const { fetchErrorMessage } = useFetchError()
 const { user } = useAuth()
+const { athleteSeasonEnabled } = usePilotFlags()
 const {
   confirming,
   paying,
@@ -73,6 +78,7 @@ const {
   resetBookingState,
   gateGuestAuth,
   createCourtBookings,
+  createSeasonBookings,
   payBooking,
   payBookingWithWallet,
   walletCoversAmount,
@@ -90,6 +96,33 @@ const appliedDiscount = ref<{
   discountAmount: number
 } | null>(null)
 
+const weeklyRepeat = ref(false)
+const seasonStartDate = ref('')
+const seasonFinishDate = ref('')
+const seasonPreviewing = ref(false)
+const seasonPreviewError = ref('')
+const seasonPreview = ref<{
+  willCreateCount: number
+  skippedCount: number
+  totalAmount: number
+} | null>(null)
+let seasonPreviewTimer: ReturnType<typeof setTimeout> | null = null
+
+const singleSlotCourtId = computed(() =>
+  props.slots[0]?.courtId || props.courtId || '',
+)
+
+const canOfferWeekly = computed(() =>
+  athleteSeasonEnabled.value
+  && props.slots.length === 1
+  && Boolean(props.clubId)
+  && Boolean(singleSlotCourtId.value)
+  && Boolean(props.date)
+  && Boolean(props.slots[0]?.startTime),
+)
+
+const seasonActive = computed(() => canOfferWeekly.value && weeklyRepeat.value)
+
 function equipmentCatalogStock(item: ConfirmEquipment) {
   return Math.max(0, Number(item.quantity ?? 1))
 }
@@ -101,7 +134,7 @@ function equipmentStock(item: ConfirmEquipment) {
 }
 
 async function refreshEquipmentAvailability() {
-  if (!props.open || !props.clubId || !props.date || !props.slots.length || multiDay.value) {
+  if (!props.open || !props.clubId || !props.date || !props.slots.length || multiDay.value || seasonActive.value) {
     equipmentAvailability.value = {}
     return
   }
@@ -132,6 +165,75 @@ async function refreshEquipmentAvailability() {
   finally {
     availabilityLoading.value = false
   }
+}
+
+function resetSeasonState() {
+  weeklyRepeat.value = false
+  seasonStartDate.value = props.date || ''
+  seasonFinishDate.value = props.date
+    ? defaultAthleteSeasonFinishDate(props.date)
+    : ''
+  seasonPreview.value = null
+  seasonPreviewError.value = ''
+  seasonPreviewing.value = false
+  if (seasonPreviewTimer) {
+    clearTimeout(seasonPreviewTimer)
+    seasonPreviewTimer = null
+  }
+}
+
+async function refreshSeasonPreview() {
+  if (!seasonActive.value || !props.clubId || !props.date || !seasonFinishDate.value) {
+    seasonPreview.value = null
+    seasonPreviewError.value = ''
+    return
+  }
+  // Keep start pinned to the selected slot day (calendar may nudge start).
+  if (seasonStartDate.value !== props.date) seasonStartDate.value = props.date
+  const slot = props.slots[0]
+  if (!slot?.startTime || !singleSlotCourtId.value) return
+
+  seasonPreviewing.value = true
+  seasonPreviewError.value = ''
+  try {
+    const result = await $fetch<{
+      willCreateCount: number
+      skippedCount: number
+      totalAmount: number
+    }>('/api/bookings/season-preview', {
+      method: 'POST',
+      body: {
+        clubId: props.clubId,
+        courtId: singleSlotCourtId.value,
+        startDate: props.date,
+        finishDate: seasonFinishDate.value,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      },
+    })
+    seasonPreview.value = {
+      willCreateCount: result.willCreateCount,
+      skippedCount: result.skippedCount,
+      totalAmount: result.totalAmount,
+    }
+    if (result.willCreateCount < 1) {
+      seasonPreviewError.value = t('booking.seasonNoFreeSlots')
+    }
+  }
+  catch (error: unknown) {
+    seasonPreview.value = null
+    seasonPreviewError.value = fetchErrorMessage(error, t('booking.seasonPreviewFailed'))
+  }
+  finally {
+    seasonPreviewing.value = false
+  }
+}
+
+function scheduleSeasonPreview() {
+  if (seasonPreviewTimer) clearTimeout(seasonPreviewTimer)
+  seasonPreviewTimer = setTimeout(() => {
+    void refreshSeasonPreview()
+  }, 280)
 }
 
 function equipmentQty(id: string) {
@@ -193,7 +295,7 @@ const multiDay = computed(() => slotDateGroups.value.length > 1)
 
 /** ponytail: equipment availability API is single-date — hide steppers on multi-day baskets. */
 const visibleEquipment = computed(() => {
-  if (multiDay.value) return []
+  if (multiDay.value || seasonActive.value) return []
   return (props.bookableEquipment || []).filter((item) => equipmentStock(item) > 0)
 })
 
@@ -202,6 +304,14 @@ const showMultiDayEquipmentHint = computed(() =>
 )
 
 const costLines = computed(() => {
+  if (seasonActive.value && seasonPreview.value) {
+    return [{
+      label: t('booking.seasonCostLine', {
+        count: formatNumber(seasonPreview.value.willCreateCount),
+      }),
+      amount: seasonPreview.value.totalAmount,
+    }]
+  }
   const lines: Array<{ label: string; amount: number }> = []
   for (const slot of props.slots) {
     const time = formatTimeLabel(slot.startTime || '')
@@ -245,11 +355,21 @@ const costLines = computed(() => {
 const subtotalAmount = computed(() => costLines.value.reduce((sum, line) => sum + line.amount, 0))
 
 const discountAmount = computed(() => {
-  if (!appliedDiscount.value) return 0
+  if (seasonActive.value || !appliedDiscount.value) return 0
   return applyDiscountPercent(subtotalAmount.value, appliedDiscount.value.percent).discountAmount
 })
 
 const totalAmount = computed(() => Math.max(0, subtotalAmount.value - discountAmount.value))
+
+const seasonSubmitBlocked = computed(() =>
+  seasonActive.value
+  && (
+    seasonPreviewing.value
+    || Boolean(seasonPreviewError.value)
+    || !seasonPreview.value
+    || seasonPreview.value.willCreateCount < 1
+  ),
+)
 
 const showWalletCta = computed(() =>
   Boolean(user.value) && walletCoversAmount(totalAmount.value),
@@ -280,6 +400,7 @@ watch(() => props.open, (isOpen) => {
     discountInput.value = ''
     discountError.value = ''
     appliedDiscount.value = null
+    resetSeasonState()
     refreshEquipmentAvailability()
   }
 })
@@ -288,7 +409,12 @@ watch(
   () => [props.slots.map((slot) => slot.id).join(','), props.date, props.bookableEquipment?.map((item) => item.id).join(',')],
   () => {
     if (!props.open) return
+    if (!canOfferWeekly.value) resetSeasonState()
+    else if (!seasonFinishDate.value && props.date) {
+      seasonFinishDate.value = defaultAthleteSeasonFinishDate(props.date)
+    }
     refreshEquipmentAvailability()
+    if (seasonActive.value) scheduleSeasonPreview()
   },
 )
 
@@ -296,6 +422,32 @@ watch(multiDay, (isMulti) => {
   if (!isMulti) return
   equipmentQuantities.value = {}
   equipmentAvailability.value = {}
+  resetSeasonState()
+})
+
+watch(weeklyRepeat, (on) => {
+  if (!on) {
+    seasonPreview.value = null
+    seasonPreviewError.value = ''
+    refreshEquipmentAvailability()
+    return
+  }
+  equipmentQuantities.value = {}
+  appliedDiscount.value = null
+  if (!seasonFinishDate.value && props.date) {
+    seasonFinishDate.value = defaultAthleteSeasonFinishDate(props.date)
+  }
+  scheduleSeasonPreview()
+})
+
+watch(seasonStartDate, (next) => {
+  if (!seasonActive.value) return
+  if (next !== props.date) seasonStartDate.value = props.date
+})
+
+watch(seasonFinishDate, () => {
+  if (!seasonActive.value) return
+  scheduleSeasonPreview()
 })
 
 watch(equipmentAvailability, (available) => {
@@ -390,6 +542,7 @@ async function applyDiscount() {
 
 async function submit(preferWallet = false) {
   if (!props.slots.length || confirming.value || paying.value) return
+  if (seasonSubmitBlocked.value) return
 
   // Guest: close confirm sheet first so AuthFlow is not buried under z-50 twin modal.
   if (!user.value) {
@@ -409,6 +562,29 @@ async function submit(preferWallet = false) {
   if (createdBookingId.value) {
     if (preferWallet) await payBookingWithWallet(createdBookingId.value)
     else await payBooking(createdBookingId.value)
+    return
+  }
+
+  if (seasonActive.value) {
+    const slot = props.slots[0]!
+    const result = await createSeasonBookings({
+      clubId: props.clubId!,
+      courtId: singleSlotCourtId.value,
+      startDate: props.date,
+      finishDate: seasonFinishDate.value,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      slotIds: [slot.id],
+      preferWallet,
+    })
+    if (result && 'conflict' in result) {
+      emit('slotConflict')
+      scheduleSeasonPreview()
+      return
+    }
+    if (!result) return
+    if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
+    emit('success')
     return
   }
 
@@ -515,6 +691,44 @@ async function submit(preferWallet = false) {
             {{ t('booking.equipmentMultiDayHint') }}
           </div>
 
+          <div v-if="canOfferWeekly" class="space-y-2 rounded-[2px] border border-brand-gray-200 p-3 text-start">
+            <label class="flex cursor-pointer items-start gap-2">
+              <input
+                v-model="weeklyRepeat"
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+                :disabled="payBusy"
+              >
+              <span class="text-sm font-bold text-brand-navy">{{ t('booking.seasonWeeklyToggle') }}</span>
+            </label>
+            <template v-if="weeklyRepeat">
+              <AppFormField :label="t('booking.seasonFinishLabel')" required>
+                <AppDateRangeInput
+                  v-model:start="seasonStartDate"
+                  v-model:end="seasonFinishDate"
+                  hide-label
+                  :min-date="date"
+                  :invalid="Boolean(seasonFinishDate && seasonFinishDate < date)"
+                  :invalid-message="t('booking.seasonDateRangeInvalid')"
+                />
+              </AppFormField>
+              <p class="text-[11px] text-brand-gray-500">
+                {{ t('booking.seasonMaxHint', { max: formatNumber(MAX_ATHLETE_SEASON_OCCURRENCES) }) }}
+              </p>
+              <p v-if="seasonPreviewing" class="text-xs text-brand-gray-600">{{ t('common.loading') }}</p>
+              <p
+                v-else-if="seasonPreview"
+                class="text-xs font-medium text-brand-navy"
+              >
+                {{ t('booking.seasonPreviewSummary', {
+                  free: formatNumber(seasonPreview.willCreateCount),
+                  skipped: formatNumber(seasonPreview.skippedCount),
+                }) }}
+              </p>
+              <p v-if="seasonPreviewError" class="text-xs font-medium text-brand-primary">{{ seasonPreviewError }}</p>
+            </template>
+          </div>
+
           <div v-if="visibleEquipment.length" class="space-y-2">
             <p v-if="visibleEquipment.some((item) => item.category === 'RENTAL')" class="text-start text-xs font-bold text-brand-gray-600">
               {{ t('booking.equipmentRental') }}
@@ -597,7 +811,7 @@ async function submit(preferWallet = false) {
               <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
             </div>
 
-            <div class="canva-confirm-book-discount">
+            <div class="canva-confirm-book-discount" :class="{ 'pointer-events-none opacity-50': seasonActive }">
               <label class="sr-only" for="confirm-discount">{{ t('booking.discountCode') }}</label>
               <div class="canva-confirm-book-discount-row">
                 <input
@@ -678,7 +892,7 @@ async function submit(preferWallet = false) {
             type="button"
             class="canva-cta canva-confirm-book-cta w-full"
             :class="{ 'canva-cta-busy': payBusy }"
-            :disabled="!slots.length"
+            :disabled="!slots.length || seasonSubmitBlocked"
             :aria-busy="payBusy"
             @click="submit(false)"
           >
@@ -689,7 +903,7 @@ async function submit(preferWallet = false) {
             type="button"
             class="canva-gate-btn-secondary canva-confirm-book-cta w-full"
             :class="{ 'canva-cta-busy': payBusy }"
-            :disabled="!slots.length"
+            :disabled="!slots.length || seasonSubmitBlocked"
             :aria-busy="payBusy"
             @click="submit(true)"
           >

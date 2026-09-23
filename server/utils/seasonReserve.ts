@@ -1,6 +1,7 @@
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
+import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
+import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
 import { canClaimExistingSlotForRecurring, type RecurringConflictRef } from '#shared/recurringReserve.ts'
 import type { SeasonSessionOccurrence } from '#shared/seasonSessions.ts'
 import { isSlotStartInPast } from '#shared/localDate.ts'
@@ -116,6 +117,14 @@ export type CreateSeasonSessionsOpts = {
   paymentStatus: 'PAID' | 'PAY_AT_CLUB'
   /** Optional equipment rolled into primary payment only. */
   equipmentPrice?: number
+  /**
+   * `athlete` = PLATFORM source, soft hold, initialPlatformPaymentFields, checkout on primary.
+   * Default `owner` keeps desk CASH/IPG + pay-pin behaviour.
+   */
+  mode?: 'owner' | 'athlete'
+  /** Force booking.userId (athlete auth user). */
+  forceUserId?: string
+  actorUserId?: string
 }
 
 export type CreateSeasonSessionsResult = SeasonPreviewResult & {
@@ -130,9 +139,11 @@ export type CreateSeasonSessionsResult = SeasonPreviewResult & {
 
 /**
  * Create season series from explicit sessions.
- * Conflicts are skipped (soft). One pay link covers the series when unpaid + online.
+ * Conflicts are skipped (soft). One pay link covers the series when unpaid + online (owner).
+ * Athlete mode: PLATFORM soft-hold + primary holds series total for checkout.
  */
 export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Promise<CreateSeasonSessionsResult> {
+  const athleteMode = opts.mode === 'athlete'
   const preview = await previewSeasonSessions({ clubId: opts.clubId, sessions: opts.sessions })
   if (preview.willCreateCount === 0) {
     throw createError({
@@ -143,7 +154,15 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
   }
 
   const guest = normalizeGuestNamePair(opts.guestName, opts.guestFamily)
-  const linkedUser = await findUserByPhone(opts.guestMobile)
+  const linkedUser = opts.forceUserId
+    ? await prisma.user.findUnique({ where: { id: opts.forceUserId } })
+    : await findUserByPhone(opts.guestMobile)
+  if (athleteMode && !opts.forceUserId) {
+    throw createError({ statusCode: 400, statusMessage: 'forceUserId required for athlete season' })
+  }
+  if (athleteMode && !linkedUser) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
   const guestNamePair = linkedUser?.name?.trim()
     ? normalizeGuestNamePair(linkedUser.name, '')
     : guest
@@ -171,12 +190,18 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
   })
 
   const online = isOnlinePaymentsEnabled()
-  const wantPayLink = opts.paymentStatus !== 'PAID' && online
+  const wantPayLink = !athleteMode && opts.paymentStatus !== 'PAID' && online
   const equipmentPrice = opts.equipmentPrice || 0
   const seriesTotal = preview.totalAmount + equipmentPrice
+  const holdDisplay = athleteMode
+    ? initialOnlineCourtHoldDisplay(online)
+    : { displayStatus: 'RESERVED' as const, bookingStatus: 'CONFIRMED' as const }
+  const eventSource = athleteMode ? 'athlete-season' : 'owner-recurring'
 
   const bookingIds: string[] = []
   let primaryBookingId: string | null = null
+  /** Per-booking listed price for cancel pro-rata (index aligned with bookingIds push order). */
+  const sessionPrices: number[] = []
 
   try {
     for (let i = 0; i < preview.willCreate.length; i++) {
@@ -209,16 +234,17 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
         continue
       }
 
-      const amount = wantPayLink
+      const sessionPrice = isPrimary ? row.price + equipmentPrice : row.price
+      const amount = athleteMode || wantPayLink
         ? (isPrimary ? seriesTotal : 0)
-        : (isPrimary ? row.price + equipmentPrice : row.price)
+        : sessionPrice
 
       const claimed = await prisma.$transaction(async (tx) => {
         let slotId: string
         if (existing) {
           const claimedRows = await tx.slot.updateMany({
             where: { id: existing.id, displayStatus: 'FREE' },
-            data: { displayStatus: 'RESERVED' },
+            data: { displayStatus: holdDisplay.displayStatus },
           })
           if (claimedRows.count !== 1) return null
           if (existing.booking?.status === 'CANCELLED') {
@@ -235,7 +261,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
                 startTime: row.startTime,
                 endTime: row.endTime,
                 price: row.price,
-                displayStatus: 'RESERVED',
+                displayStatus: holdDisplay.displayStatus,
               },
             })
             slotId = slot.id
@@ -243,6 +269,51 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
           catch {
             return null
           }
+        }
+
+        if (athleteMode) {
+          const paymentFields = initialPlatformPaymentFields(amount)
+          const booking = await tx.booking.create({
+            data: {
+              slotId,
+              userId: opts.forceUserId!,
+              guestName: guestNamePair.guestName,
+              guestFamily: guestNamePair.guestFamily,
+              guestMobile: opts.guestMobile || '',
+              comments: opts.comments,
+              paymentStatus: paymentFields.paymentStatus,
+              status: holdDisplay.bookingStatus,
+              source: 'PLATFORM',
+            },
+          })
+
+          await tx.payment.create({
+            data: {
+              bookingId: booking.id,
+              ...paymentFields.payment,
+              metadataJson: JSON.stringify({
+                sessionPrice,
+                seasonBookingId: seasonRecord.id,
+                ...(amount === 0 ? { coveredBySeason: true } : {}),
+              }),
+            },
+          })
+
+          await tx.reservationEvent.create({
+            data: {
+              bookingId: booking.id,
+              actorUserId: opts.actorUserId || opts.forceUserId,
+              type: 'CREATED',
+              metadataJson: JSON.stringify({
+                source: eventSource,
+                seasonBookingId: seasonRecord.id,
+                sessionPrice,
+                isPrimary,
+              }),
+            },
+          })
+
+          return booking.id
         }
 
         const booking = await tx.booking.create({
@@ -267,19 +338,22 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
             method: opts.paymentMethod,
             status: opts.paymentStatus,
             provider: opts.paymentMethod === 'IPG' ? 'sep' : 'pay_at_club',
-            ...(wantPayLink && !isPrimary
-              ? { metadataJson: JSON.stringify({ coveredBySeason: true }) }
-              : {}),
+            metadataJson: JSON.stringify({
+              sessionPrice,
+              ...(wantPayLink && !isPrimary ? { coveredBySeason: true } : {}),
+            }),
           },
         })
 
         await tx.reservationEvent.create({
           data: {
             bookingId: booking.id,
+            actorUserId: opts.actorUserId,
             type: 'CREATED',
             metadataJson: JSON.stringify({
-              source: 'owner-recurring',
+              source: eventSource,
               seasonBookingId: seasonRecord.id,
+              sessionPrice,
               isPrimary,
             }),
           },
@@ -299,6 +373,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
       }
 
       bookingIds.push(claimed)
+      sessionPrices.push(sessionPrice)
       if (isPrimary) primaryBookingId = claimed
       await syncClubContactForBooking(claimed)
     }
@@ -336,23 +411,51 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
         data: {
           metadataJson: JSON.stringify({
             ...existingMeta,
+            sessionPrice: sessionPrices[0],
             seasonBookingId: seasonRecord.id,
             groupPrimaryBookingId: primaryBookingId,
             groupSiblingBookingIds: siblingIds,
           }),
         },
       })
-      for (const siblingId of siblingIds) {
+      for (let i = 0; i < siblingIds.length; i++) {
+        const siblingId = siblingIds[i]!
         await prisma.payment.updateMany({
           where: { bookingId: siblingId },
           data: {
             metadataJson: JSON.stringify({
               coveredByBookingId: primaryBookingId,
               seasonBookingId: seasonRecord.id,
+              sessionPrice: sessionPrices[i + 1],
             }),
           },
         })
       }
+    }
+  }
+  else if (primaryBookingId && bookingIds.length === 1) {
+    const primaryPayment = await prisma.payment.findUnique({ where: { bookingId: primaryBookingId } })
+    if (primaryPayment) {
+      let existingMeta: Record<string, unknown> = {}
+      if (primaryPayment.metadataJson) {
+        try {
+          existingMeta = JSON.parse(primaryPayment.metadataJson) as Record<string, unknown>
+        }
+        catch {
+          existingMeta = {}
+        }
+      }
+      await prisma.payment.update({
+        where: { id: primaryPayment.id },
+        data: {
+          metadataJson: JSON.stringify({
+            ...existingMeta,
+            sessionPrice: sessionPrices[0],
+            seasonBookingId: seasonRecord.id,
+            groupPrimaryBookingId: primaryBookingId,
+          }),
+        },
+      })
     }
   }
 

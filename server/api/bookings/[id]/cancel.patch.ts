@@ -11,6 +11,12 @@ import {
 import { cancelCourtBooking } from '../../../utils/cancellations'
 import { refundPaymentForCancellation } from '../../../utils/refunds'
 import { canManageReservation } from '../../../utils/reservations'
+import {
+  bookingLooksLikeSeriesPayment,
+  cancelUnpaidSeriesSiblings,
+  loadSeriesGroupForBooking,
+  refundAfterSeriesSessionCancel,
+} from '../../../utils/seriesCancelRefund'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -25,8 +31,24 @@ export default defineEventHandler(async (event) => {
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
+  const seriesAware = bookingLooksLikeSeriesPayment(booking.payment?.metadataJson)
+
   // Already cancelled: still retry refund if payment stayed PAID (non-atomic cancel→refund).
   if (booking.status === 'CANCELLED') {
+    if (seriesAware) {
+      try {
+        const refund = await refundAfterSeriesSessionCancel({
+          cancelledBookingId: booking.id,
+          userId: booking.userId,
+          reason: 'athlete-cancel-refund-retry',
+        })
+        return { ok: true, refund }
+      }
+      catch (err) {
+        console.error('[cancel:series-refund-retry]', booking.id, err)
+        return { ok: true }
+      }
+    }
     if (booking.payment?.id && isPaymentRefundable(booking.payment.status)) {
       try {
         const refund = await refundPaymentForCancellation({
@@ -49,14 +71,46 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
   }
 
+  // Series: cancel row without auto full-refund; apply pro-rata against primary after.
   const result = await cancelCourtBooking({
     bookingId: id!,
     slotId: booking.slotId,
     actorUserId: user.id,
     reason: 'athlete-cancel',
-    paymentId: booking.payment?.id,
+    paymentId: seriesAware ? null : booking.payment?.id,
     userId: booking.userId,
   })
+
+  let refund = result.refund
+  let refundFailed = result.refundFailed
+
+  if (seriesAware) {
+    const group = await loadSeriesGroupForBooking(booking.id)
+    const isPrimary = group?.group.primaryBookingId === booking.id
+    const unpaid = !group || !isPaymentRefundable(group.primaryPayment.status)
+
+    if (isPrimary && unpaid) {
+      await cancelUnpaidSeriesSiblings({
+        primaryBookingId: booking.id,
+        actorUserId: user.id,
+        reason: 'athlete-cancel-series-unpaid',
+        userId: booking.userId,
+      })
+    }
+
+    try {
+      refund = await refundAfterSeriesSessionCancel({
+        cancelledBookingId: booking.id,
+        userId: booking.userId,
+        reason: 'athlete-cancel',
+      })
+      refundFailed = false
+    }
+    catch (err) {
+      console.error('[cancel:series-refund]', booking.id, err)
+      refundFailed = true
+    }
+  }
 
   const club = booking.slot.court.club
   const phone = booking.user?.phone || normalizeIranPhone(booking.guestMobile) || booking.guestMobile
@@ -101,5 +155,5 @@ export default defineEventHandler(async (event) => {
     endTime: booking.slot.endTime,
   })
 
-  return result
+  return { ok: true, refund, refundFailed }
 })

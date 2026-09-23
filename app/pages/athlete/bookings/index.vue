@@ -10,6 +10,8 @@ interface CourtBooking {
   status: string
   payment?: { status?: string; amount?: number } | null
   paymentStatus?: string | null
+  seasonBookingId?: string | null
+  seasonSessionCount?: number | null
   bookingEquipments?: Array<{
     priceAtBooking?: number
     quantity?: number
@@ -68,6 +70,7 @@ type HistoryItem = {
   image?: string
   equipmentLines: string[]
   courtCountLabel: string
+  seasonLabel: string
   raw: CourtBooking | null
 }
 
@@ -401,6 +404,9 @@ const historyItems = computed((): HistoryItem[] => {
       equipmentLines: equipLines,
       // One row = one court booking; do not invent a group count across separate rows.
       courtCountLabel: t('athlete.historyCourtQty', { qty: formatNumber(1) }),
+      seasonLabel: b.seasonBookingId && b.seasonSessionCount && b.seasonSessionCount > 1
+        ? t('booking.seasonSeriesLabel', { count: formatNumber(b.seasonSessionCount) })
+        : '',
       raw: b,
     })
   }
@@ -420,6 +426,7 @@ const historyItems = computed((): HistoryItem[] => {
         image: s.coach.photo || '/placeholders/coach.svg',
         equipmentLines: [],
         courtCountLabel: '',
+        seasonLabel: '',
         raw: null,
       })
     }
@@ -773,8 +780,9 @@ function dateLine(item: HistoryItem) {
               </p>
               <p class="canva-history-card-meta">{{ dateLine(item) }}</p>
               <p class="canva-history-card-price">{{ formatCurrency(item.price) }}</p>
-              <div v-if="item.equipmentLines.length || item.courtCountLabel || item.kind === 'coach'" class="canva-history-card-meta-row">
+              <div v-if="item.equipmentLines.length || item.courtCountLabel || item.seasonLabel || item.kind === 'coach'" class="canva-history-card-meta-row">
                 <span v-for="line in item.equipmentLines" :key="line" class="canva-history-meta-chip">{{ line }}</span>
+                <span v-if="item.seasonLabel" class="canva-history-meta-chip">{{ item.seasonLabel }}</span>
                 <span v-if="item.courtCountLabel" class="canva-history-meta-chip">{{ item.courtCountLabel }}</span>
                 <span v-if="item.kind === 'coach'" class="canva-history-meta-chip">{{ t('home.findCoach') }}</span>
               </div>
