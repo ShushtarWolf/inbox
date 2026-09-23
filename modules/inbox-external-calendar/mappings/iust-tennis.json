@@ -10,7 +10,8 @@
         2,
         1
       ],
-      "comment": "RE-ENABLED 2026-09-23: AloPlay re-enabled after AloVarzesh live verify 2026-09-23 + completeness gate on main (6f8f1c7). Mapping kept (clubId 10887). https://aloplay.io/en/tennis/clubs/10887"
+      "comment": "PAUSED 2026-09-23: AloPlay disabled again for iust-tennis (owner request after re-enable #57). Mapping kept (clubId 10887, products 56921/317335/112282). AloVarzesh-only until re-enable. https://aloplay.io/en/tennis/clubs/10887",
+      "supported": false
     },
     "alovarzesh": {
       "clubTitle": "تنیس علم و صنعت",
