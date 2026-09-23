@@ -293,6 +293,7 @@ describe('bookingNotify SMS', () => {
 
     await notifyBookingConfirmed({
       ...guestOnlyOpts,
+      guestName: 'مهمان تست',
       startTime: '18:00',
       endTime: '20:00',
     })
@@ -302,7 +303,7 @@ describe('bookingNotify SMS', () => {
       'log',
       'BOOKING_CONFIRMED',
       '09129876543',
-      expect.stringContaining('از ۱۸:۰۰ تا ۲۰:۰۰'),
+      expect.stringContaining('۱۸:۰۰ تا ۲۰:۰۰'),
     )
     logSpy.mockRestore()
   })

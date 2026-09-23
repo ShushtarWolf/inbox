@@ -10,6 +10,13 @@ import { sendSms } from './sms/service'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
 
+export type BookingNotifySessionLine = {
+  courtName?: string | null
+  date: string
+  startTime: string
+  endTime?: string | null
+}
+
 type BookingNotifyOpts = {
   /** When absent (desk walk-in / guest-only), in-app is skipped; SMS/email still run if phone/email present. */
   userId?: string | null
@@ -23,6 +30,8 @@ type BookingNotifyOpts = {
   endTime?: string | null
   /** Number of sessions created in a season/package series. */
   sessionCount?: number | null
+  /** Explicit session lines for guest SMS «مشخصات رزرو». */
+  sessions?: BookingNotifySessionLine[]
   kind: BookingNotifyKind
   bookingId?: string
   clubId?: string
@@ -48,12 +57,7 @@ type BookingNotifyOpts = {
   skipGuest?: boolean
 }
 
-export type OwnerBookingSessionLine = {
-  courtName?: string | null
-  date: string
-  startTime: string
-  endTime?: string | null
-}
+export type OwnerBookingSessionLine = BookingNotifySessionLine
 
 type OwnerBookingConfirmedOpts = {
   ownerPhone?: string | null
@@ -269,6 +273,19 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     : (opts.receiptUrl || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : ''))
   const payPin = String(opts.payPin || '').trim()
   const payUrl = opts.payUrl || (payPin ? payUrlForPin(payPin) : '')
+  const sessions = (opts.sessions?.length
+    ? opts.sessions
+    : [{
+        courtName: opts.courtName || opts.courtNumber || '',
+        date: opts.date,
+        startTime: opts.startTime,
+        endTime: opts.endTime || '',
+      }]).map((s) => ({
+    courtName: s.courtName || '',
+    date: s.date,
+    startTime: s.startTime,
+    endTime: s.endTime || '',
+  }))
   return {
     kind: opts.kind,
     clubName: opts.clubName,
@@ -277,6 +294,7 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     startTime: opts.startTime,
     endTime: opts.endTime || '',
     sessionCount: opts.sessionCount ?? null,
+    sessions,
     courtName: opts.courtName || '',
     courtNumber: opts.courtNumber || opts.courtName || '',
     packageName: opts.packageName || '',

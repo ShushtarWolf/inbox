@@ -70,6 +70,12 @@ export default defineEventHandler(async (event) => {
       startTime: first?.startTime || '',
       endTime: first?.endTime || last?.endTime || '',
       sessionCount: sessions.length || null,
+      sessions: sessions.map((s) => ({
+        courtName: courtLabel || pkg.title,
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
       paymentPaid: false,
       guestName,
       // Package seats use athlete bookings dashboard, not court receipt tokens.

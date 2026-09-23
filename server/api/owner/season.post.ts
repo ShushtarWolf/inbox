@@ -13,6 +13,7 @@ import {
   notifyBookingConfirmed,
   clubNotifyName,
   clubNotifyLocation,
+  courtNotifyName,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
@@ -156,6 +157,12 @@ export default defineEventHandler(async (event) => {
   if (guestMobile && result.slotsCreated > 0) {
     const first = result.willCreate[0]
     const last = result.willCreate[result.willCreate.length - 1]
+    const courtIds = [...new Set(result.willCreate.map((s) => s.courtId))]
+    const courts = await prisma.court.findMany({
+      where: { id: { in: courtIds }, clubId: club.id },
+      select: { id: true, nameFa: true, nameEn: true },
+    })
+    const courtById = new Map(courts.map((c) => [c.id, c]))
     await notifyBookingConfirmed({
       phone: guestMobile,
       kind: 'court',
@@ -167,6 +174,12 @@ export default defineEventHandler(async (event) => {
       startTime: first?.startTime || '',
       endTime: first?.endTime || '',
       sessionCount: result.slotsCreated,
+      sessions: result.willCreate.map((s) => ({
+        courtName: courtNotifyName(courtById.get(s.courtId) || { nameFa: s.courtId }),
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
       paymentPaid: paymentStatus === 'PAID',
       guestName: personNotifyName(guest.guestName, guest.guestFamily),
       payPin: paymentStatus === 'PAID' ? undefined : payPin,

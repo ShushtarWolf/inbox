@@ -307,6 +307,12 @@ export default defineEventHandler(async (event) => {
         startTime: range.startTime,
         endTime: range.endTime,
         courtName: courtNotifyName(group[0]!.court),
+        sessions: group.map((slot) => ({
+          courtName: courtNotifyName(slot.court),
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        })),
         paymentPaid: paymentStatus === 'PAID',
         guestName: personNotifyName(dbUser.name),
         ...clubNotifyLocation(club),

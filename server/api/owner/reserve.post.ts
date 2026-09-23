@@ -405,6 +405,12 @@ export default defineEventHandler(async (event) => {
       startTime: notifyStart,
       endTime: notifyEnd,
       courtName: courtNotifyName(slot.court),
+      sessions: [{
+        courtName: courtNotifyName(slot.court),
+        date: slot.date,
+        startTime: notifyStart,
+        endTime: notifyEnd,
+      }],
       paymentPaid: paymentStatus === 'PAID',
       guestName,
       amountPaid: totalAmount,

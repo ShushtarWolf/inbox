@@ -22,6 +22,82 @@ function clubBit(data: Record<string, unknown>) {
   return name ? ` «${name}»` : ''
 }
 
+type SmsSessionRow = {
+  courtName?: string
+  date?: string
+  startTime?: string
+  endTime?: string
+  time?: string
+}
+
+function formatGuestSessionLine(row: SmsSessionRow) {
+  const court = String(row.courtName || '').trim()
+  const dateRaw = String(row.date || '').trim()
+  const startRaw = String(row.startTime || row.time || '').trim()
+  const endRaw = String(row.endTime || '').trim()
+  const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
+  const start = startRaw ? formatSmsTime(startRaw) : ''
+  const end = endRaw ? formatSmsTime(endRaw) : ''
+  const when = start && end && end !== start
+    ? `${start} تا ${end}`
+    : start || end
+  return [court, date, when].filter(Boolean).join(' | ')
+}
+
+/** Guest confirmation session lines — explicit `sessions` or a single fallback row. */
+function guestSessionLines(data: Record<string, unknown>): string[] {
+  const lines: string[] = []
+  const raw = data.sessions
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== 'object') continue
+      const line = formatGuestSessionLine(row as SmsSessionRow)
+      if (line) lines.push(line)
+    }
+  }
+  if (lines.length) return lines
+  const fallback = formatGuestSessionLine({
+    courtName: String(data.courtName || data.courtNumber || '').trim(),
+    date: String(data.date || data.startDate || '').trim(),
+    startTime: String(data.time || data.startTime || '').trim(),
+    endTime: String(data.endTime || '').trim(),
+  })
+  return fallback ? [fallback] : []
+}
+
+/**
+ * Guest «رزرو تایید شد» body — multi-session list + order code + dashboard link.
+ * Used for court / coach / package / season when a guest name is present.
+ */
+function renderGuestBookingConfirmed(data: Record<string, unknown>) {
+  const guest = String(data.guestName || data.userName || '').trim()
+  if (!guest) return ''
+  const club = String(data.clubName || '').trim()
+  const tracking = String(data.trackingCode || data.orderCode || '').trim()
+  const detailUrl = String(data.dashboardUrl || '').trim() || athleteBookingsDashboardUrl(data)
+  const sessionLines = guestSessionLines(data)
+
+  const blocks: string[] = [
+    `${guest} عزیز`,
+    'رزرو شما با موفقیت ثبت شد.',
+  ]
+  if (club) {
+    blocks.push('', `باشگاه: «${club}»`)
+  }
+  blocks.push('', 'مشخصات رزرو:')
+  if (sessionLines.length) blocks.push(...sessionLines)
+  if (tracking) {
+    blocks.push('', `کد سفارش: ${toPersianDigits(tracking)}`)
+  }
+  blocks.push(
+    '',
+    'مشاهده جزئیات رزرو، قوانین، حساب‌وکتاب و لوکیشن:',
+    detailUrl,
+    'Inboxs',
+  )
+  return blocks.join('\n')
+}
+
 function whenBit(data: Record<string, unknown>) {
   const dateRaw = String(data.date || '').trim()
   const finishRaw = String(data.finishDate || '').trim()
@@ -108,84 +184,9 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     return `بازیابی رمز اینباکس: ${data.resetUrl || ''}`
   },
   BOOKING_CONFIRMED: (data) => {
-    const guest = String(data.guestName || data.userName || '').trim()
-    const kind = String(data.kind || '').trim().toLowerCase()
-    const packageName = String(data.packageName || data.packageTitle || '').trim()
-    const isPackage = kind === 'package' || Boolean(packageName)
+    const guestBody = renderGuestBookingConfirmed(data)
+    if (guestBody) return guestBody
 
-    if (isPackage && guest) {
-      const club = String(data.clubName || '').trim()
-      const pkg = packageName || 'پکیج'
-      const court = String(data.courtNumber || data.courtName || '').trim()
-      const dateRaw = String(data.date || data.startDate || '').trim()
-      const finishRaw = String(data.finishDate || data.endDate || '').trim()
-      const startRaw = String(data.time || data.startTime || '').trim()
-      const endRaw = String(data.endTime || '').trim()
-      const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
-      const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
-      const start = startRaw ? formatSmsTime(startRaw) : ''
-      const end = endRaw ? formatSmsTime(endRaw) : ''
-      const rawCount = data.sessionCount
-      const countNum = typeof rawCount === 'number'
-        ? rawCount
-        : (typeof rawCount === 'string' && Number(rawCount) > 0 ? Number(rawCount) : 0)
-      const countLabel = countNum > 0 ? toPersianDigits(String(countNum)) : ''
-      const courtPart = court ? ` زمین شماره (${toPersianDigits(court)})` : ''
-      const clubPart = club ? ` در «${club}»` : ''
-      const countPart = countLabel ? ` برای ${countLabel} جلسه` : ''
-      const rangePart = date && finish && finish !== date
-        ? `، از ${date} تا ${finish}`
-        : date
-          ? `، از ${date}`
-          : ''
-      const timePart = start && end && end !== start
-        ? `، از ساعت ${start} تا ${end}`
-        : start
-          ? `، از ساعت ${start}`
-          : ''
-      const body = `پکیج زمین «${pkg}»${clubPart}${courtPart}${countPart}${rangePart}${timePart} با موفقیت ثبت شد.`
-      return [
-        `${guest} عزیز،`,
-        body,
-        '',
-        'مشاهده برنامه جلسات، حساب‌وکتاب، قوانین و آدرس:',
-        athleteBookingsDashboardUrl(data),
-      ].join('\n')
-    }
-
-    if (guest) {
-      const club = String(data.clubName || '').trim()
-      const dateRaw = String(data.date || '').trim()
-      const finishRaw = String(data.finishDate || '').trim()
-      const startRaw = String(data.time || data.startTime || '').trim()
-      const endRaw = String(data.endTime || '').trim()
-      const date = dateRaw ? formatSmsJalaliDate(dateRaw) : ''
-      const finish = finishRaw ? formatSmsJalaliDate(finishRaw) : ''
-      const start = startRaw ? formatSmsTime(startRaw) : ''
-      const end = endRaw ? formatSmsTime(endRaw) : ''
-      const court = String(data.courtNumber || data.courtName || '').trim()
-      const clubPart = club ? ` در «${club}»` : ''
-      const datePart = date && finish && finish !== date
-        ? ` برای ${date} تا ${finish}`
-        : date
-          ? ` برای ${date}`
-          : ''
-      const courtPart = court ? ` زمین شماره (${toPersianDigits(court)})` : ''
-      const timePart = start && end && end !== start
-        ? ` از ساعت ${start} تا ${end}`
-        : start
-          ? ` از ساعت ${start}`
-          : ''
-      const body = `رزرو شما${clubPart}${datePart}${courtPart}${timePart} با موفقیت ثبت شد.`
-      const detailUrl = String(data.dashboardUrl || '').trim() || athleteBookingsDashboardUrl(data)
-      return [
-        `${guest} عزیز،`,
-        body,
-        '',
-        'مشاهده جزئیات رزرو، قوانین و آدرس:',
-        detailUrl,
-      ].join('\n')
-    }
     const when = whenBit(data)
     const head = when
       ? `رزرو تایید شد${clubBit(data)} — ${when}`
