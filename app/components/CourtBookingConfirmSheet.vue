@@ -90,10 +90,6 @@ const appliedDiscount = ref<{
   discountAmount: number
 } | null>(null)
 
-const visibleEquipment = computed(() =>
-  (props.bookableEquipment || []).filter((item) => equipmentStock(item) > 0),
-)
-
 function equipmentCatalogStock(item: ConfirmEquipment) {
   return Math.max(0, Number(item.quantity ?? 1))
 }
@@ -105,7 +101,7 @@ function equipmentStock(item: ConfirmEquipment) {
 }
 
 async function refreshEquipmentAvailability() {
-  if (!props.open || !props.clubId || !props.date || !props.slots.length) {
+  if (!props.open || !props.clubId || !props.date || !props.slots.length || multiDay.value) {
     equipmentAvailability.value = {}
     return
   }
@@ -194,6 +190,16 @@ const slotDateGroups = computed(() => {
 })
 
 const multiDay = computed(() => slotDateGroups.value.length > 1)
+
+/** ponytail: equipment availability API is single-date — hide steppers on multi-day baskets. */
+const visibleEquipment = computed(() => {
+  if (multiDay.value) return []
+  return (props.bookableEquipment || []).filter((item) => equipmentStock(item) > 0)
+})
+
+const showMultiDayEquipmentHint = computed(() =>
+  multiDay.value && Boolean(props.bookableEquipment?.length),
+)
 
 const costLines = computed(() => {
   const lines: Array<{ label: string; amount: number }> = []
@@ -285,6 +291,12 @@ watch(
     refreshEquipmentAvailability()
   },
 )
+
+watch(multiDay, (isMulti) => {
+  if (!isMulti) return
+  equipmentQuantities.value = {}
+  equipmentAvailability.value = {}
+})
 
 watch(equipmentAvailability, (available) => {
   const next = { ...equipmentQuantities.value }
@@ -497,6 +509,10 @@ async function submit(preferWallet = false) {
               <span class="canva-confirm-book-dot" aria-hidden="true" />
               {{ displayCourtLabel }}
             </p>
+          </div>
+
+          <div v-if="showMultiDayEquipmentHint" class="text-start text-xs font-medium text-brand-gray-600">
+            {{ t('booking.equipmentMultiDayHint') }}
           </div>
 
           <div v-if="visibleEquipment.length" class="space-y-2">

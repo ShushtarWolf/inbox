@@ -104,6 +104,8 @@ type HistoryPayFilter = 'all' | 'paid' | 'unpaid'
 const sortBy = ref<HistorySortBy>('time-desc')
 const payFilter = ref<HistoryPayFilter>('all')
 const filterOpen = ref(false)
+const draftSortBy = ref<HistorySortBy>(sortBy.value)
+const draftPayFilter = ref<HistoryPayFilter>(payFilter.value)
 const monthAnchor = ref(today())
 const selectedDayIso = ref<string | null>(null)
 const cancelTarget = ref<{ kind: HistoryKind; id: string } | null>(null)
@@ -516,12 +518,18 @@ const filteredItems = computed(() => {
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
 const historyEmptyTitle = computed(() => {
+  if (calendarDayFilterActive.value && payFilterActive.value && hasAnyBookings.value) {
+    return t('athlete.historyEmptyDayPayFilter')
+  }
   if (payFilterActive.value && hasAnyBookings.value) return t('athlete.historyEmptyPayFilter')
   if (selectedDayIso.value) return t('athlete.historyEmptyDay')
   return t('athlete.historyEmptyMonth')
 })
 
 const historyEmptyBody = computed(() => {
+  if (calendarDayFilterActive.value && payFilterActive.value && hasAnyBookings.value) {
+    return t('athlete.historyEmptyDayPayFilterBody')
+  }
   if (payFilterActive.value && hasAnyBookings.value) return t('athlete.historyEmptyPayFilterBody')
   if (selectedDayIso.value) {
     return hasAnyBookings.value
@@ -542,16 +550,29 @@ function clearListFilters() {
   payFilter.value = 'all'
 }
 
+function openFilterSheet() {
+  draftSortBy.value = sortBy.value
+  draftPayFilter.value = payFilter.value
+  filterOpen.value = true
+}
+
 function closeFilterSheet() {
+  // Discard draft — live sort/pay only change on Apply.
+  filterOpen.value = false
+}
+
+function applyFilterSheet() {
+  sortBy.value = draftSortBy.value
+  payFilter.value = draftPayFilter.value
   filterOpen.value = false
 }
 
 function pickSort(value: HistorySortBy) {
-  sortBy.value = value
+  draftSortBy.value = value
 }
 
 function pickPayFilter(value: HistoryPayFilter) {
-  payFilter.value = value
+  draftPayFilter.value = value
 }
 
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
@@ -681,7 +702,7 @@ function dateLine(item: HistoryItem) {
       <button
         type="button"
         class="canva-history-sort"
-        @click="filterOpen = true"
+        @click="openFilterSheet"
       >
         <AppIcon name="tune" size="sm" />
         {{ t('athlete.historyFilter') }}
@@ -838,7 +859,7 @@ function dateLine(item: HistoryItem) {
             :key="opt.value"
             type="button"
             class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
-            :class="sortBy === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
+            :class="draftSortBy === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
             style="border-radius: var(--sz-canva-radius);"
             @click="pickSort(opt.value)"
           >
@@ -852,14 +873,14 @@ function dateLine(item: HistoryItem) {
             :key="opt.value"
             type="button"
             class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
-            :class="payFilter === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
+            :class="draftPayFilter === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
             style="border-radius: var(--sz-canva-radius);"
             @click="pickPayFilter(opt.value)"
           >
             {{ t(opt.labelKey) }}
           </button>
         </div>
-        <button type="button" class="canva-gate-btn-primary w-full" @click="closeFilterSheet">
+        <button type="button" class="canva-gate-btn-primary w-full" @click="applyFilterSheet">
             {{ t('athlete.historyFilterApply') }}
         </button>
       </div>

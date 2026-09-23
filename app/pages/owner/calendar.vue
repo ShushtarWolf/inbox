@@ -520,6 +520,9 @@ const canBatchBlock = computed(() =>
 const selectionHasUnavailableSlot = computed(() =>
   selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE'),
 )
+const canSelectionCancel = computed(() =>
+  selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot)),
+)
 
 watch(canBatchReserve, (ok) => {
   if (ok) actionError.value = ''
@@ -1328,6 +1331,16 @@ function openCancelForm() {
   activePanel.value = 'cancel'
 }
 
+/** Selection bar — open cancel for booked chips left after closing the detail sheet. */
+function openSelectionCancel() {
+  const targets = selectedSlotsFull.value.filter((slot) => isCancellableBookedSlot(slot))
+  if (!targets.length) return
+  bookedSiblingIds.value = targets.map((slot) => slot.id)
+  selectedSlot.value = targets[0]!
+  showMenu.value = true
+  openCancelForm()
+}
+
 function parseDeskPercent(raw: string) {
   const ascii = String(raw || '')
     .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
@@ -1886,7 +1899,8 @@ function closeMenu() {
   payLinkSmsPending.value = false
   payLinkSmsStatus.value = 'idle'
   payLinkSmsError.value = ''
-  if (!multiSelectMode.value) clearSelection()
+  // Keep booked multi-select so the selection bar can expose لغو (date-row FABs stay Block+Reserve).
+  if (!multiSelectMode.value && !bookedSiblingIds.value.length) clearSelection()
 }
 
 /** After a successful slot action: drop selection so the bar cannot stick under the sheet. */
@@ -3374,6 +3388,16 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="canva-selection-bar-actions">
             <button
+              v-if="canSelectionCancel"
+              type="button"
+              class="canva-selection-bar-btn-primary"
+              :disabled="saving"
+              @click="openSelectionCancel"
+            >
+              {{ t('owner.cancelBooking') }}
+            </button>
+            <button
+              v-if="!canSelectionCancel"
               type="button"
               class="canva-selection-bar-btn-primary"
               :aria-describedby="selectionHasUnavailableSlot || actionError ? 'owner-cal-selection-error' : undefined"
@@ -3381,7 +3405,13 @@ watch(pilotNoCoach, (off) => {
             >
               {{ t('owner.reserve') }}
             </button>
-            <button type="button" class="canva-selection-bar-btn-secondary" :disabled="!canBatchBlock" @click="openSelectionBlock">
+            <button
+              v-if="!canSelectionCancel"
+              type="button"
+              class="canva-selection-bar-btn-secondary"
+              :disabled="!canBatchBlock"
+              @click="openSelectionBlock"
+            >
               {{ t('owner.block') }}
             </button>
             <button
@@ -4301,244 +4331,6 @@ watch(pilotNoCoach, (off) => {
             <button v-if="reserveFlowReturn" type="button" class="canva-gate-btn-secondary" @click="backToMenu">
               {{ t('common.back') }}
             </button>
-          </div>
-        </div>
-
-        <div v-if="false && canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
-          <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn-ghost px-2 py-1 text-xs"
-                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
-                @click="backToMenu"
-              >
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-            </div>
-          </div>
-          <div class="venus-modal-panel-body">
-            <div class="mb-3 space-y-2">
-              <p class="text-start text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.courtsLabel') }}</p>
-              <div class="flex flex-wrap justify-start gap-2">
-                <button
-                  v-for="court in courts"
-                  :key="`season-court-${court.id}`"
-                  type="button"
-                  class="canva-chip"
-                  :class="seasonForm.courtIds.includes(court.id) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
-                  @click="toggleSeasonCourt(court.id)"
-                >
-                  {{ formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) }}
-                </button>
-              </div>
-              <p v-if="!seasonForm.courtIds.length" class="text-start text-[11px] font-medium text-brand-primary">
-                {{ t('owner.seasonPage.courtsRequired') }}
-              </p>
-            </div>
-            <p v-if="seasonSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
-              {{ seasonSelectionHint }}
-            </p>
-            <label v-if="seasonSelectionHasGap" class="canva-recurring-check mb-3">
-              <input v-model="seasonAcceptGap" type="checkbox" class="canva-settings-checkbox">
-              <span>{{ t('owner.seasonPage.acceptGap') }}</span>
-            </label>
-            <div class="venus-form-stack">
-              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-season-guest-full">
-                <div class="relative">
-                  <input
-                    id="owner-season-guest-full"
-                    v-model="guestFullName"
-                    class="neo-input"
-                    autocomplete="off"
-                    required
-                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
-                    aria-autocomplete="list"
-                    aria-controls="owner-season-guest-suggestions-name"
-                    :placeholder="t('owner.guestFullName')"
-                    @input="onGuestFullNameInput"
-                    @focus="onGuestFullNameInput"
-                    @blur="closeGuestSearchSoon"
-                  >
-                  <OwnerGuestSearchDropdown
-                    list-id="owner-season-guest-suggestions-name"
-                    :open="guestSearchOpen && guestSearchSource === 'name'"
-                    :pending="guestSearchPending"
-                    :suggestions="guestSuggestions"
-                    @select="selectGuestSuggestion"
-                  />
-                </div>
-              </AppFormField>
-              <AppFormField :label="t('owner.guestMobile')" required field-id="owner-season-guest-mobile">
-                <div class="relative">
-                  <input
-                    id="owner-season-guest-mobile"
-                    v-model="form.guestMobile"
-                    dir="ltr"
-                    class="neo-input tabular-nums"
-                    autocomplete="tel"
-                    inputmode="tel"
-                    required
-                    :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
-                    aria-autocomplete="list"
-                    aria-controls="owner-season-guest-suggestions-mobile"
-                    :placeholder="t('owner.guestMobile')"
-                    @input="onGuestMobileInput"
-                    @focus="onGuestMobileInput"
-                    @blur="closeGuestSearchSoon"
-                  >
-                  <OwnerGuestSearchDropdown
-                    list-id="owner-season-guest-suggestions-mobile"
-                    :open="guestSearchOpen && guestSearchSource === 'mobile'"
-                    :pending="guestSearchPending"
-                    :suggestions="guestSuggestions"
-                    @select="selectGuestSuggestion"
-                  />
-                </div>
-              </AppFormField>
-              <AppFormField :label="t('owner.packagesPage.dateRange')" required>
-                <AppDateRangeInput
-                  v-model:start="seasonForm.startDate"
-                  v-model:end="seasonForm.finishDate"
-                  hide-label
-                  :day-marks="occupancyMarks"
-                  :invalid="seasonDateRangeInvalid || seasonStartInPast || !seasonForm.finishDate"
-                  :invalid-message="seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))"
-                />
-                <p class="mt-1 text-start text-[11px] text-brand-gray-500">{{ t('owner.seasonPage.defaultRangeHint') }}</p>
-              </AppFormField>
-              <div>
-                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="day in weekdayOptions"
-                    :key="day"
-                    type="button"
-                    class="canva-chip"
-                    :class="seasonForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
-                    @click="toggleSeasonDay(day)"
-                  >
-                    {{ t(`owner.weekdays.${day}`) }}
-                  </button>
-                </div>
-              </div>
-              <OwnerDayTimeSchedules
-                v-model:day-times="seasonForm.dayTimes"
-                :days="seasonForm.days"
-                :options="scheduleTimeOptions"
-                compact
-              />
-              <div>
-                <p class="mb-1 text-xs font-bold text-brand-gray-600">{{ t('owner.equipments') }}</p>
-                <div v-if="rentalEquipments.length" class="space-y-0">
-                  <label
-                    v-for="item in rentalEquipments"
-                    :key="`season-eq-${item.id}`"
-                    class="canva-equip-row"
-                  >
-                    <span class="inline-flex min-w-0 items-center gap-2">
-                      <input
-                        type="checkbox"
-                        class="canva-settings-checkbox"
-                        :checked="form.equipmentIds.includes(item.id)"
-                        @change="toggleReserveEquipment(item.id)"
-                      >
-                      <span class="text-start">{{ localizedField(item, 'nameFa', 'nameEn') }}</span>
-                    </span>
-                    <span class="inline-flex shrink-0 items-center gap-2">
-                      <span
-                        v-if="form.equipmentIds.includes(item.id)"
-                        class="canva-qty-step"
-                      >
-                        <button type="button" class="canva-qty-step-btn" @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) - 1)">−</button>
-                        <span class="tabular-nums">{{ formatNumber(equipmentQty(item.id)) }}</span>
-                        <button
-                          type="button"
-                          class="canva-qty-step-btn"
-                          :disabled="equipmentQty(item.id) >= equipmentAvailable(item)"
-                          @click.prevent="setEquipmentQty(item.id, equipmentQty(item.id) + 1)"
-                        >+</button>
-                      </span>
-                      <span class="tabular-nums text-brand-gray-600">
-                        {{ item.category === 'CLUB' || !item.price ? t('owner.free') : formatCurrency(item.price) }}
-                      </span>
-                    </span>
-                  </label>
-                </div>
-                <p v-else class="text-xs text-brand-gray-500">{{ t('common.empty') }}</p>
-              </div>
-              <AppFormField :label="t('owner.comments')">
-                <textarea v-model="seasonForm.comments" class="neo-textarea" rows="3" />
-              </AppFormField>
-            </div>
-            <p v-if="seasonSessionLabel && !seasonPreview" class="mt-4 bg-brand-lavender px-4 py-3 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
-              {{ seasonSessionLabel }}
-            </p>
-            <div
-              v-if="seasonPreview"
-              class="mt-4 space-y-3 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
-              style="border-radius: var(--sz-canva-radius);"
-            >
-              <p>{{ t('owner.seasonPage.previewSummary', { create: seasonPreview.willCreateCount, skip: seasonPreview.skippedCount }) }}</p>
-              <div v-if="seasonPreview.willCreate.length" class="space-y-1">
-                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.willCreateTitle') }}</p>
-                <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
-                  <li
-                    v-for="(item, idx) in seasonPreview.willCreate"
-                    :key="`create-${item.courtId || ''}-${item.date}-${item.startTime}-${idx}`"
-                  >
-                    <template v-if="item.courtId && seasonForm.courtIds.length > 1">{{ courtNameById(item.courtId) }} · </template>
-                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
-                  </li>
-                </ul>
-              </div>
-              <div v-if="seasonPreview.conflicts.length" class="space-y-1">
-                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
-                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
-                <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
-                  <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`skip-${item.courtId || ''}-${item.date}-${item.startTime}-${idx}`">
-                    <template v-if="item.courtId && seasonForm.courtIds.length > 1">{{ courtNameById(item.courtId) }} · </template>
-                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
-                    — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="venus-modal-footer space-y-2">
-            <OwnerBookingPriceSummary
-              :court-price="seasonCourtPrice"
-              :equipment-price="seasonEquipmentPrice"
-              :session-count="seasonBillableSessionCount"
-              :preview-confirmed="Boolean(seasonPreview?.willCreateCount)"
-              show-estimated
-            />
-            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
-            <p v-if="!seasonDatesValid" class="text-xs font-medium text-brand-gray-600">
-              {{ seasonStartInPast ? t('owner.errors.startDateInPast') : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')) }}
-            </p>
-            <p
-              v-else-if="!seasonPreview && seasonDatesValid && guestFieldsValid() && seasonForm.days.length && seasonScheduleValid()"
-              class="text-start text-xs font-medium text-brand-primary"
-            >
-              {{ t('owner.seasonPage.previewRequired') }}
-            </p>
-            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button
-              type="button"
-              class="canva-gate-btn-secondary"
-              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
-              @click="runSeasonPreview"
-            >{{ previewing ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
-            <button
-              type="button"
-              class="canva-gate-btn-primary"
-              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonPreview || !seasonPreview.willCreateCount || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
-              @click="doSeasonReserve()"
-            >{{ confirming ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
           </div>
         </div>
 

@@ -321,7 +321,7 @@ const localExpandCount = computed(() => {
   <div class="mx-auto max-w-lg space-y-4 px-4 py-4 pb-24">
     <CanvaSubpageHeader to="/owner/calendar" :title="t('owner.seasonPage.title')" />
 
-    <div v-if="!recurringReserveEnabled" class="space-y-3 rounded-venus border border-brand-gray-100 bg-white p-4">
+    <div v-if="!recurringReserveEnabled" class="space-y-3 border border-brand-gray-100 bg-white p-4" style="border-radius: var(--sz-canva-radius);">
       <p class="text-sm font-bold text-brand-navy">{{ t('owner.seasonUnavailable.title') }}</p>
       <p class="text-sm text-brand-gray-600">{{ t('owner.seasonUnavailable.body') }}</p>
       <NuxtLink
@@ -334,7 +334,7 @@ const localExpandCount = computed(() => {
     </div>
 
     <template v-else-if="done">
-      <div class="space-y-3 rounded-venus border border-brand-gray-100 bg-white p-4">
+      <div class="space-y-3 border border-brand-gray-100 bg-white p-4" style="border-radius: var(--sz-canva-radius);">
         <p class="text-sm font-bold text-brand-navy">
           {{ t('owner.seasonPage.slotsCreatedFlash', { count: formatNumber(slotsCreated) }) }}
         </p>
@@ -376,7 +376,7 @@ const localExpandCount = computed(() => {
       <p v-if="formError" class="venus-alert-error">{{ formError }}</p>
 
       <!-- Step 1: guest + dates -->
-      <div v-show="step === 1" class="space-y-4 rounded-venus border border-brand-gray-100 bg-white p-4">
+      <div v-show="step === 1" class="space-y-4 border border-brand-gray-100 bg-white p-4" style="border-radius: var(--sz-canva-radius);">
         <AppFormField :label="t('owner.guestFullName')" required>
           <input v-model="guestFullName" class="neo-input" autocomplete="name" required>
         </AppFormField>
@@ -417,7 +417,7 @@ const localExpandCount = computed(() => {
         <div
           v-for="rule in rules"
           :key="rule.id"
-          class="space-y-3 rounded-venus border border-brand-gray-100 bg-white p-4"
+          class="space-y-3 border border-brand-gray-100 bg-white p-4" style="border-radius: var(--sz-canva-radius);"
         >
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-bold text-brand-navy">{{ t('owner.seasonPage.sessionRule') }}</p>
@@ -491,7 +491,7 @@ const localExpandCount = computed(() => {
 
       <!-- Step 3: preview + pay -->
       <div v-show="step === 3" class="space-y-4">
-        <div class="space-y-2 rounded-venus border border-brand-gray-100 bg-brand-lavender p-4 text-sm font-bold text-brand-navy">
+        <div class="space-y-2 border border-brand-gray-100 bg-brand-lavender p-4 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
           <p>
             {{ t('owner.seasonPage.previewSummary', {
               create: formatNumber(occurrences.length),
@@ -501,7 +501,7 @@ const localExpandCount = computed(() => {
           <p class="text-xs font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
         </div>
 
-        <div v-if="occurrences.length" class="space-y-2 rounded-venus border border-brand-gray-100 bg-white p-4">
+        <div v-if="occurrences.length" class="space-y-2 border border-brand-gray-100 bg-white p-4" style="border-radius: var(--sz-canva-radius);">
           <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.seasonPage.willCreateTitle') }}</p>
           <ul class="max-h-64 space-y-2 overflow-y-auto text-xs">
             <li
@@ -521,7 +521,7 @@ const localExpandCount = computed(() => {
           </ul>
         </div>
 
-        <div v-if="conflicts.length" class="space-y-2 rounded-venus border border-amber-200 bg-amber-50 p-4">
+        <div v-if="conflicts.length" class="space-y-2 border border-amber-200 bg-amber-50 p-4" style="border-radius: var(--sz-canva-radius);">
           <p class="text-xs font-bold text-brand-navy">{{ t('owner.seasonPage.conflictsTitle') }}</p>
           <p class="text-xs font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
           <ul class="max-h-40 space-y-1 overflow-y-auto text-xs text-brand-gray-600">
@@ -537,7 +537,7 @@ const localExpandCount = computed(() => {
           </ul>
         </div>
 
-        <div class="rounded-venus border border-brand-gray-100 bg-white p-4 text-sm font-bold text-brand-navy">
+        <div class="border border-brand-gray-100 bg-white p-4 text-sm font-bold text-brand-navy" style="border-radius: var(--sz-canva-radius);">
           <div class="flex items-center justify-between gap-2">
             <span>{{ t('owner.priceBreakdown.total') }}</span>
             <span dir="ltr">{{ formatCurrency(totalAmount) }}</span>
