@@ -17,6 +17,8 @@ import {
   toggleHourOnCourts,
   toggleId,
   uniqueOrdered,
+  upsertBasketSlots,
+  resolveBasketSlots,
 } from './courtSlotSelection.ts'
 
 const c2 = 'court-2'
@@ -31,6 +33,23 @@ describe('toggleId', () => {
   it('adds and removes without touching other ids', () => {
     expect(toggleId(['a'], 'b')).toEqual(['a', 'b'])
     expect(toggleId(['a', 'b'], 'a')).toEqual(['b'])
+  })
+})
+
+describe('upsertBasketSlots / resolveBasketSlots', () => {
+  it('keeps other-day payloads when the live fetch only has today', () => {
+    const day1 = { id: 'd1-16', startTime: '16:00', date: '2026-09-22' }
+    const day2 = { id: 'd2-17', startTime: '17:00', date: '2026-09-23' }
+    const basket = upsertBasketSlots({}, ['d1-16'], [day1])
+    const next = upsertBasketSlots(basket, ['d1-16', 'd2-17'], [day2])
+    expect(Object.keys(next).sort()).toEqual(['d1-16', 'd2-17'])
+    expect(resolveBasketSlots(['d1-16', 'd2-17'], next, [day2])).toEqual([day1, day2])
+  })
+
+  it('drops cache entries that left the selection', () => {
+    const day1 = { id: 'd1-16', startTime: '16:00', date: '2026-09-22' }
+    const basket = upsertBasketSlots({}, ['d1-16'], [day1])
+    expect(upsertBasketSlots(basket, [], [])).toEqual({})
   })
 })
 

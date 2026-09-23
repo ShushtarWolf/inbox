@@ -1989,6 +1989,19 @@
     background: #2f9e44;
     border-radius: var(--sz-canva-radius);
   }
+  /* Other days that still have basket hours (multi-day pick). */
+  .canva-club-cal-day-basket::after {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    transform: translateX(-50%);
+    background: #2f9e44;
+    border-radius: var(--sz-canva-radius);
+    opacity: 0.55;
+  }
   .canva-club-cal-day-disabled {
     @apply cursor-not-allowed opacity-35;
   }

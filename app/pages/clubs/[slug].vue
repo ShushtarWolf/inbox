@@ -6,12 +6,14 @@ import {
   courtIdsFromSlots,
   isSlotFree,
   joinWithAnd,
+  resolveBasketSlots,
   slotCourtId,
   sortSlotsByTimeThenCourt,
   timesFromSlots,
   removeSlotsForCourt,
   toggleHourOnCourts,
   uniqueOrdered,
+  upsertBasketSlots,
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import { buildClubSportsActivityLocationJsonLd } from '#shared/clubJsonLd.ts'
@@ -25,6 +27,7 @@ import { buildReturnTo } from '#shared/returnTo.ts'
 
 type ClubSlot = {
   id: string
+  date?: string
   startTime: string
   endTime?: string
   price?: number
@@ -129,10 +132,21 @@ const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
 const selectedCourtIds = ref<string[]>(
   deepLinkSlotIds.length || deepLinkTimes.length ? deepLinkCourtIds : [],
 )
-const selectedSlotIds = ref<string[]>([])
+/** Survive date changes + AuthFlow navigateTo (multi-day basket). */
+const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
+const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
+
+function clearBasket() {
+  selectedSlotIds.value = []
+  basketSlotsById.value = {}
+}
+
+function stampSlotDate(slot: ClubSlot, date = selectedDate.value): ClubSlot {
+  return slot.date ? slot : { ...slot, date }
+}
 
 const { data: slots, pending: slotsPending, error: slotsError, refresh: refreshSlots } = await useFetch<ClubSlot[]>('/api/slots/available', {
   query: computed(() => ({
@@ -194,8 +208,7 @@ watch(
 
 watch(selectedDate, () => {
   if (suppressSlotClear) return
-  selectedSlotIds.value = []
-  selectedCourtIds.value = []
+  // Multi-day basket: keep selectedSlotIds / courts; only reset waitlist for the left day.
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
 })
@@ -208,10 +221,33 @@ const courtSlots = computed(() => {
   return list.filter((s) => slotCourtId(s) === focusedCourtId.value)
 })
 
+function syncBasketFromKnown(known: ClubSlot[]) {
+  const stamped = known.map((slot) => stampSlotDate(slot))
+  basketSlotsById.value = upsertBasketSlots(
+    basketSlotsById.value,
+    selectedSlotIds.value,
+    stamped,
+  )
+}
+
 watch(
   () => slots.value,
   (list) => {
-    if (!deepLinkSlotsPending.value || !list) return
+    if (!list) return
+    // Drop basket hours that became unavailable on the day currently loaded.
+    const drop = new Set(
+      selectedSlotIds.value.filter((id) => {
+        const slot = list.find((s) => s.id === id)
+        return Boolean(slot && (!isSlotFree(slot) || isSlotSuspected(slot)))
+      }),
+    )
+    if (drop.size) {
+      selectedSlotIds.value = selectedSlotIds.value.filter((id) => !drop.has(id))
+      if (!selectedSlotIds.value.length) confirmOpen.value = false
+    }
+    syncBasketFromKnown(list)
+
+    if (!deepLinkSlotsPending.value) return
     const available = list
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
@@ -230,7 +266,13 @@ watch(
         .map((s) => s.id)
     }
     if (valid.length) {
-      selectedSlotIds.value = valid
+      // Keep other-day basket picks; replace only the day currently loaded (deep-link / rebook).
+      const otherDayIds = selectedSlotIds.value.filter((id) => {
+        if (available.some((s) => s.id === id)) return false
+        return Boolean(basketSlotsById.value[id])
+      })
+      selectedSlotIds.value = uniqueOrdered([...otherDayIds, ...valid])
+      syncBasketFromKnown(available)
       const fromSlots = courtIdsFromSlots(
         valid
           .map((id) => available.find((s) => s.id === id))
@@ -279,27 +321,40 @@ function courtNumberLabel(courtId: string) {
   return t('booking.courtNumber', { n: formatNumber(n) })
 }
 
+function formatBasketDateLabel(iso: string) {
+  const j = isoToJalaali(iso)
+  const weekday = formatWeekday(iso, 'long')
+  return `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
+}
+
 const selectedSlots = computed(() => {
   const courtOrder = courts.value.map((c) => c.id)
-  const picked = selectedSlotIds.value
-    .map((id) => allSlots.value.find((s) => s.id === id))
-    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s) && !isSlotSuspected(s))
+  const liveById = new Map(allSlots.value.map((s) => [s.id, s]))
+  const resolved = resolveBasketSlots(
+    selectedSlotIds.value,
+    basketSlotsById.value,
+    allSlots.value.map((s) => stampSlotDate(s)),
+  )
+  const picked = resolved.filter((slot) => {
+    const live = liveById.get(slot.id)
+    if (live) return isSlotFree(live) && !isSlotSuspected(live)
+    // Other calendar day: keep cached pick until that day is loaded again.
+    return Boolean(slot.date)
+  })
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
 
-/** Overlay may arrive after deep-link/select — drop suspected hours and close empty confirm. */
-const suspectedIdsInBasket = computed(() =>
-  selectedSlotIds.value.filter((id) => {
-    const slot = allSlots.value.find((s) => s.id === id)
-    return Boolean(slot && isSlotSuspected(slot))
-  }),
+const basketDates = computed(() =>
+  uniqueOrdered(
+    selectedSlots.value
+      .map((s) => s.date || '')
+      .filter(Boolean),
+  ).sort(),
 )
-watch(suspectedIdsInBasket, (bad) => {
-  if (!bad.length) return
-  const drop = new Set(bad)
-  selectedSlotIds.value = selectedSlotIds.value.filter((id) => !drop.has(id))
-  if (!selectedSlotIds.value.length) confirmOpen.value = false
-})
+
+function dayHasBasket(iso: string) {
+  return basketDates.value.includes(iso)
+}
 
 /** Solid green = this court has basket hours (matches slot legend). Never focus-only. */
 function isCourtChipActive(courtId: string) {
@@ -322,10 +377,15 @@ function toggleCourt(courtId: string) {
   const selected = selectedCourtIds.value
   const chipOn = courtHasChipSelection(courtId)
   if (chipOn) {
-    // One click off: drop chip + that court's basket slots (no focus-first step).
+    // One click off: drop chip + that court's basket slots across all days.
     const nextSelected = selected.filter((id) => id !== courtId)
     selectedCourtIds.value = nextSelected
-    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, allSlots.value)
+    const known = [
+      ...Object.values(basketSlotsById.value),
+      ...allSlots.value.map((s) => stampSlotDate(s)),
+    ]
+    selectedSlotIds.value = removeSlotsForCourt(selectedSlotIds.value, courtId, known)
+    syncBasketFromKnown(known)
     if (nextSelected.length) {
       focusedCourtId.value = nextSelected.includes(focusedCourtId.value || '')
         ? focusedCourtId.value
@@ -334,11 +394,7 @@ function toggleCourt(courtId: string) {
     }
     // Prefer a court that still has basket hours; else first court for browsing
     // (focus alone must not light the chip — see isCourtChipActive).
-    const basketCourts = courtIdsFromSlots(
-      selectedSlotIds.value
-        .map((id) => allSlots.value.find((s) => s.id === id))
-        .filter((s): s is ClubSlot => Boolean(s)),
-    )
+    const basketCourts = courtIdsFromSlots(selectedSlots.value)
     focusedCourtId.value = basketCourts[0] || courts.value[0]?.id || null
     return
   }
@@ -380,11 +436,9 @@ const bookingSummary = computed(() => {
     courtIdsFromSlots(picked).map((id) => courtNumberLabel(id)).filter(Boolean),
   )
   const times = timesFromSlots(picked).map((time) => formatTimeLabel(time))
-  const j = isoToJalaali(selectedDate.value)
-  const weekday = formatWeekday(selectedDate.value, 'long')
-  const dateLabel = `${formatNumber(j.jd)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
+  const dateLabels = basketDates.value.map((iso) => formatBasketDateLabel(iso))
   return t('clubs.bookingSummarySelected', {
-    date: dateLabel,
+    date: joinWithAnd(dateLabels),
     courts: joinWithAnd(courtLabels),
     times: joinWithAnd(times),
   })
@@ -528,6 +582,7 @@ const confirmSlots = computed(() =>
     const court = courts.value.find((c) => c.id === courtId)
     return {
       ...slot,
+      date: slot.date || selectedDate.value,
       courtId,
       courtLabel: courtNumberLabel(courtId),
       courtPrice: court?.price,
@@ -536,6 +591,9 @@ const confirmSlots = computed(() =>
   }),
 )
 
+/** Earliest basket day — equipment availability API is single-date (matches server primary). */
+const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.value)
+
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
@@ -543,7 +601,7 @@ function openConfirmSheet() {
     resumeConfirmAfterAuth.value = true
     openLogin({
       returnTo: buildReturnTo(route.path, {
-        date: selectedDate.value,
+        date: confirmPrimaryDate.value,
         court: selectedCourtIdsForReturn.value || undefined,
         slots: selectedSlotIds.value.join(','),
       }),
@@ -564,13 +622,13 @@ function openConfirmSheet() {
 
 function onConfirmSuccess() {
   resumeConfirmAfterAuth.value = false
-  selectedSlotIds.value = []
+  clearBasket()
   waitlistSlotId.value = null
 }
 
 async function onSlotConflict() {
   confirmOpen.value = false
-  selectedSlotIds.value = []
+  clearBasket()
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   await refreshSlots()
@@ -664,6 +722,7 @@ function calendarDayAria(cell: { day: number | null; iso: string | null }) {
   const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
   if (cell.iso < today()) return t('clubs.calendarDayDisabled', { date: dateLabel })
   if (cell.iso === selectedDate.value) return t('clubs.calendarDaySelected', { date: dateLabel })
+  if (dayHasBasket(cell.iso)) return t('clubs.calendarDayBasket', { date: dateLabel })
   return t('clubs.calendarDaySelectable', { date: dateLabel })
 }
 
@@ -814,7 +873,7 @@ useHead(() => {
 function toggleSlot(slot: ClubSlot) {
   if (isSlotBooked(slot)) {
     if (!waitlistEnabled.value) return
-    selectedSlotIds.value = []
+    clearBasket()
     waitlistFeedback.value = ''
     waitlistSlotId.value = waitlistSlotId.value === slot.id ? null : slot.id
     return
@@ -835,6 +894,7 @@ function toggleSlot(slot: ClubSlot) {
   if (!selectedCourtIds.value.length && slotCourt) {
     selectedCourtIds.value = [slotCourt]
   }
+  // Only current-day slots participate in hour toggle so other days keep their picks.
   selectedSlotIds.value = toggleHourOnCourts({
     selectedSlotIds: selectedSlotIds.value,
     selectedCourtIds: applyCourtIds,
@@ -843,6 +903,7 @@ function toggleSlot(slot: ClubSlot) {
     slots: allSlots.value.filter((s) => !isSlotSuspected(s)),
     clickedSlotId: slot.id,
   })
+  syncBasketFromKnown(allSlots.value)
 }
 
 async function joinCourtWaitlist() {
@@ -1056,6 +1117,7 @@ async function shareClub() {
                     class="canva-club-cal-day"
                     :class="{
                       'canva-club-cal-day-active': cell.iso === selectedDate,
+                      'canva-club-cal-day-basket': dayHasBasket(cell.iso) && cell.iso !== selectedDate,
                       'canva-club-cal-day-disabled': cell.iso < today(),
                     }"
                     :disabled="cell.iso < today()"
@@ -1274,7 +1336,7 @@ async function shareClub() {
         :location-line="locationLine"
         :sport-label="sportLabel"
         :rating-display="ratingDisplay"
-        :date="selectedDate"
+        :date="confirmPrimaryDate"
         :court-id="selectedCourtIdsForReturn || undefined"
         :court-label="selectedCourtLabel"
         :slots="confirmSlots"
