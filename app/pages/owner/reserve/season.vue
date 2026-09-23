@@ -523,6 +523,7 @@ const localExpandCount = computed(() => {
 
         <div v-if="conflicts.length" class="space-y-2 rounded-venus border border-amber-200 bg-amber-50 p-4">
           <p class="text-xs font-bold text-brand-navy">{{ t('owner.seasonPage.conflictsTitle') }}</p>
+          <p class="text-xs font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
           <ul class="max-h-40 space-y-1 overflow-y-auto text-xs text-brand-gray-600">
             <li
               v-for="(item, idx) in conflicts.slice(0, 24)"

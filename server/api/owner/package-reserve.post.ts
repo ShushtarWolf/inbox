@@ -75,6 +75,7 @@ export default defineEventHandler(async (event) => {
     equipmentQuantities?: Record<string, number>
     paymentMethod?: string
     paymentStatus?: string
+    /** Ignored — conflicts are always soft-skipped. Kept for older clients. */
     acceptSkips?: boolean
   }>(event)
 
@@ -139,18 +140,7 @@ export default defineEventHandler(async (event) => {
       data: { conflicts: preview.conflicts, skippedCount: preview.skipped },
     })
   }
-  if (preview.skipped > 0 && !body.acceptSkips) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'RECURRING_CONFLICTS_NEED_CONFIRM',
-      data: {
-        willCreateCount: preview.created,
-        skippedCount: preview.skipped,
-        willCreate: preview.willCreate,
-        conflicts: preview.conflicts,
-      },
-    })
-  }
+  // Conflicts are soft-skipped (same as season) — occupied slots stay untouched.
 
   const { paymentMethod, paymentStatus } = resolveRecurringPayment(body)
 

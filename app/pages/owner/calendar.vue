@@ -241,9 +241,7 @@ const packageForm = reactive({
 const seasonPreview = ref<RecurringPreview | null>(null)
 /** When true, Back from block/note/season returns to the walk-in reserve sheet. */
 const reserveFlowReturn = ref(false)
-const seasonAcceptSkips = ref(false)
 const packagePreview = ref<RecurringPreview | null>(null)
-const packageAcceptSkips = ref(false)
 
 /** Weekly repeat on block sheet (same court+time across N weeks). Hidden in multi-select. */
 const blockWeeks = ref(1)
@@ -1557,9 +1555,7 @@ async function doSaveExternalNote() {
 
 function clearRecurringPreview() {
   seasonPreview.value = null
-  seasonAcceptSkips.value = false
   packagePreview.value = null
-  packageAcceptSkips.value = false
 }
 
 function clearBlockWeeklyPreview() {
@@ -1989,7 +1985,6 @@ function toggleSeasonDay(day: string) {
   seasonForm.days = nextDays
   seasonForm.dayTimes = ensureDayTimesForDays(seasonForm.dayTimes, nextDays, fallback)
   seasonPreview.value = null
-  seasonAcceptSkips.value = false
 }
 
 function togglePackageDay(day: string) {
@@ -1998,7 +1993,6 @@ function togglePackageDay(day: string) {
   packageForm.days = nextDays
   packageForm.dayTimes = ensureDayTimesForDays(packageForm.dayTimes, nextDays, fallback)
   packagePreview.value = null
-  packageAcceptSkips.value = false
 }
 
 function reserveDisplayStatus() {
@@ -2030,7 +2024,6 @@ watch(
   ] as const,
   () => {
     seasonPreview.value = null
-    seasonAcceptSkips.value = false
   },
 )
 
@@ -2046,7 +2039,6 @@ watch(
   ] as const,
   () => {
     packagePreview.value = null
-    packageAcceptSkips.value = false
   },
 )
 
@@ -2540,9 +2532,6 @@ async function runSeasonPreview() {
       actionError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
-    if (preview.skippedCount > 0 && !seasonAcceptSkips.value) {
-      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-    }
   } catch (error) {
     applyRecurringConflictError('season', error)
   } finally {
@@ -2567,10 +2556,6 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
   }
   const seasonReady = seasonPreview.value
   if (!seasonReady?.willCreateCount) return
-  if (seasonReady.skippedCount > 0 && !seasonAcceptSkips.value) {
-    actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-    return
-  }
 
   if (!opts?.fromPayConfirm) {
     openRecurringPayConfirm('season')
@@ -2597,7 +2582,6 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
         equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
-        acceptSkips: seasonAcceptSkips.value || (seasonPreview.value?.skippedCount ?? 0) === 0,
       },
     })
     if (result.slotsCreated) {
@@ -2636,9 +2620,6 @@ async function runPackagePreview() {
       actionError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
-    if (preview.skippedCount > 0 && !packageAcceptSkips.value) {
-      actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-    }
   } catch (error) {
     applyRecurringConflictError('package', error)
   } finally {
@@ -2666,10 +2647,6 @@ async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
   }
   const packageReady = packagePreview.value
   if (!packageReady?.willCreateCount) return
-  if (packageReady.skippedCount > 0 && !packageAcceptSkips.value) {
-    actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
-    return
-  }
 
   if (!opts?.fromPayConfirm) {
     openRecurringPayConfirm('package')
@@ -2697,7 +2674,6 @@ async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
         equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
-        acceptSkips: packageAcceptSkips.value || (packagePreview.value?.skippedCount ?? 0) === 0,
       },
     })
     if (result.slotsCreated) {
@@ -4521,6 +4497,7 @@ watch(pilotNoCoach, (off) => {
               </div>
               <div v-if="seasonPreview.conflicts.length" class="space-y-1">
                 <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
+                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
                 <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
                   <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`skip-${item.courtId || ''}-${item.date}-${item.startTime}-${idx}`">
                     <template v-if="item.courtId && seasonForm.courtIds.length > 1">{{ courtNameById(item.courtId) }} · </template>
@@ -4529,10 +4506,6 @@ watch(pilotNoCoach, (off) => {
                   </li>
                 </ul>
               </div>
-              <label v-if="seasonPreview.skippedCount > 0" class="canva-recurring-check">
-                <input v-model="seasonAcceptSkips" type="checkbox" class="canva-settings-checkbox">
-                <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
-              </label>
             </div>
           </div>
           <div class="venus-modal-footer space-y-2">
@@ -4563,7 +4536,7 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
+              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonPreview || !seasonPreview.willCreateCount || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
               @click="doSeasonReserve()"
             >{{ confirming ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
           </div>
@@ -4768,6 +4741,7 @@ watch(pilotNoCoach, (off) => {
               </div>
               <div v-if="packagePreview.conflicts.length" class="space-y-1">
                 <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
+                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
                 <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
                   <li v-for="(item, idx) in packagePreview.conflicts.slice(0, 12)" :key="`pkg-skip-${item.date}-${item.startTime}-${idx}`">
                     {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
@@ -4775,10 +4749,6 @@ watch(pilotNoCoach, (off) => {
                   </li>
                 </ul>
               </div>
-              <label v-if="packagePreview.skippedCount > 0" class="canva-recurring-check">
-                <input v-model="packageAcceptSkips" type="checkbox" class="canva-settings-checkbox">
-                <span>{{ t('owner.seasonPage.acceptSkips') }}</span>
-              </label>
             </div>
           </div>
           <div class="venus-modal-footer space-y-2">
@@ -4807,7 +4777,7 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="previewing || confirming || !packagePreview || !packagePreview.willCreateCount || (Boolean(packagePreview.skippedCount) && !packageAcceptSkips) || !guestFieldsValid() || (packageSelectionHasGap && !packageAcceptGap)"
+              :disabled="previewing || confirming || !packagePreview || !packagePreview.willCreateCount || !guestFieldsValid() || (packageSelectionHasGap && !packageAcceptGap)"
               @click="doPackageReserve()"
             >{{ confirming ? t('common.loading') : t('owner.packagePage.confirm') }}</button>
           </div>
