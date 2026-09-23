@@ -1,7 +1,7 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
 import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
-import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
+import { generateRecurringCourtSlots, mergeRecurringResults } from '../../utils/generateRecurringSlots'
 import {
   loadEquipmentForBooking,
   parseEquipmentSelections,
@@ -9,6 +9,7 @@ import {
 } from '../../utils/bookingTotal'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
+import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
 
 function resolveDayTimes(
   dayTimes?: Record<string, DayTimeRange>,
@@ -67,6 +68,7 @@ export default defineEventHandler(async (event) => {
     finishDate?: string
     comments?: string
     slotId?: string
+    courtIds?: string[]
     equipmentId?: string
     equipmentIds?: string[]
     equipmentQuantities?: Record<string, number>
@@ -83,6 +85,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
   assertDateNotInPast(body.startDate)
+
+  const courtIds = await resolveOwnerCourtIds(club.id, body)
 
   const equipmentSelections = parseEquipmentSelections(
     body.equipmentIds?.length ? body.equipmentIds : (body.equipmentId ? [body.equipmentId] : []),
@@ -101,26 +105,22 @@ export default defineEventHandler(async (event) => {
   const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
   const hasSchedule = Boolean(body.days?.length && Object.keys(expanded).length)
 
-  if (!body.slotId || !hasSchedule) {
-    throw createError({ statusCode: 400, statusMessage: 'slotId and schedule are required' })
+  if (!hasSchedule) {
+    throw createError({ statusCode: 400, statusMessage: 'schedule is required' })
   }
 
-  const slot = await prisma.slot.findFirst({
-    where: { id: body.slotId, court: { clubId: club.id } },
-  })
-  if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
-
-  const preview = await generateRecurringCourtSlots({
+  const previewParts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
     clubId: club.id,
-    courtId: slot.courtId,
-    anchorDate: body.startDate,
+    courtId,
+    anchorDate: body.startDate!,
     weekdays: body.days!,
     dayTimes: expanded,
     startDate: body.startDate,
     finishDate: body.finishDate,
     displayStatus: 'RESERVED',
     dryRun: true,
-  })
+  })))
+  const preview = mergeRecurringResults(previewParts)
 
   if (preview.created === 0) {
     throw createError({
@@ -160,10 +160,10 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  const result = await generateRecurringCourtSlots({
+  const resultParts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
     clubId: club.id,
-    courtId: slot.courtId,
-    anchorDate: body.startDate,
+    courtId,
+    anchorDate: body.startDate!,
     weekdays: body.days!,
     dayTimes: expanded,
     startDate: body.startDate,
@@ -180,7 +180,8 @@ export default defineEventHandler(async (event) => {
       equipmentQuantities,
       equipmentPrice,
     },
-  })
+  })))
+  const result = mergeRecurringResults(resultParts)
 
   if (result.created === 0) {
     await prisma.seasonBooking.delete({ where: { id: record.id } }).catch(() => {})
@@ -211,6 +212,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...record,
+    courtIds,
     slotsCreated: result.created,
     slotsSkipped: result.skipped,
     conflicts: result.conflicts,

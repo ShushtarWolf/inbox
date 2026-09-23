@@ -21,6 +21,33 @@ export function isRecurringReserveEnabled(options?: RecurringReserveGateOptions)
 
 export type RecurringConflictReason = 'OCCUPIED' | 'PAST' | 'OUTSIDE_HOURS' | 'CLAIM_RACE'
 
+export type RecurringSlotRef = {
+  date: string
+  startTime: string
+  courtId?: string
+}
+
+export type RecurringConflictRef = RecurringSlotRef & {
+  reason: RecurringConflictReason
+}
+
+export type RecurringGenerateResult = {
+  created: number
+  skipped: number
+  willCreate: RecurringSlotRef[]
+  conflicts: RecurringConflictRef[]
+}
+
+/** Merge per-court season runs into one preview/confirm payload. */
+export function mergeRecurringResults(parts: RecurringGenerateResult[]): RecurringGenerateResult {
+  return {
+    created: parts.reduce((sum, part) => sum + part.created, 0),
+    skipped: parts.reduce((sum, part) => sum + part.skipped, 0),
+    willCreate: parts.flatMap((part) => part.willCreate),
+    conflicts: parts.flatMap((part) => part.conflicts),
+  }
+}
+
 /**
  * Whether generateRecurringCourtSlots may claim this existing slot.
  * Only FREE slots without a live (non-cancelled) booking are safe.

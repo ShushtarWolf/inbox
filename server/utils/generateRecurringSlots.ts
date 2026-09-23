@@ -3,7 +3,9 @@ import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import {
   canClaimExistingSlotForRecurring,
-  type RecurringConflictReason,
+  mergeRecurringResults,
+  type RecurringConflictRef,
+  type RecurringGenerateResult,
 } from '#shared/recurringReserve.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
@@ -17,6 +19,10 @@ import {
 } from './bookingTotal'
 import { syncClubContactForBooking } from './contactSync'
 import { findUserByPhone } from './phoneAuth'
+
+export { mergeRecurringResults }
+export type RecurringConflict = RecurringConflictRef
+export type { RecurringGenerateResult }
 
 export type RecurringGuestInfo = {
   guestName: string
@@ -33,19 +39,6 @@ export type RecurringGuestInfo = {
   equipmentQuantities?: Record<string, number>
   /** Optional precomputed session equipment total; otherwise derived from selections. */
   equipmentPrice?: number
-}
-
-export type RecurringConflict = {
-  date: string
-  startTime: string
-  reason: RecurringConflictReason
-}
-
-export type RecurringGenerateResult = {
-  created: number
-  skipped: number
-  willCreate: Array<{ date: string; startTime: string }>
-  conflicts: RecurringConflict[]
 }
 
 type GenerateOpts = {
@@ -117,13 +110,13 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       const closeHour = court.closeHour ?? court.club.closeHour
       if (hour < openHour || hour >= closeHour) {
         skipped += 1
-        conflicts.push({ date, startTime: formatHour(hour), reason: 'OUTSIDE_HOURS' })
+        conflicts.push({ date, startTime: formatHour(hour), reason: 'OUTSIDE_HOURS', courtId: court.id })
         continue
       }
       const startTime = formatHour(hour)
       if (isSlotStartInPast(date, startTime)) {
         skipped += 1
-        conflicts.push({ date, startTime, reason: 'PAST' })
+        conflicts.push({ date, startTime, reason: 'PAST', courtId: court.id })
         continue
       }
       const duration = court.club.defaultSessionDurationMinutes || 60
@@ -146,12 +139,12 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
       // Never overwrite PLATFORM/live bookings or non-FREE desk holds.
       if (!canClaimExistingSlotForRecurring(existing)) {
         skipped += 1
-        conflicts.push({ date, startTime, reason: 'OCCUPIED' })
+        conflicts.push({ date, startTime, reason: 'OCCUPIED', courtId: court.id })
         continue
       }
 
       if (opts.dryRun) {
-        willCreate.push({ date, startTime })
+        willCreate.push({ date, startTime, courtId: court.id })
         created += 1
         continue
       }
@@ -247,19 +240,19 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
 
         if (!claimed) {
           skipped += 1
-          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE', courtId: court.id })
           continue
         }
 
         if (claimed.bookingId) {
           await syncClubContactForBooking(claimed.bookingId)
         }
-        willCreate.push({ date, startTime })
+        willCreate.push({ date, startTime, courtId: court.id })
         created += 1
       } catch (error) {
         if (isUniqueViolation(error)) {
           skipped += 1
-          conflicts.push({ date, startTime, reason: 'CLAIM_RACE' })
+          conflicts.push({ date, startTime, reason: 'CLAIM_RACE', courtId: court.id })
           continue
         }
         throw error

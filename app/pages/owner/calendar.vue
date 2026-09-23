@@ -26,6 +26,7 @@ import {
   sortSlotsByTimeThenCourt,
   toggleBookedSlotSelection,
   uniqueOrdered,
+  toggleId,
 } from '#shared/courtSlotSelection.ts'
 import {
   formatGuestDisplayName,
@@ -93,6 +94,7 @@ interface OwnerCalendarCourt {
   id: string
   nameFa: string
   nameEn: string
+  price?: number
   effectiveOpenHour?: number
   effectiveCloseHour?: number
 }
@@ -120,8 +122,9 @@ type ActivePanel = 'cancel' | 'reserve' | 'payConfirm' | 'payLinkSent' | 'season
 type RecurringPreview = {
   willCreateCount: number
   skippedCount: number
-  willCreate: Array<{ date: string; startTime: string }>
-  conflicts: Array<{ date: string; startTime: string; reason: string }>
+  willCreate: Array<{ date: string; startTime: string; courtId?: string }>
+  conflicts: Array<{ date: string; startTime: string; reason: string; courtId?: string }>
+  courtIds?: string[]
 }
 
 const { t, locale } = useI18n()
@@ -200,6 +203,7 @@ const seasonForm = reactive({
   days: ['Sun'] as string[],
   dayTimes: {} as Record<string, DayTimeRange>,
   comments: '',
+  courtIds: [] as string[],
 })
 
 /** Default season span — 27 days ≈ 4 weekly occurrences (inclusive +28 often yields 5). */
@@ -372,10 +376,20 @@ const overviewStats = computed(() => {
 })
 
 const scheduleTimeOptions = computed(() => {
+  const step = data.value?.sessionDurationMinutes ?? 60
+  if (activePanel.value === 'season' && seasonForm.courtIds.length) {
+    const selected = courts.value.filter((court) => seasonForm.courtIds.includes(court.id))
+    const open = Math.min(
+      ...selected.map((court) => court.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8),
+    )
+    const close = Math.max(
+      ...selected.map((court) => court.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22),
+    )
+    return buildHourlyOptions(open, close, step)
+  }
   const court = courts.value.find((item) => item.id === selectedSlotFull.value?.courtId)
   const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
   const close = court?.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22
-  const step = data.value?.sessionDurationMinutes ?? 60
   return buildHourlyOptions(open, close, step)
 })
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
@@ -500,14 +514,27 @@ const courtPrice = computed(() => {
   }
   return selectedSlotFull.value?.price ?? 0
 })
-/** Season estimate: one court × one session price (not sum of multi-select chips). */
+/** Season estimate: average court price; session count covers every selected court. */
 const seasonCourtPrice = computed(() => {
+  const selected = courts.value.filter((court) => seasonForm.courtIds.includes(court.id))
+  if (selected.length) {
+    const sum = selected.reduce((total, court) => {
+      const fromSlot = data.value?.slots?.find((slot) => slot.courtId === court.id && slot.displayStatus === 'FREE')
+      return total + (fromSlot?.price ?? court.price ?? 0)
+    }, 0)
+    return Math.round(sum / selected.length)
+  }
   const slot = selectedSlotFull.value
     || selectedSlotsFull.value.find((s) => s.id === selectedSlot.value?.id)
     || selectedSlotsFull.value[0]
   return slot?.price ?? 0
 })
-const packageCourtPrice = computed(() => seasonCourtPrice.value)
+const packageCourtPrice = computed(() => {
+  const slot = selectedSlotFull.value
+    || selectedSlotsFull.value.find((s) => s.id === selectedSlot.value?.id)
+    || selectedSlotsFull.value[0]
+  return slot?.price ?? 0
+})
 const selectedCoach = computed(() => {
   if (!packageForm.coachId) return null
   return clubCoaches.value.find((coach) => coach.id === packageForm.coachId) || null
@@ -1050,12 +1077,14 @@ const seasonDatesValid = computed(() =>
 )
 const seasonSessionCount = computed(() => {
   if (!seasonDatesValid.value) return 0
-  return countRecurringSessionsByDayInRange(
+  const perCourt = countRecurringSessionsByDayInRange(
     seasonForm.dayTimes,
     seasonForm.days,
     seasonForm.startDate,
     seasonForm.finishDate,
   )
+  const courtCount = Math.max(1, seasonForm.courtIds.length)
+  return perCourt * courtCount
 })
 const packageDateRangeInvalid = computed(() =>
   Boolean(packageForm.startDate && packageForm.finishDate && packageForm.finishDate < packageForm.startDate),
@@ -1539,24 +1568,29 @@ type NarrowedSelection = {
   hints: string[]
   hasGap: boolean
   slotIds: string[]
+  courtIds: string[]
+  /** Package still anchors to one court/slot. */
   courtId: string
   anchor: OwnerCalendarSlot
 }
 
 /**
- * Season/package API is single-court. Keep only the anchor court; merge same-weekday hours
- * into one start–end range (gap merge requires explicit accept before preview/confirm).
+ * Build weekday/time ranges from the free-slot basket.
+ * Season keeps every selected court; package still narrows to the anchor court.
  */
-function computeNarrowedSelectionToAnchorCourt(): NarrowedSelection | null {
+function computeNarrowedSelectionToAnchorCourt(opts?: { multiCourt?: boolean }): NarrowedSelection | null {
   const anchor = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
   if (!anchor) return null
   const anchorDate = anchor.date || data.value?.date || date.value || today()
-  const courtId = anchor.courtId
   const freeSelected = selectedSlotsFull.value.filter((s) => s.displayStatus === 'FREE')
-  const hadOtherCourts = freeSelected.some((s) => s.courtId !== courtId)
-  const pool = (freeSelected.filter((s) => s.courtId === courtId).length
-    ? freeSelected.filter((s) => s.courtId === courtId)
-    : [anchor]) as OwnerCalendarSlot[]
+  const multiCourt = Boolean(opts?.multiCourt)
+  const courtId = anchor.courtId
+  const pool = (multiCourt
+    ? (freeSelected.length ? freeSelected : [anchor])
+    : (freeSelected.filter((s) => s.courtId === courtId).length
+      ? freeSelected.filter((s) => s.courtId === courtId)
+      : [anchor])) as OwnerCalendarSlot[]
+  const hadOtherCourts = !multiCourt && freeSelected.some((s) => s.courtId !== courtId)
 
   const byDay: Record<string, OwnerCalendarSlot[]> = {}
   for (const s of pool) {
@@ -1580,6 +1614,7 @@ function computeNarrowedSelectionToAnchorCourt(): NarrowedSelection | null {
     if (timesInRange(start, end).some((t) => !covered.has(t))) hasGap = true
   }
 
+  const courtIds = uniqueOrdered(pool.map((s) => s.courtId).filter(Boolean))
   const hints: string[] = []
   if (hadOtherCourts) hints.push(t('owner.seasonPage.singleCourtHint'))
   if (hasGap) hints.push(t('owner.seasonPage.timeGapHint'))
@@ -1592,7 +1627,8 @@ function computeNarrowedSelectionToAnchorCourt(): NarrowedSelection | null {
     hints,
     hasGap,
     slotIds: uniqueOrdered(pool.map((s) => s.id)),
-    courtId,
+    courtIds: courtIds.length ? courtIds : [courtId],
+    courtId: courtIds[0] || courtId,
     anchor: pool[0] || anchor,
   }
 }
@@ -1608,7 +1644,8 @@ function applyNarrowedSelection(kind: 'season' | 'package', narrowed: NarrowedSe
       seasonForm.days = narrowed.days
       seasonForm.dayTimes = narrowed.dayTimes
     }
-    seasonSelectionHint.value = narrowed.hints.join(' ')
+    seasonForm.courtIds = [...narrowed.courtIds]
+    seasonSelectionHint.value = narrowed.hasGap ? t('owner.seasonPage.timeGapHint') : ''
     seasonSelectionHasGap.value = narrowed.hasGap
     seasonAcceptGap.value = false
   } else {
@@ -1630,8 +1667,9 @@ function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
   clearRecurringPreview()
   pendingRecurringPay.value = null
   if (opts?.fromWalkIn) syncSeasonFormFromWalkIn()
-  const narrowed = computeNarrowedSelectionToAnchorCourt()
+  const narrowed = computeNarrowedSelectionToAnchorCourt({ multiCourt: true })
   if (narrowed) applyNarrowedSelection('season', narrowed)
+  else seedSeasonCourtsDefault()
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
   const anchorDate = slot?.date || data.value?.date || date.value || today()
   ensureSeasonDateDefaults(anchorDate)
@@ -1640,7 +1678,54 @@ function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
     seasonForm.days = [anchorDay]
     seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
   }
+  showMenu.value = true
   activePanel.value = 'season'
+}
+
+/** Open season sheet with no grid cell — all courts selectable. */
+function openSeasonFormStandalone() {
+  if (!canShowSeasonReserve()) return
+  actionError.value = ''
+  reserveFlowReturn.value = false
+  clearRecurringPreview()
+  pendingRecurringPay.value = null
+  const narrowed = computeNarrowedSelectionToAnchorCourt({ multiCourt: true })
+  if (narrowed) applyNarrowedSelection('season', narrowed)
+  else {
+    clearSelection()
+    seedSeasonCourtsDefault()
+  }
+  const anchorDate = data.value?.date || date.value || today()
+  ensureSeasonDateDefaults(anchorDate)
+  const anchorDay = weekdayNameFromDate(anchorDate)
+  if (!seasonForm.days.length) {
+    seasonForm.days = [anchorDay]
+    seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], { start: '12:00', end: '13:00' })
+  }
+  showMenu.value = true
+  activePanel.value = 'season'
+}
+
+function seedSeasonCourtsDefault() {
+  if (seasonForm.courtIds.length) return
+  const active = activeCourtId.value
+  if (active && courts.value.some((court) => court.id === active)) {
+    seasonForm.courtIds = [active]
+    return
+  }
+  const first = courts.value[0]
+  seasonForm.courtIds = first ? [first.id] : []
+}
+
+function toggleSeasonCourt(courtId: string) {
+  seasonForm.courtIds = toggleId(seasonForm.courtIds, courtId)
+  clearRecurringPreview()
+}
+
+function courtNameById(courtId?: string) {
+  if (!courtId) return ''
+  const court = courts.value.find((item) => item.id === courtId)
+  return court ? formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) : ''
 }
 
 function openSeasonFormFromReserve() {
@@ -1907,6 +1992,7 @@ watch(
     seasonForm.finishDate,
     JSON.stringify(seasonForm.days),
     JSON.stringify(seasonForm.dayTimes),
+    JSON.stringify(seasonForm.courtIds),
     JSON.stringify(form.equipmentIds),
     JSON.stringify(form.equipmentQuantities),
   ] as const,
@@ -2287,8 +2373,21 @@ async function doUnblock() {
 }
 
 async function fetchRecurringPreview(kind: 'season' | 'package') {
-  if (!selectedSlot.value) return null
   const formState = kind === 'season' ? seasonForm : packageForm
+  if (kind === 'season') {
+    if (!seasonForm.courtIds.length) return null
+    return await $fetch<RecurringPreview>('/api/owner/recurring-preview', {
+      method: 'POST',
+      body: {
+        courtIds: seasonForm.courtIds,
+        startDate: formState.startDate,
+        finishDate: formState.finishDate,
+        days: formState.days,
+        dayTimes: formState.dayTimes,
+      },
+    })
+  }
+  if (!selectedSlot.value) return null
   return await $fetch<RecurringPreview>('/api/owner/recurring-preview', {
     method: 'POST',
     body: {
@@ -2321,11 +2420,13 @@ function applyRecurringConflictError(kind: 'season' | 'package', error: unknown)
 async function runSeasonPreview() {
   if (!canShowSeasonReserve()) return
   if (previewing.value || confirming.value) return
-  if (!selectedSlot.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+  if (!seasonForm.courtIds.length || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
     actionError.value = guestFieldsErrorMessage() || (
-      seasonStartInPast.value
-        ? t('owner.errors.startDateInPast')
-        : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
+      !seasonForm.courtIds.length
+        ? t('owner.seasonPage.courtsRequired')
+        : (seasonStartInPast.value
+          ? t('owner.errors.startDateInPast')
+          : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')))
     )
     return
   }
@@ -2355,8 +2456,9 @@ async function runSeasonPreview() {
 async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
   if (!canShowSeasonReserve()) return
   if (previewing.value || confirming.value || saving.value) return
-  if (!selectedSlot.value || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
-    actionError.value = guestFieldsErrorMessage() || t('owner.guestRequired')
+  if (!seasonForm.courtIds.length || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid.value || !guestFieldsValid()) {
+    actionError.value = guestFieldsErrorMessage()
+      || (!seasonForm.courtIds.length ? t('owner.seasonPage.courtsRequired') : t('owner.guestRequired'))
     return
   }
   if (seasonSelectionHasGap.value && !seasonAcceptGap.value) {
@@ -2392,7 +2494,7 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
         days: seasonForm.days,
         dayTimes: seasonForm.dayTimes,
         comments: seasonForm.comments || form.comments || undefined,
-        slotId: selectedSlot.value.id,
+        courtIds: seasonForm.courtIds,
         equipmentIds: form.equipmentIds.length ? form.equipmentIds : undefined,
         equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
@@ -3067,6 +3169,14 @@ watch(pilotNoCoach, (off) => {
               @click="openFabCancel"
             >
               {{ t('owner.cancel') }}
+            </button>
+            <button
+              v-if="canShowSeasonReserve()"
+              type="button"
+              class="canva-cal-fab canva-cal-fab-block"
+              @click="openSeasonFormStandalone"
+            >
+              {{ t('owner.seasonReserve') }}
             </button>
           </div>
           <div class="canva-cal-date-nav-center">
@@ -4046,22 +4156,23 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <div class="venus-modal-panel-body">
-            <div
-              v-if="slotsForReserve().length"
-              class="mb-3 space-y-1"
-            >
-              <p class="text-start text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.anchorSlotLabel') }}</p>
-              <div class="flex flex-wrap justify-start gap-1 text-xs font-bold text-brand-navy">
-                <span
-                  v-for="slot in slotsForReserve()"
-                  :key="slot.id"
-                  class="border border-brand-primary bg-brand-lavender px-2 py-1"
-                  style="border-radius: var(--sz-canva-radius);"
+            <div class="mb-3 space-y-2">
+              <p class="text-start text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.courtsLabel') }}</p>
+              <div class="flex flex-wrap justify-start gap-2">
+                <button
+                  v-for="court in courts"
+                  :key="`season-court-${court.id}`"
+                  type="button"
+                  class="canva-chip"
+                  :class="seasonForm.courtIds.includes(court.id) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                  @click="toggleSeasonCourt(court.id)"
                 >
-                  {{ slotCellLabel(slot) }}
-                  · {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
-                </span>
+                  {{ formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) }}
+                </button>
               </div>
+              <p v-if="!seasonForm.courtIds.length" class="text-start text-[11px] font-medium text-brand-primary">
+                {{ t('owner.seasonPage.courtsRequired') }}
+              </p>
             </div>
             <p v-if="seasonSelectionHint" class="mb-3 text-start text-[11px] font-medium text-brand-primary">
               {{ seasonSelectionHint }}
@@ -4212,8 +4323,9 @@ watch(pilotNoCoach, (off) => {
                 <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
                   <li
                     v-for="(item, idx) in seasonPreview.willCreate"
-                    :key="`create-${item.date}-${item.startTime}-${idx}`"
+                    :key="`create-${item.courtId || ''}-${item.date}-${item.startTime}-${idx}`"
                   >
+                    <template v-if="item.courtId && seasonForm.courtIds.length > 1">{{ courtNameById(item.courtId) }} · </template>
                     {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
                   </li>
                 </ul>
@@ -4221,7 +4333,8 @@ watch(pilotNoCoach, (off) => {
               <div v-if="seasonPreview.conflicts.length" class="space-y-1">
                 <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.seasonPage.conflictsTitle') }}</p>
                 <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
-                  <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`skip-${item.date}-${item.startTime}-${idx}`">
+                  <li v-for="(item, idx) in seasonPreview.conflicts.slice(0, 12)" :key="`skip-${item.courtId || ''}-${item.date}-${item.startTime}-${idx}`">
+                    <template v-if="item.courtId && seasonForm.courtIds.length > 1">{{ courtNameById(item.courtId) }} · </template>
                     {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
                     — {{ t(`owner.seasonPage.conflictReason.${item.reason}`) }}
                   </li>
@@ -4255,13 +4368,13 @@ watch(pilotNoCoach, (off) => {
             <button
               type="button"
               class="canva-gate-btn-secondary"
-              :disabled="previewing || confirming || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
+              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonForm.days.length || !seasonScheduleValid() || !seasonDatesValid || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
               @click="runSeasonPreview"
             >{{ previewing ? t('common.loading') : t('owner.seasonPage.preview') }}</button>
             <button
               type="button"
               class="canva-gate-btn-primary"
-              :disabled="previewing || confirming || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
+              :disabled="previewing || confirming || !seasonForm.courtIds.length || !seasonPreview || !seasonPreview.willCreateCount || (Boolean(seasonPreview.skippedCount) && !seasonAcceptSkips) || !guestFieldsValid() || (seasonSelectionHasGap && !seasonAcceptGap)"
               @click="doSeasonReserve()"
             >{{ confirming ? t('common.loading') : t('owner.seasonPage.confirm') }}</button>
           </div>

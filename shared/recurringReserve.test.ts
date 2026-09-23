@@ -3,6 +3,8 @@ import {
   canClaimExistingSlotForRecurring,
   isOwnerRecurringBooking,
   isRecurringReserveEnabled,
+  mergeRecurringResults,
+  type RecurringGenerateResult,
 } from './recurringReserve'
 
 describe('isRecurringReserveEnabled', () => {
@@ -90,5 +92,31 @@ describe('canClaimExistingSlotForRecurring', () => {
     for (const displayStatus of ['RESERVED', 'TEAM', 'PENDING', 'BLOCKED', 'CLOSED', 'PUBLIC']) {
       expect(canClaimExistingSlotForRecurring({ displayStatus, booking: null })).toBe(false)
     }
+  })
+})
+
+describe('mergeRecurringResults', () => {
+  it('sums created/skipped and concatenates lists', () => {
+    const a: RecurringGenerateResult = {
+      created: 2,
+      skipped: 1,
+      willCreate: [
+        { date: '2026-09-01', startTime: '10:00', courtId: 'c1' },
+        { date: '2026-09-08', startTime: '10:00', courtId: 'c1' },
+      ],
+      conflicts: [{ date: '2026-09-15', startTime: '10:00', reason: 'OCCUPIED', courtId: 'c1' }],
+    }
+    const b: RecurringGenerateResult = {
+      created: 1,
+      skipped: 0,
+      willCreate: [{ date: '2026-09-01', startTime: '10:00', courtId: 'c2' }],
+      conflicts: [],
+    }
+    expect(mergeRecurringResults([a, b])).toEqual({
+      created: 3,
+      skipped: 1,
+      willCreate: [...a.willCreate, ...b.willCreate],
+      conflicts: a.conflicts,
+    })
   })
 })
