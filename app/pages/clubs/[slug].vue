@@ -215,13 +215,13 @@ watch(
     const available = list
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
-      return Boolean(slot && isSlotFree(slot))
+      return Boolean(slot && isSlotFree(slot) && !isSlotSuspected(slot))
     })
     // Rebook fallback: match free slots by clock time when prior slot id is gone.
     if (!valid.length && deepLinkTimes.length) {
       valid = available
         .filter((s) => {
-          if (!isSlotFree(s)) return false
+          if (!isSlotFree(s) || isSlotSuspected(s)) return false
           const start = (s.startTime || '').slice(0, 5)
           if (!deepLinkTimes.includes(start)) return false
           if (!deepLinkCourtIds.length) return true
@@ -283,8 +283,22 @@ const selectedSlots = computed(() => {
   const courtOrder = courts.value.map((c) => c.id)
   const picked = selectedSlotIds.value
     .map((id) => allSlots.value.find((s) => s.id === id))
-    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s))
+    .filter((s): s is ClubSlot => s != null && !isSlotBooked(s) && !isSlotSuspected(s))
   return sortSlotsByTimeThenCourt(picked, courtOrder)
+})
+
+/** Overlay may arrive after deep-link/select — drop suspected hours and close empty confirm. */
+const suspectedIdsInBasket = computed(() =>
+  selectedSlotIds.value.filter((id) => {
+    const slot = allSlots.value.find((s) => s.id === id)
+    return Boolean(slot && isSlotSuspected(slot))
+  }),
+)
+watch(suspectedIdsInBasket, (bad) => {
+  if (!bad.length) return
+  const drop = new Set(bad)
+  selectedSlotIds.value = selectedSlotIds.value.filter((id) => !drop.has(id))
+  if (!selectedSlotIds.value.length) confirmOpen.value = false
 })
 
 /** Solid green = this court has basket hours (matches slot legend). Never focus-only. */
@@ -805,6 +819,8 @@ function toggleSlot(slot: ClubSlot) {
     waitlistSlotId.value = waitlistSlotId.value === slot.id ? null : slot.id
     return
   }
+  // External suspected (مشکوک / تماس بگیرید): hard-lock — call club, no Inboxs reserve.
+  if (isSlotSuspected(slot)) return
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   // Always include the slot's court + focused court so an empty chip selection
@@ -823,7 +839,8 @@ function toggleSlot(slot: ClubSlot) {
     selectedSlotIds: selectedSlotIds.value,
     selectedCourtIds: applyCourtIds,
     startTime: slot.startTime,
-    slots: allSlots.value,
+    // Exclude suspected so multi-court hour apply cannot add EXTERNAL_BUSY hours.
+    slots: allSlots.value.filter((s) => !isSlotSuspected(s)),
     clickedSlotId: slot.id,
   })
 }
@@ -1101,14 +1118,14 @@ async function shareClub() {
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
-                  :disabled="isSlotBooked(slot) && !waitlistEnabled"
+                  :disabled="(isSlotBooked(slot) && !waitlistEnabled) || isSlotSuspected(slot)"
                   :aria-label="slotAriaLabel(slot)"
                   :aria-pressed="isSlotSelected(slot.id) || waitlistSlotId === slot.id"
                   @click="toggleSlot(slot)"
                 >
                   {{ formatTimeLabel(slot.startTime) }}
                   <span
-                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot) && !isSlotSelected(slot.id)"
+                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot)"
                     class="canva-club-slot-suspected-label"
                   >
                     {{ t('clubs.slotSuspectedLabel') }}
