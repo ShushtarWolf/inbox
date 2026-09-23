@@ -44,6 +44,8 @@ const lastPayMode = ref<'cash' | 'unpaid' | null>(null)
 
 const guestFullName = ref('')
 const guestMobile = ref('')
+const guestFullNameInput = ref<HTMLInputElement | null>(null)
+const guestMobileInput = ref<HTMLInputElement | null>(null)
 const startDate = ref('')
 const finishDate = ref('')
 const comments = ref('')
@@ -153,8 +155,19 @@ function guestNameParts() {
   }
 }
 
-function guestValid() {
-  return Boolean(guestFullName.value.trim() && guestMobile.value.trim())
+/** Browser autofill can paint values into the DOM without updating v-model. */
+function syncGuestFieldsFromDom() {
+  const nameEl = guestFullNameInput.value
+  const mobileEl = guestMobileInput.value
+  if (nameEl) guestFullName.value = nameEl.value
+  if (mobileEl) guestMobile.value = mobileEl.value
+}
+
+function guestFieldsErrorMessage() {
+  syncGuestFieldsFromDom()
+  if (!guestFullName.value.trim() || !guestMobile.value.trim()) return t('owner.guestRequired')
+  if (!normalizeIranPhone(guestMobile.value)) return t('owner.guestMobileInvalid')
+  return ''
 }
 
 function rulesValid() {
@@ -234,8 +247,9 @@ watch(courts, (list) => {
 
 async function goStep2() {
   formError.value = ''
-  if (!guestValid()) {
-    formError.value = t('owner.guestRequired')
+  const guestError = guestFieldsErrorMessage()
+  if (guestError) {
+    formError.value = guestError
     return
   }
   if (!datesValid.value) {
@@ -289,6 +303,7 @@ async function runPreview() {
 
 async function confirmReserve(mode: 'cash' | 'unpaid') {
   formError.value = ''
+  syncGuestFieldsFromDom()
   if (!occurrences.value.length) {
     formError.value = t('owner.seasonPage.noFreeSlots')
     return
@@ -496,15 +511,22 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         <div class="season-wiz-p1 grid gap-6 lg:grid-cols-[5fr_6fr]">
           <div class="min-w-0 space-y-4">
             <AppFormField :label="t('owner.guestFullName')" required>
-              <input v-model="guestFullName" class="neo-input season-wiz-inp" autocomplete="name" required>
+              <input
+                ref="guestFullNameInput"
+                v-model="guestFullName"
+                class="neo-input season-wiz-inp"
+                autocomplete="off"
+                required
+              >
             </AppFormField>
             <AppFormField :label="t('owner.guestMobile')" required>
               <input
+                ref="guestMobileInput"
                 v-model="guestMobile"
                 dir="ltr"
                 class="neo-input season-wiz-inp tabular-nums"
                 inputmode="tel"
-                autocomplete="tel"
+                autocomplete="off"
                 required
               >
               <p class="mt-1 text-start text-[12px] text-[#8C8A84]">{{ phoneSmsHint }}</p>
