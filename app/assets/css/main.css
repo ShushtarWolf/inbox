@@ -1377,8 +1377,9 @@
   .canva-legend-dot {
     @apply h-2.5 w-2.5 rounded-full;
   }
+  /* Above AppBottomNav (z-50) so رزرو stays tappable on phone when slots are selected. */
   .canva-selection-bar {
-    @apply fixed inset-x-0 z-[45] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
+    @apply fixed inset-x-0 z-[55] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
   }
   .canva-selection-bar-inner {
@@ -2263,7 +2264,7 @@
     @apply me-1.5 inline-block h-1.5 w-1.5 shrink-0 bg-brand-navy align-middle;
     border-radius: var(--sz-canva-radius);
   }
-  /* Canva multi-court today grid (home page 9) — date centered; block/cancel FABs on inline-end */
+  /* Canva multi-court today grid (home page 9) — date centered; block/reserve FABs on inline-end */
   .canva-cal-date-nav {
     @apply relative mb-2 flex min-h-[2.5rem] items-center justify-center pt-0.5 text-sm font-bold text-[#3B82F6];
     padding-inline-end: 7.25rem;
@@ -2278,7 +2279,7 @@
   .canva-cal-fab-block {
     background: #1A1A18;
   }
-  .canva-cal-fab-cancel {
+  .canva-cal-fab-reserve {
     background: #C41E1E;
   }
   .canva-cal-date-nav-center {

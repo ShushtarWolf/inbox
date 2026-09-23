@@ -1792,17 +1792,10 @@ function openFabBlock() {
   openSelectionBlock()
 }
 
-function openFabCancel() {
-  const booked = selectedSlotsFull.value.filter((slot) => isCancellableBookedSlot(slot))
-  if (booked.length) {
-    openBookedSlot(booked[0]!)
-    openCancelForm()
-    return
-  }
-  if (selectedSlot.value && canCancelSlot()) {
-    showMenu.value = true
-    openCancelForm()
-  }
+/** Canva (9) date-row FAB — same path as the bottom selection-bar primary. */
+function openFabReserve() {
+  if (!canBatchReserve.value) return
+  openSelectionReserve()
 }
 
 function syncPackageFormFromWalkIn() {
@@ -2995,18 +2988,6 @@ const legend = computed(() => [
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
 ])
 
-const canFabCancel = computed(() => {
-  if (selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot))) return true
-  // Free multi-select must not enable لغو from a stale booked selectedSlot.
-  if (
-    selectedSlotsFull.value.length
-    && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE')
-  ) {
-    return false
-  }
-  return Boolean(selectedSlot.value && canCancelSlot())
-})
-
 const sessionFilterOptions = computed(() => ([
   { value: 'all' as const, label: t('owner.sessionTypeFilterAll') },
   { value: 'free' as const, label: t('owner.sessionTypeFree') },
@@ -3166,11 +3147,11 @@ watch(pilotNoCoach, (off) => {
             </button>
             <button
               type="button"
-              class="canva-cal-fab canva-cal-fab-cancel"
-              :disabled="!canFabCancel"
-              @click="openFabCancel"
+              class="canva-cal-fab canva-cal-fab-reserve"
+              :disabled="!canBatchReserve"
+              @click="openFabReserve"
             >
-              {{ t('owner.cancel') }}
+              {{ t('owner.reserve') }}
             </button>
             <button
               v-if="canShowSeasonReserve()"
@@ -4772,7 +4753,7 @@ watch(pilotNoCoach, (off) => {
   position: fixed;
   inset-inline: 0;
   bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
-  z-index: 45;
+  z-index: 55;
   border-top: 1px solid #e4e7ec;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(10px);
