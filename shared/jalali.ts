@@ -42,6 +42,12 @@ export function jalaaliDaysInMonth(jy: number, jm: number) {
   return jalaaliMonthLength(jy, jm)
 }
 
+/** Last day of the Jalali month that contains `iso` (YYYY-MM-DD). */
+export function jalaliMonthEndIso(iso: string) {
+  const { jy, jm } = isoToJalaali(iso)
+  return jalaaliToIso(jy, jm, jalaaliDaysInMonth(jy, jm))
+}
+
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
 
 /** Latin digits → Persian (extended Arabic-Indic) digits. Leaves other characters unchanged. */

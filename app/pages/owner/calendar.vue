@@ -128,6 +128,7 @@ type RecurringPreview = {
 }
 
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const { fetchErrorMessage } = useFetchError()
 const { localizedField } = useLocalizedField()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeRange, formatTimeLabel, formatNumber, formatCurrency, formatFaDigits, formatPhone } = useFormatters()
@@ -1659,51 +1660,43 @@ function applyNarrowedSelection(kind: 'season' | 'package', narrowed: NarrowedSe
   }
 }
 
+function buildSeasonReserveQuery(opts?: { fromWalkIn?: boolean }) {
+  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
+  const anchorDate = slot?.date || data.value?.date || date.value || today()
+  const query: Record<string, string> = {
+    start: anchorDate,
+  }
+  if (slot?.courtId) query.courtId = slot.courtId
+  if (slot?.startTime) query.startTime = slot.startTime.slice(0, 5)
+  if (slot?.endTime) query.endTime = slot.endTime.slice(0, 5)
+  if (slot?.date) query.weekday = weekdayNameFromDate(slot.date)
+  const guest = guestNamePayload()
+  const full = [guest.guestName, guest.guestFamily].filter(Boolean).join(' ').trim()
+  if (opts?.fromWalkIn || full) {
+    if (full) query.guestName = full
+    if (form.guestMobile.trim()) query.guestMobile = form.guestMobile.trim()
+    if (form.comments.trim()) query.comments = form.comments.trim()
+  }
+  return query
+}
+
 function openSeasonForm(opts?: { fromWalkIn?: boolean }) {
   if (!canShowSeasonReserve()) {
     actionError.value = t('owner.seasonPage.disabled')
     return
   }
-  clearRecurringPreview()
-  pendingRecurringPay.value = null
-  if (opts?.fromWalkIn) syncSeasonFormFromWalkIn()
-  const narrowed = computeNarrowedSelectionToAnchorCourt({ multiCourt: true })
-  if (narrowed) applyNarrowedSelection('season', narrowed)
-  else seedSeasonCourtsDefault()
-  const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
-  const anchorDate = slot?.date || data.value?.date || date.value || today()
-  ensureSeasonDateDefaults(anchorDate)
-  const anchorDay = weekdayNameFromDate(anchorDate)
-  if (!seasonForm.days.length) {
-    seasonForm.days = [anchorDay]
-    seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultDayRange(slot || { startTime: '12:00', endTime: '13:00' }))
-  }
-  showMenu.value = true
-  activePanel.value = 'season'
+  showMenu.value = false
+  activePanel.value = null
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: buildSeasonReserveQuery(opts) })
 }
 
-/** Open season sheet with no grid cell — all courts selectable. */
+/** Open season page — optional grid cell prefills court/time. */
 function openSeasonFormStandalone() {
   if (!canShowSeasonReserve()) return
   actionError.value = ''
-  reserveFlowReturn.value = false
-  clearRecurringPreview()
-  pendingRecurringPay.value = null
-  const narrowed = computeNarrowedSelectionToAnchorCourt({ multiCourt: true })
-  if (narrowed) applyNarrowedSelection('season', narrowed)
-  else {
-    clearSelection()
-    seedSeasonCourtsDefault()
-  }
-  const anchorDate = data.value?.date || date.value || today()
-  ensureSeasonDateDefaults(anchorDate)
-  const anchorDay = weekdayNameFromDate(anchorDate)
-  if (!seasonForm.days.length) {
-    seasonForm.days = [anchorDay]
-    seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], { start: '12:00', end: '13:00' })
-  }
-  showMenu.value = true
-  activePanel.value = 'season'
+  showMenu.value = false
+  activePanel.value = null
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: buildSeasonReserveQuery() })
 }
 
 function seedSeasonCourtsDefault() {
@@ -4122,7 +4115,7 @@ watch(pilotNoCoach, (off) => {
           </div>
         </div>
 
-        <div v-if="canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
+        <div v-if="false && canShowSeasonReserve() && activePanel === 'season'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
             <div class="flex items-center gap-2">
               <button

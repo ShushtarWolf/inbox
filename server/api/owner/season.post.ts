@@ -1,57 +1,74 @@
+import { getPaymentsMode } from '#shared/payments.ts'
+import { isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
-import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
-import { generateRecurringCourtSlots, mergeRecurringResults } from '../../utils/generateRecurringSlots'
+import { normalizeIranPhone } from '#shared/phone.ts'
+import type { DayTimeRange } from '#shared/recurringSessions.ts'
 import {
-  loadEquipmentForBooking,
-  parseEquipmentSelections,
-  sumEquipmentPrices,
-} from '../../utils/bookingTotal'
+  expandSeasonRules,
+  legacySeasonToRules,
+  type SeasonSessionOccurrence,
+  type SeasonSessionRule,
+} from '#shared/seasonSessions.ts'
+import {
+  notifyBookingConfirmed,
+  clubNotifyName,
+  clubNotifyLocation,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
+import { createSeasonSessions } from '../../utils/seasonReserve'
+import { assignBookingPayPin } from '../../utils/payPin'
+import { payUrlForPin } from '../../utils/receipt'
 
-function resolveDayTimes(
-  dayTimes?: Record<string, DayTimeRange>,
-  times?: string[],
-  days?: string[],
-): { storedJson: string; expanded: Record<string, string[]> } {
-  if (dayTimes && Object.keys(dayTimes).length) {
-    const expanded = expandDayTimeRanges(dayTimes)
-    return { storedJson: JSON.stringify(dayTimes), expanded }
-  }
-  if (times?.length && days?.length) {
-    const lastTime = times[times.length - 1]
-    const firstTime = times[0]
-    if (!lastTime || !firstTime) {
-      return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
-    }
-    const endHour = Number.parseInt(lastTime.slice(0, 2), 10) + 1
-    const legacyRange = { start: firstTime, end: `${String(endHour).padStart(2, '0')}:00` }
-    const mapped = Object.fromEntries(days.map((day) => [day, legacyRange])) as Record<string, DayTimeRange>
-    return { storedJson: JSON.stringify(mapped), expanded: expandDayTimeRanges(mapped) }
-  }
-  return { storedJson: JSON.stringify(dayTimes || times || []), expanded: {} }
+function resolveGuestMobile(raw?: string | null) {
+  if (!raw?.trim()) return ''
+  return normalizeIranPhone(raw) || raw.trim()
 }
 
-function firstScheduleTime(expanded: Record<string, string[]>, times?: string[]): string {
-  if (times?.length) return times[0] ?? ''
-  for (const dayTimes of Object.values(expanded)) {
-    if (dayTimes?.length) return dayTimes[0] ?? ''
-  }
-  return ''
-}
-
-/** Recurring unpaid has no series pay link — always desk cash unpaid. */
-function resolveRecurringPayment(body: {
+function resolvePayment(body: {
   paymentMethod?: string
   paymentStatus?: string
-}): { paymentMethod: 'CASH'; paymentStatus: 'PAID' | 'PAY_AT_CLUB' } {
+}): { paymentMethod: 'CASH' | 'IPG'; paymentStatus: 'PAID' | 'PAY_AT_CLUB' } {
   const paid = body.paymentStatus === 'PAID'
-  return {
-    paymentMethod: 'CASH',
-    paymentStatus: paid ? 'PAID' : 'PAY_AT_CLUB',
+  if (paid) return { paymentMethod: 'CASH', paymentStatus: 'PAID' }
+  // Unpaid + online → IPG series pay link on primary booking.
+  if (isOnlinePaymentsEnabled() && getPaymentsMode() !== 'pay_at_club') {
+    return { paymentMethod: 'IPG', paymentStatus: 'PAY_AT_CLUB' }
   }
+  return { paymentMethod: 'CASH', paymentStatus: 'PAY_AT_CLUB' }
+}
+
+function normalizeSessions(raw: unknown): SeasonSessionOccurrence[] {
+  if (!Array.isArray(raw)) return []
+  const out: SeasonSessionOccurrence[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const s = row as Record<string, unknown>
+    const date = String(s.date || '').trim()
+    const startTime = String(s.startTime || '').trim().slice(0, 5)
+    const courtId = String(s.courtId || '').trim()
+    if (!date || !startTime || !courtId) continue
+    out.push({ date, startTime, courtId })
+  }
+  return out
+}
+
+function normalizeRules(raw: unknown): SeasonSessionRule[] {
+  if (!Array.isArray(raw)) return []
+  const out: SeasonSessionRule[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const s = row as Record<string, unknown>
+    const weekday = String(s.weekday || '').trim()
+    const startTime = String(s.startTime || '').trim().slice(0, 5)
+    const endTime = String(s.endTime || '').trim().slice(0, 5)
+    const courtId = String(s.courtId || '').trim()
+    if (!weekday || !startTime || !endTime || !courtId) continue
+    out.push({ weekday, startTime, endTime, courtId })
+  }
+  return out
 }
 
 export default defineEventHandler(async (event) => {
@@ -69,12 +86,13 @@ export default defineEventHandler(async (event) => {
     comments?: string
     slotId?: string
     courtIds?: string[]
-    equipmentId?: string
-    equipmentIds?: string[]
-    equipmentQuantities?: Record<string, number>
+    /** New: per-weekday court+time rules. */
+    rules?: SeasonSessionRule[]
+    /** New: explicit occurrence list (after client edit). */
+    sessions?: SeasonSessionOccurrence[]
     paymentMethod?: string
     paymentStatus?: string
-    /** Required when preview would skip occupied/past slots. */
+    /** Ignored — conflicts are always soft-skipped. Kept for older clients. */
     acceptSkips?: boolean
   }>(event)
 
@@ -86,135 +104,86 @@ export default defineEventHandler(async (event) => {
   }
   assertDateNotInPast(body.startDate)
 
-  const courtIds = await resolveOwnerCourtIds(club.id, body)
-
-  const equipmentSelections = parseEquipmentSelections(
-    body.equipmentIds?.length ? body.equipmentIds : (body.equipmentId ? [body.equipmentId] : []),
-    body.equipmentQuantities,
-  )
-  const equipmentItems = await loadEquipmentForBooking(club.id, equipmentSelections)
-  if (equipmentSelections.length && equipmentItems.length !== equipmentSelections.length) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid equipment' })
+  let sessions = normalizeSessions(body.sessions)
+  if (!sessions.length) {
+    let rules = normalizeRules(body.rules)
+    if (!rules.length) {
+      const courtIds = await resolveOwnerCourtIds(club.id, body)
+      rules = legacySeasonToRules({
+        days: body.days || [],
+        dayTimes: body.dayTimes,
+        times: body.times,
+        courtIds,
+      })
+    }
+    if (!rules.length) {
+      throw createError({ statusCode: 400, statusMessage: 'schedule is required' })
+    }
+    sessions = expandSeasonRules({
+      startDate: body.startDate,
+      finishDate: body.finishDate,
+      rules,
+    })
   }
-  const equipmentPrice = sumEquipmentPrices(equipmentItems)
-  const equipmentQuantities = Object.fromEntries(
-    equipmentItems.map((item) => [item.id, item.quantity]),
-  )
 
-  const { storedJson, expanded } = resolveDayTimes(body.dayTimes, body.times, body.days)
-  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
-  const hasSchedule = Boolean(body.days?.length && Object.keys(expanded).length)
-
-  if (!hasSchedule) {
+  if (!sessions.length) {
     throw createError({ statusCode: 400, statusMessage: 'schedule is required' })
   }
 
-  const previewParts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
+  const guest = normalizeGuestNamePair(body.guestName, body.guestFamily)
+  const guestMobile = resolveGuestMobile(body.guestMobile)
+  const { paymentMethod, paymentStatus } = resolvePayment(body)
+
+  const result = await createSeasonSessions({
     clubId: club.id,
-    courtId,
-    anchorDate: body.startDate!,
-    weekdays: body.days!,
-    dayTimes: expanded,
-    startDate: body.startDate,
-    finishDate: body.finishDate,
-    displayStatus: 'RESERVED',
-    dryRun: true,
-  })))
-  const preview = mergeRecurringResults(previewParts)
-
-  if (preview.created === 0) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'RECURRING_NO_FREE_SLOTS',
-      data: { conflicts: preview.conflicts, skippedCount: preview.skipped },
-    })
-  }
-  if (preview.skipped > 0 && !body.acceptSkips) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'RECURRING_CONFLICTS_NEED_CONFIRM',
-      data: {
-        willCreateCount: preview.created,
-        skippedCount: preview.skipped,
-        willCreate: preview.willCreate,
-        conflicts: preview.conflicts,
-      },
-    })
-  }
-
-  const { paymentMethod, paymentStatus } = resolveRecurringPayment(body)
-
-  const record = await prisma.seasonBooking.create({
-    data: {
-      clubId: club.id,
-      guestName: guest.guestName,
-      guestFamily: guest.guestFamily,
-      guestMobile: body.guestMobile || '',
-      daysJson: JSON.stringify(body.days || []),
-      timesJson: storedJson,
-      startDate: body.startDate,
-      finishDate: body.finishDate,
-      comments: body.comments,
-      equipmentId: equipmentItems[0]?.id || null,
-      equipmentPrice,
-    },
+    sessions,
+    guestName: guest.guestName,
+    guestFamily: guest.guestFamily,
+    guestMobile,
+    comments: body.comments,
+    paymentMethod,
+    paymentStatus,
   })
 
-  const resultParts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
-    clubId: club.id,
-    courtId,
-    anchorDate: body.startDate!,
-    weekdays: body.days!,
-    dayTimes: expanded,
-    startDate: body.startDate,
-    finishDate: body.finishDate,
-    displayStatus: 'RESERVED',
-    guestInfo: {
-      guestName: guest.guestName,
-      guestFamily: guest.guestFamily,
-      guestMobile: body.guestMobile || '',
-      comments: body.comments,
-      paymentMethod,
-      paymentStatus,
-      equipmentIds: equipmentItems.map((item) => item.id),
-      equipmentQuantities,
-      equipmentPrice,
-    },
-  })))
-  const result = mergeRecurringResults(resultParts)
-
-  if (result.created === 0) {
-    await prisma.seasonBooking.delete({ where: { id: record.id } }).catch(() => {})
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'RECURRING_NO_FREE_SLOTS',
-      data: { conflicts: result.conflicts, skippedCount: result.skipped },
-    })
+  // Cash unpaid still gets a pin when online payments are on (series link).
+  let payPin = result.payPin
+  let payUrl = result.payUrl
+  if (!payPin && paymentStatus !== 'PAID' && isOnlinePaymentsEnabled() && result.primaryBookingId) {
+    payPin = await assignBookingPayPin(result.primaryBookingId)
+    payUrl = payUrlForPin(payPin)
   }
 
-  const phone = body.guestMobile?.trim() || null
-  if (phone && result.created > 0) {
+  if (guestMobile && result.slotsCreated > 0) {
+    const first = result.willCreate[0]
+    const last = result.willCreate[result.willCreate.length - 1]
     await notifyBookingConfirmed({
-      phone,
+      phone: guestMobile,
       kind: 'court',
       clubName: clubNotifyName(club),
       clubId: club.id,
-      bookingId: record.id,
-      date: body.startDate,
-      finishDate: body.finishDate,
-      startTime: firstScheduleTime(expanded, body.times),
-      sessionCount: result.created,
+      bookingId: result.primaryBookingId || result.seasonBookingId,
+      date: first?.date || body.startDate,
+      finishDate: last?.date || body.finishDate,
+      startTime: first?.startTime || '',
+      endTime: first?.endTime || '',
+      sessionCount: result.slotsCreated,
       paymentPaid: paymentStatus === 'PAID',
       guestName: personNotifyName(guest.guestName, guest.guestFamily),
+      payPin: paymentStatus === 'PAID' ? undefined : payPin,
+      payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
       ...clubNotifyLocation(club),
     })
   }
 
   return {
-    ...record,
-    courtIds,
-    slotsCreated: result.created,
-    slotsSkipped: result.skipped,
+    id: result.seasonBookingId,
+    slotsCreated: result.slotsCreated,
+    slotsSkipped: result.slotsSkipped,
     conflicts: result.conflicts,
+    willCreate: result.willCreate,
+    totalAmount: result.totalAmount,
+    primaryBookingId: result.primaryBookingId,
+    payPin,
+    payUrl,
   }
 })

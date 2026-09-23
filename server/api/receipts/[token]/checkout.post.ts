@@ -56,7 +56,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
   }
 
+  // Keep series / multi-slot sibling links when replacing the payable row for IPG.
+  let preservedMeta: Record<string, unknown> = {}
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
+    preservedMeta = parseMeta(existingPayment.metadataJson)
     await prisma.payment.delete({ where: { id: existingPayment.id } })
     existingPayment = null
   } else if (existingPayment) {
@@ -83,7 +86,7 @@ export default defineEventHandler(async (event) => {
 
   const payment = await prisma.payment.findUnique({ where: { id: session.paymentId } })
   if (payment) {
-    const meta = parseMeta(payment.metadataJson)
+    const meta = { ...preservedMeta, ...parseMeta(payment.metadataJson) }
     await prisma.payment.update({
       where: { id: payment.id },
       data: {

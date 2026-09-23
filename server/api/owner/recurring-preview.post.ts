@@ -1,30 +1,47 @@
-import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { generateRecurringCourtSlots, mergeRecurringResults } from '../../utils/generateRecurringSlots'
+import type { DayTimeRange } from '#shared/recurringSessions.ts'
+import {
+  expandSeasonRules,
+  legacySeasonToRules,
+  type SeasonSessionOccurrence,
+  type SeasonSessionRule,
+} from '#shared/seasonSessions.ts'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { assertDateNotInPast } from '../../utils/reservations'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
+import { previewSeasonSessions } from '../../utils/seasonReserve'
 
-function resolveExpanded(
-  dayTimes?: Record<string, DayTimeRange>,
-  times?: string[],
-  days?: string[],
-): Record<string, string[]> {
-  if (dayTimes && Object.keys(dayTimes).length) {
-    return expandDayTimeRanges(dayTimes)
+function normalizeSessions(raw: unknown): SeasonSessionOccurrence[] {
+  if (!Array.isArray(raw)) return []
+  const out: SeasonSessionOccurrence[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const s = row as Record<string, unknown>
+    const date = String(s.date || '').trim()
+    const startTime = String(s.startTime || '').trim().slice(0, 5)
+    const courtId = String(s.courtId || '').trim()
+    if (!date || !startTime || !courtId) continue
+    out.push({ date, startTime, courtId })
   }
-  if (times?.length && days?.length) {
-    const lastTime = times[times.length - 1]
-    const firstTime = times[0]
-    if (!lastTime || !firstTime) return {}
-    const endHour = Number.parseInt(lastTime.slice(0, 2), 10) + 1
-    const legacyRange = { start: firstTime, end: `${String(endHour).padStart(2, '0')}:00` }
-    const mapped = Object.fromEntries(days.map((day) => [day, legacyRange])) as Record<string, DayTimeRange>
-    return expandDayTimeRanges(mapped)
-  }
-  return {}
+  return out
 }
 
-/** Dry-run conflict preview for season / package recurring desk reserve. */
+function normalizeRules(raw: unknown): SeasonSessionRule[] {
+  if (!Array.isArray(raw)) return []
+  const out: SeasonSessionRule[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const s = row as Record<string, unknown>
+    const weekday = String(s.weekday || '').trim()
+    const startTime = String(s.startTime || '').trim().slice(0, 5)
+    const endTime = String(s.endTime || '').trim().slice(0, 5)
+    const courtId = String(s.courtId || '').trim()
+    if (!weekday || !startTime || !endTime || !courtId) continue
+    out.push({ weekday, startTime, endTime, courtId })
+  }
+  return out
+}
+
+/** Dry-run conflict preview for season desk reserve (soft conflicts — never blocks). */
 export default defineEventHandler(async (event) => {
   assertRecurringReserveEnabled(event)
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -36,40 +53,46 @@ export default defineEventHandler(async (event) => {
     dayTimes?: Record<string, DayTimeRange>
     startDate?: string
     finishDate?: string
+    rules?: SeasonSessionRule[]
+    sessions?: SeasonSessionOccurrence[]
   }>(event)
 
-  if (!body.startDate || !body.finishDate || !body.days?.length) {
-    throw createError({ statusCode: 400, statusMessage: 'dates and days are required' })
+  if (!body.startDate || !body.finishDate) {
+    throw createError({ statusCode: 400, statusMessage: 'dates are required' })
   }
   if (body.finishDate < body.startDate) {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
   assertDateNotInPast(body.startDate)
 
-  const courtIds = await resolveOwnerCourtIds(club.id, body)
-  const expanded = resolveExpanded(body.dayTimes, body.times, body.days)
-  if (!Object.keys(expanded).length) {
-    throw createError({ statusCode: 400, statusMessage: 'Schedule times are required' })
+  let sessions = normalizeSessions(body.sessions)
+  if (!sessions.length) {
+    let rules = normalizeRules(body.rules)
+    if (!rules.length) {
+      const courtIds = await resolveOwnerCourtIds(club.id, body)
+      rules = legacySeasonToRules({
+        days: body.days || [],
+        dayTimes: body.dayTimes,
+        times: body.times,
+        courtIds,
+      })
+    }
+    if (!rules.length) {
+      throw createError({ statusCode: 400, statusMessage: 'Schedule times are required' })
+    }
+    sessions = expandSeasonRules({
+      startDate: body.startDate,
+      finishDate: body.finishDate,
+      rules,
+    })
   }
 
-  const parts = await Promise.all(courtIds.map((courtId) => generateRecurringCourtSlots({
-    clubId: club.id,
-    courtId,
-    anchorDate: body.startDate!,
-    weekdays: body.days!,
-    dayTimes: expanded,
-    startDate: body.startDate,
-    finishDate: body.finishDate,
-    displayStatus: 'RESERVED',
-    dryRun: true,
-  })))
-  const result = mergeRecurringResults(parts)
-
+  const result = await previewSeasonSessions({ clubId: club.id, sessions })
   return {
-    willCreateCount: result.created,
-    skippedCount: result.skipped,
+    willCreateCount: result.willCreateCount,
+    skippedCount: result.skippedCount,
     willCreate: result.willCreate,
     conflicts: result.conflicts,
-    courtIds,
+    totalAmount: result.totalAmount,
   }
 })
