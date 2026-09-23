@@ -3,8 +3,6 @@ import {
   clubNotifyLocation,
   clubNotifyName,
   notifyBookingConfirmed,
-  notifyOwnerBookingConfirmed,
-  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
@@ -27,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const coach = await prisma.coach.findUnique({
     where: { id: coachRecord.id },
-    include: { availability: true, club: { include: { owner: { select: { phone: true } } } } },
+    include: { availability: true, club: true },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
   if (!coach.isBookable) throw createError({ statusCode: 409, statusMessage: 'Coach is not bookable' })
@@ -102,22 +100,7 @@ export default defineEventHandler(async (event) => {
     guestName: personNotifyName(athlete?.name),
     ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })
-  if (coach.club) {
-    await notifyOwnerBookingConfirmed({
-      ownerPhone: ownerNotifyPhone(coach.club),
-      clubName: clubNotifyName(coach.club),
-      clubId: coach.clubId || undefined,
-      bookingId: session.id,
-      guestName: personNotifyName(athlete?.name),
-      guestPhone: athlete?.phone,
-      sessions: [{
-        courtName: (coach.nameFa || coach.nameEn || 'مربی').trim(),
-        date: body.date,
-        startTime: body.startTime,
-        endTime,
-      }],
-    })
-  }
+  // Owner SMS waits for PAID (notifyOwnerBookingPaid in paymentSync).
 
   return session
 })

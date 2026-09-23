@@ -428,8 +428,9 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
 }
 
 /**
- * Soft-fail SMS to club owner when an athlete places a new booking («سفارش جدید»).
- * Full multi-line body is logged; live lookup still packs via token10.
+ * Soft-fail SMS to club owner («سفارش جدید»).
+ * Do not call on unpaid athlete soft-holds — owner alert is notifyOwnerBookingPaid
+ * from paymentSync after PAID. Full multi-line body is logged; live lookup packs via token10.
  */
 export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
   if (!opts.ownerPhone) return

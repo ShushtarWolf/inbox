@@ -5,8 +5,6 @@ import {
   clubNotifyName,
   courtNotifyName,
   notifyBookingConfirmed,
-  notifyOwnerBookingConfirmed,
-  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
@@ -30,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const pkg = await prisma.packageDraft.findUnique({
     where: { id: body.packageId },
     include: {
-      club: { include: { owner: { select: { phone: true } } } },
+      club: true,
       court: true,
     },
   })
@@ -82,27 +80,7 @@ export default defineEventHandler(async (event) => {
       receiptUrl: '',
       ...clubNotifyLocation(pkg.club),
     })
-    await notifyOwnerBookingConfirmed({
-      ownerPhone: ownerNotifyPhone(pkg.club),
-      clubName: clubNotifyName(pkg.club),
-      clubId: pkg.clubId,
-      bookingId: booking.id,
-      guestName,
-      guestPhone: athlete?.phone,
-      sessions: sessions.length
-        ? sessions.slice(0, 8).map((s) => ({
-            courtName: courtLabel || pkg.title,
-            date: s.date,
-            startTime: s.startTime,
-            endTime: s.endTime,
-          }))
-        : [{
-            courtName: courtLabel || pkg.title,
-            date: pkg.startDate || '',
-            startTime: first?.startTime || '',
-            endTime: first?.endTime || '',
-          }],
-    })
+    // Owner SMS waits for PAID (notifyOwnerBookingPaid in paymentSync).
   }
 
   return booking

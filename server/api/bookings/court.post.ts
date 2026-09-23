@@ -8,8 +8,6 @@ import {
   clubNotifyName,
   courtNotifyName,
   notifyBookingConfirmed,
-  notifyOwnerBookingConfirmed,
-  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import {
@@ -265,24 +263,8 @@ export default defineEventHandler(async (event) => {
     await syncClubContactForBooking(bookingId)
   }
 
-  const ownerClub = await prisma.club.findUnique({
-    where: { id: clubId },
-    select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
-  })
-  await notifyOwnerBookingConfirmed({
-    ownerPhone: ownerClub ? ownerNotifyPhone(ownerClub) : null,
-    clubName: clubNotifyName(ownerClub || club),
-    clubId,
-    bookingId: primaryBookingId,
-    guestName: personNotifyName(dbUser.name),
-    guestPhone: dbUser.phone,
-    sessions: orderedSlots.map((slot) => ({
-      courtName: courtNotifyName(slot.court),
-      date: slot.date,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-    })),
-  })
+  // Owner SMS waits for PAID (notifyOwnerBookingPaid in paymentSync). Soft-holds
+  // must not alert the club on unpaid create.
 
   // Online soft-holds wait for PAID before "رزرو تایید شد"; pay-at-club confirms now.
   if (!onlineEnabled) {
