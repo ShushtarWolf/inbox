@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kavenegar SMS templates (non-OTP)</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2") format("woff2");
+      }
+
+      :root {
+        --text: #18212f;
+        --muted: #5b6472;
+        --line: #d9dee7;
+        --surface: #f6f8fb;
+        --head: #eef2f8;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Vazirmatn", sans-serif;
+        color: var(--text);
+        background: white;
+        line-height: 1.55;
+        font-size: 10.5px;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .meta {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 6px 7px;
+        vertical-align: top;
+        text-align: start;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        background: var(--head);
+        font-weight: 700;
+        font-size: 10px;
+      }
+
+      tr:nth-child(even) td {
+        background: var(--surface);
+      }
+
+      .col-template {
+        width: 16%;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        direction: ltr;
+        text-align: left;
+        font-size: 9.5px;
+      }
+
+      .col-audience {
+        width: 12%;
+      }
+
+      .col-pattern {
+        width: 34%;
+      }
+
+      .col-sample {
+        width: 38%;
+        white-space: pre-wrap;
+        font-size: 10px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9.5px;
+        direction: ltr;
+      }
+
+      .note {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 9.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>قالب‌های پیامک کاوه‌نگار (غیر از OTP)</h1>
+    <p class="meta">
+      منبع: <code>server/utils/sms/templates.ts</code> — OTP و بازیابی رمز (panel
+      <code>inbox-verify-autofill</code>) حذف شده‌اند. روی Path B متن زنده داخل
+      <code>%token10%</code> فشرده می‌شود.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-template">Template</th>
+          <th class="col-audience">Audience</th>
+          <th class="col-pattern">Body text (pattern)</th>
+          <th class="col-sample">Sample</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-template">BOOKING_CONFIRMED</td>
+          <td class="col-audience">Athlete / guest</td>
+          <td class="col-pattern">
+            Guest (with name): <code>{guest} عزیز</code> / رزرو شما با موفقیت ثبت شد. /
+            باشگاه: «{club}» / مشخصات رزرو: + session lines / کد سفارش: {tracking} /
+            dashboard URL / Inboxs · Logged-in (no guest): رزرو تایید شد «{club}» — {when}
+            + optional court / payment / tracking · ends اینباکس
+          </td>
+          <td class="col-sample">علی عزیز
+رزرو شما با موفقیت ثبت شد.
+
+باشگاه: «بهناز»
+
+مشخصات رزرو:
+زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۰:۰۰ تا ۱۱:۰۰
+
+کد سفارش: ۱۰۵۷۱۲۸
+
+مشاهده جزئیات رزرو، قوانین، حساب‌وکتاب و لوکیشن:
+https://inboxs.ir/athlete/bookings
+Inboxs</td>
+        </tr>
+        <tr>
+          <td class="col-template">BOOKING_CANCELLED</td>
+          <td class="col-audience">Athlete / guest</td>
+          <td class="col-pattern">
+            رزرو {guest} لغو شد <em>or</em> رزرو لغو شد «{club}» | {court} | {when} |
+            کد {tracking} | اینباکس
+          </td>
+          <td class="col-sample">رزرو علی لغو شد | زمین ۱ | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | کد ۱۰۵۷۱۲۸ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">BOOKING_PAID</td>
+          <td class="col-audience">Athlete</td>
+          <td class="col-pattern">پرداخت رزرو ثبت شد «{club}» — {when}. اینباکس</td>
+          <td class="col-sample">پرداخت رزرو ثبت شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">OWNER_BOOKING_CONFIRMED</td>
+          <td class="col-audience">Club owner</td>
+          <td class="col-pattern">
+            Inboxs | سفارش جدید {code} / باشگاه / خریدار / شماره / مشخصات: + sessions /
+            order URL
+          </td>
+          <td class="col-sample">Inboxs | سفارش جدید ۱۰۵۷۱۲۸
+
+باشگاه: «بهناز»
+خریدار: علی رضایی
+شماره تماس: ۰۹۱۲۱۲۳۴۵۶۷
+
+مشخصات:
+زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۰:۰۰ تا ۱۱:۰۰
+
+مشاهده جزئیات سفارش:
+https://inboxs.ir/r/abc</td>
+        </tr>
+        <tr>
+          <td class="col-template">OWNER_BOOKING_PAID</td>
+          <td class="col-audience">Club owner</td>
+          <td class="col-pattern">
+            پرداخت رزرو | {guest} ({phone}) | {amount} تومان | {when} | {court} | اینباکس
+          </td>
+          <td class="col-sample">پرداخت رزرو | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۵۰۰٬۰۰۰ تومان | ۱۴۰۴/۰۱/۰۱ از ۱۰:۰۰ تا ۱۱:۰۰ | زمین ۱ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">OWNER_BOOKING_CANCELLED</td>
+          <td class="col-audience">Club owner</td>
+          <td class="col-pattern">لغو رزرو | {guest} ({phone}) | {when} | {court} | اینباکس</td>
+          <td class="col-sample">لغو رزرو | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | زمین ۱ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">OWNER_DAILY_RESERVATIONS</td>
+          <td class="col-audience">Club owner (daily cron)</td>
+          <td class="col-pattern">
+            صاحب باشگاه عزیز / شما از سایت اینباکس رزرو دارید / {calendarUrl}
+          </td>
+          <td class="col-sample">صاحب باشگاه عزیز
+شما از سایت اینباکس رزرو دارید
+
+https://inboxs.ir/owner/calendar</td>
+        </tr>
+        <tr>
+          <td class="col-template">WAITLIST_SLOT_AVAILABLE</td>
+          <td class="col-audience">Athlete waitlist</td>
+          <td class="col-pattern">نوبت آزاد شد «{club}» — {when}. سریع رزرو کنید</td>
+          <td class="col-sample">نوبت آزاد شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. سریع رزرو کنید</td>
+        </tr>
+        <tr>
+          <td class="col-template">CLUB_APPROVED</td>
+          <td class="col-audience">Club applicant</td>
+          <td class="col-pattern">باشگاه «{clubName}» در inbox تایید شد</td>
+          <td class="col-sample">باشگاه «بهناز» در inbox تایید شد</td>
+        </tr>
+        <tr>
+          <td class="col-template">COACH_APPROVED</td>
+          <td class="col-audience">Coach</td>
+          <td class="col-pattern">پروفایل مربی «{coachName}» در inbox تایید شد</td>
+          <td class="col-sample">پروفایل مربی «سارا محمدی» در inbox تایید شد</td>
+        </tr>
+        <tr>
+          <td class="col-template">COACH_REJECTED</td>
+          <td class="col-audience">Coach</td>
+          <td class="col-pattern">
+            درخواست مربی «{coachName}» در inbox تایید نشد (+ optional note)
+          </td>
+          <td class="col-sample">درخواست مربی «سارا محمدی» در inbox تایید نشد — مدارک ناقص</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_BOOKING_CONFIRMED</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            رزرو جدید | «{club}» | {guest} ({phone}) | {when} | {court} | کد {tracking} |
+            اینباکس
+          </td>
+          <td class="col-sample">رزرو جدید | «بهناز» | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | زمین ۱ | کد ۱۰۵۷۱۲۸ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_BOOKING_PAID</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            پرداخت رزرو | «{club}» | {guest} ({phone}) | {amount} تومان | {when} | {court} |
+            اینباکس
+          </td>
+          <td class="col-sample">پرداخت رزرو | «بهناز» | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۵۰۰٬۰۰۰ تومان | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | زمین ۱ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_BOOKING_CANCELLED</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            لغو رزرو | «{club}» | {guest} ({phone}) | {when} | {court} | کد {tracking} |
+            اینباکس
+          </td>
+          <td class="col-sample">لغو رزرو | «بهناز» | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰ | زمین ۱ | کد ۱۰۵۷۱۲۸ | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_WITHDRAW_REQUEST</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            برداشت {ورزشکار|باشگاه} | {who} | {amount} تومان | شبا {last4} | اقدام در ادمین |
+            اینباکس
+          </td>
+          <td class="col-sample">برداشت باشگاه | بهناز | ۲٬۰۰۰٬۰۰۰ تومان | شبا ۱۲۳۴ | اقدام در ادمین | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_CLUB_APPLICATION</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            درخواست باشگاه | {club} | {city} | {contact} | {phone} | اقدام در ادمین | اینباکس
+          </td>
+          <td class="col-sample">درخواست باشگاه | بهناز | تهران | رضا احمدی | ۰۹۱۲۱۲۳۴۵۶۷ | اقدام در ادمین | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_COACH_APPLICATION</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">
+            درخواست مربی | {coach} | {city} | {phone} | اقدام در ادمین | اینباکس
+          </td>
+          <td class="col-sample">درخواست مربی | سارا محمدی | تهران | ۰۹۱۲۳۴۵۶۷۸۹ | اقدام در ادمین | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">ADMIN_WALLET_TOPUP</td>
+          <td class="col-audience">Admin</td>
+          <td class="col-pattern">شارژ کیف پول | {who} ({phone}) | {amount} تومان | اینباکس</td>
+          <td class="col-sample">شارژ کیف پول | علی رضایی (۰۹۱۲۱۲۳۴۵۶۷) | ۱۰۰٬۰۰۰ تومان | اینباکس</td>
+        </tr>
+        <tr>
+          <td class="col-template">CAMPAIGN</td>
+          <td class="col-audience">Owner CRM blast</td>
+          <td class="col-pattern">Free text from {message}</td>
+          <td class="col-sample">سلام باشگاه بهناز — تخفیف ۲۰٪ این هفته</td>
+        </tr>
+        <tr>
+          <td class="col-template">Pay-link Lookup<br />(panel payments)</td>
+          <td class="col-audience">Athlete desk pay SMS</td>
+          <td class="col-pattern">
+            Panel <code>payments</code> (<code>KAVENEGAR_TEMPLATE_PAY_LINK</code>): لینک پرداخت
+            اینباکس + https://inboxs.ir/p/%token%
+          </td>
+          <td class="col-sample">لینک پرداخت اینباکس
+https://inboxs.ir/p/Ab12Cd34</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="note">
+      Excluded: OTP / password-reset OTP (<code>renderOtpSms</code> / panel
+      <code>inbox-verify-autofill</code>). <code>PASSWORD_RESET</code> in TEMPLATE_BODIES is
+      email/log fallback only.
+    </p>
+  </body>
+</html>
