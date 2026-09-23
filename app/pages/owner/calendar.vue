@@ -42,6 +42,10 @@ import {
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
 } from '#shared/equipmentAvailability.ts'
+import {
+  WEEKLY_OCCURRENCE_MAX_WEEKS,
+  clampWeeklyWeeks,
+} from '#shared/weeklyOccurrences.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -125,6 +129,14 @@ type RecurringPreview = {
   willCreate: Array<{ date: string; startTime: string; courtId?: string }>
   conflicts: Array<{ date: string; startTime: string; reason: string; courtId?: string }>
   courtIds?: string[]
+}
+
+type BlockWeeklyPreview = {
+  willBlockCount: number
+  skippedCount: number
+  willBlock: Array<{ date: string; startTime: string; courtId?: string; slotId?: string }>
+  conflicts: Array<{ date: string; startTime: string; reason: string; courtId?: string }>
+  weeks: number
 }
 
 const { t, locale } = useI18n()
@@ -232,6 +244,11 @@ const reserveFlowReturn = ref(false)
 const seasonAcceptSkips = ref(false)
 const packagePreview = ref<RecurringPreview | null>(null)
 const packageAcceptSkips = ref(false)
+
+/** Weekly repeat on block sheet (same court+time across N weeks). Hidden in multi-select. */
+const blockWeeks = ref(1)
+const blockPreview = ref<BlockWeeklyPreview | null>(null)
+const blockAcceptSkips = ref(false)
 
 const { data: equipments } = await useAuthedFetch<OwnerEquipment[]>('/api/owner/equipments')
 const { data: coachesData } = await useAuthedFetch<OwnerStaffCoach[]>('/api/owner/coaches', {
@@ -1303,6 +1320,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.comments = booking?.comments || ''
+  resetBlockWeeklyState()
 }
 
 function openCancelForm() {
@@ -1542,6 +1560,33 @@ function clearRecurringPreview() {
   seasonAcceptSkips.value = false
   packagePreview.value = null
   packageAcceptSkips.value = false
+}
+
+function clearBlockWeeklyPreview() {
+  blockPreview.value = null
+  blockAcceptSkips.value = false
+}
+
+function resetBlockWeeklyState() {
+  blockWeeks.value = 1
+  clearBlockWeeklyPreview()
+}
+
+const blockAnchorSlot = computed(() => {
+  return selectedSlotFull.value || selectedSlotsFull.value[0] || selectedSlot.value || null
+})
+
+const blockWeeklyEnabled = computed(() => {
+  if (batchMode.value && selectedSlotsFull.value.length > 1) return false
+  return Boolean(blockAnchorSlot.value)
+})
+
+function setBlockWeeks(next: number) {
+  const weeks = clampWeeklyWeeks(next)
+  if (weeks === blockWeeks.value) return
+  blockWeeks.value = weeks
+  clearBlockWeeklyPreview()
+  actionError.value = ''
 }
 
 function ensureSeasonDateDefaults(anchorDate: string) {
@@ -1829,6 +1874,7 @@ function closeMenu() {
   showMenu.value = false
   resetPanels()
   clearRecurringPreview()
+  resetBlockWeeklyState()
   reserveFlowReturn.value = false
   pendingRecurringPay.value = null
   seasonSelectionHint.value = ''
@@ -2316,27 +2362,92 @@ async function doMarkUnpaid() {
 async function doBlock() {
   const targets = slotsForBlock()
   if (!targets.length || saving.value) return
+
+  const weeks = blockWeeklyEnabled.value ? clampWeeklyWeeks(blockWeeks.value) : 1
+  if (weeks > 1) {
+    if (!blockPreview.value || blockPreview.value.weeks !== weeks) {
+      actionError.value = t('owner.blockWeekly.previewRequired')
+      return
+    }
+    if (blockPreview.value.willBlockCount === 0) {
+      actionError.value = t('owner.blockWeekly.noBlockableSlots')
+      return
+    }
+    if (blockPreview.value.skippedCount > 0 && !blockAcceptSkips.value) {
+      actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+      return
+    }
+  }
+
   saving.value = true
   actionError.value = ''
   try {
-    const slotIds = targets.map((slot) => slot.id)
     const guest = guestNamePayload()
+    const anchor = blockAnchorSlot.value || targets[0]
     await $fetch('/api/owner/block', {
       method: 'POST',
-      body: {
-        slotIds,
-        guestName: guest.guestName,
-        guestFamily: guest.guestFamily,
-        guestMobile: form.guestMobile,
-        comments: form.comments,
-      },
+      body: weeks > 1
+        ? {
+            slotId: anchor?.id,
+            weeks,
+            acceptSkips: blockAcceptSkips.value || (blockPreview.value?.skippedCount ?? 0) === 0,
+            guestName: guest.guestName,
+            guestFamily: guest.guestFamily,
+            guestMobile: form.guestMobile,
+            comments: form.comments,
+          }
+        : {
+            slotIds: targets.map((slot) => slot.id),
+            guestName: guest.guestName,
+            guestFamily: guest.guestFamily,
+            guestMobile: form.guestMobile,
+            comments: form.comments,
+          },
     })
     await finishSlotAction()
-  } catch {
-    actionError.value = t('common.error')
+  } catch (err) {
+    const payload = (err as { data?: { data?: BlockWeeklyPreview; statusMessage?: string } })?.data?.data
+    if (payload?.conflicts) {
+      blockPreview.value = {
+        willBlockCount: payload.willBlockCount ?? 0,
+        skippedCount: payload.skippedCount ?? payload.conflicts.length,
+        willBlock: (payload as BlockWeeklyPreview).willBlock || [],
+        conflicts: payload.conflicts,
+        weeks,
+      }
+      actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+    } else {
+      actionError.value = t('common.error')
+    }
     await recoverAfterBatchError()
   } finally {
     saving.value = false
+  }
+}
+
+async function runBlockWeeklyPreview() {
+  const anchor = blockAnchorSlot.value
+  const weeks = clampWeeklyWeeks(blockWeeks.value)
+  if (!anchor?.id || weeks <= 1 || previewing.value) return
+  previewing.value = true
+  actionError.value = ''
+  try {
+    const preview = await $fetch<BlockWeeklyPreview>('/api/owner/block-preview', {
+      method: 'POST',
+      body: { slotId: anchor.id, weeks },
+    })
+    blockPreview.value = preview
+    blockAcceptSkips.value = false
+    if (preview.willBlockCount === 0) {
+      actionError.value = t('owner.blockWeekly.noBlockableSlots')
+    } else if (preview.skippedCount > 0) {
+      actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+    }
+  } catch {
+    actionError.value = t('common.error')
+    clearBlockWeeklyPreview()
+  } finally {
+    previewing.value = false
   }
 }
 
@@ -4025,11 +4136,79 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doBlock">
-            <ul v-if="slotsForBlock().length" class="space-y-1 text-start text-sm font-bold text-brand-navy">
+            <ul v-if="slotsForBlock().length && !(blockWeeklyEnabled && blockWeeks > 1)" class="space-y-1 text-start text-sm font-bold text-brand-navy">
               <li v-for="slot in slotsForBlock()" :key="slot.id">
                 {{ slotCellLabel(slot) }}
               </li>
             </ul>
+            <p
+              v-else-if="blockAnchorSlot"
+              class="text-start text-sm font-bold text-brand-navy"
+            >
+              {{ slotCellLabel(blockAnchorSlot) }}
+            </p>
+
+            <div
+              v-if="blockWeeklyEnabled"
+              class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-2.5"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <div class="min-w-0 text-start">
+                <p class="text-sm font-bold text-brand-navy">{{ t('owner.blockWeekly.title') }}</p>
+                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.blockWeekly.weeksLabel') }}</p>
+              </div>
+              <div class="canva-qty-step shrink-0" role="group" :aria-label="t('owner.blockWeekly.weeksLabel')">
+                <button
+                  type="button"
+                  class="canva-qty-step-btn"
+                  :disabled="blockWeeks <= 1 || previewing || saving"
+                  @click.prevent="setBlockWeeks(blockWeeks - 1)"
+                >−</button>
+                <span class="min-w-[1.5rem] text-center tabular-nums" dir="ltr">{{ formatNumber(blockWeeks) }}</span>
+                <button
+                  type="button"
+                  class="canva-qty-step-btn"
+                  :disabled="blockWeeks >= WEEKLY_OCCURRENCE_MAX_WEEKS || previewing || saving"
+                  @click.prevent="setBlockWeeks(blockWeeks + 1)"
+                >+</button>
+              </div>
+            </div>
+
+            <div
+              v-if="blockPreview && blockWeeks > 1"
+              class="space-y-3 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <p>{{ t('owner.blockWeekly.previewSummary', { create: formatNumber(blockPreview.willBlockCount), skip: formatNumber(blockPreview.skippedCount) }) }}</p>
+              <div v-if="blockPreview.willBlock.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.blockWeekly.willBlockTitle') }}</p>
+                <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
+                  <li
+                    v-for="(item, idx) in blockPreview.willBlock"
+                    :key="`block-${item.slotId || ''}-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  </li>
+                </ul>
+              </div>
+              <div v-if="blockPreview.conflicts.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.blockWeekly.conflictsTitle') }}</p>
+                <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                  <li
+                    v-for="(item, idx) in blockPreview.conflicts.slice(0, 12)"
+                    :key="`block-skip-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                    — {{ t(`owner.blockWeekly.conflictReason.${item.reason}`) }}
+                  </li>
+                </ul>
+              </div>
+              <label v-if="blockPreview.skippedCount > 0" class="canva-recurring-check">
+                <input v-model="blockAcceptSkips" type="checkbox" class="canva-settings-checkbox">
+                <span>{{ t('owner.blockWeekly.acceptSkips') }}</span>
+              </label>
+            </div>
+
             <div class="venus-form-grid">
               <AppFormField :label="t('owner.guestName')" field-id="owner-block-guest-name">
                 <input
@@ -4063,12 +4242,46 @@ watch(pilotNoCoach, (off) => {
             </AppFormField>
           </form>
           <div class="venus-modal-footer">
+            <p
+              v-if="blockWeeklyEnabled && blockWeeks > 1 && !blockPreview"
+              class="text-start text-xs font-medium text-brand-primary"
+            >
+              {{ t('owner.blockWeekly.previewRequired') }}
+            </p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button v-if="canUnblockSlot()" type="button" class="canva-gate-btn-secondary" :disabled="saving" @click="doUnblock">
               {{ saving ? t('common.loading') : t('owner.unblock') }}
             </button>
-            <button v-if="canBlockSlot() || canUnblockSlot()" type="button" class="canva-gate-btn-primary" :disabled="saving" @click="doBlock">
-              {{ saving ? t('common.loading') : (canUnblockSlot() ? t('common.save') : t('owner.confirmBlock')) }}
+            <button
+              v-if="blockWeeklyEnabled && blockWeeks > 1 && (canBlockSlot() || canUnblockSlot())"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="previewing || saving"
+              @click="runBlockWeeklyPreview"
+            >
+              {{ previewing ? t('common.loading') : t('owner.blockWeekly.preview') }}
+            </button>
+            <button
+              v-if="canBlockSlot() || canUnblockSlot()"
+              type="button"
+              class="canva-gate-btn-primary"
+              :disabled="
+                saving
+                  || previewing
+                  || (
+                    blockWeeklyEnabled
+                    && blockWeeks > 1
+                    && (
+                      !blockPreview
+                      || blockPreview.weeks !== blockWeeks
+                      || !blockPreview.willBlockCount
+                      || (blockPreview.skippedCount > 0 && !blockAcceptSkips)
+                    )
+                  )
+              "
+              @click="doBlock"
+            >
+              {{ saving ? t('common.loading') : (canUnblockSlot() && blockWeeks <= 1 ? t('common.save') : t('owner.confirmBlock')) }}
             </button>
             <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
