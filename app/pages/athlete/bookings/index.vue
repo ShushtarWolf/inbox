@@ -90,7 +90,7 @@ const {
   isPayAtClubStatus,
   paidHonestyNote,
 } = useBookingLabels()
-const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet } = useCheckout()
+const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet, isPaid } = useCheckout()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
 const paymentFlash = ref('')
@@ -99,7 +99,11 @@ const rescheduleTarget = ref<CourtBooking | null>(null)
 const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
 const reschedulePending = ref(false)
-const sortNewest = ref(true)
+type HistorySortBy = 'time-desc' | 'time-asc' | 'cost-desc' | 'cost-asc'
+type HistoryPayFilter = 'all' | 'paid' | 'unpaid'
+const sortBy = ref<HistorySortBy>('time-desc')
+const payFilter = ref<HistoryPayFilter>('all')
+const filterOpen = ref(false)
 const monthAnchor = ref(today())
 const selectedDayIso = ref<string | null>(null)
 const cancelTarget = ref<{ kind: HistoryKind; id: string } | null>(null)
@@ -171,10 +175,6 @@ function selectDay(iso: string) {
     viewMonth.value = j.jm
     monthAnchor.value = iso
   }
-}
-
-function clearCalendarFilter() {
-  selectedDayIso.value = null
 }
 
 const route = useRoute()
@@ -469,28 +469,60 @@ const selectedDayTimes = computed(() => {
 })
 
 const calendarDayFilterActive = computed(() => Boolean(selectedDayIso.value))
+const payFilterActive = computed(() => payFilter.value !== 'all')
+const listFilterActive = computed(() => calendarDayFilterActive.value || payFilterActive.value)
+
+const sortOptions: Array<{ value: HistorySortBy; labelKey: string }> = [
+  { value: 'time-desc', labelKey: 'athlete.historySortTimeNewest' },
+  { value: 'time-asc', labelKey: 'athlete.historySortTimeOldest' },
+  { value: 'cost-desc', labelKey: 'athlete.historySortCostHigh' },
+  { value: 'cost-asc', labelKey: 'athlete.historySortCostLow' },
+]
+
+const payFilterOptions: Array<{ value: HistoryPayFilter; labelKey: string }> = [
+  { value: 'all', labelKey: 'athlete.historyPayFilterAll' },
+  { value: 'paid', labelKey: 'athlete.historyPayFilterPaid' },
+  { value: 'unpaid', labelKey: 'athlete.historyPayFilterUnpaid' },
+]
+
+function timeCmp(a: HistoryItem, b: HistoryItem) {
+  return a.date.localeCompare(b.date) || a.timeLabel.localeCompare(b.timeLabel)
+}
+
+function applyHistorySort(list: HistoryItem[]) {
+  // Copy first: in-place .sort on a cached array returns the same ref, so Vue skips re-render.
+  return [...list].sort((a, b) => {
+    if (sortBy.value === 'cost-desc') return b.price - a.price || timeCmp(a, b)
+    if (sortBy.value === 'cost-asc') return a.price - b.price || timeCmp(a, b)
+    const cmp = timeCmp(a, b)
+    return sortBy.value === 'time-asc' ? cmp : -cmp
+  })
+}
 
 const filteredItems = computed(() => {
   let list = visibleHistory.value
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
-  // Copy first: in-place .sort on the cached visibleHistory array returns the same
-  // ref, so Vue skips re-render and «مرتب سازی» looks dead when no day filter is on.
-  return [...list].sort((a, b) => {
-    const cmp = a.date.localeCompare(b.date) || a.timeLabel.localeCompare(b.timeLabel)
-    return sortNewest.value ? -cmp : cmp
-  })
+  if (payFilter.value === 'paid') {
+    list = list.filter((item) => isPaid(item.paymentStatus))
+  }
+  else if (payFilter.value === 'unpaid') {
+    list = list.filter((item) => !isPaid(item.paymentStatus))
+  }
+  return applyHistorySort(list)
 })
 
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
 const historyEmptyTitle = computed(() => {
+  if (payFilterActive.value && hasAnyBookings.value) return t('athlete.historyEmptyPayFilter')
   if (selectedDayIso.value) return t('athlete.historyEmptyDay')
   return t('athlete.historyEmptyMonth')
 })
 
 const historyEmptyBody = computed(() => {
+  if (payFilterActive.value && hasAnyBookings.value) return t('athlete.historyEmptyPayFilterBody')
   if (selectedDayIso.value) {
     return hasAnyBookings.value
       ? t('athlete.historyEmptyDayFilterBody')
@@ -498,6 +530,29 @@ const historyEmptyBody = computed(() => {
   }
   return t('athlete.historyEmptyMonthBody')
 })
+
+const payFilterLabel = computed(() => {
+  if (payFilter.value === 'paid') return t('athlete.historyPayFilterPaid')
+  if (payFilter.value === 'unpaid') return t('athlete.historyPayFilterUnpaid')
+  return ''
+})
+
+function clearListFilters() {
+  selectedDayIso.value = null
+  payFilter.value = 'all'
+}
+
+function closeFilterSheet() {
+  filterOpen.value = false
+}
+
+function pickSort(value: HistorySortBy) {
+  sortBy.value = value
+}
+
+function pickPayFilter(value: HistoryPayFilter) {
+  payFilter.value = value
+}
 
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
   if (item.status === 'CANCELLED') return 'cancelled'
@@ -626,10 +681,10 @@ function dateLine(item: HistoryItem) {
       <button
         type="button"
         class="canva-history-sort"
-        @click="sortNewest = !sortNewest"
+        @click="filterOpen = true"
       >
         <AppIcon name="tune" size="sm" />
-        {{ t('athlete.historySort') }}
+        {{ t('athlete.historyFilter') }}
       </button>
     </section>
 
@@ -637,7 +692,16 @@ function dateLine(item: HistoryItem) {
       <p class="canva-history-filter-label">
         {{ t('athlete.historyFilterDay', { date: formatIsoDate(selectedDayIso) }) }}
       </p>
-      <button type="button" class="canva-history-sort" @click="clearCalendarFilter">
+      <button type="button" class="canva-history-sort" @click="selectedDayIso = null">
+        {{ t('athlete.historyShowAll') }}
+      </button>
+    </div>
+
+    <div v-if="payFilterActive" class="canva-history-filter">
+      <p class="canva-history-filter-label">
+        {{ t('athlete.historyFilterPay', { status: payFilterLabel }) }}
+      </p>
+      <button type="button" class="canva-history-sort" @click="payFilter = 'all'">
         {{ t('athlete.historyShowAll') }}
       </button>
     </div>
@@ -659,10 +723,10 @@ function dateLine(item: HistoryItem) {
         doodle="seat"
       >
         <button
-          v-if="calendarDayFilterActive && hasAnyBookings"
+          v-if="listFilterActive && hasAnyBookings"
           type="button"
           class="canva-gate-btn-secondary mt-3 px-4 py-2 text-xs font-bold"
-          @click="clearCalendarFilter"
+          @click="clearListFilters"
         >
           {{ t('athlete.historyShowAll') }}
         </button>
@@ -757,6 +821,49 @@ function dateLine(item: HistoryItem) {
     </AppAsyncState>
     </div>
     </div>
+
+    <AppModal
+      :open="filterOpen"
+      patterned
+      sheet
+      max-width-class="canva-phone-shell max-w-sm"
+      :title="t('athlete.historyFilterTitle')"
+      @close="closeFilterSheet"
+    >
+      <div class="canva-auth-body space-y-5 px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-2">
+        <div class="space-y-2">
+          <p class="text-start text-xs font-bold text-brand-navy">{{ t('athlete.historySortSection') }}</p>
+          <button
+            v-for="opt in sortOptions"
+            :key="opt.value"
+            type="button"
+            class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
+            :class="sortBy === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
+            style="border-radius: var(--sz-canva-radius);"
+            @click="pickSort(opt.value)"
+          >
+            {{ t(opt.labelKey) }}
+          </button>
+        </div>
+        <div class="space-y-2">
+          <p class="text-start text-xs font-bold text-brand-navy">{{ t('athlete.historyPaySection') }}</p>
+          <button
+            v-for="opt in payFilterOptions"
+            :key="opt.value"
+            type="button"
+            class="w-full border border-brand-gray-200 bg-white/95 px-3 py-3 text-start text-sm text-brand-navy"
+            :class="payFilter === opt.value ? 'border-brand-primary bg-brand-primary-soft/50' : ''"
+            style="border-radius: var(--sz-canva-radius);"
+            @click="pickPayFilter(opt.value)"
+          >
+            {{ t(opt.labelKey) }}
+          </button>
+        </div>
+        <button type="button" class="canva-gate-btn-primary w-full" @click="closeFilterSheet">
+            {{ t('athlete.historyFilterApply') }}
+        </button>
+      </div>
+    </AppModal>
 
     <AppModal
       :open="Boolean(rescheduleTarget)"
