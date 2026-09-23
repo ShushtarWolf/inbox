@@ -10,6 +10,13 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
+const { user, fetch: fetchAuth } = useAuth()
+const { activeRole, pathForRole } = usePlatformRoles()
+const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
+
+if (activeRole.value === 'CLUB_ADMIN' && user.value && !user.value.memberships?.length) {
+  await fetchAuth()
+}
 
 const sportFilter = ref<string>((route.query.sport as string) || '')
 const sort = ref((route.query.sort as string) || 'rank')
@@ -97,6 +104,13 @@ async function setSort(value: string) {
 }
 
 function clubHref(slug: string) {
+  if (activeRole.value === 'CLUB_ADMIN') {
+    const membership = user.value?.memberships?.find((m) => m.club.slug === slug)
+    if (membership) {
+      selectedClubId.value = membership.club.id
+      return localePath(pathForRole('CLUB_ADMIN'))
+    }
+  }
   const query: Record<string, string> = {}
   const dateQ = typeof route.query.date === 'string' ? route.query.date : ''
   if (dateQ) query.date = dateQ

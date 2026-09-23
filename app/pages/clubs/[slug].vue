@@ -94,9 +94,23 @@ const { data: club, pending, error } = await useFetch<ClubDetail>(`/api/clubs/${
 const showClubPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 const { isFavorite, toggleFavorite } = useClubFavorites()
 const favorited = computed(() => (club.value?.id ? isFavorite(club.value.id) : false))
-const { user } = useAuth()
+const { user, fetch: fetchAuth } = useAuth()
+const { activeRole, pathForRole } = usePlatformRoles()
+const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { openLogin } = useAuthFlow()
 const { fetchErrorMessage } = useFetchError()
+
+/** Manager opening their own club from public /clubs → owner panel (no athlete-booking flash). */
+if (club.value?.id && activeRole.value === 'CLUB_ADMIN') {
+  if (user.value && !user.value.memberships?.length) {
+    await fetchAuth()
+  }
+  const ownsThisClub = user.value?.memberships?.some((m) => m.club.id === club.value!.id)
+  if (ownsThisClub) {
+    selectedClubId.value = club.value.id
+    await navigateTo(localePath(pathForRole('CLUB_ADMIN')), { replace: true })
+  }
+}
 
 const waitlistSlotId = ref<string | null>(null)
 const joiningWaitlist = ref(false)
