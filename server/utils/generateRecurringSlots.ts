@@ -97,7 +97,7 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
   const equipmentLinePrices = equipmentBookingItems.map((item) => equipmentLineTotal(item))
   let created = 0
   let skipped = 0
-  const willCreate: Array<{ date: string; startTime: string }> = []
+  const willCreate: RecurringGenerateResult['willCreate'] = []
   const conflicts: RecurringConflict[] = []
 
   for (const date of dates) {

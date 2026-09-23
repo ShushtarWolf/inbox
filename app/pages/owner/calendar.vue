@@ -2467,9 +2467,10 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
   }
   if (!seasonPreview.value) {
     await runSeasonPreview()
-    if (!seasonPreview.value?.willCreateCount) return
-    if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) return
-  } else if (seasonPreview.value.skippedCount > 0 && !seasonAcceptSkips.value) {
+  }
+  const seasonReady = seasonPreview.value
+  if (!seasonReady?.willCreateCount) return
+  if (seasonReady.skippedCount > 0 && !seasonAcceptSkips.value) {
     actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
     return
   }
@@ -2565,9 +2566,10 @@ async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
   }
   if (!packagePreview.value) {
     await runPackagePreview()
-    if (!packagePreview.value?.willCreateCount) return
-    if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) return
-  } else if (packagePreview.value.skippedCount > 0 && !packageAcceptSkips.value) {
+  }
+  const packageReady = packagePreview.value
+  if (!packageReady?.willCreateCount) return
+  if (packageReady.skippedCount > 0 && !packageAcceptSkips.value) {
     actionError.value = t('owner.seasonPage.conflictsNeedConfirm')
     return
   }
