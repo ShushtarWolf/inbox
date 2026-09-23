@@ -3230,6 +3230,22 @@ watch(pilotNoCoach, (off) => {
 
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
+          <div class="canva-cal-date-nav-center">
+            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
+              <AppIcon name="chevron_right" size="sm" />
+            </button>
+            <button
+              type="button"
+              class="canva-cal-date-nav-label"
+              :aria-label="t('owner.pickDate')"
+              @click="showDatePicker = true"
+            >
+              {{ dateNavLabel }}
+            </button>
+            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
+              <AppIcon name="chevron_left" size="sm" />
+            </button>
+          </div>
           <div class="canva-cal-date-fabs" role="group" :aria-label="t('owner.selectionBar.title')">
             <button
               type="button"
@@ -3254,22 +3270,6 @@ watch(pilotNoCoach, (off) => {
               @click="openSeasonFormStandalone"
             >
               {{ t('owner.seasonReserve') }}
-            </button>
-          </div>
-          <div class="canva-cal-date-nav-center">
-            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.prevMonth')" @click="shiftDate(-1)">
-              <AppIcon name="chevron_right" size="sm" />
-            </button>
-            <button
-              type="button"
-              class="canva-cal-date-nav-label"
-              :aria-label="t('owner.pickDate')"
-              @click="showDatePicker = true"
-            >
-              {{ dateNavLabel }}
-            </button>
-            <button type="button" class="canva-cal-date-nav-btn" :aria-label="t('calendar.nextMonth')" @click="shiftDate(1)">
-              <AppIcon name="chevron_left" size="sm" />
             </button>
           </div>
         </div>
