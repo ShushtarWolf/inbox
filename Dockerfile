@@ -46,6 +46,10 @@ RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
     @prisma/client@6.19.3 \
     tsx@4.22.4 \
   && npx prisma generate \
+  && mkdir -p .output/server/node_modules \
+  && rm -rf .output/server/node_modules/.prisma .output/server/node_modules/@prisma \
+  && cp -a node_modules/.prisma .output/server/node_modules/ \
+  && cp -a node_modules/@prisma .output/server/node_modules/ \
   && npm cache clean --force
 
 COPY --from=builder /app/package.json ./package.json
