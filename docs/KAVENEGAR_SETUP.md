@@ -15,10 +15,10 @@ KAVENEGAR_API_KEY=<from Developers / API key>
 KAVENEGAR_TEMPLATE=inbox-verify-autofill
 KAVENEGAR_TEMPLATE_NOTIFY=off
 KAVENEGAR_SENDER=9982007609
-KAVENEGAR_TEMPLATE_PAY_LINK=payments
+KAVENEGAR_TEMPLATE_PAY_LINK=Paylink
 ```
 
-Unset nothing for pay-link — set `KAVENEGAR_TEMPLATE_PAY_LINK=payments` so desk «ارسال با پیامک اینباکس» works (Lookup; independent of Path A free-text notify).
+Unset nothing for pay-link — set `KAVENEGAR_TEMPLATE_PAY_LINK=Paylink` so desk «ارسال با پیامک اینباکس» works (Lookup; independent of Path A free-text notify).
 
 Redeploy / restart after changing env. Kavenegar may append `لغو۱۱` on 998-line sends.
 
@@ -58,7 +58,7 @@ Panel template must include `%token%` (Kavenegar requirement) plus `%token10%` f
 
 ## 3) Tappable pay link (desk «ارسال با پیامک اینباکس»)
 
-Template name: `payments`  
+Template name: `Paylink`  
 
 **Critical:** Kavenegar placeholders are `%token` / `%token10` — **no trailing `%`**.  
 A panel body with `https://inboxs.ir/p/%token%` leaves a stray `%` in the SMS URL
@@ -77,7 +77,7 @@ https://inboxs.ir/p/%token
 - `%token` → 8-char pay pin  
 Operator footer «لغو 11» is appended by the carrier — do not put it in the template.
 
-Liara: `KAVENEGAR_TEMPLATE_PAY_LINK=payments`  
+Liara: `KAVENEGAR_TEMPLATE_PAY_LINK=Paylink`  
 Works with Path A (`TEMPLATE_NOTIFY=off`) — pay-link uses Verify Lookup; other booking SMS use the 998 line.
 
 ---

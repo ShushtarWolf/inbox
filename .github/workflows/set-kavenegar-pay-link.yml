@@ -1,0 +1,45 @@
+# One-shot / ops: set KAVENEGAR_TEMPLATE_PAY_LINK on production inbox + restart.
+name: Set Kavenegar pay-link template
+on:
+  workflow_dispatch:
+    inputs:
+      template:
+        description: Kavenegar Verify Lookup template name (exact panel name)
+        required: true
+        default: Paylink
+        type: string
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set env + restart inbox
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+          TEMPLATE: ${{ inputs.template }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          APP=inbox
+          echo "Setting KAVENEGAR_TEMPLATE_PAY_LINK=${TEMPLATE} on ${APP}"
+          liara env set --app="$APP" --api-token="$LIARA_TOKEN" --force \
+            "KAVENEGAR_TEMPLATE_PAY_LINK=${TEMPLATE}"
+          echo "Restarting ${APP}…"
+          liara restart --app="$APP" --api-token="$LIARA_TOKEN"
+          echo "Waiting for health…"
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /tmp/h -w '%{http_code}' --max-time 15 https://inboxs.ir/api/health || echo 000)
+            body=$(cat /tmp/h 2>/dev/null || true)
+            echo "try $i: http=$code body=$body"
+            if [ "$code" = "200" ] && echo "$body" | grep -q '"ok":true'; then
+              echo "Live health OK"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health probe did not pass"
+          exit 1
