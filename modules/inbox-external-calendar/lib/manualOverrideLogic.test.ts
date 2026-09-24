@@ -4,6 +4,7 @@ import {
   effectiveBlocksBooking,
   findBookingGuardBlockedSlots,
   indexManualOverrides,
+  paintsManualOverrideOnOwnerGrid,
 } from './manualOverrideLogic'
 
 describe('manualOverrideLogic', () => {
@@ -86,5 +87,28 @@ describe('manualOverrideLogic', () => {
       [{ courtKey: 'c1', startTime: '09:00', state: 'UNKNOWN' }],
       [],
     )).toEqual([])
+  })
+
+  it('10. owner grid paints RELEASE/BLOCK only while Inbox is free', () => {
+    expect(paintsManualOverrideOnOwnerGrid({
+      manualOverride: 'RELEASE',
+      displayStatus: 'FREE',
+    })).toBe(true)
+    expect(paintsManualOverrideOnOwnerGrid({
+      manualOverride: 'RELEASE',
+      displayStatus: 'RESERVED',
+    })).toBe(false)
+    expect(paintsManualOverrideOnOwnerGrid({
+      manualOverride: 'RELEASE',
+      displayStatus: 'PENDING',
+    })).toBe(false)
+    expect(paintsManualOverrideOnOwnerGrid({
+      manualOverride: 'BLOCK',
+      displayStatus: 'RESERVED',
+    })).toBe(false)
+    expect(paintsManualOverrideOnOwnerGrid({
+      manualOverride: null,
+      displayStatus: 'FREE',
+    })).toBe(false)
   })
 })

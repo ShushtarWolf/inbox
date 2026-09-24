@@ -94,7 +94,10 @@ export function useOwnerExternalCalendarOverlay(opts: {
     startTime: string
     displayStatus?: string
   } | null | undefined): boolean {
-    return manualOverrideFor(slot) === 'RELEASE'
+    if (manualOverrideFor(slot) !== 'RELEASE') return false
+    // Lingering RELEASE must not hide an Inbox booking guest on the owner grid.
+    const status = slot?.displayStatus || 'FREE'
+    return status === 'FREE' || status === 'CANCELLED'
   }
 
   function isManuallyBlocked(slot: {
@@ -102,7 +105,9 @@ export function useOwnerExternalCalendarOverlay(opts: {
     startTime: string
     displayStatus?: string
   } | null | undefined): boolean {
-    return manualOverrideFor(slot) === 'BLOCK'
+    if (manualOverrideFor(slot) !== 'BLOCK') return false
+    const status = slot?.displayStatus || 'FREE'
+    return status === 'FREE' || status === 'CANCELLED'
   }
 
   /** Inbox FREE but confirmed EXTERNAL_BUSY on another booking site. */

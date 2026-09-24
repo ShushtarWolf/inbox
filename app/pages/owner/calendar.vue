@@ -32,6 +32,7 @@ import {
   formatGuestDisplayName,
   normalizeGuestNamePair,
   readGuestFullNameInput,
+  resolveLinkedGuestDisplayName,
   writeGuestFullNameInput,
 } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -71,6 +72,7 @@ interface OwnerCalendarBooking {
   paymentMethod?: string | null
   paymentStatus?: string | null
   comments?: string | null
+  user?: { name?: string | null } | null
   bookingEquipments?: OwnerCalendarBookingEquipment[]
 }
 
@@ -735,7 +737,11 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
     return t('owner.slotBlockedLabel')
   }
   const booking = activeBooking(slot)
-  const fullName = formatGuestDisplayName(booking?.guestName, booking?.guestFamily)
+  const fullName = resolveLinkedGuestDisplayName({
+    guestName: booking?.guestName,
+    guestFamily: booking?.guestFamily,
+    userName: booking?.user?.name,
+  })
   return fullName || statusLabel(slot.displayStatus)
 }
 
@@ -1281,8 +1287,20 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   recurringWanted.value = false
   const isFree = fullSlot.displayStatus === 'FREE' || !activeBooking(fullSlot)
   const booking = activeBooking(fullSlot)
-  form.guestName = isFree ? '' : (booking?.guestName || '')
-  form.guestFamily = isFree ? '' : (booking?.guestFamily || '')
+  if (isFree) {
+    form.guestName = ''
+    form.guestFamily = ''
+  }
+  else {
+    const linked = resolveLinkedGuestDisplayName({
+      guestName: booking?.guestName,
+      guestFamily: booking?.guestFamily,
+      userName: booking?.user?.name,
+    })
+    const parts = normalizeGuestNamePair(linked || booking?.guestName, booking?.guestFamily)
+    form.guestName = parts.guestName
+    form.guestFamily = parts.guestFamily
+  }
   form.guestMobile = isFree ? '' : (booking?.guestMobile || '')
   form.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   clearGuestSearch()
@@ -2794,13 +2812,25 @@ function slotGuestName(slot: OwnerCalendarSlot | null | undefined = selectedSlot
   const booking = activeBooking(slot)
     || activeBooking(selectedSlotFull.value)
     || activeBooking(bookedSiblingSlots.value[0])
-  if (booking) return formatGuestDisplayName(booking.guestName, booking.guestFamily)
+  if (booking) {
+    return resolveLinkedGuestDisplayName({
+      guestName: booking.guestName,
+      guestFamily: booking.guestFamily,
+      userName: booking.user?.name,
+    })
+  }
   return formatGuestDisplayName(form.guestName, form.guestFamily)
 }
 
 function slotRowGuestName(slot: OwnerCalendarSlot) {
   const booking = activeBooking(slot)
-  if (booking) return formatGuestDisplayName(booking.guestName, booking.guestFamily)
+  if (booking) {
+    return resolveLinkedGuestDisplayName({
+      guestName: booking.guestName,
+      guestFamily: booking.guestFamily,
+      userName: booking.user?.name,
+    })
+  }
   return slotGuestName(slot)
 }
 

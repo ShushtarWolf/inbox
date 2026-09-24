@@ -77,3 +77,17 @@ export function effectiveAvailabilityKind(opts: {
   if (state === 'UNKNOWN' || state === 'STALE' || state === 'CONFLICT') return 'uncertain'
   return 'available'
 }
+
+/**
+ * Owner grid: paint «آزاد شده دستی» / «مسدود دستی» only while Inbox is still free.
+ * Once the hour is reserved (or otherwise occupied) in Inbox, the booking guest wins —
+ * a lingering RELEASE/BLOCK override must not hide the customer name.
+ */
+export function paintsManualOverrideOnOwnerGrid(opts: {
+  manualOverride?: ManualOverrideType | null
+  displayStatus?: string | null
+}): boolean {
+  if (!opts.manualOverride) return false
+  const status = opts.displayStatus || 'FREE'
+  return status === 'FREE' || status === 'CANCELLED'
+}
