@@ -1,0 +1,58 @@
+name: Fix staging boot
+on: workflow_dispatch
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebuild DATABASE_URL + restart + logs
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          AUTH="Authorization: Bearer ${LIARA_TOKEN}"
+          API=https://api.liara.ir
+          API_IR=https://api.iran.liara.ir
+          APP=inbox-staging
+          DB=inbox-staging-db
+
+          DB_ID=$(curl -sS -H "$AUTH" "$API/v1/databases" | jq -r --arg d "$DB" '.databases[]|select(.hostname==$d)|._id')
+          DETAIL=$(curl -sS -H "$AUTH" "$API_IR/v1/databases/${DB_ID}")
+          echo "detail top keys: $(echo "$DETAIL" | jq -r 'keys|join(",")')"
+          PASS=$(echo "$DETAIL" | jq -r '.database.root_password // .root_password // empty')
+          USER=$(echo "$DETAIL" | jq -r '.database.username // .username // "root"')
+          if [ -z "$USER" ] || [ "$USER" = "null" ]; then USER=root; fi
+          PORT=$(echo "$DETAIL" | jq -r '.database.internalPort // .internalPort // 5432')
+          echo "user=$USER port=$PORT pass_len=${#PASS}"
+          test -n "$PASS"
+
+          ENC=$(PASS="$PASS" python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['PASS'], safe=''))")
+          # Liara private-net postgres often needs sslmode=disable
+          URL="postgresql://${USER}:${ENC}@${DB}:${PORT}/postgres?sslmode=disable"
+          echo "Setting DATABASE_URL (redacted host=${DB} port=${PORT})"
+          liara env set --app="$APP" --api-token="$LIARA_TOKEN" --force "DATABASE_URL=${URL}"
+
+          echo "Restarting app…"
+          liara restart --app="$APP" --api-token="$LIARA_TOKEN" || true
+          sleep 25
+
+          echo "=== logs since 30m ==="
+          timeout 40s liara logs --app "$APP" --api-token="$LIARA_TOKEN" --since="30 minutes ago" 2>&1 | tail -150 || true
+
+          echo "=== releases via API ==="
+          curl -sS -H "$AUTH" "$API/v1/projects/${APP}/releases" 2>/dev/null | jq '.[0:3] // .releases[0:3] // .' 2>/dev/null | head -80 || true
+          curl -sS -H "$AUTH" "$API/v2/projects/${APP}/releases" 2>/dev/null | head -c 500 || true
+          echo
+
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -sS -o /tmp/h -w '%{http_code}' --max-time 15 "https://${APP}.liara.run/api/health" || echo 000)
+            echo "probe$i=$code body=$(head -c 120 /tmp/h 2>/dev/null || true)"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 15
+          done
+          echo "still unhealthy"
+          exit 1
