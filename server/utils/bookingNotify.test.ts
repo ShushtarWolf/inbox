@@ -136,9 +136,9 @@ describe('bookingNotify SMS', () => {
     await notifyBookingPaid(baseOpts)
 
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(3)
+    // Confirmed: no guest SMS (pay-after confirmation). Cancel + paid only.
+    expect(smsCalls).toHaveLength(2)
     expect(smsCalls.map((call) => call[0].template)).toEqual([
-      'BOOKING_CONFIRMED',
       'BOOKING_CANCELLED',
       'BOOKING_PAID',
     ])
@@ -160,19 +160,26 @@ describe('bookingNotify SMS', () => {
     await notifyBookingPaid(baseOpts)
 
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(3)
+    expect(smsCalls).toHaveLength(2)
     expect(smsCalls.every((call) => call[0].template.startsWith('BOOKING_'))).toBe(true)
-    // In-app + email still run
+    // In-app + email still run on confirmed/cancelled/paid
     expect(createInAppNotification).toHaveBeenCalledTimes(3)
     const emailCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'email')
     expect(emailCalls).toHaveLength(3)
 
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(logSpy).not.toHaveBeenCalledWith(
       '[bookingNotify:sms]',
       'log',
       'BOOKING_CONFIRMED',
+      expect.anything(),
+      expect.anything(),
+    )
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_PAID',
       '09121234567',
-      expect.stringContaining('رزرو تایید شد'),
+      expect.stringContaining('پرداخت رزرو ثبت شد'),
     )
     logSpy.mockRestore()
   })
@@ -230,7 +237,7 @@ describe('bookingNotify SMS', () => {
 
     expect(createInAppNotification).not.toHaveBeenCalled()
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(3)
+    expect(smsCalls).toHaveLength(2)
     for (const call of smsCalls) {
       expect(call[0]).toMatchObject({
         channel: 'sms',
@@ -239,13 +246,12 @@ describe('bookingNotify SMS', () => {
       })
     }
     expect(smsCalls.map((call) => call[0].template)).toEqual([
-      'BOOKING_CONFIRMED',
       'BOOKING_CANCELLED',
       'BOOKING_PAID',
     ])
   })
 
-  it('guest-only phone: log mode audits guest number + Persian body', async () => {
+  it('guest-only unpaid create: no confirmation SMS (only pay-link when configured)', async () => {
     resolveSmsProvider.mockReturnValue('log')
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
@@ -253,85 +259,52 @@ describe('bookingNotify SMS', () => {
 
     expect(createInAppNotification).not.toHaveBeenCalled()
     const smsCalls = sendNotification.mock.calls.filter((call) => call[0]?.channel === 'sms')
-    expect(smsCalls).toHaveLength(1)
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(smsCalls).toHaveLength(0)
+    expect(logSpy).not.toHaveBeenCalledWith(
       '[bookingNotify:sms]',
       'log',
       'BOOKING_CONFIRMED',
-      '09129876543',
-      expect.stringContaining('بهناز'),
+      expect.anything(),
+      expect.anything(),
     )
     logSpy.mockRestore()
   })
 
-  it('passes court, payment, and location on confirmed SMS data', async () => {
-    resolveSmsProvider.mockReturnValue('live')
-    sendNotification.mockResolvedValue({ sent: true })
-
-    await notifyBookingConfirmed({
-      ...guestOnlyOpts,
-      courtName: 'زمین ۱',
-      paymentPaid: false,
-      address: 'سعادت‌آباد',
-      mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
-      guestName: 'علی رضایی',
-    })
-
-    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
-    expect(smsCall?.[0].data).toMatchObject({
-      courtName: 'زمین ۱',
-      paymentPaid: false,
-      address: 'سعادت‌آباد',
-      mapsUrl: 'https://maps.google.com/?q=35.7,51.4',
-      guestName: 'علی رضایی',
-    })
-  })
-
-  it('includes from-to hours in confirmed SMS when endTime is set', async () => {
+  it('guest paid SMS uses rich confirmation body', async () => {
     resolveSmsProvider.mockReturnValue('log')
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-    await notifyBookingConfirmed({
+    await notifyBookingPaid({
       ...guestOnlyOpts,
       guestName: 'مهمان تست',
+      courtName: 'زمین ۱',
       startTime: '18:00',
       endTime: '20:00',
+      paymentPaid: true,
     })
 
     expect(logSpy).toHaveBeenCalledWith(
       '[bookingNotify:sms]',
       'log',
-      'BOOKING_CONFIRMED',
+      'BOOKING_PAID',
+      '09129876543',
+      expect.stringContaining('رزرو شما با موفقیت ثبت شد.'),
+    )
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_PAID',
       '09129876543',
       expect.stringContaining('۱۸:۰۰ تا ۲۰:۰۰'),
     )
     logSpy.mockRestore()
   })
 
-  it('includes guest name, tracking, and receipt URL on desk confirmed SMS data', async () => {
+  it('puts pay pin on unpaid create pay-link Lookup (not guest confirmation SMS)', async () => {
+    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'payments'
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
-
-    await notifyBookingConfirmed({
-      ...guestOnlyOpts,
-      guestName: 'حمید افقه',
-      courtName: 'زمین ۳',
-      paymentPaid: false,
-    })
-
-    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
-    expect(smsCall?.[0].data).toMatchObject({
-      guestName: 'حمید افقه',
-      courtName: 'زمین ۳',
-      paymentPaid: false,
-    })
-    expect(String(smsCall?.[0].data.trackingCode)).toMatch(/^\d{7}$/)
-    expect(String(smsCall?.[0].data.receiptUrl)).toContain('/r/')
-  })
-
-  it('puts pay pin and pay URL on desk confirmed SMS data', async () => {
-    resolveSmsProvider.mockReturnValue('live')
-    sendNotification.mockResolvedValue({ sent: true })
+    sendSms.mockResolvedValue({ sent: true })
 
     await notifyBookingConfirmed({
       ...guestOnlyOpts,
@@ -341,15 +314,16 @@ describe('bookingNotify SMS', () => {
       payUrl: 'https://inboxs.ir/p/ab12cd9x',
     })
 
-    const smsCall = sendNotification.mock.calls.find((call) => call[0]?.channel === 'sms')
-    expect(smsCall?.[0].data).toMatchObject({
-      payPin: 'ab12cd9x',
-      payUrl: 'https://inboxs.ir/p/ab12cd9x',
-      paymentPaid: false,
-    })
-    expect(sendSms).not.toHaveBeenCalled()
+    const guestSms = sendNotification.mock.calls.find(
+      (call) => call[0]?.channel === 'sms' && call[0]?.template === 'BOOKING_CONFIRMED',
+    )
+    expect(guestSms).toBeUndefined()
+    expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
+      to: '09129876543',
+      body: 'https://inboxs.ir/p/ab12cd9x',
+      lookup: { template: 'payments', token: 'ab12cd9x', token10: 'حمید افقه' },
+    }))
   })
-
   it('sends a tappable pay-link lookup SMS when the panel template is set', async () => {
     process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'payments'
     resolveSmsProvider.mockReturnValue('live')

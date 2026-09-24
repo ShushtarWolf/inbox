@@ -55,6 +55,33 @@ describe('SMS templates', () => {
       }),
     ).toBe('پرداخت رزرو ثبت شد «بهناز» — ۱۴۰۴/۰۱/۰۱ ساعت ۱۰:۰۰. اینباکس')
     expect(
+      renderSmsTemplate('BOOKING_PAID', {
+        guestName: 'علی رضایی',
+        clubName: 'بهناز',
+        date: '2026-08-14',
+        startTime: '18:00',
+        endTime: '20:00',
+        courtName: 'زمین ۱',
+        trackingCode: '1057128',
+      }),
+    ).toBe(
+      [
+        'علی رضایی عزیز',
+        'رزرو شما با موفقیت ثبت شد.',
+        '',
+        'باشگاه: «بهناز»',
+        '',
+        'مشخصات رزرو:',
+        'زمین ۱ | ۱۴۰۵/۰۵/۲۳ | ۱۸:۰۰ تا ۲۰:۰۰',
+        '',
+        'کد سفارش: ۱۰۵۷۱۲۸',
+        '',
+        'مشاهده جزئیات رزرو، قوانین، حساب‌وکتاب و لوکیشن:',
+        'https://inboxs.ir/athlete/bookings',
+        'Inboxs',
+      ].join('\n'),
+    )
+    expect(
       renderSmsTemplate('OWNER_BOOKING_PAID', {
         clubName: 'بهناز',
         guestName: 'علی رضایی',

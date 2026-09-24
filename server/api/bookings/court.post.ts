@@ -8,6 +8,7 @@ import {
   clubNotifyName,
   courtNotifyName,
   notifyBookingConfirmed,
+  notifyBookingPaid,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import {
@@ -277,11 +278,11 @@ export default defineEventHandler(async (event) => {
     }
     for (const group of groups.values()) {
       const range = bookingTimeRange(group)
-      await notifyBookingConfirmed({
+      const notifyOpts = {
         userId: user.id,
         email: dbUser.email,
         phone: dbUser.phone,
-        kind: 'court',
+        kind: 'court' as const,
         clubName: clubNotifyName(club),
         clubId,
         bookingId: bookingIds[orderedSlots.indexOf(group[0]!)]!,
@@ -298,7 +299,11 @@ export default defineEventHandler(async (event) => {
         paymentPaid: paymentStatus === 'PAID',
         guestName: personNotifyName(dbUser.name),
         ...clubNotifyLocation(club),
-      })
+      }
+      await notifyBookingConfirmed(notifyOpts)
+      if (paymentStatus === 'PAID') {
+        await notifyBookingPaid(notifyOpts)
+      }
     }
   }
 

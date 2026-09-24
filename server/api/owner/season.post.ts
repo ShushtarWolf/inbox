@@ -11,6 +11,7 @@ import {
 } from '#shared/seasonSessions.ts'
 import {
   notifyBookingConfirmed,
+  notifyBookingPaid,
   clubNotifyName,
   clubNotifyLocation,
   courtNotifyName,
@@ -163,9 +164,9 @@ export default defineEventHandler(async (event) => {
       select: { id: true, nameFa: true, nameEn: true },
     })
     const courtById = new Map(courts.map((c) => [c.id, c]))
-    await notifyBookingConfirmed({
+    const notifyOpts = {
       phone: guestMobile,
-      kind: 'court',
+      kind: 'court' as const,
       clubName: clubNotifyName(club),
       clubId: club.id,
       bookingId: result.primaryBookingId || result.seasonBookingId,
@@ -185,7 +186,11 @@ export default defineEventHandler(async (event) => {
       payPin: paymentStatus === 'PAID' ? undefined : payPin,
       payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
       ...clubNotifyLocation(club),
-    })
+    }
+    await notifyBookingConfirmed(notifyOpts)
+    if (paymentStatus === 'PAID') {
+      await notifyBookingPaid(notifyOpts)
+    }
   }
 
   return {

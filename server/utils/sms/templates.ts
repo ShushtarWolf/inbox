@@ -208,6 +208,10 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     return lines.join('\n')
   },
   BOOKING_PAID: (data) => {
+    // Same rich guest receipt as the old create-time SMS — send only after payment clears.
+    const guestBody = renderGuestBookingConfirmed(data)
+    if (guestBody) return guestBody
+
     const when = whenBit(data)
     return when
       ? `پرداخت رزرو ثبت شد${clubBit(data)} — ${when}. اینباکس`

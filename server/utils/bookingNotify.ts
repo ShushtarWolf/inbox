@@ -351,7 +351,9 @@ function adminBookingData(opts: BookingNotifyOpts) {
   }
 }
 
-/** Booking created (platform creates as CONFIRMED). In-app when userId; email/SMS when address/phone present. */
+/** Booking created (platform creates as CONFIRMED). In-app when userId; email when address present.
+ * Guest confirmation SMS is deferred to notifyBookingPaid — unpaid create only gets the pay-link SMS.
+ */
 export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
@@ -372,8 +374,8 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
       })
     }
     await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
-    await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
-    if (!opts.skipGuest && opts.paymentPaid !== true && data.payPin) {
+    // Pay-link only while unpaid — rich «رزرو شما با موفقیت ثبت شد» waits for notifyBookingPaid.
+    if (opts.paymentPaid !== true && data.payPin) {
       await sendPayLinkLookup(
         opts.phone,
         String(data.payPin),

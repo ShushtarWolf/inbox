@@ -1,6 +1,6 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { notifyBookingConfirmed, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import {
   loadEquipmentForBooking,
@@ -196,9 +196,9 @@ export default defineEventHandler(async (event) => {
 
   const phone = body.guestMobile?.trim() || null
   if (phone && result.created > 0) {
-    await notifyBookingConfirmed({
+    const notifyOpts = {
       phone,
-      kind: 'package',
+      kind: 'package' as const,
       clubName: clubNotifyName(club),
       clubId: club.id,
       bookingId: record.id,
@@ -209,7 +209,11 @@ export default defineEventHandler(async (event) => {
       paymentPaid: paymentStatus === 'PAID',
       guestName: personNotifyName(guest.guestName, guest.guestFamily),
       ...clubNotifyLocation(club),
-    })
+    }
+    await notifyBookingConfirmed(notifyOpts)
+    if (paymentStatus === 'PAID') {
+      await notifyBookingPaid(notifyOpts)
+    }
   }
 
   return {
