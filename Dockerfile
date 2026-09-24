@@ -29,6 +29,11 @@ COPY --from=builder /app/scripts/lib ./scripts/lib
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/shared ./shared
 
+# Ensure traced Nitro deps exist even if the builder stage did not materialize them.
+WORKDIR /app/.output/server
+RUN npm install --omit=dev --no-audit --no-fund --prefer-offline
+WORKDIR /app
+
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
 # on top of the full app package.json without a lockfile in this stage.
 RUN echo '{"name":"inbox-runtime","private":true}' > package.json \
