@@ -38,7 +38,9 @@ gh run watch "$(gh run list --workflow=deploy-staging.yml --limit 1 --json datab
 
 Or Actions tab → **Deploy staging** → Run workflow.
 
-After green **Verify live inbox-staging.liara.run**, share `https://inbox-staging.liara.run` with the team.
+After green **Verify live inbox-staging.liara.run**, share **https://inbox-staging.liara.run** with the team.
+
+If a deploy workflow is red but the site already answers `/api/health` with `"ok":true`, re-check with curl before assuming staging is down — Liara Iran Alpine TLS blips can fail the workflow while a previous healthy release still serves traffic.
 
 ## Promote to production
 

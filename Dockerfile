@@ -30,8 +30,10 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/shared ./shared
 
 # Ensure traced Nitro deps exist even if the builder stage did not materialize them.
+# Strip Nitro's placeholder ".prisma" entry — npm rejects names that start with ".".
 WORKDIR /app/.output/server
-RUN npm install --omit=dev --no-audit --no-fund --prefer-offline
+RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(p.dependencies){for(const k of Object.keys(p.dependencies)){if(k.startsWith('.'))delete p.dependencies[k]}}fs.writeFileSync('package.json',JSON.stringify(p,null,2));" \
+  && npm install --omit=dev --no-audit --no-fund --prefer-offline
 WORKDIR /app
 
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
