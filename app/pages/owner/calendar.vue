@@ -1507,15 +1507,7 @@ async function doSaveNote() {
   }
 }
 
-async function doSelectionManualBlock() {
-  const slot = selectedSlotsFull.value[0]
-  if (!slot || saving.value) return
-  openSlot(slot, { keepSelection: true })
-  activePanel.value = 'external'
-  await doCreateManualOverride('BLOCK')
-}
-
-async function doCreateManualOverride(type: 'RELEASE' | 'BLOCK') {
+async function doCreateManualOverride(type: 'RELEASE') {
   const slot = selectedSlotFull.value
   if (!slot || saving.value) return
   saving.value = true
@@ -3446,15 +3438,6 @@ watch(pilotNoCoach, (off) => {
             >
               {{ t('owner.block') }}
             </button>
-            <button
-              v-if="externalOverlayEnabled && selectedSlotsFull.length === 1 && selectedSlotsFull[0]?.displayStatus === 'FREE' && !isManuallyBlocked(selectedSlotsFull[0]) && !isExternalOnlyOccupied(selectedSlotsFull[0]) && !isExternalUncertain(selectedSlotsFull[0])"
-              type="button"
-              class="canva-selection-bar-btn-manual"
-              :disabled="saving"
-              @click="doSelectionManualBlock"
-            >
-              {{ t('owner.manualOverrideBlockAction') }}
-            </button>
             <button type="button" class="canva-selection-bar-btn-ghost" @click="clearSelection(); multiSelectMode = false">
               {{ t('owner.selectionBar.clear') }}
             </button>
@@ -3627,15 +3610,6 @@ watch(pilotNoCoach, (off) => {
               @click="doCreateManualOverride('RELEASE')"
             >
               {{ saving ? t('common.loading') : t('owner.manualOverrideReleaseAction') }}
-            </button>
-            <button
-              v-if="externalOverlayEnabled && !isManuallyReleased(selectedSlotFull) && !isManuallyBlocked(selectedSlotFull) && selectedSlotFull?.displayStatus === 'FREE' && !isExternalOnlyOccupied(selectedSlotFull) && !isExternalUncertain(selectedSlotFull)"
-              type="button"
-              class="canva-gate-btn-primary mt-4"
-              :disabled="saving"
-              @click="doCreateManualOverride('BLOCK')"
-            >
-              {{ saving ? t('common.loading') : t('owner.manualOverrideBlockAction') }}
             </button>
             <button
               v-if="externalOverlayEnabled && (isManuallyReleased(selectedSlotFull) || isManuallyBlocked(selectedSlotFull))"
