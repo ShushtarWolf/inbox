@@ -29,7 +29,7 @@ jobs:
   bootstrap:
     name: Create staging app + DB
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/setup-node@v4
         with:
@@ -46,66 +46,80 @@ jobs:
           npm i -g @liara/cli@9
 
           API="https://api.liara.ir"
+          API_IR="https://api.iran.liara.ir"
           AUTH="Authorization: Bearer ${LIARA_TOKEN}"
           APP_NAME="inbox-staging"
           DB_NAME="inbox-staging-db"
           NET_NAME="inbox-staging-net"
           SITE_URL="https://${APP_NAME}.liara.run"
 
-          api() {
-            local method="$1" path="$2"
-            shift 2
+          api_get() {
+            local base="$1" path="$2" out="$3"
+            local code
+            code=$(curl -sS -o "$out" -w '%{http_code}' -H "$AUTH" --max-time 60 "${base}/${path}" || echo 000)
+            echo "$code"
+          }
+
+          api_json() {
+            local method="$1" base="$2" path="$3"
+            shift 3
             curl -sS -X "$method" -H "$AUTH" -H 'content-type: application/json' \
-              --max-time 60 "${API}/${path}" "$@"
+              --max-time 60 "${base}/${path}" "$@"
           }
 
           echo "== discover =="
-          PROJECTS_JSON=$(api GET v1/projects)
-          DBS_JSON=$(api GET v1/databases)
-          NETS_JSON=$(api GET v1/networks)
+          PROJECTS_JSON=$(api_json GET "$API" v1/projects)
+          DBS_JSON=$(api_json GET "$API" v1/databases)
+          NETS_JSON=$(api_json GET "$API" v1/networks)
 
-          echo "$PROJECTS_JSON" | jq -r '.projects[]? | "app=\(.project_id // .projectId // .name) plan=\(.planID) bundle=\(.bundlePlanID) net=\(.network // .networkID // "-")"'
-          echo "$DBS_JSON" | jq -r '.databases[]? | "db=\(.hostname) plan=\(.planID) bundle=\(.bundlePlanID) status=\(.status) keys=\([. | keys[]] | join(","))"'
+          echo "$PROJECTS_JSON" | jq -r '.projects[]? | "app=\(.project_id // .name) plan=\(.planID) bundle=\(.bundlePlanID)"'
+          echo "$DBS_JSON" | jq -r '.databases[]? | "db=\(.hostname) plan=\(.planID) bundle=\(.bundlePlanID) status=\(.status) type=\(.type)"'
           echo "$NETS_JSON" | jq -r '.networks[]? | "net=\(.name) id=\(._id)"'
 
-          PROD=$(echo "$PROJECTS_JSON" | jq -c '.projects[]? | select((.project_id // .projectId // .name) == "inbox")' | head -1)
+          PROD=$(echo "$PROJECTS_JSON" | jq -c '.projects[]? | select((.project_id // .name) == "inbox")' | head -1)
           PROD_DB=$(echo "$DBS_JSON" | jq -c '.databases[]? | select(.hostname == "inbox-db")' | head -1)
           if [ -z "$PROD" ]; then
             echo "::error::Production app inbox not found — cannot mirror plan"
             exit 1
           fi
           if [ -z "$PROD_DB" ]; then
-            echo "::warning::Production DB inbox-db not found — using small-g2 / postgres / 16 defaults"
-            PROD_DB='{"planID":"small-g2","bundlePlanID":"standard","type":"postgres","version":"16"}'
+            echo "::warning::Production DB inbox-db not found — using small-g2 / postgres defaults"
+            PROD_DB='{"planID":"small-g2","bundlePlanID":"pro","type":"postgres"}'
           fi
 
           APP_PLAN="${INPUT_APP_PLAN:-$(echo "$PROD" | jq -r '.planID')}"
-          APP_BUNDLE=$(echo "$PROD" | jq -r '.bundlePlanID // "standard"')
+          APP_BUNDLE=$(echo "$PROD" | jq -r '.bundlePlanID // "pro"')
           DB_PLAN="${INPUT_DB_PLAN:-$(echo "$PROD_DB" | jq -r '.planID // "small-g2"')}"
-          DB_BUNDLE=$(echo "$PROD_DB" | jq -r '.bundlePlanID // "standard"')
-          DB_VERSION=$(echo "$PROD_DB" | jq -r '.version // "16"')
+          DB_BUNDLE=$(echo "$PROD_DB" | jq -r '.bundlePlanID // "pro"')
           DB_TYPE=$(echo "$PROD_DB" | jq -r '.type // "postgres"')
-          # Normalize postgres version to major.minor if needed
-          case "$DB_VERSION" in
-            16*|15*|14*) ;;
-            *) DB_VERSION="16" ;;
-          esac
+
+          ME_JSON=$(api_json GET "$API" v1/me)
+          DB_VERSION=$(echo "$ME_JSON" | jq -r --arg t "$DB_TYPE" '
+            (.databaseVersions[$t] // [])
+            | map(.value // . // empty)
+            | map(tostring)
+            | map(select(test("^16")))
+            | .[0] // empty
+          ')
+          if [ -z "$DB_VERSION" ]; then
+            DB_VERSION=$(echo "$ME_JSON" | jq -r --arg t "$DB_TYPE" '
+              (.databaseVersions[$t] // [])[0].value // (.databaseVersions[$t] // [])[0] // "16"
+            ')
+          fi
 
           echo "Using app_plan=$APP_PLAN bundle=$APP_BUNDLE db_type=$DB_TYPE db_plan=$DB_PLAN db_bundle=$DB_BUNDLE db_version=$DB_VERSION"
 
-          # Network
           NET_ID=$(echo "$NETS_JSON" | jq -r --arg n "$NET_NAME" '.networks[]? | select(.name == $n) | ._id' | head -1)
           if [ -z "$NET_ID" ] || [ "$NET_ID" = "null" ]; then
             echo "Creating network $NET_NAME"
-            api POST v1/networks -d "{\"networkName\":\"${NET_NAME}\"}" | tee /tmp/net-create.json
-            NETS_JSON=$(api GET v1/networks)
+            api_json POST "$API" v1/networks -d "{\"networkName\":\"${NET_NAME}\"}" >/tmp/net-create.json
+            NETS_JSON=$(api_json GET "$API" v1/networks)
             NET_ID=$(echo "$NETS_JSON" | jq -r --arg n "$NET_NAME" '.networks[]? | select(.name == $n) | ._id' | head -1)
           fi
           echo "network_id=$NET_ID"
           test -n "$NET_ID" && test "$NET_ID" != "null"
 
-          # App
-          HAS_APP=$(echo "$PROJECTS_JSON" | jq -r --arg a "$APP_NAME" '.projects[]? | select((.project_id // .projectId // .name) == $a) | .project_id // .projectId // .name' | head -1)
+          HAS_APP=$(echo "$PROJECTS_JSON" | jq -r --arg a "$APP_NAME" '.projects[]? | select((.project_id // .name) == $a) | .project_id // .name' | head -1)
           if [ -z "$HAS_APP" ]; then
             echo "Creating app $APP_NAME"
             liara app create \
@@ -120,22 +134,23 @@ jobs:
             echo "App $APP_NAME already exists"
           fi
 
-          # Database
+          # REST create avoids CLI interactive --public-network prompt
           HAS_DB=$(echo "$DBS_JSON" | jq -r --arg d "$DB_NAME" '.databases[]? | select(.hostname == $d) | .hostname' | head -1)
+          CREATE_RESP="{}"
           if [ -z "$HAS_DB" ]; then
-            echo "Creating database $DB_NAME"
-            liara db create \
-              --name="$DB_NAME" \
-              --type="$DB_TYPE" \
-              --version="$DB_VERSION" \
-              --plan="$DB_PLAN" \
-              --feature-plan="$DB_BUNDLE" \
-              --network="$NET_NAME" \
-              --yes \
-              --api-token="$LIARA_TOKEN"
-            echo "Waiting for DB to become RUNNING…"
+            echo "Creating database $DB_NAME via API"
+            CREATE_RESP=$(api_json POST "$API" v1/databases -d "$(jq -n \
+              --arg hostname "$DB_NAME" \
+              --arg planID "$DB_PLAN" \
+              --arg bundlePlanID "$DB_BUNDLE" \
+              --arg type "$DB_TYPE" \
+              --arg version "$DB_VERSION" \
+              --arg network "$NET_ID" \
+              '{hostname:$hostname,planID:$planID,bundlePlanID:$bundlePlanID,type:$type,version:$version,network:$network,publicNetwork:false}')")
+            echo "Create response (secrets redacted): $(echo "$CREATE_RESP" | jq 'walk(if type == "object" then with_entries(if (.key|test("pass|secret|token";"i")) then .value="***" else . end) else . end)' 2>/dev/null || echo ok)"
+            echo "Waiting for DB RUNNING…"
             for i in $(seq 1 36); do
-              DBS_JSON=$(api GET v1/databases)
+              DBS_JSON=$(api_json GET "$API" v1/databases)
               STATUS=$(echo "$DBS_JSON" | jq -r --arg d "$DB_NAME" '.databases[]? | select(.hostname == $d) | .status' | head -1)
               echo "try$i status=$STATUS"
               if [ "$STATUS" = "RUNNING" ]; then break; fi
@@ -143,66 +158,99 @@ jobs:
             done
           else
             echo "Database $DB_NAME already exists"
-            DBS_JSON=$(api GET v1/databases)
+            DBS_JSON=$(api_json GET "$API" v1/databases)
           fi
 
           DB_OBJ=$(echo "$DBS_JSON" | jq -c --arg d "$DB_NAME" '.databases[]? | select(.hostname == $d)' | head -1)
           if [ -z "$DB_OBJ" ]; then
             echo "::error::Staging DB not found after create"
+            echo "$CREATE_RESP" | head -c 800 || true
             exit 1
           fi
-          echo "DB object keys: $(echo "$DB_OBJ" | jq -r 'keys | join(",")')"
 
-          DB_ID=$(echo "$DB_OBJ" | jq -r '._id')
-          # Some accounts expose credentials only on the detail endpoint.
-          DETAIL=$(api GET "v1/databases/${DB_ID}" || true)
-          if echo "$DETAIL" | jq -e 'type == "object"' >/dev/null 2>&1; then
-            echo "Detail keys: $(echo "$DETAIL" | jq -r 'keys | join(",")')"
-            # Prefer detail payload when richer
-            if echo "$DETAIL" | jq -e 'has("password") or has("rootPassword") or (.database | type == "object")' >/dev/null 2>&1; then
-              DB_OBJ=$(echo "$DETAIL" | jq -c 'if .database then .database else . end')
-            fi
-          fi
+          DB_ID=$(echo "$DB_OBJ" | jq -r '._id // .id')
+          echo "db_id=$DB_ID"
 
-          pick() {
-            echo "$DB_OBJ" | jq -r "$1 // empty"
-          }
+          MERGED=$(jq -c -n --argjson a "$DB_OBJ" --argjson b "$CREATE_RESP" '$a * $b')
+          for base in "$API" "$API_IR"; do
+            for path in \
+              "v1/databases/${DB_ID}" \
+              "v1/databases/${DB_NAME}"
+            do
+              code=$(api_get "$base" "$path" /tmp/db-detail.json)
+              echo "probe ${base}/${path} -> $code"
+              if [ "$code" = "200" ] && jq -e 'type == "object"' /tmp/db-detail.json >/dev/null 2>&1; then
+                echo "  top keys: $(jq -r 'keys|join(",")' /tmp/db-detail.json)"
+                # Flatten nested .database if present (OpenAPI DB-details shape)
+                FLAT=$(jq -c 'if .database then (. * .database) else . end' /tmp/db-detail.json)
+                MERGED=$(jq -c -n --argjson a "$MERGED" --argjson b "$FLAT" '$a * $b')
+              fi
+            done
+          done
+
+          echo "Merged keys: $(echo "$MERGED" | jq -r 'keys|join(",")')"
+
+          pick() { echo "$MERGED" | jq -r "$1 // empty"; }
 
           DB_USER=$(pick '.username // .user // .rootUser // "root"')
-          DB_PASS=$(pick '.password // .rootPassword // .dbPassword')
-          DB_PORT=$(pick '.port // .privatePort // 5432')
-          DB_HOST_PRIV=$(pick '.privateNetworkHostname // .privateHostname // .hostname')
-          # On private network, hostname is the service name.
-          if [ -z "$DB_HOST_PRIV" ] || [ "$DB_HOST_PRIV" = "null" ]; then
-            DB_HOST_PRIV="$DB_NAME"
-          fi
-          DB_NAME_PG=$(pick '.databaseName // .dbName // "postgres"')
+          DB_PASS=$(pick '.root_password // .password // .rootPassword // .dbPassword')
+          DB_PORT=$(pick '.port // .privatePort // .internalPort // 5432')
+          DB_NAME_PG=$(pick '.databaseName // .dbName // .db_name // "postgres"')
+          API_URI=$(pick '.uri // .connectionUri // .privateUri // .privateNetworkUri // .DATABASE_URL')
+
+          # Private-network hostname is the DB service name
+          DB_HOST_PRIV="$DB_NAME"
 
           DATABASE_URL="${INPUT_DATABASE_URL:-}"
+          if [ -z "$DATABASE_URL" ] && [ -n "$API_URI" ] && [ "$API_URI" != "null" ]; then
+            DATABASE_URL="$API_URI"
+            echo "Using DATABASE_URL from API uri field"
+          fi
           if [ -z "$DATABASE_URL" ] && [ -n "$DB_PASS" ] && [ "$DB_PASS" != "null" ]; then
-            # URL-encode password for connection string
             ENC_PASS=$(DB_PASS="$DB_PASS" python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['DB_PASS'], safe=''))")
             DATABASE_URL="postgresql://${DB_USER}:${ENC_PASS}@${DB_HOST_PRIV}:${DB_PORT}/${DB_NAME_PG}"
             echo "Constructed DATABASE_URL from API credentials (password redacted)"
           fi
 
+          SESSION=$(openssl rand -hex 24)
+          ADMIN=$(openssl rand -hex 20)
+
           if [ -z "$DATABASE_URL" ]; then
+            liara env set \
+              --app="$APP_NAME" \
+              --api-token="$LIARA_TOKEN" \
+              --force \
+              "NUXT_PUBLIC_SITE_URL=${SITE_URL}" \
+              "NUXT_SESSION_PASSWORD=${SESSION}" \
+              "ADMIN_PROVISION_SECRET=${ADMIN}" \
+              "SEED_ON_EMPTY=true" \
+              "PAYMENTS_MODE=pay_at_club" \
+              "SMS_PROVIDER=log" \
+              "SMS_ENABLED=false" \
+              "EMAIL_ENABLED=false" \
+              "ALLOW_DEMO_AUTH=true" \
+              "SENTRY_ENVIRONMENT=staging" \
+              "PILOT_NO_COACH=false" \
+              "COMPETITIONS_ENABLED=false" || true
             {
-              echo "## Staging bootstrap blocked on DATABASE_URL"
+              echo "## Staging almost ready — DATABASE_URL needed"
               echo ""
-              echo "Liara API did not return the DB password. In [Liara console](https://console.liara.ir):"
-              echo "1. Open database **${DB_NAME}** → copy the **private network** connection URI"
-              echo "2. Re-run this workflow with input \`database_url\` set to that URI"
-              echo "3. Or set \`DATABASE_URL\` on app **${APP_NAME}** in the dashboard, then run **Deploy staging**"
+              echo "Created app \`${APP_NAME}\`, DB \`${DB_NAME}\`, network \`${NET_NAME}\`."
               echo ""
-              echo "App URL will be: ${SITE_URL}"
+              echo "Liara API did not return the DB password. Do this once:"
+              echo "1. Open [Liara console](https://console.liara.ir) → Databases → **${DB_NAME}**"
+              echo "2. Copy the **private network** connection URI"
+              echo "3. Re-run:"
+              echo ""
+              echo '```bash'
+              echo "gh workflow run bootstrap-staging.yml --ref main -f database_url='postgresql://…'"
+              echo '```'
+              echo ""
+              echo "Staging URL: ${SITE_URL}"
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error::DATABASE_URL unavailable — paste private URI into workflow input database_url and re-run"
             exit 1
           fi
-
-          SESSION=$(openssl rand -hex 24)
-          ADMIN=$(openssl rand -hex 20)
 
           echo "Setting staging env on $APP_NAME"
           liara env set \
@@ -239,7 +287,7 @@ jobs:
             echo ""
             echo "Next: run workflow **Deploy staging** (\`deploy-staging.yml\`)."
             echo ""
-            echo "Admin secret for \`x-admin-secret\` is on the Liara app env (\`ADMIN_PROVISION_SECRET\`) — read it from the dashboard if needed; it is not printed here."
+            echo "Admin secret lives on the Liara app env (\`ADMIN_PROVISION_SECRET\`) — read from dashboard if needed."
           } >> "$GITHUB_STEP_SUMMARY"
 
           echo "Staging URL: $SITE_URL"
