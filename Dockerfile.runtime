@@ -23,9 +23,11 @@ COPY shared ./shared
 # Nitro traces runtime deps into .output/server/package.json (e.g. nodemailer).
 # Install them here — CI artifacts may omit node_modules to stay under upload limits.
 # Strip Nitro's placeholder ".prisma" entry — npm rejects names that start with ".".
+# --legacy-peer-deps: npm 10 arborist otherwise crashes (edgesOut) on peer skew
+# when installing this lockfile-less Nitro package.json on Liara builders.
 WORKDIR /app/.output/server
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(p.dependencies){for(const k of Object.keys(p.dependencies)){if(k.startsWith('.'))delete p.dependencies[k]}}fs.writeFileSync('package.json',JSON.stringify(p,null,2));" \
-  && npm install --omit=dev --no-audit --no-fund --prefer-offline
+  && npm install --omit=dev --no-audit --no-fund --legacy-peer-deps
 WORKDIR /app
 
 RUN echo '{"name":"inbox-runtime","private":true}' > package.json \

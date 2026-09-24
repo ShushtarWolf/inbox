@@ -29,11 +29,13 @@ COPY --from=builder /app/scripts/lib ./scripts/lib
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/shared ./shared
 
-# Ensure traced Nitro deps exist even if the builder stage did not materialize them.
-# Strip Nitro's placeholder ".prisma" entry — npm rejects names that start with ".".
+# Nitro builder already traces runtime deps into .output/server/node_modules.
+# Do NOT re-run npm install here without a lockfile — Liara Iran npm 10 hits
+# arborist "edgesOut" crashes (EREOLVE peer set) and leaves public 502s.
+# Strip Nitro's placeholder ".prisma" entry from the manifest only.
 WORKDIR /app/.output/server
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(p.dependencies){for(const k of Object.keys(p.dependencies)){if(k.startsWith('.'))delete p.dependencies[k]}}fs.writeFileSync('package.json',JSON.stringify(p,null,2));" \
-  && npm install --omit=dev --no-audit --no-fund --prefer-offline
+  && test -d node_modules && test -n "$(ls -A node_modules)"
 WORKDIR /app
 
 # Minimal manifest first — npm arborist crashes when --no-save targets are added
