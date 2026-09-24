@@ -2,6 +2,8 @@
 
 Production runs on **Liara** (`inbox` app, `https://inboxs.ir`). Postgres is the Liara `inbox-db` service.
 
+**Staging (team test):** app `inbox-staging` → `https://inbox-staging.liara.run`, DB `inbox-staging-db`. See [STAGING.md](./STAGING.md). Deploy with `deploy-staging.yml` only — never shares prod DB.
+
 ## Environment variables (production)
 
 | Variable | Required | Description |

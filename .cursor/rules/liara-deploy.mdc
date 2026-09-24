@@ -9,6 +9,8 @@ alwaysApply: true
 
 Production: Liara app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Prefer GitHub Actions; local `liara deploy` only if Actions is unavailable (say so first).
 
+**Staging:** app **`inbox-staging`**, URL **`https://inbox-staging.liara.run`**, workflow **`deploy-staging.yml`**. Separate DB (`inbox-staging-db`). See `docs/STAGING.md`. “Deploy staging” ≠ production deploy.
+
 ## Build location order (locked)
 
 Liara CLI `--build-location` only accepts **`iran`** | **`germany`** (no France option today).

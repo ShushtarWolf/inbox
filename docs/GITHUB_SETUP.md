@@ -56,6 +56,8 @@ Avoid appending `Co-authored-by: Cursor` on every commit unless you intend to sh
 
 Production deploys are **manual only** — trigger **Deploy to Liara** from the Actions tab or ask the agent to run `gh workflow run deploy.yml --ref main`. Pushes to `main` do not auto-deploy.
 
+**Staging:** one-time `bootstrap-staging.yml`, then **Deploy staging** (`deploy-staging.yml`) → `https://inbox-staging.liara.run`. Details: [STAGING.md](./STAGING.md).
+
 `deploy.yml` prefers a green **CI** run for the same commit (skips duplicate smoke rebuild). Primary path: build Nuxt on Actions → thin `Dockerfile.runtime` context → Liara Germany. If that fails, **full-source** `liara deploy` on Iran (multi-stage `Dockerfile`). Concurrent deploys wait in line (`cancel-in-progress: false`).
 
 One-time secret (Settings → Secrets and variables → Actions):
