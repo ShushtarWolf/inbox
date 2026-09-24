@@ -366,7 +366,7 @@ describe('bookingNotify SMS', () => {
     expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
       to: '09129876543',
       body: 'https://inboxs.ir/p/ab12cd9x',
-      lookup: { template: 'payments', token: 'ab12cd9x' },
+      lookup: { template: 'payments', token: 'ab12cd9x', token10: 'دوست' },
     }))
   })
 
@@ -385,7 +385,26 @@ describe('bookingNotify SMS', () => {
     })
 
     expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
-      lookup: { template: 'payments', token: 'ab12cd9x' },
+      lookup: { template: 'payments', token: 'ab12cd9x', token10: 'دوست' },
+    }))
+  })
+
+  it('passes guest name as pay-link token10', async () => {
+    process.env.KAVENEGAR_TEMPLATE_PAY_LINK = 'payments'
+    resolveSmsProvider.mockReturnValue('live')
+    sendNotification.mockResolvedValue({ sent: true })
+    sendSms.mockResolvedValue({ sent: true })
+
+    await notifyBookingConfirmed({
+      ...guestOnlyOpts,
+      guestName: 'حمید',
+      paymentPaid: false,
+      payPin: 'ab12cd9x',
+      payUrl: 'https://inboxs.ir/p/ab12cd9x',
+    })
+
+    expect(sendSms).toHaveBeenCalledWith(expect.objectContaining({
+      lookup: { template: 'payments', token: 'ab12cd9x', token10: 'حمید' },
     }))
   })
 

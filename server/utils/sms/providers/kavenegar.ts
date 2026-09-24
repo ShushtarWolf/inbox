@@ -201,7 +201,7 @@ async function sendViaKavenegar(
   to: string,
   body: string,
   purpose?: string,
-  lookup?: { template: string; token?: string; token2?: string },
+  lookup?: { template: string; token?: string; token2?: string; token10?: string },
 ) {
   const receptor = normalizeReceptor(to)
   const otpTemplate = process.env.KAVENEGAR_TEMPLATE?.trim()
@@ -210,13 +210,20 @@ async function sendViaKavenegar(
   if (lookup?.template) {
     const lookupToken = toKavenegarLookupToken(lookup.token)
     const lookupToken2 = toKavenegarLookupToken(lookup.token2)
+    // token10 keeps Persian letters (guest name on pay-link). Do not run through lookupToken scrub.
+    const lookupToken10 = lookup.token10 != null
+      ? toKavenegarToken10(lookup.token10)
+      : ''
     const params: Record<string, string> = {
       receptor,
       template: lookup.template,
     }
     if (lookupToken) params.token = lookupToken
     if (lookupToken2) params.token2 = lookupToken2
-    if (!params.token && !params.token2) params.token = toKavenegarToken10(body).slice(0, 20)
+    if (lookupToken10) params.token10 = lookupToken10
+    if (!params.token && !params.token2 && !params.token10) {
+      params.token = toKavenegarToken10(body).slice(0, 20)
+    }
     return kavenegarRequest('verify/lookup.json', params)
   }
 

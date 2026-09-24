@@ -37,7 +37,7 @@ export async function sendNotification(opts: {
   template: NotifyTemplate
   data: Record<string, unknown>
   clubId?: string
-  lookup?: { template: string; token?: string; token2?: string }
+  lookup?: { template: string; token?: string; token2?: string; token10?: string }
 }) {
   if (opts.channel === 'email') {
     try {

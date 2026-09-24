@@ -1864,7 +1864,7 @@
     "payLinkSmsFailed": "ارسال پیامک لینک پرداخت ناموفق بود",
     "payLinkSentTitle": "لینک پرداخت",
     "payLinkSentHint": "رزرو ثبت شد. لینک را کپی کنید، با واتساپ بفرستید، یا با پیامک اینباکس برای ورزشکار بفرستید.",
-    "payLinkWhatsappText": "لینک پرداخت رزرو اینباکس:\n{url}",
+    "payLinkWhatsappText": "{name} عزیز،\nبرای تکمیل رزرو شما در Inboxs، لطفاً از طریق لینک زیر پرداخت را انجام دهید:\n\n{url}",
     "payCash": "پرداخت نقدی",
     "payComplimentary": "ثبت رایگان",
     "reserveUnpaid": "رزرو بدون دریافت وجه",

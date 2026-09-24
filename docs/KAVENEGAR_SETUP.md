@@ -59,12 +59,23 @@ Panel template must include `%token%` (Kavenegar requirement) plus `%token10%` f
 ## 3) Tappable pay link (desk «ارسال با پیامک اینباکس»)
 
 Template name: `payments`  
-Body example:
+
+**Critical:** Kavenegar placeholders are `%token` / `%token10` — **no trailing `%`**.  
+A panel body with `https://inboxs.ir/p/%token%` leaves a stray `%` in the SMS URL
+(`…/p/%v4v73z4n` or `…/p/v4v73z4n%`) and the link returns HTTP 400.
+
+Body (paste exactly):
 
 ```
-لینک پرداخت اینباکس
-https://inboxs.ir/p/%token%
+%token10 عزیز،
+برای تکمیل رزرو شما در Inboxs، لطفاً از طریق لینک زیر پرداخت را انجام دهید:
+
+https://inboxs.ir/p/%token
 ```
+
+- `%token10` → guest first name (fallback «دوست»)
+- `%token` → 8-char pay pin  
+Operator footer «لغو 11» is appended by the carrier — do not put it in the template.
 
 Liara: `KAVENEGAR_TEMPLATE_PAY_LINK=payments`  
 Works with Path A (`TEMPLATE_NOTIFY=off`) — pay-link uses Verify Lookup; other booking SMS use the 998 line.

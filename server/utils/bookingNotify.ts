@@ -223,14 +223,17 @@ function payLinkLookupTemplate() {
 }
 
 /**
- * Optional tappable pay-link SMS via dedicated Verify Lookup template
- * (e.g. panel `payments` with `https://inboxs.ir/p/%token%`).
- * Works on Path A too — Lookup is independent of free-text notify.
+ * Optional tappable pay-link SMS via dedicated Verify Lookup template.
+ * Panel must use Kavenegar placeholders WITHOUT a trailing %:
+ * `%token10` = guest first name, `%token` = 8-char pay pin in
+ * `https://inboxs.ir/p/%token` — a trailing `%` (`%token%`) leaves a stray
+ * `%` in the URL and browsers/proxies return 400.
  */
 export async function sendBookingPayLinkSms(opts: {
   phone: string | null | undefined
   payPin: string
   payUrl?: string
+  guestName?: string | null
   clubId?: string
 }) {
   const template = payLinkLookupTemplate()
@@ -239,6 +242,7 @@ export async function sendBookingPayLinkSms(opts: {
   if (!phone || !template || !payPin) {
     return { sent: false, reason: !template ? 'template_unset' : 'missing_phone_or_pin' as const }
   }
+  const guestName = String(opts.guestName || '').trim() || 'دوست'
   try {
     const result = await sendSms({
       to: phone,
@@ -246,7 +250,7 @@ export async function sendBookingPayLinkSms(opts: {
       clubId: opts.clubId,
       purpose: 'notify',
       template: 'BOOKING_CONFIRMED',
-      lookup: { template, token: payPin },
+      lookup: { template, token: payPin, token10: guestName },
     })
     return { sent: Boolean(result.sent), reason: result.sent ? 'ok' as const : 'not_sent' as const }
   } catch (err) {
@@ -261,8 +265,9 @@ async function sendPayLinkLookup(
   payPin: string,
   payUrl: string,
   clubId?: string,
+  guestName?: string | null,
 ) {
-  await sendBookingPayLinkSms({ phone, payPin, payUrl, clubId })
+  await sendBookingPayLinkSms({ phone, payPin, payUrl, guestName, clubId })
 }
 
 function bookingNotifyData(opts: BookingNotifyOpts) {
@@ -369,7 +374,13 @@ export async function notifyBookingConfirmed(opts: BookingNotifyOpts) {
     await safeEmail(opts.email, 'BOOKING_CONFIRMED', data)
     await safeSms(opts.phone, 'BOOKING_CONFIRMED', data, opts.clubId)
     if (!opts.skipGuest && opts.paymentPaid !== true && data.payPin) {
-      await sendPayLinkLookup(opts.phone, String(data.payPin), String(data.payUrl || ''), opts.clubId)
+      await sendPayLinkLookup(
+        opts.phone,
+        String(data.payPin),
+        String(data.payUrl || ''),
+        opts.clubId,
+        opts.guestName,
+      )
     }
   }
   await notifyAdminSms('ADMIN_BOOKING_CONFIRMED', adminBookingData(opts), opts.clubId)

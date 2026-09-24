@@ -55,7 +55,7 @@ const occurrences = ref<PreviewRow[]>([])
 const conflicts = ref<ConflictRow[]>([])
 const totalAmount = ref(0)
 
-const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
+const lastPayLink = ref<{ url: string; pin: string; mobile: string; guestName?: string } | null>(null)
 const payLinkCopied = ref(false)
 const done = ref(false)
 const slotsCreated = ref(0)
@@ -342,6 +342,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
         url: result.payUrl,
         pin: result.payPin,
         mobile: normalizeIranPhone(guestMobile.value) || guestMobile.value,
+        guestName: guest.guestName,
       }
     }
     done.value = true
@@ -370,7 +371,8 @@ async function copyPayLink() {
 const payLinkWhatsappHref = computed(() => {
   const link = lastPayLink.value
   if (!link) return ''
-  return whatsappHrefForIranMobile(link.mobile, t('owner.payLinkWhatsappText', { url: link.url }))
+  const name = String(link.guestName || '').trim() || 'دوست'
+  return whatsappHrefForIranMobile(link.mobile, t('owner.payLinkWhatsappText', { url: link.url, name }))
 })
 
 const localExpandCount = computed(() => {

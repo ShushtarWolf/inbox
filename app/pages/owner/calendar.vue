@@ -181,7 +181,7 @@ watch(flashMessage, (msg) => {
     flashClearTimer = null
   }, 4000)
 })
-const lastPayLink = ref<{ url: string; pin: string; mobile: string } | null>(null)
+const lastPayLink = ref<{ url: string; pin: string; mobile: string; guestName?: string } | null>(null)
 const payLinkCopied = ref(false)
 const payLinkSmsPending = ref(false)
 const payLinkSmsStatus = ref<'idle' | 'sent' | 'failed'>('idle')
@@ -1416,7 +1416,8 @@ async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
 const payLinkWhatsappHref = computed(() => {
   const link = lastPayLink.value
   if (!link) return ''
-  return whatsappHrefForIranMobile(link.mobile, t('owner.payLinkWhatsappText', { url: link.url }))
+  const name = String(link.guestName || '').trim() || 'دوست'
+  return whatsappHrefForIranMobile(link.mobile, t('owner.payLinkWhatsappText', { url: link.url, name }))
 })
 
 async function copyPayLink() {
@@ -2180,6 +2181,7 @@ async function doReserve() {
         url: payLink.payUrl,
         pin: payLink.payPin,
         mobile: form.guestMobile,
+        guestName: guest.guestName,
       }
       payLinkCopied.value = false
       payLinkSmsPending.value = false

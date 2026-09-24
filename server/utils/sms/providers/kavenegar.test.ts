@@ -269,14 +269,15 @@ describe('kavenegarSmsProvider', () => {
       body: 'https://inboxs.ir/p/ab12cd9x',
       purpose: 'notify',
       template: 'BOOKING_CONFIRMED',
-      lookup: { template: 'inbox-pay', token: 'ab12cd9x' },
+      lookup: { template: 'inbox-pay', token: 'ab12cd9x', token10: 'حمید' },
     })
 
     const calledUrl = String(fetchMock.mock.calls[0]![0])
     expect(calledUrl).toContain('/verify/lookup.json')
     expect(calledUrl).toContain('template=inbox-pay')
     expect(calledUrl).toContain('token=ab12cd9x')
-    expect(calledUrl).not.toContain('token10=')
+    expect(calledUrl).toContain('token10=')
+    expect(decodeURIComponent(calledUrl)).toContain('حمید')
     expect(calledUrl).not.toContain('template=inbox-notify')
   })
 

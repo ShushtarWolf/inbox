@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       payPin,
       slot: { court: { clubId: club.id } },
     },
-    select: { id: true, payPin: true },
+    select: { id: true, payPin: true, guestName: true },
   })
   if (!booking) {
     throw createError({ statusCode: 404, statusMessage: 'Pay link not found for this club' })
@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
     phone,
     payPin,
     payUrl: payUrlForPin(payPin),
+    guestName: booking.guestName,
     clubId: club.id,
   })
 
