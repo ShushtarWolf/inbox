@@ -33,6 +33,18 @@ if (process.env.SKIP_MIGRATE !== 'true') {
   console.log('[start-production] SKIP_MIGRATE=true — skipping migrations')
 }
 
+async function upsertSportsOnly(prisma) {
+  // Keep boot alive when full prisma seed cannot resolve Nuxt aliases in the slim image.
+  const sports = [
+    { slug: 'padel', nameFa: 'پدل', nameEn: 'Padel', icon: 'padel' },
+    { slug: 'tennis', nameFa: 'تنیس', nameEn: 'Tennis', icon: 'tennis' },
+  ]
+  for (const s of sports) {
+    await prisma.sport.upsert({ where: { slug: s.slug }, update: s, create: s })
+  }
+  console.log('[start-production] Upserted sports catalog (padel, tennis)')
+}
+
 async function ensureCatalog() {
   const prisma = new PrismaClient({ datasourceUrl: dbUrl })
   try {
@@ -42,7 +54,15 @@ async function ensureCatalog() {
       return
     }
     console.log('[start-production] Sports catalog empty — seeding catalog')
-    run('npx prisma db seed', 'Seeding sports catalog…')
+    try {
+      run('npx prisma db seed', 'Seeding sports catalog…')
+    } catch (err) {
+      console.error(
+        '[start-production] Full seed failed — falling back to sports-only upsert',
+        err instanceof Error ? err.message : err,
+      )
+      await upsertSportsOnly(prisma)
+    }
   } finally {
     await prisma.$disconnect()
   }

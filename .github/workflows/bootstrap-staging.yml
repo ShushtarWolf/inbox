@@ -194,7 +194,8 @@ jobs:
 
           DB_USER=$(pick '.username // .user // .rootUser // "root"')
           DB_PASS=$(pick '.root_password // .password // .rootPassword // .dbPassword')
-          DB_PORT=$(pick '.port // .privatePort // .internalPort // 5432')
+          if [ -z "$DB_USER" ] || [ "$DB_USER" = "null" ]; then DB_USER=root; fi
+          DB_PORT=$(pick '.internalPort // .privatePort // .port // 5432')
           DB_NAME_PG=$(pick '.databaseName // .dbName // .db_name // "postgres"')
           API_URI=$(pick '.uri // .connectionUri // .privateUri // .privateNetworkUri // .DATABASE_URL')
 
@@ -208,7 +209,7 @@ jobs:
           fi
           if [ -z "$DATABASE_URL" ] && [ -n "$DB_PASS" ] && [ "$DB_PASS" != "null" ]; then
             ENC_PASS=$(DB_PASS="$DB_PASS" python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['DB_PASS'], safe=''))")
-            DATABASE_URL="postgresql://${DB_USER}:${ENC_PASS}@${DB_HOST_PRIV}:${DB_PORT}/${DB_NAME_PG}"
+            DATABASE_URL="postgresql://${DB_USER}:${ENC_PASS}@${DB_HOST_PRIV}:${DB_PORT}/${DB_NAME_PG}?sslmode=disable"
             echo "Constructed DATABASE_URL from API credentials (password redacted)"
           fi
 
