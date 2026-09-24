@@ -1,0 +1,42 @@
+name: Liara staging logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch staging logs + env keys + DB status
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          AUTH="Authorization: Bearer ${LIARA_TOKEN}"
+          API=https://api.liara.ir
+          API_IR=https://api.iran.liara.ir
+
+          echo '=== app list (staging) ==='
+          curl -sS -H "$AUTH" "$API/v1/projects" | jq -r '.projects[]? | select((.project_id // .name)=="inbox-staging") | {project_id, status, scale, planID, network}'
+
+          echo '=== db status ==='
+          curl -sS -H "$AUTH" "$API/v1/databases" | jq -c '.databases[]? | select(.hostname=="inbox-staging-db") | {hostname,status,scale,network,internalPort,publicNetwork}'
+
+          echo '=== env keys (no values) ==='
+          liara env list --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | head -80 || true
+
+          echo '=== recent logs ==='
+          timeout 45s liara logs --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | tail -120 || true
+          timeout 45s liara app logs --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | tail -120 || true
+
+          echo '=== release list ==='
+          liara release list --app inbox-staging --api-token="$LIARA_TOKEN" 2>&1 | head -40 || true
+
+          echo '=== DB detail ports (password redacted) ==='
+          DB_ID=$(curl -sS -H "$AUTH" "$API/v1/databases" | jq -r '.databases[]? | select(.hostname=="inbox-staging-db") | ._id')
+          curl -sS -H "$AUTH" "$API_IR/v1/databases/${DB_ID}" | jq 'walk(if type=="object" then with_entries(if (.key|test("pass|secret|token";"i")) then .value="***" else . end) else . end) | {username,internalPort,port,hostname,status,network,root_password,database}'
