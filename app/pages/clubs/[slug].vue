@@ -146,7 +146,7 @@ const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
 const selectedCourtIds = ref<string[]>(
   deepLinkSlotIds.length || deepLinkTimes.length ? deepLinkCourtIds : [],
 )
-/** Survive date changes + AuthFlow navigateTo (multi-day basket). */
+/** Survive AuthFlow navigateTo (same club page after login). Cleared when the calendar date changes. */
 const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
 const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
@@ -222,7 +222,11 @@ watch(
 
 watch(selectedDate, () => {
   if (suppressSlotClear) return
-  // Multi-day basket: keep selectedSlotIds / courts; only reset waitlist for the left day.
+  // Date switch starts a fresh day context: drop prior-day picks so the footer cannot
+  // still read as a booking for the newly selected day (QA: stale summary after date change).
+  // Multi-day in one checkout: pick all hours on one day, or re-add after switching back.
+  clearBasket()
+  selectedCourtIds.value = []
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
 })
@@ -510,6 +514,11 @@ const selectedCourt = computed(() => {
   return courts.value.find((c) => c.id === focusedCourtId.value) || courts.value[0]
 })
 
+/**
+ * Prefer club catalog range (same priceFrom/priceTo as listing cards). Only expand into
+ * labeled time-bands when the focused court has 2+ distinct band prices — never collapse
+ * a club-wide range to a single court/slot sample (QA: list vs detail mismatch).
+ */
 const pricingFootnotes = computed(() => {
   if (!club.value) return [] as string[]
   const notes: string[] = []
@@ -534,54 +543,18 @@ const pricingFootnotes = computed(() => {
         to: toThousand(Math.max(...distinctBandPrices)),
       }))
     }
-  } else if (bands.length === 1 && bands[0]) {
-    notes.push(t('clubs.sessionRateSingle', { price: toThousand(bands[0].price) }))
   } else {
-    const clubPricing = club.value.pricing || []
-    const labeled = clubPricing
-      .map((row) => {
-        const label = localizedField(row, 'labelFa', 'labelEn') || row.labelFa || row.labelEn
-        const price = typeof row.price === 'number'
-          ? row.price
-          : typeof row.from === 'number'
-            ? row.from
-            : null
-        return label && price != null ? { label, price } : null
-      })
-      .filter((row): row is { label: string; price: number } => row != null)
-    const distinctLabeled = [...new Set(labeled.map((row) => row.price))]
-
-    if (labeled.length >= 2 && distinctLabeled.length >= 2) {
-      for (const row of labeled) {
-        notes.push(t('clubs.sessionRateBand', { label: row.label, price: toThousand(row.price) }))
-      }
-    } else {
-      const slotPrices = [
-        ...new Set(
-          courtSlots.value
-            .map((s) => s.price)
-            .filter((p): p is number => typeof p === 'number' && p >= 0),
-        ),
-      ]
-      if (slotPrices.length === 1) {
-        notes.push(t('clubs.sessionRateSingle', { price: toThousand(slotPrices[0]!) }))
-      } else if (slotPrices.length >= 2) {
-        notes.push(t('clubs.sessionRateRangeNote', {
-          from: toThousand(Math.min(...slotPrices)),
-          to: toThousand(Math.max(...slotPrices)),
-        }))
-      } else {
-        const price = court?.price ?? club.value.priceFrom
-        const priceTo = club.value.priceTo
-        if (price != null && priceTo != null && priceTo !== price) {
-          notes.push(t('clubs.sessionRateRangeNote', {
-            from: toThousand(price),
-            to: toThousand(priceTo),
-          }))
-        } else if (price != null) {
-          notes.push(t('clubs.sessionRateSingle', { price: toThousand(price) }))
-        }
-      }
+    const from = club.value.priceFrom
+    const to = club.value.priceTo
+    if (from != null && to != null && from !== to) {
+      notes.push(t('clubs.sessionRateRangeNote', {
+        from: toThousand(from),
+        to: toThousand(to),
+      }))
+    } else if (from != null || to != null) {
+      notes.push(t('clubs.sessionRateSingle', {
+        price: toThousand(from ?? to ?? 0),
+      }))
     }
   }
 
