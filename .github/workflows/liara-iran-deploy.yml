@@ -12,7 +12,7 @@ concurrency:
 jobs:
   deploy-iran:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,7 +24,8 @@ jobs:
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
-          timeout 75m liara deploy \
+          # Same 20m cap as deploy.yml — a stuck Iran builder must not sit for 75m.
+          timeout 20m liara deploy \
             --app=inbox \
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \

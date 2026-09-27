@@ -15,7 +15,7 @@ Production: Liara app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Prefer
 
 Liara CLI `--build-location` only accepts **`iran`** | **`germany`** (no France option today).
 
-1. **Iran first** — primary path in `deploy.yml` (full-source `Dockerfile` on Iran).
+1. **Iran first** — primary path in `deploy.yml` (full-source `Dockerfile` on Iran). A healthy Iran build is ~9 minutes. The `liara deploy` cap is **20 minutes** (`timeout-minutes: 30` on the job). Do not raise it back to 75 minutes: a stuck builder must fail the Iran job so Germany can start.
 2. **Germany second** — only if Iran did not succeed (prebuilt `Dockerfile.runtime` on Germany).
 3. Do **not** invent a France build path until Liara documents it.
 

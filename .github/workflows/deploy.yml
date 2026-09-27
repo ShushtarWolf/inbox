@@ -117,7 +117,8 @@ jobs:
       && needs.gate.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Healthy Iran builds finish in ~9m. 30m kills a stuck CLI if `timeout` does not.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -130,7 +131,10 @@ jobs:
           set -euo pipefail
           npm i -g @liara/cli@9
           # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
-          timeout 75m liara deploy \
+          # Cap at 20m (~2× a healthy ~9m build). A stuck Iran builder must fail
+          # this job so the already-built Germany context can start. Do not raise
+          # this back to 75m — that blocks production for over an hour.
+          timeout 20m liara deploy \
             --app=inbox \
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
