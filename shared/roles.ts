@@ -52,6 +52,18 @@ export function hasRole(user: RolesUser, role: PlatformRole | string): boolean {
   return userRoles(user).includes(role as PlatformRole)
 }
 
+/**
+ * Self-serve coach booking must run in the athlete panel when that role is held.
+ * Coach-only accounts have no athlete panel to switch to, so they are not blocked.
+ */
+export function mustSwitchToAthletePanel(
+  activeRole: string | null | undefined,
+  heldRoles: readonly string[],
+): boolean {
+  if (!activeRole || activeRole === 'ATHLETE') return false
+  return heldRoles.includes('ATHLETE')
+}
+
 /** Password sign-in / reset: club owners and coaches only. Athletes stay OTP-only. */
 export function canPasswordAuth(user: RolesUser): boolean {
   return hasRole(user, 'CLUB_ADMIN') || hasRole(user, 'COACH')

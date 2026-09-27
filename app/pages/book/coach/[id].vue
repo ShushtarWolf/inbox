@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { mustSwitchToAthletePanel } from '#shared/roles.ts'
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const id = route.params.id as string
 const { user, fetch: fetchAuth } = useAuth()
-const { onlineEnabled } = useCheckout()
+const { activeRole, heldRoles, rememberRole } = usePlatformRoles()
+const { onlineEnabled, startCheckout } = useCheckout()
 const { smsPhase, multiReady } = useSmsCapability()
 const { formatCurrency, formatTimeRange, formatHours } = useFormatters()
 const { today } = useLocalDate()
@@ -18,6 +21,8 @@ useSeoMeta({
 const date = ref(typeof route.query.date === 'string' ? route.query.date : today())
 const startTime = ref(typeof route.query.time === 'string' ? route.query.time : '')
 const done = ref(false)
+const bookedSessionId = ref('')
+const paying = ref(false)
 const joiningWaitlist = ref(false)
 const feedback = ref('')
 const feedbackTone = ref<'success' | 'error'>('success')
@@ -53,6 +58,13 @@ const { data: availability, pending, error } = await useFetch<CoachAvailability>
 })
 
 const availableSlots = computed(() => availability.value?.slots || [])
+const mustSwitchToAthlete = computed(() =>
+  mustSwitchToAthletePanel(activeRole.value, heldRoles.value),
+)
+
+function switchToAthlete() {
+  rememberRole('ATHLETE')
+}
 
 function selectSlot(slot: CoachAvailabilitySlot) {
   startTime.value = slot.startTime
@@ -111,16 +123,18 @@ async function confirm() {
     feedback.value = t('booking.onlinePaymentsRequired')
     return
   }
+  if (mustSwitchToAthlete.value) return
   if (!startTime.value) {
     feedbackTone.value = 'error'
     feedback.value = t('booking.selectTime')
     return
   }
   try {
-    await $fetch('/api/bookings/coach', {
+    const session = await $fetch<{ id: string }>('/api/bookings/coach', {
       method: 'POST',
       body: { coachId: id, date: date.value, startTime: startTime.value },
     })
+    bookedSessionId.value = session.id
     bookedPrice.value = availability.value?.sessionPrice || coach.value?.sessionPrice || null
     done.value = true
     feedbackTone.value = 'success'
@@ -131,7 +145,22 @@ async function confirm() {
   }
 }
 
+async function pay() {
+  if (!bookedSessionId.value || paying.value) return
+  paying.value = true
+  feedback.value = ''
+  try {
+    await startCheckout({ coachSessionId: bookedSessionId.value })
+  } catch (error: unknown) {
+    feedbackTone.value = 'error'
+    feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
+  } finally {
+    paying.value = false
+  }
+}
+
 async function joinWaitlist() {
+  if (mustSwitchToAthlete.value) return
   joiningWaitlist.value = true
   const window = waitlistWindow()
   try {
@@ -237,8 +266,14 @@ onMounted(() => {
         v-if="!done"
         class="venus-sticky-action space-y-2"
       >
+        <template v-if="mustSwitchToAthlete">
+          <p class="text-start text-sm text-brand-gray-600">{{ t('booking.switchToAthleteToBook') }}</p>
+          <button type="button" class="canva-gate-btn-primary w-full" @click="switchToAthlete">
+            {{ t('auth.switchToAthlete') }}
+          </button>
+        </template>
         <button
-          v-if="availableSlots.length"
+          v-else-if="availableSlots.length"
           type="button"
           class="canva-gate-btn-primary w-full"
           :disabled="!onlineEnabled"
@@ -264,11 +299,21 @@ onMounted(() => {
       <p v-else-if="smsPhase === 'SINGLE'" class="text-sm text-brand-gray-600">
         {{ t('booking.smsDeliveryNoteSingle') }}
       </p>
-      <template v-if="onlineEnabled">
-        <p class="text-sm text-brand-gray-600">{{ t('booking.payNow') }}</p>
-      </template>
-      <p v-else class="text-sm text-brand-error">{{ t('booking.onlinePaymentsRequired') }}</p>
-      <NuxtLink :to="localePath('/athlete/bookings')" class="canva-gate-btn-primary mt-2 inline-block w-full">{{ t('booking.viewBookings') }}</NuxtLink>
+      <p v-if="feedback && feedbackTone === 'error'" class="text-sm text-brand-error">{{ feedback }}</p>
+      <button
+        v-if="onlineEnabled && bookedSessionId"
+        type="button"
+        class="canva-gate-btn-primary mt-2 w-full"
+        :class="{ 'canva-cta-busy': paying }"
+        :aria-busy="paying"
+        @click="pay"
+      >{{ paying ? t('booking.redirectingToGateway') : t('booking.payNow') }}</button>
+      <p v-else-if="!onlineEnabled" class="text-sm text-brand-error">{{ t('booking.onlinePaymentsRequired') }}</p>
+      <NuxtLink
+        v-if="heldRoles.includes('ATHLETE')"
+        :to="localePath('/athlete/bookings')"
+        class="canva-gate-btn-secondary mt-2 inline-block w-full"
+      >{{ t('booking.viewBookings') }}</NuxtLink>
     </div>
   </div>
 </template>

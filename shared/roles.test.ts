@@ -6,6 +6,7 @@ import {
   canPasswordAuth,
   canPasswordLogin,
   hasRole,
+  mustSwitchToAthletePanel,
   packRoleSlots,
   pickPrimaryRole,
   platformRoleForStaffInvite,
@@ -26,6 +27,14 @@ describe('roles helpers', () => {
       tertiaryRole: 'ATHLETE',
     })).toEqual(['CLUB_ADMIN', 'COACH', 'ATHLETE'])
     expect(userRoles({ role: 'ATHLETE', secondaryRole: 'ATHLETE' })).toEqual(['ATHLETE'])
+  })
+
+  it('requires an athlete-panel switch only when that role is held', () => {
+    expect(mustSwitchToAthletePanel('COACH', ['COACH', 'ATHLETE'])).toBe(true)
+    expect(mustSwitchToAthletePanel('CLUB_ADMIN', ['CLUB_ADMIN', 'ATHLETE'])).toBe(true)
+    expect(mustSwitchToAthletePanel('ATHLETE', ['ATHLETE', 'COACH'])).toBe(false)
+    expect(mustSwitchToAthletePanel('COACH', ['COACH'])).toBe(false)
+    expect(mustSwitchToAthletePanel(null, ['ATHLETE'])).toBe(false)
   })
 
   it('hasRole checks all slots', () => {
