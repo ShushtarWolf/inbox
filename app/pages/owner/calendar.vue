@@ -4120,14 +4120,6 @@ watch(pilotNoCoach, (off) => {
             </button>
             <button
               type="button"
-              class="canva-gate-btn-secondary w-full"
-              :disabled="saving || confirming"
-              @click="confirmDeskPay('complimentary')"
-            >
-              {{ (saving || confirming) && deskPayMode === 'complimentary' ? t('common.loading') : t('owner.payComplimentary') }}
-            </button>
-            <button
-              type="button"
               class="canva-desk-pay-tertiary w-full"
               :disabled="saving || confirming"
               @click="confirmDeskPay('unpaid')"
