@@ -3698,15 +3698,11 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backToMenu">
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <AppFormField :label="t('owner.guestName')">
@@ -3741,14 +3737,17 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving || (cancelSeries ? !canCancelSeries : !slotsForCancel().length)" @click="doCancel">{{ cancelSeries ? t('owner.cancelSeason') : t('owner.cancelBooking') }}</button>
-            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
+            <button type="button" class="canva-sheet-submit" :disabled="!cancelReason || saving || (cancelSeries ? !canCancelSeries : !slotsForCancel().length)" @click="doCancel">{{ cancelSeries ? t('owner.cancelSeason') : t('owner.cancelBooking') }}</button>
           </div>
         </div>
 
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
-            <div class="canva-reserve-head">
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <div class="canva-reserve-head mt-1">
               <h3 class="canva-reserve-title">
                 <AppIcon name="person_add" size="sm" class="text-brand-primary" />
                 {{ reserveMenuLabel() }}
@@ -3960,31 +3959,21 @@ watch(pilotNoCoach, (off) => {
             >
               <textarea id="owner-reserve-comments-note" v-model="form.comments" class="neo-textarea" rows="2" />
             </AppFormField>
-          </form>
-          <div class="venus-modal-footer">
-            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
-            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button
-              type="button"
-              class="canva-gate-btn-primary"
-              :disabled="!canSubmitReserve()"
-              @click="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()"
-            >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <div
               v-if="isNewReservation() && (canShowSeasonReserve() || canShowPackageReserve())"
-              class="flex flex-col gap-2 sm:flex-row"
+              class="canva-reserve-head-links"
             >
               <button
                 v-if="canShowSeasonReserve()"
                 type="button"
-                class="canva-gate-btn-secondary sm:flex-1"
+                class="canva-reserve-head-link"
                 :disabled="saving"
                 @click="openSeasonReserveButton"
               >{{ t('owner.seasonReserve') }}</button>
               <button
                 v-if="canShowPackageReserve()"
                 type="button"
-                class="canva-gate-btn-secondary sm:flex-1"
+                class="canva-reserve-head-link"
                 :disabled="saving"
                 @click="openPackageForm"
               >{{ t('owner.packageReserve') }}</button>
@@ -3993,10 +3982,20 @@ watch(pilotNoCoach, (off) => {
               :court-price="courtPrice"
               :equipment-price="reserveEquipmentPrice"
             />
+          </form>
+          <div class="venus-modal-footer !space-y-2 !py-3">
+            <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
+            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+            <button
+              type="button"
+              class="canva-sheet-submit"
+              :disabled="!canSubmitReserve()"
+              @click="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()"
+            >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
               type="button"
-              class="canva-gate-btn-primary"
+              class="canva-sheet-submit"
               :disabled="saving"
               @click="doMarkPaid"
             >
@@ -4005,27 +4004,22 @@ watch(pilotNoCoach, (off) => {
             <button
               v-if="isEditingBooking() && canMarkUnpaid()"
               type="button"
-              class="canva-gate-btn-secondary"
+              class="canva-sheet-submit-secondary"
               :disabled="saving"
               @click="doMarkUnpaid"
             >
               {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
 
         <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel canva-desk-pay-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
-            <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs" @click="backFromPayConfirm">
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</h3>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backFromPayConfirm">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</h3>
             <p class="mt-1 text-start text-sm font-bold text-brand-navy">{{ clubCalendarTitle }}</p>
           </div>
           <div class="venus-modal-panel-body canva-desk-pay !pt-1">
@@ -4189,20 +4183,11 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'block'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn-ghost px-2 py-1 text-xs"
-                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
-                @click="backToMenu"
-              >
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.blockFormTitle') }}</h3>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.blockFormTitle') }}</h3>
           </div>
           <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doBlock">
             <ul v-if="slotsForBlock().length && !(blockWeeklyEnabled && blockWeeks > 1)" class="space-y-1 text-start text-sm font-bold text-brand-navy">
@@ -4352,26 +4337,16 @@ watch(pilotNoCoach, (off) => {
             >
               {{ saving ? t('common.loading') : (canUnblockSlot() && blockWeeks <= 1 ? t('common.save') : t('owner.confirmBlock')) }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
 
         <div v-if="activePanel === 'comments'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn-ghost px-2 py-1 text-xs"
-                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
-                @click="backToMenu"
-              >
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <AppFormField :label="t('owner.comments')">
@@ -4391,27 +4366,15 @@ watch(pilotNoCoach, (off) => {
             >
               {{ saving ? t('common.loading') : (reserveFlowReturn ? t('owner.saveNoteToForm') : t('owner.confirmNote')) }}
             </button>
-            <button v-if="reserveFlowReturn" type="button" class="canva-gate-btn-secondary" @click="backToMenu">
-              {{ t('common.back') }}
-            </button>
           </div>
         </div>
 
         <div v-if="canShowPackageReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn-ghost px-2 py-1 text-xs"
-                :class="reserveFlowReturn ? '' : 'max-[430px]:inline-flex min-[431px]:hidden'"
-                @click="backToMenu"
-              >
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
           </div>
           <div class="venus-modal-panel-body">
             <div
@@ -4640,15 +4603,11 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'equipment'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost px-2 py-1 text-xs max-[430px]:inline-flex min-[431px]:hidden" @click="backToMenu">
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
-              <h3 class="font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
-            </div>
+            <button type="button" class="canva-sheet-back" @click="backToMenu">
+              <AppIcon name="arrow_back" size="sm" />
+              {{ t('common.back') }}
+            </button>
+            <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
             <AppFormField :label="t('owner.equipmentsPage.selectForBooking')">
