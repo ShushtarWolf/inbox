@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { paymentIntentMetadata } from '#shared/financeDiscount.ts'
 import type { PaymentConfirmOptions, PaymentService } from '#shared/payments.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, tomanToRials } from '#shared/payments.ts'
 import { siteUrl } from '../../email'
@@ -58,11 +59,11 @@ export function sepProvider(): PaymentService {
           : input.purpose === 'competition'
             ? 'competition'
             : 'booking'
-        const metadataJson = JSON.stringify({
+        const metadataJson = paymentIntentMetadata({
           simulated: true,
           purpose,
           competitionEntryId: input.competitionEntryId,
-        })
+        }, input.preservedMetadata)
         const payment = input.existingPaymentId
           ? await prisma.payment.update({
               where: { id: input.existingPaymentId },
@@ -138,12 +139,12 @@ export function sepProvider(): PaymentService {
               idempotencyKey: input.idempotencyKey,
               purpose,
               userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
-              metadataJson: JSON.stringify({
+              metadataJson: paymentIntentMetadata({
                 token: requested.token,
                 sepStatus: requested.status,
                 purpose,
                 competitionEntryId: input.competitionEntryId,
-              }),
+              }, input.preservedMetadata),
             },
           })
         : await prisma.payment.create({
@@ -159,12 +160,12 @@ export function sepProvider(): PaymentService {
               bookingId: input.bookingId,
               coachSessionId: input.coachSessionId,
               packageBookingId: input.packageBookingId,
-              metadataJson: JSON.stringify({
+              metadataJson: paymentIntentMetadata({
                 token: requested.token,
                 sepStatus: requested.status,
                 purpose,
                 competitionEntryId: input.competitionEntryId,
-              }),
+              }, input.preservedMetadata),
             },
           })
 

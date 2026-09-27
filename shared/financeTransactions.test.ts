@@ -89,6 +89,12 @@ describe('selectFinanceTransactions', () => {
     expect(selectFinanceTransactions(rows, { guest: '۰۹۱۲۰۰۰۰۰۰۱' }).map((tx) => tx.guestName)).toEqual(['علی'])
   })
 
+  it('filters by discount code', () => {
+    const listed = rows.map((tx, index) => ({ ...tx, discountCode: index === 0 ? 'SAVE10' : null }))
+    expect(selectFinanceTransactions(listed, { discountCode: 'save10' }).map((tx) => tx.guestName)).toEqual(['علی'])
+    expect(selectFinanceTransactions(listed, { discountCode: 'سیو' })).toHaveLength(0)
+  })
+
   it('writes an excel xml sheet with a numeric amount', () => {
     const xml = financeSheetXml(['مهمان', 'مبلغ'], [['علی & رضا', 20000]])
     expect(xml).toContain('ss:Type="Number">20000')

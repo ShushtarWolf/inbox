@@ -6,6 +6,7 @@ const bookingKind = defineModel<FinanceBookingKindFilter>('bookingKind', { requi
 const payment = defineModel<FinancePaymentFilter>('payment', { required: true })
 const legend = defineModel<FinanceLegendFilter>('legend', { required: true })
 const guest = defineModel<string>('guest', { required: true })
+const discountCode = defineModel<string>('discountCode', { required: true })
 const reservedFrom = defineModel<string>('reservedFrom', { required: true })
 const reservedTo = defineModel<string>('reservedTo', { required: true })
 const paidFrom = defineModel<string>('paidFrom', { required: true })
@@ -156,6 +157,18 @@ function sortLabel(key: FinanceTxSortKey) {
         class="canva-finance-date w-full"
         :placeholder="t('owner.financeTable.guestSearch')"
         :aria-label="t('owner.financeTable.guestSearch')"
+      >
+    </label>
+
+    <label class="block text-start">
+      <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.discountSearch') }}</span>
+      <input
+        v-model="discountCode"
+        type="search"
+        dir="ltr"
+        class="canva-finance-date w-full"
+        :placeholder="t('owner.financeTable.discountSearch')"
+        :aria-label="t('owner.financeTable.discountSearch')"
       >
     </label>
 

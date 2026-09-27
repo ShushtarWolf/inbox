@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { paymentIntentMetadata } from '#shared/financeDiscount.ts'
 import type { PaymentService } from '#shared/payments.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY } from '#shared/payments.ts'
 import { registerPaymentProvider } from '../registry'
@@ -15,11 +16,11 @@ export function logPaymentProvider(): PaymentService {
         : input.purpose === 'competition'
           ? 'competition'
           : 'booking'
-      const metadataJson = JSON.stringify({
+      const metadataJson = paymentIntentMetadata({
         logged: true,
         purpose,
         competitionEntryId: input.competitionEntryId,
-      })
+      }, input.preservedMetadata)
       const payment = input.existingPaymentId
         ? await prisma.payment.update({
             where: { id: input.existingPaymentId },

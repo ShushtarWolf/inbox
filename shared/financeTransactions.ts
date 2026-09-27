@@ -1,4 +1,5 @@
 import { isPaidPaymentStatus } from './bookingPayment.ts'
+import { normalizeDiscountCode } from './discountCode.ts'
 
 export type FinanceSessionFilter = 'all' | 'free' | 'coach'
 
@@ -36,6 +37,7 @@ export type FinanceTxTimes = {
   displayStatus?: string | null
   comments?: string | null
   isRecurring?: boolean | null
+  discountCode?: string | null
 }
 
 export type FinanceTxQuery = {
@@ -47,6 +49,8 @@ export type FinanceTxQuery = {
   legend?: FinanceLegendFilter
   /** Guest name or phone. Persian and Arabic digits count as the same phone. */
   guest?: string
+  /** Discount code. Letter case and Persian digits match the stored code. */
+  discountCode?: string
   reservedFrom?: string
   reservedTo?: string
   paidFrom?: string
@@ -108,6 +112,12 @@ export function financeBookingKindOf(tx: {
   return 'normal'
 }
 
+function discountMatches(tx: FinanceTxTimes, raw: string) {
+  const query = normalizeDiscountCode(latinDigits(raw))
+  if (!query) return true
+  return normalizeDiscountCode(latinDigits(tx.discountCode || '')).includes(query)
+}
+
 function guestMatches(tx: FinanceTxTimes, raw: string) {
   const query = raw.trim()
   if (!query) return true
@@ -162,6 +172,7 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
   const payment = query.payment || 'all'
   const legend = query.legend || 'all'
   const guest = query.guest || ''
+  const discountCode = query.discountCode || ''
   const reservedFrom = query.reservedFrom || ''
   const reservedTo = query.reservedTo || ''
   const paidFrom = query.paidFrom || ''
@@ -180,6 +191,7 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
     if (bookingKind !== 'all' && financeBookingKindOf(tx) !== bookingKind) return false
     if (payment !== 'all' && financePaymentBucket(tx) !== payment) return false
     if (guest && !guestMatches(tx, guest)) return false
+    if (discountCode && !discountMatches(tx, discountCode)) return false
     if ((reservedFrom || reservedTo) && !inRange(datePart(tx.reservedAt), reservedFrom, reservedTo)) return false
     if (paidFrom || paidTo) {
       if (!tx.paidAt) return false

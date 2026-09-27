@@ -25,6 +25,11 @@ type OwnerFinanceTransaction = {
   reservedAt: string
   paidAt?: string | null
   unpaid?: boolean
+  discountCode?: string | null
+  discountPercent?: number | null
+  discountAmount?: number | null
+  subtotalBeforeDiscount?: number | null
+  complimentary?: boolean
 }
 
 type OwnerFinanceStats = {
@@ -63,6 +68,7 @@ const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
 const legendFilter = ref<FinanceLegendFilter>('all')
 const guestQuery = ref('')
+const discountQuery = ref('')
 const reservedFrom = ref('')
 const reservedTo = ref('')
 const paidFrom = ref('')
@@ -170,6 +176,7 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   payment: paymentFilter.value,
   legend: legendFilter.value,
   guest: guestQuery.value,
+  discountCode: discountQuery.value,
   reservedFrom: reservedFrom.value,
   reservedTo: reservedTo.value,
   paidFrom: paidFrom.value,
@@ -215,6 +222,10 @@ function downloadReport() {
     t('owner.financeTable.method'),
     t('owner.financeTable.status'),
     t('owner.financeTable.income'),
+    t('owner.financeTable.discountCode'),
+    t('owner.financeTable.discountPercent'),
+    t('owner.financeTable.discountAmount'),
+    t('owner.financeTable.priceBeforeDiscount'),
   ]
   const rows = visibleTransactions.value.map((tx) => [
     tx.reservationLabel,
@@ -226,6 +237,10 @@ function downloadReport() {
     tx.kind === 'slot' ? '' : methodLabel(tx.paymentMethod),
     tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
+    tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
+    tx.discountPercent || '',
+    tx.discountAmount || '',
+    tx.subtotalBeforeDiscount || '',
   ])
   saveFinanceSheet('inbox-finance.xls', financeSheetXml(headers, rows))
 }
@@ -287,6 +302,7 @@ function downloadReport() {
             v-model:payment="paymentFilter"
             v-model:legend="legendFilter"
             v-model:guest="guestQuery"
+            v-model:discount-code="discountQuery"
             v-model:reserved-from="reservedFrom"
             v-model:reserved-to="reservedTo"
             v-model:paid-from="paidFrom"
@@ -319,6 +335,11 @@ function downloadReport() {
                   <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
                 </p>
                 <p v-if="tx.guestName" class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+                <p v-if="tx.discountCode || tx.discountAmount" class="mt-0.5 text-xs text-brand-primary">
+                  <bdi v-if="tx.discountCode" dir="ltr">{{ tx.discountCode }}</bdi>
+                  <template v-else-if="tx.complimentary">{{ t('owner.financeTable.complimentary') }}</template>
+                  <template v-if="tx.discountAmount"> −{{ formatCurrency(tx.discountAmount) }}</template>
+                </p>
                 <span
                   v-if="isCoachTx(tx)"
                   class="canva-slot-coach-chip mt-1"

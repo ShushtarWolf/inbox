@@ -26,6 +26,11 @@ type OwnerFinanceTransaction = {
   reservedAt: string
   paidAt?: string | null
   unpaid?: boolean
+  discountCode?: string | null
+  discountPercent?: number | null
+  discountAmount?: number | null
+  subtotalBeforeDiscount?: number | null
+  complimentary?: boolean
 }
 
 type OwnerFinanceStats = {
@@ -83,6 +88,7 @@ const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
 const legendFilter = ref<FinanceLegendFilter>('all')
 const guestQuery = ref('')
+const discountQuery = ref('')
 const reservedFrom = ref('')
 const reservedTo = ref('')
 const paidFrom = ref('')
@@ -327,6 +333,7 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   payment: paymentFilter.value,
   legend: legendFilter.value,
   guest: guestQuery.value,
+  discountCode: discountQuery.value,
   reservedFrom: reservedFrom.value,
   reservedTo: reservedTo.value,
   paidFrom: paidFrom.value,
@@ -352,6 +359,10 @@ function downloadExcel() {
     t('owner.financeTable.method'),
     t('owner.financeTable.status'),
     t('owner.financeTable.income'),
+    t('owner.financeTable.discountCode'),
+    t('owner.financeTable.discountPercent'),
+    t('owner.financeTable.discountAmount'),
+    t('owner.financeTable.priceBeforeDiscount'),
   ]
   const rows = visibleTransactions.value.map((tx) => [
     tx.reservationLabel,
@@ -363,6 +374,10 @@ function downloadExcel() {
     tx.kind === 'slot' ? '' : methodBadgeLabel(tx.paymentMethod),
     tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
+    tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
+    tx.discountPercent || '',
+    tx.discountAmount || '',
+    tx.subtotalBeforeDiscount || '',
   ])
   saveFinanceSheet('inbox-finance.xls', financeSheetXml(headers, rows))
 }
@@ -562,6 +577,7 @@ function showUnpaidList() {
           v-model:payment="paymentFilter"
           v-model:legend="legendFilter"
           v-model:guest="guestQuery"
+          v-model:discount-code="discountQuery"
           v-model:reserved-from="reservedFrom"
           v-model:reserved-to="reservedTo"
           v-model:paid-from="paidFrom"
@@ -826,6 +842,26 @@ function showUnpaidList() {
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.status') }}</span>
           <span class="font-bold text-brand-navy">{{ bookingStatusLabel(String(selectedTx.bookingStatus || '')) }}</span>
+        </div>
+        <div v-if="selectedTx.discountCode" class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.discountCode') }}</span>
+          <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedTx.discountCode }}</bdi>
+        </div>
+        <div v-else-if="selectedTx.complimentary" class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.discountCode') }}</span>
+          <span class="font-bold text-brand-navy">{{ t('owner.financeTable.complimentary') }}</span>
+        </div>
+        <div v-if="selectedTx.discountPercent" class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.discountPercent') }}</span>
+          <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ formatNumber(selectedTx.discountPercent) }}٪</bdi>
+        </div>
+        <div v-if="selectedTx.discountAmount" class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.discountAmount') }}</span>
+          <span class="font-bold text-brand-primary" dir="ltr">−{{ formatCurrency(selectedTx.discountAmount) }}</span>
+        </div>
+        <div v-if="selectedTx.subtotalBeforeDiscount" class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.priceBeforeDiscount') }}</span>
+          <span class="font-bold tabular-nums text-brand-navy">{{ formatCurrency(selectedTx.subtotalBeforeDiscount) }}</span>
         </div>
         <div class="canva-contact-row border-b-0">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.income') }}</span>

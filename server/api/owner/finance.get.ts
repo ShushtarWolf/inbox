@@ -1,4 +1,5 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
@@ -107,6 +108,21 @@ export default defineEventHandler(async (event) => {
 
   function amountOfSession(session: (typeof coachSessions)[number]) {
     return session.payment?.amount || session.price
+  }
+
+  function discountFields(paidAmount: number, paymentJson?: string | null, eventJson?: string | null) {
+    const discount = resolveFinanceDiscount({
+      paidAmount,
+      paymentMetadataJson: paymentJson,
+      eventMetadataJson: eventJson,
+    })
+    return {
+      discountCode: discount?.code ?? null,
+      discountPercent: discount?.percent ?? null,
+      discountAmount: discount?.amount ?? 0,
+      subtotalBeforeDiscount: discount?.subtotal ?? null,
+      complimentary: discount?.complimentary ?? false,
+    }
   }
 
   const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
@@ -273,6 +289,14 @@ export default defineEventHandler(async (event) => {
           })
           .join(', ') || null,
         unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
+        ...discountFields(
+          amountOfBooking(booking),
+          booking.payment?.metadataJson,
+          booking.events.find((row) => {
+            const json = row.metadataJson || ''
+            return json.includes('"discount') || json.includes('"complimentary"')
+          })?.metadataJson,
+        ),
       }
     }),
     ...listSessions.map((session) => {
@@ -297,6 +321,7 @@ export default defineEventHandler(async (event) => {
         comments: null,
         isRecurring: isOwnerRecurringBooking({ events: session.events }),
         unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
+        ...discountFields(amountOfSession(session), session.payment?.metadataJson),
       }
     }),
   ]

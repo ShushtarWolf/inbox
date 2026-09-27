@@ -65,6 +65,8 @@ export interface PaymentCreateInput {
   idempotencyKey: string
   /** Refresh an existing PENDING_ONLINE row instead of creating a duplicate (competition checkout). */
   existingPaymentId?: string
+  /** Discount fields from the payment checkout is about to replace. */
+  preservedMetadata?: Record<string, unknown>
 }
 
 export interface PaymentService {

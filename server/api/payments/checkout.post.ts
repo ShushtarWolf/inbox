@@ -5,6 +5,7 @@ import {
   buildCompetitionWalletPaymentCreateData,
   competitionJoinIdempotencyKey,
 } from '#shared/competition.ts'
+import { discountMetadataSlice } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
     provider: string
     providerRef: string | null
     method: string
+    metadataJson: string | null
   } | null = null
 
   if (body.bookingId) {
@@ -203,6 +205,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const preservedMetadata = discountMetadataSlice(existingPayment?.metadataJson)
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     if (!body.competitionEntryId) {
       await prisma.payment.delete({ where: { id: existingPayment.id } })
@@ -242,6 +245,7 @@ export default defineEventHandler(async (event) => {
     existingPaymentId: body.competitionEntryId && existingPayment
       ? existingPayment.id
       : undefined,
+    preservedMetadata: Object.keys(preservedMetadata).length ? preservedMetadata : undefined,
   })
 
   if (body.competitionEntryId) {
