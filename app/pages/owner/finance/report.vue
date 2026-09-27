@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { selectFinanceTransactions, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
+import { selectFinanceTransactions, type FinanceBookingKindFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 type OwnerFinanceTransaction = {
   id: string
   guestName: string
+  guestMobile?: string | null
+  paymentMethod?: string | null
   paymentStatus: string
   amount: number
   bookingStatus: string
   kind?: string
+  bookingKind?: 'normal' | 'package' | 'coach' | string
   sessionType?: 'free' | 'coach' | string
   coachName?: string | null
   reservationLabel: string
@@ -51,19 +55,29 @@ type OwnerFinanceResponse = {
 const { t } = useI18n()
 const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
-  key: 'owner-finance-report',
-})
-useOwnerClubRefresh(refresh)
-const { formatCurrency, formatNumber, formatDate, formatTimeLabel } = useFormatters()
-const { pilotNoCoach } = usePilotFlags()
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const bookingKind = ref<FinanceBookingKindFilter>('all')
+const paymentFilter = ref<FinancePaymentFilter>('all')
+const guestQuery = ref('')
 const reservedFrom = ref('')
 const reservedTo = ref('')
 const paidFrom = ref('')
 const paidTo = ref('')
 const sortKey = ref<FinanceTxSortKey>('reservedAt')
 const sortDir = ref<FinanceTxSortDir>('desc')
+const financeQuery = computed(() => {
+  const q: Record<string, string | number> = { txLimit: 1000 }
+  if (reservedFrom.value) q.txFrom = reservedFrom.value
+  if (reservedTo.value) q.txTo = reservedTo.value
+  return q
+})
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
+  key: 'owner-finance-report',
+  query: financeQuery,
+})
+useOwnerClubRefresh(refresh)
+const { formatCurrency, formatNumber, formatDate, formatTimeLabel } = useFormatters()
+const { pilotNoCoach } = usePilotFlags()
 
 onMounted(() => {
   fetchAuth()
@@ -144,6 +158,9 @@ const noShowRateLabel = computed(() => {
 const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
   hideCoach: pilotNoCoach.value,
   session: sessionFilter.value,
+  bookingKind: bookingKind.value,
+  payment: paymentFilter.value,
+  guest: guestQuery.value,
   reservedFrom: reservedFrom.value,
   reservedTo: reservedTo.value,
   paidFrom: paidFrom.value,
@@ -166,27 +183,42 @@ function isCoachTx(tx: OwnerFinanceTransaction) {
   return tx.kind === 'coach' || tx.sessionType === 'coach'
 }
 
+function kindLabel(kind?: string | null) {
+  if (kind === 'package') return t('owner.financeTable.bookingKindPackage')
+  if (kind === 'coach') return t('owner.financeTable.bookingKindCoach')
+  return t('owner.financeTable.bookingKindNormal')
+}
+
+function methodLabel(method?: string | null) {
+  if (method === 'IPG') return t('owner.financePage.methodCashless')
+  if (method === 'CASH' || method === 'PAID') return t('owner.financePage.methodCash')
+  return t('owner.financePage.methodUnpaid')
+}
+
 function downloadReport() {
-  if (!import.meta.client || !data.value) return
-  const rows = [
-    ['metric', 'value'],
-    ['activeContacts', String(data.value.segments?.activeContacts ?? '')],
-    ['churnRisk', String(data.value.segments?.churnRisk ?? data.value.stats?.churnRisk ?? '')],
-    ['waitlist', String(data.value.segments?.waitlist ?? '')],
-    ['cancellationsThisMonth', String(data.value.segments?.cancellationsThisMonth ?? data.value.segments?.cancellations ?? '')],
-    ['ltv', String(data.value.stats?.ltv || 0)],
-    ['noShowRate', String(data.value.stats?.noShowRate || 0)],
-    ['revenue', String(data.value.stats?.revenue || 0)],
-    ['unpaid', String(data.value.stats?.unpaid || 0)],
+  const headers = [
+    t('owner.financeTable.reservation'),
+    t('owner.financeTable.bookingKind'),
+    t('owner.financeTable.guest'),
+    t('owner.guestMobile'),
+    t('owner.financeTable.reservedAt'),
+    t('owner.financeTable.paidAt'),
+    t('owner.financeTable.method'),
+    t('owner.financeTable.status'),
+    t('owner.financeTable.income'),
   ]
-  const csv = rows.map((r) => r.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'inbox-finance-report.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  const rows = visibleTransactions.value.map((tx) => [
+    tx.reservationLabel,
+    kindLabel(tx.bookingKind),
+    tx.guestName,
+    tx.guestMobile || '',
+    `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
+    tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
+    methodLabel(tx.paymentMethod),
+    paymentStatusLabel(tx.paymentStatus),
+    tx.amount,
+  ])
+  saveFinanceSheet('inbox-finance.xls', financeSheetXml(headers, rows))
 }
 </script>
 
@@ -238,14 +270,13 @@ function downloadReport() {
           </div>
         </section>
 
-        <button type="button" class="canva-black-cta canva-report-span" @click="downloadReport">
-          {{ t('owner.financePage.downloadReport') }}
-        </button>
-
         <div class="space-y-3 canva-report-span">
           <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
           <OwnerFinanceTxFilters
             v-model:session="sessionFilter"
+            v-model:booking-kind="bookingKind"
+            v-model:payment="paymentFilter"
+            v-model:guest="guestQuery"
             v-model:reserved-from="reservedFrom"
             v-model:reserved-to="reservedTo"
             v-model:paid-from="paidFrom"
@@ -255,6 +286,9 @@ function downloadReport() {
             :show-session="!pilotNoCoach"
             sort-mode="always"
           />
+          <button type="button" class="canva-black-cta w-full" @click="downloadReport">
+            {{ t('owner.financeTable.downloadExcel') }}
+          </button>
           <CanvaEmptyState v-if="!visibleTransactions.length" :title="t('common.empty')" icon="receipt_long" />
           <div v-else class="space-y-2">
             <div

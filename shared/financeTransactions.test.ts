@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { financeSheetXml } from './financeSpreadsheet.ts'
 import { selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
 
 const rows: FinanceTxTimes[] = [
@@ -8,6 +9,9 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'زمین ۲',
     guestName: 'علی',
     paymentMethod: 'CASH',
+    unpaid: false,
+    guestMobile: '09120000001',
+    bookingKind: 'normal',
     amount: 20_000,
     reservedAt: '2026-10-12T16:00:00',
     paidAt: '2026-10-11T09:00:00',
@@ -18,6 +22,9 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'زمین ۱',
     guestName: 'سارا',
     paymentMethod: 'CASH',
+    unpaid: true,
+    guestMobile: '09120000002',
+    bookingKind: 'package',
     amount: 10_000,
     reservedAt: '2026-10-20T16:00:00',
     paidAt: null,
@@ -28,6 +35,9 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'مربی',
     guestName: 'رضا',
     paymentMethod: 'IPG',
+    unpaid: false,
+    guestMobile: '09120000003',
+    bookingKind: 'coach',
     amount: 40_000,
     reservedAt: '2026-10-18T18:00:00',
     paidAt: '2026-10-18T12:00:00',
@@ -69,6 +79,21 @@ describe('selectFinanceTransactions', () => {
     ])
     expect(asc[asc.length - 1]?.paidAt ?? null).toBeNull()
     expect(asc[0]?.paidAt).toBe('2026-10-11T09:00:00')
+  })
+
+  it('filters booking kind, payment method, and guest name or phone', () => {
+    expect(selectFinanceTransactions(rows, { bookingKind: 'package' }).map((tx) => tx.guestName)).toEqual(['سارا'])
+    expect(selectFinanceTransactions(rows, { payment: 'ipg' }).map((tx) => tx.guestName)).toEqual(['رضا'])
+    expect(selectFinanceTransactions(rows, { payment: 'cash' }).map((tx) => tx.guestName)).toEqual(['علی'])
+    expect(selectFinanceTransactions(rows, { guest: 'سارا' }).map((tx) => tx.guestName)).toEqual(['سارا'])
+    expect(selectFinanceTransactions(rows, { guest: '۰۹۱۲۰۰۰۰۰۰۱' }).map((tx) => tx.guestName)).toEqual(['علی'])
+  })
+
+  it('writes an excel xml sheet with a numeric amount', () => {
+    const xml = financeSheetXml(['مهمان', 'مبلغ'], [['علی & رضا', 20000]])
+    expect(xml).toContain('ss:Type="Number">20000')
+    expect(xml).toContain('علی &amp; رضا')
+    expect(xml).not.toContain('علی & رضا')
   })
 
   it('sorts income and guest', () => {

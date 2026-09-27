@@ -5,34 +5,80 @@ import { localDateString, localTimeString } from '#shared/localDate.ts'
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
   const query = getQuery(event)
-  const from = query.from as string | undefined
-  const to = query.to as string | undefined
-  const bookings = await prisma.booking.findMany({
-    where: {
+  function queryText(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+  }
+  function queryTxLimit(value: unknown) {
+    const n = Number(value)
+    if (!Number.isFinite(n) || n <= 0) return 50
+    // ponytail: list cap. Older rows need a narrower txFrom/txTo, not a bigger take.
+    return Math.min(1000, Math.floor(n))
+  }
+  function dateRange(from?: string, to?: string) {
+    if (!from && !to) return undefined
+    return { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) }
+  }
+
+  const from = queryText(query.from)
+  const to = queryText(query.to)
+  const txFrom = queryText(query.txFrom)
+  const txTo = queryText(query.txTo)
+  const txLimit = queryTxLimit(query.txLimit)
+  const wideList = txLimit > 50 || Boolean(txFrom || txTo)
+  const statDate = dateRange(from, to)
+  const listDate = dateRange(txFrom, txTo)
+  const bookingInclude = {
+    slot: { include: { court: true } },
+    payment: true,
+    user: { select: { name: true, phone: true } },
+    coach: { select: { id: true, nameFa: true, nameEn: true } },
+    bookingEquipments: { include: { equipment: true } },
+  } as const
+  const sessionInclude = { payment: true, coach: true, athlete: { select: { name: true, phone: true } } } as const
+
+  function bookingWhere(range?: { gte?: string; lte?: string }) {
+    return {
       slot: {
         court: { clubId: club.id },
-        ...(from || to ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
+        ...(range ? { date: range } : {}),
       },
-    },
-    include: {
-      slot: { include: { court: true } },
-      payment: true,
-      user: { select: { name: true, phone: true } },
-      coach: { select: { id: true, nameFa: true, nameEn: true } },
-      bookingEquipments: { include: { equipment: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  })
-  const coachSessions = await prisma.coachSession.findMany({
-    where: {
+    }
+  }
+  function sessionWhere(range?: { gte?: string; lte?: string }) {
+    return {
       coach: { clubId: club.id },
-      ...(from || to ? { date: { gte: from, lte: to } } : {}),
-    },
-    include: { payment: true, coach: true, athlete: { select: { name: true, phone: true } } },
+      ...(range ? { date: range } : {}),
+    }
+  }
+
+  const bookings = await prisma.booking.findMany({
+    where: bookingWhere(statDate),
+    include: bookingInclude,
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
+  const listBookings = wideList
+    ? await prisma.booking.findMany({
+      where: bookingWhere(listDate),
+      include: bookingInclude,
+      orderBy: { createdAt: 'desc' },
+      take: txLimit,
+    })
+    : bookings
+  const coachSessions = await prisma.coachSession.findMany({
+    where: sessionWhere(statDate),
+    include: sessionInclude,
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+  const listSessions = wideList
+    ? await prisma.coachSession.findMany({
+      where: sessionWhere(listDate),
+      include: sessionInclude,
+      orderBy: { createdAt: 'desc' },
+      take: txLimit,
+    })
+    : coachSessions
   const contacts = await prisma.contact.findMany({ where: { clubId: club.id } })
   const waitlistEntries = await prisma.waitlistEntry.findMany({ where: { clubId: club.id } })
   const courts = await prisma.court.findMany({ where: { clubId: club.id }, include: { slots: true } })
@@ -171,8 +217,14 @@ export default defineEventHandler(async (event) => {
     return `${localDateString(createdAt)}T${localTimeString(createdAt)}:00`
   }
 
+  function courtBookingKind(booking: { packageDraftId?: string | null; coachId?: string | null }) {
+    if (booking.packageDraftId) return 'package' as const
+    if (booking.coachId) return 'coach' as const
+    return 'normal' as const
+  }
+
   const transactions = [
-    ...bookings.map((booking) => {
+    ...listBookings.map((booking) => {
       const isCoachSession = Boolean(booking.coachId)
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
@@ -186,6 +238,7 @@ export default defineEventHandler(async (event) => {
         amount: amountOfBooking(booking),
         bookingStatus: booking.status,
         kind: 'court' as const,
+        bookingKind: courtBookingKind(booking),
         sessionType: isCoachSession ? ('coach' as const) : ('free' as const),
         coachId: booking.coachId || null,
         coachName: booking.coach?.nameFa || null,
@@ -202,7 +255,7 @@ export default defineEventHandler(async (event) => {
         unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
       }
     }),
-    ...coachSessions.map((session) => {
+    ...listSessions.map((session) => {
       const paymentStatus = paymentStatusOf(session)
       return {
         id: session.id,
@@ -213,6 +266,7 @@ export default defineEventHandler(async (event) => {
         amount: amountOfSession(session),
         bookingStatus: session.status,
         kind: 'coach' as const,
+        bookingKind: 'coach' as const,
         sessionType: 'coach' as const,
         coachId: session.coachId,
         coachName: session.coach.nameFa,
@@ -224,7 +278,7 @@ export default defineEventHandler(async (event) => {
     }),
   ]
     .sort((a, b) => (a.reservedAt < b.reservedAt ? 1 : a.reservedAt > b.reservedAt ? -1 : 0))
-    .slice(0, 50)
+    .slice(0, txLimit)
 
   return {
     stats: {

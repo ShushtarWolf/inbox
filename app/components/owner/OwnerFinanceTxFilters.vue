@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import type { FinanceBookingKindFilter, FinancePaymentFilter, FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 const session = defineModel<FinanceSessionFilter>('session', { required: true })
+const bookingKind = defineModel<FinanceBookingKindFilter>('bookingKind', { required: true })
+const payment = defineModel<FinancePaymentFilter>('payment', { required: true })
+const guest = defineModel<string>('guest', { required: true })
 const reservedFrom = defineModel<string>('reservedFrom', { required: true })
 const reservedTo = defineModel<string>('reservedTo', { required: true })
 const paidFrom = defineModel<string>('paidFrom', { required: true })
@@ -9,7 +12,7 @@ const paidTo = defineModel<string>('paidTo', { required: true })
 const sortKey = defineModel<FinanceTxSortKey>('sortKey', { required: true })
 const sortDir = defineModel<FinanceTxSortDir>('sortDir', { required: true })
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   showSession?: boolean
   /** always: report cards. narrow: phone list, table headers sort on desktop. */
   sortMode?: 'always' | 'narrow' | 'never'
@@ -26,6 +29,20 @@ const sessionFilterOptions = computed(() => ([
   { value: 'coach' as const, label: t('owner.financeTable.sessionFilterCoach') },
 ]))
 
+const bookingKindOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
+  { value: 'normal' as const, label: t('owner.financeTable.bookingKindNormal') },
+  { value: 'package' as const, label: t('owner.financeTable.bookingKindPackage') },
+  { value: 'coach' as const, label: t('owner.financeTable.bookingKindCoach') },
+]))
+
+const paymentOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
+  { value: 'cash' as const, label: t('owner.financeTable.paymentCash') },
+  { value: 'ipg' as const, label: t('owner.financeTable.paymentIpg') },
+  { value: 'unpaid' as const, label: t('owner.financeTable.paymentUnpaid') },
+]))
+
 const sortOptions: FinanceTxSortKey[] = ['reservation', 'reservedAt', 'paidAt', 'guest', 'method', 'amount']
 
 const hasDateFilter = computed(() => Boolean(reservedFrom.value || reservedTo.value || paidFrom.value || paidTo.value))
@@ -36,6 +53,10 @@ function clearDates() {
   paidFrom.value = ''
   paidTo.value = ''
 }
+
+const visibleKindOptions = computed(() => (
+  props.showSession ? bookingKindOptions.value : bookingKindOptions.value.filter((opt) => opt.value !== 'coach')
+))
 
 function sortLabel(key: FinanceTxSortKey) {
   if (key === 'reservation') return t('owner.financeTable.reservation')
@@ -66,6 +87,49 @@ function sortLabel(key: FinanceTxSortKey) {
         {{ opt.label }}
       </button>
     </div>
+
+    <div class="text-start">
+      <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.bookingKind') }}</span>
+      <div class="canva-session-filter-row" role="group" :aria-label="t('owner.financeTable.bookingKind')">
+        <button
+          v-for="opt in visibleKindOptions"
+          :key="opt.value"
+          type="button"
+          class="canva-session-filter-btn"
+          :class="bookingKind === opt.value ? 'canva-session-filter-btn-on' : ''"
+          @click="bookingKind = opt.value"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="text-start">
+      <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.paymentFilter') }}</span>
+      <div class="canva-session-filter-row" role="group" :aria-label="t('owner.financeTable.paymentFilter')">
+        <button
+          v-for="opt in paymentOptions"
+          :key="opt.value"
+          type="button"
+          class="canva-session-filter-btn"
+          :class="payment === opt.value ? 'canva-session-filter-btn-on' : ''"
+          @click="payment = opt.value"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+
+    <label class="block text-start">
+      <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.guestSearch') }}</span>
+      <input
+        v-model="guest"
+        type="search"
+        class="canva-finance-date w-full"
+        :placeholder="t('owner.financeTable.guestSearch')"
+        :aria-label="t('owner.financeTable.guestSearch')"
+      >
+    </label>
 
     <div class="grid grid-cols-1 gap-2 min-[431px]:grid-cols-2">
       <div class="text-start">

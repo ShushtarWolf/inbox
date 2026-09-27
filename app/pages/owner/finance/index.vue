@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { selectFinanceTransactions, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
+import { selectFinanceTransactions, type FinanceBookingKindFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -15,6 +16,7 @@ type OwnerFinanceTransaction = {
   amount: number
   bookingStatus: string
   kind?: string
+  bookingKind?: 'normal' | 'package' | 'coach' | string
   sessionType?: 'free' | 'coach' | string
   coachName?: string | null
   reservationLabel: string
@@ -73,7 +75,25 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance')
+const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const bookingKind = ref<FinanceBookingKindFilter>('all')
+const paymentFilter = ref<FinancePaymentFilter>('all')
+const guestQuery = ref('')
+const reservedFrom = ref('')
+const reservedTo = ref('')
+const paidFrom = ref('')
+const paidTo = ref('')
+const sortKey = ref<FinanceTxSortKey>('reservedAt')
+const sortDir = ref<FinanceTxSortDir>('desc')
+const financeQuery = computed(() => {
+  const q: Record<string, string | number> = { txLimit: 1000 }
+  if (reservedFrom.value) q.txFrom = reservedFrom.value
+  if (reservedTo.value) q.txTo = reservedTo.value
+  return q
+})
+const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
+  query: financeQuery,
+})
 const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
   immediate: false,
   watch: false,
@@ -86,13 +106,6 @@ const { fetchErrorMessage } = useFetchError()
 onMounted(() => { fetchAuth() })
 
 const period = ref<'day' | 'week' | 'month'>('day')
-const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
-const reservedFrom = ref('')
-const reservedTo = ref('')
-const paidFrom = ref('')
-const paidTo = ref('')
-const sortKey = ref<FinanceTxSortKey>('reservedAt')
-const sortDir = ref<FinanceTxSortDir>('desc')
 const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
 const withdrawAmount = ref<number | null>(null)
@@ -303,6 +316,9 @@ const ipgPct = computed(() => {
 const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
   hideCoach: pilotNoCoach.value,
   session: sessionFilter.value,
+  bookingKind: bookingKind.value,
+  payment: paymentFilter.value,
+  guest: guestQuery.value,
   reservedFrom: reservedFrom.value,
   reservedTo: reservedTo.value,
   paidFrom: paidFrom.value,
@@ -310,6 +326,38 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   sortKey: sortKey.value,
   sortDir: sortDir.value,
 }))
+
+function kindLabel(kind?: string | null) {
+  if (kind === 'package') return t('owner.financeTable.bookingKindPackage')
+  if (kind === 'coach') return t('owner.financeTable.bookingKindCoach')
+  return t('owner.financeTable.bookingKindNormal')
+}
+
+function downloadExcel() {
+  const headers = [
+    t('owner.financeTable.reservation'),
+    t('owner.financeTable.bookingKind'),
+    t('owner.financeTable.guest'),
+    t('owner.guestMobile'),
+    t('owner.financeTable.reservedAt'),
+    t('owner.financeTable.paidAt'),
+    t('owner.financeTable.method'),
+    t('owner.financeTable.status'),
+    t('owner.financeTable.income'),
+  ]
+  const rows = visibleTransactions.value.map((tx) => [
+    tx.reservationLabel,
+    kindLabel(tx.bookingKind),
+    tx.guestName,
+    tx.guestMobile || '',
+    `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
+    tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
+    methodBadgeLabel(tx.paymentMethod),
+    paymentStatusLabel(tx.paymentStatus),
+    tx.amount,
+  ])
+  saveFinanceSheet('inbox-finance.xls', financeSheetXml(headers, rows))
+}
 
 function toggleSort(key: FinanceTxSortKey) {
   if (sortKey.value === key) {
@@ -492,6 +540,9 @@ function closeTx() {
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
         <OwnerFinanceTxFilters
           v-model:session="sessionFilter"
+          v-model:booking-kind="bookingKind"
+          v-model:payment="paymentFilter"
+          v-model:guest="guestQuery"
           v-model:reserved-from="reservedFrom"
           v-model:reserved-to="reservedTo"
           v-model:paid-from="paidFrom"
@@ -501,6 +552,9 @@ function closeTx() {
           :show-session="!pilotNoCoach"
           sort-mode="narrow"
         />
+        <button type="button" class="canva-black-cta w-full" @click="downloadExcel">
+          {{ t('owner.financeTable.downloadExcel') }}
+        </button>
         <div v-if="visibleTransactions.length" class="canva-finance-tx-grid">
           <button
             v-for="tx in visibleTransactions"
