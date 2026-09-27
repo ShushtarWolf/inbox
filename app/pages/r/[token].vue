@@ -36,7 +36,6 @@ const { redirectToPaymentGateway } = useCheckout()
 const token = computed(() => String(route.params.token || ''))
 const paying = ref(false)
 const payError = ref('')
-const choseCashAtClub = ref(false)
 
 const { data, error, pending, refresh } = await useFetch<ReceiptPayload>(
   () => `/api/receipts/${encodeURIComponent(token.value)}`,
@@ -78,9 +77,6 @@ const badge = computed(() => {
   const d = data.value
   if (!d) return { text: '', tone: 'amber' as const }
   if (d.cancelled) return { text: d.paymentStatus, tone: 'amber' as const }
-  if (choseCashAtClub.value && d.unpaid) {
-    return { text: t('booking.receiptBadgeCash'), tone: 'green' as const }
-  }
   if (isPaid.value) {
     if (isCashMethod.value) return { text: t('booking.receiptBadgeCash'), tone: 'green' as const }
     return { text: t('booking.receiptBadgePaid'), tone: 'green' as const }
@@ -129,10 +125,6 @@ async function pay() {
   finally {
     paying.value = false
   }
-}
-
-function chooseCashAtClub() {
-  choseCashAtClub.value = true
 }
 </script>
 
@@ -214,15 +206,7 @@ function chooseCashAtClub() {
           <p v-if="payError" class="mt-3 text-sm text-red-600 text-start">{{ payError }}</p>
 
           <div class="mt-4">
-            <template v-if="choseCashAtClub && data.unpaid && !data.cancelled">
-              <div class="receipt-player-ok">
-                <div>
-                  <b class="block font-extrabold">{{ t('booking.receiptCashOk') }}</b>
-                  <p class="mt-0.5 text-[12.5px] font-medium leading-7 opacity-85">{{ t('booking.receiptPayAtClubNote') }}</p>
-                </div>
-              </div>
-            </template>
-            <template v-else-if="isPaid && !data.cancelled">
+            <template v-if="isPaid && !data.cancelled">
               <div class="receipt-player-ok">
                 <div>
                   <b class="block font-extrabold">{{ isCashMethod ? t('booking.receiptCashOk') : t('booking.receiptPaidOk') }}</b>
@@ -232,31 +216,18 @@ function chooseCashAtClub() {
                 </div>
               </div>
             </template>
-            <template v-else-if="data.unpaid && !data.cancelled">
-              <div class="flex flex-col gap-2.5">
-                <button
-                  v-if="data.canPayOnline"
-                  type="button"
-                  class="receipt-player-pay"
-                  :class="{ 'opacity-70': paying }"
-                  :aria-busy="paying"
-                  @click="pay"
-                >
-                  {{ paying
-                    ? t('booking.redirectingToGateway')
-                    : t('booking.receiptPayCtaAmount', { amount: formatCurrency(data.amount) }) }}
-                </button>
-                <button
-                  type="button"
-                  class="receipt-player-cash-link"
-                  @click="chooseCashAtClub"
-                >
-                  {{ t('booking.receiptPayAtClubCta') }}
-                </button>
-                <p v-if="!data.canPayOnline" class="text-center text-[11.5px] text-[#8C8A84]">
-                  {{ t('booking.receiptPayAtClub') }}
-                </p>
-              </div>
+            <template v-else-if="data.unpaid && !data.cancelled && data.canPayOnline">
+              <button
+                type="button"
+                class="receipt-player-pay"
+                :class="{ 'opacity-70': paying }"
+                :aria-busy="paying"
+                @click="pay"
+              >
+                {{ paying
+                  ? t('booking.redirectingToGateway')
+                  : t('booking.receiptPayCtaAmount', { amount: formatCurrency(data.amount) }) }}
+              </button>
             </template>
           </div>
         </div>
@@ -375,21 +346,6 @@ function chooseCashAtClub() {
 }
 .receipt-player-pay:hover {
   background: #C0141F;
-}
-.receipt-player-cash-link {
-  align-self: center;
-  color: #55534E;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 4px;
-}
-.receipt-player-cash-link:hover {
-  color: #C0141F;
 }
 .receipt-player-ok {
   display: flex;

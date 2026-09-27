@@ -954,8 +954,6 @@
     "receiptTotal": "جمع کل قابل پرداخت",
     "receiptPayCta": "پرداخت آنلاین",
     "receiptPayCtaAmount": "پرداخت آنلاین · {amount}",
-    "receiptPayAtClub": "مبلغ را هنگام حضور در باشگاه بپردازید.",
-    "receiptPayAtClubCta": "پرداخت نقدی در باشگاه",
     "receiptPayAtClubNote": "هنگام مراجعه به باشگاه، کد رزرو را نشان دهید.",
     "receiptPaidOk": "پرداخت با موفقیت انجام شد.",
     "receiptPaidOkHint": "رسید پرداخت به شمارهٔ شما پیامک شد. منتظرتان هستیم!",
