@@ -66,7 +66,7 @@ function guestSessionLines(data: Record<string, unknown>): string[] {
 }
 
 /**
- * Guest «رزرو تایید شد» body — multi-session list + order code + dashboard link.
+ * Guest «رزرو تایید شد» body — multi-session list + order code + receipt link.
  * Used for court / coach / package / season when a guest name is present.
  */
 function renderGuestBookingConfirmed(data: Record<string, unknown>) {
@@ -74,7 +74,13 @@ function renderGuestBookingConfirmed(data: Record<string, unknown>) {
   if (!guest) return ''
   const club = String(data.clubName || '').trim()
   const tracking = String(data.trackingCode || data.orderCode || '').trim()
-  const detailUrl = String(data.dashboardUrl || '').trim() || athleteBookingsDashboardUrl(data)
+  // Court paid SMS opens the same /r/ receipt the owner SMS uses. Coach and
+  // package have no receipt page, so they stay on the bookings list.
+  const receiptUrl = String(data.receiptUrl || '').trim()
+  const kind = String(data.kind || 'court')
+  const detailUrl = kind === 'court' && receiptUrl
+    ? receiptUrl
+    : (String(data.dashboardUrl || '').trim() || athleteBookingsDashboardUrl(data))
   const sessionLines = guestSessionLines(data)
 
   const blocks: string[] = [

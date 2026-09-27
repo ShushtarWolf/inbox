@@ -297,6 +297,13 @@ describe('bookingNotify SMS', () => {
       '09129876543',
       expect.stringContaining('۱۸:۰۰ تا ۲۰:۰۰'),
     )
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_PAID',
+      '09129876543',
+      expect.stringContaining('/r/'),
+    )
     logSpy.mockRestore()
   })
 

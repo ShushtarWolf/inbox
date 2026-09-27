@@ -459,7 +459,7 @@ describe('SMS templates', () => {
         'کد سفارش: ۱۰۵۷۱۲۸',
         '',
         'مشاهده جزئیات رزرو، قوانین، حساب‌وکتاب و لوکیشن:',
-        'https://inboxs.ir/athlete/bookings',
+        'https://inboxs.ir/r/abc',
         'Inboxs',
       ].join('\n'),
     )
