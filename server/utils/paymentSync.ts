@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
@@ -8,6 +9,7 @@ import {
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
+  type BookingNotifySessionLine,
 } from './bookingNotify'
 import { notifyAdminWalletTopUp } from './adminNotify'
 import { getPaymentService } from './payments/service'
@@ -130,6 +132,28 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
   }
 }
 
+/** Sibling court sessions for a paid series (season or multi-slot). Primary row included. */
+async function courtSeriesSessions(
+  bookingId: string,
+  metadataJson: string | null,
+): Promise<BookingNotifySessionLine[] | null> {
+  const siblingIds = (parseSeriesPaymentMeta(metadataJson).groupSiblingBookingIds || [])
+    .filter((id) => id && id !== bookingId)
+  if (!siblingIds.length) return null
+  const rows = await prisma.booking.findMany({
+    where: { id: { in: [bookingId, ...siblingIds] }, status: { not: 'CANCELLED' } },
+    include: { slot: { include: { court: true } } },
+  })
+  if (rows.length < 2) return null
+  rows.sort((a, b) => a.slot.date.localeCompare(b.slot.date) || a.slot.startTime.localeCompare(b.slot.startTime))
+  return rows.map((row) => ({
+    courtName: courtNotifyName(row.slot.court),
+    date: row.slot.date,
+    startTime: row.slot.startTime,
+    endTime: row.slot.endTime,
+  }))
+}
+
 /** Confirm competition entry when payment settles — idempotent. */
 export async function syncCompetitionEntryOnPayment(paymentId: string) {
   try {
@@ -183,6 +207,14 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
       const guestName = personNotifyName(b.guestName, b.guestFamily) || b.user?.name || ''
       const courtName = courtNotifyName(b.slot.court)
       const clubName = clubNotifyName(club)
+      let series: BookingNotifySessionLine[] | null = null
+      try {
+        series = await courtSeriesSessions(b.id, payment.metadataJson)
+      } catch (err) {
+        console.error('[paymentSync:seriesSessions]', paymentId, err)
+      }
+      const first = series?.[0]
+      const last = series?.[series.length - 1]
       await notifyBookingPaid({
         userId: b.userId,
         email: b.user?.email,
@@ -191,10 +223,13 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
         clubName,
         clubId: club.id,
         bookingId: b.id,
-        date: b.slot.date,
-        startTime: b.slot.startTime,
-        endTime: b.slot.endTime,
-        courtName,
+        date: first?.date || b.slot.date,
+        finishDate: series && last && last.date !== first?.date ? last.date : undefined,
+        startTime: first?.startTime || b.slot.startTime,
+        endTime: first?.endTime || b.slot.endTime,
+        sessionCount: series?.length,
+        sessions: series || undefined,
+        courtName: first?.courtName || courtName,
         paymentPaid: true,
         guestName,
         amountPaid: payment.amount,
@@ -204,10 +239,11 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
         clubName,
         clubId: club.id,
         bookingId: b.id,
-        date: b.slot.date,
-        startTime: b.slot.startTime,
-        endTime: b.slot.endTime,
-        courtName,
+        date: first?.date || b.slot.date,
+        startTime: first?.startTime || b.slot.startTime,
+        endTime: first?.endTime || b.slot.endTime,
+        courtName: first?.courtName || courtName,
+        sessions: series || undefined,
         guestName,
         guestPhone: phone,
         amountPaid: payment.amount,

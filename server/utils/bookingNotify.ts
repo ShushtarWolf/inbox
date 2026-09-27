@@ -87,6 +87,8 @@ type OwnerBookingPaidOpts = {
   startTime: string
   endTime?: string | null
   courtName?: string | null
+  /** Full series lines — season / multi-slot paid SMS. */
+  sessions?: OwnerBookingSessionLine[]
   guestName?: string | null
   guestPhone?: string | null
   amountPaid?: number | null
@@ -487,6 +489,7 @@ export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
     startTime: opts.startTime,
     endTime: opts.endTime,
     courtName: opts.courtName,
+    sessions: opts.sessions,
   })
 }
 
