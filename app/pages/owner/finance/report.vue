@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { selectFinanceTransactions, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -14,6 +15,8 @@ type OwnerFinanceTransaction = {
   sessionType?: 'free' | 'coach' | string
   coachName?: string | null
   reservationLabel: string
+  reservedAt: string
+  paidAt?: string | null
   unpaid?: boolean
 }
 
@@ -52,9 +55,15 @@ const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceRespo
   key: 'owner-finance-report',
 })
 useOwnerClubRefresh(refresh)
-const { formatCurrency, formatNumber } = useFormatters()
+const { formatCurrency, formatNumber, formatDate, formatTimeLabel } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const reservedFrom = ref('')
+const reservedTo = ref('')
+const paidFrom = ref('')
+const paidTo = ref('')
+const sortKey = ref<FinanceTxSortKey>('reservedAt')
+const sortDir = ref<FinanceTxSortDir>('desc')
 
 onMounted(() => {
   fetchAuth()
@@ -132,21 +141,26 @@ const noShowRateLabel = computed(() => {
   return `${formatNumber(value)}٪`
 })
 
-const visibleTransactions = computed(() => {
-  let list = data.value?.transactions || []
-  if (pilotNoCoach.value) list = list.filter((tx) => tx.kind !== 'coach')
-  if (pilotNoCoach.value || sessionFilter.value === 'all') return list
-  return list.filter((tx) => {
-    const isCoach = tx.kind === 'coach' || tx.sessionType === 'coach'
-    return sessionFilter.value === 'coach' ? isCoach : !isCoach
-  })
-})
+const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
+  hideCoach: pilotNoCoach.value,
+  session: sessionFilter.value,
+  reservedFrom: reservedFrom.value,
+  reservedTo: reservedTo.value,
+  paidFrom: paidFrom.value,
+  paidTo: paidTo.value,
+  sortKey: sortKey.value,
+  sortDir: sortDir.value,
+}))
 
-const sessionFilterOptions = computed(() => ([
-  { value: 'all' as const, label: t('owner.financePage.sessionFilterAll') },
-  { value: 'free' as const, label: t('owner.financePage.sessionFilterFree') },
-  { value: 'coach' as const, label: t('owner.financePage.sessionFilterCoach') },
-]))
+function stampDate(stamp?: string | null) {
+  if (!stamp) return ''
+  return formatDate(stamp.slice(0, 10))
+}
+
+function stampTime(stamp?: string | null) {
+  if (!stamp || stamp.length < 16) return ''
+  return formatTimeLabel(stamp.slice(11, 16))
+}
 
 function isCoachTx(tx: OwnerFinanceTransaction) {
   return tx.kind === 'coach' || tx.sessionType === 'coach'
@@ -230,23 +244,17 @@ function downloadReport() {
 
         <div class="space-y-3 canva-report-span">
           <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
-          <div
-            v-if="!pilotNoCoach"
-            class="canva-session-filter-row"
-            role="group"
-            :aria-label="t('owner.sessionTypeFilterHint')"
-          >
-            <button
-              v-for="opt in sessionFilterOptions"
-              :key="opt.value"
-              type="button"
-              class="canva-session-filter-btn"
-              :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
-              @click="sessionFilter = opt.value"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
+          <OwnerFinanceTxFilters
+            v-model:session="sessionFilter"
+            v-model:reserved-from="reservedFrom"
+            v-model:reserved-to="reservedTo"
+            v-model:paid-from="paidFrom"
+            v-model:paid-to="paidTo"
+            v-model:sort-key="sortKey"
+            v-model:sort-dir="sortDir"
+            :show-session="!pilotNoCoach"
+            sort-mode="always"
+          />
           <CanvaEmptyState v-if="!visibleTransactions.length" :title="t('common.empty')" icon="receipt_long" />
           <div v-else class="space-y-2">
             <div
@@ -257,11 +265,20 @@ function downloadReport() {
             >
               <div class="min-w-0 flex-1 text-start">
                 <p class="text-sm font-bold text-brand-navy">{{ tx.reservationLabel }}</p>
+                <p class="mt-0.5 text-xs tabular-nums text-brand-gray-600">
+                  {{ stampDate(tx.reservedAt) }}
+                  <bdi dir="ltr">{{ stampTime(tx.reservedAt) }}</bdi>
+                </p>
+                <p v-if="tx.paidAt" class="mt-0.5 text-xs tabular-nums text-brand-gray-500">
+                  {{ t('owner.financeTable.paidAt') }}
+                  {{ stampDate(tx.paidAt) }}
+                  <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
+                </p>
                 <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
                 <span
                   v-if="isCoachTx(tx)"
                   class="canva-slot-coach-chip mt-1"
-                >{{ t('owner.financePage.sessionCoachTag') }}</span>
+                >{{ t('owner.financeTable.sessionCoachTag') }}</span>
                 <p class="mt-1 text-[11px] text-brand-gray-500">
                   {{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}
                 </p>

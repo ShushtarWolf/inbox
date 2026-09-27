@@ -1,5 +1,6 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { formatSmsJalaliDate, formatSmsTime, isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
+import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
+import { localDateString, localTimeString } from '#shared/localDate.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
@@ -160,25 +161,37 @@ export default defineEventHandler(async (event) => {
   const noShowsToday = noShowsTodayBookings + noShowsTodaySessions
   const cancellationsThisMonth = cancelsMonthBookings + cancelsMonthSessions
 
+  function reservedStamp(date: string, startTime: string) {
+    const time = /^\d{2}:\d{2}/.test(startTime || '') ? startTime.slice(0, 5) : '00:00'
+    return `${date}T${time}:00`
+  }
+
+  function paidStamp(status: string, createdAt?: Date | null) {
+    if (status !== 'PAID' || !createdAt) return null
+    return `${localDateString(createdAt)}T${localTimeString(createdAt)}:00`
+  }
+
   const transactions = [
     ...bookings.map((booking) => {
       const isCoachSession = Boolean(booking.coachId)
-      const courtBit = `${toPersianDigits(booking.slot.court.nameFa)} · ${formatSmsTime(booking.slot.startTime)} · ${formatSmsJalaliDate(booking.slot.date)}`
+      const courtName = toPersianDigits(booking.slot.court.nameFa)
+      const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
+      const paymentStatus = paymentStatusOf(booking)
       return {
         id: booking.id,
         guestName: booking.guestName || booking.user?.name || 'Guest',
         guestMobile: booking.guestMobile || booking.user?.phone || null,
         paymentMethod: booking.payment?.method || booking.paymentMethod,
-        paymentStatus: paymentStatusOf(booking),
+        paymentStatus,
         amount: amountOfBooking(booking),
         bookingStatus: booking.status,
         kind: 'court' as const,
         sessionType: isCoachSession ? ('coach' as const) : ('free' as const),
         coachId: booking.coachId || null,
         coachName: booking.coach?.nameFa || null,
-        reservationLabel: isCoachSession
-          ? `مربی${booking.coach?.nameFa ? ` · ${toPersianDigits(booking.coach.nameFa)}` : ''} · ${courtBit}`
-          : courtBit,
+        reservationLabel: coachName ? `${courtName} · ${coachName}` : courtName,
+        reservedAt: reservedStamp(booking.slot.date, booking.slot.startTime),
+        paidAt: paidStamp(paymentStatus, booking.payment?.createdAt),
         equipmentSummary: booking.bookingEquipments
           .map((item) => {
             const qty = Math.max(1, item.quantity || 1)
@@ -189,23 +202,28 @@ export default defineEventHandler(async (event) => {
         unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
       }
     }),
-    ...coachSessions.map((session) => ({
-      id: session.id,
-      guestName: session.athlete.name,
-      guestMobile: session.athlete.phone || null,
-      paymentMethod: session.payment?.method || null,
-      paymentStatus: paymentStatusOf(session),
-      amount: amountOfSession(session),
-      bookingStatus: session.status,
-      kind: 'coach' as const,
-      sessionType: 'coach' as const,
-      coachId: session.coachId,
-      coachName: session.coach.nameFa,
-      reservationLabel: `${formatSmsJalaliDate(session.date)} · ${formatSmsTime(session.startTime)}`,
-      unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(session)),
-    })),
+    ...coachSessions.map((session) => {
+      const paymentStatus = paymentStatusOf(session)
+      return {
+        id: session.id,
+        guestName: session.athlete.name,
+        guestMobile: session.athlete.phone || null,
+        paymentMethod: session.payment?.method || null,
+        paymentStatus,
+        amount: amountOfSession(session),
+        bookingStatus: session.status,
+        kind: 'coach' as const,
+        sessionType: 'coach' as const,
+        coachId: session.coachId,
+        coachName: session.coach.nameFa,
+        reservationLabel: toPersianDigits(session.coach.nameFa),
+        reservedAt: reservedStamp(session.date, session.startTime),
+        paidAt: paidStamp(paymentStatus, session.payment?.createdAt),
+        unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
+      }
+    }),
   ]
-    .sort((a, b) => Number(b.unpaid) - Number(a.unpaid))
+    .sort((a, b) => (a.reservedAt < b.reservedAt ? 1 : a.reservedAt > b.reservedAt ? -1 : 0))
     .slice(0, 50)
 
   return {

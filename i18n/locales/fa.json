@@ -2127,7 +2127,13 @@
       "sessionFilterAll": "همه",
       "sessionFilterFree": "آزاد",
       "sessionFilterCoach": "مربی",
-      "sessionCoachTag": "مربی"
+      "sessionCoachTag": "مربی",
+      "reservedAt": "زمان رزرو",
+      "paidAt": "زمان پرداخت",
+      "dateFrom": "از",
+      "dateTo": "تا",
+      "clearDates": "پاک کردن تاریخ",
+      "sortBy": "مرتب‌سازی"
     },
     "equipmentsPage": {
       "club": "تجهیزات باشگاه",

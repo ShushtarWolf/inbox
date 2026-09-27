@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { selectFinanceTransactions, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -17,6 +18,8 @@ type OwnerFinanceTransaction = {
   sessionType?: 'free' | 'coach' | string
   coachName?: string | null
   reservationLabel: string
+  reservedAt: string
+  paidAt?: string | null
   unpaid?: boolean
 }
 
@@ -75,7 +78,7 @@ const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<Ow
   immediate: false,
   watch: false,
 })
-const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth, formatPhone } = useFormatters()
+const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth, formatPhone, formatTimeLabel } = useFormatters()
 const { today } = useLocalDate()
 const { pilotNoCoach } = usePilotFlags()
 const { fetchErrorMessage } = useFetchError()
@@ -84,6 +87,12 @@ onMounted(() => { fetchAuth() })
 
 const period = ref<'day' | 'week' | 'month'>('day')
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+const reservedFrom = ref('')
+const reservedTo = ref('')
+const paidFrom = ref('')
+const paidTo = ref('')
+const sortKey = ref<FinanceTxSortKey>('reservedAt')
+const sortDir = ref<FinanceTxSortDir>('desc')
 const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
 const withdrawAmount = ref<number | null>(null)
@@ -291,21 +300,40 @@ const ipgPct = computed(() => {
   return sum ? Math.round((ipgPctRaw.value / sum) * 100) : 0
 })
 
-const visibleTransactions = computed(() => {
-  let list = data.value?.transactions || []
-  if (pilotNoCoach.value) list = list.filter((tx) => tx.kind !== 'coach')
-  if (pilotNoCoach.value || sessionFilter.value === 'all') return list
-  return list.filter((tx) => {
-    const isCoach = tx.kind === 'coach' || tx.sessionType === 'coach'
-    return sessionFilter.value === 'coach' ? isCoach : !isCoach
-  })
-})
+const visibleTransactions = computed(() => selectFinanceTransactions(data.value?.transactions || [], {
+  hideCoach: pilotNoCoach.value,
+  session: sessionFilter.value,
+  reservedFrom: reservedFrom.value,
+  reservedTo: reservedTo.value,
+  paidFrom: paidFrom.value,
+  paidTo: paidTo.value,
+  sortKey: sortKey.value,
+  sortDir: sortDir.value,
+}))
 
-const sessionFilterOptions = computed(() => ([
-  { value: 'all' as const, label: t('owner.financePage.sessionFilterAll') },
-  { value: 'free' as const, label: t('owner.financePage.sessionFilterFree') },
-  { value: 'coach' as const, label: t('owner.financePage.sessionFilterCoach') },
-]))
+function toggleSort(key: FinanceTxSortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+    return
+  }
+  sortKey.value = key
+  sortDir.value = key === 'guest' || key === 'reservation' || key === 'method' ? 'asc' : 'desc'
+}
+
+function ariaSort(key: FinanceTxSortKey) {
+  if (sortKey.value !== key) return 'none'
+  return sortDir.value === 'asc' ? 'ascending' : 'descending'
+}
+
+function stampDate(stamp?: string | null) {
+  if (!stamp) return ''
+  return formatDate(stamp.slice(0, 10))
+}
+
+function stampTime(stamp?: string | null) {
+  if (!stamp || stamp.length < 16) return ''
+  return formatTimeLabel(stamp.slice(11, 16))
+}
 
 function isCoachTx(tx: OwnerFinanceTransaction) {
   return tx.kind === 'coach' || tx.sessionType === 'coach'
@@ -462,23 +490,17 @@ function closeTx() {
 
       <div v-if="showTransactions" class="canva-finance-tx-col space-y-3">
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
-        <div
-          v-if="!pilotNoCoach"
-          class="canva-session-filter-row"
-          role="group"
-          :aria-label="t('owner.sessionTypeFilterHint')"
-        >
-          <button
-            v-for="opt in sessionFilterOptions"
-            :key="opt.value"
-            type="button"
-            class="canva-session-filter-btn"
-            :class="sessionFilter === opt.value ? 'canva-session-filter-btn-on' : ''"
-            @click="sessionFilter = opt.value"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
+        <OwnerFinanceTxFilters
+          v-model:session="sessionFilter"
+          v-model:reserved-from="reservedFrom"
+          v-model:reserved-to="reservedTo"
+          v-model:paid-from="paidFrom"
+          v-model:paid-to="paidTo"
+          v-model:sort-key="sortKey"
+          v-model:sort-dir="sortDir"
+          :show-session="!pilotNoCoach"
+          sort-mode="narrow"
+        />
         <div v-if="visibleTransactions.length" class="canva-finance-tx-grid">
           <button
             v-for="tx in visibleTransactions"
@@ -489,11 +511,20 @@ function closeTx() {
           >
             <div class="min-w-0 flex-1 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ tx.reservationLabel }}</p>
+              <p class="mt-0.5 text-xs tabular-nums text-brand-gray-600">
+                {{ stampDate(tx.reservedAt) }}
+                <bdi dir="ltr">{{ stampTime(tx.reservedAt) }}</bdi>
+              </p>
+              <p v-if="tx.paidAt" class="mt-0.5 text-xs tabular-nums text-brand-gray-500">
+                {{ t('owner.financeTable.paidAt') }}
+                {{ stampDate(tx.paidAt) }}
+                <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
+              </p>
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
               <span
                 v-if="isCoachTx(tx)"
                 class="canva-slot-coach-chip mt-1"
-              >{{ t('owner.financePage.sessionCoachTag') }}</span>
+              >{{ t('owner.financeTable.sessionCoachTag') }}</span>
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>
@@ -507,10 +538,42 @@ function closeTx() {
           <table class="canva-finance-table">
             <thead>
               <tr>
-                <th>{{ t('owner.financeTable.reservation') }}</th>
-                <th>{{ t('owner.financeTable.guest') }}</th>
-                <th>{{ t('owner.financeTable.method') }}</th>
-                <th>{{ t('owner.financeTable.income') }}</th>
+                <th :aria-sort="ariaSort('reservation')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('reservation')">
+                    {{ t('owner.financeTable.reservation') }}
+                    <span v-if="sortKey === 'reservation'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
+                <th :aria-sort="ariaSort('reservedAt')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('reservedAt')">
+                    {{ t('owner.financeTable.reservedAt') }}
+                    <span v-if="sortKey === 'reservedAt'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
+                <th :aria-sort="ariaSort('paidAt')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('paidAt')">
+                    {{ t('owner.financeTable.paidAt') }}
+                    <span v-if="sortKey === 'paidAt'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
+                <th :aria-sort="ariaSort('guest')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('guest')">
+                    {{ t('owner.financeTable.guest') }}
+                    <span v-if="sortKey === 'guest'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
+                <th :aria-sort="ariaSort('method')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('method')">
+                    {{ t('owner.financeTable.method') }}
+                    <span v-if="sortKey === 'method'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
+                <th :aria-sort="ariaSort('amount')">
+                  <button type="button" class="canva-finance-sort" @click="toggleSort('amount')">
+                    {{ t('owner.financeTable.income') }}
+                    <span v-if="sortKey === 'amount'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -519,6 +582,17 @@ function closeTx() {
                   <button type="button" class="canva-finance-table-btn font-bold text-brand-navy" @click="openTx(tx)">
                     {{ tx.reservationLabel }}
                   </button>
+                </td>
+                <td class="tabular-nums">
+                  {{ stampDate(tx.reservedAt) }}
+                  <bdi dir="ltr">{{ stampTime(tx.reservedAt) }}</bdi>
+                </td>
+                <td class="tabular-nums">
+                  <template v-if="tx.paidAt">
+                    {{ stampDate(tx.paidAt) }}
+                    <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
+                  </template>
+                  <template v-else>—</template>
                 </td>
                 <td>{{ tx.guestName }}</td>
                 <td>
@@ -640,6 +714,23 @@ function closeTx() {
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.reservation') }}</span>
           <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ selectedTx.reservationLabel || '—' }}</span>
+        </div>
+        <div class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.reservedAt') }}</span>
+          <span class="text-start font-bold tabular-nums text-brand-navy">
+            {{ stampDate(selectedTx.reservedAt) || '—' }}
+            <bdi dir="ltr">{{ stampTime(selectedTx.reservedAt) }}</bdi>
+          </span>
+        </div>
+        <div class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.paidAt') }}</span>
+          <span class="text-start font-bold tabular-nums text-brand-navy">
+            <template v-if="selectedTx.paidAt">
+              {{ stampDate(selectedTx.paidAt) }}
+              <bdi dir="ltr">{{ stampTime(selectedTx.paidAt) }}</bdi>
+            </template>
+            <template v-else>—</template>
+          </span>
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.guest') }}</span>

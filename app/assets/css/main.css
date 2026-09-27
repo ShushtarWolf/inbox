@@ -1731,6 +1731,29 @@
   .canva-finance-table-wrap {
     @apply hidden;
   }
+  .canva-finance-date {
+    min-width: 0;
+    flex: 1;
+    border: 1px solid #e8e4de;
+    border-radius: var(--sz-canva-radius);
+    background: #fff;
+    padding: 0.35rem 0.5rem;
+    font-size: 16px;
+    letter-spacing: 0;
+    color: var(--sz-navy, #1a1a18);
+  }
+  .canva-finance-sort {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    background: transparent;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: start;
+    color: inherit;
+  }
   .canva-finance-method-badge {
     @apply inline-flex px-2 py-0.5 text-[10px] font-bold text-white;
     border-radius: var(--sz-canva-radius);
@@ -3150,6 +3173,8 @@
   }
   .canva-finance-table th {
     font-weight: 700;
+    letter-spacing: 0;
+    white-space: nowrap;
     color: var(--sz-navy, #1a1a18);
     background: #f6f3ee;
   }
