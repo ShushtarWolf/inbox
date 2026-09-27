@@ -29,7 +29,7 @@ Germany releases have been healthy-but-502 while Iran full-source restored publi
 
 1. Push deployable commits to GitHub `main` if ahead.
 2. Prefer green CI for that SHA if still running; otherwise `deploy.yml` smoke gate covers it.
-3. Trigger and watch:
+3. Trigger and watch. A healthy run is ~12 minutes (smoke ~2, Iran ~9). If the Iran job is still running 15 minutes after its `started_at`, stop watching and follow **Stuck Iran build** below. Do not sit on `gh run watch` until the 20-minute cap.
 
 ```bash
 gh workflow run deploy.yml --ref main
@@ -69,6 +69,23 @@ Report absolute dump path. Deploy is not done until dump exists **and** live pro
 7. If workflow, Iran retry, live probe, or backup fails after recovery attempts — **stop and tell the user**. Do not claim success.
 
 Requires repo secret `LIARA_API_TOKEN`.
+
+## Stuck Iran build (do not wait it out)
+
+Sep 2026: a healthy Iran full-source job finishes in ~9 minutes. One run stayed on `liara deploy` for ~45 minutes. GitHub hides that step’s log until the job ends, so “no log lines” is not evidence it is still compiling. Germany cannot start until the Iran job exits, and `liara-deploy` uses `cancel-in-progress: false`, so a new production deploy waits behind the hung run.
+
+If `Deploy Iran full-source (primary)` is still `in_progress` **15 minutes after that job’s `started_at`**:
+
+1. Force-cancel. A plain `gh run cancel` often does not kill a hung `liara deploy`.
+
+```bash
+gh api --method POST repos/ShushtarWolf/inbox/actions/runs/<RUN_ID>/force-cancel
+```
+
+2. Wait until that run is `completed` before `gh workflow run deploy.yml` again.
+3. Probe `https://inboxs.ir/api/health`. Cancelling an in-flight deploy leaves the previous release serving. Say production is down only if that probe fails.
+4. Redeploy. The workflow backstop is `timeout 20m` and job `timeout-minutes: 30` in `deploy.yml` and `liara-iran-deploy.yml`. Do not raise those back to 75/90.
+5. Do not make Germany the primary path to save time. Germany stays the fallback (it has been healthy-but-502).
 
 ## Runtime image (Germany fallback path)
 
