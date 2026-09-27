@@ -68,6 +68,8 @@ export const palette = {
     RESERVED_IPG: '#d4dce8',
     /** Season / package series — distinct from paid / unpaid / online */
     RESERVED_RECURRING: '#ddd4e8',
+    /** Top stripe on a seasonal cell. Not the normal reserve red. */
+    RESERVED_RECURRING_BAR: '#6B4C9A',
     /** Desk coach-tagged court booking accent (payment color still primary fill) */
     RESERVED_COACH: '#f0c4b8',
     PENDING: '#e8d4a8',

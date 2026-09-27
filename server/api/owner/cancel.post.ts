@@ -1,3 +1,5 @@
+import { seriesCancelPaymentId } from '#shared/ownerSeries.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   notifyBookingCancelled,
   clubNotifyName,
@@ -5,13 +7,14 @@ import {
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
-import { normalizeIranPhone } from '#shared/phone.ts'
+import { loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string
+    scope?: 'series'
     reason?: string
     refundToWallet?: boolean
     skipNotify?: boolean
@@ -27,6 +30,52 @@ export default defineEventHandler(async (event) => {
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   const booking = activeSlotBooking(slot.booking)
+  if (body.scope === 'series' && booking) {
+    const series = await loadOwnerSeriesBookings(club.id, booking.id)
+    if (series.length) {
+      const reason = body.reason || 'owner-cancel-series'
+      const skipWallet = body.refundToWallet === false
+      for (const row of series) {
+        await cancelCourtBooking({
+          bookingId: row.id,
+          slotId: row.slotId,
+          reason,
+          paymentId: seriesCancelPaymentId(row.payment),
+          userId: row.userId,
+          skipWallet,
+        })
+        await notifyWaitlistForFreedSlot({
+          clubId: club.id,
+          courtId: row.slot.courtId,
+          date: row.slot.date,
+          startTime: row.slot.startTime,
+          endTime: row.slot.endTime,
+        })
+      }
+      const anchor = series.find((row) => row.id === booking.id) || series[0]!
+      const rawGuest = anchor.guestMobile
+      const phone = anchor.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
+      if (anchor.userId || phone) {
+        await notifyBookingCancelled({
+          userId: anchor.userId,
+          email: anchor.user?.email,
+          phone,
+          kind: 'court',
+          clubName: clubNotifyName(club),
+          clubId: club.id,
+          bookingId: anchor.id,
+          date: anchor.slot.date,
+          startTime: anchor.slot.startTime,
+          endTime: anchor.slot.endTime,
+          reason,
+          guestName: personNotifyName(anchor.guestName, anchor.guestFamily)
+            || personNotifyName(anchor.user?.name),
+          courtName: courtNotifyName(anchor.slot.court),
+        })
+      }
+      return { ok: true, cancelled: series.length }
+    }
+  }
   if (booking) {
     const reason = body.reason || 'owner-cancel'
     await cancelCourtBooking({

@@ -165,6 +165,8 @@ const multiSelectMode = ref(false)
 const showMenu = ref(false)
 const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
+/** Whole season / class package, not the checked hours of this day. */
+const cancelSeries = ref(false)
 const refundToWallet = ref(true)
 const saving = ref(false)
 const previewing = ref(false)
@@ -511,6 +513,7 @@ const bookedSiblingSlots = computed(() => {
   return sortSlotsByTimeThenCourt(live, courtOrder)
 })
 const showBookedCancelChecks = computed(() => bookedSiblingSlots.value.length > 1)
+const canCancelSeries = computed(() => isRecurringReservedSlot(selectedSlotFull.value))
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
@@ -1205,7 +1208,7 @@ function openBookedSlot(fullSlot: OwnerCalendarSlot) {
     return
   }
   bookedSiblingIds.value = siblings.map((item) => item.id)
-  selectedSlotIds.value = [...bookedSiblingIds.value]
+  selectedSlotIds.value = [fullSlot.id]
   selectionCourtId.value = null
   openSlot(fullSlot, { keepSelection: true })
 }
@@ -1343,7 +1346,16 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
 }
 
 function openCancelForm() {
+  cancelSeries.value = false
   if (!slotsForCancel().length) return
+  cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
+  refundToWallet.value = true
+  activePanel.value = 'cancel'
+}
+
+function openSeriesCancelForm() {
+  if (!canCancelSeries.value || !selectedSlotFull.value) return
+  cancelSeries.value = true
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
   refundToWallet.value = true
   activePanel.value = 'cancel'
@@ -1904,6 +1916,7 @@ function closeMenu() {
   seasonAcceptGap.value = false
   packageAcceptGap.value = false
   cancelReason.value = ''
+  cancelSeries.value = false
   actionError.value = ''
   lastPayLink.value = null
   payLinkCopied.value = false
@@ -1956,6 +1969,7 @@ function backToMenu() {
     actionError.value = ''
     return
   }
+  if (activePanel.value === 'cancel') cancelSeries.value = false
   reserveFlowReturn.value = false
   if (hasBookedDetailContext()) {
     activePanel.value = 'detail'
@@ -2222,7 +2236,35 @@ function pruneBookedCancelSelection() {
   if (next) selectedSlot.value = next
 }
 
+async function doCancelSeries() {
+  const slot = selectedSlotFull.value
+  if (!slot || !cancelReason.value || saving.value || !isRecurringReservedSlot(slot)) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await $fetch('/api/owner/cancel', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        scope: 'series',
+        reason: cancelReason.value,
+        refundToWallet: refundToWallet.value,
+      },
+    })
+    await finishSlotAction()
+  } catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await refreshCalendar()
+  } finally {
+    saving.value = false
+  }
+}
+
 async function doCancel() {
+  if (cancelSeries.value) {
+    await doCancelSeries()
+    return
+  }
   const targets = slotsForCancel().filter((slot) => {
     if (slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return false
     return Boolean(activeBooking(slot))
@@ -2304,7 +2346,10 @@ async function refreshDeskPaymentSheet(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
     bookedSiblingIds.value = bookedSiblingIds.value.filter((id) => liveIds.has(id))
     selectedSlotIds.value = selectedSlotIds.value.filter((id) => liveIds.has(id))
     if (!selectedSlotIds.value.length && bookedSiblingIds.value.length) {
-      selectedSlotIds.value = [...bookedSiblingIds.value]
+      const anchor = selectedSlot.value?.id
+      selectedSlotIds.value = anchor && bookedSiblingIds.value.includes(anchor)
+        ? [anchor]
+        : [bookedSiblingIds.value[0]!]
     }
   }
   showMenu.value = true
@@ -3101,6 +3146,7 @@ function confirmReserveLabel() {
 const legend = computed(() => [
   { status: 'FREE', color: palette.calendarGrid.FREE, swatch: 'free' as const },
   { status: 'RESERVED', color: '#C41E1E', swatch: 'box' as const },
+  { status: 'SEASON', color: palette.calendarGrid.RESERVED_RECURRING_BAR, swatch: 'box' as const },
   { status: 'PENDING', color: '#E8B84A', swatch: 'box' as const },
   { status: 'BLOCKED', color: '#1A1A18', swatch: 'box' as const },
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
@@ -3244,7 +3290,7 @@ watch(pilotNoCoach, (off) => {
             :class="item.swatch === 'free' ? 'canva-legend-swatch-free' : ''"
             :style="item.swatch === 'free' ? undefined : { background: item.color }"
           />
-          {{ item.status === 'PAID_DOT' ? t('owner.legendPaid') : statusLabel(item.status) }}
+          {{ item.status === 'PAID_DOT' ? t('owner.legendPaid') : item.status === 'SEASON' ? t('owner.legendSeason') : statusLabel(item.status) }}
         </div>
         <span class="canva-cal-legend-note">
           <span aria-hidden="true">★</span>
@@ -3541,6 +3587,14 @@ watch(pilotNoCoach, (off) => {
             >
               {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
             </button>
+            <button
+              v-if="canCancelSeries"
+              type="button"
+              class="canva-detail-cancel mt-4 w-full"
+              @click="openSeriesCancelForm"
+            >
+              {{ t('owner.cancelSeason') }}
+            </button>
             <div class="canva-detail-actions">
               <button type="button" class="canva-detail-cancel" :disabled="!slotsForCancel().length" @click="openCancelForm">
                 {{ t('owner.cancelBooking') }}
@@ -3664,13 +3718,16 @@ watch(pilotNoCoach, (off) => {
             <AppFormField :label="t('owner.guestMobile')">
               <input v-model="form.guestMobile" dir="ltr" class="neo-input tabular-nums" readonly>
             </AppFormField>
-            <p class="text-start text-xs font-bold text-brand-gray-600">{{ t('owner.cancelledSessions') }}</p>
-            <ul class="space-y-1 text-start text-sm font-bold text-brand-gray-600">
-              <li v-for="slot in slotsForCancel()" :key="slot.id">
-                {{ formatWeekday(slot.date || date, 'long') }} {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
-                · <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
-              </li>
-            </ul>
+            <p v-if="cancelSeries" class="text-start text-sm font-bold text-brand-navy">{{ t('owner.cancelSeasonHint') }}</p>
+            <template v-else>
+              <p class="text-start text-xs font-bold text-brand-gray-600">{{ t('owner.cancelledSessions') }}</p>
+              <ul class="space-y-1 text-start text-sm font-bold text-brand-gray-600">
+                <li v-for="slot in slotsForCancel()" :key="slot.id">
+                  {{ formatWeekday(slot.date || date, 'long') }} {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
+                  · <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
+                </li>
+              </ul>
+            </template>
             <label class="canva-recurring-check">
               <input v-model="refundToWallet" type="checkbox" class="canva-settings-checkbox">
               <span>{{ t('owner.refundToWalletCheck') }}</span>
@@ -3684,7 +3741,7 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving || !slotsForCancel().length" @click="doCancel">{{ t('owner.cancelBooking') }}</button>
+            <button type="button" class="canva-gate-btn-primary" :disabled="!cancelReason || saving || (cancelSeries ? !canCancelSeries : !slotsForCancel().length)" @click="doCancel">{{ cancelSeries ? t('owner.cancelSeason') : t('owner.cancelBooking') }}</button>
             <button type="button" class="canva-gate-btn-secondary" @click="backToMenu">{{ t('common.back') }}</button>
           </div>
         </div>
