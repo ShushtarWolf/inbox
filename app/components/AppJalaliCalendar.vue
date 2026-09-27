@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, jalaliCalendarView } from '#shared/jalali.ts'
 
 const model = defineModel<string>({ required: true })
 const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
@@ -26,14 +26,14 @@ const { today } = useLocalDate()
 
 const PERSIAN_WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const
 
-const viewYear = ref(1404)
-const viewMonth = ref(1)
+const openedOn = jalaliCalendarView(model.value, today())
+const viewYear = ref(openedOn.year)
+const viewMonth = ref(openedOn.month)
 
 function syncViewFromModel() {
-  if (!model.value) return
-  const j = isoToJalaali(model.value)
-  viewYear.value = j.jy
-  viewMonth.value = j.jm
+  const j = jalaliCalendarView(model.value, today())
+  viewYear.value = j.year
+  viewMonth.value = j.month
 }
 
 watch(model, syncViewFromModel, { immediate: true })

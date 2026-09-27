@@ -186,6 +186,7 @@ async function saveItem() {
     if (result.calendarWarning) {
       calendarWarning.value = result.calendarWarning
     }
+    saving.value = false
     closeModal()
     await refresh()
     await router.push(localePath(`/owner/competitions/${result.competition.id}`))

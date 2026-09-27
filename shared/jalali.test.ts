@@ -5,6 +5,7 @@ import {
   formatSmsTime,
   gregorianToIso,
   isoToJalaali,
+  jalaliCalendarView,
   jalaaliDaysInMonth,
   jalaaliToIso,
   parseGregorianIso,
@@ -30,6 +31,11 @@ describe('jalali conversions', () => {
 
   it('converts Gregorian to Jalali', () => {
     expect(isoToJalaali('2026-03-21')).toEqual({ jy: 1405, jm: 1, jd: 1 })
+  })
+
+  it('opens an empty calendar on today and a filled one on that date', () => {
+    expect(jalaliCalendarView('', '2026-09-27')).toEqual({ year: 1405, month: 7 })
+    expect(jalaliCalendarView('2026-03-21', '2026-09-27')).toEqual({ year: 1405, month: 1 })
   })
 
   it('formats SMS Jalali date and Persian digits', () => {

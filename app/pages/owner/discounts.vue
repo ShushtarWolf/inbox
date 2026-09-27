@@ -139,6 +139,7 @@ async function saveItem() {
         },
       })
     }
+    saving.value = false
     closeModal()
     await refresh()
   } catch (err) {

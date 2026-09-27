@@ -33,6 +33,12 @@ export function isoToJalaali(iso: string) {
   return toJalaali(year, month, day)
 }
 
+/** Month the calendar should show. Empty field stays empty; the view falls back to today. */
+export function jalaliCalendarView(iso: string | null | undefined, todayIso: string) {
+  const { jy, jm } = isoToJalaali(iso || todayIso)
+  return { year: jy, month: jm }
+}
+
 export function jalaaliToIso(jy: number, jm: number, jd: number) {
   const { gy, gm, gd } = toGregorian(jy, jm, jd)
   return gregorianToIso(gy, gm, gd)
