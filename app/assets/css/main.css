@@ -1680,15 +1680,23 @@
     border-radius: var(--sz-canva-radius);
   }
   .canva-finance-chip-link {
-    @apply block no-underline transition-colors;
+    @apply block w-full cursor-pointer no-underline transition-colors;
+    font: inherit;
+    color: inherit;
   }
   .canva-finance-chip-link:hover,
   .canva-finance-chip-link:focus-visible {
     @apply border-brand-primary bg-brand-cream outline-none;
   }
   .canva-finance-unpaid-cta {
-    @apply font-bold text-brand-primary underline-offset-2;
+    @apply cursor-pointer border-0 bg-transparent p-0 font-bold text-brand-primary underline-offset-2;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
     text-decoration: underline;
+  }
+  #owner-finance-tx {
+    scroll-margin-top: 1rem;
   }
   .canva-finance-chip-label {
     @apply text-[10px] font-bold text-brand-gray-500;

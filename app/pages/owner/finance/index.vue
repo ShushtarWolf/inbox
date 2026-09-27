@@ -289,7 +289,6 @@ const summaryChips = computed(() => {
       key: 'pendingSettlement',
       label: t('owner.financeCards.pendingSettlement'),
       value: unpaidAmt == null ? '—' : formatCurrency(unpaidAmt),
-      to: localePath('/owner/calendar'),
     },
     {
       key: 'noShows',
@@ -394,6 +393,14 @@ function openTx(tx: OwnerFinanceTransaction) {
 function closeTx() {
   selectedTx.value = null
 }
+
+/** Chip and hint stay on this page: filter the ledger to unpaid and scroll to it. */
+function showUnpaidList() {
+  paymentFilter.value = 'unpaid'
+  nextTick(() => {
+    document.getElementById('owner-finance-tx')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
 </script>
 
 <template>
@@ -460,14 +467,15 @@ function closeTx() {
       <div v-if="showReports" class="space-y-2">
         <div class="canva-finance-chips">
           <template v-for="chip in summaryChips" :key="chip.key">
-            <NuxtLink
-              v-if="chip.to"
-              :to="chip.to"
+            <button
+              v-if="chip.key === 'pendingSettlement'"
+              type="button"
               class="canva-finance-chip canva-finance-chip-link"
+              @click="showUnpaidList"
             >
               <p class="canva-finance-chip-label">{{ chip.label }}</p>
               <p class="canva-finance-chip-value">{{ chip.value }}</p>
-            </NuxtLink>
+            </button>
             <div v-else class="canva-finance-chip">
               <p class="canva-finance-chip-label">{{ chip.label }}</p>
               <p class="canva-finance-chip-value">{{ chip.value }}</p>
@@ -476,9 +484,10 @@ function closeTx() {
         </div>
         <p v-if="hasUnpaidReceivables" class="text-start text-[11px] leading-5 text-brand-gray-500">
           {{ t('owner.financePage.unpaidChipHint') }}
-          <NuxtLink :to="localePath('/owner/calendar')" class="canva-finance-unpaid-cta ms-1">
+          <button type="button" class="canva-finance-unpaid-cta ms-1" @click="showUnpaidList">
             {{ t('owner.financePage.unpaidChipCta') }}
-          </NuxtLink>
+          </button>
+          {{ t('owner.financePage.unpaidChipClear') }}
         </p>
       </div>
 
@@ -536,7 +545,7 @@ function closeTx() {
         </div>
       </div>
 
-      <div v-if="showTransactions" class="canva-finance-tx-col space-y-3">
+      <div v-if="showTransactions" id="owner-finance-tx" class="canva-finance-tx-col space-y-3">
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
         <OwnerFinanceTxFilters
           v-model:session="sessionFilter"
