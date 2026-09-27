@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** Canva home page (29): ops guide + club contact + platform ticket. */
+import { openTicketId } from '#shared/supportTicket.ts'
+
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN' , ssr: false})
 
 type OwnerSettingsClub = {
@@ -46,6 +48,21 @@ const ticketBody = ref('')
 const ticketError = ref('')
 const ticketSuccess = ref('')
 const sending = ref(false)
+const forceNew = ref(false)
+
+type TicketRow = NonNullable<typeof mine.value>['tickets'][number]
+
+const continueTicketId = computed(() =>
+  openTicketId(
+    (mine.value?.tickets ?? []).map((row) => ({ id: row.id, status: row.status })),
+    forceNew.value,
+  ),
+)
+
+function threadMessages(row: TicketRow) {
+  if (row.messages.length) return row.messages
+  return [{ id: row.id, body: row.body, fromAdmin: false, createdAt: row.createdAt }]
+}
 
 function statusLabel(status: string) {
   const key = `admin.ticketStatus.${status}`
@@ -61,16 +78,25 @@ async function submitTicket() {
     return
   }
   sending.value = true
+  const continuing = continueTicketId.value
   try {
-    await $fetch('/api/support/tickets', {
-      method: 'POST',
-      body: {
-        body: ticketBody.value,
-        pageUrl: import.meta.client ? window.location.href : '/owner/support',
-      },
-    })
+    if (continuing) {
+      await $fetch(`/api/support/tickets/${continuing}/reply`, {
+        method: 'POST',
+        body: { body: ticketBody.value },
+      })
+    } else {
+      await $fetch('/api/support/tickets', {
+        method: 'POST',
+        body: {
+          body: ticketBody.value,
+          pageUrl: import.meta.client ? window.location.href : '/owner/support',
+        },
+      })
+      forceNew.value = false
+    }
     ticketBody.value = ''
-    ticketSuccess.value = t('owner.supportPage.ticketOk')
+    ticketSuccess.value = t(continuing ? 'owner.supportPage.replyOk' : 'owner.supportPage.ticketOk')
     await refreshMine()
   } catch (err: unknown) {
     ticketError.value = fetchErrorMessage(err, t('owner.supportPage.ticketFail'))
@@ -97,7 +123,25 @@ async function submitTicket() {
 
       <section class="space-y-2 text-start min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-5" style="border-radius: var(--sz-canva-radius);">
         <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.ticketTitle') }}</h2>
-        <p class="text-xs text-brand-gray-500">{{ t('owner.supportPage.ticketHint') }}</p>
+        <p class="text-xs text-brand-gray-500">
+          {{ continueTicketId ? t('owner.supportPage.continueHint') : t('owner.supportPage.ticketHint') }}
+        </p>
+        <button
+          v-if="continueTicketId"
+          type="button"
+          class="text-xs font-bold text-brand-navy underline"
+          @click="forceNew = true"
+        >
+          {{ t('owner.supportPage.newTicket') }}
+        </button>
+        <button
+          v-else-if="forceNew"
+          type="button"
+          class="text-xs font-bold text-brand-navy underline"
+          @click="forceNew = false"
+        >
+          {{ t('owner.supportPage.continueSame') }}
+        </button>
         <form class="space-y-2" @submit.prevent="submitTicket">
           <textarea
             v-model="ticketBody"
@@ -111,22 +155,36 @@ async function submitTicket() {
             {{ sending ? t('common.loading') : t('common.send') }}
           </button>
         </form>
-        <ul v-if="mine?.tickets?.length" class="mt-3 space-y-2">
+        <ul v-if="mine?.tickets?.length" class="mt-4 flex flex-col gap-4">
           <li
             v-for="row in mine.tickets"
             :key="row.id"
-            class="border border-brand-gray-200 p-3 text-start text-xs"
+            class="border bg-white p-3 text-start"
+            :class="continueTicketId === row.id ? 'border-brand-navy' : 'border-brand-gray-300'"
             style="border-radius: var(--sz-canva-radius);"
           >
-            <p class="font-bold text-brand-navy">{{ statusLabel(row.status) }} · <span dir="ltr">{{ formatDate(row.createdAt) }}</span></p>
-            <p class="mt-1 text-brand-gray-700">{{ row.body }}</p>
-            <p
-              v-for="msg in row.messages.filter((m) => m.fromAdmin)"
-              :key="msg.id"
-              class="mt-2 border-t border-brand-gray-100 pt-2 text-brand-navy"
-            >
-              {{ t('admin.ticketAdminReply') }}: {{ msg.body }}
+            <p class="text-xs font-bold text-brand-navy">
+              {{ statusLabel(row.status) }}
+              · <span dir="ltr">{{ formatDate(row.createdAt) }}</span>
             </p>
+            <p v-if="continueTicketId === row.id" class="mt-1 text-xs font-bold text-brand-primary">
+              {{ t('owner.supportPage.currentThread') }}
+            </p>
+            <div class="mt-3 flex flex-col gap-2">
+              <div
+                v-for="msg in threadMessages(row)"
+                :key="msg.id"
+                class="border p-2 text-xs"
+                :class="msg.fromAdmin ? 'border-brand-gray-200 bg-brand-gray-50' : 'border-transparent bg-brand-gray-50/40'"
+                style="border-radius: 2px;"
+              >
+                <p class="font-bold text-brand-gray-500">
+                  {{ msg.fromAdmin ? t('admin.ticketAdminReply') : t('owner.supportPage.you') }}
+                  · <span dir="ltr">{{ formatDate(msg.createdAt) }}</span>
+                </p>
+                <p class="mt-1 whitespace-pre-wrap text-brand-navy">{{ msg.body }}</p>
+              </div>
+            </div>
           </li>
         </ul>
       </section>

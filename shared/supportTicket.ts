@@ -22,3 +22,12 @@ export function normalizeOptionalLine(raw: unknown, max: number): string | null 
 export function isPlausibleEmail(value: string): boolean {
   return value.includes('@') && value.includes('.') && value.length <= 160
 }
+
+/** First open ticket. Caller passes newest-first; pass forceNew to start a fresh ticket. */
+export function openTicketId(
+  tickets: { id: string; status: string }[],
+  forceNew = false,
+): string | null {
+  if (forceNew) return null
+  return tickets.find((row) => row.status === 'OPEN' || row.status === 'IN_PROGRESS')?.id ?? null
+}

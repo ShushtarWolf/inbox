@@ -2585,7 +2585,13 @@
       "ticketPlaceholder": "شرح مشکل یا درخواست…",
       "ticketNeedBody": "متن تیکت باید حداقل چند جمله کوتاه باشد.",
       "ticketOk": "تیکت ثبت شد.",
-      "ticketFail": "ثبت تیکت انجام نشد."
+      "ticketFail": "ثبت تیکت انجام نشد.",
+      "continueHint": "پیام بعدی به همین تیکت باز اضافه می‌شود.",
+      "newTicket": "تیکت جدید",
+      "continueSame": "ادامه همین تیکت",
+      "replyOk": "پیام به همین تیکت اضافه شد.",
+      "you": "شما",
+      "currentThread": "پیام بعدی اینجاست"
     },
     "supportPlaceholder": "متن موقت پشتیبانی inbox.local برای نسخه ۱",
     "settingsPlaceholder": "ساعت باشگاه و زمین‌ها - متن موقت تنظیمات",
