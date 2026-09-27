@@ -1,3 +1,5 @@
+import { isPaidPaymentStatus } from './bookingPayment.ts'
+
 export type FinanceSessionFilter = 'all' | 'free' | 'coach'
 
 export type FinanceBookingKind = 'normal' | 'package' | 'coach'
@@ -5,6 +7,11 @@ export type FinanceBookingKind = 'normal' | 'package' | 'coach'
 export type FinanceBookingKindFilter = 'all' | FinanceBookingKind
 
 export type FinancePaymentFilter = 'all' | 'cash' | 'ipg' | 'unpaid'
+
+/** Same marks as the owner calendar legend. */
+export type FinanceLegendState = 'free' | 'reserved' | 'season' | 'pending' | 'blocked' | 'paid' | 'note'
+
+export type FinanceLegendFilter = 'all' | FinanceLegendState
 
 export type FinanceTxSortKey = 'reservation' | 'reservedAt' | 'paidAt' | 'guest' | 'method' | 'amount'
 
@@ -24,6 +31,11 @@ export type FinanceTxTimes = {
   reservedAt: string
   /** Club-local stamp when the payment is PAID; empty when unpaid. */
   paidAt?: string | null
+  bookingStatus?: string | null
+  paymentStatus?: string | null
+  displayStatus?: string | null
+  comments?: string | null
+  isRecurring?: boolean | null
 }
 
 export type FinanceTxQuery = {
@@ -31,6 +43,8 @@ export type FinanceTxQuery = {
   session?: FinanceSessionFilter
   bookingKind?: FinanceBookingKindFilter
   payment?: FinancePaymentFilter
+  /** Calendar legend. `all` keeps bookings and hides empty or blocked hours. */
+  legend?: FinanceLegendFilter
   /** Guest name or phone. Persian and Arabic digits count as the same phone. */
   guest?: string
   reservedFrom?: string
@@ -62,6 +76,26 @@ export function financePaymentBucket(tx: { paymentMethod?: string | null; unpaid
   if (tx.paymentMethod === 'IPG') return 'ipg'
   if (tx.paymentMethod === 'CASH' || tx.paymentMethod === 'PAID') return 'cash'
   return 'unpaid'
+}
+
+const RESERVED_DISPLAY = new Set(['RESERVED', 'PUBLIC', 'TEAM'])
+
+/** Calendar legend marks on one report row. A paid reserved hour matches both. */
+export function financeLegendStates(tx: FinanceTxTimes): FinanceLegendState[] {
+  const states: FinanceLegendState[] = []
+  const display = tx.displayStatus || ''
+  const booking = tx.bookingStatus || ''
+  const cancelled = booking === 'CANCELLED' || display === 'CANCELLED'
+  if (!cancelled && display === 'FREE') states.push('free')
+  if (!cancelled && display === 'BLOCKED') states.push('blocked')
+  if (!cancelled && (booking === 'PENDING' || display === 'PENDING')) states.push('pending')
+  if (!cancelled && tx.isRecurring) states.push('season')
+  if (!cancelled && isPaidPaymentStatus(tx.paymentStatus)) states.push('paid')
+  if ((tx.comments || '').trim()) states.push('note')
+  if (!cancelled && display !== 'CLOSED' && (RESERVED_DISPLAY.has(display) || (booking === 'CONFIRMED' && !display))) {
+    states.push('reserved')
+  }
+  return states
 }
 
 export function financeBookingKindOf(tx: {
@@ -126,6 +160,7 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
   const session = query.session || 'all'
   const bookingKind = query.bookingKind || 'all'
   const payment = query.payment || 'all'
+  const legend = query.legend || 'all'
   const guest = query.guest || ''
   const reservedFrom = query.reservedFrom || ''
   const reservedTo = query.reservedTo || ''
@@ -134,6 +169,9 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
   const sortKey = query.sortKey || 'reservedAt'
   const sortDir = query.sortDir || 'desc'
   const filtered = rows.filter((tx) => {
+    if (tx.kind === 'slot' && legend === 'all') return false
+    if (legend !== 'all' && !financeLegendStates(tx).includes(legend)) return false
+    if (payment !== 'all' && tx.kind === 'slot') return false
     if (query.hideCoach && tx.kind === 'coach') return false
     if (!query.hideCoach && session !== 'all') {
       const coach = isCoachFinanceTx(tx)

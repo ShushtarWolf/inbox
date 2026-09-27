@@ -2,7 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
-import { selectFinanceTransactions, type FinanceBookingKindFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -15,6 +15,9 @@ type OwnerFinanceTransaction = {
   paymentStatus: string
   amount: number
   bookingStatus: string
+  displayStatus?: string | null
+  comments?: string | null
+  isRecurring?: boolean | null
   kind?: string
   bookingKind?: 'normal' | 'package' | 'coach' | string
   sessionType?: 'free' | 'coach' | string
@@ -78,6 +81,7 @@ const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'la
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
+const legendFilter = ref<FinanceLegendFilter>('all')
 const guestQuery = ref('')
 const reservedFrom = ref('')
 const reservedTo = ref('')
@@ -89,6 +93,7 @@ const financeQuery = computed(() => {
   const q: Record<string, string | number> = { txLimit: 1000 }
   if (reservedFrom.value) q.txFrom = reservedFrom.value
   if (reservedTo.value) q.txTo = reservedTo.value
+  if (legendFilter.value === 'free' || legendFilter.value === 'blocked') q.legend = legendFilter.value
   return q
 })
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
@@ -253,7 +258,10 @@ function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatu
 }
 
 function bookingStatusLabel(status: string) {
-  return t(`booking.status.${status}`)
+  if (!status) return ''
+  const key = `booking.status.${status}`
+  const label = t(key)
+  return label === key ? t(`owner.status.${status}`) : label
 }
 
 function paymentStatusLabel(status: string) {
@@ -317,6 +325,7 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   session: sessionFilter.value,
   bookingKind: bookingKind.value,
   payment: paymentFilter.value,
+  legend: legendFilter.value,
   guest: guestQuery.value,
   reservedFrom: reservedFrom.value,
   reservedTo: reservedTo.value,
@@ -351,8 +360,8 @@ function downloadExcel() {
     tx.guestMobile || '',
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
-    methodBadgeLabel(tx.paymentMethod),
-    paymentStatusLabel(tx.paymentStatus),
+    tx.kind === 'slot' ? '' : methodBadgeLabel(tx.paymentMethod),
+    tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
   ])
   saveFinanceSheet('inbox-finance.xls', financeSheetXml(headers, rows))
@@ -551,6 +560,7 @@ function showUnpaidList() {
           v-model:session="sessionFilter"
           v-model:booking-kind="bookingKind"
           v-model:payment="paymentFilter"
+          v-model:legend="legendFilter"
           v-model:guest="guestQuery"
           v-model:reserved-from="reservedFrom"
           v-model:reserved-to="reservedTo"
@@ -583,7 +593,7 @@ function showUnpaidList() {
                 {{ stampDate(tx.paidAt) }}
                 <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
               </p>
-              <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+              <p v-if="tx.guestName" class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
               <span
                 v-if="isCoachTx(tx)"
                 class="canva-slot-coach-chip mt-1"
@@ -591,7 +601,10 @@ function showUnpaidList() {
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>
-              <span class="canva-finance-method-badge mt-1" :class="methodBadgeClass(tx.paymentMethod)">
+              <span v-if="tx.kind === 'slot'" class="canva-finance-method-badge mt-1">
+                {{ bookingStatusLabel(tx.bookingStatus) }}
+              </span>
+              <span v-else class="canva-finance-method-badge mt-1" :class="methodBadgeClass(tx.paymentMethod)">
                 {{ methodBadgeLabel(tx.paymentMethod) }}
               </span>
             </div>
@@ -659,7 +672,10 @@ function showUnpaidList() {
                 </td>
                 <td>{{ tx.guestName }}</td>
                 <td>
-                  <span class="canva-finance-method-badge" :class="methodBadgeClass(tx.paymentMethod)">
+                  <span v-if="tx.kind === 'slot'" class="canva-finance-method-badge">
+                    {{ bookingStatusLabel(tx.bookingStatus) }}
+                  </span>
+                  <span v-else class="canva-finance-method-badge" :class="methodBadgeClass(tx.paymentMethod)">
                     {{ methodBadgeLabel(tx.paymentMethod) }}
                   </span>
                 </td>
@@ -805,7 +821,7 @@ function showUnpaidList() {
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.method') }}</span>
-          <span class="font-bold text-brand-navy">{{ t(`owner.paymentMethods.${selectedTx.paymentMethod || 'NOT_PAID'}`) }}</span>
+          <span class="font-bold text-brand-navy">{{ selectedTx.kind === 'slot' ? '—' : t(`owner.paymentMethods.${selectedTx.paymentMethod || 'NOT_PAID'}`) }}</span>
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.status') }}</span>

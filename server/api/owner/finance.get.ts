@@ -1,6 +1,7 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
+import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:view')
@@ -24,17 +25,30 @@ export default defineEventHandler(async (event) => {
   const txFrom = queryText(query.txFrom)
   const txTo = queryText(query.txTo)
   const txLimit = queryTxLimit(query.txLimit)
+  const legendQuery = queryText(query.legend)
+  const slotLegendStatus = legendQuery === 'free' ? 'FREE' : legendQuery === 'blocked' ? 'BLOCKED' : null
   const wideList = txLimit > 50 || Boolean(txFrom || txTo)
   const statDate = dateRange(from, to)
   const listDate = dateRange(txFrom, txTo)
+  const createdEvents = {
+    where: { type: 'CREATED' as const },
+    select: { metadataJson: true },
+    take: 8,
+  }
   const bookingInclude = {
     slot: { include: { court: true } },
     payment: true,
     user: { select: { name: true, phone: true } },
     coach: { select: { id: true, nameFa: true, nameEn: true } },
     bookingEquipments: { include: { equipment: true } },
+    events: createdEvents,
   } as const
-  const sessionInclude = { payment: true, coach: true, athlete: { select: { name: true, phone: true } } } as const
+  const sessionInclude = {
+    payment: true,
+    coach: true,
+    athlete: { select: { name: true, phone: true } },
+    events: createdEvents,
+  } as const
 
   function bookingWhere(range?: { gte?: string; lte?: string }) {
     return {
@@ -223,7 +237,7 @@ export default defineEventHandler(async (event) => {
     return 'normal' as const
   }
 
-  const transactions = [
+  const bookingTransactions = [
     ...listBookings.map((booking) => {
       const isCoachSession = Boolean(booking.coachId)
       const courtName = toPersianDigits(booking.slot.court.nameFa)
@@ -245,6 +259,12 @@ export default defineEventHandler(async (event) => {
         reservationLabel: coachName ? `${courtName} · ${coachName}` : courtName,
         reservedAt: reservedStamp(booking.slot.date, booking.slot.startTime),
         paidAt: paidStamp(paymentStatus, booking.payment?.createdAt),
+        displayStatus: booking.slot.displayStatus,
+        comments: booking.comments,
+        isRecurring: isOwnerRecurringBooking({
+          packageDraftId: booking.packageDraftId,
+          events: booking.events,
+        }),
         equipmentSummary: booking.bookingEquipments
           .map((item) => {
             const qty = Math.max(1, item.quantity || 1)
@@ -273,12 +293,53 @@ export default defineEventHandler(async (event) => {
         reservationLabel: toPersianDigits(session.coach.nameFa),
         reservedAt: reservedStamp(session.date, session.startTime),
         paidAt: paidStamp(paymentStatus, session.payment?.createdAt),
+        displayStatus: null,
+        comments: null,
+        isRecurring: isOwnerRecurringBooking({ events: session.events }),
         unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
       }
     }),
   ]
     .sort((a, b) => (a.reservedAt < b.reservedAt ? 1 : a.reservedAt > b.reservedAt ? -1 : 0))
     .slice(0, txLimit)
+
+  const coveredSlotIds = new Set(
+    listBookings.filter((booking) => booking.status !== 'CANCELLED').map((booking) => booking.slotId),
+  )
+  const legendSlotRows = (slotLegendStatus
+    ? courts.flatMap((court) => court.slots
+        .filter((slot) => {
+          if (slot.displayStatus !== slotLegendStatus) return false
+          if (coveredSlotIds.has(slot.id)) return false
+          if (listDate?.gte && slot.date < listDate.gte) return false
+          if (listDate?.lte && slot.date > listDate.lte) return false
+          return true
+        })
+        .map((slot) => ({
+          id: `slot-${slot.id}`,
+          guestName: '',
+          guestMobile: null,
+          paymentMethod: null,
+          paymentStatus: '',
+          amount: 0,
+          bookingStatus: slot.displayStatus,
+          kind: 'slot' as const,
+          bookingKind: 'normal' as const,
+          sessionType: 'free' as const,
+          coachId: null,
+          coachName: null,
+          reservationLabel: toPersianDigits(court.nameFa),
+          reservedAt: reservedStamp(slot.date, slot.startTime),
+          paidAt: null,
+          displayStatus: slot.displayStatus,
+          comments: null,
+          isRecurring: false,
+          unpaid: false,
+        })))
+    : [])
+    .sort((a, b) => (a.reservedAt < b.reservedAt ? 1 : a.reservedAt > b.reservedAt ? -1 : 0))
+    .slice(0, txLimit)
+  const transactions = [...bookingTransactions, ...legendSlotRows]
 
   return {
     stats: {

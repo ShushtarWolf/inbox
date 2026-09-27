@@ -96,6 +96,57 @@ describe('selectFinanceTransactions', () => {
     expect(xml).not.toContain('علی & رضا')
   })
 
+  it('filters the same states as the calendar legend', () => {
+    const listed: FinanceTxTimes[] = [
+      {
+        ...rows[0],
+        paymentStatus: 'PAID',
+        bookingStatus: 'CONFIRMED',
+        displayStatus: 'RESERVED',
+        comments: 'تماس',
+      },
+      {
+        ...rows[1],
+        paymentStatus: 'PAY_AT_CLUB',
+        bookingStatus: 'PENDING',
+        displayStatus: 'PENDING',
+      },
+      {
+        ...rows[2],
+        paymentStatus: 'PAID',
+        bookingStatus: 'CONFIRMED',
+        displayStatus: 'RESERVED',
+        isRecurring: true,
+      },
+      {
+        kind: 'slot',
+        reservationLabel: 'زمین ۳',
+        guestName: '',
+        amount: 0,
+        reservedAt: '2026-10-01T08:00:00',
+        displayStatus: 'BLOCKED',
+        bookingStatus: 'BLOCKED',
+      },
+      {
+        kind: 'slot',
+        reservationLabel: 'زمین ۴',
+        guestName: '',
+        amount: 0,
+        reservedAt: '2026-10-02T09:00:00',
+        displayStatus: 'FREE',
+        bookingStatus: 'FREE',
+      },
+    ]
+    expect(selectFinanceTransactions(listed).some((tx) => tx.kind === 'slot')).toBe(false)
+    expect(selectFinanceTransactions(listed, { legend: 'paid' }).map((tx) => tx.guestName)).toEqual(['رضا', 'علی'])
+    expect(selectFinanceTransactions(listed, { legend: 'pending' }).map((tx) => tx.guestName)).toEqual(['سارا'])
+    expect(selectFinanceTransactions(listed, { legend: 'season' }).map((tx) => tx.guestName)).toEqual(['رضا'])
+    expect(selectFinanceTransactions(listed, { legend: 'note' }).map((tx) => tx.guestName)).toEqual(['علی'])
+    expect(selectFinanceTransactions(listed, { legend: 'reserved' }).map((tx) => tx.guestName)).toEqual(['رضا', 'علی'])
+    expect(selectFinanceTransactions(listed, { legend: 'blocked' }).map((tx) => tx.reservationLabel)).toEqual(['زمین ۳'])
+    expect(selectFinanceTransactions(listed, { legend: 'free' }).map((tx) => tx.reservationLabel)).toEqual(['زمین ۴'])
+  })
+
   it('sorts income and guest', () => {
     expect(selectFinanceTransactions(rows, { sortKey: 'amount', sortDir: 'asc' }).map((tx) => tx.amount)).toEqual([
       10_000,

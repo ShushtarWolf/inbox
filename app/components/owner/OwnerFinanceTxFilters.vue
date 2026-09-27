@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { FinanceBookingKindFilter, FinancePaymentFilter, FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import type { FinanceBookingKindFilter, FinanceLegendFilter, FinancePaymentFilter, FinanceSessionFilter, FinanceTxSortDir, FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 const session = defineModel<FinanceSessionFilter>('session', { required: true })
 const bookingKind = defineModel<FinanceBookingKindFilter>('bookingKind', { required: true })
 const payment = defineModel<FinancePaymentFilter>('payment', { required: true })
+const legend = defineModel<FinanceLegendFilter>('legend', { required: true })
 const guest = defineModel<string>('guest', { required: true })
 const reservedFrom = defineModel<string>('reservedFrom', { required: true })
 const reservedTo = defineModel<string>('reservedTo', { required: true })
@@ -34,6 +35,17 @@ const bookingKindOptions = computed(() => ([
   { value: 'normal' as const, label: t('owner.financeTable.bookingKindNormal') },
   { value: 'package' as const, label: t('owner.financeTable.bookingKindPackage') },
   { value: 'coach' as const, label: t('owner.financeTable.bookingKindCoach') },
+]))
+
+const legendOptions = computed(() => ([
+  { value: 'all' as const, label: t('owner.financeTable.sessionFilterAll') },
+  { value: 'free' as const, label: t('owner.status.FREE') },
+  { value: 'reserved' as const, label: t('owner.status.RESERVED') },
+  { value: 'season' as const, label: t('owner.legendSeason') },
+  { value: 'pending' as const, label: t('owner.status.PENDING') },
+  { value: 'blocked' as const, label: t('owner.status.BLOCKED') },
+  { value: 'paid' as const, label: t('owner.legendPaid') },
+  { value: 'note' as const, label: t('owner.legendNote') },
 ]))
 
 const paymentOptions = computed(() => ([
@@ -86,6 +98,22 @@ function sortLabel(key: FinanceTxSortKey) {
       >
         {{ opt.label }}
       </button>
+    </div>
+
+    <div class="text-start">
+      <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.legendFilter') }}</span>
+      <div class="canva-session-filter-row" role="group" :aria-label="t('owner.financeTable.legendFilter')">
+        <button
+          v-for="opt in legendOptions"
+          :key="opt.value"
+          type="button"
+          class="canva-session-filter-btn"
+          :class="legend === opt.value ? 'canva-session-filter-btn-on' : ''"
+          @click="legend = opt.value"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
     </div>
 
     <div class="text-start">

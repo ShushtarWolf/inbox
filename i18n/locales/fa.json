@@ -2128,6 +2128,7 @@
       "sessionFilterAll": "همه",
       "sessionFilterFree": "آزاد",
       "sessionFilterCoach": "مربی",
+      "legendFilter": "وضعیت تقویم",
       "bookingKind": "نوع رزرو",
       "bookingKindNormal": "عادی",
       "bookingKindPackage": "پکیج",
