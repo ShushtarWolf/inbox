@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inbox SMS templates we send now</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2") format("woff2");
+      }
+
+      :root {
+        --text: #18212f;
+        --muted: #5b6472;
+        --line: #d9dee7;
+        --surface: #f6f8fb;
+        --head: #eef2f8;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: "Vazirmatn", Tahoma, sans-serif;
+        color: var(--text);
+        background: white;
+        line-height: 1.5;
+        font-size: 11px;
+        letter-spacing: 0;
+      }
+
+      h1 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+      h2 { margin: 18px 0 6px; font-size: 13px; font-weight: 700; }
+
+      .note {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 10.5px;
+        max-width: 1100px;
+      }
+
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+      th, td {
+        border: 1px solid var(--line);
+        padding: 6px 7px;
+        vertical-align: top;
+        text-align: start;
+        overflow-wrap: anywhere;
+      }
+
+      th { background: var(--head); font-weight: 700; font-size: 10px; }
+      tr:nth-child(even) td { background: var(--surface); }
+
+      .fa { direction: rtl; text-align: right; }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9.5px;
+        direction: ltr;
+        unicode-bidi: isolate;
+      }
+      ul { margin: 0; padding-inline-start: 18px; }
+      li { margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Inbox SMS templates we send now</h1>
+    <p class="note">
+      Only the unpaid pay-link SMS keeps a real tappable URL on the live Kavenegar line.
+      Other links are written into the message body, then the notify template strips punctuation
+      (<code>https://</code>, <code>/</code>, <code>.</code>), so they do not open a page on the phone.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">Template</th>
+          <th style="width:18%">Who</th>
+          <th style="width:24%">Text</th>
+          <th style="width:20%">Link</th>
+          <th style="width:20%">Page</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OTP (<code>inbox-verify-autofill</code>)</td>
+          <td>Login, register, forgot password</td>
+          <td class="fa">code: 123456<br>کد تایید اینباکس<br>@inboxs.ir #123456</td>
+          <td>No page. <code>@inboxs.ir</code> is the SMS autofill host.</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Pay link (<code>KAVENEGAR_TEMPLATE_PAY_LINK</code>)</td>
+          <td>Guest, unpaid booking</td>
+          <td>Guest first name + pin inside the panel template</td>
+          <td><code>https://inboxs.ir/p/{8-char pin}</code></td>
+          <td><code>/p/:pin</code> looks up the pin and opens the public receipt at <code>/r/:token</code> (sessions, tracking code, pay online)</td>
+        </tr>
+        <tr>
+          <td><code>BOOKING_PAID</code></td>
+          <td>Guest, after payment</td>
+          <td class="fa">رزرو شما با موفقیت ثبت شد — plus club, sessions, order code</td>
+          <td><code>https://inboxs.ir/athlete/bookings</code></td>
+          <td>Athlete bookings list</td>
+        </tr>
+        <tr>
+          <td><code>BOOKING_CANCELLED</code></td>
+          <td>Guest</td>
+          <td class="fa">رزرو … لغو شد — plus court, time, code</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>OWNER_BOOKING_CONFIRMED</code></td>
+          <td>Club owner, after payment (only “new order” SMS; no separate paid SMS)</td>
+          <td class="fa">سفارش جدید — plus buyer, phone, sessions</td>
+          <td><code>https://inboxs.ir/r/{signed token}</code></td>
+          <td>Same public receipt as the pay link</td>
+        </tr>
+        <tr>
+          <td><code>OWNER_BOOKING_CANCELLED</code></td>
+          <td>Club owner</td>
+          <td class="fa">لغو رزرو — plus guest, time, court</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>OWNER_DAILY_RESERVATIONS</code></td>
+          <td>Club owner, morning cron if that day has bookings</td>
+          <td class="fa">شما از سایت Inboxs رزرو دارید</td>
+          <td><code>https://inboxs.ir/owner/calendar</code></td>
+          <td>Owner reservations calendar</td>
+        </tr>
+        <tr>
+          <td><code>WAITLIST_SLOT_AVAILABLE</code></td>
+          <td>Person on the waitlist</td>
+          <td class="fa">نوبت آزاد شد — plus club and time</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>CLUB_APPROVED</code></td>
+          <td>Club owner</td>
+          <td class="fa">باشگاه در Inboxs تأیید شد</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>COACH_APPROVED</code> / <code>COACH_REJECTED</code></td>
+          <td>Coach</td>
+          <td class="fa">پروفایل تأیید شد / درخواست تأیید نشد</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>ADMIN_BOOKING_CONFIRMED</code> / <code>PAID</code> / <code>CANCELLED</code></td>
+          <td>Platform admin mobile</td>
+          <td>One-line alert: guest, time, court, code</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>ADMIN_WITHDRAW_REQUEST</code></td>
+          <td>Admin</td>
+          <td class="fa">برداشت باشگاه or ورزشکار, amount, last 4 of sheba</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>ADMIN_CLUB_APPLICATION</code> / <code>ADMIN_COACH_APPLICATION</code></td>
+          <td>Admin</td>
+          <td class="fa">درخواست باشگاه / مربی</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>ADMIN_WALLET_TOPUP</code></td>
+          <td>Admin</td>
+          <td class="fa">شارژ کیف پول</td>
+          <td>None</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>CRM campaign</td>
+          <td>Contacts the owner picks</td>
+          <td>Whatever the owner types</td>
+          <td>Only if they paste a URL</td>
+          <td>Not fixed</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Defined in code, not sent</h2>
+    <ul>
+      <li><code>BOOKING_CONFIRMED</code> — unpaid create sends only the pay-link SMS. Confirmation text goes out later as <code>BOOKING_PAID</code>. The unused body can also include a Google Maps URL and the receipt URL.</li>
+      <li><code>OWNER_BOOKING_PAID</code> — payment uses <code>OWNER_BOOKING_CONFIRMED</code> instead.</li>
+      <li><code>PASSWORD_RESET</code> — forgot-password sends the OTP SMS, not a reset link.</li>
+    </ul>
+  </body>
+</html>
