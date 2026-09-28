@@ -3,6 +3,8 @@ import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliLongDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { bookingTrackingCode, parseReceiptToken } from '#shared/receiptToken.ts'
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
+import { receiptAmenities, receiptPolicyLines } from '#shared/seasonReceipt.ts'
 import { receiptSigningSecret } from '../../utils/receipt'
 import { loadSeriesGroupForBooking } from '../../utils/seriesCancelRefund'
 
@@ -21,6 +23,7 @@ function paymentMethodFa(method: string | null | undefined, source: string) {
 }
 
 type SessionOut = {
+  iso: string
   date: string
   startTime: string
   endTime: string
@@ -41,6 +44,7 @@ function sessionFromBooking(booking: {
   const meta = parseSeriesPaymentMeta(booking.payment?.metadataJson)
   const price = meta.sessionPrice ?? booking.payment?.amount ?? booking.slot.price
   return {
+    iso: booking.slot.date,
     date: formatSmsJalaliLongDate(booking.slot.date),
     startTime: formatSmsTime(booking.slot.startTime),
     endTime: booking.slot.endTime ? formatSmsTime(booking.slot.endTime) : '',
@@ -118,5 +122,10 @@ export default defineEventHandler(async (event) => {
     cancelled: booking.status === 'CANCELLED',
     canPayOnline: unpaid && isOnlinePaymentsEnabled(),
     kind: series ? 'season' : 'single',
+    clubImage: club.image || null,
+    amenities: receiptAmenities(parseFacilitiesJson(club.amenitiesJson)),
+    policies: receiptPolicyLines(club.policiesJson),
+    cancellationWindowHours: club.cancellationWindowHours,
+    rescheduleWindowHours: club.rescheduleWindowHours,
   }
 })
