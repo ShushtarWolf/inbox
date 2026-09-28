@@ -2654,13 +2654,6 @@
   .canva-recurring-check {
     @apply flex w-full items-start gap-2 text-xs font-bold text-brand-navy;
   }
-  .canva-recurring-check .canva-recurring-checkbox {
-    @apply mt-0.5 h-[1.05rem] w-[1.05rem] border-brand-gray-400;
-  }
-  .canva-recurring-check .canva-recurring-checkbox:checked {
-    border-color: var(--color-brand-primary, #c8102e);
-    background-color: var(--color-brand-primary, #c8102e);
-  }
   .canva-reserve-head {
     @apply flex flex-wrap items-center justify-start gap-2;
   }

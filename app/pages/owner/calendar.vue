@@ -192,8 +192,6 @@ const payLinkSmsStatus = ref<'idle' | 'sent' | 'failed'>('idle')
 const payLinkSmsError = ref('')
 /** Canva reserve sheet: آزاد / مربی (coach path still MVP-gated). */
 const sessionType = ref<'free' | 'coach'>('free')
-/** Canva (11): daily/weekly ask on walk-in reserve → season panel when enabled. */
-const recurringWanted = ref(false)
 /** Grid filter: all reserved types, free-play only, or coach-tagged only. */
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 /** After season/package preview → desk pay sheet before create. */
@@ -1287,7 +1285,6 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   actionError.value = ''
   flashMessage.value = ''
   sessionType.value = activeBooking(fullSlot)?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
-  recurringWanted.value = false
   const isFree = fullSlot.displayStatus === 'FREE' || !activeBooking(fullSlot)
   const booking = activeBooking(fullSlot)
   if (isFree) {
@@ -1798,28 +1795,6 @@ function courtNameById(courtId?: string) {
   return court ? formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) : ''
 }
 
-function openSeasonFormFromReserve() {
-  if (!pilotNoCoach.value && sessionType.value === 'coach') {
-    if (!form.coachId.trim()) {
-      actionError.value = t('owner.sessionTypeCoachRequired')
-      return
-    }
-    if (!canShowPackageReserve()) {
-      actionError.value = t('owner.seasonPage.disabled')
-      return
-    }
-    reserveFlowReturn.value = true
-    openPackageForm({ fromWalkIn: true })
-    return
-  }
-  if (!canShowSeasonReserve()) {
-    actionError.value = t('owner.seasonPage.disabled')
-    return
-  }
-  reserveFlowReturn.value = true
-  openSeasonForm({ fromWalkIn: true })
-}
-
 /** Secondary «رزرو فصلی» — same season sheet; guest validated on preview/confirm. */
 function openSeasonReserveButton() {
   if (!pilotNoCoach.value && sessionType.value === 'coach') {
@@ -1831,7 +1806,6 @@ function openSeasonReserveButton() {
       actionError.value = t('owner.seasonPage.disabled')
       return
     }
-    recurringWanted.value = true
     reserveFlowReturn.value = true
     openPackageForm({ fromWalkIn: true })
     return
@@ -1840,7 +1814,6 @@ function openSeasonReserveButton() {
     actionError.value = t('owner.seasonPage.disabled')
     return
   }
-  recurringWanted.value = true
   reserveFlowReturn.value = true
   openSeasonForm({ fromWalkIn: true })
 }
@@ -3774,7 +3747,7 @@ watch(pilotNoCoach, (off) => {
               </span>
             </div>
           </div>
-          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()">
+          <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
             <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
               <div class="relative">
                 <input
@@ -3940,14 +3913,8 @@ watch(pilotNoCoach, (off) => {
               <textarea id="owner-reserve-comments" v-model="form.comments" class="neo-textarea" rows="2" />
             </AppFormField>
 
-            <template v-if="isNewReservation() && canShowSeasonReserve()">
-              <label class="canva-recurring-check">
-                <input v-model="recurringWanted" type="checkbox" class="canva-settings-checkbox canva-recurring-checkbox">
-                <span class="text-start">{{ t('owner.recurringWanted') }}</span>
-              </label>
-            </template>
             <p
-              v-else-if="isNewReservation() && !recurringReserveEnabled"
+              v-if="isNewReservation() && !recurringReserveEnabled"
               class="text-start text-[11px] text-brand-gray-500"
             >
               {{ t('owner.recurringDisabledHint') }}
@@ -3990,7 +3957,7 @@ watch(pilotNoCoach, (off) => {
               type="button"
               class="canva-sheet-submit"
               :disabled="!canSubmitReserve()"
-              @click="isNewReservation() ? (recurringWanted ? openSeasonFormFromReserve() : openPayConfirm()) : doReserve()"
+              @click="isNewReservation() ? openPayConfirm() : doReserve()"
             >{{ saving ? t('common.loading') : confirmReserveLabel() }}</button>
             <button
               v-if="isEditingBooking() && canMarkPaid()"
