@@ -34,7 +34,12 @@ const localePath = useLocalePath()
 const { today } = useLocalDate()
 const { formatDate, formatDayNumber, formatWeekday, formatMonth, formatTimeLabel, formatTimeRange, formatPhone } = useFormatters()
 
-const date = ref(today())
+const route = useRoute()
+const date = ref(
+  typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date)
+    ? route.query.date
+    : today(),
+)
 const showDatePicker = ref(false)
 const selectedSession = ref<ScheduleSession | null>(null)
 const showSessionActions = ref(false)

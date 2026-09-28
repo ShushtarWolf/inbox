@@ -6,7 +6,8 @@ import { fetchErrorMessage } from '~/composables/useFetchError'
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH', ssr: false })
 
 const { t } = useI18n()
-const { formatCurrency, formatTimeRange, formatFaDigits } = useFormatters()
+const localePath = useLocalePath()
+const { formatCurrency, formatDate, formatTimeRange, formatFaDigits } = useFormatters()
 const { onlineEnabled, redirectToPaymentGateway } = useCheckout()
 
 const route = useRoute()
@@ -35,13 +36,30 @@ const initialDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$
   ? route.query.date
   : today()
 const initialTime = typeof route.query.time === 'string' ? route.query.time.slice(0, 5) : ''
+/** Arrived from the coach calendar with a day and hour already chosen — student only, no court. */
+const fromCalendar = Boolean(
+  typeof route.query.date === 'string'
+  && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date)
+  && initialTime,
+)
+const scheduleBack = computed(() => localePath({ path: '/coach/schedule', query: { date: initialDate } }))
+const calendarEndTime = computed(() => {
+  if (!initialTime) return ''
+  const hour = (Number(initialTime.slice(0, 2)) + 1) % 24
+  return `${String(hour).padStart(2, '0')}:00`
+})
 
 // Lazy fetches so Nuxt Suspense + page out-in does not leave an empty cream main while APIs run.
 const { data: clubsData, pending, error } = await useAuthedFetch<{
   clubs: ClubOption[]
-}>('/api/coach/clubs', { lazy: true })
+}>('/api/coach/clubs', { lazy: true, immediate: !fromCalendar })
 const { data: wallet, refresh: refreshWallet } = await useAuthedFetch<{ balance: number }>('/api/wallet', {
   lazy: true,
+  immediate: !fromCalendar,
+})
+const { data: coachProfile } = await useAuthedFetch<{ sessionPrice: number }>('/api/coach/profile', {
+  lazy: true,
+  immediate: fromCalendar,
 })
 
 const clubs = computed(() => clubsData.value?.clubs || [])
@@ -52,6 +70,13 @@ const selectedCourtId = ref('')
 const selectedSlotId = ref('')
 const studentPhone = ref('')
 const studentName = ref('')
+type StudentSearchHit = { name: string; mobile: string }
+const studentSuggestions = ref<StudentSearchHit[]>([])
+const studentSearchOpen = ref(false)
+const studentSearchPending = ref(false)
+const studentSearchSource = ref<'name' | 'mobile'>('name')
+let studentSearchTimer: ReturnType<typeof setTimeout> | null = null
+let studentSearchRequest = 0
 const submitting = ref(false)
 const errorKey = ref('')
 const successMessage = ref('')
@@ -156,7 +181,11 @@ watch(courtGroups, (groups) => {
 }, { immediate: true })
 
 const selectedSlot = computed(() => (slotData.value?.slots || []).find((slot) => slot.id === selectedSlotId.value) || null)
-const canSubmit = computed(() => Boolean(selectedSlot.value && studentPhone.value.trim() && !submitting.value))
+const canSubmit = computed(() => {
+  if (submitting.value || !studentPhone.value.trim()) return false
+  if (fromCalendar) return true
+  return Boolean(selectedSlot.value)
+})
 const shortfall = computed(() =>
   selectedSlot.value ? Math.max(0, selectedSlot.value.courtCharge - (wallet.value?.balance || 0)) : 0,
 )
@@ -179,17 +208,128 @@ async function refreshSlotsAndOverlay() {
   await Promise.all([refreshSlots(), refreshExternalOverlay()])
 }
 
+function clearStudentSearch() {
+  if (studentSearchTimer) {
+    clearTimeout(studentSearchTimer)
+    studentSearchTimer = null
+  }
+  // Drop a response that arrives after the coach picked a row, cleared the field, or submitted.
+  studentSearchRequest += 1
+  studentSuggestions.value = []
+  studentSearchOpen.value = false
+  studentSearchPending.value = false
+}
+
+async function runStudentSearch(raw: string) {
+  const q = raw.trim()
+  if (q.length < 2) {
+    clearStudentSearch()
+    return
+  }
+  const requestId = ++studentSearchRequest
+  studentSearchPending.value = true
+  studentSearchOpen.value = true
+  try {
+    const res = await $fetch<{ students: StudentSearchHit[] }>('/api/coach/students/search', {
+      query: { q },
+    })
+    if (requestId !== studentSearchRequest) return
+    studentSuggestions.value = res.students || []
+  }
+  catch {
+    if (requestId !== studentSearchRequest) return
+    studentSuggestions.value = []
+  }
+  finally {
+    if (requestId === studentSearchRequest) {
+      studentSearchPending.value = false
+      studentSearchOpen.value = studentSuggestions.value.length > 0
+    }
+  }
+}
+
+function scheduleStudentSearch(raw: string) {
+  if (studentSearchTimer) clearTimeout(studentSearchTimer)
+  studentSearchTimer = setTimeout(() => {
+    void runStudentSearch(raw)
+  }, 250)
+}
+
+function onStudentNameInput() {
+  studentSearchSource.value = 'name'
+  scheduleStudentSearch(studentName.value)
+}
+
+function onStudentPhoneInput() {
+  studentSearchSource.value = 'mobile'
+  scheduleStudentSearch(studentPhone.value)
+}
+
+function selectStudentSuggestion(student: StudentSearchHit) {
+  if (student.name) studentName.value = student.name
+  if (student.mobile) studentPhone.value = student.mobile
+  clearStudentSearch()
+}
+
+function closeStudentSearchSoon() {
+  setTimeout(() => {
+    studentSearchOpen.value = false
+  }, 150)
+}
+
+function serverMessage(err: unknown) {
+  if (err && typeof err === 'object' && 'data' in err) {
+    const data = (err as { data?: { statusMessage?: string } }).data
+    if (data?.statusMessage) return data.statusMessage
+  }
+  if (err && typeof err === 'object' && 'statusMessage' in err) {
+    return String((err as { statusMessage?: string }).statusMessage || '')
+  }
+  return ''
+}
+
 /** Server statusMessages are stable identifiers; map them so the coach sees why it failed. */
 function messageToKey(message: string) {
   if (message.includes('Insufficient wallet balance')) return 'coach.book.errorInsufficient'
   if (message.includes('Slot not available')) return 'coach.book.errorSlotTaken'
+  if (message.includes('not available at this time')) return 'coach.book.errorNotInSchedule'
   if (message.includes('already booked')) return 'coach.book.errorCoachBusy'
   if (message.includes('COACH_NOT_APPROVED')) return 'coach.book.errorNotApproved'
   if (message.includes('own student')) return 'coach.book.errorSelfStudent'
   return 'coach.book.errorGeneric'
 }
 
+async function submitCalendarStudent() {
+  if (!studentPhone.value.trim() || submitting.value) return
+  submitting.value = true
+  errorKey.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch('/api/coach/sessions', {
+      method: 'POST',
+      body: {
+        date: initialDate,
+        startTime: initialTime,
+        studentPhone: studentPhone.value.trim(),
+        studentName: studentName.value.trim() || undefined,
+      },
+    })
+    clearStudentSearch()
+    await navigateTo(scheduleBack.value)
+  }
+  catch (err) {
+    errorKey.value = messageToKey(serverMessage(err))
+  }
+  finally {
+    submitting.value = false
+  }
+}
+
 async function submit() {
+  if (fromCalendar) {
+    await submitCalendarStudent()
+    return
+  }
   if (!canSubmit.value) return
   submitting.value = true
   errorKey.value = ''
@@ -210,10 +350,11 @@ async function submit() {
     selectedSlotId.value = ''
     studentPhone.value = ''
     studentName.value = ''
+    clearStudentSearch()
     await Promise.all([refreshSlotsAndOverlay(), refreshWallet()])
   }
   catch (err) {
-    errorKey.value = messageToKey(String((err as { statusMessage?: string })?.statusMessage || ''))
+    errorKey.value = messageToKey(serverMessage(err))
   }
   finally {
     submitting.value = false
@@ -272,9 +413,21 @@ async function startTopUp() {
     <CanvaCoachPhotoHero />
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
-        {{ $t('coach.book.title') }}
+        {{ fromCalendar ? $t('coach.book.addStudentTitle') : $t('coach.book.title') }}
       </h1>
-      <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
+      <section v-if="fromCalendar" class="canva-panel space-y-2">
+        <p class="text-start text-xs font-bold text-brand-gray-600">{{ $t('coach.book.addStudentWhen') }}</p>
+        <p class="text-start text-base font-bold text-brand-navy">
+          {{ formatDate(`${initialDate}T12:00:00`) }}
+          ·
+          <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(initialTime, calendarEndTime) }}</bdi>
+        </p>
+        <NuxtLink :to="scheduleBack" class="inline-block text-sm font-bold text-brand-primary no-underline">
+          {{ $t('coach.book.changeSlot') }}
+        </NuxtLink>
+      </section>
+      <p v-if="fromCalendar" class="text-start text-sm text-brand-gray-600">{{ $t('coach.book.addStudentSubtitle') }}</p>
+      <AppAsyncState v-if="!fromCalendar" :pending="pending" :error="error" skeleton-variant="default">
         <p class="text-start text-sm text-brand-gray-600">{{ $t('coach.book.subtitle') }}</p>
 
         <section class="canva-panel space-y-3">
@@ -413,16 +566,67 @@ async function startTopUp() {
               </div>
             </template>
           </section>
+        </div>
+      </AppAsyncState>
 
-          <section class="canva-panel space-y-3">
+      <section v-if="fromCalendar || clubs.length" class="canva-panel space-y-3">
             <AppFormField :label="$t('coach.book.studentPhone')">
-              <input v-model="studentPhone" type="tel" dir="ltr" inputmode="tel" class="neo-input tabular-nums" />
+              <div class="relative" :class="studentSearchOpen && studentSearchSource === 'mobile' ? 'z-30' : ''">
+                <input
+                  v-model="studentPhone"
+                  type="tel"
+                  dir="ltr"
+                  inputmode="tel"
+                  autocomplete="off"
+                  class="neo-input tabular-nums"
+                  :aria-expanded="studentSearchOpen && studentSearchSource === 'mobile'"
+                  aria-autocomplete="list"
+                  aria-controls="coach-book-student-suggestions-mobile"
+                  @input="onStudentPhoneInput"
+                  @focus="onStudentPhoneInput"
+                  @blur="closeStudentSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="coach-book-student-suggestions-mobile"
+                  :open="studentSearchOpen && studentSearchSource === 'mobile'"
+                  :pending="studentSearchPending"
+                  :suggestions="studentSuggestions"
+                  @select="selectStudentSuggestion"
+                />
+              </div>
             </AppFormField>
             <AppFormField :label="$t('coach.book.studentName')">
-              <input v-model="studentName" type="text" class="neo-input" />
+              <div class="relative" :class="studentSearchOpen && studentSearchSource === 'name' ? 'z-30' : ''">
+                <input
+                  v-model="studentName"
+                  type="text"
+                  autocomplete="off"
+                  class="neo-input"
+                  :aria-expanded="studentSearchOpen && studentSearchSource === 'name'"
+                  aria-autocomplete="list"
+                  aria-controls="coach-book-student-suggestions-name"
+                  @input="onStudentNameInput"
+                  @focus="onStudentNameInput"
+                  @blur="closeStudentSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="coach-book-student-suggestions-name"
+                  :open="studentSearchOpen && studentSearchSource === 'name'"
+                  :pending="studentSearchPending"
+                  :suggestions="studentSuggestions"
+                  @select="selectStudentSuggestion"
+                />
+              </div>
             </AppFormField>
 
-            <div v-if="selectedSlot" class="space-y-2 border-t border-brand-gray-100 pt-3 text-sm">
+            <div v-if="fromCalendar" class="space-y-2 border-t border-brand-gray-100 pt-3 text-sm">
+              <p v-if="coachProfile" class="flex justify-between gap-2 text-start">
+                <span class="text-brand-gray-600">{{ $t('coach.book.studentPays') }}</span>
+                <span class="font-bold text-brand-navy tabular-nums" dir="auto">{{ formatCurrency(coachProfile.sessionPrice) }}</span>
+              </p>
+              <p class="text-start text-xs text-brand-gray-600">{{ $t('coach.book.addStudentNoCourt') }}</p>
+            </div>
+            <div v-else-if="selectedSlot" class="space-y-2 border-t border-brand-gray-100 pt-3 text-sm">
               <p class="flex justify-between gap-2 text-start">
                 <span class="text-brand-gray-600">{{ $t('coach.book.studentPays') }}</span>
                 <span class="font-bold text-brand-navy tabular-nums" dir="auto">{{ formatCurrency(slotData?.sessionPrice || 0) }}</span>
@@ -454,11 +658,9 @@ async function startTopUp() {
               :aria-busy="submitting"
               @click="submit"
             >
-              {{ submitting ? $t('common.loading') : $t('coach.book.confirm') }}
+              {{ submitting ? $t('common.loading') : (fromCalendar ? $t('coach.book.addStudentConfirm') : $t('coach.book.confirm')) }}
             </button>
           </section>
-        </div>
-      </AppAsyncState>
     </div>
   </div>
 </template>
