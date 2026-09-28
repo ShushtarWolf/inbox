@@ -224,15 +224,14 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       : `پرداخت رزرو ثبت شد${clubBit(data)}. اینباکس`
   },
   /**
-   * Owner “سفارش جدید” — full multi-line body for SmsLog / free-text.
-   * Live Verify Lookup still packs via token10 (~100 chars); URL punctuation is stripped.
+   * Owner “سفارش جدید” — buyer, phone, and sessions only.
+   * The athlete receipt (/r/:token) is not linked here.
    */
   OWNER_BOOKING_CONFIRMED: (data) => {
     const code = String(data.trackingCode || data.orderCode || '').trim()
     const club = String(data.clubName || '').trim()
     const buyer = String(data.guestName || data.userName || '').trim()
     const phone = String(data.guestPhone || data.phone || '').trim()
-    const detailUrl = String(data.orderUrl || data.receiptUrl || data.detailUrl || '').trim()
 
     const sessionLines: string[] = []
     const rawSessions = data.sessions
@@ -269,9 +268,7 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       buyer ? `خریدار: ${buyer}` : '',
       phone ? `شماره تماس: ${toPersianDigits(phone)}` : '',
     ].filter(Boolean)
-    const lines = [header, '', ...meta, '', 'مشخصات:', ...sessionLines]
-    if (detailUrl) lines.push('', 'مشاهده جزئیات سفارش:', detailUrl)
-    lines.push('', 'Inboxs')
+    const lines = [header, '', ...meta, '', 'مشخصات:', ...sessionLines, '', 'Inboxs']
     return lines.join('\n')
   },
   /**

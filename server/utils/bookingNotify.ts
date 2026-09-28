@@ -67,8 +67,6 @@ type OwnerBookingConfirmedOpts = {
   guestName?: string | null
   guestPhone?: string | null
   trackingCode?: string | null
-  /** Receipt / order detail URL shown under «مشاهده جزئیات سفارش». */
-  orderUrl?: string | null
   /** One line per court session: زمین | تاریخ | شروع تا پایان */
   sessions?: OwnerBookingSessionLine[]
   /** Fallback when sessions is empty — single court/time. */
@@ -450,15 +448,11 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
 export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
   if (!opts.ownerPhone) return
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
-  const orderUrl = opts.orderUrl
-    || (opts.bookingId ? receiptUrlForBooking(opts.bookingId) : '')
   const data: Record<string, unknown> = {
     clubName: opts.clubName,
     guestName: opts.guestName || '',
     guestPhone: opts.guestPhone || '',
     trackingCode,
-    orderUrl,
-    receiptUrl: orderUrl,
   }
   if (opts.sessions?.length) {
     data.sessions = opts.sessions

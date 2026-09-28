@@ -389,7 +389,7 @@ describe('bookingNotify SMS', () => {
     }))
   })
 
-  it('sends owner new-order SMS with sessions and detail link', async () => {
+  it('sends owner new-order SMS with sessions and no athlete receipt link', async () => {
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
 
@@ -415,12 +415,13 @@ describe('bookingNotify SMS', () => {
       data: expect.objectContaining({
         guestName: 'علی رضایی',
         guestPhone: '09121234567',
-        orderUrl: expect.stringContaining('/r/'),
         sessions: expect.arrayContaining([
           expect.objectContaining({ courtName: 'زمین ۱', startTime: '18:00' }),
         ]),
       }),
     })
+    expect(smsCall?.[0]?.data).not.toHaveProperty('orderUrl')
+    expect(smsCall?.[0]?.data).not.toHaveProperty('receiptUrl')
   })
 
   it('skips owner new-order SMS when owner phone is missing', async () => {

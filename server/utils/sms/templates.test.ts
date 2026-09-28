@@ -103,6 +103,7 @@ describe('SMS templates', () => {
         guestPhone: '09121234567',
         trackingCode: '1057128',
         orderUrl: 'https://inboxs.ir/r/abc',
+        receiptUrl: 'https://inboxs.ir/r/abc',
         sessions: [
           { courtName: 'زمین ۱', date: '1404/01/01', startTime: '10:00', endTime: '11:00' },
           { courtName: 'زمین ۱', date: '1404/01/01', startTime: '11:00', endTime: '12:00' },
@@ -121,9 +122,6 @@ describe('SMS templates', () => {
         'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۰:۰۰ تا ۱۱:۰۰',
         'زمین ۱ | ۱۴۰۴/۰۱/۰۱ | ۱۱:۰۰ تا ۱۲:۰۰',
         'زمین ۲ | ۱۴۰۴/۰۱/۰۲ | ۱۸:۰۰ تا ۱۹:۰۰',
-        '',
-        'مشاهده جزئیات سفارش:',
-        'https://inboxs.ir/r/abc',
         '',
         'Inboxs',
       ].join('\n'),
