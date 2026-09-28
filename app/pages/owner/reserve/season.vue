@@ -443,8 +443,8 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
     <CanvaSubpageHeader to="/owner/calendar" :title="t('owner.seasonPage.title')" />
 
     <div v-if="!recurringReserveEnabled" class="season-wiz-card space-y-3 p-4">
-      <p class="text-sm font-bold text-brand-navy">{{ t('owner.seasonUnavailable.title') }}</p>
-      <p class="text-sm text-brand-gray-600">{{ t('owner.seasonUnavailable.body') }}</p>
+      <p class="text-sm font-bold text-brand-navy">{{ t('owner.reserveRedirect.title') }}</p>
+      <p class="text-sm text-brand-gray-600">{{ t('owner.reserveRedirect.body') }}</p>
       <NuxtLink
         :to="localePath('/owner/calendar')"
         class="season-wiz-btn season-wiz-btn-primary inline-flex w-full items-center justify-center"
