@@ -1,13 +1,12 @@
-import { initialStaffPaymentFields } from '#shared/bookingPayment.ts'
 import { computeCoachCourtCharge } from '#shared/coachCourt.ts'
-import { normalizeIranPhone, phoneToSyntheticEmail } from '#shared/phone.ts'
+import { normalizeIranPhone } from '#shared/phone.ts'
 import { notifyBookingConfirmed, clubNotifyLocation, clubNotifyName, personNotifyName } from '../../utils/bookingNotify'
 import { requireActiveClub, requireApprovedCoach } from '../../utils/coachClubLinks'
+import { bookCoachLessonsAtomic, ensureCoachStudent } from '../../utils/coachLessonBook'
 import { syncClubContactForBooking } from '../../utils/contactSync'
-import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { addOneHour } from '../../utils/reservations'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
-import { debitWallet, getWalletBalance } from '../../utils/wallet'
+import { getWalletBalance } from '../../utils/wallet'
 import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
 
 /**
@@ -66,23 +65,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'This session time is already booked' })
   }
 
-  // The student books with a phone and can claim the account later, same as desk reservations.
-  let student = await prisma.user.findUnique({ where: { phone: studentPhone } })
-  if (student && student.id === user.id) {
-    throw createError({ statusCode: 400, statusMessage: 'Coach cannot be their own student' })
-  }
-  if (!student) {
-    student = await prisma.user.create({
-      data: {
-        name: body.studentName?.trim() || studentPhone,
-        nameEn: body.studentName?.trim() || studentPhone,
-        email: phoneToSyntheticEmail(studentPhone),
-        phone: studentPhone,
-        role: 'ATHLETE',
-        locale: 'fa',
-      },
-    })
-  }
+  const student = await ensureCoachStudent({
+    coachUserId: user.id,
+    studentPhone,
+    studentName: body.studentName,
+  })
 
   const price = computeCoachCourtCharge({
     courtPrice: slot.court.price,
@@ -96,104 +83,29 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
   }
-  const lessonPayment = initialStaffPaymentFields(coach.sessionPrice)
   const endTime = slot.endTime || addOneHour(slot.startTime)
 
-  let created: { sessionId: string; bookingId: string; courtPaymentId: string }
-  try {
-    created = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.slot.updateMany({
-        where: { id: slot.id, displayStatus: 'FREE' },
-        data: { displayStatus: 'RESERVED' },
-      })
-      if (claimed.count !== 1) {
-        throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
-      }
-      if (staleCancelledBooking) {
-        await tx.booking.delete({ where: { id: staleCancelledBooking.id } })
-      }
-
-      // The coach is the payer of record for the court; the student shows as the player.
-      const booking = await tx.booking.create({
-        data: {
-          slotId: slot.id,
-          userId: user.id,
-          coachId: coach.id,
-          guestName: body.studentName?.trim() || student!.name,
-          guestMobile: studentPhone,
-          paymentStatus: 'PAID',
-          paymentMethod: 'PAID',
-          source: 'PLATFORM',
-          status: 'CONFIRMED',
-        },
-      })
-
-      if (price.charge > 0) {
-        await debitWallet(user.id, price.charge, {
-          bookingId: booking.id,
-          note: 'Coach lesson court charge',
-        }, tx)
-      }
-
-      const courtPayment = await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          amount: price.charge,
-          method: 'PAID',
-          status: 'PAID',
-          provider: 'pay_at_club',
-          metadataJson: JSON.stringify({
-            source: 'coach-lesson-court',
-            coachId: coach.id,
-            listedPrice: price.listed,
-          }),
-        },
-      })
-
-      const session = await tx.coachSession.create({
-        data: {
-          coachId: coach.id,
-          athleteId: student!.id,
-          date: slot.date,
-          startTime: slot.startTime,
-          endTime,
-          price: coach.sessionPrice,
-          paymentStatus: lessonPayment.paymentStatus,
-          courtBookingId: booking.id,
-        },
-      })
-      await tx.payment.create({
-        data: { coachSessionId: session.id, ...lessonPayment.payment },
-      })
-
-      await tx.reservationEvent.create({
-        data: {
-          bookingId: booking.id,
-          actorUserId: user.id,
-          type: 'CREATED',
-          metadataJson: JSON.stringify({ source: 'coach-lesson-court', coachSessionId: session.id }),
-        },
-      })
-      await tx.reservationEvent.create({
-        data: {
-          coachSessionId: session.id,
-          actorUserId: user.id,
-          type: 'CREATED',
-          metadataJson: JSON.stringify({ source: 'coach-lesson', bookingId: booking.id }),
-        },
-      })
-
-      return { sessionId: session.id, bookingId: booking.id, courtPaymentId: courtPayment.id }
-    })
-  } catch (err) {
-    if (isUniqueConstraintError(err)) {
-      throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
-    }
-    throw err
-  }
+  const [created] = await bookCoachLessonsAtomic({
+    actorUserId: user.id,
+    coachId: coach.id,
+    sessionPrice: coach.sessionPrice,
+    studentId: student.id,
+    guestName: body.studentName?.trim() || student.name,
+    studentPhone,
+    slots: [{
+      id: slot.id,
+      date: slot.date,
+      startTime: slot.startTime.slice(0, 5),
+      endTime: endTime.slice(0, 5),
+      courtPrice: slot.court.price,
+      pricingJson: slot.court.pricingJson,
+      staleCancelledBookingId: staleCancelledBooking?.id || null,
+    }],
+  })
+  if (!created) throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
 
   await syncClubContactForBooking(created.bookingId)
-  if (price.charge > 0) {
+  if (created.charge > 0) {
     await creditOwnerForPaidPayment(created.courtPaymentId)
   }
 

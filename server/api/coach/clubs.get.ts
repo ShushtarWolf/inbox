@@ -6,7 +6,13 @@ export default defineEventHandler(async (event) => {
   const clubs = await prisma.club.findMany({
     where: { status: 'ACTIVE' },
     orderBy: { nameFa: 'asc' },
-    select: { id: true, nameFa: true, nameEn: true, city: true },
+    select: {
+      id: true,
+      nameFa: true,
+      nameEn: true,
+      city: true,
+      courts: { select: { id: true, nameFa: true, nameEn: true } },
+    },
   })
 
   return { clubs }

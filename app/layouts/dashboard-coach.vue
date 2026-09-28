@@ -8,7 +8,7 @@ const { fetch: fetchRoles, coachStatus } = usePlatformRoles()
 
 const pendingAllowed = computed(() => {
   const path = route.path.replace(/\/+$/, '') || '/'
-  return path.endsWith('/coach/pending') || path.endsWith('/coach/profile')
+  return path.endsWith('/coach/pending') || path.endsWith('/coach/profile') || path.endsWith('/coach/settings')
 })
 
 onMounted(async () => {
@@ -33,6 +33,7 @@ const nav = computed(() => {
   if (packagesEnabled.value) {
     items.push({ to: localePath('/coach/packages'), label: t('owner.packages'), icon: 'inventory_2' })
   }
+  items.push({ to: localePath('/coach/settings'), label: t('coach.settingsTitle'), icon: 'settings' })
   items.push({ to: localePath('/coach/profile'), label: t('nav.profile'), icon: 'person' })
   return items
 })

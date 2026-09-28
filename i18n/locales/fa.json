@@ -565,8 +565,21 @@
       "errorSelfStudent": "نمی‌توانید برای خودتان جلسه ثبت کنید.",
       "errorGeneric": "ثبت رزرو انجام نشد. دوباره تلاش کنید.",
       "externalOccupiedHint": "این سانس در اینباکس آزاد است ولی در سایت دیگر رزرو شده — قابل انتخاب نیست.",
-      "externalUncertainHint": "مشکوک — قبل از رزرو با سایت دیگر هماهنگ کنید."
-    }
+      "externalUncertainHint": "مشکوک — قبل از رزرو با سایت دیگر هماهنگ کنید.",
+      "finishDate": "تا تاریخ",
+      "addReservation": "رزرو جدید",
+      "seriesHint": "هر رزرو یک روز، ساعت و زمین است و تا تاریخ پایان هر هفته تکرار می‌شود.",
+      "reservationN": "رزرو {n}",
+      "seriesPreview": "{count} سانس · {amount} از کیف پول",
+      "seriesConflicts": "بعضی سانس‌ها آزاد نیست. تاریخ یا ساعت را عوض کنید.",
+      "seriesCap": "بیشتر از {max} سانس در یک رزرو ممکن نیست.",
+      "seriesEmpty": "در این بازه سانسی ساخته نمی‌شود.",
+      "seriesNeedSlot": "اول ساعت و زمین را انتخاب کنید، یا یک رزرو جدید اضافه کنید.",
+      "seriesSuccess": "{count} سانس ثبت شد. {charge} بابت زمین از کیف پول شما کسر شد و شاگرد {fee} برای هر جلسه می‌پردازد."
+    },
+    "settingsTitle": "تنظیمات",
+    "settingsProfile": "ویرایش پروفایل",
+    "settingsLogout": "خروج از حساب کاربری"
   },
   "notifications": {
     "title": "اعلان‌ها",
