@@ -2,6 +2,15 @@ name: Backup Liara DB
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: create = new manual then download; newest = download newest existing (hourly/manual)
+        required: false
+        default: create
+        type: choice
+        options:
+          - create
+          - newest
 
 concurrency:
   group: liara-db-backup
@@ -24,21 +33,42 @@ jobs:
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
-          liara db backup create --name inbox-db --api-token="$LIARA_TOKEN"
-          # Wait for the manual backup to appear.
-          sleep 20
-          LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
-          echo "$LIST_CSV"
-          # CSV columns: Last modified,Size,Name
-          BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 && $3 ~ /^manual\// {print $3; exit}')
-          if [ -z "$BACKUP_NAME" ]; then
+          MODE="${{ inputs.mode || 'create' }}"
+          BACKUP_NAME=""
+          LIST_CSV=""
+
+          if [ "$MODE" = "newest" ]; then
+            LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
+            echo "$LIST_CSV"
+            # CSV is newest-first; pick first data row (hourly/manual/daily).
             BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 {print $3; exit}')
+          else
+            BEFORE_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv || true)
+            BEFORE_MANUAL=$(echo "$BEFORE_CSV" | awk -F',' 'NR>1 && $3 ~ /^manual\// {print $3; exit}')
+            liara db backup create --name inbox-db --api-token="$LIARA_TOKEN"
+            # Poll until a *new* manual/ appears (create is async; 20s was often too short).
+            for i in $(seq 1 18); do
+              sleep 10
+              LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
+              NEW_MANUAL=$(echo "$LIST_CSV" | awk -F',' 'NR>1 && $3 ~ /^manual\// {print $3; exit}')
+              if [ -n "$NEW_MANUAL" ] && [ "$NEW_MANUAL" != "$BEFORE_MANUAL" ]; then
+                BACKUP_NAME="$NEW_MANUAL"
+                echo "New manual ready after ~$((i * 10))s: $BACKUP_NAME"
+                break
+              fi
+              echo "waiting for new manual… try $i (latest manual=${NEW_MANUAL:-none})"
+            done
+            # Fallback: newest row of any type (hourly/daily/manual) — CSV is newest-first.
+            if [ -z "$BACKUP_NAME" ]; then
+              LIST_CSV=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN" --csv)
+              echo "$LIST_CSV"
+              BACKUP_NAME=$(echo "$LIST_CSV" | awk -F',' 'NR>1 {print $3; exit}')
+              echo "Fell back to newest backup: ${BACKUP_NAME:-none}"
+            else
+              echo "$LIST_CSV"
+            fi
           fi
-          if [ -z "$BACKUP_NAME" ]; then
-            LIST=$(liara db backup list --name inbox-db --api-token="$LIARA_TOKEN")
-            echo "$LIST"
-            BACKUP_NAME=$(echo "$LIST" | grep -Eo 'manual/[^[:space:]]+' | head -1 || true)
-          fi
+
           if [ -z "$BACKUP_NAME" ]; then
             echo "Could not resolve newest backup name"
             exit 1
