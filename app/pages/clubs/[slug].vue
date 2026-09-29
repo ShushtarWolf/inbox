@@ -146,7 +146,7 @@ const focusedCourtId = ref<string | null>(deepLinkCourtIds[0] || null)
 const selectedCourtIds = ref<string[]>(
   deepLinkSlotIds.length || deepLinkTimes.length ? deepLinkCourtIds : [],
 )
-/** Survive AuthFlow navigateTo (same club page after login). Cleared when the calendar date changes. */
+/** Survive AuthFlow navigateTo and calendar day changes. Cleared on confirm, conflict, or waitlist. */
 const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
 const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
@@ -222,10 +222,9 @@ watch(
 
 watch(selectedDate, () => {
   if (suppressSlotClear) return
-  // Date switch starts a fresh day context: drop prior-day picks so the footer cannot
-  // still read as a booking for the newly selected day (QA: stale summary after date change).
-  // Multi-day in one checkout: pick all hours on one day, or re-add after switching back.
-  clearBasket()
+  // Keep prior-day hours. Each cached slot has its own date, so the footer names
+  // every day instead of reading the old hour as the newly selected day.
+  // Reset court multi-select so the next tap applies to one court, not yesterday's set.
   selectedCourtIds.value = []
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
