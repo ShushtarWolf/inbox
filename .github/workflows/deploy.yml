@@ -161,7 +161,7 @@ jobs:
         id: artifact
         if: needs.gate.outputs.smoke == 'run'
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nitro-output
           path: .output
@@ -223,7 +223,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: liara-deploy-context
           path: deploy-context
