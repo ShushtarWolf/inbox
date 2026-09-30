@@ -5,7 +5,7 @@ import {
   buildCompetitionWalletPaymentCreateData,
   competitionJoinIdempotencyKey,
 } from '#shared/competition.ts'
-import { discountMetadataSlice } from '#shared/financeDiscount.ts'
+import { checkoutPreservedMetadata } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
 import { getPaymentService } from '../../utils/payments/service'
@@ -205,7 +205,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const preservedMetadata = discountMetadataSlice(existingPayment?.metadataJson)
+  // Keep discount + multi-day/season sibling links across IPG payment replace.
+  const preservedMetadata = checkoutPreservedMetadata(existingPayment?.metadataJson)
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     if (!body.competitionEntryId) {
       await prisma.payment.delete({ where: { id: existingPayment.id } })

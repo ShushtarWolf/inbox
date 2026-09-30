@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { discountMetadataSlice, paymentIntentMetadata, resolveFinanceDiscount } from './financeDiscount.ts'
+import {
+  checkoutPreservedMetadata,
+  discountMetadataSlice,
+  paymentIntentMetadata,
+  resolveFinanceDiscount,
+} from './financeDiscount.ts'
 
 describe('finance discount metadata', () => {
   it('keeps discount fields on a replacement gateway payment', () => {
@@ -21,6 +26,29 @@ describe('finance discount metadata', () => {
       token: 'bank',
       purpose: 'booking',
       ...preserved,
+    })
+  })
+
+  it('keeps multi-day group links when replacing the gateway payment', () => {
+    const preserved = checkoutPreservedMetadata(JSON.stringify({
+      discountCode: 'save10',
+      discountAmount: 1000,
+      groupPrimaryBookingId: 'b1',
+      groupSiblingBookingIds: ['b2', 'b3'],
+      sessionPrice: 5000,
+      token: 'drop-me',
+      sepStatus: 1,
+    }))
+    expect(preserved).toEqual({
+      discountCode: 'SAVE10',
+      discountAmount: 1000,
+      groupPrimaryBookingId: 'b1',
+      groupSiblingBookingIds: ['b2', 'b3'],
+      sessionPrice: 5000,
+    })
+    expect(JSON.parse(paymentIntentMetadata({ token: 'bank', purpose: 'booking' }, preserved))).toMatchObject({
+      groupSiblingBookingIds: ['b2', 'b3'],
+      groupPrimaryBookingId: 'b1',
     })
   })
 

@@ -1,3 +1,4 @@
+import { parseSeriesPaymentMeta } from './athleteSeason.ts'
 import { normalizeDiscountCode } from './discountCode.ts'
 
 export type FinanceDiscount = {
@@ -47,6 +48,29 @@ export function discountMetadataSlice(json: string | null | undefined): Record<s
   const subtotal = positiveInt(meta.subtotalBeforeDiscount)
   if (subtotal) out.subtotalBeforeDiscount = subtotal
   if (meta.complimentary === true) out.complimentary = true
+  return out
+}
+
+/**
+ * Fields to copy when athlete IPG checkout deletes/recreates a PENDING payment.
+ * Discount alone is not enough — multi-day / season groups need sibling links so
+ * pay-sync can confirm every slot (see checkout.post replace path).
+ */
+export function checkoutPreservedMetadata(json: string | null | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...discountMetadataSlice(json) }
+  const series = parseSeriesPaymentMeta(json)
+  if (series.seasonBookingId) out.seasonBookingId = series.seasonBookingId
+  if (series.groupPrimaryBookingId) out.groupPrimaryBookingId = series.groupPrimaryBookingId
+  if (series.groupSiblingBookingIds?.length) {
+    out.groupSiblingBookingIds = series.groupSiblingBookingIds
+  }
+  if (series.coveredByBookingId) out.coveredByBookingId = series.coveredByBookingId
+  if (typeof series.sessionPrice === 'number' && series.sessionPrice > 0) {
+    out.sessionPrice = Math.round(series.sessionPrice)
+  }
+  if (typeof series.sessionRefundsTotal === 'number' && series.sessionRefundsTotal > 0) {
+    out.sessionRefundsTotal = Math.round(series.sessionRefundsTotal)
+  }
   return out
 }
 
