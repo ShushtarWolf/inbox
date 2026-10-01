@@ -87,3 +87,14 @@ export function isSlotStartInPast(
 ) {
   return minutesUntilSlotStart(date, startTime, now, timeZone) <= 0
 }
+
+/** Cancel / reschedule gate: hours until slot start must clear the club window. */
+export function canManageReservation(
+  date: string,
+  time: string,
+  minimumHours: number,
+  now = new Date(),
+  timeZone = TEHRAN_TZ,
+) {
+  return minutesUntilSlotStart(date, time, now, timeZone) >= minimumHours * 60
+}

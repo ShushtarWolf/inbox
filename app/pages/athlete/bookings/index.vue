@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
-import { minutesUntilSlotStart } from '#shared/localDate.ts'
+import { canManageReservation } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -55,6 +55,7 @@ interface CoachSessionRow {
     nameFa?: string
     nameEn?: string
     photo?: string | null
+    club?: { cancellationWindowHours?: number | null } | null
   }
 }
 
@@ -226,16 +227,12 @@ const rescheduleWindowHours = computed(() =>
   rescheduleTarget.value?.slot?.court?.club?.rescheduleWindowHours ?? 24,
 )
 
-function withinRescheduleWindow(date: string, startTime: string, hours = rescheduleWindowHours.value) {
-  return minutesUntilSlotStart(date, startTime) >= hours * 60
-}
-
 /** Available API omits past slots only — hide ones still inside the club reschedule window. */
 const visibleReplacementSlots = computed(() => {
   const date = rescheduleDate.value
   const hours = rescheduleWindowHours.value
   return (replacementSlots.value || []).filter((slot) =>
-    withinRescheduleWindow(date, slot.startTime, hours),
+    canManageReservation(date, slot.startTime, hours),
   )
 })
 
@@ -307,6 +304,11 @@ function closeNotice() {
 async function confirmCancel() {
   const item = detailItem.value
   if (!item) return
+  if (!canCancel(item)) {
+    actionError.value = t('booking.errors.cancellationWindowPassed')
+    confirmingCancel.value = false
+    return
+  }
   const { kind, id } = item
   cancelPending.value = true
   actionError.value = ''
@@ -362,14 +364,15 @@ async function payBooking(item: HistoryItem, useWallet = false) {
 async function rescheduleCourt() {
   if (!rescheduleTarget.value || !rescheduleSlotId.value) return
   const target = visibleReplacementSlots.value.find((slot) => slot.id === rescheduleSlotId.value)
-  if (!target || !withinRescheduleWindow(rescheduleDate.value, target.startTime)) {
+  if (!target || !canManageReservation(rescheduleDate.value, target.startTime, rescheduleWindowHours.value)) {
     actionError.value = t('booking.errors.startTimeTooSoon')
     rescheduleSlotId.value = ''
     return
   }
-  if (!withinRescheduleWindow(
+  if (!canManageReservation(
     rescheduleTarget.value.slot.date,
     rescheduleTarget.value.slot.startTime,
+    rescheduleWindowHours.value,
   )) {
     actionError.value = t('booking.errors.rescheduleWindowPassed')
     return
@@ -621,7 +624,22 @@ function rebookTo(item: HistoryItem) {
 }
 
 function canCancel(item: HistoryItem) {
-  return item.status !== 'CANCELLED' && historyStatus(item) !== 'done'
+  if (item.status === 'CANCELLED' || historyStatus(item) !== 'pending') return false
+  if (item.kind === 'court') {
+    const slot = item.raw?.slot
+    if (!slot) return false
+    return canManageReservation(slot.date, slot.startTime, slot.court.club.cancellationWindowHours ?? 24)
+  }
+  if (item.kind === 'coach') {
+    const session = (data.value?.coachSessions || []).find((row) => row.id === item.id)
+    if (!session) return false
+    return canManageReservation(
+      session.date,
+      session.startTime,
+      session.coach?.club?.cancellationWindowHours ?? 24,
+    )
+  }
+  return true
 }
 
 function canReschedule(item: HistoryItem) {
@@ -629,7 +647,7 @@ function canReschedule(item: HistoryItem) {
   const booking = item.raw
   if (!booking?.slot) return false
   const hours = booking.slot.court.club.rescheduleWindowHours ?? 24
-  return withinRescheduleWindow(booking.slot.date, booking.slot.startTime, hours)
+  return canManageReservation(booking.slot.date, booking.slot.startTime, hours)
 }
 
 function canRebook(item: HistoryItem) {
@@ -874,6 +892,13 @@ function dateLine(item: HistoryItem) {
           <template v-if="detailItem.status !== 'CANCELLED' && paidHonestyNote(detailItem.paymentStatus)">
             {{ paidHonestyNote(detailItem.paymentStatus) }}
           </template>
+        </p>
+
+        <p
+          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && !canCancel(detailItem)"
+          class="canva-history-sh-note canva-history-sh-note-warn"
+        >
+          {{ t('booking.errors.cancellationWindowPassed') }}
         </p>
 
         <p v-if="actionError" class="canva-flash-error text-start text-xs">{{ actionError }}</p>

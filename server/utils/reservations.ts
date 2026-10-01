@@ -1,4 +1,6 @@
-import { minutesUntilSlotStart, todayDateString } from '#shared/localDate.ts'
+import { canManageReservation, minutesUntilSlotStart, todayDateString } from '#shared/localDate.ts'
+
+export { canManageReservation }
 
 /** Cancel leaves Booking row on the slot (unique slotId). Treat CANCELLED as absent for desk ops. */
 export function activeSlotBooking<T extends { status: string }>(
@@ -14,10 +16,6 @@ export function toDateTime(date: string, time: string) {
 
 export function diffHours(from: Date, to: Date) {
   return (to.getTime() - from.getTime()) / 3600000
-}
-
-export function canManageReservation(date: string, time: string, minimumHours: number) {
-  return minutesUntilSlotStart(date, time) >= minimumHours * 60
 }
 
 /** Athlete / public booking only — desk & coach staff may create past-hour records. */
