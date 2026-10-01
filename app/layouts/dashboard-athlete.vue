@@ -43,7 +43,7 @@ const sideNav = computed(() => [
   { to: localePath('/athlete/wallet'), label: t('nav.wallet'), icon: 'account_balance_wallet' },
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card' },
   { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications' },
-  { to: localePath('/contact'), label: t('athlete.support'), icon: 'support_agent' },
+  { to: localePath('/athlete/support'), label: t('athlete.support'), icon: 'support_agent' },
   { to: localePath('/privacy'), label: t('legal.privacy'), icon: 'privacy_tip' },
 ])
 </script>
