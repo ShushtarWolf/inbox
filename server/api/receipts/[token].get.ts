@@ -110,6 +110,7 @@ export default defineEventHandler(async (event) => {
     guestName,
     mobile: mobile ? toPersianDigits(mobile) : '',
     clubName: (club.nameFa || club.nameEn || '').trim() || 'باشگاه',
+    clubSlug: club.slug || '',
     clubAddress: clubAddress ? toPersianDigits(clubAddress) : '',
     clubPhone: clubPhone ? toPersianDigits(clubPhone) : '',
     reserveDate: formatSmsJalaliLongDate(booking.slot.date),

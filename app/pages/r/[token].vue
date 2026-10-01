@@ -15,6 +15,7 @@ type ReceiptPayload = {
   guestName: string
   mobile: string
   clubName: string
+  clubSlug?: string
   clubAddress?: string
   clubPhone?: string
   reserveDate: string
@@ -35,6 +36,7 @@ type ReceiptPayload = {
 }
 
 const route = useRoute()
+const localePath = useLocalePath()
 const { t, locale } = useI18n()
 const { formatCurrency, formatPhone } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
@@ -48,6 +50,11 @@ const { data, error, pending, refresh } = await useFetch<ReceiptPayload>(
   { watch: [token] },
 )
 const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
+
+const clubHref = computed(() => {
+  const slug = data.value?.clubSlug?.trim()
+  return localePath(slug ? `/clubs/${slug}` : '/clubs')
+})
 
 const paymentOutcome = computed(() => String(route.query.payment || ''))
 
@@ -145,13 +152,17 @@ async function pay() {
 
     <template v-else-if="data">
       <header class="receipt-player-top sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[#ECE9E4] px-5 py-3.5">
-        <div class="flex min-w-0 items-center gap-3">
+        <NuxtLink
+          :to="clubHref"
+          class="receipt-player-brand flex min-w-0 items-center gap-3 text-inherit no-underline"
+          :aria-label="data.clubName"
+        >
           <span class="receipt-player-mark" aria-hidden="true">{{ clubMark }}</span>
-          <div class="min-w-0">
+          <span class="min-w-0">
             <strong class="block truncate text-[15px] font-extrabold leading-snug">{{ data.clubName }}</strong>
             <span class="block text-[11px] text-[#8C8A84]">{{ t('booking.receiptPlatformTag') }}</span>
-          </div>
-        </div>
+          </span>
+        </NuxtLink>
         <span
           class="receipt-player-badge flex-none"
           :class="badge.tone === 'green' ? 'is-green' : 'is-amber'"
