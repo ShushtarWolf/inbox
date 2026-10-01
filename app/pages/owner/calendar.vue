@@ -490,13 +490,6 @@ const selectionCourtNames = computed(() =>
 const selectionCourtsLabel = computed(() =>
   joinWithAnd(selectionCourtNames.value, locale.value === 'fa' ? 'و' : '&'),
 )
-const payConfirmCourtsLabel = computed(() => {
-  const fromSelection = selectionCourtsLabel.value
-  if (fromSelection) return fromSelection
-  const id = selectedSlot.value?.courtId || selectionCourtId.value || activeCourtId.value
-  const court = courts.value.find((item) => item.id === id)
-  return court ? formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) : ''
-})
 const batchMode = computed(() =>
   selectedSlotIds.value.length > 1
   && showMenu.value
@@ -3992,22 +3985,24 @@ watch(pilotNoCoach, (off) => {
           <div class="venus-modal-panel-body canva-desk-pay !pt-1">
             <div class="text-start">
               <p class="canva-confirm-book-date">{{ payConfirmDateHeading }}</p>
-              <div class="mt-2 flex flex-wrap justify-start gap-2">
-                <span
+              <ul class="mt-2 space-y-2" role="list">
+                <li
                   v-for="slot in slotsForReserve()"
                   :key="slot.id"
-                  class="canva-confirm-book-time"
+                  class="canva-confirm-book-slot-row"
                 >
-                  {{ slotCellLabel(slot) }}
-                </span>
-              </div>
-              <p
-                v-if="payConfirmCourtsLabel && selectionCourtNames.length <= 1"
-                class="mt-2 flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
-              >
-                <span class="canva-confirm-book-dot" aria-hidden="true" />
-                {{ payConfirmCourtsLabel }}
-              </p>
+                  <span
+                    v-if="slotCourtName(slot)"
+                    class="canva-confirm-book-slot-court"
+                  >
+                    <span class="canva-confirm-book-dot" aria-hidden="true" />
+                    {{ slotCourtName(slot) }}
+                  </span>
+                  <span class="canva-confirm-book-time">
+                    <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
+                  </span>
+                </li>
+              </ul>
             </div>
             <div class="canva-confirm-book-costs mt-4 text-start">
               <div

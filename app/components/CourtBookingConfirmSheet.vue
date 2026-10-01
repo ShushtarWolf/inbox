@@ -273,7 +273,7 @@ const slotDateGroups = computed(() => {
   const groups: Array<{
     date: string
     heading: string
-    courts: Array<{ key: string; label: string; slots: ConfirmSlot[] }>
+    rows: Array<{ id: string; label: string; startTime: string }>
   }> = []
   const byDate = new Map<string, ConfirmSlot[]>()
   for (const slot of props.slots) {
@@ -283,18 +283,21 @@ const slotDateGroups = computed(() => {
     byDate.set(date, list)
   }
   for (const date of [...byDate.keys()].sort()) {
-    // One block per court: time chips stay times-only, court name on its own line.
-    const byCourt = new Map<string, { key: string; label: string; slots: ConfirmSlot[] }>()
-    for (const slot of byDate.get(date) || []) {
-      const key = slot.courtId || slot.courtLabel || ''
-      const entry = byCourt.get(key) || { key, label: slot.courtLabel || props.courtLabel || '', slots: [] }
-      entry.slots.push(slot)
-      byCourt.set(key, entry)
-    }
+    // One row per slot: court label | time (full-width, like equipment rows).
+    const rows = (byDate.get(date) || []).map((slot) => ({
+      id: slot.id,
+      label: slot.courtLabel || props.courtLabel || '',
+      startTime: slot.startTime || '',
+    }))
+    rows.sort((a, b) => {
+      const byTime = a.startTime.localeCompare(b.startTime)
+      if (byTime) return byTime
+      return a.label.localeCompare(b.label, 'fa')
+    })
     groups.push({
       date,
       heading: formatDateHeading(date),
-      courts: [...byCourt.values()],
+      rows,
     })
   }
   return groups
@@ -664,24 +667,24 @@ async function submit(preferWallet = false) {
           <div class="space-y-3 text-start">
             <div v-for="group in slotDateGroups" :key="group.date">
               <p class="canva-confirm-book-date">{{ group.heading }}</p>
-              <div v-for="court in group.courts" :key="court.key" class="mt-2 space-y-2">
-                <div class="flex flex-wrap justify-start gap-2">
-                  <span
-                    v-for="slot in court.slots"
-                    :key="slot.id"
-                    class="canva-confirm-book-time"
-                  >
-                    <bdi dir="ltr">{{ formatTimeLabel(slot.startTime || '') }}</bdi>
-                  </span>
-                </div>
-                <p
-                  v-if="court.label"
-                  class="flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
+              <ul class="mt-2 space-y-2" role="list">
+                <li
+                  v-for="row in group.rows"
+                  :key="row.id"
+                  class="canva-confirm-book-slot-row"
                 >
-                  <span class="canva-confirm-book-dot" aria-hidden="true" />
-                  {{ court.label }}
-                </p>
-              </div>
+                  <span
+                    v-if="row.label"
+                    class="canva-confirm-book-slot-court"
+                  >
+                    <span class="canva-confirm-book-dot" aria-hidden="true" />
+                    {{ row.label }}
+                  </span>
+                  <span class="canva-confirm-book-time">
+                    <bdi dir="ltr">{{ formatTimeLabel(row.startTime) }}</bdi>
+                  </span>
+                </li>
+              </ul>
             </div>
           </div>
 
