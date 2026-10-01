@@ -101,11 +101,6 @@ const greeting = computed(() => {
     : t('booking.receiptGreetingFallback')
 })
 
-const showSeasonPaid = computed(() => {
-  const d = data.value
-  return Boolean(d && d.kind === 'season' && isPaid.value && !d.cancelled)
-})
-
 const clubMark = computed(() => {
   const name = data.value?.clubName?.trim() || 'ا'
   return name.charAt(0)
@@ -147,12 +142,6 @@ async function pay() {
   <div class="receipt-player min-h-dvh" :dir="locale === 'fa' ? 'rtl' : 'ltr'">
     <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" class="p-8" />
     <p v-else-if="error" class="p-6 text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
-
-    <SeasonPaidReceipt
-      v-else-if="data && showSeasonPaid"
-      :data="data"
-      :notice="paymentNotice"
-    />
 
     <template v-else-if="data">
       <header class="receipt-player-top sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[#ECE9E4] px-5 py-3.5">
