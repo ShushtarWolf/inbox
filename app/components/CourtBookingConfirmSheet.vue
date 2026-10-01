@@ -2,10 +2,7 @@
 import { PERSIAN_MONTHS, isoToJalaali } from '#shared/jalali.ts'
 import { applyDiscountPercent, normalizeDiscountCode } from '#shared/discountCode.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
-import {
-  joinWithAnd,
-  uniqueOrdered,
-} from '#shared/courtSlotSelection.ts'
+import { uniqueOrdered } from '#shared/courtSlotSelection.ts'
 import {
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
@@ -273,7 +270,11 @@ function slotDate(slot: ConfirmSlot) {
 }
 
 const slotDateGroups = computed(() => {
-  const groups: Array<{ date: string; heading: string; slots: ConfirmSlot[] }> = []
+  const groups: Array<{
+    date: string
+    heading: string
+    courts: Array<{ key: string; label: string; slots: ConfirmSlot[] }>
+  }> = []
   const byDate = new Map<string, ConfirmSlot[]>()
   for (const slot of props.slots) {
     const date = slotDate(slot)
@@ -282,10 +283,18 @@ const slotDateGroups = computed(() => {
     byDate.set(date, list)
   }
   for (const date of [...byDate.keys()].sort()) {
+    // One block per court: time chips stay times-only, court name on its own line.
+    const byCourt = new Map<string, { key: string; label: string; slots: ConfirmSlot[] }>()
+    for (const slot of byDate.get(date) || []) {
+      const key = slot.courtId || slot.courtLabel || ''
+      const entry = byCourt.get(key) || { key, label: slot.courtLabel || props.courtLabel || '', slots: [] }
+      entry.slots.push(slot)
+      byCourt.set(key, entry)
+    }
     groups.push({
       date,
       heading: formatDateHeading(date),
-      slots: byDate.get(date) || [],
+      courts: [...byCourt.values()],
     })
   }
   return groups
@@ -378,15 +387,6 @@ const showWalletCta = computed(() =>
 const slotCourtIds = computed(() =>
   uniqueOrdered(props.slots.map((s) => s.courtId).filter((id): id is string => Boolean(id))),
 )
-const multiCourt = computed(() => {
-  const labels = uniqueOrdered(props.slots.map((s) => s.courtLabel).filter((label): label is string => Boolean(label)))
-  return labels.length > 1 || slotCourtIds.value.length > 1
-})
-const displayCourtLabel = computed(() => {
-  const labels = uniqueOrdered(props.slots.map((s) => s.courtLabel).filter((label): label is string => Boolean(label)))
-  return labels.length ? joinWithAnd(labels) : (props.courtLabel || '')
-})
-
 const metaLine = computed(() => {
   const parts = [props.locationLine, props.sportLabel].filter(Boolean)
   return parts.join(' | ')
@@ -664,27 +664,25 @@ async function submit(preferWallet = false) {
           <div class="space-y-3 text-start">
             <div v-for="group in slotDateGroups" :key="group.date">
               <p class="canva-confirm-book-date">{{ group.heading }}</p>
-              <div
-                class="mt-2 flex justify-start gap-2"
-                :class="multiCourt ? 'flex-col' : 'flex-wrap'"
-              >
-                <span
-                  v-for="slot in group.slots"
-                  :key="slot.id"
-                  class="canva-confirm-book-time"
-                  :class="multiCourt ? 'w-full justify-start' : ''"
+              <div v-for="court in group.courts" :key="court.key" class="mt-2 space-y-2">
+                <div class="flex flex-wrap justify-start gap-2">
+                  <span
+                    v-for="slot in court.slots"
+                    :key="slot.id"
+                    class="canva-confirm-book-time"
+                  >
+                    <bdi dir="ltr">{{ formatTimeLabel(slot.startTime || '') }}</bdi>
+                  </span>
+                </div>
+                <p
+                  v-if="court.label"
+                  class="flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
                 >
-                  <template v-if="multiCourt && slot.courtLabel">{{ slot.courtLabel }} </template>{{ formatTimeLabel(slot.startTime || '') }}
-                </span>
+                  <span class="canva-confirm-book-dot" aria-hidden="true" />
+                  {{ court.label }}
+                </p>
               </div>
             </div>
-            <p
-              v-if="displayCourtLabel && !multiCourt"
-              class="flex items-center justify-start gap-2 text-xs font-bold text-brand-navy"
-            >
-              <span class="canva-confirm-book-dot" aria-hidden="true" />
-              {{ displayCourtLabel }}
-            </p>
           </div>
 
           <div v-if="showMultiDayEquipmentHint" class="text-start text-xs font-medium text-brand-gray-600">
