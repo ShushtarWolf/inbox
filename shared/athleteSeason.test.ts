@@ -3,9 +3,11 @@ import {
   defaultAthleteSeasonFinishDate,
   expandAthleteWeeklySeason,
   isAthleteSeasonEnabled,
+  isSeasonPaymentSeries,
   isSeriesPaymentGroup,
   MAX_ATHLETE_SEASON_OCCURRENCES,
   parseSeriesPaymentMeta,
+  receiptLinePrice,
   sessionRefundAmount,
 } from './athleteSeason'
 
@@ -92,5 +94,48 @@ describe('series payment meta + pro-rata', () => {
       primaryAmount: 800_000,
       alreadyRefunded: 0,
     })).toBe(0)
+  })
+
+  it('treats only seasonBookingId as a season series label', () => {
+    expect(isSeasonPaymentSeries({ seasonBookingId: 's1' })).toBe(true)
+    expect(isSeasonPaymentSeries({
+      groupPrimaryBookingId: 'b1',
+      groupSiblingBookingIds: ['b2'],
+    })).toBe(false)
+    expect(isSeasonPaymentSeries({ coveredByBookingId: 'b1' })).toBe(false)
+  })
+
+  it('receipt lines prefer sessionPrice over primary-total / sibling-0', () => {
+    expect(receiptLinePrice({
+      meta: { sessionPrice: 12_000, groupPrimaryBookingId: 'b1', groupSiblingBookingIds: ['b2'] },
+      paymentAmount: 20_000,
+      slotPrice: 10_000,
+    })).toBe(12_000)
+    expect(receiptLinePrice({
+      meta: { sessionPrice: 8_000, coveredByBookingId: 'b1' },
+      paymentAmount: 0,
+      slotPrice: 10_000,
+    })).toBe(8_000)
+  })
+
+  it('legacy multi-court without sessionPrice falls back to slot price', () => {
+    expect(receiptLinePrice({
+      meta: { groupPrimaryBookingId: 'b1', groupSiblingBookingIds: ['b2'] },
+      paymentAmount: 20_000,
+      slotPrice: 12_000,
+    })).toBe(12_000)
+    expect(receiptLinePrice({
+      meta: { coveredByBookingId: 'b1' },
+      paymentAmount: 0,
+      slotPrice: 8_000,
+    })).toBe(8_000)
+  })
+
+  it('ungrouped payments still use payment amount', () => {
+    expect(receiptLinePrice({
+      meta: {},
+      paymentAmount: 15_000,
+      slotPrice: 12_000,
+    })).toBe(15_000)
   })
 })

@@ -184,7 +184,15 @@ export default defineEventHandler(async (event) => {
           paymentStatus = paymentFields.paymentStatus
         }
 
-        const basePaymentMeta = discountMeta ? { ...discountMeta } : {}
+        // Online multi: store per-court sessionPrice (equipment on primary) so receipt
+        // lines and cancel pro-rata do not use primary-total / sibling-0 amounts.
+        const sessionPrice = groupOnPrimary
+          ? (isPrimary ? slotAmounts[i]! + equipmentTotal : slotAmounts[i]!)
+          : null
+        const basePaymentMeta = {
+          ...(discountMeta || {}),
+          ...(sessionPrice !== null ? { sessionPrice } : {}),
+        }
         await tx.payment.create({
           data: {
             bookingId: booking.id,
@@ -244,10 +252,21 @@ export default defineEventHandler(async (event) => {
           },
         })
         for (const siblingId of siblingIds) {
+          const siblingPayment = await tx.payment.findUniqueOrThrow({ where: { bookingId: siblingId } })
+          let siblingMeta: Record<string, unknown> = {}
+          if (siblingPayment.metadataJson) {
+            try {
+              siblingMeta = JSON.parse(siblingPayment.metadataJson) as Record<string, unknown>
+            }
+            catch {
+              siblingMeta = {}
+            }
+          }
           await tx.payment.update({
             where: { bookingId: siblingId },
             data: {
               metadataJson: JSON.stringify({
+                ...siblingMeta,
                 coveredByBookingId: primaryBookingId,
               }),
             },

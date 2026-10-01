@@ -2,7 +2,11 @@ import { isOnlinePaymentsEnabled, isPaidPaymentStatus, isUnpaidPaymentStatus } f
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliLongDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { bookingTrackingCode, parseReceiptToken } from '#shared/receiptToken.ts'
-import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import {
+  isSeasonPaymentSeries,
+  parseSeriesPaymentMeta,
+  receiptLinePrice,
+} from '#shared/athleteSeason.ts'
 import { parseFacilitiesJson } from '#shared/courtFacilities.ts'
 import { receiptAmenities, receiptPolicyLines } from '#shared/seasonReceipt.ts'
 import { receiptSigningSecret } from '../../utils/receipt'
@@ -42,7 +46,11 @@ function sessionFromBooking(booking: {
   }
 }): SessionOut {
   const meta = parseSeriesPaymentMeta(booking.payment?.metadataJson)
-  const price = meta.sessionPrice ?? booking.payment?.amount ?? booking.slot.price
+  const price = receiptLinePrice({
+    meta,
+    paymentAmount: booking.payment?.amount,
+    slotPrice: booking.slot.price,
+  })
   return {
     iso: booking.slot.date,
     date: formatSmsJalaliLongDate(booking.slot.date),
@@ -122,7 +130,7 @@ export default defineEventHandler(async (event) => {
     unpaid,
     cancelled: booking.status === 'CANCELLED',
     canPayOnline: unpaid && isOnlinePaymentsEnabled(),
-    kind: series ? 'season' : 'single',
+    kind: series && isSeasonPaymentSeries(series.group.meta) ? 'season' : 'single',
     clubImage: club.image || null,
     amenities: receiptAmenities(parseFacilitiesJson(club.amenitiesJson)),
     policies: receiptPolicyLines(club.policiesJson),

@@ -82,6 +82,34 @@ export function isSeriesPaymentGroup(meta: SeriesPaymentMeta): boolean {
   )
 }
 
+/** True season / recurring series — not same-day multi-court payment groups. */
+export function isSeasonPaymentSeries(meta: SeriesPaymentMeta): boolean {
+  return Boolean(meta.seasonBookingId)
+}
+
+/**
+ * Per-line receipt price for a booking in a (possibly grouped) payment.
+ * Prefer stored sessionPrice. Grouped online checkouts put the sheet total on the
+ * primary and 0 on siblings — never show those as the court line when sessionPrice
+ * is missing; fall back to the slot listing instead.
+ */
+export function receiptLinePrice(opts: {
+  meta: SeriesPaymentMeta
+  paymentAmount?: number | null
+  slotPrice: number
+}): number {
+  if (typeof opts.meta.sessionPrice === 'number' && Number.isFinite(opts.meta.sessionPrice)) {
+    return Math.round(opts.meta.sessionPrice)
+  }
+  if (isSeriesPaymentGroup(opts.meta)) {
+    return opts.slotPrice
+  }
+  if (typeof opts.paymentAmount === 'number' && Number.isFinite(opts.paymentAmount)) {
+    return opts.paymentAmount
+  }
+  return opts.slotPrice
+}
+
 /** How much to refund for one cancelled session while siblings remain. */
 export function sessionRefundAmount(opts: {
   sessionPrice?: number | null
