@@ -50,7 +50,7 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to + item.label"
         v-bind="item.action ? { type: 'button' } : { to: item.to }"
-        class="relative flex min-h-14 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-medium transition-colors"
+        class="relative flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1 px-2 py-3 text-xs font-medium transition-colors"
         :class="[
           scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
           !item.action && isActive(item.to)
@@ -64,7 +64,7 @@ function isActive(to: string) {
           class="absolute inset-x-4 top-0 h-0.5 bg-brand-primary"
           aria-hidden="true"
         />
-        <AppIcon :name="item.icon || 'circle'" size="sm" :filled="!item.action && isActive(item.to)" />
+        <AppIcon :name="item.icon || 'circle'" size="md" :filled="!item.action && isActive(item.to)" />
         {{ item.label }}
         <span v-if="item.badge" class="absolute end-2 top-2 bg-brand-primary px-1 text-[9px] font-medium text-white" style="border-radius: var(--sz-canva-radius);">{{ item.badge }}</span>
       </component>

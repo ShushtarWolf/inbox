@@ -22,7 +22,7 @@
   --sz-card-radius: 0.75rem;
   --sz-input-radius: 0.5rem;
   --sz-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --sz-tab-bar-height: 4.5rem;
+  --sz-tab-bar-height: 5.25rem;
   --sz-side-nav-width: 290px;
   /* Canva artboard: inbox website 375 × 812px */
   --sz-phone-width: 375px;
