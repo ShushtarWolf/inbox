@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
+import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canManageReservation } from '#shared/localDate.ts'
 
@@ -8,7 +9,7 @@ definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role
 interface CourtBooking {
   id: string
   status: string
-  payment?: { status?: string; amount?: number } | null
+  payment?: { status?: string; amount?: number; metadataJson?: string | null } | null
   paymentStatus?: string | null
   seasonBookingId?: string | null
   seasonSessionCount?: number | null
@@ -49,7 +50,7 @@ interface CoachSessionRow {
   startTime: string
   price?: number
   paymentStatus?: string | null
-  payment?: { status?: string; amount?: number } | null
+  payment?: { status?: string; amount?: number; metadataJson?: string | null } | null
   coach: {
     id: string
     nameFa?: string
@@ -427,7 +428,11 @@ const historyItems = computed((): HistoryItem[] => {
       address: localizedField(b.slot.court.club, 'addressFa', 'addressEn') || '',
       phone: b.slot.court.club.phone || '',
       timeLabel: formatTimeLabel(b.slot.startTime),
-      price: b.payment?.amount || b.slot.price || 0,
+      price: athleteListPrice({
+        meta: parseSeriesPaymentMeta(b.payment?.metadataJson),
+        paymentAmount: b.payment?.amount,
+        slotPrice: b.slot.price || 0,
+      }),
       paymentStatus: paymentOf(b),
       slug: b.slot.court.club.slug,
       image: b.slot.court.image || b.slot.court.club.image || '/placeholders/club.svg',
@@ -451,7 +456,11 @@ const historyItems = computed((): HistoryItem[] => {
         address: '',
         phone: '',
         timeLabel: formatTimeLabel(s.startTime),
-        price: s.payment?.amount || s.price || 0,
+        price: athleteListPrice({
+          meta: parseSeriesPaymentMeta(s.payment?.metadataJson),
+          paymentAmount: s.payment?.amount,
+          slotPrice: s.price || 0,
+        }),
         paymentStatus: paymentOf(s),
         coachId: s.coach.id,
         image: s.coach.photo || '/placeholders/coach.svg',

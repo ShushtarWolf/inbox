@@ -1,7 +1,9 @@
 import type { PaymentStatus } from '@prisma/client'
+import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 
 /**
  * Athlete payment history — real Payment rows (IPG, cash desk, wallet, failed).
+ * Sibling/covered rows store amount 0; expose per-line price for the UI.
  */
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -28,6 +30,7 @@ export default defineEventHandler(async (event) => {
             select: {
               date: true,
               startTime: true,
+              price: true,
               court: {
                 select: {
                   nameFa: true,
@@ -45,6 +48,7 @@ export default defineEventHandler(async (event) => {
           status: true,
           date: true,
           startTime: true,
+          price: true,
           coach: {
             select: {
               nameFa: true,
@@ -58,6 +62,7 @@ export default defineEventHandler(async (event) => {
         select: {
           id: true,
           status: true,
+          price: true,
           package: {
             select: {
               title: true,
@@ -96,10 +101,18 @@ export default defineEventHandler(async (event) => {
       const startTime = payment.booking?.slot.startTime
         || payment.coachSession?.startTime
         || null
+      const listedPrice = payment.booking?.slot.price
+        ?? payment.coachSession?.price
+        ?? payment.packageBooking?.price
+        ?? 0
 
       return {
         id: payment.id,
-        amount: payment.amount,
+        amount: athleteListPrice({
+          meta: parseSeriesPaymentMeta(payment.metadataJson),
+          paymentAmount: payment.amount,
+          slotPrice: listedPrice,
+        }),
         method: payment.method,
         status: payment.status as PaymentStatus,
         provider: payment.provider,

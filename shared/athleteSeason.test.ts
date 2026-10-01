@@ -7,6 +7,7 @@ import {
   isSeriesPaymentGroup,
   MAX_ATHLETE_SEASON_OCCURRENCES,
   parseSeriesPaymentMeta,
+  athleteListPrice,
   receiptLinePrice,
   sessionRefundAmount,
 } from './athleteSeason'
@@ -137,5 +138,23 @@ describe('series payment meta + pro-rata', () => {
       paymentAmount: 15_000,
       slotPrice: 12_000,
     })).toBe(15_000)
+  })
+
+  it('athleteListPrice keeps charged totals and fills sibling zeros', () => {
+    expect(athleteListPrice({
+      meta: { sessionPrice: 55_000, groupPrimaryBookingId: 'b1', groupSiblingBookingIds: ['b2'] },
+      paymentAmount: 165_000,
+      slotPrice: 55_000,
+    })).toBe(165_000)
+    expect(athleteListPrice({
+      meta: { sessionPrice: 55_000, coveredByBookingId: 'b1' },
+      paymentAmount: 0,
+      slotPrice: 55_000,
+    })).toBe(55_000)
+    expect(athleteListPrice({
+      meta: {},
+      paymentAmount: 0,
+      slotPrice: 55_000,
+    })).toBe(0)
   })
 })

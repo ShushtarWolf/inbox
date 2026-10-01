@@ -110,6 +110,21 @@ export function receiptLinePrice(opts: {
   return opts.slotPrice
 }
 
+/**
+ * Athlete list / history amount. Keep charged amount when > 0 (primary totals,
+ * single bookings, pay-CTA). Sibling/covered rows store 0 — resolve via receipt line.
+ */
+export function athleteListPrice(opts: {
+  meta: SeriesPaymentMeta
+  paymentAmount?: number | null
+  slotPrice: number
+}): number {
+  if (typeof opts.paymentAmount === 'number' && opts.paymentAmount > 0) {
+    return opts.paymentAmount
+  }
+  return receiptLinePrice(opts)
+}
+
 /** How much to refund for one cancelled session while siblings remain. */
 export function sessionRefundAmount(opts: {
   sessionPrice?: number | null
