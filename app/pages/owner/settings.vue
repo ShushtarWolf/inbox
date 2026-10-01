@@ -86,6 +86,7 @@ const { localizedField } = useLocalizedField()
 const { formatNumber, formatCurrency, formatPhone, formatFaDigits } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
+const { fetch: fetchAuth } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
@@ -121,6 +122,7 @@ watch(isOwner, (owner) => {
 }, { immediate: true })
 
 const saving = ref(false)
+const savingImage = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
 const shebaError = ref('')
@@ -443,6 +445,34 @@ async function setGalleryUrls(urls: string[]) {
   await refresh()
 }
 
+function normalizeClubImage(url: string) {
+  return url.replace(/^\/uploads\/uploads\//, '/uploads/')
+}
+
+/** Persist logo immediately so the header avatar updates without waiting for full form save. */
+async function onClubImageChange(url: string) {
+  const next = normalizeClubImage(url.trim())
+  form.image = next
+  if (next === (loadedImage || '')) return
+  savingImage.value = true
+  imageError.value = ''
+  try {
+    await $fetch('/api/owner/settings', {
+      method: 'PATCH',
+      body: { image: next || null },
+    })
+    loadedImage = next || null
+    lastAppliedSnapshot = formSnapshot()
+    await refresh()
+    await fetchAuth()
+  } catch (err: unknown) {
+    imageError.value = fetchErrorMessage(err, t('common.error'))
+    form.image = loadedImage || ''
+  } finally {
+    savingImage.value = false
+  }
+}
+
 watch(data, () => {
   const clubId = data.value?.club?.id || null
   if (clubId && appliedClubId && clubId !== appliedClubId) {
@@ -492,6 +522,7 @@ async function save() {
     saveSuccess.value = true
     lastAppliedSnapshot = formSnapshot()
     await refresh()
+    await fetchAuth()
   } catch (err: unknown) {
     const message = fetchErrorMessage(err, t('common.error'))
     saveError.value = message
@@ -555,6 +586,16 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
         <!-- مجموعه -->
         <div class="canva-panel space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.clubGroup') }}</h2>
+          <AppImageUpload
+            crop
+            :model-value="form.image"
+            :label="t('owner.settingsPage.clubLogo')"
+            placeholder="/placeholders/club.svg"
+            @update:model-value="onClubImageChange"
+          />
+          <p class="text-xs text-brand-gray-600">{{ t('owner.settingsPage.clubLogoHint') }}</p>
+          <p v-if="savingImage" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
+          <p v-if="imageError" class="text-sm text-red-600" role="alert">{{ imageError }}</p>
           <div class="grid grid-cols-2 gap-2">
             <label class="block text-sm">
               <span class="mb-1 block font-bold">{{ t('owner.settingsPage.nameFa') }}</span>
@@ -762,8 +803,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             :max="4"
             @update:model-value="setGalleryUrls"
           />
-          <AppImageUpload v-model="form.image" :label="t('owner.settingsPage.imageUrl')" placeholder="/placeholders/club.svg" />
-          <p v-if="imageError" class="text-sm text-red-600" role="alert">{{ imageError }}</p>
         </div>
 
         <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">

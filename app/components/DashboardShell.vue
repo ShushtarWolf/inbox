@@ -36,8 +36,36 @@ const open = ref(false)
 const accountOpen = ref(false)
 const accountAnchor = ref<HTMLElement | null>(null)
 const holdsNavBodyLock = ref(false)
-const { logout, displayName, initials, avatarUrl, profilePath, fetch: fetchAuth } = useAuth()
+const {
+  logout,
+  displayName,
+  initials,
+  avatarUrl,
+  clubAvatarUrl,
+  activeOwnerClub,
+  profilePath,
+  fetch: fetchAuth,
+} = useAuth()
 const { heldRoles } = usePlatformRoles()
+const { localizedField } = useLocalizedField()
+
+/** Owner shell: show club logo/name in the header shortcut (the red circle owners expect). */
+const shortcutAvatarUrl = computed(() =>
+  props.useAccountDrawer ? (clubAvatarUrl.value || avatarUrl.value) : avatarUrl.value,
+)
+const shortcutName = computed(() => {
+  if (props.useAccountDrawer && activeOwnerClub.value) {
+    return localizedField(activeOwnerClub.value, 'nameFa', 'nameEn') || displayName.value
+  }
+  return displayName.value
+})
+const shortcutInitials = computed(() => {
+  if (!(props.useAccountDrawer && activeOwnerClub.value)) return initials.value
+  const name = shortcutName.value
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0]![0] || ''}${parts[1]![0] || ''}`.toUpperCase()
+  return (name[0] || '?').toUpperCase()
+})
 
 function acquireNavLock() {
   if (holdsNavBodyLock.value) return
@@ -202,18 +230,18 @@ function goBack() {
               <AppUserShortcut
                 v-if="displayName && !hideUser"
                 :to="profilePath"
-                :name="displayName"
-                :avatar-url="avatarUrl"
-                :initials="initials"
+                :name="shortcutName"
+                :avatar-url="shortcutAvatarUrl"
+                :initials="shortcutInitials"
                 compact
                 class="sm:hidden"
               />
               <AppUserShortcut
                 v-if="displayName && !hideUser"
                 :to="profilePath"
-                :name="displayName"
-                :avatar-url="avatarUrl"
-                :initials="initials"
+                :name="shortcutName"
+                :avatar-url="shortcutAvatarUrl"
+                :initials="shortcutInitials"
                 class="hidden sm:inline-flex"
               />
               <NuxtLink :to="localePath('/')" class="btn-ghost px-3 py-2 text-xs">
@@ -272,9 +300,9 @@ function goBack() {
             </NuxtLink>
             <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
               <AppUserShortcut
-                :name="displayName"
-                :avatar-url="avatarUrl"
-                :initials="initials"
+                :name="shortcutName"
+                :avatar-url="shortcutAvatarUrl"
+                :initials="shortcutInitials"
                 :expanded="accountOpen"
                 @click="accountOpen = true"
               />
@@ -282,9 +310,9 @@ function goBack() {
             <AppUserShortcut
               v-else-if="displayName && !hideUser"
               :to="profilePath"
-              :name="displayName"
-              :avatar-url="avatarUrl"
-              :initials="initials"
+              :name="shortcutName"
+              :avatar-url="shortcutAvatarUrl"
+              :initials="shortcutInitials"
             />
             <button
               v-if="!useAccountDrawer"

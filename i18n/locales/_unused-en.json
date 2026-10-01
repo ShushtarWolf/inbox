@@ -1529,6 +1529,8 @@
       "addressEn": "Address (English)",
       "imageUrl": "Cover image URL",
       "imageUrlHint": "Paste a public https:// image link (recommended 800×600 or larger).",
+      "clubLogo": "Club logo",
+      "clubLogoHint": "This image appears in the owner header and on the club card.",
       "openHour": "Open hour",
       "closeHour": "Close hour",
       "operations": "Operations",

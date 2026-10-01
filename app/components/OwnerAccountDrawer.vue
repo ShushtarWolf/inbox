@@ -7,7 +7,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { user, displayName, initials, avatarUrl, logout } = useAuth()
+const { user, displayName, initials, avatarUrl, clubAvatarUrl, activeOwnerClub, logout } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { localizedField } = useLocalizedField()
 
@@ -24,6 +24,19 @@ const activeMembership = computed(
 const roleLabel = computed(() =>
   activeMembership.value?.role === 'OWNER' ? t('owner.account.roleManager') : t('owner.account.roleStaff'),
 )
+const drawerAvatarUrl = computed(() => clubAvatarUrl.value || avatarUrl.value)
+const drawerTitle = computed(() =>
+  activeOwnerClub.value
+    ? (localizedField(activeOwnerClub.value, 'nameFa', 'nameEn') || displayName.value)
+    : displayName.value,
+)
+const drawerInitials = computed(() => {
+  if (!activeOwnerClub.value) return initials.value
+  const name = drawerTitle.value
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0]![0] || ''}${parts[1]![0] || ''}`.toUpperCase()
+  return (name[0] || '?').toUpperCase()
+})
 
 const links = computed(() => [
   { to: localePath('/owner/settings'), label: t('owner.settings'), icon: 'settings' },
@@ -206,11 +219,11 @@ onUnmounted(() => {
         >
           <div class="canva-account-drawer-head">
             <div class="canva-owner-avatar canva-owner-avatar-lg" aria-hidden="true">
-              <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
-              <span v-else>{{ initials }}</span>
+              <img v-if="drawerAvatarUrl" :src="drawerAvatarUrl" alt="" class="h-full w-full object-cover">
+              <span v-else>{{ drawerInitials }}</span>
             </div>
             <div class="min-w-0 flex-1 text-start">
-              <p class="truncate text-sm font-bold text-brand-navy">{{ displayName }}</p>
+              <p class="truncate text-sm font-bold text-brand-navy">{{ drawerTitle }}</p>
               <p class="mt-0.5 text-xs font-bold text-brand-gray-500">{{ roleLabel }}</p>
             </div>
             <button

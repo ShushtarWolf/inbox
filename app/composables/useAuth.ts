@@ -72,6 +72,19 @@ export function useAuth() {
     return raw.replace(/^\/uploads\/uploads\//, '/uploads/')
   })
 
+  /** Active club from owner_club_id cookie (owner dashboard branding). */
+  const activeOwnerClub = computed(() => {
+    const list = user.value?.memberships || []
+    if (!list.length) return null
+    return (list.find((m) => m.club.id === ownerClubId.value) || list[0])?.club ?? null
+  })
+
+  const clubAvatarUrl = computed(() => {
+    const raw = activeOwnerClub.value?.image || null
+    if (!raw) return null
+    return raw.replace(/^\/uploads\/uploads\//, '/uploads/')
+  })
+
   const profilePath = computed(() => {
     if (!user.value) return localePath('/login')
     return localePath(profilePathForRole(user.value.role, 'fa'))
@@ -117,6 +130,8 @@ export function useAuth() {
     firstName,
     initials,
     avatarUrl,
+    activeOwnerClub,
+    clubAvatarUrl,
     profilePath,
     pending,
     fetch,

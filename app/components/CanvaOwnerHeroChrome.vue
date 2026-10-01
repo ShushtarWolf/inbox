@@ -1,11 +1,20 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { initials, avatarUrl } = useAuth()
+const { initials, avatarUrl, clubAvatarUrl, activeOwnerClub } = useAuth()
+const { localizedField } = useLocalizedField()
 const { canSwitchRole } = usePlatformRoles()
 const accountOpen = ref(false)
 const avatarBtn = ref<HTMLButtonElement | null>(null)
 const notificationsPath = computed(() => localePath('/owner/notifications'))
+const heroAvatarUrl = computed(() => clubAvatarUrl.value || avatarUrl.value)
+const heroInitials = computed(() => {
+  if (!activeOwnerClub.value) return initials.value
+  const name = localizedField(activeOwnerClub.value, 'nameFa', 'nameEn') || ''
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0]![0] || ''}${parts[1]![0] || ''}`.toUpperCase()
+  return (name[0] || initials.value[0] || '?').toUpperCase()
+})
 </script>
 
 <template>
@@ -28,8 +37,8 @@ const notificationsPath = computed(() => localePath('/owner/notifications'))
           aria-haspopup="dialog"
           @click="accountOpen = true"
         >
-          <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
-          <span v-else>{{ initials }}</span>
+          <img v-if="heroAvatarUrl" :src="heroAvatarUrl" alt="" class="h-full w-full object-cover">
+          <span v-else>{{ heroInitials }}</span>
         </button>
       </div>
       <NuxtLink
