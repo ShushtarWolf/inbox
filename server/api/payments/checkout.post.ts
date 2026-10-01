@@ -8,12 +8,14 @@ import {
 import { checkoutPreservedMetadata } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
+import { signReceiptToken } from '#shared/receiptToken.ts'
 import { getPaymentService } from '../../utils/payments/service'
 import {
   assertOnlineHoldPayable,
   releaseExpiredOnlinePaymentHolds,
 } from '../../utils/onlinePaymentHold'
 import { notifyPaymentPaidIfNeeded, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
+import { receiptSigningSecret } from '../../utils/receipt'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
@@ -207,6 +209,10 @@ export default defineEventHandler(async (event) => {
 
   // Keep discount + multi-day/season sibling links across IPG payment replace.
   const preservedMetadata = checkoutPreservedMetadata(existingPayment?.metadataJson)
+  // Court / season IPG return should open the public receipt, same as /r/:token checkout.
+  if (body.bookingId) {
+    preservedMetadata.receiptToken = signReceiptToken(body.bookingId, receiptSigningSecret())
+  }
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     if (!body.competitionEntryId) {
       await prisma.payment.delete({ where: { id: existingPayment.id } })

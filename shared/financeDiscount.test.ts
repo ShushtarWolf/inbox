@@ -52,6 +52,14 @@ describe('finance discount metadata', () => {
     })
   })
 
+  it('keeps receiptToken so IPG return opens /r/:token', () => {
+    const preserved = checkoutPreservedMetadata(JSON.stringify({
+      receiptToken: 'tok.abc',
+      sepStatus: 1,
+    }))
+    expect(preserved).toEqual({ receiptToken: 'tok.abc' })
+  })
+
   it('reads a code from the booking event after the gateway wiped the payment', () => {
     const discount = resolveFinanceDiscount({
       paidAmount: 9602,

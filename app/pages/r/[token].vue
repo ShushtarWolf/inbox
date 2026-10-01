@@ -49,17 +49,19 @@ const { data, error, pending, refresh } = await useFetch<ReceiptPayload>(
 )
 const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.value) })
 
+const paymentOutcome = computed(() => String(route.query.payment || ''))
+
 const paymentNotice = computed(() => {
-  const q = String(route.query.payment || '')
+  const q = paymentOutcome.value
   if (q === 'success') return t('booking.paymentSuccess')
   if (q === 'cancelled') return t('booking.paymentCancelled')
   if (q === 'error') return t('booking.paymentError')
   return ''
 })
 
-watch(() => route.query.payment, () => {
-  if (route.query.payment) refresh()
-})
+watch(paymentOutcome, (q) => {
+  if (q) refresh()
+}, { immediate: true })
 
 const sessionList = computed(() => {
   const d = data.value
@@ -68,10 +70,12 @@ const sessionList = computed(() => {
   return d.session ? [d.session] : []
 })
 
+/** Paid booking, or bank-return success before refresh catches up — never show the red pay CTA. */
 const isPaid = computed(() => {
   const d = data.value
-  if (!d || d.cancelled || d.unpaid) return false
-  return true
+  if (!d || d.cancelled) return false
+  if (paymentOutcome.value === 'success') return true
+  return !d.unpaid
 })
 
 const isCashMethod = computed(() => {
@@ -224,13 +228,8 @@ async function pay() {
 
           <div class="mt-4">
             <template v-if="isPaid && !data.cancelled">
-              <div class="receipt-player-ok">
-                <div>
-                  <b class="block font-extrabold">{{ isCashMethod ? t('booking.receiptCashOk') : t('booking.receiptPaidOk') }}</b>
-                  <p class="mt-0.5 text-[12.5px] font-medium leading-7 opacity-85">
-                    {{ isCashMethod ? t('booking.receiptPayAtClubNote') : t('booking.receiptPaidOkHint') }}
-                  </p>
-                </div>
+              <div class="receipt-player-paid" role="status">
+                {{ t('athlete.historyStatusPaid') }}
               </div>
             </template>
             <template v-else-if="data.unpaid && !data.cancelled && data.canPayOnline">
@@ -364,15 +363,16 @@ async function pay() {
 .receipt-player-pay:hover {
   background: #C0141F;
 }
-.receipt-player-ok {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background: #E8F3EC;
-  border: 1px solid #CFE5D8;
-  color: #1D5C3F;
-  padding: 14px 16px;
-  font-size: 14px;
+.receipt-player-paid {
+  width: 100%;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: #1D5C3F;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15.5px;
   border-radius: 0;
+  letter-spacing: 0;
 }
 </style>

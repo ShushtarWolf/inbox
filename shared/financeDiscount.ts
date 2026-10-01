@@ -71,6 +71,10 @@ export function checkoutPreservedMetadata(json: string | null | undefined): Reco
   if (typeof series.sessionRefundsTotal === 'number' && series.sessionRefundsTotal > 0) {
     out.sessionRefundsTotal = Math.round(series.sessionRefundsTotal)
   }
+  // Bank return URL reads this to land on /r/:token instead of /athlete/bookings.
+  const meta = parseMeta(json)
+  const receiptToken = typeof meta?.receiptToken === 'string' ? meta.receiptToken.trim() : ''
+  if (receiptToken) out.receiptToken = receiptToken
   return out
 }
 
