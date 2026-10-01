@@ -43,6 +43,7 @@ const saving = ref(false)
 const modalError = ref('')
 const deleteTarget = ref<EquipmentItem | null>(null)
 const deletePending = ref(false)
+const deleteError = ref('')
 
 function formatEquipmentPrice(item: EquipmentItem) {
   if (item.category === 'CLUB' || !item.price) return t('owner.free')
@@ -124,23 +125,26 @@ async function saveItem() {
 }
 
 async function requestDelete(item: EquipmentItem) {
+  deleteError.value = ''
   deleteTarget.value = item
 }
 
 function closeDelete() {
   if (deletePending.value) return
   deleteTarget.value = null
+  deleteError.value = ''
 }
 
 async function confirmDelete() {
   if (!deleteTarget.value) return
   deletePending.value = true
+  deleteError.value = ''
   try {
     await $fetch(`/api/owner/equipments/${deleteTarget.value.id}`, { method: 'DELETE' })
     deleteTarget.value = null
     await refresh()
   } catch {
-    // silent — user can retry
+    deleteError.value = t('common.error')
   } finally {
     deletePending.value = false
   }
@@ -251,6 +255,8 @@ async function confirmDelete() {
       danger
       @confirm="confirmDelete"
       @close="closeDelete"
-    />
+    >
+      <p v-if="deleteError" class="venus-alert-error">{{ deleteError }}</p>
+    </CanvaConfirmSheet>
   </div>
 </template>

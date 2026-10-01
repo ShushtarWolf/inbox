@@ -3,6 +3,7 @@ import { defaultEquipmentMissing } from '#shared/defaultEquipment.ts'
 
 type Db = Prisma.TransactionClient | typeof prisma
 
+/** Call on club create/provision only — not on every equipments GET (owners may delete defaults). */
 export async function seedDefaultEquipment(db: Db, clubId: string) {
   const existing = await db.equipment.findMany({
     where: { clubId },
