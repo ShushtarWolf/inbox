@@ -1,3 +1,4 @@
+import { defaultAvatarUrl } from '#shared/gender.ts'
 import { profilePathForRole, roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo } from '#shared/returnTo.ts'
 
 export { roleDashboardPath, profilePathForRole, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo }
@@ -67,7 +68,7 @@ export function useAuth() {
 
   const avatarUrl = computed(() => {
     const raw = user.value?.avatarUrl || null
-    if (!raw) return null
+    if (!raw) return defaultAvatarUrl(user.value?.gender)
     // Collapse legacy `/uploads/uploads/…` paths written before folder prefix fix
     return raw.replace(/^\/uploads\/uploads\//, '/uploads/')
   })
