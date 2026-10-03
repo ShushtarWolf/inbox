@@ -44,6 +44,7 @@ const sideNav = computed(() => [
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card' },
   { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications' },
   { to: localePath('/athlete/support'), label: t('athlete.support'), icon: 'support_agent' },
+  { to: localePath('/contact'), label: t('contact.us'), icon: 'call' },
   { to: localePath('/privacy'), label: t('legal.privacy'), icon: 'privacy_tip' },
 ])
 </script>

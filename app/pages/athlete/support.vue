@@ -5,7 +5,6 @@ import { openTicketId } from '#shared/supportTicket.ts'
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { t } = useI18n()
-const localePath = useLocalePath()
 const { formatDate } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 
@@ -159,12 +158,6 @@ async function submitTicket() {
           </ul>
           <p v-else class="mt-4 text-xs text-brand-gray-500">{{ t('athlete.supportPage.empty') }}</p>
         </section>
-
-        <p class="mt-4 text-start text-xs text-brand-gray-500">
-          <NuxtLink :to="localePath('/contact')" class="font-bold text-brand-navy underline">
-            {{ t('athlete.supportPage.contactLink') }}
-          </NuxtLink>
-        </p>
       </div>
     </AppAsyncState>
   </div>

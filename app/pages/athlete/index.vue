@@ -100,6 +100,7 @@ const menu = computed(() => [
   { to: localePath('/athlete/payments'), label: t('athlete.paymentMethods'), icon: 'credit_card', danger: false },
   { to: localePath('/athlete/notifications'), label: t('nav.notifications'), icon: 'notifications', danger: false },
   { to: localePath('/athlete/support'), label: t('athlete.support'), icon: 'support_agent', danger: false },
+  { to: localePath('/contact'), label: t('contact.us'), icon: 'call', danger: false },
   { to: localePath('/privacy'), label: t('legal.privacy'), icon: 'privacy_tip', danger: false },
 ])
 
