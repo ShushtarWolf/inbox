@@ -85,6 +85,8 @@ describe('selectFinanceTransactions', () => {
     expect(selectFinanceTransactions(rows, { bookingKind: 'package' }).map((tx) => tx.guestName)).toEqual(['سارا'])
     expect(selectFinanceTransactions(rows, { payment: 'ipg' }).map((tx) => tx.guestName)).toEqual(['رضا'])
     expect(selectFinanceTransactions(rows, { payment: 'cash' }).map((tx) => tx.guestName)).toEqual(['علی'])
+    // Desk unpaid keeps method CASH but buckets as unpaid (badge must match this, not raw method).
+    expect(selectFinanceTransactions(rows, { payment: 'unpaid' }).map((tx) => tx.guestName)).toEqual(['سارا'])
     expect(selectFinanceTransactions(rows, { guest: 'سارا' }).map((tx) => tx.guestName)).toEqual(['سارا'])
     expect(selectFinanceTransactions(rows, { guest: '۰۹۱۲۰۰۰۰۰۰۱' }).map((tx) => tx.guestName)).toEqual(['علی'])
   })

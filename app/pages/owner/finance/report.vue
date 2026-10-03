@@ -2,7 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
-import { selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financePaymentBucket, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -205,9 +205,10 @@ function kindLabel(kind?: string | null) {
   return t('owner.financeTable.bookingKindNormal')
 }
 
-function methodLabel(method?: string | null) {
-  if (method === 'IPG') return t('owner.financePage.methodCashless')
-  if (method === 'CASH' || method === 'PAID') return t('owner.financePage.methodCash')
+function methodLabel(tx: { paymentMethod?: string | null; unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
+  const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
+  if (bucket === 'ipg') return t('owner.financePage.methodCashless')
+  if (bucket === 'cash') return t('owner.financePage.methodCash')
   return t('owner.financePage.methodUnpaid')
 }
 
@@ -234,7 +235,7 @@ function downloadReport() {
     tx.guestMobile || '',
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
-    tx.kind === 'slot' ? '' : methodLabel(tx.paymentMethod),
+    tx.kind === 'slot' ? '' : methodLabel(tx),
     tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
