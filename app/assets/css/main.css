@@ -1892,6 +1892,9 @@
   .canva-finance-method-badge-ipg {
     background: #E8B84A;
   }
+  .canva-finance-method-badge-wallet {
+    @apply bg-brand-navy;
+  }
   .canva-finance-method-badge-unpaid {
     @apply bg-brand-gray-400;
   }
