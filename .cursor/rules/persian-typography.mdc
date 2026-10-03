@@ -10,7 +10,7 @@ FA-first product. Apply digit/bidi/spacing cleanup everywhere (including Canva f
 ## Fonts (do not change)
 
 - RTL body/UI: `Vazirmatn Variable` in `app/assets/css/main.css` (`font-display: optional`).
-- LTR / Latin brand: `Outfit Variable` via `[dir='ltr']` / `InboxWordmark`.
+- LTR / Latin brand: lockup via `InboxBrandLockup` (`dir=ltr`); Outfit stays for other Latin UI.
 - Do not swap fonts, remove Outfit, introduce Inter/Geist/Roboto/`system-ui`-only stacks, or commercial fonts (IRANSans, Yekan, Dana).
 - Do not change `font-display: optional` to `swap`.
 - Do not use Next.js `next/font` — this is Nuxt + `@fontsource-variable/*`.

@@ -32,10 +32,9 @@ function goHome() {
   <div class="flex min-h-dvh items-center justify-center bg-brand-cream px-4 py-16">
     <div class="canva-result-sheet w-full max-w-sm p-6 text-center">
       <div class="relative z-[1] space-y-3">
-        <NuxtLink to="/" class="canva-error-brand inline-flex items-center justify-center gap-2" :aria-label="t('brand.name')">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
-          <InboxWordmark class="text-lg text-brand-primary" />
-        </NuxtLink>
+        <div class="canva-error-brand flex justify-center">
+          <InboxBrandLockup home-link height-class="h-8" />
+        </div>
         <p class="text-5xl font-bold text-brand-primary">{{ error.statusCode || 500 }}</p>
         <h1 class="text-xl font-bold text-brand-navy">{{ title }}</h1>
         <p class="text-sm text-brand-gray-600">{{ message }}</p>

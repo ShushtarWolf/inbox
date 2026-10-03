@@ -631,12 +631,11 @@ watch(
         </button>
         <NuxtLink
           :to="localePath('/')"
-          class="flex items-center gap-2"
+          class="inline-flex"
           :aria-label="t('brand.name')"
           @click.prevent="handleGateLogoClick()"
         >
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <InboxWordmark class="text-base text-brand-navy" />
+          <InboxBrandLockup height-class="h-7" />
         </NuxtLink>
       </div>
       <div v-else class="relative z-[1] flex items-center justify-center px-4 py-3">

@@ -631,12 +631,11 @@ async function submit(preferWallet = false) {
       <div class="canva-auth-header shrink-0">
         <NuxtLink
           :to="localePath('/')"
-          class="flex items-center gap-2"
+          class="inline-flex"
           :aria-label="t('brand.name')"
           @click="close"
         >
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-          <InboxWordmark class="text-base text-brand-navy" />
+          <InboxBrandLockup height-class="h-7" />
         </NuxtLink>
         <button type="button" class="inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600" @click="close">
           <AppIcon name="close" size="sm" />

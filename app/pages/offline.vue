@@ -3,10 +3,11 @@
     <div class="canva-result-sheet w-full max-w-md p-8 text-center">
       <div class="relative z-[1]">
         <img
-          src="/brand/inbox-logo-lockup.png"
+          src="/brand/inbox-logo-lockup.svg"
           alt="inbox"
-          class="canva-error-brand mb-5"
-        />
+          dir="ltr"
+          class="canva-error-brand inbox-brand-lockup mb-5"
+        >
         <h1 class="text-xl font-bold text-brand-navy">{{ $t('pwa.offlineTitle') }}</h1>
         <p class="mt-2 text-sm text-brand-gray-600">{{ $t('pwa.offlineBody') }}</p>
         <p class="mt-3 text-xs font-bold text-brand-gray-400">inbox · inboxs.ir</p>

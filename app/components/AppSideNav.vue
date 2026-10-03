@@ -29,21 +29,12 @@ function isActive(to: string) {
       class="border-b px-6 py-5"
       :class="dark ? 'border-white/10' : 'border-brand-gray-200'"
     >
-      <NuxtLink :to="localePath('/')" class="flex items-center gap-3" :aria-label="t('brand.name')">
-        <div
-          class="flex h-10 w-10 items-center justify-center"
-          :class="dark ? 'bg-brand-primary' : 'bg-brand-primary'"
-          style="border-radius: var(--sz-canva-radius);"
-        >
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
-        </div>
-        <div class="min-w-0 text-start">
-          <InboxWordmark class="text-base" :class="dark ? 'text-white' : 'text-brand-primary'" />
-          <p
-            class="text-xs font-medium"
-            :class="dark ? 'text-white/60' : 'text-brand-gray-500'"
-          >{{ title }}</p>
-        </div>
+      <NuxtLink :to="localePath('/')" class="flex min-w-0 flex-col items-start gap-1" :aria-label="t('brand.name')">
+        <InboxBrandLockup height-class="h-7" :on-dark="dark" />
+        <p
+          class="text-xs font-medium"
+          :class="dark ? 'text-white/60' : 'text-brand-gray-500'"
+        >{{ title }}</p>
       </NuxtLink>
     </div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-4">

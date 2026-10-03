@@ -263,10 +263,7 @@ function goBack() {
           <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="open = true" :aria-label="t('common.menu')">
             <AppIcon name="menu" size="sm" />
           </button>
-          <NuxtLink :to="localePath('/')" class="inline-flex items-center gap-2" :aria-label="t('brand.name')">
-            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7" />
-            <InboxWordmark class="text-sm text-brand-primary" />
-          </NuxtLink>
+          <InboxBrandLockup home-link height-class="h-6" />
           <button type="button" class="btn-ghost px-2 py-1.5 text-xs" @click="handleLogout" :aria-label="resolvedLogoutLabel">
             <AppIcon name="logout" size="sm" />
           </button>
@@ -274,10 +271,7 @@ function goBack() {
 
         <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
           <div class="flex min-w-0 items-center gap-3">
-            <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-              <img src="/brand/inbox-logo-mark.svg" alt="" class="h-8 w-8" />
-              <InboxWordmark class="text-base text-brand-primary" />
-            </NuxtLink>
+            <InboxBrandLockup home-link height-class="h-7" />
             <button
               v-if="!(useAccountDrawer && isDashboardRoot)"
               type="button"

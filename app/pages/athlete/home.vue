@@ -122,7 +122,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       />
       <div class="canva-photo-hero-wash" />
       <div class="canva-photo-hero-top">
-        <InboxWordmark home-link class="text-base text-white" />
+        <InboxBrandLockup home-link on-dark height-class="h-7" />
         <div class="flex flex-col items-stretch gap-1">
           <div class="flex items-center gap-3 text-white">
             <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">

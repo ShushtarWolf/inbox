@@ -24,12 +24,7 @@ function isActive(to: string) {
     <div class="mx-auto flex w-full items-center justify-between gap-4" :class="maxWidthClass">
       <div class="flex min-w-0 items-center gap-4">
         <!-- Brand → home -->
-        <NuxtLink :to="localePath('/')" class="flex items-center gap-3" :aria-label="t('brand.name')">
-          <div class="flex h-10 w-10 items-center justify-center bg-brand-primary" style="border-radius: var(--sz-canva-radius);" aria-hidden="true">
-            <img src="/brand/inbox-logo-mark.svg" alt="" class="h-6 w-6 brightness-0 invert" />
-          </div>
-          <InboxWordmark class="text-lg font-semibold text-brand-navy" />
-        </NuxtLink>
+        <InboxBrandLockup home-link height-class="h-8" />
         <nav v-if="nav.length" class="hidden items-center gap-1 min-[431px]:flex">
           <component
             :is="item.action ? 'button' : NuxtLink"

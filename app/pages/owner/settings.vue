@@ -566,10 +566,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 <template>
   <div class="venus-page-stack">
     <header class="canva-home-chrome hidden max-[430px]:flex">
-      <NuxtLink :to="localePath('/')" class="flex min-w-0 items-center gap-2" :aria-label="t('brand.name')">
-        <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
-        <InboxWordmark class="text-lg text-brand-primary" />
-      </NuxtLink>
+      <InboxBrandLockup home-link height-class="h-7" />
     </header>
     <section class="canva-dash-hero hidden max-[430px]:block">
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>

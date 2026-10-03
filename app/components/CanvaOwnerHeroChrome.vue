@@ -19,10 +19,7 @@ const heroInitials = computed(() => {
 
 <template>
   <div class="canva-photo-hero-top">
-    <NuxtLink :to="localePath('/')" class="flex items-center gap-2" :aria-label="t('brand.name')">
-      <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0 brightness-0 invert">
-      <InboxWordmark text="INBOX" class="text-base text-white" />
-    </NuxtLink>
+    <InboxBrandLockup home-link on-dark height-class="h-7" />
     <div class="flex flex-col items-stretch gap-1">
       <div class="flex items-center gap-3 text-white">
         <NuxtLink :to="notificationsPath" :aria-label="t('notifications.title')">

@@ -35,10 +35,7 @@ const href = computed(() => {
         >
           <AppIcon name="arrow_forward" size="sm" />
         </NuxtLink>
-        <NuxtLink :to="localePath('/')" class="flex min-w-0 items-center gap-2" :aria-label="t('brand.name')">
-          <img src="/brand/inbox-logo-mark.svg" alt="" class="h-7 w-7 shrink-0" />
-          <InboxWordmark class="text-lg text-brand-primary" />
-        </NuxtLink>
+        <InboxBrandLockup home-link height-class="h-7" />
       </div>
     </header>
     <h1
