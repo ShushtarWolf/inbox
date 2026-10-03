@@ -25,6 +25,8 @@ export default defineEventHandler(async (event) => {
   return {
     sheba: club.sheba,
     balance: walletBalances.balance,
+    availableBalance: walletBalances.availableBalance,
+    lockedBalance: walletBalances.lockedBalance,
     withdrawableBalance: walletBalances.withdrawableBalance,
     pendingClassBalance: walletBalances.pendingClassBalance,
     commissionBps: resolvePlatformCommissionBps(),

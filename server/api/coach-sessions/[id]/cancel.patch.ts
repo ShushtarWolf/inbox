@@ -1,6 +1,6 @@
+import { canCancelReservation, resolveCancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { notifyBookingCancelled } from '../../../utils/bookingNotify'
 import { cancelCoachSession } from '../../../utils/cancellations'
-import { canManageReservation } from '../../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -26,9 +26,23 @@ export default defineEventHandler(async (event) => {
 
   const isCoachActor = session.coach.userId === user.id
   const hostClub = session.courtBooking?.slot.court.club || session.coach.club
-  if (!canManageReservation(session.date, session.startTime, hostClub?.cancellationWindowHours ?? 24)) {
-    throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
+  const actor = isCoachActor ? 'coach' as const : 'athlete' as const
+  const windowHours = hostClub?.cancellationWindowHours ?? 24
+
+  if (!canCancelReservation({
+    actor,
+    date: session.date,
+    startTime: session.startTime,
+  })) {
+    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
   }
+
+  const moneyOutcome = resolveCancelMoneyOutcome({
+    actor,
+    date: session.date,
+    startTime: session.startTime,
+    windowHours,
+  })
 
   const reason = isCoachActor ? 'coach-cancel' : 'athlete-cancel'
   const result = await cancelCoachSession({
@@ -37,6 +51,7 @@ export default defineEventHandler(async (event) => {
     reason,
     paymentId: session.payment?.id,
     userId: session.athleteId,
+    moneyOutcome,
   })
 
   await notifyBookingCancelled({
@@ -67,5 +82,5 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return result
+  return { ...result, moneyOutcome }
 })

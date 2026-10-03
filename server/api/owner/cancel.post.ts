@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
     slotId?: string
     scope?: 'series'
     reason?: string
-    refundToWallet?: boolean
     skipNotify?: boolean
     notifyStartTime?: string
     notifyEndTime?: string
@@ -34,7 +33,6 @@ export default defineEventHandler(async (event) => {
     const series = await loadOwnerSeriesBookings(club.id, booking.id)
     if (series.length) {
       const reason = body.reason || 'owner-cancel-series'
-      const skipWallet = body.refundToWallet === false
       for (const row of series) {
         await cancelCourtBooking({
           bookingId: row.id,
@@ -42,7 +40,7 @@ export default defineEventHandler(async (event) => {
           reason,
           paymentId: seriesCancelPaymentId(row.payment),
           userId: row.userId,
-          skipWallet,
+          moneyOutcome: 'full_wallet_refund',
         })
         await notifyWaitlistForFreedSlot({
           clubId: club.id,
@@ -73,7 +71,7 @@ export default defineEventHandler(async (event) => {
           courtName: courtNotifyName(anchor.slot.court),
         })
       }
-      return { ok: true, cancelled: series.length }
+      return { ok: true, cancelled: series.length, moneyOutcome: 'full_wallet_refund' }
     }
   }
   if (booking) {
@@ -84,7 +82,7 @@ export default defineEventHandler(async (event) => {
       reason,
       paymentId: booking.payment?.id,
       userId: booking.userId,
-      skipWallet: body.refundToWallet === false,
+      moneyOutcome: 'full_wallet_refund',
     })
     const rawGuest = booking.guestMobile
     const phone = booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
@@ -109,7 +107,8 @@ export default defineEventHandler(async (event) => {
         skipGuest: Boolean(body.skipNotify),
       })
     }
-  } else {
+  }
+  else {
     await prisma.slot.update({
       where: { id: slot.id },
       data: { displayStatus: 'FREE' },
@@ -124,5 +123,5 @@ export default defineEventHandler(async (event) => {
     endTime: slot.endTime,
   })
 
-  return { ok: true }
+  return { ok: true, moneyOutcome: 'full_wallet_refund' }
 })

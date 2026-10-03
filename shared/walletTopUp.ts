@@ -37,16 +37,27 @@ export function canCoverBookingWithWallet(balance: number, amount: number): bool
 }
 
 /**
- * Bank-withdrawable amount: cash-backed settlement nets only, capped by balance.
+ * Bank-withdrawable amount: cash-backed settlement nets only, capped by spendable balance.
  * Clawback amounts are negative; athlete top-up/refund/prize are excluded by not summing them.
  * Pass only cashout-eligible settlement credits (day after class); clawbacks always included.
+ *
+ * `withdrawnViaRail` = net cash already removed/held for bank payout
+ * (sum of WITHDRAW_HOLD absolutes minus WITHDRAW_RELEASE credits). Without this,
+ * mixed wallets (settlement + top-up) can over-withdraw settlement after a hold.
  */
 export function computeWithdrawableBalance(
   balance: number,
   settlementCreditSum: number,
   settlementClawbackSum: number,
+  withdrawnViaRail = 0,
 ) {
   if (!Number.isFinite(balance) || balance <= 0) return 0
   const settlementNet = (settlementCreditSum || 0) + (settlementClawbackSum || 0)
-  return Math.max(0, Math.min(balance, settlementNet))
+  const remainingSettlement = Math.max(0, settlementNet - Math.max(0, withdrawnViaRail || 0))
+  return Math.max(0, Math.min(balance, remainingSettlement))
+}
+
+/** Net amount already held or paid out via the withdraw rail (holds − releases). */
+export function sumWithdrawnViaRail(holdAbsSum: number, releaseSum: number) {
+  return Math.max(0, (holdAbsSum || 0) - (releaseSum || 0))
 }

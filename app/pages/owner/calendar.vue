@@ -167,7 +167,6 @@ const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
 /** Whole season / class package, not the checked hours of this day. */
 const cancelSeries = ref(false)
-const refundToWallet = ref(true)
 const saving = ref(false)
 const previewing = ref(false)
 const confirming = ref(false)
@@ -1274,7 +1273,6 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   resetPanels()
   activePanel.value = defaultPanelForSlot(fullSlot)
   cancelReason.value = 'CUSTOMER_REQUEST'
-  refundToWallet.value = true
   actionError.value = ''
   flashMessage.value = ''
   sessionType.value = activeBooking(fullSlot)?.coachId && !pilotNoCoach.value ? 'coach' : 'free'
@@ -1339,7 +1337,6 @@ function openCancelForm() {
   cancelSeries.value = false
   if (!slotsForCancel().length) return
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
-  refundToWallet.value = true
   activePanel.value = 'cancel'
 }
 
@@ -1347,7 +1344,6 @@ function openSeriesCancelForm() {
   if (!canCancelSeries.value || !selectedSlotFull.value) return
   cancelSeries.value = true
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
-  refundToWallet.value = true
   activePanel.value = 'cancel'
 }
 
@@ -2214,7 +2210,6 @@ async function doCancelSeries() {
         slotId: slot.id,
         scope: 'series',
         reason: cancelReason.value,
-        refundToWallet: refundToWallet.value,
       },
     })
     await finishSlotAction()
@@ -2248,7 +2243,6 @@ async function doCancel() {
         body: {
           slotId: slot.id,
           reason: cancelReason.value,
-          refundToWallet: refundToWallet.value,
           skipNotify: !isLast,
           notifyStartTime: range.startTime,
           notifyEndTime: range.endTime,
@@ -3690,10 +3684,7 @@ watch(pilotNoCoach, (off) => {
                 </li>
               </ul>
             </template>
-            <label class="canva-recurring-check">
-              <input v-model="refundToWallet" type="checkbox" class="canva-settings-checkbox">
-              <span>{{ t('owner.refundToWalletCheck') }}</span>
-            </label>
+            <p class="text-start text-xs text-brand-gray-600">{{ t('owner.cancelAlwaysRefundsWallet') }}</p>
             <AppFormField :label="t('owner.cancelReasonPlaceholder')">
               <select v-model="cancelReason" class="neo-select">
                 <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>

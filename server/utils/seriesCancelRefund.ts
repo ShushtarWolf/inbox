@@ -4,9 +4,11 @@ import {
   sessionRefundAmount,
   type SeriesPaymentMeta,
 } from '#shared/athleteSeason.ts'
+import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import type { RefundResult } from './refunds'
 import { refundPaymentForCancellation } from './refunds'
+import { clawbackOwnerPartialForPayment } from './settlement'
 import { creditWallet } from './wallet'
 import { cancelCourtBooking } from './cancellations'
 import { prisma } from './prisma'
@@ -113,7 +115,12 @@ export async function refundAfterSeriesSessionCancel(opts: {
   cancelledBookingId: string
   userId?: string | null
   reason: string
+  moneyOutcome?: CancelMoneyOutcome
 }): Promise<RefundResult | null> {
+  if (opts.moneyOutcome === 'zero_refund') {
+    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  }
+
   const loaded = await loadSeriesGroupForBooking(opts.cancelledBookingId)
   if (!loaded) return null
 
@@ -141,15 +148,26 @@ export async function refundAfterSeriesSessionCancel(opts: {
         userId: opts.userId,
         bookingId: opts.cancelledBookingId,
         reason: opts.reason,
+        moneyOutcome: opts.moneyOutcome,
       })
     }
-    // Partial residual: wallet credit only (gateway already settled full charge).
+    // Partial residual: wallet credit + pro-rata owner clawback.
     if (opts.userId) {
       await creditWallet(opts.userId, residual, {
         paymentId: primaryPayment.id,
         bookingId: opts.cancelledBookingId,
         note: opts.reason,
       })
+    }
+    try {
+      await clawbackOwnerPartialForPayment({
+        paymentId: primaryPayment.id,
+        grossRefundAmount: residual,
+        bookingId: opts.cancelledBookingId,
+      })
+    }
+    catch (err) {
+      console.error('[seriesCancelRefund:clawback]', primaryPayment.id, err)
     }
     await prisma.payment.update({
       where: { id: primaryPayment.id },
@@ -179,6 +197,16 @@ export async function refundAfterSeriesSessionCancel(opts: {
       bookingId: opts.cancelledBookingId,
       note: opts.reason,
     })
+  }
+  try {
+    await clawbackOwnerPartialForPayment({
+      paymentId: primaryPayment.id,
+      grossRefundAmount: amount,
+      bookingId: opts.cancelledBookingId,
+    })
+  }
+  catch (err) {
+    console.error('[seriesCancelRefund:clawback]', primaryPayment.id, err)
   }
 
   await prisma.payment.update({

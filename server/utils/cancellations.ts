@@ -1,3 +1,4 @@
+import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { syncClubContactForBooking } from './contactSync'
 import { refundPaymentForCancellation } from './refunds'
 
@@ -13,10 +14,14 @@ export async function cancelCourtBooking(options: {
   reason: string
   paymentId?: string | null
   userId?: string | null
+  /** @deprecated Prefer moneyOutcome. */
   skipWallet?: boolean
+  moneyOutcome?: CancelMoneyOutcome
   skipLinkedCoachSession?: boolean
 }) {
   let refund: Awaited<ReturnType<typeof refundPaymentForCancellation>> | null = null
+  const moneyOutcome = options.moneyOutcome
+    || (options.skipWallet ? 'zero_refund' : 'full_wallet_refund')
 
   await prisma.$transaction(async (tx) => {
     await tx.booking.update({
@@ -36,7 +41,7 @@ export async function cancelCourtBooking(options: {
   await syncClubContactForBooking(options.bookingId)
 
   if (!options.skipLinkedCoachSession) {
-    await cancelLessonForCancelledCourt(options.bookingId, options.actorUserId, options.reason)
+    await cancelLessonForCancelledCourt(options.bookingId, options.actorUserId, options.reason, moneyOutcome)
   }
 
   if (options.paymentId) {
@@ -46,7 +51,7 @@ export async function cancelCourtBooking(options: {
         userId: options.userId,
         bookingId: options.bookingId,
         reason: options.reason,
-        skipWallet: options.skipWallet,
+        moneyOutcome,
       })
     }
     catch (err) {
@@ -60,7 +65,12 @@ export async function cancelCourtBooking(options: {
 }
 
 /** The club pulled the court out from under a lesson — refund the student their coach fee. */
-async function cancelLessonForCancelledCourt(bookingId: string, actorUserId: string | undefined, reason: string) {
+async function cancelLessonForCancelledCourt(
+  bookingId: string,
+  actorUserId: string | undefined,
+  reason: string,
+  moneyOutcome: CancelMoneyOutcome = 'full_wallet_refund',
+) {
   const session = await prisma.coachSession.findUnique({
     where: { courtBookingId: bookingId },
     include: { payment: true },
@@ -75,6 +85,7 @@ async function cancelLessonForCancelledCourt(bookingId: string, actorUserId: str
       paymentId: session.payment?.id,
       userId: session.athleteId,
       skipLinkedCourt: true,
+      moneyOutcome,
     })
   }
   catch (err) {
@@ -89,8 +100,10 @@ export async function cancelCoachSession(options: {
   paymentId?: string | null
   userId?: string | null
   skipLinkedCourt?: boolean
+  moneyOutcome?: CancelMoneyOutcome
 }) {
   let refund: Awaited<ReturnType<typeof refundPaymentForCancellation>> | null = null
+  const moneyOutcome = options.moneyOutcome || 'full_wallet_refund'
 
   await prisma.$transaction(async (tx) => {
     await tx.coachSession.update({
@@ -108,7 +121,7 @@ export async function cancelCoachSession(options: {
   })
 
   if (!options.skipLinkedCourt) {
-    await releaseCourtForCancelledLesson(options.sessionId, options.actorUserId, options.reason)
+    await releaseCourtForCancelledLesson(options.sessionId, options.actorUserId, options.reason, moneyOutcome)
   }
 
   if (options.paymentId) {
@@ -116,6 +129,7 @@ export async function cancelCoachSession(options: {
       paymentId: options.paymentId,
       userId: options.userId,
       reason: options.reason,
+      moneyOutcome,
     })
   }
 
@@ -123,7 +137,12 @@ export async function cancelCoachSession(options: {
 }
 
 /** Free the court the coach reserved and put the listed court fee back in their wallet. */
-async function releaseCourtForCancelledLesson(sessionId: string, actorUserId: string | undefined, reason: string) {
+async function releaseCourtForCancelledLesson(
+  sessionId: string,
+  actorUserId: string | undefined,
+  reason: string,
+  moneyOutcome: CancelMoneyOutcome = 'full_wallet_refund',
+) {
   const session = await prisma.coachSession.findUnique({
     where: { id: sessionId },
     select: {
@@ -145,6 +164,7 @@ async function releaseCourtForCancelledLesson(sessionId: string, actorUserId: st
       // The coach paid for this court from their wallet, so the credit goes back to them.
       userId: booking.userId,
       skipLinkedCoachSession: true,
+      moneyOutcome,
     })
   }
   catch (err) {
@@ -158,8 +178,10 @@ export async function cancelPackageBooking(options: {
   reason: string
   paymentId?: string | null
   userId: string
+  moneyOutcome?: CancelMoneyOutcome
 }) {
   let refund: Awaited<ReturnType<typeof refundPaymentForCancellation>> | null = null
+  const moneyOutcome = options.moneyOutcome || 'full_wallet_refund'
 
   await prisma.$transaction(async (tx) => {
     await tx.packageBooking.update({
@@ -173,6 +195,7 @@ export async function cancelPackageBooking(options: {
       paymentId: options.paymentId,
       userId: options.userId,
       reason: options.reason,
+      moneyOutcome,
     })
   }
 

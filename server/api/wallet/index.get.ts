@@ -1,12 +1,20 @@
-import { getWalletBalance, getWalletPendingClassBalance, getWalletWithdrawableBalance } from '../../utils/wallet'
+import {
+  getWalletBalances,
+  getWalletPendingClassBalance,
+  getWalletWithdrawableBalance,
+  unlockEligibleWalletSettlements,
+} from '../../utils/wallet'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  const [balance, withdrawableBalance, pendingClassBalance] = await Promise.all([
-    getWalletBalance(user.id),
+  await unlockEligibleWalletSettlements(user.id)
+  const [balances, withdrawableBalance, pendingClassBalance, coach] = await Promise.all([
+    getWalletBalances(user.id),
     getWalletWithdrawableBalance(user.id),
     getWalletPendingClassBalance(user.id),
+    prisma.coach.findFirst({ where: { userId: user.id }, select: { id: true } }),
   ])
+  const canBankWithdraw = Boolean(coach)
   const [wallet, dbUser, pendingWithdraws, recentWithdraws] = await Promise.all([
     prisma.wallet.findUnique({
       where: { userId: user.id },
@@ -18,25 +26,34 @@ export default defineEventHandler(async (event) => {
       where: { id: user.id },
       select: { sheba: true },
     }),
-    prisma.userWithdrawRequest.findMany({
-      where: { userId: user.id, status: 'PENDING' },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
-    prisma.userWithdrawRequest.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
+    canBankWithdraw
+      ? prisma.userWithdrawRequest.findMany({
+          where: { userId: user.id, status: 'PENDING' },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+      : Promise.resolve([]),
+    canBankWithdraw
+      ? prisma.userWithdrawRequest.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+      : Promise.resolve([]),
   ])
 
   return {
-    balance,
-    withdrawableBalance,
+    balance: balances.availableBalance,
+    totalBalance: balances.balance,
+    availableBalance: balances.availableBalance,
+    lockedBalance: balances.lockedBalance,
+    withdrawableBalance: canBankWithdraw ? withdrawableBalance : 0,
     pendingClassBalance,
-    sheba: dbUser?.sheba || null,
+    canBankWithdraw,
+    sheba: canBankWithdraw ? (dbUser?.sheba || null) : null,
     transactions: wallet?.transactions || [],
     pendingWithdraws,
     withdraws: recentWithdraws,
   }
 })
+

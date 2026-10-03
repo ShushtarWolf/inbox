@@ -1,5 +1,26 @@
-import { creditWallet, debitWallet, getOrCreateWallet, getWalletWithdrawableBalance } from './wallet'
+import {
+  consumeWalletLocked,
+  getOrCreateWallet,
+  getWalletWithdrawableBalance,
+  lockWalletAvailable,
+  unlockEligibleWalletSettlements,
+  unlockWalletLocked,
+} from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
+
+/** Coaches may cash out settlement; plain athletes are closed-loop. */
+export async function assertUserCanBankWithdraw(userId: string) {
+  const coach = await prisma.coach.findFirst({
+    where: { userId },
+    select: { id: true },
+  })
+  if (!coach) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Athlete wallet is closed-loop — bank withdraw is not available',
+    })
+  }
+}
 
 export async function requestUserWithdraw(options: {
   userId: string
@@ -16,12 +37,15 @@ export async function requestUserWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
+  await assertUserCanBankWithdraw(options.userId)
+
   return prisma.$transaction(async (tx) => {
+    await unlockEligibleWalletSettlements(options.userId, new Date(), tx)
     const wallet = await getOrCreateWallet(options.userId, tx)
-    if (wallet.balance < amount) {
+    if (wallet.availableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
-    const withdrawable = await getWalletWithdrawableBalance(options.userId)
+    const withdrawable = await getWalletWithdrawableBalance(options.userId, new Date(), tx)
     if (withdrawable < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
@@ -36,7 +60,7 @@ export async function requestUserWithdraw(options: {
       },
     })
 
-    await debitWallet(options.userId, amount, {
+    await lockWalletAvailable(options.userId, amount, {
       type: 'WITHDRAW_HOLD',
       withdrawRequestId: request.id,
       note: 'Withdraw request hold',
@@ -57,7 +81,8 @@ export async function requestUserWithdraw(options: {
         userPhone: user?.phone || '',
         requestId: request.id,
       })
-    } catch (err) {
+    }
+    catch (err) {
       console.error('[walletWithdraw:adminSms]', request.id, err)
     }
     return request
@@ -82,16 +107,11 @@ export async function markUserWithdrawPaid(requestId: string, note?: string) {
       },
     })
 
-    const wallet = await getOrCreateWallet(request.userId, tx)
-    await tx.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        amount: 0,
-        type: 'WITHDRAW_PAID',
-        withdrawRequestId: request.id,
-        note: note || 'Marked paid by admin',
-      },
-    })
+    await consumeWalletLocked(request.userId, request.amount, {
+      type: 'WITHDRAW_PAID',
+      withdrawRequestId: request.id,
+      note: note || 'Marked paid by admin',
+    }, tx)
 
     return updated
   })
@@ -114,7 +134,7 @@ export async function rejectUserWithdrawRequest(requestId: string, note?: string
       },
     })
 
-    await creditWallet(request.userId, request.amount, {
+    await unlockWalletLocked(request.userId, request.amount, {
       type: 'WITHDRAW_RELEASE',
       withdrawRequestId: request.id,
       note: note || 'Withdraw rejected — balance restored',

@@ -53,6 +53,8 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Target slot must belong to the same club': 'booking.errors.slotNotAvailable',
     'Insufficient wallet balance': 'booking.errors.insufficientWallet',
     'Insufficient withdrawable balance': 'athlete.withdrawInsufficient',
+    'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',
+    'Slot already started': 'booking.errors.slotAlreadyStarted',
     'Insufficient club wallet balance': 'owner.financePage.withdrawInsufficient',
     'SHEBA is required before withdraw': 'athlete.withdrawNeedSheba',
     'Invalid SHEBA': 'athlete.shebaInvalid',

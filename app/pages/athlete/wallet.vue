@@ -13,8 +13,11 @@ const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout(
 const { fetchErrorMessage } = useFetchError()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   balance?: number
+  availableBalance?: number
+  lockedBalance?: number
   withdrawableBalance?: number
   pendingClassBalance?: number
+  canBankWithdraw?: boolean
   sheba?: string | null
   pendingWithdraws?: Array<{ id: string; amount: number }>
   transactions?: Array<{
@@ -205,8 +208,17 @@ watch(
       <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
       <p class="mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
-      <p class="mt-2 text-xs text-white/80 text-start">
+      <p
+        v-if="data?.canBankWithdraw"
+        class="mt-2 text-xs text-white/80 text-start"
+      >
         {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
+      </p>
+      <p
+        v-else
+        class="mt-2 text-xs text-white/80 text-start"
+      >
+        {{ t('athlete.walletClosedLoopHint') }}
       </p>
       <p
         v-if="pendingClassBalance > 0"
@@ -274,7 +286,7 @@ watch(
         </template>
       </section>
 
-      <section class="canva-panel space-y-3 text-start">
+      <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')" numeric>

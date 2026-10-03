@@ -123,6 +123,15 @@ const withdrawAmount = ref<number | null>(null)
 const payoutBusy = ref(false)
 const payoutError = ref('')
 const payoutSuccess = ref('')
+const transferCoachId = ref('')
+const transferAmount = ref<number | null>(null)
+const transferNote = ref('')
+const transferBusy = ref(false)
+const transferFlash = ref('')
+const { data: transferCoaches, refresh: refreshTransferCoaches } = await useAuthedFetch<Array<{ id: string; nameFa?: string; nameEn?: string }>>(
+  '/api/owner/coaches',
+  { immediate: false, watch: false },
+)
 
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
@@ -146,7 +155,10 @@ useOwnerClubRefresh(() => {
 })
 
 watch(showPayoutsSection, (show) => {
-  if (show) refreshSettlement()
+  if (show) {
+    refreshSettlement()
+    refreshTransferCoaches()
+  }
 }, { immediate: true })
 
 watch(settlement, (value) => {
@@ -154,6 +166,33 @@ watch(settlement, (value) => {
 }, { immediate: true })
 
 const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
+
+async function submitInternalTransfer() {
+  if (!transferCoachId.value || !transferAmount.value) return
+  transferBusy.value = true
+  transferFlash.value = ''
+  try {
+    await $fetch('/api/owner/transfers', {
+      method: 'POST',
+      body: {
+        coachId: transferCoachId.value,
+        amount: Number(transferAmount.value),
+        note: transferNote.value || undefined,
+        direction: 'club_to_coach',
+      },
+    })
+    transferFlash.value = t('owner.internalTransferSuccess')
+    transferAmount.value = null
+    transferNote.value = ''
+    await refreshSettlement()
+  }
+  catch (err: unknown) {
+    transferFlash.value = fetchErrorMessage(err, t('owner.internalTransferFailed'))
+  }
+  finally {
+    transferBusy.value = false
+  }
+}
 
 async function saveSheba() {
   payoutBusy.value = true
@@ -792,6 +831,41 @@ function showUnpaidList() {
             </span>
             <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(entry.ownerNet) }}</span>
           </div>
+        </div>
+
+        <div class="space-y-3 border-t border-brand-gray-200 pt-3 text-start">
+          <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.internalTransferTitle') }}</h3>
+          <p class="text-xs text-brand-gray-600">{{ t('owner.internalTransferHint') }}</p>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.internalTransferCoach') }}</span>
+            <select v-model="transferCoachId" class="neo-select">
+              <option value="">{{ t('owner.internalTransferCoach') }}</option>
+              <option
+                v-for="coach in transferCoaches || []"
+                :key="coach.id"
+                :value="coach.id"
+              >
+                {{ coach.nameFa || coach.nameEn || coach.id }}
+              </option>
+            </select>
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.internalTransferAmount') }}</span>
+            <AppNumericInput v-model="transferAmount" :min="1" />
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.internalTransferNote') }}</span>
+            <input v-model="transferNote" class="neo-input" type="text">
+          </label>
+          <button
+            type="button"
+            class="canva-gate-btn-secondary w-full"
+            :disabled="transferBusy || !transferCoachId || !transferAmount"
+            @click="submitInternalTransfer"
+          >
+            {{ t('owner.internalTransferSubmit') }}
+          </button>
+          <p v-if="transferFlash" class="text-xs font-bold text-brand-navy">{{ transferFlash }}</p>
         </div>
         </div>
       </div>

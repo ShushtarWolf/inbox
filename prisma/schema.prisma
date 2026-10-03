@@ -132,6 +132,12 @@ enum WalletTransactionType {
   WITHDRAW_HOLD
   WITHDRAW_RELEASE
   WITHDRAW_PAID
+  /** Move available → locked (class hold or withdraw request). Balance unchanged. */
+  LOCK
+  /** Move locked → available (cashout eligibility or withdraw reject). Balance unchanged. */
+  UNLOCK
+  INTERNAL_TRANSFER_OUT
+  INTERNAL_TRANSFER_IN
 }
 
 enum ClubWalletTransactionType {
@@ -141,6 +147,10 @@ enum ClubWalletTransactionType {
   WITHDRAW_RELEASE
   WITHDRAW_PAID
   ADJUSTMENT
+  LOCK
+  UNLOCK
+  INTERNAL_TRANSFER_OUT
+  INTERNAL_TRANSFER_IN
 }
 
 enum WithdrawRequestStatus {
@@ -262,10 +272,13 @@ model PhoneOtp {
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
-  balance   Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  /** Total = availableBalance + lockedBalance. */
+  balance          Int      @default(0)
+  availableBalance Int      @default(0)
+  lockedBalance    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   userId       String              @unique
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -286,7 +299,12 @@ model WalletTransaction {
   withdrawRequestId String?
 
   @@index([walletId, createdAt])
-  @@unique([paymentId, type])
+  /**
+   * Uniqueness enforced in SQL (partial indexes):
+   * - (paymentId, type) when bookingId IS NULL (top-up / single settlement)
+   * - (paymentId, type, bookingId) when bookingId IS NOT NULL (series session refunds)
+   */
+  @@index([paymentId, type, bookingId])
 }
 
 /** Athlete (user) wallet cash-out — ops pays SHEBA manually, same rail as club WithdrawRequest. */
@@ -1203,10 +1221,13 @@ model ClubWorker {
 
 /** Club settlement balance (owner net after platform commission). */
 model ClubWallet {
-  id        String   @id @default(cuid())
-  balance   Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  /** Total = availableBalance + lockedBalance. */
+  balance          Int      @default(0)
+  availableBalance Int      @default(0)
+  lockedBalance    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   clubId       String                  @unique
   club         Club                    @relation(fields: [clubId], references: [id], onDelete: Cascade)

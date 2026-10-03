@@ -533,13 +533,13 @@ export async function confirmPackageBookingFromPayment(paymentId: string) {
   })
 }
 
-export function assertPackageCancelAllowed(pkg: {
+/** Resolve first session time for package cancel money/permission checks. */
+export function packageFirstSessionTime(pkg: {
   startDate?: string | null
   timesJson?: string | null
   daysJson?: string | null
-  club: { cancellationWindowHours: number }
-}) {
-  if (!pkg.startDate) return
+}): string {
+  if (!pkg.startDate) return '00:00'
   let firstTime = '00:00'
   if (pkg.timesJson) {
     const expanded = resolveExpandedDayTimes({
@@ -551,8 +551,23 @@ export function assertPackageCancelAllowed(pkg: {
     const first = Object.values(expanded).find((t) => t.length)?.[0]
     if (first) firstTime = first
   }
-  if (!canCancelPackageBooking(pkg.startDate, firstTime, pkg.club.cancellationWindowHours)) {
-    throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
+  return firstTime
+}
+
+/**
+ * Athlete may cancel until the first session starts.
+ * Refund eligibility uses canCancelPackageBooking (club window) separately.
+ */
+export function assertPackageCancelAllowed(pkg: {
+  startDate?: string | null
+  timesJson?: string | null
+  daysJson?: string | null
+  club: { cancellationWindowHours: number }
+}) {
+  if (!pkg.startDate) return
+  const firstTime = packageFirstSessionTime(pkg)
+  if (isSlotStartInPast(pkg.startDate, firstTime)) {
+    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
   }
 }
 

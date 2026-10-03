@@ -2,6 +2,7 @@
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
 import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { canManageReservation } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
@@ -306,7 +307,7 @@ async function confirmCancel() {
   const item = detailItem.value
   if (!item) return
   if (!canCancel(item)) {
-    actionError.value = t('booking.errors.cancellationWindowPassed')
+    actionError.value = t('booking.errors.slotAlreadyStarted')
     confirmingCancel.value = false
     return
   }
@@ -319,10 +320,17 @@ async function confirmCancel() {
       : kind === 'coach'
         ? `/api/coach-sessions/${id}/cancel`
         : `/api/package-bookings/${id}/cancel`
-    const result = await $fetch<{ refund?: { walletCredited?: boolean; refunded?: boolean } }>(endpoint, { method: 'PATCH' })
-    const notice = result.refund?.walletCredited
-      ? t('booking.refundToWallet')
-      : result.refund?.refunded ? t('booking.refundToGateway') : ''
+    const result = await $fetch<{
+      refund?: { walletCredited?: boolean; refunded?: boolean }
+      moneyOutcome?: 'full_wallet_refund' | 'zero_refund'
+    }>(endpoint, { method: 'PATCH' })
+    const notice = result.moneyOutcome === 'zero_refund'
+      ? t('booking.refundNoneInsideWindow')
+      : result.refund?.walletCredited
+        ? t('booking.refundToWallet')
+        : result.refund?.refunded
+          ? t('booking.refundToWallet')
+          : ''
     cancelPending.value = false
     closeDetail()
     await refresh()
@@ -637,18 +645,42 @@ function canCancel(item: HistoryItem) {
   if (item.kind === 'court') {
     const slot = item.raw?.slot
     if (!slot) return false
-    return canManageReservation(slot.date, slot.startTime, slot.court.club.cancellationWindowHours ?? 24)
+    return canCancelReservation({
+      actor: 'athlete',
+      date: slot.date,
+      startTime: slot.startTime,
+    })
   }
   if (item.kind === 'coach') {
     const session = (data.value?.coachSessions || []).find((row) => row.id === item.id)
     if (!session) return false
-    return canManageReservation(
-      session.date,
-      session.startTime,
-      session.coach?.club?.cancellationWindowHours ?? 24,
-    )
+    return canCancelReservation({
+      actor: 'athlete',
+      date: session.date,
+      startTime: session.startTime,
+    })
+  }
+  if (item.kind === 'package') {
+    // Server enforces first-session start; allow UI attempt until then.
+    return true
   }
   return true
+}
+
+function cancelIsZeroRefund(item: HistoryItem) {
+  if (item.kind === 'court') {
+    const slot = item.raw?.slot
+    if (!slot) return false
+    const hours = slot.court.club.cancellationWindowHours ?? 12
+    return !canManageReservation(slot.date, slot.startTime, hours)
+  }
+  if (item.kind === 'coach') {
+    const session = (data.value?.coachSessions || []).find((row) => row.id === item.id)
+    if (!session) return false
+    const hours = session.coach?.club?.cancellationWindowHours ?? 12
+    return !canManageReservation(session.date, session.startTime, hours)
+  }
+  return false
 }
 
 function canReschedule(item: HistoryItem) {
@@ -904,16 +936,18 @@ function dateLine(item: HistoryItem) {
         </p>
 
         <p
-          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && !canCancel(detailItem)"
+          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsZeroRefund(detailItem)"
           class="canva-history-sh-note canva-history-sh-note-warn"
         >
-          {{ t('booking.errors.cancellationWindowPassed') }}
+          {{ t('booking.refundNoneInsideWindow') }}
         </p>
 
         <p v-if="actionError" class="canva-flash-error text-start text-xs">{{ actionError }}</p>
 
         <template v-if="confirmingCancel">
-          <p class="canva-history-sh-note canva-history-sh-note-warn">{{ t('booking.confirmCancel') }}</p>
+          <p class="canva-history-sh-note canva-history-sh-note-warn">
+            {{ cancelIsZeroRefund(detailItem) ? t('booking.confirmCancelNoRefund') : t('booking.confirmCancel') }}
+          </p>
           <div class="canva-history-sh-actions">
             <button
               type="button"

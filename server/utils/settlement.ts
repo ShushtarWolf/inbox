@@ -1,11 +1,12 @@
 import type { ClubWalletTransactionType, Prisma } from '@prisma/client'
 import {
+  isSettlementCashoutEligible,
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
   sumEligibleSettlementNet,
 } from '#shared/settlement.ts'
-import { computeWithdrawableBalance } from '#shared/walletTopUp.ts'
+import { computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 import { creditWallet, debitWallet } from './wallet'
 
@@ -35,26 +36,145 @@ export async function getClubWalletBalance(clubId: string) {
   return wallet?.balance ?? 0
 }
 
+async function sumClubWithdrawnViaRail(walletId: string, db: DbClient) {
+  const rows = await db.clubWalletTransaction.findMany({
+    where: { walletId, type: { in: ['WITHDRAW_HOLD', 'WITHDRAW_RELEASE'] } },
+    select: { amount: true, type: true },
+  })
+  let holdAbs = 0
+  let releaseSum = 0
+  for (const row of rows) {
+    if (row.type === 'WITHDRAW_HOLD') holdAbs += Math.abs(row.amount)
+    else releaseSum += Math.max(0, row.amount)
+  }
+  return sumWithdrawnViaRail(holdAbs, releaseSum)
+}
+
+/** Lazy-unlock class-locked club settlement once cashout-eligible. */
+export async function unlockEligibleClubSettlements(
+  clubId: string,
+  now = new Date(),
+  db: DbClient = prisma,
+) {
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  if (wallet.lockedBalance <= 0) {
+    return {
+      balance: wallet.balance,
+      availableBalance: wallet.availableBalance,
+      lockedBalance: wallet.lockedBalance,
+    }
+  }
+
+  const credits = await db.clubWalletTransaction.findMany({
+    where: { walletId: wallet.id, type: 'BOOKING_CREDIT', paymentId: { not: null } },
+    select: { amount: true, paymentId: true, bookingId: true },
+  })
+  const paymentIds = credits.map((c) => c.paymentId!).filter(Boolean)
+  if (!paymentIds.length) {
+    return {
+      balance: wallet.balance,
+      availableBalance: wallet.availableBalance,
+      lockedBalance: wallet.lockedBalance,
+    }
+  }
+
+  const [ledgerRows, alreadyUnlocked] = await Promise.all([
+    db.settlementLedgerEntry.findMany({
+      where: { paymentId: { in: paymentIds }, clawedBackAt: null },
+      select: { paymentId: true, classDate: true },
+    }),
+    db.clubWalletTransaction.findMany({
+      where: { walletId: wallet.id, type: 'UNLOCK', paymentId: { in: paymentIds } },
+      select: { paymentId: true },
+    }),
+  ])
+  const unlocked = new Set(alreadyUnlocked.map((r) => r.paymentId).filter(Boolean))
+  const classDateByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row.classDate]))
+
+  let toUnlock = 0
+  const unlockPayments: Array<{ paymentId: string, bookingId?: string | null, amount: number }> = []
+  for (const row of credits) {
+    if (!row.paymentId || unlocked.has(row.paymentId)) continue
+    const classDate = classDateByPayment.get(row.paymentId)
+    if (classDate == null) continue
+    if (!isSettlementCashoutEligible(classDate, now)) continue
+    toUnlock += row.amount
+    unlockPayments.push({ paymentId: row.paymentId, bookingId: row.bookingId, amount: row.amount })
+  }
+  if (toUnlock <= 0) {
+    return {
+      balance: wallet.balance,
+      availableBalance: wallet.availableBalance,
+      lockedBalance: wallet.lockedBalance,
+    }
+  }
+
+  const amount = Math.min(toUnlock, wallet.lockedBalance)
+  const updated = await db.clubWallet.update({
+    where: { id: wallet.id },
+    data: {
+      lockedBalance: { decrement: amount },
+      availableBalance: { increment: amount },
+    },
+  })
+  let remaining = amount
+  for (const row of unlockPayments) {
+    if (remaining <= 0) break
+    const slice = Math.min(row.amount, remaining)
+    await db.clubWalletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount: slice,
+        type: 'UNLOCK',
+        paymentId: row.paymentId,
+        bookingId: row.bookingId || undefined,
+        note: 'Class cashout unlock',
+      },
+    })
+    remaining -= slice
+  }
+  return {
+    balance: updated.balance,
+    availableBalance: updated.availableBalance,
+    lockedBalance: updated.lockedBalance,
+  }
+}
+
 /**
- * Bank-withdrawable club balance: settlement nets for classes whose Tehran day has passed
- * (cashout opens the day after classDate). Packages/comps (null classDate) count immediately.
- * Capped by current wallet balance so WITHDRAW_HOLD rows are respected.
+ * Bank-withdrawable club balance: settlement nets for classes whose Tehran day has passed,
+ * capped by availableBalance, minus prior withdraw holds/paid.
  */
-export async function getClubWithdrawableBalance(clubId: string, now = new Date()) {
+export async function getClubWithdrawableBalance(
+  clubId: string,
+  now = new Date(),
+  db: DbClient = prisma,
+) {
+  await unlockEligibleClubSettlements(clubId, now, db)
   const [wallet, entries] = await Promise.all([
-    prisma.clubWallet.findUnique({ where: { clubId }, select: { balance: true } }),
-    prisma.settlementLedgerEntry.findMany({
+    db.clubWallet.findUnique({
+      where: { clubId },
+      select: { id: true, balance: true, availableBalance: true, lockedBalance: true },
+    }),
+    db.settlementLedgerEntry.findMany({
       where: { clubId, clawedBackAt: null },
       select: { ownerNet: true, classDate: true, clawedBackAt: true },
     }),
   ])
   const balance = wallet?.balance ?? 0
-  if (balance <= 0) return { balance, withdrawableBalance: 0, pendingClassBalance: 0 }
+  const availableBalance = wallet?.availableBalance ?? balance
+  const pendingClassBalance = wallet?.lockedBalance
+    ?? sumEligibleSettlementNet(entries, now).pending
+  if (availableBalance <= 0) {
+    return { balance, availableBalance, lockedBalance: wallet?.lockedBalance ?? 0, withdrawableBalance: 0, pendingClassBalance }
+  }
   const { eligible, pending } = sumEligibleSettlementNet(entries, now)
+  const withdrawnViaRail = wallet ? await sumClubWithdrawnViaRail(wallet.id, db) : 0
   return {
     balance,
-    withdrawableBalance: computeWithdrawableBalance(balance, eligible, 0),
-    pendingClassBalance: pending,
+    availableBalance,
+    lockedBalance: wallet?.lockedBalance ?? 0,
+    withdrawableBalance: computeWithdrawableBalance(availableBalance, eligible, 0, withdrawnViaRail),
+    pendingClassBalance: wallet?.lockedBalance ?? pending,
   }
 }
 
@@ -67,6 +187,7 @@ async function creditClubWallet(
     bookingId?: string
     withdrawRequestId?: string
     note?: string
+    locked?: boolean
   },
   db: DbClient,
 ) {
@@ -74,9 +195,15 @@ async function creditClubWallet(
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
   const wallet = await getOrCreateClubWallet(clubId, db)
+  const intoLocked = Boolean(meta.locked)
   const updated = await db.clubWallet.update({
     where: { id: wallet.id },
-    data: { balance: { increment: amount } },
+    data: {
+      balance: { increment: amount },
+      ...(intoLocked
+        ? { lockedBalance: { increment: amount } }
+        : { availableBalance: { increment: amount } }),
+    },
   })
   await db.clubWalletTransaction.create({
     data: {
@@ -110,9 +237,15 @@ async function debitClubWallet(
   }
   const wallet = await getOrCreateClubWallet(clubId, db)
   if (meta.allowNegative) {
+    const fromLocked = Math.min(wallet.lockedBalance, amount)
+    const fromAvailable = amount - fromLocked
     const updated = await db.clubWallet.update({
       where: { id: wallet.id },
-      data: { balance: { decrement: amount } },
+      data: {
+        balance: { decrement: amount },
+        lockedBalance: { decrement: fromLocked },
+        availableBalance: { decrement: fromAvailable },
+      },
     })
     await db.clubWalletTransaction.create({
       data: {
@@ -128,8 +261,11 @@ async function debitClubWallet(
     return updated
   }
   const claimed = await db.clubWallet.updateMany({
-    where: { id: wallet.id, balance: { gte: amount } },
-    data: { balance: { decrement: amount } },
+    where: { id: wallet.id, availableBalance: { gte: amount }, balance: { gte: amount } },
+    data: {
+      balance: { decrement: amount },
+      availableBalance: { decrement: amount },
+    },
   })
   if (claimed.count !== 1) {
     throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
@@ -142,6 +278,108 @@ async function debitClubWallet(
       type: meta.type,
       paymentId: meta.paymentId,
       bookingId: meta.bookingId,
+      withdrawRequestId: meta.withdrawRequestId,
+      note: meta.note,
+    },
+  })
+  return updated
+}
+
+async function lockClubAvailable(
+  clubId: string,
+  amount: number,
+  meta: {
+    type: ClubWalletTransactionType
+    withdrawRequestId?: string
+    note?: string
+  },
+  db: DbClient,
+) {
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  const claimed = await db.clubWallet.updateMany({
+    where: { id: wallet.id, availableBalance: { gte: amount } },
+    data: {
+      availableBalance: { decrement: amount },
+      lockedBalance: { increment: amount },
+    },
+  })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient available club wallet balance' })
+  }
+  const updated = await db.clubWallet.findUniqueOrThrow({ where: { id: wallet.id } })
+  await db.clubWalletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount,
+      type: meta.type,
+      withdrawRequestId: meta.withdrawRequestId,
+      note: meta.note,
+    },
+  })
+  return updated
+}
+
+async function unlockClubLocked(
+  clubId: string,
+  amount: number,
+  meta: {
+    type: ClubWalletTransactionType
+    withdrawRequestId?: string
+    note?: string
+  },
+  db: DbClient,
+) {
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  const claimed = await db.clubWallet.updateMany({
+    where: { id: wallet.id, lockedBalance: { gte: amount } },
+    data: {
+      lockedBalance: { decrement: amount },
+      availableBalance: { increment: amount },
+    },
+  })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient locked club wallet balance' })
+  }
+  const updated = await db.clubWallet.findUniqueOrThrow({ where: { id: wallet.id } })
+  await db.clubWalletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount,
+      type: meta.type,
+      withdrawRequestId: meta.withdrawRequestId,
+      note: meta.note,
+    },
+  })
+  return updated
+}
+
+async function consumeClubLocked(
+  clubId: string,
+  amount: number,
+  meta: {
+    type: ClubWalletTransactionType
+    withdrawRequestId?: string
+    note?: string
+  },
+  db: DbClient,
+) {
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  const claimed = await db.clubWallet.updateMany({
+    where: { id: wallet.id, lockedBalance: { gte: amount }, balance: { gte: amount } },
+    data: {
+      lockedBalance: { decrement: amount },
+      balance: { decrement: amount },
+    },
+  })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'Insufficient locked club wallet balance' })
+  }
+  const updated = await db.clubWallet.findUniqueOrThrow({ where: { id: wallet.id } })
+  await db.clubWalletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount: 0,
+      type: meta.type,
       withdrawRequestId: meta.withdrawRequestId,
       note: meta.note,
     },
@@ -228,6 +466,10 @@ export async function creditOwnerForPaidPayment(
   if (!payment || payment.status !== 'PAID' || payment.purpose === 'topup') {
     return { credited: false as const, reason: 'not_paid_booking' as const }
   }
+  // Desk cash / complimentary never entered platform float — do not create withdrawable liability.
+  if (payment.method === 'CASH') {
+    return { credited: false as const, reason: 'cash_not_settled' as const }
+  }
 
   const existing = await db.settlementLedgerEntry.findUnique({ where: { paymentId } })
   if (existing) {
@@ -245,6 +487,7 @@ export async function creditOwnerForPaidPayment(
       return { credited: false as const, reason: 'no_coach_user' as const }
     }
     const split = splitSettlement(payment.amount, resolveCoachCommissionBps())
+    const lockUntilClass = Boolean(coachPayee.classDate)
 
     const runCoach = async (tx: Prisma.TransactionClient) => {
       const raced = await tx.settlementLedgerEntry.findUnique({ where: { paymentId } })
@@ -269,6 +512,7 @@ export async function creditOwnerForPaidPayment(
           paymentId,
           bookingId: coachPayee.coachSessionId,
           note: `Coach lesson settlement net (commission ${split.commission})`,
+          locked: lockUntilClass,
         }, tx)
       }
 
@@ -291,6 +535,7 @@ export async function creditOwnerForPaidPayment(
   const metaSource = parsePaymentMetaSource(payment.metadataJson)
   const bps = metaSource === 'coach-lesson-court' ? 0 : resolvePlatformCommissionBps()
   const split = splitSettlement(payment.amount, bps)
+  const lockUntilClass = Boolean(resolved.classDate)
 
   const run = async (tx: Prisma.TransactionClient) => {
     const raced = await tx.settlementLedgerEntry.findUnique({ where: { paymentId } })
@@ -315,6 +560,7 @@ export async function creditOwnerForPaidPayment(
         paymentId,
         bookingId: resolved.bookingId || undefined,
         note: `Settlement net (commission ${split.commission})`,
+        locked: lockUntilClass,
       }, tx)
     }
 
@@ -385,6 +631,138 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
   return run(db as Prisma.TransactionClient)
 }
 
+/**
+ * Pro-rata clawback for series session refunds. Append-only; sets clawedBackAt only when
+ * cumulative clawbacks reach ownerNet. Idempotent on (paymentId, bookingId, CLAWBACK type).
+ */
+export async function clawbackOwnerPartialForPayment(opts: {
+  paymentId: string
+  grossRefundAmount: number
+  bookingId: string
+  db?: DbClient
+}) {
+  const db = opts.db || prisma
+  const entry = await db.settlementLedgerEntry.findUnique({ where: { paymentId: opts.paymentId } })
+  if (!entry) {
+    return { clawed: false as const, reason: 'no_entry' as const, amount: 0 }
+  }
+  if (entry.clawedBackAt) {
+    return { clawed: false as const, reason: 'already_clawed' as const, amount: 0, entry }
+  }
+  if (entry.gross <= 0 || opts.grossRefundAmount <= 0) {
+    return { clawed: false as const, reason: 'zero' as const, amount: 0, entry }
+  }
+
+  const run = async (tx: Prisma.TransactionClient) => {
+    const current = await tx.settlementLedgerEntry.findUnique({ where: { paymentId: opts.paymentId } })
+    if (!current || current.clawedBackAt) {
+      return { clawed: false as const, reason: 'already_clawed' as const, amount: 0, entry: current }
+    }
+
+    if (current.clubId) {
+      const existing = await tx.clubWalletTransaction.findFirst({
+        where: {
+          paymentId: opts.paymentId,
+          bookingId: opts.bookingId,
+          type: 'CLAWBACK',
+        },
+      })
+      if (existing) {
+        return { clawed: false as const, reason: 'already_session' as const, amount: 0, entry: current }
+      }
+    }
+    else if (current.coachId) {
+      const coach = await tx.coach.findUnique({
+        where: { id: current.coachId },
+        select: { userId: true },
+      })
+      if (coach?.userId) {
+        const wallet = await tx.wallet.findUnique({ where: { userId: coach.userId } })
+        if (wallet) {
+          const existing = await tx.walletTransaction.findFirst({
+            where: {
+              walletId: wallet.id,
+              paymentId: opts.paymentId,
+              bookingId: opts.bookingId,
+              type: 'SETTLEMENT_CLAWBACK',
+            },
+          })
+          if (existing) {
+            return { clawed: false as const, reason: 'already_session' as const, amount: 0, entry: current }
+          }
+        }
+      }
+    }
+
+    const priorClub = current.clubId
+      ? await tx.clubWalletTransaction.findMany({
+          where: { paymentId: opts.paymentId, type: 'CLAWBACK' },
+          select: { amount: true },
+        })
+      : []
+    const priorCoach = current.coachId
+      ? await tx.walletTransaction.findMany({
+          where: { paymentId: opts.paymentId, type: 'SETTLEMENT_CLAWBACK' },
+          select: { amount: true },
+        })
+      : []
+    const alreadyClawed = [...priorClub, ...priorCoach].reduce((sum, row) => sum + Math.abs(row.amount), 0)
+    const remainingNet = Math.max(0, current.ownerNet - alreadyClawed)
+    if (remainingNet <= 0) {
+      await tx.settlementLedgerEntry.update({
+        where: { id: current.id },
+        data: { clawedBackAt: new Date() },
+      })
+      return { clawed: false as const, reason: 'already_clawed' as const, amount: 0, entry: current }
+    }
+
+    const proportional = Math.floor((current.ownerNet * opts.grossRefundAmount) / current.gross)
+    const net = Math.min(remainingNet, Math.max(0, proportional))
+    if (net <= 0) {
+      return { clawed: false as const, reason: 'zero' as const, amount: 0, entry: current }
+    }
+
+    if (current.coachId) {
+      const coach = await tx.coach.findUnique({
+        where: { id: current.coachId },
+        select: { userId: true },
+      })
+      if (coach?.userId) {
+        await debitWallet(coach.userId, net, {
+          type: 'SETTLEMENT_CLAWBACK',
+          paymentId: opts.paymentId,
+          bookingId: opts.bookingId,
+          note: 'Series session cancel clawback',
+          allowNegative: true,
+        }, tx)
+      }
+    }
+    else if (current.clubId) {
+      await debitClubWallet(current.clubId, net, {
+        type: 'CLAWBACK',
+        paymentId: opts.paymentId,
+        bookingId: opts.bookingId,
+        note: 'Series session cancel clawback',
+        allowNegative: true,
+      }, tx)
+    }
+
+    if (alreadyClawed + net >= current.ownerNet) {
+      await tx.settlementLedgerEntry.update({
+        where: { id: current.id },
+        data: { clawedBackAt: new Date() },
+      })
+    }
+
+    return { clawed: true as const, reason: 'ok' as const, amount: net, entry: current }
+  }
+
+  if (db === prisma) {
+    return prisma.$transaction(run)
+  }
+  return run(db as Prisma.TransactionClient)
+}
+
 export async function requestClubWithdraw(options: {
   clubId: string
   amount: number
@@ -400,14 +778,10 @@ export async function requestClubWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
-  const { withdrawableBalance } = await getClubWithdrawableBalance(options.clubId)
-  if (withdrawableBalance < amount) {
-    throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
-  }
-
   return prisma.$transaction(async (tx) => {
+    await unlockEligibleClubSettlements(options.clubId, new Date(), tx)
     const wallet = await getOrCreateClubWallet(options.clubId, tx)
-    if (wallet.balance < amount) {
+    if (wallet.availableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
     }
     const entries = await tx.settlementLedgerEntry.findMany({
@@ -415,7 +789,8 @@ export async function requestClubWithdraw(options: {
       select: { ownerNet: true, classDate: true, clawedBackAt: true },
     })
     const { eligible } = sumEligibleSettlementNet(entries)
-    if (computeWithdrawableBalance(wallet.balance, eligible, 0) < amount) {
+    const withdrawnViaRail = await sumClubWithdrawnViaRail(wallet.id, tx)
+    if (computeWithdrawableBalance(wallet.availableBalance, eligible, 0, withdrawnViaRail) < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
 
@@ -429,7 +804,7 @@ export async function requestClubWithdraw(options: {
       },
     })
 
-    await debitClubWallet(options.clubId, amount, {
+    await lockClubAvailable(options.clubId, amount, {
       type: 'WITHDRAW_HOLD',
       withdrawRequestId: request.id,
       note: 'Withdraw request hold',
@@ -475,16 +850,11 @@ export async function markWithdrawPaid(requestId: string, note?: string) {
       },
     })
 
-    const wallet = await getOrCreateClubWallet(request.clubId, tx)
-    await tx.clubWalletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        amount: 0,
-        type: 'WITHDRAW_PAID',
-        withdrawRequestId: request.id,
-        note: note || 'Marked paid by admin',
-      },
-    })
+    await consumeClubLocked(request.clubId, request.amount, {
+      type: 'WITHDRAW_PAID',
+      withdrawRequestId: request.id,
+      note: note || 'Marked paid by admin',
+    }, tx)
 
     return updated
   })
@@ -507,7 +877,7 @@ export async function rejectWithdrawRequest(requestId: string, note?: string) {
       },
     })
 
-    await creditClubWallet(request.clubId, request.amount, {
+    await unlockClubLocked(request.clubId, request.amount, {
       type: 'WITHDRAW_RELEASE',
       withdrawRequestId: request.id,
       note: note || 'Withdraw rejected — balance restored',

@@ -1,7 +1,9 @@
-import { requestUserWithdraw } from '../../utils/walletWithdraw'
+import { assertUserCanBankWithdraw, requestUserWithdraw } from '../../utils/walletWithdraw'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  await assertUserCanBankWithdraw(user.id)
+
   const body = await readBody<{ amount?: number; note?: string }>(event)
 
   const dbUser = await prisma.user.findUnique({

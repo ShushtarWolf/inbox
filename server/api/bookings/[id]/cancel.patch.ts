@@ -1,3 +1,4 @@
+import { canCancelReservation, resolveCancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
@@ -10,7 +11,6 @@ import {
 } from '../../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../../utils/cancellations'
 import { refundPaymentForCancellation } from '../../../utils/refunds'
-import { canManageReservation } from '../../../utils/reservations'
 import {
   bookingLooksLikeSeriesPayment,
   cancelUnpaidSeriesSiblings,
@@ -32,21 +32,30 @@ export default defineEventHandler(async (event) => {
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   const seriesAware = bookingLooksLikeSeriesPayment(booking.payment?.metadataJson)
+  const windowHours = booking.slot.court.club.cancellationWindowHours
+  const moneyOutcome = resolveCancelMoneyOutcome({
+    actor: 'athlete',
+    date: booking.slot.date,
+    startTime: booking.slot.startTime,
+    windowHours,
+  })
 
   // Already cancelled: still retry refund if payment stayed PAID (non-atomic cancel→refund).
   if (booking.status === 'CANCELLED') {
+    if (moneyOutcome === 'zero_refund') return { ok: true, moneyOutcome }
     if (seriesAware) {
       try {
         const refund = await refundAfterSeriesSessionCancel({
           cancelledBookingId: booking.id,
           userId: booking.userId,
           reason: 'athlete-cancel-refund-retry',
+          moneyOutcome,
         })
-        return { ok: true, refund }
+        return { ok: true, refund, moneyOutcome }
       }
       catch (err) {
         console.error('[cancel:series-refund-retry]', booking.id, err)
-        return { ok: true }
+        return { ok: true, moneyOutcome }
       }
     }
     if (booking.payment?.id && isPaymentRefundable(booking.payment.status)) {
@@ -56,19 +65,24 @@ export default defineEventHandler(async (event) => {
           userId: booking.userId,
           bookingId: booking.id,
           reason: 'athlete-cancel-refund-retry',
+          moneyOutcome,
         })
-        return { ok: true, refund }
+        return { ok: true, refund, moneyOutcome }
       }
       catch (err) {
         console.error('[cancel:refund-retry]', booking.id, err)
-        return { ok: true }
+        return { ok: true, moneyOutcome }
       }
     }
-    return { ok: true }
+    return { ok: true, moneyOutcome }
   }
 
-  if (!canManageReservation(booking.slot.date, booking.slot.startTime, booking.slot.court.club.cancellationWindowHours)) {
-    throw createError({ statusCode: 409, statusMessage: 'Cancellation window has passed' })
+  if (!canCancelReservation({
+    actor: 'athlete',
+    date: booking.slot.date,
+    startTime: booking.slot.startTime,
+  })) {
+    throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
   }
 
   // Series: cancel row without auto full-refund; apply pro-rata against primary after.
@@ -79,6 +93,7 @@ export default defineEventHandler(async (event) => {
     reason: 'athlete-cancel',
     paymentId: seriesAware ? null : booking.payment?.id,
     userId: booking.userId,
+    moneyOutcome,
   })
 
   let refund = result.refund
@@ -103,6 +118,7 @@ export default defineEventHandler(async (event) => {
         cancelledBookingId: booking.id,
         userId: booking.userId,
         reason: 'athlete-cancel',
+        moneyOutcome,
       })
       refundFailed = false
     }
@@ -155,5 +171,5 @@ export default defineEventHandler(async (event) => {
     endTime: booking.slot.endTime,
   })
 
-  return { ok: true, refund, refundFailed }
+  return { ok: true, refund, refundFailed, moneyOutcome }
 })
