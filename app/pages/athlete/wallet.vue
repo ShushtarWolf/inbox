@@ -289,12 +289,10 @@ watch(
       <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
-        <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')" numeric>
-          <input
+        <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">
+          <AppShebaInput
             id="wallet-sheba"
             v-model="shebaInput"
-            dir="ltr"
-            class="neo-input bg-white/95 font-mono text-sm"
             :placeholder="t('athlete.shebaPlaceholder')"
           />
         </AppFormField>

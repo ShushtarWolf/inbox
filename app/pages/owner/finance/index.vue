@@ -768,13 +768,10 @@ function showUnpaidList() {
 
         <label class="block text-sm text-start">
           <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.shebaLabel') }}</span>
-          <input
+          <AppShebaInput
             v-model="shebaInput"
-            dir="ltr"
-            class="neo-input tabular-nums"
             :placeholder="t('owner.financePage.shebaPlaceholder')"
-            autocomplete="off"
-          >
+          />
         </label>
         <button
           type="button"

@@ -200,13 +200,11 @@ watch(
 
         <section class="canva-panel space-y-3 text-start">
           <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
-          <AppFormField :label="t('athlete.shebaLabel')" numeric>
-            <input
+          <AppFormField :label="t('athlete.shebaLabel')">
+            <AppShebaInput
               v-model="shebaInput"
-              dir="ltr"
-              class="neo-input font-mono text-sm"
               :placeholder="t('athlete.shebaPlaceholder')"
-            >
+            />
           </AppFormField>
           <button type="button" class="canva-gate-btn-secondary" :disabled="payoutBusy" @click="saveSheba">
             {{ t('athlete.shebaSave') }}

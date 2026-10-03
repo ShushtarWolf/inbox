@@ -645,16 +645,13 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           </div>
           <label class="block text-sm text-start">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>
-            <input
+            <AppShebaInput
+              id="owner-settings-sheba"
               v-model="form.sheba"
-              dir="ltr"
-              class="neo-input tabular-nums"
-              :class="shebaError ? 'border-red-500' : ''"
+              :invalid="Boolean(shebaError)"
               :placeholder="t('owner.financePage.shebaPlaceholder')"
-              autocomplete="off"
-              :aria-invalid="Boolean(shebaError)"
               aria-describedby="owner-settings-sheba-hint"
-            >
+            />
             <span id="owner-settings-sheba-hint" class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
             <span v-if="shebaError" class="mt-1 block text-xs font-bold text-red-600" role="alert">{{ shebaError }}</span>
             <span class="mt-1 block text-xs font-bold text-red-600" role="note">{{ t('owner.settingsPage.shebaOwnerOnlyNotice') }}</span>
