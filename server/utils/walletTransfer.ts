@@ -5,9 +5,35 @@ import { getOrCreateClubWallet } from './settlement'
 
 type DbClient = Prisma.TransactionClient
 
+/** Home club on Coach, or active staff membership linking this coach to the club. */
+async function assertCoachAffiliatedWithClub(
+  coach: { id: string; userId: string | null; clubId: string | null },
+  clubId: string,
+) {
+  if (coach.clubId === clubId) return
+  const membership = await prisma.staffMembership.findFirst({
+    where: {
+      clubId,
+      active: true,
+      OR: [
+        { coachId: coach.id },
+        ...(coach.userId ? [{ userId: coach.userId, role: 'COACH' as const }] : []),
+      ],
+    },
+    select: { id: true },
+  })
+  if (!membership) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Coach is not affiliated with this club',
+    })
+  }
+}
+
 /**
  * Record-keeping transfer between a club wallet and a coach user wallet.
  * Athletes must never call this.
+ * Caller-supplied clubId/coachId must be affiliated — prevents cross-club debit/credit.
  */
 export async function transferClubCoach(opts: {
   direction: 'club_to_coach' | 'coach_to_club'
@@ -23,11 +49,12 @@ export async function transferClubCoach(opts: {
 
   const coach = await prisma.coach.findUnique({
     where: { id: opts.coachId },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, clubId: true },
   })
   if (!coach?.userId) {
     throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
   }
+  await assertCoachAffiliatedWithClub(coach, opts.clubId)
 
   const transferGroupId = randomUUID()
   const note = opts.note?.trim() || 'Internal transfer'
