@@ -3976,7 +3976,7 @@ watch(pilotNoCoach, (off) => {
           <div class="venus-modal-panel-body canva-desk-pay !pt-1">
             <div class="text-start">
               <p class="canva-confirm-book-date">{{ payConfirmDateHeading }}</p>
-              <ul class="mt-2 space-y-2" role="list">
+              <ul class="mt-2 space-y-2">
                 <li
                   v-for="slot in slotsForReserve()"
                   :key="slot.id"

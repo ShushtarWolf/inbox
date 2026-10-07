@@ -666,7 +666,7 @@ async function submit(preferWallet = false) {
           <div class="space-y-3 text-start">
             <div v-for="group in slotDateGroups" :key="group.date">
               <p class="canva-confirm-book-date">{{ group.heading }}</p>
-              <ul class="mt-2 space-y-2" role="list">
+              <ul class="mt-2 space-y-2">
                 <li
                   v-for="row in group.rows"
                   :key="row.id"
