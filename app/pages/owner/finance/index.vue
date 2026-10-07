@@ -129,7 +129,7 @@ const transferNote = ref('')
 const transferBusy = ref(false)
 const transferFlash = ref('')
 const { data: transferCoaches, refresh: refreshTransferCoaches } = await useAuthedFetch<Array<{ id: string; nameFa?: string; nameEn?: string }>>(
-  '/api/owner/coaches',
+  '/api/owner/transfer-coaches',
   { immediate: false, watch: false },
 )
 
