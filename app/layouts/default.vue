@@ -104,7 +104,7 @@ onMounted(() => {
         </template>
       </AppTopBar>
     </div>
-    <main class="app-shell-main canva-public-main mx-auto w-full max-[430px]:max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:py-8">
+    <main class="app-shell-main canva-public-main mx-auto w-full max-[430px]:max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:pb-8 min-[431px]:pt-4">
       <slot />
     </main>
     <footer

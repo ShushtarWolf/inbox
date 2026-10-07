@@ -20,8 +20,9 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <header class="glass-bar sticky top-0 z-40 px-4 py-4 sm:px-6">
-    <div class="mx-auto flex w-full items-center justify-between gap-4" :class="maxWidthClass">
+  <!-- Padding inside the max-w box (same as main) so logo/login align with hero edges -->
+  <header class="glass-bar sticky top-0 z-40 py-4">
+    <div class="mx-auto flex w-full items-center justify-between gap-4 px-4 min-[431px]:px-6" :class="maxWidthClass">
       <div class="flex min-w-0 items-center gap-4">
         <!-- Brand → home -->
         <InboxBrandLockup home-link height-class="h-8" />

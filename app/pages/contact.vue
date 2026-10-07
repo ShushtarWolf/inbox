@@ -109,7 +109,9 @@ useHead({
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-8">
+  <div class="tail-page-stack">
+    <CanvaPublicChrome />
+  <div class="mx-auto max-w-2xl px-4 py-4 min-[431px]:py-6">
     <h1 class="text-start text-2xl font-bold text-brand-navy">{{ t('contact.title') }}</h1>
     <p class="mt-1 text-start text-sm text-brand-gray-500">{{ t('legal.lastUpdated') }}</p>
     <p class="mt-3 text-start text-sm text-brand-gray-700">{{ t('contact.intro') }}</p>
@@ -295,5 +297,6 @@ useHead({
       </NuxtLink>
     </p>
     <p class="mt-8 text-start text-sm text-brand-gray-500">{{ t('legal.disclaimer') }}</p>
+  </div>
   </div>
 </template>

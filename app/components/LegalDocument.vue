@@ -6,8 +6,10 @@ const props = withDefaults(
     sectionsKey: string
     /** When false, parent page owns document title via useSeoMeta. */
     manageTitle?: boolean
+    /** When false, parent already rendered CanvaPublicChrome (e.g. /about). */
+    showChrome?: boolean
   }>(),
-  { manageTitle: true },
+  { manageTitle: true, showChrome: true },
 )
 
 const { t, tm, rt } = useI18n()
@@ -53,7 +55,9 @@ const sections = computed(() => {
 </script>
 
 <template>
-  <div class="prose prose-sm mx-auto max-w-2xl px-4 py-8">
+  <div class="tail-page-stack">
+    <CanvaPublicChrome v-if="showChrome" />
+    <div class="prose prose-sm mx-auto max-w-2xl px-4 py-4 min-[431px]:py-6">
     <h1>{{ t(titleKey) }}</h1>
     <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t(introKey) }}</p>
@@ -62,5 +66,6 @@ const sections = computed(() => {
       <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ mapParagraph(para) }}</p>
     </section>
     <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
+    </div>
   </div>
 </template>

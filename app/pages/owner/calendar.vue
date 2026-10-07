@@ -3139,7 +3139,7 @@ watch(pilotNoCoach, (off) => {
       {{ flashMessage }}
       <button type="button" class="ms-2 text-xs font-bold text-brand-primary" @click="flashMessage = ''">{{ t('common.close') }}</button>
     </p>
-    <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
+    <section class="canva-photo-hero">
       <CanvaHeroImg
         :src="clubHeroImage"
         alt=""

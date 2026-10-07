@@ -269,7 +269,7 @@ function goBack() {
           </button>
         </div>
 
-        <div class="hidden border-b border-brand-gray-100 bg-white px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
+        <div class="hidden border-b border-brand-gray-200 bg-brand-cream px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
           <div class="flex min-w-0 items-center gap-3">
             <InboxBrandLockup home-link height-class="h-7" />
             <button

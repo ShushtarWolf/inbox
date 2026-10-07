@@ -33,8 +33,9 @@ useHead(() => ({
 </script>
 
 <template>
-  <div>
-    <div v-if="ownerName" class="prose prose-sm mx-auto max-w-2xl px-4 pt-8">
+  <div class="tail-page-stack">
+    <CanvaPublicChrome />
+    <div v-if="ownerName" class="prose prose-sm mx-auto max-w-2xl px-4 pt-2">
       <p class="ios-card not-prose p-4 text-sm">
         <span class="font-bold text-brand-navy">{{ t('contact.ownerLabel') }}: </span>
         {{ ownerName }}
@@ -45,6 +46,7 @@ useHead(() => ({
       intro-key="legal.aboutIntro"
       sections-key="legal.aboutSections"
       :manage-title="false"
+      :show-chrome="false"
     />
     <LegalFaq faq-key="legal.aboutFaq" page-url-path="/about" />
   </div>

@@ -17,7 +17,7 @@ const { canSwitchRole } = usePlatformRoles()
 </script>
 
 <template>
-  <section class="canva-photo-hero -mx-4 min-[431px]:mx-0">
+  <section class="canva-photo-hero">
     <CanvaHeroImg
       :src="src"
       alt=""

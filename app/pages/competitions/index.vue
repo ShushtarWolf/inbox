@@ -48,10 +48,14 @@ async function applyFilters() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg px-4 py-6">
-    <h1 class="mb-4 text-xl font-bold text-gray-900">
-      {{ t('competitions.title') }}
-    </h1>
+  <div class="tail-page-stack animate-fade-in">
+    <CanvaPublicChrome back-to="/" />
+
+    <div class="canva-clubs-section-head">
+      <div class="canva-clubs-section-copy">
+        <h1 class="canva-clubs-section-title">{{ t('competitions.title') }}</h1>
+      </div>
+    </div>
 
     <CanvaEmptyState
       v-if="!competitionsEnabled"
@@ -60,64 +64,78 @@ async function applyFilters() {
     />
 
     <template v-else>
-    <div class="mb-4 flex flex-wrap gap-2">
-      <select
-        v-model="sportFilter"
-        class="rounded-sm border border-gray-300 px-2 py-1 text-sm"
-        @change="applyFilters"
-      >
-        <option value="">
-          {{ t('common.all') }}
-        </option>
-        <option v-for="sport in sports || []" :key="sport.slug" :value="sport.slug">
-          {{ localizedField(sport, 'name') }}
-        </option>
-      </select>
-      <input
-        v-model="cityFilter"
-        type="text"
-        class="rounded-sm border border-gray-300 px-2 py-1 text-sm"
-        :placeholder="t('competitions.filterCity')"
-        @change="applyFilters"
-      >
-    </div>
+      <div class="canva-panel grid gap-3 min-[431px]:grid-cols-2">
+        <label class="flex min-w-0 flex-col gap-1 text-xs font-bold text-brand-gray-600">
+          <span class="sr-only">{{ t('home.sportsTitle') }}</span>
+          <select
+            v-model="sportFilter"
+            class="neo-select"
+            @change="applyFilters"
+          >
+            <option value="">
+              {{ t('common.all') }}
+            </option>
+            <option v-for="sport in sports || []" :key="sport.slug" :value="sport.slug">
+              {{ localizedField(sport, 'name') }}
+            </option>
+          </select>
+        </label>
+        <label class="flex min-w-0 flex-col gap-1 text-xs font-bold text-brand-gray-600">
+          <span class="sr-only">{{ t('competitions.filterCity') }}</span>
+          <input
+            v-model="cityFilter"
+            type="text"
+            class="neo-input"
+            :placeholder="t('competitions.filterCity')"
+            @change="applyFilters"
+          >
+        </label>
+      </div>
 
-    <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
-    <p v-else-if="error" class="text-sm text-red-600">
-      {{ t('common.error') }}
-    </p>
-    <p v-else-if="!competitions?.length" class="text-sm text-gray-500">
-      {{ t('common.empty') }}
-    </p>
+      <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
+      <p v-else-if="error" class="text-sm text-brand-primary">
+        {{ t('common.error') }}
+      </p>
+      <CanvaEmptyState
+        v-else-if="!competitions?.length"
+        :title="t('common.empty')"
+        icon="emoji_events"
+      />
 
-    <ul v-else class="space-y-3">
-      <li
-        v-for="item in competitions"
-        :key="item.id"
-        class="border border-gray-200 p-3"
-      >
-        <NuxtLink :to="localePath(`/competitions/${item.id}`)" class="block">
-          <h2 class="font-semibold text-gray-900">
-            {{ item.title }}
-          </h2>
-          <p class="mt-1 text-sm text-gray-600">
-            {{ localizedField(item.club, 'name') }}
-            <span v-if="item.club.city"> · {{ item.club.city }}</span>
-          </p>
-          <p class="mt-1 text-sm text-gray-600">
-            {{ formatIsoDate(item.eventAt) }}
-            · {{ localizedField(item.sport, 'name') }}
-          </p>
-          <p class="mt-2 text-sm">
-            <span v-if="item.entryFee > 0">{{ t('competitions.fee', { amount: formatCurrency(item.entryFee) }) }}</span>
-            <span v-else>{{ t('competitions.freeEntry') }}</span>
-          </p>
-          <p class="mt-1 text-sm font-medium" :class="item.isFull ? 'text-red-600' : 'text-green-700'">
-            {{ item.isFull ? t('competitions.full') : t('competitions.spotsLeft', { count: item.spotsLeft }) }}
-          </p>
-        </NuxtLink>
-      </li>
-    </ul>
+      <ul v-else class="space-y-3">
+        <li
+          v-for="item in competitions"
+          :key="item.id"
+        >
+          <NuxtLink
+            :to="localePath(`/competitions/${item.id}`)"
+            class="block border border-brand-gray-200 bg-white p-3 shadow-venus-sm transition hover:border-brand-primary"
+            style="border-radius: var(--sz-canva-radius);"
+          >
+            <h2 class="text-start font-bold text-brand-navy">
+              {{ item.title }}
+            </h2>
+            <p class="mt-1 text-start text-sm text-brand-gray-600">
+              {{ localizedField(item.club, 'name') }}
+              <span v-if="item.club.city"> · {{ item.club.city }}</span>
+            </p>
+            <p class="mt-1 text-start text-sm text-brand-gray-600">
+              <bdi dir="ltr">{{ formatIsoDate(item.eventAt) }}</bdi>
+              · {{ localizedField(item.sport, 'name') }}
+            </p>
+            <p class="mt-2 text-start text-sm tabular-nums text-brand-navy">
+              <span v-if="item.entryFee > 0">{{ t('competitions.fee', { amount: formatCurrency(item.entryFee) }) }}</span>
+              <span v-else>{{ t('competitions.freeEntry') }}</span>
+            </p>
+            <p
+              class="mt-1 text-start text-sm font-bold"
+              :class="item.isFull ? 'text-brand-primary' : 'text-emerald-700'"
+            >
+              {{ item.isFull ? t('competitions.full') : t('competitions.spotsLeft', { count: item.spotsLeft }) }}
+            </p>
+          </NuxtLink>
+        </li>
+      </ul>
     </template>
   </div>
 </template>

@@ -100,10 +100,8 @@ async function join(useWallet = false) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg px-4 py-6">
-    <NuxtLink :to="localePath('/competitions')" class="mb-4 inline-block text-sm text-gray-600">
-      {{ t('common.back') }}
-    </NuxtLink>
+  <div class="tail-page-stack animate-fade-in">
+    <CanvaPublicChrome back-to="/competitions" />
 
     <CanvaEmptyState
       v-if="!competitionsEnabled"
@@ -112,37 +110,38 @@ async function join(useWallet = false) {
     />
 
     <AppVenusSpinner v-else-if="showPending" size="sm" :label="t('common.loading')" />
-    <p v-else-if="error" class="text-sm text-red-600">
+    <p v-else-if="error" class="text-sm text-brand-primary">
       {{ t('common.error') }}
     </p>
 
     <template v-else-if="competition">
-      <h1 class="text-xl font-bold text-gray-900">
+      <h1 class="text-start text-xl font-bold text-brand-navy">
         {{ competition.title }}
       </h1>
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="mt-2 text-start text-sm text-brand-gray-600">
         {{ localizedField(competition.club, 'name') }}
         <span v-if="competition.club.city"> · {{ competition.club.city }}</span>
       </p>
-      <p class="mt-1 text-sm text-gray-600">
-        {{ formatIsoDate(competition.eventAt) }} · {{ localizedField(competition.sport, 'name') }}
+      <p class="mt-1 text-start text-sm text-brand-gray-600">
+        <bdi dir="ltr">{{ formatIsoDate(competition.eventAt) }}</bdi>
+        · {{ localizedField(competition.sport, 'name') }}
       </p>
 
-      <dl class="mt-4 space-y-2 text-sm">
+      <dl class="mt-4 space-y-2 text-start text-sm">
         <div>
-          <dt class="font-medium text-gray-700">
+          <dt class="font-bold text-brand-navy">
             {{ t('competitions.feeLabel') }}
           </dt>
-          <dd>
+          <dd class="tabular-nums text-brand-gray-700">
             {{ competition.entryFee > 0 ? formatCurrency(competition.entryFee) : t('competitions.freeEntry') }}
           </dd>
         </div>
         <div v-if="prizeDescription">
-          <dt class="font-medium text-gray-700">
+          <dt class="font-bold text-brand-navy">
             {{ t('competitions.prizeLabel') }}
           </dt>
-          <dd>{{ prizeDescription }}</dd>
-          <dd class="mt-1 text-xs text-gray-500">
+          <dd class="text-brand-gray-700">{{ prizeDescription }}</dd>
+          <dd class="mt-1 text-xs text-brand-gray-500">
             {{ t('competitions.prizeTerms') }}
             <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">
               {{ t('legal.terms') }}
@@ -150,10 +149,10 @@ async function join(useWallet = false) {
           </dd>
         </div>
         <div>
-          <dt class="font-medium text-gray-700">
+          <dt class="font-bold text-brand-navy">
             {{ t('competitions.cancelPolicy') }}
           </dt>
-          <dd>
+          <dd class="text-brand-gray-700">
             {{ t('competitions.cancelPolicyBody', { hours: competition.club.cancellationWindowHours }) }}
             <NuxtLink :to="localePath('/cancellation')" class="ms-1 font-bold text-brand-primary underline">
               {{ t('legal.cancellation') }}
@@ -161,25 +160,25 @@ async function join(useWallet = false) {
           </dd>
         </div>
         <div>
-          <dt class="font-medium text-gray-700">
+          <dt class="font-bold text-brand-navy">
             {{ t('competitions.capacity') }}
           </dt>
-          <dd :class="competition.isFull ? 'text-red-600' : 'text-green-700'">
+          <dd :class="competition.isFull ? 'text-brand-primary' : 'text-emerald-700'">
             {{ competition.isFull ? t('competitions.full') : t('competitions.spotsLeft', { count: competition.spotsLeft }) }}
           </dd>
         </div>
       </dl>
 
-      <p v-if="joinSuccess" class="mt-4 text-sm text-green-700">
+      <p v-if="joinSuccess" class="mt-4 text-sm text-emerald-700">
         {{ joinSuccess }}
       </p>
-      <p v-if="joinError" class="mt-4 text-sm text-red-600">
+      <p v-if="joinError" class="mt-4 text-sm text-brand-primary">
         {{ joinError }}
       </p>
 
       <div v-if="!competition.isFull && competition.status === 'OPEN'" class="mt-6 space-y-3">
         <div v-if="competition.enrollmentType === 'DOUBLE'">
-          <label class="block text-sm font-medium text-gray-700">
+          <label class="block text-start text-sm font-bold text-brand-navy">
             {{ t('competitions.partnerPhone') }}
           </label>
           <input
@@ -187,19 +186,20 @@ async function join(useWallet = false) {
             type="tel"
             inputmode="tel"
             autocomplete="tel"
-            class="mt-1 w-full rounded-sm border border-gray-300 px-2 py-1 text-sm"
+            class="neo-input mt-1 w-full"
+            dir="ltr"
             :placeholder="t('competitions.partnerPhoneHint')"
           >
         </div>
 
-        <label v-if="competition.entryFee > 0 && !onlineEnabled" class="text-sm text-red-600">
+        <label v-if="competition.entryFee > 0 && !onlineEnabled" class="text-sm text-brand-primary">
           {{ t('booking.onlinePaymentsRequired') }}
         </label>
 
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            class="rounded-sm bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            class="canva-cta"
             :disabled="joinPending || (competition.entryFee > 0 && !onlineEnabled)"
             @click="join(false)"
           >
@@ -208,7 +208,7 @@ async function join(useWallet = false) {
           <button
             v-if="competition.entryFee > 0 && canCoverWithWallet(wallet?.balance, competition.entryFee, 'PENDING_ONLINE')"
             type="button"
-            class="rounded-sm border border-gray-300 px-4 py-2 text-sm disabled:opacity-50"
+            class="canva-home-login canva-home-login-soft px-4 py-2"
             :disabled="joinPending"
             @click="join(true)"
           >
@@ -217,7 +217,7 @@ async function join(useWallet = false) {
         </div>
       </div>
 
-      <p v-else-if="competition.isFull" class="mt-6 text-sm font-medium text-red-600">
+      <p v-else-if="competition.isFull" class="mt-6 text-sm font-bold text-brand-primary">
         {{ t('competitions.full') }}
       </p>
     </template>
