@@ -352,6 +352,6 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
       </AppAsyncState>
     </section>
 
-    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/clubs" with-hub-discovery />
+    <LegalFaq class="max-w-none px-0" faq-key="legal.sitewideFaq" page-url-path="/clubs" with-hub-discovery />
   </div>
 </template>

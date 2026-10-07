@@ -406,9 +406,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
     </AppAsyncState>
 
-    <p class="canva-help px-0 text-sm leading-relaxed text-brand-navy">
-      {{ t('home.brandIdentity') }}
-    </p>
-    <LegalFaq faq-key="legal.sitewideFaq" page-url-path="/" with-hub-discovery />
+    <LegalFaq class="max-w-none px-0" faq-key="legal.sitewideFaq" page-url-path="/" with-hub-discovery />
   </div>
 </template>
