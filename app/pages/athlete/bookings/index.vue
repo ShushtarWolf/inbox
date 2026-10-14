@@ -534,6 +534,21 @@ const STATUS_NOTE_KEY: Record<DisplayStatus, string> = {
   cancelled: 'athlete.historyNoteCancelled',
 }
 
+/** Literal names so Tailwind keeps these `@layer components` classes in the build. */
+const DOT_CLASS: Record<DisplayStatus, string> = {
+  paid: 'canva-history-dot-paid',
+  unpaid: 'canva-history-dot-unpaid',
+  done: 'canva-history-dot-done',
+  cancelled: 'canva-history-dot-cancelled',
+}
+
+const BADGE_CLASS: Record<DisplayStatus, string> = {
+  paid: 'canva-history-badge-paid',
+  unpaid: 'canva-history-badge-unpaid',
+  done: 'canva-history-badge-done',
+  cancelled: 'canva-history-badge-cancelled',
+}
+
 const legendStatuses: DisplayStatus[] = ['paid', 'unpaid', 'done', 'cancelled']
 
 const statusChips: Array<{ value: StatusFilter; labelKey: string }> = [
@@ -761,7 +776,7 @@ function dateLine(item: HistoryItem) {
                   v-for="status in statusesOn(cell.iso)"
                   :key="status"
                   class="canva-history-dot"
-                  :class="`canva-history-dot-${status}`"
+                  :class="DOT_CLASS[status]"
                 />
               </span>
             </button>
@@ -770,7 +785,7 @@ function dateLine(item: HistoryItem) {
         </div>
         <div class="canva-history-legend">
           <span v-for="status in legendStatuses" :key="status">
-            <i class="canva-history-dot" :class="`canva-history-dot-${status}`" />{{ t(STATUS_LABEL_KEY[status]) }}
+            <i class="canva-history-dot" :class="DOT_CLASS[status]" />{{ t(STATUS_LABEL_KEY[status]) }}
           </span>
         </div>
       </div>
@@ -839,7 +854,7 @@ function dateLine(item: HistoryItem) {
           >
             <span class="canva-history-card-row">
               <span class="canva-history-card-title">{{ item.title }}</span>
-              <span class="canva-history-badge" :class="`canva-history-badge-${displayStatus(item)}`">
+              <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(item)]">
                 {{ t(STATUS_LABEL_KEY[displayStatus(item)]) }}
               </span>
             </span>
@@ -907,7 +922,7 @@ function dateLine(item: HistoryItem) {
           <div class="canva-history-sh-row">
             <span>{{ t('athlete.historyRowStatus') }}</span>
             <b>
-              <span class="canva-history-badge" :class="`canva-history-badge-${displayStatus(detailItem)}`">
+              <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(detailItem)]">
                 {{ t(STATUS_LABEL_KEY[displayStatus(detailItem)]) }}
               </span>
             </b>
