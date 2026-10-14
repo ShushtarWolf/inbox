@@ -283,7 +283,40 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
             </button>
           </div>
 
-          <div v-if="filteredPayments.length" class="canva-athlete-pay-table-wrap">
+          <div v-if="filteredPayments.length" class="canva-finance-tx-grid">
+            <div v-for="row in filteredPayments" :key="row.id" class="canva-finance-tx-card">
+              <div class="min-w-0 flex-1 text-start">
+                <p class="line-clamp-2 text-sm font-bold text-brand-navy">{{ rowTitle(row) }}</p>
+                <p class="mt-0.5 text-xs tabular-nums text-brand-gray-600">
+                  <template v-if="row.date">
+                    {{ formatDate(row.date) }}
+                    <template v-if="row.startTime">
+                      · <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(row.startTime) }}</bdi>
+                    </template>
+                  </template>
+                  <template v-else>{{ formatDate(row.createdAt) }}</template>
+                </p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status) }}</p>
+              </div>
+              <div class="flex shrink-0 flex-col items-end gap-1">
+                <p class="text-sm font-bold tabular-nums text-brand-navy">{{ formatCurrency(row.amount) }}</p>
+                <span class="canva-finance-method-badge" :class="methodBadgeClass(row.method)">
+                  {{ methodLabel(row.method) }}
+                </span>
+                <button
+                  v-if="row.bookingId && canPayOnline(row.status)"
+                  type="button"
+                  class="canva-gate-btn-primary px-2 py-1.5 text-xs whitespace-nowrap"
+                  :class="{ 'canva-cta-busy': payingId === row.bookingId }"
+                  :aria-busy="payingId === row.bookingId"
+                  @click="retryPay(row)"
+                >
+                  {{ payingId === row.bookingId ? t('booking.redirectingToGateway') : t('booking.payNow') }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-if="filteredPayments.length" class="canva-finance-table-wrap">
             <table class="canva-finance-table">
               <thead>
                 <tr>
@@ -355,13 +388,3 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
     </AppAsyncState>
   </div>
 </template>
-
-<style scoped>
-.canva-athlete-pay-table-wrap {
-  display: block;
-  overflow-x: auto;
-  border: 1px solid #e8e4de;
-  background: #fff;
-  border-radius: var(--sz-canva-radius);
-}
-</style>
