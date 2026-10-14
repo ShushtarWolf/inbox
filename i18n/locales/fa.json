@@ -371,6 +371,7 @@
     "walletCredit": "واریز",
     "walletDebit": "برداشت",
     "walletTypeRefund": "اعتبار بازپرداخت",
+    "paymentStatusRefundedWallet": "برگشت به کیف پول",
     "walletTypePayment": "پرداخت رزرو",
     "walletTypeAdjustment": "تعدیل",
     "walletTypeWithdrawHold": "مسدود برداشت",

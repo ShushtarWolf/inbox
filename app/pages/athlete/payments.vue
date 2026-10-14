@@ -123,7 +123,8 @@ function sortLabel(key: AthletePaySortKey) {
   return t('athlete.paymentColDate')
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: string, method: string) {
+  if (status === 'REFUNDED' && method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
   return t(`booking.paymentStatus.${status}`)
 }
 
@@ -296,7 +297,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                   </template>
                   <template v-else>{{ formatDate(row.createdAt) }}</template>
                 </p>
-                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status) }}</p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status, row.method) }}</p>
               </div>
               <div class="flex shrink-0 flex-col items-end gap-1">
                 <p class="text-sm font-bold tabular-nums text-brand-navy">{{ formatCurrency(row.amount) }}</p>
@@ -355,7 +356,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                     </template>
                     <template v-else>{{ formatDate(row.createdAt) }}</template>
                   </td>
-                  <td class="whitespace-nowrap">{{ statusLabel(row.status) }}</td>
+                  <td class="whitespace-nowrap">{{ statusLabel(row.status, row.method) }}</td>
                   <td>
                     <span class="canva-finance-method-badge" :class="methodBadgeClass(row.method)">
                       {{ methodLabel(row.method) }}
