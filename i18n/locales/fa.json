@@ -1009,6 +1009,7 @@
     "receiptPayStatus": "وضعیت پرداخت",
     "receiptPayMethod": "روش پرداخت",
     "receiptSessions": "سانس‌های رزرو شده",
+    "receiptEquipments": "تجهیزات",
     "receiptSessionN": "جلسه {n}",
     "receiptDateTime": "تاریخ و ساعت",
     "receiptPrice": "قیمت",

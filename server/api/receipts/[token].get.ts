@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
       payment: true,
       user: { select: { name: true, phone: true } },
       slot: { include: { court: { include: { club: true } } } },
+      bookingEquipments: { include: { equipment: true } },
     },
   })
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
@@ -91,6 +92,7 @@ export default defineEventHandler(async (event) => {
   let payStatus = booking.payment?.status || booking.paymentStatus
   let payMethod = booking.payment?.method || booking.paymentMethod
   let paySource = booking.source
+  let equipmentRows = booking.bookingEquipments
 
   if (series) {
     const siblings = await prisma.booking.findMany({
@@ -98,6 +100,7 @@ export default defineEventHandler(async (event) => {
       include: {
         payment: true,
         slot: { include: { court: true } },
+        bookingEquipments: { include: { equipment: true } },
       },
       orderBy: [{ slot: { date: 'asc' } }, { slot: { startTime: 'asc' } }],
     })
@@ -108,6 +111,20 @@ export default defineEventHandler(async (event) => {
     const primaryBooking = siblings.find((b) => b.id === series.group.primaryBookingId) || booking
     payMethod = primaryBooking.payment?.method || primaryBooking.paymentMethod
     paySource = primaryBooking.source
+    equipmentRows = (active.length ? active : siblings).flatMap((b) => b.bookingEquipments)
+  }
+
+  const equipments = equipmentRows.map((row) => ({
+    name: toPersianDigits((row.equipment.nameFa || row.equipment.nameEn || '').trim()),
+    quantity: row.quantity,
+    price: row.priceAtBooking * row.quantity,
+  }))
+  const equipmentTotal = equipments.reduce((sum, item) => sum + item.price, 0)
+  if (!series && equipmentTotal > 0) {
+    if (!booking.payment) amount += equipmentTotal
+    else if (sessions[0]!.price === booking.payment.amount) {
+      sessions[0]!.price = Math.max(0, sessions[0]!.price - equipmentTotal)
+    }
   }
 
   const unpaid = booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(payStatus)
@@ -126,6 +143,7 @@ export default defineEventHandler(async (event) => {
     paymentMethod: paymentMethodFa(payMethod, paySource),
     session,
     sessions,
+    equipments,
     amount,
     unpaid,
     cancelled: booking.status === 'CANCELLED',

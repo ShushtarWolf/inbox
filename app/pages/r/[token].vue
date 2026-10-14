@@ -23,6 +23,7 @@ type ReceiptPayload = {
   paymentMethod: string
   session: ReceiptSession
   sessions?: ReceiptSession[]
+  equipments?: { name: string; quantity: number; price: number }[]
   amount: number
   unpaid: boolean
   cancelled: boolean
@@ -38,7 +39,7 @@ type ReceiptPayload = {
 const route = useRoute()
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
-const { formatCurrency, formatPhone } = useFormatters()
+const { formatCurrency, formatNumber, formatPhone } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { redirectToPaymentGateway } = useCheckout()
 const token = computed(() => String(route.params.token || ''))
@@ -218,6 +219,19 @@ async function pay() {
             </span>
             <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(session.price) }}</span>
           </div>
+
+          <template v-if="data.equipments?.length">
+            <h2 class="mt-5 mb-2.5 text-[15px] font-extrabold">{{ t('booking.receiptEquipments') }}</h2>
+            <div
+              v-for="(item, idx) in data.equipments"
+              :key="`${item.name}-${idx}`"
+              class="receipt-player-sess mb-2 flex flex-wrap items-center gap-3"
+            >
+              <span class="text-[13px] font-semibold">{{ item.name }}</span>
+              <span class="text-[12.5px] text-[#55534E] tabular-nums">× {{ formatNumber(item.quantity) }}</span>
+              <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(item.price) }}</span>
+            </div>
+          </template>
 
           <div class="receipt-player-total mt-3.5 flex items-center justify-between gap-2">
             <span class="text-[13.5px] font-semibold text-[#55534E]">{{ t('booking.receiptTotal') }}</span>
