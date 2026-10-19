@@ -325,7 +325,7 @@ async function confirmCancel() {
       moneyOutcome?: 'full_wallet_refund' | 'zero_refund'
     }>(endpoint, { method: 'PATCH' })
     const notice = result.moneyOutcome === 'zero_refund'
-      ? t('booking.refundNoneInsideWindow')
+      ? t('booking.refundNoneCancelled')
       : result.refund?.walletCredited
         ? t('booking.refundToWallet')
         : result.refund?.refunded

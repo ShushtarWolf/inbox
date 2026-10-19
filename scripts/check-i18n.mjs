@@ -48,7 +48,8 @@ function findDuplicateKeys(jsonText) {
   const lines = jsonText.split('\n')
   const keyRe = /^(\s*)"([^"\\]+)"\s*:/
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/"(?:[^"\\]|\\.)*"\s*(?=[,}\]]|$)/g, '""')
     const closes = (line.match(/}/g) || []).length
     for (let i = 0; i < closes && stack.length > 1; i++) stack.pop()
 
