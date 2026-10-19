@@ -63,7 +63,7 @@ export async function loadOwnerSeriesBookings(clubId: string, bookingId: string)
     anchor.id,
     ...fromEvents.map((row) => row.bookingId),
     ...fromPayments.map((row) => row.bookingId),
-  ])]
+  ])].filter((id): id is string => Boolean(id))
   return prisma.booking.findMany({
     where: { id: { in: ids }, status: { not: 'CANCELLED' } },
     include: seriesBookingInclude,

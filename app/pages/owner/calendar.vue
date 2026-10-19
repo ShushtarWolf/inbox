@@ -168,6 +168,8 @@ const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
 /** Whole season / class package, not the checked hours of this day. */
 const cancelSeries = ref(false)
+/** Whole-package pay/unpay: first tap previews the session count, second tap applies. */
+const seriesPayPreview = ref<{ status: 'PAID' | 'PAY_AT_CLUB'; count: number; amount: number } | null>(null)
 const saving = ref(false)
 const previewing = ref(false)
 const confirming = ref(false)
@@ -505,6 +507,11 @@ const bookedSiblingSlots = computed(() => {
 })
 const showBookedCancelChecks = computed(() => bookedSiblingSlots.value.length > 1)
 const canCancelSeries = computed(() => isRecurringReservedSlot(selectedSlotFull.value))
+const canSeriesMarkPaid = computed(() => canCancelSeries.value && canMarkPaidSlot(selectedSlotFull.value))
+const canSeriesMarkUnpaid = computed(() => canCancelSeries.value && canMarkUnpaidSlot(selectedSlotFull.value))
+watch(() => selectedSlot.value?.id, () => {
+  seriesPayPreview.value = null
+})
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
@@ -1880,6 +1887,7 @@ function closeMenu() {
   packageAcceptGap.value = false
   cancelReason.value = ''
   cancelSeries.value = false
+  seriesPayPreview.value = null
   actionError.value = ''
   lastPayLink.value = null
   payLinkCopied.value = false
@@ -2295,6 +2303,7 @@ async function refreshDeskPaymentSheet(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
   form.paymentMethod = 'CASH'
   form.paymentStatus = paymentStatus
   actionError.value = ''
+  seriesPayPreview.value = null
   await refreshCalendar()
   const anchorId = selectedSlot.value?.id
   if (anchorId) {
@@ -2348,6 +2357,44 @@ async function doMarkPaid() {
   } finally {
     saving.value = false
   }
+}
+
+async function doSeriesPayment(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
+  const slot = selectedSlotFull.value
+  if (!slot || saving.value) return
+  const confirmed = seriesPayPreview.value?.status === paymentStatus
+  saving.value = true
+  actionError.value = ''
+  try {
+    const res = await $fetch<{ count: number; amount: number }>('/api/owner/series-payment', {
+      method: 'POST',
+      body: { slotId: slot.id, paymentStatus, dryRun: !confirmed },
+    })
+    if (confirmed) {
+      await refreshDeskPaymentSheet(paymentStatus)
+    } else if (res.count) {
+      seriesPayPreview.value = { status: paymentStatus, count: res.count, amount: res.amount }
+    } else {
+      actionError.value = t('owner.deskPaymentNoSlots')
+    }
+  } catch (err) {
+    seriesPayPreview.value = null
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    await refreshCalendar()
+  } finally {
+    saving.value = false
+  }
+}
+
+function seriesPayLabel(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
+  const preview = seriesPayPreview.value
+  if (preview?.status === paymentStatus) {
+    return t(paymentStatus === 'PAID' ? 'owner.confirmSeriesPaid' : 'owner.confirmSeriesUnpaid', {
+      count: formatNumber(preview.count),
+      amount: formatCurrency(preview.amount),
+    })
+  }
+  return t(paymentStatus === 'PAID' ? 'owner.markSeriesPaid' : 'owner.markSeriesUnpaid')
 }
 
 /** Reverse a mistaken cash mark (or wallet-paid mark) back to unpaid. */
@@ -3547,6 +3594,24 @@ watch(pilotNoCoach, (off) => {
               @click="doMarkUnpaid"
             >
               {{ saving ? t('common.loading') : t('owner.markUnpaid') }}
+            </button>
+            <button
+              v-if="canSeriesMarkPaid"
+              type="button"
+              class="canva-detail-paid !mt-3"
+              :disabled="saving"
+              @click="doSeriesPayment('PAID')"
+            >
+              {{ saving ? t('common.loading') : seriesPayLabel('PAID') }}
+            </button>
+            <button
+              v-if="canSeriesMarkUnpaid"
+              type="button"
+              class="canva-detail-unpaid"
+              :disabled="saving"
+              @click="doSeriesPayment('PAY_AT_CLUB')"
+            >
+              {{ saving ? t('common.loading') : seriesPayLabel('PAY_AT_CLUB') }}
             </button>
             <button
               v-if="canCancelSeries"

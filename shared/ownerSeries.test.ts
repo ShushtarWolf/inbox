@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ownerSeriesKey, seasonBookingIdNeedle, seriesCancelPaymentId } from './ownerSeries'
+import { ownerSeriesKey, seasonBookingIdNeedle, seriesCancelPaymentId, isSeriesDeskPaymentTarget } from './ownerSeries'
 
 describe('ownerSeriesKey', () => {
   it('prefers a class-package draft over season metadata', () => {
@@ -58,5 +58,25 @@ describe('seriesCancelPaymentId', () => {
       amount: 40000,
       metadataJson: JSON.stringify({ coveredByBookingId: 'b-primary', sessionPrice: 40000 }),
     })).toBe('pay-cash')
+  })
+})
+
+describe('isSeriesDeskPaymentTarget', () => {
+  const rows = [
+    { id: 'unpaid', paymentStatus: 'PAY_AT_CLUB', payment: { status: 'PAY_AT_CLUB', method: 'CASH' } },
+    { id: 'online-pending', paymentStatus: 'PENDING_ONLINE', payment: { status: 'PENDING_ONLINE', method: 'IPG' } },
+    { id: 'cash-paid', paymentStatus: 'PAID', payment: { status: 'PAID', method: 'CASH' } },
+    { id: 'ipg-paid', paymentStatus: 'PAID', payment: { status: 'PAID', method: 'IPG' } },
+    { id: 'no-payment-row', paymentStatus: 'PAY_AT_CLUB', payment: null },
+  ]
+
+  it('marks every unpaid session paid', () => {
+    expect(rows.filter((row) => isSeriesDeskPaymentTarget(row, 'PAID')).map((row) => row.id))
+      .toEqual(['unpaid', 'online-pending', 'no-payment-row'])
+  })
+
+  it('only reverses desk cash, never online payments', () => {
+    expect(rows.filter((row) => isSeriesDeskPaymentTarget(row, 'PAY_AT_CLUB')).map((row) => row.id))
+      .toEqual(['cash-paid'])
   })
 })

@@ -1,4 +1,5 @@
 import { parseSeriesPaymentMeta } from './athleteSeason.ts'
+import { isPaidPaymentStatus, isUnpaidPaymentStatus } from './bookingPayment.ts'
 
 export type OwnerSeriesKey =
   | { kind: 'package'; id: string }
@@ -38,4 +39,17 @@ export function seriesCancelPaymentId(payment: {
   const covered = Boolean(parseSeriesPaymentMeta(payment.metadataJson).coveredByBookingId)
   if (covered && payment.amount <= 0) return null
   return payment.id
+}
+
+/**
+ * Whether a desk pay/unpay of the whole series flips this row. Unpay only reverses
+ * desk cash — online and wallet payments must go through cancel to refund.
+ */
+export function isSeriesDeskPaymentTarget(row: {
+  paymentStatus?: string | null
+  payment?: { status: string; method: string } | null
+}, next: 'PAID' | 'PAY_AT_CLUB'): boolean {
+  const status = row.payment?.status || row.paymentStatus
+  if (next === 'PAID') return isUnpaidPaymentStatus(status)
+  return isPaidPaymentStatus(status) && row.payment?.method === 'CASH'
 }
