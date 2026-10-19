@@ -38,6 +38,7 @@ import {
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { bookingNote } from '#shared/packages.ts'
 import {
   isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
@@ -742,7 +743,7 @@ function slotNoteLine(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return ''
   if (isExternalOnlyOccupied(slot)) return externalOwnerNote(slot)
   if (slot.displayStatus === 'FREE') return ''
-  return activeBooking(slot)?.comments?.trim() || ''
+  return bookingNote(activeBooking(slot)?.comments)
 }
 
 function slotCellTitle(slot: OwnerCalendarSlot | null | undefined) {
@@ -820,7 +821,7 @@ function courtColumnLabel(court: { nameFa: string; nameEn: string }, index: numb
 
 function hasSlotNote(slot: OwnerCalendarSlot | null | undefined) {
   if (isExternalOnlyOccupied(slot)) return Boolean(externalOwnerNote(slot))
-  return Boolean(activeBooking(slot)?.comments?.trim())
+  return Boolean(bookingNote(activeBooking(slot)?.comments))
 }
 
 function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
@@ -1304,7 +1305,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
     ? externalOwnerNote(fullSlot)
     : isFree
       ? ''
-      : (booking?.comments || '')
+      : bookingNote(booking?.comments)
   form.displayStatus = isFree ? 'RESERVED' : fullSlot.displayStatus
   const equipmentIds = isFree ? [] : (booking?.bookingEquipments?.map((item) => item.equipmentId) || [])
   form.equipmentIds = equipmentIds
@@ -1323,13 +1324,13 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   seasonForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   seasonForm.days = [anchorDay]
   seasonForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
-  seasonForm.comments = booking?.comments || ''
+  seasonForm.comments = bookingNote(booking?.comments)
   packageForm.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
   packageForm.startDate = anchorDate
   packageForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
   packageForm.days = [anchorDay]
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
-  packageForm.comments = booking?.comments || ''
+  packageForm.comments = bookingNote(booking?.comments)
   resetBlockWeeklyState()
 }
 
@@ -2276,7 +2277,7 @@ function deskCashPaymentBody(
     guestMobile: booking?.guestMobile || form.guestMobile,
     paymentMethod: 'CASH' as const,
     paymentStatus,
-    comments: booking?.comments || form.comments,
+    comments: bookingNote(booking?.comments) || form.comments,
     equipmentIds: (booking?.bookingEquipments || []).map((item) => item.equipmentId),
     equipmentQuantities: Object.fromEntries(
       (booking?.bookingEquipments || []).map((item) => [item.equipmentId, Math.max(1, item.quantity || 1)]),

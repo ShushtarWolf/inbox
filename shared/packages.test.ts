@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bookingNote,
   canCancelPackageBooking,
   isPackagesEnabled,
   PENDING_PACKAGE_BOOKING_EXPIRY_MINUTES,
@@ -41,6 +42,17 @@ describe('canCancelPackageBooking', () => {
     const date = later.toISOString().slice(0, 10)
     const time = `${String(later.getHours()).padStart(2, '0')}:${String(later.getMinutes()).padStart(2, '0')}`
     expect(canCancelPackageBooking(date, time, 12)).toBe(true)
+  })
+})
+
+describe('bookingNote', () => {
+  it('hides the legacy package hold marker', () => {
+    expect(bookingNote('package:cmujonzxg06c8l33kr8bqh6h1')).toBe('')
+  })
+
+  it('keeps real owner notes', () => {
+    expect(bookingNote('  میز باشگاه  ')).toBe('میز باشگاه')
+    expect(bookingNote(null)).toBe('')
   })
 })
 

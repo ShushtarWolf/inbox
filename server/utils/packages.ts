@@ -322,7 +322,6 @@ export async function claimPackageCourtHolds(opts: {
       data: {
         slotId,
         guestName: opts.title,
-        comments: `package:${opts.packageId}`,
         coachId: opts.coachId || null,
         packageDraftId: opts.packageId,
         paymentMethod: 'CASH',

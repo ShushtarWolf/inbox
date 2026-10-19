@@ -44,6 +44,12 @@ export type PackageSession = {
   endTime: string
 }
 
+/** Owner-facing booking note. Older package court holds stored an internal `package:<id>` marker in comments. */
+export function bookingNote(comments: string | null | undefined): string {
+  const note = comments?.trim() || ''
+  return note.startsWith('package:') ? '' : note
+}
+
 /**
  * Cancel allowed when first session is still outside the club cancellation window.
  */

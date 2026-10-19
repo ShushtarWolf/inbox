@@ -3,6 +3,7 @@ import { PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus, resolvePaymentChannel } from '#shared/bookingPayment.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { bookingNote } from '#shared/packages.ts'
 
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
@@ -291,7 +292,7 @@ const calendarSourcesHref = computed(() =>
               <p class="mt-1 text-xs font-bold text-brand-navy">{{ slotGuestLine(slot) }}</p>
               <p v-if="slotPaymentBadge(slot)" class="text-xs text-brand-gray-600">{{ slotPaymentBadge(slot) }}</p>
               <p v-if="slotPaymentChannelLabel(slot)" class="text-[10px] text-brand-gray-500">{{ slotPaymentChannelLabel(slot) }}</p>
-              <p v-if="activeBooking(slot)?.comments?.trim()" class="text-[10px] text-brand-gray-500">{{ activeBooking(slot)?.comments?.trim() }}</p>
+              <p v-if="bookingNote(activeBooking(slot)?.comments)" class="text-[10px] text-brand-gray-500">{{ bookingNote(activeBooking(slot)?.comments) }}</p>
             </div>
 
             <div
