@@ -77,6 +77,19 @@ test.describe('iOS Safari tap guard', () => {
   test('avatar crop close does not block profile save behind it', async ({ page }) => {
     await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
     await page.goto('/athlete/profile')
+    const probe = (tag: string) => page.evaluate((t) => {
+      const se = document.scrollingElement!
+      const save = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'ذخیره')
+      const r = save?.getBoundingClientRect()
+      const nav = document.querySelector('nav.fixed')?.getBoundingClientRect()
+      return JSON.stringify({ t, sh: se.scrollHeight, ih: innerHeight, vv: visualViewport?.height, sy: scrollY, bodyOv: document.body.style.overflow, bodySh: document.body.scrollHeight, bodySt: document.body.scrollTop, saveTop: r?.top, saveBottom: r?.bottom, navTop: nav?.top })
+    }, tag).then((v) => console.log('[probe]', v))
+    await expect(page.getByRole('button', { name: 'انتخاب تصویر' })).toBeVisible({ timeout: 15_000 })
+    await probe('before')
+    await page.mouse.wheel(0, 5000)
+    await page.waitForTimeout(300)
+    await probe('after-wheel-before-crop')
+    await page.evaluate(() => window.scrollTo(0, 0))
 
     const fileChooserPromise = page.waitForEvent('filechooser')
     await page.getByRole('button', { name: 'انتخاب تصویر' }).click()
@@ -89,9 +102,15 @@ test.describe('iOS Safari tap guard', () => {
 
     // Leave transition (~200ms) must not leave a ghost full-screen hit target.
     await page.waitForTimeout(250)
+    await probe('after-close')
+    await page.mouse.wheel(0, 5000)
+    await page.waitForTimeout(300)
+    await probe('after-wheel-after-close')
+    await page.evaluate(() => window.scrollTo(0, 99999))
+    await probe('after-scrollTo')
     const saveBtn = page.getByRole('button', { name: 'ذخیره' })
     await expect(saveBtn).toBeEnabled()
-    await saveBtn.click()
+    await saveBtn.click({ timeout: 3000 })
     await expect(page.getByText('با موفقیت ذخیره شد').or(page.getByText(/خطا/))).toBeVisible({ timeout: 15_000 })
   })
 
