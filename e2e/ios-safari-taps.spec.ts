@@ -125,7 +125,7 @@ test.describe('iOS Safari tap guard', () => {
 
   test('club confirm CTA opens sheet and close restores taps', async ({ page }) => {
     await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
-    await page.goto('/clubs/iust-tennis')
+    await page.goto('/clubs/padel-zone-tehran')
     await expect(page.locator('.canva-club-book-cta')).toBeVisible({ timeout: 15_000 })
 
     const freeSlot = page.locator('.canva-club-slot:not(.canva-club-slot-booked):not([disabled])').first()

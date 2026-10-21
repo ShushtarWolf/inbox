@@ -265,6 +265,8 @@ export default defineNuxtConfig({
     session: {
       name: 'inbox-session',
       password: process.env.NUXT_SESSION_PASSWORD || 'inbox-demo-session-password-change-me',
+      // Declared so CI can set NUXT_SESSION_COOKIE_SECURE=false: Playwright WebKit drops Secure cookies on http://127.0.0.1.
+      cookie: { sameSite: 'lax', secure: true },
     },
   },
 })

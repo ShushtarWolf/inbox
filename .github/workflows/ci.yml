@@ -28,6 +28,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox
       NUXT_SESSION_PASSWORD: ci-test-session-password-at-least-32-characters-long
+      NUXT_SESSION_COOKIE_SECURE: false
       ADMIN_PROVISION_SECRET: ci-admin-provision-secret-for-smoke-tests
       PAYMENTS_MODE: pay_at_club
       COMPETITIONS_ENABLED: true
