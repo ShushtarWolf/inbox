@@ -1210,15 +1210,6 @@
       "file": "design-inventory/desktop/page-terms.png"
     },
     {
-      "id": "page-owner-calendar-sources",
-      "path": "/owner/calendar-sources",
-      "kind": "page",
-      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
-      "auth": "owner",
-      "viewport": "desktop",
-      "file": "design-inventory/desktop/page-owner-calendar-sources.png"
-    },
-    {
       "id": "page-clubs-padel-zone-tehran",
       "path": "/clubs/padel-zone-tehran",
       "kind": "page",
@@ -1966,15 +1957,6 @@
       "file": "design-inventory/mobile/page-terms.png"
     },
     {
-      "id": "page-owner-calendar-sources",
-      "path": "/owner/calendar-sources",
-      "kind": "page",
-      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
-      "auth": "owner",
-      "viewport": "mobile",
-      "file": "design-inventory/mobile/page-owner-calendar-sources.png"
-    },
-    {
       "id": "page-clubs-padel-zone-tehran",
       "path": "/clubs/padel-zone-tehran",
       "kind": "page",
@@ -2137,6 +2119,60 @@
       "file": "design-inventory/mobile/empty-state-admin-gate.png"
     },
     {
+      "id": "modal-auth-gate",
+      "path": "/login → / (AuthFlowModal)",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/modal-auth-gate.png"
+    },
+    {
+      "id": "page-login",
+      "path": "/login",
+      "kind": "page",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-login.png"
+    },
+    {
+      "id": "modal-auth-gate",
+      "path": "/login → / (AuthFlowModal)",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/modal-auth-gate.png"
+    },
+    {
+      "id": "page-login",
+      "path": "/login",
+      "kind": "page",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-login.png"
+    },
+    {
+      "id": "modal-login-otp",
+      "path": "/login → OTP step",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/modal-login-otp.png"
+    },
+    {
+      "id": "modal-login-otp",
+      "path": "/login → OTP step",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/modal-login-otp.png"
+    },
+    {
       "id": "page-admin-applications",
       "path": "/admin/applications",
       "kind": "page",
@@ -2252,6 +2288,24 @@
       "auth": "admin",
       "viewport": "desktop",
       "file": "design-inventory/desktop/page-admin-calendar-sources.png"
+    },
+    {
+      "id": "page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf",
+      "path": "/admin/clubs/cmvi2xpkl000bjstmvuh4inqf",
+      "kind": "page",
+      "source": "app/pages/admin/clubs/[id].vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png"
+    },
+    {
+      "id": "page-owner-calendar-sources",
+      "path": "/owner/calendar-sources",
+      "kind": "page",
+      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-calendar-sources.png"
     },
     {
       "id": "page-admin-applications",
@@ -2380,67 +2434,13 @@
       "file": "design-inventory/mobile/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png"
     },
     {
-      "id": "page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf",
-      "path": "/admin/clubs/cmvi2xpkl000bjstmvuh4inqf",
+      "id": "page-owner-calendar-sources",
+      "path": "/owner/calendar-sources",
       "kind": "page",
-      "source": "app/pages/admin/clubs/[id].vue",
-      "auth": "admin",
-      "viewport": "desktop",
-      "file": "design-inventory/desktop/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png"
-    },
-    {
-      "id": "modal-auth-gate",
-      "path": "/login → / (AuthFlowModal)",
-      "kind": "modal",
-      "source": "app/components/AuthFlowModal.vue",
-      "auth": "guest",
-      "viewport": "desktop",
-      "file": "design-inventory/desktop/modal-auth-gate.png"
-    },
-    {
-      "id": "page-login",
-      "path": "/login",
-      "kind": "page",
-      "source": "app/pages/login.vue",
-      "auth": "guest",
-      "viewport": "desktop",
-      "file": "design-inventory/desktop/page-login.png"
-    },
-    {
-      "id": "modal-auth-gate",
-      "path": "/login → / (AuthFlowModal)",
-      "kind": "modal",
-      "source": "app/components/AuthFlowModal.vue",
-      "auth": "guest",
+      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
+      "auth": "owner",
       "viewport": "mobile",
-      "file": "design-inventory/mobile/modal-auth-gate.png"
-    },
-    {
-      "id": "page-login",
-      "path": "/login",
-      "kind": "page",
-      "source": "app/pages/login.vue",
-      "auth": "guest",
-      "viewport": "mobile",
-      "file": "design-inventory/mobile/page-login.png"
-    },
-    {
-      "id": "modal-login-otp",
-      "path": "/login → OTP step",
-      "kind": "modal",
-      "source": "app/components/AuthFlowModal.vue",
-      "auth": "guest",
-      "viewport": "desktop",
-      "file": "design-inventory/desktop/modal-login-otp.png"
-    },
-    {
-      "id": "modal-login-otp",
-      "path": "/login → OTP step",
-      "kind": "modal",
-      "source": "app/components/AuthFlowModal.vue",
-      "auth": "guest",
-      "viewport": "mobile",
-      "file": "design-inventory/mobile/modal-login-otp.png"
+      "file": "design-inventory/mobile/page-owner-calendar-sources.png"
     }
   ],
   "components": [
