@@ -1,0 +1,3951 @@
+{
+  "capturedAt": "2026-10-21T15:16:58.684Z",
+  "baseUrl": "http://localhost:3000",
+  "viewports": {
+    "desktop": {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 1,
+      "isMobile": false,
+      "hasTouch": false
+    },
+    "mobile": {
+      "id": "mobile",
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2,
+      "isMobile": true,
+      "hasTouch": true,
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+    }
+  },
+  "tokens": {
+    "extractedAt": "2026-10-21T15:16:58.688Z",
+    "cssVariables": [
+      {
+        "name": "--sz-bg",
+        "value": "#f4efe9"
+      },
+      {
+        "name": "--sz-bg-elevated",
+        "value": "rgba(255, 255, 255, 0.78)"
+      },
+      {
+        "name": "--sz-bg-glass",
+        "value": "rgba(255, 255, 255, 0.7)"
+      },
+      {
+        "name": "--sz-border",
+        "value": "rgba(44, 44, 42, 0.08)"
+      },
+      {
+        "name": "--sz-text",
+        "value": "#2c2c2a"
+      },
+      {
+        "name": "--sz-text-secondary",
+        "value": "#6b6b67"
+      },
+      {
+        "name": "--sz-accent",
+        "value": "#c41e1e"
+      },
+      {
+        "name": "--sz-accent-dark",
+        "value": "#4a1420"
+      },
+      {
+        "name": "--sz-accent-light",
+        "value": "#d63a3a"
+      },
+      {
+        "name": "--sz-accent-soft",
+        "value": "rgba(196, 30, 30, 0.10)"
+      },
+      {
+        "name": "--sz-gold",
+        "value": "#b68a3b"
+      },
+      {
+        "name": "--sz-gold-dark",
+        "value": "#9a7530"
+      },
+      {
+        "name": "--sz-gold-soft",
+        "value": "rgba(182, 138, 59, 0.14)"
+      },
+      {
+        "name": "--sz-navy",
+        "value": "#2c2c2a"
+      },
+      {
+        "name": "--sz-secondary",
+        "value": "#6b6b67"
+      },
+      {
+        "name": "--sz-card-shadow",
+        "value": "0 4px 24px rgba(44, 44, 42, 0.08)"
+      },
+      {
+        "name": "--sz-card-radius",
+        "value": "0.75rem"
+      },
+      {
+        "name": "--sz-input-radius",
+        "value": "0.5rem"
+      },
+      {
+        "name": "--sz-safe-bottom",
+        "value": "env(safe-area-inset-bottom, 0px)"
+      },
+      {
+        "name": "--sz-tab-bar-height",
+        "value": "5.25rem"
+      },
+      {
+        "name": "--sz-side-nav-width",
+        "value": "290px"
+      },
+      {
+        "name": "--sz-phone-width",
+        "value": "375px"
+      },
+      {
+        "name": "--sz-canva-radius",
+        "value": "0"
+      },
+      {
+        "name": "--sz-canva-radius-max",
+        "value": "2px"
+      },
+      {
+        "name": "--sz-slot-free",
+        "value": "#e8e6e2"
+      },
+      {
+        "name": "--sz-slot-reserved",
+        "value": "#c41e1e"
+      },
+      {
+        "name": "--sz-slot-reserved-ipg",
+        "value": "#d4dce8"
+      },
+      {
+        "name": "--sz-slot-reserved-ipg-bar",
+        "value": "#4a1420"
+      },
+      {
+        "name": "--sz-slot-public",
+        "value": "#b68a3b"
+      },
+      {
+        "name": "--sz-slot-team",
+        "value": "#6b1f28"
+      },
+      {
+        "name": "--sz-slot-pending",
+        "value": "#4a1420"
+      },
+      {
+        "name": "--sz-slot-cancel",
+        "value": "#a3a39f"
+      },
+      {
+        "name": "--sz-slot-closed",
+        "value": "#52524f"
+      },
+      {
+        "name": "--sz-slot-blocked",
+        "value": "#a3a39f"
+      },
+      {
+        "name": "--sz-cal-grid-free",
+        "value": "#eceae6"
+      },
+      {
+        "name": "--sz-cal-grid-reserved-paid",
+        "value": "#f3d4d4"
+      },
+      {
+        "name": "--sz-cal-grid-reserved-unpaid",
+        "value": "#fcd9a8"
+      },
+      {
+        "name": "--sz-cal-grid-reserved-ipg",
+        "value": "#d4dce8"
+      },
+      {
+        "name": "--sz-cal-grid-reserved-recurring",
+        "value": "#ddd4e8"
+      },
+      {
+        "name": "--sz-cal-grid-reserved-coach",
+        "value": "#f0c4b8"
+      },
+      {
+        "name": "--sz-cal-grid-pending",
+        "value": "#e8d4a8"
+      },
+      {
+        "name": "--sz-cal-grid-blocked",
+        "value": "#d4d2ce"
+      }
+    ],
+    "palette": [
+      {
+        "name": "primary",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "primaryDark",
+        "hex": "#4A1420"
+      },
+      {
+        "name": "primaryLight",
+        "hex": "#D63A3A"
+      },
+      {
+        "name": "primarySoft",
+        "hex": "#C41E1E1A"
+      },
+      {
+        "name": "gold",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "goldDark",
+        "hex": "#9A7530"
+      },
+      {
+        "name": "goldSoft",
+        "hex": "#B68A3B24"
+      },
+      {
+        "name": "cream",
+        "hex": "#F4EFE9"
+      },
+      {
+        "name": "accent",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "accentDark",
+        "hex": "#9A7530"
+      },
+      {
+        "name": "accentSoft",
+        "hex": "#B68A3B24"
+      },
+      {
+        "name": "lavender",
+        "hex": "#E8E6E2"
+      },
+      {
+        "name": "mint",
+        "hex": "#6B1F28"
+      },
+      {
+        "name": "sky",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "white",
+        "hex": "#FFFFFF"
+      },
+      {
+        "name": "navy",
+        "hex": "#2C2C2A"
+      },
+      {
+        "name": "50",
+        "hex": "#F4EFE9"
+      },
+      {
+        "name": "100",
+        "hex": "#E8E6E2"
+      },
+      {
+        "name": "200",
+        "hex": "#D4D2CE"
+      },
+      {
+        "name": "300",
+        "hex": "#C0BEBA"
+      },
+      {
+        "name": "400",
+        "hex": "#A3A39F"
+      },
+      {
+        "name": "500",
+        "hex": "#6B6B67"
+      },
+      {
+        "name": "600",
+        "hex": "#52524F"
+      },
+      {
+        "name": "700",
+        "hex": "#3D3D3A"
+      },
+      {
+        "name": "800",
+        "hex": "#2C2C2A"
+      },
+      {
+        "name": "900",
+        "hex": "#1A1A18"
+      },
+      {
+        "name": "success",
+        "hex": "#2E7D4F"
+      },
+      {
+        "name": "danger",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "warning",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "info",
+        "hex": "#6B1F28"
+      },
+      {
+        "name": "platformBooking",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "clubBooking",
+        "hex": "#4A1420"
+      },
+      {
+        "name": "openSlot",
+        "hex": "#E8E6E2"
+      },
+      {
+        "name": "class",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "blocked",
+        "hex": "#A3A39F"
+      },
+      {
+        "name": "match",
+        "hex": "#6B1F28"
+      },
+      {
+        "name": "tournament",
+        "hex": "#B68A3B"
+      },
+      {
+        "name": "session",
+        "hex": "#D63A3A"
+      },
+      {
+        "name": "FREE",
+        "hex": "#E8E6E2"
+      },
+      {
+        "name": "RESERVED",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "PUBLIC",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "TEAM",
+        "hex": "#C41E1E"
+      },
+      {
+        "name": "PENDING",
+        "hex": "#E8B84A"
+      },
+      {
+        "name": "CANCELLED",
+        "hex": "#A3A39F"
+      },
+      {
+        "name": "CLOSED",
+        "hex": "#1A1A18"
+      },
+      {
+        "name": "BLOCKED",
+        "hex": "#A3A39F"
+      },
+      {
+        "name": "FREE",
+        "hex": "#ECEAE6"
+      },
+      {
+        "name": "RESERVED_PAID",
+        "hex": "#F3D4D4"
+      },
+      {
+        "name": "RESERVED_UNPAID",
+        "hex": "#FCD9A8"
+      },
+      {
+        "name": "RESERVED_IPG",
+        "hex": "#D4DCE8"
+      },
+      {
+        "name": "RESERVED_RECURRING",
+        "hex": "#DDD4E8"
+      },
+      {
+        "name": "RESERVED_RECURRING_BAR",
+        "hex": "#6B4C9A"
+      },
+      {
+        "name": "RESERVED_COACH",
+        "hex": "#F0C4B8"
+      },
+      {
+        "name": "PENDING",
+        "hex": "#E8D4A8"
+      },
+      {
+        "name": "BLOCKED",
+        "hex": "#D4D2CE"
+      }
+    ],
+    "tailwindBrandKeys": [
+      "primary",
+      "gold",
+      "cream",
+      "accent",
+      "lavender",
+      "mint",
+      "sky",
+      "white",
+      "navy",
+      "gray"
+    ],
+    "fontFamilies": [
+      "Material Symbols Rounded",
+      "Outfit Variable",
+      "Vazirmatn Variable"
+    ],
+    "fontSizes": [
+      "2xl",
+      "3xl",
+      "[#2c2c2a]",
+      "[#3B82F6]",
+      "[#3c4043]",
+      "[#4a4a46]",
+      "[#B68A3B]",
+      "[#C9A227]",
+      "[#E8B84A]",
+      "[10px]",
+      "[11.5px]",
+      "[11px]",
+      "[12.5px]",
+      "[13px]",
+      "[14.5px]",
+      "[15px]",
+      "[17px]",
+      "[19px]",
+      "[2rem]",
+      "[8px]",
+      "[9px]",
+      "base",
+      "lg",
+      "sm",
+      "xl",
+      "xs"
+    ],
+    "fontWeights": [
+      "black",
+      "bold",
+      "extrabold",
+      "medium",
+      "normal",
+      "semibold"
+    ],
+    "spacing": [
+      "gap-0",
+      "gap-0.5",
+      "gap-1",
+      "gap-1.5",
+      "gap-2",
+      "gap-2.5",
+      "gap-3",
+      "gap-4",
+      "gap-5",
+      "mx-0",
+      "mx-1",
+      "mx-4",
+      "p-0",
+      "p-2",
+      "p-2.5",
+      "p-3",
+      "p-3.5",
+      "p-4",
+      "p-5",
+      "p-6",
+      "pb-0",
+      "pb-1",
+      "pb-10",
+      "pb-2",
+      "pb-3",
+      "pb-4",
+      "pb-5",
+      "pb-6",
+      "pb-8",
+      "pb-9",
+      "pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+5rem)]",
+      "pt-0.5",
+      "pt-1",
+      "pt-10",
+      "pt-2",
+      "pt-2.5",
+      "pt-3",
+      "pt-4",
+      "pt-5",
+      "pt-7",
+      "px-0",
+      "px-0.5",
+      "px-1",
+      "px-1.5",
+      "px-2",
+      "px-2.5",
+      "px-3",
+      "px-3.5",
+      "px-4",
+      "px-5",
+      "px-8",
+      "py-0",
+      "py-0.5",
+      "py-1",
+      "py-1.5",
+      "py-12",
+      "py-2",
+      "py-2.5",
+      "py-3",
+      "py-3.5",
+      "py-4",
+      "py-5",
+      "py-6",
+      "space-y-1",
+      "space-y-2",
+      "space-y-3",
+      "space-y-4",
+      "space-y-5",
+      "space-y-6"
+    ],
+    "borderRadius": [
+      "full",
+      "lg",
+      "none",
+      "subset",
+      "t-lg",
+      "tail",
+      "tail-lg",
+      "xl"
+    ],
+    "boxShadows": [
+      "[0_-8px_24px_rgba(0,0,0,0.06)]",
+      "md",
+      "none",
+      "sm",
+      "tail-lg",
+      "tail-md",
+      "venus-sm"
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "px": 640
+      },
+      {
+        "name": "md",
+        "px": 768
+      },
+      {
+        "name": "lg",
+        "px": 1024
+      },
+      {
+        "name": "xl",
+        "px": 1280
+      },
+      {
+        "name": "2xl",
+        "px": 1536
+      }
+    ],
+    "tailwindBorderRadius": {
+      "ios": "0.75rem",
+      "venus": "0 4px 24px rgba(44, 44, 42, 0.08)",
+      "tail": "0.75rem",
+      "card": "0 4px 24px rgba(44, 44, 42, 0.08)",
+      "glass": "0 4px 24px rgba(44, 44, 42, 0.08)",
+      "backgroundPosition": "200% 0",
+      "transform": "translateX(-100%)",
+      "opacity": "1"
+    },
+    "sources": [
+      "app/assets/css/tokens.css",
+      "app/assets/css/main.css",
+      "tailwind.config.ts",
+      "server/utils/palette.ts"
+    ]
+  },
+  "pages": [
+    {
+      "id": "page-about",
+      "path": "/about",
+      "kind": "page",
+      "source": "app/pages/about.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-about.png"
+    },
+    {
+      "id": "page-athlete-bookings-[id]",
+      "path": "/athlete/bookings/[id]",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/[id].vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-bookings-[id].png"
+    },
+    {
+      "id": "page-athlete-bookings-coach-[id]",
+      "path": "/athlete/bookings/coach/[id]",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/coach/[id].vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-bookings-coach-[id].png"
+    },
+    {
+      "id": "page-athlete-bookings",
+      "path": "/athlete/bookings",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/index.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-bookings.png"
+    },
+    {
+      "id": "page-athlete-competitions",
+      "path": "/athlete/competitions",
+      "kind": "page",
+      "source": "app/pages/athlete/competitions.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-competitions.png"
+    },
+    {
+      "id": "page-athlete-favorites",
+      "path": "/athlete/favorites",
+      "kind": "page",
+      "source": "app/pages/athlete/favorites.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-favorites.png"
+    },
+    {
+      "id": "page-athlete-home",
+      "path": "/athlete/home",
+      "kind": "page",
+      "source": "app/pages/athlete/home.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-home.png"
+    },
+    {
+      "id": "page-athlete",
+      "path": "/athlete",
+      "kind": "page",
+      "source": "app/pages/athlete/index.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete.png"
+    },
+    {
+      "id": "page-athlete-notifications",
+      "path": "/athlete/notifications",
+      "kind": "page",
+      "source": "app/pages/athlete/notifications.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-notifications.png"
+    },
+    {
+      "id": "page-athlete-payments",
+      "path": "/athlete/payments",
+      "kind": "page",
+      "source": "app/pages/athlete/payments.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-payments.png"
+    },
+    {
+      "id": "page-athlete-profile",
+      "path": "/athlete/profile",
+      "kind": "page",
+      "source": "app/pages/athlete/profile.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-profile.png"
+    },
+    {
+      "id": "page-athlete-support",
+      "path": "/athlete/support",
+      "kind": "page",
+      "source": "app/pages/athlete/support.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-support.png"
+    },
+    {
+      "id": "page-athlete-wallet",
+      "path": "/athlete/wallet",
+      "kind": "page",
+      "source": "app/pages/athlete/wallet.vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-wallet.png"
+    },
+    {
+      "id": "page-book-coach-[id]",
+      "path": "/book/coach/[id]",
+      "kind": "page",
+      "source": "app/pages/book/coach/[id].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-coach-[id].png"
+    },
+    {
+      "id": "page-book-court-[slug]",
+      "path": "/book/court/[slug]",
+      "kind": "page",
+      "source": "app/pages/book/court/[slug].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-court-[slug].png"
+    },
+    {
+      "id": "page-book-package-[id]",
+      "path": "/book/package/[id]",
+      "kind": "page",
+      "source": "app/pages/book/package/[id].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-package-[id].png"
+    },
+    {
+      "id": "page-cancellation",
+      "path": "/cancellation",
+      "kind": "page",
+      "source": "app/pages/cancellation.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-cancellation.png"
+    },
+    {
+      "id": "page-choose-role",
+      "path": "/choose-role",
+      "kind": "page",
+      "source": "app/pages/choose-role.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-choose-role.png"
+    },
+    {
+      "id": "page-clubs-[slug]",
+      "path": "/clubs/[slug]",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs-[slug].png"
+    },
+    {
+      "id": "page-clubs-apply",
+      "path": "/clubs/apply",
+      "kind": "page",
+      "source": "app/pages/clubs/apply.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs-apply.png"
+    },
+    {
+      "id": "page-clubs",
+      "path": "/clubs",
+      "kind": "page",
+      "source": "app/pages/clubs/index.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs.png"
+    },
+    {
+      "id": "page-coach-book",
+      "path": "/coach/book",
+      "kind": "page",
+      "source": "app/pages/coach/book.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-book.png"
+    },
+    {
+      "id": "page-coach-clients",
+      "path": "/coach/clients",
+      "kind": "page",
+      "source": "app/pages/coach/clients.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-clients.png"
+    },
+    {
+      "id": "page-coach",
+      "path": "/coach",
+      "kind": "page",
+      "source": "app/pages/coach/index.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach.png"
+    },
+    {
+      "id": "page-coach-packages",
+      "path": "/coach/packages",
+      "kind": "page",
+      "source": "app/pages/coach/packages.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-packages.png"
+    },
+    {
+      "id": "page-coach-pending",
+      "path": "/coach/pending",
+      "kind": "page",
+      "source": "app/pages/coach/pending.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-pending.png"
+    },
+    {
+      "id": "page-coach-profile",
+      "path": "/coach/profile",
+      "kind": "page",
+      "source": "app/pages/coach/profile.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-profile.png"
+    },
+    {
+      "id": "page-coach-schedule",
+      "path": "/coach/schedule",
+      "kind": "page",
+      "source": "app/pages/coach/schedule.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-schedule.png"
+    },
+    {
+      "id": "page-coach-settings",
+      "path": "/coach/settings",
+      "kind": "page",
+      "source": "app/pages/coach/settings.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coach-settings.png"
+    },
+    {
+      "id": "page-coaches-[id]",
+      "path": "/coaches/[id]",
+      "kind": "page",
+      "source": "app/pages/coaches/[id].vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coaches-[id].png"
+    },
+    {
+      "id": "page-coaches",
+      "path": "/coaches",
+      "kind": "page",
+      "source": "app/pages/coaches/index.vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coaches.png"
+    },
+    {
+      "id": "page-competitions-[id]",
+      "path": "/competitions/[id]",
+      "kind": "page",
+      "source": "app/pages/competitions/[id].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-competitions-[id].png"
+    },
+    {
+      "id": "page-competitions",
+      "path": "/competitions",
+      "kind": "page",
+      "source": "app/pages/competitions/index.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-competitions.png"
+    },
+    {
+      "id": "page-complaints",
+      "path": "/complaints",
+      "kind": "page",
+      "source": "app/pages/complaints.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-complaints.png"
+    },
+    {
+      "id": "page-contact",
+      "path": "/contact",
+      "kind": "page",
+      "source": "app/pages/contact.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-contact.png"
+    },
+    {
+      "id": "page-forgot-password",
+      "path": "/forgot-password",
+      "kind": "page",
+      "source": "app/pages/forgot-password.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-forgot-password.png"
+    },
+    {
+      "id": "page-home",
+      "path": "/",
+      "kind": "page",
+      "source": "app/pages/index.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-home.png"
+    },
+    {
+      "id": "page-offline",
+      "path": "/offline",
+      "kind": "page",
+      "source": "app/pages/offline.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-offline.png"
+    },
+    {
+      "id": "page-owner-calendar",
+      "path": "/owner/calendar",
+      "kind": "page",
+      "source": "app/pages/owner/calendar.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-calendar.png"
+    },
+    {
+      "id": "page-owner-coaches",
+      "path": "/owner/coaches",
+      "kind": "page",
+      "source": "app/pages/owner/coaches.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-coaches.png"
+    },
+    {
+      "id": "page-owner-competitions-[id]",
+      "path": "/owner/competitions/[id]",
+      "kind": "page",
+      "source": "app/pages/owner/competitions/[id].vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-competitions-[id].png"
+    },
+    {
+      "id": "page-owner-competitions",
+      "path": "/owner/competitions",
+      "kind": "page",
+      "source": "app/pages/owner/competitions/index.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-competitions.png"
+    },
+    {
+      "id": "page-owner-crm-[id]",
+      "path": "/owner/crm/[id]",
+      "kind": "page",
+      "source": "app/pages/owner/crm/[id].vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-crm-[id].png"
+    },
+    {
+      "id": "page-owner-crm",
+      "path": "/owner/crm",
+      "kind": "page",
+      "source": "app/pages/owner/crm.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-crm.png"
+    },
+    {
+      "id": "page-owner-discounts",
+      "path": "/owner/discounts",
+      "kind": "page",
+      "source": "app/pages/owner/discounts.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-discounts.png"
+    },
+    {
+      "id": "page-owner-equipments",
+      "path": "/owner/equipments",
+      "kind": "page",
+      "source": "app/pages/owner/equipments.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-equipments.png"
+    },
+    {
+      "id": "page-owner-finance",
+      "path": "/owner/finance",
+      "kind": "page",
+      "source": "app/pages/owner/finance/index.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-finance.png"
+    },
+    {
+      "id": "page-owner-finance-report",
+      "path": "/owner/finance/report",
+      "kind": "page",
+      "source": "app/pages/owner/finance/report.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-finance-report.png"
+    },
+    {
+      "id": "page-owner",
+      "path": "/owner",
+      "kind": "page",
+      "source": "app/pages/owner/index.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner.png"
+    },
+    {
+      "id": "page-owner-notifications",
+      "path": "/owner/notifications",
+      "kind": "page",
+      "source": "app/pages/owner/notifications.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-notifications.png"
+    },
+    {
+      "id": "page-owner-packages",
+      "path": "/owner/packages",
+      "kind": "page",
+      "source": "app/pages/owner/packages.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-packages.png"
+    },
+    {
+      "id": "page-owner-pending",
+      "path": "/owner/pending",
+      "kind": "page",
+      "source": "app/pages/owner/pending.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-pending.png"
+    },
+    {
+      "id": "page-owner-reserve-package",
+      "path": "/owner/reserve/package",
+      "kind": "page",
+      "source": "app/pages/owner/reserve/package.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-reserve-package.png"
+    },
+    {
+      "id": "page-owner-reserve-season",
+      "path": "/owner/reserve/season",
+      "kind": "page",
+      "source": "app/pages/owner/reserve/season.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-reserve-season.png"
+    },
+    {
+      "id": "page-owner-settings",
+      "path": "/owner/settings",
+      "kind": "page",
+      "source": "app/pages/owner/settings.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-settings.png"
+    },
+    {
+      "id": "page-owner-setup",
+      "path": "/owner/setup",
+      "kind": "page",
+      "source": "app/pages/owner/setup.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-setup.png"
+    },
+    {
+      "id": "page-owner-support",
+      "path": "/owner/support",
+      "kind": "page",
+      "source": "app/pages/owner/support.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-support.png"
+    },
+    {
+      "id": "page-owner-workers",
+      "path": "/owner/workers",
+      "kind": "page",
+      "source": "app/pages/owner/workers.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-workers.png"
+    },
+    {
+      "id": "page-p-[pin]",
+      "path": "/p/[pin]",
+      "kind": "page",
+      "source": "app/pages/p/[pin].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-p-[pin].png"
+    },
+    {
+      "id": "page-payments-test-gateway",
+      "path": "/payments/test-gateway",
+      "kind": "page",
+      "source": "app/pages/payments/test-gateway.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-payments-test-gateway.png"
+    },
+    {
+      "id": "page-pricing",
+      "path": "/pricing",
+      "kind": "page",
+      "source": "app/pages/pricing.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-pricing.png"
+    },
+    {
+      "id": "page-privacy",
+      "path": "/privacy",
+      "kind": "page",
+      "source": "app/pages/privacy.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-privacy.png"
+    },
+    {
+      "id": "page-r-[token]",
+      "path": "/r/[token]",
+      "kind": "page",
+      "source": "app/pages/r/[token].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-r-[token].png"
+    },
+    {
+      "id": "page-register-coach",
+      "path": "/register/coach",
+      "kind": "page",
+      "source": "app/pages/register/coach.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-register-coach.png"
+    },
+    {
+      "id": "page-register",
+      "path": "/register",
+      "kind": "page",
+      "source": "app/pages/register/index.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-register.png"
+    },
+    {
+      "id": "page-register-owner",
+      "path": "/register/owner",
+      "kind": "page",
+      "source": "app/pages/register/owner.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-register-owner.png"
+    },
+    {
+      "id": "page-reset-password",
+      "path": "/reset-password",
+      "kind": "page",
+      "source": "app/pages/reset-password.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-reset-password.png"
+    },
+    {
+      "id": "page-terms",
+      "path": "/terms",
+      "kind": "page",
+      "source": "app/pages/terms.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-terms.png"
+    },
+    {
+      "id": "page-owner-calendar-sources",
+      "path": "/owner/calendar-sources",
+      "kind": "page",
+      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-calendar-sources.png"
+    },
+    {
+      "id": "page-clubs-padel-zone-tehran",
+      "path": "/clubs/padel-zone-tehran",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs-padel-zone-tehran.png"
+    },
+    {
+      "id": "page-book-court-padel-zone-tehran",
+      "path": "/book/court/padel-zone-tehran",
+      "kind": "page",
+      "source": "app/pages/book/court/[slug].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-court-padel-zone-tehran.png"
+    },
+    {
+      "id": "page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel",
+      "path": "/clubs/%D8%AA%D9%87%D8%B1%D8%A7%D9%86/padel",
+      "kind": "page",
+      "source": "app/pages/clubs/[city]/[sport].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel.png"
+    },
+    {
+      "id": "page-coaches-cmvi2xpob00aujstmy0lfp3vi",
+      "path": "/coaches/cmvi2xpob00aujstmy0lfp3vi",
+      "kind": "page",
+      "source": "app/pages/coaches/[id].vue",
+      "auth": "coach",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-coaches-cmvi2xpob00aujstmy0lfp3vi.png"
+    },
+    {
+      "id": "page-book-coach-cmvi2xpob00aujstmy0lfp3vi",
+      "path": "/book/coach/cmvi2xpob00aujstmy0lfp3vi",
+      "kind": "page",
+      "source": "app/pages/book/coach/[id].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-coach-cmvi2xpob00aujstmy0lfp3vi.png"
+    },
+    {
+      "id": "page-book-package-cmvi2xppb00djjstmhhh081wd",
+      "path": "/book/package/cmvi2xppb00djjstmhhh081wd",
+      "kind": "page",
+      "source": "app/pages/book/package/[id].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-book-package-cmvi2xppb00djjstmhhh081wd.png"
+    },
+    {
+      "id": "page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p",
+      "path": "/athlete/bookings/cmvi2xpo900aojstmqnr7ug6p",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/[id].vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p.png"
+    },
+    {
+      "id": "page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s",
+      "path": "/athlete/bookings/coach/cmvi2xpot00cejstmhytv3z2s",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/coach/[id].vue",
+      "auth": "athlete",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s.png"
+    },
+    {
+      "id": "page-owner-crm-cmvi2xpp300d3jstmj81absn6",
+      "path": "/owner/crm/cmvi2xpp300d3jstmj81absn6",
+      "kind": "page",
+      "source": "app/pages/owner/crm/[id].vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-owner-crm-cmvi2xpp300d3jstmj81absn6.png"
+    },
+    {
+      "id": "page-clubs-mashhad-tennis-center",
+      "path": "/clubs/mashhad-tennis-center",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-clubs-mashhad-tennis-center.png"
+    },
+    {
+      "id": "sheet-club-booking-confirm",
+      "path": "/clubs/padel-zone-tehran",
+      "kind": "sheet",
+      "source": "app/components/CourtBookingConfirmSheet.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/sheet-sheet-club-booking-confirm.png"
+    },
+    {
+      "id": "sheet-owner-more",
+      "path": "/owner/calendar?more=1",
+      "kind": "sheet",
+      "source": "app/components/OwnerMoreSheet.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/sheet-sheet-owner-more.png"
+    },
+    {
+      "id": "sheet-owner-reserve",
+      "path": "/owner/calendar",
+      "kind": "sheet",
+      "source": "app/pages/owner/calendar.vue",
+      "auth": "owner",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/sheet-sheet-owner-reserve.png"
+    },
+    {
+      "id": "state-login-loading",
+      "path": "/login",
+      "kind": "loading",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/loading-state-login-loading.png"
+    },
+    {
+      "id": "state-admin-gate",
+      "path": "/admin",
+      "kind": "empty",
+      "source": "app/layouts/dashboard-admin.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/empty-state-admin-gate.png"
+    },
+    {
+      "id": "page-about",
+      "path": "/about",
+      "kind": "page",
+      "source": "app/pages/about.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-about.png"
+    },
+    {
+      "id": "page-athlete-bookings-[id]",
+      "path": "/athlete/bookings/[id]",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/[id].vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-bookings-[id].png"
+    },
+    {
+      "id": "page-athlete-bookings-coach-[id]",
+      "path": "/athlete/bookings/coach/[id]",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/coach/[id].vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-bookings-coach-[id].png"
+    },
+    {
+      "id": "page-athlete-bookings",
+      "path": "/athlete/bookings",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/index.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-bookings.png"
+    },
+    {
+      "id": "page-athlete-competitions",
+      "path": "/athlete/competitions",
+      "kind": "page",
+      "source": "app/pages/athlete/competitions.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-competitions.png"
+    },
+    {
+      "id": "page-athlete-favorites",
+      "path": "/athlete/favorites",
+      "kind": "page",
+      "source": "app/pages/athlete/favorites.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-favorites.png"
+    },
+    {
+      "id": "page-athlete-home",
+      "path": "/athlete/home",
+      "kind": "page",
+      "source": "app/pages/athlete/home.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-home.png"
+    },
+    {
+      "id": "page-athlete",
+      "path": "/athlete",
+      "kind": "page",
+      "source": "app/pages/athlete/index.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete.png"
+    },
+    {
+      "id": "page-athlete-notifications",
+      "path": "/athlete/notifications",
+      "kind": "page",
+      "source": "app/pages/athlete/notifications.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-notifications.png"
+    },
+    {
+      "id": "page-athlete-payments",
+      "path": "/athlete/payments",
+      "kind": "page",
+      "source": "app/pages/athlete/payments.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-payments.png"
+    },
+    {
+      "id": "page-athlete-profile",
+      "path": "/athlete/profile",
+      "kind": "page",
+      "source": "app/pages/athlete/profile.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-profile.png"
+    },
+    {
+      "id": "page-athlete-support",
+      "path": "/athlete/support",
+      "kind": "page",
+      "source": "app/pages/athlete/support.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-support.png"
+    },
+    {
+      "id": "page-athlete-wallet",
+      "path": "/athlete/wallet",
+      "kind": "page",
+      "source": "app/pages/athlete/wallet.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-wallet.png"
+    },
+    {
+      "id": "page-book-coach-[id]",
+      "path": "/book/coach/[id]",
+      "kind": "page",
+      "source": "app/pages/book/coach/[id].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-coach-[id].png"
+    },
+    {
+      "id": "page-book-court-[slug]",
+      "path": "/book/court/[slug]",
+      "kind": "page",
+      "source": "app/pages/book/court/[slug].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-court-[slug].png"
+    },
+    {
+      "id": "page-book-package-[id]",
+      "path": "/book/package/[id]",
+      "kind": "page",
+      "source": "app/pages/book/package/[id].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-package-[id].png"
+    },
+    {
+      "id": "page-cancellation",
+      "path": "/cancellation",
+      "kind": "page",
+      "source": "app/pages/cancellation.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-cancellation.png"
+    },
+    {
+      "id": "page-choose-role",
+      "path": "/choose-role",
+      "kind": "page",
+      "source": "app/pages/choose-role.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-choose-role.png"
+    },
+    {
+      "id": "page-clubs-[slug]",
+      "path": "/clubs/[slug]",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs-[slug].png"
+    },
+    {
+      "id": "page-clubs-apply",
+      "path": "/clubs/apply",
+      "kind": "page",
+      "source": "app/pages/clubs/apply.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs-apply.png"
+    },
+    {
+      "id": "page-clubs",
+      "path": "/clubs",
+      "kind": "page",
+      "source": "app/pages/clubs/index.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs.png"
+    },
+    {
+      "id": "page-coach-book",
+      "path": "/coach/book",
+      "kind": "page",
+      "source": "app/pages/coach/book.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-book.png"
+    },
+    {
+      "id": "page-coach-clients",
+      "path": "/coach/clients",
+      "kind": "page",
+      "source": "app/pages/coach/clients.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-clients.png"
+    },
+    {
+      "id": "page-coach",
+      "path": "/coach",
+      "kind": "page",
+      "source": "app/pages/coach/index.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach.png"
+    },
+    {
+      "id": "page-coach-packages",
+      "path": "/coach/packages",
+      "kind": "page",
+      "source": "app/pages/coach/packages.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-packages.png"
+    },
+    {
+      "id": "page-coach-pending",
+      "path": "/coach/pending",
+      "kind": "page",
+      "source": "app/pages/coach/pending.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-pending.png"
+    },
+    {
+      "id": "page-coach-profile",
+      "path": "/coach/profile",
+      "kind": "page",
+      "source": "app/pages/coach/profile.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-profile.png"
+    },
+    {
+      "id": "page-coach-schedule",
+      "path": "/coach/schedule",
+      "kind": "page",
+      "source": "app/pages/coach/schedule.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-schedule.png"
+    },
+    {
+      "id": "page-coach-settings",
+      "path": "/coach/settings",
+      "kind": "page",
+      "source": "app/pages/coach/settings.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coach-settings.png"
+    },
+    {
+      "id": "page-coaches-[id]",
+      "path": "/coaches/[id]",
+      "kind": "page",
+      "source": "app/pages/coaches/[id].vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coaches-[id].png"
+    },
+    {
+      "id": "page-coaches",
+      "path": "/coaches",
+      "kind": "page",
+      "source": "app/pages/coaches/index.vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coaches.png"
+    },
+    {
+      "id": "page-competitions-[id]",
+      "path": "/competitions/[id]",
+      "kind": "page",
+      "source": "app/pages/competitions/[id].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-competitions-[id].png"
+    },
+    {
+      "id": "page-competitions",
+      "path": "/competitions",
+      "kind": "page",
+      "source": "app/pages/competitions/index.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-competitions.png"
+    },
+    {
+      "id": "page-complaints",
+      "path": "/complaints",
+      "kind": "page",
+      "source": "app/pages/complaints.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-complaints.png"
+    },
+    {
+      "id": "page-contact",
+      "path": "/contact",
+      "kind": "page",
+      "source": "app/pages/contact.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-contact.png"
+    },
+    {
+      "id": "page-forgot-password",
+      "path": "/forgot-password",
+      "kind": "page",
+      "source": "app/pages/forgot-password.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-forgot-password.png"
+    },
+    {
+      "id": "page-home",
+      "path": "/",
+      "kind": "page",
+      "source": "app/pages/index.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-home.png"
+    },
+    {
+      "id": "page-offline",
+      "path": "/offline",
+      "kind": "page",
+      "source": "app/pages/offline.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-offline.png"
+    },
+    {
+      "id": "page-owner-calendar",
+      "path": "/owner/calendar",
+      "kind": "page",
+      "source": "app/pages/owner/calendar.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-calendar.png"
+    },
+    {
+      "id": "page-owner-coaches",
+      "path": "/owner/coaches",
+      "kind": "page",
+      "source": "app/pages/owner/coaches.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-coaches.png"
+    },
+    {
+      "id": "page-owner-competitions-[id]",
+      "path": "/owner/competitions/[id]",
+      "kind": "page",
+      "source": "app/pages/owner/competitions/[id].vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-competitions-[id].png"
+    },
+    {
+      "id": "page-owner-competitions",
+      "path": "/owner/competitions",
+      "kind": "page",
+      "source": "app/pages/owner/competitions/index.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-competitions.png"
+    },
+    {
+      "id": "page-owner-crm-[id]",
+      "path": "/owner/crm/[id]",
+      "kind": "page",
+      "source": "app/pages/owner/crm/[id].vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-crm-[id].png"
+    },
+    {
+      "id": "page-owner-crm",
+      "path": "/owner/crm",
+      "kind": "page",
+      "source": "app/pages/owner/crm.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-crm.png"
+    },
+    {
+      "id": "page-owner-discounts",
+      "path": "/owner/discounts",
+      "kind": "page",
+      "source": "app/pages/owner/discounts.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-discounts.png"
+    },
+    {
+      "id": "page-owner-equipments",
+      "path": "/owner/equipments",
+      "kind": "page",
+      "source": "app/pages/owner/equipments.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-equipments.png"
+    },
+    {
+      "id": "page-owner-finance",
+      "path": "/owner/finance",
+      "kind": "page",
+      "source": "app/pages/owner/finance/index.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-finance.png"
+    },
+    {
+      "id": "page-owner-finance-report",
+      "path": "/owner/finance/report",
+      "kind": "page",
+      "source": "app/pages/owner/finance/report.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-finance-report.png"
+    },
+    {
+      "id": "page-owner",
+      "path": "/owner",
+      "kind": "page",
+      "source": "app/pages/owner/index.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner.png"
+    },
+    {
+      "id": "page-owner-notifications",
+      "path": "/owner/notifications",
+      "kind": "page",
+      "source": "app/pages/owner/notifications.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-notifications.png"
+    },
+    {
+      "id": "page-owner-packages",
+      "path": "/owner/packages",
+      "kind": "page",
+      "source": "app/pages/owner/packages.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-packages.png"
+    },
+    {
+      "id": "page-owner-pending",
+      "path": "/owner/pending",
+      "kind": "page",
+      "source": "app/pages/owner/pending.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-pending.png"
+    },
+    {
+      "id": "page-owner-reserve-package",
+      "path": "/owner/reserve/package",
+      "kind": "page",
+      "source": "app/pages/owner/reserve/package.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-reserve-package.png"
+    },
+    {
+      "id": "page-owner-reserve-season",
+      "path": "/owner/reserve/season",
+      "kind": "page",
+      "source": "app/pages/owner/reserve/season.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-reserve-season.png"
+    },
+    {
+      "id": "page-owner-settings",
+      "path": "/owner/settings",
+      "kind": "page",
+      "source": "app/pages/owner/settings.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-settings.png"
+    },
+    {
+      "id": "page-owner-setup",
+      "path": "/owner/setup",
+      "kind": "page",
+      "source": "app/pages/owner/setup.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-setup.png"
+    },
+    {
+      "id": "page-owner-support",
+      "path": "/owner/support",
+      "kind": "page",
+      "source": "app/pages/owner/support.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-support.png"
+    },
+    {
+      "id": "page-owner-workers",
+      "path": "/owner/workers",
+      "kind": "page",
+      "source": "app/pages/owner/workers.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-workers.png"
+    },
+    {
+      "id": "page-p-[pin]",
+      "path": "/p/[pin]",
+      "kind": "page",
+      "source": "app/pages/p/[pin].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-p-[pin].png"
+    },
+    {
+      "id": "page-payments-test-gateway",
+      "path": "/payments/test-gateway",
+      "kind": "page",
+      "source": "app/pages/payments/test-gateway.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-payments-test-gateway.png"
+    },
+    {
+      "id": "page-pricing",
+      "path": "/pricing",
+      "kind": "page",
+      "source": "app/pages/pricing.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-pricing.png"
+    },
+    {
+      "id": "page-privacy",
+      "path": "/privacy",
+      "kind": "page",
+      "source": "app/pages/privacy.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-privacy.png"
+    },
+    {
+      "id": "page-r-[token]",
+      "path": "/r/[token]",
+      "kind": "page",
+      "source": "app/pages/r/[token].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-r-[token].png"
+    },
+    {
+      "id": "page-register-coach",
+      "path": "/register/coach",
+      "kind": "page",
+      "source": "app/pages/register/coach.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-register-coach.png"
+    },
+    {
+      "id": "page-register",
+      "path": "/register",
+      "kind": "page",
+      "source": "app/pages/register/index.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-register.png"
+    },
+    {
+      "id": "page-register-owner",
+      "path": "/register/owner",
+      "kind": "page",
+      "source": "app/pages/register/owner.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-register-owner.png"
+    },
+    {
+      "id": "page-reset-password",
+      "path": "/reset-password",
+      "kind": "page",
+      "source": "app/pages/reset-password.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-reset-password.png"
+    },
+    {
+      "id": "page-terms",
+      "path": "/terms",
+      "kind": "page",
+      "source": "app/pages/terms.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-terms.png"
+    },
+    {
+      "id": "page-owner-calendar-sources",
+      "path": "/owner/calendar-sources",
+      "kind": "page",
+      "source": "modules/inbox-external-calendar/runtime/pages/owner/calendar-sources.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-calendar-sources.png"
+    },
+    {
+      "id": "page-clubs-padel-zone-tehran",
+      "path": "/clubs/padel-zone-tehran",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs-padel-zone-tehran.png"
+    },
+    {
+      "id": "page-book-court-padel-zone-tehran",
+      "path": "/book/court/padel-zone-tehran",
+      "kind": "page",
+      "source": "app/pages/book/court/[slug].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-court-padel-zone-tehran.png"
+    },
+    {
+      "id": "page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel",
+      "path": "/clubs/%D8%AA%D9%87%D8%B1%D8%A7%D9%86/padel",
+      "kind": "page",
+      "source": "app/pages/clubs/[city]/[sport].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs-%D8%AA%D9%87%D8%B1%D8%A7%D9%86-padel.png"
+    },
+    {
+      "id": "page-coaches-cmvi2xpob00aujstmy0lfp3vi",
+      "path": "/coaches/cmvi2xpob00aujstmy0lfp3vi",
+      "kind": "page",
+      "source": "app/pages/coaches/[id].vue",
+      "auth": "coach",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-coaches-cmvi2xpob00aujstmy0lfp3vi.png"
+    },
+    {
+      "id": "page-book-coach-cmvi2xpob00aujstmy0lfp3vi",
+      "path": "/book/coach/cmvi2xpob00aujstmy0lfp3vi",
+      "kind": "page",
+      "source": "app/pages/book/coach/[id].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-coach-cmvi2xpob00aujstmy0lfp3vi.png"
+    },
+    {
+      "id": "page-book-package-cmvi2xppb00djjstmhhh081wd",
+      "path": "/book/package/cmvi2xppb00djjstmhhh081wd",
+      "kind": "page",
+      "source": "app/pages/book/package/[id].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-book-package-cmvi2xppb00djjstmhhh081wd.png"
+    },
+    {
+      "id": "page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p",
+      "path": "/athlete/bookings/cmvi2xpo900aojstmqnr7ug6p",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/[id].vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-bookings-cmvi2xpo900aojstmqnr7ug6p.png"
+    },
+    {
+      "id": "page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s",
+      "path": "/athlete/bookings/coach/cmvi2xpot00cejstmhytv3z2s",
+      "kind": "page",
+      "source": "app/pages/athlete/bookings/coach/[id].vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-athlete-bookings-coach-cmvi2xpot00cejstmhytv3z2s.png"
+    },
+    {
+      "id": "page-owner-crm-cmvi2xpp300d3jstmj81absn6",
+      "path": "/owner/crm/cmvi2xpp300d3jstmj81absn6",
+      "kind": "page",
+      "source": "app/pages/owner/crm/[id].vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-owner-crm-cmvi2xpp300d3jstmj81absn6.png"
+    },
+    {
+      "id": "page-clubs-mashhad-tennis-center",
+      "path": "/clubs/mashhad-tennis-center",
+      "kind": "page",
+      "source": "app/pages/clubs/[slug].vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-clubs-mashhad-tennis-center.png"
+    },
+    {
+      "id": "sheet-club-booking-confirm",
+      "path": "/clubs/padel-zone-tehran",
+      "kind": "sheet",
+      "source": "app/components/CourtBookingConfirmSheet.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/sheet-sheet-club-booking-confirm.png"
+    },
+    {
+      "id": "sheet-owner-more",
+      "path": "/owner/calendar?more=1",
+      "kind": "sheet",
+      "source": "app/components/OwnerMoreSheet.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/sheet-sheet-owner-more.png"
+    },
+    {
+      "id": "sheet-owner-reserve",
+      "path": "/owner/calendar",
+      "kind": "sheet",
+      "source": "app/pages/owner/calendar.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/sheet-sheet-owner-reserve.png"
+    },
+    {
+      "id": "sheet-owner-account-drawer",
+      "path": "/owner/calendar",
+      "kind": "drawer",
+      "source": "app/components/OwnerAccountDrawer.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/drawer-sheet-owner-account-drawer.png"
+    },
+    {
+      "id": "ui-mobile-side-menu",
+      "path": "/owner/calendar",
+      "kind": "menu",
+      "source": "app/components/DashboardShell.vue",
+      "auth": "owner",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/menu-ui-mobile-side-menu.png"
+    },
+    {
+      "id": "ui-athlete-bottom-nav",
+      "path": "/athlete/home",
+      "kind": "nav",
+      "source": "app/components/AppBottomNav.vue",
+      "auth": "athlete",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/nav-ui-athlete-bottom-nav.png"
+    },
+    {
+      "id": "state-login-loading",
+      "path": "/login",
+      "kind": "loading",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/loading-state-login-loading.png"
+    },
+    {
+      "id": "state-admin-gate",
+      "path": "/admin",
+      "kind": "empty",
+      "source": "app/layouts/dashboard-admin.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/empty-state-admin-gate.png"
+    },
+    {
+      "id": "page-admin-applications",
+      "path": "/admin/applications",
+      "kind": "page",
+      "source": "app/pages/admin/applications.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-applications.png"
+    },
+    {
+      "id": "page-admin-bookings",
+      "path": "/admin/bookings",
+      "kind": "page",
+      "source": "app/pages/admin/bookings/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-bookings.png"
+    },
+    {
+      "id": "page-admin-calendar",
+      "path": "/admin/calendar",
+      "kind": "page",
+      "source": "app/pages/admin/calendar.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-calendar.png"
+    },
+    {
+      "id": "page-admin-clubs",
+      "path": "/admin/clubs",
+      "kind": "page",
+      "source": "app/pages/admin/clubs/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-clubs.png"
+    },
+    {
+      "id": "page-admin-coach-applications",
+      "path": "/admin/coach-applications",
+      "kind": "page",
+      "source": "app/pages/admin/coach-applications.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-coach-applications.png"
+    },
+    {
+      "id": "page-admin",
+      "path": "/admin",
+      "kind": "page",
+      "source": "app/pages/admin/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin.png"
+    },
+    {
+      "id": "page-admin-provision",
+      "path": "/admin/provision",
+      "kind": "page",
+      "source": "app/pages/admin/provision.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-provision.png"
+    },
+    {
+      "id": "page-admin-sentry",
+      "path": "/admin/sentry",
+      "kind": "page",
+      "source": "app/pages/admin/sentry.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-sentry.png"
+    },
+    {
+      "id": "page-admin-sms",
+      "path": "/admin/sms",
+      "kind": "page",
+      "source": "app/pages/admin/sms.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-sms.png"
+    },
+    {
+      "id": "page-admin-tickets",
+      "path": "/admin/tickets",
+      "kind": "page",
+      "source": "app/pages/admin/tickets/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-tickets.png"
+    },
+    {
+      "id": "page-admin-users",
+      "path": "/admin/users",
+      "kind": "page",
+      "source": "app/pages/admin/users/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-users.png"
+    },
+    {
+      "id": "page-admin-withdrawals",
+      "path": "/admin/withdrawals",
+      "kind": "page",
+      "source": "app/pages/admin/withdrawals/index.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-withdrawals.png"
+    },
+    {
+      "id": "page-admin-calendar-sources",
+      "path": "/admin/calendar-sources",
+      "kind": "page",
+      "source": "modules/inbox-external-calendar/runtime/pages/admin/calendar-sources.vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-calendar-sources.png"
+    },
+    {
+      "id": "page-admin-applications",
+      "path": "/admin/applications",
+      "kind": "page",
+      "source": "app/pages/admin/applications.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-applications.png"
+    },
+    {
+      "id": "page-admin-bookings",
+      "path": "/admin/bookings",
+      "kind": "page",
+      "source": "app/pages/admin/bookings/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-bookings.png"
+    },
+    {
+      "id": "page-admin-calendar",
+      "path": "/admin/calendar",
+      "kind": "page",
+      "source": "app/pages/admin/calendar.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-calendar.png"
+    },
+    {
+      "id": "page-admin-clubs",
+      "path": "/admin/clubs",
+      "kind": "page",
+      "source": "app/pages/admin/clubs/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-clubs.png"
+    },
+    {
+      "id": "page-admin-coach-applications",
+      "path": "/admin/coach-applications",
+      "kind": "page",
+      "source": "app/pages/admin/coach-applications.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-coach-applications.png"
+    },
+    {
+      "id": "page-admin",
+      "path": "/admin",
+      "kind": "page",
+      "source": "app/pages/admin/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin.png"
+    },
+    {
+      "id": "page-admin-provision",
+      "path": "/admin/provision",
+      "kind": "page",
+      "source": "app/pages/admin/provision.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-provision.png"
+    },
+    {
+      "id": "page-admin-sentry",
+      "path": "/admin/sentry",
+      "kind": "page",
+      "source": "app/pages/admin/sentry.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-sentry.png"
+    },
+    {
+      "id": "page-admin-sms",
+      "path": "/admin/sms",
+      "kind": "page",
+      "source": "app/pages/admin/sms.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-sms.png"
+    },
+    {
+      "id": "page-admin-tickets",
+      "path": "/admin/tickets",
+      "kind": "page",
+      "source": "app/pages/admin/tickets/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-tickets.png"
+    },
+    {
+      "id": "page-admin-users",
+      "path": "/admin/users",
+      "kind": "page",
+      "source": "app/pages/admin/users/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-users.png"
+    },
+    {
+      "id": "page-admin-withdrawals",
+      "path": "/admin/withdrawals",
+      "kind": "page",
+      "source": "app/pages/admin/withdrawals/index.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-withdrawals.png"
+    },
+    {
+      "id": "page-admin-calendar-sources",
+      "path": "/admin/calendar-sources",
+      "kind": "page",
+      "source": "modules/inbox-external-calendar/runtime/pages/admin/calendar-sources.vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-calendar-sources.png"
+    },
+    {
+      "id": "page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf",
+      "path": "/admin/clubs/cmvi2xpkl000bjstmvuh4inqf",
+      "kind": "page",
+      "source": "app/pages/admin/clubs/[id].vue",
+      "auth": "admin",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png"
+    },
+    {
+      "id": "page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf",
+      "path": "/admin/clubs/cmvi2xpkl000bjstmvuh4inqf",
+      "kind": "page",
+      "source": "app/pages/admin/clubs/[id].vue",
+      "auth": "admin",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-admin-clubs-cmvi2xpkl000bjstmvuh4inqf.png"
+    },
+    {
+      "id": "modal-auth-gate",
+      "path": "/login → / (AuthFlowModal)",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/modal-auth-gate.png"
+    },
+    {
+      "id": "page-login",
+      "path": "/login",
+      "kind": "page",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/page-login.png"
+    },
+    {
+      "id": "modal-auth-gate",
+      "path": "/login → / (AuthFlowModal)",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/modal-auth-gate.png"
+    },
+    {
+      "id": "page-login",
+      "path": "/login",
+      "kind": "page",
+      "source": "app/pages/login.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/page-login.png"
+    },
+    {
+      "id": "modal-login-otp",
+      "path": "/login → OTP step",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/modal-login-otp.png"
+    },
+    {
+      "id": "modal-login-otp",
+      "path": "/login → OTP step",
+      "kind": "modal",
+      "source": "app/components/AuthFlowModal.vue",
+      "auth": "guest",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/modal-login-otp.png"
+    }
+  ],
+  "components": [
+    {
+      "id": "component-btn-primary-default",
+      "name": "btn-primary (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-primary-default.png"
+    },
+    {
+      "id": "component-btn-primary-hover",
+      "name": "btn-primary (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-primary-hover.png"
+    },
+    {
+      "id": "component-btn-primary-focus",
+      "name": "btn-primary (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-primary-focus.png"
+    },
+    {
+      "id": "component-btn-primary-active",
+      "name": "btn-primary (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-primary-active.png"
+    },
+    {
+      "id": "component-btn-primary-disabled",
+      "name": "btn-primary (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-primary-disabled.png"
+    },
+    {
+      "id": "component-btn-ghost-default",
+      "name": "btn-ghost (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-ghost-default.png"
+    },
+    {
+      "id": "component-btn-ghost-hover",
+      "name": "btn-ghost (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-ghost-hover.png"
+    },
+    {
+      "id": "component-btn-ghost-focus",
+      "name": "btn-ghost (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-ghost-focus.png"
+    },
+    {
+      "id": "component-btn-ghost-active",
+      "name": "btn-ghost (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-ghost-active.png"
+    },
+    {
+      "id": "component-btn-ghost-disabled",
+      "name": "btn-ghost (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-ghost-disabled.png"
+    },
+    {
+      "id": "component-btn-coral-default",
+      "name": "btn-coral (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-coral-default.png"
+    },
+    {
+      "id": "component-btn-coral-hover",
+      "name": "btn-coral (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-coral-hover.png"
+    },
+    {
+      "id": "component-btn-coral-focus",
+      "name": "btn-coral (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-coral-focus.png"
+    },
+    {
+      "id": "component-btn-coral-active",
+      "name": "btn-coral (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-coral-active.png"
+    },
+    {
+      "id": "component-btn-coral-disabled",
+      "name": "btn-coral (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-coral-disabled.png"
+    },
+    {
+      "id": "component-btn-outline-default",
+      "name": "btn-outline (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-outline-default.png"
+    },
+    {
+      "id": "component-btn-outline-hover",
+      "name": "btn-outline (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-outline-hover.png"
+    },
+    {
+      "id": "component-btn-outline-focus",
+      "name": "btn-outline (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-outline-focus.png"
+    },
+    {
+      "id": "component-btn-outline-active",
+      "name": "btn-outline (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-outline-active.png"
+    },
+    {
+      "id": "component-btn-outline-disabled",
+      "name": "btn-outline (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-outline-disabled.png"
+    },
+    {
+      "id": "component-btn-danger-default",
+      "name": "btn-danger (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-danger-default.png"
+    },
+    {
+      "id": "component-btn-danger-hover",
+      "name": "btn-danger (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-danger-hover.png"
+    },
+    {
+      "id": "component-btn-danger-focus",
+      "name": "btn-danger (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-danger-focus.png"
+    },
+    {
+      "id": "component-btn-danger-active",
+      "name": "btn-danger (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-danger-active.png"
+    },
+    {
+      "id": "component-btn-danger-disabled",
+      "name": "btn-danger (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-danger-disabled.png"
+    },
+    {
+      "id": "component-btn-secondary-default",
+      "name": "btn-secondary (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-secondary-default.png"
+    },
+    {
+      "id": "component-btn-secondary-hover",
+      "name": "btn-secondary (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-secondary-hover.png"
+    },
+    {
+      "id": "component-btn-secondary-focus",
+      "name": "btn-secondary (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-secondary-focus.png"
+    },
+    {
+      "id": "component-btn-secondary-active",
+      "name": "btn-secondary (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-secondary-active.png"
+    },
+    {
+      "id": "component-btn-secondary-disabled",
+      "name": "btn-secondary (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-secondary-disabled.png"
+    },
+    {
+      "id": "component-btn-canva-login-default",
+      "name": "btn-canva-login (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-canva-login-default.png"
+    },
+    {
+      "id": "component-btn-canva-login-hover",
+      "name": "btn-canva-login (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-canva-login-hover.png"
+    },
+    {
+      "id": "component-btn-canva-login-focus",
+      "name": "btn-canva-login (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-canva-login-focus.png"
+    },
+    {
+      "id": "component-btn-canva-login-active",
+      "name": "btn-canva-login (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-canva-login-active.png"
+    },
+    {
+      "id": "component-btn-canva-login-disabled",
+      "name": "btn-canva-login (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-canva-login-disabled.png"
+    },
+    {
+      "id": "component-btn-google-default",
+      "name": "btn-google (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-default.png"
+    },
+    {
+      "id": "component-btn-google-hover",
+      "name": "btn-google (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-hover.png"
+    },
+    {
+      "id": "component-btn-google-focus",
+      "name": "btn-google (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-focus.png"
+    },
+    {
+      "id": "component-btn-google-active",
+      "name": "btn-google (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-active.png"
+    },
+    {
+      "id": "component-btn-google-disabled",
+      "name": "btn-google (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-disabled.png"
+    },
+    {
+      "id": "component-btn-google-icon-default",
+      "name": "btn-google-icon (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-icon-default.png"
+    },
+    {
+      "id": "component-btn-google-icon-hover",
+      "name": "btn-google-icon (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-icon-hover.png"
+    },
+    {
+      "id": "component-btn-google-icon-focus",
+      "name": "btn-google-icon (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-icon-focus.png"
+    },
+    {
+      "id": "component-btn-google-icon-active",
+      "name": "btn-google-icon (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-icon-active.png"
+    },
+    {
+      "id": "component-btn-google-icon-disabled",
+      "name": "btn-google-icon (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-icon-disabled.png"
+    },
+    {
+      "id": "component-btn-google-label-default",
+      "name": "btn-google-label (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-label-default.png"
+    },
+    {
+      "id": "component-btn-google-label-hover",
+      "name": "btn-google-label (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-label-hover.png"
+    },
+    {
+      "id": "component-btn-google-label-focus",
+      "name": "btn-google-label (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-label-focus.png"
+    },
+    {
+      "id": "component-btn-google-label-active",
+      "name": "btn-google-label (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-label-active.png"
+    },
+    {
+      "id": "component-btn-google-label-disabled",
+      "name": "btn-google-label (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-btn-google-label-disabled.png"
+    },
+    {
+      "id": "component-neo-input-default",
+      "name": "neo-input (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-input-default.png"
+    },
+    {
+      "id": "component-neo-input-focus",
+      "name": "neo-input (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-input-focus.png"
+    },
+    {
+      "id": "component-neo-input-error",
+      "name": "neo-input (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-input-error.png"
+    },
+    {
+      "id": "component-tail-input-default",
+      "name": "tail-input (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-input-default.png"
+    },
+    {
+      "id": "component-tail-input-focus",
+      "name": "tail-input (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-input-focus.png"
+    },
+    {
+      "id": "component-tail-input-error",
+      "name": "tail-input (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-input-error.png"
+    },
+    {
+      "id": "component-neo-textarea-default",
+      "name": "neo-textarea (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-textarea-default.png"
+    },
+    {
+      "id": "component-neo-textarea-focus",
+      "name": "neo-textarea (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-textarea-focus.png"
+    },
+    {
+      "id": "component-neo-textarea-error",
+      "name": "neo-textarea (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-textarea-error.png"
+    },
+    {
+      "id": "component-ios-card-default",
+      "name": "ios-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-ios-card-default.png"
+    },
+    {
+      "id": "component-tail-card-default",
+      "name": "tail-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-card-default.png"
+    },
+    {
+      "id": "component-neo-card-default",
+      "name": "neo-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-card-default.png"
+    },
+    {
+      "id": "component-neo-pill-default",
+      "name": "neo-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-pill-default.png"
+    },
+    {
+      "id": "component-tail-pill-default",
+      "name": "tail-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-pill-default.png"
+    },
+    {
+      "id": "component-neo-badge-default",
+      "name": "neo-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-neo-badge-default.png"
+    },
+    {
+      "id": "component-tail-badge-default",
+      "name": "tail-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-badge-default.png"
+    },
+    {
+      "id": "component-tail-badge-success-default",
+      "name": "tail-badge-success",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-badge-success-default.png"
+    },
+    {
+      "id": "component-tail-badge-warning-default",
+      "name": "tail-badge-warning",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-badge-warning-default.png"
+    },
+    {
+      "id": "component-tail-badge-danger-default",
+      "name": "tail-badge-danger",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-badge-danger-default.png"
+    },
+    {
+      "id": "component-tail-badge-gray-default",
+      "name": "tail-badge-gray",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-badge-gray-default.png"
+    },
+    {
+      "id": "component-canva-competition-card-badge-default",
+      "name": "canva-competition-card-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-canva-competition-card-badge-default.png"
+    },
+    {
+      "id": "component-canva-date-pill-default",
+      "name": "canva-date-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-canva-date-pill-default.png"
+    },
+    {
+      "id": "component-canva-history-badge-default",
+      "name": "canva-history-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-canva-history-badge-default.png"
+    },
+    {
+      "id": "component-canva-history-badge-paid-default",
+      "name": "canva-history-badge-paid",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-canva-history-badge-paid-default.png"
+    },
+    {
+      "id": "component-canva-finance-table-wrap-default",
+      "name": "canva-finance-table-wrap",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-canva-finance-table-wrap-default.png"
+    },
+    {
+      "id": "component-tail-table-wrap-default",
+      "name": "tail-table-wrap",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-table-wrap-default.png"
+    },
+    {
+      "id": "component-tail-table-default",
+      "name": "tail-table",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "desktop",
+      "file": "design-inventory/desktop/component-tail-table-default.png"
+    },
+    {
+      "id": "component-btn-primary-default",
+      "name": "btn-primary (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-primary-default.png"
+    },
+    {
+      "id": "component-btn-primary-hover",
+      "name": "btn-primary (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-primary-hover.png"
+    },
+    {
+      "id": "component-btn-primary-focus",
+      "name": "btn-primary (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-primary-focus.png"
+    },
+    {
+      "id": "component-btn-primary-active",
+      "name": "btn-primary (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-primary-active.png"
+    },
+    {
+      "id": "component-btn-primary-disabled",
+      "name": "btn-primary (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-primary-disabled.png"
+    },
+    {
+      "id": "component-btn-ghost-default",
+      "name": "btn-ghost (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-ghost-default.png"
+    },
+    {
+      "id": "component-btn-ghost-hover",
+      "name": "btn-ghost (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-ghost-hover.png"
+    },
+    {
+      "id": "component-btn-ghost-focus",
+      "name": "btn-ghost (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-ghost-focus.png"
+    },
+    {
+      "id": "component-btn-ghost-active",
+      "name": "btn-ghost (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-ghost-active.png"
+    },
+    {
+      "id": "component-btn-ghost-disabled",
+      "name": "btn-ghost (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-ghost-disabled.png"
+    },
+    {
+      "id": "component-btn-coral-default",
+      "name": "btn-coral (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-coral-default.png"
+    },
+    {
+      "id": "component-btn-coral-hover",
+      "name": "btn-coral (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-coral-hover.png"
+    },
+    {
+      "id": "component-btn-coral-focus",
+      "name": "btn-coral (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-coral-focus.png"
+    },
+    {
+      "id": "component-btn-coral-active",
+      "name": "btn-coral (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-coral-active.png"
+    },
+    {
+      "id": "component-btn-coral-disabled",
+      "name": "btn-coral (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-coral-disabled.png"
+    },
+    {
+      "id": "component-btn-outline-default",
+      "name": "btn-outline (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-outline-default.png"
+    },
+    {
+      "id": "component-btn-outline-hover",
+      "name": "btn-outline (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-outline-hover.png"
+    },
+    {
+      "id": "component-btn-outline-focus",
+      "name": "btn-outline (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-outline-focus.png"
+    },
+    {
+      "id": "component-btn-outline-active",
+      "name": "btn-outline (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-outline-active.png"
+    },
+    {
+      "id": "component-btn-outline-disabled",
+      "name": "btn-outline (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-outline-disabled.png"
+    },
+    {
+      "id": "component-btn-danger-default",
+      "name": "btn-danger (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-danger-default.png"
+    },
+    {
+      "id": "component-btn-danger-hover",
+      "name": "btn-danger (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-danger-hover.png"
+    },
+    {
+      "id": "component-btn-danger-focus",
+      "name": "btn-danger (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-danger-focus.png"
+    },
+    {
+      "id": "component-btn-danger-active",
+      "name": "btn-danger (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-danger-active.png"
+    },
+    {
+      "id": "component-btn-danger-disabled",
+      "name": "btn-danger (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-danger-disabled.png"
+    },
+    {
+      "id": "component-btn-secondary-default",
+      "name": "btn-secondary (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-secondary-default.png"
+    },
+    {
+      "id": "component-btn-secondary-hover",
+      "name": "btn-secondary (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-secondary-hover.png"
+    },
+    {
+      "id": "component-btn-secondary-focus",
+      "name": "btn-secondary (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-secondary-focus.png"
+    },
+    {
+      "id": "component-btn-secondary-active",
+      "name": "btn-secondary (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-secondary-active.png"
+    },
+    {
+      "id": "component-btn-secondary-disabled",
+      "name": "btn-secondary (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-secondary-disabled.png"
+    },
+    {
+      "id": "component-btn-canva-login-default",
+      "name": "btn-canva-login (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-canva-login-default.png"
+    },
+    {
+      "id": "component-btn-canva-login-hover",
+      "name": "btn-canva-login (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-canva-login-hover.png"
+    },
+    {
+      "id": "component-btn-canva-login-focus",
+      "name": "btn-canva-login (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-canva-login-focus.png"
+    },
+    {
+      "id": "component-btn-canva-login-active",
+      "name": "btn-canva-login (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-canva-login-active.png"
+    },
+    {
+      "id": "component-btn-canva-login-disabled",
+      "name": "btn-canva-login (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-canva-login-disabled.png"
+    },
+    {
+      "id": "component-btn-google-default",
+      "name": "btn-google (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-default.png"
+    },
+    {
+      "id": "component-btn-google-hover",
+      "name": "btn-google (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-hover.png"
+    },
+    {
+      "id": "component-btn-google-focus",
+      "name": "btn-google (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-focus.png"
+    },
+    {
+      "id": "component-btn-google-active",
+      "name": "btn-google (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-active.png"
+    },
+    {
+      "id": "component-btn-google-disabled",
+      "name": "btn-google (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-disabled.png"
+    },
+    {
+      "id": "component-btn-google-icon-default",
+      "name": "btn-google-icon (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-icon-default.png"
+    },
+    {
+      "id": "component-btn-google-icon-hover",
+      "name": "btn-google-icon (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-icon-hover.png"
+    },
+    {
+      "id": "component-btn-google-icon-focus",
+      "name": "btn-google-icon (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-icon-focus.png"
+    },
+    {
+      "id": "component-btn-google-icon-active",
+      "name": "btn-google-icon (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-icon-active.png"
+    },
+    {
+      "id": "component-btn-google-icon-disabled",
+      "name": "btn-google-icon (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-icon-disabled.png"
+    },
+    {
+      "id": "component-btn-google-label-default",
+      "name": "btn-google-label (default)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-label-default.png"
+    },
+    {
+      "id": "component-btn-google-label-hover",
+      "name": "btn-google-label (hover)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-label-hover.png"
+    },
+    {
+      "id": "component-btn-google-label-focus",
+      "name": "btn-google-label (focus)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-label-focus.png"
+    },
+    {
+      "id": "component-btn-google-label-active",
+      "name": "btn-google-label (active)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-label-active.png"
+    },
+    {
+      "id": "component-btn-google-label-disabled",
+      "name": "btn-google-label (disabled)",
+      "group": "buttons",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-btn-google-label-disabled.png"
+    },
+    {
+      "id": "component-neo-input-default",
+      "name": "neo-input (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-input-default.png"
+    },
+    {
+      "id": "component-neo-input-focus",
+      "name": "neo-input (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-input-focus.png"
+    },
+    {
+      "id": "component-neo-input-error",
+      "name": "neo-input (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-input-error.png"
+    },
+    {
+      "id": "component-tail-input-default",
+      "name": "tail-input (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-input-default.png"
+    },
+    {
+      "id": "component-tail-input-focus",
+      "name": "tail-input (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-input-focus.png"
+    },
+    {
+      "id": "component-tail-input-error",
+      "name": "tail-input (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-input-error.png"
+    },
+    {
+      "id": "component-neo-textarea-default",
+      "name": "neo-textarea (default)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-textarea-default.png"
+    },
+    {
+      "id": "component-neo-textarea-focus",
+      "name": "neo-textarea (focus)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-textarea-focus.png"
+    },
+    {
+      "id": "component-neo-textarea-error",
+      "name": "neo-textarea (error)",
+      "group": "inputs",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-textarea-error.png"
+    },
+    {
+      "id": "component-ios-card-default",
+      "name": "ios-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-ios-card-default.png"
+    },
+    {
+      "id": "component-tail-card-default",
+      "name": "tail-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-card-default.png"
+    },
+    {
+      "id": "component-neo-card-default",
+      "name": "neo-card",
+      "group": "cards",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-card-default.png"
+    },
+    {
+      "id": "component-neo-pill-default",
+      "name": "neo-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-pill-default.png"
+    },
+    {
+      "id": "component-tail-pill-default",
+      "name": "tail-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-pill-default.png"
+    },
+    {
+      "id": "component-neo-badge-default",
+      "name": "neo-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-neo-badge-default.png"
+    },
+    {
+      "id": "component-tail-badge-default",
+      "name": "tail-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-badge-default.png"
+    },
+    {
+      "id": "component-tail-badge-success-default",
+      "name": "tail-badge-success",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-badge-success-default.png"
+    },
+    {
+      "id": "component-tail-badge-warning-default",
+      "name": "tail-badge-warning",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-badge-warning-default.png"
+    },
+    {
+      "id": "component-tail-badge-danger-default",
+      "name": "tail-badge-danger",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-badge-danger-default.png"
+    },
+    {
+      "id": "component-tail-badge-gray-default",
+      "name": "tail-badge-gray",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-badge-gray-default.png"
+    },
+    {
+      "id": "component-canva-competition-card-badge-default",
+      "name": "canva-competition-card-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-canva-competition-card-badge-default.png"
+    },
+    {
+      "id": "component-canva-date-pill-default",
+      "name": "canva-date-pill",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-canva-date-pill-default.png"
+    },
+    {
+      "id": "component-canva-history-badge-default",
+      "name": "canva-history-badge",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-canva-history-badge-default.png"
+    },
+    {
+      "id": "component-canva-history-badge-paid-default",
+      "name": "canva-history-badge-paid",
+      "group": "badges",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-canva-history-badge-paid-default.png"
+    },
+    {
+      "id": "component-canva-finance-table-wrap-default",
+      "name": "canva-finance-table-wrap",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-canva-finance-table-wrap-default.png"
+    },
+    {
+      "id": "component-tail-table-wrap-default",
+      "name": "tail-table-wrap",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-table-wrap-default.png"
+    },
+    {
+      "id": "component-tail-table-default",
+      "name": "tail-table",
+      "group": "tables",
+      "source": "app/assets/css/main.css",
+      "viewport": "mobile",
+      "file": "design-inventory/mobile/component-tail-table-default.png"
+    }
+  ],
+  "vueComponents": [
+    {
+      "name": "AdminTopBar",
+      "source": "app/components/AdminTopBar.vue"
+    },
+    {
+      "name": "AppAsyncState",
+      "source": "app/components/AppAsyncState.vue"
+    },
+    {
+      "name": "AppAvatarCropSheet",
+      "source": "app/components/AppAvatarCropSheet.vue"
+    },
+    {
+      "name": "AppBottomNav",
+      "source": "app/components/AppBottomNav.vue"
+    },
+    {
+      "name": "AppDateInput",
+      "source": "app/components/AppDateInput.vue"
+    },
+    {
+      "name": "AppDateRangeInput",
+      "source": "app/components/AppDateRangeInput.vue"
+    },
+    {
+      "name": "AppFaqAccordion",
+      "source": "app/components/AppFaqAccordion.vue"
+    },
+    {
+      "name": "AppFormField",
+      "source": "app/components/AppFormField.vue"
+    },
+    {
+      "name": "AppGoogleSignInButton",
+      "source": "app/components/AppGoogleSignInButton.vue"
+    },
+    {
+      "name": "AppIcon",
+      "source": "app/components/AppIcon.vue"
+    },
+    {
+      "name": "AppImageGallery",
+      "source": "app/components/AppImageGallery.vue"
+    },
+    {
+      "name": "AppImageUpload",
+      "source": "app/components/AppImageUpload.vue"
+    },
+    {
+      "name": "AppJalaliCalendar",
+      "source": "app/components/AppJalaliCalendar.vue"
+    },
+    {
+      "name": "AppModal",
+      "source": "app/components/AppModal.vue"
+    },
+    {
+      "name": "AppNumericInput",
+      "source": "app/components/AppNumericInput.vue"
+    },
+    {
+      "name": "AppRouteProgress",
+      "source": "app/components/AppRouteProgress.vue"
+    },
+    {
+      "name": "AppShebaInput",
+      "source": "app/components/AppShebaInput.vue"
+    },
+    {
+      "name": "AppSideNav",
+      "source": "app/components/AppSideNav.vue"
+    },
+    {
+      "name": "AppTailStatCard",
+      "source": "app/components/AppTailStatCard.vue"
+    },
+    {
+      "name": "AppTailTable",
+      "source": "app/components/AppTailTable.vue"
+    },
+    {
+      "name": "AppTopBar",
+      "source": "app/components/AppTopBar.vue"
+    },
+    {
+      "name": "AppTouchGlow",
+      "source": "app/components/AppTouchGlow.vue"
+    },
+    {
+      "name": "AppUploadSheets",
+      "source": "app/components/AppUploadSheets.vue"
+    },
+    {
+      "name": "AppUserShortcut",
+      "source": "app/components/AppUserShortcut.vue"
+    },
+    {
+      "name": "AppVenusCalendarSkeleton",
+      "source": "app/components/AppVenusCalendarSkeleton.vue"
+    },
+    {
+      "name": "AppVenusSkeleton",
+      "source": "app/components/AppVenusSkeleton.vue"
+    },
+    {
+      "name": "AppVenusSpinner",
+      "source": "app/components/AppVenusSpinner.vue"
+    },
+    {
+      "name": "AuthFlowModal",
+      "source": "app/components/AuthFlowModal.vue"
+    },
+    {
+      "name": "BookingCostSummary",
+      "source": "app/components/BookingCostSummary.vue"
+    },
+    {
+      "name": "BookingPriceSummary",
+      "source": "app/components/owner/BookingPriceSummary.vue"
+    },
+    {
+      "name": "CanvaAthleteChrome",
+      "source": "app/components/CanvaAthleteChrome.vue"
+    },
+    {
+      "name": "CanvaCoachPhotoHero",
+      "source": "app/components/CanvaCoachPhotoHero.vue"
+    },
+    {
+      "name": "CanvaConfirmSheet",
+      "source": "app/components/CanvaConfirmSheet.vue"
+    },
+    {
+      "name": "CanvaEmptyState",
+      "source": "app/components/CanvaEmptyState.vue"
+    },
+    {
+      "name": "CanvaHeroImg",
+      "source": "app/components/CanvaHeroImg.vue"
+    },
+    {
+      "name": "CanvaOwnerHeroChrome",
+      "source": "app/components/CanvaOwnerHeroChrome.vue"
+    },
+    {
+      "name": "CanvaPublicChrome",
+      "source": "app/components/CanvaPublicChrome.vue"
+    },
+    {
+      "name": "CanvaSubpageHeader",
+      "source": "app/components/CanvaSubpageHeader.vue"
+    },
+    {
+      "name": "CanvaSuccessSheet",
+      "source": "app/components/CanvaSuccessSheet.vue"
+    },
+    {
+      "name": "CoachDiscoveryRail",
+      "source": "app/components/CoachDiscoveryRail.vue"
+    },
+    {
+      "name": "CompetitionDiscoveryRail",
+      "source": "app/components/CompetitionDiscoveryRail.vue"
+    },
+    {
+      "name": "CourtBookingConfirmSheet",
+      "source": "app/components/CourtBookingConfirmSheet.vue"
+    },
+    {
+      "name": "CourtForm",
+      "source": "app/components/owner/CourtForm.vue"
+    },
+    {
+      "name": "CourtPricingTimeline",
+      "source": "app/components/owner/CourtPricingTimeline.vue"
+    },
+    {
+      "name": "DashboardShell",
+      "source": "app/components/DashboardShell.vue"
+    },
+    {
+      "name": "EnamadBadge",
+      "source": "app/components/EnamadBadge.vue"
+    },
+    {
+      "name": "EquipmentPicker",
+      "source": "app/components/owner/EquipmentPicker.vue"
+    },
+    {
+      "name": "GeoSportHubDiscoveryNav",
+      "source": "app/components/GeoSportHubDiscoveryNav.vue"
+    },
+    {
+      "name": "InboxBrandLockup",
+      "source": "app/components/InboxBrandLockup.vue"
+    },
+    {
+      "name": "LegalDocument",
+      "source": "app/components/LegalDocument.vue"
+    },
+    {
+      "name": "LegalFaq",
+      "source": "app/components/LegalFaq.vue"
+    },
+    {
+      "name": "OwnerAccountDrawer",
+      "source": "app/components/OwnerAccountDrawer.vue"
+    },
+    {
+      "name": "OwnerClockPicker",
+      "source": "app/components/OwnerClockPicker.vue"
+    },
+    {
+      "name": "OwnerCompactTimeRange",
+      "source": "app/components/owner/OwnerCompactTimeRange.vue"
+    },
+    {
+      "name": "OwnerDayTimeSchedules",
+      "source": "app/components/owner/OwnerDayTimeSchedules.vue"
+    },
+    {
+      "name": "OwnerFinanceTxFilters",
+      "source": "app/components/owner/OwnerFinanceTxFilters.vue"
+    },
+    {
+      "name": "OwnerGuestSearchDropdown",
+      "source": "app/components/owner/OwnerGuestSearchDropdown.vue"
+    },
+    {
+      "name": "OwnerLegalFooter",
+      "source": "app/components/OwnerLegalFooter.vue"
+    },
+    {
+      "name": "OwnerMoreSheet",
+      "source": "app/components/OwnerMoreSheet.vue"
+    },
+    {
+      "name": "OwnerTimeRangePicker",
+      "source": "app/components/OwnerTimeRangePicker.vue"
+    },
+    {
+      "name": "OwnerWorkersPanel",
+      "source": "app/components/owner/OwnerWorkersPanel.vue"
+    },
+    {
+      "name": "PageHeaderNav",
+      "source": "app/components/PageHeaderNav.vue"
+    },
+    {
+      "name": "PhotoSlots",
+      "source": "app/components/owner/PhotoSlots.vue"
+    },
+    {
+      "name": "PwaInstallBanner",
+      "source": "app/components/PwaInstallBanner.vue"
+    },
+    {
+      "name": "RegisterRolePicker",
+      "source": "app/components/RegisterRolePicker.vue"
+    },
+    {
+      "name": "RoleDashboardSwitcher",
+      "source": "app/components/RoleDashboardSwitcher.vue"
+    },
+    {
+      "name": "SmoothCaretInput",
+      "source": "app/components/SmoothCaretInput.vue"
+    }
+  ],
+  "skipped": []
+}
