@@ -1,0 +1,73 @@
+[
+  {
+    "path": "/admin/applications",
+    "source": "app/pages/admin/applications.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/bookings",
+    "source": "app/pages/admin/bookings/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/calendar",
+    "source": "app/pages/admin/calendar.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/clubs",
+    "source": "app/pages/admin/clubs/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/coach-applications",
+    "source": "app/pages/admin/coach-applications.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin",
+    "source": "app/pages/admin/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/provision",
+    "source": "app/pages/admin/provision.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/sentry",
+    "source": "app/pages/admin/sentry.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/sms",
+    "source": "app/pages/admin/sms.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/tickets",
+    "source": "app/pages/admin/tickets/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/users",
+    "source": "app/pages/admin/users/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/withdrawals",
+    "source": "app/pages/admin/withdrawals/index.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/calendar-sources",
+    "source": "modules/inbox-external-calendar/runtime/pages/admin/calendar-sources.vue",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/clubs/cmvi2xpkl000bjstmvuh4inqf",
+    "source": "app/pages/admin/clubs/[id].vue",
+    "kind": "page",
+    "auth": "admin"
+  }
+]
