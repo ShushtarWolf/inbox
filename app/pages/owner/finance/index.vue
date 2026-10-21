@@ -472,7 +472,7 @@ function showUnpaidList() {
   <div class="venus-page-stack">
     <section class="canva-photo-hero">
       <CanvaHeroImg
-        src="/hero/fitness-venue.jpg"
+        :src="activeMembership?.club?.image || '/hero/tennis-court.jpg'"
         alt=""
         img-class="canva-photo-hero-media"
         img-style="filter: grayscale(0.55) brightness(0.72);"

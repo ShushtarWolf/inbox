@@ -179,6 +179,11 @@ if (!dashboardShell.includes('acquireModalBodyLock')) {
   errors.push('DashboardShell must use shared modalBodyLock for nav overlay')
 }
 
+// Owner heroes show the club's own cover; a fixed stock photo put a gym on the IUST tennis dashboard.
+for (const line of rg("(src=|HeroImage = )[\\\"']/hero/", 'app/pages/owner')) {
+  errors.push(`owner hero must use club.image (stock /hero/ only as || fallback): ${line}`)
+}
+
 if (errors.length) {
   console.error('[check:ios-hit-testing] FAILED\n')
   for (const err of errors) console.error(`  • ${err}`)

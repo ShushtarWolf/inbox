@@ -431,8 +431,11 @@ const deskDiscountApplying = ref(false)
 const deskDiscount = ref<{ code: string; percent: number; discountAmount: number } | null>(null)
 const deskPercentInput = ref('')
 const deskPayMode = ref<'cash' | 'unpaid' | 'complimentary'>('cash')
-/** Canva owner hero uses the people/promo frame (same asset as athlete home), not club court crop. */
-const clubHeroImage = '/hero/fitness-venue.jpg'
+/** Owner hero must show the active club's own cover; Canva stock photos are placeholders. */
+const clubHeroImage = computed(() => {
+  const membership = ownerMemberships.value.find((m) => m.club.id === selectedClubId.value) || ownerMemberships.value[0]
+  return membership?.club?.image || '/hero/tennis-court.jpg'
+})
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let longPressFired = false

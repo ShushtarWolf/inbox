@@ -17,3 +17,4 @@ Apply on public / athlete / owner **375px** Canva frames. Never reintroduce soft
 8. **No approximation** — List every region from the Canva frame; match sides, corners, alignment, hierarchy.
 9. **Done gate** — Hard refresh localhost at **375px** width; self-check against LOCKED + slice checklist before claiming done.
 10. **No screenshot** — Use nearest approved sibling frame + LOCKED; do not invent soft TailAdmin look.
+11. **Real photos** — Canva stock photos are placeholders. Any hero tied to a club (owner calendar/finance, club pages) must use that club's `image`, with `/hero/*` only as a `||` fallback. `check:ios-hit-testing` enforces this on owner pages.
