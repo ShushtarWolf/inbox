@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
     })
     const active = siblings.filter((b) => b.status !== 'CANCELLED')
     sessions = (active.length ? active : siblings).map(sessionFromBooking)
-    amount = series.primaryPayment.amount
+    amount = siblings.reduce((sum, b) => sum + (b.payment?.amount ?? 0), 0)
     payStatus = series.primaryPayment.status
     const primaryBooking = siblings.find((b) => b.id === series.group.primaryBookingId) || booking
     payMethod = primaryBooking.payment?.method || primaryBooking.paymentMethod
