@@ -62,6 +62,12 @@ jobs:
       - run: node scripts/ci-smoke.mjs
       - run: npx playwright install chromium webkit --with-deps
       - run: npm run test:e2e:ci
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
 
   competition-go-no-go:
     runs-on: ubuntu-latest
