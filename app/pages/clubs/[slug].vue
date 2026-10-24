@@ -615,8 +615,7 @@ function onConfirmSuccess() {
   waitlistSlotId.value = null
 }
 
-function onConfirmClose(fromSuccess = false) {
-  if (confirmSuccessHold.value && !fromSuccess) return
+function onConfirmClose() {
   confirmOpen.value = false
   confirmSuccessHold.value = false
   clearBasket()

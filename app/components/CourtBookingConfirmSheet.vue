@@ -52,7 +52,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  close: [fromSuccess?: boolean]
+  close: []
   success: []
   slotConflict: []
 }>()
@@ -498,7 +498,7 @@ const payCtaLabel = computed(() => {
 
 function close() {
   if (confirming.value || paying.value) return
-  emit('close', done.value)
+  emit('close')
 }
 
 function clearDiscount() {
