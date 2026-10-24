@@ -52,7 +52,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  close: []
+  close: [fromSuccess?: boolean]
   success: []
   slotConflict: []
 }>()
@@ -396,8 +396,12 @@ const metaLine = computed(() => {
   return parts.join(' | ')
 })
 
+watch(done, (isDone) => {
+  if (isDone) emit('success')
+})
+
 watch(() => props.open, (isOpen) => {
-  if (isOpen) {
+  if (isOpen && !done.value) {
     resetBookingState()
     equipmentQuantities.value = {}
     equipmentAvailability.value = {}
@@ -493,7 +497,8 @@ const payCtaLabel = computed(() => {
 })
 
 function close() {
-  emit('close')
+  if (confirming.value || paying.value) return
+  emit('close', done.value)
 }
 
 function clearDiscount() {
@@ -588,7 +593,6 @@ async function submit(preferWallet = false) {
     }
     if (!result) return
     if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
-    emit('success')
     return
   }
 
@@ -615,7 +619,6 @@ async function submit(preferWallet = false) {
   if (!result) return
   // Still on-page after online checkout means stall/error — keep slots so Pay can retry.
   if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
-  emit('success')
 }
 </script>
 

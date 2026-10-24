@@ -150,6 +150,8 @@ const selectedCourtIds = ref<string[]>(
 const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
 const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
+/** Keep success sheet (INB code) mounted after booking until the athlete closes it. */
+const confirmSuccessHold = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
@@ -260,7 +262,6 @@ watch(
     )
     if (drop.size) {
       selectedSlotIds.value = selectedSlotIds.value.filter((id) => !drop.has(id))
-      if (!selectedSlotIds.value.length) confirmOpen.value = false
     }
     syncBasketFromKnown(list)
 
@@ -608,6 +609,15 @@ function openConfirmSheet() {
 
 function onConfirmSuccess() {
   resumeConfirmAfterAuth.value = false
+  confirmSuccessHold.value = true
+  confirmOpen.value = true
+  waitlistSlotId.value = null
+}
+
+function onConfirmClose(fromSuccess = false) {
+  if (confirmSuccessHold.value && !fromSuccess) return
+  confirmOpen.value = false
+  confirmSuccessHold.value = false
   clearBasket()
   waitlistSlotId.value = null
 }
@@ -1327,7 +1337,7 @@ async function shareClub() {
         :court-label="selectedCourtLabel"
         :slots="confirmSlots"
         :bookable-equipment="bookableEquipment"
-        @close="confirmOpen = false"
+        @close="onConfirmClose"
         @success="onConfirmSuccess"
         @slot-conflict="onSlotConflict"
       />

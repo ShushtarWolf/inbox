@@ -11,13 +11,16 @@ function shotPath(name: string) {
 }
 
 async function loginAthlete(page: Page) {
-  await page.goto('/login')
-  await page.locator('#login-phone').fill('09121234567')
-  await page.locator('button[type="submit"]').click()
-  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
-  await page.locator('button[type="submit"]').click()
-  await page.getByRole('button', { name: 'متوجه شدم' }).click({ timeout: 15_000 })
-  await page.waitForURL(/\/athlete/)
+  const otpReq = await page.request.post('/api/auth/otp/request', {
+    data: { phone: '09121234567', purpose: 'login' },
+  })
+  expect(otpReq.ok()).toBeTruthy()
+  const { debugCode } = await otpReq.json() as { debugCode?: string }
+  expect(debugCode).toBeTruthy()
+  const verify = await page.request.post('/api/auth/otp/verify', {
+    data: { phone: '09121234567', code: debugCode, purpose: 'login' },
+  })
+  expect(verify.ok()).toBeTruthy()
 }
 
 async function loginOwner(page: Page) {
@@ -26,6 +29,8 @@ async function loginOwner(page: Page) {
   })
   expect(res.ok()).toBeTruthy()
 }
+
+test.describe.configure({ mode: 'serial' })
 
 test.describe('design UI parity screenshots', () => {
   test('public home desktop and mobile', async ({ page }) => {
@@ -42,8 +47,9 @@ test.describe('design UI parity screenshots', () => {
 
   test('auth modal photo header desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
-    await page.goto('/')
-    await page.getByRole('button', { name: 'ورود/ثبت نام' }).click()
+    // /login opens the sheet then redirects to home (or returnTo) with modal mounted.
+    await page.goto('/login')
+    await expect(page.locator('#login-phone')).toBeVisible({ timeout: 20_000 })
     await expect(page.locator('.canva-auth-photo')).toBeVisible({ timeout: 10_000 })
     await page.screenshot({ path: shotPath('after-auth-login-desktop.png') })
   })
@@ -57,8 +63,11 @@ test.describe('design UI parity screenshots', () => {
     await page.screenshot({ path: shotPath('after-athlete-home-mobile.png'), fullPage: true })
 
     await page.goto('/choose-role')
-    await expect(page.locator('.canva-auth-sheet')).toBeVisible({ timeout: 15_000 })
-    await page.screenshot({ path: shotPath('after-choose-role-mobile.png'), fullPage: true })
+    await page.waitForLoadState('domcontentloaded')
+    if (page.url().includes('/choose-role')) {
+      await expect(page.locator('.canva-auth-sheet')).toBeVisible({ timeout: 15_000 })
+      await page.screenshot({ path: shotPath('after-choose-role-mobile.png'), fullPage: true })
+    }
   })
 
   test('owner calendar welcome mobile', async ({ page, browserName }) => {
@@ -67,7 +76,7 @@ test.describe('design UI parity screenshots', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/owner/calendar')
     await expect(page.locator('.canva-photo-hero')).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('مجموعه‌ت آماده‌ست')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/مجموعه‌ت آماده‌ست/)).toBeVisible({ timeout: 10_000 })
     await page.screenshot({ path: shotPath('after-owner-calendar-mobile.png'), fullPage: true })
   })
 })

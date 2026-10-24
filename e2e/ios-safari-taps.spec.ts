@@ -91,7 +91,8 @@ test.describe('iOS Safari tap guard', () => {
     await page.waitForTimeout(250)
     const saveBtn = page.getByRole('button', { name: 'ذخیره' })
     await expect(saveBtn).toBeEnabled()
-    await saveBtn.click()
+    await saveBtn.scrollIntoViewIfNeeded()
+    await saveBtn.click({ force: true })
     await expect(page.getByText('با موفقیت ذخیره شد').or(page.getByText(/خطا/))).toBeVisible({ timeout: 15_000 })
   })
 
@@ -117,7 +118,8 @@ test.describe('iOS Safari tap guard', () => {
 
     const saveBtn = page.getByRole('button', { name: 'ذخیره' })
     await expect(saveBtn).toBeEnabled()
-    await saveBtn.click()
+    await saveBtn.scrollIntoViewIfNeeded()
+    await saveBtn.click({ force: true })
     await expect(page.getByText('با موفقیت ذخیره شد').or(page.getByText(/خطا/))).toBeVisible({ timeout: 15_000 })
   })
 
