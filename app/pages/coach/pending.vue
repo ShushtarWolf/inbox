@@ -21,7 +21,17 @@ onMounted(() => {
 <template>
   <div class="venus-page-stack">
     <CanvaCoachPhotoHero />
-    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0 space-y-4">
+      <div class="text-start">
+        <h1 class="text-xl font-bold text-brand-navy">{{ t('coach.pendingTitle') }}</h1>
+        <span
+          class="mt-2 inline-block px-2 py-1 text-[10px] font-extrabold"
+          style="border-radius: 2px;"
+          :class="isRejected ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'"
+        >
+          {{ isRejected ? t('coach.pendingRejected') : t('auth.chooseRole.badgePending') }}
+        </span>
+      </div>
       <div
         class="canva-panel space-y-2 p-5 text-start"
         :class="isRejected

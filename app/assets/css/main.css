@@ -409,6 +409,52 @@
   .canva-auth-welcome-title {
     @apply text-lg font-bold leading-snug text-emerald-600;
   }
+  .canva-auth-photo {
+    @apply relative z-[1] mx-[-1.25rem] mb-3 mt-[-0.5rem] flex min-h-[7.5rem] flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;
+    background-size: cover;
+    background-position: center;
+  }
+  .canva-auth-photo::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(44, 44, 42, 0.15) 0%, rgba(44, 44, 42, 0.72) 100%);
+  }
+  .canva-auth-photo > * {
+    @apply relative z-[1];
+  }
+  .canva-auth-photo-copy b {
+    @apply block text-base font-bold leading-snug;
+  }
+  .canva-auth-photo-copy small {
+    @apply mt-1 block text-xs leading-relaxed text-white/85;
+  }
+  .canva-home-trust-strip {
+    @apply grid gap-3 border border-brand-gray-200/80 bg-white px-4 py-4 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  @media (min-width: 640px) {
+    .canva-home-trust-strip {
+      @apply grid-cols-3;
+    }
+  }
+  .canva-home-trust-item {
+    @apply flex items-start gap-3;
+  }
+  .canva-home-trust-item .material-symbols-rounded {
+    @apply mt-0.5 shrink-0 text-brand-primary;
+  }
+  .canva-home-trust-item b {
+    @apply block text-sm font-bold text-brand-navy;
+  }
+  .canva-home-trust-item small {
+    @apply mt-0.5 block text-xs leading-relaxed text-brand-gray-600;
+  }
+  .canva-athlete-upcoming-card {
+    @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
   /* Square gate CTAs — replaces btn-primary on auth gate */
   .canva-gate-btn {
     @apply flex w-full items-center justify-center px-4 py-3.5 text-sm font-bold transition;
@@ -3035,6 +3081,124 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .venus-fold-spinner__cube {
+      animation: none;
+    }
+  }
+  /* Inbox ball-in-box loader (design reference: inbox loader) */
+  .inbox-loader {
+    overflow: visible;
+    flex-shrink: 0;
+  }
+  .inbox-loader .inbox-loader__path {
+    fill: none;
+    stroke: var(--il-c, #c41e1e);
+    stroke-width: 70;
+    stroke-miterlimit: 10;
+  }
+  .inbox-loader .inbox-loader__ball-fill {
+    fill: var(--il-c, #c41e1e);
+  }
+  .inbox-loader .inbox-loader__box,
+  .inbox-loader .inbox-loader__tray,
+  .inbox-loader .inbox-loader__lid,
+  .inbox-loader .inbox-loader__ball {
+    transform-box: view-box;
+    animation-duration: var(--il-d, 3s);
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  .inbox-loader .inbox-loader__tray,
+  .inbox-loader .inbox-loader__lid,
+  .inbox-loader .inbox-loader__ball {
+    transform-origin: 0 0;
+  }
+  .inbox-loader .inbox-loader__box {
+    transform-origin: 497.63px 855px;
+    animation-name: inbox-loader-box;
+  }
+  .inbox-loader .inbox-loader__tray {
+    animation-name: inbox-loader-tray;
+  }
+  .inbox-loader .inbox-loader__lid {
+    animation-name: inbox-loader-lid;
+  }
+  .inbox-loader .inbox-loader__ball {
+    animation-name: inbox-loader-ball;
+  }
+  @keyframes inbox-loader-ball {
+    0% { transform: translate(475.3px, 284.77px) scale(1, 1); }
+    7% { transform: translate(475.3px, 300px) scale(1.14, 0.86); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    13% { transform: translate(482px, 215px) scale(0.94, 1.06); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    29% { transform: translate(497.63px, 690px) scale(0.86, 1.16); }
+    32% { transform: translate(497.63px, 706px) scale(1.2, 0.8); }
+    36%, 50% { transform: translate(497.63px, 690px) scale(1, 1); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    55% { transform: translate(497.63px, 452px) scale(0.94, 1.06); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    62% { transform: translate(497.63px, 690px) scale(0.9, 1.1); }
+    64% { transform: translate(497.63px, 702px) scale(1.14, 0.86); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    68% { transform: translate(497.63px, 600px) scale(1, 1); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    72% { transform: translate(497.63px, 690px) scale(0.95, 1.05); }
+    74%, 78% { transform: translate(497.63px, 704px) scale(1.18, 0.82); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    81% { transform: translate(490px, 520px) scale(0.86, 1.16); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    88% { transform: translate(478px, 140px) scale(1, 1); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    93% { transform: translate(475.3px, 284.77px) scale(0.95, 1.05); }
+    95% { transform: translate(475.3px, 298px) scale(1.12, 0.88); }
+    99%, 100% { transform: translate(475.3px, 284.77px) scale(1, 1); }
+  }
+  @keyframes inbox-loader-lid {
+    0% { transform: translate(480.9px, 323.6px) rotate(173.71deg); }
+    7% { transform: translate(480.9px, 336px) rotate(175deg); }
+    11% { transform: translate(480.9px, 318px) rotate(192deg); }
+    24% { transform: translate(497.63px, 160px) rotate(366deg); }
+    30% { transform: translate(497.63px, 166px) rotate(360deg); }
+    36% { transform: translate(497.63px, 148px) rotate(360deg); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    42% { transform: translate(497.63px, 452px) rotate(360deg); }
+    45% { transform: translate(497.63px, 438px) rotate(360deg); }
+    48%, 55% { transform: translate(497.63px, 445px) rotate(360deg); }
+    57% { transform: translate(497.63px, 416px) rotate(357deg); }
+    61%, 76% { transform: translate(497.63px, 445px) rotate(360deg); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+    82% { transform: translate(690px, 150px) rotate(405deg); }
+    91% { transform: translate(480.9px, 332px) rotate(170deg); }
+    95% { transform: translate(480.9px, 318px) rotate(175deg); }
+    100% { transform: translate(480.9px, 323.6px) rotate(173.71deg); }
+  }
+  @keyframes inbox-loader-tray {
+    0%, 5% { transform: translate(497.63px, 695.73px) scale(1, 1); }
+    12% { transform: translate(497.63px, 695.73px) scale(1.05, 0); }
+    17% { transform: translate(497.63px, 695.73px) scale(1, -1.1); }
+    20%, 84% { transform: translate(497.63px, 695.73px) scale(1, -1); }
+    90% { transform: translate(497.63px, 695.73px) scale(1.05, 0); }
+    95% { transform: translate(497.63px, 695.73px) scale(1, 1.08); }
+    98%, 100% { transform: translate(497.63px, 695.73px) scale(1, 1); }
+  }
+  @keyframes inbox-loader-box {
+    0% { transform: scale(1, 1); }
+    7% { transform: scale(1.02, 0.98); }
+    12%, 40% { transform: scale(1, 1); }
+    43% { transform: scale(1.07, 0.93); }
+    47% { transform: scale(0.98, 1.02); }
+    50%, 56% { transform: scale(1, 1); }
+    57.5% { transform: scale(0.97, 1.04); }
+    60%, 62% { transform: scale(1, 1); }
+    64% { transform: scale(1.04, 0.96); }
+    67%, 73% { transform: scale(1, 1); }
+    77% { transform: scale(1.05, 0.95); }
+    81% { transform: scale(0.98, 1.02); }
+    85%, 100% { transform: scale(1, 1); }
+  }
+  .inbox-loading-block {
+    @apply flex flex-col items-center justify-center gap-3 py-6 text-center;
+  }
+  .inbox-loading-block-compact {
+    @apply gap-2 py-3;
+  }
+  .inbox-loading-label {
+    @apply text-sm font-medium text-brand-gray-600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .inbox-loader .inbox-loader__box,
+    .inbox-loader .inbox-loader__tray,
+    .inbox-loader .inbox-loader__lid,
+    .inbox-loader .inbox-loader__ball {
       animation: none;
     }
   }

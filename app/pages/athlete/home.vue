@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
 import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
+import { isPastDate } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -8,7 +9,8 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { firstName, displayName } = useAuth()
-const { competitionsEnabled } = usePilotFlags()
+const { competitionsEnabled, pilotNoCoach } = usePilotFlags()
+const { formatWeekday, formatDayNumber, formatMonth, formatTimeLabel } = useFormatters()
 const { canSwitchRole } = usePlatformRoles()
 
 const sport = ref('')
@@ -29,7 +31,33 @@ const [{ data: sports, pending: sportsPending }, { data: clubs, pending: clubsPe
 
 const pagePending = computed(() => sportsPending.value || clubsPending.value)
 const greetName = computed(() => firstName.value || displayName.value || t('home.guestName'))
-const { formatDayNumber, formatMonth, formatWeekday } = useFormatters()
+
+const { data: myBookings } = useAuthedFetch<{
+  courtBookings?: Array<{
+    id: string
+    status: string
+    slot: { date: string; startTime: string; court: { nameFa?: string; nameEn?: string; club: { nameFa: string; nameEn: string; slug: string } } }
+  }>
+}>('/api/bookings/mine', { lazy: true })
+
+const nextUpcomingBooking = computed(() => {
+  const list = myBookings.value?.courtBookings || []
+  const upcoming = list
+    .filter((b) => b.status !== 'CANCELLED' && !isPastDate(b.slot.date))
+    .sort((a, b) => {
+      const da = `${a.slot.date}T${a.slot.startTime}`
+      const db = `${b.slot.date}T${b.slot.startTime}`
+      return da.localeCompare(db)
+    })
+  return upcoming[0] || null
+})
+
+function upcomingLabel(booking: NonNullable<typeof nextUpcomingBooking.value>) {
+  const club = localizedField(booking.slot.court.club, 'nameFa', 'nameEn')
+  const when = `${formatWeekday(booking.slot.date)} ${formatDayNumber(booking.slot.date)} ${formatMonth(booking.slot.date)}`
+  const time = formatTimeLabel(booking.slot.startTime)
+  return `${club} · ${when} · ${time}`
+}
 
 const cityOptions = computed(() => {
   const set = new Set<string>()
@@ -217,6 +245,24 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       </AppModal>
 
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
+
+      <section v-if="nextUpcomingBooking" class="canva-athlete-upcoming-card">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold text-brand-primary">{{ t('athlete.upcomingTitle') }}</p>
+            <p class="mt-1 text-sm font-bold text-brand-navy">{{ upcomingLabel(nextUpcomingBooking) }}</p>
+            <p class="mt-0.5 text-xs text-brand-gray-600">{{ t('athlete.upcomingBody') }}</p>
+          </div>
+          <NuxtLink
+            :to="localePath('/athlete/bookings')"
+            class="shrink-0 text-xs font-bold text-brand-primary"
+          >
+            {{ t('athlete.upcomingCta') }}
+          </NuxtLink>
+        </div>
+      </section>
+
+      <CoachDiscoveryRail v-if="!pilotNoCoach" />
 
       <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
