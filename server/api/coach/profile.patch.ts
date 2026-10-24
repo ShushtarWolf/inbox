@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
     photo?: string | null
     locale?: string
     credentials?: string[]
+    isBookable?: boolean
   }>(event)
 
   await prisma.user.update({
@@ -39,6 +40,7 @@ export default defineEventHandler(async (event) => {
       sessionPrice: body.sessionPrice !== undefined ? Math.round(body.sessionPrice) : undefined,
       photo,
       credentialsJson: body.credentials !== undefined ? JSON.stringify(body.credentials) : undefined,
+      isBookable: body.isBookable !== undefined ? Boolean(body.isBookable) : undefined,
     },
   })
 

@@ -421,6 +421,11 @@ const clubCalendarTitle = computed(() => {
   if (membership?.club) return localizedField(membership.club, 'nameFa', 'nameEn')
   return t('owner.calendar')
 })
+const calendarWelcomeLine = computed(() =>
+  t('owner.calendarSubtitle', {
+    date: `${formatWeekday(date.value)} ${formatDayNumber(date.value)} ${formatMonth(date.value)}`,
+  }),
+)
 /** Keep a club switcher when the owner has more than one club (product chrome, even if Canva crop omits it). */
 const ownerMemberships = computed(() => user.value?.memberships || [])
 const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
@@ -3212,6 +3217,9 @@ watch(pilotNoCoach, (off) => {
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
+      <p class="text-start text-xs leading-relaxed text-brand-gray-600">
+        {{ t('owner.calendarWelcome') }} · {{ calendarWelcomeLine }}
+      </p>
       <label
         v-if="showClubSwitcher"
         class="canva-cal-club-switch"

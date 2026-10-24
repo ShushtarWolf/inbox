@@ -87,6 +87,25 @@ const coachExperienceOptions = [
   { value: 6 as const, labelKey: 'auth.coachExperienceOver5' },
 ]
 
+type AuthPhotoHeader = { image: string; titleKey: string; subKey: string }
+
+const authPhotoHeader = computed((): AuthPhotoHeader | null => {
+  if (step.value === 'gate' || step.value === 'welcome' || step.value === 'role') return null
+  if (step.value === 'otp') {
+    return { image: '/hero/tennis-court.jpg', titleKey: 'auth.photoOtpTitle', subKey: 'auth.photoOtpSub' }
+  }
+  if (step.value === 'login') {
+    return { image: '/hero/padel-court.jpg', titleKey: 'auth.photoLoginTitle', subKey: 'auth.photoLoginSub' }
+  }
+  if (role.value === 'CLUB_ADMIN') {
+    return { image: '/hero/padel-court.jpg', titleKey: 'auth.photoOwnerTitle', subKey: 'auth.photoOwnerSub' }
+  }
+  if (role.value === 'COACH') {
+    return { image: '/hero/fitness-venue.jpg', titleKey: 'auth.photoCoachTitle', subKey: 'auth.photoCoachSub' }
+  }
+  return { image: '/hero/padel-court.jpg', titleKey: 'auth.photoLoginTitle', subKey: 'auth.photoLoginSub' }
+})
+
 const title = computed(() => {
   if (step.value === 'gate' || step.value === 'welcome') return ''
   if (step.value === 'role') return t('auth.register')
@@ -618,7 +637,18 @@ watch(
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1]">
-      <div class="canva-auth-accent" />
+      <div
+        v-if="authPhotoHeader"
+        class="canva-auth-photo"
+        :style="{ backgroundImage: `url(${authPhotoHeader.image})` }"
+      >
+        <InboxBrandLockup on-dark height-class="h-6" />
+        <div class="canva-auth-photo-copy mt-3">
+          <b>{{ t(authPhotoHeader.titleKey) }}</b>
+          <small>{{ t(authPhotoHeader.subKey) }}</small>
+        </div>
+      </div>
+      <div v-else class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
@@ -662,9 +692,10 @@ watch(
 
         <!-- Welcome / success (Canva 7, 11, 15) -->
         <div v-if="step === 'welcome'" class="canva-auth-welcome">
-          <AppIcon name="check_circle" size="lg" class="mx-auto text-emerald-600" />
-          <p class="canva-auth-welcome-title">{{ t('auth.welcomeWhistle') }}</p>
-          <p class="canva-auth-welcome-title">{{ t('auth.welcomeInbox') }}</p>
+          <AppIcon name="waving_hand" size="lg" class="mx-auto text-brand-primary" />
+          <p class="canva-auth-welcome-title">{{ t('auth.welcomeHandTitle') }}</p>
+          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.welcomeHandSub') }}</p>
+          <p class="canva-auth-welcome-title mt-2">{{ t('auth.welcomeInbox') }}</p>
           <p v-if="welcomeVariant === 'owner'" class="mt-3 text-center text-xs text-brand-gray-600">
             {{ t('auth.welcomeOwnerReview') }}
           </p>

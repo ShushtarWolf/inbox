@@ -573,6 +573,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
       <h1 class="canva-page-hero-title text-white">{{ t('owner.settings') }}</h1>
     </section>
     <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
+    <OwnerActiveClubBar class="mb-3" />
 
     <div class="mb-4 min-h-[2.75rem]">
       <RoleDashboardSwitcher current="CLUB_ADMIN" />

@@ -11,6 +11,7 @@ import {
   defaultAthleteSeasonFinishDate,
   MAX_ATHLETE_SEASON_OCCURRENCES,
 } from '#shared/athleteSeason.ts'
+import { bookingTrackingCode } from '#shared/receiptToken.ts'
 
 export type ConfirmSlot = {
   id: string
@@ -395,8 +396,12 @@ const metaLine = computed(() => {
   return parts.join(' | ')
 })
 
+watch(done, (isDone) => {
+  if (isDone) emit('success')
+})
+
 watch(() => props.open, (isOpen) => {
-  if (isOpen) {
+  if (isOpen && !done.value) {
     resetBookingState()
     equipmentQuantities.value = {}
     equipmentAvailability.value = {}
@@ -492,6 +497,7 @@ const payCtaLabel = computed(() => {
 })
 
 function close() {
+  if (confirming.value || paying.value) return
   emit('close')
 }
 
@@ -587,7 +593,6 @@ async function submit(preferWallet = false) {
     }
     if (!result) return
     if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
-    emit('success')
     return
   }
 
@@ -614,7 +619,6 @@ async function submit(preferWallet = false) {
   if (!result) return
   // Still on-page after online checkout means stall/error — keep slots so Pay can retry.
   if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
-  emit('success')
 }
 </script>
 
@@ -644,8 +648,18 @@ async function submit(preferWallet = false) {
       </div>
 
       <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
-        <template v-if="done && lastPaymentStatus === 'PAID'">
-          <p class="text-center text-base font-bold text-brand-primary">✓ {{ feedback || t('booking.successCourt') }}</p>
+        <template v-if="done">
+          <div class="space-y-4 py-2 text-center">
+            <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
+            <p class="text-base font-bold text-brand-primary">{{ feedback || t('booking.successCourt') }}</p>
+            <div v-if="createdBookingId" class="border border-brand-gray-200 bg-brand-cream px-4 py-4">
+              <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
+              <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums tracking-wide text-brand-navy">
+                {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
+              </p>
+              <p class="mt-2 text-xs leading-relaxed text-brand-gray-600">{{ t('booking.trackingCodeHint') }}</p>
+            </div>
+          </div>
         </template>
 
         <template v-else>
@@ -879,7 +893,7 @@ async function submit(preferWallet = false) {
       </div>
 
       <div class="shrink-0 space-y-2 px-5 pb-6">
-        <template v-if="done && lastPaymentStatus === 'PAID'">
+        <template v-if="done">
           <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
             {{ t('booking.viewBookings') }}
           </NuxtLink>

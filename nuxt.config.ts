@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '28'
+const PWA_RESET_VERSION = '30'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -52,6 +52,8 @@ export default defineNuxtConfig({
   },
 
   app: {
+    /** Ball-in-box splash until Vue hydrates (matches AppInboxLoader / inbox-loader.svg). */
+    spaLoadingTemplate: true,
     head: {
       title: 'inbox',
       script: [
@@ -74,6 +76,12 @@ export default defineNuxtConfig({
           as: 'font',
           type: 'font/woff2',
           crossorigin: 'anonymous',
+        },
+        {
+          rel: 'preload',
+          href: '/brand/inbox-loader.svg',
+          as: 'image',
+          type: 'image/svg+xml',
         },
       ],
       meta: [

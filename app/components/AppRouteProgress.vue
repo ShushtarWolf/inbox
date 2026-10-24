@@ -25,9 +25,9 @@ const showRouteLoading = useHeldPending(isNavigating)
   </div>
   <div
     v-if="showRouteLoading"
-    class="pointer-events-none fixed inset-0 z-[99] flex items-center justify-center bg-brand-cream/40"
-    aria-hidden="true"
+    class="inbox-route-loading-scrim pointer-events-none fixed inset-0 z-[99] flex items-center justify-center bg-brand-cream/55"
+    role="presentation"
   >
-    <AppVenusSpinner size="md" compact />
+    <AppVenusSpinner size="lg" compact class="inbox-route-loading-spinner" />
   </div>
 </template>

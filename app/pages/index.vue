@@ -404,6 +404,30 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 
       <CoachDiscoveryRail v-if="!pilotNoCoach" />
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
+
+      <section class="canva-home-trust-strip" aria-label="home trust">
+        <div class="canva-home-trust-item">
+          <AppIcon name="bolt" size="sm" />
+          <span>
+            <b>{{ t('home.trustInstantTitle') }}</b>
+            <small>{{ t('home.trustInstantBody') }}</small>
+          </span>
+        </div>
+        <div class="canva-home-trust-item">
+          <AppIcon name="verified_user" size="sm" />
+          <span>
+            <b>{{ t('home.trustSecureTitle') }}</b>
+            <small>{{ t('home.trustSecureBody') }}</small>
+          </span>
+        </div>
+        <div class="canva-home-trust-item">
+          <AppIcon name="event_busy" size="sm" />
+          <span>
+            <b>{{ t('home.trustCancelTitle') }}</b>
+            <small>{{ t('home.trustCancelBody') }}</small>
+          </span>
+        </div>
+      </section>
     </AppAsyncState>
 
     <LegalFaq class="max-w-none px-0" faq-key="legal.sitewideFaq" page-url-path="/" with-hub-discovery />

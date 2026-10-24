@@ -10,6 +10,7 @@ const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 const { logout } = useAuth()
+const { openRegister } = useAuthFlow()
 const { formatCurrency } = useFormatters()
 const { onlineEnabled, redirectToPaymentGateway } = useCheckout()
 
@@ -236,6 +237,18 @@ watch(
           </div>
         </section>
       </AppAsyncState>
+
+      <section class="canva-panel space-y-2 border border-brand-gray-200 p-4 text-start">
+        <p class="text-sm font-bold text-brand-navy">{{ t('coach.ownerCrossSellTitle') }}</p>
+        <p class="text-xs leading-relaxed text-brand-gray-600">{{ t('coach.ownerCrossSellBody') }}</p>
+        <button
+          type="button"
+          class="canva-gate-btn-primary"
+          @click="openRegister({ role: 'CLUB_ADMIN', returnTo: localePath('/owner/setup') })"
+        >
+          {{ t('coach.ownerCrossSellCta') }}
+        </button>
+      </section>
 
       <button type="button" class="canva-gate-btn-secondary" @click="signOut">
         {{ t('coach.settingsLogout') }}

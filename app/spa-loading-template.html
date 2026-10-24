@@ -1,0 +1,103 @@
+<!-- Initial SPA splash — same ball-in-box as /public/brand/inbox-loader.svg (design reference). -->
+<div id="nuxt-spa-loading" class="inbox-spa-splash" role="status" aria-live="polite" aria-label="Loading">
+  <svg class="inbox-spa-splash__svg" xmlns="http://www.w3.org/2000/svg" viewBox="-90 -90 1180 1180" width="96" height="96" aria-hidden="true">
+    <style>
+      .p{fill:none;stroke:#C41E1E;stroke-width:70;stroke-miterlimit:10}
+      .b{fill:#C41E1E}
+      .box,.tray,.lid,.ball{transform-box:view-box;animation-duration:3s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.55,1)}
+      .tray,.lid,.ball{transform-origin:0 0}
+      .box{transform-origin:497.63px 855px;animation-name:il-box}
+      .tray{animation-name:il-tray;transform:translate(497.63px,695.73px)}
+      .lid{animation-name:il-lid;transform:translate(480.9px,323.6px) rotate(173.71deg)}
+      .ball{animation-name:il-ball;transform:translate(475.3px,284.77px)}
+      @media (prefers-reduced-motion:reduce){.box,.tray,.lid,.ball{animation:none}}
+      @keyframes il-ball{
+      0%{transform:translate(475.3px,284.77px) scale(1,1)}
+      7%{transform:translate(475.3px,300px) scale(1.14,.86);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      13%{transform:translate(482px,215px) scale(.94,1.06);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+      29%{transform:translate(497.63px,690px) scale(.86,1.16)}
+      32%{transform:translate(497.63px,706px) scale(1.2,.8)}
+      36%,50%{transform:translate(497.63px,690px) scale(1,1);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      55%{transform:translate(497.63px,452px) scale(.94,1.06);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+      62%{transform:translate(497.63px,690px) scale(.9,1.1)}
+      64%{transform:translate(497.63px,702px) scale(1.14,.86);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      68%{transform:translate(497.63px,600px) scale(1,1);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+      72%{transform:translate(497.63px,690px) scale(.95,1.05)}
+      74%,78%{transform:translate(497.63px,704px) scale(1.18,.82);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      81%{transform:translate(490px,520px) scale(.86,1.16);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      88%{transform:translate(478px,140px) scale(1,1);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+      93%{transform:translate(475.3px,284.77px) scale(.95,1.05)}
+      95%{transform:translate(475.3px,298px) scale(1.12,.88)}
+      99%,100%{transform:translate(475.3px,284.77px) scale(1,1)}
+      }
+      @keyframes il-lid{
+      0%{transform:translate(480.9px,323.6px) rotate(173.71deg)}
+      7%{transform:translate(480.9px,336px) rotate(175deg)}
+      11%{transform:translate(480.9px,318px) rotate(192deg)}
+      24%{transform:translate(497.63px,160px) rotate(366deg)}
+      30%{transform:translate(497.63px,166px) rotate(360deg)}
+      36%{transform:translate(497.63px,148px) rotate(360deg);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+      42%{transform:translate(497.63px,452px) rotate(360deg)}
+      45%{transform:translate(497.63px,438px) rotate(360deg)}
+      48%,55%{transform:translate(497.63px,445px) rotate(360deg)}
+      57%{transform:translate(497.63px,416px) rotate(357deg)}
+      61%,76%{transform:translate(497.63px,445px) rotate(360deg);animation-timing-function:cubic-bezier(0,.55,.45,1)}
+      82%{transform:translate(690px,150px) rotate(405deg)}
+      91%{transform:translate(480.9px,332px) rotate(170deg)}
+      95%{transform:translate(480.9px,318px) rotate(175deg)}
+      100%{transform:translate(480.9px,323.6px) rotate(173.71deg)}
+      }
+      @keyframes il-tray{
+      0%,5%{transform:translate(497.63px,695.73px) scale(1,1)}
+      12%{transform:translate(497.63px,695.73px) scale(1.05,0)}
+      17%{transform:translate(497.63px,695.73px) scale(1,-1.1)}
+      20%,84%{transform:translate(497.63px,695.73px) scale(1,-1)}
+      90%{transform:translate(497.63px,695.73px) scale(1.05,0)}
+      95%{transform:translate(497.63px,695.73px) scale(1,1.08)}
+      98%,100%{transform:translate(497.63px,695.73px) scale(1,1)}
+      }
+      @keyframes il-box{
+      0%{transform:scale(1,1)}
+      7%{transform:scale(1.02,.98)}
+      12%,40%{transform:scale(1,1)}
+      43%{transform:scale(1.07,.93)}
+      47%{transform:scale(.98,1.02)}
+      50%,56%{transform:scale(1,1)}
+      57.5%{transform:scale(.97,1.04)}
+      60%,62%{transform:scale(1,1)}
+      64%{transform:scale(1.04,.96)}
+      67%,73%{transform:scale(1,1)}
+      77%{transform:scale(1.05,.95)}
+      81%{transform:scale(.98,1.02)}
+      85%,100%{transform:scale(1,1)}
+      }
+    </style>
+    <g class="box">
+      <g class="tray"><path class="p" d="M-250.76 125V-125H250.76V125"/></g>
+      <g class="ball"><circle class="b" r="93.533"/></g>
+      <g class="lid"><path class="p" d="M-250.76 125V-125H250.76V125"/></g>
+    </g>
+  </svg>
+</div>
+<style>
+  .inbox-spa-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f0e8;
+  }
+  .inbox-spa-splash__svg {
+    width: clamp(64px, 18vw, 96px);
+    height: clamp(64px, 18vw, 96px);
+    overflow: visible;
+  }
+  @media (max-width: 430px) {
+    .inbox-spa-splash__svg {
+      width: 72px;
+      height: 72px;
+    }
+  }
+</style>

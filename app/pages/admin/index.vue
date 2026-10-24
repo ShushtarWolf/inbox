@@ -77,65 +77,80 @@ watch(secret, (value) => {
     </section>
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="stat-grid">
-      <div v-if="data" class="space-y-6">
-        <div class="tail-card-grid-3">
-          <AppTailStatCard :label="t('admin.metrics.clubs')" :value="formatNumber(data.clubs.total)" icon="stadium" />
-          <AppTailStatCard :label="t('admin.metrics.users')" :value="formatNumber(data.users.total)" icon="group" />
-          <AppTailStatCard :label="t('admin.metrics.bookings')" :value="formatNumber(data.bookings.total)" icon="event" />
-        </div>
-        <div class="tail-card-grid-2">
-          <AppTailStatCard :label="t('admin.paymentChannelIpg')" :value="formatCurrency(data.payments.paidIpgAmount)" icon="payments" />
-          <AppTailStatCard :label="t('admin.paymentChannelOnSite')" :value="formatCurrency(data.payments.paidOnSiteAmount)" icon="payments" />
+      <div v-if="data" class="admin-overview-body space-y-5">
+        <div class="admin-a3">
+          <div class="admin-astat">
+            <span class="admin-astat-icon"><AppIcon name="stadium" size="sm" /></span>
+            <div>
+              <small>{{ t('admin.metrics.clubs') }}</small>
+              <b dir="ltr" class="tabular-nums">{{ formatNumber(data.clubs.total) }}</b>
+            </div>
+          </div>
+          <div class="admin-astat">
+            <span class="admin-astat-icon"><AppIcon name="group" size="sm" /></span>
+            <div>
+              <small>{{ t('admin.metrics.users') }}</small>
+              <b dir="ltr" class="tabular-nums">{{ formatNumber(data.users.total) }}</b>
+            </div>
+          </div>
+          <div class="admin-astat">
+            <span class="admin-astat-icon"><AppIcon name="event" size="sm" /></span>
+            <div>
+              <small>{{ t('admin.metrics.bookings') }}</small>
+              <b dir="ltr" class="tabular-nums">{{ formatNumber(data.bookings.total) }}</b>
+            </div>
+          </div>
         </div>
 
-        <div class="tail-card-grid-3">
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.nav.clubs') }}</h2>
-            <ul class="space-y-2 text-sm">
-              <li class="flex justify-between gap-2"><span>{{ t('admin.clubStatus.active') }}</span><strong dir="ltr">{{ formatNumber(data.clubs.active) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.clubStatus.pending') }}</span><strong dir="ltr">{{ formatNumber(data.clubs.pending) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.clubStatus.suspended') }}</span><strong dir="ltr">{{ formatNumber(data.clubs.suspended) }}</strong></li>
-            </ul>
-            <NuxtLink :to="localePath('/admin/clubs')" class="mt-4 inline-block text-sm font-bold text-brand-navy underline">
-              {{ t('admin.viewAll') }}
-            </NuxtLink>
+        <div class="admin-a2">
+          <div class="admin-astat">
+            <span class="admin-astat-icon"><AppIcon name="payments" size="sm" /></span>
+            <div>
+              <small>{{ t('admin.paymentChannelIpg') }}</small>
+              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidIpgAmount) }}</b>
+            </div>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.nav.users') }}</h2>
-            <ul class="space-y-2 text-sm">
-              <li class="flex justify-between gap-2"><span>{{ t('admin.roles.CLUB_ADMIN') }}</span><strong dir="ltr">{{ formatNumber(data.users.clubAdmin) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.roles.ATHLETE') }}</span><strong dir="ltr">{{ formatNumber(data.users.athlete) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.roles.COACH') }}</span><strong dir="ltr">{{ formatNumber(data.users.coach) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.userDisabled') }}</span><strong dir="ltr">{{ formatNumber(data.users.disabled) }}</strong></li>
-            </ul>
-            <NuxtLink :to="localePath('/admin/users')" class="mt-4 inline-block text-sm font-bold text-brand-navy underline">
-              {{ t('admin.viewAll') }}
-            </NuxtLink>
+          <div class="admin-astat">
+            <span class="admin-astat-icon"><AppIcon name="payments" size="sm" /></span>
+            <div>
+              <small>{{ t('admin.paymentChannelOnSite') }}</small>
+              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidOnSiteAmount) }}</b>
+            </div>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.attention') }}</h2>
-            <ul class="space-y-2 text-sm">
-              <li class="flex justify-between gap-2">
-                <NuxtLink :to="localePath('/admin/tickets')" class="underline">{{ t('admin.metrics.openTickets') }}</NuxtLink>
-                <strong dir="ltr">{{ formatNumber(data.tickets?.open || 0) }}</strong>
-              </li>
-              <li class="flex justify-between gap-2">
-                <NuxtLink :to="localePath('/admin/withdrawals')" class="underline">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
-                <strong dir="ltr">{{ formatNumber(data.withdrawals?.pending || 0) }}</strong>
-              </li>
-              <li class="flex justify-between gap-2">
-                <NuxtLink :to="localePath('/admin/applications')" class="underline">{{ t('admin.metrics.pendingApplications') }}</NuxtLink>
-                <strong dir="ltr">{{ formatNumber(data.applications.pending) }}</strong>
-              </li>
-              <li class="flex justify-between gap-2">
-                <span>{{ t('admin.metrics.bookingsToday') }}</span>
-                <strong dir="ltr">{{ formatNumber(data.bookings.today) }}</strong>
-              </li>
-              <li class="flex justify-between gap-2">
-                <span>{{ t('admin.metrics.pendingPayments') }}</span>
-                <strong dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</strong>
-              </li>
-            </ul>
+        </div>
+
+        <div class="admin-a3">
+          <div class="admin-acard">
+            <h3>{{ t('admin.nav.clubs') }}</h3>
+            <div class="admin-akv"><span>{{ t('admin.clubStatus.active') }}</span><b dir="ltr">{{ formatNumber(data.clubs.active) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.clubStatus.pending') }}</span><b dir="ltr">{{ formatNumber(data.clubs.pending) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.clubStatus.suspended') }}</span><b dir="ltr">{{ formatNumber(data.clubs.suspended) }}</b></div>
+            <NuxtLink :to="localePath('/admin/clubs')" class="admin-alink">{{ t('admin.viewAll') }}</NuxtLink>
+          </div>
+          <div class="admin-acard">
+            <h3>{{ t('admin.nav.users') }}</h3>
+            <div class="admin-akv"><span>{{ t('admin.roles.CLUB_ADMIN') }}</span><b dir="ltr">{{ formatNumber(data.users.clubAdmin) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.roles.ATHLETE') }}</span><b dir="ltr">{{ formatNumber(data.users.athlete) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.roles.COACH') }}</span><b dir="ltr">{{ formatNumber(data.users.coach) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.userDisabled') }}</span><b dir="ltr">{{ formatNumber(data.users.disabled) }}</b></div>
+            <NuxtLink :to="localePath('/admin/users')" class="admin-alink">{{ t('admin.viewAll') }}</NuxtLink>
+          </div>
+          <div class="admin-acard">
+            <h3>{{ t('admin.attention') }}</h3>
+            <div class="admin-akv">
+              <NuxtLink :to="localePath('/admin/tickets')" class="admin-alink">{{ t('admin.metrics.openTickets') }}</NuxtLink>
+              <b dir="ltr">{{ formatNumber(data.tickets?.open || 0) }}</b>
+            </div>
+            <div class="admin-akv">
+              <NuxtLink :to="localePath('/admin/withdrawals')" class="admin-alink">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
+              <b dir="ltr">{{ formatNumber(data.withdrawals?.pending || 0) }}</b>
+            </div>
+            <div class="admin-akv">
+              <NuxtLink :to="localePath('/admin/applications')" class="admin-alink">{{ t('admin.metrics.pendingApplications') }}</NuxtLink>
+              <b dir="ltr">{{ formatNumber(data.applications.pending) }}</b>
+            </div>
+            <div class="admin-akv"><span>{{ t('admin.metrics.bookingsToday') }}</span><b dir="ltr">{{ formatNumber(data.bookings.today) }}</b></div>
+            <div class="admin-akv"><span>{{ t('admin.metrics.pendingPayments') }}</span><b dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</b></div>
           </div>
         </div>
       </div>
