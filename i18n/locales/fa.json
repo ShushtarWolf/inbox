@@ -117,13 +117,7 @@
     "bookIt": "رزرو آن",
     "pilotStudentOffer": "۲۰٪ تخفیف برای {club}",
     "competitionsRailTitle": "مسابقات با جایزه",
-    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها",
-    "trustInstantTitle": "تایید آنی رزرو",
-    "trustInstantBody": "بعد از انتخاب ساعت، رزرو همان لحظه ثبت می‌شود.",
-    "trustSecureTitle": "پرداخت امن",
-    "trustSecureBody": "آنلاین یا نقدی در باشگاه — هر کدام برایت راحت‌تر است.",
-    "trustCancelTitle": "لغو شفاف",
-    "trustCancelBody": "قوانین لغو هر باشگاه قبل از پرداخت نمایش داده می‌شود."
+    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها"
   },
   "competitions": {
     "title": "مسابقات",

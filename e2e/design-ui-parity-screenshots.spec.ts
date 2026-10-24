@@ -36,7 +36,7 @@ test.describe('design UI parity screenshots', () => {
   test('public home desktop and mobile', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/')
-    await expect(page.locator('.canva-home-trust-strip')).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.canva-search-row, .canva-search-fields').first()).toBeVisible({ timeout: 20_000 })
     await page.screenshot({ path: shotPath('after-home-desktop.png'), fullPage: true })
 
     await page.setViewportSize({ width: 390, height: 844 })
