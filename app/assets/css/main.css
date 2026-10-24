@@ -3088,6 +3088,20 @@
   .inbox-loader {
     overflow: visible;
     flex-shrink: 0;
+    display: block;
+    contain: layout style;
+  }
+  .inbox-loader .inbox-loader__box,
+  .inbox-loader .inbox-loader__tray,
+  .inbox-loader .inbox-loader__lid,
+  .inbox-loader .inbox-loader__ball {
+    will-change: transform;
+  }
+  .inbox-route-loading-scrim .inbox-loading-block-compact {
+    @apply py-0;
+  }
+  .inbox-route-loading-spinner.inbox-loading-block {
+    @apply py-0;
   }
   .inbox-loader .inbox-loader__path {
     fill: none;

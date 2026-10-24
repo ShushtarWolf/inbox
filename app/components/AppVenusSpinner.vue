@@ -16,6 +16,7 @@ withDefaults(defineProps<{
 
 <template>
   <AppInboxLoader
+    v-bind="$attrs"
     :size="size"
     :label="label"
     :compact="compact"
