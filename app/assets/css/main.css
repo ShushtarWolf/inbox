@@ -430,27 +430,6 @@
   .canva-auth-photo-copy small {
     @apply mt-1 block text-xs leading-relaxed text-white/85;
   }
-  .canva-home-trust-strip {
-    @apply grid gap-3 border border-brand-gray-200/80 bg-white px-4 py-4 text-start;
-    border-radius: var(--sz-canva-radius);
-  }
-  @media (min-width: 640px) {
-    .canva-home-trust-strip {
-      @apply grid-cols-3;
-    }
-  }
-  .canva-home-trust-item {
-    @apply flex items-start gap-3;
-  }
-  .canva-home-trust-item .material-symbols-rounded {
-    @apply mt-0.5 shrink-0 text-brand-primary;
-  }
-  .canva-home-trust-item b {
-    @apply block text-sm font-bold text-brand-navy;
-  }
-  .canva-home-trust-item small {
-    @apply mt-0.5 block text-xs leading-relaxed text-brand-gray-600;
-  }
   .canva-athlete-upcoming-card {
     @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
     border-radius: var(--sz-canva-radius);
