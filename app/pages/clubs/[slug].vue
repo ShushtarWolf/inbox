@@ -584,6 +584,7 @@ const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.v
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
+  confirmSuccessHold.value = false
   if (!user.value) {
     resumeConfirmAfterAuth.value = true
     openLogin({
