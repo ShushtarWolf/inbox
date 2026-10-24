@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** Canonical SVG: `/public/brand/inbox-loader.svg` (ball-in-box, #C41E1E). */
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'
   /** Loader stroke/fill color (default brand crimson). */

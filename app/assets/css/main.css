@@ -3117,13 +3117,24 @@
     animation-name: inbox-loader-box;
   }
   .inbox-loader .inbox-loader__tray {
+    transform: translate(497.63px, 695.73px);
     animation-name: inbox-loader-tray;
   }
   .inbox-loader .inbox-loader__lid {
+    transform: translate(480.9px, 323.6px) rotate(173.71deg);
     animation-name: inbox-loader-lid;
   }
   .inbox-loader .inbox-loader__ball {
+    transform: translate(475.3px, 284.77px);
     animation-name: inbox-loader-ball;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .inbox-loader .inbox-loader__box,
+    .inbox-loader .inbox-loader__tray,
+    .inbox-loader .inbox-loader__lid,
+    .inbox-loader .inbox-loader__ball {
+      animation: none;
+    }
   }
   @keyframes inbox-loader-ball {
     0% { transform: translate(475.3px, 284.77px) scale(1, 1); }
@@ -3654,6 +3665,186 @@
   }
   .canva-court-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@layer components {
+  /* Desktop public header (design rhead) */
+  .public-rhead {
+    @apply border-b border-brand-gray-200 bg-brand-cream;
+    min-height: 4.5rem;
+  }
+  .public-rhead-inner {
+    min-height: 4.5rem;
+    align-items: center;
+  }
+  .public-rhead-nav {
+    @apply font-bold text-brand-navy hover:bg-brand-primary-soft/60;
+    border-radius: var(--sz-canva-radius);
+  }
+  .public-rhead-nav-active {
+    @apply bg-brand-primary text-white;
+    border-radius: var(--sz-canva-radius);
+  }
+
+  /* Owner subpages — design rclubcard */
+  .owner-rclubcard {
+    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-2.5 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .owner-rclubcard-icon {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .owner-rclubcard-eyebrow {
+    @apply block text-[10px] font-bold text-brand-gray-500;
+  }
+  .owner-rclubcard-name {
+    @apply block text-sm font-bold text-brand-navy;
+  }
+  .owner-rclubcard-select {
+    @apply mt-0.5 w-full max-w-full border-0 bg-transparent py-0 pe-6 text-sm font-bold text-brand-navy outline-none;
+    border-radius: var(--sz-canva-radius);
+  }
+
+  /* Admin overview — astat / acard grid */
+  .admin-a3 {
+    @apply grid gap-2 min-[431px]:grid-cols-3;
+  }
+  .admin-a2 {
+    @apply grid gap-2 min-[431px]:grid-cols-2;
+  }
+  .admin-astat {
+    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .admin-astat-icon {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary;
+    border-radius: var(--sz-canva-radius);
+  }
+  .admin-astat small {
+    @apply block text-[10px] font-bold text-brand-gray-600;
+  }
+  .admin-astat b {
+    @apply mt-0.5 block text-lg font-bold text-brand-navy tabular-nums;
+  }
+  .admin-acard {
+    @apply border border-brand-gray-200 bg-white p-4 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .admin-acard h3 {
+    @apply mb-3 text-sm font-bold text-brand-navy;
+  }
+  .admin-akv {
+    @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2 text-xs last:border-b-0;
+  }
+  .admin-akv span {
+    @apply text-brand-gray-600;
+  }
+  .admin-akv b {
+    @apply font-bold text-brand-navy tabular-nums;
+  }
+  .admin-alink {
+    @apply mt-2 inline-block text-xs font-bold text-brand-primary hover:underline;
+  }
+
+  /* Coach dashboard (design pages.coach) */
+  .coach-dash-welcome {
+    @apply flex flex-wrap items-center gap-3 border border-brand-gray-200 bg-white p-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-dash-switch-wrap {
+    @apply ms-auto flex min-w-[8.5rem] flex-col items-start gap-1;
+  }
+  .coach-dash-switch-label {
+    @apply text-[10px] font-bold text-brand-gray-600;
+  }
+  .coach-dash-switch {
+    @apply relative h-6 w-11 shrink-0 cursor-pointer border-0 bg-brand-primary p-0 transition;
+    border-radius: 2px;
+  }
+  .coach-dash-switch::after {
+    content: '';
+    @apply absolute start-0.5 top-0.5 h-5 w-5 bg-white transition;
+    border-radius: 2px;
+  }
+  .coach-dash-switch-off {
+    @apply bg-brand-gray-300;
+  }
+  .coach-dash-switch-off::after {
+    transform: translateX(1.25rem);
+  }
+  .coach-dash-stats {
+    @apply grid grid-cols-2 gap-2 min-[431px]:grid-cols-4;
+  }
+  .coach-dash-stat {
+    @apply border border-brand-gray-200 bg-white px-2 py-3 text-center;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-dash-stat span {
+    @apply block text-[10px] font-bold text-brand-gray-600;
+  }
+  .coach-dash-stat b {
+    @apply mt-1 block text-lg font-bold text-brand-primary tabular-nums;
+  }
+  .coach-dash-stat small {
+    @apply mt-0.5 block text-[10px] font-bold;
+  }
+  .coach-dash-two-col {
+    @apply grid gap-3 min-[1024px]:grid-cols-2;
+  }
+  .coach-dash-two-col-spaced {
+    @apply mt-3;
+  }
+  .coach-dash-card {
+    @apply border border-brand-gray-200 bg-white p-3 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-dash-card-title {
+    @apply mb-3 text-sm font-bold text-brand-navy;
+  }
+  .coach-dash-table {
+    @apply w-full min-w-[16rem] border-collapse text-start text-xs;
+  }
+  .coach-dash-table th {
+    @apply border-b border-brand-gray-200 pb-2 font-bold text-brand-gray-600;
+  }
+  .coach-dash-table td {
+    @apply border-b border-brand-gray-100 py-2 text-brand-navy;
+  }
+  .coach-dash-tag {
+    @apply inline-block px-1.5 py-0.5 text-[10px] font-bold text-brand-gray-600;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-dash-tag-green {
+    @apply bg-emerald-50 text-emerald-800;
+  }
+  .coach-dash-tag-mustard {
+    @apply bg-amber-50 text-amber-900;
+  }
+  .coach-bar-chart {
+    @apply min-h-[10rem] pt-2;
+  }
+  .coach-bar-chart-bars {
+    @apply flex h-36 items-end justify-between gap-1;
+  }
+  .coach-bar-chart-col {
+    @apply flex min-w-0 flex-1 flex-col items-center gap-1;
+  }
+  .coach-bar-chart-value {
+    @apply text-[10px] font-bold text-brand-gray-500;
+  }
+  .coach-bar-chart-track {
+    @apply flex h-24 w-full items-end justify-center bg-brand-gray-100;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-bar-chart-fill {
+    @apply w-[70%] bg-brand-primary;
+    border-radius: var(--sz-canva-radius) var(--sz-canva-radius) 0 0;
+    min-height: 4px;
+  }
+  .coach-bar-chart-label {
+    @apply text-[10px] font-bold text-brand-gray-600;
   }
 }
 

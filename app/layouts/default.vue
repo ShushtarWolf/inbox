@@ -60,7 +60,7 @@ onMounted(() => {
     :class="reserveTabBar ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom))]' : ''"
   >
     <div class="hidden min-[431px]:block">
-      <AppTopBar :nav="nav">
+      <AppTopBar :nav="nav" variant="publicHead" max-width-class="max-w-[1180px]">
         <template #actions>
           <template v-if="!user">
             <button
@@ -104,11 +104,11 @@ onMounted(() => {
         </template>
       </AppTopBar>
     </div>
-    <main class="app-shell-main canva-public-main mx-auto w-full max-[430px]:max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-6xl min-[431px]:px-6 min-[431px]:pb-8 min-[431px]:pt-4">
+    <main class="app-shell-main canva-public-main mx-auto w-full max-[430px]:max-w-lg flex-1 px-4 py-5 min-[431px]:max-w-[1180px] min-[431px]:px-6 min-[431px]:pb-8 min-[431px]:pt-4">
       <slot />
     </main>
     <footer
-      class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-6xl min-[431px]:pb-4"
+      class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-[1180px] min-[431px]:pb-4"
       :class="reserveTabBar
         ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)]'
         : 'pb-[calc(var(--sz-safe-bottom)+0.5rem)]'"
