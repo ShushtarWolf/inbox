@@ -599,8 +599,8 @@
   .canva-search-placeholder {
     /* 16px on phone so <select> focus does not trigger iOS page zoom */
     @apply w-full truncate border-0 bg-transparent p-0 text-center text-base font-medium outline-none sm:text-sm;
-    /* brand-gray-500 — muted on white, ≥4.5:1 for PSI contrast */
-    color: #6b6b67;
+    /* Darker than gray-500 (audit: search hints were hard to read on the white bar). */
+    color: #4a4a46;
     appearance: none;
     white-space: nowrap;
     line-height: 1.25;

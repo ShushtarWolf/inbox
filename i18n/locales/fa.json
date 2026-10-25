@@ -47,7 +47,9 @@
     "courtsCount": "{count} زمین",
     "datePickerHint": "انتخابگر میلادی — نمایش به‌صورت {date}",
     "carouselSlide": "اسلاید {current} از {total}",
-    "englishDigitsHint": "برای وارد کردن عدد از صفحه‌کلید انگلیسی استفاده کنید."
+    "englishDigitsHint": "برای وارد کردن عدد از صفحه‌کلید انگلیسی استفاده کنید.",
+    "carouselPrev": "اسلاید قبلی",
+    "carouselNext": "اسلاید بعدی"
   },
   "nav": {
     "home": "خانه",
@@ -117,7 +119,8 @@
     "bookIt": "رزرو آن",
     "pilotStudentOffer": "۲۰٪ تخفیف برای {club}",
     "competitionsRailTitle": "مسابقات با جایزه",
-    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها"
+    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها",
+    "heroPrimaryCta": "رزرو زمین"
   },
   "competitions": {
     "title": "مسابقات",

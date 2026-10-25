@@ -1068,7 +1068,7 @@ async function shareClub() {
               <span v-if="locationLine">{{ locationLine }}</span>
               <span v-if="locationLine" class="text-brand-gray-300">|</span>
               <span>{{ sportLabel }}</span>
-              <span class="canva-court-card-rating !mt-0 text-brand-navy">
+              <span v-if="ratingDisplay && ratingDisplay !== '—'" class="canva-court-card-rating !mt-0 text-brand-navy">
                 {{ ratingDisplay }}
                 <span class="canva-court-card-star" aria-hidden="true">★</span>
               </span>
