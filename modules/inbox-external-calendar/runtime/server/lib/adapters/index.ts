@@ -1,5 +1,5 @@
 import { verdictsForReconcile } from '../../../../lib/padFailedSourceUnknown'
-import { reconcileConfirmedBusy } from '../../../../lib/reconcile'
+import { reconcileConfirmedBusy, reconcileGuestUncertain } from '../../../../lib/reconcile'
 import type { ClubMapping, ExternalAdapterResult, ExternalOccupiedSlot } from '../types'
 import { fetchAloPlayOccupied } from './aloplay'
 import { fetchAloVarzeshOccupancy } from './alovarzesh'
@@ -39,9 +39,11 @@ export async function fetchExternalOccupancy(opts: {
   occupied: ExternalOccupiedSlot[]
   adapters: ExternalAdapterResult[]
   persistOccupied: ExternalOccupiedSlot[]
+  /** UNKNOWN/STALE cells with no confident FREE/BUSY — non-bookable for guests. */
+  uncertain?: Array<{ courtKey: string; startTime: string }>
 }> {
   if (!opts.mapping) {
-    return { occupied: [], adapters: [], persistOccupied: [] }
+    return { occupied: [], adapters: [], persistOccupied: [], uncertain: [] }
   }
 
   const aloplayOn = aloplaySupported(opts.mapping)
@@ -100,7 +102,9 @@ export async function fetchExternalOccupancy(opts: {
     ...courtic.occupied,
   ]
 
-  return { occupied, adapters, persistOccupied }
+  const uncertain = reconcileGuestUncertain(allVerdicts)
+
+  return { occupied, adapters, persistOccupied, uncertain }
 }
 
 export { alovarzeshSupported, aloplaySupported, reconcileConfirmedBusy }

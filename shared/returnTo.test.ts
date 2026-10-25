@@ -70,3 +70,17 @@ describe('buildReturnTo', () => {
     })).toBe('/clubs/iust-tennis?date=2026-08-17&court=c4%2Cc6&slots=s1%2Cs2')
   })
 })
+
+describe('booking selection survives OTP returnTo', () => {
+  it('keeps date/court/slots through build → sanitize', () => {
+    const rt = buildReturnTo('/clubs/inbox-padel', { date: '2026-10-27', court: 'c1', slots: 's1,s2', empty: undefined })
+    const safe = sanitizeReturnTo(rt)
+    expect(safe).toBeTruthy()
+    const u = new URL(safe!, 'https://x.test')
+    expect(u.pathname).toBe('/clubs/inbox-padel')
+    expect(u.searchParams.get('date')).toBe('2026-10-27')
+    expect(u.searchParams.get('court')).toBe('c1')
+    expect(u.searchParams.get('slots')).toBe('s1,s2')
+    expect(u.searchParams.has('empty')).toBe(false)
+  })
+})

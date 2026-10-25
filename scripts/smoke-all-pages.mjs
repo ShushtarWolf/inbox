@@ -163,8 +163,13 @@ async function main() {
   await check('/athlete', { expectRedirect: true, label: 'guest /athlete' })
   console.log('ok  guest dashboard redirects')
 
+  // Nested /admin/* require unlock; only /admin unlock screen is public (200).
   for (const path of adminPaths) {
-    await check(path, { label: `admin ${path}` })
+    if (path === '/admin') {
+      await check(path, { label: `admin ${path}` })
+    } else {
+      await check(path, { expectRedirect: true, label: `admin ${path}` })
+    }
     console.log(`ok  admin ${path}`)
   }
 

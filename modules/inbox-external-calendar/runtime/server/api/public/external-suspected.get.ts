@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
 
   const club = await resolveActiveClubBySlug(clubSlug)
   if (!club || !hasExternalMapping(club.slug)) {
-    return { suspected: [] as Array<{ slotId?: string; startTime: string; courtId: string; suspected: true }> }
+    return { suspected: [] as Array<{ slotId?: string; startTime: string; courtId: string; suspected: true }>, uncertain: [] as Array<{ slotId?: string; startTime: string; courtId: string }> }
   }
 
   const mapping = getClubMapping(club.slug)
   const inboxSlots = await loadPublicClubSlots(club.id, date)
-  if (!inboxSlots.length) return { suspected: [] }
+  if (!inboxSlots.length) return { suspected: [], uncertain: [] }
 
   const courtsRaw = await prisma.court.findMany({
     where: { clubId: club.id },
@@ -58,8 +58,24 @@ export default defineEventHandler(async (event) => {
     adapters: external.adapters,
   })
 
+  const suspected = computeSuspectedSlots(inboxSlots, occupied, manualOverrides)
+  const suspectedKeys = new Set(suspected.map((row) => `${row.courtId}:${row.startTime}`))
+  const releaseKeys = new Set(
+    manualOverrides.filter((row) => row.type === 'RELEASE').map((row) => `${row.courtId}:${row.startTime}`),
+  )
+  const uncertainKeys = new Set((external.uncertain ?? []).map((row) => `${row.courtKey}:${row.startTime.slice(0, 5)}`))
+  // Guest-facing: UNKNOWN/STALE with no confident FREE → non-bookable «وضعیت نامشخص».
+  const uncertain = inboxSlots
+    .filter((slot) => {
+      if (slot.displayStatus && slot.displayStatus !== 'FREE') return false
+      const key = `${slot.courtId}:${slot.startTime.slice(0, 5)}`
+      return uncertainKeys.has(key) && !releaseKeys.has(key) && !suspectedKeys.has(key)
+    })
+    .map((slot) => ({ slotId: slot.id, startTime: slot.startTime.slice(0, 5), courtId: slot.courtId }))
+
   return {
+    uncertain,
     // RELEASE → not suspected on public calendar (owner opened for Inboxs renters).
-    suspected: computeSuspectedSlots(inboxSlots, occupied, manualOverrides),
+    suspected,
   }
 })

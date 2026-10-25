@@ -7,6 +7,8 @@ type PublicSuspectedSlot = {
 
 type PublicSuspectedResponse = {
   suspected: PublicSuspectedSlot[]
+  /** UNKNOWN/STALE with no confident FREE — non-bookable for guests. */
+  uncertain?: Array<{ slotId?: string; startTime: string; courtId: string }>
 }
 
 /** Optional hook for athlete club calendar — no-ops when external calendar module is not registered. */
@@ -45,6 +47,28 @@ export function useExternalSuspectedSlots(opts: {
     return keys
   })
 
+  const uncertainKeys = computed(() => {
+    const keys = new Set<string>()
+    for (const item of data.value?.uncertain || []) {
+      keys.add(`${item.courtId}:${item.startTime.slice(0, 5)}`)
+      if (item.slotId) keys.add(`id:${item.slotId}`)
+    }
+    return keys
+  })
+
+  /** Guest UI: external status uncertain → show «وضعیت نامشخص», not bookable. */
+  function isSlotUncertain(slot: {
+    id: string
+    startTime?: string
+    courtId?: string
+    court?: { id?: string }
+  }): boolean {
+    if (!enabled.value) return false
+    const courtId = slot.courtId || slot.court?.id || ''
+    const time = (slot.startTime || '').slice(0, 5)
+    return uncertainKeys.value.has(`${courtId}:${time}`) || uncertainKeys.value.has(`id:${slot.id}`)
+  }
+
   function isSlotSuspected(slot: {
     id: string
     startTime?: string
@@ -60,6 +84,7 @@ export function useExternalSuspectedSlots(opts: {
   return {
     enabled,
     isSlotSuspected,
+    isSlotUncertain,
     refreshSuspected: refresh,
     suspectedPending: pending,
   }

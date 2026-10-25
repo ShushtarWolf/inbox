@@ -15,6 +15,7 @@ const {
   channel,
   returnTo,
   notice,
+  summary,
   welcomeVariant,
   pendingRedirect,
   close,
@@ -461,8 +462,33 @@ async function registerWithPassword() {
   }
 }
 
+/** Persian validation instead of English browser-native bubbles (forms are novalidate). */
+function phoneValidationError(): string {
+  const digits = toLatinDigits(phone.value).replace(/\D/g, '')
+  if (!digits) return t('auth.phoneRequired')
+  if (!/^(?:98|0)?9\d{9}$/.test(digits)) return t('auth.phoneInvalid')
+  return ''
+}
+
+function toLatinDigits(value: string) {
+  return String(value || '')
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+}
+
 async function requestOtp() {
   error.value = ''
+  if (!phoneLocked.value) {
+    const phoneError = phoneValidationError()
+    if (phoneError) {
+      error.value = phoneError
+      return
+    }
+  }
+  if (purpose.value === 'register' && role.value !== 'CLUB_ADMIN' && !name.value.trim()) {
+    error.value = t('auth.nameRequired')
+    return
+  }
   if (purpose.value === 'register' && !gender.value) {
     error.value = t('auth.genderRequired')
     return
@@ -636,7 +662,7 @@ watch(
 
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
-    <div class="relative z-[1]">
+    <div class="relative z-[1] min-w-0 overflow-x-hidden">
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
@@ -682,6 +708,15 @@ watch(
 
       <div class="canva-auth-body">
         <h2 v-if="title" class="text-center text-lg font-bold text-brand-primary">{{ title }}</h2>
+        <div
+          v-if="summary && step !== 'welcome'"
+          class="border border-brand-primary/30 bg-brand-primary-soft px-3 py-2 text-start text-xs text-brand-navy"
+          style="border-radius: var(--sz-canva-radius);"
+          data-testid="auth-booking-summary"
+        >
+          <p class="font-bold">{{ t('auth.bookingSummaryTitle') }}</p>
+          <p class="mt-0.5 break-words leading-relaxed">{{ summary }}</p>
+        </div>
         <p
           v-if="notice && step !== 'welcome'"
           class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
@@ -751,14 +786,20 @@ watch(
 
         <!-- Phone OTP register (Canva primary) — password is desk fallback only -->
         <form
+          novalidate
           v-else-if="step === 'register' && channel === 'otp'"
           class="space-y-4"
           @submit.prevent="requestOtp"
         >
+          <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
+            v-if="!notice"
             class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
+            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
+          </p>
+          <p v-else class="text-start text-xs text-brand-gray-600">
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
           <template v-if="role === 'CLUB_ADMIN'">
@@ -1222,14 +1263,20 @@ watch(
 
         <!-- OTP login request -->
         <form
+          novalidate
           v-else-if="step === 'login' && channel === 'otp'"
           class="space-y-4"
           @submit.prevent="requestOtp"
         >
+          <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
+            v-if="!notice"
             class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
             style="border-radius: var(--sz-canva-radius);"
           >
+            {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
+          </p>
+          <p v-else class="text-start text-xs text-brand-gray-600">
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
           <AppFormField field-id="login-phone" :label="t('common.mobile')" numeric>
@@ -1257,7 +1304,7 @@ watch(
           </button>
         </form>
 
-        <form v-else-if="step === 'otp'" class="space-y-4" @submit.prevent="verifyOtp">
+        <form v-else-if="step === 'otp'" novalidate class="space-y-4" @submit.prevent="verifyOtp">
           <p class="text-start text-sm text-brand-gray-600">
             {{ otpHint }}
           </p>

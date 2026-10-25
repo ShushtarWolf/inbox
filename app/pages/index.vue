@@ -39,13 +39,16 @@ const dateFieldLabel = computed(() => {
 
 /** Canva home frames show three square tiles per rail. */
 const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
+/** Sport rails skip clubs already shown above so the same venue never repeats on home. */
 const tennisClubs = computed(() => {
+  const seen = new Set(suggestedClubs.value.map((c) => c.id))
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('tennis')).slice(0, 3)
+  return list.filter((club) => club.sports?.includes('tennis') && !seen.has(club.id)).slice(0, 3)
 })
 const padelClubs = computed(() => {
+  const seen = new Set([...suggestedClubs.value, ...tennisClubs.value].map((c) => c.id))
   const list = clubs.value || []
-  return list.filter((club) => club.sports?.includes('padel')).slice(0, 3)
+  return list.filter((club) => club.sports?.includes('padel') && !seen.has(club.id)).slice(0, 3)
 })
 const listedSports = computed(() => {
   const set = new Set<string>()
@@ -205,13 +208,22 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         <div class="space-y-2" :key="heroSlide">
           <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
+          <NuxtLink
+            :to="bookingLink('/clubs')"
+            class="canva-cta mt-3 inline-flex"
+            data-testid="home-hero-cta"
+            @pointerdown.stop
+            @pointerup.stop
+          >
+            {{ t('home.heroPrimaryCta') }}
+          </NuxtLink>
         </div>
 
         <div class="mt-5 flex items-center justify-between">
           <button
             type="button"
             class="canva-hero-arrow"
-            :aria-label="t('calendar.prevMonth')"
+            :aria-label="t('common.carouselPrev')"
             @click.stop.prevent="prevHero"
           >
             <AppIcon name="chevron_right" size="md" />
@@ -231,7 +243,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           <button
             type="button"
             class="canva-hero-arrow"
-            :aria-label="t('calendar.nextMonth')"
+            :aria-label="t('common.carouselNext')"
             @click.stop.prevent="nextHero"
           >
             <AppIcon name="chevron_left" size="md" />
@@ -335,7 +347,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="tennisClubs.length" class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.tennisTitle') }}</h2>
@@ -346,7 +358,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             <AppIcon name="chevron_left" size="sm" />
           </NuxtLink>
         </div>
-        <div v-if="tennisClubs.length" class="canva-venue-grid">
+        <div class="canva-venue-grid">
           <NuxtLink
             v-for="club in tennisClubs"
             :key="`tennis-${club.id}`"
@@ -366,7 +378,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             </div>
           </NuxtLink>
         </div>
-        <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
       <section v-if="padelClubs.length" class="space-y-3">

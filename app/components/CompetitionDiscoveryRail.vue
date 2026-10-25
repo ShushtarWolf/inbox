@@ -40,7 +40,8 @@ function cardMeta(item: CompetitionRailItem) {
 </script>
 
 <template>
-  <section v-if="visible" class="space-y-3">
+  <!-- Hide the whole rail when empty — no «به‌زودی» placeholder spam on home. -->
+  <section v-if="visible && items.length" class="space-y-3">
     <div class="flex items-end justify-between gap-3">
       <div class="text-start">
         <h2 class="text-lg font-bold text-[#B68A3B]">{{ t('home.competitionsRailTitle') }}</h2>
@@ -55,7 +56,7 @@ function cardMeta(item: CompetitionRailItem) {
       </NuxtLink>
     </div>
 
-    <div v-if="items.length" class="canva-competition-grid">
+    <div class="canva-competition-grid">
       <NuxtLink
         v-for="item in items"
         :key="item.id"
@@ -82,11 +83,5 @@ function cardMeta(item: CompetitionRailItem) {
         </div>
       </NuxtLink>
     </div>
-
-    <CanvaEmptyState
-      v-else
-      :title="t('competitions.comingSoon')"
-      icon="emoji_events"
-    />
   </section>
 </template>

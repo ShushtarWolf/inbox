@@ -47,7 +47,9 @@
     "courtsCount": "{count} زمین",
     "datePickerHint": "انتخابگر میلادی — نمایش به‌صورت {date}",
     "carouselSlide": "اسلاید {current} از {total}",
-    "englishDigitsHint": "برای وارد کردن عدد از صفحه‌کلید انگلیسی استفاده کنید."
+    "englishDigitsHint": "برای وارد کردن عدد از صفحه‌کلید انگلیسی استفاده کنید.",
+    "carouselPrev": "اسلاید قبلی",
+    "carouselNext": "اسلاید بعدی"
   },
   "nav": {
     "home": "خانه",
@@ -117,7 +119,8 @@
     "bookIt": "رزرو آن",
     "pilotStudentOffer": "۲۰٪ تخفیف برای {club}",
     "competitionsRailTitle": "مسابقات با جایزه",
-    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها"
+    "competitionsRailBody": "ثبت‌نام در مسابقات باشگاه‌ها",
+    "heroPrimaryCta": "رزرو زمین"
   },
   "competitions": {
     "title": "مسابقات",
@@ -313,7 +316,19 @@
         "listTitle": "باشگاه‌های تنیس تهران",
         "siblingLink": "زمین پدل تهران"
       }
-    }
+    },
+    "slotLegendUnavailable": "در دسترس نیست",
+    "slotLegendUncertain": "وضعیت نامشخص",
+    "slotUncertainLabel": "نامشخص",
+    "slotUnavailableLabel": "در دسترس نیست",
+    "slotAriaUncertain": "سانس {time} — وضعیت نامشخص، فعلاً قابل رزرو نیست",
+    "slotAriaSuspectedCall": "سانس {time} — برای رزرو با باشگاه تماس بگیرید",
+    "slotAriaUnavailable": "سانس {time} — در دسترس نیست",
+    "slotAriaFreePrice": "سانس {time} — آزاد، {price} هزار تومان",
+    "slotPriceShort": "{price} هزار",
+    "noSlotsForDay": "برای این روز سانس آزادی ثبت نشده است. روز دیگری را انتخاب کنید.",
+    "applyMoved": "ثبت باشگاه به صفحه ثبت‌نام مالک منتقل شده است.",
+    "applyMovedCta": "ثبت‌نام مالک باشگاه"
   },
   "coaches": {
     "title": "مربیان پدل و تنیس",
@@ -521,7 +536,8 @@
     "historyEmptyDayBody": "رزروی برای این تاریخ ثبت نشده.",
     "historyEmptyDayFilterBody": "رزروی برای این تاریخ ثبت نشده. برای دیدن همه رزروها، فیلتر را بردارید.",
     "historyShowAll": "نمایش همه رزروها",
-    "historyEquipmentQty": "{qty} عدد {name}"  },
+    "historyEquipmentQty": "{qty} عدد {name}"
+  },
   "coach": {
     "today": "امروز",
     "schedule": "برنامه",
@@ -1238,14 +1254,14 @@
     "emailComplaints": "شکایت و پیگیری",
     "hoursLabel": "ساعات پاسخ‌گویی",
     "hours": "همه‌روزه ۹ تا ۱۸ (به‌جز تعطیلات رسمی)",
-    "readinessTitle": "آمادگی اعتماد (اینماد / پیامک / درگاه)",
+    "readinessTitle": "اعتماد و پرداخت",
     "enamadPendingNote": "نماد اینماد هنوز نصب نشده — پس از تأیید پنل، شناسه و کد روی سرور تنظیم می‌شود.",
     "smsReadinessLabel": "پیامک",
     "smsReadySingle": "فعلاً فقط شماره(های) تاییدشده در پنل کاوه‌نگار؛ ادعای ارسال به هر موبایل ایران نمی‌شود.",
     "smsReadyMulti": "ارسال پیامک به شماره موبایل کاربران فعال است.",
     "ipgReadinessLabel": "پرداخت آنلاین (درگاه)",
-    "ipgReadyPayAtClub": "پیش‌فرض: پرداخت در باشگاه. درگاه آنلاین برای عموم فعال اعلام نشده است.",
-    "ipgReadyTest": "پرداخت آنلاین در حالت تست فعال است (شبیه‌سازی درگاه؛ ترمینال سامان لازم نیست).",
+    "ipgReadyPayAtClub": "پرداخت هزینه رزرو در باشگاه انجام می‌شود.",
+    "ipgReadyTest": "پرداخت آنلاین در حالت آزمایشی است؛ هزینه رزرو را می‌توانید در باشگاه پرداخت کنید.",
     "ipgReadyLive": "پرداخت آنلاین از طریق درگاه فعال است.",
     "messageTitle": "پیام برای اینباکس",
     "messageIntro": "پیام شما در صندوق تیکت اینباکس ثبت می‌شود و از پنل مدیریت پاسخ داده می‌شود.",
@@ -1813,7 +1829,11 @@
     "passwordMismatch": "رمزها یکسان نیستند.",
     "google": "ادامه با گوگل",
     "useGoogle": "این حساب با گوگل ساخته شده است. از دکمه گوگل استفاده کنید.",
-    "googleFailed": "ورود با گوگل انجام نشد. دوباره تلاش کنید."
+    "googleFailed": "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
+    "phoneRequired": "شماره موبایل را وارد کنید.",
+    "phoneInvalid": "شماره موبایل معتبر نیست؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.",
+    "nameRequired": "نام و نام خانوادگی را وارد کنید.",
+    "bookingSummaryTitle": "سانس انتخابی شما"
   },
   "upload": {
     "choose": "انتخاب تصویر",

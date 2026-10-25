@@ -410,7 +410,7 @@
     @apply text-lg font-bold leading-snug text-emerald-600;
   }
   .canva-auth-photo {
-    @apply relative z-[1] mx-[-1.25rem] mb-3 mt-[-0.5rem] flex min-h-[7.5rem] flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;
+    @apply relative z-[1] mx-0 mb-3 mt-0 flex min-h-[7.5rem] min-w-0 flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;
     background-size: cover;
     background-position: center;
   }
@@ -428,7 +428,7 @@
     @apply block text-base font-bold leading-snug;
   }
   .canva-auth-photo-copy small {
-    @apply mt-1 block text-xs leading-relaxed text-white/85;
+    @apply mt-1 block break-words text-xs leading-relaxed text-white/85;
   }
   .canva-athlete-upcoming-card {
     @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
@@ -599,8 +599,8 @@
   .canva-search-placeholder {
     /* 16px on phone so <select> focus does not trigger iOS page zoom */
     @apply w-full truncate border-0 bg-transparent p-0 text-center text-base font-medium outline-none sm:text-sm;
-    /* brand-gray-500 — muted on white, ≥4.5:1 for PSI contrast */
-    color: #6b6b67;
+    /* Darker than gray-500 (audit: search hints were hard to read on the white bar). */
+    color: #4a4a46;
     appearance: none;
     white-space: nowrap;
     line-height: 1.25;
@@ -2111,7 +2111,7 @@
     @apply mb-1.5 text-xs font-bold text-brand-navy;
   }
   .canva-club-court-num {
-    @apply inline-flex h-8 w-8 items-center justify-center text-[11px] font-bold text-brand-navy;
+    @apply inline-flex h-8 min-w-[2rem] items-center justify-center whitespace-nowrap px-2 text-[11px] font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
     border: 1px solid #d4d0ca;
     background: #fff;
@@ -2144,6 +2144,12 @@
     border-radius: var(--sz-canva-radius);
     border: 1px solid #d4d0ca;
     background: #fff;
+  }
+  .canva-club-slot-price {
+    @apply mt-0.5 block text-[9px] font-medium leading-tight text-brand-gray-600;
+  }
+  .canva-club-slot-active .canva-club-slot-price {
+    @apply text-white/90;
   }
   .canva-club-slot-active {
     background: #2f9e44;

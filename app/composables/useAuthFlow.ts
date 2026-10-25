@@ -26,21 +26,25 @@ export function useAuthFlow() {
   const channel = useState<AuthFlowChannel>('auth-flow-channel', () => 'otp')
   const returnTo = useState('auth-flow-return-to', () => '')
   const notice = useState('auth-flow-notice', () => '')
+  /** Booking context (court · date · time) shown when login opens from a booking CTA. */
+  const summary = useState('auth-flow-summary', () => '')
   const welcomeVariant = useState<AuthWelcomeVariant>('auth-flow-welcome', () => 'login')
   const pendingRedirect = useState('auth-flow-pending-redirect', () => '')
 
   function openGate(opts?: { returnTo?: string; notice?: string; channel?: AuthFlowChannel; smsLive?: boolean }) {
     returnTo.value = opts?.returnTo || ''
     notice.value = opts?.notice || ''
+    summary.value = ''
     purpose.value = 'login'
     channel.value = opts?.channel || defaultAuthChannel(opts?.smsLive)
     step.value = 'gate'
     open.value = true
   }
 
-  function openLogin(opts?: { returnTo?: string; notice?: string; channel?: AuthFlowChannel; smsLive?: boolean }) {
+  function openLogin(opts?: { returnTo?: string; notice?: string; summary?: string; channel?: AuthFlowChannel; smsLive?: boolean }) {
     returnTo.value = opts?.returnTo || ''
     notice.value = opts?.notice || ''
+    summary.value = opts?.summary || ''
     purpose.value = 'login'
     channel.value = opts?.channel || defaultAuthChannel(opts?.smsLive)
     step.value = 'login'
@@ -75,6 +79,7 @@ export function useAuthFlow() {
     step.value = 'closed'
     channel.value = 'otp'
     notice.value = ''
+    summary.value = ''
     pendingRedirect.value = ''
   }
 
@@ -86,6 +91,7 @@ export function useAuthFlow() {
     channel,
     returnTo,
     notice,
+    summary,
     welcomeVariant,
     pendingRedirect,
     openGate,
