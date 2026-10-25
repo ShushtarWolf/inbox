@@ -2111,7 +2111,7 @@
     @apply mb-1.5 text-xs font-bold text-brand-navy;
   }
   .canva-club-court-num {
-    @apply inline-flex h-8 w-8 items-center justify-center text-[11px] font-bold text-brand-navy;
+    @apply inline-flex h-8 min-w-[2rem] items-center justify-center whitespace-nowrap px-2 text-[11px] font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
     border: 1px solid #d4d0ca;
     background: #fff;
@@ -2144,6 +2144,12 @@
     border-radius: var(--sz-canva-radius);
     border: 1px solid #d4d0ca;
     background: #fff;
+  }
+  .canva-club-slot-price {
+    @apply mt-0.5 block text-[9px] font-medium leading-tight text-brand-gray-600;
+  }
+  .canva-club-slot-active .canva-club-slot-price {
+    @apply text-white/90;
   }
   .canva-club-slot-active {
     background: #2f9e44;

@@ -313,7 +313,17 @@
         "listTitle": "باشگاه‌های تنیس تهران",
         "siblingLink": "زمین پدل تهران"
       }
-    }
+    },
+    "slotLegendUnavailable": "در دسترس نیست",
+    "slotLegendUncertain": "وضعیت نامشخص",
+    "slotUncertainLabel": "نامشخص",
+    "slotUnavailableLabel": "در دسترس نیست",
+    "slotAriaUncertain": "سانس {time} — وضعیت نامشخص، فعلاً قابل رزرو نیست",
+    "slotAriaSuspectedCall": "سانس {time} — برای رزرو با باشگاه تماس بگیرید",
+    "slotAriaUnavailable": "سانس {time} — در دسترس نیست",
+    "slotAriaFreePrice": "سانس {time} — آزاد، {price} هزار تومان",
+    "slotPriceShort": "{price} هزار",
+    "noSlotsForDay": "برای این روز سانس آزادی ثبت نشده است. روز دیگری را انتخاب کنید."
   },
   "coaches": {
     "title": "مربیان پدل و تنیس",
@@ -521,7 +531,8 @@
     "historyEmptyDayBody": "رزروی برای این تاریخ ثبت نشده.",
     "historyEmptyDayFilterBody": "رزروی برای این تاریخ ثبت نشده. برای دیدن همه رزروها، فیلتر را بردارید.",
     "historyShowAll": "نمایش همه رزروها",
-    "historyEquipmentQty": "{qty} عدد {name}"  },
+    "historyEquipmentQty": "{qty} عدد {name}"
+  },
   "coach": {
     "today": "امروز",
     "schedule": "برنامه",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
-import { parseCourtPricingJson } from '#shared/courtPricing.ts'
+import { computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import {
   courtIdsFromSlots,
@@ -176,10 +176,41 @@ const showSlotsPending = useHeldPending(slotsPending, { forceRelease: () => Bool
 const {
   enabled: externalSuspectedEnabled,
   isSlotSuspected,
+  isSlotUncertain,
 } = useExternalSuspectedSlots({
   clubSlug: slug,
   date: selectedDate,
 })
+
+/** Not bookable on Inboxs: external busy (call club) or external status uncertain. */
+function isSlotLocked(slot: ClubSlot) {
+  return isSlotSuspected(slot) || isSlotUncertain(slot)
+}
+
+/** Listed per-slot price (thousand toman) for guests before login. */
+function slotPriceLabel(slot: ClubSlot): string {
+  const courtId = slotCourtId(slot)
+  const court = courts.value.find((c) => c.id === courtId)
+  const base = court?.price ?? slot.price ?? club.value?.priceFrom ?? null
+  if (base == null || !Number.isFinite(Number(base)) || Number(base) <= 0) return ''
+  const price = computeListedSlotPrice(Number(base), (slot.startTime || '').slice(0, 5), court?.pricingJson ?? null)
+  return price > 0 ? toThousand(price) : ''
+}
+
+/** Court chip label: real court name when it isn't just a number, else «زمین n». */
+function courtChipLabel(court: { nameFa?: string; nameEn?: string | null }, idx: number) {
+  const name = (localizedField(court as Record<string, unknown>, 'nameFa', 'nameEn') || court.nameFa || '').trim()
+  const n = courtDisplayNumber({ nameFa: court.nameFa || '', nameEn: court.nameEn }, idx)
+  if (name && !/^[\d۰-۹\s]+$/.test(name)) return name
+  return t('booking.courtNumber', { n: formatNumber(n) })
+}
+
+function onLockedSlotTap(slot: ClubSlot) {
+  // «تماس بگیرید»: hand off to the club phone instead of a dead-end button.
+  if (isSlotSuspected(slot) && club.value?.phone && import.meta.client) {
+    window.location.href = `tel:${club.value.phone}`
+  }
+}
 
 const gallerySlides = computed(() => {
   if (!club.value) return [] as string[]
@@ -257,7 +288,7 @@ watch(
     const drop = new Set(
       selectedSlotIds.value.filter((id) => {
         const slot = list.find((s) => s.id === id)
-        return Boolean(slot && (!isSlotFree(slot) || isSlotSuspected(slot)))
+        return Boolean(slot && (!isSlotFree(slot) || isSlotLocked(slot)))
       }),
     )
     if (drop.size) {
@@ -269,13 +300,13 @@ watch(
     const available = list
     let valid = deepLinkSlotIds.filter((id) => {
       const slot = available.find((s) => s.id === id)
-      return Boolean(slot && isSlotFree(slot) && !isSlotSuspected(slot))
+      return Boolean(slot && isSlotFree(slot) && !isSlotLocked(slot))
     })
     // Rebook fallback: match free slots by clock time when prior slot id is gone.
     if (!valid.length && deepLinkTimes.length) {
       valid = available
         .filter((s) => {
-          if (!isSlotFree(s) || isSlotSuspected(s)) return false
+          if (!isSlotFree(s) || isSlotLocked(s)) return false
           const start = (s.startTime || '').slice(0, 5)
           if (!deepLinkTimes.includes(start)) return false
           if (!deepLinkCourtIds.length) return true
@@ -355,7 +386,7 @@ const selectedSlots = computed(() => {
   )
   const picked = resolved.filter((slot) => {
     const live = liveById.get(slot.id)
-    if (live) return isSlotFree(live) && !isSlotSuspected(live)
+    if (live) return isSlotFree(live) && !isSlotLocked(live)
     // Other calendar day: keep cached pick until that day is loaded again.
     return Boolean(slot.date)
   })
@@ -727,7 +758,14 @@ function slotAriaLabel(slot: ClubSlot) {
   if (isSlotSelected(slot.id)) return t('clubs.slotAriaSelected', { time })
   if (waitlistSlotId.value === slot.id) return t('clubs.slotAriaWaitlist', { time })
   if (isSlotBooked(slot)) return t('clubs.slotAriaBooked', { time })
-  if (isSlotSuspected(slot)) return t('clubs.slotAriaSuspected', { time })
+  if (isSlotUncertain(slot)) return t('clubs.slotAriaUncertain', { time })
+  if (isSlotSuspected(slot)) {
+    return club.value?.phone
+      ? t('clubs.slotAriaSuspectedCall', { time })
+      : t('clubs.slotAriaUnavailable', { time })
+  }
+  const price = slotPriceLabel(slot)
+  if (price) return t('clubs.slotAriaFreePrice', { time, price })
   return t('clubs.slotAriaFree', { time })
 }
 
@@ -875,7 +913,10 @@ function toggleSlot(slot: ClubSlot) {
     return
   }
   // External suspected (مشکوک / تماس بگیرید): hard-lock — call club, no Inboxs reserve.
-  if (isSlotSuspected(slot)) return
+  if (isSlotLocked(slot)) {
+    onLockedSlotTap(slot)
+    return
+  }
   waitlistSlotId.value = null
   waitlistFeedback.value = ''
   // Always include the slot's court + focused court so an empty chip selection
@@ -896,7 +937,7 @@ function toggleSlot(slot: ClubSlot) {
     selectedCourtIds: applyCourtIds,
     startTime: slot.startTime,
     // Exclude suspected so multi-court hour apply cannot add EXTERNAL_BUSY hours.
-    slots: allSlots.value.filter((s) => !isSlotSuspected(s)),
+    slots: allSlots.value.filter((s) => !isSlotLocked(s)),
     clickedSlotId: slot.id,
   })
   syncBasketFromKnown(allSlots.value)
@@ -1086,7 +1127,11 @@ async function shareClub() {
             </span>
             <span v-if="externalSuspectedEnabled" class="canva-club-legend-item" role="listitem">
               <span class="canva-club-legend-swatch canva-club-legend-suspected" aria-hidden="true" />
-              {{ t('clubs.slotLegendSuspected') }}
+              {{ club?.phone ? t('clubs.slotLegendSuspected') : t('clubs.slotLegendUnavailable') }}
+            </span>
+            <span v-if="externalSuspectedEnabled" class="canva-club-legend-item" role="listitem">
+              <span class="canva-club-legend-swatch canva-club-legend-booked" aria-hidden="true" />
+              {{ t('clubs.slotLegendUncertain') }}
             </span>
           </div>
 
@@ -1143,12 +1188,12 @@ async function shareClub() {
                       && !isCourtChipActive(court.id)
                       && !isCourtChipTargeted(court.id),
                   }"
-                  :aria-label="t('booking.courtNumber', { n: formatNumber(courtDisplayNumber(court, idx)) })"
+                  :aria-label="courtChipLabel(court, idx)"
                   :aria-pressed="courtHasChipSelection(court.id)"
                   :aria-current="focusedCourtId === court.id ? 'true' : undefined"
                   @click="toggleCourt(court.id)"
                 >
-                  {{ formatNumber(courtDisplayNumber(court, idx)) }}
+                  {{ courtChipLabel(court, idx) }}
                 </button>
               </div>
               <p
@@ -1174,23 +1219,41 @@ async function shareClub() {
                   :class="{
                     'canva-club-slot-booked': isSlotBooked(slot) && waitlistSlotId !== slot.id,
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
+                    'canva-club-slot-booked canva-club-slot-uncertain': !isSlotBooked(slot) && isSlotUncertain(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                   }"
-                  :disabled="(isSlotBooked(slot) && !waitlistEnabled) || isSlotSuspected(slot)"
+                  :disabled="(isSlotBooked(slot) && !waitlistEnabled)
+                    || isSlotUncertain(slot)
+                    || (isSlotSuspected(slot) && !club?.phone)"
                   :aria-label="slotAriaLabel(slot)"
                   :aria-pressed="isSlotSelected(slot.id) || waitlistSlotId === slot.id"
                   @click="toggleSlot(slot)"
                 >
                   {{ formatTimeLabel(slot.startTime) }}
                   <span
-                    v-if="!isSlotBooked(slot) && isSlotSuspected(slot)"
+                    v-if="!isSlotBooked(slot) && isSlotUncertain(slot)"
                     class="canva-club-slot-suspected-label"
                   >
-                    {{ t('clubs.slotSuspectedLabel') }}
+                    {{ t('clubs.slotUncertainLabel') }}
+                  </span>
+                  <span
+                    v-else-if="!isSlotBooked(slot) && isSlotSuspected(slot)"
+                    class="canva-club-slot-suspected-label"
+                  >
+                    {{ club?.phone ? t('clubs.slotSuspectedLabel') : t('clubs.slotUnavailableLabel') }}
+                  </span>
+                  <span
+                    v-else-if="!isSlotBooked(slot) && slotPriceLabel(slot)"
+                    class="canva-club-slot-price"
+                  >
+                    {{ t('clubs.slotPriceShort', { price: slotPriceLabel(slot) }) }}
                   </span>
                 </button>
-                <p v-if="!showSlotsPending && !slotsError && !courtSlots.length" class="canva-club-detail-desc col-span-full">
-                  {{ t('common.empty') }}
+                <p
+                  v-if="!showSlotsPending && !slotsPending && !slotsError && slots != null && !courtSlots.length"
+                  class="canva-club-detail-desc col-span-full"
+                >
+                  {{ t('clubs.noSlotsForDay') }}
                 </p>
               </div>
               <p

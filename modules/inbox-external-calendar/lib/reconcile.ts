@@ -131,7 +131,7 @@ export function reconcilePerSourceMap(
   for (const row of slotVerdicts) {
     const source = row.source as SourceName
     if (source !== 'aloplay' && source !== 'alovarzesh' && source !== 'courtic') continue
-    const key = slotKey(row.courtKey, row.startTime)
+    const key = slotKey(row.courtKey, row.startTime.slice(0, 5))
     const current = byKey.get(key) ?? {}
     current[source] = row.verdict
     byKey.set(key, current)
@@ -147,6 +147,30 @@ export function reconcileCellStates(
   const out = new Map<string, ExternalCellState>()
   for (const [key, verdicts] of byKey) {
     out.set(key, reconcileSourceVerdicts(verdicts))
+  }
+  return out
+}
+
+/**
+ * Athlete-facing "uncertain" cells: at least one source is UNKNOWN/STALE, no source is BUSY,
+ * and no source reported a confident FREE. Guests must not book these (UX audit P0).
+ */
+export function isUncertainForGuests(verdicts: PerSourceVerdict): boolean {
+  const values = Object.values(verdicts).filter(Boolean) as SourceSlotVerdict[]
+  if (!values.length) return false
+  if (values.includes('BUSY') || values.includes('FREE')) return false
+  return values.includes('UNKNOWN') || values.includes('STALE')
+}
+
+/** courtKey/startTime rows that are uncertain for guests (see isUncertainForGuests). */
+export function reconcileGuestUncertain(
+  slotVerdicts: ReconcileInputVerdict[],
+): Array<{ courtKey: string; startTime: string }> {
+  const out: Array<{ courtKey: string; startTime: string }> = []
+  for (const [key, verdicts] of reconcilePerSourceMap(slotVerdicts)) {
+    if (!isUncertainForGuests(verdicts)) continue
+    const idx = key.indexOf(':')
+    out.push({ courtKey: key.slice(0, idx), startTime: key.slice(idx + 1, idx + 6) })
   }
   return out
 }

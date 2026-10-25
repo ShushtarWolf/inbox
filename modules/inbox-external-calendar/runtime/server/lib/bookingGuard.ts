@@ -50,6 +50,7 @@ export async function assertExternalBookingAllowed(opts: {
 
   const mapping = getClubMapping(opts.club.slug)
   const blocked: Array<{ courtId: string; startTime: string; date: string }> = []
+  const uncertainBlocked: Array<{ courtId: string; startTime: string; date: string }> = []
   const dates = [...new Set(opts.slots.map((slot) => slot.date))]
   const overrideRows = await prisma.manualAvailabilityOverride.findMany({
     where: { clubId: opts.club.id, date: { in: dates } },
@@ -97,6 +98,33 @@ export async function assertExternalBookingAllowed(opts: {
     for (const row of dateBlocked) {
       blocked.push({ ...row, date })
     }
+
+    // UX audit P0: UNKNOWN/STALE with no confident FREE is not bookable for guests.
+    // Owner RELEASE still wins. Fetch failure above stays fail-open (no data at all).
+    const releaseKeys = new Set(
+      (overridesByDate.get(date) ?? [])
+        .filter((row) => row.type === 'RELEASE')
+        .map((row) => slotOccupancyKey(row.courtId, row.startTime)),
+    )
+    const uncertainKeys = new Set(
+      (external.uncertain ?? []).map((row) => slotOccupancyKey(row.courtKey, row.startTime)),
+    )
+    const alreadyBlocked = new Set(dateBlocked.map((row) => slotOccupancyKey(row.courtId, row.startTime)))
+    for (const slot of dateSlots) {
+      const key = slotOccupancyKey(slot.courtId, slot.startTime)
+      if (!uncertainKeys.has(key) || releaseKeys.has(key) || alreadyBlocked.has(key)) continue
+      uncertainBlocked.push({ courtId: slot.courtId, startTime: slot.startTime.slice(0, 5), date })
+    }
+  }
+
+  if (uncertainBlocked.length && !blocked.length) {
+    logExternalCollection('booking_guard_blocked_uncertain', {
+      clubSlug: opts.club.slug,
+      clubId: opts.club.id,
+      blocked: uncertainBlocked,
+      durationMs: Date.now() - started,
+    })
+    throw createError({ statusCode: 409, statusMessage: 'Slot availability uncertain' })
   }
 
   if (blocked.length) {
