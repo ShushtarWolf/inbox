@@ -5,7 +5,6 @@ const { formatPhone } = useFormatters()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
-const { smsPhase, smsLive } = useSmsCapability()
 const { fetchErrorMessage } = useFetchError()
 const { user } = useAuth()
 
@@ -126,28 +125,28 @@ useHead({
         <dd class="text-brand-gray-700">{{ ownerName }}</dd>
       </div>
 
-      <!-- Address: env only — never invent Tehran -->
+      <!-- Address: env only — never invent Tehran; hide when unset (no setup copy to users) -->
       <div
+        v-if="address"
         class="space-y-1 border border-brand-gray-200 bg-white p-4"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.addressLabel') }}</dt>
-        <dd v-if="address" class="text-brand-gray-700">{{ address }}</dd>
-        <dd v-else class="text-amber-800">{{ t('contact.addressPendingNote') }}</dd>
+        <dd class="text-brand-gray-700">{{ address }}</dd>
         <dd v-if="postalCode" class="text-brand-gray-600" dir="ltr">
           {{ t('contact.postalCodeLabel') }}: {{ postalCode }}
         </dd>
       </div>
 
       <div
+        v-if="landline"
         class="space-y-1 border border-brand-gray-200 bg-white p-4"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.landlineLabel') }}</dt>
-        <dd v-if="landline">
+        <dd>
           <a :href="`tel:${landlineTel}`" class="tabular-nums text-brand-primary" dir="ltr">{{ landline }}</a>
         </dd>
-        <dd v-else class="text-amber-800">{{ t('contact.landlinePendingNote') }}</dd>
       </div>
 
       <div
@@ -251,35 +250,23 @@ useHead({
       </form>
     </section>
 
-    <!-- Trust readiness: Enamad / SMS / IPG — cannot lie -->
+    <!-- Trust: only user-facing facts — never raw config/env values or setup notes. -->
     <section
       class="mt-6 space-y-3 border border-brand-gray-200 bg-white p-4"
       style="border-radius: 2px;"
     >
       <h2 class="text-start text-base font-bold text-brand-navy">{{ t('contact.readinessTitle') }}</h2>
 
-      <div class="space-y-1 text-sm">
+      <div v-if="enamadReady" class="space-y-1 text-sm">
         <p class="font-bold text-brand-navy">{{ t('legal.enamad') }}</p>
-        <div v-if="enamadReady" class="flex justify-start">
+        <div class="flex justify-start">
           <EnamadBadge />
         </div>
-        <p v-else class="text-amber-800">{{ t('contact.enamadPendingNote') }}</p>
-      </div>
-
-      <div class="space-y-1 text-sm">
-        <p class="font-bold text-brand-navy">{{ t('contact.smsReadinessLabel') }}</p>
-        <p class="text-brand-gray-700">
-          {{ smsLive ? t('contact.smsReadyMulti') : t('contact.smsReadySingle') }}
-          <span class="ms-1 text-xs text-brand-gray-500" dir="ltr">({{ smsPhase }})</span>
-        </p>
       </div>
 
       <div class="space-y-1 text-sm">
         <p class="font-bold text-brand-navy">{{ t('contact.ipgReadinessLabel') }}</p>
-        <p class="text-brand-gray-700">
-          {{ ipgReadinessCopy() }}
-          <span class="ms-1 text-xs text-brand-gray-500" dir="ltr">({{ paymentsMode }})</span>
-        </p>
+        <p class="text-brand-gray-700">{{ ipgReadinessCopy() }}</p>
       </div>
     </section>
 
