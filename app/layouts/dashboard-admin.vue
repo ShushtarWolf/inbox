@@ -1,9 +1,11 @@
 <script setup lang="ts">
 /** Admin unlock gate — secret-header console (NO CANVA phone frame). Clean FA ops UI. */
 import { PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
+import { sanitizeAdminNext } from '#shared/adminNext.ts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
 const { pilotNoCoach } = usePilotFlags()
 
@@ -55,6 +57,8 @@ async function submitSecret() {
     // Verify before unlocking the shell — invalid secret must clear + show gate error.
     await adminFetch('/api/admin/overview')
     secretInput.value = ''
+    const next = sanitizeAdminNext(route.query.next)
+    if (next) await navigateTo(localePath(next), { replace: true })
   } catch (err: unknown) {
     const status = (err as { statusCode?: number })?.statusCode
     if (status !== 403) {
