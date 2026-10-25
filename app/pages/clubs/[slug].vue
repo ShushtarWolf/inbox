@@ -625,6 +625,7 @@ function openConfirmSheet() {
         slots: selectedSlotIds.value.join(','),
       }),
       notice: t('booking.loginToConfirmNotice'),
+      summary: [clubPageName.value, bookingSummary.value].filter(Boolean).join(' — '),
     })
     return
   }
