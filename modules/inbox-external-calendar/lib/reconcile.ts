@@ -177,7 +177,7 @@ export function reconcileGuestUncertain(
 
 function addMinutesLocal(startTime: string, minutes: number): string {
   const [h, m] = startTime.slice(0, 5).split(':').map(Number)
-  const total = (h * 60 + m) + minutes
+  const total = ((h ?? 0) * 60 + (m ?? 0)) + minutes
   const hh = Math.floor(total / 60) % 24
   const mm = total % 60
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
