@@ -214,12 +214,12 @@ watch(
       >
         {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
       </p>
-      <p
+      <em
         v-else
-        class="mt-2 text-xs text-white/80 text-start"
+        class="mt-2 block text-xs italic text-white/90 text-start"
       >
         {{ t('athlete.walletClosedLoopHint') }}
-      </p>
+      </em>
       <p
         v-if="pendingClassBalance > 0"
         class="mt-1 text-xs text-white/70 text-start"

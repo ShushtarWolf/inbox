@@ -430,6 +430,20 @@
   .canva-auth-photo-copy small {
     @apply mt-1 block break-words text-xs leading-relaxed text-white/85;
   }
+  .canva-auth-rmod-warn {
+    @apply border border-[#f0e2a0] bg-[#fff8dc] px-3 py-2.5 text-start text-xs font-semibold leading-relaxed text-[#8a5a10];
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-auth-rmod-debug {
+    @apply border border-[#e6b8b5] bg-[#f1d4d2] px-3 py-2.5 text-center text-xs font-bold leading-relaxed text-[#b4231f];
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-auth-rmod-back {
+    @apply inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-xs font-semibold text-brand-navy hover:text-brand-primary;
+  }
+  .canva-auth-rmod-link {
+    @apply mt-4 block w-full cursor-pointer text-center text-xs font-semibold text-brand-navy underline hover:text-brand-primary;
+  }
   .canva-athlete-upcoming-card {
     @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
     border-radius: var(--sz-canva-radius);
@@ -2230,6 +2244,26 @@
   .canva-club-more-map-cta {
     @apply text-brand-primary underline-offset-2 hover:underline;
   }
+  .canva-club-cmap {
+    @apply relative h-36 w-full overflow-hidden border border-brand-gray-200 bg-[#e9e6df];
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-cmap svg {
+    @apply pointer-events-none block h-full w-full;
+  }
+  .canva-club-cmz {
+    @apply pointer-events-none absolute start-2 top-2 flex flex-col border border-brand-gray-300 bg-white text-xs font-bold leading-none text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-cmz span {
+    @apply flex h-6 w-6 items-center justify-center border-b border-brand-gray-200 last:border-b-0;
+  }
+  .canva-club-cmat {
+    @apply pointer-events-none absolute bottom-1 end-1.5 bg-white/85 px-1.5 py-0.5 text-[9px] text-brand-gray-600;
+  }
+  .canva-club-cmlink {
+    @apply mt-2 inline-block text-xs font-bold text-brand-primary underline-offset-2 hover:underline;
+  }
 
   .canva-club-reviews {
     @apply space-y-3 border-y border-brand-gray-200 py-1;
@@ -3375,6 +3409,19 @@
   .canva-photo-hero-curve {
     border-radius: var(--sz-canva-radius);
   }
+  .canva-athlete-home-desktop {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.75fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .canva-athlete-home-side {
+    position: sticky;
+    top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
   .canva-athlete-hub {
     display: grid;
     grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
@@ -3528,7 +3575,8 @@
     top: auto;
   }
   .canva-club-more-map-frame,
-  .canva-club-more-map-empty {
+  .canva-club-more-map-empty,
+  .canva-club-cmap {
     height: 14rem;
   }
   .canva-selection-bar {
@@ -3659,7 +3707,8 @@
     width: 42%;
   }
   .canva-club-more-map-frame,
-  .canva-club-more-map-empty {
+  .canva-club-more-map-empty,
+  .canva-club-cmap {
     height: 16rem;
   }
   .canva-court-card-grid {

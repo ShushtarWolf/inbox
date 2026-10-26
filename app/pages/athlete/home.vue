@@ -246,25 +246,29 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
 
-      <section v-if="nextUpcomingBooking" class="canva-athlete-upcoming-card">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-xs font-bold text-brand-primary">{{ t('athlete.upcomingTitle') }}</p>
-            <p class="mt-1 text-sm font-bold text-brand-navy">{{ upcomingLabel(nextUpcomingBooking) }}</p>
-            <p class="mt-0.5 text-xs text-brand-gray-600">{{ t('athlete.upcomingBody') }}</p>
-          </div>
-          <NuxtLink
-            :to="localePath('/athlete/bookings')"
-            class="shrink-0 text-xs font-bold text-brand-primary"
-          >
-            {{ t('athlete.upcomingCta') }}
-          </NuxtLink>
-        </div>
-      </section>
+      <div :class="{ 'canva-athlete-home-desktop': Boolean(nextUpcomingBooking) }">
+        <aside v-if="nextUpcomingBooking" class="canva-athlete-home-side min-[431px]:order-2">
+          <section class="canva-athlete-upcoming-card">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-bold text-brand-primary">{{ t('athlete.upcomingTitle') }}</p>
+                <p class="mt-1 text-sm font-bold text-brand-navy">{{ upcomingLabel(nextUpcomingBooking) }}</p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ t('athlete.upcomingBody') }}</p>
+              </div>
+              <NuxtLink
+                :to="localePath('/athlete/bookings')"
+                class="shrink-0 text-xs font-bold text-brand-primary"
+              >
+                {{ t('athlete.upcomingCta') }}
+              </NuxtLink>
+            </div>
+          </section>
+        </aside>
 
-      <CoachDiscoveryRail v-if="!pilotNoCoach" />
+        <div class="min-w-0 space-y-5 min-[431px]:order-1">
+          <CoachDiscoveryRail v-if="!pilotNoCoach" />
 
-      <section class="space-y-3">
+          <section class="space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.suggestionsTitle') }}</h2>
@@ -355,6 +359,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           </NuxtLink>
         </div>
       </section>
+        </div>
+      </div>
     </AppAsyncState>
   </div>
 </template>

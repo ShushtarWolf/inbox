@@ -185,7 +185,7 @@ async function pay() {
           <div class="receipt-player-meta mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <div>
               <span>{{ t('booking.receiptTracking') }}</span>
-              <b dir="ltr">{{ data.trackingCode }}</b>
+              <b dir="ltr">INB-{{ data.trackingCode }}</b>
             </div>
             <div>
               <span>{{ t('booking.receiptMobile') }}</span>

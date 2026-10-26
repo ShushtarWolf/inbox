@@ -51,7 +51,15 @@ test.describe('design UI parity screenshots', () => {
     await page.goto('/login')
     await expect(page.locator('#login-phone')).toBeVisible({ timeout: 20_000 })
     await expect(page.locator('.canva-auth-photo')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.canva-auth-accent')).toBeVisible()
+    await expect(page.locator('.canva-auth-rmod-warn')).toBeVisible()
     await page.screenshot({ path: shotPath('after-auth-login-desktop.png') })
+  })
+
+  test('club detail SVG map fallback and book-package stub', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/book/package')
+    await expect(page.getByRole('heading', { name: 'پکیج فعلاً در دسترس نیست' })).toBeVisible({ timeout: 20_000 })
   })
 
   test('athlete home and choose-role mobile', async ({ page, browserName }) => {

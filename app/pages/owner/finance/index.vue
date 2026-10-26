@@ -578,9 +578,38 @@ function showUnpaidList() {
           <span>{{ formatNumber(cashPct) }}٪</span>
           <span>{{ formatNumber(ipgPct) }}٪</span>
         </div>
-        <p v-if="unpaidPct > 0" class="mt-2 text-[11px] text-brand-gray-500">
-          {{ t('owner.financePage.unpaidShareNote', { pct: formatNumber(unpaidPct) }) }}
-        </p>
+          <div class="mt-5 grid grid-cols-1 gap-3 border-t border-brand-gray-200 pt-3 sm:grid-cols-3">
+            <div class="space-y-1 text-start">
+              <div class="flex items-center justify-between text-xs font-bold text-brand-navy">
+                <span>{{ t('owner.financePage.methodCash') }}</span>
+                <span class="tabular-nums">{{ formatNumber(Math.round(cashPctRaw)) }}٪</span>
+              </div>
+              <div class="h-2 w-full overflow-hidden bg-brand-gray-200" style="border-radius: var(--sz-canva-radius);">
+                <div class="h-full bg-brand-navy" :style="{ width: `${Math.min(100, Math.max(0, Math.round(cashPctRaw)))}%` }" />
+              </div>
+            </div>
+            <div class="space-y-1 text-start">
+              <div class="flex items-center justify-between text-xs font-bold text-brand-navy">
+                <span>{{ t('owner.financePage.methodCashless') }}</span>
+                <span class="tabular-nums">{{ formatNumber(Math.round(ipgPctRaw)) }}٪</span>
+              </div>
+              <div class="h-2 w-full overflow-hidden bg-brand-gray-200" style="border-radius: var(--sz-canva-radius);">
+                <div class="h-full bg-[#E8B84A]" :style="{ width: `${Math.min(100, Math.max(0, Math.round(ipgPctRaw)))}%` }" />
+              </div>
+            </div>
+            <div class="space-y-1 text-start">
+              <div class="flex items-center justify-between text-xs font-bold text-brand-navy">
+                <span>{{ t('owner.financePage.methodUnpaid') }}</span>
+                <span class="tabular-nums">{{ formatNumber(Math.round(unpaidPct)) }}٪</span>
+              </div>
+              <div class="h-2 w-full overflow-hidden bg-brand-gray-200" style="border-radius: var(--sz-canva-radius);">
+                <div class="h-full bg-brand-primary" :style="{ width: `${Math.min(100, Math.max(0, Math.round(unpaidPct)))}%` }" />
+              </div>
+            </div>
+          </div>
+          <p v-if="unpaidPct > 0" class="mt-2 text-[11px] text-brand-gray-500">
+            {{ t('owner.financePage.unpaidShareNote', { pct: formatNumber(unpaidPct) }) }}
+          </p>
       </div>
 
       <div v-if="showReports" class="canva-panel">

@@ -8,7 +8,9 @@ import {
 definePageMeta({ layout: 'dashboard-coach', middleware: ['auth', 'role'], role: 'COACH' , ssr: false})
 
 const { t } = useI18n()
+const localePath = useLocalePath()
 const { fetch } = useAuth()
+const { openRegister } = useAuthFlow()
 const { formatTimeRange } = useFormatters()
 const { data, pending, error, refresh } = await useAuthedFetch<{
   bioFa?: string | null
@@ -227,6 +229,18 @@ async function removeGalleryImage(id: string) {
           <button type="button" class="canva-gate-btn-primary" @click="save">
             {{ $t('common.save') }}
           </button>
+
+          <section class="canva-panel space-y-2 border border-brand-gray-200 p-4 text-start">
+            <p class="text-sm font-bold text-brand-navy">{{ t('coach.ownerCrossSellTitle') }}</p>
+            <p class="text-xs leading-relaxed text-brand-gray-600">{{ t('coach.ownerCrossSellBody') }}</p>
+            <button
+              type="button"
+              class="canva-gate-btn-primary"
+              @click="openRegister({ role: 'CLUB_ADMIN', returnTo: localePath('/owner/setup') })"
+            >
+              {{ t('coach.ownerCrossSellCta') }}
+            </button>
+          </section>
         </div>
       </AppAsyncState>
     </div>

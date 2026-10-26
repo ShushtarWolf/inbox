@@ -1324,19 +1324,33 @@ async function shareClub() {
                 loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade"
               />
+              <div v-else class="canva-club-cmap" role="img" :aria-label="t('clubs.openMap')">
+                <svg viewBox="0 0 420 230" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <rect width="420" height="230" fill="#e9e6df" />
+                  <path d="M0 40 L420 90 L420 120 L0 70Z" fill="#fff" />
+                  <path d="M60 0 L120 230 L140 230 L84 0Z" fill="#fff" />
+                  <path d="M230 0 L250 230 L272 230 L252 0Z" fill="#f6e7a8" />
+                  <path d="M0 170 L420 150 L420 166 L0 188Z" fill="#f6e7a8" />
+                  <path d="M300 0 L420 60 L420 78 L292 14Z" fill="#fff" />
+                  <path d="M0 110 L80 120 L70 150 L0 140Z" fill="#cfe5c4" />
+                  <path d="M330 130 L400 120 L410 190 L340 200Z" fill="#cfe5c4" />
+                  <circle cx="214" cy="104" r="40" fill="#cfe5c4" opacity=".7" />
+                  <g fill="#8a8a85" font-size="9">
+                    <text x="30" y="60">{{ club.district || club.city || 'تهران' }}</text>
+                    <text x="300" y="50">{{ club.city || 'تهران' }}</text>
+                  </g>
+                  <path d="M214 118 C200 96 200 78 214 76 C228 78 228 96 214 118Z" fill="#7cb518" />
+                  <circle cx="214" cy="88" r="5" fill="#fff" />
+                </svg>
+                <div class="canva-club-cmz" aria-hidden="true">
+                  <span>+</span>
+                  <span>−</span>
+                </div>
+                <small class="canva-club-cmat" dir="ltr">© OpenStreetMap contributors</small>
+              </div>
               <a
-                v-else-if="osmLink"
-                class="canva-club-more-map-empty canva-club-more-map-cta"
-                :href="osmLink"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {{ t('clubs.openMap') }}
-              </a>
-              <div v-else class="canva-club-more-map-empty">{{ t('clubs.mapUnavailable') }}</div>
-              <a
-                v-if="osmLink && mapEmbedSrc"
-                class="canva-club-detail-link mt-2"
+                v-if="osmLink"
+                class="canva-club-cmlink"
                 :href="osmLink"
                 target="_blank"
                 rel="noreferrer"

@@ -663,6 +663,7 @@ watch(
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1] min-w-0 overflow-x-hidden">
+      <div class="canva-auth-accent" />
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
@@ -674,7 +675,6 @@ watch(
           <small>{{ t(authPhotoHeader.subKey) }}</small>
         </div>
       </div>
-      <div v-else class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
@@ -694,16 +694,24 @@ watch(
           <InboxBrandLockup height-class="h-7" />
         </NuxtLink>
       </div>
-      <div v-else class="relative z-[1] flex items-center justify-center px-4 py-3">
+      <div v-else class="relative z-[1] flex items-center justify-between px-5 pt-2 pb-1">
         <button
           type="button"
-          class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
+          class="canva-auth-rmod-back"
           @click="goBack"
         >
-          <AppIcon name="arrow_back" size="sm" />
+          <AppIcon name="arrow_forward" size="sm" />
           {{ t('common.back') }}
         </button>
-        <span class="h-7" />
+        <button
+          type="button"
+          class="relative z-10 inline-flex min-h-9 min-w-9 items-center justify-end gap-1 text-xs font-bold text-brand-gray-600"
+          style="pointer-events: auto; -webkit-tap-highlight-color: transparent;"
+          @click.stop.prevent="handleClose()"
+        >
+          <AppIcon name="close" size="sm" />
+          {{ t('common.close') }}
+        </button>
       </div>
 
       <div class="canva-auth-body">
@@ -719,8 +727,7 @@ watch(
         </div>
         <p
           v-if="notice && step !== 'welcome'"
-          class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-          style="border-radius: var(--sz-canva-radius);"
+          class="canva-auth-rmod-warn"
         >
           {{ notice }}
         </p>
@@ -752,8 +759,7 @@ watch(
           </button>
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-auth-rmod-warn"
           >
             {{ t('auth.otpLogModeBanner') }}
           </p>
@@ -794,8 +800,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-auth-rmod-warn"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
@@ -978,7 +983,7 @@ watch(
           <button
             v-if="role === 'CLUB_ADMIN' || role === 'COACH'"
             type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            class="canva-auth-rmod-link"
             @click="goRegisterPassword"
           >
             {{ t('auth.registerWithPassword') }}
@@ -1214,8 +1219,7 @@ watch(
         >
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-auth-rmod-warn"
           >
             {{ t('auth.otpLogModeBanner') }}
           </p>
@@ -1271,8 +1275,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-auth-rmod-warn"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
           </p>
@@ -1297,7 +1300,7 @@ watch(
           </button>
           <button
             type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            class="canva-auth-rmod-link"
             @click="goLoginPassword"
           >
             {{ t('auth.loginWithPassword') }}
@@ -1326,11 +1329,10 @@ watch(
           </AppFormField>
           <p
             v-if="debugCode"
-            class="bg-brand-primary-soft px-3 py-2 text-center text-xs font-bold text-brand-primary"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-auth-rmod-debug"
           >
             {{ t('auth.debugOtpHint', { code: debugCode }) }}
-            <span class="mt-1 block font-medium text-brand-navy/80">{{ t('auth.debugOtpDevOnly') }}</span>
+            <span class="mt-1 block font-medium text-[#b4231f]/85">{{ t('auth.debugOtpDevOnly') }}</span>
           </p>
           <p v-if="error" role="alert" aria-live="assertive" class="venus-alert-error text-start">{{ error }}</p>
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
@@ -1342,7 +1344,7 @@ watch(
           <button
             v-if="purpose === 'login'"
             type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            class="canva-auth-rmod-link"
             @click="goLoginPassword"
           >
             {{ t('auth.loginWithPassword') }}

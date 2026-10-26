@@ -87,6 +87,8 @@ const { formatNumber, formatCurrency, formatPhone, formatFaDigits } = useFormatt
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
 const { fetch: fetchAuth } = useAuth()
+const { openRegister } = useAuthFlow()
+const { canOfferCoach } = usePlatformRoles()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
 useOwnerClubRefresh(() => { refresh(); refreshCourts() })
@@ -939,6 +941,20 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             {{ saving ? t('common.loading') : t('owner.settingsPage.saveChanges') }}
           </button>
         </div>
+
+        <section
+          v-if="!pilotNoCoach && canOfferCoach()"
+          class="canva-panel canva-settings-span space-y-2 border border-brand-gray-200 p-4 text-start"
+        >
+          <p class="text-sm font-bold text-brand-navy">{{ t('coach.ownerCrossSellTitle') }}</p>
+          <button
+            type="button"
+            class="canva-gate-btn-primary"
+            @click="openRegister({ role: 'COACH', returnTo: localePath('/coach') })"
+          >
+            {{ t('auth.chooseRole.applyCoach') }}
+          </button>
+        </section>
       </form>
     </AppAsyncState>
 
