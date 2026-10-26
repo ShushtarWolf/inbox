@@ -64,3 +64,15 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | owner-crm/staff/support/settings | duplicate in-page active-club card hidden when layout switcher shows (SoT: one card) | fixed |
 | owner-crm | KPI tiles gapped/bordered; "new campaign" auto-width at inline-end | fixed |
 | owner-staff | "add worker" auto width at start (was full-width) | fixed |
+
+## Coach slice
+| Screen | Item | Status |
+|---|---|---|
+| coach, coach-schedule, coach-profile, coach-pending | product redirects coach panel to /clubs (PILOT_NO_COACH) | kept-product |
+
+## Pay / admin
+| Screen | Item | Status |
+|---|---|---|
+| pay-gateway-test | card/typography match; success/fail buttons only when PAYMENTS_MODE=test | kept-product (env) |
+| pay, pay-ok, pay-fail | need a live booking + gateway round-trip; not reproducible without writes | not re-shot |
+| admin-* | no seeded super-admin locally (only CLUB_ADMIN); cannot render | missing (env) |
