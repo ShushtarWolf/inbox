@@ -156,7 +156,10 @@ Screenshots: `comparisons/{owner-finance,owner-settings,owner-crm,owner-equipmen
 | owner-crm / equipment / discount / staff / support | CanvaSubpageHeader back+logo | escape hatch vs HTML more-menu entry |
 | * | bottom nav / back / logo | escape hatches |
 | * | real club photos | product over stock |
-| coach today | accept-students + revenue | product extras vs simpler HTML Today |
+| coach today | accept-students + revenue / calendar / settlements | product extras below HTML Today IA |
+| coach | bell → settings | no coach notifications route yet |
+| coach-schedule | empty / no availability | product empty vs HTML mock hour rows |
+| coach-book | wallet + dual calendar + live clubs | product book flow vs HTML stub |
 | athlete-home | coach discovery rail | product when coach pilot on; HTML desk rails are venues-only |
 | athlete-hub | crimson hero + list vs m1 profile form | product account hub; edit fields live on `/athlete/profile` |
 | athlete-bookings | empty / live booking rows | product API data vs HTML mock cards |
