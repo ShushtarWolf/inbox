@@ -6,7 +6,7 @@
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src: url('/fonts/material-symbols-rounded-subset.woff2') format('woff2');
+  src: url('/fonts/material-symbols-rounded-subset.woff2?v=2') format('woff2');
 }
 /* Self-host variable fonts with optional display to avoid FOUT CLS (Clarity). */
 @font-face {

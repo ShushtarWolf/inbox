@@ -10,6 +10,7 @@ attach_money
 badge
 block
 calendar_month
+call
 campaign
 chat
 check_circle
@@ -59,8 +60,9 @@ sort
 sports
 sports_tennis
 stadium
+storefront
 support_agent
 today
 toggle_on
-tune
 undo
+waving_hand

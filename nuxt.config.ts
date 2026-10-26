@@ -5,7 +5,7 @@ import { PILOT_CLUB_ADDRESS_FA, PILOT_OWNER_NAME } from './shared/pilotClub'
 
 const externalCalendarModuleDir = fileURLToPath(new URL('./modules/inbox-external-calendar', import.meta.url))
 
-const PWA_RESET_VERSION = '30'
+const PWA_RESET_VERSION = '31'
 
 const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
 const googleRedirectUrl = process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL || (siteUrl ? `${siteUrl}/auth/google` : '')
@@ -72,7 +72,7 @@ export default defineNuxtConfig({
         // Critical for AppIcon ligatures — without this, slow phones flash "chevron_left".
         {
           rel: 'preload',
-          href: '/fonts/material-symbols-rounded-subset.woff2',
+          href: '/fonts/material-symbols-rounded-subset.woff2?v=2',
           as: 'font',
           type: 'font/woff2',
           crossorigin: 'anonymous',
