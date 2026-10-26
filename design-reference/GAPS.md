@@ -1,88 +1,25 @@
-# HTML ↔ Live visual gaps
+# HTML fidelity — honest gap list (2026-10-27, v2)
 
-Source of truth: `design-reference/sot/inbox-all-pages.html` (2026-10-26 owner HTML).  
-Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot pair shows a regression.
+Scope: **visuals only** (CSS / layout / tokens / icons). Persian copy, photos, field order and product flow must equal live inboxs.ir.
+PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v2.pdf` (BRANCH | SoT HTML | LIVE). Capture log: `comparisons/shots.log`.
 
-| Item | Viewport | Status | Notes | Screenshots |
-|---|---|---|---|---|
-| home · hero slider controls | 375 / desktop | fixed | Arrows pinned to the hero sides, dots absolutely centered (SoT .rha/.rhd); hero 340px desktop / 300px phone; title one line at 34px desktop | design-reference/comparisons/home/ |
-| home · search bar | 375 / desktop | fixed | Joined 60px bar, red جستجو with `search` icon on the start side, order date · city · sport, calendar icon on date (SoT .rsearch/.rsb/.rsf) | design-reference/comparisons/home/ |
-| home · club cards | 375 / desktop | fixed | 3:4 rectangular frames, 2 cols phone / 4 cols ≥900px, SoT gradient + type sizes (15.5 / 11 / 11.5px); rail spacing 26px | design-reference/comparisons/home/ |
-| home · discount ribbon | 375 / desktop | fixed | Top red strip replaced by white rotated ticket with dashed perforations (SoT .rdisc); ticket shows the FULL existing `home.pilotStudentOffer` copy (content revert — earlier truncation to `۲۰٪` undone); CSS wraps it | design-reference/comparisons/home/ |
-| home · desktop header buttons | desktop | fixed | Nav items 10×16px / 13px, login 11×20px / 12.5px (SoT .rn/.rbtn) | design-reference/comparisons/home/ |
-| home · hero CTA «رزرو زمین» | 375 / desktop | kept-product | Live hero has a booking CTA; SoT hero has none | design-reference/comparisons/home/ |
-| home · coaches nav + coach rail | 375 / desktop | kept-product | Hidden by `PILOT_NO_COACH` (owner-approved pilot flag) | design-reference/comparisons/home/ |
-| home · rail contents / counts | 375 / desktop | kept-product | Real API clubs vs SoT fake list (incl. «به‌زودی» cards) | design-reference/comparisons/home/ |
-| home · phone header | 375 | kept-product | SoT 375 is the desktop proto (no responsive shell); live keeps phone chrome (logo → home, login) | design-reference/comparisons/home/ |
-| welcome modal `WAVING_HAND` raw text | 375 / desktop | fixed | `waving_hand` glyph was missing from the self-hosted Material Symbols subset → ligature text leaked. Subset rebuilt (+ `search`), font URL `?v=2`, PWA_RESET_VERSION 30→31 | (font fix; modal screenshot needs a login — see report) |
+## Reverted to main/live (non-visual changes removed)
+- Branch merged with `origin/main` (branch was based on an old main; that alone caused many "differences" vs live).
+- Home: search order back to live (CTA · date · city · sport), no added search icon; ribbon back to live **«۲۰٪»** (full text only in aria-label, as live).
+- AuthFlowModal: = main (accent bar only when no photo header).
+- CourtBookingConfirmSheet: = main markup.
+- Font `?v=2` / PWA bump dropped (main already ships the waving_hand glyph).
+- Kept: class-only changes (legal/contact/forgot/reset/404/offline/owner/athlete wrappers, hero-controls/dots, rail section) + main.css. No `t()` key or text changed.
 
-## Status legend
-- `fixed` — visual match after code change
-- `kept-product` — intentional live chrome / real API data / product difference
-- `open` — still differs
-- `missing in product` — in HTML SoT, not in live product
-| auth-welcome WAVING_HAND | glyph renders after subset rebuild; proof `comparisons/auth-welcome/glyph-waving_hand-before-after.png` (main font leaks text, new font shows icon) | fixed |
-| auth gate modal | SoT opens directly on OTP step with photo banner header; product opens choose step (ثبت‌نام / ورود) first, no banner | kept-product (flow step differs; banner header candidate for next slice) |
+## Capture pipeline (scripts/fidelity-shots.mjs, fidelity-check.py, fidelity-pdf.py)
+- Full-page height (lazy images scrolled), capped 6000px. Blank/flat/tiny shots rejected & deleted.
+- Redirected routes are not saved (logged `ENV`). SoT has a 375 layout only for `m-*` pages → no html-375 elsewhere (labelled NO-SOT).
+- PDF: white page, tops aligned, no gray filler; missing column = red labelled box with reason; tall shots split across pages.
 
-| clubs · chips + hero dots | 375 / desktop | fixed | Chip size/colours = SoT .rchips (#d1a42b active / #e3e0db idle), hero controls moved to shared .canva-hero-controls like home | design-reference/comparisons/clubs/ |
-| clubs · coach card | — | kept-product | PILOT_NO_COACH hides coach | — |
-| club · layout | desktop | fixed | SoT .rcl grid 1fr/440px gap 34px, gallery 300px tall (CSS only, real photo unchanged), booking panel stacked (calendar → court rows .rcts → slots), court rows full width | design-reference/comparisons/club/ |
-| club · court mode tags | desktop | missing-in-product | SoT shows gender/mode tag per court; product has no field — documented only | — |
-| club · dev 500 | dev | pre-existing bug | `node:crypto` imported client-side via shared/receiptToken.ts (not fixed; not visual) | — |
-| legal · about/terms/privacy/pricing/cancellation/complaints | 375 / desktop | fixed | LegalDocument → SoT .legal (672px, 40px pad, lh 2.1, h1 26 / h2 17, meta 12.5 #6b6b67); copy unchanged | design-reference/comparisons/{about,terms,privacy,pricing,cancellation,complaints}/ |
-| legal · about owner card | — | kept-product | Owner name card from live settings | — |
-| contact | 375 / desktop | fixed | Separate bordered boxes → single SoT .card with .kv rows; message form in .card | design-reference/comparisons/contact/ |
-| 404 / offline | 375 / desktop | fixed | Patterned result sheet → SoT .authbox (white, 440px, 34px pad, h1 22, sub 13) | design-reference/comparisons/{notfound,offline}/ |
-| 404 · status numeral | — | kept-product | Live shows status code; SoT omits — content kept | — |
-| confirm · booked state | sheet | fixed | Done state → SoT .ok-box: square mustard check tile 70px, h 22px, dashed .code box (24px code, letter-spacing 3px) — not re-shot: needs logged-in booking in dev + club page dev 500 | — |
-| confirm · sheet vs page | — | kept-product | Product confirms in a sheet over club page; SoT uses a full page | — |
-| login / OTP modal | 375 / desktop | fixed | Crimson top rule always shown + photo banner inset 18px (SoT login modal); real banner photo unchanged | design-reference/comparisons/login/ |
-| login · modal over home | — | kept-product | AuthFlow gate modal; /choose-role and /register open the same modal (role step) | design-reference/comparisons/{choose-role,register}/ |
-| forgot / reset password | 375 / desktop | fixed | Pattern + gradient sheet → flat #f4efe9 .authc, white 440px .authbox, start-aligned 22px title | design-reference/comparisons/{forgot-password,reset-password}/ |
-| forgot · SMS-first copy & secondary button | — | kept-product | Product resets by SMS (SoT: email link) — content kept | — |
-| auth inputs · 16px on mobile | 375 | kept-product | Prevents iOS zoom | — |
-
-## Athlete slice
-| Screen | Item | Status |
-|---|---|---|
-| athlete-home | layout/search/cards match; card count = live data | fixed / content |
-| athlete-bookings | `.two` grid: list first, 380px calendar aside at inline-end | fixed |
-| athlete-hub | white `.card` header + 2-col `.hubgrid` rows (was crimson hero, 1 col) | fixed |
-| athlete-hub | wallet balance + 3 stat tiles + "apply club" CTA (not in SoT) | kept-product |
-| athlete-* 375 | SoT has no 375 athlete layout (desktop dash only; mobile = m1–m7) | n/a |
-| athlete-profile / wallet | SoT `.field` bordered square inputs (global neo-input/select/textarea), `.chip` presets row, auto-width primary at inline-end | fixed |
-| athlete-profile/wallet/payments | crimson page hero (not in SoT) | kept-product |
-| payments | native date range inputs (mm/dd/yyyy) – Jalali picker not in scope | kept-product |
-
-## Owner slice
-| Screen | Item | Status |
-|---|---|---|
-| owner-settings | bordered `.field` inputs (global fix) | fixed |
-| owner-* | club switcher in top bar + back pill (SoT: in-page selector only) | kept-product |
-| owner-calendar | SoT 380px booking-detail aside; product grid with select checkboxes, empty day in seed | kept-product (data) |
-| owner-finance | dark total card, KPI tiles, 7-day bars match | ok |
-| owner-crm/staff/support/settings | duplicate in-page active-club card hidden when layout switcher shows (SoT: one card) | fixed |
-| owner-crm | KPI tiles gapped/bordered; "new campaign" auto-width at inline-end | fixed |
-| owner-staff | "add worker" auto width at start (was full-width) | fixed |
-
-## Coach slice
-| Screen | Item | Status |
-|---|---|---|
-| coach, coach-schedule, coach-profile, coach-pending | product redirects coach panel to /clubs (PILOT_NO_COACH) | kept-product |
-
-## Pay / admin
-| Screen | Item | Status |
-|---|---|---|
-| pay-gateway-test | card/typography match; success/fail buttons only when PAYMENTS_MODE=test | kept-product (env) |
-| pay, pay-ok, pay-fail | need a live booking + gateway round-trip; not reproducible without writes | not re-shot |
-| admin-* | no seeded super-admin locally (only CLUB_ADMIN); cannot render | missing (env) |
-| athlete-profile / wallet | save / charge CTA aligned to inline-end, min 128px (re-shot logged in) | fixed |
-| m-athlete (375) | SoT 3-up mini cards; product 2-up photo cards (same photos/copy) | kept-product |
-| m1–m7 other shells | coach shells redirect (PILOT_NO_COACH); owner/athlete 375 shells use product bottom tab bar | kept-product |
-
-## Modals / sheets
-| Screen | Item | Status |
-|---|---|---|
-| login modal (AuthFlowModal) | accent bar + inset photo | fixed (re-shot) |
-| confirm sheet done state | SoT ok-box markup in code; re-shot needs a real booking + payment round-trip | not re-shot (env) |
-| move / cancel / pay flows (mv, cn, cn2, pay) | require existing paid booking state | not re-shot (env) |
+## Open gaps (honest)
+1. **Data, not branch content**: branch shots use the local seed DB (4 demo clubs, demo photos/names); live has real data (1–2 clubs). Pilot ribbon not visible on branch because seed clubs aren't the pilot club. Card counts/photos therefore differ — not a code change.
+2. **Visual diffs vs SoT still open** on: home (hero height, rails, coach section exists only in SoT), clubs, club detail, legal pages (type scale/spacing), contact, forgot/reset (SoT authbox vs product auth sheet), 404/offline, athlete hub pages, owner calendar/finance/settings/crm/staff. Not claimed fixed.
+3. **No live column** for athlete/owner/m-athlete: live redirects anonymous users to `/`; we do not log into production.
+4. **Product flow ≠ SoT pages**: login/register/choose-role/clubs-apply are modals/guards in the product (redirect → `/` or `/login`); SoT shows them as pages. Only SoT column exists.
+5. **Env-skipped**: confirm, pay-link (would need writes), admin (no seed), coach / coach-pending (PILOT_NO_COACH).
+6. Competitions: SoT is short (508px) vs product page — layout differs.
