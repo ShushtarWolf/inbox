@@ -8,13 +8,16 @@ const vps = [['375', 375, 812], ['desktop', 1440, 900]]
 let STATE
 const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/box/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell' })
 // LOGIN_OTP / LOGIN log into the LOCAL dev DB once (seed users); live stays anonymous/read-only.
-if (process.env.LOGIN_OTP || process.env.LOGIN) {
+const SF = `/tmp/fid-state-${process.env.LOGIN_OTP || process.env.LOGIN}.json`
+const fs_ = await import('node:fs')
+if ((process.env.LOGIN_OTP || process.env.LOGIN) && fs_.existsSync(SF)) STATE = JSON.parse(fs_.readFileSync(SF, 'utf8'))
+else if (process.env.LOGIN_OTP || process.env.LOGIN) {
   const c = await b.newContext(); const base = 'http://localhost:3100'
   if (process.env.LOGIN_OTP) {
     const r = await (await c.request.post(base + '/api/auth/otp/request', { data: { phone: process.env.LOGIN_OTP, purpose: 'login' } })).json()
     await c.request.post(base + '/api/auth/otp/verify', { data: { phone: process.env.LOGIN_OTP, code: r.debugCode, purpose: 'login' } })
   } else await c.request.post(base + '/api/auth/login', { data: { email: process.env.LOGIN, password: process.env.LOGIN_PW || 'demo1234' } })
-  STATE = await c.storageState(); await c.close()
+  STATE = await c.storageState(); await c.close(); fs_.writeFileSync(SF, JSON.stringify(STATE))
 }
 for (const arg of process.argv.slice(2)) {
   const [id, routes] = [arg.slice(0, arg.indexOf(':')), arg.slice(arg.indexOf(':') + 1)]

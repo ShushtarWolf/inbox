@@ -237,7 +237,7 @@ watch(
     </p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <section class="canva-panel space-y-3 text-start">
+      <section class="canva-panel canva-sot-form space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletTopUpTitle') }}</h2>
         <p v-if="!onlineEnabled" class="text-sm text-brand-gray-600">
           {{ t('athlete.walletTopUpRequiresOnline') }}
@@ -246,7 +246,7 @@ watch(
           <p class="text-xs text-brand-gray-600">
             {{ isTestPayments ? t('athlete.walletTopUpTestHint') : t('athlete.walletTopUpHint') }}
           </p>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="canva-sot-chips grid grid-cols-2 gap-2">
             <button
               v-for="amount in presets"
               :key="amount"

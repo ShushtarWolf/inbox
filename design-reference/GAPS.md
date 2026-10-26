@@ -50,3 +50,14 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | athlete-hub | white `.card` header + 2-col `.hubgrid` rows (was crimson hero, 1 col) | fixed |
 | athlete-hub | wallet balance + 3 stat tiles + "apply club" CTA (not in SoT) | kept-product |
 | athlete-* 375 | SoT has no 375 athlete layout (desktop dash only; mobile = m1–m7) | n/a |
+| athlete-profile / wallet | SoT `.field` bordered square inputs (global neo-input/select/textarea), `.chip` presets row, auto-width primary at inline-end | fixed |
+| athlete-profile/wallet/payments | crimson page hero (not in SoT) | kept-product |
+| payments | native date range inputs (mm/dd/yyyy) – Jalali picker not in scope | kept-product |
+
+## Owner slice
+| Screen | Item | Status |
+|---|---|---|
+| owner-settings | bordered `.field` inputs (global fix) | fixed |
+| owner-* | club switcher in top bar + back pill (SoT: in-page selector only) | kept-product |
+| owner-calendar | SoT 380px booking-detail aside; product grid with select checkboxes, empty day in seed | kept-product (data) |
+| owner-finance | dark total card, KPI tiles, 7-day bars match | ok |

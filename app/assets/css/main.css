@@ -4197,3 +4197,21 @@
 }
 .canva-athlete-hub .canva-dash-menu-icon { background: none; width: auto; height: auto; color: #2c2c2a; }
 @media (min-width: 431px) { .canva-athlete-hub { display: block !important; } .canva-athlete-hub .canva-dash-hero { margin-bottom: 20px; } }
+/* SoT .field inputs + .chip presets + auto-width .btn (athlete profile/wallet) */
+.canva-sot-form .neo-input, .canva-sot-form .neo-select, .canva-sot-form input:not([type=file]):not([type=checkbox]):not([type=radio]) {
+  border: 1px solid rgba(44,44,42,.08) !important; border-radius: 0 !important; background: #fff !important;
+  padding: 10px 12px; font-size: 13px; color: #2c2c2a; box-shadow: none !important; width: 100%;
+}
+.canva-sot-form .neo-input:focus, .canva-sot-form .neo-select:focus { outline: none; border-color: #C41E1E !important; }
+.canva-sot-chips { display: flex !important; flex-wrap: wrap; gap: 8px; }
+.canva-sot-chips > * { width: auto; border-radius: 0 !important; font-size: 12px !important; padding: 7px 14px !important; font-weight: 500 !important; }
+@media (min-width: 431px) {
+  .canva-sot-form > .canva-black-cta, .canva-sot-form .canva-gate-btn-primary { width: auto !important; display: inline-flex; margin-inline-start: auto; padding: 9px 22px; font-size: 12px; }
+  .canva-sot-form > .canva-black-cta { display: flex; }
+}
+/* SoT #pages .field input/select/textarea: 1px line border, square, white (global) */
+.neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea {
+  border: 1px solid rgba(44,44,42,.08); border-radius: 0; background-color: #fff; color: #2c2c2a; padding: 10px 12px;
+}
+.neo-input:focus, .neo-select:focus, .neo-textarea:focus, .tail-input:focus, .tail-select:focus, .tail-textarea:focus { border: 1px solid #C41E1E; }
+@media (min-width: 431px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
