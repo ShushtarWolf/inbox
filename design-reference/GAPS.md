@@ -38,6 +38,37 @@ Region gaps from `comparisons/home/` HTML vs live @375 + desktop:
 
 Athlete shell home (`go('athlete-home')` / `/athlete/home`): search bar matched to same `.rsearch` field order (CTA · date · city · sport).
 
+## Clubs / club / confirm — Prompt 2 2026-10-26
+
+Screenshots: `comparisons/clubs|club|confirm/` (HTML vs live @375 + desktop). Tool: `node scripts/check-html-clubs-slice.mjs`.
+
+### `go('clubs')` → `/clubs`
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| clubs | chips | mustard `#d1a42b` on / `#e3e0db` idle, px 18 | matched `.canva-clubs-chip` | fixed |
+| clubs | cards | `.rwide` landscape, crimson title, 270° wash, 2-col desk | matched overlay + title `#e8383a`; 2-col desk grid | fixed |
+| clubs | coach row | `.rbox rlink` مربی | find-coach link | fixed |
+| clubs | header/footer | pubNav + FAQ | product chrome / enamad | kept-product |
+
+### `go('club')` → `/clubs/[slug]`
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| club | gallery | `.rgal` height 300 | height 300 | fixed |
+| club | book widget | legend + cal + `.rnums` + crimson hour chips | navy-outline court nums; crimson selected slots | fixed |
+| club | desk layout | info \| book 2-col | existing grid areas | fixed |
+| club | guest CTA | gray until selection | «ورود برای ادامه» when logged out | kept-product |
+
+### Confirm sheet (`dcm` / `CourtBookingConfirmSheet`)
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| confirm | hierarchy | charcoal title + small club; mxsr rows | was green title + huge red club → charcoal + small club | fixed |
+| confirm | discount | beige «اعمال» | `.cxtiny`-like beige | fixed |
+| confirm | CTAs | red پرداخت + crimson-outline کیف پول | wallet outline; guest login CTA | fixed |
+| confirm | logo/close | X only | logo + بستن escape hatch | kept-product |
+
 ## Athlete / owner / coach / admin
 
 (Fill per later slices.)

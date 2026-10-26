@@ -173,6 +173,13 @@ const confirmOpen = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
+/** Dev-only: `?openConfirm=1` for HTML-vs-live confirm sheet screenshots (no auth). */
+if (import.meta.dev) {
+  onMounted(() => {
+    if (String(route.query.openConfirm || '') === '1') confirmOpen.value = true
+  })
+}
+
 function clearBasket() {
   selectedSlotIds.value = []
   basketSlotsById.value = {}
@@ -215,12 +222,12 @@ function slotPriceLabel(slot: ClubSlot): string {
   return price > 0 ? toThousand(price) : ''
 }
 
-/** Court chip label: real court name when it isn't just a number, else «زمین n». */
+/** Court chip: HTML .rnums shows bare index; non-generic names stay. */
 function courtChipLabel(court: { nameFa?: string; nameEn?: string | null }, idx: number) {
   const name = (localizedField(court as Record<string, unknown>, 'nameFa', 'nameEn') || court.nameFa || '').trim()
   const n = courtDisplayNumber({ nameFa: court.nameFa || '', nameEn: court.nameEn }, idx)
-  if (name && !/^[\d۰-۹\s]+$/.test(name)) return name
-  return t('booking.courtNumber', { n: formatNumber(n) })
+  if (/^زمین\s*[\d۰-۹]+$/.test(name) || /^[\d۰-۹\s]+$/.test(name) || !name) return formatNumber(n)
+  return name
 }
 
 function onLockedSlotTap(slot: ClubSlot) {

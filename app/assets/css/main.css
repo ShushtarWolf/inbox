@@ -797,19 +797,20 @@
   }
 
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
+  /* HTML .rwide — landscape club row on /clubs */
   .canva-court-card {
-    @apply relative block min-h-[10.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
+    @apply relative block min-h-[11.25rem] overflow-hidden bg-[#222] text-white;
     border-radius: var(--sz-canva-radius);
   }
   .canva-court-card img {
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
-    opacity: 0.72;
-    filter: brightness(0.7) saturate(0.9);
+    opacity: 1;
+    filter: none;
   }
   .canva-court-card::after {
     content: '';
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(90deg, rgba(20, 12, 12, 0.55) 0%, rgba(20, 12, 12, 0.35) 45%, rgba(20, 12, 12, 0.7) 100%);
+    background: linear-gradient(270deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.45));
   }
   .canva-court-card-body {
     @apply relative z-10 flex h-full min-h-[10.5rem] items-center justify-between gap-3 p-4;
@@ -818,7 +819,9 @@
     @apply min-w-0 flex-1 text-start;
   }
   .canva-court-card-title {
-    @apply truncate text-start text-base font-bold text-brand-primary sm:text-lg;
+    /* HTML .rwc b — crimson on photo */
+    @apply truncate text-start text-[19px] font-bold leading-tight;
+    color: #e8383a;
   }
   .canva-court-card-rating {
     @apply mt-1 inline-flex items-center justify-start gap-1 text-xs font-bold text-white;
@@ -868,15 +871,17 @@
     @apply flex flex-wrap justify-start gap-1.5;
   }
   .canva-clubs-chip {
-    @apply inline-flex items-center justify-center px-2.5 py-1.5 text-[11px] font-bold transition;
+    /* HTML .rchips span — mustard on / gray idle, square */
+    @apply inline-flex items-center justify-center px-[18px] py-[9px] text-[12.5px] font-semibold transition;
     border-radius: var(--sz-canva-radius);
   }
   .canva-clubs-chip-active {
-    /* Mustard active — not pill / not brand-primary red */
-    @apply bg-[#c9a227] text-white;
+    background: #d1a42b;
+    color: #fff;
   }
   .canva-clubs-chip-idle {
-    @apply bg-[#e8e4de] text-brand-navy;
+    background: #e3e0db;
+    color: #2c2c2a;
   }
   .canva-clubs-section-head {
     @apply flex items-end justify-between gap-3;
@@ -1917,10 +1922,12 @@
     @apply text-start;
   }
   .canva-club-gallery {
+    /* HTML .rgal height 300 */
     @apply relative overflow-hidden bg-brand-navy;
     border-radius: var(--sz-canva-radius);
-    min-height: 13.5rem;
-    aspect-ratio: 16 / 10;
+    height: 300px;
+    min-height: 300px;
+    aspect-ratio: auto;
     touch-action: pan-y;
     cursor: grab;
   }
@@ -2132,28 +2139,30 @@
   .canva-club-book-slots-label {
     @apply mb-1.5 text-xs font-bold text-brand-navy;
   }
+  /* HTML .rnums span — 40×40 square (auto width when court has a name) */
   .canva-club-court-num {
-    @apply inline-flex h-8 min-w-[2rem] items-center justify-center whitespace-nowrap px-2 text-[11px] font-bold text-brand-navy;
+    @apply inline-flex h-10 min-w-10 shrink-0 items-center justify-center whitespace-nowrap px-2 text-[13px] font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
-    border: 1px solid #d4d0ca;
+    border: 1px solid #2c2c2a;
     background: #fff;
   }
-  /* Browsing which court’s hours are shown — not a booking selection. */
   .canva-club-court-num-focus {
-    border-color: #1b2b4b;
-    border-width: 2px;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
+    border-color: #2c2c2a;
   }
-  /* In multi-court set but no hour yet — outline only; green is reserved for basket hours. */
   .canva-club-court-num-target {
-    border-color: #2f9e44;
-    border-width: 2px;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
     background: #fff;
-    color: #2f9e44;
+    color: #2c2c2a;
   }
   .canva-club-court-num-active {
-    border-color: #2f9e44;
-    background: #2f9e44;
-    color: #fff;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
+    background: #fff;
+    color: #2c2c2a;
+    border-color: #2c2c2a;
   }
   .canva-club-book-slots {
     @apply min-w-0;
@@ -2173,9 +2182,10 @@
   .canva-club-slot-active .canva-club-slot-price {
     @apply text-white/90;
   }
+  /* HTML .chip.a.cr — crimson selected hour (legend green = basket metaphor) */
   .canva-club-slot-active {
-    background: #2f9e44;
-    border-color: #2f9e44;
+    background: #c41e1e;
+    border-color: #c41e1e;
     color: #fff;
   }
   /* Preferred time-of-day from home search (`tod`) — highlight only, not selected */
@@ -2320,9 +2330,12 @@
   .canva-confirm-book {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden text-start;
   }
+  /* HTML .mxdh b — charcoal title (not green Canva leftover) */
   .canva-confirm-book-title {
-    @apply text-sm font-bold;
-    color: #2f9e44;
+    @apply text-[15px] font-bold text-brand-navy;
+  }
+  .canva-confirm-book-club {
+    @apply mt-0.5 block text-xs font-medium text-brand-gray-600;
   }
   .canva-confirm-book-date {
     @apply text-base font-bold text-brand-primary;
@@ -2377,8 +2390,15 @@
     @apply min-w-0 flex-1 border-0 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .cxtiny — beige apply */
   .canva-confirm-book-discount-btn {
-    @apply shrink-0 self-stretch border border-brand-navy bg-white px-3 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
+    @apply shrink-0 self-stretch border-0 bg-[#ece8e2] px-2.5 text-[11px] font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--sz-canva-radius);
+    min-height: 34px;
+  }
+  /* HTML secondary cxbtn — crimson outline wallet */
+  .canva-confirm-book-wallet {
+    @apply flex w-full items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary transition hover:bg-brand-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-discount-note {
@@ -3556,9 +3576,9 @@
   }
   .canva-club-gallery {
     grid-area: gallery;
-    min-height: 16rem;
-    aspect-ratio: 16 / 10;
-    height: auto;
+    height: 300px;
+    min-height: 300px;
+    aspect-ratio: auto;
   }
   .canva-club-detail-intro,
   .canva-club-detail-body {

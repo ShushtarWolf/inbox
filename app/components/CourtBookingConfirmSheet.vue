@@ -11,7 +11,14 @@ import {
   defaultAthleteSeasonFinishDate,
   MAX_ATHLETE_SEASON_OCCURRENCES,
 } from '#shared/athleteSeason.ts'
-import { bookingTrackingCode } from '#shared/receiptToken.ts'
+
+/** Client-safe display code — must not import `#shared/receiptToken` (node:crypto breaks Vite). */
+function displayTrackingCode(bookingId: string) {
+  let n = 0
+  const s = `track:${bookingId}`
+  for (let i = 0; i < s.length; i++) n = (Math.imul(n, 31) + s.charCodeAt(i)) | 0
+  return String(1000000 + (Math.abs(n) % 9000000))
+}
 
 export type ConfirmSlot = {
   id: string
@@ -658,7 +665,7 @@ async function submit(preferWallet = false) {
             <div v-if="createdBookingId" class="canva-confirm-success-code">
               <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
               <b dir="ltr" class="mt-1 block text-xl font-black tabular-nums tracking-wide text-brand-navy">
-                {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
+                {{ t('booking.trackingCodePrefix') }}-{{ displayTrackingCode(createdBookingId) }}
               </b>
               <small>{{ t('booking.trackingCodeHint') }}</small>
             </div>
@@ -666,11 +673,11 @@ async function submit(preferWallet = false) {
         </template>
 
         <template v-else>
-          <div class="text-center">
+          <!-- HTML .mxdh: title + club small (not green/red Canva leftover) -->
+          <div class="border-b border-brand-gray-200 pb-3 text-start">
             <p class="canva-confirm-book-title">{{ t('booking.confirmFinalTitle') }}</p>
-            <!-- Canva (4): club name under green confirm title is red -->
-            <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubName }}</h2>
-            <p v-if="metaLine || (ratingDisplay && ratingDisplay !== '—')" class="mt-1 flex flex-wrap items-center justify-center gap-1 text-xs text-brand-gray-600">
+            <span class="canva-confirm-book-club">{{ clubName }}</span>
+            <p v-if="metaLine || (ratingDisplay && ratingDisplay !== '—')" class="mt-1 flex flex-wrap items-center justify-start gap-1 text-xs text-brand-gray-600">
               <span v-if="metaLine">{{ metaLine }}</span>
               <template v-if="ratingDisplay && ratingDisplay !== '—'">
                 <span v-if="metaLine">|</span>
@@ -922,7 +929,7 @@ async function submit(preferWallet = false) {
           <button
             v-if="showWalletCta"
             type="button"
-            class="canva-gate-btn-secondary canva-confirm-book-cta w-full"
+            class="canva-confirm-book-wallet"
             :class="{ 'canva-cta-busy': payBusy }"
             :disabled="!slots.length || seasonSubmitBlocked"
             :aria-busy="payBusy"
