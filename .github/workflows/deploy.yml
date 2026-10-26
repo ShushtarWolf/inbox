@@ -2,6 +2,17 @@ name: Deploy to Liara
 
 on:
   workflow_dispatch:
+    inputs:
+      path:
+        description: >-
+          germany-fast (default) skips Iran and ships Actions-built Nitro to Germany (~7–10m).
+          auto = Iran primary then Germany on failure. iran-only = full-source Iran only.
+        type: choice
+        default: germany-fast
+        options:
+          - germany-fast
+          - auto
+          - iran-only
 
 # One deploy at a time. Do not cancel an in-flight rollout — wait instead.
 concurrency:
@@ -19,13 +30,17 @@ jobs:
     timeout-minutes: 5
     outputs:
       smoke: ${{ steps.pick.outputs.smoke }}
+      path: ${{ steps.pick.outputs.path }}
     steps:
       - name: Resolve smoke vs CI skip
         id: pick
         env:
           GH_TOKEN: ${{ github.token }}
+          PATH_INPUT: ${{ inputs.path || 'germany-fast' }}
         run: |
           set -euo pipefail
+          echo "path=$PATH_INPUT" >> "$GITHUB_OUTPUT"
+          echo "Deploy path=$PATH_INPUT"
           runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow=ci.yml --commit "$GITHUB_SHA" --json conclusion,status --limit 20)
           ok=$(echo "$runs" | jq '[.[] | select(.status=="completed" and .conclusion=="success")] | length')
           if [ "$ok" -gt 0 ]; then
@@ -108,17 +123,18 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  # Primary: Iran full-source (proven for public inboxs.ir; Germany can be healthy-but-502).
+  # Iran full-source: auto (primary) or iran-only. Skipped on germany-fast.
   deploy-iran:
-    name: Deploy Iran full-source (primary)
+    name: Deploy Iran full-source
     needs: [gate, smoke]
     if: >-
       always()
       && needs.gate.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+      && (needs.gate.outputs.path == 'auto' || needs.gate.outputs.path == 'iran-only')
     runs-on: ubuntu-latest
-    # Healthy Iran builds finish in ~9m. 30m kills a stuck CLI if `timeout` does not.
-    timeout-minutes: 30
+    # Healthy Iran builds finish in ~9m. Cap CLI at 12m so auto→Germany starts sooner.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -131,17 +147,16 @@ jobs:
           set -euo pipefail
           npm i -g @liara/cli@9
           # Proven path: multi-stage Dockerfile on Liara Iran. No BuildKit mounts.
-          # Cap at 20m (~2× a healthy ~9m build). A stuck Iran builder must fail
-          # this job so the already-built Germany context can start. Do not raise
-          # this back to 75m — that blocks production for over an hour.
-          timeout 20m liara deploy \
+          # Cap at 12m (healthy ~9m). Stuck Iran must fail so auto→Germany can start.
+          # Do not raise this back to 20m/75m — that blocks production.
+          timeout 12m liara deploy \
             --app=inbox \
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
             --build-location=iran \
-            --message "GitHub ${GITHUB_SHA:0:7} iran-primary"
+            --message "GitHub ${GITHUB_SHA:0:7} iran-${{ needs.gate.outputs.path }}"
 
-  # Prep Germany fallback in parallel with Iran so a failed Iran build can flip quickly.
+  # Prep Germany context (germany-fast primary, or auto fallback). Skip for iran-only.
   bundle:
     name: Prepare Germany prebuilt context
     needs: [gate, smoke]
@@ -149,6 +164,7 @@ jobs:
       always()
       && needs.gate.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
+      && needs.gate.outputs.path != 'iran-only'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -211,15 +227,18 @@ jobs:
           retention-days: 1
 
   deploy-germany:
-    name: Deploy Germany prebuilt (fallback)
+    name: Deploy Germany prebuilt
     needs: [gate, smoke, bundle, deploy-iran]
-    # Only when Iran did not succeed (failed, cancelled, or skipped).
+    # germany-fast: ship now (Iran skipped). auto: only when Iran did not succeed.
     if: >-
       always()
       && needs.gate.result == 'success'
       && (needs.gate.outputs.smoke == 'skip' || needs.smoke.result == 'success')
-      && needs.deploy-iran.result != 'success'
       && needs.bundle.result == 'success'
+      && (
+        needs.gate.outputs.path == 'germany-fast'
+        || (needs.gate.outputs.path == 'auto' && needs.deploy-iran.result != 'success')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -241,7 +260,13 @@ jobs:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
-          echo "::warning::Iran primary did not succeed (result=${{ needs.deploy-iran.result }}); falling back to Germany prebuilt"
+          PATH_MODE='${{ needs.gate.outputs.path }}'
+          IRAN_RESULT='${{ needs.deploy-iran.result }}'
+          if [ "$PATH_MODE" = 'germany-fast' ]; then
+            echo "germany-fast path — shipping prebuilt to Germany (Iran skipped)"
+          else
+            echo "::warning::Iran did not succeed (result=$IRAN_RESULT); falling back to Germany prebuilt"
+          fi
           npm i -g @liara/cli@9
           timeout 45m liara deploy \
             --path=deploy-context \
@@ -249,7 +274,7 @@ jobs:
             --api-token="$LIARA_TOKEN" \
             --no-app-logs \
             --build-location=germany \
-            --message "GitHub ${GITHUB_SHA:0:7} germany-fallback"
+            --message "GitHub ${GITHUB_SHA:0:7} germany-${PATH_MODE}"
 
   deploy-ok:
     name: Deploy succeeded (Iran or Germany)

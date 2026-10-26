@@ -28,7 +28,8 @@
   --sz-phone-width: 375px;
   /* LOCKED: Canva chrome/search/cards/login/CTAs — 0 preferred, 2px max (never pill) */
   --sz-canva-radius: 0;
-  --sz-canva-radius-max: 2px;
+  /* HTML prototype is square — keep 0 now that tokens actually load */
+  --sz-canva-radius-max: 0;
   --sz-slot-free: #e8e6e2;
   --sz-slot-reserved: #c41e1e;
   --sz-slot-reserved-ipg: #d4dce8;
@@ -38,13 +39,15 @@
   --sz-slot-pending: #4a1420;
   --sz-slot-cancel: #a3a39f;
   --sz-slot-closed: #52524f;
-  --sz-slot-blocked: #a3a39f;
-  --sz-cal-grid-free: #eceae6;
-  --sz-cal-grid-reserved-paid: #f3d4d4;
+  --sz-slot-blocked: #1a1a18;
+  /* Owner calendar grid — match HTML prototype (neutral booked + black blocked) */
+  --sz-cal-grid-free: #ece9e4;
+  --sz-cal-grid-reserved-paid: #eceae6;
   --sz-cal-grid-reserved-unpaid: #fcd9a8;
   --sz-cal-grid-reserved-ipg: #d4dce8;
   --sz-cal-grid-reserved-recurring: #ddd4e8;
-  --sz-cal-grid-reserved-coach: #f0c4b8;
-  --sz-cal-grid-pending: #e8d4a8;
-  --sz-cal-grid-blocked: #d4d2ce;
+  /* Same neutral as paid — HTML booked is neutral + crimson bar, not pink wash */
+  --sz-cal-grid-reserved-coach: #eceae6;
+  --sz-cal-grid-pending: #f4e4c4;
+  --sz-cal-grid-blocked: #1a1a18;
 }

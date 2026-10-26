@@ -49,10 +49,13 @@ const {
 const { heldRoles } = usePlatformRoles()
 const { localizedField } = useLocalizedField()
 
-/** Owner shell: show club logo/name in the header shortcut (the red circle owners expect). */
+/** Owner shell: club logo/name; avatar chrome is square navy (HTML mxav), not crimson circle. */
 const shortcutAvatarUrl = computed(() =>
   props.useAccountDrawer ? (clubAvatarUrl.value || avatarUrl.value) : avatarUrl.value,
 )
+const notificationsPath = computed(() => localePath('/owner/notifications'))
+const showPhotoShortcut = ref(true)
+watch(shortcutAvatarUrl, (url) => { showPhotoShortcut.value = Boolean(url) }, { immediate: true })
 const shortcutName = computed(() => {
   if (props.useAccountDrawer && activeOwnerClub.value) {
     return localizedField(activeOwnerClub.value, 'nameFa', 'nameEn') || displayName.value
@@ -292,14 +295,28 @@ function goBack() {
             >
               {{ t('auth.changeRole') }}
             </NuxtLink>
-            <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
-              <AppUserShortcut
-                :name="shortcutName"
-                :avatar-url="shortcutAvatarUrl"
-                :initials="shortcutInitials"
-                :expanded="accountOpen"
+            <!-- HTML dtop .l: bell + square navy avatar (mxav / CanvaOwnerHeroChrome) -->
+            <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="flex items-center gap-3">
+              <NuxtLink :to="notificationsPath" class="text-brand-navy" :aria-label="t('notifications.title')">
+                <AppIcon name="notifications" size="sm" />
+              </NuxtLink>
+              <button
+                type="button"
+                class="canva-owner-avatar"
+                :aria-label="t('owner.account.title')"
+                :aria-expanded="accountOpen"
+                aria-haspopup="dialog"
                 @click="accountOpen = true"
-              />
+              >
+                <img
+                  v-if="shortcutAvatarUrl && showPhotoShortcut"
+                  :src="shortcutAvatarUrl"
+                  alt=""
+                  class="h-full w-full object-cover"
+                  @error="showPhotoShortcut = false"
+                >
+                <span v-else>{{ shortcutInitials }}</span>
+              </button>
             </div>
             <AppUserShortcut
               v-else-if="displayName && !hideUser"

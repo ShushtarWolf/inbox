@@ -82,7 +82,7 @@ async function submitTicket() {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/athlete" :title="t('athlete.support')" />
+    <CanvaSubpageHeader to="/athlete" :title="t('athlete.support')" :subtitle="t('athlete.supportSubtitle')" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <div class="canva-support-wide">

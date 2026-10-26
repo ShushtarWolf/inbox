@@ -11,7 +11,14 @@ import {
   defaultAthleteSeasonFinishDate,
   MAX_ATHLETE_SEASON_OCCURRENCES,
 } from '#shared/athleteSeason.ts'
-import { bookingTrackingCode } from '#shared/receiptToken.ts'
+
+/** Client-safe display code — must not import `#shared/receiptToken` (node:crypto breaks Vite). */
+function displayTrackingCode(bookingId: string) {
+  let n = 0
+  const s = `track:${bookingId}`
+  for (let i = 0; i < s.length; i++) n = (Math.imul(n, 31) + s.charCodeAt(i)) | 0
+  return String(1000000 + (Math.abs(n) % 9000000))
+}
 
 export type ConfirmSlot = {
   id: string
@@ -649,25 +656,28 @@ async function submit(preferWallet = false) {
 
       <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
         <template v-if="done">
-          <div class="canva-ok-box">
-            <span class="canva-ok-ic"><AppIcon name="check" size="lg" /></span>
-            <p class="canva-ok-title">{{ feedback || t('booking.successCourt') }}</p>
-            <div v-if="createdBookingId" class="canva-ok-code">
-              <p class="canva-ok-code-label">{{ t('booking.trackingCodeLabel') }}</p>
-              <p dir="ltr" class="canva-ok-code-value">
-                {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
-              </p>
-              <p class="canva-ok-code-hint">{{ t('booking.trackingCodeHint') }}</p>
+          <div class="canva-confirm-success">
+            <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
+            <h2 class="canva-confirm-success-title">{{ t('booking.successPaidTitle') }}</h2>
+            <p class="canva-confirm-success-body">
+              {{ feedback || t('booking.successPaidBody', { club: clubName }) }}
+            </p>
+            <div v-if="createdBookingId" class="canva-confirm-success-code">
+              <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
+              <b dir="ltr" class="mt-1 block text-xl font-black tabular-nums tracking-wide text-brand-navy">
+                {{ t('booking.trackingCodePrefix') }}-{{ displayTrackingCode(createdBookingId) }}
+              </b>
+              <small>{{ t('booking.trackingCodeHint') }}</small>
             </div>
           </div>
         </template>
 
         <template v-else>
-          <div class="text-center">
+          <!-- HTML .mxdh: title + club small (not green/red Canva leftover) -->
+          <div class="border-b border-brand-gray-200 pb-3 text-start">
             <p class="canva-confirm-book-title">{{ t('booking.confirmFinalTitle') }}</p>
-            <!-- Canva (4): club name under green confirm title is red -->
-            <h2 class="mt-1 text-xl font-bold text-brand-primary">{{ clubName }}</h2>
-            <p v-if="metaLine || (ratingDisplay && ratingDisplay !== '—')" class="mt-1 flex flex-wrap items-center justify-center gap-1 text-xs text-brand-gray-600">
+            <span class="canva-confirm-book-club">{{ clubName }}</span>
+            <p v-if="metaLine || (ratingDisplay && ratingDisplay !== '—')" class="mt-1 flex flex-wrap items-center justify-start gap-1 text-xs text-brand-gray-600">
               <span v-if="metaLine">{{ metaLine }}</span>
               <template v-if="ratingDisplay && ratingDisplay !== '—'">
                 <span v-if="metaLine">|</span>
@@ -894,12 +904,16 @@ async function submit(preferWallet = false) {
 
       <div class="shrink-0 space-y-2 px-5 pb-6">
         <template v-if="done">
-          <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
+          <NuxtLink
+            :to="localePath('/athlete/bookings')"
+            class="canva-cta canva-confirm-book-cta w-full"
+            @click="close"
+          >
             {{ t('booking.viewBookings') }}
           </NuxtLink>
-          <button type="button" class="canva-gate-btn-secondary w-full" @click="close">
-            {{ t('common.close') }}
-          </button>
+          <NuxtLink :to="localePath('/')" class="canva-gate-btn-secondary canva-confirm-book-cta w-full text-center" @click="close">
+            {{ t('booking.successBackHome') }}
+          </NuxtLink>
         </template>
         <template v-else>
           <button
@@ -915,7 +929,7 @@ async function submit(preferWallet = false) {
           <button
             v-if="showWalletCta"
             type="button"
-            class="canva-gate-btn-secondary canva-confirm-book-cta w-full"
+            class="canva-confirm-book-wallet"
             :class="{ 'canva-cta-busy': payBusy }"
             :disabled="!slots.length || seasonSubmitBlocked"
             :aria-busy="payBusy"

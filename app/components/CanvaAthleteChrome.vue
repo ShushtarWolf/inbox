@@ -14,10 +14,11 @@ const { canSwitchRole } = usePlatformRoles()
 </script>
 
 <template>
-  <header class="canva-home-chrome hidden max-[430px]:flex">
+  <!-- HTML m-athlete .mxtop / .mbt: logo + bell + user -->
+  <header class="canva-home-chrome hidden max-[430px]:flex py-3">
     <InboxBrandLockup home-link height-class="h-7" :on-dark="dark" />
     <div class="flex flex-col items-stretch gap-1">
-      <div class="flex items-center gap-3" :class="dark ? 'text-white' : 'text-brand-navy'">
+      <div class="flex items-center gap-3.5" :class="dark ? 'text-white' : 'text-brand-navy'">
         <slot />
         <NuxtLink :to="localePath('/athlete')" :aria-label="t('nav.profile')">
           <AppIcon name="person" size="sm" />

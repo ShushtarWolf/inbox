@@ -24,6 +24,7 @@ import {
 } from '#shared/clubCitationCopy.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 import { buildReturnTo } from '#shared/returnTo.ts'
+import { normalizeTod, slotMatchesTod } from '#shared/timeOfDay.ts'
 
 type ClubSlot = {
   id: string
@@ -71,6 +72,23 @@ type ClubDetail = {
   openHour?: number | null
   closeHour?: number | null
   testimonials?: Array<{ id: string; authorName: string; rating: number; body: string }>
+  coaches?: Array<{
+    id: string
+    nameFa?: string
+    nameEn?: string
+    photo?: string | null
+    rating?: number | null
+    headlineFa?: string | null
+    headlineEn?: string | null
+  }>
+  policies?: Array<{
+    titleFa?: string
+    titleEn?: string
+    title?: string
+    bodyFa?: string
+    bodyEn?: string
+    body?: string
+  }>
 }
 
 const route = useRoute()
@@ -136,6 +154,8 @@ const deepLinkSlotIds = [
   ...parseQueryCsv(route.query.slots),
 ]
 const deepLinkTimes = parseQueryCsv(route.query.time).map((t) => t.slice(0, 5))
+/** Reactive so same-slug query updates (rebook / in-app replace) keep tod highlight. */
+const preferredTod = computed(() => normalizeTod(route.query.tod))
 const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0 || deepLinkTimes.length > 0)
 let suppressSlotClear = deepLinkSlotsPending.value
 
@@ -150,10 +170,15 @@ const selectedCourtIds = ref<string[]>(
 const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
 const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
-/** Keep success sheet (INB code) mounted after booking until the athlete closes it. */
-const confirmSuccessHold = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
+
+/** Dev-only: `?openConfirm=1` for HTML-vs-live confirm sheet screenshots (no auth). */
+if (import.meta.dev) {
+  onMounted(() => {
+    if (String(route.query.openConfirm || '') === '1') confirmOpen.value = true
+  })
+}
 
 function clearBasket() {
   selectedSlotIds.value = []
@@ -197,12 +222,12 @@ function slotPriceLabel(slot: ClubSlot): string {
   return price > 0 ? toThousand(price) : ''
 }
 
-/** Court chip label: real court name when it isn't just a number, else «زمین n». */
+/** Court chip: HTML .rnums shows bare index; non-generic names stay. */
 function courtChipLabel(court: { nameFa?: string; nameEn?: string | null }, idx: number) {
   const name = (localizedField(court as Record<string, unknown>, 'nameFa', 'nameEn') || court.nameFa || '').trim()
   const n = courtDisplayNumber({ nameFa: court.nameFa || '', nameEn: court.nameEn }, idx)
-  if (name && !/^[\d۰-۹\s]+$/.test(name)) return name
-  return t('booking.courtNumber', { n: formatNumber(n) })
+  if (/^زمین\s*[\d۰-۹]+$/.test(name) || /^[\d۰-۹\s]+$/.test(name) || !name) return formatNumber(n)
+  return name
 }
 
 function onLockedSlotTap(slot: ClubSlot) {
@@ -357,6 +382,13 @@ function isSlotBooked(slot: ClubSlot) {
 
 function isSlotSelected(id: string) {
   return selectedSlotIds.value.includes(id)
+}
+
+function isSlotTodPreferred(slot: ClubSlot) {
+  const tod = preferredTod.value
+  if (!tod) return false
+  if (isSlotBooked(slot) || isSlotLocked(slot)) return false
+  return slotMatchesTod(slot.startTime, tod)
 }
 
 function courtNumberLabel(courtId: string) {
@@ -615,7 +647,6 @@ const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.v
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
-  confirmSuccessHold.value = false
   if (!user.value) {
     resumeConfirmAfterAuth.value = true
     openLogin({
@@ -642,14 +673,12 @@ function openConfirmSheet() {
 
 function onConfirmSuccess() {
   resumeConfirmAfterAuth.value = false
-  confirmSuccessHold.value = true
   confirmOpen.value = true
   waitlistSlotId.value = null
 }
 
 function onConfirmClose() {
   confirmOpen.value = false
-  confirmSuccessHold.value = false
   clearBasket()
   waitlistSlotId.value = null
 }
@@ -1107,6 +1136,49 @@ async function shareClub() {
             >{{ amenityLabel(item) }}</span>
           </div>
         </section>
+
+        <!-- HTML prototype: coaches on club (API coaches[]; empty = omit) -->
+        <section v-if="club.coaches?.length" class="canva-club-detail-section">
+          <h2 class="canva-club-detail-section-title">{{ t('clubs.clubCoaches') }}</h2>
+          <div class="canva-club-coach-list">
+            <NuxtLink
+              v-for="coach in club.coaches"
+              :key="coach.id"
+              :to="localePath(`/coaches/${coach.id}`)"
+              class="canva-club-coach-row"
+            >
+              <span class="canva-club-coach-copy">
+                <span class="canva-club-coach-name">{{ localizedField(coach, 'nameFa', 'nameEn') }}</span>
+                <span
+                  v-if="localizedField(coach, 'headlineFa', 'headlineEn')"
+                  class="canva-club-coach-meta"
+                >{{ localizedField(coach, 'headlineFa', 'headlineEn') }}</span>
+              </span>
+              <span
+                v-if="coach.rating != null && coach.rating > 0"
+                class="canva-club-coach-rating tabular-nums"
+              >
+                {{ formatNumber(coach.rating) }}
+                <span class="canva-court-card-star" aria-hidden="true">★</span>
+              </span>
+            </NuxtLink>
+          </div>
+        </section>
+
+        <!-- HTML prototype: rules from policiesJson (empty = omit) -->
+        <section v-if="club.policies?.length" class="canva-club-detail-section">
+          <h2 class="canva-club-detail-section-title">{{ t('clubs.policies') }}</h2>
+          <ul class="canva-club-policy-list">
+            <li v-for="(policy, idx) in club.policies" :key="idx" class="canva-club-policy-item">
+              <p class="canva-club-policy-title">
+                {{ localizedField(policy, 'titleFa', 'titleEn') || policy.title }}
+              </p>
+              <p class="canva-club-detail-desc">
+                {{ localizedField(policy, 'bodyFa', 'bodyEn') || policy.body }}
+              </p>
+            </li>
+          </ul>
+        </section>
       </div>
 
         <!-- 4. Booking widget: legend + courts + calendar/slots + square CTA -->
@@ -1222,6 +1294,7 @@ async function shareClub() {
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
                     'canva-club-slot-booked canva-club-slot-uncertain': !isSlotBooked(slot) && isSlotUncertain(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
+                    'canva-club-slot-tod': isSlotTodPreferred(slot) && !isSlotSelected(slot.id),
                   }"
                   :disabled="(isSlotBooked(slot) && !waitlistEnabled)
                     || isSlotUncertain(slot)

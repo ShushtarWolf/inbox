@@ -498,7 +498,7 @@ Production start sequence (`scripts/start-production.mjs`):
 
 Deploy from repo:
 
-**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Flow: CI-or-smoke → **Iran full-source** primary → if that fails, **Germany prebuilt** fallback. After success, take a local `inbox-db` dump (prefer `backup-db.yml` + download when local Liara auth fails).
+**Preferred:** push to `main`, then trigger **Deploy to Liara** (GitHub Actions → `.github/workflows/deploy.yml`, or `gh workflow run deploy.yml --ref main -f path=germany-fast`). Requires `LIARA_API_TOKEN` in repo secrets ([GITHUB_SETUP.md](./GITHUB_SETUP.md)). Deploy is not automatic on push — only when explicitly requested. Default `path=germany-fast`: CI-or-smoke → Actions Nitro → Liara **Germany**. Use `path=auto` for Iran-first with Germany fallback, or `path=iran-only` for Iran recovery. After success, take a local `inbox-db` dump (prefer `backup-db.yml` + download when local Liara auth fails).
 
 **Emergency fallback** (local network): `liara deploy --app inbox` (full source rebuild on Liara — slower).
 

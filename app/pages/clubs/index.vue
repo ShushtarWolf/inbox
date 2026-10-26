@@ -103,6 +103,15 @@ async function setSort(value: string) {
   })
 }
 
+const handoffDate = computed(() =>
+  typeof route.query.date === 'string' && route.query.date ? route.query.date : '',
+)
+const handoffTod = computed(() => {
+  const tod = typeof route.query.tod === 'string' ? route.query.tod : ''
+  return tod === 'afternoon' || tod === 'evening' ? tod : ''
+})
+const showSearchHandoffHint = computed(() => Boolean(handoffDate.value || handoffTod.value))
+
 function clubHref(slug: string) {
   if (activeRole.value === 'CLUB_ADMIN') {
     const membership = user.value?.memberships?.find((m) => m.club.slug === slug)
@@ -112,8 +121,8 @@ function clubHref(slug: string) {
     }
   }
   const query: Record<string, string> = {}
-  const dateQ = typeof route.query.date === 'string' ? route.query.date : ''
-  if (dateQ) query.date = dateQ
+  if (handoffDate.value) query.date = handoffDate.value
+  if (handoffTod.value) query.tod = handoffTod.value
   return localePath({ path: `/clubs/${slug}`, query })
 }
 
@@ -131,7 +140,7 @@ function clubMeta(club: { city?: string; sports?: string[] }) {
 
 function clubRating(club: { rating?: number | null; reviewCount?: number }) {
   if (!club.reviewCount) return ''
-  return (club.rating ?? 0).toFixed(1)
+  return formatNumber(Number((club.rating ?? 0).toFixed(1)))
 }
 
 /** Canva: «هزینه هر سانس: ۳۰۰ الی ۴۵۰ هزار تومان» */
@@ -271,6 +280,9 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
         {{ chip.label }}
       </button>
     </div>
+    <p v-if="showSearchHandoffHint" class="text-start text-xs text-brand-gray-600">
+      {{ t('clubs.searchHandoffHint') }}
+    </p>
 
     <NuxtLink
       v-if="!pilotNoCoach"

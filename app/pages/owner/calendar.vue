@@ -3205,21 +3205,15 @@ watch(pilotNoCoach, (off) => {
       />
       <div class="canva-photo-hero-wash" />
       <CanvaOwnerHeroChrome />
-      <div
-        class="canva-promo-badge canva-promo-badge-hero min-[431px]:hidden"
-        :aria-label="t('owner.calendarPromo')"
-      >
-        <span class="canva-promo-badge-pct">۲۰٪</span>
-        <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
-      </div>
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[3.25rem] min-[431px]:!pb-3 min-[431px]:!pt-3" />
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
-      <p class="text-start text-xs leading-relaxed text-brand-gray-600">
+      <p class="mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
         {{ t('owner.calendarWelcome') }} · {{ calendarWelcomeLine }}
       </p>
+      <p class="text-start text-xs text-brand-gray-600">{{ t('owner.calendarAllCourtsHint') }}</p>
       <label
         v-if="showClubSwitcher"
         class="canva-cal-club-switch"
@@ -4926,7 +4920,7 @@ watch(pilotNoCoach, (off) => {
 
 :deep(.canva-cal-grid-cell.slot-blocked) {
   background: var(--sz-cal-grid-blocked);
-  color: #2c2c2a;
+  color: #fff;
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved-unpaid) {

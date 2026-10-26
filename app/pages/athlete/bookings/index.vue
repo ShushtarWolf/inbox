@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
 import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { filterBookingsByTime } from '#shared/bookingTimeFilter.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { canManageReservation } from '#shared/localDate.ts'
@@ -112,7 +113,10 @@ const rescheduleSlotId = ref('')
 const reschedulePending = ref(false)
 type DisplayStatus = 'paid' | 'unpaid' | 'done' | 'cancelled'
 type StatusFilter = 'all' | 'unpaid' | 'paid' | 'cancelled'
+type TimeFilter = 'upcoming' | 'past' | 'all'
 const statusFilter = ref<StatusFilter>('all')
+/** HTML prototype: پیش‌رو / گذشته / همه — AND with payment status chips. */
+const timeFilter = ref<TimeFilter>('upcoming')
 const monthAnchor = ref(today())
 const selectedDayIso = ref<string | null>(null)
 const detailKey = ref<string | null>(null)
@@ -199,7 +203,7 @@ watch(
   (value) => {
     if (value === 'success') {
       paymentFlashTone.value = 'success'
-      paymentFlash.value = t('booking.paymentSuccess')
+      paymentFlash.value = t('booking.paymentSuccessRich')
     }
     else if (value === 'cancelled') {
       paymentFlashTone.value = 'error'
@@ -551,6 +555,12 @@ const BADGE_CLASS: Record<DisplayStatus, string> = {
 
 const legendStatuses: DisplayStatus[] = ['paid', 'unpaid', 'done', 'cancelled']
 
+const timeChips: Array<{ value: TimeFilter; labelKey: string }> = [
+  { value: 'upcoming', labelKey: 'athlete.historyTimeUpcoming' },
+  { value: 'past', labelKey: 'athlete.historyTimePast' },
+  { value: 'all', labelKey: 'athlete.historyFilterAll' },
+]
+
 const statusChips: Array<{ value: StatusFilter; labelKey: string }> = [
   { value: 'all', labelKey: 'athlete.historyFilterAll' },
   { value: 'unpaid', labelKey: 'athlete.historyStatusUnpaid' },
@@ -590,7 +600,7 @@ function dayAriaLabel(iso: string) {
 }
 
 const filteredItems = computed(() => {
-  let list = visibleHistory.value
+  let list = filterBookingsByTime(visibleHistory.value, timeFilter.value, today())
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
@@ -609,7 +619,9 @@ const listTitle = computed(() => selectedDayIso.value
 
 const historyEmptyTitle = computed(() => {
   if (selectedDayIso.value) return t('athlete.historyEmptyDay')
-  if (statusFilter.value !== 'all' && hasAnyBookings.value) return t('athlete.historyEmptyStatus')
+  if ((statusFilter.value !== 'all' || timeFilter.value !== 'all') && hasAnyBookings.value) {
+    return t('athlete.historyEmptyStatus')
+  }
   return t('athlete.historyEmptyMonth')
 })
 
@@ -619,13 +631,17 @@ const historyEmptyBody = computed(() => {
       ? t('athlete.historyEmptyDayFilterBody')
       : t('athlete.historyEmptyDayBody')
   }
-  if (statusFilter.value !== 'all' && hasAnyBookings.value) return t('athlete.historyEmptyStatusBody')
+  if ((statusFilter.value !== 'all' || timeFilter.value !== 'all') && hasAnyBookings.value) {
+    return t('athlete.historyEmptyStatusBody')
+  }
   return t('athlete.historyEmptyMonthBody')
 })
 
 function clearListFilters() {
   selectedDayIso.value = null
   statusFilter.value = 'all'
+  // Empty CTA is «نمایش همه رزروها» — match HTML «همه», not reset to پیش‌رو.
+  timeFilter.value = 'all'
 }
 
 function rebookTo(item: HistoryItem) {
@@ -803,18 +819,33 @@ function dateLine(item: HistoryItem) {
         </span>
       </div>
 
-      <div v-if="!selectedDayIso" class="canva-history-chips" role="group" :aria-label="t('athlete.historyFilterGroup')">
-        <button
-          v-for="chip in statusChips"
-          :key="chip.value"
-          type="button"
-          class="canva-history-chip"
-          :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
-          :aria-pressed="statusFilter === chip.value"
-          @click="statusFilter = chip.value"
-        >
-          {{ t(chip.labelKey) }}
-        </button>
+      <div v-if="!selectedDayIso" class="space-y-2">
+        <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
+          <button
+            v-for="chip in timeChips"
+            :key="`time-${chip.value}`"
+            type="button"
+            class="canva-history-chip"
+            :class="{ 'canva-history-chip-on': timeFilter === chip.value }"
+            :aria-pressed="timeFilter === chip.value"
+            @click="timeFilter = chip.value"
+          >
+            {{ t(chip.labelKey) }}
+          </button>
+        </div>
+        <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyFilterGroup')">
+          <button
+            v-for="chip in statusChips"
+            :key="chip.value"
+            type="button"
+            class="canva-history-chip"
+            :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
+            :aria-pressed="statusFilter === chip.value"
+            @click="statusFilter = chip.value"
+          >
+            {{ t(chip.labelKey) }}
+          </button>
+        </div>
       </div>
 
       <p
@@ -834,7 +865,7 @@ function dateLine(item: HistoryItem) {
           doodle="seat"
         >
           <button
-            v-if="(selectedDayIso || statusFilter !== 'all') && hasAnyBookings"
+            v-if="(selectedDayIso || statusFilter !== 'all' || timeFilter !== 'all') && hasAnyBookings"
             type="button"
             class="canva-gate-btn-secondary mt-3 px-4 py-2 text-xs font-bold"
             @click="clearListFilters"

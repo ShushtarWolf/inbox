@@ -658,12 +658,24 @@ watch(
     if (!isAuthProtectedPath(path)) handleClose()
   },
 )
+
+/** Dev-only: `?authStep=gate|login|otp|welcome|role` for HTML-vs-live screenshots. */
+onMounted(() => {
+  if (!import.meta.dev) return
+  const s = String(route.query.authStep || '')
+  if (!s) return
+  purpose.value = s === 'role' ? 'register' : 'login'
+  channel.value = 'otp'
+  if (s === 'otp') maskedPhone.value = '۰۹۱۲***۴۵۶۷'
+  if (s === 'welcome') welcomeVariant.value = 'login'
+  step.value = s as typeof step.value
+  open.value = true
+})
 </script>
 
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1] min-w-0 overflow-x-hidden">
-      <div class="canva-auth-accent" />
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
@@ -675,6 +687,7 @@ watch(
           <small>{{ t(authPhotoHeader.subKey) }}</small>
         </div>
       </div>
+      <div v-else class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
@@ -725,9 +738,11 @@ watch(
           {{ notice }}
         </p>
 
-        <!-- Welcome / success (Canva 7, 11, 15) -->
+        <!-- Welcome / success — HTML ti-hand-stop in crimson square (not Material ligature) -->
         <div v-if="step === 'welcome'" class="canva-auth-welcome">
-          <AppIcon name="waving_hand" size="lg" class="mx-auto text-brand-primary" />
+          <div class="canva-auth-welcome-hand" aria-hidden="true">
+            <AuthHandStopIcon :size="20" />
+          </div>
           <p class="canva-auth-welcome-title">{{ t('auth.welcomeHandTitle') }}</p>
           <p class="text-center text-sm text-brand-gray-600">{{ t('auth.welcomeHandSub') }}</p>
           <p class="canva-auth-welcome-title mt-2">{{ t('auth.welcomeInbox') }}</p>

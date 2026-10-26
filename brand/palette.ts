@@ -59,21 +59,23 @@ export const palette = {
     PENDING: '#4A1420',
     CANCELLED: '#A3A39F',
     CLOSED: '#52524F',
-    BLOCKED: '#A3A39F',
+    BLOCKED: '#1A1A18',
   },
   calendarGrid: {
-    FREE: '#eceae6',
-    RESERVED_PAID: '#f3d4d4',
+    FREE: '#ece9e4',
+    /** HTML: neutral fill + crimson side bar (not pink wash) */
+    RESERVED_PAID: '#eceae6',
     RESERVED_UNPAID: '#fcd9a8',
     RESERVED_IPG: '#d4dce8',
     /** Season / package series — distinct from paid / unpaid / online */
     RESERVED_RECURRING: '#ddd4e8',
     /** Top stripe on a seasonal cell. Not the normal reserve red. */
     RESERVED_RECURRING_BAR: '#6B4C9A',
-    /** Desk coach-tagged court booking accent */
-    RESERVED_COACH: '#f0c4b8',
-    PENDING: '#e8d4a8',
-    BLOCKED: '#d4d2ce',
+    /** Same neutral as paid — crimson bar, not pink wash */
+    RESERVED_COACH: '#eceae6',
+    PENDING: '#f4e4c4',
+    /** HTML blocked cells are near-black */
+    BLOCKED: '#1a1a18',
   },
 } as const
 

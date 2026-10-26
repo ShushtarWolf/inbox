@@ -58,22 +58,22 @@ export const palette = {
     PENDING: '#E8B84A',
     CANCELLED: '#A3A39F',
     CLOSED: '#1A1A18',
-    BLOCKED: '#A3A39F',
+    BLOCKED: '#1A1A18',
   },
-  /** Pastel cell fills for owner calendar grid + legend swatches */
+  /** Owner calendar grid + legend — HTML: neutral booked fill, black blocked */
   calendarGrid: {
-    FREE: '#eceae6',
-    RESERVED_PAID: '#f3d4d4',
+    FREE: '#ece9e4',
+    RESERVED_PAID: '#eceae6',
     RESERVED_UNPAID: '#fcd9a8',
     RESERVED_IPG: '#d4dce8',
     /** Season / package series — distinct from paid / unpaid / online */
     RESERVED_RECURRING: '#ddd4e8',
     /** Top stripe on a seasonal cell. Not the normal reserve red. */
     RESERVED_RECURRING_BAR: '#6B4C9A',
-    /** Desk coach-tagged court booking accent (payment color still primary fill) */
-    RESERVED_COACH: '#f0c4b8',
-    PENDING: '#e8d4a8',
-    BLOCKED: '#d4d2ce',
+    /** Same neutral as paid — crimson bar marks booked; no pink wash */
+    RESERVED_COACH: '#eceae6',
+    PENDING: '#f4e4c4',
+    BLOCKED: '#1a1a18',
   },
 } as const
 

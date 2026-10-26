@@ -1,5 +1,15 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { palette, BRAND_PRIMARY, BRAND_CREAM, BRAND_ACCENT } from './palette'
+
+describe('main.css token import', () => {
+  it('imports tokens.css before any other rule (browsers drop late @import)', () => {
+    const css = readFileSync(resolve(__dirname, '../../app/assets/css/main.css'), 'utf8')
+    const firstRule = css.replace(/\/\*[\s\S]*?\*\//g, '').trim().split('\n')[0]
+    expect(firstRule).toBe("@import './tokens.css';")
+  })
+})
 
 describe('brandbook palette', () => {
   it('uses shushzerv coach red as primary', () => {
@@ -24,7 +34,7 @@ describe('brandbook palette', () => {
     expect(palette.slotDisplay.TEAM).toBe('#C41E1E')
     expect(palette.slotDisplay.FREE).toBe('#E8E6E2')
     expect(palette.slotDisplay.PENDING).toBe('#E8B84A')
-    expect(palette.slotDisplay.BLOCKED).toBe('#A3A39F')
+    expect(palette.slotDisplay.BLOCKED).toBe('#1A1A18')
     expect(palette.calendarGrid.BLOCKED).not.toBe(palette.calendarGrid.RESERVED_PAID)
     expect(palette.calendarGrid.RESERVED_UNPAID).not.toBe(palette.calendarGrid.PENDING)
     expect(palette.calendarGrid.RESERVED_RECURRING).toBe('#ddd4e8')
@@ -32,8 +42,8 @@ describe('brandbook palette', () => {
     expect(palette.calendarGrid.RESERVED_RECURRING_BAR).not.toBe(palette.slotDisplay.RESERVED)
     expect(palette.calendarGrid.RESERVED_RECURRING).not.toBe(palette.calendarGrid.RESERVED_IPG)
     expect(palette.calendarGrid.RESERVED_RECURRING).not.toBe(palette.calendarGrid.RESERVED_PAID)
-    expect(palette.calendarGrid.RESERVED_COACH).toBe('#f0c4b8')
-    expect(palette.calendarGrid.RESERVED_COACH).not.toBe(palette.calendarGrid.RESERVED_PAID)
+    expect(palette.calendarGrid.RESERVED_COACH).toBe('#eceae6')
+    expect(palette.calendarGrid.RESERVED_COACH).toBe(palette.calendarGrid.RESERVED_PAID)
   })
 
   it('uses warm gray text scale', () => {

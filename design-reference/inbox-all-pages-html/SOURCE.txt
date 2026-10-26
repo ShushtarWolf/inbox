@@ -1,0 +1,10 @@
+Source file (local Downloads, synced 2026-10-26):
+  /Users/siamakghodsi/Downloads/Inbox_—_همهی_صفحات_دسکتاپ_و_موبایل_5.html
+
+Tracked copy:
+  design-reference/inbox-all-pages-html/prototype.html
+
+Title in HTML: Inbox — همه‌ی صفحات (دسکتاپ و موبایل)
+
+This prototype is the visual + information-architecture source of truth for the
+live Nuxt app. Canva PNG exports are archived under canva-reference/.

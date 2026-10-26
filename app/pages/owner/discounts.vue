@@ -152,9 +152,8 @@ async function saveItem() {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.discounts')" />
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.discounts')" :subtitle="t('owner.discountsPage.subtitle')" />
     <OwnerActiveClubBar class="mb-3" />
-    <p class="text-sm text-brand-gray-600">{{ t('owner.discountsPage.subtitle') }}</p>
 
     <div class="flex items-center justify-between gap-2">
       <p class="text-xs text-brand-gray-600">{{ t('owner.discountsPage.tapToEdit') }}</p>

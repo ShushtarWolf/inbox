@@ -159,14 +159,10 @@ watch(secret, (value) => {
 </template>
 
 <style scoped>
+/* HTML .rred.sm — crimson gradient hero, square */
 .admin-overview-hero {
-  @apply relative overflow-hidden bg-brand-primary p-5 text-white;
-  border-radius: 2px;
-  background-image:
-    radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.16), transparent 42%),
-    radial-gradient(ellipse at bottom right, rgba(0, 0, 0, 0.12), transparent 48%),
-    url('/brand/canva-auth-pattern.svg');
-  background-size: auto, auto, 160px 160px;
-  background-blend-mode: normal, normal, soft-light;
+  @apply relative mb-6 overflow-hidden p-[22px] text-white min-[431px]:px-7;
+  border-radius: 0;
+  background: linear-gradient(135deg, #c41e1e, #b01818);
 }
 </style>

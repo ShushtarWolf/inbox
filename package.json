@@ -56,6 +56,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:ios-hit-testing": "node scripts/check-ios-hit-testing.mjs",
     "check:canva": "node scripts/canva-pixel-compare.mjs",
+    "check:html": "node scripts/check-html-screens.mjs",
     "check:db": "node scripts/check-db.mjs",
     "fonts:icons": "node scripts/subset-material-symbols.mjs",
     "db:wipe-catalog": "node scripts/wipe-prod-catalog.mjs",

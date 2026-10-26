@@ -1,3 +1,7 @@
+/* @import must precede every other rule (incl. @font-face) or browsers drop it —
+   that silently killed all --sz-* tokens (blocked/booked cells went transparent). */
+@import './tokens.css';
+
 /* Self-hosted Material Symbols subset (~12KB). Full npm package is ~5MB and
    often fails on slow phones, showing raw ligature text (e.g. chevron_left).
    Rebuild: node scripts/subset-material-symbols.mjs */
@@ -6,7 +10,7 @@
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src: url('/fonts/material-symbols-rounded-subset.woff2?v=2') format('woff2');
+  src: url('/fonts/material-symbols-rounded-subset.woff2') format('woff2');
 }
 /* Self-host variable fonts with optional display to avoid FOUT CLS (Clarity). */
 @font-face {
@@ -33,7 +37,6 @@
   src: url('@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2') format('woff2-variations');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-@import './tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -336,21 +339,10 @@
   }
 
   /*
-   * ── Canva phone primitives (LOCKED — never reintroduce soft TailAdmin) ──
-   *
-   * LOCKED checklist → CSS enforcement:
-   * 1. No pills          → canva-chip / *-chip use --sz-canva-radius (not rounded-full)
-   * 2. Radius 0–2px      → --sz-canva-radius / --sz-canva-radius-max on chrome/search/cards/CTAs
-   * 3. No btn-primary    → use canva-cta | canva-home-login | canva-search-cta | *-card-cta | btn-canva-login
-   * 4. RTL align right   → text-start / justify-start on card copy (never text-end)
-   * 5. Chrome flush      → canva-home-chrome (+ canva-public-main bleed); tight gap to hero
-   * 6. Hero titles white → canva-hero-title / canva-page-hero-title force color #fff
-   * 7. Search            → canva-search-row/fields/cta (white group + square red CTA, single-line)
-   * 8–10. Process        → frame regions / 375px self-check / sibling frames (agent workflow)
-   *
-   * REPLACES (do not use these on Canva phone frames):
-   *   btn-primary / rounded-lg  →  .canva-cta | .canva-home-login | .canva-search-cta | .canva-*-card-cta | .btn-canva-login
-   *   rounded-full / neo-pill   →  .canva-chip | .canva-clubs-chip | .canva-sport-chip | .canva-court-chip
+   * ── Phone / public chrome primitives ──
+   * Visual SoT = design-reference/inbox-all-pages-html/prototype.html (square corners).
+   * Class names may still say canva-* historically; do not treat archived Canva PNGs as binding.
+   * Prefer --sz-canva-radius: 0. Match HTML regions via check:html + GAPS.md.
    */
 
   .canva-auth-sheet {
@@ -406,8 +398,13 @@
   .canva-auth-welcome {
     @apply space-y-1 py-4 text-center;
   }
+  /* HTML #pages .welcome>i — crimson square hand (global radius 0 wins over circle) */
+  .canva-auth-welcome-hand {
+    @apply mx-auto mb-3 flex h-[42px] w-[42px] shrink-0 items-center justify-center bg-brand-primary text-white;
+    border-radius: var(--sz-canva-radius);
+  }
   .canva-auth-welcome-title {
-    @apply text-lg font-bold leading-snug text-emerald-600;
+    @apply text-lg font-bold leading-snug text-brand-navy;
   }
   .canva-auth-photo {
     @apply relative z-[1] mx-0 mb-3 mt-0 flex min-h-[7.5rem] min-w-0 flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;
@@ -482,10 +479,11 @@
     @apply relative overflow-hidden bg-brand-navy text-white shadow-venus-sm;
     border-radius: var(--sz-canva-radius-max);
   }
-  /* Full-bleed home hero: flush corners (overrides canva-hero soft radius) */
+  /* Full-bleed home hero: flush corners; HTML .rhero height 340 */
   .canva-hero-home {
     border-radius: var(--sz-canva-radius);
     box-shadow: none;
+    min-height: 340px;
   }
   /* picture wrappers for CanvaHeroImg — keep absolute media non-hittable on Safari */
   .canva-hero > picture,
@@ -573,34 +571,34 @@
     @apply bg-white/45;
   }
 
-  /* LOCKED #7: white field group + separate square red CTA; single-line placeholders */
+  /* HTML .rsearch — one bordered bar; CTA + fields (DOM order = RTL right→left) */
   .canva-search-row {
-    @apply flex items-stretch gap-2;
-  }
-  .canva-search-fields {
-    @apply grid min-w-0 flex-1 grid-cols-[1fr_1.35fr_1fr] items-center bg-white;
+    @apply flex items-stretch;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.08);
+    height: 56px;
+    margin: 1.25rem 0 0.375rem;
     border-radius: var(--sz-canva-radius);
   }
-  .canva-search-fields-2 {
-    grid-template-columns: 1fr 1.35fr;
+  @media (min-width: 431px) {
+    .canva-search-row {
+      height: 60px;
+    }
+  }
+  .canva-search-fields {
+    @apply flex min-w-0 flex-1 items-stretch bg-transparent;
   }
   .canva-search-field {
-    @apply relative flex min-w-0 items-center px-2.5 py-3 sm:px-3 sm:py-3.5;
+    @apply relative flex min-w-0 flex-1 items-center justify-center px-2.5 sm:px-4;
+    border-inline-end: 1px solid rgba(44, 44, 42, 0.1);
   }
-  .canva-search-field + .canva-search-field::before {
-    content: '';
-    position: absolute;
-    inset-inline-start: 0;
-    top: 22%;
-    bottom: 22%;
-    width: 1px;
-    background: #d4d0ca;
+  .canva-search-field:last-child {
+    border-inline-end: none;
   }
   .canva-search-placeholder {
     /* 16px on phone so <select> focus does not trigger iOS page zoom */
-    @apply w-full truncate border-0 bg-transparent p-0 text-center text-base font-medium outline-none sm:text-sm;
-    /* Darker than gray-500 (audit: search hints were hard to read on the white bar). */
-    color: #4a4a46;
+    @apply w-full truncate border-0 bg-transparent p-0 text-center text-base font-medium outline-none sm:text-[13px];
+    color: #4a4a47;
     appearance: none;
     white-space: nowrap;
     line-height: 1.25;
@@ -621,19 +619,31 @@
     outline-offset: -2px;
   }
   .canva-search-cta {
-    @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-4 text-sm font-bold text-white transition hover:brightness-110 sm:px-5;
-    border-radius: var(--sz-canva-radius);
-    min-height: 3.15rem;
+    @apply inline-flex shrink-0 items-center justify-center gap-2 self-stretch bg-brand-primary px-7 text-center text-[13px] font-bold leading-tight text-white transition hover:brightness-110 sm:px-8 sm:text-[14px];
+    border-radius: 0;
+    min-height: 0;
   }
+  .canva-search-date-btn {
+    @apply flex w-full min-w-0 items-center justify-between gap-2.5;
+  }
+  .canva-search-date-btn .material-symbols-rounded {
+    @apply shrink-0 text-brand-gray-600;
+    font-size: 1.15rem;
+  }
+  /* HTML .oeqh a / .ocg — green #2e7d4f */
   .canva-equip-add {
-    @apply inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-600;
+    @apply inline-flex shrink-0 items-center gap-0.5 text-xs font-bold;
+    color: #2e7d4f;
   }
+  /* HTML .occh span / .oeqi — beige #ece8e2 / #e9e6e1 */
   .canva-equip-chip {
-    @apply inline-flex items-center justify-center bg-[#e8e4de] px-3 py-2 text-xs font-bold text-brand-navy;
+    @apply inline-flex items-center justify-center px-3 py-2 text-xs font-bold text-brand-navy;
+    background: #ece8e2;
     border-radius: var(--sz-canva-radius);
   }
   .canva-equip-row {
-    @apply flex w-full items-center justify-between gap-3 bg-[#e8e4de] px-3 py-3 text-start text-sm;
+    @apply flex w-full items-center justify-between gap-3 px-3 py-3 text-start text-sm;
+    background: #e9e6e1;
     border-radius: var(--sz-canva-radius);
   }
 
@@ -641,25 +651,25 @@
     @apply flex gap-3 overflow-x-auto pb-1;
   }
 
-  /* Sharp venue tiles + square CTAs */
+  /* Venue tiles — HTML .rrg / .rcard: 2-col phone, 4-col desk, portrait 3/4 */
   .canva-venue-grid {
-    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
+    @apply grid grid-cols-2 gap-3.5 min-[431px]:grid-cols-4 min-[431px]:gap-3.5;
   }
   .canva-venue-card {
-    @apply relative block aspect-square w-full overflow-hidden bg-[#2a1818] text-white shadow-venus-sm;
+    @apply relative block aspect-[3/4] w-full overflow-hidden bg-[#222] text-white;
     border-radius: var(--sz-canva-radius);
   }
   .canva-venue-card img {
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
-    opacity: 0.7;
-    filter: brightness(0.72) saturate(0.85);
+    opacity: 0.92;
+    filter: brightness(0.92) saturate(0.95);
   }
   .canva-venue-card::after {
     content: '';
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(180deg, rgba(20, 12, 12, 0.2) 0%, rgba(20, 12, 12, 0.78) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.72) 100%);
   }
-  /* Pin CTA to card bottom so neighbor tiles stay aligned (offer banner or 2-line titles). */
+  /* Pin CTA to card bottom so neighbor tiles stay aligned. */
   .canva-venue-card-body {
     @apply relative z-10 flex h-full flex-col items-center justify-end gap-2 p-2 pb-2 text-center sm:gap-2.5 sm:p-3 sm:pb-2;
   }
@@ -667,32 +677,57 @@
     @apply flex w-full flex-col items-center gap-1 text-center;
   }
   .canva-venue-card-title {
-    @apply line-clamp-2 text-center text-sm font-bold leading-tight sm:text-base;
+    @apply line-clamp-2 text-center text-sm font-bold leading-tight sm:text-[15.5px];
   }
   .canva-venue-card-meta {
-    @apply line-clamp-2 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
+    @apply line-clamp-2 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[11px];
   }
   .canva-venue-card-cta {
-    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
+    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white sm:px-4 sm:py-1.5 sm:text-[11.5px];
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .rdisc — white perforated coupon centered on photo */
   .canva-venue-card-offer {
-    @apply absolute z-20 bg-brand-primary px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white;
-    inset-block-start: 0;
-    inset-inline: 0;
+    position: absolute;
+    z-index: 20;
+    top: 36%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    background: #fff;
+    color: #c41e1e;
+    font-size: clamp(1.75rem, 8vw, 4.5rem);
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 0.45em 0.55em;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
     border-radius: 0;
-    /* Keep offer in its strip — never spill over club name (Safari wrap). */
-    max-height: 2.5rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    word-break: break-word;
+    max-height: none;
+    overflow: visible;
+    display: block;
+    -webkit-mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
   }
-  /* Reserve top band so title/meta sit fully below the offer; CTA stays bottom-aligned. */
+  .canva-venue-card-offer::before,
+  .canva-venue-card-offer::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    border-left: 2px dashed rgba(196, 30, 30, 0.35);
+  }
+  .canva-venue-card-offer::before {
+    left: 22px;
+  }
+  .canva-venue-card-offer::after {
+    right: 22px;
+  }
   .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
-    padding-block-start: 2.65rem;
+    padding-block-start: 0;
   }
 
   /* Coach discovery rail — square tiles, red CTA like venue cards */
@@ -775,19 +810,20 @@
   }
 
   /* Sharp court cards — RTL copy uses text-start (not text-end) */
+  /* HTML .rwide — landscape club row on /clubs */
   .canva-court-card {
-    @apply relative block min-h-[10.5rem] overflow-hidden bg-brand-navy text-white shadow-venus-sm;
+    @apply relative block min-h-[11.25rem] overflow-hidden bg-[#222] text-white;
     border-radius: var(--sz-canva-radius);
   }
   .canva-court-card img {
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
-    opacity: 0.72;
-    filter: brightness(0.7) saturate(0.9);
+    opacity: 1;
+    filter: none;
   }
   .canva-court-card::after {
     content: '';
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(90deg, rgba(20, 12, 12, 0.55) 0%, rgba(20, 12, 12, 0.35) 45%, rgba(20, 12, 12, 0.7) 100%);
+    background: linear-gradient(270deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.45));
   }
   .canva-court-card-body {
     @apply relative z-10 flex h-full min-h-[10.5rem] items-center justify-between gap-3 p-4;
@@ -796,7 +832,9 @@
     @apply min-w-0 flex-1 text-start;
   }
   .canva-court-card-title {
-    @apply truncate text-start text-base font-bold text-brand-primary sm:text-lg;
+    /* HTML .rwc b — crimson on photo */
+    @apply truncate text-start text-[19px] font-bold leading-tight;
+    color: #e8383a;
   }
   .canva-court-card-rating {
     @apply mt-1 inline-flex items-center justify-start gap-1 text-xs font-bold text-white;
@@ -828,6 +866,10 @@
   .canva-side-nav-item.tail-menu-item-active,
   .canva-side-nav-item.tail-menu-item-inactive {
     border-radius: var(--sz-canva-radius);
+  }
+  /* HTML .dash.dk .s-item.active — mustard 3px bar on the content-facing edge */
+  .canva-side-nav-item.tail-menu-item-dark-active {
+    border-inline-end: 3px solid #b68a3b;
   }
 
   /*
@@ -947,8 +989,10 @@
   .canva-underline-tab {
     @apply relative -mb-px border-b-2 border-transparent px-0.5 pb-2 text-sm font-bold text-brand-gray-500 transition;
   }
+  /* HTML .oftab .on / CRM filter — crimson underline */
   .canva-underline-tab-active {
-    @apply border-brand-navy text-brand-navy;
+    border-color: #c41e1e;
+    color: #2c2c2a;
   }
   .canva-overview-kpi {
     @apply border border-brand-gray-200/80 bg-white p-4 text-center shadow-venus-sm;
@@ -982,6 +1026,7 @@
   .canva-settings-chip {
     @apply px-3 py-2 text-xs font-bold;
   }
+  /* HTML .occh span idle */
   .canva-settings-chip-idle {
     @apply bg-[#e3e0db] text-[#2c2c2a];
   }
@@ -1522,8 +1567,9 @@
   .canva-history-head {
     @apply mb-2.5 flex items-baseline justify-between gap-2.5;
   }
+  /* HTML .cxh h1 / .ph h1 */
   .canva-history-title {
-    @apply text-start text-[17px] font-extrabold text-brand-navy;
+    @apply text-start text-[22px] font-extrabold leading-snug text-brand-navy;
   }
   .canva-history-list-title {
     @apply text-start text-[15px] font-extrabold text-brand-navy;
@@ -1542,12 +1588,16 @@
   .canva-history-chips::-webkit-scrollbar {
     display: none;
   }
+  /* HTML .ofch: idle white + soft crimson active (not solid fill) */
   .canva-history-chip {
-    @apply shrink-0 border border-[#e0ddd6] bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-brand-gray-600;
+    @apply shrink-0 border bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-brand-gray-600;
+    border-color: rgba(44, 44, 42, 0.14);
     border-radius: var(--sz-canva-radius);
   }
   .canva-history-chip-on {
-    @apply border-brand-primary bg-brand-primary text-white;
+    border-color: #c41e1e;
+    background: #f6e3e3;
+    color: #c41e1e;
   }
   .canva-history-card {
     @apply block w-full bg-white p-3.5 text-start;
@@ -1705,10 +1755,11 @@
   .canva-legal-footer {
     @apply flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 pt-2 text-[10px] font-medium text-brand-gray-500;
   }
+  /* HTML .mban / .rbanner height 176px */
   .canva-photo-hero {
     @apply relative -mx-4 overflow-hidden text-white min-[431px]:mx-0;
     border-radius: var(--sz-canva-radius);
-    min-height: 11rem;
+    min-height: 176px;
   }
   /* LOCKED sharp frames: no soft oval bottom (match guest canva-hero-home). */
   .canva-photo-hero-curve {
@@ -1746,10 +1797,12 @@
     @apply bg-brand-navy px-4 py-5 text-start text-white;
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .ofdark .cxtiny — solid gray report CTA, not glass */
   .canva-finance-report-link {
-    @apply inline-flex w-fit items-center gap-1.5 bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/15;
+    @apply inline-flex w-fit items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110;
     border-radius: var(--sz-canva-radius);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: #4a4a47;
+    border: 1px solid #4a4a47;
   }
   .canva-finance-chips {
     @apply grid grid-cols-3 gap-2;
@@ -1849,7 +1902,7 @@
     @apply bg-brand-primary;
   }
   .canva-finance-method-badge-ipg {
-    background: #E8B84A;
+    background: #e0a82e;
   }
   .canva-finance-method-badge-wallet {
     @apply bg-brand-navy;
@@ -1899,10 +1952,12 @@
     @apply text-start;
   }
   .canva-club-gallery {
+    /* HTML .rgal height 300 */
     @apply relative overflow-hidden bg-brand-navy;
     border-radius: var(--sz-canva-radius);
-    min-height: 13.5rem;
-    aspect-ratio: 16 / 10;
+    height: 300px;
+    min-height: 300px;
+    aspect-ratio: auto;
     touch-action: pan-y;
     cursor: grab;
   }
@@ -2114,28 +2169,30 @@
   .canva-club-book-slots-label {
     @apply mb-1.5 text-xs font-bold text-brand-navy;
   }
+  /* HTML .rnums span — 40×40 square (auto width when court has a name) */
   .canva-club-court-num {
-    @apply inline-flex h-8 min-w-[2rem] items-center justify-center whitespace-nowrap px-2 text-[11px] font-bold text-brand-navy;
+    @apply inline-flex h-10 min-w-10 shrink-0 items-center justify-center whitespace-nowrap px-2 text-[13px] font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
-    border: 1px solid #d4d0ca;
+    border: 1px solid #2c2c2a;
     background: #fff;
   }
-  /* Browsing which court’s hours are shown — not a booking selection. */
   .canva-club-court-num-focus {
-    border-color: #1b2b4b;
-    border-width: 2px;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
+    border-color: #2c2c2a;
   }
-  /* In multi-court set but no hour yet — outline only; green is reserved for basket hours. */
   .canva-club-court-num-target {
-    border-color: #2f9e44;
-    border-width: 2px;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
     background: #fff;
-    color: #2f9e44;
+    color: #2c2c2a;
   }
   .canva-club-court-num-active {
-    border-color: #2f9e44;
-    background: #2f9e44;
-    color: #fff;
+    outline: 2px solid #1f2a5a;
+    outline-offset: 0;
+    background: #fff;
+    color: #2c2c2a;
+    border-color: #2c2c2a;
   }
   .canva-club-book-slots {
     @apply min-w-0;
@@ -2155,10 +2212,63 @@
   .canva-club-slot-active .canva-club-slot-price {
     @apply text-white/90;
   }
+  /* HTML .chip.a.cr — crimson selected hour (legend green = basket metaphor) */
   .canva-club-slot-active {
-    background: #2f9e44;
-    border-color: #2f9e44;
+    background: #c41e1e;
+    border-color: #c41e1e;
     color: #fff;
+  }
+  /* Preferred time-of-day from home search (`tod`) — highlight only, not selected */
+  .canva-club-slot-tod {
+    border-color: #c41e1e;
+    box-shadow: inset 0 0 0 1px rgba(196, 30, 30, 0.35);
+  }
+  .canva-club-coach-list {
+    @apply flex flex-col gap-2;
+  }
+  .canva-club-coach-row {
+    @apply flex items-center justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-2.5 text-start no-underline;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-coach-copy {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+  .canva-club-coach-name {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-club-coach-meta {
+    @apply text-[11px] text-brand-gray-600;
+  }
+  .canva-club-coach-rating {
+    @apply shrink-0 text-xs font-bold text-brand-navy;
+  }
+  .canva-club-policy-list {
+    @apply space-y-3 text-start;
+  }
+  .canva-club-policy-item {
+    @apply space-y-1;
+  }
+  .canva-club-policy-title {
+    @apply text-xs font-bold text-brand-navy;
+  }
+  .canva-confirm-success {
+    @apply space-y-3 text-center;
+  }
+  .canva-confirm-success-title {
+    @apply text-lg font-bold text-brand-navy;
+  }
+  .canva-confirm-success-body {
+    @apply text-sm leading-relaxed text-brand-gray-600;
+  }
+  .canva-confirm-success-code {
+    @apply border border-brand-gray-200 bg-brand-gray-50 px-3 py-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-success-code b {
+    @apply block font-bold tabular-nums text-brand-navy;
+  }
+  .canva-confirm-success-code small {
+    @apply mt-1 block text-[11px] text-brand-gray-600;
   }
   .canva-club-slot-booked {
     cursor: not-allowed;
@@ -2250,9 +2360,12 @@
   .canva-confirm-book {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden text-start;
   }
+  /* HTML .mxdh b — charcoal title (not green Canva leftover) */
   .canva-confirm-book-title {
-    @apply text-sm font-bold;
-    color: #2f9e44;
+    @apply text-[15px] font-bold text-brand-navy;
+  }
+  .canva-confirm-book-club {
+    @apply mt-0.5 block text-xs font-medium text-brand-gray-600;
   }
   .canva-confirm-book-date {
     @apply text-base font-bold text-brand-primary;
@@ -2307,8 +2420,15 @@
     @apply min-w-0 flex-1 border-0 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .cxtiny — beige apply */
   .canva-confirm-book-discount-btn {
-    @apply shrink-0 self-stretch border border-brand-navy bg-white px-3 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
+    @apply shrink-0 self-stretch border-0 bg-[#ece8e2] px-2.5 text-[11px] font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--sz-canva-radius);
+    min-height: 34px;
+  }
+  /* HTML secondary cxbtn — crimson outline wallet */
+  .canva-confirm-book-wallet {
+    @apply flex w-full items-center justify-center border border-brand-primary bg-white px-4 py-3.5 text-sm font-bold text-brand-primary transition hover:bg-brand-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-discount-note {
@@ -2436,12 +2556,20 @@
   .canva-cal-grid-scroll {
     @apply min-w-0 flex-1 overflow-x-auto pb-1;
   }
+  /* Mobile HTML .omg/.omc: 1px gutters; desk HTML .mx: gap 8px */
   .canva-cal-grid {
     @apply grid min-w-[18.5rem] w-full gap-px bg-[#e4e0da];
     --canva-cal-gutter: 2.75rem;
     --canva-cal-court-min: 5.5rem;
     border: 1px solid #e4e0da;
     border-radius: var(--sz-canva-radius);
+  }
+  @media (min-width: 431px) {
+    .owner-cal-page .canva-cal-grid {
+      gap: 8px;
+      background: transparent;
+      border-color: transparent;
+    }
   }
   .canva-cal-grid-corner,
   .canva-cal-grid-court,
@@ -2495,9 +2623,15 @@
   .canva-cal-grid-cell.slot-reserved-recurring .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-public .canva-cal-grid-cell-label,
   .canva-cal-grid-cell.slot-team .canva-cal-grid-cell-label,
-  .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label,
-  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label {
+  .canva-cal-grid-cell.slot-pending .canva-cal-grid-cell-label {
     color: #2c2c2a;
+  }
+  /* HTML .cell.blocked / .omc.x — near-black fill, light labels */
+  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label {
+    color: #fff;
+  }
+  .canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-sub {
+    color: #ccc;
   }
   .canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label {
     color: #fff;
@@ -2526,6 +2660,7 @@
   }
   .canva-cal-grid-cell.slot-reserved,
   .canva-cal-grid-cell.slot-reserved-cash,
+  .canva-cal-grid-cell.slot-reserved-coach,
   .canva-cal-grid-cell.slot-public,
   .canva-cal-grid-cell.slot-team {
     background: var(--sz-cal-grid-reserved-paid);
@@ -2533,7 +2668,7 @@
   }
   .canva-cal-grid-cell.slot-blocked {
     background: var(--sz-cal-grid-blocked);
-    color: #2c2c2a;
+    color: #fff;
   }
 
   .canva-cal-grid-cell.slot-external-uncertain {
@@ -2568,8 +2703,9 @@
     background: #2a2a28;
     color: #fff;
   }
+  /* HTML .cxr.free — soft blue */
   .canva-cal-grid-cell.slot-free.coach-cal-free-bookable {
-    background: #e8f0fe;
+    background: #e3edfb;
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-reserved-cash,
@@ -2638,10 +2774,11 @@
   .canva-cal-grid-check-on {
     @apply border-[#2563eb] bg-[#2563eb];
   }
+  /* HTML mobShell avatar — square navy, not crimson circle */
   .canva-owner-avatar {
-    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
-    background: #c41e1e;
-    border-radius: 9999px;
+    @apply inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
+    background: #1d3b57;
+    border-radius: 0;
   }
   .canva-owner-avatar-lg {
     @apply h-11 w-11 text-sm;
@@ -2807,6 +2944,7 @@
     @apply h-3.5 w-3.5 shrink-0;
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .oftab — crimson underline on active period */
   .canva-finance-period {
     @apply flex gap-4 border-b border-brand-gray-200;
   }
@@ -2814,7 +2952,8 @@
     @apply -mb-px border-b-2 border-transparent px-0.5 pb-2 text-center text-xs font-bold text-brand-gray-500 transition;
   }
   .canva-finance-period-active {
-    @apply border-brand-navy text-brand-navy;
+    @apply text-brand-navy;
+    border-bottom-color: #c41e1e;
   }
   .canva-overview-month {
     @apply grid grid-cols-7 gap-1 text-center;
@@ -3395,18 +3534,26 @@
     gap: 0.25rem;
     align-content: start;
   }
+  /* HTML .hubgrid 2-col on desk */
   .canva-athlete-hub .canva-dash-menu {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
     margin-top: 0;
+    padding: 0.75rem;
   }
+  /* HTML .two: list first (RTL start/right), calendar sticky-side second (left) */
   .canva-history-desktop {
     display: grid;
-    grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.9fr);
     align-items: start;
     gap: 1.5rem;
   }
+  .canva-history-desktop > section:first-child {
+    order: 2;
+  }
   .canva-history-desktop-main {
+    order: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -3485,9 +3632,9 @@
   }
   .canva-club-gallery {
     grid-area: gallery;
-    min-height: 16rem;
-    aspect-ratio: 16 / 10;
-    height: auto;
+    height: 300px;
+    min-height: 300px;
+    aspect-ratio: auto;
   }
   .canva-club-detail-intro,
   .canva-club-detail-body {
@@ -3672,9 +3819,9 @@
 }
 
 @layer components {
-  /* Desktop public header (design rhead) */
+  /* Desktop public header — HTML .pnav white sticky */
   .public-rhead {
-    @apply border-b border-brand-gray-200 bg-brand-cream;
+    @apply border-b border-brand-gray-200 bg-white;
     min-height: 4.5rem;
   }
   .public-rhead-inner {
@@ -3710,45 +3857,95 @@
     border-radius: var(--sz-canva-radius);
   }
 
-  /* Admin overview — astat / acard grid */
+  /* Admin overview — HTML .a3 / .a2 / .astat / .acard (admin overrides square with 12px) */
   .admin-a3 {
-    @apply grid gap-2 min-[431px]:grid-cols-3;
+    @apply grid gap-5 min-[431px]:grid-cols-3;
   }
   .admin-a2 {
-    @apply grid gap-2 min-[431px]:grid-cols-2;
+    @apply grid gap-5 min-[431px]:grid-cols-2;
   }
   .admin-astat {
-    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-start;
-    border-radius: var(--sz-canva-radius);
+    @apply flex items-center gap-4 border border-brand-gray-200 bg-white px-5 py-5 text-start;
+    border-radius: 12px;
   }
   .admin-astat-icon {
-    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary;
-    border-radius: var(--sz-canva-radius);
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary;
+    border-radius: 12px;
   }
   .admin-astat small {
-    @apply block text-[10px] font-bold text-brand-gray-600;
+    @apply block text-[13px] text-brand-gray-600;
   }
   .admin-astat b {
-    @apply mt-0.5 block text-lg font-bold text-brand-navy tabular-nums;
+    @apply mt-0.5 block text-[26px] font-bold leading-none text-brand-navy tabular-nums;
   }
   .admin-acard {
-    @apply border border-brand-gray-200 bg-white p-4 text-start;
-    border-radius: var(--sz-canva-radius);
+    @apply border border-brand-gray-200 bg-white p-5 text-start;
+    border-radius: 12px;
   }
   .admin-acard h3 {
-    @apply mb-3 text-sm font-bold text-brand-navy;
+    @apply mb-3.5 text-[19px] font-bold text-brand-navy;
   }
   .admin-akv {
-    @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2 text-xs last:border-b-0;
+    @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-1.5 text-[13px] last:border-b-0;
   }
   .admin-akv span {
-    @apply text-brand-gray-600;
+    @apply text-brand-navy;
   }
   .admin-akv b {
-    @apply font-bold text-brand-navy tabular-nums;
+    @apply text-[13px] font-bold text-brand-navy tabular-nums;
   }
+  /* HTML .alink — charcoal underline, not crimson */
   .admin-alink {
-    @apply mt-2 inline-block text-xs font-bold text-brand-primary hover:underline;
+    @apply mt-2.5 inline-block text-[13px] font-semibold text-brand-navy underline hover:text-brand-primary;
+  }
+
+  /* HTML coach Today — .cxh / .cxstats / .cxsess / .cxst */
+  .coach-today-hd {
+    @apply flex items-center justify-between gap-3;
+  }
+  .coach-today-title {
+    @apply m-0 text-start text-[22px] font-bold text-brand-navy;
+  }
+  .coach-today-tiny {
+    @apply inline-flex shrink-0 items-center px-2.5 py-1 text-[11px] font-bold text-brand-navy no-underline;
+    background: #ece8e2;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-today-stats {
+    @apply mt-1.5 grid grid-cols-2 gap-2;
+  }
+  .coach-today-stat {
+    @apply border border-brand-gray-200 bg-white px-2 py-3.5 text-center;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-today-stat b {
+    @apply block text-[22px] font-bold text-brand-primary tabular-nums;
+  }
+  .coach-today-stat small {
+    @apply mt-0.5 block text-[11px] text-brand-gray-600;
+  }
+  .coach-today-sub {
+    @apply mb-2 mt-3.5 text-start text-sm font-bold text-brand-navy;
+  }
+  .coach-sess-card {
+    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3.5 py-3 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-sess-av {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden bg-[#1d3b57] text-sm font-bold text-white;
+    border-radius: 0;
+  }
+  .coach-sess-status {
+    @apply shrink-0 px-2 py-0.5 text-[11px] font-bold;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-sess-status-ok {
+    background: #e6f1ea;
+    color: #2e7d4f;
+  }
+  .coach-sess-status-wait {
+    background: #f3e9d3;
+    color: #b68a3b;
   }
 
   /* Coach dashboard (design pages.coach) */
