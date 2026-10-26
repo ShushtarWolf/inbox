@@ -58,7 +58,7 @@ Production deploys are **manual only** — trigger **Deploy to Liara** from the 
 
 **Staging:** one-time `bootstrap-staging.yml`, then **Deploy staging** (`deploy-staging.yml`) → `https://inbox-staging.liara.run`. Details: [STAGING.md](./STAGING.md).
 
-`deploy.yml` prefers a green **CI** run for the same commit (skips duplicate smoke rebuild). Primary path: build Nuxt on Actions → thin `Dockerfile.runtime` context → Liara Germany. If that fails, **full-source** `liara deploy` on Iran (multi-stage `Dockerfile`). Concurrent deploys wait in line (`cancel-in-progress: false`).
+`deploy.yml` prefers a green **CI** run for the same commit (skips duplicate smoke rebuild). Default `path=germany-fast`: build Nuxt on Actions → thin `Dockerfile.runtime` → Liara Germany. `path=auto` tries Iran full-source first (12m cap) then Germany; `path=iran-only` is Iran recovery. Concurrent deploys wait in line (`cancel-in-progress: false`).
 
 One-time secret (Settings → Secrets and variables → Actions):
 

@@ -11,32 +11,46 @@ Production: Liara app **`inbox`**, domain **`inboxs.ir`**. Never Railway. Prefer
 
 **Staging:** app **`inbox-staging`**, URL **`https://inbox-staging.liara.run`**, workflow **`deploy-staging.yml`**. Separate DB (`inbox-staging-db`). See `docs/STAGING.md`. “Deploy staging” ≠ production deploy.
 
-## Build location order (locked)
+## Default path: germany-fast (locked for agents)
 
-Liara CLI `--build-location` only accepts **`iran`** | **`germany`** (no France option today).
+When the user says **deploy** / **ship** / **deploy all changes**, always use **`germany-fast`** unless they explicitly ask for Iran / “full” / “auto” / “safe path”.
 
-1. **Iran first** — primary path in `deploy.yml` (full-source `Dockerfile` on Iran). A healthy Iran build is ~9 minutes. The `liara deploy` cap is **20 minutes** (`timeout-minutes: 30` on the job). Do not raise it back to 75 minutes: a stuck builder must fail the Iran job so Germany can start.
-2. **Germany second** — only if Iran did not succeed (prebuilt `Dockerfile.runtime` on Germany).
-3. Do **not** invent a France build path until Liara documents it.
+| Input | Behavior | Typical wall time |
+|---|---|---|
+| **`germany-fast`** (default) | Skip Iran. Smoke/CI → Actions Nitro → Liara **Germany** → live verify | ~7–10 min |
+| **`auto`** | Iran full-source first (12m CLI cap); Germany only if Iran fails | ~9–12 min healthy; ~20m if Iran hangs then falls back |
+| **`iran-only`** | Full-source Iran only (recovery / “iran deploy”) | ~9–12 min |
+
+Germany can still be healthy-but-502. **Live probe is mandatory.** If germany-fast (or Germany fallback) leaves production down, immediately run Iran recovery (`path=iran-only` or `liara-iran-deploy.yml`), re-probe, then dump.
+
+Liara CLI `--build-location` only accepts **`iran`** | **`germany`**. Do not invent France.
 
 ## Hard lesson (Sep 2026)
 
 Liara’s “Release created” / container health and a green Actions job can still leave **public 502**. Actions green ≠ site up. **Never tell the user deploy succeeded until a live probe passes.** If the app is dead after deploy, say clearly: **“Production is DOWN (502 / health failed).”** Do not soft-pedal.
 
-Germany releases have been healthy-but-502 while Iran full-source restored public traffic — that is why Iran is primary.
+Oct 2026: waiting on hung Iran before Germany made a deploy ~30m. That is why agent default is **germany-fast**, not Iran-first.
 
 ## When the user asks to deploy
 
 1. Push deployable commits to GitHub `main` if ahead.
 2. Prefer green CI for that SHA if still running; otherwise `deploy.yml` smoke gate covers it.
-3. Trigger and watch. A healthy run is ~12 minutes (smoke ~2, Iran ~9). If the Iran job is still running 15 minutes after its `started_at`, stop watching and follow **Stuck Iran build** below. Do not sit on `gh run watch` until the 20-minute cap.
+3. Trigger **germany-fast** and watch. Expect ~7–10 minutes. Do not use bare `deploy.yml` without `-f path=` (workflow default is germany-fast, but pass it explicitly).
 
 ```bash
-gh workflow run deploy.yml --ref main
+gh workflow run deploy.yml --ref main -f path=germany-fast
 gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-4. Confirm workflow success (**Deploy succeeded** + **Verify live inboxs.ir** must both be **green**, not skipped). Report Actions URL / SHA / path (Iran primary vs Germany fallback).
+Only if the user asked for Iran / auto / full:
+
+```bash
+gh workflow run deploy.yml --ref main -f path=auto
+# or:
+gh workflow run deploy.yml --ref main -f path=iran-only
+```
+
+4. Confirm workflow success (**Deploy succeeded** + **Verify live inboxs.ir** must both be **green**, not skipped). Report Actions URL / SHA / path (`germany-fast` vs `auto` vs `iran-only`).
 5. **Mandatory live probe** (even if the workflow already probed — agent double-check):
 
 ```bash
@@ -47,11 +61,12 @@ curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://inbox.liara.run
 ```
 
    - **Pass:** health body has `"ok":true` (and preferably `"db":"up"`) and homepage is not 502.
-   - **Fail (502 / 000 / non-ok):** tell the user **Production is DOWN**. Retry Iran (do not stop after one green Germany release):
+   - **Fail (502 / 000 / non-ok):** tell the user **Production is DOWN**. Run Iran recovery (do not stop after one green Germany release):
 
 ```bash
-gh workflow run liara-iran-deploy.yml --ref main
-gh run watch "$(gh run list --workflow=liara-iran-deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+gh workflow run deploy.yml --ref main -f path=iran-only
+# or: gh workflow run liara-iran-deploy.yml --ref main
+gh run watch "$(gh run list --workflow=deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 # Re-run the live probe. Only then call the site up.
 ```
 
@@ -70,11 +85,11 @@ Report absolute dump path. Deploy is not done until dump exists **and** live pro
 
 Requires repo secret `LIARA_API_TOKEN`.
 
-## Stuck Iran build (do not wait it out)
+## Stuck Iran build (auto / iran-only only)
 
-Sep 2026: a healthy Iran full-source job finishes in ~9 minutes. One run stayed on `liara deploy` for ~45 minutes. GitHub hides that step’s log until the job ends, so “no log lines” is not evidence it is still compiling. Germany cannot start until the Iran job exits, and `liara-deploy` uses `cancel-in-progress: false`, so a new production deploy waits behind the hung run.
+Sep 2026: a healthy Iran full-source job finishes in ~9 minutes. GitHub hides that step’s log until the job ends. `liara-deploy` uses `cancel-in-progress: false`, so a new production deploy waits behind a hung run.
 
-If `Deploy Iran full-source (primary)` is still `in_progress` **15 minutes after that job’s `started_at`**:
+If Iran is still `in_progress` **12 minutes after that job’s `started_at`** (matches the 12m CLI cap):
 
 1. Force-cancel. A plain `gh run cancel` often does not kill a hung `liara deploy`.
 
@@ -82,23 +97,24 @@ If `Deploy Iran full-source (primary)` is still `in_progress` **15 minutes after
 gh api --method POST repos/ShushtarWolf/inbox/actions/runs/<RUN_ID>/force-cancel
 ```
 
-2. Wait until that run is `completed` before `gh workflow run deploy.yml` again.
+2. Wait until that run is `completed` before starting another deploy.
 3. Probe `https://inboxs.ir/api/health`. Cancelling an in-flight deploy leaves the previous release serving. Say production is down only if that probe fails.
-4. Redeploy. The workflow backstop is `timeout 20m` and job `timeout-minutes: 30` in `deploy.yml` and `liara-iran-deploy.yml`. Do not raise those back to 75/90.
-5. Do not make Germany the primary path to save time. Germany stays the fallback (it has been healthy-but-502).
+4. Redeploy with **`germany-fast`** unless the user insisted on Iran. Do not raise Iran CLI timeout back to 20m/75m.
+5. Do not sit on `gh run watch` until a hung Iran job ends — cancel at 12m and recover.
 
-## Runtime image (Germany fallback path)
+## Runtime image (Germany path)
 
 `Dockerfile.runtime` (Debian slim) **must** `apt-get install openssl ca-certificates` before Prisma. Missing OpenSSL matched Liara Prisma warnings and dead containers. Do not remove that layer. Full-source `Dockerfile` already installs openssl on Alpine.
 
 ## What `deploy.yml` does
 
-- Manual `workflow_dispatch` only; one deploy at a time (`cancel-in-progress: false`).
+- Manual `workflow_dispatch` with `path` input (`germany-fast` | `auto` | `iran-only`); one deploy at a time (`cancel-in-progress: false`).
 - CI green → skip smoke; else smoke gate.
-- **Primary:** full-source `Dockerfile` → Liara **Iran**.
-- **Fallback:** if Iran job fails → Actions-built Nitro → `Dockerfile.runtime` → Liara **Germany**.
+- **germany-fast (default):** Actions-built Nitro → `Dockerfile.runtime` → Liara **Germany** (Iran skipped).
+- **auto:** full-source `Dockerfile` → Liara **Iran** (12m cap); if that fails → Germany prebuilt.
+- **iran-only:** Iran full-source only.
 - **Verify live:** after a successful path, curl `https://inboxs.ir/api/health` until 200/`ok` or fail the workflow. Must not be skipped when a deploy path succeeded.
-- If verify fails: agent runs `liara-iran-deploy.yml` and re-probes.
+- If verify fails after Germany: agent runs `path=iran-only` (or `liara-iran-deploy.yml`) and re-probes.
 - No GHCR/`--image`. No BuildKit `--mount` on Liara-built Dockerfiles.
 
 Do not invent a path that skips Actions, smoke/CI, live probe, or the local dump.
