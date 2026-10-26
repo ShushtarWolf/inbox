@@ -130,8 +130,6 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
 }
 
 const pilotOfferText = computed(() => t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }))
-/** Ticket badge shows the leading percent token of the existing copy (e.g. ۲۰٪); full copy stays in sr-only. */
-const pilotOfferBadge = computed(() => pilotOfferText.value.split(/\s+/)[0] || pilotOfferText.value)
 
 function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
   return isOfficialPilotClub(club)
@@ -339,8 +337,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              <span class="sr-only">{{ pilotOfferText }}</span>
-              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
+              <span class="canva-venue-card-ticket">{{ pilotOfferText }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
@@ -374,8 +371,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              <span class="sr-only">{{ pilotOfferText }}</span>
-              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
+              <span class="canva-venue-card-ticket">{{ pilotOfferText }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
@@ -408,8 +404,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              <span class="sr-only">{{ pilotOfferText }}</span>
-              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
+              <span class="canva-venue-card-ticket">{{ pilotOfferText }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">

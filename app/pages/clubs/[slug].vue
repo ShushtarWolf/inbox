@@ -1176,7 +1176,7 @@ async function shareClub() {
 
             <div class="canva-club-book-slots">
               <p class="canva-club-book-slots-label">{{ t('clubs.selectCourt') }}</p>
-              <div class="canva-clubs-chip-row mb-2 flex-wrap">
+              <div class="canva-clubs-chip-row canva-club-court-list mb-2 flex-wrap">
                 <button
                   v-for="(court, idx) in courts"
                   :key="court.id"

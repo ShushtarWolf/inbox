@@ -843,18 +843,22 @@
    */
   .canva-clubs-chip-row {
     /* LOCKED #4: right-group chips → justify-start (RTL main-start = right) */
-    @apply flex flex-wrap justify-start gap-1.5;
+    @apply flex flex-wrap justify-start gap-2;
   }
   .canva-clubs-chip {
-    @apply inline-flex items-center justify-center px-2.5 py-1.5 text-[11px] font-bold transition;
+    /* SoT .rchips span: 9×18 / 12.5px / 600 */
+    @apply inline-flex items-center justify-center font-semibold transition;
+    padding: 9px 18px;
+    font-size: 12.5px;
+    letter-spacing: 0;
     border-radius: var(--sz-canva-radius);
   }
   .canva-clubs-chip-active {
     /* Mustard active — not pill / not brand-primary red */
-    @apply bg-[#c9a227] text-white;
+    @apply bg-[#d1a42b] text-white;
   }
   .canva-clubs-chip-idle {
-    @apply bg-[#e8e4de] text-brand-navy;
+    @apply bg-[#e3e0db] text-[#2c2c2a];
   }
   .canva-clubs-section-head {
     @apply flex items-end justify-between gap-3;
@@ -979,7 +983,7 @@
     @apply px-3 py-2 text-xs font-bold;
   }
   .canva-settings-chip-idle {
-    @apply bg-[#e8e4de] text-brand-navy;
+    @apply bg-[#e3e0db] text-[#2c2c2a];
   }
   .canva-settings-chip-active {
     background: #2c2c2a;
@@ -4027,11 +4031,14 @@
     transform: translate(-50%, -50%) rotate(-4deg);
     background: #fff;
     color: #c41e1e;
-    font-size: 24cqw;
+    font-size: clamp(11px, 6.5cqw, 15px);
     font-weight: 900;
-    line-height: 1;
-    white-space: nowrap;
-    padding: 0.22em 0.53em;
+    line-height: 1.5;
+    white-space: normal;
+    text-align: center;
+    width: max-content;
+    max-width: 82%;
+    padding: 0.35em 1.1em;
     letter-spacing: 0;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
   }
@@ -4070,3 +4077,51 @@
     font-size: 18px;
   }
 }
+
+/* ─── SoT club detail (owner HTML .rcl / .rgal / .rbook / .rcts) — desktop ≥901px ─── */
+  @media (min-width: 901px) {
+    .canva-club-detail {
+      grid-template-columns: minmax(0, 1fr) 440px;
+      grid-template-rows: auto 1fr;
+      column-gap: 34px;
+    }
+    .canva-club-cal-day {
+      font-size: 12.5px;
+    }
+    .canva-club-gallery {
+      aspect-ratio: auto;
+      height: 300px;
+      min-height: 0;
+    }
+    .canva-club-detail-name {
+      font-size: 26px;
+    }
+    .canva-club-book {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      padding: 18px;
+      border-color: rgba(44, 44, 42, 0.1);
+    }
+    .canva-club-court-list {
+      display: grid;
+      gap: 8px;
+    }
+    .canva-club-court-list .canva-club-court-num {
+      justify-content: flex-start;
+      width: 100%;
+      height: auto;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #2c2c2a;
+      border-color: rgba(44, 44, 42, 0.25);
+    }
+    .canva-club-court-list .canva-club-court-num-focus {
+      border-color: #2c2c2a;
+      outline: 1px solid #2c2c2a;
+      border-width: 1px;
+    }
+    .canva-club-court-list .canva-club-court-num-active {
+      color: #fff;
+    }
+  }
