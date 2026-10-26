@@ -38,13 +38,14 @@
   --sz-slot-pending: #4a1420;
   --sz-slot-cancel: #a3a39f;
   --sz-slot-closed: #52524f;
-  --sz-slot-blocked: #a3a39f;
-  --sz-cal-grid-free: #eceae6;
-  --sz-cal-grid-reserved-paid: #f3d4d4;
+  --sz-slot-blocked: #1a1a18;
+  /* Owner calendar grid — match HTML prototype (neutral booked + black blocked) */
+  --sz-cal-grid-free: #ece9e4;
+  --sz-cal-grid-reserved-paid: #eceae6;
   --sz-cal-grid-reserved-unpaid: #fcd9a8;
   --sz-cal-grid-reserved-ipg: #d4dce8;
   --sz-cal-grid-reserved-recurring: #ddd4e8;
   --sz-cal-grid-reserved-coach: #f0c4b8;
-  --sz-cal-grid-pending: #e8d4a8;
-  --sz-cal-grid-blocked: #d4d2ce;
+  --sz-cal-grid-pending: #f4e4c4;
+  --sz-cal-grid-blocked: #1a1a18;
 }

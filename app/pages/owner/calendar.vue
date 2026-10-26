@@ -3205,13 +3205,6 @@ watch(pilotNoCoach, (off) => {
       />
       <div class="canva-photo-hero-wash" />
       <CanvaOwnerHeroChrome />
-      <div
-        class="canva-promo-badge canva-promo-badge-hero min-[431px]:hidden"
-        :aria-label="t('owner.calendarPromo')"
-      >
-        <span class="canva-promo-badge-pct">۲۰٪</span>
-        <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
-      </div>
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[3.25rem] min-[431px]:!pb-3 min-[431px]:!pt-3" />
     </section>
 
@@ -4927,7 +4920,7 @@ watch(pilotNoCoach, (off) => {
 
 :deep(.canva-cal-grid-cell.slot-blocked) {
   background: var(--sz-cal-grid-blocked);
-  color: #2c2c2a;
+  color: #fff;
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved-unpaid) {

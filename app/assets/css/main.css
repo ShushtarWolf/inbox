@@ -631,14 +631,16 @@
     outline-offset: -2px;
   }
   .canva-search-cta {
-    @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-3 text-center text-[11px] font-bold leading-tight text-white transition hover:brightness-110 sm:px-5 sm:text-sm sm:leading-normal;
+    @apply inline-flex shrink-0 items-center justify-center gap-1.5 self-stretch bg-brand-primary px-4 text-center text-sm font-bold leading-tight text-white transition hover:brightness-110 sm:px-8 sm:text-[14px];
     border-radius: var(--sz-canva-radius);
     min-height: 3.15rem;
   }
-  @media (max-width: 430px) {
-    .canva-search-cta {
-      max-width: 7.5rem;
-    }
+  .canva-search-date-btn {
+    @apply flex w-full min-w-0 items-center justify-center gap-1.5;
+  }
+  .canva-search-date-btn .material-symbols-rounded {
+    @apply shrink-0 text-brand-gray-600;
+    font-size: 1.15rem;
   }
   .canva-equip-add {
     @apply inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-600;
@@ -656,25 +658,25 @@
     @apply flex gap-3 overflow-x-auto pb-1;
   }
 
-  /* Sharp venue tiles + square CTAs */
+  /* Venue tiles — HTML .rcard: portrait on desktop, near-square on phone */
   .canva-venue-grid {
-    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
+    @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:grid-cols-4 min-[431px]:gap-5;
   }
   .canva-venue-card {
-    @apply relative block aspect-square w-full overflow-hidden bg-[#2a1818] text-white shadow-venus-sm;
+    @apply relative block aspect-[1/1.15] w-full overflow-hidden bg-[#2a1818] text-white min-[431px]:aspect-[3/4];
     border-radius: var(--sz-canva-radius);
   }
   .canva-venue-card img {
     @apply pointer-events-none absolute inset-0 h-full w-full object-cover;
-    opacity: 0.7;
-    filter: brightness(0.72) saturate(0.85);
+    opacity: 0.92;
+    filter: brightness(0.92) saturate(0.95);
   }
   .canva-venue-card::after {
     content: '';
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(180deg, rgba(20, 12, 12, 0.2) 0%, rgba(20, 12, 12, 0.78) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.72) 100%);
   }
-  /* Pin CTA to card bottom so neighbor tiles stay aligned (offer banner or 2-line titles). */
+  /* Pin CTA to card bottom so neighbor tiles stay aligned. */
   .canva-venue-card-body {
     @apply relative z-10 flex h-full flex-col items-center justify-end gap-2 p-2 pb-2 text-center sm:gap-2.5 sm:p-3 sm:pb-2;
   }
@@ -682,32 +684,57 @@
     @apply flex w-full flex-col items-center gap-1 text-center;
   }
   .canva-venue-card-title {
-    @apply line-clamp-2 text-center text-sm font-bold leading-tight sm:text-base;
+    @apply line-clamp-2 text-center text-sm font-bold leading-tight sm:text-[15.5px];
   }
   .canva-venue-card-meta {
-    @apply line-clamp-2 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[10px];
+    @apply line-clamp-2 text-center text-[9px] font-medium leading-snug text-white/85 sm:text-[11px];
   }
   .canva-venue-card-cta {
-    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm sm:px-3 sm:text-[11px];
+    @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white sm:px-4 sm:py-1.5 sm:text-[11.5px];
     border-radius: var(--sz-canva-radius);
   }
+  /* HTML .rdisc — white perforated coupon centered on photo */
   .canva-venue-card-offer {
-    @apply absolute z-20 bg-brand-primary px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white;
-    inset-block-start: 0;
-    inset-inline: 0;
+    position: absolute;
+    z-index: 20;
+    top: 36%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    background: #fff;
+    color: #c41e1e;
+    font-size: clamp(1.75rem, 8vw, 4.5rem);
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 0.45em 0.55em;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
     border-radius: 0;
-    /* Keep offer in its strip — never spill over club name (Safari wrap). */
-    max-height: 2.5rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    word-break: break-word;
+    max-height: none;
+    overflow: visible;
+    display: block;
+    -webkit-mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
   }
-  /* Reserve top band so title/meta sit fully below the offer; CTA stays bottom-aligned. */
+  .canva-venue-card-offer::before,
+  .canva-venue-card-offer::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    border-left: 2px dashed rgba(196, 30, 30, 0.35);
+  }
+  .canva-venue-card-offer::before {
+    left: 22%;
+  }
+  .canva-venue-card-offer::after {
+    right: 22%;
+  }
   .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
-    padding-block-start: 2.65rem;
+    padding-block-start: 0;
   }
 
   /* Coach discovery rail — square tiles, red CTA like venue cards */
@@ -2701,10 +2728,11 @@
   .canva-cal-grid-check-on {
     @apply border-[#2563eb] bg-[#2563eb];
   }
+  /* HTML mobShell avatar — square navy, not crimson circle */
   .canva-owner-avatar {
-    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
-    background: #c41e1e;
-    border-radius: 9999px;
+    @apply inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden text-[10px] font-bold text-white;
+    background: #1d3b57;
+    border-radius: 0;
   }
   .canva-owner-avatar-lg {
     @apply h-11 w-11 text-sm;

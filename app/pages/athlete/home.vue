@@ -74,14 +74,14 @@ const dateFieldLabel = computed(() => {
   return `${formatWeekday(date.value)} ${formatDayNumber(date.value)} ${formatMonth(date.value)}`
 })
 
-const suggestedClubs = computed(() => clubs.value?.slice(0, 3) || [])
+const suggestedClubs = computed(() => clubs.value?.slice(0, 4) || [])
 const tennisClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club: { sports?: string[] }) => club.sports?.includes('tennis')).slice(0, 3)
+  return list.filter((club: { sports?: string[] }) => club.sports?.includes('tennis')).slice(0, 4)
 })
 const padelClubs = computed(() => {
   const list = clubs.value || []
-  return list.filter((club: { sports?: string[] }) => club.sports?.includes('padel')).slice(0, 3)
+  return list.filter((club: { sports?: string[] }) => club.sports?.includes('padel')).slice(0, 4)
 })
 const listedSports = computed(() => {
   const set = new Set<string>()
@@ -255,11 +255,12 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
               <button
                 id="athlete-home-date-btn"
                 type="button"
-                class="canva-search-placeholder w-full text-center"
+                class="canva-search-placeholder canva-search-date-btn"
                 :class="{ 'canva-search-placeholder-filled': date }"
                 @click="openAthleteDatePicker"
               >
-                {{ dateFieldLabel }}
+                <span class="min-w-0 truncate">{{ dateFieldLabel }}</span>
+                <AppIcon name="calendar_month" size="sm" />
               </button>
             </div>
             <div class="canva-search-field">
@@ -277,7 +278,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             </div>
           </div>
           <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-            {{ t('home.searchWithFilters') }}
+            <AppIcon name="search" size="sm" />
+            {{ t('common.search') }}
           </NuxtLink>
         </div>
       </section>
@@ -331,9 +333,11 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
-            </span>
+            <span
+              v-if="isPilotOfferClub(club)"
+              class="canva-venue-card-offer"
+              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
+            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -362,9 +366,11 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
-            </span>
+            <span
+              v-if="isPilotOfferClub(club)"
+              class="canva-venue-card-offer"
+              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
+            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -393,9 +399,11 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
-            </span>
+            <span
+              v-if="isPilotOfferClub(club)"
+              class="canva-venue-card-offer"
+              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
+            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>

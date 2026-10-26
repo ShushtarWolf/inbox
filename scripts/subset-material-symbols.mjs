@@ -24,6 +24,7 @@ const EXTRA = [
   'inbox',
   'lock',
   'notifications_off',
+  'search',
   'sms_failed',
   'storefront',
   'toggle_on',

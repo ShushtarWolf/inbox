@@ -50,6 +50,7 @@ person_add
 privacy_tip
 receipt_long
 schedule
+search
 sell
 settings
 share

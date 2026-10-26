@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * Coach primary-tab photo hero — borrows owner Canva chrome (no dedicated coach frames).
- * Pages supply optional body slot; default is an empty band for shell flush.
+ * Coach primary-tab photo hero — HTML mobShell: logo + bell + square navy avatar.
  */
 withDefaults(defineProps<{
   /** Hero image under the wash. */
@@ -30,9 +29,15 @@ const { canSwitchRole } = usePlatformRoles()
       <div class="flex flex-col items-stretch gap-1">
         <div class="flex items-center gap-3 text-white">
           <NuxtLink
+            :to="localePath('/coach/settings')"
+            class="inline-flex"
+            :aria-label="t('notifications.title')"
+          >
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
+          <NuxtLink
             :to="localePath('/coach/profile')"
-            class="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-[#c41e1e] text-[10px] font-bold text-white"
-            style="border-radius: var(--sz-canva-radius);"
+            class="canva-owner-avatar"
             :aria-label="t('nav.profile')"
           >
             <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover">
