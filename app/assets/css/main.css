@@ -4170,3 +4170,30 @@
 .canva-authbox-flush > .canva-auth-accent { display: none; }
 /* SoT login modal: crimson top rule, photo inset inside card */
 .canva-auth-accent + .canva-auth-photo { margin: 18px 18px 12px; }
+
+/* SoT athlete-bookings .two: list | 380px aside (aside at inline-end) */
+@media (min-width: 901px) {
+  .canva-history-desktop { grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; }
+  .canva-history-desktop > .canva-history-desktop-main { order: -1; }
+}
+/* SoT athlete-hub: white .card header + .hubgrid of .hubi rows */
+.canva-athlete-hub .canva-dash-hero {
+  background: #fff; color: #2c2c2a; border: 1px solid rgba(44,44,42,.08);
+  border-radius: 0; box-shadow: none; padding: 20px; margin-bottom: 20px;
+}
+.canva-athlete-hub .canva-dash-hero::before, .canva-athlete-hub .canva-dash-hero::after { display: none; }
+.canva-athlete-hub .canva-dash-hero h1 { color: #2c2c2a; font-size: 16px; }
+.canva-athlete-hub .canva-dash-hero p { color: #8f8f8b !important; }
+.canva-athlete-hub .canva-dash-hero p.text-lg { color: #2c2c2a !important; }
+.canva-athlete-hub .canva-dash-hero .rounded-full { background: #C41E1E; border: 0; color: #fff; }
+.canva-athlete-hub .canva-dash-stat { background: #f4efe9; color: #2c2c2a; border: 1px solid rgba(44,44,42,.08); }
+.canva-athlete-hub .canva-dash-stat-value { color: #2c2c2a; }
+.canva-athlete-hub .canva-dash-stat-label { color: #8f8f8b; }
+.canva-athlete-hub .canva-dash-menu { display: grid; grid-template-columns: 1fr; gap: 12px; background: none; border: 0; box-shadow: none; padding: 0; }
+@media (min-width: 431px) { .canva-athlete-hub .canva-dash-menu { display: grid; grid-template-columns: 1fr 1fr; } }
+.canva-athlete-hub .canva-dash-menu-item {
+  background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 0;
+  padding: 16px; gap: 12px; font-weight: 500;
+}
+.canva-athlete-hub .canva-dash-menu-icon { background: none; width: auto; height: auto; color: #2c2c2a; }
+@media (min-width: 431px) { .canva-athlete-hub { display: block !important; } .canva-athlete-hub .canva-dash-hero { margin-bottom: 20px; } }

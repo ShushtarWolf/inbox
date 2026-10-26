@@ -41,3 +41,12 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | forgot / reset password | 375 / desktop | fixed | Pattern + gradient sheet → flat #f4efe9 .authc, white 440px .authbox, start-aligned 22px title | design-reference/comparisons/{forgot-password,reset-password}/ |
 | forgot · SMS-first copy & secondary button | — | kept-product | Product resets by SMS (SoT: email link) — content kept | — |
 | auth inputs · 16px on mobile | 375 | kept-product | Prevents iOS zoom | — |
+
+## Athlete slice
+| Screen | Item | Status |
+|---|---|---|
+| athlete-home | layout/search/cards match; card count = live data | fixed / content |
+| athlete-bookings | `.two` grid: list first, 380px calendar aside at inline-end | fixed |
+| athlete-hub | white `.card` header + 2-col `.hubgrid` rows (was crimson hero, 1 col) | fixed |
+| athlete-hub | wallet balance + 3 stat tiles + "apply club" CTA (not in SoT) | kept-product |
+| athlete-* 375 | SoT has no 375 athlete layout (desktop dash only; mobile = m1–m7) | n/a |
