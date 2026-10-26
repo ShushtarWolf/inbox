@@ -85,7 +85,7 @@ type HistoryItem = {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate, formatFaDigits, formatWeekday, formatPhone } = useFormatters()
+const { formatCurrency, formatTimeRange, formatTimeLabel, formatNumber, formatYear, formatIsoDate, formatFaDigits, formatWeekday } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
@@ -112,7 +112,27 @@ const rescheduleSlotId = ref('')
 const reschedulePending = ref(false)
 type DisplayStatus = 'paid' | 'unpaid' | 'done' | 'cancelled'
 type StatusFilter = 'all' | 'unpaid' | 'paid' | 'cancelled'
+type TimeFilter = 'upcoming' | 'past'
 const statusFilter = ref<StatusFilter>('all')
+const timeFilter = ref<TimeFilter>('upcoming')
+const isWide = ref(false)
+const WIDE_MQ = '(min-width: 900px)'
+
+function syncWide() {
+  if (!import.meta.client) return
+  isWide.value = window.matchMedia(WIDE_MQ).matches
+}
+
+let wideMq: MediaQueryList | null = null
+onMounted(() => {
+  syncWide()
+  if (!import.meta.client) return
+  wideMq = window.matchMedia(WIDE_MQ)
+  wideMq.addEventListener('change', syncWide)
+})
+onUnmounted(() => {
+  wideMq?.removeEventListener('change', syncWide)
+})
 const monthAnchor = ref(today())
 const selectedDayIso = ref<string | null>(null)
 const detailKey = ref<string | null>(null)
@@ -294,8 +314,10 @@ function waitSheetLeave() {
 }
 
 async function rescheduleFromDetail(item: HistoryItem) {
-  closeDetail()
-  await waitSheetLeave()
+  if (!isWide.value) {
+    closeDetail()
+    await waitSheetLeave()
+  }
   await openReschedule(item.raw as CourtBooking)
 }
 
@@ -501,10 +523,18 @@ watch(
   { immediate: true },
 )
 
+const timeScopedHistory = computed(() => {
+  const todayIso = today()
+  if (timeFilter.value === 'upcoming') {
+    return historyItems.value.filter((item) => item.status !== 'CANCELLED' && item.date >= todayIso)
+  }
+  return historyItems.value.filter((item) => item.status === 'CANCELLED' || item.date < todayIso)
+})
+
 const visibleHistory = computed(() => {
-  // Scope to the visible Jalali month so past months do not dump into the list.
+  if (timeFilter.value === 'upcoming' && !selectedDayIso.value) return timeScopedHistory.value
   const key = `${viewYear.value}-${String(viewMonth.value).padStart(2, '0')}`
-  return historyItems.value.filter((item) => monthKeyJalali(item.date) === key)
+  return timeScopedHistory.value.filter((item) => monthKeyJalali(item.date) === key)
 })
 
 function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
@@ -550,6 +580,11 @@ const BADGE_CLASS: Record<DisplayStatus, string> = {
 }
 
 const legendStatuses: DisplayStatus[] = ['paid', 'unpaid', 'done', 'cancelled']
+
+const timeChips: Array<{ value: TimeFilter; labelKey: string }> = [
+  { value: 'upcoming', labelKey: 'athlete.historyFilterUpcoming' },
+  { value: 'past', labelKey: 'athlete.historyFilterPast' },
+]
 
 const statusChips: Array<{ value: StatusFilter; labelKey: string }> = [
   { value: 'all', labelKey: 'athlete.historyFilterAll' },
@@ -603,9 +638,22 @@ const filteredItems = computed(() => {
 
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
-const listTitle = computed(() => selectedDayIso.value
-  ? t('athlete.historyDayList', { date: formatIsoDate(selectedDayIso.value) })
-  : t('athlete.historyMonthList', { month: monthLabel.value }))
+watch(
+  [filteredItems, isWide],
+  () => {
+    if (!isWide.value) return
+    if (detailKey.value && filteredItems.value.some((item) => itemKey(item) === detailKey.value)) return
+    const first = filteredItems.value[0]
+    detailKey.value = first ? itemKey(first) : null
+    confirmingCancel.value = false
+  },
+)
+
+const listTitle = computed(() => {
+  if (selectedDayIso.value) return t('athlete.historyDayList', { date: formatIsoDate(selectedDayIso.value) })
+  if (timeFilter.value === 'upcoming') return t('athlete.historyUpcomingList')
+  return t('athlete.historyPastList')
+})
 
 const historyEmptyTitle = computed(() => {
   if (selectedDayIso.value) return t('athlete.historyEmptyDay')
@@ -626,6 +674,25 @@ const historyEmptyBody = computed(() => {
 function clearListFilters() {
   selectedDayIso.value = null
   statusFilter.value = 'all'
+  timeFilter.value = 'upcoming'
+}
+
+function seasonProgress(item: HistoryItem) {
+  const raw = item.raw
+  if (!raw?.seasonBookingId || !raw.seasonSessionCount || raw.seasonSessionCount < 2) return null
+  const done = historyItems.value.filter((row) => (
+    row.raw?.seasonBookingId === raw.seasonBookingId
+    && row.status !== 'CANCELLED'
+    && row.date < today()
+  )).length
+  return { done, total: raw.seasonSessionCount }
+}
+
+function clubRulesFor(item: HistoryItem) {
+  const hours = item.raw?.slot.court.club.cancellationWindowHours
+    ?? item.raw?.slot.court.club.rescheduleWindowHours
+    ?? 12
+  return t('athlete.historyClubRules', { hours: formatNumber(hours) })
 }
 
 function rebookTo(item: HistoryItem) {
@@ -803,6 +870,20 @@ function dateLine(item: HistoryItem) {
         </span>
       </div>
 
+      <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
+        <button
+          v-for="chip in timeChips"
+          :key="chip.value"
+          type="button"
+          class="canva-history-chip"
+          :class="{ 'canva-history-chip-on': timeFilter === chip.value }"
+          :aria-pressed="timeFilter === chip.value"
+          @click="timeFilter = chip.value; selectedDayIso = null"
+        >
+          {{ t(chip.labelKey) }}
+        </button>
+      </div>
+
       <div v-if="!selectedDayIso" class="canva-history-chips" role="group" :aria-label="t('athlete.historyFilterGroup')">
         <button
           v-for="chip in statusChips"
@@ -842,30 +923,85 @@ function dateLine(item: HistoryItem) {
             {{ t('athlete.historyShowAll') }}
           </button>
         </CanvaEmptyState>
-        <div v-else class="canva-history-card-grid">
-          <button
-            v-for="item in filteredItems"
-            :id="`booking-${item.id}`"
-            :key="itemKey(item)"
-            type="button"
-            class="canva-history-card"
-            :aria-label="t('athlete.historyDetailsAria', { title: item.title, date: formatIsoDate(item.date) })"
-            @click="openDetail(item)"
-          >
-            <span class="canva-history-card-row">
-              <span class="canva-history-card-title">{{ item.title }}</span>
-              <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(item)]">
-                {{ t(STATUS_LABEL_KEY[displayStatus(item)]) }}
+        <div v-else class="canva-history-dash">
+          <div class="canva-history-card-grid">
+            <button
+              v-for="item in filteredItems"
+              :id="`booking-${item.id}`"
+              :key="itemKey(item)"
+              type="button"
+              class="canva-history-bk"
+              :class="{ 'canva-history-bk-sel': itemKey(item) === detailKey }"
+              :aria-label="t('athlete.historyDetailsAria', { title: item.title, date: formatIsoDate(item.date) })"
+              :aria-pressed="itemKey(item) === detailKey"
+              @click="openDetail(item)"
+            >
+              <img
+                :src="item.image || '/placeholders/club.svg'"
+                alt=""
+                class="canva-history-bk-media"
+              >
+              <span class="canva-history-bk-mid">
+                <span class="canva-history-card-row">
+                  <span class="canva-history-card-title">{{ item.title }}</span>
+                  <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(item)]">
+                    {{ t(STATUS_LABEL_KEY[displayStatus(item)]) }}
+                  </span>
+                </span>
+                <span class="canva-history-card-meta">
+                  <template v-if="item.subtitle">{{ item.subtitle }} · </template>{{ dateLine(item) }}
+                </span>
+                <span class="canva-history-card-price mt-1 block">{{ formatCurrency(item.price) }}</span>
+                <span v-if="item.seasonLabel" class="canva-history-bk-note">{{ item.seasonLabel }}</span>
+                <span class="canva-history-bk-note">{{ t(STATUS_NOTE_KEY[displayStatus(item)]) }}</span>
+                <span v-if="seasonProgress(item)" class="canva-history-prog">
+                  <span class="canva-history-prog-track" aria-hidden="true">
+                    <i
+                      class="canva-history-prog-bar"
+                      :style="{ width: `${Math.min(100, Math.round((seasonProgress(item)!.done / seasonProgress(item)!.total) * 100))}%` }"
+                    />
+                  </span>
+                  <span>{{ t('athlete.historyProgress', {
+                    done: formatNumber(seasonProgress(item)!.done),
+                    total: formatNumber(seasonProgress(item)!.total),
+                  }) }}</span>
+                </span>
               </span>
-            </span>
-            <span class="canva-history-card-meta">
-              <template v-if="item.subtitle">{{ item.subtitle }} · </template>{{ dateLine(item) }}
-            </span>
-            <span class="canva-history-card-foot">
-              <span class="canva-history-card-price">{{ formatCurrency(item.price) }}</span>
-              <span class="canva-history-card-more">{{ t('athlete.historyDetails') }} ←</span>
-            </span>
-          </button>
+            </button>
+          </div>
+          <aside class="canva-history-detail-pane" :aria-label="t('athlete.historyDetails')">
+            <AthleteBookingDetailPane
+              v-if="detailItem"
+              :item="detailItem"
+              :display-status="displayStatus(detailItem)"
+              :status-label="t(STATUS_LABEL_KEY[displayStatus(detailItem)])"
+              :status-note="t(STATUS_NOTE_KEY[displayStatus(detailItem)])"
+              :status-badge-class="BADGE_CLASS[displayStatus(detailItem)]"
+              :weekday-line="`${formatIsoDate(detailItem.date)} · ${formatWeekday(detailItem.date, 'long')}`"
+              :pay-at-club-note="detailItem.status !== 'CANCELLED' && isPayAtClubStatus(detailItem.paymentStatus) ? t('booking.payAtClubDetail') : ''"
+              :honesty-note="detailItem.status !== 'CANCELLED' ? (paidHonestyNote(detailItem.paymentStatus) || '') : ''"
+              :zero-refund-note="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsZeroRefund(detailItem) ? t('booking.refundNoneInsideWindow') : ''"
+              :club-rules="clubRulesFor(detailItem)"
+              :action-error="actionError"
+              :paying="payingId === detailItem.id"
+              :confirming-cancel="confirmingCancel"
+              :cancel-pending="cancelPending"
+              :show-pay-online="detailItem.status !== 'CANCELLED' && onlineEnabled && canPayOnline(detailItem.paymentStatus)"
+              :show-pay-wallet="detailItem.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, detailItem.price, detailItem.paymentStatus)"
+              :show-reschedule="canReschedule(detailItem)"
+              :show-cancel="canCancel(detailItem)"
+              :show-rebook="canRebook(detailItem)"
+              :rebook-to="rebookTo(detailItem)"
+              :cancel-confirm-body="cancelIsZeroRefund(detailItem) ? t('booking.confirmCancelNoRefund') : t('booking.confirmCancel')"
+              :pay-online-label="payingId === detailItem.id ? t('booking.redirectingToGateway') : `${t('booking.payNow')} · ${formatCurrency(detailItem.price)}`"
+              @pay="payBooking(detailItem, $event)"
+              @reschedule="rescheduleFromDetail(detailItem)"
+              @cancel-ask="actionError = ''; confirmingCancel = true"
+              @cancel-yes="confirmCancel"
+              @cancel-no="confirmingCancel = false"
+            />
+            <p v-else class="canva-history-detail-empty">{{ t('athlete.historySelectHint') }}</p>
+          </aside>
         </div>
 
         <template #empty>
@@ -881,7 +1017,7 @@ function dateLine(item: HistoryItem) {
     </div>
 
     <AppModal
-      :open="Boolean(detailItem)"
+      :open="Boolean(detailItem) && !isWide"
       patterned
       sheet
       close-icon
@@ -889,127 +1025,36 @@ function dateLine(item: HistoryItem) {
       :title="detailItem?.title || ''"
       @close="closeDetail"
     >
-      <div v-if="detailItem" class="canva-auth-body space-y-3 px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-2">
-        <div v-if="detailItem.address || detailItem.phone" class="canva-history-sh-club">
-          <b>{{ t('athlete.historyClubInfo') }}</b>
-          <p v-if="detailItem.address">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" /></svg>
-            <span>{{ formatFaDigits(detailItem.address) }}</span>
-          </p>
-          <p v-if="detailItem.phone">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" /></svg>
-            <a :href="`tel:${detailItem.phone}`"><bdi dir="ltr" class="tabular-nums">{{ formatPhone(detailItem.phone) }}</bdi></a>
-          </p>
-        </div>
-
-        <div class="canva-history-sh-rows">
-          <div class="canva-history-sh-row">
-            <span>{{ t('athlete.historyRowCourt') }}</span>
-            <b>{{ detailItem.subtitle }}</b>
-          </div>
-          <div class="canva-history-sh-row">
-            <span>{{ t('athlete.historyRowDate') }}</span>
-            <b>{{ formatIsoDate(detailItem.date) }} · {{ formatWeekday(detailItem.date, 'long') }}</b>
-          </div>
-          <div class="canva-history-sh-row">
-            <span>{{ t('athlete.historyRowTime') }}</span>
-            <b class="tabular-nums">{{ detailItem.timeLabel }}</b>
-          </div>
-          <div v-if="detailItem.equipmentLines.length || detailItem.seasonLabel" class="canva-history-sh-row">
-            <span>{{ t('athlete.historyRowExtras') }}</span>
-            <b>{{ [...detailItem.equipmentLines, detailItem.seasonLabel].filter(Boolean).join('، ') }}</b>
-          </div>
-          <div class="canva-history-sh-row">
-            <span>{{ t('athlete.historyRowStatus') }}</span>
-            <b>
-              <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(detailItem)]">
-                {{ t(STATUS_LABEL_KEY[displayStatus(detailItem)]) }}
-              </span>
-            </b>
-          </div>
-        </div>
-
-        <div class="canva-history-sh-total">
-          <span>{{ t('athlete.historyTotal') }}</span>
-          <b class="tabular-nums">{{ formatCurrency(detailItem.price) }}</b>
-        </div>
-
-        <p
-          class="canva-history-sh-note"
-          :class="{
-            'canva-history-sh-note-warn': displayStatus(detailItem) === 'unpaid',
-            'canva-history-sh-note-ok': displayStatus(detailItem) === 'paid',
-          }"
-        >
-          {{ t(STATUS_NOTE_KEY[displayStatus(detailItem)]) }}
-          <template v-if="detailItem.status !== 'CANCELLED' && isPayAtClubStatus(detailItem.paymentStatus)">
-            {{ t('booking.payAtClubDetail') }}
-          </template>
-          <template v-if="detailItem.status !== 'CANCELLED' && paidHonestyNote(detailItem.paymentStatus)">
-            {{ paidHonestyNote(detailItem.paymentStatus) }}
-          </template>
-        </p>
-
-        <p
-          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsZeroRefund(detailItem)"
-          class="canva-history-sh-note canva-history-sh-note-warn"
-        >
-          {{ t('booking.refundNoneInsideWindow') }}
-        </p>
-
-        <p v-if="actionError" class="canva-flash-error text-start text-xs">{{ actionError }}</p>
-
-        <template v-if="confirmingCancel">
-          <p class="canva-history-sh-note canva-history-sh-note-warn">
-            {{ cancelIsZeroRefund(detailItem) ? t('booking.confirmCancelNoRefund') : t('booking.confirmCancel') }}
-          </p>
-          <div class="canva-history-sh-actions">
-            <button
-              type="button"
-              class="canva-gate-btn-primary"
-              :class="{ 'canva-cta-busy': cancelPending }"
-              :aria-busy="cancelPending"
-              @click="confirmCancel"
-            >{{ cancelPending ? t('common.loading') : t('booking.confirmYes') }}</button>
-            <button type="button" class="canva-gate-btn-secondary" :disabled="cancelPending" @click="confirmingCancel = false">
-              {{ t('booking.confirmNo') }}
-            </button>
-          </div>
-        </template>
-        <div v-else class="canva-history-sh-actions">
-          <button
-            v-if="detailItem.status !== 'CANCELLED' && onlineEnabled && canPayOnline(detailItem.paymentStatus)"
-            type="button"
-            class="canva-gate-btn-primary"
-            :class="{ 'canva-cta-busy': payingId === detailItem.id }"
-            :aria-busy="payingId === detailItem.id"
-            @click="payBooking(detailItem)"
-          >{{ payingId === detailItem.id ? t('booking.redirectingToGateway') : `${t('booking.payNow')} · ${formatCurrency(detailItem.price)}` }}</button>
-          <button
-            v-if="detailItem.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, detailItem.price, detailItem.paymentStatus)"
-            type="button"
-            class="canva-gate-btn-secondary"
-            :disabled="payingId === detailItem.id"
-            @click="payBooking(detailItem, true)"
-          >{{ t('booking.payWithWallet') }}</button>
-          <button
-            v-if="canReschedule(detailItem)"
-            type="button"
-            class="canva-gate-btn-secondary"
-            @click="rescheduleFromDetail(detailItem)"
-          >{{ t('booking.reschedule') }}</button>
-          <button
-            v-if="canCancel(detailItem)"
-            type="button"
-            class="canva-history-btn-outline"
-            @click="actionError = ''; confirmingCancel = true"
-          >{{ t('athlete.historyCancel') }}</button>
-          <NuxtLink
-            v-if="canRebook(detailItem)"
-            :to="rebookTo(detailItem)"
-            class="canva-gate-btn-primary text-center"
-          >{{ t('athlete.historyRebook') }}</NuxtLink>
-        </div>
+      <div v-if="detailItem" class="canva-auth-body px-5 pb-[max(1.5rem,var(--sz-safe-bottom))] pt-2">
+        <AthleteBookingDetailPane
+          :item="detailItem"
+          :display-status="displayStatus(detailItem)"
+          :status-label="t(STATUS_LABEL_KEY[displayStatus(detailItem)])"
+          :status-note="t(STATUS_NOTE_KEY[displayStatus(detailItem)])"
+          :status-badge-class="BADGE_CLASS[displayStatus(detailItem)]"
+          :weekday-line="`${formatIsoDate(detailItem.date)} · ${formatWeekday(detailItem.date, 'long')}`"
+          :pay-at-club-note="detailItem.status !== 'CANCELLED' && isPayAtClubStatus(detailItem.paymentStatus) ? t('booking.payAtClubDetail') : ''"
+          :honesty-note="detailItem.status !== 'CANCELLED' ? (paidHonestyNote(detailItem.paymentStatus) || '') : ''"
+          :zero-refund-note="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsZeroRefund(detailItem) ? t('booking.refundNoneInsideWindow') : ''"
+          :club-rules="clubRulesFor(detailItem)"
+          :action-error="actionError"
+          :paying="payingId === detailItem.id"
+          :confirming-cancel="confirmingCancel"
+          :cancel-pending="cancelPending"
+          :show-pay-online="detailItem.status !== 'CANCELLED' && onlineEnabled && canPayOnline(detailItem.paymentStatus)"
+          :show-pay-wallet="detailItem.status !== 'CANCELLED' && canCoverWithWallet(wallet?.balance, detailItem.price, detailItem.paymentStatus)"
+          :show-reschedule="canReschedule(detailItem)"
+          :show-cancel="canCancel(detailItem)"
+          :show-rebook="canRebook(detailItem)"
+          :rebook-to="rebookTo(detailItem)"
+          :cancel-confirm-body="cancelIsZeroRefund(detailItem) ? t('booking.confirmCancelNoRefund') : t('booking.confirmCancel')"
+          :pay-online-label="payingId === detailItem.id ? t('booking.redirectingToGateway') : `${t('booking.payNow')} · ${formatCurrency(detailItem.price)}`"
+          @pay="payBooking(detailItem, $event)"
+          @reschedule="rescheduleFromDetail(detailItem)"
+          @cancel-ask="actionError = ''; confirmingCancel = true"
+          @cancel-yes="confirmCancel"
+          @cancel-no="confirmingCancel = false"
+        />
       </div>
     </AppModal>
 

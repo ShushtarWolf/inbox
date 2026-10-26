@@ -201,6 +201,7 @@ async function saveItem() {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.competitions')" />
+    <OwnerActiveClubBar class="mb-3" />
 
     <CanvaEmptyState
       v-if="!competitionsAvailable"

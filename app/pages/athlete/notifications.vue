@@ -63,12 +63,12 @@ async function markAllRead() {
       <div v-if="!data?.notifications.length" class="canva-panel text-center text-sm text-brand-gray-600">
         {{ t('notifications.empty') }}
       </div>
-      <ul v-else class="space-y-2">
+      <ul v-else class="canva-panel px-3">
         <li
           v-for="item in data.notifications"
           :key="item.id"
-          class="canva-list-card"
-          :class="{ 'border-brand-primary/40 bg-brand-primary-soft/40': !item.readAt }"
+          class="canva-ntr"
+          :class="{ 'canva-ntr-unread': !item.readAt }"
         >
           <div class="flex items-start justify-between gap-3">
             <div>

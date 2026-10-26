@@ -37,6 +37,7 @@ function campaignStatusLabel(status: string) {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/owner/crm" :title="t('owner.crm')" />
+    <OwnerActiveClubBar class="mb-3" />
     <AppAsyncState :pending="pending" :error="error" :empty="!contact" skeleton-variant="default">
       <div v-if="contact" class="venus-page-stack">
         <section class="canva-dash-hero hidden max-[430px]:block">

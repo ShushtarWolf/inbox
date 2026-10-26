@@ -65,7 +65,7 @@ onMounted(() => {
           <template v-if="!user">
             <button
               type="button"
-              class="canva-home-login"
+              class="canva-home-login public-rhead-login"
               @click="openGate({ smsLive })"
             >
               <span class="inline-flex items-center gap-1.5">

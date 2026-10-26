@@ -102,14 +102,14 @@ function walletTxLabel(type: string) {
 <template>
   <div class="tail-page-stack">
     <div class="flex flex-wrap items-center gap-3">
-      <NuxtLink :to="localePath('/admin/clubs')" class="text-sm font-bold text-brand-navy underline">
+      <NuxtLink :to="localePath('/admin/clubs')" class="admin-alink !mt-0">
         {{ t('admin.backToClubs') }}
       </NuxtLink>
     </div>
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="default">
       <div v-if="club" class="space-y-6">
-        <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="admin-adhd flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 class="tail-page-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</h1>
             <p class="mt-1 text-sm text-brand-gray-600" dir="ltr">{{ club.slug }}</p>
@@ -175,9 +175,9 @@ function walletTxLabel(type: string) {
           </button>
         </div>
 
-        <div class="tail-card-grid-3">
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.clubDetails') }}</h2>
+        <div class="admin-a3">
+          <div class="admin-acard">
+            <h3>{{ t('admin.clubDetails') }}</h3>
             <ul class="space-y-2 text-sm">
               <li class="flex justify-between gap-2"><span>{{ t('admin.address') }}</span><span class="text-end">{{ club.addressFa }}</span></li>
               <li v-if="club.phone" class="flex justify-between gap-2"><span>{{ t('admin.phone') }}</span><span dir="ltr">{{ formatPhone(club.phone) }}</span></li>
@@ -185,8 +185,8 @@ function walletTxLabel(type: string) {
               <li class="flex justify-between gap-2"><span>{{ t('admin.priceFrom') }}</span><span dir="ltr">{{ formatCurrency(club.priceFrom) }}</span></li>
             </ul>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.owner') }}</h2>
+          <div class="admin-acard">
+            <h3>{{ t('admin.owner') }}</h3>
             <template v-if="club.owner">
               <p class="font-bold">{{ club.owner.name }}</p>
               <p class="text-sm text-brand-gray-600" dir="ltr">{{ club.owner.email }}</p>
@@ -195,8 +195,8 @@ function walletTxLabel(type: string) {
             </template>
             <p v-else class="text-sm text-brand-gray-500">—</p>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.metrics.bookings') }}</h2>
+          <div class="admin-acard">
+            <h3>{{ t('admin.metrics.bookings') }}</h3>
             <ul class="space-y-2 text-sm">
               <li class="flex justify-between gap-2"><span>{{ t('admin.metrics.bookings') }}</span><strong dir="ltr">{{ formatNumber(club.bookingCount) }}</strong></li>
               <li class="flex justify-between gap-2"><span>{{ t('admin.paymentChannelIpg') }}</span><strong dir="ltr">{{ formatCurrency(club.paidIpgAmount) }}</strong></li>
@@ -207,8 +207,8 @@ function walletTxLabel(type: string) {
           </div>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.clubWalletTitle') }}</h2>
+        <div class="admin-acard">
+          <h3>{{ t('admin.clubWalletTitle') }}</h3>
           <ul class="space-y-2 text-sm">
             <li class="flex justify-between gap-2">
               <span>{{ t('admin.clubWalletBalance') }}</span>
@@ -242,8 +242,8 @@ function walletTxLabel(type: string) {
           <p v-else class="mt-1 text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.courts') }}</h2>
+        <div class="admin-acard">
+          <h3>{{ t('admin.courts') }}</h3>
           <ul v-if="club.courts.length" class="divide-y divide-brand-gray-50 text-sm">
             <li v-for="court in club.courts" :key="court.id" class="flex justify-between gap-2 py-2">
               <span>{{ localizedField(court, 'nameFa', 'nameEn') }}</span>
@@ -253,8 +253,8 @@ function walletTxLabel(type: string) {
           <p v-else class="text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.staff') }}</h2>
+        <div class="admin-acard">
+          <h3>{{ t('admin.staff') }}</h3>
           <ul v-if="club.staff.length" class="divide-y divide-brand-gray-50 text-sm">
             <li v-for="member in club.staff" :key="member.user.id" class="flex flex-wrap justify-between gap-2 py-2">
               <span>

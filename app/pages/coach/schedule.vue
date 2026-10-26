@@ -196,18 +196,26 @@ function bookLinkFor(startTime: string) {
   <div class="venus-page-stack">
     <CanvaCoachPhotoHero />
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
-          {{ $t('coach.schedule') }}
-        </h1>
-        <button
-          v-if="!isToday"
-          type="button"
-          class="canva-cal-date-select shrink-0"
-          @click="goToday"
-        >
-          {{ $t('calendar.today') }}
-        </button>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0 text-start">
+          <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
+            {{ $t('coach.schedule') }}
+          </h1>
+          <p class="mt-1 text-xs text-brand-gray-600">{{ $t('coach.scheduleLead') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            v-if="!isToday"
+            type="button"
+            class="canva-cal-date-select shrink-0"
+            @click="goToday"
+          >
+            {{ $t('calendar.today') }}
+          </button>
+          <NuxtLink :to="localePath('/coach/book')" class="canva-gate-btn-primary shrink-0 px-4 py-2 text-xs">
+            {{ $t('coach.bookForStudent') }}
+          </NuxtLink>
+        </div>
       </div>
 
       <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">

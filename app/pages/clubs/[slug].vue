@@ -1334,9 +1334,10 @@ async function shareClub() {
                 {{ t('clubs.openMap') }}
               </a>
               <div v-else class="canva-club-more-map-empty">{{ t('clubs.mapUnavailable') }}</div>
+              <small v-if="mapEmbedSrc" class="canva-club-map-attr">{{ t('clubs.mapAttribution') }}</small>
               <a
                 v-if="osmLink && mapEmbedSrc"
-                class="canva-club-detail-link mt-2"
+                class="canva-club-detail-link mt-2 inline-block"
                 :href="osmLink"
                 target="_blank"
                 rel="noreferrer"
