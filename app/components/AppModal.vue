@@ -4,6 +4,8 @@ const props = defineProps<{
   title?: string
   maxWidthClass?: string
   patterned?: boolean
+  /** Extra classes on the dialog panel (e.g. design `rmod` shell for auth). */
+  panelClass?: string
   /** Dock to the bottom edge as a Canva-style action sheet on narrow viewports. */
   sheet?: boolean
   /** Overlay stacking — AuthFlow should sit above booking confirm (default z-50). */
@@ -308,6 +310,7 @@ onUnmounted(() => {
               patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
               /* LOCKED: Canva phone frames ≤2px — never rounded-xl soft card */
               sheet ? 'canva-sheet-dialog' : (patterned ? 'canva-modal-frame' : 'rounded-xl'),
+              panelClass,
             ]"
             @pointerdown.stop
             @click.stop

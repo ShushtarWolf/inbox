@@ -661,8 +661,9 @@ watch(
 </script>
 
 <template>
-  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
+  <AppModal :open="open" patterned panel-class="canva-auth-rmod" max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1] min-w-0 overflow-x-hidden">
+      <div class="canva-auth-accent" />
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
@@ -674,7 +675,6 @@ watch(
           <small>{{ t(authPhotoHeader.subKey) }}</small>
         </div>
       </div>
-      <div v-else class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
@@ -694,16 +694,15 @@ watch(
           <InboxBrandLockup height-class="h-7" />
         </NuxtLink>
       </div>
-      <div v-else class="relative z-[1] flex items-center justify-center px-4 py-3">
+      <div v-else class="relative z-[1] flex items-center justify-start px-5 pb-1 pt-3">
         <button
           type="button"
-          class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
+          class="canva-auth-back"
           @click="goBack"
         >
-          <AppIcon name="arrow_back" size="sm" />
+          <AppIcon name="arrow_forward" size="sm" />
           {{ t('common.back') }}
         </button>
-        <span class="h-7" />
       </div>
 
       <div class="canva-auth-body">
@@ -719,7 +718,7 @@ watch(
         </div>
         <p
           v-if="notice && step !== 'welcome'"
-          class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+          class="canva-auth-warn"
           style="border-radius: var(--sz-canva-radius);"
         >
           {{ notice }}
@@ -752,7 +751,7 @@ watch(
           </button>
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="canva-auth-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ t('auth.otpLogModeBanner') }}
@@ -794,7 +793,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="canva-auth-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
@@ -1214,7 +1213,7 @@ watch(
         >
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="canva-auth-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ t('auth.otpLogModeBanner') }}
@@ -1271,7 +1270,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="canva-auth-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}

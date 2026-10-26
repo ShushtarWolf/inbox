@@ -59,7 +59,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { formatCurrency, formatNumber, formatWeekday, formatTimeLabel } = useFormatters()
+const { formatCurrency, formatNumber, formatWeekday, formatTimeLabel, formatFaDigits } = useFormatters()
 const { localizedField } = useLocalizedField()
 const { fetchErrorMessage } = useFetchError()
 const { user } = useAuth()
@@ -654,8 +654,8 @@ async function submit(preferWallet = false) {
             <p class="text-base font-bold text-brand-primary">{{ feedback || t('booking.successCourt') }}</p>
             <div v-if="createdBookingId" class="border border-brand-gray-200 bg-brand-cream px-4 py-4">
               <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
-              <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums tracking-wide text-brand-navy">
-                {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
+              <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums text-brand-navy">
+                {{ t('booking.trackingCodePrefix') }}-{{ formatFaDigits(bookingTrackingCode(createdBookingId)) }}
               </p>
               <p class="mt-2 text-xs leading-relaxed text-brand-gray-600">{{ t('booking.trackingCodeHint') }}</p>
             </div>

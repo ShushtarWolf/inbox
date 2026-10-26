@@ -430,6 +430,38 @@
   .canva-auth-photo-copy small {
     @apply mt-1 block break-words text-xs leading-relaxed text-white/85;
   }
+  /* Design `rmod`: flat cream card, crimson top bar, no pattern wash. */
+  .canva-auth-sheet.canva-auth-rmod {
+    background-color: #f4efe9;
+    background-image: none;
+    border-color: transparent;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+  .canva-auth-sheet.canva-auth-rmod::before {
+    content: none;
+  }
+  .canva-auth-rmod .canva-auth-photo {
+    @apply mb-1;
+  }
+  .canva-auth-rmod .canva-auth-body .neo-input,
+  .canva-auth-rmod .canva-auth-body .neo-select {
+    background-color: #faf8f5;
+    border-color: transparent;
+  }
+  .canva-auth-rmod .canva-auth-body label {
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .canva-auth-back {
+    @apply inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-brand-navy;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .canva-auth-warn {
+    @apply px-3 py-2.5 text-start text-xs font-semibold leading-relaxed;
+    background: #fff8dc;
+    border: 1px solid #f0e2a0;
+    color: #8a5a10;
+  }
   .canva-athlete-upcoming-card {
     @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
     border-radius: var(--sz-canva-radius);
@@ -899,6 +931,18 @@
       url('/brand/canva-auth-pattern.svg');
     background-size: auto, auto, 160px 160px;
     background-blend-mode: normal, normal, soft-light;
+  }
+  /* Design `rred` wallet card */
+  .canva-dash-hero.canva-wallet-rred {
+    background-image: linear-gradient(135deg, #c41e1e, #b01818);
+    background-size: auto;
+    @apply pb-7 sm:px-9;
+  }
+  .canva-wallet-rred-balance {
+    @apply my-3 text-start text-[1.75rem] font-bold leading-tight sm:text-[2.125rem];
+  }
+  .canva-wallet-rred-note {
+    @apply mt-3 border-t border-white/25 pt-3 text-start text-xs leading-relaxed text-white/85;
   }
   .canva-dash-hero-stats {
     @apply mt-5 grid grid-cols-3 gap-2;
@@ -3401,6 +3445,10 @@
     grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.2fr);
     align-items: start;
     gap: 1.5rem;
+  }
+  .canva-history-cal-col {
+    position: sticky;
+    top: 1rem;
   }
   .canva-history-desktop-main {
     min-width: 0;
