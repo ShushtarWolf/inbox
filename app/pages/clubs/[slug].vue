@@ -24,6 +24,7 @@ import {
 } from '#shared/clubCitationCopy.ts'
 import { serializeJsonLd } from '#shared/jsonLd.ts'
 import { buildReturnTo } from '#shared/returnTo.ts'
+import { normalizeTod, slotMatchesTod } from '#shared/timeOfDay.ts'
 
 type ClubSlot = {
   id: string
@@ -71,6 +72,23 @@ type ClubDetail = {
   openHour?: number | null
   closeHour?: number | null
   testimonials?: Array<{ id: string; authorName: string; rating: number; body: string }>
+  coaches?: Array<{
+    id: string
+    nameFa?: string
+    nameEn?: string
+    photo?: string | null
+    rating?: number | null
+    headlineFa?: string | null
+    headlineEn?: string | null
+  }>
+  policies?: Array<{
+    titleFa?: string
+    titleEn?: string
+    title?: string
+    bodyFa?: string
+    bodyEn?: string
+    body?: string
+  }>
 }
 
 const route = useRoute()
@@ -136,6 +154,7 @@ const deepLinkSlotIds = [
   ...parseQueryCsv(route.query.slots),
 ]
 const deepLinkTimes = parseQueryCsv(route.query.time).map((t) => t.slice(0, 5))
+const preferredTod = normalizeTod(typeof route.query.tod === 'string' ? route.query.tod : '')
 const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0 || deepLinkTimes.length > 0)
 let suppressSlotClear = deepLinkSlotsPending.value
 
@@ -357,6 +376,12 @@ function isSlotBooked(slot: ClubSlot) {
 
 function isSlotSelected(id: string) {
   return selectedSlotIds.value.includes(id)
+}
+
+function isSlotTodPreferred(slot: ClubSlot) {
+  if (!preferredTod) return false
+  if (isSlotBooked(slot) || isSlotSuspected(slot)) return false
+  return slotMatchesTod(slot.startTime, preferredTod)
 }
 
 function courtNumberLabel(courtId: string) {
@@ -1107,6 +1132,49 @@ async function shareClub() {
             >{{ amenityLabel(item) }}</span>
           </div>
         </section>
+
+        <!-- HTML prototype: coaches on club (API coaches[]; empty = omit) -->
+        <section v-if="club.coaches?.length" class="canva-club-detail-section">
+          <h2 class="canva-club-detail-section-title">{{ t('clubs.clubCoaches') }}</h2>
+          <div class="canva-club-coach-list">
+            <NuxtLink
+              v-for="coach in club.coaches"
+              :key="coach.id"
+              :to="localePath(`/coaches/${coach.id}`)"
+              class="canva-club-coach-row"
+            >
+              <span class="canva-club-coach-copy">
+                <span class="canva-club-coach-name">{{ localizedField(coach, 'nameFa', 'nameEn') }}</span>
+                <span
+                  v-if="localizedField(coach, 'headlineFa', 'headlineEn')"
+                  class="canva-club-coach-meta"
+                >{{ localizedField(coach, 'headlineFa', 'headlineEn') }}</span>
+              </span>
+              <span
+                v-if="coach.rating != null && coach.rating > 0"
+                class="canva-club-coach-rating tabular-nums"
+              >
+                {{ formatNumber(coach.rating) }}
+                <span class="canva-court-card-star" aria-hidden="true">★</span>
+              </span>
+            </NuxtLink>
+          </div>
+        </section>
+
+        <!-- HTML prototype: rules from policiesJson (empty = omit) -->
+        <section v-if="club.policies?.length" class="canva-club-detail-section">
+          <h2 class="canva-club-detail-section-title">{{ t('clubs.policies') }}</h2>
+          <ul class="canva-club-policy-list">
+            <li v-for="(policy, idx) in club.policies" :key="idx" class="canva-club-policy-item">
+              <p class="canva-club-policy-title">
+                {{ localizedField(policy, 'titleFa', 'titleEn') || policy.title }}
+              </p>
+              <p class="canva-club-detail-desc">
+                {{ localizedField(policy, 'bodyFa', 'bodyEn') || policy.body }}
+              </p>
+            </li>
+          </ul>
+        </section>
       </div>
 
         <!-- 4. Booking widget: legend + courts + calendar/slots + square CTA -->
@@ -1222,6 +1290,7 @@ async function shareClub() {
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
                     'canva-club-slot-booked canva-club-slot-uncertain': !isSlotBooked(slot) && isSlotUncertain(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
+                    'canva-club-slot-tod': isSlotTodPreferred(slot) && !isSlotSelected(slot.id),
                   }"
                   :disabled="(isSlotBooked(slot) && !waitlistEnabled)
                     || isSlotUncertain(slot)

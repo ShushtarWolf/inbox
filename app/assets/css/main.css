@@ -577,12 +577,16 @@
   .canva-search-row {
     @apply flex items-stretch gap-2;
   }
+  /* sport · city · date · tod (HTML prototype 4-field search) */
   .canva-search-fields {
-    @apply grid min-w-0 flex-1 grid-cols-[1fr_1.35fr_1fr] items-center bg-white;
+    @apply grid min-w-0 flex-1 grid-cols-[0.9fr_1.15fr_0.95fr_0.95fr] items-center bg-white;
     border-radius: var(--sz-canva-radius);
   }
   .canva-search-fields-2 {
     grid-template-columns: 1fr 1.35fr;
+  }
+  .canva-search-fields-3 {
+    grid-template-columns: 1fr 1.35fr 1fr;
   }
   .canva-search-field {
     @apply relative flex min-w-0 items-center px-2.5 py-3 sm:px-3 sm:py-3.5;
@@ -2155,6 +2159,58 @@
     background: #2f9e44;
     border-color: #2f9e44;
     color: #fff;
+  }
+  /* Preferred time-of-day from home search (`tod`) — highlight only, not selected */
+  .canva-club-slot-tod {
+    border-color: #c41e1e;
+    box-shadow: inset 0 0 0 1px rgba(196, 30, 30, 0.35);
+  }
+  .canva-club-coach-list {
+    @apply flex flex-col gap-2;
+  }
+  .canva-club-coach-row {
+    @apply flex items-center justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-2.5 text-start no-underline;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-club-coach-copy {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+  .canva-club-coach-name {
+    @apply text-sm font-bold text-brand-navy;
+  }
+  .canva-club-coach-meta {
+    @apply text-[11px] text-brand-gray-600;
+  }
+  .canva-club-coach-rating {
+    @apply shrink-0 text-xs font-bold text-brand-navy;
+  }
+  .canva-club-policy-list {
+    @apply space-y-3 text-start;
+  }
+  .canva-club-policy-item {
+    @apply space-y-1;
+  }
+  .canva-club-policy-title {
+    @apply text-xs font-bold text-brand-navy;
+  }
+  .canva-confirm-success {
+    @apply space-y-3 text-center;
+  }
+  .canva-confirm-success-title {
+    @apply text-lg font-bold text-brand-navy;
+  }
+  .canva-confirm-success-body {
+    @apply text-sm leading-relaxed text-brand-gray-600;
+  }
+  .canva-confirm-success-code {
+    @apply border border-brand-gray-200 bg-brand-gray-50 px-3 py-3;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-confirm-success-code b {
+    @apply block font-bold tabular-nums text-brand-navy;
+  }
+  .canva-confirm-success-code small {
+    @apply mt-1 block text-[11px] text-brand-gray-600;
   }
   .canva-club-slot-booked {
     cursor: not-allowed;

@@ -3217,9 +3217,10 @@ watch(pilotNoCoach, (off) => {
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
-      <p class="text-start text-xs leading-relaxed text-brand-gray-600">
+      <p class="mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
         {{ t('owner.calendarWelcome') }} · {{ calendarWelcomeLine }}
       </p>
+      <p class="text-start text-xs text-brand-gray-600">{{ t('owner.calendarAllCourtsHint') }}</p>
       <label
         v-if="showClubSwitcher"
         class="canva-cal-club-switch"

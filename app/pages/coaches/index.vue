@@ -136,7 +136,7 @@ useHead(() => ({
       <div class="canva-clubs-section-head">
         <div class="canva-clubs-section-copy">
           <h1 class="canva-clubs-section-title">{{ t('coaches.title') }}</h1>
-          <p class="canva-clubs-section-subtitle">{{ t('home.coachSectionBody') }}</p>
+          <p class="canva-clubs-section-subtitle">{{ t('coaches.subtitle') }}</p>
         </div>
         <label class="canva-clubs-sort">
           <span>{{ t('clubs.sortLabel') }}</span>

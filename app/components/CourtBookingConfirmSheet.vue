@@ -649,15 +649,18 @@ async function submit(preferWallet = false) {
 
       <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
         <template v-if="done">
-          <div class="space-y-4 py-2 text-center">
+          <div class="canva-confirm-success">
             <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
-            <p class="text-base font-bold text-brand-primary">{{ feedback || t('booking.successCourt') }}</p>
-            <div v-if="createdBookingId" class="border border-brand-gray-200 bg-brand-cream px-4 py-4">
+            <h2 class="canva-confirm-success-title">{{ t('booking.successPaidTitle') }}</h2>
+            <p class="canva-confirm-success-body">
+              {{ feedback || t('booking.successPaidBody', { club: clubName }) }}
+            </p>
+            <div v-if="createdBookingId" class="canva-confirm-success-code">
               <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
-              <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums tracking-wide text-brand-navy">
+              <b dir="ltr" class="mt-1 block text-xl font-black tabular-nums tracking-wide text-brand-navy">
                 {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
-              </p>
-              <p class="mt-2 text-xs leading-relaxed text-brand-gray-600">{{ t('booking.trackingCodeHint') }}</p>
+              </b>
+              <small>{{ t('booking.trackingCodeHint') }}</small>
             </div>
           </div>
         </template>
@@ -897,9 +900,9 @@ async function submit(preferWallet = false) {
           <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
             {{ t('booking.viewBookings') }}
           </NuxtLink>
-          <button type="button" class="canva-gate-btn-secondary w-full" @click="close">
-            {{ t('common.close') }}
-          </button>
+          <NuxtLink :to="localePath('/')" class="canva-gate-btn-secondary canva-confirm-book-cta w-full text-center" @click="close">
+            {{ t('booking.successBackHome') }}
+          </NuxtLink>
         </template>
         <template v-else>
           <button

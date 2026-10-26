@@ -2,6 +2,7 @@
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
 import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 import { isPastDate } from '#shared/localDate.ts'
+import { normalizeTod, type TimeOfDayPref } from '#shared/timeOfDay.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -16,6 +17,7 @@ const { canSwitchRole } = usePlatformRoles()
 const sport = ref('')
 const city = ref('')
 const date = ref('')
+const tod = ref<TimeOfDayPref>('')
 const showDatePicker = ref(false)
 
 function openAthleteDatePicker() {
@@ -96,16 +98,20 @@ function bookingLink(path: '/clubs', querySport?: string) {
   const sportQuery = querySport || sport.value || undefined
   const cityQuery = city.value || undefined
   const dateQuery = date.value || undefined
+  const todQuery = normalizeTod(tod.value) || undefined
   const query: Record<string, string> = {}
   if (sportQuery) query.sport = sportQuery
   if (cityQuery) query.city = cityQuery
   if (dateQuery) query.date = dateQuery
+  if (todQuery) query.tod = todQuery
   return localePath({ path, query })
 }
 
 function clubHref(slug: string) {
   const query: Record<string, string> = {}
   if (date.value) query.date = date.value
+  const todQuery = normalizeTod(tod.value)
+  if (todQuery) query.tod = todQuery
   return localePath({ path: `/clubs/${slug}`, query })
 }
 
@@ -224,6 +230,19 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             >
               {{ dateFieldLabel }}
             </button>
+          </div>
+          <div class="canva-search-field">
+            <label class="sr-only" for="athlete-home-tod-select">{{ t('home.heroSearchTod') }}</label>
+            <select
+              id="athlete-home-tod-select"
+              v-model="tod"
+              class="canva-search-placeholder"
+              :class="{ 'canva-search-placeholder-filled': tod }"
+            >
+              <option value="">{{ t('home.heroSearchTodAny') }}</option>
+              <option value="afternoon">{{ t('home.heroSearchTodAfternoon') }}</option>
+              <option value="evening">{{ t('home.heroSearchTodEvening') }}</option>
+            </select>
           </div>
         </div>
         <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">

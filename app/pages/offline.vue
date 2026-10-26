@@ -11,8 +11,8 @@
         <h1 class="text-xl font-bold text-brand-navy">{{ $t('pwa.offlineTitle') }}</h1>
         <p class="mt-2 text-sm text-brand-gray-600">{{ $t('pwa.offlineBody') }}</p>
         <p class="mt-3 text-xs font-bold text-brand-gray-400">inbox · inboxs.ir</p>
-        <button type="button" class="btn-primary mt-6 w-full" @click="reloadNuxtApp()">{{ $t('common.retry') }}</button>
-        <NuxtLink :to="$localePath('/')" class="btn-ghost mt-3 block w-full text-center">{{ $t('nav.home') }}</NuxtLink>
+        <button type="button" class="canva-cta mt-6 w-full" @click="reloadNuxtApp()">{{ $t('common.retry') }}</button>
+        <NuxtLink :to="$localePath('/')" class="canva-gate-btn-secondary mt-3 block w-full text-center">{{ $t('booking.successBackHome') }}</NuxtLink>
       </div>
     </div>
   </div>

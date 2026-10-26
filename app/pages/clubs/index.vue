@@ -114,6 +114,8 @@ function clubHref(slug: string) {
   const query: Record<string, string> = {}
   const dateQ = typeof route.query.date === 'string' ? route.query.date : ''
   if (dateQ) query.date = dateQ
+  const todQ = typeof route.query.tod === 'string' ? route.query.tod : ''
+  if (todQ === 'afternoon' || todQ === 'evening') query.tod = todQ
   return localePath({ path: `/clubs/${slug}`, query })
 }
 
