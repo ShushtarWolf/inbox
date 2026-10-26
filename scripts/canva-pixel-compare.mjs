@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Full Canva pixel review at 375×812 — all non-blank frames, rule-adjusted scoring.
+ * HISTORICAL: Canva PNG pixel review at 375×812.
+ * Visual + IA source of truth is now design-reference/inbox-all-pages-html/
+ * (see design-reference/MAP.md). This script is optional only — not the fidelity gate.
  *
  * Usage:
  *   npm run check:canva
