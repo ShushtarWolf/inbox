@@ -60,8 +60,10 @@ for (const arg of process.argv.slice(2)) {
           await p.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(1500)
           const got = new URL(p.url()).pathname
           if (got.replace(/\/$/, '') !== want.split('?')[0].replace(/\/$/, '')) { log.push(['ENV', id, kind, tag, `redirect ${want} → ${got}`]); await ctx.close(); continue }
+          await p.addStyleTag({ content: 'nuxt-devtools-frame,#nuxt-devtools-container,vite-error-overlay,nuxt-error-overlay{display:none!important}' }).catch(() => {})
           // scroll to bottom so lazy images load, then back up
           await p.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)) } window.scrollTo(0, 0) })
+          if (await p.locator("iframe").count()) { await p.evaluate(() => document.querySelectorAll("iframe[loading=lazy]").forEach(f => f.loading = "eager")); await p.waitForTimeout(4000) }
           await p.waitForTimeout(800)
           const full = await p.evaluate(() => document.documentElement.scrollHeight)
           await p.screenshot({ path: out, fullPage: full <= MAXH, ...(full > MAXH ? { clip: { x: 0, y: 0, width: w, height: MAXH } } : {}) })
