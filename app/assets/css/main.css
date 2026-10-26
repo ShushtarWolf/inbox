@@ -4215,3 +4215,12 @@
 }
 .neo-input:focus, .neo-select:focus, .neo-textarea:focus, .tail-input:focus, .tail-select:focus, .tail-textarea:focus { border: 1px solid #C41E1E; }
 @media (min-width: 431px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
+/* SoT owner: single in-page active-club card (layout switcher wins when shown) */
+.canva-club-switcher ~ * .owner-rclubcard, .canva-club-switcher ~ .owner-rclubcard { display: none !important; }
+.canva-sot-actions .canva-gate-btn-primary { width: auto !important; padding: 9px 22px; }
+@media (min-width: 431px) {
+  .canva-crm-cta-row { display: flex; justify-content: flex-end; }
+  .canva-crm-cta-row .canva-black-cta { width: auto; padding: 9px 26px; font-size: 12px; }
+  .canva-crm-stats { gap: 12px; }
+  .canva-crm-stat { border: 1px solid rgba(44,44,42,.1); background: #fff; }
+}

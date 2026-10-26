@@ -61,3 +61,6 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | owner-* | club switcher in top bar + back pill (SoT: in-page selector only) | kept-product |
 | owner-calendar | SoT 380px booking-detail aside; product grid with select checkboxes, empty day in seed | kept-product (data) |
 | owner-finance | dark total card, KPI tiles, 7-day bars match | ok |
+| owner-crm/staff/support/settings | duplicate in-page active-club card hidden when layout switcher shows (SoT: one card) | fixed |
+| owner-crm | KPI tiles gapped/bordered; "new campaign" auto-width at inline-end | fixed |
+| owner-staff | "add worker" auto width at start (was full-width) | fixed |
