@@ -18,13 +18,16 @@ const listFile = join(outDir, 'material-symbols-rounded-subset.icons.txt')
 
 /** Extra icons referenced dynamically / as fallbacks (may not match scan heuristics). */
 const EXTRA = [
+  'call',
   'circle',
   'expand_more',
   'inbox',
   'lock',
   'notifications_off',
   'sms_failed',
+  'storefront',
   'toggle_on',
+  'waving_hand',
 ]
 
 const SCAN_ROOTS = ['app', 'modules']
