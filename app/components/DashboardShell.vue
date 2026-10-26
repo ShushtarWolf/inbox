@@ -33,6 +33,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const open = ref(false)
+const roleSwitchOpen = ref(false)
 const accountOpen = ref(false)
 const accountAnchor = ref<HTMLElement | null>(null)
 const holdsNavBodyLock = ref(false)
@@ -285,13 +286,14 @@ function goBack() {
             </button>
           </div>
           <div class="flex items-center gap-2">
-            <NuxtLink
+            <button
               v-if="canSwitchRole"
-              :to="localePath('/choose-role')"
+              type="button"
               class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+              @click="roleSwitchOpen = true"
             >
               {{ t('auth.changeRole') }}
-            </NuxtLink>
+            </button>
             <div v-if="displayName && !hideUser && useAccountDrawer" ref="accountAnchor" class="inline-flex">
               <AppUserShortcut
                 :name="shortcutName"
@@ -339,5 +341,7 @@ function goBack() {
       :dark="darkNav"
       :max-width-class="phoneShell ? 'canva-phone-shell' : 'max-w-lg'"
     />
+
+    <RoleSwitchModal v-model:open="roleSwitchOpen" />
   </div>
 </template>

@@ -11,6 +11,7 @@ const { openGate } = useAuthFlow()
 const { smsLive } = useSmsCapability()
 const { pilotNoCoach, competitionsEnabled } = usePilotFlags()
 const { activeRole, canSwitchRole, signedInHomePath } = usePlatformRoles()
+const roleSwitchOpen = ref(false)
 
 const activeRoleLabel = computed(() => {
   const role = activeRole.value
@@ -81,13 +82,14 @@ onMounted(() => {
             >
               {{ activeRoleLabel }}
             </span>
-            <NuxtLink
+            <button
               v-if="canSwitchRole"
-              :to="localePath('/choose-role')"
+              type="button"
               class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
+              @click="roleSwitchOpen = true"
             >
               {{ t('auth.changeRole') }}
-            </NuxtLink>
+            </button>
             <AppUserShortcut
               :to="signedInHomePath"
               :name="displayName"
@@ -152,5 +154,7 @@ onMounted(() => {
       </div>
     </footer>
     <AppBottomNav v-if="user" :items="nav" />
+
+    <RoleSwitchModal v-model:open="roleSwitchOpen" />
   </div>
 </template>

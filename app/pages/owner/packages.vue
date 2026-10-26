@@ -255,6 +255,7 @@ const selectedCoach = computed(() => coaches.value.find((c) => c.id === form.coa
 <template>
   <div class="mx-auto max-w-lg space-y-4 px-4 py-4">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.packages')" />
+    <OwnerActiveClubBar class="mb-3" />
 
     <template v-if="!packagesEnabled">
       <p class="text-sm text-brand-gray-600">{{ t('owner.packagesDisabled.body') }}</p>

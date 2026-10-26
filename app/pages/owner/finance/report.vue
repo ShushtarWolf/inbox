@@ -250,6 +250,7 @@ function downloadReport() {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/owner/finance" :title="t('owner.financePage.advancedReport')" />
+    <OwnerActiveClubBar class="mb-3" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <CanvaEmptyState v-if="!showReports && !reportsGatePending" :title="t('owner.financePage.reportsLocked')" icon="lock" />

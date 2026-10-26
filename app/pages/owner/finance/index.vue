@@ -488,6 +488,7 @@ function showUnpaidList() {
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+    <OwnerActiveClubBar class="mb-3" />
     <div class="canva-finance-period">
       <button
         type="button"

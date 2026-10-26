@@ -39,6 +39,7 @@ async function markAllRead() {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/owner/calendar" :title="t('notifications.title')" />
+    <OwnerActiveClubBar class="mb-3" />
     <section class="canva-dash-hero">
       <div class="flex items-end justify-between gap-3">
         <div>
