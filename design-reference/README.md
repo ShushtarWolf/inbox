@@ -1,7 +1,8 @@
 # Design reference (visual + IA source of truth)
 
-**Current source of truth:** the self-contained HTML prototype under
-`inbox-all-pages-html/` — **not** Canva PNG exports.
+**Current source of truth:** the latest owner-provided complete HTML prototype at
+`inbox-all-pages-html/prototype.html` (see that folder’s README for checksum) —
+**not** Canva PNG exports.
 
 | Path | Role |
 |------|------|
