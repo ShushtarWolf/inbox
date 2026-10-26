@@ -432,29 +432,6 @@ i.ti-logout svg,i.ti-login svg{transform:scaleX(-1)}
 -webkit-mask:radial-gradient(circle 11px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle 11px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat}
 #pages .rdisc::before,#pages .rdisc::after{content:"";position:absolute;top:8px;bottom:8px;border-left:2px dashed rgba(196,30,30,.35)}
 #pages .rdisc::before{left:22px}#pages .rdisc::after{right:22px}
-
-#pages .rcard.soon{cursor:default;pointer-events:none}
-#pages .rcard.soon .ri{filter:grayscale(1);opacity:.85}
-#pages .rb.rsoon{background:transparent;border:1px solid rgba(255,255,255,.7);color:#fff}
-/* court audience */
-#pages .gbd,.zm .gbd,#zm-in .gbd{font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;margin-right:8px;border:1px solid;display:inline-block;vertical-align:middle}
-.gbd.g0{color:#2a5d9f;background:#eaf1fb;border-color:#b9cfee}.gbd.g1{color:#c41e1e;background:#fdeeee;border-color:#f0bcbc}.gbd.g2{color:#2e7d4f;background:#e9f5ee;border-color:#b6dcc5}
-#pages .rcts{display:grid;gap:8px;margin-bottom:8px}
-#pages .rcts>div{display:flex;align-items:center;gap:12px;border:1px solid rgba(44,44,42,.25);padding:10px 12px;cursor:pointer;background:#fff}
-#pages .rcts>div.on{border-color:#2c2c2a;outline:1px solid #2c2c2a}
-#pages .rcts b{width:30px;height:30px;border:1px solid #2c2c2a;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
-#pages .rcts span{flex:1;font-size:13px}#pages .rcts .gbd{margin:0}
-#pages .gnote{margin:4px 0 12px!important}
-#zm-in .gseg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-#zm-in .gseg span{border:1px solid rgba(44,44,42,.3);padding:12px 0;text-align:center;cursor:pointer;font-size:14px}
-#zm-in .gseg span.on{background:#2c2c2a;color:#fff;border-color:#2c2c2a;font-weight:700}
-#zm-in .cef{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#zm-in .gsms{display:flex;gap:10px;align-items:flex-start;margin:16px 0;text-align:right;font-size:13px;cursor:pointer}#zm-in .gsms input{margin-top:3px;accent-color:#c41e1e}
-#pages .ocl .cxav2 small{display:flex;gap:8px;flex-wrap:wrap}
-
-#pages .gwarn{display:flex;gap:10px;align-items:flex-start;text-align:right;padding:12px 14px;border:1px solid;border-right-width:4px;margin:6px 0 14px}
-#pages .gwarn i{font-size:20px;flex:none;margin-top:1px}#pages .gwarn b{display:block;font-size:13px;line-height:1.7}#pages .gwarn small{display:block;font-size:11.5px;margin-top:2px;opacity:.85}
-#pages .gwarn.g0{background:#eaf1fb;border-color:#2a5d9f;color:#1e4a82}#pages .gwarn.g1{background:#fdeeee;border-color:#c41e1e;color:#9c1818}#pages .gwarn.g2{background:#e9f5ee;border-color:#2e7d4f;color:#246140}
 </style><style>.proto{overflow-x:auto;white-space:nowrap;flex-wrap:nowrap!important;scrollbar-width:thin}.proto button,.proto b{flex:none}</style></head>
 <body>
 <nav class="proto" id="proto"></nav>
@@ -1115,10 +1092,9 @@ function rhSet(id,j){const el=document.getElementById(id);if(!el)return;const s=
 function rhGo(id,d){const el=document.getElementById(id);rhSet(id,((+el.dataset.i||0)+d+SL.length)%SL.length)}
 
 const searchHtml=`<div class="rsearch"><button class="rsb" onclick="go('clubs')">جستجو</button><div class="rsf"><span>چهارشنبه ۲۹ مهر</span></div><div class="rsf"><select><option>شهر</option><option>تهران</option><option>مشهد</option></select></div><div class="rsf"><select><option>ورزش</option><option>تنیس</option><option>پدل</option></select></div></div>`;
-const REALC=['دانشگاه علم و صنعت','IInboxSS'];
-const rcard=(n,m,img,star,disc,go)=>{const soon=!go&&!REALC.includes(n);return `<div class="rcard${soon?' soon':''}" ${soon?'':`onclick="go('${go||'club'}')"`}><div class="ri" style="background-image:url(${IMG[img]})"></div>${disc?`<div class="rdisc">${disc}٪</div>`:''}<div class="rc"><b>${n}</b><small>${star?'★ '+star+' | ':''}${m}</small>${soon?'<span class="rb rsoon">به‌زودی</span>':'<span class="rb">رزرو کن</span>'}</div></div>`};
+const rcard=(n,m,img,star,disc,go)=>`<div class="rcard" onclick="go('${go||'club'}')"><div class="ri" style="background-image:url(${IMG[img]})"></div>${disc?`<div class="rdisc">${disc}٪</div>`:''}<div class="rc"><b>${n}</b><small>${star?'★ '+star+' | ':''}${m}</small><span class="rb">رزرو کن</span></div></div>`;
 const rrail=(t,s,items)=>`<section class="rrail"><div class="rrh"><div><h2>${t}</h2><p>${s}</p></div><a onclick="go('clubs')">دیدن همه<i class="ti ti-chevron-left"></i></a></div><div class="rrg">${items}</div></section>`;
-const CL=[['دانشگاه علم و صنعت','تهران | تنیس','tennis2','','۲۰'],['IInboxSS','تهران | پدل','padel',''],['مرکز تنیس مشهد','مشهد | تنیس','tennis',''],['آکادمی تنیس شیراز','شیراز | تنیس','shiraz',''],['باشگاه تنیس انقلاب','تهران | تنیس','isf','4.5']];
+const CL=[['پدل زون تهران','تهران | پدل','padel','4.8'],['مرکز تنیس مشهد','مشهد | تنیس','tennis',''],['دانشگاه علم و صنعت','تهران | تنیس','tennis2','','۲۰'],['آکادمی تنیس شیراز','شیراز | تنیس','shiraz',''],['باشگاه تنیس انقلاب','تهران | تنیس','isf','4.5']];
 const clubsRail=(t,s,arr)=>rrail(t,s,arr.map(c=>rcard(c[0],c[1],c[2],c[3],c[4])).join(''));
 const coachRail=()=>rrail('مربی‌های پیشنهادی','برای تمرین خصوصی و برنامه‌ریزی بهتر',[['سارا محمدی','تهران · 4.8 | مربی پدل','c3'],['رضا کریمی','مشهد · 4.8 | سرویس','c2'],['مریم حسینی','اصفهان | مربیگری بانوان','c1']].map(c=>`<div class="rcard" onclick="go('athlete-coach')"><div class="ri" style="background-image:url(${IMG[c[2]]})"></div><div class="rc"><b>${c[0]}</b><small>${c[1]}</small><span class="rb">رزرو کن</span></div></div>`).join(''));
 const guideHtml=`<section class="rrail"><div class="rrh"><div><h2>راهنما</h2></div></div><div class="rbox"><small>شهر و ورزش</small><div><span class="rpill" onclick="go('clubs')">زمین پدل تهران</span><span class="rpill" onclick="go('clubs')">زمین تنیس تهران</span></div></div></section>`;
@@ -1519,32 +1495,6 @@ function rsCal(s){const m=RS_MON[+s.dataset.m||0];const p=s.querySelector('.rcal
 function rsMon(el,dir){const s=el.closest('.rsearch');let i=(+s.dataset.m||0)+(dir>0?-1:1);i=Math.max(0,Math.min(1,i));s.dataset.m=i;rsCal(s)}
 function rsDay(el,d){event.stopPropagation();const s=el.closest('.rsearch');const m=RS_MON[+s.dataset.m||0];const wd=RS_DAYS[(m.off+d-1)%7];const t=wd+' '+fa(d)+' '+m.n;s.dataset.sel=m.n+d;const r=s.querySelector('.rsfd .rst');r.textContent=t;r.classList.add('has');rsClose()}
 document.addEventListener('click',e=>{if(!e.target.closest('.rsf'))rsClose()});
-/* court audience: بانوان / آقایان / خانوادگی */
-const GN=['آقایان','بانوان','خانوادگی'];
-const GC={1:'خانوادگی',2:'بانوان',3:'آقایان',4:'خانوادگی'};
-const GP={1:'۶۰۰,۰۰۰',2:'۶۵۰,۰۰۰',3:'۷۰۰,۰۰۰',4:'۷۵۰,۰۰۰'};
-const gb=n=>`<em class="gbd g${GN.indexOf(GC[n])}">${GC[n]}</em>`;
-const faN=n=>fa(String(n));
-function ocList(){return [1,2,3,4].map(n=>`<div class="cxav2"><span class="cxdel" style="background:#ece8e2;color:#2c2c2a" onclick="courtEdit(${n})">ویرایش</span><div><b>زمین ${faN(n)} · پدل ${gb(n)}</b><small><bdi>۰۸:۰۰ تا ۲۲:۰۰</bdi><span>·</span><bdi>${GP[n]}</bdi><span>تومان</span></small></div></div>`).join('')}
-{const P=pages['owner-settings'];const i=P.indexOf('ویرایش همه</a></b>')+'ویرایش همه</a></b>'.length;const j=P.indexOf('</div></div>',P.indexOf('زمین ۴ · پدل'));pages['owner-settings']=P.slice(0,i)+'<div class="ocl">'+ocList()+'</div>'+P.slice(j+12)}
-let _ce=1,_cg='';
-function courtEdit(n){_ce=n;_cg=GC[n];
- zOpen(`<h3>جزئیات زمین ${faN(n)}</h3><div class="cef"><div class="field"><label>نام زمین</label><input value="زمین ${faN(n)}"></div><div class="field"><label>نام زمین (انگلیسی)</label><input dir="ltr" value="Court ${n}"></div><div class="field"><label>ورزش</label><select><option>پدل</option><option>تنیس</option></select></div><div class="field"><label>تومان</label><input value="${GP[n].replace(/,/g,'')}"></div></div>
-<div class="lbl" style="margin:14px 0 8px;text-align:right;font-weight:700">زمین مخصوص چه کسانی است؟</div><div class="gseg" id="gseg">${GN.map(g=>`<span class="${g===_cg?'on':''}" onclick="courtG(this,'${g}')">${g}</span>`).join('')}</div><p class="hint" style="text-align:right;margin:8px 0 0">این نوع در صفحه‌ی رزرو بازیکن نمایش داده می‌شود و در پیامک تأیید رزرو هم می‌آید.</p>
-<label class="gsms"><input type="checkbox" id="gsms" checked><span>ارسال پیامک اطلاع‌رسانی به بازیکنانی که رزرو آینده روی این زمین دارند</span></label>
-<div class="zacts"><button class="btn btn-primary" onclick="courtSave()">ذخیره</button></div>`)}
-function courtG(el,g){_cg=g;el.parentNode.querySelectorAll('span').forEach(x=>x.classList.remove('on'));el.classList.add('on')}
-function courtSave(){const ch=GC[_ce]!==_cg;GC[_ce]=_cg;const sms=document.getElementById('gsms').checked;zClose();
- document.querySelectorAll('.ocl').forEach(x=>x.innerHTML=ocList());gRefresh();
- zToast(ch&&sms?`ذخیره شد — پیامک برای ۳ بازیکن دارای رزرو ارسال شد`:'ذخیره شد')}
-/* player side: club page court picker with audience */
-pages.club=pages.club.replace('<div class="rnums"><span class="on">۱</span><span>۲</span><span>۳</span><span>۴</span></div>','<div class="rcts" id="rcts"></div><div id="gnote"></div>');
-function gRefresh(){const w=document.getElementById('rcts');if(!w)return;const sel=+(w.dataset.s||1);
- w.innerHTML=[1,2,3,4].map(n=>`<div class="${n===sel?'on':''}" onclick="gSel(${n})"><b>${faN(n)}</b><span>زمین ${faN(n)} · پدل</span>${gb(n)}</div>`).join('');
- const WT={'بانوان':'فقط مخصوص بانوان است؛ ورود و استفاده‌ی آقایان مجاز نیست.','آقایان':'فقط مخصوص آقایان است؛ ورود و استفاده‌ی بانوان مجاز نیست.','خانوادگی':'مخصوص خانواده‌هاست؛ حضور به‌صورت خانوادگی الزامی است.'};
- const g=GC[sel];const gn=document.getElementById('gnote');if(g==='خانوادگی'){gn.className='';gn.innerHTML='';return}gn.className='gwarn g'+GN.indexOf(g);gn.innerHTML=`<i class="ti ti-alert-triangle"></i><div><b>توجه: زمین ${faN(sel)} ${WT[g]}</b><small>این هشدار در پیامک تأیید رزرو هم برای شما ارسال می‌شود.</small></div>`}
-function gSel(n){document.getElementById('rcts').dataset.s=n;gRefresh()}
-window.addEventListener('load',()=>setTimeout(gRefresh,50));
 const groups=_NAVG;
 document.getElementById('proto').innerHTML=groups.map(g=>`<b>${g[0]}</b>`+g[1].map(p=>`<button data-go="${p[0]}" onclick="${p[2]||`go('${p[0]}')`}">${p[1]}</button>`).join('')).join('');
 document.getElementById('pages').innerHTML=Object.keys(pages).map(k=>`<section class="page" id="pg-${k}">${pages[k]}</section>`).join('');
