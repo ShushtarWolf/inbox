@@ -395,8 +395,13 @@
   .canva-auth-welcome {
     @apply space-y-1 py-4 text-center;
   }
+  /* HTML #pages .welcome>i — crimson square hand (global radius 0 wins over circle) */
+  .canva-auth-welcome-hand {
+    @apply mx-auto mb-3 flex h-[42px] w-[42px] shrink-0 items-center justify-center bg-brand-primary text-white;
+    border-radius: var(--sz-canva-radius);
+  }
   .canva-auth-welcome-title {
-    @apply text-lg font-bold leading-snug text-emerald-600;
+    @apply text-lg font-bold leading-snug text-brand-navy;
   }
   .canva-auth-photo {
     @apply relative z-[1] mx-0 mb-3 mt-0 flex min-h-[7.5rem] min-w-0 flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;

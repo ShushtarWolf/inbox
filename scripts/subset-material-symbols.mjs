@@ -28,7 +28,6 @@ const EXTRA = [
   'sms_failed',
   'storefront',
   'toggle_on',
-  'waving_hand',
 ]
 
 const SCAN_ROOTS = ['app', 'modules']

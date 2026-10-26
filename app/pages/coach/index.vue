@@ -131,7 +131,9 @@ const welcomeSessionsLine = computed(() =>
         </div>
 
         <div class="coach-dash-welcome">
-          <AppIcon name="waving_hand" size="lg" class="shrink-0 text-brand-primary" />
+          <div class="canva-auth-welcome-hand !mx-0 shrink-0" aria-hidden="true">
+            <AuthHandStopIcon :size="20" />
+          </div>
           <div class="min-w-0 flex-1 text-start">
             <b class="block text-sm font-bold text-brand-navy">{{ t('coach.dashboardWelcomeTitle') }}</b>
             <small class="mt-0.5 block text-xs text-brand-gray-600">{{ welcomeSessionsLine }}</small>

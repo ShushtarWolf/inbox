@@ -69,6 +69,19 @@ Screenshots: `comparisons/clubs|club|confirm/` (HTML vs live @375 + desktop). To
 | confirm | CTAs | red پرداخت + crimson-outline کیف پول | wallet outline; guest login CTA | fixed |
 | confirm | logo/close | X only | logo + بستن escape hatch | kept-product |
 
+## Auth (`go('login')` / OTP / choose-role / welcome) — Prompt 3 2026-10-26
+
+Screenshots: `comparisons/{gate,login,login-otp,choose-role,welcome}/`. Tool: `node scripts/check-html-auth-slice.mjs`.
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| gate | CTAs | square red / outline | square `.canva-gate-btn-*` | fixed |
+| login | fields + CTA | square input + `.rmod-go` | square neo-input + primary CTA | fixed |
+| login-otp | fields + CTAs | square OTP + تایید / ارسال دوباره | square fields + primary/secondary | fixed |
+| choose-role | role cards | square role rows | AuthFlow role cards square | fixed |
+| welcome | hand icon | crimson box + `ti-hand-stop` SVG | crimson square + `AuthHandStopIcon` (no Material ligature) | fixed |
+| welcome | title color | charcoal | was emerald → navy | fixed |
+
 ## Athlete / owner / coach / admin
 
 (Fill per later slices.)
@@ -80,7 +93,6 @@ Screenshots: `comparisons/clubs|club|confirm/` (HTML vs live @375 + desktop). To
 | owner-calendar | header avatar | square `#1d3b57` | square navy (verify) | open |
 | owner-calendar | booked fill | neutral + crimson bar | neutral fill (verify bars) | open |
 | coach hero | bell | `ti-bell` | Material notifications → settings | open |
-| auth welcome | hand icon | `ti-hand-stop` | Material `waving_hand` (no emoji) | open |
 
 ## kept-product (do not “fix” into mock)
 

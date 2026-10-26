@@ -2,8 +2,8 @@
 /**
  * Material Symbols ligature icon.
  * HTML SoT uses Tabler (`ti-*`) — map closest Material glyphs for chrome; do not use
- * emoji as a permanent stand-in. Keep `waving_hand` (and peers) in the subset font
- * via `npm run fonts:icons`.
+ * emoji as a permanent stand-in. Rebuild subset via `npm run fonts:icons`.
+ * Auth welcome hand uses `AuthHandStopIcon` (SVG) — never rely on missing ligatures.
  */
 const props = withDefaults(defineProps<{
   name: string
