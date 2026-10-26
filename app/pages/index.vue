@@ -129,6 +129,10 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   return '/hero/fitness-venue.jpg'
 }
 
+const pilotOfferText = computed(() => t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }))
+/** Ticket badge shows the leading percent token of the existing copy (e.g. ۲۰٪); full copy stays in sr-only. */
+const pilotOfferBadge = computed(() => pilotOfferText.value.split(/\s+/)[0] || pilotOfferText.value)
+
 function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
   return isOfficialPilotClub(club)
 }
@@ -219,7 +223,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           </NuxtLink>
         </div>
 
-        <div class="mt-5 flex items-center justify-between">
+      </div>
+        <div class="canva-hero-controls">
           <button
             type="button"
             class="canva-hero-arrow"
@@ -228,7 +233,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <AppIcon name="chevron_right" size="md" />
           </button>
-          <div class="flex gap-2">
+          <div class="canva-hero-dots">
             <button
               v-for="(_, index) in heroSlides"
               :key="index"
@@ -249,25 +254,27 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             <AppIcon name="chevron_left" size="md" />
           </button>
         </div>
-      </div>
     </section>
 
-    <section class="canva-search-row">
+    <section class="canva-search-row canva-search-row-home">
+      <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+        <AppIcon name="search" size="md" />
+        {{ t('home.searchWithFilters') }}
+      </NuxtLink>
       <!-- Canva: sport · city · date + square جستجو -->
       <div class="canva-search-fields">
         <div class="canva-search-field">
-          <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
-          <select
-            id="home-sport-select"
-            v-model="sport"
-            class="canva-search-placeholder"
-            :class="{ 'canva-search-placeholder-filled': sport }"
+          <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
+          <button
+            id="home-date-btn"
+            type="button"
+            class="canva-search-placeholder w-full text-center"
+            :class="{ 'canva-search-placeholder-filled': date }"
+            @click="openHomeDatePicker"
           >
-            <option value="">{{ t('home.sportsTitle') }}</option>
-            <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
-              {{ localizedField(s, 'nameFa', 'nameEn') }}
-            </option>
-          </select>
+            {{ dateFieldLabel }}
+          </button>
+          <AppIcon name="calendar_month" size="md" class="canva-search-field-icon" />
         </div>
         <div class="canva-search-field canva-search-field-wide">
           <label class="sr-only" for="home-city-select">{{ t('home.heroSearchWhere') }}</label>
@@ -282,21 +289,20 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           </select>
         </div>
         <div class="canva-search-field">
-          <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
-          <button
-            id="home-date-btn"
-            type="button"
-            class="canva-search-placeholder w-full text-center"
-            :class="{ 'canva-search-placeholder-filled': date }"
-            @click="openHomeDatePicker"
+          <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
+          <select
+            id="home-sport-select"
+            v-model="sport"
+            class="canva-search-placeholder"
+            :class="{ 'canva-search-placeholder-filled': sport }"
           >
-            {{ dateFieldLabel }}
-          </button>
+            <option value="">{{ t('home.sportsTitle') }}</option>
+            <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
+              {{ localizedField(s, 'nameFa', 'nameEn') }}
+            </option>
+          </select>
         </div>
       </div>
-      <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-        {{ t('home.searchWithFilters') }}
-      </NuxtLink>
     </section>
 
     <AppModal
@@ -313,7 +319,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
     </AppModal>
 
     <AppAsyncState :pending="railsPending" skeleton-variant="stat-grid">
-      <section class="space-y-3">
+      <section class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.suggestionsTitle') }}</h2>
@@ -333,7 +339,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+              <span class="sr-only">{{ pilotOfferText }}</span>
+              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
@@ -347,7 +354,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
-      <section v-if="tennisClubs.length" class="space-y-3">
+      <section v-if="tennisClubs.length" class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.tennisTitle') }}</h2>
@@ -367,7 +374,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+              <span class="sr-only">{{ pilotOfferText }}</span>
+              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
@@ -380,7 +388,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </section>
 
-      <section v-if="padelClubs.length" class="space-y-3">
+      <section v-if="padelClubs.length" class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>
@@ -400,7 +408,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
             <span v-if="isPilotOfferClub(club)" class="canva-venue-card-offer">
-              {{ t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA }) }}
+              <span class="sr-only">{{ pilotOfferText }}</span>
+              <span class="canva-venue-card-ticket" aria-hidden="true">{{ pilotOfferBadge }}</span>
             </span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
