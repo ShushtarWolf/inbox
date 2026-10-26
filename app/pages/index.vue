@@ -13,7 +13,6 @@ const sport = ref<string>('')
 const city = ref<string>('')
 const date = ref<string>(today())
 const heroSlide = ref(0)
-const showDatePicker = ref(false)
 
 /** Lazy: do not block first paint / LCP hero on catalog APIs. */
 const { data: sports, pending: sportsPending } = await useFetch('/api/sports', { lazy: true })
@@ -101,17 +100,6 @@ function clubHref(slug: string) {
   const query: Record<string, string> = {}
   if (date.value) query.date = date.value
   return localePath({ path: `/clubs/${slug}`, query })
-}
-
-function openHomeDatePicker() {
-  // Defer sheet open so the tap paints first (helps INP on mid-tier phones).
-  requestAnimationFrame(() => {
-    showDatePicker.value = true
-  })
-}
-
-function onHomeDatePicked() {
-  showDatePicker.value = false
 }
 
 function clubMeta(club: { city?: string; rating?: number | null; reviewCount?: number; sports?: string[] }) {
@@ -281,36 +269,20 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
           </select>
         </div>
-        <div class="canva-search-field">
-          <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
-          <button
-            id="home-date-btn"
-            type="button"
-            class="canva-search-placeholder w-full text-center"
-            :class="{ 'canva-search-placeholder-filled': date }"
-            @click="openHomeDatePicker"
-          >
-            {{ dateFieldLabel }}
-          </button>
-        </div>
+        <CanvaSearchDateField
+          id="home-date-btn"
+          v-model="date"
+          :label="t('home.heroSearchDate')"
+          :sheet-title="t('home.heroSearchDateHint')"
+        >
+          {{ dateFieldLabel }}
+        </CanvaSearchDateField>
       </div>
       <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+        <AppIcon name="search" size="sm" />
         {{ t('home.searchWithFilters') }}
       </NuxtLink>
     </section>
-
-    <AppModal
-      :open="showDatePicker"
-      sheet
-      patterned
-      :title="t('home.heroSearchDateHint')"
-      max-width-class="canva-phone-shell max-w-sm"
-      @close="showDatePicker = false"
-    >
-      <div class="px-4 pb-5 pt-2">
-        <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
-      </div>
-    </AppModal>
 
     <AppAsyncState :pending="railsPending" skeleton-variant="stat-grid">
       <section class="space-y-3">

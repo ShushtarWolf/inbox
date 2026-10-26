@@ -16,13 +16,6 @@ const { canSwitchRole } = usePlatformRoles()
 const sport = ref('')
 const city = ref('')
 const date = ref('')
-const showDatePicker = ref(false)
-
-function openAthleteDatePicker() {
-  requestAnimationFrame(() => {
-    showDatePicker.value = true
-  })
-}
 
 const [{ data: sports, pending: sportsPending }, { data: clubs, pending: clubsPending }] = await Promise.all([
   useFetch('/api/sports'),
@@ -107,10 +100,6 @@ function clubHref(slug: string) {
   const query: Record<string, string> = {}
   if (date.value) query.date = date.value
   return localePath({ path: `/clubs/${slug}`, query })
-}
-
-function onHomeDatePicked() {
-  showDatePicker.value = false
 }
 
 function clubMeta(club: { city?: string; rating?: number | null; reviewCount?: number; sports?: string[] }) {
@@ -213,36 +202,20 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
               <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
-          <div class="canva-search-field">
-            <label class="sr-only" for="athlete-home-date-btn">{{ t('home.heroSearchDate') }}</label>
-            <button
-              id="athlete-home-date-btn"
-              type="button"
-              class="canva-search-placeholder w-full text-center"
-              :class="{ 'canva-search-placeholder-filled': date }"
-              @click="openAthleteDatePicker"
-            >
-              {{ dateFieldLabel }}
-            </button>
-          </div>
+          <CanvaSearchDateField
+            id="athlete-home-date-btn"
+            v-model="date"
+            :label="t('home.heroSearchDate')"
+            :sheet-title="t('home.heroSearchDateHint')"
+          >
+            {{ dateFieldLabel }}
+          </CanvaSearchDateField>
         </div>
         <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+          <AppIcon name="search" size="sm" />
           {{ t('home.searchWithFilters') }}
         </NuxtLink>
       </section>
-
-      <AppModal
-        :open="showDatePicker"
-        sheet
-        patterned
-        :title="t('home.heroSearchDateHint')"
-        max-width-class="canva-phone-shell max-w-sm"
-        @close="showDatePicker = false"
-      >
-        <div class="px-4 pb-5 pt-2">
-          <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
-        </div>
-      </AppModal>
 
       <CompetitionDiscoveryRail v-if="competitionsEnabled" />
 
