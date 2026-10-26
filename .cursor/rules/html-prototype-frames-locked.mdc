@@ -1,0 +1,40 @@
+---
+description: LOCKED HTML prototype visual + IA fidelity — design-reference/inbox-all-pages-html is SoT (not Canva)
+alwaysApply: true
+---
+
+# HTML prototype frames — LOCKED
+
+**Source of truth:** `design-reference/inbox-all-pages-html/prototype.html`  
+**Screen → route map:** `design-reference/MAP.md`
+
+Canva PNG exports under `canva-reference/` are **archived**. Do not treat Canva
+frames, old square-only radius rules, or `npm run check:canva` as binding for
+new UI. When visual/IA conflicts with old Canva comments in Vue files, **follow
+the HTML prototype**.
+
+## Tokens (match the HTML)
+
+- Crimson `#C41E1E`, charcoal `#2c2c2a`, mustard `#b68a3b`, silver `#8f8f8b`, off `#f4efe9`
+- Green `#2e7d4f` / green-soft `#dcebe1`, mustard-soft `#f3e9d3`, line `rgba(44,44,42,.08)`
+- Font: Vazirmatn (RTL body) — see persian-typography rule; do not swap stacks
+
+## Visual rules (from the prototype — soft chrome is OK)
+
+1. **Radius** — Follow the HTML: buttons/fields ~10px, chips/pills ~20px, cards ~12–16px. Soft radius and pills are **allowed** when the prototype uses them. Do not re-impose Canva “0–2px / no pills” unless the HTML screen itself is square.
+2. **No TailAdmin drift** — Do not invent soft dashboard chrome, purple gradients, or generic card grids that are not in the prototype.
+3. **RTL align** — `text-start` / `justify-start` for right-aligned copy; never `text-end` for “align right”.
+4. **Chrome** — Match the prototype shell for that role (public / athlete / coach / owner / admin). Logo and primary actions follow the HTML layout for that breakpoint.
+5. **Hero titles** — On photo heroes, force light/white titles when the prototype does (global navy `h1` is a bug).
+6. **Search / primary CTAs** — Match the prototype’s searchbar and button hierarchy (labels, fields, crimson primary).
+7. **No approximation** — List every region from the HTML screen; match sides, hierarchy, and IA. Use `design-reference/MAP.md` for `go()` → route.
+8. **Desktop + mobile** — The HTML includes both. Match the breakpoint the task targets; do not phone-only when the prototype shows a desk layout.
+9. **Done gate** — Hard refresh localhost; self-check against the open HTML screen + MAP before claiming done.
+10. **Real photos** — Prototype stock photos are placeholders. Any hero tied to a club (owner calendar/finance, club pages) must use that club’s `image`, with `/hero/*` only as a `||` fallback. `check:ios-hit-testing` still enforces this on owner pages.
+11. **Product over mock** — Keep live APIs, auth, wallet, OTP, and escape-hatch chrome (bottom nav, back, logo). Do not paste the static HTML into production or strip navigation to “match a crop.”
+
+## Explicit non-goals
+
+- Do not revive Canva pixel overlays as the primary fidelity gate.
+- Do not rename every `Canva*` Vue component in this rule change — restyle/align screen-by-screen against the HTML.
+- Digit/bidi/spacing: persian-typography rule still applies.

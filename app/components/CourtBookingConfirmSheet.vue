@@ -897,7 +897,11 @@ async function submit(preferWallet = false) {
 
       <div class="shrink-0 space-y-2 px-5 pb-6">
         <template v-if="done">
-          <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
+          <NuxtLink
+            :to="localePath('/athlete/bookings')"
+            class="canva-cta canva-confirm-book-cta w-full"
+            @click="close"
+          >
             {{ t('booking.viewBookings') }}
           </NuxtLink>
           <NuxtLink :to="localePath('/')" class="canva-gate-btn-secondary canva-confirm-book-cta w-full text-center" @click="close">

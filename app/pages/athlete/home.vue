@@ -11,7 +11,7 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { firstName, displayName } = useAuth()
 const { competitionsEnabled, pilotNoCoach } = usePilotFlags()
-const { formatWeekday, formatDayNumber, formatMonth, formatTimeLabel } = useFormatters()
+const { formatWeekday, formatDayNumber, formatMonth, formatTimeLabel, formatNumber } = useFormatters()
 const { canSwitchRole } = usePlatformRoles()
 
 const sport = ref('')
@@ -123,7 +123,9 @@ function clubMeta(club: { city?: string; rating?: number | null; reviewCount?: n
   const sportSlug = club.sports?.[0]
   const sportName = sports.value?.find((item) => item.slug === sportSlug)
   const label = sportName ? localizedField(sportName, 'nameFa', 'nameEn') : t('home.sportsLabel')
-  const rating = club.reviewCount && club.rating != null ? ` | ${club.rating.toFixed(1)} ★` : ''
+  const rating = club.reviewCount && club.rating != null
+    ? ` | ${formatNumber(Number(club.rating.toFixed(1)))} ★`
+    : ''
   return `${club.city || 'تهران'} | ${label}${rating}`
 }
 

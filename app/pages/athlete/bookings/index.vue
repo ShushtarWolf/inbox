@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** Reserve history: status summary, Jalali calendar with status dots, status chips, cards → details sheet. */
 import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { filterBookingsByTime } from '#shared/bookingTimeFilter.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { canManageReservation } from '#shared/localDate.ts'
@@ -599,14 +600,7 @@ function dayAriaLabel(iso: string) {
 }
 
 const filteredItems = computed(() => {
-  let list = visibleHistory.value
-  const todayIso = today()
-  if (timeFilter.value === 'upcoming') {
-    list = list.filter((item) => item.status !== 'CANCELLED' && item.date >= todayIso)
-  }
-  else if (timeFilter.value === 'past') {
-    list = list.filter((item) => item.date < todayIso || item.status === 'CANCELLED')
-  }
+  let list = filterBookingsByTime(visibleHistory.value, timeFilter.value, today())
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
@@ -646,7 +640,8 @@ const historyEmptyBody = computed(() => {
 function clearListFilters() {
   selectedDayIso.value = null
   statusFilter.value = 'all'
-  timeFilter.value = 'upcoming'
+  // Empty CTA is «نمایش همه رزروها» — match HTML «همه», not reset to پیش‌رو.
+  timeFilter.value = 'all'
 }
 
 function rebookTo(item: HistoryItem) {

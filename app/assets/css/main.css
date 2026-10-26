@@ -631,9 +631,14 @@
     outline-offset: -2px;
   }
   .canva-search-cta {
-    @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-4 text-sm font-bold text-white transition hover:brightness-110 sm:px-5;
+    @apply inline-flex shrink-0 items-center justify-center self-stretch bg-brand-primary px-3 text-center text-[11px] font-bold leading-tight text-white transition hover:brightness-110 sm:px-5 sm:text-sm sm:leading-normal;
     border-radius: var(--sz-canva-radius);
     min-height: 3.15rem;
+  }
+  @media (max-width: 430px) {
+    .canva-search-cta {
+      max-width: 7.5rem;
+    }
   }
   .canva-equip-add {
     @apply inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-600;

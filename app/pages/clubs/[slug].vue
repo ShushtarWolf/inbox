@@ -154,7 +154,8 @@ const deepLinkSlotIds = [
   ...parseQueryCsv(route.query.slots),
 ]
 const deepLinkTimes = parseQueryCsv(route.query.time).map((t) => t.slice(0, 5))
-const preferredTod = normalizeTod(typeof route.query.tod === 'string' ? route.query.tod : '')
+/** Reactive so same-slug query updates (rebook / in-app replace) keep tod highlight. */
+const preferredTod = computed(() => normalizeTod(route.query.tod))
 const deepLinkSlotsPending = ref(deepLinkSlotIds.length > 0 || deepLinkTimes.length > 0)
 let suppressSlotClear = deepLinkSlotsPending.value
 
@@ -169,8 +170,6 @@ const selectedCourtIds = ref<string[]>(
 const selectedSlotIds = useState<string[]>(`club-book-slot-ids-${slug}`, () => [])
 const basketSlotsById = useState<Record<string, ClubSlot>>(`club-book-slot-map-${slug}`, () => ({}))
 const confirmOpen = ref(false)
-/** Keep success sheet (INB code) mounted after booking until the athlete closes it. */
-const confirmSuccessHold = ref(false)
 /** Survive AuthFlow navigateTo so confirm reopens after login on the same club page. */
 const resumeConfirmAfterAuth = useState(`club-book-resume-${slug}`, () => false)
 
@@ -379,28 +378,11 @@ function isSlotSelected(id: string) {
 }
 
 function isSlotTodPreferred(slot: ClubSlot) {
-  if (!preferredTod) return false
+  const tod = preferredTod.value
+  if (!tod) return false
   if (isSlotBooked(slot) || isSlotLocked(slot)) return false
-  return slotMatchesTod(slot.startTime, preferredTod)
+  return slotMatchesTod(slot.startTime, tod)
 }
-
-/** HTML prototype: after home `tod`, bring first preferred free slot into view. */
-watch(
-  [courtSlots, () => preferredTod, showSlotsPending],
-  async ([list, tod, pending]) => {
-    if (pending || !tod || !import.meta.client) return
-    const hasPreferred = (list || []).some((slot) => isSlotTodPreferred(slot))
-    if (!hasPreferred) return
-    await nextTick()
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('.canva-club-slot-tod')?.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-        behavior: 'smooth',
-      })
-    })
-  },
-)
 
 function courtNumberLabel(courtId: string) {
   const idx = courts.value.findIndex((c) => c.id === courtId)
@@ -658,7 +640,6 @@ const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.v
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
-  confirmSuccessHold.value = false
   if (!user.value) {
     resumeConfirmAfterAuth.value = true
     openLogin({
@@ -685,14 +666,12 @@ function openConfirmSheet() {
 
 function onConfirmSuccess() {
   resumeConfirmAfterAuth.value = false
-  confirmSuccessHold.value = true
   confirmOpen.value = true
   waitlistSlotId.value = null
 }
 
 function onConfirmClose() {
   confirmOpen.value = false
-  confirmSuccessHold.value = false
   clearBasket()
   waitlistSlotId.value = null
 }
