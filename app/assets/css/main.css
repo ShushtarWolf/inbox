@@ -699,8 +699,8 @@
     font-weight: 900;
     line-height: 1;
     white-space: nowrap;
-    padding: 0.45em 0.55em;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    padding: 0.22em 0.53em;
+    box-shadow: none;
     border-radius: 0;
     max-height: none;
     overflow: visible;
@@ -4108,6 +4108,14 @@
     .canva-hero-home .canva-hero-title {
       font-size: 34px;
     }
+    /* SoT .rht p: 14.5px/1.9 #eee, up to 560px wide */
+    .canva-hero-home .canva-hero-home-content { max-width: calc(560px + 3.5rem); }
+    .canva-hero-home .canva-hero-title + p {
+      max-width: 560px;
+      font-size: 14.5px;
+      line-height: 1.9;
+      color: #eee;
+    }
     .canva-hero-controls {
       padding-inline: 1rem;
       bottom: 1.5rem;
@@ -4206,53 +4214,6 @@
     font-size: 11.5px;
     font-weight: 700;
   }
-
-  /* Discount: white ticket with dashed perforations, rotated (SoT .rdisc) — replaces top red strip */
-  .canva-venue-card-offer {
-    inset: 0;
-    max-height: none;
-    display: block;
-    overflow: visible;
-    background: transparent;
-    pointer-events: none;
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
-  }
-  .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
-    padding-block-start: 0.5rem;
-  }
-  .canva-venue-card-ticket {
-    position: absolute;
-    top: 36%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-4deg);
-    background: #fff;
-    color: #c41e1e;
-    font-size: clamp(11px, 6.5cqw, 15px);
-    font-weight: 900;
-    line-height: 1.5;
-    white-space: normal;
-    text-align: center;
-    width: max-content;
-    max-width: 82%;
-    padding: 0.35em 1.1em;
-    letter-spacing: 0;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
-  }
-  .canva-venue-card-ticket::before,
-  .canva-venue-card-ticket::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    bottom: 8px;
-    border-left: 2px dashed rgba(196, 30, 30, 0.35);
-  }
-  .canva-venue-card-ticket::before {
-    left: 0.3em;
-  }
-  .canva-venue-card-ticket::after {
-    right: 0.3em;
-  }
 }
 
 /* ===== HTML SoT fidelity — desktop public header (SoT .rhead .rn / .rbtn) ===== */
@@ -4263,6 +4224,10 @@
     padding: 10px 16px;
     font-size: 13px;
     font-weight: 600;
+  }
+  .public-rhead {
+    background: #f4efe9;
+    border-bottom: 1px solid rgba(44, 44, 42, 0.08);
   }
   .public-rhead .canva-home-login {
     padding: 11px 20px;

@@ -49,6 +49,7 @@ for (const arg of process.argv.slice(2)) {
           await p.goto(SOT, { waitUntil: 'load', timeout: 60000 })
           const ok = await p.evaluate((i) => { if (!document.getElementById('pg-' + i)) return false; go(i); return true }, sotId)
           if (!ok) { log.push(['NO-SOT', id, kind, tag, 'no #pg-' + sotId]); await ctx.close(); continue }
+          await p.addStyleTag({ content: '.proto,.cv-nav{display:none!important}' })
           await p.waitForTimeout(800)
           const el = p.locator(mobileOnly ? `#pg-${sotId} .mphone` : `#pg-${sotId}`)
           await el.screenshot({ path: out })
