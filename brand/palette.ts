@@ -71,8 +71,8 @@ export const palette = {
     RESERVED_RECURRING: '#ddd4e8',
     /** Top stripe on a seasonal cell. Not the normal reserve red. */
     RESERVED_RECURRING_BAR: '#6B4C9A',
-    /** Desk coach-tagged court booking accent */
-    RESERVED_COACH: '#f0c4b8',
+    /** Same neutral as paid — crimson bar, not pink wash */
+    RESERVED_COACH: '#eceae6',
     PENDING: '#f4e4c4',
     /** HTML blocked cells are near-black */
     BLOCKED: '#1a1a18',

@@ -114,9 +114,11 @@ Also in product: `/coach/clients`, `/coach/packages`, `/coach/settings`.
 | `owner-setup` | `/owner/setup` | |
 | `owner-staff` | `/owner/workers` | Staff/workers |
 | `owner-support` | `/owner/support` | |
+| `owner-equipment` | `/owner/equipments` | |
+| `owner-discount` | `/owner/discounts` | |
 | `owner-pending` | `/owner/pending` | |
 
-Also in product: equipments, packages, coaches, notifications, competitions — match HTML when those screens exist in the prototype; otherwise keep product chrome.
+Also in product: packages, coaches, notifications, competitions — match HTML when those screens exist in the prototype; otherwise keep product chrome.
 
 ## Pay
 

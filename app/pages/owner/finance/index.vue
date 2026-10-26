@@ -565,14 +565,14 @@ function showUnpaidList() {
               {{ t('owner.financePage.methodCash') }}
             </span>
             <span class="inline-flex items-center gap-1">
-              <span class="canva-finance-legend-swatch bg-[#E8B84A]" />
+              <span class="canva-finance-legend-swatch" style="background:#e0a82e" />
               {{ t('owner.financePage.methodCashless') }}
             </span>
           </div>
         </div>
         <div class="canva-finance-method-bar mt-3">
           <span class="h-full bg-brand-primary" :style="{ width: `${cashPct}%` }" />
-          <span class="h-full bg-[#E8B84A]" :style="{ width: `${ipgPct}%` }" />
+          <span class="h-full" :style="{ width: `${ipgPct}%`, background: '#e0a82e' }" />
         </div>
         <div class="mt-2 flex justify-between text-xs font-bold text-brand-navy">
           <span>{{ formatNumber(cashPct) }}٪</span>

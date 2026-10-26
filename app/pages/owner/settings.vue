@@ -565,16 +565,21 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 
 <template>
   <div class="venus-page-stack">
-    <header class="canva-home-chrome hidden max-[430px]:flex">
-      <InboxBrandLockup home-link height-class="h-7" />
-    </header>
-    <section class="canva-dash-hero hidden max-[430px]:block">
-      <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
-      <h1 class="canva-page-hero-title text-white">{{ t('owner.settings') }}</h1>
-      <p class="mt-1 text-sm text-white/85 text-start">{{ t('owner.settingsPage.subtitle') }}</p>
+    <!-- HTML m5 set tab: photo banner + cxh title (not crimson dash hero) -->
+    <section class="canva-photo-hero hidden max-[430px]:block">
+      <CanvaHeroImg
+        :src="data?.club?.image || '/hero/tennis-court.jpg'"
+        alt=""
+        img-class="canva-photo-hero-media"
+        img-style="filter: grayscale(0.55) brightness(0.72);"
+        fetchpriority="high"
+      />
+      <div class="canva-photo-hero-wash" />
+      <CanvaOwnerHeroChrome />
+      <div class="canva-photo-hero-body !min-h-[8rem] !pb-6" />
     </section>
-    <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
-    <p class="mb-2 hidden text-sm text-brand-gray-600 text-start min-[431px]:block">{{ t('owner.settingsPage.subtitle') }}</p>
+    <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
+    <p class="mb-2 text-sm text-brand-gray-600 text-start">{{ t('owner.settingsPage.subtitle') }}</p>
     <OwnerActiveClubBar class="mb-3" />
 
     <div class="mb-4 min-h-[2.75rem]">

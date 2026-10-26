@@ -70,8 +70,8 @@ export const palette = {
     RESERVED_RECURRING: '#ddd4e8',
     /** Top stripe on a seasonal cell. Not the normal reserve red. */
     RESERVED_RECURRING_BAR: '#6B4C9A',
-    /** Desk coach-tagged court booking accent (payment color still primary fill) */
-    RESERVED_COACH: '#f0c4b8',
+    /** Same neutral as paid — crimson bar marks booked; no pink wash */
+    RESERVED_COACH: '#eceae6',
     PENDING: '#f4e4c4',
     BLOCKED: '#1a1a18',
   },

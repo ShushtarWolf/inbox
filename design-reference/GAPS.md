@@ -105,6 +105,28 @@ Screenshots: `comparisons/{athlete-home,athlete-bookings,athlete-hub,athlete-wal
 | owner-calendar | booked fill | neutral + crimson bar | neutral fill (verify bars) | open |
 | coach hero | bell | `ti-bell` | Material notifications → settings | open |
 
+## Owner secondary NAV — Prompt 2026-10-26
+
+Screenshots: `comparisons/{owner-finance,owner-settings,owner-crm,owner-equipment,owner-discount,owner-staff,owner-support}/`. Tool: `node scripts/check-html-owner-secondary-slice.mjs`. Done gate: finance + settings HTML vs live @375 + desktop.
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| owner-finance | period tabs | `.oftab .on` crimson underline | `.canva-finance-period-active` crimson | fixed |
+| owner-finance | income hero | `.ofdark` charcoal `#2c2c2a` | `.canva-finance-hero-card` brand-navy (=charcoal) | fixed |
+| owner-finance | report CTA | gray `#4a4a47` `.cxtiny` | solid `#4a4a47` (was glass) | fixed |
+| owner-finance | gateway legend | `#e0a82e` | `#e0a82e` (was `#E8B84A`) | fixed |
+| owner-finance | header icons | logo + bell on photo; m5 shell | logo + bell + square navy avatar | kept-product |
+| owner-finance | empty chart / $0 | mock bars + amounts | live empty API states | kept-product |
+| owner-settings | phone hero | m5 photo banner + `cxh` title | was crimson dash → photo hero + charcoal title | fixed |
+| owner-settings | chips | `.occh` idle `#ece8e2` / on charcoal | matched | fixed |
+| owner-settings | save CTA | `.cxbtn.dark` charcoal | `.canva-owner-save-cta` charcoal | fixed |
+| owner-crm | stats / tabs | desk chips / ownPg list | stats + underline crimson; FAB campaign | kept-product |
+| owner-equipment | rows + add | `.oeqi` beige + green `+ افزودن` | `.canva-equip-row` `#e9e6e1` + `#2e7d4f` add | fixed |
+| owner-discount | add + empty | green `+ افزودن` + empty | same green add + empty list | fixed |
+| owner-staff | list + CTA | solid crimson add + empty box | `OwnerWorkersPanel` crimson add | fixed |
+| owner-support | cards | ops + ticket + contact | same IA; ticket thread product | kept-product |
+| owner-* more | subpage header | m5 more rows → ownPg `cxh` | `CanvaSubpageHeader` back+logo | kept-product |
+
 ## kept-product (do not “fix” into mock)
 
 | screen | region | reason |
@@ -112,6 +134,9 @@ Screenshots: `comparisons/{athlete-home,athlete-bookings,athlete-hub,athlete-wal
 | home | header mid-nav / dual login | product AppTopBar + phone CanvaPublicChrome escape hatch |
 | home | footer enamad | trust badge |
 | owner-calendar | date-row FABs مسدود/رزرو/فصلی | desk ops; HTML date row is arrows-only |
+| owner-finance | square navy avatar on photo hero | product account drawer; HTML m5 fin tab is logo+bell only |
+| owner-finance / settings | live empty / zero amounts | product API vs HTML mock numbers |
+| owner-crm / equipment / discount / staff / support | CanvaSubpageHeader back+logo | escape hatch vs HTML more-menu entry |
 | * | bottom nav / back / logo | escape hatches |
 | * | real club photos | product over stock |
 | coach today | accept-students + revenue | product extras vs simpler HTML Today |
