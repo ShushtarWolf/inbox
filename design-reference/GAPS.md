@@ -76,3 +76,6 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | pay-gateway-test | card/typography match; success/fail buttons only when PAYMENTS_MODE=test | kept-product (env) |
 | pay, pay-ok, pay-fail | need a live booking + gateway round-trip; not reproducible without writes | not re-shot |
 | admin-* | no seeded super-admin locally (only CLUB_ADMIN); cannot render | missing (env) |
+| athlete-profile / wallet | save / charge CTA aligned to inline-end, min 128px (re-shot logged in) | fixed |
+| m-athlete (375) | SoT 3-up mini cards; product 2-up photo cards (same photos/copy) | kept-product |
+| m1–m7 other shells | coach shells redirect (PILOT_NO_COACH); owner/athlete 375 shells use product bottom tab bar | kept-product |

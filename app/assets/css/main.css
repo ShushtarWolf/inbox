@@ -4224,3 +4224,8 @@
   .canva-crm-stats { gap: 12px; }
   .canva-crm-stat { border: 1px solid rgba(44,44,42,.1); background: #fff; }
 }
+@media (min-width: 431px) {
+  .canva-sot-form > .canva-black-cta, .canva-sot-form .canva-gate-btn-primary { margin-inline-start: auto !important; margin-inline-end: 0 !important; min-width: 128px; }
+  [dir=rtl] .canva-sot-form > .canva-black-cta, [dir=rtl] .canva-sot-form .canva-gate-btn-primary { margin-right: auto !important; margin-left: 0 !important; }
+}
+@media (min-width: 431px) { .canva-sot-form .canva-gate-btn-primary { display: flex !important; } }
