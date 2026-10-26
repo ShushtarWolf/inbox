@@ -21,3 +21,5 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 - `kept-product` — intentional live chrome / real API data / product difference
 - `open` — still differs
 - `missing in product` — in HTML SoT, not in live product
+| auth-welcome WAVING_HAND | glyph renders after subset rebuild; proof `comparisons/auth-welcome/glyph-waving_hand-before-after.png` (main font leaks text, new font shows icon) | fixed |
+| auth gate modal | SoT opens directly on OTP step with photo banner header; product opens choose step (ثبت‌نام / ورود) first, no banner | kept-product (flow step differs; banner header candidate for next slice) |
