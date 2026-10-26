@@ -29,3 +29,8 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | club · layout | desktop | fixed | SoT .rcl grid 1fr/440px gap 34px, gallery 300px tall (CSS only, real photo unchanged), booking panel stacked (calendar → court rows .rcts → slots), court rows full width | design-reference/comparisons/club/ |
 | club · court mode tags | desktop | missing-in-product | SoT shows gender/mode tag per court; product has no field — documented only | — |
 | club · dev 500 | dev | pre-existing bug | `node:crypto` imported client-side via shared/receiptToken.ts (not fixed; not visual) | — |
+| legal · about/terms/privacy/pricing/cancellation/complaints | 375 / desktop | fixed | LegalDocument → SoT .legal (672px, 40px pad, lh 2.1, h1 26 / h2 17, meta 12.5 #6b6b67); copy unchanged | design-reference/comparisons/{about,terms,privacy,pricing,cancellation,complaints}/ |
+| legal · about owner card | — | kept-product | Owner name card from live settings | — |
+| contact | 375 / desktop | fixed | Separate bordered boxes → single SoT .card with .kv rows; message form in .card | design-reference/comparisons/contact/ |
+| 404 / offline | 375 / desktop | fixed | Patterned result sheet → SoT .authbox (white, 440px, 34px pad, h1 22, sub 13) | design-reference/comparisons/{notfound,offline}/ |
+| 404 · status numeral | — | kept-product | Live shows status code; SoT omits — content kept | — |
