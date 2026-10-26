@@ -4153,3 +4153,20 @@
 .canva-authbox { width: 100%; max-width: 440px; background: #fff; border: 1px solid rgba(44,44,42,.08); padding: 34px; border-radius: 0; }
 .canva-authbox-title { font-size: 22px; font-weight: 700; color: #2c2c2a; margin-bottom: 8px; line-height: 1.5; }
 .canva-authbox-sub { font-size: 13px; color: #6b6b67; margin-bottom: 20px; line-height: 1.9; }
+/* SoT .ok-box / .ok-ic / .code — booking confirmed state (square corners per owner rule) */
+.canva-ok-box { text-align: center; padding: 18px 4px 8px; }
+.canva-ok-ic { width: 70px; height: 70px; background: #b68a3b; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; border-radius: 0; }
+.canva-ok-ic .material-symbols-rounded { font-size: 34px; }
+.canva-ok-title { font-size: 22px; font-weight: 700; color: #2c2c2a; margin-bottom: 8px; line-height: 1.5; }
+.canva-ok-code { border: 1px dashed rgba(44,44,42,.25); padding: 16px; margin: 22px 0; border-radius: 0; }
+.canva-ok-code-label { font-size: 11.5px; color: #8f8f8b; }
+.canva-ok-code-value { font-size: 24px; font-weight: 700; letter-spacing: 3px; color: #2c2c2a; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.canva-ok-code-hint { display: block; font-size: 11.5px; color: #8f8f8b; margin-top: 6px; line-height: 1.8; }
+.canva-authc { background: #f4efe9 !important; background-image: none !important; }
+.canva-authbox-flush { padding: 0; }
+.canva-authbox-flush .canva-auth-body { padding: 0 34px 34px; }
+.canva-authbox-flush .canva-auth-header { padding: 22px 34px 0; }
+.canva-authc::before { display: none; }
+.canva-authbox-flush > .canva-auth-accent { display: none; }
+/* SoT login modal: crimson top rule, photo inset inside card */
+.canva-auth-accent + .canva-auth-photo { margin: 18px 18px 12px; }

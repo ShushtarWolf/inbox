@@ -34,3 +34,10 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | contact | 375 / desktop | fixed | Separate bordered boxes → single SoT .card with .kv rows; message form in .card | design-reference/comparisons/contact/ |
 | 404 / offline | 375 / desktop | fixed | Patterned result sheet → SoT .authbox (white, 440px, 34px pad, h1 22, sub 13) | design-reference/comparisons/{notfound,offline}/ |
 | 404 · status numeral | — | kept-product | Live shows status code; SoT omits — content kept | — |
+| confirm · booked state | sheet | fixed | Done state → SoT .ok-box: square mustard check tile 70px, h 22px, dashed .code box (24px code, letter-spacing 3px) — not re-shot: needs logged-in booking in dev + club page dev 500 | — |
+| confirm · sheet vs page | — | kept-product | Product confirms in a sheet over club page; SoT uses a full page | — |
+| login / OTP modal | 375 / desktop | fixed | Crimson top rule always shown + photo banner inset 18px (SoT login modal); real banner photo unchanged | design-reference/comparisons/login/ |
+| login · modal over home | — | kept-product | AuthFlow gate modal; /choose-role and /register open the same modal (role step) | design-reference/comparisons/{choose-role,register}/ |
+| forgot / reset password | 375 / desktop | fixed | Pattern + gradient sheet → flat #f4efe9 .authc, white 440px .authbox, start-aligned 22px title | design-reference/comparisons/{forgot-password,reset-password}/ |
+| forgot · SMS-first copy & secondary button | — | kept-product | Product resets by SMS (SoT: email link) — content kept | — |
+| auth inputs · 16px on mobile | 375 | kept-product | Prevents iOS zoom | — |

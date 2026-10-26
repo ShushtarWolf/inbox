@@ -649,15 +649,15 @@ async function submit(preferWallet = false) {
 
       <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
         <template v-if="done">
-          <div class="space-y-4 py-2 text-center">
-            <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
-            <p class="text-base font-bold text-brand-primary">{{ feedback || t('booking.successCourt') }}</p>
-            <div v-if="createdBookingId" class="border border-brand-gray-200 bg-brand-cream px-4 py-4">
-              <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
-              <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums tracking-wide text-brand-navy">
+          <div class="canva-ok-box">
+            <span class="canva-ok-ic"><AppIcon name="check" size="lg" /></span>
+            <p class="canva-ok-title">{{ feedback || t('booking.successCourt') }}</p>
+            <div v-if="createdBookingId" class="canva-ok-code">
+              <p class="canva-ok-code-label">{{ t('booking.trackingCodeLabel') }}</p>
+              <p dir="ltr" class="canva-ok-code-value">
                 {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
               </p>
-              <p class="mt-2 text-xs leading-relaxed text-brand-gray-600">{{ t('booking.trackingCodeHint') }}</p>
+              <p class="canva-ok-code-hint">{{ t('booking.trackingCodeHint') }}</p>
             </div>
           </div>
         </template>
