@@ -16,4 +16,16 @@ Canva image dumps under `canva-reference/` are **archived** (historical pixel sy
 1. Open `inbox-all-pages-html/prototype.html` in a browser (file:// is fine).
 2. Use the sticky proto nav / `go('…')` screen ids from [`MAP.md`](./MAP.md).
 3. Implement or restyle the matching Nuxt route against that screen — keep product APIs, auth, and real club photos.
-4. Done gate: match regions, hierarchy, tokens, and IA from the HTML; do not invent TailAdmin chrome or re-apply old Canva square-only rules unless the HTML itself is square.
+4. **Radius:** rendered HTML is **square** (`border-radius: 0 !important`). Do not invent soft 10/20px chrome.
+5. Track gaps in [`GAPS.md`](./GAPS.md).
+6. Visual gate:
+
+```bash
+# HTML + live (default live = http://127.0.0.1:3000)
+npm run check:html -- --screen home --route /
+
+# Against production
+npm run check:html -- --screen home --route / --base https://inboxs.ir
+```
+
+PNGs land in `design-reference/comparisons/<screen>/` (`html-*-375.png`, `live-*-desktop.png`, …).

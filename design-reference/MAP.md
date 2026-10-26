@@ -23,7 +23,16 @@ Archived Canva frame map: `canva-reference/MAP.md` (do not use for new UI).
 | `--mustard-soft` | `#f3e9d3` |
 | `--line` | `rgba(44,44,42,.08)` |
 
-Typical radii in the HTML: buttons/fields ~`10px`, chips/pills ~`20px`, cards ~`12–16px`. Soft radius is intentional — **not** the old Canva 0–2px square rule.
+**Radius:** the prototype forces **square corners** via
+`*,*::before,*::after{border-radius:0 !important}` (and the same on `#m1`/`#m2`/`#m3`
+shells). Soft 10/20px values elsewhere in the CSS lose to that rule. Product chrome
+should stay square (`--sz-canva-radius: 0`) unless a specific HTML region visibly
+overrides it. Proto sticky-nav pills are tooling only, not product UI.
+
+**Icons:** HTML uses Tabler (`ti-*`). Live uses Material Symbols — map closest glyphs
+or adopt Tabler for chrome; never raw ligature text; never permanent emoji stand-ins.
+
+**Gap tracker:** [`GAPS.md`](./GAPS.md) · **Visual check:** `npm run check:html`
 
 ## Role nav (prototype `NAV`)
 
@@ -148,7 +157,9 @@ Live app must keep escape hatches even if a prototype crop omits them:
 
 ## Fidelity gate
 
-1. Open the matching screen in `prototype.html`.
+1. Open the matching screen in `prototype.html` (`go('…')`).
 2. Hard-refresh the Nuxt route (375px for phone shells; desktop width for desk layouts).
-3. Match regions, hierarchy, tokens, and IA from the HTML.
-4. `npm run check:canva` is **historical only** — not the visual gate.
+3. Match regions, hierarchy, tokens, and IA from the **rendered** HTML (square corners).
+4. Run `npm run check:html -- --screen <goId> --route <path>` and attach pairs from
+   `design-reference/comparisons/`. Update `GAPS.md`.
+5. `npm run check:canva` is **historical only** — not the visual gate.

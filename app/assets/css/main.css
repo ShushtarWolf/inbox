@@ -336,21 +336,10 @@
   }
 
   /*
-   * ── Canva phone primitives (LOCKED — never reintroduce soft TailAdmin) ──
-   *
-   * LOCKED checklist → CSS enforcement:
-   * 1. No pills          → canva-chip / *-chip use --sz-canva-radius (not rounded-full)
-   * 2. Radius 0–2px      → --sz-canva-radius / --sz-canva-radius-max on chrome/search/cards/CTAs
-   * 3. No btn-primary    → use canva-cta | canva-home-login | canva-search-cta | *-card-cta | btn-canva-login
-   * 4. RTL align right   → text-start / justify-start on card copy (never text-end)
-   * 5. Chrome flush      → canva-home-chrome (+ canva-public-main bleed); tight gap to hero
-   * 6. Hero titles white → canva-hero-title / canva-page-hero-title force color #fff
-   * 7. Search            → canva-search-row/fields/cta (white group + square red CTA, single-line)
-   * 8–10. Process        → frame regions / 375px self-check / sibling frames (agent workflow)
-   *
-   * REPLACES (do not use these on Canva phone frames):
-   *   btn-primary / rounded-lg  →  .canva-cta | .canva-home-login | .canva-search-cta | .canva-*-card-cta | .btn-canva-login
-   *   rounded-full / neo-pill   →  .canva-chip | .canva-clubs-chip | .canva-sport-chip | .canva-court-chip
+   * ── Phone / public chrome primitives ──
+   * Visual SoT = design-reference/inbox-all-pages-html/prototype.html (square corners).
+   * Class names may still say canva-* historically; do not treat archived Canva PNGs as binding.
+   * Prefer --sz-canva-radius: 0. Match HTML regions via check:html + GAPS.md.
    */
 
   .canva-auth-sheet {

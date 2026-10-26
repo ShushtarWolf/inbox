@@ -41,5 +41,7 @@ brand-book look unless the HTML prototype SoT explicitly changes them.
 ## Explicit non-goals
 
 - Do not raise caption sizes or loosen calendar leading just to match prose tables.
-- **HTML prototype frames LOCKED** (`html-prototype-frames-locked.mdc`) wins for chrome, radius, and layout — not archived Canva square rules.
+- **HTML prototype frames LOCKED** (`html-prototype-frames-locked.mdc`) wins for chrome,
+  radius, and layout. The rendered HTML is **square** (`border-radius: 0 !important`) —
+  do not invent soft 10/20px chrome from outdated MAP notes.
 - Digit/bidi/spacing fixes on those surfaces are required; inventing a third look is not.
