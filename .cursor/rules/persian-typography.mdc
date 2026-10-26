@@ -1,11 +1,13 @@
 ---
-description: Persian UI typography for inbox (Nuxt) — digits, bidi, spacing; keep fonts and Canva look
+description: Persian UI typography for inbox (Nuxt) — digits, bidi, spacing; keep fonts; HTML prototype wins for chrome
 alwaysApply: true
 ---
 
 # Persian typography (inbox)
 
-FA-first product. Apply digit/bidi/spacing cleanup everywhere (including Canva frames and calendars). Do **not** change fonts, Outfit, Canva sizes/leading, or brand-book look.
+FA-first product. Apply digit/bidi/spacing cleanup everywhere (including
+prototype-aligned frames and calendars). Do **not** change fonts, Outfit, or
+brand-book look unless the HTML prototype SoT explicitly changes them.
 
 ## Fonts (do not change)
 
@@ -38,6 +40,6 @@ FA-first product. Apply digit/bidi/spacing cleanup everywhere (including Canva f
 
 ## Explicit non-goals
 
-- Do not raise Canva caption sizes, loosen calendar leading, or restyle phone frames to match prose tables.
-- Canva Phone Frames LOCKED still wins for chrome, radius, and layout.
-- Digit/bidi/spacing fixes on those surfaces are required; visual redesign is not.
+- Do not raise caption sizes or loosen calendar leading just to match prose tables.
+- **HTML prototype frames LOCKED** (`html-prototype-frames-locked.mdc`) wins for chrome, radius, and layout — not archived Canva square rules.
+- Digit/bidi/spacing fixes on those surfaces are required; inventing a third look is not.
