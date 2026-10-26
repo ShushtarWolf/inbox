@@ -79,3 +79,10 @@ Do not reopen rows already `fixed` or `kept-product` unless a fresh screenshot p
 | athlete-profile / wallet | save / charge CTA aligned to inline-end, min 128px (re-shot logged in) | fixed |
 | m-athlete (375) | SoT 3-up mini cards; product 2-up photo cards (same photos/copy) | kept-product |
 | m1–m7 other shells | coach shells redirect (PILOT_NO_COACH); owner/athlete 375 shells use product bottom tab bar | kept-product |
+
+## Modals / sheets
+| Screen | Item | Status |
+|---|---|---|
+| login modal (AuthFlowModal) | accent bar + inset photo | fixed (re-shot) |
+| confirm sheet done state | SoT ok-box markup in code; re-shot needs a real booking + payment round-trip | not re-shot (env) |
+| move / cancel / pay flows (mv, cn, cn2, pay) | require existing paid booking state | not re-shot (env) |
