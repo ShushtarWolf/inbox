@@ -37,16 +37,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-gray-50 px-4 py-10" :dir="locale === 'fa' ? 'rtl' : 'ltr'">
-    <div class="mx-auto max-w-md space-y-4 border border-brand-gray-200 bg-white p-6" style="border-radius: var(--sz-canva-radius);">
-      <h1 class="text-lg font-bold text-brand-navy text-start">{{ t('booking.testGatewayTitle') }}</h1>
-      <p class="text-sm text-brand-gray-600 text-start">{{ t('booking.testGatewayHint') }}</p>
+  <div class="min-h-screen bg-brand-cream px-4 py-10" :dir="locale === 'fa' ? 'rtl' : 'ltr'">
+    <!-- Designer zgw mock gateway card (test mode only; real IPG unchanged). -->
+    <div class="mx-auto mt-[70px] w-full max-w-[460px] space-y-4 border border-brand-navy/30 bg-white p-[30px] text-center" style="border-radius: var(--sz-canva-radius);">
+      <div class="flex justify-center"><InboxBrandLockup height-class="h-7" /></div>
+      <h1 class="text-lg font-bold text-brand-navy">{{ t('booking.testGatewayTitle') }}</h1>
+      <p class="text-sm text-brand-gray-600">{{ t('booking.testGatewayHint') }}</p>
 
       <template v-if="allowed">
-        <p v-if="amount > 0" class="text-base font-bold tabular-nums text-start">
+        <p v-if="amount > 0" class="text-xl font-black tabular-nums text-brand-navy">
           {{ formatCurrency(amount) }}
         </p>
-        <p class="break-all font-mono text-xs text-brand-gray-500 text-start" dir="ltr">{{ authority }}</p>
+        <p class="break-all font-mono text-xs text-brand-gray-500" dir="ltr">{{ authority }}</p>
         <a :href="callbackUrl('OK')" class="canva-gate-btn-primary block w-full text-center">
           {{ t('booking.testGatewaySuccess') }}
         </a>
@@ -54,7 +56,7 @@ onMounted(() => {
           {{ t('booking.testGatewayCancel') }}
         </a>
       </template>
-      <p v-else class="text-sm text-red-600 text-start">{{ t('booking.testGatewayUnavailable') }}</p>
+      <p v-else class="text-sm text-red-600">{{ t('booking.testGatewayUnavailable') }}</p>
     </div>
   </div>
 </template>

@@ -175,18 +175,18 @@ function walletTxLabel(type: string) {
           </button>
         </div>
 
-        <div class="tail-card-grid-3">
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.clubDetails') }}</h2>
-            <ul class="space-y-2 text-sm">
-              <li class="flex justify-between gap-2"><span>{{ t('admin.address') }}</span><span class="text-end">{{ club.addressFa }}</span></li>
-              <li v-if="club.phone" class="flex justify-between gap-2"><span>{{ t('admin.phone') }}</span><span dir="ltr">{{ formatPhone(club.phone) }}</span></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.hours') }}</span><span dir="ltr">{{ formatNumber(club.openHour) }}–{{ formatNumber(club.closeHour) }}</span></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.priceFrom') }}</span><span dir="ltr">{{ formatCurrency(club.priceFrom) }}</span></li>
-            </ul>
+        <div class="admin-a3">
+          <div class="admin-acard">
+            <h3>{{ t('admin.clubDetails') }}</h3>
+            <div>
+              <div class="admin-akv"><span>{{ t('admin.address') }}</span><span class="text-end">{{ club.addressFa }}</span></div>
+              <div v-if="club.phone" class="admin-akv"><span>{{ t('admin.phone') }}</span><span dir="ltr">{{ formatPhone(club.phone) }}</span></div>
+              <div class="admin-akv"><span>{{ t('admin.hours') }}</span><span dir="ltr">{{ formatNumber(club.openHour) }}–{{ formatNumber(club.closeHour) }}</span></div>
+              <div class="admin-akv"><span>{{ t('admin.priceFrom') }}</span><span dir="ltr">{{ formatCurrency(club.priceFrom) }}</span></div>
+            </div>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.owner') }}</h2>
+          <div class="admin-acard">
+            <h3>{{ t('admin.owner') }}</h3>
             <template v-if="club.owner">
               <p class="font-bold">{{ club.owner.name }}</p>
               <p class="text-sm text-brand-gray-600" dir="ltr">{{ club.owner.email }}</p>
@@ -195,34 +195,34 @@ function walletTxLabel(type: string) {
             </template>
             <p v-else class="text-sm text-brand-gray-500">—</p>
           </div>
-          <div class="tail-card">
-            <h2 class="tail-section-title mb-3">{{ t('admin.metrics.bookings') }}</h2>
-            <ul class="space-y-2 text-sm">
-              <li class="flex justify-between gap-2"><span>{{ t('admin.metrics.bookings') }}</span><strong dir="ltr">{{ formatNumber(club.bookingCount) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.paymentChannelIpg') }}</span><strong dir="ltr">{{ formatCurrency(club.paidIpgAmount) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.paymentChannelOnSite') }}</span><strong dir="ltr">{{ formatCurrency(club.paidOnSiteAmount) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.courts') }}</span><strong dir="ltr">{{ formatNumber(club.courtCount) }}</strong></li>
-              <li class="flex justify-between gap-2"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></li>
-            </ul>
+          <div class="admin-acard">
+            <h3>{{ t('admin.metrics.bookings') }}</h3>
+            <div>
+              <div class="admin-akv"><span>{{ t('admin.metrics.bookings') }}</span><strong dir="ltr">{{ formatNumber(club.bookingCount) }}</strong></div>
+              <div class="admin-akv"><span>{{ t('admin.paymentChannelIpg') }}</span><strong dir="ltr">{{ formatCurrency(club.paidIpgAmount) }}</strong></div>
+              <div class="admin-akv"><span>{{ t('admin.paymentChannelOnSite') }}</span><strong dir="ltr">{{ formatCurrency(club.paidOnSiteAmount) }}</strong></div>
+              <div class="admin-akv"><span>{{ t('admin.courts') }}</span><strong dir="ltr">{{ formatNumber(club.courtCount) }}</strong></div>
+              <div class="admin-akv"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></div>
+            </div>
           </div>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.clubWalletTitle') }}</h2>
-          <ul class="space-y-2 text-sm">
-            <li class="flex justify-between gap-2">
+        <div class="admin-acard">
+          <h3>{{ t('admin.clubWalletTitle') }}</h3>
+          <div>
+            <div class="admin-akv">
               <span>{{ t('admin.clubWalletBalance') }}</span>
               <strong dir="ltr">{{ formatCurrency(club.wallet.balance) }}</strong>
-            </li>
-            <li class="flex justify-between gap-2">
+            </div>
+            <div class="admin-akv">
               <span>{{ t('admin.withdrawSheba') }}</span>
               <span class="font-mono text-xs" dir="ltr">{{ club.sheba || '—' }}</span>
-            </li>
-            <li class="flex justify-between gap-2">
+            </div>
+            <div class="admin-akv">
               <NuxtLink :to="localePath('/admin/withdrawals')" class="underline">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
               <strong dir="ltr">{{ formatNumber(club.wallet.pendingWithdrawCount) }} · {{ formatCurrency(club.wallet.pendingWithdrawAmount) }}</strong>
-            </li>
-          </ul>
+            </div>
+          </div>
           <ul v-if="club.wallet.pendingWithdraws.length" class="mt-3 divide-y divide-brand-gray-50 text-xs">
             <li v-for="row in club.wallet.pendingWithdraws" :key="row.id" class="flex justify-between gap-2 py-2">
               <span dir="ltr">{{ formatDate(row.createdAt) }}</span>
@@ -242,8 +242,8 @@ function walletTxLabel(type: string) {
           <p v-else class="mt-1 text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.courts') }}</h2>
+        <div class="admin-acard">
+          <h3>{{ t('admin.courts') }}</h3>
           <ul v-if="club.courts.length" class="divide-y divide-brand-gray-50 text-sm">
             <li v-for="court in club.courts" :key="court.id" class="flex justify-between gap-2 py-2">
               <span>{{ localizedField(court, 'nameFa', 'nameEn') }}</span>
@@ -253,8 +253,8 @@ function walletTxLabel(type: string) {
           <p v-else class="text-sm text-brand-gray-500">{{ t('common.empty') }}</p>
         </div>
 
-        <div class="tail-card">
-          <h2 class="tail-section-title mb-3">{{ t('admin.staff') }}</h2>
+        <div class="admin-acard">
+          <h3>{{ t('admin.staff') }}</h3>
           <ul v-if="club.staff.length" class="divide-y divide-brand-gray-50 text-sm">
             <li v-for="member in club.staff" :key="member.user.id" class="flex flex-wrap justify-between gap-2 py-2">
               <span>

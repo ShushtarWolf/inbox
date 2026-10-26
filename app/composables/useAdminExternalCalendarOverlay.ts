@@ -159,6 +159,8 @@ export function useAdminExternalCalendarOverlay(opts: {
     externalOverlayEnabled: enabled,
     externalOverlayPending: pending,
     externalOverlayError: error,
+    externalData: data,
+    externalCellFor,
     isExternalOnlyOccupied,
     isExternalUncertain,
     externalSiteBadge,
