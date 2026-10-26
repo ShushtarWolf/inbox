@@ -103,7 +103,24 @@ Screenshots: `comparisons/{athlete-home,athlete-bookings,athlete-hub,athlete-wal
 | owner-calendar | slot blocked | near-black `#1a1a18` | black tokens (verify live) | open |
 | owner-calendar | header avatar | square `#1d3b57` | square navy (verify) | open |
 | owner-calendar | booked fill | neutral + crimson bar | neutral fill (verify bars) | open |
-| coach hero | bell | `ti-bell` | Material notifications → settings | open |
+
+## Coach today / schedule / book — Prompt 2026-10-26
+
+Screenshots: `comparisons/{coach,coach-schedule,coach-book}/` (+ `html|live-m-coach-header-375.png`). Tool: `node scripts/check-html-coach-slice.mjs`. Done gate: today + schedule @375 + desktop.
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| m-coach / coach | header | `.mxt` logo + `ti-bell` + square navy `.mxav` | `CanvaCoachPhotoHero` logo + bell + `#1d3b57` square avatar | fixed |
+| coach | Today chrome | `.cxh` امروز + `.cxtiny` برنامه | matched title + tiny schedule link | fixed |
+| coach | stats | `.cxstats` امروز / پیش رو (crimson nums) | 2-col crimson stats | fixed |
+| coach | sessions | `.cxsess` cards + green `.cxst` | `.coach-sess-card` + status chip | fixed |
+| coach | accept / revenue / cal / settlements | absent in HTML Today | product blocks below HTML IA | kept-product |
+| coach | bell target | notifications metaphor | links to `/coach/settings` (no coach notif page) | kept-product |
+| coach-schedule | legend | crimson / blue `#3b82f6` / grey | same swatches | fixed |
+| coach-schedule | date row | `.cxdn` weekday \| day month | `.canva-cal-date-nav` | fixed |
+| coach-schedule | hour rows | `.cxr` bkd/free/past | grid cells; free `#e3edfb` + blue bar | fixed |
+| coach-schedule | empty day | mock hours | empty + edit availability (no windows) | kept-product |
+| coach-book | title + wallet + cal | ownPg form | photo hero + product book form | kept-product |
 
 ## Owner secondary NAV — Prompt 2026-10-26
 

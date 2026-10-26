@@ -2695,8 +2695,9 @@
     background: #2a2a28;
     color: #fff;
   }
+  /* HTML .cxr.free — soft blue */
   .canva-cal-grid-cell.slot-free.coach-cal-free-bookable {
-    background: #e8f0fe;
+    background: #e3edfb;
   }
   .canva-cal-grid-cell-bar-reserved,
   .canva-cal-grid-cell-bar-reserved-cash,
@@ -3887,6 +3888,55 @@
   }
   .admin-alink {
     @apply mt-2 inline-block text-xs font-bold text-brand-primary hover:underline;
+  }
+
+  /* HTML coach Today — .cxh / .cxstats / .cxsess / .cxst */
+  .coach-today-hd {
+    @apply flex items-center justify-between gap-3;
+  }
+  .coach-today-title {
+    @apply m-0 text-start text-[22px] font-bold text-brand-navy;
+  }
+  .coach-today-tiny {
+    @apply inline-flex shrink-0 items-center px-2.5 py-1 text-[11px] font-bold text-brand-navy no-underline;
+    background: #ece8e2;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-today-stats {
+    @apply mt-1.5 grid grid-cols-2 gap-2;
+  }
+  .coach-today-stat {
+    @apply border border-brand-gray-200 bg-white px-2 py-3.5 text-center;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-today-stat b {
+    @apply block text-[22px] font-bold text-brand-primary tabular-nums;
+  }
+  .coach-today-stat small {
+    @apply mt-0.5 block text-[11px] text-brand-gray-600;
+  }
+  .coach-today-sub {
+    @apply mb-2 mt-3.5 text-start text-sm font-bold text-brand-navy;
+  }
+  .coach-sess-card {
+    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3.5 py-3 text-start;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-sess-av {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden bg-[#1d3b57] text-sm font-bold text-white;
+    border-radius: 0;
+  }
+  .coach-sess-status {
+    @apply shrink-0 px-2 py-0.5 text-[11px] font-bold;
+    border-radius: var(--sz-canva-radius);
+  }
+  .coach-sess-status-ok {
+    background: #e6f1ea;
+    color: #2e7d4f;
+  }
+  .coach-sess-status-wait {
+    background: #f3e9d3;
+    color: #b68a3b;
   }
 
   /* Coach dashboard (design pages.coach) */

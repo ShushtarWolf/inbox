@@ -27,7 +27,8 @@ const { canSwitchRole } = usePlatformRoles()
     <div class="canva-photo-hero-top">
       <InboxBrandLockup home-link on-dark height-class="h-7" />
       <div class="flex flex-col items-stretch gap-1">
-        <div class="flex items-center gap-3 text-white">
+        <!-- HTML .mxi: ti-bell + square navy .mxav (gap 10px) -->
+        <div class="flex items-center gap-2.5 text-white">
           <NuxtLink
             :to="localePath('/coach/settings')"
             class="inline-flex"
