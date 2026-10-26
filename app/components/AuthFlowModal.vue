@@ -661,14 +661,14 @@ watch(
 </script>
 
 <template>
-  <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
+  <AppModal :open="open" patterned dialog-class="auth-rmod" max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1] min-w-0 overflow-x-hidden">
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
         :style="{ backgroundImage: `url(${authPhotoHeader.image})` }"
       >
-        <InboxBrandLockup on-dark height-class="h-6" />
+        <InboxBrandLockup on-dark height-class="h-6" class="canva-auth-photo-logo" />
         <div class="canva-auth-photo-copy mt-3">
           <b>{{ t(authPhotoHeader.titleKey) }}</b>
           <small>{{ t(authPhotoHeader.subKey) }}</small>
@@ -719,7 +719,7 @@ watch(
         </div>
         <p
           v-if="notice && step !== 'welcome'"
-          class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+          class="auth-rmod-warn"
           style="border-radius: var(--sz-canva-radius);"
         >
           {{ notice }}
@@ -752,7 +752,7 @@ watch(
           </button>
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="auth-rmod-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ t('auth.otpLogModeBanner') }}
@@ -794,7 +794,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="auth-rmod-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
@@ -1214,7 +1214,7 @@ watch(
         >
           <p
             v-if="!smsLive"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="auth-rmod-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ t('auth.otpLogModeBanner') }}
@@ -1271,7 +1271,7 @@ watch(
           <!-- Single notice banner: when a caller notice is shown, demote this hint to plain text. -->
           <p
             v-if="!notice"
-            class="border border-amber-200 bg-amber-50 px-3 py-2 text-start text-xs font-bold text-amber-900"
+            class="auth-rmod-warn"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ smsLive ? t('auth.phoneLoginHintMulti') : t('auth.otpLogModeBanner') }}
@@ -1297,7 +1297,7 @@ watch(
           </button>
           <button
             type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            class="auth-rmod-link"
             @click="goLoginPassword"
           >
             {{ t('auth.loginWithPassword') }}
@@ -1326,7 +1326,7 @@ watch(
           </AppFormField>
           <p
             v-if="debugCode"
-            class="bg-brand-primary-soft px-3 py-2 text-center text-xs font-bold text-brand-primary"
+            class="auth-rmod-debug"
             style="border-radius: var(--sz-canva-radius);"
           >
             {{ t('auth.debugOtpHint', { code: debugCode }) }}
@@ -1342,7 +1342,7 @@ watch(
           <button
             v-if="purpose === 'login'"
             type="button"
-            class="block w-full text-center text-xs font-bold text-brand-gray-600 underline"
+            class="auth-rmod-link"
             @click="goLoginPassword"
           >
             {{ t('auth.loginWithPassword') }}

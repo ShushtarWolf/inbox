@@ -57,11 +57,12 @@ async function applyFilters() {
       </div>
     </div>
 
-    <CanvaEmptyState
-      v-if="!competitionsEnabled"
-      :title="t('competitions.comingSoon')"
-      icon="emoji_events"
-    />
+    <div v-if="!competitionsEnabled" class="design-cpempty">
+      <span class="design-cpempty-icon" aria-hidden="true">
+        <AppIcon name="emoji_events" size="lg" />
+      </span>
+      <b>{{ t('competitions.comingSoon') }}</b>
+    </div>
 
     <template v-else>
       <div class="canva-panel grid gap-3 min-[431px]:grid-cols-2">
@@ -96,11 +97,12 @@ async function applyFilters() {
       <p v-else-if="error" class="text-sm text-brand-primary">
         {{ t('common.error') }}
       </p>
-      <CanvaEmptyState
-        v-else-if="!competitions?.length"
-        :title="t('common.empty')"
-        icon="emoji_events"
-      />
+      <div v-else-if="!competitions?.length" class="design-cpempty">
+        <span class="design-cpempty-icon" aria-hidden="true">
+          <AppIcon name="emoji_events" size="lg" />
+        </span>
+        <b>{{ t('competitions.comingSoon') }}</b>
+      </div>
 
       <ul v-else class="space-y-3">
         <li

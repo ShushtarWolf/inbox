@@ -42,7 +42,7 @@ function isActive(to: string) {
             :key="item.to + item.label"
             v-bind="item.action ? { type: 'button' } : { to: item.to }"
             class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-bold transition"
-            style="border-radius: var(--sz-canva-radius);"
+            :style="variant === 'publicHead' ? undefined : { borderRadius: 'var(--sz-canva-radius)' }"
             :class="variant === 'publicHead'
               ? (!item.action && isActive(item.to) ? 'public-rhead-nav-active' : 'public-rhead-nav')
               : (!item.action && isActive(item.to) ? 'bg-brand-primary text-white' : 'text-brand-navy hover:bg-brand-cream')"

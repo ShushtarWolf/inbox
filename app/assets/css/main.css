@@ -371,6 +371,54 @@
       radial-gradient(ellipse at top right, rgba(196, 30, 30, 0.07), transparent 45%),
       radial-gradient(ellipse at bottom left, rgba(182, 138, 59, 0.08), transparent 40%);
   }
+  /* design-main rmod: cream card, no pattern wash */
+  .auth-rmod.canva-auth-sheet {
+    background-color: #f4efe9;
+    background-image: none;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+  .auth-rmod.canva-auth-sheet::before {
+    display: none;
+  }
+  .auth-rmod .canva-auth-body .neo-input,
+  .auth-rmod .canva-auth-body .neo-select,
+  .auth-rmod .canva-auth-body .neo-textarea {
+    border: none;
+    background: #faf8f5;
+    border-radius: 0;
+  }
+  .auth-rmod-warn {
+    background: #fff8dc;
+    border: 1px solid #f0e2a0;
+    color: #8a5a10;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 12px;
+    line-height: 1.8;
+    margin-bottom: 16px;
+    text-align: start;
+    border-radius: 0 !important;
+  }
+  .auth-rmod-link {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+    color: #2c2c2a;
+  }
+  .auth-rmod-debug {
+    background: #fde8e8;
+    border: 1px solid #f3c1c1;
+    color: #9b1c1c;
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 0 !important;
+  }
   .canva-auth-accent {
     @apply relative z-[1] h-1.5 w-full bg-brand-primary;
   }
@@ -410,25 +458,28 @@
     @apply text-lg font-bold leading-snug text-emerald-600;
   }
   .canva-auth-photo {
-    @apply relative z-[1] mx-0 mb-3 mt-0 flex min-h-[7.5rem] min-w-0 flex-col justify-end overflow-hidden bg-brand-navy px-5 pb-4 pt-10 text-white;
+    @apply relative z-[1] mx-0 mb-3 mt-0 flex min-w-0 flex-col justify-end overflow-hidden bg-brand-navy text-white;
+    height: 110px;
+    min-height: 110px;
+    padding: 14px;
     background-size: cover;
     background-position: center;
-  }
-  .canva-auth-photo::after {
-    content: '';
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(44, 44, 42, 0.15) 0%, rgba(44, 44, 42, 0.72) 100%);
+    box-shadow: inset 0 -90px 60px -20px rgba(0, 0, 0, 0.65);
   }
   .canva-auth-photo > * {
     @apply relative z-[1];
+  }
+  .canva-auth-photo > .canva-auth-photo-logo {
+    position: absolute;
+    top: 12px;
+    inset-inline-start: 14px;
+    z-index: 2;
   }
   .canva-auth-photo-copy b {
     @apply block text-base font-bold leading-snug;
   }
   .canva-auth-photo-copy small {
-    @apply mt-1 block break-words text-xs leading-relaxed text-white/85;
+    @apply mt-1 block break-words text-xs leading-relaxed text-white/90;
   }
   .canva-athlete-upcoming-card {
     @apply border border-brand-gray-200 bg-white px-4 py-4 text-start;
@@ -3678,17 +3729,32 @@
     align-items: center;
   }
   .public-rhead-nav {
-    @apply font-bold text-brand-navy hover:bg-brand-primary-soft/60;
-    border-radius: var(--sz-canva-radius);
+    @apply font-bold text-brand-navy;
+    border-radius: 0;
+    background: transparent;
+  }
+  .public-rhead-nav:hover {
+    color: #c41e1e;
   }
   .public-rhead-nav-active {
-    @apply bg-brand-primary text-white;
-    border-radius: var(--sz-canva-radius);
+    @apply bg-transparent font-bold;
+    color: #c41e1e;
+    border-radius: 0;
+  }
+  .public-rhead .canva-home-login:not(.canva-home-login-soft) {
+    min-height: 44px;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 700;
+    gap: 8px;
+    border-radius: 0;
   }
 
   /* Owner subpages — design rclubcard */
   .owner-rclubcard {
-    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-2.5 text-start;
+    @apply flex items-center border border-brand-gray-200 bg-white text-start;
+    gap: 14px;
+    padding: 14px 18px;
     border-radius: var(--sz-canva-radius);
   }
   .owner-rclubcard-icon {
@@ -3696,10 +3762,12 @@
     border-radius: var(--sz-canva-radius);
   }
   .owner-rclubcard-eyebrow {
-    @apply block text-[10px] font-bold text-brand-gray-500;
+    @apply block font-bold text-brand-gray-500;
+    font-size: 11px;
   }
   .owner-rclubcard-name {
-    @apply block text-sm font-bold text-brand-navy;
+    @apply block font-bold text-brand-navy;
+    font-size: 15px;
   }
   .owner-rclubcard-select {
     @apply mt-0.5 w-full max-w-full border-0 bg-transparent py-0 pe-6 text-sm font-bold text-brand-navy outline-none;
@@ -3708,31 +3776,42 @@
 
   /* Admin overview — astat / acard grid */
   .admin-a3 {
-    @apply grid gap-2 min-[431px]:grid-cols-3;
+    @apply grid min-[431px]:grid-cols-3;
+    gap: 14px;
   }
   .admin-a2 {
-    @apply grid gap-2 min-[431px]:grid-cols-2;
+    @apply grid min-[431px]:grid-cols-2;
+    gap: 14px;
+  }
+  .admin-astat,
+  .admin-acard {
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: start;
   }
   .admin-astat {
-    @apply flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 text-start;
-    border-radius: var(--sz-canva-radius);
+    @apply flex items-center;
+    gap: 16px;
   }
   .admin-astat-icon {
     @apply inline-flex h-10 w-10 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary;
-    border-radius: var(--sz-canva-radius);
+    border-radius: 12px;
   }
   .admin-astat small {
-    @apply block text-[10px] font-bold text-brand-gray-600;
+    @apply block font-bold;
+    color: #6b6b67;
+    font-size: 13px;
   }
   .admin-astat b {
-    @apply mt-0.5 block text-lg font-bold text-brand-navy tabular-nums;
-  }
-  .admin-acard {
-    @apply border border-brand-gray-200 bg-white p-4 text-start;
-    border-radius: var(--sz-canva-radius);
+    @apply mt-0.5 block font-bold text-brand-navy tabular-nums;
+    font-size: 26px;
   }
   .admin-acard h3 {
-    @apply mb-3 text-sm font-bold text-brand-navy;
+    @apply font-bold text-brand-navy;
+    font-size: 19px;
+    margin-bottom: 14px;
   }
   .admin-akv {
     @apply flex items-center justify-between gap-2 border-b border-brand-gray-100 py-2 text-xs last:border-b-0;
@@ -3744,7 +3823,15 @@
     @apply font-bold text-brand-navy tabular-nums;
   }
   .admin-alink {
-    @apply mt-2 inline-block text-xs font-bold text-brand-primary hover:underline;
+    @apply mt-2 inline-block hover:underline;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c2c2a;
+    text-decoration: underline;
+  }
+  .admin-akv .admin-alink {
+    margin: 0;
+    font-weight: 400;
   }
 
   /* Coach dashboard (design pages.coach) */
@@ -3844,6 +3931,125 @@
   }
   .coach-bar-chart-label {
     @apply text-[10px] font-bold text-brand-gray-600;
+  }
+
+  /* design-main public footer columns */
+  .site-rfoot {
+    background: #2c2c2a;
+    color: #f4efe9;
+    padding: 28px 0 20px;
+    letter-spacing: 0;
+  }
+  .site-rfoot-grid {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    gap: 22px;
+    text-align: start;
+  }
+  @media (max-width: 800px) {
+    .site-rfoot-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .site-rfoot-blurb {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: rgba(244, 239, 233, 0.82);
+  }
+  .site-rfoot-title {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .site-rfoot-links {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .site-rfoot-links a:hover {
+    color: #fff;
+  }
+  .site-rfoot-contact {
+    margin-top: 18px;
+    font-size: 12px;
+    color: rgba(244, 239, 233, 0.8);
+  }
+  .site-rfoot-legal {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(244, 239, 233, 0.75);
+  }
+  .site-rfoot-legal a:hover,
+  .site-rfoot-contact a:hover {
+    color: #fff;
+  }
+
+  /* design-main wallet rred */
+  .wallet-rred {
+    background: linear-gradient(135deg, #c41e1e, #b01818);
+    color: #fff;
+    padding: 30px 20px;
+    text-align: start;
+  }
+  .wallet-rred-label {
+    display: block;
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+  }
+  .wallet-rred-amount {
+    display: block;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .wallet-rred-note {
+    display: block;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.8;
+    opacity: 0.92;
+  }
+
+  /* design-main competitions empty */
+  .design-cpempty {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    color: #2c2c2a;
+  }
+  .design-cpempty-icon {
+    display: inline-flex;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(44, 44, 42, 0.12);
+    color: #b68a3b;
+    background: #fff;
+  }
+  .design-cpempty b {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .booking-ok-box {
+    border: 1px solid rgba(44, 44, 42, 0.08);
+    background: #fff;
+    padding: 16px;
   }
 }
 

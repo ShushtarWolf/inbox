@@ -14,6 +14,8 @@ const props = defineProps<{
   hideTitleBar?: boolean
   /** Accessible name when title is empty or title bar is hidden. */
   ariaLabel?: string
+  /** Extra classes on the dialog frame (design shells such as auth rmod). */
+  dialogClass?: string
 }>()
 
 const emit = defineEmits<{
@@ -305,6 +307,7 @@ onUnmounted(() => {
             class="flex min-h-0 w-full flex-col overflow-hidden border border-brand-gray-200 shadow-tail-md outline-none animate-venus-fade-up"
             :class="[
               maxWidthClass || 'max-w-md',
+              dialogClass,
               patterned ? 'canva-auth-sheet' : 'bg-brand-cream',
               /* LOCKED: Canva phone frames ≤2px — never rounded-xl soft card */
               sheet ? 'canva-sheet-dialog' : (patterned ? 'canva-modal-frame' : 'rounded-xl'),

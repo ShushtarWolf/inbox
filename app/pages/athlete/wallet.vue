@@ -204,22 +204,22 @@ watch(
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.walletTitle')" />
-    <section class="canva-dash-hero">
-      <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
-      <p class="mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
-      <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
+    <section class="wallet-rred">
+      <small class="wallet-rred-label">{{ t('athlete.walletTitle') }}</small>
+      <b class="wallet-rred-amount tabular-nums">{{ formatCurrency(data?.balance || 0) }}</b>
+      <p class="text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
       <p
         v-if="data?.canBankWithdraw"
-        class="mt-2 text-xs text-white/80 text-start"
+        class="wallet-rred-note"
       >
         {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
       </p>
-      <p
+      <em
         v-else
-        class="mt-2 text-xs text-white/80 text-start"
+        class="wallet-rred-note"
       >
         {{ t('athlete.walletClosedLoopHint') }}
-      </p>
+      </em>
       <p
         v-if="pendingClassBalance > 0"
         class="mt-1 text-xs text-white/70 text-start"

@@ -652,7 +652,7 @@ async function submit(preferWallet = false) {
           <div class="space-y-4 py-2 text-center">
             <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
             <p class="text-base font-bold text-brand-primary">{{ feedback || t('booking.successCourt') }}</p>
-            <div v-if="createdBookingId" class="border border-brand-gray-200 bg-brand-cream px-4 py-4">
+            <div v-if="createdBookingId" class="booking-ok-box">
               <p class="text-xs font-medium text-brand-gray-600">{{ t('booking.trackingCodeLabel') }}</p>
               <p dir="ltr" class="mt-2 text-2xl font-black tabular-nums tracking-wide text-brand-navy">
                 {{ t('booking.trackingCodePrefix') }}-{{ bookingTrackingCode(createdBookingId) }}
@@ -895,11 +895,11 @@ async function submit(preferWallet = false) {
       <div class="shrink-0 space-y-2 px-5 pb-6">
         <template v-if="done">
           <NuxtLink :to="localePath('/athlete/bookings')" class="canva-cta canva-confirm-book-cta w-full">
-            {{ t('booking.viewBookings') }}
+            {{ t('booking.viewInMyBookings') }}
           </NuxtLink>
-          <button type="button" class="canva-gate-btn-secondary w-full" @click="close">
-            {{ t('common.close') }}
-          </button>
+          <NuxtLink :to="localePath('/')" class="canva-gate-btn-secondary w-full" @click="close">
+            {{ t('booking.backHome') }}
+          </NuxtLink>
         </template>
         <template v-else>
           <button

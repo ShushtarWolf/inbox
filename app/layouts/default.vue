@@ -108,47 +108,71 @@ onMounted(() => {
       <slot />
     </main>
     <footer
-      class="canva-public-footer mx-auto w-full max-[430px]:max-w-lg px-4 text-center text-xs font-medium text-brand-gray-600 min-[431px]:max-w-[1180px] min-[431px]:pb-4"
+      class="canva-public-footer w-full text-xs font-medium text-brand-gray-600"
       :class="reserveTabBar
         ? 'pb-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.5rem)]'
         : 'pb-[calc(var(--sz-safe-bottom)+0.5rem)]'"
     >
-      <p class="mb-2 hidden min-[431px]:block">
-        <span class="font-bold text-brand-navy">{{ t('contact.us') }}</span>
-        ·
-        <a href="mailto:info@inboxs.ir" class="px-1 hover:text-brand-primary" dir="ltr">info@inboxs.ir</a>
-        ·
-        <a href="tel:+989124777927" class="px-1 tabular-nums hover:text-brand-primary" dir="ltr">{{ formatPhone('09124777927') }}</a>
-      </p>
-      <div class="mb-2 flex justify-center">
-        <EnamadBadge />
+      <div class="site-rfoot hidden min-[431px]:block">
+        <div class="mx-auto w-full max-w-[1180px] px-6">
+          <div class="site-rfoot-grid">
+            <div>
+              <InboxBrandLockup home-link on-dark height-class="h-7" />
+              <p class="site-rfoot-blurb">{{ t('siteFooter.blurb') }}</p>
+            </div>
+            <div>
+              <h2 class="site-rfoot-title">{{ t('siteFooter.athletes') }}</h2>
+              <nav class="site-rfoot-links" :aria-label="t('siteFooter.athletes')">
+                <NuxtLink :to="localePath('/clubs')">{{ t('siteFooter.searchCourts') }}</NuxtLink>
+                <NuxtLink v-if="!pilotNoCoach" :to="localePath('/coaches')">{{ t('siteFooter.coaches') }}</NuxtLink>
+                <NuxtLink :to="localePath('/athlete/bookings')">{{ t('athlete.bookingsTileTitle') }}</NuxtLink>
+              </nav>
+            </div>
+            <div>
+              <h2 class="site-rfoot-title">{{ t('siteFooter.venues') }}</h2>
+              <nav class="site-rfoot-links" :aria-label="t('siteFooter.venues')">
+                <NuxtLink :to="localePath('/clubs/apply')">{{ t('clubs.applyLink') }}</NuxtLink>
+                <NuxtLink :to="localePath('/owner/calendar')">{{ t('siteFooter.ownerPanel') }}</NuxtLink>
+                <NuxtLink :to="localePath('/owner/reserve/season')">{{ t('siteFooter.season') }}</NuxtLink>
+              </nav>
+            </div>
+            <div>
+              <h2 class="site-rfoot-title" dir="ltr">Inbox</h2>
+              <nav class="site-rfoot-links" aria-label="Inbox">
+                <NuxtLink :to="localePath('/about')">{{ t('legal.about') }}</NuxtLink>
+                <NuxtLink :to="localePath('/contact')">{{ t('legal.contact') }}</NuxtLink>
+                <NuxtLink :to="localePath('/terms')">{{ t('legal.terms') }}</NuxtLink>
+                <NuxtLink :to="localePath('/privacy')">{{ t('legal.privacy') }}</NuxtLink>
+              </nav>
+            </div>
+          </div>
+          <p class="site-rfoot-contact">
+            <span class="font-bold text-white">{{ t('contact.us') }}</span>
+            ·
+            <a href="mailto:info@inboxs.ir" class="px-1" dir="ltr">info@inboxs.ir</a>
+            ·
+            <a href="tel:+989124777927" class="px-1 tabular-nums" dir="ltr">{{ formatPhone('09124777927') }}</a>
+          </p>
+          <nav class="site-rfoot-legal" :aria-label="t('legal.about')">
+            <NuxtLink :to="localePath('/pricing')">{{ t('legal.pricing') }}</NuxtLink>
+            <NuxtLink :to="localePath('/complaints')">{{ t('legal.complaints') }}</NuxtLink>
+            <NuxtLink :to="localePath('/cancellation')">{{ t('legal.cancellation') }}</NuxtLink>
+          </nav>
+        </div>
       </div>
-      <!-- Canva p1 slim strip (mobile); fat link row stays desktop -->
-      <nav class="canva-legal-footer min-[431px]:hidden" :aria-label="t('legal.about')">
-        <NuxtLink :to="localePath('/about')" class="hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
-        <span class="text-brand-gray-300" aria-hidden="true">·</span>
-        <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
-        <span class="text-brand-gray-300" aria-hidden="true">·</span>
-        <NuxtLink :to="localePath('/privacy')" class="hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
-        <span class="text-brand-gray-300" aria-hidden="true">·</span>
-        <NuxtLink :to="localePath('/terms')" class="hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
-      </nav>
-      <div class="hidden flex-wrap items-center justify-center gap-x-1 gap-y-1 min-[431px]:flex">
-        <NuxtLink :to="localePath('/about')" class="px-1.5 hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/contact')" class="px-1.5 hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/pricing')" class="px-1.5 hover:text-brand-primary">{{ t('legal.pricing') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/complaints')" class="px-1.5 hover:text-brand-primary">{{ t('legal.complaints') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/cancellation')" class="px-1.5 hover:text-brand-primary">{{ t('legal.cancellation') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/privacy')" class="px-1.5 hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/terms')" class="px-1.5 hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
-        ·
-        <NuxtLink :to="localePath('/clubs/apply')" class="px-1.5 hover:text-brand-primary">{{ t('clubs.applyLink') }}</NuxtLink>
+      <div class="mx-auto w-full max-[430px]:max-w-lg px-4 pt-3 text-center min-[431px]:max-w-[1180px]">
+        <div class="mb-2 flex justify-center">
+          <EnamadBadge />
+        </div>
+        <nav class="canva-legal-footer min-[431px]:hidden" :aria-label="t('legal.about')">
+          <NuxtLink :to="localePath('/about')" class="hover:text-brand-primary">{{ t('legal.about') }}</NuxtLink>
+          <span class="text-brand-gray-300" aria-hidden="true">·</span>
+          <NuxtLink :to="localePath('/contact')" class="hover:text-brand-primary">{{ t('legal.contact') }}</NuxtLink>
+          <span class="text-brand-gray-300" aria-hidden="true">·</span>
+          <NuxtLink :to="localePath('/privacy')" class="hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>
+          <span class="text-brand-gray-300" aria-hidden="true">·</span>
+          <NuxtLink :to="localePath('/terms')" class="hover:text-brand-primary">{{ t('legal.terms') }}</NuxtLink>
+        </nav>
       </div>
     </footer>
     <AppBottomNav v-if="user" :items="nav" />
