@@ -15,9 +15,10 @@ Radius baseline: HTML is **square** (`border-radius: 0 !important`). Soft 10/20p
 |--------|--------|------|------|--------|
 | shared | corner radius | `border-radius:0 !important` on all | `--sz-canva-radius: 0` (mostly); old soft-radius SoT docs were wrong | fixed |
 | shared | agent SoT docs | square HTML | was soft 10/20px in rule/MAP | fixed |
-| shared | icon set | Tabler `ti-*` | Material Symbols; emoji welcome was wrong | open |
+| shared | icon set | Tabler `ti-*` | Material Symbols mapped to same jobs (no emoji) | kept-product |
 | shared | Canva LOCKED comments in CSS | — | misleading Canva checklist in main.css | fixed |
 | shared | visual check tooling | — | `check:html` + comparisons/ | fixed |
+| shared | CSS tokens loading | `:root` vars apply | `@import tokens.css` sat after `@font-face` → browser dropped it; all `--sz-*` were empty (blocked/booked transparent, nav gold bar missing). Moved import to top + vitest guard | fixed |
 
 ## Public home (`go('home')` → `/`) — Prompt 1 2026-10-26
 
@@ -100,9 +101,23 @@ Screenshots: `comparisons/{athlete-home,athlete-bookings,athlete-hub,athlete-wal
 | athlete-hub | header / menu | desk `.ph` + `.hubgrid` 2-col; mobile m1 form | crimson hub + menu (product); desk menu 2-col like hubgrid | fixed |
 | athlete-wallet | balance card / history h | `.rred` + `.rh3` | `.canva-dash-hero` + crimson history title | fixed |
 | athlete-home | header icons | Tabler bell + user | Material map (same job) | fixed |
-| owner-calendar | slot blocked | near-black `#1a1a18` | black tokens (verify live) | open |
-| owner-calendar | header avatar | square `#1d3b57` | square navy (verify) | open |
-| owner-calendar | booked fill | neutral + crimson bar | neutral fill (verify bars) | open |
+| owner-calendar | slot blocked | near-black `#1a1a18` | `--sz-cal-grid-blocked: #1a1a18` + white labels | fixed |
+| owner-calendar | header avatar | square `#1d3b57` | `.canva-owner-avatar` square navy | fixed |
+| owner-calendar | booked fill | neutral `#eceae6` + crimson bar | `RESERVED_PAID` / coach fill + crimson bar | fixed |
+
+## Admin overview + main pages — Prompt 2026-10-26
+
+Screenshots: `comparisons/{admin,admin-clubs,admin-users,admin-tickets,admin-withdrawals,admin-applications}/`. Tool: `node scripts/check-html-admin-slice.mjs` (also refreshes final home + owner-calendar pairs). Done gate: zero unexpected `open` on MVP screens.
+
+| screen | region | HTML | live | status |
+|--------|--------|------|------|--------|
+| admin | hero | `.rred.sm` crimson gradient title | `.admin-overview-hero` gradient (was patterned) | fixed |
+| admin | astat/acard | `.a3`/`.a2` gap 20; 12px cards; 26px nums | matched gap/radius/type | fixed |
+| admin | alink | charcoal underline | charcoal (was crimson) | fixed |
+| admin | side nav active | mustard 3px bar | `tail-menu-item-dark-active` mustard bar | fixed |
+| admin | secret gate | n/a (prototype open) | product unlock before shell | kept-product |
+| admin-clubs / users / tickets / withdrawals / applications | list IA | search + chips + table / empty | product tables + filters | fixed |
+| admin-* | dark side nav + top lock | dash admin nav | `DashboardShell` dark-nav + lock | kept-product |
 
 ## Coach today / schedule / book — Prompt 2026-10-26
 
@@ -150,6 +165,9 @@ Screenshots: `comparisons/{owner-finance,owner-settings,owner-crm,owner-equipmen
 |--------|--------|--------|
 | home | header mid-nav / dual login | product AppTopBar + phone CanvaPublicChrome escape hatch |
 | home | footer enamad | trust badge |
+| shared | Material vs Tabler icons | Nuxt `AppIcon` Material map; same jobs as HTML `ti-*` |
+| admin | secret unlock gate | ops console; HTML has no gate |
+| admin | dark nav + lock | product AdminTopBar |
 | owner-calendar | date-row FABs مسدود/رزرو/فصلی | desk ops; HTML date row is arrows-only |
 | owner-finance | square navy avatar on photo hero | product account drawer; HTML m5 fin tab is logo+bell only |
 | owner-finance / settings | live empty / zero amounts | product API vs HTML mock numbers |
