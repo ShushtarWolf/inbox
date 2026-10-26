@@ -19,19 +19,28 @@ Radius baseline: HTML is **square** (`border-radius: 0 !important`). Soft 10/20p
 | shared | Canva LOCKED comments in CSS | — | misleading Canva checklist in main.css | fixed |
 | shared | visual check tooling | — | `check:html` + comparisons/ | fixed |
 
-## Public home (`go('home')` → `/`)
+## Public home (`go('home')` → `/`) — Prompt 1 2026-10-26
 
-| screen | region | HTML | live | status |
+Region gaps from `comparisons/home/` HTML vs live @375 + desktop:
+
+| screen | region | HTML | live (before → after) | status |
 |--------|--------|------|------|--------|
-| home | search date | `ti-calendar-event` + inline popover | calendar icon + modal sheet | open |
-| home | search CTA | icon + «جستجو» in one bar | was raw key `common.search` (missing i18n); fixed key; layout still open | open |
-| home | club offer | white perforated `.rdisc` «۲۰٪» on photo | coupon-style class (verify vs HTML) | open |
-| home | club grid | 4× portrait `3/4` desk | 4 cols desk / near-square phone | open |
-| home | corners | square | square tokens | open |
+| home | header | `.pnav` white: logo + خانه/باشگاه‌ها/مربی‌ها + ورود + ثبت‌نام | desk `public-rhead` white + combined login; phone logo+login only | kept-product |
+| home | hero | title + body only, no CTA; arrows/dots; ~340px | had red «رزرو زمین» CTA → removed; min-height 340 | fixed |
+| home | search bar | one bordered `.rsearch`: CTA+تاریخ+شهر+ورزش | was gap-separated 4-field+TOD + chips; CTA showed raw key on prod | fixed |
+| home | search date | calendar icon on date field | calendar icon + sheet (not inline popover) | fixed |
+| home | search CTA | icon + «جستجو» flush in bar (RTL right) | icon + `t('common.search')` first in DOM | fixed |
+| home | club cards | `.rrg` 2-col phone / 4 desk; `.rcard` 3/4 | was 3-col near-square phone → 2-col 3/4 | fixed |
+| home | discount coupon | white perforated `.rdisc` «۲۰٪» on photo | same coupon class (dashed at 22px) | fixed |
+| home | rails | پیشنهاد ما / تنیس / پدل + see-all | same IA + live club APIs | fixed |
+| home | footer | contact + FAQ | enamad + legal links | kept-product |
+| home | corners | square | `--sz-canva-radius: 0` | fixed |
+
+Athlete shell home (`go('athlete-home')` / `/athlete/home`): search bar matched to same `.rsearch` field order (CTA · date · city · sport).
 
 ## Athlete / owner / coach / admin
 
-(Fill per slice. Seed known opens from prior audits.)
+(Fill per later slices.)
 
 | screen | region | HTML | live | status |
 |--------|--------|------|------|--------|
@@ -46,6 +55,8 @@ Radius baseline: HTML is **square** (`border-radius: 0 !important`). Soft 10/20p
 
 | screen | region | reason |
 |--------|--------|--------|
+| home | header mid-nav / dual login | product AppTopBar + phone CanvaPublicChrome escape hatch |
+| home | footer enamad | trust badge |
 | owner-calendar | date-row FABs مسدود/رزرو/فصلی | desk ops; HTML date row is arrows-only |
 | * | bottom nav / back / logo | escape hatches |
 | * | real club photos | product over stock |

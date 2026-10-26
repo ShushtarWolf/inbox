@@ -216,15 +216,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         <div class="space-y-2" :key="heroSlide">
           <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
-          <NuxtLink
-            :to="bookingLink('/clubs')"
-            class="canva-cta mt-3 inline-flex"
-            data-testid="home-hero-cta"
-            @pointerdown.stop
-            @pointerup.stop
-          >
-            {{ t('home.heroPrimaryCta') }}
-          </NuxtLink>
         </div>
 
         <div class="mt-5 flex items-center justify-between">
@@ -260,63 +251,14 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       </div>
     </section>
 
-    <section class="space-y-2">
-      <div
-        v-if="sportsForSearch.length"
-        class="canva-clubs-chip-row min-[431px]:hidden"
-        role="group"
-        :aria-label="t('home.sportsTitle')"
-      >
-        <button
-          type="button"
-          class="canva-clubs-chip"
-          :class="!sport ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
-          :aria-pressed="!sport"
-          @click="sport = ''"
-        >
-          {{ t('clubs.sportAll') }}
-        </button>
-        <button
-          v-for="s in sportsForSearch"
-          :key="s.slug"
-          type="button"
-          class="canva-clubs-chip"
-          :class="sport === s.slug ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
-          :aria-pressed="sport === s.slug"
-          @click="sport = s.slug"
-        >
-          {{ localizedField(s, 'nameFa', 'nameEn') }}
-        </button>
-      </div>
+    <!-- HTML .rsearch: CTA + تاریخ + شهر + ورزش (RTL: CTA on the right) -->
+    <section>
       <div class="canva-search-row">
-        <!-- Desktop: sport · city · date · tod; phone: chips + city · date · tod -->
-        <div class="canva-search-fields canva-search-fields-phone-3">
-          <div class="canva-search-field max-[430px]:hidden">
-            <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
-            <select
-              id="home-sport-select"
-              v-model="sport"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': sport }"
-            >
-              <option value="">{{ t('home.sportsTitle') }}</option>
-              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
-                {{ localizedField(s, 'nameFa', 'nameEn') }}
-              </option>
-            </select>
-          </div>
-          <div class="canva-search-field canva-search-field-wide">
-            <label class="sr-only" for="home-city-select">{{ t('home.heroSearchWhere') }}</label>
-            <select
-              id="home-city-select"
-              v-model="city"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': city }"
-            >
-              <option value="">{{ t('home.heroSearchWhereHint') }}</option>
-              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
+        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+          <AppIcon name="search" size="sm" />
+          {{ t('common.search') }}
+        </NuxtLink>
+        <div class="canva-search-fields">
           <div class="canva-search-field">
             <label class="sr-only" for="home-date-btn">{{ t('home.heroSearchDate') }}</label>
             <button
@@ -331,23 +273,32 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             </button>
           </div>
           <div class="canva-search-field">
-            <label class="sr-only" for="home-tod-select">{{ t('home.heroSearchTod') }}</label>
+            <label class="sr-only" for="home-city-select">{{ t('home.heroSearchWhere') }}</label>
             <select
-              id="home-tod-select"
-              v-model="tod"
+              id="home-city-select"
+              v-model="city"
               class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': tod }"
+              :class="{ 'canva-search-placeholder-filled': city }"
             >
-              <option value="">{{ t('home.heroSearchTodAny') }}</option>
-              <option value="afternoon">{{ t('home.heroSearchTodAfternoon') }}</option>
-              <option value="evening">{{ t('home.heroSearchTodEvening') }}</option>
+              <option value="">{{ t('home.heroSearchWhereHint') }}</option>
+              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="canva-search-field">
+            <label class="sr-only" for="home-sport-select">{{ t('home.sportsTitle') }}</label>
+            <select
+              id="home-sport-select"
+              v-model="sport"
+              class="canva-search-placeholder"
+              :class="{ 'canva-search-placeholder-filled': sport }"
+            >
+              <option value="">{{ t('home.sportsTitle') }}</option>
+              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
+                {{ localizedField(s, 'nameFa', 'nameEn') }}
+              </option>
             </select>
           </div>
         </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-          <AppIcon name="search" size="sm" />
-          {{ t('common.search') }}
-        </NuxtLink>
       </div>
     </section>
 
