@@ -114,7 +114,7 @@ async function save() {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/athlete" :title="t('nav.profile')" />
+    <CanvaSubpageHeader to="/athlete" :title="t('nav.profile')" :subtitle="t('athlete.profileSubtitle')" />
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <!-- Canva hub uses circular avatar -->

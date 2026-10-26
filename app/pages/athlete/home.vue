@@ -191,63 +191,93 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
     </section>
 
     <AppAsyncState :pending="pagePending" skeleton-variant="stat-grid">
-      <section class="canva-search-row">
-        <div class="canva-search-fields">
-          <div class="canva-search-field">
-            <label class="sr-only" for="athlete-home-sport-select">{{ t('home.sportsTitle') }}</label>
-            <select
-              id="athlete-home-sport-select"
-              v-model="sport"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': sport }"
-            >
-              <option value="">{{ t('home.sportsTitle') }}</option>
-              <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
-                {{ localizedField(s, 'nameFa', 'nameEn') }}
-              </option>
-            </select>
-          </div>
-          <div class="canva-search-field canva-search-field-wide">
-            <label class="sr-only" for="athlete-home-city-select">{{ t('home.heroSearchWhere') }}</label>
-            <select
-              id="athlete-home-city-select"
-              v-model="city"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': city }"
-            >
-              <option value="">{{ t('home.heroSearchWhereHint') }}</option>
-              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
-          <div class="canva-search-field">
-            <label class="sr-only" for="athlete-home-date-btn">{{ t('home.heroSearchDate') }}</label>
-            <button
-              id="athlete-home-date-btn"
-              type="button"
-              class="canva-search-placeholder w-full text-center"
-              :class="{ 'canva-search-placeholder-filled': date }"
-              @click="openAthleteDatePicker"
-            >
-              {{ dateFieldLabel }}
-            </button>
-          </div>
-          <div class="canva-search-field">
-            <label class="sr-only" for="athlete-home-tod-select">{{ t('home.heroSearchTod') }}</label>
-            <select
-              id="athlete-home-tod-select"
-              v-model="tod"
-              class="canva-search-placeholder"
-              :class="{ 'canva-search-placeholder-filled': tod }"
-            >
-              <option value="">{{ t('home.heroSearchTodAny') }}</option>
-              <option value="afternoon">{{ t('home.heroSearchTodAfternoon') }}</option>
-              <option value="evening">{{ t('home.heroSearchTodEvening') }}</option>
-            </select>
-          </div>
+      <!-- Phone: HTML m-athlete sport chips; desktop keeps 4-field select row (+ city so directory isn’t stranded). -->
+      <section class="space-y-2">
+        <div
+          v-if="sportsForSearch.length"
+          class="canva-clubs-chip-row min-[431px]:hidden"
+          role="group"
+          :aria-label="t('home.sportsTitle')"
+        >
+          <button
+            type="button"
+            class="canva-clubs-chip"
+            :class="!sport ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
+            :aria-pressed="!sport"
+            @click="sport = ''"
+          >
+            {{ t('clubs.sportAll') }}
+          </button>
+          <button
+            v-for="s in sportsForSearch"
+            :key="s.slug"
+            type="button"
+            class="canva-clubs-chip"
+            :class="sport === s.slug ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
+            :aria-pressed="sport === s.slug"
+            @click="sport = s.slug"
+          >
+            {{ localizedField(s, 'nameFa', 'nameEn') }}
+          </button>
         </div>
-        <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
-          {{ t('home.searchWithFilters') }}
-        </NuxtLink>
+        <div class="canva-search-row">
+          <div class="canva-search-fields canva-search-fields-phone-3">
+            <div class="canva-search-field max-[430px]:hidden">
+              <label class="sr-only" for="athlete-home-sport-select">{{ t('home.sportsTitle') }}</label>
+              <select
+                id="athlete-home-sport-select"
+                v-model="sport"
+                class="canva-search-placeholder"
+                :class="{ 'canva-search-placeholder-filled': sport }"
+              >
+                <option value="">{{ t('home.sportsTitle') }}</option>
+                <option v-for="s in sportsForSearch" :key="s.slug" :value="s.slug">
+                  {{ localizedField(s, 'nameFa', 'nameEn') }}
+                </option>
+              </select>
+            </div>
+            <div class="canva-search-field canva-search-field-wide">
+              <label class="sr-only" for="athlete-home-city-select">{{ t('home.heroSearchWhere') }}</label>
+              <select
+                id="athlete-home-city-select"
+                v-model="city"
+                class="canva-search-placeholder"
+                :class="{ 'canva-search-placeholder-filled': city }"
+              >
+                <option value="">{{ t('home.heroSearchWhereHint') }}</option>
+                <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+            <div class="canva-search-field">
+              <label class="sr-only" for="athlete-home-date-btn">{{ t('home.heroSearchDate') }}</label>
+              <button
+                id="athlete-home-date-btn"
+                type="button"
+                class="canva-search-placeholder w-full text-center"
+                :class="{ 'canva-search-placeholder-filled': date }"
+                @click="openAthleteDatePicker"
+              >
+                {{ dateFieldLabel }}
+              </button>
+            </div>
+            <div class="canva-search-field">
+              <label class="sr-only" for="athlete-home-tod-select">{{ t('home.heroSearchTod') }}</label>
+              <select
+                id="athlete-home-tod-select"
+                v-model="tod"
+                class="canva-search-placeholder"
+                :class="{ 'canva-search-placeholder-filled': tod }"
+              >
+                <option value="">{{ t('home.heroSearchTodAny') }}</option>
+                <option value="afternoon">{{ t('home.heroSearchTodAfternoon') }}</option>
+                <option value="evening">{{ t('home.heroSearchTodEvening') }}</option>
+              </select>
+            </div>
+          </div>
+          <NuxtLink :to="bookingLink('/clubs')" class="canva-search-cta">
+            {{ t('home.searchWithFilters') }}
+          </NuxtLink>
+        </div>
       </section>
 
       <AppModal

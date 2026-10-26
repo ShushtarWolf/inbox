@@ -571,8 +571,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     <section class="canva-dash-hero hidden max-[430px]:block">
       <p class="text-xs text-white/80">{{ t('owner.dashboardEyebrow') }}</p>
       <h1 class="canva-page-hero-title text-white">{{ t('owner.settings') }}</h1>
+      <p class="mt-1 text-sm text-white/85 text-start">{{ t('owner.settingsPage.subtitle') }}</p>
     </section>
     <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ t('owner.settings') }}</h1>
+    <p class="mb-2 hidden text-sm text-brand-gray-600 text-start min-[431px]:block">{{ t('owner.settingsPage.subtitle') }}</p>
     <OwnerActiveClubBar class="mb-3" />
 
     <div class="mb-4 min-h-[2.75rem]">

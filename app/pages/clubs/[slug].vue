@@ -380,9 +380,27 @@ function isSlotSelected(id: string) {
 
 function isSlotTodPreferred(slot: ClubSlot) {
   if (!preferredTod) return false
-  if (isSlotBooked(slot) || isSlotSuspected(slot)) return false
+  if (isSlotBooked(slot) || isSlotLocked(slot)) return false
   return slotMatchesTod(slot.startTime, preferredTod)
 }
+
+/** HTML prototype: after home `tod`, bring first preferred free slot into view. */
+watch(
+  [courtSlots, () => preferredTod, showSlotsPending],
+  async ([list, tod, pending]) => {
+    if (pending || !tod || !import.meta.client) return
+    const hasPreferred = (list || []).some((slot) => isSlotTodPreferred(slot))
+    if (!hasPreferred) return
+    await nextTick()
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('.canva-club-slot-tod')?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'smooth',
+      })
+    })
+  },
+)
 
 function courtNumberLabel(courtId: string) {
   const idx = courts.value.findIndex((c) => c.id === courtId)

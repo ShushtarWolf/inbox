@@ -9,6 +9,8 @@ const props = defineProps<{
   /** Locale path, optionally with query (`/owner/calendar?more=1`). */
   to: string
   title?: string
+  /** Optional HTML-prototype subtitle under the page title. */
+  subtitle?: string
 }>()
 
 const { t } = useI18n()
@@ -44,5 +46,11 @@ const href = computed(() => {
     >
       {{ title }}
     </h1>
+    <p
+      v-if="title && subtitle"
+      class="text-start text-xs leading-relaxed text-brand-gray-600 min-[431px]:text-sm"
+    >
+      {{ subtitle }}
+    </p>
   </div>
 </template>
