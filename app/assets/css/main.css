@@ -1550,8 +1550,9 @@
   .canva-history-head {
     @apply mb-2.5 flex items-baseline justify-between gap-2.5;
   }
+  /* HTML .cxh h1 / .ph h1 */
   .canva-history-title {
-    @apply text-start text-[17px] font-extrabold text-brand-navy;
+    @apply text-start text-[22px] font-extrabold leading-snug text-brand-navy;
   }
   .canva-history-list-title {
     @apply text-start text-[15px] font-extrabold text-brand-navy;
@@ -1570,12 +1571,16 @@
   .canva-history-chips::-webkit-scrollbar {
     display: none;
   }
+  /* HTML .ofch: idle white + soft crimson active (not solid fill) */
   .canva-history-chip {
-    @apply shrink-0 border border-[#e0ddd6] bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-brand-gray-600;
+    @apply shrink-0 border bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-brand-gray-600;
+    border-color: rgba(44, 44, 42, 0.14);
     border-radius: var(--sz-canva-radius);
   }
   .canva-history-chip-on {
-    @apply border-brand-primary bg-brand-primary text-white;
+    border-color: #c41e1e;
+    background: #f6e3e3;
+    color: #c41e1e;
   }
   .canva-history-card {
     @apply block w-full bg-white p-3.5 text-start;
@@ -1733,10 +1738,11 @@
   .canva-legal-footer {
     @apply flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 pt-2 text-[10px] font-medium text-brand-gray-500;
   }
+  /* HTML .mban / .rbanner height 176px */
   .canva-photo-hero {
     @apply relative -mx-4 overflow-hidden text-white min-[431px]:mx-0;
     border-radius: var(--sz-canva-radius);
-    min-height: 11rem;
+    min-height: 176px;
   }
   /* LOCKED sharp frames: no soft oval bottom (match guest canva-hero-home). */
   .canva-photo-hero-curve {
@@ -3491,18 +3497,26 @@
     gap: 0.25rem;
     align-content: start;
   }
+  /* HTML .hubgrid 2-col on desk */
   .canva-athlete-hub .canva-dash-menu {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
     margin-top: 0;
+    padding: 0.75rem;
   }
+  /* HTML .two: list first (RTL start/right), calendar sticky-side second (left) */
   .canva-history-desktop {
     display: grid;
-    grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.9fr);
     align-items: start;
     gap: 1.5rem;
   }
+  .canva-history-desktop > section:first-child {
+    order: 2;
+  }
   .canva-history-desktop-main {
+    order: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;

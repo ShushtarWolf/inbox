@@ -157,10 +157,11 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         fetchpriority="high"
       />
       <div class="canva-photo-hero-wash" />
+      <!-- HTML m-athlete .mbt / .mbi: logo + bell + user -->
       <div class="canva-photo-hero-top">
         <InboxBrandLockup home-link on-dark height-class="h-7" />
         <div class="flex flex-col items-stretch gap-1">
-          <div class="flex items-center gap-3 text-white">
+          <div class="flex items-center gap-3.5 text-white">
             <NuxtLink :to="localePath('/athlete/notifications')" :aria-label="t('athlete.notifications')">
               <AppIcon name="notifications" size="sm" />
             </NuxtLink>

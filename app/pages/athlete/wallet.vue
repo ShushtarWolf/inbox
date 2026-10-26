@@ -340,7 +340,8 @@ watch(
       </section>
 
       <div class="space-y-2">
-        <h2 class="text-sm font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }}</h2>
+        <!-- HTML .rh3 -->
+        <h2 class="text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }}</h2>
         <div v-if="data?.transactions?.length" class="space-y-2">
           <div v-for="tx in data.transactions" :key="tx.id" class="canva-list-card text-sm text-start">
             <div class="flex items-center justify-between gap-2">

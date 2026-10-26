@@ -82,13 +82,24 @@ Screenshots: `comparisons/{gate,login,login-otp,choose-role,welcome}/`. Tool: `n
 | welcome | hand icon | crimson box + `ti-hand-stop` SVG | crimson square + `AuthHandStopIcon` (no Material ligature) | fixed |
 | welcome | title color | charcoal | was emerald → navy | fixed |
 
-## Athlete / owner / coach / admin
+## Athlete shell — Prompt 4 2026-10-26
 
-(Fill per later slices.)
+Screenshots: `comparisons/{athlete-home,athlete-bookings,athlete-hub,athlete-wallet,m-athlete}/` (HTML vs live @375 + desktop). Tool: `node scripts/check-html-athlete-slice.mjs`. Mobile SoT for home chrome is `go('m-athlete')` `#m1` (desk `go('athlete-home')` is dash + `.rbanner`).
 
 | screen | region | HTML | live | status |
 |--------|--------|------|------|--------|
-| athlete-home | header icons | Tabler bell + user | Material notifications + person | open |
+| m-athlete / athlete-home | topbar | logo + `ti-bell` + `ti-user` on photo `.mbt` | `InboxBrandLockup` + Material notifications + person; gap 14px | fixed |
+| m-athlete / athlete-home | search | `.msr` / `.rsearch`: CTA · تاریخ · شهر · ورزش | same `.canva-search-row` order + calendar on date | fixed |
+| m-athlete / athlete-home | hero | `.mban` / `.rbanner` 176px + promo tag | `.canva-photo-hero` min-height 176 + promo badge | fixed |
+| m-athlete / athlete-home | cards / rails | `.rcard` / venue rails + رزرو کن | `.canva-venue-card` rails + live clubs API | fixed |
+| m-athlete | bottom nav | خانه · رزروهای من · پروفایل + crimson top bar | `AppBottomNav` 3 tabs + active bar | fixed |
+| athlete-bookings | phone chrome | `.mxtop` logo + bell + user | `CanvaAthleteChrome` + notifications slot | fixed |
+| athlete-bookings | header | `تاریخچه رزروها` + 3 sum cards | same title + `.canva-history-sum` | fixed |
+| athlete-bookings | filter chips | `.ofch .on` soft crimson `#f6e3e3` | was solid fill → soft crimson active | fixed |
+| athlete-bookings | desk columns | list (start) + calendar sticky | was calendar-start → order list then cal | fixed |
+| athlete-hub | header / menu | desk `.ph` + `.hubgrid` 2-col; mobile m1 form | crimson hub + menu (product); desk menu 2-col like hubgrid | fixed |
+| athlete-wallet | balance card / history h | `.rred` + `.rh3` | `.canva-dash-hero` + crimson history title | fixed |
+| athlete-home | header icons | Tabler bell + user | Material map (same job) | fixed |
 | owner-calendar | slot blocked | near-black `#1a1a18` | black tokens (verify live) | open |
 | owner-calendar | header avatar | square `#1d3b57` | square navy (verify) | open |
 | owner-calendar | booked fill | neutral + crimson bar | neutral fill (verify bars) | open |
@@ -104,3 +115,6 @@ Screenshots: `comparisons/{gate,login,login-otp,choose-role,welcome}/`. Tool: `n
 | * | bottom nav / back / logo | escape hatches |
 | * | real club photos | product over stock |
 | coach today | accept-students + revenue | product extras vs simpler HTML Today |
+| athlete-home | coach discovery rail | product when coach pilot on; HTML desk rails are venues-only |
+| athlete-hub | crimson hero + list vs m1 profile form | product account hub; edit fields live on `/athlete/profile` |
+| athlete-bookings | empty / live booking rows | product API data vs HTML mock cards |
