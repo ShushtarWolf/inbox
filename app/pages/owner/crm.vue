@@ -367,7 +367,7 @@ async function send() {
     </AppAsyncState>
 
     <div class="fixed inset-x-0 z-[40] px-4 max-[430px]:bottom-[calc(var(--sz-tab-bar-height)+var(--sz-safe-bottom)+0.75rem)] min-[431px]:static min-[431px]:z-auto min-[431px]:px-0">
-      <div class="mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] min-[431px]:max-w-none">
+      <div class="mx-auto w-full max-[430px]:max-w-[var(--sz-phone-width)] min-[431px]:max-w-none canva-crm-cta-row">
         <button type="button" class="canva-black-cta" @click="openWizard">
           {{ t('owner.smsWizard.openCta') }}
         </button>

@@ -57,15 +57,15 @@ const sections = computed(() => {
 <template>
   <div class="tail-page-stack">
     <CanvaPublicChrome v-if="showChrome" />
-    <div class="prose prose-sm mx-auto max-w-2xl px-4 py-4 min-[431px]:py-6">
+    <div class="canva-legal">
     <h1>{{ t(titleKey) }}</h1>
-    <p class="text-sm text-brand-muted">{{ t('legal.lastUpdated') }}</p>
+    <p class="canva-legal-meta">{{ t('legal.lastUpdated') }}</p>
     <p>{{ t(introKey) }}</p>
-    <section v-for="(section, idx) in sections" :key="idx" class="mt-6">
+    <section v-for="(section, idx) in sections" :key="idx">
       <h2>{{ normalizeLegalText(rt(section.title)) }}</h2>
-      <p v-for="(para, pidx) in section.paragraphs" :key="pidx" class="mt-2">{{ mapParagraph(para) }}</p>
+      <p v-for="(para, pidx) in section.paragraphs" :key="pidx">{{ mapParagraph(para) }}</p>
     </section>
-    <p class="mt-8 text-sm text-brand-muted">{{ t('legal.disclaimer') }}</p>
+    <p class="canva-legal-meta canva-legal-disclaimer">{{ t('legal.disclaimer') }}</p>
     </div>
   </div>
 </template>

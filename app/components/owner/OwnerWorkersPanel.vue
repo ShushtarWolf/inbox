@@ -233,7 +233,7 @@ async function confirmDelete() {
   <div :class="embedded ? '' : 'venus-page-stack'">
     <CanvaSubpageHeader v-if="!embedded" to="/owner/calendar?more=1" :title="t('owner.workers')" :subtitle="t('owner.workersPage.subtitle')" />
     <OwnerActiveClubBar v-if="!embedded" class="mb-3" />
-    <div v-if="!embedded" class="flex flex-wrap items-center justify-end gap-3">
+    <div v-if="!embedded" class="flex flex-wrap items-center justify-start gap-3 canva-sot-actions">
       <button type="button" class="canva-gate-btn-primary text-sm" @click="openAdd">{{ t('owner.workersPage.addWorker') }}</button>
     </div>
     <p v-if="!embedded && !pilotNoCoach" class="text-xs text-brand-gray-500 text-start">{{ t('owner.workersPage.coachesNote') }}</p>

@@ -110,15 +110,15 @@ useHead({
 <template>
   <div class="tail-page-stack">
     <CanvaPublicChrome />
-  <div class="mx-auto max-w-2xl px-4 py-4 min-[431px]:py-6">
-    <h1 class="text-start text-2xl font-bold text-brand-navy">{{ t('contact.title') }}</h1>
-    <p class="mt-1 text-start text-sm text-brand-gray-500">{{ t('legal.lastUpdated') }}</p>
+  <div class="canva-legal canva-contact">
+    <h1>{{ t('contact.title') }}</h1>
+    <p class="canva-legal-meta">{{ t('legal.lastUpdated') }}</p>
     <p class="mt-3 text-start text-sm text-brand-gray-700">{{ t('contact.intro') }}</p>
 
-    <dl class="mt-6 space-y-3 text-sm">
+    <dl class="canva-contact-card canva-contact-kv">
       <div
         v-if="ownerName"
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.ownerLabel') }}</dt>
@@ -128,7 +128,7 @@ useHead({
       <!-- Address: env only — never invent Tehran; hide when unset (no setup copy to users) -->
       <div
         v-if="address"
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.addressLabel') }}</dt>
@@ -140,7 +140,7 @@ useHead({
 
       <div
         v-if="landline"
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.landlineLabel') }}</dt>
@@ -151,7 +151,7 @@ useHead({
 
       <div
         v-if="mobile"
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.mobileLabel') }}</dt>
@@ -161,7 +161,7 @@ useHead({
       </div>
 
       <div
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.emailLabel') }}</dt>
@@ -178,7 +178,7 @@ useHead({
       </div>
 
       <div
-        class="space-y-1 border border-brand-gray-200 bg-white p-4"
+        class="canva-contact-row"
         style="border-radius: 2px;"
       >
         <dt class="font-bold text-brand-navy">{{ t('contact.hoursLabel') }}</dt>
@@ -187,10 +187,7 @@ useHead({
     </dl>
 
     <!-- Marketing message — only message field uses SmoothCaret -->
-    <section
-      class="mt-6 space-y-3 border border-brand-gray-200 bg-white p-4"
-      style="border-radius: 2px;"
-    >
+    <section class="canva-contact-card space-y-3">
       <h2 class="text-start text-base font-bold text-brand-navy">{{ t('contact.messageTitle') }}</h2>
       <p class="text-start text-sm text-brand-gray-600">{{ t('contact.messageIntro') }}</p>
       <form class="space-y-3" @submit.prevent="submitMessage">
@@ -251,10 +248,7 @@ useHead({
     </section>
 
     <!-- Trust: only user-facing facts — never raw config/env values or setup notes. -->
-    <section
-      class="mt-6 space-y-3 border border-brand-gray-200 bg-white p-4"
-      style="border-radius: 2px;"
-    >
+    <section class="canva-contact-card space-y-3">
       <h2 class="text-start text-base font-bold text-brand-navy">{{ t('contact.readinessTitle') }}</h2>
 
       <div v-if="enamadReady" class="space-y-1 text-sm">

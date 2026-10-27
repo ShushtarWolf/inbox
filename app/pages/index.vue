@@ -218,7 +218,8 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
         </div>
 
-        <div class="mt-5 flex items-center justify-between">
+      </div>
+        <div class="canva-hero-controls">
           <button
             type="button"
             class="canva-hero-arrow"
@@ -227,7 +228,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           >
             <AppIcon name="chevron_right" size="md" />
           </button>
-          <div class="flex gap-2">
+          <div class="canva-hero-dots">
             <button
               v-for="(_, index) in heroSlides"
               :key="index"
@@ -248,7 +249,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             <AppIcon name="chevron_left" size="md" />
           </button>
         </div>
-      </div>
     </section>
 
     <!-- HTML .rsearch: CTA + تاریخ + شهر + ورزش (RTL: CTA on the right) -->
@@ -316,7 +316,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
     </AppModal>
 
     <AppAsyncState :pending="railsPending" skeleton-variant="stat-grid">
-      <section class="space-y-3">
+      <section class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.suggestionsTitle') }}</h2>
@@ -352,7 +352,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         <p v-else class="text-sm text-brand-gray-600">{{ t('common.empty') }}</p>
       </section>
 
-      <section v-if="tennisClubs.length" class="space-y-3">
+      <section v-if="tennisClubs.length" class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.tennisTitle') }}</h2>
@@ -387,7 +387,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         </div>
       </section>
 
-      <section v-if="padelClubs.length" class="space-y-3">
+      <section v-if="padelClubs.length" class="canva-rail-section space-y-3">
         <div class="flex items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-brand-primary">{{ t('home.padelTitle') }}</h2>

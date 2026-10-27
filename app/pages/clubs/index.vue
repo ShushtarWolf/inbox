@@ -234,8 +234,8 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
           <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
         </div>
-
-        <div class="mt-5 flex items-center justify-between">
+      </div>
+        <div class="canva-hero-controls">
           <button
             type="button"
             class="canva-hero-arrow"
@@ -244,7 +244,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
           >
             <AppIcon name="chevron_right" size="md" />
           </button>
-          <div class="flex gap-2">
+          <div class="canva-hero-dots">
             <button
               v-for="(_, index) in heroSlides"
               :key="index"
@@ -265,7 +265,6 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
             <AppIcon name="chevron_left" size="md" />
           </button>
         </div>
-      </div>
     </section>
 
     <!-- Rectangular short chips, right-grouped (justify-start in RTL) -->

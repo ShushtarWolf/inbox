@@ -138,9 +138,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="canva-auth-sheet flex min-h-dvh flex-col">
-    <div class="mx-auto flex w-full max-w-sm flex-1 items-center px-4 py-8">
-      <div class="canva-result-sheet w-full p-0">
+  <div class="canva-auth-sheet canva-authc flex min-h-dvh flex-col">
+    <div class="mx-auto flex w-full max-w-[440px] flex-1 items-center px-4 py-10">
+      <div class="canva-authbox canva-authbox-flush">
         <div class="canva-auth-accent" />
         <!-- LOCKED: logo RIGHT / action LEFT (RTL: logo first, action last) -->
         <div class="canva-auth-header">
@@ -151,8 +151,8 @@ onUnmounted(() => {
         </div>
 
         <div class="canva-auth-body">
-          <h1 class="text-center text-lg font-bold text-brand-navy">{{ t('auth.forgotPasswordTitle') }}</h1>
-          <p class="text-center text-sm text-brand-gray-600">{{ t('auth.resetPreferPhoneHint') }}</p>
+          <h1 class="canva-authbox-title text-start">{{ t('auth.forgotPasswordTitle') }}</h1>
+          <p class="canva-authbox-sub text-start">{{ t('auth.resetPreferPhoneHint') }}</p>
 
           <div v-if="step === 'done'" class="space-y-3 text-center">
             <p class="text-sm font-bold text-brand-navy">{{ t('auth.resetSuccess') }}</p>
