@@ -4397,3 +4397,44 @@
   [dir=rtl] .canva-sot-form > .canva-black-cta, [dir=rtl] .canva-sot-form .canva-gate-btn-primary { margin-right: auto !important; margin-left: 0 !important; }
 }
 @media (min-width: 431px) { .canva-sot-form .canva-gate-btn-primary { display: flex !important; } }
+
+/* ===== HTML SoT fidelity — home page pass (SoT #pg-home measured: .rhead .rn / .rbtn, .rsearch, .rrail head) ===== */
+@layer components {
+  @media (min-width: 431px) {
+    .public-rhead .public-rhead-nav,
+    .public-rhead .public-rhead-nav-active {
+      min-height: 40px;
+      height: 40px;
+    }
+    .public-rhead .canva-home-login {
+      min-height: 44px;
+      height: 44px;
+      padding: 0 24px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+  }
+  .canva-hero-home + section {
+    margin-top: 20px !important;
+  }
+  @media (min-width: 640px) {
+    .canva-search-row-home .canva-search-cta {
+      padding-inline: 32px;
+      gap: 8px;
+    }
+  }
+  .canva-search-row-home .canva-search-cta > * {
+    font-size: 20px !important;
+    width: 20px;
+    height: 20px;
+  }
+  .canva-rail-section > div:first-child p {
+    color: #6b6b67;
+    line-height: 18px;
+  }
+  .canva-rail-section > div:first-child > a {
+    color: #2c2c2a;
+    font-weight: 600;
+    line-height: 18px;
+  }
+}

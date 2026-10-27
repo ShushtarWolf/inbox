@@ -21,7 +21,7 @@ const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/b
 const SF = `/tmp/fid-state-${process.env.LOGIN_OTP || process.env.LOGIN}.json`
 if ((process.env.LOGIN_OTP || process.env.LOGIN) && fs.existsSync(SF)) STATE = JSON.parse(fs.readFileSync(SF, 'utf8'))
 else if (process.env.LOGIN_OTP || process.env.LOGIN) {
-  const c = await b.newContext(); const base = 'http://localhost:3100'
+  const c = await b.newContext(); const base = (process.env.BASE||'http://localhost:3000')
   if (process.env.LOGIN_OTP) {
     const r = await (await c.request.post(base + '/api/auth/otp/request', { data: { phone: process.env.LOGIN_OTP, purpose: 'login' } })).json()
     await c.request.post(base + '/api/auth/otp/verify', { data: { phone: process.env.LOGIN_OTP, code: r.debugCode, purpose: 'login' } })
@@ -54,7 +54,7 @@ for (const arg of process.argv.slice(2)) {
           const el = p.locator(mobileOnly ? `#pg-${sotId} .mphone` : `#pg-${sotId}`)
           await el.screenshot({ path: out })
         } else {
-          const base = kind === 'after' ? 'http://localhost:3100' : 'https://inboxs.ir'
+          const base = kind === 'after' ? (process.env.BASE||'http://localhost:3000') : 'https://inboxs.ir'
           const want = kind === 'live' ? liveRoute : route
           await p.goto(base + want, { waitUntil: 'load', timeout: 60000 }).catch(() => {})
           await p.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(1500)
