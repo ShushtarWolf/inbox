@@ -4452,3 +4452,21 @@
 .canva-club-detail-book .canva-club-book-footer { margin-top: 14px; padding: 12px 14px; gap: 12px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.12); border-radius: 0; }
 .canva-club-detail-book .canva-club-book-summary { font-size: 12.5px; font-weight: 400; color: #6b6b67; }
 .canva-club-detail-book .canva-club-book-cta { min-height: 44px; border-radius: 0; font-size: 14px; font-weight: 700; }
+
+/* ── HTML SoT fidelity: all calendars (cal-card / cal-nav / cal-head / cal-cell) — visual only ── */
+.canva-history-cal { background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:16px; padding:18px; box-shadow:none; }
+.canva-history-cal-nav { margin-bottom:12px; }
+.canva-history-cal-nav-btn { width:2rem; height:2rem; border:0; border-radius:6px; color:#8f8f8b; background:transparent; }
+.canva-history-cal-nav-btn:hover { background:rgba(44,44,42,.05); color:#2c2c2a; }
+.canva-history-cal-month { font-size:13px; font-weight:700; color:#2c2c2a; }
+.canva-history-cal-weekdays { font-size:10px; font-weight:400; color:#8f8f8b; margin-bottom:6px; }
+.canva-history-cal-day { aspect-ratio:1; min-height:0; border-radius:9px; font-size:12px; font-weight:500; color:#2c2c2a; gap:3px; }
+.canva-history-cal-day:hover { background:rgba(44,44,42,.05); }
+.canva-history-cal-day-today:not(.canva-history-cal-day-active) { box-shadow:inset 0 0 0 1px #2c2c2a; }
+.canva-history-cal-day-active, .canva-history-cal-day-active:hover { background:#2c2c2a; color:#fff; }
+.canva-cal-date-nav-label { font-size:13px; font-weight:700; color:#2c2c2a; }
+.canva-cal-date-nav-btn { border-radius:6px; color:#8f8f8b; }
+.canva-cal-date-nav-btn:hover { background:rgba(44,44,42,.05); color:#2c2c2a; }
+.canva-cal-grid-shell { border:1px solid rgba(44,44,42,.08); border-radius:16px; overflow:hidden; background:#fff; }
+.canva-cal-grid-time, .canva-cal-grid-court { font-size:10.5px; color:#8f8f8b; font-weight:600; }
+.canva-cal-grid-cell { border-radius:9px; }
