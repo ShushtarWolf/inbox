@@ -21,7 +21,6 @@ import {
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../../utils/adminNotify'
 import { ownerPostLoginRedirect, toSessionUser } from '../../../utils/auth'
-import { seedDefaultEquipment } from '../../../utils/seedDefaultEquipment'
 import type { Prisma, User } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -164,8 +163,6 @@ export default defineEventHandler(async (event) => {
           },
         })
       }
-
-      await seedDefaultEquipment(tx, club.id)
 
       const hasMembership = await tx.staffMembership.findFirst({
         where: { userId: user.id, active: true },

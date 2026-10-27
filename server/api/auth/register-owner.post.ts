@@ -13,7 +13,6 @@ import {
 import { createPendingOwnerApplication } from '../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../utils/adminNotify'
 import { toSessionUser, touchLastLogin } from '../../utils/auth'
-import { seedDefaultEquipment } from '../../utils/seedDefaultEquipment'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-owner')
@@ -157,8 +156,6 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
-
-    await seedDefaultEquipment(tx, club.id)
 
     const hasMembership = await tx.staffMembership.findFirst({
       where: { userId: user.id, active: true },

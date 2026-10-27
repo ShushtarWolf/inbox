@@ -4,7 +4,6 @@ import { formatHour, hourEnd, todayDateStr } from '../server/utils/slots.ts'
 import { toFaDigits } from '../shared/courtBulk.ts'
 import { addDaysToIsoDate } from '../shared/localDate.ts'
 import { productionDemoSeedMessage, shouldRefuseProductionDemoSeed } from '../shared/seedSafety.ts'
-import { DEFAULT_EQUIPMENT } from '../shared/defaultEquipment.ts'
 
 const prisma = new PrismaClient()
 
@@ -570,21 +569,15 @@ async function main() {
     ],
   })
 
-  const demoEquipmentOverrides: Record<string, { price: number; quantity: number }> = {
-    'راکت': { price: 50000, quantity: 8 },
-    'توپ': { price: 50000, quantity: 8 },
-    'سبد توپ': { price: 30000, quantity: 4 },
-    'سبد توپ جمع‌کن': { price: 30000, quantity: 4 },
-    'شخص توپ جمع‌کن': { price: 100000, quantity: 2 },
-  }
   const equipData = [
     { nameFa: 'دوش', nameEn: 'Shower', category: 'CLUB' as const, price: 0, quantity: 1 },
     { nameFa: 'رختکن', nameEn: 'Locker', category: 'CLUB' as const, price: 0, quantity: 1 },
     { nameFa: 'پارکینگ', nameEn: 'Parking', category: 'CLUB' as const, price: 0, quantity: 1 },
-    ...DEFAULT_EQUIPMENT.map((item) => ({
-      ...item,
-      ...(demoEquipmentOverrides[item.nameFa] ?? {}),
-    })),
+    { nameFa: 'راکت', nameEn: 'Racket', category: 'RENTAL' as const, price: 50000, quantity: 8 },
+    { nameFa: 'سبد توپ', nameEn: 'Ball basket', category: 'RENTAL' as const, price: 30000, quantity: 4 },
+    { nameFa: 'توپ', nameEn: 'Ball', category: 'RENTAL' as const, price: 50000, quantity: 8 },
+    { nameFa: 'سبد توپ جمع‌کن', nameEn: 'Ball hopper', category: 'RENTAL' as const, price: 30000, quantity: 4 },
+    { nameFa: 'شخص توپ جمع‌کن', nameEn: 'Ball boy', category: 'SERVICE' as const, price: 100000, quantity: 2 },
     { nameFa: 'گریپ', nameEn: 'Grip', category: 'SELL' as const, price: 150000, quantity: 20 },
     { nameFa: 'توپ فروشی', nameEn: 'Ball', category: 'SELL' as const, price: 200000, quantity: 20 },
   ]
