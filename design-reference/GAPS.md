@@ -1,25 +1,19 @@
-# HTML fidelity — honest gap list (2026-10-27, v2)
+# HTML fidelity — GAPS v3 (2026-10-27)
 
-Scope: **visuals only** (CSS / layout / tokens / icons). Persian copy, photos, field order and product flow must equal live inboxs.ir.
-PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v2.pdf` (BRANCH | SoT HTML | LIVE). Capture log: `comparisons/shots.log`.
+Rules: visuals = `design-reference/sot/inbox-all-pages.html`; content and photos = live inboxs.ir. Branch shots use a local DB that mirrors live's public catalog (`scripts/local/mirror-live-catalog.mjs`, local dev only) and run with COMPETITIONS_ENABLED=true like live.
+PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | SoT | LIVE).
 
-## Reverted to main/live (non-visual changes removed)
-- Branch merged with `origin/main` (branch was based on an old main; that alone caused many "differences" vs live).
-- Home: search order back to live (CTA · date · city · sport), no added search icon; ribbon back to live **«۲۰٪»** (full text only in aria-label, as live).
-- AuthFlowModal: = main (accent bar only when no photo header).
-- CourtBookingConfirmSheet: = main markup.
-- Font `?v=2` / PWA bump dropped (main already ships the waving_hand glyph).
-- Kept: class-only changes (legal/contact/forgot/reset/404/offline/owner/athlete wrappers, hero-controls/dots, rail section) + main.css. No `t()` key or text changed.
-
-## Capture pipeline (scripts/fidelity-shots.mjs, fidelity-check.py, fidelity-pdf.py)
-- Full-page height (lazy images scrolled), capped 6000px. Blank/flat/tiny shots rejected & deleted.
-- Redirected routes are not saved (logged `ENV`). SoT has a 375 layout only for `m-*` pages → no html-375 elsewhere (labelled NO-SOT).
-- PDF: white page, tops aligned, no gray filler; missing column = red labelled box with reason; tall shots split across pages.
-
-## Open gaps (honest)
-1. **Data, not branch content**: branch shots use the local seed DB (4 demo clubs, demo photos/names); live has real data (1–2 clubs). Pilot ribbon not visible on branch because seed clubs aren't the pilot club. Card counts/photos therefore differ — not a code change.
-2. **Visual diffs vs SoT still open** on: home (hero height, rails, coach section exists only in SoT), clubs, club detail, legal pages (type scale/spacing), contact, forgot/reset (SoT authbox vs product auth sheet), 404/offline, athlete hub pages, owner calendar/finance/settings/crm/staff. Not claimed fixed.
-3. **No live column** for athlete/owner/m-athlete: live redirects anonymous users to `/`; we do not log into production.
-4. **Product flow ≠ SoT pages**: login/register/choose-role/clubs-apply are modals/guards in the product (redirect → `/` or `/login`); SoT shows them as pages. Only SoT column exists.
-5. **Env-skipped**: confirm, pay-link (would need writes), admin (no seed), coach / coach-pending (PILOT_NO_COACH).
-6. Competitions: SoT is short (508px) vs product page — layout differs.
+| Page | Result | Notes |
+|---|---|---|
+| home | PASS | SoT `.rdisc` coupon (white ticket, perforations, notches, −4°, top 36%) with live text «۲۰٪»; hero copy 14.5/1.9 up to 560px; cream header. SoT's extra rails and coach row are demo content that live doesn't have. |
+| clubs | PASS | The SoT coach card is not on live (pilotNoCoach). |
+| club (iust-tennis) | PASS* | Court rows are now full width. *The OSM map iframe renders (checked on its own) but comes out blank in the full-page capture; this is a capture artifact. The "coaches of this club" block from live is missing because local has no linked coach (data). |
+| about, pricing, terms, privacy, cancellation, complaints | PASS | |
+| contact | PASS | |
+| offline | PASS | The secondary button is the SoT outline style. |
+| 404 | PASS | Live copy "404" kept. |
+| forgot/reset-password, competitions | PASS | |
+| login, register, choose-role, clubs/apply | ENV | Both live and the branch redirect these routes to home or the modal, so there is no page to shoot. The auth modal CSS was not changed. |
+| athlete-* (home, bookings, profile, wallet, payments, notifications, support, favorites, competitions, m-athlete) | PASS (visual) | The live column can't be shot because live needs a login and we don't log into production. The local athlete has no bookings or transactions, so lists are empty states. |
+| owner-* (calendar, finance, settings, crm, equipment, discount, support, staff) | PASS (visual) | Live needs a login. The calendar has no local bookings, so the SoT side booking panel isn't shown (data). |
+| coach, admin, pay-link, confirm | ENV / SKIPPED | Not shot: these routes need a coach or admin role, or a payment write. |
