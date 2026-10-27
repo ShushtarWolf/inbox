@@ -182,7 +182,7 @@ async function confirmDelete() {
           >
             {{ localizedField(e, 'nameFa', 'nameEn') }}
           </button>
-          <p v-if="!grouped.CLUB.length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</p>
+          <p v-if="!grouped.CLUB.length" class="text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.empty') }}</p>
         </div>
 
         <ul v-else class="space-y-2">
@@ -195,7 +195,7 @@ async function confirmDelete() {
               <span class="shrink-0 text-xs tabular-nums text-brand-gray-600">{{ formatEquipmentPrice(e) }}</span>
             </button>
           </li>
-          <li v-if="!grouped[cat.key].length" class="text-xs text-brand-gray-600">{{ t('common.empty') }}</li>
+          <li v-if="!grouped[cat.key].length" class="text-xs text-brand-gray-600">{{ t('owner.equipmentsPage.empty') }}</li>
         </ul>
       </section>
       </div>
