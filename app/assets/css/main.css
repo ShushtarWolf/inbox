@@ -4679,3 +4679,14 @@
   .owner-cal-page .canva-cal-date-nav { margin-bottom: 16px; font-size: 14px; }
   .owner-cal-page .canva-overview-kpi { background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 16px; padding: 18px 20px; }
 }
+
+/* SoT legalPage(): FAQ sits before the disclaimer as plain .rfaq rows */
+.legal-sot-faq { margin-top: 34px; }
+.legal-sot-faq .canva-help { padding: 0; margin: 0; max-width: none; }
+.legal-sot-faq .canva-faq-title { font-size: 17px; color: #2c2c2a; margin: 0 0 6px; }
+.legal-sot-faq .canva-faq-list { gap: 0; display: block; }
+.legal-sot-faq .canva-faq-item { background: transparent; border: 0; border-bottom: 1px solid rgba(44,44,42,.08); border-radius: 0; box-shadow: none; margin: 0; }
+.legal-sot-faq .canva-faq-trigger { padding: 12px 0; justify-content: flex-start; gap: 6px; font-weight: 600; font-size: 14px; }
+.legal-sot-faq .canva-faq-trigger::before { content: '\25C2'; font-size: 11px; order: -1; }
+.legal-sot-faq .canva-faq-chevron { display: none; }
+.legal-sot-faq .canva-faq-panel { padding: 0 0 12px; }
