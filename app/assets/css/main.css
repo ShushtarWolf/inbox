@@ -4628,3 +4628,35 @@
     color: #6b6b67;
   }
 }
+
+/* SoT club detail (#pg-club): booking rail spans the full main column (.rcl 1fr | 440px) */
+@media (min-width: 901px) {
+  .canva-club-detail {
+    grid-template-areas:
+      "gallery book"
+      "intro book"
+      "more book"
+      "reviews book"
+      "citation book"
+      ". book" !important;
+    grid-template-rows: auto auto auto auto auto 1fr !important;
+    row-gap: 26px !important;
+  }
+  .canva-club-detail-citation, .canva-club-citation { grid-area: citation; }
+  .canva-club-detail-book { align-self: start; }
+  .canva-club-detail-section-title,
+  .canva-club-citation .canva-faq-title {
+    font-size: 15px;
+    line-height: 23px;
+  }
+}
+@media (min-width: 901px) {
+  .canva-club-detail > .canva-club-gallery { margin-bottom: -8px; }
+}
+@media (min-width: 901px) {
+  .canva-club-detail .canva-club-more { display: flex !important; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .canva-club-detail .canva-club-more-copy { width: 100%; }
+  .canva-club-detail .canva-club-more-map { width: 420px; max-width: 100%; order: 2; }
+  .canva-club-detail .canva-club-more-map-frame,
+  .canva-club-detail .canva-club-more-map-empty { height: 230px !important; width: 100%; }
+}
