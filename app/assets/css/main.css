@@ -4438,3 +4438,193 @@
     line-height: 18px;
   }
 }
+
+/* ===== HTML SoT fidelity — /clubs pass (SoT #pg-clubs: .rchips, .rbox.rlink, .rrh, .rlist/.rwide/.rwc) ===== */
+@layer components {
+  .canva-clubs-page > .canva-clubs-chip-row {
+    margin: 22px 0 16px !important;
+    gap: 8px;
+  }
+  .canva-clubs-page .canva-clubs-coach-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 0 !important;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+    color: #2c2c2a;
+  }
+  .canva-clubs-coach-ico {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba(196, 30, 30, 0.1);
+    color: #c41e1e;
+  }
+  .canva-clubs-coach-ico > * {
+    font-size: 20px !important;
+  }
+  .canva-clubs-coach-link b {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 22px;
+  }
+  .canva-clubs-coach-link small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #6b6b67;
+  }
+  .canva-clubs-page > section:not(.canva-hero) {
+    margin-top: 26px !important;
+  }
+  .canva-clubs-page > section.space-y-3 > * + * {
+    margin-top: 12px;
+  }
+  .canva-clubs-page .canva-clubs-section-subtitle {
+    margin-top: 2px;
+    color: #6b6b67;
+    line-height: 18px;
+  }
+  .canva-clubs-page .canva-clubs-sort {
+    gap: 4px;
+    font-weight: 600;
+    color: #2c2c2a;
+    line-height: 18px;
+  }
+  .canva-clubs-page .canva-court-card-grid {
+    gap: 14px;
+  }
+  .canva-clubs-page .canva-court-card {
+    min-height: 180px;
+  }
+  .canva-clubs-page .canva-court-card-body {
+    min-height: 180px;
+    gap: 14px;
+    padding: 20px;
+  }
+  .canva-clubs-page .canva-court-card-title {
+    margin-bottom: 4px;
+    line-height: 29px;
+  }
+  .canva-clubs-page .canva-court-card-meta {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #fff;
+  }
+  .canva-clubs-page .canva-court-card-desc {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.9;
+    color: #eee;
+  }
+  .canva-clubs-page .canva-court-card-price {
+    margin-top: 0;
+    font-size: 12.5px;
+  }
+  .canva-clubs-page .canva-court-card-cta {
+    padding: 6px 16px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+}
+@layer components {
+  .canva-clubs-page > .canva-hero-home {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* SoT «راهنما» rail (.rrail > .rrh h2 + .rbox > small + .rpill) — home and /clubs */
+@layer components {
+  .canva-help .canva-help-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 700;
+    color: #c41e1e;
+  }
+  .canva-help .canva-help-hubs {
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+  }
+  .canva-help .canva-help-hubs-label {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    color: #6b6b67;
+  }
+  .canva-help .canva-help-hubs .canva-clubs-chip-row {
+    gap: 8px;
+  }
+  .canva-help .canva-help-hubs .canva-clubs-chip {
+    height: 32px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 400;
+    background: #e3e0db;
+    color: #2c2c2a;
+  }
+  .canva-clubs-page > .canva-clubs-chip-row .canva-clubs-chip {
+    height: 38px;
+  }
+}
+
+/* SoT «سوالات پرتکرار» (.rrail .rrh + .rfaq2) */
+@layer components {
+  .canva-help > .canva-faq {
+    margin-top: 26px !important;
+  }
+  .canva-faq .canva-faq-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 700;
+    color: #c41e1e;
+  }
+  .canva-faq .canva-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .canva-faq .canva-faq-list > * + * {
+    margin-top: 0 !important;
+  }
+  .canva-faq .canva-faq-item {
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+  }
+  .canva-faq .canva-faq-trigger {
+    min-height: 53px;
+    padding: 16px 18px;
+  }
+  .canva-faq .canva-faq-question {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 21px;
+  }
+  .canva-faq .canva-faq-chevron {
+    font-size: 14px !important;
+    line-height: 21px !important;
+    height: 21px;
+    color: #6b6b67;
+  }
+  .canva-faq .canva-faq-trigger {
+    min-height: 0;
+  }
+  .canva-faq .canva-faq-answer {
+    padding: 0 18px 16px;
+    font-size: 13px;
+    line-height: 2;
+    color: #6b6b67;
+  }
+}
