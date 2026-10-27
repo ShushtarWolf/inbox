@@ -826,7 +826,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 dir="ltr"
                 class="neo-input"
                 autocomplete="tel"
-                :placeholder="t('auth.phonePlaceholder')"
+                :placeholder="t('owner.invitePhonePlaceholder')"
               >
             </AppFormField>
             <AppFormField :label="t('auth.name')" required>
