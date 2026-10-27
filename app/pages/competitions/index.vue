@@ -51,9 +51,9 @@ async function applyFilters() {
   <div class="tail-page-stack animate-fade-in">
     <CanvaPublicChrome back-to="/" />
 
-    <div class="canva-clubs-section-head">
+    <div class="canva-clubs-section-head comp-sot-head">
       <div class="canva-clubs-section-copy">
-        <h1 class="canva-clubs-section-title">{{ t('competitions.title') }}</h1>
+        <h1 class="canva-clubs-section-title comp-sot-title">{{ t('competitions.title') }}</h1>
       </div>
     </div>
 
@@ -139,3 +139,9 @@ async function applyFilters() {
     </template>
   </div>
 </template>
+
+<style scoped>
+/* SoT pages['competitions']: .rh3 15px #c41e1e, tight under header */
+.comp-sot-head { margin-top: -24px !important; margin-bottom: -6px !important; padding-top: 0 !important; }
+.comp-sot-title { font-size: 15px; line-height: 1.4; color: #c41e1e; }
+</style>
