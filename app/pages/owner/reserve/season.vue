@@ -550,6 +550,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
               v-model:range-end="finishDate"
               mode="range"
               variant="owner"
+              selected-tone="green"
               :min-date="today()"
             />
             <div class="mt-3 flex flex-wrap gap-4 text-[11.5px] text-[#8C8A84]">
