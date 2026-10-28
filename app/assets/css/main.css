@@ -38,6 +38,11 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* SoT fonts — byte-identical woff2 extracted from design-reference/sot/inbox-all-pages.html
+   (@font-face Vazirmatn x2 + Outfit, same unicode-range, swap). SoT body: 'Outfit','Vazirmatn',system-ui. */
+@font-face { font-family: 'Vazirmatn'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/vazirmatn-arabic.woff2') format('woff2'); unicode-range: U+0600-06FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE80-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/vazirmatn-latin.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Outfit'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/outfit-latin.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,16 +58,16 @@
     overflow-x: hidden;
   }
   [dir='rtl'] body {
-    font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='ltr'] body {
-    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='rtl'] .font-display {
-    font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='ltr'] .font-display {
-    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold text-brand-navy;
@@ -4938,4 +4943,16 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   main .owner-staff-page.venus-page-stack > p.owner-staff-intro { margin: 12px 0 0 !important; line-height: 20px }
   main .owner-staff-page.venus-page-stack > p.owner-staff-note { margin: 10px 0 0 !important; line-height: 17px }
   main .owner-staff-page.venus-page-stack > .owner-staff-note + * , main .owner-staff-page.venus-page-stack > .owner-staff-note + * + .relative { margin-top: 10px !important }
+}
+.sot-rbell{display:inline-flex;align-items:center}
+/* owner-calendar desktop = SoT pages['owner-calendar'] .ph/.seg/.legend (measured 1440x900) */
+@media (min-width: 431px) {
+  main .owner-cal-page .canva-photo-hero { height: 176px; min-height: 176px }
+  main .owner-cal-page .canva-cal-sheet { position: relative; padding: 0 !important; margin-top: 24px !important; background: transparent }
+  main .owner-cal-page .canva-cal-sheet > h1 { line-height: 35px; margin: 0 0 4px }
+  main .owner-cal-page .canva-cal-sheet > p.owner-cal-welcome { display: none }
+  main .owner-cal-page .canva-cal-sheet > p { margin: 0 !important; line-height: 20px }
+  main .owner-cal-page .canva-cal-sheet > .canva-view-tabs { position: absolute; left: 0; top: 17px; margin: 0 !important; border: 1px solid rgba(44,44,42,.08); border-radius: 0 }
+  main .owner-cal-page .canva-cal-sheet > .canva-view-tabs .canva-view-tab { border-radius: 0; box-shadow: none }
+  main .owner-cal-page .canva-cal-club-switch { margin-top: 12px }
 }

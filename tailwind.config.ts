@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Outfit Variable', 'Outfit', 'Vazirmatn Variable', 'Vazirmatn', 'system-ui', 'sans-serif'],
-        display: ['Outfit Variable', 'Outfit', 'Vazirmatn Variable', 'sans-serif'],
+        sans: ['Outfit', 'Vazirmatn', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Vazirmatn', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
