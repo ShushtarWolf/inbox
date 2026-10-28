@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process'
 const SOT = 'file://' + path.resolve('design-reference/sot/inbox-all-pages.html')
 const which = (process.env.WHICH || 'html,after,live').split(',')
 const MAXH = Number(process.env.MAXH || 6000)
-const SKIP = { admin: 'no admin seed', 'pay-link': 'needs real payment write', confirm: 'needs booking write' }
+const SKIP = { 'pay-link': 'needs real payment write', confirm: 'needs booking write' }
 const log = []
 let STATE
 const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/box/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell' })
