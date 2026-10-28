@@ -4860,3 +4860,12 @@
   .owner-discount-page > .flex.justify-between > p { font-size:10px }
   .owner-discount-page ul + p, .owner-discount-page .canva-empty, .owner-discount-page ul ~ * { padding-inline-start:10px }
 }
+
+/* owner-support — SoT: white flat cxbox panels, contact card under ticket, roomy guide list */
+@media (min-width: 1024px) {
+  .owner-support-page .canva-support-wide > section { background:#fff; border-color:rgba(44,44,42,.12) !important; border-radius:0 !important }
+  .owner-support-page .canva-support-wide > section:nth-child(3) { grid-column:2 }
+  .owner-support-page .canva-support-wide > section:first-child ul { font-size:11px; line-height:2.2; margin-top:1rem }
+  .owner-support-page .canva-support-wide > section:first-child ul li::marker { color:#2c2c2a }
+  .owner-support-page .canva-support-wide .neo-input { border:1px solid rgba(44,44,42,.14); border-radius:0 }
+}

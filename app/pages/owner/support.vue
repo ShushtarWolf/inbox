@@ -107,7 +107,7 @@ async function submitTicket() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack owner-support-page">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.support')" :subtitle="t('owner.supportPage.subtitle')" />
     <OwnerActiveClubBar class="mb-3" />
 
