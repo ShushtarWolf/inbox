@@ -23,14 +23,14 @@ const tiles = computed(() => {
   const isOwner = role === 'OWNER'
 
   const items = [
-    { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
+    { path: '/owner/crm', labelKey: 'owner.crm', icon: 'account_box' },
     { path: '/owner/packages', labelKey: 'owner.packages', icon: 'inventory_2' },
     { path: '/owner/reserve/package', labelKey: 'owner.packageReserve', icon: 'event_available' },
-    { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
-    { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
+    { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'sports_tennis' },
+    { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'percent' },
     { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
     { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
-    { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
+    { path: '/owner/workers', labelKey: 'owner.workers', icon: 'id_card' },
   ] as const
 
   return items

@@ -4911,3 +4911,8 @@
   .owner-staff-page.venus-page-stack > .canva-sot-actions + p { margin-top:12px !important }
   .owner-staff-page.venus-page-stack > p.owner-staff-note { margin-top:6px !important; margin-bottom:8px !important }
 }
+/* owner-staff v3 — SoT chrome: no bell/avatar in top bar, cream body, no wrapper card */
+body:has(.owner-staff-page) div:has(> .canva-owner-avatar) { display:none !important }
+main:has(.owner-staff-page) { background:#f4efe9 }
+main:has(.owner-staff-page) .canva-panel:has(.owner-staff-page),
+main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important }

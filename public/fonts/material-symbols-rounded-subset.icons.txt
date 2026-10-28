@@ -1,5 +1,6 @@
 account_balance
 account_balance_wallet
+account_box
 add
 add_circle
 apartment
@@ -32,6 +33,7 @@ group
 groups
 headset_mic
 home
+id_card
 image
 inbox
 inventory_2
@@ -45,6 +47,7 @@ more_horiz
 notifications
 notifications_off
 payments
+percent
 person
 person_add
 privacy_tip
