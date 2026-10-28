@@ -4916,3 +4916,26 @@ body:has(.owner-staff-page) div:has(> .canva-owner-avatar) { display:none !impor
 main:has(.owner-staff-page) { background:#f4efe9 }
 main:has(.owner-staff-page) .canva-panel:has(.owner-staff-page),
 main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important }
+
+/* ---- SoT owner shell (design-reference/sot/inbox-all-pages.html: .side/.s-item/.rtop/.rclubpill) ---- */
+.sot-side { border-color: rgba(44,44,42,.08) }
+.sot-side > div:first-child { border-color: rgba(44,44,42,.08) }
+.sot-side > div:first-child > a { gap: 6px }
+.sot-side .inbox-brand-lockup { height: 31px }
+.sot-side nav > * + * { margin-top: 0 }
+.sot-side .canva-side-nav-item { margin-bottom: 2px; min-height: 42px; line-height: 22px; color: #4a4a47 }
+.sot-side .canva-side-nav-item:hover { background: #f4efe9 }
+.sot-side .canva-side-nav-item.tail-menu-item-active { color: #c41e1e; background: rgba(196,30,30,.10); font-weight: 600 }
+.sot-side .canva-side-nav-item .material-symbols-rounded { font-size: 17px; width: 17px; height: 17px; line-height: 17px }
+.sot-rtop { align-items: center; justify-content: space-between; height: 72px; padding: 0 24px 0 28px; border-bottom: 1px solid rgba(44,44,42,.08); background: #f4efe9 }
+.sot-rclubpill { display: inline-flex; align-items: center; gap: 10px; background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 30px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #2c2c2a; box-shadow: 0 2px 8px rgba(44,44,42,.06); cursor: pointer }
+.sot-rclubpill .material-symbols-rounded { font-size: 16px }
+/* owner-staff vertical rhythm = SoT .cxh(mt28,h35) / .cxbtn(mt14) / .cxp(mt12,10) / .cxbox(mt10) — measured same-viewport 1440x900 */
+@media (min-width: 431px) {
+  main .owner-staff-page.venus-page-stack h1 { line-height: 35px }
+  main .owner-staff-page.venus-page-stack > div:first-child { padding-top: 8px }
+  main .owner-staff-page.venus-page-stack > .canva-sot-actions { margin-top: 14px !important }
+  main .owner-staff-page.venus-page-stack > p.owner-staff-intro { margin: 12px 0 0 !important; line-height: 20px }
+  main .owner-staff-page.venus-page-stack > p.owner-staff-note { margin: 10px 0 0 !important; line-height: 17px }
+  main .owner-staff-page.venus-page-stack > .owner-staff-note + * , main .owner-staff-page.venus-page-stack > .owner-staff-note + * + .relative { margin-top: 10px !important }
+}

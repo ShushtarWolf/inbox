@@ -20,7 +20,7 @@ provide('ownerMoreOpen', moreOpen)
 const primaryNavItems = [
   { path: '/owner/calendar', labelKey: 'owner.calendarShort', icon: 'calendar_month' },
   { path: '/owner/finance', labelKey: 'owner.finance', icon: 'attach_money' },
-  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'person' },
 ] as const
 
 const desktopExtraNavItems = [
@@ -29,8 +29,8 @@ const desktopExtraNavItems = [
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
   { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'percent' },
   { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
-  { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
-  { path: '/owner/workers', labelKey: 'owner.workers', icon: 'id_card' },
+  { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
+  { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
 ] as const
 
 const activeMembership = computed(() => {
@@ -82,6 +82,10 @@ const sideNav = computed((): NavItem[] => [
 
 const memberships = computed(() => user.value?.memberships || [])
 
+/** SoT .rtop header (logo + club pill). Pilot: staff only; widen as pages are verified. */
+const SOT_HEADER_ROUTES = ['/owner/workers']
+const sotHeader = computed(() => SOT_HEADER_ROUTES.some((p) => route.path.includes(p)))
+
 /** Club switcher white card must not sit above photo-hero pages (Canva). */
 const showLayoutClubSwitcher = computed(
   () => memberships.value.length > 1
@@ -125,7 +129,7 @@ const showPendingBanner = computed(() => {
 
 <template>
   <DashboardShell
-    :title="t('dashboard.owner')"
+    :title="t('auth.chooseRole.CLUB_ADMIN.title')"
     :items="bottomNav"
     :side-items="sideNav"
     :wide="true"
@@ -133,6 +137,8 @@ const showPendingBanner = computed(() => {
     hide-mobile-header
     phone-shell
     use-account-drawer
+    sot-side
+    :sot-header="sotHeader"
   >
     <div
       v-if="showPendingBanner"
