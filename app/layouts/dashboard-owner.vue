@@ -129,6 +129,7 @@ const showPendingBanner = computed(() => {
 
 <template>
   <DashboardShell
+    class="owner-shell"
     :title="t('auth.chooseRole.CLUB_ADMIN.title')"
     :items="bottomNav"
     :side-items="sideNav"
@@ -151,7 +152,7 @@ const showPendingBanner = computed(() => {
     </div>
     <div v-if="showLayoutClubSwitcher" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
-        <AppIcon :name="route.path.includes('/owner/workers') ? 'storefront' : 'apartment'" size="sm" />
+        <AppIcon name="storefront" size="sm" /><!-- SoT .rclubcard uses ti-building-store on every owner page -->
       </span>
       <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-brand-gray-600">
         <span>{{ t('owner.activeClub') }}</span>

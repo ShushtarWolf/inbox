@@ -579,7 +579,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
       <div class="canva-photo-hero-body !min-h-[8rem] !pb-6" />
     </section>
     <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
-    <p class="mb-2 text-sm text-brand-gray-600 text-start">{{ t('owner.settingsPage.subtitle') }}</p>
+    <!-- SoT owner-settings: no subtitle under h1 -->
     <OwnerActiveClubBar class="mb-3" />
 
     <div class="mb-4 min-h-[2.75rem]">

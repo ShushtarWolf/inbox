@@ -280,7 +280,7 @@ async function send() {
 
 <template>
   <div class="venus-page-stack pb-24 owner-crm-page">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.crm')" :subtitle="t('owner.crmPage.subtitle')" />
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.crm')" />
     <OwnerActiveClubBar class="mb-3" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
