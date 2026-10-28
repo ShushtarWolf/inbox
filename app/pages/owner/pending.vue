@@ -33,10 +33,10 @@ onMounted(() => {
         :src="clubHeroImage"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-photo-hero-body !min-h-[8rem] !pb-6">
         <h1 class="canva-page-hero-title text-xl">{{ t('owner.pendingTitle') }}</h1>

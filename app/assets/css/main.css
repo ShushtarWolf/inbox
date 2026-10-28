@@ -5111,3 +5111,6 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 /* SoT athlete-bookings: active chip `.chip.a.cr` solid crimson; card h3 "تقویم رزروها" */
 .canva-history-ph-filters .canva-history-chip-on { background:#c41e1e; border-color:#c41e1e; color:#fff; }
 .canva-history-cal-title { font-size:14px; font-weight:700; color:#2c2c2a; margin-bottom:16px; text-align:start; }
+
+/* SoT owner .rbanner .rbw: unfiltered photo, light top→bottom wash. */
+.canva-photo-hero-wash.canva-photo-hero-wash--sot { background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6)); }

@@ -3200,10 +3200,10 @@ watch(pilotNoCoach, (off) => {
         :src="clubHeroImage"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[3.25rem] min-[431px]:!pb-3 min-[431px]:!pt-3" />
     </section>

@@ -571,10 +571,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
         :src="data?.club?.image || '/hero/tennis-court.jpg'"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-photo-hero-body !min-h-[8rem] !pb-6" />
     </section>

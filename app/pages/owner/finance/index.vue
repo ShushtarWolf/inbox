@@ -475,10 +475,10 @@ function showUnpaidList() {
         :src="activeMembership?.club?.image || '/hero/tennis-court.jpg'"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-promo-badge canva-promo-badge-hero pointer-events-none" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
