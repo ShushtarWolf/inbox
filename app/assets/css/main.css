@@ -4869,3 +4869,10 @@
   .owner-support-page .canva-support-wide > section:first-child ul li::marker { color:#2c2c2a }
   .owner-support-page .canva-support-wide .neo-input { border:1px solid rgba(44,44,42,.14); border-radius:0 }
 }
+
+/* owner-staff — SoT: wide primary add button, tighter empty panel */
+@media (min-width: 1024px) {
+  .owner-staff-page .canva-sot-actions { margin-top:.25rem }
+  .owner-staff-page .canva-sot-actions .canva-gate-btn-primary { min-width:220px; min-height:44px; justify-content:center }
+  .owner-staff-page .canva-panel, .owner-staff-page > div:last-child { border-radius:0 }
+}

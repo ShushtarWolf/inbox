@@ -230,7 +230,7 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div :class="embedded ? '' : 'venus-page-stack'">
+  <div :class="embedded ? '' : 'venus-page-stack owner-staff-page'">
     <CanvaSubpageHeader v-if="!embedded" to="/owner/calendar?more=1" :title="t('owner.workers')" :subtitle="t('owner.workersPage.subtitle')" />
     <OwnerActiveClubBar v-if="!embedded" class="mb-3" />
     <div v-if="!embedded" class="flex flex-wrap items-center justify-start gap-3 canva-sot-actions">
