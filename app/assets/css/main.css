@@ -4978,3 +4978,12 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .owner-finance-page .owner-fin-method-legend { font-size:10px; font-weight:400 }
 .owner-finance-page .owner-fin-method-pct { display:none }
 .owner-finance-page .canva-finance-method-bar + .owner-fin-method-pct + p, .owner-finance-page .owner-fin-method-pct + p { font-size:10.5px; margin-top:8px }
+
+/* leftovers batch 3: settings field density, support guide rhythm (SoT .zrule p: 13px, 12px gap) */
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-panel input.neo-input { height:36px; min-height:36px; padding-top:6px; padding-bottom:6px; font-size:13px }
+  .owner-support-page .owner-support-guide ul { list-style:none; padding-inline-end:0 }
+  .owner-support-page .owner-support-guide ul > li { font-size:13px; line-height:2; color:#2c2c2a }
+  .owner-support-page .owner-support-guide ul > li::before { content:"• " }
+  .owner-support-page .owner-support-guide ul > li + li { margin-top:12px }
+}
