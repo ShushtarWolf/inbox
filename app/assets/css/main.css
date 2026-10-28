@@ -4896,10 +4896,10 @@
 .owner-staff-page .canva-panel { border:1px solid rgba(44,44,42,.12); border-radius:0 !important; box-shadow:none; padding:14px; font-size:13px; color:#4a4a47; background:#fff }
 .owner-staff-page.venus-page-stack > * + * { margin-top:0 }
 @media (min-width: 431px) {
-  main:has(.owner-staff-page) .canva-club-switcher { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
-  main:has(.owner-staff-page) .canva-club-switcher > .venus-icon-wrap { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
-  main:has(.owner-staff-page) .canva-club-switcher label { gap:2px; font-size:11px; font-weight:400; color:#6b6b67 }
-  main:has(.owner-staff-page) .canva-club-switcher .neo-select { appearance:none; -webkit-appearance:none; border:0; border-radius:0; box-shadow:none; min-height:0; height:auto; padding:0; font-size:15px; font-weight:700; color:#2c2c2a; cursor:pointer;
+  main .canva-club-switcher { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
+  main .canva-club-switcher > .venus-icon-wrap { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
+  main .canva-club-switcher label { gap:2px; font-size:11px; font-weight:400; color:#6b6b67 }
+  main .canva-club-switcher .neo-select { appearance:none; -webkit-appearance:none; border:0; border-radius:0; box-shadow:none; min-height:0; height:auto; padding:0; font-size:15px; font-weight:700; color:#2c2c2a; cursor:pointer;
     background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232c2c2a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat left center }
 }
 .owner-staff-page .owner-staff-intro { font-weight:400 }
@@ -4955,4 +4955,16 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   main .owner-cal-page .canva-cal-sheet > .canva-view-tabs { position: absolute; left: 0; top: 17px; margin: 0 !important; border: 1px solid rgba(44,44,42,.08); border-radius: 0 }
   main .owner-cal-page .canva-cal-sheet > .canva-view-tabs .canva-view-tab { border-radius: 0; box-shadow: none }
   main .owner-cal-page .canva-cal-club-switch { margin-top: 12px }
+}
+/* owner-discount desktop = SoT ownPg('discount'): .cxh / .cxp / .oeqh a / .cxp 12px / .cxbox (measured 1440x900) */
+@media (min-width: 431px) {
+  main .owner-discount-page.venus-page-stack { gap: 0 !important; row-gap: 0 !important }
+  main .owner-discount-page.venus-page-stack > * { margin-top: 0 !important }
+  main .owner-discount-page.venus-page-stack > div:first-child { padding-top: 8px }
+  main .owner-discount-page h1 { font-size: 22px; line-height: 35px; color: #2c2c2a }
+  main .owner-discount-page h1 + p { font-size: 13px; line-height: 20px; color: #4a4a47; margin: 6px 0 10px }
+  main .owner-discount-page.venus-page-stack > .flex { flex-direction: column-reverse; align-items: flex-start; gap: 0 }
+  main .owner-discount-page.venus-page-stack > .flex > p { font-size: 12px; line-height: 18px; color: #4a4a47; margin: -4px 0 10px } /* flex (non-collapsing) → lands at SoT y=305 */
+  main .owner-discount-page .canva-equip-add { padding: 6px 0; font-size: 12px; line-height: 18px; font-weight: 700; color: #2e7d4f; background: none; border: 0; min-height: 0 }
+  main .owner-discount-page ul > li.text-xs { padding: 14px; font-size: 12px; color: #2c2c2a }
 }
