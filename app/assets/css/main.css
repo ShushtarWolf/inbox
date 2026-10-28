@@ -5015,3 +5015,13 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::before { left: 5px; }
   .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::after { right: 5px; }
 }
+
+/* admin-calendar SoT: compact 34px day rows (same as owner/coach book calendars) */
+@media (min-width: 1024px) {
+  .tail-page-stack.admin-calendar-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio: auto; height: 34px; border-radius: 0; }
+}
+/* admin calendar + sources SoT: compact reload button, not full-width */
+@media (min-width: 1024px) {
+  .tail-page-stack.admin-calendar-page button.canva-gate-btn-secondary,
+  .tail-page-stack.admin-calendar-sources-page button.canva-gate-btn-secondary { width: fit-content !important; min-width: 190px; }
+}
