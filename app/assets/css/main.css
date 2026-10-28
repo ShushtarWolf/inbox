@@ -5064,3 +5064,34 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .canva-history-card-meta { font-size:12px; color:#8f8f8b; }
 .canva-history-card-price { font-size:14px; font-weight:700; }
 @media (max-width:640px){ .canva-history-sum{gap:8px} .canva-history-sum > div{padding:12px} .canva-history-sum b{font-size:18px} }
+
+/* fidelity(athlete-bookings): SoT .ph tabs, .bk thumb/acts, #athDetail side panel */
+.canva-history-ph { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.canva-history-ph .canva-history-title { margin:0; }
+.canva-history-ph-tabs { margin:0; }
+.canva-history-card { display:flex; align-items:flex-start; gap:16px; cursor:pointer; }
+.canva-history-card-sel { border-color:#c41e1e; }
+.canva-history-card-thumb { width:74px; height:74px; flex:none; object-fit:cover; border-radius:10px; background:#eceae4; }
+.canva-history-card-mid { flex:1; min-width:0; display:block; }
+.canva-history-card-acts { display:flex; flex-direction:column; gap:8px; width:150px; flex:none; }
+.canva-history-card-acts > * { width:100%; min-height:34px; font-size:12px; padding:6px 10px; text-align:center; justify-content:center; }
+.canva-history-panel { display:none; }
+@media (min-width:1024px) {
+  .canva-history-panel { display:block; margin-top:16px; background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:14px; padding:16px; }
+  .canva-history-panel-banner { position:relative; height:86px; border-radius:12px; overflow:hidden; background:#1f3a5a; margin-bottom:12px; }
+  .canva-history-panel-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .canva-history-panel-banner > div { position:absolute; inset:auto 12px 10px 12px; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+  .canva-history-panel-banner h4 { font-size:13.5px; font-weight:800; }
+  .canva-history-panel-banner small { font-size:11px; opacity:.9; }
+  .canva-history-panel .canva-history-sh-note { margin-bottom:6px; }
+  .canva-history-panel-kv { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #f0ede8; font-size:12.5px; }
+  .canva-history-panel-kv:last-child { border-bottom:0; }
+  .canva-history-panel-kv span { color:#8f8f8b; }
+  .canva-history-panel-kv b { font-weight:700; color:#1a1a18; }
+}
+@media (max-width:640px) {
+  .canva-history-card { flex-wrap:wrap; gap:12px; }
+  .canva-history-card-thumb { width:56px; height:56px; }
+  .canva-history-card-acts { width:100%; flex-direction:row; flex-wrap:wrap; }
+  .canva-history-card-acts > * { flex:1 1 0; width:auto; }
+}
