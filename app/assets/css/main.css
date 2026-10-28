@@ -4987,3 +4987,10 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .owner-support-page .owner-support-guide ul > li::before { content:"• " }
   .owner-support-page .owner-support-guide ul > li + li { margin-top:12px }
 }
+
+/* owner remainder: setup fields bordered like SoT .field input; reserve redirect CTA = SoT btn-outline */
+@media (min-width: 1024px) {
+  .owner-setup-page input.neo-input { border:1px solid rgba(44,44,42,.14); border-radius:0; background:#fff; height:36px; min-height:36px; font-size:13px }
+  .owner-reserve-redirect { text-align:center }
+  .owner-reserve-redirect .canva-cta { width:auto; min-width:110px; background:transparent; color:#c8201f; border:1px solid #c8201f; padding:8px 24px }
+}

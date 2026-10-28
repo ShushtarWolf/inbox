@@ -145,7 +145,7 @@ async function finish() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg space-y-4">
+  <div class="owner-setup-page mx-auto max-w-lg space-y-4">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.setupTitle')" />
     <p class="text-sm text-brand-gray-600">{{ t('owner.setupSubtitle') }}</p>
     <p
