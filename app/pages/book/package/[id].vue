@@ -80,15 +80,19 @@ async function pay(useWallet = false) {
 <template>
   <div class="mx-auto max-w-lg space-y-4 px-4 py-4">
     <template v-if="!packagesEnabled">
-      <CanvaSubpageHeader to="/clubs" :title="t('booking.packageDisabled.title')" />
-      <p class="text-sm text-brand-gray-600">{{ t('booking.packageDisabled.body') }}</p>
-      <NuxtLink
-        :to="localePath('/clubs')"
-        class="canva-cta inline-flex w-full items-center justify-center px-4 py-3 text-sm font-bold"
-        style="border-radius: var(--sz-canva-radius);"
-      >
-        {{ t('booking.packageDisabled.cta') }}
-      </NuxtLink>
+      <div class="mx-auto text-right" style="max-width: 520px; margin-top: 40px; margin-bottom: 40px;">
+        <h1 class="m-0 font-bold" style="font-size: 28px; margin-bottom: 10px; color: #2c2c2a;">
+          {{ t('booking.packageDisabled.title') }}
+        </h1>
+        <p style="font-size: 13px; color: #4a4a47; margin: 6px 0 10px;">{{ t('booking.packageDisabled.body') }}</p>
+        <NuxtLink
+          :to="localePath('/clubs')"
+          class="inline-block text-center font-bold text-white"
+          style="background: #c41e1e; padding: 10px 18px; font-size: 13px; border: 1px solid #c41e1e;"
+        >
+          {{ t('booking.packageDisabled.cta') }}
+        </NuxtLink>
+      </div>
     </template>
 
     <AppAsyncState v-else :pending="pending" :error="error" @retry="refresh">
