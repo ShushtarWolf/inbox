@@ -26,15 +26,20 @@ useOwnerClubRefresh(refresh)
 watch(date, () => refresh())
 
 function restartPolling() {
+  if (import.meta.server) return
   if (pollTimer.value) clearInterval(pollTimer.value)
   const interval = data.value?.pollIntervalMs || 25_000
   pollTimer.value = setInterval(() => refresh(), interval)
 }
 
-watch(() => data.value?.pollIntervalMs, () => restartPolling(), { immediate: true })
+onMounted(() => {
+  restartPolling()
+  watch(() => data.value?.pollIntervalMs, () => restartPolling())
+})
 
 onBeforeUnmount(() => {
   if (pollTimer.value) clearInterval(pollTimer.value)
+  pollTimer.value = null
 })
 </script>
 
@@ -42,7 +47,7 @@ onBeforeUnmount(() => {
   <div class="space-y-4 pb-24">
     <CanvaSubpageHeader to="/owner/calendar" title="منابع تقویم" />
     <ExtCalSourcesGrid
-      :data="data"
+      :data="data ?? null"
       :pending="pending"
       :error="error"
       :date="date"

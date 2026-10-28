@@ -130,7 +130,7 @@ function sourceDetailLine(detail: SourceDetail) {
 <template>
   <div class="space-y-4">
     <section class="space-y-3 px-4">
-      <p class="text-sm leading-6 text-brand-navy/80">
+      <p class="text-[13px] leading-6 text-brand-navy/80">
         نمای مرجع برای مقایسه اشغال اینباکس با سایت‌های دیگر (فقط خواندن).
       </p>
 
@@ -162,7 +162,7 @@ function sourceDetailLine(detail: SourceDetail) {
       </div>
     </section>
 
-    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
+    <div class="canva-cal-sheet ext-cal-sot -mx-4 min-[431px]:mx-0">
       <div class="canva-cal-grid-shell">
         <div class="canva-cal-date-nav">
           <div class="canva-cal-date-nav-center">
@@ -216,7 +216,7 @@ function sourceDetailLine(detail: SourceDetail) {
         </div>
       </div>
 
-      <p class="canva-cal-legend-note px-4 pt-2 text-xs text-brand-navy/70">
+      <p class="canva-cal-legend-note px-4 pt-3 text-[11.5px] font-bold text-brand-navy/70">
         بروزرسانی خودکار هر {{ Math.round((data?.pollIntervalMs || 25000) / 1000) }} ثانیه.
       </p>
     </div>
@@ -238,5 +238,55 @@ function sourceDetailLine(detail: SourceDetail) {
 
 :deep(.canva-cal-grid-cell.slot-blocked) {
   background: #e2e8f0;
+}
+
+/* SoT `.csg/.csh/.csr/.cst/.csc` (owner-calendar-sources) */
+.ext-cal-sot :deep(.canva-cal-grid-shell) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+.ext-cal-sot :deep(.canva-cal-grid) {
+  gap: 0;
+  border: 1px solid rgba(44, 44, 42, 0.14);
+  background: #fff;
+}
+.ext-cal-sot :deep(.canva-cal-grid-corner),
+.ext-cal-sot :deep(.canva-cal-grid-court) {
+  background: #e8e4dc;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2c2c2a;
+  text-align: right;
+  border: 0;
+  border-radius: 0;
+}
+.ext-cal-sot :deep(.canva-cal-grid-time) {
+  background: #e8e4dc;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a4a47;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-top: 1px solid rgba(44, 44, 42, 0.1);
+  border-radius: 0;
+}
+.ext-cal-sot :deep(.canva-cal-grid-cell) {
+  min-height: 56px;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid rgba(44, 44, 42, 0.1);
+  border-right: 1px solid rgba(44, 44, 42, 0.1);
+  box-shadow: none;
+}
+.ext-cal-sot :deep(.canva-cal-grid-cell.slot-free) {
+  background: #fafafa;
+}
+.ext-cal-sot :deep(.canva-cal-grid-cell.slot-reserved-cash) {
+  background: #fde7f1;
 }
 </style>
