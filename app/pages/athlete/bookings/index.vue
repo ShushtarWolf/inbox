@@ -795,6 +795,7 @@ function dateLine(item: HistoryItem) {
     <div class="canva-history-desktop">
     <section :aria-label="t('athlete.historyCalendarAria')">
       <div class="canva-history-cal">
+        <h3 class="canva-history-cal-title">{{ t('athlete.historyCalendarAria') }}</h3>
         <div class="canva-history-cal-nav">
           <button type="button" class="canva-history-cal-nav-btn" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
             <AppIcon name="chevron_right" size="sm" />
