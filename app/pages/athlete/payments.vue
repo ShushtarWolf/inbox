@@ -165,7 +165,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack ath-pay-sot">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.paymentMethodsTitle')" :subtitle="t('athlete.paymentMethodsSubtitle')" />
     <section class="canva-dash-hero md:hidden">
       <p class="text-xs text-white/80">{{ t('athlete.paymentMethods') }}</p>
@@ -202,7 +202,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="table">
       <div class="space-y-2">
-        <h2 class="text-sm font-bold text-brand-primary text-start">{{ t('athlete.paymentHistoryTitle') }}</h2>
+        <h2 class="ath-pay-history-title text-sm font-bold text-start">{{ t('athlete.paymentHistoryTitle') }}</h2>
 
         <template v-if="data?.payments?.length">
           <div class="space-y-2 text-start">
@@ -389,3 +389,12 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
     </AppAsyncState>
   </div>
 </template>
+<style scoped>
+/* SoT athlete-payments: `.card h3` dark title, `.t` table (silver 11px th, 13px rows), `.chip.a` solid crimson */
+.ath-pay-sot .ath-pay-history-title { color: #2c2c2a; font-size: 14px; }
+.ath-pay-sot :deep(.canva-history-chip-on) { background: #c41e1e; border-color: #c41e1e; color: #fff; }
+.ath-pay-sot :deep(.canva-finance-table-wrap) { background: #fff; border: 1px solid rgba(44, 44, 42, 0.1); padding: 18px 22px; border-radius: 0; }
+.ath-pay-sot :deep(.canva-finance-table th) { background: transparent; font-size: 11px; font-weight: 500; color: #8f8f8b; padding: 0 12px 10px; border-bottom: 1px solid rgba(44, 44, 42, 0.08); }
+.ath-pay-sot :deep(.canva-finance-table td) { padding: 13px 12px; border-bottom: 1px solid rgba(44, 44, 42, 0.06); }
+.ath-pay-sot :deep(.canva-finance-sort) { color: inherit; font-weight: inherit; font-size: inherit; }
+</style>

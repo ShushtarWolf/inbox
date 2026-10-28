@@ -202,11 +202,11 @@ watch(
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack ath-wallet-sot">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.walletTitle')" :subtitle="t('athlete.walletSubtitle')" />
-    <section class="canva-dash-hero">
+    <section class="canva-dash-hero ath-wallet-hero">
       <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
-      <p class="mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
+      <p class="ath-wallet-amount mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
       <p
         v-if="data?.canBankWithdraw"
@@ -341,7 +341,7 @@ watch(
 
       <div class="space-y-2">
         <!-- HTML .rh3 -->
-        <h2 class="text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }}</h2>
+        <h2 class="ath-wallet-history-title text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }}</h2>
         <div v-if="data?.transactions?.length" class="space-y-2">
           <div v-for="tx in data.transactions" :key="tx.id" class="canva-list-card text-sm text-start">
             <div class="flex items-center justify-between gap-2">
@@ -359,3 +359,17 @@ watch(
     </AppAsyncState>
   </div>
 </template>
+
+<style scoped>
+/* SoT athlete-wallet (desktop): roomier red hero, compact preset chips, auto-width CTA + narrow input */
+@media (min-width: 768px) {
+  .ath-wallet-sot .ath-wallet-hero { padding: 28px 28px 30px; }
+  .ath-wallet-sot .ath-wallet-amount { font-size: 34px; line-height: 1.3; margin-top: 18px; margin-bottom: 10px; }
+  .ath-wallet-sot :deep(.canva-sot-chips) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ath-wallet-sot :deep(.canva-sot-chips .canva-chip) { font-size: 11px; font-weight: 500; padding: 7px 14px; min-width: 52px; }
+  .ath-wallet-sot :deep(.canva-sot-chips .canva-chip:not(.bg-brand-primary)) { color: #8f8f8b; border-color: rgba(44, 44, 42, 0.12); }
+  .ath-wallet-sot .ath-wallet-history-title { margin-top: 12px; margin-bottom: 4px; }
+  .ath-wallet-sot :deep(#wallet-custom-amount) { max-width: 242px; }
+  .ath-wallet-sot :deep(.canva-sot-form .canva-gate-btn-primary) { width: auto; padding-inline: 26px; display: block; align-self: flex-start; margin-right: 0 !important; margin-left: auto !important; }
+}
+</style>
