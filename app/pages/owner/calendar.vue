@@ -3232,7 +3232,7 @@ watch(pilotNoCoach, (off) => {
           :class="calendarView === 'today' ? 'canva-view-tab-active canva-cal-tab-active' : ''"
           @click="calendarView = 'today'"
         >
-          {{ t('owner.today') }}
+          {{ t('owner.calendarDayTab') }}
         </button>
         <button
           type="button"

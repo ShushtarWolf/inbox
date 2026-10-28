@@ -4970,3 +4970,11 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 }
 /* SoT owner shell: every owner page h1 is 22px/700 (measured in SoT for support/equipment/crm/settings/calendar) */
 @media (min-width: 431px) { .owner-shell h1 { font-size: 22px; line-height: 1.3; font-weight: 700 } }
+.owner-shell .canva-legend-swatch { border-radius: 0 } /* SoT global radius:0 */
+/* owner-finance SoT .ofdark h2 small unit / .ofpay stacked legend (no % row in SoT; values still in bar width + title attr) */
+.owner-finance-page .owner-fin-hero-unit { font-size:16px; font-weight:400 }
+.owner-finance-page .owner-fin-method-head { flex-direction:column; align-items:flex-start; gap:8px }
+.owner-finance-page .owner-fin-method-head h2 { font-size:13px }
+.owner-finance-page .owner-fin-method-legend { font-size:10px; font-weight:400 }
+.owner-finance-page .owner-fin-method-pct { display:none }
+.owner-finance-page .canva-finance-method-bar + .owner-fin-method-pct + p, .owner-finance-page .owner-fin-method-pct + p { font-size:10.5px; margin-top:8px }
