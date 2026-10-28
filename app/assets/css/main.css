@@ -5052,3 +5052,15 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .canva-authbox .neo-input,
 .canva-authbox .canva-gate-btn-primary,
 .canva-authbox .canva-gate-btn-secondary { border-radius: 0; }
+
+/* fidelity(athlete-bookings): SoT .stat (r14/p18/22px value) + .bk (r16/p16, flat) */
+.canva-history-sum { gap:16px; margin-bottom:18px; }
+.canva-history-sum > div { background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:14px; padding:18px; }
+.canva-history-sum span { font-size:11.5px; color:#8f8f8b; margin-bottom:8px; }
+.canva-history-sum b { font-size:22px; margin-top:0; }
+.canva-history-sum-unpaid { color:#c9a14a !important; }
+.canva-history-card { border-radius:16px; padding:16px; border:1px solid rgba(44,44,42,.08); box-shadow:none; }
+.canva-history-card-title { font-size:14.5px; }
+.canva-history-card-meta { font-size:12px; color:#8f8f8b; }
+.canva-history-card-price { font-size:14px; font-weight:700; }
+@media (max-width:640px){ .canva-history-sum{gap:8px} .canva-history-sum > div{padding:12px} .canva-history-sum b{font-size:18px} }
