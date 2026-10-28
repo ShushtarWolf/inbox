@@ -167,13 +167,13 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.paymentMethodsTitle')" :subtitle="t('athlete.paymentMethodsSubtitle')" />
-    <section class="canva-dash-hero">
+    <section class="canva-dash-hero md:hidden">
       <p class="text-xs text-white/80">{{ t('athlete.paymentMethods') }}</p>
       <h1 class="canva-page-hero-title mt-1">{{ t('athlete.paymentMethodsTitle') }}</h1>
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.paymentMethodsSubtitle') }}</p>
     </section>
 
-    <div class="canva-dash-menu !mt-0 space-y-0">
+    <div class="canva-dash-menu !mt-0 md:!mt-4 space-y-0">
       <div v-if="onlineEnabled" class="canva-dash-menu-item pointer-events-none">
         <span class="canva-dash-menu-icon">
           <AppIcon name="payments" size="sm" />

@@ -4699,3 +4699,10 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232c2c2a' stroke-width='1.2'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important; background-position: left 14px center !important; padding-left: 34px;
 }
+/* SoT athlete-notifications (desktop): no crimson hero — title lives in subpage header; mark-all is a white chip */
+@media (min-width: 768px) {
+  .canva-notif-hero-sot { background: none !important; box-shadow: none !important; padding: 0 !important; margin-top: -8px; color: #2c2c2a; }
+  .canva-notif-hero-sot::before, .canva-notif-hero-sot::after { display: none !important; }
+  .canva-notif-hero-sot > div > div:first-child { visibility: hidden; height: 0; }
+  .canva-notif-hero-sot button { background: #fff !important; color: #2c2c2a; border: 1px solid rgba(44,44,42,.12); backdrop-filter: none; }
+}

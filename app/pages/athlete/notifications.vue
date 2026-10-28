@@ -39,7 +39,7 @@ async function markAllRead() {
 <template>
   <div class="venus-page-stack">
     <CanvaSubpageHeader to="/athlete" :title="t('notifications.title')" :subtitle="t('notifications.subtitle')" />
-    <section class="canva-dash-hero">
+    <section class="canva-dash-hero canva-notif-hero-sot">
       <div class="flex items-end justify-between gap-3">
         <div>
           <p class="text-xs text-white/80">{{ t('notifications.title') }}</p>
