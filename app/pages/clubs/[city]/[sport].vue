@@ -6,7 +6,6 @@ const { t } = useI18n()
 const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatNumber } = useFormatters()
 
 const cityParam = String(route.params.city || '')
 const sportParam = String(route.params.sport || '')
@@ -69,21 +68,6 @@ function clubRating(club: { rating?: number | null; reviewCount?: number }) {
   return (club.rating ?? 0).toFixed(1)
 }
 
-function toThousand(value: number) {
-  return formatNumber(Math.round(value / 1000))
-}
-
-function priceLine(club: { priceFrom?: number | null; priceTo?: number | null }) {
-  if (club.priceFrom == null && club.priceTo == null) return ''
-  if (club.priceFrom != null && club.priceTo != null && club.priceFrom !== club.priceTo) {
-    return t('clubs.sessionPriceRange', {
-      from: toThousand(club.priceFrom),
-      to: toThousand(club.priceTo),
-    })
-  }
-  return t('clubs.sessionPriceFrom', { price: toThousand(club.priceFrom ?? club.priceTo ?? 0) })
-}
-
 function clubImage(club: { image?: string | null; sports?: string[] }) {
   if (club.image) return club.image
   if (club.sports?.includes('padel')) return '/hero/padel-court.jpg'
@@ -122,39 +106,29 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           <h2 class="canva-clubs-section-title">{{ t(`${i18nPrefix}.listTitle`) }}</h2>
           <p class="canva-clubs-section-subtitle">{{ t('home.suggestionsBody') }}</p>
         </div>
+        <NuxtLink :to="localePath('/clubs')" class="inline-flex items-center gap-0.5 text-xs font-medium text-brand-gray-600">
+          {{ t('home.seeAll') }}
+          <AppIcon name="chevron_left" size="sm" />
+        </NuxtLink>
       </div>
 
       <AppAsyncState :pending="pending" :error="error" :empty="!clubs?.length" skeleton-variant="table">
-        <div class="canva-court-card-grid">
+        <div class="canva-venue-grid">
           <NuxtLink
             v-for="club in clubs"
             :key="club.id"
             :to="clubHref(club.slug)"
-            class="canva-court-card"
+            class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <div class="canva-court-card-body">
-              <div class="canva-court-card-copy">
-                <p class="canva-court-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
-                <p class="canva-court-card-meta">
-                  {{ clubMeta(club) }}
-                  <template v-if="clubRating(club)">
-                    <span class="text-white/50">|</span>
-                    <span class="canva-court-card-rating !mt-0 inline-flex">
-                      {{ clubRating(club) }}
-                      <span class="canva-court-card-star" aria-hidden="true">★</span>
-                    </span>
-                  </template>
+            <div class="canva-venue-card-body">
+              <div class="canva-venue-card-copy">
+                <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
+                <p class="canva-venue-card-meta">
+                  <template v-if="clubRating(club)">★ {{ clubRating(club) }} | </template>{{ clubMeta(club) }}
                 </p>
-                <p
-                  v-if="localizedField(club, 'descriptionFa', 'descriptionEn')"
-                  class="canva-court-card-desc"
-                >
-                  {{ localizedField(club, 'descriptionFa', 'descriptionEn') }}
-                </p>
-                <p v-if="priceLine(club)" class="canva-court-card-price">{{ priceLine(club) }}</p>
               </div>
-              <span class="canva-court-card-cta">{{ t('home.bookNow') }}</span>
+              <span class="canva-venue-card-cta">{{ t('home.bookNow') }}</span>
             </div>
           </NuxtLink>
         </div>
