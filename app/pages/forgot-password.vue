@@ -159,9 +159,11 @@ onUnmounted(() => {
             <button type="button" class="canva-gate-btn-primary" @click="goLoginAfterReset">
               {{ t('auth.login') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="goSmsLogin">
-              {{ t('auth.loginWithPhone') }}
-            </button>
+            <p class="forgot-auth-hint">
+              <button type="button" class="forgot-auth-hint-link" @click="goSmsLogin">
+                {{ t('auth.loginWithPhone') }}
+              </button>
+            </p>
           </div>
 
           <form v-else-if="step === 'reset'" class="space-y-4" @submit.prevent="submitReset">
@@ -218,9 +220,11 @@ onUnmounted(() => {
             >
               {{ pending ? t('common.loading') : t('auth.resetPassword') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="backToPhone">
-              {{ t('auth.sendResetCode') }}
-            </button>
+            <p class="forgot-auth-hint">
+              <button type="button" class="forgot-auth-hint-link" @click="backToPhone">
+                {{ t('auth.sendResetCode') }}
+              </button>
+            </p>
           </form>
 
           <form v-else class="space-y-4" @submit.prevent="requestCode">
@@ -240,9 +244,11 @@ onUnmounted(() => {
             <button type="submit" class="canva-gate-btn-primary" :disabled="pending || !phone.trim()">
               {{ pending ? t('common.loading') : t('auth.sendResetCode') }}
             </button>
-            <button type="button" class="canva-gate-btn-secondary" @click="goSmsLogin">
-              {{ t('auth.loginWithPhone') }}
-            </button>
+            <p class="forgot-auth-hint">
+              <button type="button" class="forgot-auth-hint-link" @click="goSmsLogin">
+                {{ t('auth.loginWithPhone') }}
+              </button>
+            </p>
           </form>
 
           <nav class="canva-legal-footer justify-center pt-2" :aria-label="t('legal.privacy')">
@@ -255,3 +261,48 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* SoT forgot-password: label 11.5/#6b6b67/500; primary stays crimson when disabled; secondary = crimson text link */
+:deep(.neo-form-field > label) {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #6b6b67;
+  margin-bottom: 6px;
+}
+:deep(.neo-input) {
+  background: #fff;
+}
+.canva-authbox-sub {
+  margin-bottom: 20px;
+}
+:deep(.canva-gate-btn-primary:disabled) {
+  cursor: not-allowed;
+  background: #c41e1e !important;
+  color: #fff !important;
+  opacity: 0.45;
+  box-shadow: none;
+  filter: none;
+}
+.forgot-auth-hint {
+  margin-top: 14px;
+  padding: 6px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #9a9a96;
+}
+.forgot-auth-hint-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #c41e1e;
+  cursor: pointer;
+  text-decoration: none;
+}
+.forgot-auth-hint-link:hover {
+  text-decoration: underline;
+}
+</style>
