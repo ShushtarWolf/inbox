@@ -1,6 +1,5 @@
 account_balance
 account_balance_wallet
-account_box
 add
 add_circle
 apartment
@@ -20,6 +19,7 @@ chevron_right
 circle
 close
 confirmation_number
+contacts
 credit_card
 dashboard
 emoji_events

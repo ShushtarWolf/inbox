@@ -20,13 +20,13 @@ provide('ownerMoreOpen', moreOpen)
 const primaryNavItems = [
   { path: '/owner/calendar', labelKey: 'owner.calendarShort', icon: 'calendar_month' },
   { path: '/owner/finance', labelKey: 'owner.finance', icon: 'attach_money' },
-  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'person' },
+  { path: '/owner/settings', labelKey: 'owner.settings', icon: 'settings' },
 ] as const
 
 const desktopExtraNavItems = [
-  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'account_box' },
+  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'contacts' },
   { path: '/owner/packages', labelKey: 'owner.packages', icon: 'inventory_2' },
-  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'sports_tennis' },
+  { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
   { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'percent' },
   { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
   { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
