@@ -4690,3 +4690,4 @@
 .legal-sot-faq .canva-faq-trigger::before { content: '\25C2'; font-size: 11px; order: -1; }
 .legal-sot-faq .canva-faq-chevron { display: none; }
 .legal-sot-faq .canva-faq-panel { padding: 0 0 12px; }
+.canva-auth-accent + .canva-auth-photo { min-height: 150px; margin: 20px 22px 14px; }

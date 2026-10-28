@@ -676,6 +676,7 @@ onMounted(() => {
 <template>
   <AppModal :open="open" patterned max-width-class="max-w-sm" overlay-class="z-[70]" @close="step === 'welcome' ? dismissWelcome() : handleClose()">
     <div class="relative z-[1] min-w-0 overflow-x-hidden">
+      <div class="canva-auth-accent" />
       <div
         v-if="authPhotoHeader"
         class="canva-auth-photo"
@@ -687,7 +688,6 @@ onMounted(() => {
           <small>{{ t(authPhotoHeader.subKey) }}</small>
         </div>
       </div>
-      <div v-else class="canva-auth-accent" />
       <div v-if="step === 'gate' || step === 'welcome'" class="canva-auth-header">
         <button
           type="button"
