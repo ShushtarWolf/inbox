@@ -853,7 +853,7 @@ onMounted(() => {
                   </option>
                 </select>
               </AppFormField>
-              <AppFormField field-id="auth-otp-sport" :label="t('auth.sport')">
+              <AppFormField field-id="auth-otp-sport" class="order-first" :label="t('auth.sport')">
                 <select id="auth-otp-sport" v-model="sport" class="neo-select bg-white/95">
                   <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
                     {{ t(opt.labelKey) }}
