@@ -4801,3 +4801,15 @@
 .owner-finance-page .canva-finance-chart { background:transparent }
 .owner-finance-page .canva-promo-badge-hero { inset:auto auto 12px 10px !important; background:#c41e1e; padding:4px 10px; display:flex; flex-direction:row-reverse; gap:4px; align-items:center }
 .owner-finance-page .canva-promo-badge-hero > * { color:#fff !important; font-size:10px !important; font-weight:700; line-height:1.4 }
+
+/* global footer — SoT .rfoot (12px, #6b6b67, line-height 2.4, tight "·" separators) */
+@media (min-width: 431px) {
+  .canva-public-footer { font-size:12px !important; font-weight:400; color:#6b6b67; line-height:2.4; padding-top:24px; padding-bottom:40px !important }
+  .canva-public-footer p { margin-bottom:0 }
+  .canva-public-footer nav, .canva-public-footer nav * { font-size:12px !important; font-weight:400 !important; color:#6b6b67; gap:0 4px !important; column-gap:4px !important }
+  .canva-public-footer nav a:hover { color:#c41e1e }
+  .canva-public-footer > p .font-bold { color:#2c2c2a }
+  .canva-public-footer a { padding-inline:0 !important }
+  .canva-public-footer > div:last-child { color:#6b6b67; font-weight:400 }
+  .canva-public-footer > div.mb-2 { margin-bottom:0 }
+}
