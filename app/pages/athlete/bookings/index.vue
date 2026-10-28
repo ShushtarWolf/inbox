@@ -747,7 +747,21 @@ function dateLine(item: HistoryItem) {
 
     <div class="canva-history-ph">
       <h1 class="canva-history-title">{{ t('athlete.historyTitle') }}</h1>
-    <div v-if="!selectedDayIso" class="canva-history-chips canva-history-ph-tabs" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
+    <div v-if="!selectedDayIso" class="canva-history-ph-filters">
+      <div class="canva-history-chips canva-history-ph-tabs canva-history-ph-status" role="group" :aria-label="t('athlete.historyFilterGroup')">
+        <button
+          v-for="chip in statusChips"
+          :key="chip.value"
+          type="button"
+          class="canva-history-chip"
+          :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
+          :aria-pressed="statusFilter === chip.value"
+          @click="statusFilter = chip.value"
+        >
+          {{ t(chip.labelKey) }}
+        </button>
+      </div>
+    <div class="canva-history-chips canva-history-ph-tabs" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
       <button
         v-for="chip in timeChips"
         :key="`time-${chip.value}`"
@@ -759,6 +773,7 @@ function dateLine(item: HistoryItem) {
       >
         {{ t(chip.labelKey) }}
       </button>
+    </div>
     </div>
     </div>
 
@@ -851,29 +866,13 @@ function dateLine(item: HistoryItem) {
 
     <section class="canva-history-desktop-main" :aria-label="t('athlete.historyListAria')">
       <div class="canva-history-head">
-        <h2 class="canva-history-list-title">{{ listTitle }}</h2>
+        <h2 class="canva-history-list-title sr-only">{{ listTitle }}</h2>
         <button v-if="selectedDayIso" type="button" class="canva-history-show-all" @click="selectedDayIso = null">
           {{ t('athlete.historyShowAll') }}
         </button>
-        <span v-else-if="filteredItems.length" class="canva-history-count">
+        <span v-else-if="filteredItems.length" class="canva-history-count sr-only">
           {{ t('athlete.historyCount', { count: formatNumber(filteredItems.length) }) }}
         </span>
-      </div>
-
-      <div v-if="!selectedDayIso" class="space-y-2">
-        <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyFilterGroup')">
-          <button
-            v-for="chip in statusChips"
-            :key="chip.value"
-            type="button"
-            class="canva-history-chip"
-            :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
-            :aria-pressed="statusFilter === chip.value"
-            @click="statusFilter = chip.value"
-          >
-            {{ t(chip.labelKey) }}
-          </button>
-        </div>
       </div>
 
       <p

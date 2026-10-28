@@ -5095,3 +5095,15 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .canva-history-card-acts { width:100%; flex-direction:row; flex-wrap:wrap; }
   .canva-history-card-acts > * { flex:1 1 0; width:auto; }
 }
+
+/* fidelity(athlete-bookings): SoT has a single header chip row and no list heading */
+.canva-history-ph-filters { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.canva-history-ph-status { order:2; padding-inline-start:14px; border-inline-start:1px solid #e3ddd3; }
+.canva-history-ph-status .canva-history-chip { font-size:12px; }
+.canva-history-head:not(:has(.canva-history-show-all)) { display:none; }
+@media (max-width: 767px) {
+  .canva-history-ph-filters { width:100%; flex-wrap:nowrap; gap:10px; overflow-x:auto; scrollbar-width:none; }
+  .canva-history-ph-filters .canva-history-ph-tabs { flex-wrap:nowrap; flex-shrink:0; }
+  .canva-history-ph-filters .canva-history-chip { white-space:nowrap; }
+  .canva-history-ph-status { padding-inline-start:10px; }
+}
