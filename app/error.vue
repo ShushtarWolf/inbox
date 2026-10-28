@@ -35,10 +35,10 @@ function goHome() {
         <div class="canva-error-brand flex justify-center">
           <InboxBrandLockup home-link height-class="h-8" />
         </div>
-        <p class="text-5xl font-bold text-brand-primary">{{ error.statusCode || 500 }}</p>
+        <p v-if="error.statusCode !== 404" class="text-5xl font-bold text-brand-primary">{{ error.statusCode || 500 }}</p>
         <h1 class="canva-authbox-title">{{ title }}</h1>
         <p class="canva-authbox-sub">{{ message }}</p>
-        <p class="text-xs font-bold text-brand-gray-400">inbox · inboxs.ir</p>
+        <p v-if="error.statusCode !== 404" class="text-xs font-bold text-brand-gray-400">inbox · inboxs.ir</p>
         <button type="button" class="canva-gate-btn-primary mt-4 w-full" @click="goHome">{{ t('errors.goHome') }}</button>
       </div>
     </div>

@@ -5025,3 +5025,11 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .tail-page-stack.admin-calendar-page button.canva-gate-btn-secondary,
   .tail-page-stack.admin-calendar-sources-page button.canva-gate-btn-secondary { width: fit-content !important; min-width: 190px; }
 }
+
+/* SoT .role (choose-role/register picker): white row, hairline border, crimson border when chosen, no fill/shadow/scale */
+.canva-role-card.canva-role-card { gap: 14px; padding: 14px; background: #fff; border: 1px solid rgba(44,44,42,.08); box-shadow: none; backdrop-filter: none; border-radius: 0; transform: none; }
+.canva-role-card.canva-role-card:hover { border-color: #c41e1e; transform: none; }
+.canva-role-card.canva-role-card:active { transform: none; }
+.canva-role-card.canva-role-card-active { background: #fff; border-color: #c41e1e; }
+.canva-role-card p.font-bold { font-size: 14px; color: #2c2c2a; }
+.canva-role-card p.text-xs { font-size: 12px; color: #6b6b67; margin-top: 2px; }
