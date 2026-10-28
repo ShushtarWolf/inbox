@@ -4441,7 +4441,7 @@
 .canva-club-detail-book .canva-club-cal-day:not(.canva-club-cal-day-empty):not(:disabled):hover { background: rgba(44, 44, 42, 0.05); }
 .canva-club-detail-book .canva-club-cal-day-disabled { opacity: 1; color: #c9c6c2; }
 .canva-club-detail-book .canva-club-cal-day-active,
-.canva-club-detail-book .canva-club-cal-day-active:hover { background: #2c2c2a; color: #fff; font-weight: 700; }
+.canva-club-detail-book .canva-club-cal-day-active:hover { background: #16a34a; color: #fff; border: 1px solid #14532d; font-weight: 700; }
 .canva-club-detail-book .canva-club-cal-day-active::after { display: none; }
 .canva-club-detail-book .canva-club-cal-day-basket::after { bottom: 3px; width: 5px; height: 5px; border-radius: 50%; opacity: 1; }
 
