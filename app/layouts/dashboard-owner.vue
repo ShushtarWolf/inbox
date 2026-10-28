@@ -83,8 +83,8 @@ const sideNav = computed((): NavItem[] => [
 const memberships = computed(() => user.value?.memberships || [])
 
 /** SoT .rtop header (logo + club pill). Pilot: staff only; widen as pages are verified. */
-const SOT_HEADER_ROUTES = ['/owner/workers']
-const sotHeader = computed(() => SOT_HEADER_ROUTES.some((p) => route.path.includes(p)))
+// SoT dash('owner',…) renders the same .rtop (logo + club pill) on every owner page
+const sotHeader = computed(() => route.path.includes('/owner'))
 
 /** Club switcher white card must not sit above photo-hero pages (Canva). */
 const showLayoutClubSwitcher = computed(

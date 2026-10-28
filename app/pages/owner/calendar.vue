@@ -3209,8 +3209,8 @@ watch(pilotNoCoach, (off) => {
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-      <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
-      <p class="mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
+      <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug"><span class="min-[431px]:hidden">{{ clubCalendarTitle }}</span><span class="hidden min-[431px]:inline">{{ t('owner.calendarShort') }}</span></h1>
+      <p class="owner-cal-welcome mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
         {{ t('owner.calendarWelcome') }} · {{ calendarWelcomeLine }}
       </p>
       <p class="text-start text-xs text-brand-gray-600">{{ t('owner.calendarAllCourtsHint') }}</p>

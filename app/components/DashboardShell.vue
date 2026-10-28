@@ -283,6 +283,11 @@ function goBack() {
           class="sot-rtop hidden min-[431px]:flex"
         >
           <InboxBrandLockup home-link height-class="h-[31px]" />
+          <div class="flex items-center gap-[18px]">
+          <!-- not in SoT .rtop; kept so /owner/notifications stays reachable (flow preservation) -->
+          <NuxtLink :to="notificationsPath" class="sot-rbell text-brand-gray-600" :aria-label="t('notifications.title')">
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
           <button
             v-if="displayName && !hideUser"
             ref="accountAnchor"
@@ -296,6 +301,7 @@ function goBack() {
             <span>{{ shortcutName }}</span>
             <AppIcon name="storefront" size="sm" />
           </button>
+          </div>
         </div>
         <div v-else class="hidden border-b border-brand-gray-200 bg-brand-cream px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
           <div class="flex min-w-0 items-center gap-3">
