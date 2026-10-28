@@ -47,26 +47,26 @@ function campaignStatusLabel(status: string) {
           </span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <div class="canva-panel">
+        <div class="crm-stats">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.visits') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.totalVisits || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.totalVisits || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.ltv') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatCurrency(contact.lifetimeValue || 0) }}</p>
+            <p class="crm-stat-v">{{ formatCurrency(contact.lifetimeValue || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.inactiveDays') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.inactiveDays || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.inactiveDays || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.noShowCount') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.noShowCount || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.noShowCount || 0) }}</p>
           </div>
-          <div class="canva-panel col-span-2 sm:col-span-1">
+          <div class="canva-panel crm-stat crm-stat-wide">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.lastVisit') }}</p>
-            <p class="mt-1 text-sm font-bold text-brand-navy"><bdi dir="auto">{{ contact.lastVisit || '—' }}</bdi></p>
+            <p class="crm-stat-v"><bdi dir="auto">{{ contact.lastVisit || '—' }}</bdi></p>
           </div>
         </div>
 
@@ -94,4 +94,15 @@ function campaignStatusLabel(status: string) {
 .crm-consent { display: inline-block; font-size: 11px; padding: 3px 10px; font-weight: 700; }
 .crm-consent.is-yes { background: #e6f6ee; color: #17603a; }
 .crm-consent.is-no { background: #f1efe9; color: #6b6b67; }
+/* SoT crmSt(): .cxbox padding 16, small #6b6b67 label, 20px bold value; 5 equal cols, gap 12 */
+.crm-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.crm-stat { padding: 16px !important; }
+.crm-stat > p:first-child { color: #6b6b67; font-size: 12px; }
+.crm-stat-v { display: block; margin-top: 6px; font-size: 20px; font-weight: 700; color: #2c2c2a; }
+/* Mobile: SoT crushes 5 cols into 375 (values wrap mid-number); keep 2 cols for readability */
+@media (max-width: 640px) {
+  .crm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-stat-wide { grid-column: span 2; }
+  .crm-stat-v { font-size: 18px; }
+}
 </style>

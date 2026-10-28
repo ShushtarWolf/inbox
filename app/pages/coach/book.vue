@@ -714,7 +714,7 @@ async function startTopUp() {
         </p>
 
         <div v-else class="venus-form-stack">
-          <section class="canva-panel space-y-3">
+          <section class="canva-panel cb-dates space-y-3">
             <AppFormField :label="$t('coach.book.club')">
               <select v-model="clubId" class="neo-select">
                 <option v-for="club in clubs" :key="club.id" :value="club.id">
@@ -1006,6 +1006,10 @@ async function startTopUp() {
 </template>
 
 <style scoped>
+/* SoT cxCalBox: flat calendar (no inner card), cells padding 12px 0 (not square), .cxlb label */
+.cb-dates :deep(.jalali-calendar-default) { border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+.cb-dates :deep(.jalali-calendar-day) { aspect-ratio: auto; height: 40px; border-radius: 0; font-size: 12px; }
+.cb-dates :deep(.jalali-calendar-weekdays) { font-size: 12px; font-weight: 600; color: #2c2c2a; }
 /* SoT #pg-coach-book .cxslots: wrapped compact hour buttons, selected = red */
 .cb-slots { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .cb-slot { padding: 10px 18px; background: #fff; border: 1px solid rgba(44,44,42,.14); font-size: 13px; color: #2c2c2a; cursor: pointer; }

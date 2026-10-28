@@ -406,20 +406,20 @@ function jumpToRangeStart() {
   box-shadow: inset 0 0 0 2px var(--sz-accent);
   font-weight: 800;
 }
-/* Fail-safe selected: green fill + navy number (never white-on-missing-bg). */
+/* Selected = SoT .cxcg .sel: green fill, white number, dark-green border. */
 .jalali-calendar-day.jalali-calendar-day-selected {
   background-color: #16a34a !important;
-  color: #0b1f12 !important;
-  font-weight: 800;
-  box-shadow: inset 0 0 0 2px #166534;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px #14532d;
 }
 .jalali-calendar-day.jalali-calendar-day-selected > span {
-  color: #0b1f12 !important;
+  color: #fff !important;
 }
 .jalali-calendar-day.jalali-calendar-day-selected:hover,
 .jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
   background-color: #15803d !important;
-  color: #0b1f12 !important;
+  color: #fff !important;
 }
 .jalali-calendar-day.jalali-calendar-day-in-range {
   background-color: #dcfce7 !important;
@@ -480,7 +480,7 @@ function jumpToRangeStart() {
 .jalali-calendar-day.jalali-calendar-day-disabled { color: #c9c6c2; }
 .jalali-calendar-day.jalali-calendar-day-today { box-shadow: inset 0 0 0 1px #2c2c2a; }
 .jalali-calendar-day.jalali-calendar-day-selected,
-.jalali-calendar-day.jalali-calendar-day-selected:hover { background-color: #2c2c2a; color: #fff; }
+.jalali-calendar-day.jalali-calendar-day-selected:hover { background-color: #16a34a; color: #fff; }
 .jalali-calendar-day.jalali-calendar-day-in-range { background-color: rgba(44, 44, 42, 0.08); }
 .jalali-calendar-today-footer {
   border-radius: 10px; border: 1px solid rgba(44, 44, 42, 0.12); background: #fff;
