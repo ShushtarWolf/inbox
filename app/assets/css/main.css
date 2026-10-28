@@ -4443,6 +4443,8 @@
 .canva-club-detail-book .canva-club-cal-day-active,
 .canva-club-detail-book .canva-club-cal-day-active:hover { background: #16a34a; color: #fff; border: 1px solid #14532d; font-weight: 700; }
 .canva-club-detail-book .canva-club-cal-day-active::after { display: none; }
+/* SoT .occh span: club amenity chips - flat #ece8e2, 8x14, 12px, regular weight */
+.canva-club-detail-section .canva-clubs-chip-row .canva-chip.canva-clubs-chip-idle { background: #ece8e2; color: #2c2c2a; border: 0; padding: 8px 14px; font-size: 12px; font-weight: 400; }
 .canva-club-detail-book .canva-club-cal-day-basket::after { bottom: 3px; width: 5px; height: 5px; border-radius: 50%; opacity: 1; }
 
 /* .lbl + .rnums */
