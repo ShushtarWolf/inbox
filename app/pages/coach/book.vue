@@ -175,7 +175,11 @@ const courtGroups = computed((): CourtGroup[] => {
     group.bookable.sort((a, b) => a.startTime.localeCompare(b.startTime))
     group.blocked.sort((a, b) => a.startTime.localeCompare(b.startTime))
   }
-  return sortCourtsByOrdinal([...map.values()])
+  // CourtGroup carries courtNameFa/courtNameEn; sortCourtsByOrdinal expects nameFa/nameEn.
+  const order = sortCourtsByOrdinal(
+    [...map.values()].map((group) => ({ id: group.courtId, nameFa: group.courtNameFa, nameEn: group.courtNameEn })),
+  )
+  return order.map((court) => map.get(court.id)!)
 })
 
 const selectedCourtGroup = computed(() =>
