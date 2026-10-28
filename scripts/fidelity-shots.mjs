@@ -1,8 +1,7 @@
 // Usage: node scripts/fidelity-shots.mjs id:route[@liveRoute] ...   env WHICH=html,after,live
 // Rules (design-reference/GAPS.md "Capture pipeline"):
 //  - full-page capture (scroll height, capped at MAXH), never a single viewport clip
-//  - SoT HTML is desktop-only except `m-*` pages → html-*-375 is ONLY captured for m-* ids
-//    (and m-* pages are only captured at 375). Everything else: SoT desktop only, labelled.
+//  - SoT and app are BOTH captured at 375x812 and 1440x900, deviceScaleFactor 1 (m-* only at 375).
 //  - every PNG is checked (scripts/fidelity-check.py); blank / near-flat / tiny shots are deleted, not kept
 //  - if the final URL differs from the requested route (redirect, e.g. coach under PILOT_NO_COACH,
 //    or auth gate), the shot is NOT saved and the redirect is logged as `ENV`.
@@ -40,7 +39,7 @@ for (const arg of process.argv.slice(2)) {
     for (const kind of which) {
       const out = `${dir}/${kind}-${id}-${tag}.png`
       if (fs.existsSync(out)) fs.unlinkSync(out) // never leave a stale shot behind
-      if (kind === 'html' && tag === '375' && !mobileOnly) { log.push(['NO-SOT', id, kind, tag, 'SoT has no 375 layout for this screen']); continue }
+      // SoT has @media(max-width:900px) rules, so it is shot at 375 too (same viewport as app)
       if (kind !== 'html' && !route) continue
       const ctx = await b.newContext({ ...(kind === 'after' && STATE ? { storageState: STATE } : {}), viewport: { width: w, height: h }, deviceScaleFactor: 1, locale: 'fa-IR' })
       const p = await ctx.newPage()
