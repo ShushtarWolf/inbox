@@ -4825,3 +4825,11 @@
 @media (min-width: 1024px) {
   .owner-settings-page .canva-gate-btn-secondary { width:220px; padding-block:10px }
 }
+
+/* owner-crm — SoT: list 1.6fr | side 1fr, flat cxbox panels, dark CTA start-aligned ~157px */
+@media (min-width: 1024px) {
+  .owner-crm-page .canva-crm-wide { grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:2.25rem; margin-top:.5rem }
+  .owner-crm-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12); border-radius:0 }
+  .owner-crm-page .canva-crm-cta-row { display:flex; justify-content:flex-start; margin-top:1.5rem }
+  .owner-crm-page .canva-crm-cta-row .canva-black-cta { width:157px; padding-block:.75rem; font-size:12px; background:#2c2c2a; border-radius:0 }
+}
