@@ -4876,3 +4876,38 @@
   .owner-staff-page .canva-sot-actions .canva-gate-btn-primary { min-width:220px; min-height:44px; justify-content:center }
   .owner-staff-page .canva-panel, .owner-staff-page > div:last-child { border-radius:0 }
 }
+
+/* owner-staff v2 — match SoT .rclubcard / .cxh / .cxp / .cxbox */
+.owner-staff-page > div:first-child > p { display:none }
+.owner-staff-page h1 { font-size:22px; font-weight:700 }
+.owner-staff-page .owner-rclubcard { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
+.owner-staff-page .owner-rclubcard-icon { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
+.owner-staff-page .owner-rclubcard-eyebrow { font-size:11px; font-weight:400; color:#6b6b67 }
+.owner-staff-page .owner-rclubcard-select { appearance:none; -webkit-appearance:none; background:transparent none !important; border:0 !important; box-shadow:none !important; padding:0 !important; margin:0; min-height:0; height:auto; font-size:15px; font-weight:700; color:#2c2c2a }
+.owner-staff-page .canva-sot-actions { margin-top:14px }
+.owner-staff-page .canva-sot-actions .canva-gate-btn-primary { min-width:220px; min-height:44px; border-radius:0; background:#c41e1e; font-size:14px; font-weight:700 }
+.owner-staff-page .owner-staff-intro { font-size:13px; color:#4a4a47; margin:6px 0 0 }
+.owner-staff-page .owner-staff-note { font-size:11px; color:#4a4a47; margin:0 0 10px }
+.owner-staff-page .canva-panel { border:1px solid rgba(44,44,42,.12); border-radius:0 !important; box-shadow:none; padding:14px; font-size:13px; color:#4a4a47; background:#fff }
+.owner-staff-page.venus-page-stack > * + * { margin-top:0 }
+@media (min-width: 431px) {
+  main:has(.owner-staff-page) .canva-club-switcher { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
+  main:has(.owner-staff-page) .canva-club-switcher > .venus-icon-wrap { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
+  main:has(.owner-staff-page) .canva-club-switcher label { gap:2px; font-size:11px; font-weight:400; color:#6b6b67 }
+  main:has(.owner-staff-page) .canva-club-switcher .neo-select { appearance:none; -webkit-appearance:none; border:0; border-radius:0; box-shadow:none; min-height:0; height:auto; padding:0; font-size:15px; font-weight:700; color:#2c2c2a; cursor:pointer;
+    background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232c2c2a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat left center }
+}
+.owner-staff-page .owner-staff-intro { font-weight:400 }
+.owner-staff-page .owner-staff-note { margin-top:2px }
+.owner-staff-page p.owner-staff-intro { margin:6px 0 4px !important; line-height:1.6 }
+.owner-staff-page p.owner-staff-note { margin:0 0 10px !important; line-height:1.6 }
+.owner-staff-page ul { margin-top:0 !important }
+@media (min-width: 431px) {
+  .owner-staff-page.venus-page-stack { gap:0 !important; row-gap:0 !important }
+  .owner-staff-page.venus-page-stack > .canva-sot-actions { margin-top:24px !important }
+  .owner-staff-page.venus-page-stack > .canva-sot-actions + p { margin-top:8px !important }
+}
+@media (min-width: 431px) {
+  .owner-staff-page.venus-page-stack > .canva-sot-actions + p { margin-top:12px !important }
+  .owner-staff-page.venus-page-stack > p.owner-staff-note { margin-top:6px !important; margin-bottom:8px !important }
+}
