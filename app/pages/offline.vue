@@ -12,7 +12,7 @@ definePageMeta({ layout: false })
           alt="inbox"
           dir="ltr"
           class="canva-error-brand inbox-brand-lockup mb-5"
-          style="height: 34px; width: auto; margin-inline: auto;"
+          style="height: 40px; width: auto; margin-inline: auto;"
         >
         <h1 class="canva-authbox-title">{{ $t('pwa.offlineTitle') }}</h1>
         <p class="canva-authbox-sub">{{ $t('pwa.offlineBody') }}</p>
