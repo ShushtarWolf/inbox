@@ -59,9 +59,8 @@ async function onPick(role: PlatformRole) {
 
 <template>
   <div class="canva-auth-sheet flex min-h-dvh flex-col">
-    <div class="mx-auto flex w-full max-w-sm flex-1 items-center px-4 py-8">
+    <div class="mx-auto flex w-full max-w-[440px] flex-1 items-center px-4 py-8">
       <div class="canva-result-sheet w-full p-0">
-        <div class="canva-auth-accent" />
         <div class="canva-auth-header">
           <InboxBrandLockup home-link height-class="h-7" />
           <NuxtLink :to="localePath('/')" class="text-xs font-bold text-brand-gray-600">
@@ -104,9 +103,7 @@ async function onPick(role: PlatformRole) {
               <div
                 class="flex h-11 w-11 shrink-0 items-center justify-center text-lg font-black"
                 :class="{
-                  'bg-brand-primary/10 text-brand-primary': card.role === 'ATHLETE',
-                  'bg-[#4a1420]/10 text-[#4a1420]': card.role === 'COACH',
-                  'bg-[#b68a3b]/15 text-[#b68a3b]': card.role === 'CLUB_ADMIN',
+                  'bg-[#c41e1e] text-white': true,
                 }"
                 style="border-radius: 2px;"
               >
