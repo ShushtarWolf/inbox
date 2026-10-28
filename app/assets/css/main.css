@@ -4398,6 +4398,79 @@
 }
 @media (min-width: 431px) { .canva-sot-form .canva-gate-btn-primary { display: flex !important; } }
 
+/* ─── SoT club booking widget (HTML .rcol-book / .rleg / .rbook / calBlock / .chips / .rcta) ───
+   Visual-only: no content, slot status or booking logic changes. */
+.canva-club-detail-book .canva-club-detail-section-title { font-size: 15px; color: #c41e1e; }
+.canva-club-detail-book .canva-club-slot-legend { gap: 6px 14px; margin-bottom: 10px; }
+.canva-club-detail-book .canva-club-legend-item { gap: 5px; font-size: 11.5px; font-weight: 400; color: #2c2c2a; }
+.canva-club-detail-book .canva-club-legend-swatch { width: 12px; height: 12px; border: 1px solid #bbb; border-radius: 0; }
+.canva-club-detail-book .canva-club-legend-booked { background: repeating-linear-gradient(45deg, #ccc, #ccc 2px, #eee 2px, #eee 4px); }
+.canva-club-detail-book .canva-club-legend-selected { background: #2e9a4f; border-color: #2e9a4f; }
+.canva-club-detail-book .canva-club-legend-free { background: #fff; }
+.canva-club-detail-book .canva-club-legend-suspected { background: repeating-linear-gradient(45deg, #d9b24c, #d9b24c 2px, #fff 2px, #fff 4px); border-color: #bbb; }
+
+/* .rbook: single column — calendar, then courts, then hours (SoT stacks at every width) */
+.canva-club-detail-book .canva-club-book { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 18px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.1); border-radius: 0; }
+
+/* calBlock: plain silver chevrons, charcoal month, silver weekdays */
+.canva-club-detail-book .canva-club-cal-nav { margin-bottom: 12px; }
+.canva-club-detail-book .canva-club-cal-nav-btn { width: auto; height: auto; padding: 4px; border: 0; background: transparent; color: #8f8f8b; font-size: 17px; }
+.canva-club-detail-book .canva-club-cal-nav-btn:hover { background: rgba(44, 44, 42, 0.05); }
+.canva-club-detail-book .canva-club-cal-month { font-size: 13.5px; font-weight: 700; color: #2c2c2a; }
+.canva-club-detail-book .canva-club-cal-weekdays { font-size: 11px; font-weight: 400; color: #8f8f8b; margin-bottom: 6px; }
+.canva-club-detail-book .canva-club-cal-grid { margin-top: 0; gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.canva-club-detail-book .canva-club-cal-day { padding-bottom: 0; font-size: 12.5px; font-weight: 400; color: #2c2c2a; border-radius: 0; transition: 0.12s; }
+.canva-club-detail-book .canva-club-cal-day:not(.canva-club-cal-day-empty):not(:disabled):hover { background: rgba(44, 44, 42, 0.05); }
+.canva-club-detail-book .canva-club-cal-day-disabled { opacity: 1; color: #c9c6c2; }
+.canva-club-detail-book .canva-club-cal-day-active,
+.canva-club-detail-book .canva-club-cal-day-active:hover { background: #2c2c2a; color: #fff; font-weight: 700; }
+.canva-club-detail-book .canva-club-cal-day-active::after { display: none; }
+.canva-club-detail-book .canva-club-cal-day-basket::after { bottom: 3px; width: 5px; height: 5px; border-radius: 50%; opacity: 1; }
+
+/* .lbl + .rnums */
+.canva-club-detail-book .canva-club-book-slots { margin-top: 14px; }
+.canva-club-detail-book .canva-club-book-slots-label { margin: 0 0 8px; font-size: 11.5px; font-weight: 500; color: #6b6b67; }
+.canva-club-detail-book .canva-club-court-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num { width: auto; min-width: 40px; height: 40px; padding: 0 10px; justify-content: center; font-size: 13px; font-weight: 400; color: #2c2c2a; background: #fff; border: 1px solid #2c2c2a; border-radius: 0; outline: 0; }
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-focus,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-target,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-active { outline: 2px solid #1f2a5a; outline-offset: 0; color: #2c2c2a; background: #fff; border-color: #2c2c2a; }
+
+/* hours: .chip tiles (square per SoT radius reset) */
+.canva-club-detail-book .canva-club-slot-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.canva-club-detail-book .canva-club-slot { padding: 7px 4px; font-size: 12px; font-weight: 500; color: #6b6b67; background: #fff; border: 1px solid rgba(44, 44, 42, 0.15); border-radius: 0; transition: 0.15s; }
+.canva-club-detail-book .canva-club-slot:not(:disabled):hover { border-color: #2c2c2a; }
+.canva-club-detail-book .canva-club-slot-price { font-size: 10px; font-weight: 400; color: #8f8f8b; }
+.canva-club-detail-book .canva-club-slot-active { background: #c41e1e; border-color: #c41e1e; color: #fff; }
+.canva-club-detail-book .canva-club-slot-active .canva-club-slot-price { color: rgba(255, 255, 255, 0.9); }
+.canva-club-detail-book .canva-club-slot-booked,
+.canva-club-detail-book .canva-club-slot-booked.canva-club-slot-active { color: #8f8f8b; border-color: #bbb; background: repeating-linear-gradient(45deg, #ccc, #ccc 2px, #eee 2px, #eee 4px); }
+.canva-club-detail-book .canva-club-slot-suspected { color: #2c2c2a; border-color: #d9b24c; background: repeating-linear-gradient(45deg, #f3e9d3, #f3e9d3 2px, #fff 2px, #fff 4px); }
+.canva-club-detail-book .canva-club-slot-suspected-label { font-size: 10px; font-weight: 700; }
+
+/* .rcta */
+.canva-club-detail-book .canva-club-book-footer { margin-top: 14px; padding: 12px 14px; gap: 12px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.12); border-radius: 0; }
+.canva-club-detail-book .canva-club-book-summary { font-size: 12.5px; font-weight: 400; color: #6b6b67; }
+.canva-club-detail-book .canva-club-book-cta { min-height: 44px; border-radius: 0; font-size: 14px; font-weight: 700; }
+
+/* ── HTML SoT fidelity: all calendars (cal-card / cal-nav / cal-head / cal-cell) — visual only ── */
+.canva-history-cal { background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:16px; padding:18px; box-shadow:none; }
+.canva-history-cal-nav { margin-bottom:12px; }
+.canva-history-cal-nav-btn { width:2rem; height:2rem; border:0; border-radius:6px; color:#8f8f8b; background:transparent; }
+.canva-history-cal-nav-btn:hover { background:rgba(44,44,42,.05); color:#2c2c2a; }
+.canva-history-cal-month { font-size:13px; font-weight:700; color:#2c2c2a; }
+.canva-history-cal-weekdays { font-size:10px; font-weight:400; color:#8f8f8b; margin-bottom:6px; }
+.canva-history-cal-day { aspect-ratio:1; min-height:0; border-radius:9px; font-size:12px; font-weight:500; color:#2c2c2a; gap:3px; }
+.canva-history-cal-day:hover { background:rgba(44,44,42,.05); }
+.canva-history-cal-day-today:not(.canva-history-cal-day-active) { box-shadow:inset 0 0 0 1px #2c2c2a; }
+.canva-history-cal-day-active, .canva-history-cal-day-active:hover { background:#2c2c2a; color:#fff; }
+.canva-cal-date-nav-label { font-size:13px; font-weight:700; color:#2c2c2a; }
+.canva-cal-date-nav-btn { border-radius:6px; color:#8f8f8b; }
+.canva-cal-date-nav-btn:hover { background:rgba(44,44,42,.05); color:#2c2c2a; }
+.canva-cal-grid-shell { border:1px solid rgba(44,44,42,.08); border-radius:16px; overflow:hidden; background:#fff; }
+.canva-cal-grid-time, .canva-cal-grid-court { font-size:10.5px; color:#8f8f8b; font-weight:600; }
+.canva-cal-grid-cell { border-radius:9px; }
+
 /* ===== HTML SoT fidelity — home page pass (SoT #pg-home measured: .rhead .rn / .rbtn, .rsearch, .rrail head) ===== */
 @layer components {
   @media (min-width: 431px) {
