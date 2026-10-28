@@ -634,7 +634,7 @@ async function submit(preferWallet = false) {
     :open="open"
     sheet
     patterned
-    max-width-class="max-w-sm min-[431px]:max-w-lg"
+    max-width-class="max-w-[440px]"
     @close="close"
   >
     <div class="canva-confirm-book flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -654,7 +654,7 @@ async function submit(preferWallet = false) {
         </button>
       </div>
 
-      <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">
+      <div class="canva-auth-body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-[22px] pb-4 pt-1">
         <template v-if="done">
           <div class="canva-confirm-success">
             <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
@@ -902,7 +902,7 @@ async function submit(preferWallet = false) {
         </template>
       </div>
 
-      <div class="shrink-0 space-y-2 px-5 pb-6">
+      <div class="shrink-0 space-y-2 px-[22px] pb-[22px]">
         <template v-if="done">
           <NuxtLink
             :to="localePath('/athlete/bookings')"
