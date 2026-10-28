@@ -1480,3 +1480,34 @@ async function shareClub() {
       />
   </div>
 </template>
+
+<style scoped>
+/* SoT .mphone .mcld — square white dots, bottom center */
+:deep(.canva-club-gallery-dots) {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot) {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  padding: 0;
+  border-radius: 0;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot::after) {
+  content: none;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot-active) {
+  background: #fff;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot-idle) {
+  background: #ffffff88;
+}
+</style>
