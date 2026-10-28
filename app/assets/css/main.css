@@ -5006,3 +5006,12 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .venus-page-stack.coach-book-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
 }
 .coach-photo-panel > div > p.text-sm.font-bold:first-child { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }
+
+/* m-athlete SoT .mrg/.mrc: 3-col compact venue tiles on phone (athlete home only) */
+@media (max-width: 430px) {
+  .venus-page-stack.athlete-home-page .canva-venue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card { aspect-ratio: 97 / 112; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer { top: 11px; font-size: 0.8rem; padding: 3px 12px; -webkit-mask: none; mask: none; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::before { left: 5px; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::after { right: 5px; }
+}
