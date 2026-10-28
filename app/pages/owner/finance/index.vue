@@ -469,7 +469,7 @@ function showUnpaidList() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack owner-finance-page">
     <section class="canva-photo-hero">
       <CanvaHeroImg
         :src="activeMembership?.club?.image || '/hero/tennis-court.jpg'"
