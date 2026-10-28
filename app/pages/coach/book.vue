@@ -648,7 +648,7 @@ async function startTopUp() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack coach-book-page">
     <CanvaCoachPhotoHero />
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">

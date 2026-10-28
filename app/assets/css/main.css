@@ -5000,3 +5000,9 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .venus-page-stack.book-coach-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
   a.canva-gate-btn-primary.athlete-fav-cta { width:fit-content !important; min-width:200px; align-self:flex-start; justify-self:start; margin-inline-start:0; margin-inline-end:auto; display:flex }
 }
+
+/* coach batch: book calendar compact rows (as book-coach); profile photo panel shows single heading like SoT (upload label kept for SR) */
+@media (min-width: 1024px) {
+  .venus-page-stack.coach-book-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
+}
+.coach-photo-panel > div > p.text-sm.font-bold:first-child { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }
