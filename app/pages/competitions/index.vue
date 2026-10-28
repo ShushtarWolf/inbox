@@ -142,6 +142,6 @@ async function applyFilters() {
 
 <style scoped>
 /* SoT pages['competitions']: .rh3 15px #c41e1e, tight under header */
-.comp-sot-head { margin-top: -24px !important; margin-bottom: -6px !important; padding-top: 0 !important; }
+.comp-sot-head { margin-top: 0 !important; margin-bottom: -6px !important; padding-top: 4px !important; }
 .comp-sot-title { font-size: 15px; line-height: 1.4; color: #c41e1e; }
 </style>
