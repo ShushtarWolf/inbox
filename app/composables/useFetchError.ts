@@ -108,6 +108,9 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Account disabled': 'auth.accountDisabled',
     USER_ROLE_SLOT_FULL: 'owner.inviteRoleSlotFull',
     'Coach product is disabled in pilot mode': 'auth.coachDisabledInPilot',
+    COURT_GENDER_REQUIRED: 'booking.errors.courtGenderRequired',
+    COURT_MEN_ONLY: 'booking.errors.courtMenOnly',
+    COURT_WOMEN_ONLY: 'booking.errors.courtWomenOnly',
   }
   const i18nKey = errorKeyMap[raw]
   if (i18nKey && translate) return translate(i18nKey)

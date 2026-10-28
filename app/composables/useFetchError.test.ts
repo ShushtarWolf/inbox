@@ -51,6 +51,15 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
     expect(fetchErrorMessage(err('Target slot is not available'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotNotAvailable')
   })
+
+  it('maps court audience booking gates', () => {
+    expect(fetchErrorMessage(err('COURT_GENDER_REQUIRED'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtGenderRequired')
+    expect(fetchErrorMessage(err('COURT_MEN_ONLY'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtMenOnly')
+    expect(fetchErrorMessage(err('COURT_WOMEN_ONLY'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtWomenOnly')
+  })
 })
 
 describe('isSlotConflictError', () => {

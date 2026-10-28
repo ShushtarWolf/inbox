@@ -26,6 +26,7 @@ export type NotifyTemplate =
   | 'ADMIN_CLUB_APPLICATION'
   | 'ADMIN_COACH_APPLICATION'
   | 'ADMIN_WALLET_TOPUP'
+  | 'COURT_DETAILS_CHANGED'
 
 /**
  * Channel notify — email gates on EMAIL_ENABLED / live SMTP; always fail-soft.

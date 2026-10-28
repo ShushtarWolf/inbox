@@ -164,6 +164,14 @@ describe('SMS templates', () => {
         'Inboxs',
       ].join('\n'),
     )
+    expect(
+      renderSmsTemplate('COURT_DETAILS_CHANGED', {
+        clubName: 'پدل زون',
+        courtName: 'زمین ۲',
+        date: '1404/01/02',
+        startTime: '19:00',
+      }),
+    ).toContain('تغییر مشخصات زمین')
   })
 
   it('includes court, payment status, and location on booking confirmed', () => {

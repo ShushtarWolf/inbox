@@ -1,5 +1,7 @@
+import { parseCourtAudience } from '#shared/courtAudience.ts'
 import { repriceFreeSlotsForCourts } from '../../../utils/slots'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
+import { notifyFutureCourtBookers } from '../../../utils/courtAudienceNotify'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
@@ -15,6 +17,8 @@ export default defineEventHandler(async (event) => {
     imagesJson?: string | null
     facilitiesJson?: string | null
     pricingJson?: string | null
+    audience?: string
+    notifyFutureBookings?: boolean
   }>(event)
   const court = await prisma.court.findFirst({ where: { id, clubId: club.id } })
   if (!court) throw createError({ statusCode: 404, statusMessage: 'Not found' })
@@ -29,6 +33,11 @@ export default defineEventHandler(async (event) => {
   if (body.imagesJson !== undefined) data.imagesJson = body.imagesJson
   if (body.facilitiesJson !== undefined) data.facilitiesJson = body.facilitiesJson
   if (body.pricingJson !== undefined) data.pricingJson = body.pricingJson
+  if (body.audience !== undefined) {
+    const audience = parseCourtAudience(body.audience)
+    if (!audience) throw createError({ statusCode: 400, statusMessage: 'Invalid audience' })
+    data.audience = audience
+  }
   if (body.sportSlug) {
     const sport = await prisma.sport.findFirst({
       where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },
@@ -58,5 +67,18 @@ export default defineEventHandler(async (event) => {
     await syncClubCatalogPrices(club.id)
   }
 
-  return updated
+  let notified = 0
+  if (body.notifyFutureBookings) {
+    const result = await notifyFutureCourtBookers({
+      clubId: club.id,
+      clubNameFa: club.nameFa,
+      clubNameEn: club.nameEn,
+      courtId: updated.id,
+      courtNameFa: updated.nameFa,
+      courtNameEn: updated.nameEn,
+    })
+    notified = result.notified
+  }
+
+  return { ...updated, notified }
 })

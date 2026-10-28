@@ -239,6 +239,13 @@
     "reviewsEmpty": "هنوز نظری ثبت نشده است.",
     "selectDateTime": "انتخاب تاریخ و زمان",
     "selectCourt": "انتخاب زمین",
+    "audience": {
+      "MEN": "آقایان",
+      "WOMEN": "بانوان",
+      "FAMILY": "خانوادگی"
+    },
+    "audienceWarningWomen": "این زمین ویژه بانوان است و آقایان اجازه ورود ندارند.",
+    "audienceWarningMen": "این زمین ویژه آقایان است و بانوان اجازه ورود ندارند.",
     "share": "اشتراک‌گذاری",
     "addressLabel": "آدرس",
     "contactLabel": "تماس",
@@ -1248,7 +1255,10 @@
       "packageNotFound": "این پکیج پیدا نشد.",
       "packageAlreadyBooked": "قبلاً در این پکیج ثبت‌نام کرده‌اید.",
       "waitlistInvalid": "درخواست لیست انتظار معتبر نیست.",
-      "waitlistUnavailable": "لیست انتظار برای این باشگاه فعال نیست."
+      "waitlistUnavailable": "لیست انتظار برای این باشگاه فعال نیست.",
+      "courtGenderRequired": "برای رزرو این زمین، جنسیت را در پروفایل تکمیل کنید.",
+      "courtMenOnly": "این زمین ویژه آقایان است.",
+      "courtWomenOnly": "این زمین ویژه بانوان است و آقایان اجازه رزرو ندارند."
     }
   },
   "reviews": {
@@ -2697,6 +2707,14 @@
       "courtNameEn": "نام زمین (انگلیسی)",
       "courtPrice": "قیمت زمین",
       "courtSport": "ورزش",
+      "courtAudience": "مخاطب زمین",
+      "audience": {
+        "MIXED": "عمومی",
+        "MEN": "آقایان",
+        "WOMEN": "بانوان",
+        "FAMILY": "خانوادگی"
+      },
+      "notifyFutureBookings": "ارسال پیامک اطلاع‌رسانی به بازیکنانی که روی این زمین رزرو آینده دارند",
       "courtImage": "تصویر زمین",
       "courtFacilities": "امکانات زمین",
       "useClubHours": "استفاده از ساعت پیش‌فرض باشگاه",

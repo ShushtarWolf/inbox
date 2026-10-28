@@ -1,4 +1,5 @@
 import { numberedCourtNames, parseCourtBulkCount } from '#shared/courtBulk.ts'
+import { parseCourtAudience } from '#shared/courtAudience.ts'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
 export default defineEventHandler(async (event) => {
@@ -14,8 +15,15 @@ export default defineEventHandler(async (event) => {
     imagesJson?: string | null
     facilitiesJson?: string | null
     pricingJson?: string | null
+    audience?: string
     count?: number
   }>(event)
+  const audience = body.audience !== undefined
+    ? parseCourtAudience(body.audience)
+    : 'MIXED'
+  if (body.audience !== undefined && !audience) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid audience' })
+  }
   const sport = await prisma.sport.findFirst({
     where: { slug: body.sportSlug === 'tennis' ? 'tennis' : 'padel' },
   })
@@ -51,6 +59,7 @@ export default defineEventHandler(async (event) => {
       imagesJson: body.imagesJson ?? null,
       facilitiesJson: body.facilitiesJson ?? null,
       pricingJson: body.pricingJson ?? null,
+      audience: audience || 'MIXED',
     }
   }
 

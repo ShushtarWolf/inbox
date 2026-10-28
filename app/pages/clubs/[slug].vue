@@ -16,6 +16,13 @@ import {
   upsertBasketSlots,
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
+import {
+  courtAudienceBlockReason,
+  courtAudienceShowsTag,
+  parseCourtAudience,
+  type CourtAudience,
+} from '#shared/courtAudience.ts'
+import { parseGender } from '#shared/gender.ts'
 import { buildClubSportsActivityLocationJsonLd } from '#shared/clubJsonLd.ts'
 import {
   buildClubCitationCopy,
@@ -43,6 +50,7 @@ type ClubCourt = {
   nameEn?: string
   price?: number
   pricingJson?: string | null
+  audience?: string | null
   sport?: { slug?: string }
 }
 
@@ -266,6 +274,16 @@ const locationLine = computed(() => {
 
 const courts = computed(() => sortCourtsByOrdinal(club.value?.courts || []))
 
+function courtAudienceOf(court: ClubCourt | null | undefined): CourtAudience {
+  return parseCourtAudience(court?.audience) || 'MIXED'
+}
+
+function courtAudienceTag(court: ClubCourt) {
+  const audience = courtAudienceOf(court)
+  if (!courtAudienceShowsTag(audience)) return ''
+  return t(`clubs.audience.${audience}`)
+}
+
 watch(
   courts,
   (list) => {
@@ -425,6 +443,43 @@ const selectedSlots = computed(() => {
   return sortSlotsByTimeThenCourt(picked, courtOrder)
 })
 
+/** Focused/selected court that carries a gender policy — drives the warning banner. */
+const audienceWarnCourt = computed(() => {
+  const ids = uniqueOrdered([
+    focusedCourtId.value,
+    ...selectedCourtIds.value,
+    ...courtIdsFromSlots(selectedSlots.value),
+  ].filter(Boolean) as string[])
+  for (const id of ids) {
+    const court = courts.value.find((c) => c.id === id)
+    const audience = courtAudienceOf(court)
+    if (audience === 'WOMEN' || audience === 'MEN') return court || null
+  }
+  return null
+})
+
+const audienceWarnText = computed(() => {
+  const audience = courtAudienceOf(audienceWarnCourt.value)
+  if (audience === 'WOMEN') return t('clubs.audienceWarningWomen')
+  if (audience === 'MEN') return t('clubs.audienceWarningMen')
+  return ''
+})
+
+/** Only after login — guests still reach the auth gate, then gender is enforced. */
+const audienceBlocksBooker = computed(() => {
+  if (!user.value) return false
+  const gender = parseGender(user.value.gender)
+  const ids = uniqueOrdered([
+    ...selectedCourtIds.value,
+    ...courtIdsFromSlots(selectedSlots.value),
+  ].filter(Boolean) as string[])
+  for (const id of ids) {
+    const court = courts.value.find((c) => c.id === id)
+    if (courtAudienceBlockReason(courtAudienceOf(court), gender)) return true
+  }
+  return false
+})
+
 const basketDates = computed(() =>
   uniqueOrdered(
     selectedSlots.value
@@ -493,12 +548,8 @@ function maybeResumeConfirm() {
   if (!user.value || !resumeConfirmAfterAuth.value) return
   if (!selectedSlots.value.length) return
   resumeConfirmAfterAuth.value = false
-  waitlistSlotId.value = null
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      confirmOpen.value = true
-    })
-  })
+  // Reuse openConfirmSheet so court audience gate runs after login.
+  openConfirmSheet()
 }
 
 watch(
@@ -647,6 +698,23 @@ const confirmPrimaryDate = computed(() => basketDates.value[0] || selectedDate.v
 function openConfirmSheet() {
   // Prefer resolved free slots — orphan ids leave CTA enabled but open an empty sheet.
   if (!selectedSlots.value.length) return
+  if (audienceBlocksBooker.value) {
+    const gender = parseGender(user.value?.gender)
+    const ids = uniqueOrdered([
+      ...selectedCourtIds.value,
+      ...courtIdsFromSlots(selectedSlots.value),
+    ].filter(Boolean) as string[])
+    let message = t('booking.errors.courtGenderRequired')
+    for (const id of ids) {
+      const reason = courtAudienceBlockReason(courtAudienceOf(courts.value.find((c) => c.id === id)), gender)
+      if (reason === 'women_only') { message = t('booking.errors.courtWomenOnly'); break }
+      if (reason === 'men_only') { message = t('booking.errors.courtMenOnly'); break }
+      if (reason === 'gender_required') { message = t('booking.errors.courtGenderRequired'); break }
+    }
+    waitlistFeedback.value = message
+    waitlistFeedbackTone.value = 'error'
+    return
+  }
   if (!user.value) {
     resumeConfirmAfterAuth.value = true
     openLogin({
@@ -662,6 +730,7 @@ function openConfirmSheet() {
   }
   resumeConfirmAfterAuth.value = false
   waitlistSlotId.value = null
+  waitlistFeedback.value = ''
   // Defer past the opening click so AppModal mounts after the gesture ends
   // (otherwise the same click can dismiss the sheet — dead «تایید و ادامه»).
   nextTick(() => {
@@ -1266,9 +1335,21 @@ async function shareClub() {
                   :aria-current="focusedCourtId === court.id ? 'true' : undefined"
                   @click="toggleCourt(court.id)"
                 >
-                  {{ courtChipLabel(court, idx) }}
+                  <span>{{ courtChipLabel(court, idx) }}</span>
+                  <span
+                    v-if="courtAudienceTag(court)"
+                    class="canva-court-audience-tag"
+                    :class="`canva-court-audience-${courtAudienceOf(court)}`"
+                  >{{ courtAudienceTag(court) }}</span>
                 </button>
               </div>
+              <p
+                v-if="audienceWarnText"
+                class="canva-club-audience-warn mb-2 text-start"
+                role="status"
+              >
+                {{ audienceWarnText }}
+              </p>
               <p
                 v-if="selectedCourtIds.length > 1 || courtIdsFromSlots(selectedSlots).length > 1"
                 class="mb-2 text-start text-[11px] leading-snug text-brand-gray-600"
@@ -1366,7 +1447,7 @@ async function shareClub() {
               v-else
               type="button"
               class="canva-cta canva-club-book-cta"
-              :disabled="!selectedSlots.length"
+              :disabled="!selectedSlots.length || audienceBlocksBooker"
               @click="openConfirmSheet"
             >
               {{ bookConfirmCtaLabel }}

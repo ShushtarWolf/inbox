@@ -352,6 +352,17 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     lines.push('', 'سریع رزرو کنید.', '', 'Inboxs')
     return lines.join('\n')
   },
+  COURT_DETAILS_CHANGED: (data) => {
+    const club = String(data.clubName || '').trim()
+    const court = String(data.courtName || '').trim()
+    const when = whenBit(data)
+    const lines = ['تغییر مشخصات زمین']
+    if (club) lines.push(`باشگاه: «${club}»`)
+    if (court) lines.push(`زمین: ${court}`)
+    if (when) lines.push(when)
+    lines.push('', 'جزئیات زمین رزرو آینده شما به‌روز شد.', '', 'Inboxs')
+    return lines.join('\n')
+  },
   /** Compact admin alerts — Verify Lookup token10 (~100 chars). */
   ADMIN_BOOKING_CONFIRMED: (data) => {
     const guest = String(data.guestName || data.userName || '').trim() || 'مهمان'

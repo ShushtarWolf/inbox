@@ -8,6 +8,7 @@ import {
   type OwnerPermission,
 } from '#shared/ownerPermissions.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
+import { courtAudienceShowsTag, parseCourtAudience } from '#shared/courtAudience.ts'
 import { isValidSheba } from '#shared/settlement.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -60,6 +61,7 @@ interface OwnerCourtListItem {
   closeHour?: number | null
   facilitiesJson?: string | null
   pricingJson?: string | null
+  audience?: string | null
   sport?: { slug: string; nameFa?: string; nameEn?: string }
 }
 
@@ -539,6 +541,12 @@ function courtHoursLabel(court: Pick<OwnerCourtListItem, 'openHour' | 'closeHour
   return `${String(open).padStart(2, '0')}:00 تا ${String(close).padStart(2, '0')}:00`
 }
 
+function courtAudienceLabel(court: Pick<OwnerCourtListItem, 'audience'>) {
+  const audience = parseCourtAudience(court.audience) || 'MIXED'
+  if (!courtAudienceShowsTag(audience)) return ''
+  return t(`owner.settingsPage.audience.${audience}`)
+}
+
 const editingCourt = computed(() => {
   if (!editingCourtId.value) return null
   return (courtsData.value || []).find((c) => c.id === editingCourtId.value) || null
@@ -731,6 +739,11 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 <p class="text-sm font-bold text-brand-navy">
                   {{ formatFaDigits(localizedField(court, 'nameFa', 'nameEn')) }}
                   <span class="ms-2 font-medium text-brand-gray-600">{{ localizedField(court.sport, 'nameFa', 'nameEn') }}</span>
+                  <span
+                    v-if="courtAudienceLabel(court)"
+                    class="canva-court-audience-tag ms-2"
+                    :class="`canva-court-audience-${parseCourtAudience(court.audience) || 'MIXED'}`"
+                  >{{ courtAudienceLabel(court) }}</span>
                 </p>
                 <p class="text-xs text-brand-gray-600">
                   {{ courtHoursLabel(court) }}

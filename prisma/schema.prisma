@@ -19,6 +19,14 @@ enum Gender {
   FEMALE
 }
 
+/** Who may book a court. MIXED = no gender restriction (default for legacy rows). */
+enum CourtAudience {
+  MIXED
+  MEN
+  WOMEN
+  FAMILY
+}
+
 enum SlotDisplayStatus {
   FREE
   RESERVED
@@ -523,6 +531,7 @@ model Court {
   facilitiesJson String?
   pricingJson    String?
   imagesJson     String?
+  audience       CourtAudience @default(MIXED)
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)

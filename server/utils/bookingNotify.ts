@@ -101,6 +101,7 @@ type BookingSmsTemplate =
   | 'OWNER_BOOKING_PAID'
   | 'OWNER_BOOKING_CANCELLED'
   | 'WAITLIST_SLOT_AVAILABLE'
+  | 'COURT_DETAILS_CHANGED'
 
 function kindLabelFa(kind: BookingNotifyKind) {
   if (kind === 'coach') return 'جلسه مربی'
