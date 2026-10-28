@@ -659,7 +659,7 @@ async function submit(preferWallet = false) {
           <div class="canva-confirm-success">
             <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
             <h2 class="canva-confirm-success-title">{{ t('booking.successPaidTitle') }}</h2>
-            <p class="canva-confirm-success-body">
+            <p class="canva-confirm-success-body" :class="{ 'text-red-600': feedbackTone === 'error' }" :role="feedbackTone === 'error' ? 'alert' : undefined">
               {{ feedback || t('booking.successPaidBody', { club: clubName }) }}
             </p>
             <div v-if="createdBookingId" class="canva-confirm-success-code">
