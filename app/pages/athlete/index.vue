@@ -111,10 +111,14 @@ async function handleLogout() {
 
 <template>
   <div class="venus-page-stack">
-    <div class="canva-athlete-hub">
+    <div class="canva-athlete-hub ath-hub-sot">
+    <header class="ath-hub-head hidden md:block">
+      <h2 class="ath-hub-title">{{ t('nav.profile') }}</h2>
+      <p class="ath-hub-sub">{{ t('athlete.hubSubtitle') }}</p>
+    </header>
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
-        <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
+        <div class="ath-hub-avatar flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/15 text-lg font-bold">
           <img
             v-if="avatarUrl && showPhoto"
             :src="avatarUrl"
@@ -126,7 +130,7 @@ async function handleLogout() {
         </div>
         <div class="min-w-0 text-start">
           <h1 class="truncate text-xl font-bold text-white">{{ displayName || firstName }}</h1>
-          <p class="mt-0.5 text-xs text-white/75">{{ t('athlete.hubSubtitle') }}</p>
+          <p class="ath-hub-card-sub mt-0.5 text-xs text-white/75">{{ t('athlete.hubSubtitle') }}</p>
           <p v-if="phone" class="mt-0.5 truncate text-sm tabular-nums text-white/85" dir="ltr">{{ formatPhone(phone) }}</p>
           <p v-else class="mt-0.5 text-sm text-white/70">{{ addMobileHint }}</p>
         </div>
@@ -170,7 +174,7 @@ async function handleLogout() {
         >{{ item.badge }}</span>
         <AppIcon name="chevron_left" size="sm" class="text-brand-gray-400" />
       </NuxtLink>
-      <button type="button" class="canva-dash-menu-item !text-brand-primary" @click="handleLogout">
+      <button type="button" class="canva-dash-menu-item ath-hub-logout !text-brand-primary" @click="handleLogout">
         <span class="canva-dash-menu-icon">
           <AppIcon name="logout" size="sm" />
         </span>
@@ -185,3 +189,14 @@ async function handleLogout() {
     <p class="sr-only">{{ formatCurrency(spendTotal) }}</p>
   </div>
 </template>
+
+<style scoped>
+@media (min-width: 768px) {
+  .ath-hub-head { margin-bottom: 22px; text-align: start; }
+  .ath-hub-title { font-size: 20px; font-weight: 700; color: #2c2c2a; margin: 0 0 6px; }
+  .ath-hub-sub { font-size: 12px; color: #8f8f8b; margin: 0; }
+  .ath-hub-sot :deep(.ath-hub-avatar) { border-radius: 0 !important; border: 0 !important; width: 46px; height: 46px; }
+  .ath-hub-sot :deep(.ath-hub-card-sub) { display: none; }
+  .ath-hub-sot :deep(.ath-hub-logout) { color: #2c2c2a !important; }
+}
+</style>
