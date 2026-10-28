@@ -886,7 +886,7 @@ async function startTopUp() {
         </div>
       </AppAsyncState>
 
-      <section v-if="fromCalendar || clubs.length" class="canva-panel space-y-3">
+      <section v-if="fromCalendar || clubs.length" class="canva-panel cb-student space-y-3">
             <AppFormField :label="$t('coach.book.studentPhone')">
               <div class="relative" :class="studentSearchOpen && studentSearchSource === 'mobile' ? 'z-30' : ''">
                 <input
@@ -1006,6 +1006,9 @@ async function startTopUp() {
 </template>
 
 <style scoped>
+/* SoT .cxin input: 42px tall, padding 12px; .cxin small label 11px #4a4a47 */
+.cb-student .neo-input { min-height: 0; height: 42px; padding: 12px; font-size: 13px; }
+.cb-student :deep(label) { font-size: 11px; color: #4a4a47; }
 /* SoT cxCalBox: flat calendar (no inner card), cells padding 12px 0 (not square), .cxlb label */
 .cb-dates :deep(.jalali-calendar-default) { border: 0; border-radius: 0; padding: 0; box-shadow: none; }
 .cb-dates :deep(.jalali-calendar-day) { aspect-ratio: auto; height: 40px; border-radius: 0; font-size: 12px; }
