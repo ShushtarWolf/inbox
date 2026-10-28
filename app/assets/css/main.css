@@ -4813,3 +4813,15 @@
   .canva-public-footer > div:last-child { color:#6b6b67; font-weight:400 }
   .canva-public-footer > div.mb-2 { margin-bottom:0 }
 }
+
+/* owner-settings — SoT cxbox panels: stacked fields, small gray labels, flat panels */
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12); border-radius:0 }
+  .owner-settings-page .canva-settings-wide > .canva-panel > .grid.grid-cols-2:not(.owner-settings-pair) { grid-template-columns:1fr; gap:.75rem }
+  .owner-settings-page .canva-panel label > span.font-bold:not([role]) { font-weight:400; font-size:10px; color:#6b6b67 }
+  .owner-settings-page .canva-panel .neo-input { min-height:30px; border-color:rgba(44,44,42,.14); border-radius:0 }
+  .owner-settings-page .canva-panel h2 { font-size:13px }
+}
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-gate-btn-secondary { width:220px; padding-block:10px }
+}

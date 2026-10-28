@@ -564,7 +564,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack owner-settings-page">
     <!-- HTML m5 set tab: photo banner + cxh title (not crimson dash hero) -->
     <section class="canva-photo-hero hidden max-[430px]:block">
       <CanvaHeroImg
@@ -638,7 +638,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.addressExact') }}</span>
             <input v-model="form.addressFa" required class="neo-input">
           </label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2 owner-settings-pair">
             <label class="block text-sm">
               <span class="mb-1 block font-bold">{{ t('common.mobile') }}</span>
               <input v-model="form.phone" dir="ltr" class="neo-input tabular-nums">
