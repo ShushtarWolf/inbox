@@ -4994,3 +4994,9 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .owner-reserve-redirect { text-align:center }
   .owner-reserve-redirect .canva-cta { width:auto; min-width:110px; background:transparent; color:#c8201f; border:1px solid #c8201f; padding:8px 24px }
 }
+
+/* athlete batch: book-coach compact calendar rows (SoT), favorites CTA width */
+@media (min-width: 1024px) {
+  .venus-page-stack.book-coach-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
+  a.canva-gate-btn-primary.athlete-fav-cta { width:fit-content !important; min-width:200px; align-self:flex-start; justify-self:start; margin-inline-start:0; margin-inline-end:auto; display:flex }
+}

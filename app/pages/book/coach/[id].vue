@@ -199,7 +199,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack book-coach-page">
     <PageHeaderNav :title="t('home.findCoach')" :home-to="localePath('/')" :back-to="localePath(`/coaches/${id}`)" />
     <AppDateInput v-model="date" :min-date="today()" />
     <div v-if="coach" class="canva-panel text-sm">
