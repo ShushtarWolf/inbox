@@ -4833,3 +4833,12 @@
   .owner-crm-page .canva-crm-cta-row { display:flex; justify-content:flex-start; margin-top:1.5rem }
   .owner-crm-page .canva-crm-cta-row .canva-black-cta { width:157px; padding-block:.75rem; font-size:12px; background:#2c2c2a; border-radius:0 }
 }
+
+/* owner-calendar — SoT: 125px banner, square white board, square slots, plain court heads */
+@media (min-width: 1024px) {
+  .owner-cal-page .canva-photo-hero { height:125px !important; min-height:125px }
+  .owner-cal-page .canva-cal-grid-shell { border-radius:0 !important; border:1px solid rgba(44,44,42,.12); box-shadow:none }
+  .owner-cal-page .canva-cal-grid-cell { border-radius:0 !important }
+  .owner-cal-page .canva-cal-grid-court, .owner-cal-page .canva-cal-grid-corner, .owner-cal-page .canva-cal-grid-time { background:transparent !important; border-radius:0 }
+  .owner-cal-page .canva-cal-grid-court { font-size:10px; color:#2c2c2a }
+}
