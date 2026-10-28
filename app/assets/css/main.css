@@ -5033,3 +5033,9 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .canva-role-card.canva-role-card-active { background: #fff; border-color: #c41e1e; }
 .canva-role-card p.font-bold { font-size: 14px; color: #2c2c2a; }
 .canva-role-card p.text-xs { font-size: 12px; color: #6b6b67; margin-top: 2px; }
+
+/* fidelity(auth): SoT is square-cornered everywhere (border-radius:0) — alerts/inputs/buttons inside auth cards (reset/forgot-password). */
+.canva-authbox .venus-alert-error,
+.canva-authbox .neo-input,
+.canva-authbox .canva-gate-btn-primary,
+.canva-authbox .canva-gate-btn-secondary { border-radius: 0; }
