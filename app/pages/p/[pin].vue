@@ -22,7 +22,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-dvh bg-white px-4 py-6">
+  <div class="min-h-dvh bg-white px-6 py-4">
     <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" />
     <p v-else-if="error || !data?.token" class="text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
   </div>
