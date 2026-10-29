@@ -247,7 +247,6 @@ export function useCourtBooking() {
     createdBookingIds.value = result.bookingIds?.length ? result.bookingIds : [result.id]
     lastPaymentStatus.value = result.paymentStatus
     bookedTotal.value = result.totalAmount ?? null
-    done.value = true
     feedbackTone.value = 'success'
     feedback.value = opts.successMessage
 
@@ -256,6 +255,10 @@ export function useCourtBooking() {
       opts.preferWallet
       && canCoverWithWallet(walletBalance.value, amount, result.paymentStatus),
     )
+    const goGateway = !useWallet && onlineEnabled.value && canPayOnline(result.paymentStatus)
+    // Payment required → go straight to the gateway; don't flip to the done
+    // («مشاهده رزروها») state first. On stall the Pay CTA re-checkouts the same booking.
+    if (!goGateway) done.value = true
 
     if (useWallet) {
       paying.value = true
@@ -273,7 +276,7 @@ export function useCourtBooking() {
         paying.value = false
       }
     }
-    else if (onlineEnabled.value && canPayOnline(result.paymentStatus)) {
+    else if (goGateway) {
       paying.value = true
       try {
         await startCheckout({ bookingId: result.id })
