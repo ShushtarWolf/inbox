@@ -36,44 +36,37 @@ function campaignStatusLabel(status: string) {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/crm" :title="t('owner.crm')" />
+    <NuxtLink :to="localePath('/owner/crm')" class="crm-back">← {{ t('owner.crm') }}</NuxtLink>
     <AppAsyncState :pending="pending" :error="error" :empty="!contact" skeleton-variant="default">
       <div v-if="contact" class="venus-page-stack">
-        <section class="canva-dash-hero hidden max-[430px]:block">
-          <h1 class="mt-2 font-display text-2xl font-bold text-white">{{ contact.name }}</h1>
-          <p class="mt-1 text-sm text-white/85"><bdi dir="ltr" class="tabular-nums">{{ contact.mobile ? formatPhone(contact.mobile) : '—' }}</bdi></p>
-          <span
-            class="canva-chip mt-3 inline-flex w-fit items-center gap-1 px-2.5 py-1 text-xs font-bold"
-            style="border-radius: var(--sz-canva-radius);"
-            :class="contact.consentSms ? 'bg-white/20 text-white' : 'bg-black/20 text-white/70'"
-          >
-            <AppIcon :name="contact.consentSms ? 'sms' : 'sms_failed'" size="sm" />
+        <div>
+          <h1 class="crm-name">{{ contact.name }}</h1>
+          <p class="crm-phone" dir="ltr"><bdi class="tabular-nums">{{ contact.mobile ? formatPhone(contact.mobile) : '—' }}</bdi></p>
+          <span class="crm-consent" :class="contact.consentSms ? 'is-yes' : 'is-no'">
             {{ contact.consentSms ? t('owner.playerDetail.consentYes') : t('owner.playerDetail.consentNo') }}
           </span>
-        </section>
+        </div>
 
-        <h1 class="hidden text-start text-2xl font-bold text-brand-navy min-[431px]:block">{{ contact.name }}</h1>
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <div class="canva-panel">
+        <div class="crm-stats">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.visits') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.totalVisits || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.totalVisits || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.ltv') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatCurrency(contact.lifetimeValue || 0) }}</p>
+            <p class="crm-stat-v">{{ formatCurrency(contact.lifetimeValue || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.inactiveDays') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.inactiveDays || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.inactiveDays || 0) }}</p>
           </div>
-          <div class="canva-panel">
+          <div class="canva-panel crm-stat">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.noShowCount') }}</p>
-            <p class="mt-1 text-xl font-bold text-brand-navy">{{ formatNumber(contact.noShowCount || 0) }}</p>
+            <p class="crm-stat-v">{{ formatNumber(contact.noShowCount || 0) }}</p>
           </div>
-          <div class="canva-panel col-span-2 sm:col-span-1">
+          <div class="canva-panel crm-stat crm-stat-wide">
             <p class="text-xs text-brand-gray-500">{{ t('owner.playerDetail.lastVisit') }}</p>
-            <p class="mt-1 text-sm font-bold text-brand-navy"><bdi dir="ltr" class="tabular-nums">{{ contact.lastVisit ? formatIsoDate(contact.lastVisit) : '—' }}</bdi></p>
+            <p class="crm-stat-v"><bdi dir="auto">{{ contact.lastVisit || '—' }}</bdi></p>
           </div>
         </div>
 
@@ -83,7 +76,7 @@ function campaignStatusLabel(status: string) {
           <div v-for="item in recentCampaigns" :key="item.id" class="canva-list-card">
             <div class="flex items-center justify-between gap-3">
               <p class="font-bold text-brand-navy">{{ item.campaign?.name || '—' }}</p>
-              <span v-if="item.campaign?.status" class="neo-badge">{{ campaignStatusLabel(item.campaign.status) }}</span>
+              <span v-if="item.campaign?.status" class="crm-consent is-yes !mb-0">{{ campaignStatusLabel(item.campaign.status) }}</span>
             </div>
             <p class="mt-1 text-xs text-brand-gray-500"><bdi dir="ltr" class="tabular-nums">{{ formatIsoDate(item.createdAt || '') }}</bdi></p>
           </div>
@@ -92,3 +85,24 @@ function campaignStatusLabel(status: string) {
     </AppAsyncState>
   </div>
 </template>
+
+<style scoped>
+/* SoT: design-reference/sot/inbox-all-pages.html #pg-owner-crm-detail (.adback, h1 26px, .cxp, .adtag.g) */
+.crm-back { display: inline-block; align-self: flex-start; font-weight: 700; text-decoration: underline; font-size: 13px; color: #2c2c2a; }
+.crm-name { font-size: 26px; font-weight: 700; margin: 6px 0 4px; color: #2c2c2a; text-align: start; }
+.crm-phone { font-size: 13px; color: #4a4a47; margin: 6px 0 10px; text-align: right; }
+.crm-consent { display: inline-block; font-size: 11px; padding: 3px 10px; font-weight: 700; }
+.crm-consent.is-yes { background: #e6f6ee; color: #17603a; }
+.crm-consent.is-no { background: #f1efe9; color: #6b6b67; }
+/* SoT crmSt(): .cxbox padding 16, small #6b6b67 label, 20px bold value; 5 equal cols, gap 12 */
+.crm-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.crm-stat { padding: 16px !important; }
+.crm-stat > p:first-child { color: #6b6b67; font-size: 12px; }
+.crm-stat-v { display: block; margin-top: 6px; font-size: 20px; font-weight: 700; color: #2c2c2a; }
+/* Mobile: SoT crushes 5 cols into 375 (values wrap mid-number); keep 2 cols for readability */
+@media (max-width: 640px) {
+  .crm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-stat-wide { grid-column: span 2; }
+  .crm-stat-v { font-size: 18px; }
+}
+</style>

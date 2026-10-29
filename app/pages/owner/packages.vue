@@ -257,11 +257,10 @@ const selectedCoach = computed(() => coaches.value.find((c) => c.id === form.coa
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.packages')" />
 
     <template v-if="!packagesEnabled">
-      <p class="text-sm text-brand-gray-600">{{ t('owner.packagesDisabled.body') }}</p>
+      <p class="text-center text-sm text-brand-gray-600">{{ t('owner.packagesDisabled.body') }}</p>
       <NuxtLink
         :to="localePath('/owner/calendar')"
-        class="canva-cta inline-flex w-full items-center justify-center px-4 py-3 text-sm font-bold"
-        style="border-radius: var(--sz-canva-radius);"
+        class="mx-auto flex w-fit items-center justify-center border border-[#c41e1e] bg-white px-8 py-2.5 text-sm font-bold text-[#c41e1e]"
       >
         {{ t('owner.packagesDisabled.cta') }}
       </NuxtLink>

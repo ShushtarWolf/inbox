@@ -17,6 +17,10 @@ const props = withDefaults(defineProps<{
   phoneShell?: boolean
   /** Header avatar opens OwnerAccountDrawer; logout lives in the drawer. */
   useAccountDrawer?: boolean
+  /** SoT owner chrome: sidebar metrics/icons from design-reference/sot. */
+  sotSide?: boolean
+  /** SoT owner desktop top bar (.rtop): logo + club pill (pill opens account drawer); no back/bell. */
+  sotHeader?: boolean
 }>(), {
   wide: false,
   darkNav: false,
@@ -25,6 +29,8 @@ const props = withDefaults(defineProps<{
   hideMobileHeader: false,
   phoneShell: false,
   useAccountDrawer: false,
+  sotSide: false,
+  sotHeader: false,
 })
 
 const drawerItems = computed(() => props.sideItems?.length ? props.sideItems : props.items)
@@ -199,7 +205,7 @@ function goBack() {
     </Teleport>
 
     <div :class="[drawerWrapClass, drawerStateClass]">
-      <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" />
+      <AppSideNav :title="title" :items="drawerItems" :dark="darkNav" :sot="sotSide" />
     </div>
 
     <div class="min-w-0 flex-1 bg-brand-cream">
@@ -272,7 +278,32 @@ function goBack() {
           </button>
         </div>
 
-        <div class="hidden border-b border-brand-gray-200 bg-brand-cream px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
+        <div
+          v-if="sotHeader && useAccountDrawer"
+          class="sot-rtop hidden min-[431px]:flex"
+        >
+          <InboxBrandLockup home-link height-class="h-[31px]" />
+          <div class="flex items-center gap-[18px]">
+          <!-- not in SoT .rtop; kept so /owner/notifications stays reachable (flow preservation) -->
+          <NuxtLink :to="notificationsPath" class="sot-rbell text-brand-gray-600" :aria-label="t('notifications.title')">
+            <AppIcon name="notifications" size="sm" />
+          </NuxtLink>
+          <button
+            v-if="displayName && !hideUser"
+            ref="accountAnchor"
+            type="button"
+            class="sot-rclubpill"
+            :aria-label="t('owner.account.title')"
+            :aria-expanded="accountOpen"
+            aria-haspopup="dialog"
+            @click="accountOpen = true"
+          >
+            <span>{{ shortcutName }}</span>
+            <AppIcon name="storefront" size="sm" />
+          </button>
+          </div>
+        </div>
+        <div v-else class="hidden border-b border-brand-gray-200 bg-brand-cream px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
           <div class="flex min-w-0 items-center gap-3">
             <InboxBrandLockup home-link height-class="h-7" />
             <button

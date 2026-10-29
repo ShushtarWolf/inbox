@@ -24,12 +24,12 @@ const primaryNavItems = [
 ] as const
 
 const desktopExtraNavItems = [
-  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'shield_person' },
+  { path: '/owner/crm', labelKey: 'owner.crm', icon: 'contacts' },
   { path: '/owner/packages', labelKey: 'owner.packages', icon: 'inventory_2' },
   { path: '/owner/equipments', labelKey: 'owner.equipments', icon: 'campaign' },
-  { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'sell' },
+  { path: '/owner/discounts', labelKey: 'owner.discounts', icon: 'percent' },
   { path: '/owner/competitions', labelKey: 'owner.competitions', icon: 'emoji_events' },
-  { path: '/owner/support', labelKey: 'owner.support', icon: 'headset_mic' },
+  { path: '/owner/support', labelKey: 'owner.support', icon: 'support_agent' },
   { path: '/owner/workers', labelKey: 'owner.workers', icon: 'badge' },
 ] as const
 
@@ -82,6 +82,10 @@ const sideNav = computed((): NavItem[] => [
 
 const memberships = computed(() => user.value?.memberships || [])
 
+/** SoT .rtop header (logo + club pill). Pilot: staff only; widen as pages are verified. */
+// SoT dash('owner',…) renders the same .rtop (logo + club pill) on every owner page
+const sotHeader = computed(() => route.path.includes('/owner'))
+
 /** Club switcher white card must not sit above photo-hero pages (Canva). */
 const showLayoutClubSwitcher = computed(
   () => memberships.value.length > 1
@@ -125,7 +129,8 @@ const showPendingBanner = computed(() => {
 
 <template>
   <DashboardShell
-    :title="t('dashboard.owner')"
+    class="owner-shell"
+    :title="t('auth.chooseRole.CLUB_ADMIN.title')"
     :items="bottomNav"
     :side-items="sideNav"
     :wide="true"
@@ -133,6 +138,8 @@ const showPendingBanner = computed(() => {
     hide-mobile-header
     phone-shell
     use-account-drawer
+    sot-side
+    :sot-header="sotHeader"
   >
     <div
       v-if="showPendingBanner"
@@ -145,7 +152,7 @@ const showPendingBanner = computed(() => {
     </div>
     <div v-if="showLayoutClubSwitcher" class="canva-club-switcher">
       <span class="venus-icon-wrap venus-icon-wrap-sm bg-brand-primary-soft text-brand-primary">
-        <AppIcon name="apartment" size="sm" />
+        <AppIcon name="storefront" size="sm" /><!-- SoT .rclubcard uses ti-building-store on every owner page -->
       </span>
       <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-brand-gray-600">
         <span>{{ t('owner.activeClub') }}</span>

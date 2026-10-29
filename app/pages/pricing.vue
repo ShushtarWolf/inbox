@@ -27,7 +27,12 @@ useHead(() => ({
       intro-key="legal.pricingIntro"
       sections-key="legal.pricingSections"
       :manage-title="false"
-    />
-    <LegalFaq faq-key="legal.pricingFaq" page-url-path="/pricing" />
+    >
+      <template #before-disclaimer>
+        <div class="legal-sot-faq">
+          <LegalFaq faq-key="legal.pricingFaq" page-url-path="/pricing" />
+        </div>
+      </template>
+    </LegalDocument>
   </div>
 </template>

@@ -1,8 +1,7 @@
 // Usage: node scripts/fidelity-shots.mjs id:route[@liveRoute] ...   env WHICH=html,after,live
 // Rules (design-reference/GAPS.md "Capture pipeline"):
 //  - full-page capture (scroll height, capped at MAXH), never a single viewport clip
-//  - SoT HTML is desktop-only except `m-*` pages → html-*-375 is ONLY captured for m-* ids
-//    (and m-* pages are only captured at 375). Everything else: SoT desktop only, labelled.
+//  - SoT and app are BOTH captured at 375x812 and 1440x900, deviceScaleFactor 1 (m-* only at 375).
 //  - every PNG is checked (scripts/fidelity-check.py); blank / near-flat / tiny shots are deleted, not kept
 //  - if the final URL differs from the requested route (redirect, e.g. coach under PILOT_NO_COACH,
 //    or auth gate), the shot is NOT saved and the redirect is logged as `ENV`.
@@ -14,14 +13,14 @@ import { execFileSync } from 'node:child_process'
 const SOT = 'file://' + path.resolve('design-reference/sot/inbox-all-pages.html')
 const which = (process.env.WHICH || 'html,after,live').split(',')
 const MAXH = Number(process.env.MAXH || 6000)
-const SKIP = { admin: 'no admin seed', coach: 'PILOT_NO_COACH redirects', 'coach-pending': 'PILOT_NO_COACH', 'pay-link': 'needs real payment write', confirm: 'needs booking write' }
+const SKIP = { 'pay-link': 'needs real payment write', confirm: 'needs booking write' }
 const log = []
 let STATE
 const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/box/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell' })
 const SF = `/tmp/fid-state-${process.env.LOGIN_OTP || process.env.LOGIN}.json`
 if ((process.env.LOGIN_OTP || process.env.LOGIN) && fs.existsSync(SF)) STATE = JSON.parse(fs.readFileSync(SF, 'utf8'))
 else if (process.env.LOGIN_OTP || process.env.LOGIN) {
-  const c = await b.newContext(); const base = 'http://localhost:3100'
+  const c = await b.newContext(); const base = (process.env.BASE||'http://localhost:3000')
   if (process.env.LOGIN_OTP) {
     const r = await (await c.request.post(base + '/api/auth/otp/request', { data: { phone: process.env.LOGIN_OTP, purpose: 'login' } })).json()
     await c.request.post(base + '/api/auth/otp/verify', { data: { phone: process.env.LOGIN_OTP, code: r.debugCode, purpose: 'login' } })
@@ -40,7 +39,7 @@ for (const arg of process.argv.slice(2)) {
     for (const kind of which) {
       const out = `${dir}/${kind}-${id}-${tag}.png`
       if (fs.existsSync(out)) fs.unlinkSync(out) // never leave a stale shot behind
-      if (kind === 'html' && tag === '375' && !mobileOnly) { log.push(['NO-SOT', id, kind, tag, 'SoT has no 375 layout for this screen']); continue }
+      // SoT has @media(max-width:900px) rules, so it is shot at 375 too (same viewport as app)
       if (kind !== 'html' && !route) continue
       const ctx = await b.newContext({ ...(kind === 'after' && STATE ? { storageState: STATE } : {}), viewport: { width: w, height: h }, deviceScaleFactor: 1, locale: 'fa-IR' })
       const p = await ctx.newPage()
@@ -54,7 +53,7 @@ for (const arg of process.argv.slice(2)) {
           const el = p.locator(mobileOnly ? `#pg-${sotId} .mphone` : `#pg-${sotId}`)
           await el.screenshot({ path: out })
         } else {
-          const base = kind === 'after' ? 'http://localhost:3100' : 'https://inboxs.ir'
+          const base = kind === 'after' ? (process.env.BASE||'http://localhost:3000') : 'https://inboxs.ir'
           const want = kind === 'live' ? liveRoute : route
           await p.goto(base + want, { waitUntil: 'load', timeout: 60000 }).catch(() => {})
           await p.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(1500)

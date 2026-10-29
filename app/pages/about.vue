@@ -35,19 +35,27 @@ useHead(() => ({
 <template>
   <div class="tail-page-stack">
     <CanvaPublicChrome />
-    <div v-if="ownerName" class="prose prose-sm mx-auto max-w-2xl px-4 pt-2">
-      <p class="ios-card not-prose p-4 text-sm">
-        <span class="font-bold text-brand-navy">{{ t('contact.ownerLabel') }}: </span>
-        {{ ownerName }}
-      </p>
-    </div>
     <LegalDocument
       title-key="legal.aboutTitle"
       intro-key="legal.aboutIntro"
       sections-key="legal.aboutSections"
       :manage-title="false"
       :show-chrome="false"
-    />
-    <LegalFaq faq-key="legal.aboutFaq" page-url-path="/about" />
+    >
+      <template #before-disclaimer>
+        <div class="legal-sot-faq">
+          <LegalFaq faq-key="legal.aboutFaq" page-url-path="/about" />
+        </div>
+      <p v-if="ownerName" class="about-operator-line">
+        <span class="font-bold text-brand-navy">{{ t('contact.ownerLabel') }}: </span>
+        {{ ownerName }}
+      </p>
+      </template>
+    </LegalDocument>
   </div>
 </template>
+
+
+<style scoped>
+.about-operator-line { margin: 20px 0 0; font-size: 13px; line-height: 2; color: #5f5e5a; text-align: start; }
+</style>

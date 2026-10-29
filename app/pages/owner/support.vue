@@ -107,13 +107,13 @@ async function submitTicket() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.support')" :subtitle="t('owner.supportPage.subtitle')" />
+  <div class="venus-page-stack owner-support-page">
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.support')" />
     <OwnerActiveClubBar class="mb-3" />
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
       <div class="canva-support-wide">
-      <section class="space-y-3 text-start min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-5" style="border-radius: var(--sz-canva-radius);">
+      <section class="owner-support-guide space-y-3 text-start min-[431px]:border min-[431px]:border-brand-gray-200 min-[431px]:p-5" style="border-radius: var(--sz-canva-radius);">
         <h2 class="text-sm font-bold text-brand-gray-500">{{ t('owner.supportPage.operations') }}</h2>
         <ul class="list-disc space-y-2 pe-4 text-sm text-brand-navy marker:text-brand-gray-400">
           <li>{{ t('owner.supportPage.calendarHelp') }}</li>

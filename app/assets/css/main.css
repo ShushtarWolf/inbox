@@ -38,6 +38,11 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* SoT fonts — byte-identical woff2 extracted from design-reference/sot/inbox-all-pages.html
+   (@font-face Vazirmatn x2 + Outfit, same unicode-range, swap). SoT body: 'Outfit','Vazirmatn',system-ui. */
+@font-face { font-family: 'Vazirmatn'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/vazirmatn-arabic.woff2') format('woff2'); unicode-range: U+0600-06FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE80-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/vazirmatn-latin.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Outfit'; font-weight: 100 900; font-display: swap; src: url('/fonts/sot/outfit-latin.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,16 +58,16 @@
     overflow-x: hidden;
   }
   [dir='rtl'] body {
-    font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='ltr'] body {
-    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='rtl'] .font-display {
-    font-family: 'Vazirmatn Variable', Vazirmatn, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   [dir='ltr'] .font-display {
-    font-family: 'Outfit Variable', Outfit, system-ui, sans-serif;
+    font-family: 'Outfit', 'Vazirmatn', system-ui, sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold text-brand-navy;
@@ -2396,6 +2401,19 @@
   }
 
   /* Court booking confirm sheet — Canva home page (4) */
+  /* SoT .cmodc — plain white 440px card, 22px padding (no cream/pattern) */
+  .canva-auth-sheet:has(.canva-confirm-book) {
+    background: #fff !important;
+    background-image: none !important;
+  }
+  .canva-auth-sheet:has(.canva-confirm-book)::before,
+  .canva-auth-sheet:has(.canva-confirm-book)::after {
+    display: none;
+  }
+  .canva-confirm-book > .canva-auth-header {
+    @apply mx-[22px] px-0 pb-3;
+    border-bottom: 1px solid rgba(44, 44, 42, 0.14);
+  }
   .canva-confirm-book {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden text-start;
   }
@@ -2437,7 +2455,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 8.5L6.5 12L13 4' stroke='white' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
   }
   .canva-confirm-book-costs {
-    @apply space-y-2 bg-[#f3efe9] px-3 py-3;
+    @apply space-y-2 bg-transparent px-0 py-1;
     border-radius: var(--sz-canva-radius);
   }
   .canva-confirm-book-cost-row {
@@ -2456,7 +2474,7 @@
     @apply flex items-stretch gap-2;
   }
   .canva-confirm-book-discount-input {
-    @apply min-w-0 flex-1 border-0 bg-white px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    @apply min-w-0 flex-1 border border-[rgba(44,44,42,0.2)] bg-white px-[10px] py-[10px] text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
     border-radius: var(--sz-canva-radius);
   }
   /* HTML .cxtiny — beige apply */
@@ -4457,8 +4475,10 @@
 .canva-club-detail-book .canva-club-cal-day:not(.canva-club-cal-day-empty):not(:disabled):hover { background: rgba(44, 44, 42, 0.05); }
 .canva-club-detail-book .canva-club-cal-day-disabled { opacity: 1; color: #c9c6c2; }
 .canva-club-detail-book .canva-club-cal-day-active,
-.canva-club-detail-book .canva-club-cal-day-active:hover { background: #2c2c2a; color: #fff; font-weight: 700; }
+.canva-club-detail-book .canva-club-cal-day-active:hover { background: #16a34a; color: #fff; border: 1px solid #14532d; font-weight: 700; }
 .canva-club-detail-book .canva-club-cal-day-active::after { display: none; }
+/* SoT .occh span: club amenity chips - flat #ece8e2, 8x14, 12px, regular weight */
+.canva-club-detail-section .canva-clubs-chip-row .canva-chip.canva-clubs-chip-idle { background: #ece8e2; color: #2c2c2a; border: 0; padding: 8px 14px; font-size: 12px; font-weight: 400; }
 .canva-club-detail-book .canva-club-cal-day-basket::after { bottom: 3px; width: 5px; height: 5px; border-radius: 50%; opacity: 1; }
 
 /* .lbl + .rnums */
@@ -4504,3 +4524,754 @@
 .canva-cal-grid-shell { border:1px solid rgba(44,44,42,.08); border-radius:16px; overflow:hidden; background:#fff; }
 .canva-cal-grid-time, .canva-cal-grid-court { font-size:10.5px; color:#8f8f8b; font-weight:600; }
 .canva-cal-grid-cell { border-radius:9px; }
+
+/* ===== HTML SoT fidelity — home page pass (SoT #pg-home measured: .rhead .rn / .rbtn, .rsearch, .rrail head) ===== */
+@layer components {
+  @media (min-width: 431px) {
+    .public-rhead .public-rhead-nav,
+    .public-rhead .public-rhead-nav-active {
+      min-height: 40px;
+      height: 40px;
+    }
+    .public-rhead .canva-home-login {
+      min-height: 44px;
+      height: 44px;
+      padding: 0 24px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+  }
+  .canva-hero-home + section {
+    margin-top: 20px !important;
+  }
+  @media (min-width: 640px) {
+    .canva-search-row-home .canva-search-cta {
+      padding-inline: 32px;
+      gap: 8px;
+    }
+  }
+  .canva-search-row-home .canva-search-cta > * {
+    font-size: 20px !important;
+    width: 20px;
+    height: 20px;
+  }
+  .canva-rail-section > div:first-child p {
+    color: #6b6b67;
+    line-height: 18px;
+  }
+  .canva-rail-section > div:first-child > a {
+    color: #2c2c2a;
+    font-weight: 600;
+    line-height: 18px;
+  }
+}
+
+/* ===== HTML SoT fidelity — /clubs pass (SoT #pg-clubs: .rchips, .rbox.rlink, .rrh, .rlist/.rwide/.rwc) ===== */
+@layer components {
+  .canva-clubs-page > .canva-clubs-chip-row {
+    margin: 22px 0 16px !important;
+    gap: 8px;
+  }
+  .canva-clubs-page .canva-clubs-coach-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 0 !important;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+    color: #2c2c2a;
+  }
+  .canva-clubs-coach-ico {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba(196, 30, 30, 0.1);
+    color: #c41e1e;
+  }
+  .canva-clubs-coach-ico > * {
+    font-size: 20px !important;
+  }
+  .canva-clubs-coach-link b {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 22px;
+  }
+  .canva-clubs-coach-link small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #6b6b67;
+  }
+  .canva-clubs-page > section:not(.canva-hero) {
+    margin-top: 26px !important;
+  }
+  .canva-clubs-page > section.space-y-3 > * + * {
+    margin-top: 12px;
+  }
+  .canva-clubs-page .canva-clubs-section-subtitle {
+    margin-top: 2px;
+    color: #6b6b67;
+    line-height: 18px;
+  }
+  .canva-clubs-page .canva-clubs-sort {
+    gap: 4px;
+    font-weight: 600;
+    color: #2c2c2a;
+    line-height: 18px;
+  }
+  .canva-clubs-page .canva-court-card-grid {
+    gap: 14px;
+  }
+  .canva-clubs-page .canva-court-card {
+    min-height: 180px;
+  }
+  .canva-clubs-page .canva-court-card-body {
+    min-height: 180px;
+    gap: 14px;
+    padding: 20px;
+  }
+  .canva-clubs-page .canva-court-card-title {
+    margin-bottom: 4px;
+    line-height: 29px;
+  }
+  .canva-clubs-page .canva-court-card-meta {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #fff;
+  }
+  .canva-clubs-page .canva-court-card-desc {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.9;
+    color: #eee;
+  }
+  .canva-clubs-page .canva-court-card-price {
+    margin-top: 0;
+    font-size: 12.5px;
+  }
+  .canva-clubs-page .canva-court-card-cta {
+    padding: 6px 16px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+}
+@layer components {
+  .canva-clubs-page > .canva-hero-home {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* SoT «راهنما» rail (.rrail > .rrh h2 + .rbox > small + .rpill) — home and /clubs */
+@layer components {
+  .canva-help .canva-help-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 700;
+    color: #c41e1e;
+  }
+  .canva-help .canva-help-hubs {
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+  }
+  .canva-help .canva-help-hubs-label {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    color: #6b6b67;
+  }
+  .canva-help .canva-help-hubs .canva-clubs-chip-row {
+    gap: 8px;
+  }
+  .canva-help .canva-help-hubs .canva-clubs-chip {
+    height: 32px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 400;
+    background: #e3e0db;
+    color: #2c2c2a;
+  }
+  .canva-clubs-page > .canva-clubs-chip-row .canva-clubs-chip {
+    height: 38px;
+  }
+}
+
+/* SoT «سوالات پرتکرار» (.rrail .rrh + .rfaq2) */
+@layer components {
+  .canva-help > .canva-faq {
+    margin-top: 26px !important;
+  }
+  .canva-faq .canva-faq-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 700;
+    color: #c41e1e;
+  }
+  .canva-faq .canva-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .canva-faq .canva-faq-list > * + * {
+    margin-top: 0 !important;
+  }
+  .canva-faq .canva-faq-item {
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.1);
+  }
+  .canva-faq .canva-faq-trigger {
+    min-height: 53px;
+    padding: 16px 18px;
+  }
+  .canva-faq .canva-faq-question {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 21px;
+  }
+  .canva-faq .canva-faq-chevron {
+    font-size: 14px !important;
+    line-height: 21px !important;
+    height: 21px;
+    color: #6b6b67;
+  }
+  .canva-faq .canva-faq-trigger {
+    min-height: 0;
+  }
+  .canva-faq .canva-faq-answer {
+    padding: 0 18px 16px;
+    font-size: 13px;
+    line-height: 2;
+    color: #6b6b67;
+  }
+}
+
+/* SoT club detail (#pg-club): booking rail spans the full main column (.rcl 1fr | 440px) */
+@media (min-width: 901px) {
+  .canva-club-detail {
+    grid-template-areas:
+      "gallery book"
+      "intro book"
+      "more book"
+      "reviews book"
+      "citation book"
+      ". book" !important;
+    grid-template-rows: auto auto auto auto auto 1fr !important;
+    row-gap: 26px !important;
+  }
+  .canva-club-detail-citation, .canva-club-citation { grid-area: citation; }
+  .canva-club-detail-book { align-self: start; }
+  .canva-club-detail-section-title,
+  .canva-club-citation .canva-faq-title {
+    font-size: 15px;
+    line-height: 23px;
+  }
+}
+@media (min-width: 901px) {
+  .canva-club-detail > .canva-club-gallery { margin-bottom: -8px; }
+}
+@media (min-width: 901px) {
+  .canva-club-detail .canva-club-more { display: flex !important; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .canva-club-detail .canva-club-more-copy { width: 100%; }
+  .canva-club-detail .canva-club-more-map { width: 420px; max-width: 100%; order: 2; }
+  .canva-club-detail .canva-club-more-map-frame,
+  .canva-club-detail .canva-club-more-map-empty { height: 230px !important; width: 100%; }
+}
+
+/* Owner calendar (/owner/calendar) — SoT .ph / .seg / .legend / .card chrome (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-cal-page .canva-cal-sheet > h1 { font-size: 22px; line-height: 1.35; font-weight: 700; color: #2c2c2a; margin-bottom: 4px; }
+  .owner-cal-page .canva-cal-sheet > p { font-size: 12.5px; color: #8f8f8b; margin-top: 0; }
+  .owner-cal-page .canva-view-tabs { display: inline-flex; gap: 0; border: 0; background: rgba(44,44,42,.05); border-radius: 10px; padding: 3px; margin-top: 14px; margin-bottom: 22px; }
+  .owner-cal-page .canva-view-tab { font-size: 12.5px; padding: 7px 18px; border: 0 !important; border-radius: 8px; color: #8f8f8b; font-weight: 400; background: transparent; margin: 0; }
+  .owner-cal-page .canva-view-tab.canva-cal-tab-active { background: #fff; color: #2c2c2a !important; font-weight: 600; box-shadow: 0 1px 3px rgba(44,44,42,.08); }
+  .owner-cal-page .canva-legend-row { gap: 18px; margin: 14px 0 18px; }
+  .owner-cal-page .canva-legend-item,
+  .owner-cal-page .canva-cal-legend-note { font-size: 11.5px; font-weight: 400; color: #6b6b67; gap: 6px; }
+  .owner-cal-page .canva-cal-legend-note > span { color: #b68a3b; font-size: 11px; }
+  .owner-cal-page .canva-legend-swatch,
+  .owner-cal-page .canva-legend-paid-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .owner-cal-page .canva-legend-swatch-free { background: #fff !important; border: 1px solid rgba(44,44,42,.08); }
+  .owner-cal-page .canva-cal-grid-shell { background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 16px; padding: 22px; }
+  .owner-cal-page .canva-cal-date-nav { margin-bottom: 16px; font-size: 14px; }
+  .owner-cal-page .canva-overview-kpi { background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 16px; padding: 18px 20px; }
+  /* SoT .seg treatment reused for the live session-type filter (همه/آزاد/مربی) */
+  .owner-cal-page .canva-session-filter-row { display: inline-flex; gap: 0; background: rgba(44,44,42,.05); padding: 3px; margin-top: 6px; }
+  .owner-cal-page .canva-session-filter-btn { border: 0; background: transparent; font-size: 12.5px; font-weight: 400; padding: 7px 18px; color: #8f8f8b; }
+  .owner-cal-page .canva-session-filter-btn-on { background: #fff; color: #2c2c2a; font-weight: 600; }
+  /* SoT global: radius 0, no shadows on toolbar/legend chrome */
+  .owner-cal-page .canva-view-tabs, .owner-cal-page .canva-view-tab, .owner-cal-page .canva-session-filter-btn,
+  .owner-cal-page .canva-legend-swatch, .owner-cal-page .canva-legend-paid-dot, .owner-cal-page .canva-cal-grid-shell { border-radius: 0 !important; box-shadow: none !important; }
+}
+
+/* SoT legalPage(): FAQ sits before the disclaimer as plain .rfaq rows */
+.legal-sot-faq { margin-top: 34px; }
+.legal-sot-faq .canva-help { padding: 0; margin: 0; max-width: none; }
+.legal-sot-faq .canva-faq-title { font-size: 17px; color: #2c2c2a; margin: 0 0 6px; }
+.legal-sot-faq .canva-faq-list { gap: 0; display: block; }
+.legal-sot-faq .canva-faq-item { background: transparent; border: 0; border-bottom: 1px solid rgba(44,44,42,.08); border-radius: 0; box-shadow: none; margin: 0; }
+.legal-sot-faq .canva-faq-trigger { padding: 12px 0; justify-content: flex-start; gap: 6px; font-weight: 600; font-size: 14px; }
+.legal-sot-faq .canva-faq-trigger::before { content: '\25C2'; font-size: 11px; order: -1; }
+.legal-sot-faq .canva-faq-chevron { display: none; }
+.legal-sot-faq .canva-faq-panel { padding: 0 0 12px; }
+.canva-auth-accent + .canva-auth-photo { min-height: 150px; margin: 20px 22px 14px; }
+/* SoT auth modal fields: off-white inputs, thin chevron selects */
+.canva-auth-accent ~ .canva-auth-body .neo-input,
+.canva-auth-accent ~ .canva-auth-body .neo-select { background-color: #f9f7f4 !important; }
+.canva-auth-accent ~ .canva-auth-body select.neo-select {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232c2c2a' stroke-width='1.2'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: left 14px center !important; padding-left: 34px;
+}
+/* SoT athlete-notifications (desktop): no crimson hero — title lives in subpage header; mark-all is a white chip */
+@media (min-width: 768px) {
+  .canva-notif-hero-sot { background: none !important; box-shadow: none !important; padding: 0 !important; margin-top: -8px; color: #2c2c2a; }
+  .canva-notif-hero-sot::before, .canva-notif-hero-sot::after { display: none !important; }
+  .canva-notif-hero-sot > div > div:first-child { visibility: hidden; height: 0; }
+  .canva-notif-hero-sot button { background: #fff !important; color: #2c2c2a; border: 1px solid rgba(44,44,42,.12); backdrop-filter: none; }
+}
+
+/* owner-finance — SoT .oftab/.ofdark/.ofrow/.ofst/.ofpay/.ofchart (page pass) */
+.owner-finance-page .canva-finance-period { display:flex; gap:14px; border-bottom:1px solid rgba(44,44,42,.14); margin:14px 0 }
+.owner-finance-page .canva-finance-hero-card { background:#2c2c2a; padding:18px 22px; margin-bottom:12px; border-radius:0 }
+.owner-finance-page .canva-finance-hero-card > p:first-child { font-size:11px; color:#bdbcb7 }
+.owner-finance-page .canva-finance-hero-card > p:nth-child(2) { font-size:30px; line-height:1.3; margin:6px 0 }
+.owner-finance-page .canva-finance-chip { padding:14px; border-color:rgba(44,44,42,.12); border-radius:0 }
+.owner-finance-page .canva-finance-chip-label { font-size:11px; font-weight:400; color:#2c2c2a }
+.owner-finance-page .canva-finance-chip-value { font-size:15px; color:#c41e1e }
+.owner-finance-page .canva-finance-method-bar { height:8px; border-radius:0 }
+.owner-finance-page .canva-finance-chips { gap:10px }
+@media (min-width: 1024px) {
+  .owner-finance-page .canva-cal-sheet { padding-inline:0; margin-top:0; padding-top:0.5rem }
+  .owner-finance-page .canva-finance-wide { grid-template-columns:1.4fr 1fr; gap:12px }
+  .owner-finance-page .canva-finance-wide > :nth-child(n+3) { grid-column:1 / -1 }
+  .owner-finance-page .canva-finance-wide > .canva-panel { padding:14px; border-radius:0 }
+  .owner-finance-page .canva-finance-wide > .canva-panel:nth-child(3) { padding:16px }
+}
+.owner-finance-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12) }
+.owner-finance-page .canva-finance-chart { background:transparent }
+.owner-finance-page .canva-promo-badge-hero { inset:auto auto 12px 10px !important; background:#c41e1e; padding:8px 12px; display:flex; flex-direction:row; gap:4px; align-items:center }
+.owner-finance-page .canva-promo-badge-hero > * { color:#fff !important; font-size:10px !important; font-weight:700; line-height:1.4 }
+
+/* global footer — SoT .rfoot (12px, #6b6b67, line-height 2.4, tight "·" separators) */
+@media (min-width: 431px) {
+  .canva-public-footer { font-size:12px !important; font-weight:400; color:#6b6b67; line-height:2.4; padding-top:24px; padding-bottom:40px !important }
+  .canva-public-footer p { margin-bottom:0 }
+  .canva-public-footer nav, .canva-public-footer nav * { font-size:12px !important; font-weight:400 !important; color:#6b6b67; gap:0 4px !important; column-gap:4px !important }
+  .canva-public-footer nav a:hover { color:#c41e1e }
+  .canva-public-footer > p .font-bold { color:#2c2c2a }
+  .canva-public-footer a { padding-inline:0 !important }
+  .canva-public-footer > div:last-child { color:#6b6b67; font-weight:400 }
+  .canva-public-footer > div.mb-2 { margin-bottom:0 }
+}
+
+/* owner-settings — SoT cxbox panels: stacked fields, small gray labels, flat panels */
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12); border-radius:0 }
+  .owner-settings-page .canva-settings-wide > .canva-panel > .grid.grid-cols-2:not(.owner-settings-pair) { grid-template-columns:1fr; gap:.75rem }
+  .owner-settings-page .canva-panel label > span.font-bold:not([role]) { font-weight:400; font-size:10px; color:#6b6b67 }
+  .owner-settings-page .canva-panel .neo-input { min-height:30px; border-color:rgba(44,44,42,.14); border-radius:0 }
+  .owner-settings-page .canva-panel h2 { font-size:13px }
+}
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-gate-btn-secondary { width:220px; padding-block:10px }
+}
+
+/* owner-crm — SoT: list 1.6fr | side 1fr, flat cxbox panels, dark CTA start-aligned ~157px */
+@media (min-width: 1024px) {
+  .owner-crm-page .canva-crm-wide { grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:2.25rem; margin-top:.5rem }
+  .owner-crm-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12); border-radius:0 }
+  .owner-crm-page .canva-crm-cta-row { display:flex; justify-content:flex-start; margin-top:1.5rem }
+  .owner-crm-page .canva-crm-cta-row .canva-black-cta { width:157px; padding-block:.75rem; font-size:12px; background:#2c2c2a; border-radius:0 }
+}
+
+/* owner-calendar — SoT: 125px banner, square white board, square slots, plain court heads */
+@media (min-width: 1024px) {
+  .owner-cal-page .canva-photo-hero { height:125px !important; min-height:125px }
+  .owner-cal-page .canva-cal-grid-shell { border-radius:0 !important; border:1px solid rgba(44,44,42,.12); box-shadow:none }
+  .owner-cal-page .canva-cal-grid-cell { border-radius:0 !important }
+  .owner-cal-page .canva-cal-grid-court, .owner-cal-page .canva-cal-grid-corner, .owner-cal-page .canva-cal-grid-time { background:transparent !important; border-radius:0 }
+  .owner-cal-page .canva-cal-grid-court { font-size:10px; color:#2c2c2a }
+}
+
+/* owner-equipment — SoT cxbox: white panels, light border, 46px item rows, chips 34px */
+@media (min-width: 1024px) {
+  .canva-equip-wide > section { background:#fff; border-color:rgba(44,44,42,.12) !important; border-radius:0 !important; gap:0 }
+  .canva-equip-wide > section > ul { margin-top:1.25rem }
+  .canva-equip-wide > section > ul > li + li { margin-top:6px }
+  .canva-equip-wide .canva-equip-row { min-height:46px; border-radius:0 }
+  .canva-equip-wide .canva-equip-row .font-bold { font-size:13px }
+  .canva-equip-wide > section > .flex-wrap { margin-top:1.25rem; gap:8px }
+  .canva-equip-wide .canva-equip-chip { min-height:34px; padding-inline:12px; font-weight:400; font-size:10px; border-radius:0 }
+}
+
+/* owner-discount — SoT: "+ افزودن" under subtitle at start side, hint below, empty text inset */
+@media (min-width: 1024px) {
+  .owner-discount-page > .flex.justify-between:has(.canva-equip-add) { flex-direction:column-reverse; align-items:flex-start; gap:10px; margin-top:.5rem }
+  .owner-discount-page > .flex.justify-between > p { font-size:10px }
+  .owner-discount-page ul + p, .owner-discount-page .canva-empty, .owner-discount-page ul ~ * { padding-inline-start:10px }
+}
+
+/* owner-support — SoT: white flat cxbox panels, contact card under ticket, roomy guide list */
+@media (min-width: 1024px) {
+  .owner-support-page .canva-support-wide > section { background:#fff; border-color:rgba(44,44,42,.12) !important; border-radius:0 !important }
+  .owner-support-page .canva-support-wide > section:nth-child(3) { grid-column:2 }
+  .owner-support-page .canva-support-wide > section:first-child ul { font-size:11px; line-height:2.2; margin-top:1rem }
+  .owner-support-page .canva-support-wide > section:first-child ul li::marker { color:#2c2c2a }
+  .owner-support-page .canva-support-wide .neo-input { border:1px solid rgba(44,44,42,.14); border-radius:0 }
+}
+
+/* owner-staff — SoT: wide primary add button, tighter empty panel */
+@media (min-width: 1024px) {
+  .owner-staff-page .canva-sot-actions { margin-top:.25rem }
+  .owner-staff-page .canva-sot-actions .canva-gate-btn-primary { min-width:220px; min-height:44px; justify-content:center }
+  .owner-staff-page .canva-panel, .owner-staff-page > div:last-child { border-radius:0 }
+}
+
+/* owner-staff v2 — match SoT .rclubcard / .cxh / .cxp / .cxbox */
+.owner-staff-page > div:first-child > p { display:none }
+.owner-staff-page h1 { font-size:22px; font-weight:700 }
+.owner-shell .owner-rclubcard { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
+.owner-shell .owner-rclubcard-icon { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
+.owner-shell .owner-rclubcard-eyebrow { font-size:11px; font-weight:400; color:#6b6b67 }
+.owner-shell .owner-rclubcard-select { appearance:none; -webkit-appearance:none; background:transparent none !important; border:0 !important; box-shadow:none !important; padding:0 !important; margin:0; min-height:0; height:auto; font-size:15px; font-weight:700; color:#2c2c2a }
+.owner-staff-page .canva-sot-actions { margin-top:14px }
+.owner-staff-page .canva-sot-actions .canva-gate-btn-primary { min-width:220px; min-height:44px; border-radius:0; background:#c41e1e; font-size:14px; font-weight:700 }
+.owner-staff-page .owner-staff-intro { font-size:13px; color:#4a4a47; margin:6px 0 0 }
+.owner-staff-page .owner-staff-note { font-size:11px; color:#4a4a47; margin:0 0 10px }
+.owner-staff-page .canva-panel { border:1px solid rgba(44,44,42,.12); border-radius:0 !important; box-shadow:none; padding:14px; font-size:13px; color:#4a4a47; background:#fff }
+.owner-staff-page.venus-page-stack > * + * { margin-top:0 }
+@media (min-width: 431px) {
+  main .canva-club-switcher { gap:14px; padding:14px 18px; border:1px solid rgba(44,44,42,.1); border-radius:0; box-shadow:none; margin-bottom:20px }
+  main .canva-club-switcher > .venus-icon-wrap { width:44px; height:44px; border-radius:0; background:rgba(196,30,30,.1); color:#c41e1e }
+  main .canva-club-switcher label { gap:2px; font-size:11px; font-weight:400; color:#6b6b67 }
+  main .canva-club-switcher .neo-select { appearance:none; -webkit-appearance:none; border:0; border-radius:0; box-shadow:none; min-height:0; height:auto; padding:0; font-size:15px; font-weight:700; color:#2c2c2a; cursor:pointer;
+    background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232c2c2a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat left center }
+}
+.owner-staff-page .owner-staff-intro { font-weight:400 }
+.owner-staff-page .owner-staff-note { margin-top:2px }
+.owner-staff-page p.owner-staff-intro { margin:6px 0 4px !important; line-height:1.6 }
+.owner-staff-page p.owner-staff-note { margin:0 0 10px !important; line-height:1.6 }
+.owner-staff-page ul { margin-top:0 !important }
+@media (min-width: 431px) {
+  .owner-staff-page.venus-page-stack { gap:0 !important; row-gap:0 !important }
+  .owner-staff-page.venus-page-stack > .canva-sot-actions { margin-top:24px !important }
+  .owner-staff-page.venus-page-stack > .canva-sot-actions + p { margin-top:8px !important }
+}
+@media (min-width: 431px) {
+  .owner-staff-page.venus-page-stack > .canva-sot-actions + p { margin-top:12px !important }
+  .owner-staff-page.venus-page-stack > p.owner-staff-note { margin-top:6px !important; margin-bottom:8px !important }
+}
+/* owner-staff v3 — SoT chrome: no bell/avatar in top bar, cream body, no wrapper card */
+body:has(.owner-staff-page) div:has(> .canva-owner-avatar) { display:none !important }
+main:has(.owner-staff-page) { background:#f4efe9 }
+main:has(.owner-staff-page) .canva-panel:has(.owner-staff-page),
+main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important }
+
+/* ---- SoT owner shell (design-reference/sot/inbox-all-pages.html: .side/.s-item/.rtop/.rclubpill) ---- */
+.sot-side { border-color: rgba(44,44,42,.08) }
+.sot-side > div:first-child { border-color: rgba(44,44,42,.08) }
+.sot-side > div:first-child > a { gap: 6px }
+.sot-side .inbox-brand-lockup { height: 31px }
+.sot-side nav > * + * { margin-top: 0 }
+.sot-side .canva-side-nav-item { margin-bottom: 2px; min-height: 42px; line-height: 22px; color: #4a4a47 }
+.sot-side .canva-side-nav-item:hover { background: #f4efe9 }
+.sot-side .canva-side-nav-item.tail-menu-item-active { color: #c41e1e; background: rgba(196,30,30,.10); font-weight: 600 }
+.sot-side .canva-side-nav-item .material-symbols-rounded { font-size: 17px; width: 17px; height: 17px; line-height: 17px }
+.sot-rtop { align-items: center; justify-content: space-between; height: 72px; padding: 0 24px 0 28px; border-bottom: 1px solid rgba(44,44,42,.08); background: #f4efe9 }
+.sot-rclubpill { display: inline-flex; align-items: center; gap: 10px; background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 30px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #2c2c2a; box-shadow: 0 2px 8px rgba(44,44,42,.06); cursor: pointer }
+.sot-rclubpill .material-symbols-rounded { font-size: 16px }
+/* owner-staff vertical rhythm = SoT .cxh(mt28,h35) / .cxbtn(mt14) / .cxp(mt12,10) / .cxbox(mt10) — measured same-viewport 1440x900 */
+@media (min-width: 431px) {
+  main .owner-staff-page.venus-page-stack h1 { line-height: 35px }
+  main .owner-staff-page.venus-page-stack > div:first-child { padding-top: 8px }
+  main .owner-staff-page.venus-page-stack > .canva-sot-actions { margin-top: 14px !important }
+  main .owner-staff-page.venus-page-stack > p.owner-staff-intro { margin: 12px 0 0 !important; line-height: 20px }
+  main .owner-staff-page.venus-page-stack > p.owner-staff-note { margin: 10px 0 0 !important; line-height: 17px }
+  main .owner-staff-page.venus-page-stack > .owner-staff-note + * , main .owner-staff-page.venus-page-stack > .owner-staff-note + * + .relative { margin-top: 10px !important }
+}
+.sot-rbell{display:inline-flex;align-items:center}
+/* owner-calendar desktop = SoT pages['owner-calendar'] .ph/.seg/.legend (measured 1440x900) */
+@media (min-width: 431px) {
+  main .owner-cal-page .canva-photo-hero { height: 176px; min-height: 176px }
+  main .owner-cal-page .canva-cal-sheet { position: relative; padding: 0 !important; margin-top: 24px !important; background: transparent }
+  main .owner-cal-page .canva-cal-sheet > h1 { line-height: 35px; margin: 0 0 4px }
+  main .owner-cal-page .canva-cal-sheet > p.owner-cal-welcome { display: none }
+  main .owner-cal-page .canva-cal-sheet > p { margin: 0 !important; line-height: 20px }
+  main .owner-cal-page .canva-cal-sheet > .canva-view-tabs { position: absolute; left: 0; top: 17px; margin: 0 !important; border: 1px solid rgba(44,44,42,.08); border-radius: 0 }
+  main .owner-cal-page .canva-cal-sheet > .canva-view-tabs .canva-view-tab { border-radius: 0; box-shadow: none }
+  main .owner-cal-page .canva-cal-club-switch { margin-top: 12px }
+}
+/* owner-discount desktop = SoT ownPg('discount'): .cxh / .cxp / .oeqh a / .cxp 12px / .cxbox (measured 1440x900) */
+@media (min-width: 431px) {
+  main .owner-discount-page.venus-page-stack { gap: 0 !important; row-gap: 0 !important }
+  main .owner-discount-page.venus-page-stack > * { margin-top: 0 !important }
+  main .owner-discount-page.venus-page-stack > div:first-child { padding-top: 8px }
+  main .owner-discount-page h1 { font-size: 22px; line-height: 35px; color: #2c2c2a }
+  main .owner-discount-page h1 + p { font-size: 13px; line-height: 20px; color: #4a4a47; margin: 6px 0 10px }
+  main .owner-discount-page.venus-page-stack > .flex { flex-direction: column-reverse; align-items: flex-start; gap: 0 }
+  main .owner-discount-page.venus-page-stack > .flex > p { font-size: 12px; line-height: 18px; color: #4a4a47; margin: -4px 0 10px } /* flex (non-collapsing) → lands at SoT y=305 */
+  main .owner-discount-page .canva-equip-add { padding: 6px 0; font-size: 12px; line-height: 18px; font-weight: 700; color: #2e7d4f; background: none; border: 0; min-height: 0 }
+  main .owner-discount-page ul > li.text-xs { padding: 14px; font-size: 12px; color: #2c2c2a }
+}
+/* SoT owner shell: every owner page h1 is 22px/700 (measured in SoT for support/equipment/crm/settings/calendar) */
+@media (min-width: 431px) { .owner-shell h1 { font-size: 22px; line-height: 1.3; font-weight: 700 } }
+.owner-shell .canva-legend-swatch { border-radius: 0 } /* SoT global radius:0 */
+/* owner-finance SoT .ofdark h2 small unit / .ofpay stacked legend (no % row in SoT; values still in bar width + title attr) */
+.owner-finance-page .owner-fin-hero-unit { font-size:16px; font-weight:400 }
+.owner-finance-page .owner-fin-method-head { flex-direction:column; align-items:flex-start; gap:8px }
+.owner-finance-page .owner-fin-method-head h2 { font-size:13px }
+.owner-finance-page .owner-fin-method-legend { font-size:10px; font-weight:400 }
+.owner-finance-page .owner-fin-method-pct { display:none }
+.owner-finance-page .canva-finance-method-bar + .owner-fin-method-pct + p, .owner-finance-page .owner-fin-method-pct + p { font-size:10.5px; margin-top:8px }
+
+/* leftovers batch 3: settings field density, support guide rhythm (SoT .zrule p: 13px, 12px gap) */
+@media (min-width: 1024px) {
+  .owner-settings-page .canva-panel input.neo-input { height:36px; min-height:36px; padding-top:6px; padding-bottom:6px; font-size:13px }
+  .owner-support-page .owner-support-guide ul { list-style:none; padding-inline-end:0 }
+  .owner-support-page .owner-support-guide ul > li { font-size:13px; line-height:2; color:#2c2c2a }
+  .owner-support-page .owner-support-guide ul > li::before { content:"• " }
+  .owner-support-page .owner-support-guide ul > li + li { margin-top:12px }
+}
+
+/* owner remainder: setup fields bordered like SoT .field input; reserve redirect CTA = SoT btn-outline */
+@media (min-width: 1024px) {
+  .owner-setup-page input.neo-input { border:1px solid rgba(44,44,42,.14); border-radius:0; background:#fff; height:36px; min-height:36px; font-size:13px }
+  .owner-reserve-redirect { text-align:center }
+  .owner-reserve-redirect .canva-cta { width:auto; min-width:110px; background:transparent; color:#c8201f; border:1px solid #c8201f; padding:8px 24px }
+}
+
+/* athlete batch: book-coach compact calendar rows (SoT), favorites CTA width */
+@media (min-width: 1024px) {
+  .venus-page-stack.book-coach-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
+  a.canva-gate-btn-primary.athlete-fav-cta { width:fit-content !important; min-width:200px; align-self:flex-start; justify-self:start; margin-inline-start:0; margin-inline-end:auto; display:flex }
+}
+
+/* coach batch: book calendar compact rows (as book-coach); profile photo panel shows single heading like SoT (upload label kept for SR) */
+@media (min-width: 1024px) {
+  .venus-page-stack.coach-book-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio:auto; height:34px; border-radius:0 }
+}
+.coach-photo-panel > div > p.text-sm.font-bold:first-child { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }
+
+/* m-athlete SoT .mrg/.mrc: 3-col compact venue tiles on phone (athlete home only) */
+@media (max-width: 430px) {
+  .venus-page-stack.athlete-home-page .canva-venue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card { aspect-ratio: 97 / 112; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer { top: 11px; font-size: 0.8rem; padding: 3px 12px; -webkit-mask: none; mask: none; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::before { left: 5px; }
+  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::after { right: 5px; }
+}
+
+/* admin-calendar SoT: compact 34px day rows (same as owner/coach book calendars) */
+@media (min-width: 1024px) {
+  .tail-page-stack.admin-calendar-page .jalali-calendar-day.jalali-calendar-day { aspect-ratio: auto; height: 34px; border-radius: 0; }
+}
+/* admin calendar + sources SoT: compact reload button, not full-width */
+@media (min-width: 1024px) {
+  .tail-page-stack.admin-calendar-page button.canva-gate-btn-secondary,
+  .tail-page-stack.admin-calendar-sources-page button.canva-gate-btn-secondary { width: fit-content !important; min-width: 190px; }
+}
+
+/* SoT .role (choose-role/register picker): white row, hairline border, crimson border when chosen, no fill/shadow/scale */
+.canva-role-card.canva-role-card { gap: 14px; padding: 14px; background: #fff; border: 1px solid rgba(44,44,42,.08); box-shadow: none; backdrop-filter: none; border-radius: 0; transform: none; }
+.canva-role-card.canva-role-card:hover { border-color: #c41e1e; transform: none; }
+.canva-role-card.canva-role-card:active { transform: none; }
+.canva-role-card.canva-role-card-active { background: #fff; border-color: #c41e1e; }
+.canva-role-card p.font-bold { font-size: 14px; color: #2c2c2a; }
+.canva-role-card p.text-xs { font-size: 12px; color: #6b6b67; margin-top: 2px; }
+
+/* fidelity(auth): SoT is square-cornered everywhere (border-radius:0) — alerts/inputs/buttons inside auth cards (reset/forgot-password). */
+.canva-authbox .venus-alert-error,
+.canva-authbox .neo-input,
+.canva-authbox .canva-gate-btn-primary,
+.canva-authbox .canva-gate-btn-secondary { border-radius: 0; }
+
+/* fidelity(athlete-bookings): SoT .stat (r14/p18/22px value) + .bk (r16/p16, flat) */
+.canva-history-sum { gap:16px; margin-bottom:18px; }
+.canva-history-sum > div { background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:14px; padding:18px; }
+.canva-history-sum span { font-size:11.5px; color:#8f8f8b; margin-bottom:8px; }
+.canva-history-sum b { font-size:22px; margin-top:0; }
+.canva-history-sum-unpaid { color:#c9a14a !important; }
+.canva-history-card { border-radius:16px; padding:16px; border:1px solid rgba(44,44,42,.08); box-shadow:none; }
+.canva-history-card-title { font-size:14.5px; }
+.canva-history-card-meta { font-size:12px; color:#8f8f8b; }
+.canva-history-card-price { font-size:14px; font-weight:700; }
+@media (max-width:640px){ .canva-history-sum{gap:8px} .canva-history-sum > div{padding:12px} .canva-history-sum b{font-size:18px} }
+
+/* fidelity(athlete-bookings): SoT .ph tabs, .bk thumb/acts, #athDetail side panel */
+.canva-history-ph { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.canva-history-ph .canva-history-title { margin:0; }
+.canva-history-ph-tabs { margin:0; }
+.canva-history-card { display:flex; align-items:flex-start; gap:16px; cursor:pointer; }
+.canva-history-card-sel { border-color:#c41e1e; }
+.canva-history-card-thumb { width:74px; height:74px; flex:none; object-fit:cover; border-radius:10px; background:#eceae4; }
+.canva-history-card-mid { flex:1; min-width:0; display:block; }
+.canva-history-card-acts { display:flex; flex-direction:column; gap:8px; width:150px; flex:none; }
+.canva-history-card-acts > * { width:100%; min-height:34px; font-size:12px; padding:6px 10px; text-align:center; justify-content:center; }
+.canva-history-panel { display:none; }
+@media (min-width:1024px) {
+  .canva-history-panel { display:block; margin-top:16px; background:#fff; border:1px solid rgba(44,44,42,.08); border-radius:14px; padding:16px; }
+  .canva-history-panel-banner { position:relative; height:86px; border-radius:12px; overflow:hidden; background:#1f3a5a; margin-bottom:12px; }
+  .canva-history-panel-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .canva-history-panel-banner > div { position:absolute; inset:auto 12px 10px 12px; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+  .canva-history-panel-banner h4 { font-size:13.5px; font-weight:800; }
+  .canva-history-panel-banner small { font-size:11px; opacity:.9; }
+  .canva-history-panel .canva-history-sh-note { margin-bottom:6px; }
+  .canva-history-panel-kv { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #f0ede8; font-size:12.5px; }
+  .canva-history-panel-kv:last-child { border-bottom:0; }
+  .canva-history-panel-kv span { color:#8f8f8b; }
+  .canva-history-panel-kv b { font-weight:700; color:#1a1a18; }
+}
+@media (max-width:640px) {
+  .canva-history-card { flex-wrap:wrap; gap:12px; }
+  .canva-history-card-thumb { width:56px; height:56px; }
+  .canva-history-card-acts { width:100%; flex-direction:row; flex-wrap:wrap; }
+  .canva-history-card-acts > * { flex:1 1 0; width:auto; }
+}
+
+/* fidelity(athlete-bookings): SoT has a single header chip row and no list heading */
+.canva-history-ph-filters { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.canva-history-ph-status { order:2; padding-inline-start:14px; border-inline-start:1px solid #e3ddd3; }
+.canva-history-ph-status .canva-history-chip { font-size:12px; }
+.canva-history-head:not(:has(.canva-history-show-all)) { display:none; }
+@media (max-width: 767px) {
+  .canva-history-ph-filters { width:100%; flex-wrap:nowrap; gap:10px; overflow-x:auto; scrollbar-width:none; }
+  .canva-history-ph-filters .canva-history-ph-tabs { flex-wrap:nowrap; flex-shrink:0; }
+  .canva-history-ph-filters .canva-history-chip { white-space:nowrap; }
+  .canva-history-ph-status { padding-inline-start:10px; }
+}
+
+/* SoT athlete-bookings: active chip `.chip.a.cr` solid crimson; card h3 "تقویم رزروها" */
+.canva-history-ph-filters .canva-history-chip-on { background:#c41e1e; border-color:#c41e1e; color:#fff; }
+.canva-history-cal-title { font-size:14px; font-weight:700; color:#2c2c2a; margin-bottom:16px; text-align:start; }
+
+/* SoT owner .rbanner .rbw: unfiltered photo, light top→bottom wash. */
+.canva-photo-hero-wash.canva-photo-hero-wash--sot { background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6)); }
+/* owner-finance SoT .rbanner / .oftab / .ofst / .ofchart (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-finance-page > .canva-photo-hero { height: 130px; min-height: 130px; margin-bottom: 24px; }
+  .owner-finance-page > .canva-photo-hero .canva-photo-hero-body { min-height: 0 !important; padding: 0 !important; }
+  .owner-finance-page > .canva-photo-hero .canva-promo-badge-hero { top: auto !important; bottom: 18px !important; left: 12px !important; right: auto !important; inset-inline-start: auto; }
+  .owner-finance-page .canva-finance-period { margin-top: 0; }
+  .owner-finance-page .canva-finance-period-btn { padding: 6px 2px; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2:has(> .canva-finance-chips) { display: flex; flex-direction: column; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2 > .canva-finance-chips { flex: 1; align-items: stretch; }
+  .owner-finance-page .canva-finance-wide { align-items: stretch; }
+  .owner-finance-page .canva-finance-wide > .canva-panel { align-self: start; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2 > .canva-finance-chips > * { height: 100%; }
+  .owner-finance-page .canva-finance-chip { display: flex; flex-direction: column; justify-content: center; }
+  .owner-finance-page .canva-finance-chart { padding: 0; margin-top: 14px; }
+  .owner-finance-page .canva-finance-chart-bar { width: 28px !important; max-width: 28px; }
+  .owner-finance-page .canva-finance-chart-bar:not(.canva-finance-chart-bar-active) { background: #e0deda; }
+  .owner-finance-page .canva-finance-chart-label { font-size: 10px; margin-top: 4px; }
+}
+/* owner-settings SoT .cxin / .ost-h / .occh (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-settings-page .canva-panel > h2:first-child,
+  .owner-settings-page .canva-panel > .font-bold.text-brand-navy:first-child { font-size: 15px; line-height: 23px; margin-bottom: 10px; }
+  .owner-settings-page .canva-panel label .mb-1.block { font-size: 11px !important; color: #4a4a47 !important; font-weight: 400; line-height: 17px; margin: 0 0 4px; }
+  .owner-settings-page .neo-input, .owner-settings-page .neo-select { min-height: 42px !important; padding-top: 12px !important; padding-bottom: 12px !important; line-height: 16px; }
+  .owner-settings-page .canva-settings-chip { padding: 8px 14px; font-weight: 400; min-height: 34px; }
+  .owner-settings-page .canva-settings-chip-idle { background: #ece8e2; }
+  .owner-settings-page .canva-settings-chip-active { background: #2c2c2a; color: #fff; }
+  .owner-settings-page .canva-panel > .space-y-2 > p.text-sm.font-bold { font-size: 11px; font-weight: 400; color: #4a4a47; }
+  .owner-settings-page .canva-panel .btn-secondary { border-radius: 0 !important; box-shadow: none !important; border: 1px solid rgba(44,44,42,.14); background: #fff; padding: 8px 16px; min-height: 34px; font-size: 12px; font-weight: 500; }
+  .owner-settings-page .canva-panel .btn-secondary + button.text-xs { color: #c41e1e; font-weight: 400; }
+  .owner-settings-page input[readonly].neo-input { background: #ece8e2 !important; }
+  .owner-settings-page span[role="note"].text-red-600 { color: #c41e1e; font-weight: 400; font-size: 11px; }
+}
+
+/* owner-finance-report SoT filters/stat cards (desktop) — visual only */
+@media (min-width: 431px) {
+  .canva-report-wide .canva-finance-signal-card { min-height: 78px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; }
+  .canva-report-wide .space-y-2 > * + * { margin-top: 14px; }
+  .canva-report-wide .canva-session-filter-btn { font-weight: 400 !important; padding: 8px 14px !important; min-height: 34px; }
+  .canva-report-wide .text-start > span.mb-1.block.text-xs.font-bold { font-weight: 400 !important; color: #4a4a47 !important; font-size: 11px; margin-bottom: 6px; }
+  .canva-report-wide label > span.mb-1.block.text-xs.font-bold { font-weight: 400 !important; color: #4a4a47 !important; font-size: 11px; margin-bottom: 6px; }
+  .canva-report-wide .canva-finance-date { min-height: 42px !important; padding-top: 12px !important; padding-bottom: 12px !important; font-size: 13px; }
+  .canva-report-wide > .canva-report-span + * , .canva-report-wide > section { margin-bottom: 8px; }
+}
+
+/* owner-crm list SoT stats/tabs/rows/CTA (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-crm-page .canva-crm-stats { margin-top: 14px; margin-bottom: 12px; }
+  .owner-crm-page .canva-crm-stat { min-height: 78px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; }
+  .owner-crm-page .canva-crm-stat-label { font-weight: 400 !important; font-size: 12px; color: #2c2c2a; }
+  .owner-crm-page .canva-underline-tab { padding: 10px 2px 12px; margin-inline-end: 14px; }
+  .owner-crm-page .canva-contact-row { padding-top: 18px; padding-bottom: 18px; }
+  .owner-crm-page .canva-history-status { font-weight: 400 !important; }
+  .owner-crm-page .canva-panel .text-sm.text-brand-gray-500 { line-height: 26px; }
+  .owner-crm-page .canva-crm-cta-row .canva-black-cta { min-width: 208px; min-height: 42px; }
+}
+
+/* owner-equipment SoT chips/rows (desktop) — visual only */
+@media (min-width: 431px) {
+  .canva-equip-wide .canva-equip-chip { padding: 8px 14px !important; min-height: 34px; font-size: 13px !important; }
+  .canva-equip-wide .canva-equip-row { padding-top: 14px !important; padding-bottom: 14px !important; }
+  .canva-equip-wide .canva-equip-row .font-bold { font-size: 15px; }
+  .canva-equip-wide .canva-equip-row .text-xs { font-size: 12px; }
+  .canva-equip-wide h2.font-bold { font-size: 17px; }
+  .canva-equip-wide > section > .flex.flex-wrap { margin-top: 20px; }
+}
+
+/* owner-setup SoT .cxin fields/CTA (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-setup-page .neo-form-field > .mb-1.block { font-size: 11px !important; font-weight: 400 !important; color: #4a4a47 !important; margin-bottom: 4px; }
+  .owner-setup-page .neo-input, .owner-setup-page input { min-height: 42px !important; }
+  .owner-setup-page .canva-panel .canva-gate-btn-primary { width: 75% !important; margin-top: 8px; margin-inline-end: 0; margin-inline-start: auto; display: block; min-height: 44px; }
+}
+
+/* owner-support SoT ticket CTA/guide (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-support-page form .canva-cta { width: 45% !important; display: block; margin-inline-start: 0; margin-inline-end: auto; margin-top: 12px; min-height: 44px; }
+  .owner-support-page .owner-support-guide ul { padding-inline-start: 0; padding-inline-end: 14px; }
+  .owner-support-page .owner-support-guide ul li { font-size: 13px; line-height: 26px; }
+  .owner-support-page section > h2.text-sm { font-size: 14px; margin-bottom: 18px; }
+}
+
+/* club detail booking: SoT .rcts court rows + .chip time pills (desktop) */
+@media (min-width:431px){
+.canva-club-detail-book .canva-club-court-list{display:grid!important;gap:8px;margin-bottom:8px}
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num{display:flex!important;align-items:center;justify-content:flex-start!important;gap:12px;width:100%!important;height:auto!important;padding:10px 12px!important;border:1px solid rgba(44,44,42,.25)!important;background:#fff!important;outline:0!important;text-align:start}
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-focus,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-target,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-active{border-color:#2c2c2a!important;outline:1px solid #2c2c2a!important}
+.canva-club-court-box{width:30px;height:30px;border:1px solid #2c2c2a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:400;flex:none}
+.canva-club-court-name{flex:1;font-size:13px}
+.canva-club-detail-book .canva-club-slot-grid{display:flex!important;flex-wrap:wrap;gap:6px}
+.canva-club-detail-book .canva-club-slot{display:inline-flex;flex-direction:column;align-items:center;padding:7px 14px;font-size:12px;line-height:1.3}
+.canva-club-detail-book .canva-club-slot-price{font-size:9.5px}
+.canva-club-detail-book .canva-club-slot-booked,
+.canva-club-detail-book .canva-club-slot-booked.canva-club-slot-active{background:#fff!important;border-color:rgba(44,44,42,.15)!important;opacity:.35;text-decoration:line-through}
+}
+@media (max-width:430px){.canva-club-court-box{all:unset}.canva-club-court-name{display:none}}
+
+/* clubs-apply modal: SoT flat cream sheet + .cpup upload box (desktop) */
+@media (min-width:431px){
+.canva-auth-sheet{background:#f3eee8!important;background-image:none!important}
+.canva-auth-sheet::before,.canva-auth-sheet::after{background:none!important;background-image:none!important}
+.canva-auth-upload{display:flex!important;gap:10px;align-items:center;border:1px dashed rgba(44,44,42,.3)!important;background:transparent!important;padding:12px!important;border-radius:0!important}
+.canva-auth-upload .canva-auth-upload-btn{order:-1;background:#ece8e2!important;border:0!important;padding:5px 10px!important;font-size:11px!important;color:#2c2c2a!important;border-radius:0!important;min-height:34px}
+}
+
+/* coach fidelity: packages full-width start-aligned, flat empty card */
+@media (min-width:431px){
+  .canva-coach-packages{max-width:none!important;margin:0!important;padding:16px 0!important;text-align:start}
+  .canva-coach-packages h1{font-size:20px!important}
+  .canva-cal-sheet .tail-card{border-radius:0!important;box-shadow:none!important}
+}
+
+/* admin fidelity: SoT .acard = 12px radius, hairline border, no shadow */
+@media (min-width:431px){
+  .canva-admin-shell .ios-card{box-shadow:none!important;border:1px solid rgba(44,44,42,.08)!important}
+}

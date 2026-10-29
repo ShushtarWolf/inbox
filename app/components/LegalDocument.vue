@@ -65,6 +65,7 @@ const sections = computed(() => {
       <h2>{{ normalizeLegalText(rt(section.title)) }}</h2>
       <p v-for="(para, pidx) in section.paragraphs" :key="pidx">{{ mapParagraph(para) }}</p>
     </section>
+    <slot name="before-disclaimer" />
     <p class="canva-legal-meta canva-legal-disclaimer">{{ t('legal.disclaimer') }}</p>
     </div>
   </div>

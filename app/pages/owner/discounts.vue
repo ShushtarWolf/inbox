@@ -151,7 +151,7 @@ async function saveItem() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack owner-discount-page">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.discounts')" :subtitle="t('owner.discountsPage.subtitle')" />
     <OwnerActiveClubBar class="mb-3" />
 

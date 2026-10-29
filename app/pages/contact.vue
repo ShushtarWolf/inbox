@@ -161,19 +161,14 @@ useHead({
       </div>
 
       <div
+        v-for="(row, ri) in contactEmails"
+        :key="row.address"
         class="canva-contact-row"
         style="border-radius: 2px;"
       >
-        <dt class="font-bold text-brand-navy">{{ t('contact.emailLabel') }}</dt>
-        <dd class="space-y-2">
-          <p
-            v-for="row in contactEmails"
-            :key="row.address"
-            class="text-start text-sm"
-          >
-            <a :href="`mailto:${row.address}`" class="text-brand-primary" dir="ltr">{{ row.address }}</a>
-            <span class="ms-2 text-brand-gray-600">{{ t(row.labelKey) }}</span>
-          </p>
+        <dt class="font-bold text-brand-navy">{{ ri === 0 ? `${t('contact.emailLabel')} — ${t(row.labelKey)}` : t(row.labelKey) }}</dt>
+        <dd>
+          <a :href="`mailto:${row.address}`" class="text-brand-primary" dir="ltr">{{ row.address }}</a>
         </dd>
       </div>
 
@@ -281,3 +276,15 @@ useHead({
   </div>
   </div>
 </template>
+
+<style scoped>
+/* SoT pages.contact .card .kv: label (silver) right, value bold left, hairline rows */
+.canva-contact-kv { background: #fff; border: 1px solid rgba(44,44,42,.1); padding: 18px; margin-top: 20px; }
+.canva-contact-kv :deep(.canva-contact-row), .canva-contact-kv .canva-contact-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: 12.5px; padding: 9px 0; border-bottom: 1px solid rgba(44,44,42,.06);
+  background: transparent; box-shadow: none; border-radius: 0 !important; margin: 0;
+}
+.canva-contact-kv .canva-contact-row dt { font-weight: 400; color: #8a8a86; }
+.canva-contact-kv .canva-contact-row dd, .canva-contact-kv .canva-contact-row dd a { font-weight: 700; color: #2c2c2a; margin: 0; }
+</style>

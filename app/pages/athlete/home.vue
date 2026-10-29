@@ -147,7 +147,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack athlete-home-page">
     <section class="canva-photo-hero">
       <CanvaHeroImg
         src="/hero/fitness-venue.jpg"
@@ -254,7 +254,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
         @close="showDatePicker = false"
       >
         <div class="px-4 pb-5 pt-2">
-          <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
+          <AppJalaliCalendar v-model="date" selected-tone="charcoal" @select="onHomeDatePicked" />
         </div>
       </AppModal>
 

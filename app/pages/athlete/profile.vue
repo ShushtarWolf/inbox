@@ -113,8 +113,8 @@ async function save() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/athlete" :title="t('nav.profile')" :subtitle="t('athlete.profileSubtitle')" />
+  <div class="venus-page-stack athlete-profile-sot">
+    <CanvaSubpageHeader to="/athlete" :title="t('nav.profile')" />
     <section class="canva-dash-hero">
       <div class="flex items-center gap-4">
         <!-- Canva hub uses circular avatar -->
@@ -158,9 +158,28 @@ async function save() {
       <p v-if="!phone.trim()" class="text-sm text-brand-gray-600">{{ addMobileHint }}</p>
       <p v-if="saveError" class="text-sm font-bold text-brand-primary">{{ saveError }}</p>
       <p v-else-if="saved" class="text-sm font-bold text-emerald-700">{{ t('common.saved') }}</p>
-      <button type="button" class="canva-black-cta" :disabled="saving || savingAvatar" @click="save">
+      <button type="button" class="canva-black-cta athlete-profile-save" :disabled="saving || savingAvatar" @click="save">
         {{ saving ? t('common.loading') : t('common.save') }}
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* SoT athlete-profile: .ahero.ahp flat 135deg crimson, 24px pad; .cxbtn.dark 360x44, start-aligned. */
+.athlete-profile-sot .canva-dash-hero {
+  background-image: linear-gradient(135deg, #c41e1e, #a81818) !important;
+  padding: 24px !important;
+}
+.athlete-profile-sot .athlete-profile-save {
+  width: 100% !important;
+  max-width: 360px;
+  height: 44px;
+  padding: 0 24px !important;
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 700;
+}
+</style>

@@ -496,6 +496,12 @@ const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
   return data.value?.slots?.find((s) => s.id === selectedSlot.value!.id) || selectedSlot.value
 })
+/** SoT owner-calendar side panel: read-only mirror of the last opened slot (UI state only). */
+const panelSlotId = ref<string | null>(null)
+watch(() => selectedSlot.value?.id, (id) => { if (id) panelSlotId.value = id })
+const panelSlot = computed(() =>
+  panelSlotId.value ? (data.value?.slots?.find((s) => s.id === panelSlotId.value) || null) : null,
+)
 const selectedSlotsFull = computed(() => {
   const picked = selectedSlotIds.value
     .map((id) => data.value?.slots?.find((s) => s.id === id))
@@ -3356,8 +3362,8 @@ const legend = computed(() => [
   { status: 'FREE', color: palette.calendarGrid.FREE, swatch: 'free' as const },
   { status: 'RESERVED', color: '#C41E1E', swatch: 'box' as const },
   { status: 'SEASON', color: palette.calendarGrid.RESERVED_RECURRING_BAR, swatch: 'box' as const },
-  { status: 'PENDING', color: '#E8B84A', swatch: 'box' as const },
-  { status: 'BLOCKED', color: '#1A1A18', swatch: 'box' as const },
+  { status: 'PENDING', color: '#B68A3B', swatch: 'box' as const },
+  { status: 'BLOCKED', color: '#2C2C2A', swatch: 'box' as const },
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
 ])
 
@@ -3393,17 +3399,17 @@ watch(pilotNoCoach, (off) => {
         :src="clubHeroImage"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8 min-[431px]:!min-h-[3.25rem] min-[431px]:!pb-3 min-[431px]:!pt-3" />
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-      <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">{{ clubCalendarTitle }}</h1>
-      <p class="mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
+      <h1 class="text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug"><span class="min-[431px]:hidden">{{ clubCalendarTitle }}</span><span class="hidden min-[431px]:inline">{{ t('owner.calendarShort') }}</span></h1>
+      <p class="owner-cal-welcome mt-1 text-start text-xs leading-relaxed text-brand-gray-600">
         {{ t('owner.calendarWelcome') }} · {{ calendarWelcomeLine }}
       </p>
       <p class="text-start text-xs text-brand-gray-600">{{ t('owner.calendarAllCourtsHint') }}</p>
@@ -3425,7 +3431,7 @@ watch(pilotNoCoach, (off) => {
           :class="calendarView === 'today' ? 'canva-view-tab-active canva-cal-tab-active' : ''"
           @click="calendarView = 'today'"
         >
-          {{ t('owner.today') }}
+          {{ t('owner.calendarDayTab') }}
         </button>
         <button
           type="button"
@@ -3550,6 +3556,7 @@ watch(pilotNoCoach, (off) => {
           </div>
         </div>
 
+        <div class="canva-cal-split">
         <div class="canva-cal-body">
           <div v-if="!courts.length">
             <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
@@ -3622,6 +3629,27 @@ watch(pilotNoCoach, (off) => {
               </template>
             </div>
           </div>
+        </div>
+        <aside class="canva-cal-side" :aria-label="t('owner.currentBooking')">
+          <template v-if="panelSlot">
+            <h3 class="canva-cal-side-title">
+              {{ slotCourtName(panelSlot) }} — <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(panelSlot.startTime) }}</bdi>
+            </h3>
+            <span class="canva-cal-side-tag" :class="`canva-cal-side-tag-${String(panelSlot.displayStatus || 'FREE').toLowerCase()}`">{{ statusLabel(panelSlot.displayStatus) }}</span>
+            <template v-if="panelSlot.displayStatus !== 'FREE'">
+              <div class="canva-cal-side-kv">
+                <span>{{ t('owner.guestLabel') }}</span>
+                <b>{{ slotGuestLine(panelSlot) || '—' }}</b>
+              </div>
+              <div class="canva-cal-side-kv">
+                <span>{{ t('owner.guestMobile') }}</span>
+                <bdi dir="ltr" class="tabular-nums">{{ activeBooking(panelSlot)?.guestMobile ? formatPhone(activeBooking(panelSlot)?.guestMobile) : '—' }}</bdi>
+              </div>
+              <div v-if="slotNoteLine(panelSlot)" class="canva-cal-side-note">{{ slotNoteLine(panelSlot) }}</div>
+            </template>
+          </template>
+          <p v-else class="canva-cal-side-empty">{{ t('owner.emptySlotsBody') }}</p>
+        </aside>
         </div>
       </div>
     </section>
@@ -5252,4 +5280,127 @@ watch(pilotNoCoach, (off) => {
     min-height: 6.25rem;
   }
 }
+
+/* SoT owner-calendar .cell (inbox-all-pages.html L216-221): white cells, 4px right stripe,
+   charcoal selection outline; checkbox + «گذشته» hidden visually (selection logic unchanged). */
+:deep(.canva-cal-grid-cell) {
+  min-height: 66px;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-bar) {
+  width: 4px;
+}
+:deep(.canva-cal-grid-cell.slot-free),
+:deep(.canva-cal-grid-cell.slot-past) {
+  background: #ece9e4;
+  color: #8f8f8b;
+  box-shadow: inset -4px 0 0 #d4d2ce;
+}
+:deep(.canva-cal-grid-cell.slot-reserved),
+:deep(.canva-cal-grid-cell.slot-reserved-cash),
+:deep(.canva-cal-grid-cell.slot-reserved-unpaid),
+:deep(.canva-cal-grid-cell.slot-reserved-ipg),
+:deep(.canva-cal-grid-cell.slot-reserved-recurring),
+:deep(.canva-cal-grid-cell.slot-public),
+:deep(.canva-cal-grid-cell.slot-team),
+:deep(.canva-cal-grid-cell.slot-pending) {
+  background: #fff;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-bar-pending) {
+  background: #e8a317;
+}
+:deep(.canva-cal-grid-cell.slot-pending .canva-slot-pay-chip) {
+  background: #f59e0b;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 0;
+}
+:deep(.canva-cal-grid-cell.slot-blocked),
+:deep(.canva-cal-grid-cell.slot-closed) {
+  background: #2c2c2a;
+  color: #fff;
+}
+:deep(.canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label),
+:deep(.canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label) {
+  color: #fff;
+  font-weight: 700;
+  white-space: normal;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-label) {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+:deep(.canva-cal-grid-cell.canva-cal-grid-cell-selected),
+:deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected) {
+  background: #fff;
+  color: #2c2c2a;
+  box-shadow: none;
+  outline: 2px solid #2c2c2a;
+  outline-offset: 1px;
+}
+:deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected .canva-cal-grid-cell-label) {
+  color: #2c2c2a;
+}
+:deep(.canva-cal-grid-note) {
+  color: #b68a3b;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-check),
+:deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-check:not(.canva-cal-grid-check-on)) {
+  opacity: 0;
+  pointer-events: none;
+}
+:deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-cell-label) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+:deep(.canva-cal-grid-cell .canva-slot-pay-chip),
+:deep(.canva-cal-grid-cell .canva-slot-coach-chip) {
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+}
+
+/* SoT owner-calendar two-column: grid + sticky detail side panel (left in RTL). */
+.canva-cal-split { display: block; }
+.canva-cal-side { display: none; }
+@media (min-width: 1280px) {
+  .canva-cal-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    align-items: start;
+  }
+  .canva-cal-side {
+    display: block;
+    position: sticky;
+    top: 90px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.08);
+    padding: 22px;
+  }
+}
+.canva-cal-side-title { font-size: 14px; font-weight: 700; color: #2c2c2a; margin-bottom: 16px; }
+.canva-cal-side-tag {
+  display: block; font-size: 10.5px; font-weight: 600; padding: 3px 10px;
+  background: rgba(44, 44, 42, 0.06); color: #6b6b67; margin-bottom: 18px;
+}
+.canva-cal-side-tag-reserved, .canva-cal-side-tag-public, .canva-cal-side-tag-team {
+  background: rgba(196, 30, 30, 0.08); color: #c41e1e;
+}
+.canva-cal-side-tag-pending { background: #f3e9d3; color: #9a7530; }
+.canva-cal-side-tag-blocked { background: #2c2c2a; color: #fff; }
+.canva-cal-side-kv {
+  display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px;
+  padding: 9px 0; border-bottom: 1px solid rgba(44, 44, 42, 0.06);
+}
+.canva-cal-side-kv span { color: #8f8f8b; }
+.canva-cal-side-kv b, .canva-cal-side-kv bdi { font-weight: 700; color: #2c2c2a; }
+.canva-cal-side-note {
+  margin-top: 14px; border: 1px solid rgba(44, 44, 42, 0.08); padding: 10px 12px;
+  font-size: 12px; line-height: 1.9; color: #2c2c2a;
+}
+.canva-cal-side-empty { font-size: 11.5px; color: #8f8f8b; text-align: center; padding: 6px; }
 </style>

@@ -147,9 +147,9 @@ async function pay() {
 </script>
 
 <template>
-  <div class="receipt-player min-h-dvh" :dir="locale === 'fa' ? 'rtl' : 'ltr'">
+  <div class="receipt-player min-h-dvh" :class="{ 'is-error': error && !showPending }" :dir="locale === 'fa' ? 'rtl' : 'ltr'">
     <AppVenusSpinner v-if="showPending" size="sm" :label="t('common.loading')" class="p-8" />
-    <p v-else-if="error" class="p-6 text-sm text-red-600">{{ t('booking.receiptNotFound') }}</p>
+    <p v-else-if="error" class="receipt-notfound-msg">{{ t('booking.receiptNotFound') }}</p>
 
     <template v-else-if="data">
       <header class="receipt-player-top sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[#ECE9E4] px-5 py-3.5">
@@ -173,7 +173,13 @@ async function pay() {
       </header>
 
       <main class="mx-auto max-w-[640px] px-4 py-7 pb-28">
-        <p v-if="paymentNotice" class="mb-3 text-sm text-start text-brand-navy">{{ paymentNotice }}</p>
+        <p
+          v-if="paymentNotice"
+          class="mb-3 text-sm text-start"
+          :class="paymentOutcome === 'success' ? 'text-brand-navy' : 'text-[#C41E1E]'"
+        >
+{{ paymentNotice }}
+</p>
         <p v-if="data.cancelled" class="mb-3 text-sm text-start text-red-600">{{ t('booking.receiptCancelled') }}</p>
 
         <div class="receipt-player-card">
@@ -274,6 +280,17 @@ async function pay() {
 .receipt-player {
   background: #F6F5F2;
   color: #1F1F1D;
+}
+/* SoT receipt-notfound: white page, 16px/24px padding, #e11d1d 14px */
+.receipt-player.is-error {
+  background: #fff;
+}
+.receipt-notfound-msg {
+  margin: 0;
+  padding: 16px 24px;
+  color: #e11d1d;
+  font-size: 14px;
+  line-height: 1.5;
 }
 .receipt-player-top {
   background: rgba(255, 255, 255, 0.92);

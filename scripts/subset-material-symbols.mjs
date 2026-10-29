@@ -27,6 +27,12 @@ const EXTRA = [
   'search',
   'sms_failed',
   'storefront',
+  'apartment',
+  'badge',
+  'sports_tennis',
+  'waving_hand',
+  'sell',
+  'shield_person',
   'toggle_on',
 ]
 

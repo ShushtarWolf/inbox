@@ -470,16 +470,16 @@ function showUnpaidList() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack owner-finance-page">
     <section class="canva-photo-hero">
       <CanvaHeroImg
         :src="activeMembership?.club?.image || '/hero/tennis-court.jpg'"
         alt=""
         img-class="canva-photo-hero-media"
-        img-style="filter: grayscale(0.55) brightness(0.72);"
+        img-style="object-position: 50% 40%;"
         fetchpriority="high"
       />
-      <div class="canva-photo-hero-wash" />
+      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-promo-badge canva-promo-badge-hero pointer-events-none" aria-hidden="true">
         <span class="canva-promo-badge-pct">۲۰٪</span>
@@ -512,7 +512,7 @@ function showUnpaidList() {
 
     <section class="canva-finance-hero-card">
       <p class="text-xs text-white/75">{{ heroTitle }}</p>
-      <p class="mt-2 text-3xl font-bold tabular-nums text-white">{{ formatCurrency(heroAmount) }}</p>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-white">{{ formatNumber(heroAmount) }} <span class="owner-fin-hero-unit">{{ t('common.currency') }}</span></p>
       <p
         v-if="period === 'day'"
         class="mt-1 text-xs"
@@ -558,9 +558,9 @@ function showUnpaidList() {
       </div>
 
       <div v-if="showReports" class="canva-panel">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="owner-fin-method-head flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.paymentMethodTitle') }}</h2>
-          <div class="flex items-center gap-3 text-[10px] font-bold text-brand-gray-600">
+          <div class="owner-fin-method-legend flex items-center gap-3 text-[10px] font-bold text-brand-gray-600">
             <span class="inline-flex items-center gap-1">
               <span class="canva-finance-legend-swatch bg-brand-primary" />
               {{ t('owner.financePage.methodCash') }}
@@ -575,7 +575,7 @@ function showUnpaidList() {
           <span class="h-full bg-brand-primary" :style="{ width: `${cashPct}%` }" />
           <span class="h-full" :style="{ width: `${ipgPct}%`, background: '#e0a82e' }" />
         </div>
-        <div class="mt-2 flex justify-between text-xs font-bold text-brand-navy">
+        <div class="owner-fin-method-pct mt-2 flex justify-between text-xs font-bold text-brand-navy">
           <span>{{ formatNumber(cashPct) }}٪</span>
           <span>{{ formatNumber(ipgPct) }}٪</span>
         </div>

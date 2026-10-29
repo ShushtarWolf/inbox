@@ -610,6 +610,12 @@ const filteredItems = computed(() => {
   // Newest first; copy so Vue sees a new array.
   return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel))
 })
+const panelKey = ref<string | null>(null)
+watch(detailKey, (k) => { if (k) panelKey.value = k })
+const panelItem = computed(() => {
+  const item = filteredItems.value.find((i) => itemKey(i) === panelKey.value) || filteredItems.value[0]
+  return item ? { key: itemKey(item), item } : null
+})
 
 const hasAnyBookings = computed(() => visibleHistory.value.length > 0)
 
@@ -739,7 +745,37 @@ function dateLine(item: HistoryItem) {
       </NuxtLink>
     </CanvaAthleteChrome>
 
-    <h1 class="canva-history-title">{{ t('athlete.historyTitle') }}</h1>
+    <div class="canva-history-ph">
+      <h1 class="canva-history-title">{{ t('athlete.historyTitle') }}</h1>
+    <div v-if="!selectedDayIso" class="canva-history-ph-filters">
+      <div class="canva-history-chips canva-history-ph-tabs canva-history-ph-status" role="group" :aria-label="t('athlete.historyFilterGroup')">
+        <button
+          v-for="chip in statusChips"
+          :key="chip.value"
+          type="button"
+          class="canva-history-chip"
+          :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
+          :aria-pressed="statusFilter === chip.value"
+          @click="statusFilter = chip.value"
+        >
+          {{ t(chip.labelKey) }}
+        </button>
+      </div>
+    <div class="canva-history-chips canva-history-ph-tabs" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
+      <button
+        v-for="chip in timeChips"
+        :key="`time-${chip.value}`"
+        type="button"
+        class="canva-history-chip"
+        :class="{ 'canva-history-chip-on': timeFilter === chip.value }"
+        :aria-pressed="timeFilter === chip.value"
+        @click="timeFilter = chip.value"
+      >
+        {{ t(chip.labelKey) }}
+      </button>
+    </div>
+    </div>
+    </div>
 
     <div class="canva-history-sum" :aria-label="t('athlete.historySummaryAria')">
       <div>
@@ -759,6 +795,7 @@ function dateLine(item: HistoryItem) {
     <div class="canva-history-desktop">
     <section :aria-label="t('athlete.historyCalendarAria')">
       <div class="canva-history-cal">
+        <h3 class="canva-history-cal-title">{{ t('athlete.historyCalendarAria') }}</h3>
         <div class="canva-history-cal-nav">
           <button type="button" class="canva-history-cal-nav-btn" :aria-label="t('calendar.prevMonth')" @click="prevMonth">
             <AppIcon name="chevron_right" size="sm" />
@@ -806,46 +843,37 @@ function dateLine(item: HistoryItem) {
         </div>
       </div>
       <p class="canva-history-hint">{{ t('athlete.historyCalHint') }}</p>
+      <div v-if="panelItem" class="canva-history-panel">
+        <div class="canva-history-panel-banner">
+          <img v-if="panelItem.item.image" :src="panelItem.item.image" alt="">
+          <div>
+            <h4>{{ panelItem.item.title }}</h4>
+            <small v-if="panelItem.item.address">{{ formatFaDigits(panelItem.item.address) }}</small>
+          </div>
+        </div>
+        <p
+          class="canva-history-sh-note"
+          :class="{
+            'canva-history-sh-note-warn': displayStatus(panelItem.item) === 'unpaid',
+            'canva-history-sh-note-ok': displayStatus(panelItem.item) === 'paid',
+          }"
+        >{{ t(STATUS_NOTE_KEY[displayStatus(panelItem.item)]) }}</p>
+        <div class="canva-history-panel-kv"><span>{{ t('athlete.historyRowDate') }}</span><b>{{ formatIsoDate(panelItem.item.date) }} — <bdi dir="ltr" class="tabular-nums">{{ panelItem.item.timeLabel }}</bdi></b></div>
+        <div class="canva-history-panel-kv"><span>{{ t('athlete.historyTotal') }}</span><b class="tabular-nums">{{ formatCurrency(panelItem.item.price) }}</b></div>
+        <div class="canva-history-panel-kv"><span>{{ t('athlete.historyRowStatus') }}</span><b>{{ t(STATUS_LABEL_KEY[displayStatus(panelItem.item)]) }}</b></div>
+        <div v-if="panelItem.item.phone" class="canva-history-panel-kv"><span>{{ t('athlete.historyClubInfo') }}</span><b><bdi dir="ltr" class="tabular-nums">{{ formatPhone(panelItem.item.phone) }}</bdi></b></div>
+      </div>
     </section>
 
     <section class="canva-history-desktop-main" :aria-label="t('athlete.historyListAria')">
       <div class="canva-history-head">
-        <h2 class="canva-history-list-title">{{ listTitle }}</h2>
+        <h2 class="canva-history-list-title sr-only">{{ listTitle }}</h2>
         <button v-if="selectedDayIso" type="button" class="canva-history-show-all" @click="selectedDayIso = null">
           {{ t('athlete.historyShowAll') }}
         </button>
-        <span v-else-if="filteredItems.length" class="canva-history-count">
+        <span v-else-if="filteredItems.length" class="canva-history-count sr-only">
           {{ t('athlete.historyCount', { count: formatNumber(filteredItems.length) }) }}
         </span>
-      </div>
-
-      <div v-if="!selectedDayIso" class="space-y-2">
-        <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyTimeFilterGroup')">
-          <button
-            v-for="chip in timeChips"
-            :key="`time-${chip.value}`"
-            type="button"
-            class="canva-history-chip"
-            :class="{ 'canva-history-chip-on': timeFilter === chip.value }"
-            :aria-pressed="timeFilter === chip.value"
-            @click="timeFilter = chip.value"
-          >
-            {{ t(chip.labelKey) }}
-          </button>
-        </div>
-        <div class="canva-history-chips" role="group" :aria-label="t('athlete.historyFilterGroup')">
-          <button
-            v-for="chip in statusChips"
-            :key="chip.value"
-            type="button"
-            class="canva-history-chip"
-            :class="{ 'canva-history-chip-on': statusFilter === chip.value }"
-            :aria-pressed="statusFilter === chip.value"
-            @click="statusFilter = chip.value"
-          >
-            {{ t(chip.labelKey) }}
-          </button>
-        </div>
       </div>
 
       <p
@@ -874,29 +902,59 @@ function dateLine(item: HistoryItem) {
           </button>
         </CanvaEmptyState>
         <div v-else class="canva-history-card-grid">
-          <button
+          <div
             v-for="item in filteredItems"
             :id="`booking-${item.id}`"
             :key="itemKey(item)"
-            type="button"
+            role="button"
+            tabindex="0"
             class="canva-history-card"
+            :class="{ 'canva-history-card-sel': itemKey(item) === panelItem?.key }"
             :aria-label="t('athlete.historyDetailsAria', { title: item.title, date: formatIsoDate(item.date) })"
             @click="openDetail(item)"
+            @keydown.enter.self="openDetail(item)"
           >
-            <span class="canva-history-card-row">
-              <span class="canva-history-card-title">{{ item.title }}</span>
-              <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(item)]">
-                {{ t(STATUS_LABEL_KEY[displayStatus(item)]) }}
+            <img v-if="item.image" class="canva-history-card-thumb" :src="item.image" alt="" loading="lazy">
+            <span class="canva-history-card-mid">
+              <span class="canva-history-card-row">
+                <span class="canva-history-card-title">{{ item.title }}</span>
+                <span class="canva-history-badge" :class="BADGE_CLASS[displayStatus(item)]">
+                  {{ t(STATUS_LABEL_KEY[displayStatus(item)]) }}
+                </span>
+              </span>
+              <span class="canva-history-card-meta">
+                <template v-if="item.subtitle">{{ item.subtitle }} · </template>{{ dateLine(item) }}
+              </span>
+              <span class="canva-history-card-foot">
+                <span class="canva-history-card-price">{{ formatCurrency(item.price) }}</span>
+                <span class="canva-history-card-more">{{ t('athlete.historyDetails') }} ←</span>
               </span>
             </span>
-            <span class="canva-history-card-meta">
-              <template v-if="item.subtitle">{{ item.subtitle }} · </template>{{ dateLine(item) }}
+            <span v-if="item.status !== 'CANCELLED'" class="canva-history-card-acts">
+              <button
+                v-if="onlineEnabled && canPayOnline(item.paymentStatus)"
+                type="button"
+                class="canva-gate-btn-primary"
+                :disabled="payingId === item.id"
+                @click.stop="payBooking(item)"
+              >{{ t('booking.payNow') }}</button>
+              <span v-else-if="displayStatus(item) === 'paid'" class="canva-history-badge canva-history-badge-paid">
+                {{ t(STATUS_LABEL_KEY.paid) }}
+              </span>
+              <button
+                v-if="canReschedule(item)"
+                type="button"
+                class="canva-gate-btn-secondary"
+                @click.stop="openReschedule(item.raw as CourtBooking)"
+              >{{ t('booking.reschedule') }}</button>
+              <button
+                v-if="canCancel(item)"
+                type="button"
+                class="canva-history-btn-outline"
+                @click.stop="openDetail(item); confirmingCancel = true"
+              >{{ t('athlete.historyCancel') }}</button>
             </span>
-            <span class="canva-history-card-foot">
-              <span class="canva-history-card-price">{{ formatCurrency(item.price) }}</span>
-              <span class="canva-history-card-more">{{ t('athlete.historyDetails') }} ←</span>
-            </span>
-          </button>
+          </div>
         </div>
 
         <template #empty>

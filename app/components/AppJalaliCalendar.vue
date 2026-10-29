@@ -8,6 +8,8 @@ const props = withDefaults(defineProps<{
   mode?: 'single' | 'range'
   minDate?: string
   variant?: 'default' | 'owner'
+  /** Selected-day fill. Default: charcoal for variant=owner (SoT .cal-card), green otherwise (SoT .cxcg booking). */
+  selectedTone?: 'green' | 'charcoal'
   dayMarks?: Record<string, 'busy' | 'soft'>
 }>(), {
   mode: 'single',
@@ -233,7 +235,7 @@ function jumpToRangeStart() {
 </script>
 
 <template>
-  <div class="jalali-calendar" :class="variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default'">
+  <div class="jalali-calendar" :class="[variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default', (selectedTone ?? (variant === 'owner' ? 'charcoal' : 'green')) === 'charcoal' ? 'jalali-calendar-sel-charcoal' : '']">
     <!-- RTL UX: month on start; prev=→ / next=← (matches owner day nav + Canva frames). -->
     <div class="mb-3 flex items-center justify-between gap-2">
       <p class="jalali-calendar-month min-w-0 flex-1 truncate text-start text-sm font-bold">{{ monthLabel }}</p>
@@ -406,20 +408,20 @@ function jumpToRangeStart() {
   box-shadow: inset 0 0 0 2px var(--sz-accent);
   font-weight: 800;
 }
-/* Fail-safe selected: green fill + navy number (never white-on-missing-bg). */
+/* Selected = SoT .cxcg .sel: green fill, white number, dark-green border. */
 .jalali-calendar-day.jalali-calendar-day-selected {
   background-color: #16a34a !important;
-  color: #0b1f12 !important;
-  font-weight: 800;
-  box-shadow: inset 0 0 0 2px #166534;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px #14532d;
 }
 .jalali-calendar-day.jalali-calendar-day-selected > span {
-  color: #0b1f12 !important;
+  color: #fff !important;
 }
 .jalali-calendar-day.jalali-calendar-day-selected:hover,
 .jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
   background-color: #15803d !important;
-  color: #0b1f12 !important;
+  color: #fff !important;
 }
 .jalali-calendar-day.jalali-calendar-day-in-range {
   background-color: #dcfce7 !important;
@@ -480,8 +482,19 @@ function jumpToRangeStart() {
 .jalali-calendar-day.jalali-calendar-day-disabled { color: #c9c6c2; }
 .jalali-calendar-day.jalali-calendar-day-today { box-shadow: inset 0 0 0 1px #2c2c2a; }
 .jalali-calendar-day.jalali-calendar-day-selected,
-.jalali-calendar-day.jalali-calendar-day-selected:hover { background-color: #2c2c2a; color: #fff; }
+.jalali-calendar-day.jalali-calendar-day-selected:hover { background-color: #16a34a; color: #fff; }
 .jalali-calendar-day.jalali-calendar-day-in-range { background-color: rgba(44, 44, 42, 0.08); }
+/* variant="owner" = SoT .cal-card schedule calendars: .cal-cell.sel { background: var(--charcoal); color: #fff } */
+.jalali-calendar-sel-charcoal .jalali-calendar-day.jalali-calendar-day-selected,
+.jalali-calendar-sel-charcoal .jalali-calendar-day.jalali-calendar-day-selected:hover,
+.jalali-calendar-sel-charcoal .jalali-calendar-day.jalali-calendar-day-selected:focus-visible {
+  background-color: #2c2c2a !important;
+  color: #fff !important;
+  box-shadow: none;
+}
+.jalali-calendar-sel-charcoal .jalali-calendar-day.jalali-calendar-day-selected > span { color: #fff !important; }
+/* SoT .cal-cell.sel .cd { background: #fff } */
+.jalali-calendar-sel-charcoal .jalali-calendar-day-selected .jalali-day-dot { background: #fff !important; }
 .jalali-calendar-today-footer {
   border-radius: 10px; border: 1px solid rgba(44, 44, 42, 0.12); background: #fff;
   color: #2c2c2a; font-size: 12px; font-weight: 700; min-height: 2.5rem;

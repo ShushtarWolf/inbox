@@ -102,7 +102,7 @@ function blurb(club: { descriptionFa?: string | null; descriptionEn?: string | n
           :body="t('athlete.favoritesEmptyBody')"
           doodle="bench"
         />
-        <NuxtLink :to="localePath('/clubs')" class="canva-gate-btn-primary">
+        <NuxtLink :to="localePath('/clubs')" class="canva-gate-btn-primary athlete-fav-cta">
           {{ t('athlete.favoritesBrowseClubs') }}
         </NuxtLink>
       </div>

@@ -55,7 +55,7 @@ type ClubCourt = {
   price?: number
   pricingJson?: string | null
   audience?: string | null
-  sport?: { slug?: string }
+  sport?: { slug?: string; nameFa?: string; nameEn?: string }
 }
 
 type ClubDetail = {
@@ -1357,7 +1357,8 @@ async function shareClub() {
                   :aria-current="focusedCourtId === court.id ? 'true' : undefined"
                   @click="toggleCourt(court.id)"
                 >
-                  <span>{{ courtChipLabel(court, idx) }}</span>
+                  <b class="canva-club-court-box">{{ formatNumber(courtDisplayNumber({ nameFa: court.nameFa || '', nameEn: court.nameEn }, idx)) }}</b>
+                  <span class="canva-club-court-name">{{ localizedField(court as Record<string, unknown>, 'nameFa', 'nameEn') || court.nameFa }}<template v-if="court.sport?.nameFa"> · {{ localizedField(court.sport as Record<string, unknown>, 'nameFa', 'nameEn') || court.sport.nameFa }}</template></span>
                   <span
                     v-if="courtAudienceTag(court)"
                     class="canva-court-audience-tag"
@@ -1583,3 +1584,34 @@ async function shareClub() {
       />
   </div>
 </template>
+
+<style scoped>
+/* SoT .mphone .mcld — square white dots, bottom center */
+:deep(.canva-club-gallery-dots) {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot) {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  padding: 0;
+  border-radius: 0;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot::after) {
+  content: none;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot-active) {
+  background: #fff;
+}
+:deep(.canva-club-gallery-dots .canva-hero-dot-idle) {
+  background: #ffffff88;
+}
+</style>

@@ -153,7 +153,7 @@ async function confirmDelete() {
 
 <template>
   <div class="venus-page-stack">
-    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.equipments')" :subtitle="t('owner.equipmentsPage.subtitle')" />
+    <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.equipments')" />
     <OwnerActiveClubBar class="mb-3" />
     <p class="text-sm text-brand-gray-600">{{ t('owner.equipmentsPage.tapToEdit') }}</p>
 

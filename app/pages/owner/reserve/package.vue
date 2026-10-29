@@ -6,7 +6,7 @@ const localePath = useLocalePath()
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg space-y-4 px-4 py-4">
+  <div class="owner-reserve-redirect mx-auto max-w-lg space-y-4 px-4 py-4">
     <CanvaSubpageHeader to="/owner/calendar?more=1" :title="t('owner.reserveRedirect.title')" />
     <p class="text-sm text-brand-gray-600">{{ t('owner.reserveRedirect.body') }}</p>
     <NuxtLink

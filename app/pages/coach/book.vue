@@ -175,7 +175,11 @@ const courtGroups = computed((): CourtGroup[] => {
     group.bookable.sort((a, b) => a.startTime.localeCompare(b.startTime))
     group.blocked.sort((a, b) => a.startTime.localeCompare(b.startTime))
   }
-  return sortCourtsByOrdinal([...map.values()])
+  // CourtGroup carries courtNameFa/courtNameEn; sortCourtsByOrdinal expects nameFa/nameEn.
+  const order = sortCourtsByOrdinal(
+    [...map.values()].map((group) => ({ id: group.courtId, nameFa: group.courtNameFa, nameEn: group.courtNameEn })),
+  )
+  return order.map((court) => map.get(court.id)!)
 })
 
 const selectedCourtGroup = computed(() =>
@@ -648,7 +652,7 @@ async function startTopUp() {
 </script>
 
 <template>
-  <div class="venus-page-stack">
+  <div class="venus-page-stack coach-book-page">
     <CanvaCoachPhotoHero />
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
       <h1 class="mb-0 text-start text-base font-bold text-brand-navy min-[431px]:text-xl min-[431px]:leading-snug">
@@ -710,7 +714,7 @@ async function startTopUp() {
         </p>
 
         <div v-else class="venus-form-stack">
-          <section class="canva-panel space-y-3">
+          <section class="canva-panel cb-dates space-y-3">
             <AppFormField :label="$t('coach.book.club')">
               <select v-model="clubId" class="neo-select">
                 <option v-for="club in clubs" :key="club.id" :value="club.id">
@@ -763,20 +767,21 @@ async function startTopUp() {
 
               <div v-if="selectedCourtGroup">
                 <p class="mb-2 text-start text-xs font-bold text-brand-gray-500">{{ $t('coach.book.pickTime') }}</p>
-                <div class="flex flex-col gap-2">
+                <div class="cb-slots">
                   <button
                     v-for="slot in selectedCourtGroup.bookable"
                     :key="slot.id"
                     type="button"
-                    class="canva-finance-tx-card"
-                    :class="slot.id === selectedSlotId ? 'border-brand-primary bg-brand-primary-soft' : ''"
+                    class="cb-slot"
+                    :class="slot.id === selectedSlotId ? 'is-on' : ''"
+                    :aria-pressed="slot.id === selectedSlotId"
                     @click="selectedSlotId = slot.id"
                   >
-                    <div class="min-w-0 flex-1 text-start">
-                      <p class="text-sm font-bold text-brand-navy">
+                    <div class="text-center">
+                      <p class="text-[13px] font-bold">
                         <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
                       </p>
-                      <p class="mt-0.5 text-xs font-bold text-brand-primary" dir="auto">
+                      <p class="cb-slot-price mt-0.5 text-[11px] font-bold" dir="auto">
                         {{ formatCurrency(slot.courtCharge) }}
                       </p>
                     </div>
@@ -784,10 +789,10 @@ async function startTopUp() {
                   <div
                     v-for="slot in selectedCourtGroup.blocked"
                     :key="`ext-${slot.id}`"
-                    :class="isExternalUncertain(slot) ? 'canva-finance-tx-card border-amber-300 bg-amber-50 opacity-90' : 'canva-finance-tx-card border-brand-gray-200 bg-brand-gray-50 opacity-80'"
+                    :class="isExternalUncertain(slot) ? 'cb-slot border-amber-300 bg-amber-50 opacity-90' : 'cb-slot bg-brand-gray-50 opacity-80'"
                     aria-disabled="true"
                   >
-                    <div class="min-w-0 flex-1 text-start">
+                    <div class="text-center">
                       <p class="text-sm font-bold text-brand-gray-600">
                         <bdi dir="ltr" class="tabular-nums">{{ formatTimeRange(slot.startTime, slot.endTime) }}</bdi>
                       </p>
@@ -881,7 +886,7 @@ async function startTopUp() {
         </div>
       </AppAsyncState>
 
-      <section v-if="fromCalendar || clubs.length" class="canva-panel space-y-3">
+      <section v-if="fromCalendar || clubs.length" class="canva-panel cb-student space-y-3">
             <AppFormField :label="$t('coach.book.studentPhone')">
               <div class="relative" :class="studentSearchOpen && studentSearchSource === 'mobile' ? 'z-30' : ''">
                 <input
@@ -999,3 +1004,19 @@ async function startTopUp() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* SoT .cxin input: 42px tall, padding 12px; .cxin small label 11px #4a4a47 */
+.cb-student .neo-input { min-height: 0; height: 42px; padding: 12px; font-size: 13px; }
+.cb-student :deep(label) { font-size: 11px; color: #4a4a47; }
+/* SoT cxCalBox: flat calendar (no inner card), cells padding 12px 0 (not square), .cxlb label */
+.cb-dates :deep(.jalali-calendar-default) { border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+.cb-dates :deep(.jalali-calendar-day) { aspect-ratio: auto; height: 40px; border-radius: 0; font-size: 12px; }
+.cb-dates :deep(.jalali-calendar-weekdays) { font-size: 12px; font-weight: 600; color: #2c2c2a; }
+/* SoT #pg-coach-book .cxslots: wrapped compact hour buttons, selected = red */
+.cb-slots { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.cb-slot { padding: 10px 18px; background: #fff; border: 1px solid rgba(44,44,42,.14); font-size: 13px; color: #2c2c2a; cursor: pointer; }
+.cb-slot-price { color: #c41e1e; }
+.cb-slot.is-on { background: #c41e1e; border-color: #c41e1e; color: #fff; }
+.cb-slot.is-on .cb-slot-price { color: #fff; }
+</style>

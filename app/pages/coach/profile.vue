@@ -134,7 +134,7 @@ async function removeGalleryImage(id: string) {
 
       <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
         <div class="venus-form-stack">
-          <section class="canva-panel space-y-3">
+          <section class="canva-panel coach-photo-panel space-y-3">
             <h2 class="text-start text-sm font-bold text-brand-navy">{{ $t('coach.photoUrl') }}</h2>
             <AppImageUpload crop :model-value="photo" :label="$t('coach.photoUrl')" @update:model-value="onPhotoChange" />
             <p v-if="savingPhoto" class="text-xs text-brand-gray-600">{{ $t('upload.uploading') }}</p>

@@ -216,7 +216,7 @@ const calendarSourcesHref = computed(() =>
 </script>
 
 <template>
-  <div class="tail-page-stack pb-24">
+  <div class="tail-page-stack pb-24 admin-calendar-page">
     <div class="flex flex-wrap items-center gap-3">
       <NuxtLink :to="localePath('/admin/clubs')" class="text-sm font-bold text-brand-navy underline">
         {{ t('admin.backToClubs') }}

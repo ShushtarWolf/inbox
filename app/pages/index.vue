@@ -311,7 +311,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       @close="showDatePicker = false"
     >
       <div class="px-4 pb-5 pt-2">
-        <AppJalaliCalendar v-model="date" @select="onHomeDatePicked" />
+        <AppJalaliCalendar v-model="date" selected-tone="charcoal" @select="onHomeDatePicked" />
       </div>
     </AppModal>
 

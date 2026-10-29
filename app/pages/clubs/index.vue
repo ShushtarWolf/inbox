@@ -217,7 +217,7 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
 </script>
 
 <template>
-  <div class="tail-page-stack animate-fade-in">
+  <div class="tail-page-stack canva-clubs-page animate-fade-in">
     <CanvaPublicChrome />
 
     <section class="canva-hero canva-hero-home" @pointerdown="onHeroPointerDown" @pointerup="onHeroPointerUp">
@@ -287,18 +287,14 @@ const { onPointerDown: onHeroPointerDown, onPointerUp: onHeroPointerUp } = useSw
     <NuxtLink
       v-if="!pilotNoCoach"
       :to="localePath('/coaches')"
-      class="flex items-center gap-3 border border-brand-gray-200 bg-white px-3 py-3 shadow-venus-sm transition hover:border-brand-primary"
-      style="border-radius: var(--sz-canva-radius);"
+      class="canva-clubs-coach-link"
     >
-      <span
-        class="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-brand-primary-soft text-brand-primary"
-        style="border-radius: var(--sz-canva-radius);"
-      >
+      <span class="canva-clubs-coach-ico">
         <AppIcon name="sports" size="sm" />
       </span>
       <span class="min-w-0 flex-1 text-start">
-        <span class="block text-sm font-bold text-brand-navy">{{ t('home.findCoach') }}</span>
-        <span class="block text-xs text-brand-gray-600">{{ t('home.findCoachHint') }}</span>
+        <b>{{ t('home.findCoach') }}</b>
+        <small>{{ t('home.findCoachHint') }}</small>
       </span>
       <AppIcon name="chevron_left" size="sm" />
     </NuxtLink>

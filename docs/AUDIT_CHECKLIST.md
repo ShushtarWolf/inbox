@@ -35,7 +35,7 @@
 | `/owner/finance` | `app/pages/owner/finance.vue` | Persian digits on stats | — | week labels LTR | loading/error states | Fixed |
 | `/owner/equipments` | `app/pages/owner/equipments.vue` | — | — | — | add/edit/delete all categories | Fixed |
 | `/owner/packages` | `app/pages/owner/packages.vue` | — | — | — | club-scoped coaches, loading/error | Fixed |
-| `/owner/crm` | `app/pages/owner/crm.vue` | delivered, VIP | delivered, VIP | datetime-local | loading/error states | Fixed |
+| `/owner/crm` | `app/pages/owner/crm/index.vue` | delivered, VIP | delivered, VIP | datetime-local | loading/error states | Fixed |
 | `/owner/coaches` | `app/pages/owner/coaches.vue` | StaffRole i18n | StaffRole i18n | session times | loading/error states | Fixed |
 | `/owner/support` | `app/pages/owner/support.vue` | WhatsApp label | — | phone LTR | club cookie refresh | OK |
 | `/owner/settings` | `app/pages/owner/settings.vue` | editable bilingual fields | — | hours/phone LTR | PATCH API + save states | Fixed |

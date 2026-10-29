@@ -142,6 +142,7 @@ function lockAdmin() {
 
   <DashboardShell
     v-else
+    class="canva-admin-shell"
     :title="t('admin.consoleTitle')"
     :items="nav"
     :wide="true"

@@ -7,6 +7,8 @@ const props = defineProps<{
   title: string
   items: NavItem[]
   dark?: boolean
+  /** SoT owner sidebar (design-reference/sot .side / .s-item): outlined active icon, SoT metrics. */
+  sot?: boolean
 }>()
 
 const route = useRoute()
@@ -21,9 +23,9 @@ function isActive(to: string) {
 <template>
   <aside
     class="flex h-full min-h-dvh w-[var(--sz-side-nav-width)] shrink-0 flex-col overflow-y-auto border-e"
-    :class="dark
+    :class="[sot && !dark ? 'sot-side' : '', dark
       ? 'border-white/10 bg-brand-primary-dark text-white'
-      : 'border-brand-gray-200 bg-white'"
+      : 'border-brand-gray-200 bg-white']"
   >
     <div
       class="border-b px-6 py-5"
@@ -51,7 +53,7 @@ function isActive(to: string) {
         ]"
         @click="item.action?.()"
       >
-        <AppIcon v-if="item.icon" :name="item.icon" size="sm" :filled="!item.action && isActive(item.to)" />
+        <AppIcon v-if="item.icon" :name="item.icon" size="sm" :filled="!sot && !item.action && isActive(item.to)" />
         <span>{{ item.label }}</span>
         <span
           v-if="item.badge"
