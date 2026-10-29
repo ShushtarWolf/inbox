@@ -4967,4 +4967,86 @@ watch(pilotNoCoach, (off) => {
     min-height: 6.25rem;
   }
 }
+
+/* SoT owner-calendar .cell (inbox-all-pages.html L216-221): white cells, 4px right stripe,
+   charcoal selection outline; checkbox + «گذشته» hidden visually (selection logic unchanged). */
+:deep(.canva-cal-grid-cell) {
+  min-height: 66px;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-bar) {
+  width: 4px;
+}
+:deep(.canva-cal-grid-cell.slot-free),
+:deep(.canva-cal-grid-cell.slot-past) {
+  background: #ece9e4;
+  color: #8f8f8b;
+  box-shadow: inset -4px 0 0 #d4d2ce;
+}
+:deep(.canva-cal-grid-cell.slot-reserved),
+:deep(.canva-cal-grid-cell.slot-reserved-cash),
+:deep(.canva-cal-grid-cell.slot-reserved-unpaid),
+:deep(.canva-cal-grid-cell.slot-reserved-ipg),
+:deep(.canva-cal-grid-cell.slot-reserved-recurring),
+:deep(.canva-cal-grid-cell.slot-public),
+:deep(.canva-cal-grid-cell.slot-team),
+:deep(.canva-cal-grid-cell.slot-pending) {
+  background: #fff;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-bar-pending) {
+  background: #e8a317;
+}
+:deep(.canva-cal-grid-cell.slot-pending .canva-slot-pay-chip) {
+  background: #f59e0b;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 0;
+}
+:deep(.canva-cal-grid-cell.slot-blocked),
+:deep(.canva-cal-grid-cell.slot-closed) {
+  background: #2c2c2a;
+  color: #fff;
+}
+:deep(.canva-cal-grid-cell.slot-blocked .canva-cal-grid-cell-label),
+:deep(.canva-cal-grid-cell.slot-closed .canva-cal-grid-cell-label) {
+  color: #fff;
+  font-weight: 700;
+  white-space: normal;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-cell-label) {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+:deep(.canva-cal-grid-cell.canva-cal-grid-cell-selected),
+:deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected) {
+  background: #fff;
+  color: #2c2c2a;
+  box-shadow: none;
+  outline: 2px solid #2c2c2a;
+  outline-offset: 1px;
+}
+:deep(.canva-cal-grid-cell.slot-free.canva-cal-grid-cell-selected .canva-cal-grid-cell-label) {
+  color: #2c2c2a;
+}
+:deep(.canva-cal-grid-note) {
+  color: #b68a3b;
+}
+:deep(.canva-cal-grid-cell .canva-cal-grid-check),
+:deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-check:not(.canva-cal-grid-check-on)) {
+  opacity: 0;
+  pointer-events: none;
+}
+:deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-cell-label) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+:deep(.canva-cal-grid-cell .canva-slot-pay-chip),
+:deep(.canva-cal-grid-cell .canva-slot-coach-chip) {
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+}
 </style>
