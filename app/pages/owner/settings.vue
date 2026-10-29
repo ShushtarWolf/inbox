@@ -678,6 +678,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           <label class="block text-sm">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.receiptPhone') }}</span>
             <input v-model="form.receiptPhone" dir="ltr" inputmode="tel" class="neo-input tabular-nums" :placeholder="form.phone">
+            <span class="mt-1 block text-xs opacity-70">{{ t('owner.settingsPage.receiptPhoneHint') }}</span>
           </label>
           <label class="block text-sm text-start">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>
