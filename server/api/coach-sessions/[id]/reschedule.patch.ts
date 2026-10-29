@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     item.dayOfWeek === dayOfWeek && item.startTime <= body.startTime! && item.endTime > body.startTime!,
   )
   if (!allowed) throw createError({ statusCode: 409, statusMessage: 'Coach is not available at this time' })
-  assertSlotBookable(body.date, body.startTime)
+  assertSlotBookable(body.date, body.startTime, { horizonDays: hostClub?.bookingHorizonDays })
   if (!canManageReservation(body.date, body.startTime, rescheduleWindow)) {
     throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
   }

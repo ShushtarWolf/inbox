@@ -3,6 +3,7 @@ const FARSI_CHARS = /[\u0600-\u06FF]/
 const SLOT_CONFLICT_MESSAGES = new Set([
   'Slot not available',
   'SLOT_IN_PAST',
+  'DATE_BEYOND_HORIZON',
   'HOLD_EXPIRED',
   'This session time is already booked',
 ])
@@ -31,6 +32,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
   const errorKeyMap: Record<string, string> = {
     BOOKING_TOO_SOON: 'booking.errors.startTimeTooSoon',
     SLOT_IN_PAST: 'booking.errors.slotInPast',
+    DATE_BEYOND_HORIZON: 'booking.errors.dateBeyondHorizon',
     DATE_IN_PAST: 'owner.errors.startDateInPast',
     HOLD_EXPIRED: 'booking.errors.holdExpired',
     'Slot not available': 'booking.errors.slotNotAvailable',

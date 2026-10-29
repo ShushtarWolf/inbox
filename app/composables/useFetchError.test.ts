@@ -35,6 +35,8 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
   it('maps past and taken slot 409s to booking error keys', () => {
     expect(fetchErrorMessage(err('SLOT_IN_PAST'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotInPast')
+    expect(fetchErrorMessage(err('DATE_BEYOND_HORIZON'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.dateBeyondHorizon')
     expect(fetchErrorMessage(err('Slot not available'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotNotAvailable')
     expect(fetchErrorMessage(err('HOLD_EXPIRED'), 'مشکلی پیش آمد', t))

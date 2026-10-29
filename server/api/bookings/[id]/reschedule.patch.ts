@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
   if (targetSlot.court.club.id !== booking.slot.court.club.id) {
     throw createError({ statusCode: 409, statusMessage: 'Target slot must belong to the same club' })
   }
-  assertSlotBookable(targetSlot.date, targetSlot.startTime)
+  assertSlotBookable(targetSlot.date, targetSlot.startTime, {
+    horizonDays: booking.slot.court.club.bookingHorizonDays,
+  })
   if (!canManageReservation(targetSlot.date, targetSlot.startTime, booking.slot.court.club.rescheduleWindowHours)) {
     throw createError({ statusCode: 409, statusMessage: 'BOOKING_TOO_SOON' })
   }

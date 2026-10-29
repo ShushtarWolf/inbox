@@ -1,3 +1,4 @@
+import { clampBookingHorizonDays } from '#shared/bookingHorizon.ts'
 import { parseClubImageInput } from '#shared/clubImageUrl.ts'
 import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
 import { parseSessionDurationsJson } from '#shared/courtFacilities.ts'
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
     closeHour?: number
     cancellationWindowHours?: number
     rescheduleWindowHours?: number
+    bookingHorizonDays?: number
     waitlistEnabled?: boolean
     phone?: string | null
     whatsapp?: string | null
@@ -91,6 +93,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  if (body.bookingHorizonDays !== undefined) {
+    data.bookingHorizonDays = clampBookingHorizonDays(body.bookingHorizonDays)
+  }
+
   if (data.openHour !== undefined && data.closeHour !== undefined && Number(data.openHour) >= Number(data.closeHour)) {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
@@ -134,6 +140,7 @@ export default defineEventHandler(async (event) => {
     descriptionEn: updated.descriptionEn,
     cancellationWindowHours: updated.cancellationWindowHours,
     rescheduleWindowHours: updated.rescheduleWindowHours,
+    bookingHorizonDays: updated.bookingHorizonDays,
     waitlistEnabled: updated.waitlistEnabled,
     sheba: updated.sheba,
   }

@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
+import {
+  DEFAULT_BOOKING_HORIZON_DAYS,
+  isDateBeyondBookingHorizon,
+} from '#shared/bookingHorizon.ts'
 import { computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import {
@@ -63,6 +67,7 @@ type ClubDetail = {
   district?: string
   courts?: ClubCourt[]
   waitlistEnabled?: boolean
+  bookingHorizonDays?: number
   equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number; category?: string }>
   pricing?: Array<{ labelFa?: string; labelEn?: string; from?: number; to?: number; price?: number }>
   priceFrom?: number | null
@@ -143,6 +148,13 @@ const joiningWaitlist = ref(false)
 const waitlistFeedback = ref('')
 const waitlistFeedbackTone = ref<'success' | 'error'>('success')
 const waitlistEnabled = computed(() => Boolean(club.value?.waitlistEnabled))
+const bookingHorizonDays = computed(() =>
+  club.value?.bookingHorizonDays ?? DEFAULT_BOOKING_HORIZON_DAYS,
+)
+
+function isCalendarDayClosed(iso: string) {
+  return iso < today() || isDateBeyondBookingHorizon(iso, bookingHorizonDays.value, today())
+}
 
 function parseQueryCsv(raw: unknown): string[] {
   if (typeof raw === 'string') {
@@ -837,16 +849,26 @@ function nextMonth() {
 }
 
 function selectDay(iso: string) {
-  if (iso < today()) return
+  if (isCalendarDayClosed(iso)) return
   selectedDate.value = iso
 }
+
+watch(
+  () => [club.value?.bookingHorizonDays, selectedDate.value] as const,
+  () => {
+    if (selectedDate.value && isCalendarDayClosed(selectedDate.value)) {
+      selectedDate.value = today()
+    }
+  },
+  { immediate: true },
+)
 
 function calendarDayAria(cell: { day: number | null; iso: string | null }) {
   if (!cell.iso || cell.day == null) return undefined
   const weekday = formatWeekday(cell.iso, 'long')
   const j = isoToJalaali(cell.iso)
   const dateLabel = `${formatNumber(cell.day)} ${PERSIAN_MONTHS[j.jm - 1] ?? ''} ${weekday}`
-  if (cell.iso < today()) return t('clubs.calendarDayDisabled', { date: dateLabel })
+  if (isCalendarDayClosed(cell.iso)) return t('clubs.calendarDayDisabled', { date: dateLabel })
   if (cell.iso === selectedDate.value) return t('clubs.calendarDaySelected', { date: dateLabel })
   if (dayHasBasket(cell.iso)) return t('clubs.calendarDayBasket', { date: dateLabel })
   return t('clubs.calendarDaySelectable', { date: dateLabel })
@@ -1301,9 +1323,9 @@ async function shareClub() {
                     :class="{
                       'canva-club-cal-day-active': cell.iso === selectedDate,
                       'canva-club-cal-day-basket': dayHasBasket(cell.iso) && cell.iso !== selectedDate,
-                      'canva-club-cal-day-disabled': cell.iso < today(),
+                      'canva-club-cal-day-disabled': isCalendarDayClosed(cell.iso),
                     }"
-                    :disabled="cell.iso < today()"
+                    :disabled="isCalendarDayClosed(cell.iso)"
                     :aria-label="calendarDayAria(cell)"
                     :aria-current="cell.iso === selectedDate ? 'date' : undefined"
                     @click="selectDay(cell.iso!)"

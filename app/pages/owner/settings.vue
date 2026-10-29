@@ -7,6 +7,11 @@ import {
   parsePermissions,
   type OwnerPermission,
 } from '#shared/ownerPermissions.ts'
+import {
+  BOOKING_HORIZON_OPTIONS,
+  DEFAULT_BOOKING_HORIZON_DAYS,
+  clampBookingHorizonDays,
+} from '#shared/bookingHorizon.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 import { courtAudienceShowsTag, parseCourtAudience } from '#shared/courtAudience.ts'
 import { isValidSheba } from '#shared/settlement.ts'
@@ -39,6 +44,7 @@ interface OwnerSettingsClub {
   descriptionEn?: string | null
   cancellationWindowHours?: number
   rescheduleWindowHours?: number
+  bookingHorizonDays?: number
   waitlistEnabled?: boolean
   sheba?: string | null
   media?: OwnerSettingsClubMedia[]
@@ -151,6 +157,7 @@ const form = reactive({
   closeHour: 22,
   cancellationWindowHours: 12,
   rescheduleWindowHours: 24,
+  bookingHorizonDays: DEFAULT_BOOKING_HORIZON_DAYS,
   waitlistEnabled: true,
   phone: '',
   whatsapp: '',
@@ -179,6 +186,10 @@ const cancelPolicyHours = computed({
 function cancelPolicyLabel(hours: number) {
   if (hours === 0) return t('owner.settingsPage.cancelPolicyNone')
   return t('owner.settingsPage.cancelPolicyHours', { hours: formatNumber(hours) })
+}
+
+function bookingHorizonLabel(days: number) {
+  return t('owner.settingsPage.bookingHorizonDays', { days: formatNumber(days) })
 }
 
 function staffRoleLabel(role?: string) {
@@ -285,6 +296,7 @@ function applyClubData() {
   form.closeHour = club.closeHour ?? 22
   form.cancellationWindowHours = club.cancellationWindowHours ?? 12
   form.rescheduleWindowHours = club.rescheduleWindowHours ?? 24
+  form.bookingHorizonDays = clampBookingHorizonDays(club.bookingHorizonDays)
   form.waitlistEnabled = club.waitlistEnabled ?? true
   form.phone = club.phone || ''
   form.whatsapp = club.whatsapp || ''
@@ -312,6 +324,7 @@ function formSnapshot() {
     closeHour: form.closeHour,
     cancellationWindowHours: form.cancellationWindowHours,
     rescheduleWindowHours: form.rescheduleWindowHours,
+    bookingHorizonDays: form.bookingHorizonDays,
     waitlistEnabled: form.waitlistEnabled,
     phone: form.phone,
     whatsapp: form.whatsapp,
@@ -509,6 +522,7 @@ async function save() {
       closeHour: Number(form.closeHour),
       cancellationWindowHours: Number(form.cancellationWindowHours),
       rescheduleWindowHours: Number(form.rescheduleWindowHours),
+      bookingHorizonDays: clampBookingHorizonDays(form.bookingHorizonDays),
       waitlistEnabled: form.waitlistEnabled,
       phone: form.phone || null,
       whatsapp: form.whatsapp || null,
@@ -800,6 +814,31 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                   aria-hidden="true"
                 />
                 <span class="text-sm font-medium text-brand-navy">{{ cancelPolicyLabel(hours) }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.bookingHorizon') }}</h3>
+            <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.settingsPage.bookingHorizonHint') }}</p>
+            <div class="mt-2 flex flex-wrap gap-3" role="radiogroup" :aria-label="t('owner.settingsPage.bookingHorizon')">
+              <label
+                v-for="days in BOOKING_HORIZON_OPTIONS"
+                :key="days"
+                class="canva-settings-radio"
+              >
+                <input
+                  v-model.number="form.bookingHorizonDays"
+                  type="radio"
+                  class="sr-only"
+                  :value="days"
+                >
+                <span
+                  class="canva-settings-radio-box"
+                  :class="form.bookingHorizonDays === days ? 'canva-settings-radio-box-on' : ''"
+                  aria-hidden="true"
+                />
+                <span class="text-sm font-medium text-brand-navy">{{ bookingHorizonLabel(days) }}</span>
               </label>
             </div>
           </div>

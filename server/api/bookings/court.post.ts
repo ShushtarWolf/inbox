@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
     if (slot.displayStatus !== 'FREE' || (slot.booking && !staleCancelledBooking)) {
       throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
     }
-    assertSlotBookable(slot.date, slot.startTime)
+    assertSlotBookable(slot.date, slot.startTime, { horizonDays: club.bookingHorizonDays })
   }
 
   // Preserve caller order for primary-slot payment grouping.
