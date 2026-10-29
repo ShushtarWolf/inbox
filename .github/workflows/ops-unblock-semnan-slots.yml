@@ -49,8 +49,9 @@ jobs:
 
           SCRIPT_B64=$(base64 -w0 /tmp/unblock.cjs)
 
-          liara shell --app inbox --api-token="$LIARA_TOKEN" -c \
-            "cd /app && echo ${SCRIPT_B64} | base64 -d > ops-unblock.cjs && node ops-unblock.cjs; ec=\$?; rm -f ops-unblock.cjs; exit \$ec"
+          # liara shell -c execs argv[0] directly (no shell), so wrap with sh -c.
+          liara shell --app inbox --api-token="$LIARA_TOKEN" \
+            -c "sh -c 'cd /app && echo ${SCRIPT_B64} | base64 -d > ops-unblock.cjs && node ops-unblock.cjs; ec=\$?; rm -f ops-unblock.cjs; exit \$ec'"
 
           echo "Verifying public API…"
           sleep 2
