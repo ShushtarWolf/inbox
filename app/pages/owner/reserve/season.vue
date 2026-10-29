@@ -4,14 +4,14 @@ import { jalaliMonthEndIso } from '#shared/jalali.ts'
 import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
-import { isPastDate } from '#shared/localDate.ts'
+import { addDaysToIsoDate, isPastDate } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { formatDate, formatCurrency, formatNumber, formatTimeLabel, formatFaDigits, formatPhone } = useFormatters()
+const { formatDate, formatCurrency, formatNumber, formatTimeLabel, formatFaDigits, formatPhone, formatDayNumber, formatMonth } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
 const { recurringReserveEnabled } = usePilotFlags()
@@ -387,14 +387,30 @@ const localExpandCount = computed(() => {
 const sessionList = computed((): SessionListRow[] => {
   const free: SessionListRow[] = occurrences.value.map((row, index) => ({ kind: 'free', index, row }))
   const busy: SessionListRow[] = conflicts.value.map((row) => ({ kind: 'conflict', row }))
-  return [...free, ...busy].sort((a, b) => {
-    const da = a.kind === 'free' ? a.row.date : a.row.date
-    const db = b.kind === 'free' ? b.row.date : b.row.date
-    if (da !== db) return da.localeCompare(db)
-    const ta = a.kind === 'free' ? a.row.startTime : a.row.startTime
-    const tb = b.kind === 'free' ? b.row.startTime : b.row.startTime
-    return ta.localeCompare(tb)
-  })
+  return [...free, ...busy].sort((a, b) =>
+    a.row.date.localeCompare(b.row.date) || a.row.startTime.localeCompare(b.row.startTime))
+})
+
+/** Saturday that starts the Iranian week containing `iso`. */
+function weekStartSat(iso: string) {
+  return addDaysToIsoDate(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 1) % 7))
+}
+
+/** Preview grouped into Sat→Fri weeks so the owner can eyeball the weekly pattern. */
+const previewWeeks = computed(() => {
+  const rows = sessionList.value
+  if (!rows.length) return []
+  const byDate = new Map<string, SessionListRow[]>()
+  for (const item of rows) byDate.set(item.row.date, [...(byDate.get(item.row.date) || []), item])
+  const last = rows[rows.length - 1]!.row.date
+  const weeks: Array<Array<{ date: string; items: SessionListRow[]; inRange: boolean }>> = []
+  for (let start = weekStartSat(rows[0]!.row.date); start <= last; start = addDaysToIsoDate(start, 7)) {
+    weeks.push(Array.from({ length: 7 }, (_, i) => {
+      const date = addDaysToIsoDate(start, i)
+      return { date, items: byDate.get(date) || [], inRange: date >= startDate.value && date <= finishDate.value }
+    }))
+  }
+  return weeks
 })
 
 const step3Banner = computed(() => {
@@ -686,46 +702,67 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         </div>
         <p class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.conflictSoftHint') }}</p>
 
-        <div class="max-h-72 space-y-2 overflow-y-auto">
-          <div
-            v-for="(item, idx) in sessionList"
-            :key="item.kind === 'free'
-              ? `f-${item.row.courtId}-${item.row.date}-${item.row.startTime}-${item.index}`
-              : `c-${item.row.courtId || ''}-${item.row.date}-${item.row.startTime}-${idx}`"
-            class="season-wiz-session flex flex-wrap items-center gap-3"
-            :class="item.kind === 'conflict' ? 'is-conf' : ''"
-          >
-            <span class="season-wiz-s-field">
-              {{ courtNameById(item.kind === 'free' ? item.row.courtId : (item.row.courtId || '')) }}
-            </span>
-            <span class="text-[13.5px] font-semibold">
-              {{ formatDate(item.row.date) }}
-            </span>
-            <span class="text-[13px] text-[#55534E]">
-              <bdi dir="ltr">{{ formatTimeLabel(item.row.startTime) }}</bdi>
-            </span>
-            <span
-              class="season-wiz-badge"
-              :class="item.kind === 'free' ? 'is-ok' : 'is-conf'"
-            >
-              {{ item.kind === 'free'
-                ? t('owner.seasonPage.badgeFree')
-                : t('owner.seasonPage.badgeConflict', {
-                  reason: t(`owner.seasonPage.conflictReason.${item.row.reason}`),
-                }) }}
-            </span>
-            <span v-if="item.kind === 'free' && item.row.price != null" class="ms-auto text-[14.5px] font-extrabold">
-              {{ formatCurrency(item.row.price) }}
-            </span>
-            <button
-              v-if="item.kind === 'free'"
-              type="button"
-              class="shrink-0 text-xs font-bold text-brand-primary"
-              @click="removeOccurrence(item.index)"
-            >
-              {{ t('common.remove') }}
-            </button>
+        <div class="season-wiz-week-wrap max-h-[32rem] overflow-y-auto border border-[#ECE9E4]">
+          <div>
+            <div class="season-wiz-week season-wiz-week-head">
+              <span v-for="day in IRAN_WEEKDAY_ORDER" :key="day">
+                <span class="sm:hidden">{{ t(`owner.weekdaysShort.${day}`) }}</span>
+                <span class="hidden sm:inline">{{ t(`owner.weekdays.${day}`) }}</span>
+              </span>
+            </div>
+            <div v-for="(week, wi) in previewWeeks" :key="wi" class="season-wiz-week">
+              <div
+                v-for="cell in week"
+                :key="cell.date"
+                class="season-wiz-day"
+                :class="cell.inRange ? '' : 'is-out'"
+              >
+                <span class="season-wiz-day-num tabular-nums">
+                  {{ formatDayNumber(cell.date) }} {{ formatMonth(cell.date, 'short') }}
+                </span>
+                <div
+                  v-for="(item, idx) in cell.items"
+                  :key="item.kind === 'free'
+                    ? `f-${item.row.courtId}-${item.row.startTime}-${item.index}`
+                    : `c-${item.row.courtId || ''}-${item.row.startTime}-${idx}`"
+                  class="season-wiz-pill"
+                  :class="item.kind === 'free' ? 'is-ok' : 'is-conf'"
+                  :title="item.kind === 'free'
+                    ? (item.row.price != null ? formatCurrency(item.row.price) : '')
+                    : t('owner.seasonPage.badgeConflict', {
+                      reason: t(`owner.seasonPage.conflictReason.${item.row.reason}`),
+                    })"
+                >
+                  <div class="flex items-center justify-between gap-1">
+                    <bdi dir="ltr" class="font-bold tabular-nums">{{ formatTimeLabel(item.row.startTime) }}</bdi>
+                    <button
+                      v-if="item.kind === 'free'"
+                      type="button"
+                      class="season-wiz-pill-x"
+                      :aria-label="t('common.remove')"
+                      @click="removeOccurrence(item.index)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <span class="line-clamp-2 break-words">{{ courtNameById(item.row.courtId || '') }}</span>
+                  <span v-if="item.kind === 'conflict'" class="block truncate">
+                    {{ t(`owner.seasonPage.conflictReason.${item.row.reason}`) }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 text-xs text-[#55534E]">
+          <span class="inline-flex items-center gap-1.5">
+            <i class="season-wiz-lg season-wiz-pill-lg is-ok" aria-hidden="true" />
+            {{ t('owner.seasonPage.badgeFree') }}
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="season-wiz-lg season-wiz-pill-lg is-conf" aria-hidden="true" />
+            {{ t('owner.seasonPage.legendConflict') }}
+          </span>
         </div>
 
         <div class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4">
@@ -938,40 +975,96 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
   color: #C0141F;
   border-color: #F8D8DA;
 }
-.season-wiz-session {
-  padding: 12px 16px;
-  border: 1px solid #ECE9E4;
-  background: #FAF9F6;
-  border-radius: 0;
+.season-wiz-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
-.season-wiz-session.is-conf {
-  opacity: 0.65;
-  background: #FCF6F6;
-  border-color: #F8D8DA;
-  text-decoration: line-through;
+.season-wiz-week + .season-wiz-week {
+  border-top: 1px solid #ECE9E4;
 }
-.season-wiz-s-field {
-  font-weight: 700;
-  font-size: 12.5px;
+.season-wiz-week-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #F1EFEA;
-  padding: 4px 10px;
-  flex: none;
-  border-radius: 0;
-}
-.season-wiz-badge {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 4px 11px;
-  flex: none;
+  color: #55534E;
+}
+.season-wiz-week-head > span {
+  padding: 8px 6px;
+  text-align: center;
+}
+.season-wiz-day {
+  min-height: 72px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff;
+}
+.season-wiz-day + .season-wiz-day {
+  border-inline-start: 1px solid #ECE9E4;
+}
+.season-wiz-day.is-out {
+  background: #FAF9F6;
+}
+.season-wiz-day-num {
+  font-size: 11px;
+  color: #8C8A84;
+}
+.season-wiz-pill {
+  padding: 4px 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  border: 1px solid transparent;
   border-radius: 0;
 }
-.season-wiz-badge.is-ok {
+.season-wiz-pill.is-ok,
+.season-wiz-pill-lg.is-ok {
   background: #E8F3EC;
+  border-color: #CFE5D8;
   color: #1D5C3F;
 }
-.season-wiz-badge.is-conf {
+.season-wiz-pill.is-conf,
+.season-wiz-pill-lg.is-conf {
   background: #FDEDEE;
+  border-color: #F8D8DA;
   color: #C0141F;
+}
+.season-wiz-pill.is-conf {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+.season-wiz-pill-x {
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  color: #C0141F;
+}
+@media (max-width: 639px) {
+  .season-wiz-week-head > span {
+    padding: 6px 2px;
+  }
+  .season-wiz-day {
+    min-height: 56px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .season-wiz-day-num {
+    font-size: 10px;
+  }
+  .season-wiz-pill {
+    padding: 2px 3px;
+    font-size: 10px;
+  }
+  .season-wiz-pill .flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .season-wiz-pill-x {
+    padding: 2px 0 0;
+  }
 }
 .season-wiz-btn {
   height: 46px;

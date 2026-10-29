@@ -2874,6 +2874,7 @@
       "bannerOk": "{count} سانس آزاد رزرو می‌شود و هیچ تداخلی وجود ندارد.",
       "badgeFree": "آزاد",
       "badgeConflict": "رد شد · {reason}",
+      "legendConflict": "رد شده (تداخل)",
       "totalFree": "جمع کل سانس‌های آزاد",
       "successCashTitle": "رزرو نقدی ثبت شد",
       "successCashBody": "رزرو {count} سانس برای «{name}» ثبت شد. پیامک تأیید شامل مشخصات باشگاه، سانس‌ها و مبلغ {amount} به شمارهٔ {phone} ارسال شد.",
