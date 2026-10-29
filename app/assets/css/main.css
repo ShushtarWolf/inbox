@@ -5179,3 +5179,13 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .owner-crm-page .canva-panel .text-sm.text-brand-gray-500 { line-height: 26px; }
   .owner-crm-page .canva-crm-cta-row .canva-black-cta { min-width: 208px; min-height: 42px; }
 }
+
+/* owner-equipment SoT chips/rows (desktop) — visual only */
+@media (min-width: 431px) {
+  .canva-equip-wide .canva-equip-chip { padding: 8px 14px !important; min-height: 34px; font-size: 13px !important; }
+  .canva-equip-wide .canva-equip-row { padding-top: 14px !important; padding-bottom: 14px !important; }
+  .canva-equip-wide .canva-equip-row .font-bold { font-size: 15px; }
+  .canva-equip-wide .canva-equip-row .text-xs { font-size: 12px; }
+  .canva-equip-wide h2.font-bold { font-size: 17px; }
+  .canva-equip-wide > section > .flex.flex-wrap { margin-top: 20px; }
+}
