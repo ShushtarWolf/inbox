@@ -170,6 +170,25 @@ const cancelReason = ref('')
 const cancelSeries = ref(false)
 /** Whole-package pay/unpay: first tap previews the session count, second tap applies. */
 const seriesPayPreview = ref<{ status: 'PAID' | 'PAY_AT_CLUB'; count: number; amount: number } | null>(null)
+type SeriesSummary = {
+  kind: 'season' | 'package' | null
+  id: string | null
+  count: number
+  startDate: string | null
+  finishDate: string | null
+  guestName: string
+  canEditRange: boolean
+}
+const seriesSummary = ref<SeriesSummary | null>(null)
+const seriesSummaryPending = ref(false)
+const seasonRangeEditing = ref(false)
+const seasonRangeFinish = ref('')
+const seasonRangePreview = ref<{
+  action: 'extend' | 'shorten' | 'noop'
+  createCount?: number
+  skipCount?: number
+  cancelCount?: number
+} | null>(null)
 const saving = ref(false)
 const previewing = ref(false)
 const confirming = ref(false)
@@ -517,9 +536,30 @@ const showBookedCancelChecks = computed(() => bookedSiblingSlots.value.length > 
 const canCancelSeries = computed(() => isRecurringReservedSlot(selectedSlotFull.value))
 const canSeriesMarkPaid = computed(() => canCancelSeries.value && canMarkPaidSlot(selectedSlotFull.value))
 const canSeriesMarkUnpaid = computed(() => canCancelSeries.value && canMarkUnpaidSlot(selectedSlotFull.value))
+const canEditSeasonRange = computed(() =>
+  Boolean(canCancelSeries.value && seriesSummary.value?.canEditRange && seriesSummary.value.kind === 'season'),
+)
+const seasonRangeDirty = computed(() =>
+  Boolean(
+    canEditSeasonRange.value
+    && seasonRangeFinish.value
+    && seriesSummary.value?.finishDate
+    && seasonRangeFinish.value !== seriesSummary.value.finishDate,
+  ),
+)
 watch(() => selectedSlot.value?.id, () => {
   seriesPayPreview.value = null
+  seriesSummary.value = null
+  seasonRangeEditing.value = false
+  seasonRangeFinish.value = ''
+  seasonRangePreview.value = null
 })
+watch(
+  () => [activePanel.value, selectedSlotFull.value?.id, canCancelSeries.value] as const,
+  ([panel, slotId, recurring]) => {
+    if (panel === 'detail' && slotId && recurring) void loadSeriesSummary()
+  },
+)
 const canBatchReserve = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
@@ -1902,6 +1942,10 @@ function closeMenu() {
   cancelReason.value = ''
   cancelSeries.value = false
   seriesPayPreview.value = null
+  seriesSummary.value = null
+  seasonRangeEditing.value = false
+  seasonRangeFinish.value = ''
+  seasonRangePreview.value = null
   actionError.value = ''
   lastPayLink.value = null
   payLinkCopied.value = false
@@ -2372,6 +2416,149 @@ async function doMarkPaid() {
     saving.value = false
   }
 }
+
+async function loadSeriesSummary() {
+  const slot = selectedSlotFull.value
+  if (!slot || !isRecurringReservedSlot(slot)) {
+    seriesSummary.value = null
+    return
+  }
+  const slotId = slot.id
+  seriesSummaryPending.value = true
+  try {
+    const res = await $fetch<SeriesSummary & { ok?: boolean }>('/api/owner/series', {
+      query: { slotId },
+    })
+    if (selectedSlotFull.value?.id !== slotId) return
+    seriesSummary.value = {
+      kind: res.kind,
+      id: res.id,
+      count: res.count || 0,
+      startDate: res.startDate,
+      finishDate: res.finishDate,
+      guestName: res.guestName || '',
+      canEditRange: Boolean(res.canEditRange),
+    }
+    seasonRangeFinish.value = res.finishDate || ''
+  }
+  catch {
+    if (selectedSlotFull.value?.id === slotId) seriesSummary.value = null
+  }
+  finally {
+    seriesSummaryPending.value = false
+  }
+}
+
+function seriesRangeLabel() {
+  const summary = seriesSummary.value
+  if (!summary?.startDate || !summary.finishDate) return ''
+  return t('owner.seasonRangeDates', {
+    start: formatDate(summary.startDate),
+    end: formatDate(summary.finishDate),
+  })
+}
+
+function openSeasonRangeEditor() {
+  if (!canEditSeasonRange.value) return
+  seasonRangeEditing.value = true
+  seasonRangeFinish.value = seriesSummary.value?.finishDate || ''
+  seasonRangePreview.value = null
+  actionError.value = ''
+}
+
+function closeSeasonRangeEditor() {
+  seasonRangeEditing.value = false
+  seasonRangeFinish.value = seriesSummary.value?.finishDate || ''
+  seasonRangePreview.value = null
+}
+
+async function previewOrApplySeasonRange() {
+  const slot = selectedSlotFull.value
+  if (!slot || !canEditSeasonRange.value || !seasonRangeDirty.value || saving.value) return
+  // First tap dry-runs; second tap applies the last non-noop preview.
+  const confirmApply = Boolean(seasonRangePreview.value && seasonRangePreview.value.action !== 'noop')
+  saving.value = true
+  actionError.value = ''
+  try {
+    const res = await $fetch<{
+      ok: boolean
+      action: 'extend' | 'shorten' | 'noop'
+      createCount?: number
+      skipCount?: number
+      cancelCount?: number
+      created?: number
+      cancelled?: number
+      skipped?: number
+    }>('/api/owner/season-range', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        finishDate: seasonRangeFinish.value,
+        dryRun: !confirmApply,
+      },
+    })
+
+    if (!confirmApply) {
+      seasonRangePreview.value = {
+        action: res.action,
+        createCount: res.createCount ?? res.created ?? 0,
+        skipCount: res.skipCount ?? res.skipped ?? 0,
+        cancelCount: res.cancelCount ?? res.cancelled ?? 0,
+      }
+      if (res.action === 'noop') {
+        flashMessage.value = t('owner.seasonRangeUnchanged')
+        closeSeasonRangeEditor()
+      }
+      return
+    }
+
+    if (res.action === 'extend') {
+      flashMessage.value = t('owner.seasonRangeExtended', {
+        count: formatNumber(res.created ?? 0),
+      })
+    }
+    else if (res.action === 'shorten') {
+      flashMessage.value = t('owner.seasonRangeShortened', {
+        count: formatNumber(res.cancelled ?? 0),
+      })
+    }
+    else {
+      flashMessage.value = t('owner.seasonRangeUnchanged')
+    }
+    seasonRangePreview.value = null
+    seasonRangeEditing.value = false
+    await refreshCalendar()
+    const refreshed = data.value?.slots?.find((row) => row.id === slot.id)
+    if (refreshed) selectedSlot.value = refreshed
+    showMenu.value = true
+    activePanel.value = 'detail'
+    await loadSeriesSummary()
+  }
+  catch (err) {
+    actionError.value = fetchErrorMessage(err, t('common.error'))
+    seasonRangePreview.value = null
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+function seasonRangeApplyLabel() {
+  const preview = seasonRangePreview.value
+  if (!preview || preview.action === 'noop') return t('owner.seasonRangePreview')
+  if (preview.action === 'extend') {
+    return t('owner.seasonRangeConfirmExtend', {
+      count: formatNumber(preview.createCount || 0),
+    })
+  }
+  return t('owner.seasonRangeConfirmShorten', {
+    count: formatNumber(preview.cancelCount || 0),
+  })
+}
+
+watch(seasonRangeFinish, () => {
+  seasonRangePreview.value = null
+})
 
 async function doSeriesPayment(paymentStatus: 'PAID' | 'PAY_AT_CLUB') {
   const slot = selectedSlotFull.value
@@ -3543,6 +3730,76 @@ watch(pilotNoCoach, (off) => {
       <div class="venus-modal-shell min-h-0 flex-1">
         <div v-if="activePanel === 'detail'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-body !pt-1">
+            <div
+              v-if="canCancelSeries"
+              class="mb-3 border border-[rgba(44,44,42,.08)] bg-[#f3e9d3] px-3 py-3 text-start"
+            >
+              <p class="text-sm font-bold text-brand-navy">
+                <template v-if="seriesSummaryPending && !seriesSummary">
+                  {{ t('common.loading') }}
+                </template>
+                <template v-else-if="seriesSummary?.kind === 'package'">
+                  {{ t('owner.packageSeriesLabel', { count: formatNumber(seriesSummary.count) }) }}
+                </template>
+                <template v-else>
+                  {{ t('owner.seasonSeriesLabel', { count: formatNumber(seriesSummary?.count || 0) }) }}
+                </template>
+              </p>
+              <p v-if="seriesRangeLabel()" class="mt-1 text-xs font-bold text-brand-navy/80">
+                {{ seriesRangeLabel() }}
+              </p>
+              <div v-if="canEditSeasonRange && !seasonRangeEditing" class="mt-3">
+                <button
+                  type="button"
+                  class="canva-detail-note w-full"
+                  @click="openSeasonRangeEditor"
+                >
+                  {{ t('owner.seasonRangeEdit') }}
+                </button>
+              </div>
+              <div v-if="canEditSeasonRange && seasonRangeEditing" class="mt-3 space-y-3">
+                <p class="text-xs font-bold text-brand-gray-600">{{ t('owner.seasonFinishLabel') }}</p>
+                <AppJalaliCalendar
+                  v-model="seasonRangeFinish"
+                  :min-date="seriesSummary?.startDate || undefined"
+                />
+                <p
+                  v-if="seasonRangePreview && seasonRangePreview.action !== 'noop'"
+                  class="text-start text-xs font-bold text-brand-navy"
+                >
+                  <template v-if="seasonRangePreview.action === 'extend'">
+                    {{ t('owner.seasonRangePreviewExtend', {
+                      count: formatNumber(seasonRangePreview.createCount || 0),
+                      skipped: formatNumber(seasonRangePreview.skipCount || 0),
+                    }) }}
+                  </template>
+                  <template v-else>
+                    {{ t('owner.seasonRangePreviewShorten', {
+                      count: formatNumber(seasonRangePreview.cancelCount || 0),
+                    }) }}
+                  </template>
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="canva-detail-paid flex-1"
+                    :disabled="saving || !seasonRangeDirty"
+                    @click="previewOrApplySeasonRange"
+                  >
+                    {{ saving ? t('common.loading') : seasonRangeApplyLabel() }}
+                  </button>
+                  <button
+                    type="button"
+                    class="canva-detail-note"
+                    :disabled="saving"
+                    @click="closeSeasonRangeEditor"
+                  >
+                    {{ t('common.cancel') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.guestLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ slotGuestName() || '—' }}</span>
@@ -3591,6 +3848,14 @@ watch(pilotNoCoach, (off) => {
             </div>
 
             <p v-if="actionError" class="venus-alert-error mt-3">{{ actionError }}</p>
+            <button
+              v-if="canCancelSeries"
+              type="button"
+              class="canva-detail-cancel mt-3 w-full"
+              @click="openSeriesCancelForm"
+            >
+              {{ t('owner.cancelSeason') }}
+            </button>
             <!-- Desk cash collection on this sheet — online-pending walk-ins stay unpaid until marked -->
             <button
               v-if="canMarkPaid()"
@@ -3627,14 +3892,6 @@ watch(pilotNoCoach, (off) => {
               @click="doSeriesPayment('PAY_AT_CLUB')"
             >
               {{ saving ? t('common.loading') : seriesPayLabel('PAY_AT_CLUB') }}
-            </button>
-            <button
-              v-if="canCancelSeries"
-              type="button"
-              class="canva-detail-cancel mt-4 w-full"
-              @click="openSeriesCancelForm"
-            >
-              {{ t('owner.cancelSeason') }}
             </button>
             <div class="canva-detail-actions">
               <button type="button" class="canva-detail-cancel" :disabled="!slotsForCancel().length" @click="openCancelForm">

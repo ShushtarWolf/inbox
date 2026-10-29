@@ -125,6 +125,11 @@ export type CreateSeasonSessionsOpts = {
   /** Force booking.userId (athlete auth user). */
   forceUserId?: string
   actorUserId?: string
+  /**
+   * Append sessions to an existing SeasonBooking (owner extend).
+   * Skips pay-link grouping and never deletes the season row on failure.
+   */
+  existingSeasonBookingId?: string
 }
 
 export type CreateSeasonSessionsResult = SeasonPreviewResult & {
@@ -144,6 +149,11 @@ export type CreateSeasonSessionsResult = SeasonPreviewResult & {
  */
 export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Promise<CreateSeasonSessionsResult> {
   const athleteMode = opts.mode === 'athlete'
+  const appending = Boolean(opts.existingSeasonBookingId)
+  if (athleteMode && appending) {
+    throw createError({ statusCode: 400, statusMessage: 'Cannot append athlete season' })
+  }
+
   const preview = await previewSeasonSessions({ clubId: opts.clubId, sessions: opts.sessions })
   if (preview.willCreateCount === 0) {
     throw createError({
@@ -174,23 +184,35 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
   const startDate = preview.willCreate[0]!.date
   const finishDate = preview.willCreate[preview.willCreate.length - 1]!.date
 
-  const seasonRecord = await prisma.seasonBooking.create({
-    data: {
-      clubId: opts.clubId,
-      guestName: guestNamePair.guestName,
-      guestFamily: guestNamePair.guestFamily,
-      guestMobile: opts.guestMobile || '',
-      daysJson: JSON.stringify(days),
-      timesJson: JSON.stringify(opts.sessions),
-      startDate,
-      finishDate,
-      comments: opts.comments,
-      equipmentPrice: opts.equipmentPrice || 0,
-    },
-  })
+  let seasonRecord: { id: string; finishDate: string | null }
+  if (opts.existingSeasonBookingId) {
+    const existing = await prisma.seasonBooking.findFirst({
+      where: { id: opts.existingSeasonBookingId, clubId: opts.clubId },
+      select: { id: true, finishDate: true },
+    })
+    if (!existing) throw createError({ statusCode: 404, statusMessage: 'Season not found' })
+    seasonRecord = existing
+  }
+  else {
+    seasonRecord = await prisma.seasonBooking.create({
+      data: {
+        clubId: opts.clubId,
+        guestName: guestNamePair.guestName,
+        guestFamily: guestNamePair.guestFamily,
+        guestMobile: opts.guestMobile || '',
+        daysJson: JSON.stringify(days),
+        timesJson: JSON.stringify(opts.sessions),
+        startDate,
+        finishDate,
+        comments: opts.comments,
+        equipmentPrice: opts.equipmentPrice || 0,
+      },
+    })
+  }
 
   const online = isOnlinePaymentsEnabled()
-  const wantPayLink = !athleteMode && opts.paymentStatus !== 'PAID' && online
+  // Appends are desk cash top-ups — do not open a fresh series pay link.
+  const wantPayLink = !appending && !athleteMode && opts.paymentStatus !== 'PAID' && online
   const equipmentPrice = opts.equipmentPrice || 0
   const seriesTotal = preview.totalAmount + equipmentPrice
   const holdDisplay = athleteMode
@@ -340,6 +362,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
             provider: opts.paymentMethod === 'IPG' ? 'sep' : 'pay_at_club',
             metadataJson: JSON.stringify({
               sessionPrice,
+              seasonBookingId: seasonRecord.id,
               ...(wantPayLink && !isPrimary ? { coveredBySeason: true } : {}),
             }),
           },
@@ -354,7 +377,8 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
               source: eventSource,
               seasonBookingId: seasonRecord.id,
               sessionPrice,
-              isPrimary,
+              isPrimary: appending ? false : isPrimary,
+              ...(appending ? { appended: true } : {}),
             }),
           },
         })
@@ -379,12 +403,16 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
     }
   }
   catch (error) {
-    await prisma.seasonBooking.delete({ where: { id: seasonRecord.id } }).catch(() => {})
+    if (!appending) {
+      await prisma.seasonBooking.delete({ where: { id: seasonRecord.id } }).catch(() => {})
+    }
     throw error
   }
 
   if (!bookingIds.length) {
-    await prisma.seasonBooking.delete({ where: { id: seasonRecord.id } }).catch(() => {})
+    if (!appending) {
+      await prisma.seasonBooking.delete({ where: { id: seasonRecord.id } }).catch(() => {})
+    }
     throw createError({
       statusCode: 409,
       statusMessage: 'RECURRING_NO_FREE_SLOTS',
@@ -392,8 +420,16 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
     })
   }
 
-  // Wire series pay sync: primary payment covers siblings.
-  if (primaryBookingId && bookingIds.length > 1) {
+  if (appending) {
+    const nextFinish = [seasonRecord.finishDate, finishDate].filter(Boolean).sort().at(-1) || finishDate
+    await prisma.seasonBooking.update({
+      where: { id: seasonRecord.id },
+      data: { finishDate: nextFinish },
+    })
+  }
+
+  // Wire series pay sync: primary payment covers siblings (new series only).
+  if (!appending && primaryBookingId && bookingIds.length > 1) {
     const siblingIds = bookingIds.slice(1)
     const primaryPayment = await prisma.payment.findUnique({ where: { bookingId: primaryBookingId } })
     if (primaryPayment) {
@@ -433,7 +469,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
       }
     }
   }
-  else if (primaryBookingId && bookingIds.length === 1) {
+  else if (!appending && primaryBookingId && bookingIds.length === 1) {
     const primaryPayment = await prisma.payment.findUnique({ where: { bookingId: primaryBookingId } })
     if (primaryPayment) {
       let existingMeta: Record<string, unknown> = {}
