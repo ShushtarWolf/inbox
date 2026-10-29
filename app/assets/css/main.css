@@ -5236,3 +5236,8 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .canva-coach-packages h1{font-size:20px!important}
   .canva-cal-sheet .tail-card{border-radius:0!important;box-shadow:none!important}
 }
+
+/* admin fidelity: SoT .acard = 12px radius, hairline border, no shadow */
+@media (min-width:431px){
+  .canva-admin-shell .ios-card{box-shadow:none!important;border:1px solid rgba(44,44,42,.08)!important}
+}
