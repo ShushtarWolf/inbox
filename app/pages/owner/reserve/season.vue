@@ -41,6 +41,7 @@ const previewing = ref(false)
 const formError = ref('')
 const successOpen = ref(false)
 const lastPayMode = ref<'cash' | 'unpaid' | null>(null)
+const lastSmsSent = ref(false)
 
 const guestFullName = ref('')
 const guestMobile = ref('')
@@ -317,6 +318,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
       payPin?: string
       payUrl?: string
       totalAmount?: number
+      smsSent?: boolean
     }>('/api/owner/season', {
       method: 'POST',
       body: {
@@ -337,6 +339,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
     })
     slotsCreated.value = result.slotsCreated || occurrences.value.length
     lastPayMode.value = mode
+    lastSmsSent.value = Boolean(result.smsSent)
     if (mode === 'unpaid' && result.payUrl && result.payPin) {
       lastPayLink.value = {
         url: result.payUrl,
@@ -446,7 +449,10 @@ const successBody = computed(() => {
   const amount = formatCurrency(totalAmount.value)
   const phone = guestMobile.value ? formatPhone(guestMobile.value) : '—'
   if (lastPayMode.value === 'cash') {
-    return t('owner.seasonPage.successCashBody', { count, name, amount, phone })
+    return t(
+      lastSmsSent.value ? 'owner.seasonPage.successCashBody' : 'owner.seasonPage.successCashBodyNoSms',
+      { count, name, amount, phone },
+    )
   }
   return t('owner.seasonPage.successLinkBody', { name, amount })
 })

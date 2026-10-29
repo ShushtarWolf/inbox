@@ -243,6 +243,19 @@ describe('SMS templates', () => {
     )
   })
 
+  it('caps long season session lists so Kavenegar accepts the body', () => {
+    const sessions = Array.from({ length: 46 }, (_, i) => ({
+      courtName: 'زمین ۱',
+      date: `2026-11-${String((i % 28) + 1).padStart(2, '0')}`,
+      startTime: '08:00',
+      endTime: '09:00',
+    }))
+    const body = renderSmsTemplate('BOOKING_PAID', { guestName: 'مائده بلند', clubName: 'تختی', sessions, paymentPaid: true })
+    expect(body.split('\n').filter((line) => line.startsWith('زمین ۱'))).toHaveLength(20)
+    expect(body).toContain('و ۲۶ سانس دیگر')
+    expect(body.length).toBeLessThan(1500)
+  })
+
   it('renders owner-desk confirmation like a pay receipt SMS', () => {
     expect(
       renderSmsTemplate('BOOKING_CONFIRMED', {

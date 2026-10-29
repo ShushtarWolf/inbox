@@ -239,16 +239,18 @@ export async function notifySmsSoft(
   template: BookingSmsTemplate,
   data: Record<string, unknown>,
   clubId?: string,
-) {
-  if (!phone) return
+): Promise<boolean> {
+  if (!phone) return false
   const mode = resolveSmsProvider()
   const body = renderSmsTemplate(template, data)
   // Always audit intended payload (QA without live Kavenegar).
   console.log('[bookingNotify:sms]', mode, template, phone, body)
   try {
-    await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
+    const result = await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
+    return Boolean(result?.sent)
   } catch (err) {
     console.error('[bookingNotify:sms]', template, err)
+    return false
   }
 }
 
@@ -461,6 +463,7 @@ export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
+  let smsSent = false
   if (!opts.skipGuest) {
     if (opts.userId) {
       await safeInApp({
@@ -478,9 +481,15 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
       })
     }
     await safeEmail(opts.email, 'BOOKING_PAID', data)
-    await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
+    smsSent = await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
   }
   await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
+  return { smsSent }
+}
+
+/** Guest BOOKING_PAID SMS only — resend path, no in-app/email/admin repeats. */
+export function resendBookingPaidSms(opts: BookingNotifyOpts) {
+  return safeSms(opts.phone, 'BOOKING_PAID', bookingNotifyData(opts), opts.clubId)
 }
 
 /**

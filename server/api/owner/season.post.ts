@@ -155,6 +155,7 @@ export default defineEventHandler(async (event) => {
     payUrl = payUrlForPin(payPin)
   }
 
+  let smsSent = false
   if (guestMobile && result.slotsCreated > 0) {
     const first = result.willCreate[0]
     const last = result.willCreate[result.willCreate.length - 1]
@@ -189,7 +190,7 @@ export default defineEventHandler(async (event) => {
     }
     await notifyBookingConfirmed(notifyOpts)
     if (paymentStatus === 'PAID') {
-      await notifyBookingPaid(notifyOpts)
+      smsSent = (await notifyBookingPaid(notifyOpts)).smsSent
     }
   }
 
@@ -203,5 +204,6 @@ export default defineEventHandler(async (event) => {
     primaryBookingId: result.primaryBookingId,
     payPin,
     payUrl,
+    smsSent,
   }
 })
