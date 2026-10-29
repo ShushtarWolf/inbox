@@ -19,8 +19,10 @@ jobs:
           set -euo pipefail
 
           # Zero-whitespace JS so server-side argv split is: node | -e | CODE
-          CODE="(async()=>{p=new(require('@prisma/client').PrismaClient);c=await(p.club.findUnique({where:{slug:'club-53cb71'},select:{id:true,nameFa:true}}));if(!c)process.exit(2);r=await(p.slot.updateMany({where:{date:'2026-10-29',startTime:{in:['21:00','22:00','23:00']},displayStatus:'BLOCKED',court:{clubId:c.id}},data:{displayStatus:'FREE'}}));console.log('UPDATED='+r.count);await(p.\$disconnect());process.exit(0)})().catch(e=>{console.error(e);process.exit(1)})"
+          # No whitespace (argv split) and no '+' (Liara query treats + as space).
+          CODE="(async()=>{p=new(require('@prisma/client').PrismaClient);c=await(p.club.findUnique({where:{slug:'club-53cb71'},select:{id:true,nameFa:true}}));if(!c)process.exit(2);r=await(p.slot.updateMany({where:{date:'2026-10-29',startTime:{in:['21:00','22:00','23:00']},displayStatus:'BLOCKED',court:{clubId:c.id}},data:{displayStatus:'FREE'}}));console.log('UPDATED='.concat(r.count));await(p.\$disconnect());process.exit(0)})().catch(e=>{console.error(e);process.exit(1)})"
           if printf '%s' "$CODE" | grep -q '[[:space:]]'; then echo 'whitespace in CODE'; exit 1; fi
+          if printf '%s' "$CODE" | grep -q '+'; then echo 'plus in CODE'; exit 1; fi
           export CODE
 
           node <<'NODE'
@@ -76,8 +78,8 @@ jobs:
             await Promise.all(pending)
 
             const text = out.join('')
-            if (!text.includes('UPDATED=')) {
-              console.error('No UPDATED= in output; got:', text.slice(0, 1000))
+            if (!/UPDATED=\d+/.test(text)) {
+              console.error('No UPDATED=<n> in output; got:', text.slice(0, 1000))
               process.exit(1)
             }
           })().catch((e) => {
