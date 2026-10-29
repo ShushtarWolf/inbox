@@ -3169,8 +3169,8 @@ const legend = computed(() => [
   { status: 'FREE', color: palette.calendarGrid.FREE, swatch: 'free' as const },
   { status: 'RESERVED', color: '#C41E1E', swatch: 'box' as const },
   { status: 'SEASON', color: palette.calendarGrid.RESERVED_RECURRING_BAR, swatch: 'box' as const },
-  { status: 'PENDING', color: '#E8B84A', swatch: 'box' as const },
-  { status: 'BLOCKED', color: '#1A1A18', swatch: 'box' as const },
+  { status: 'PENDING', color: '#B68A3B', swatch: 'box' as const },
+  { status: 'BLOCKED', color: '#2C2C2A', swatch: 'box' as const },
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
 ])
 

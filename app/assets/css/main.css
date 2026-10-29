@@ -4771,6 +4771,13 @@
   .owner-cal-page .canva-cal-grid-shell { background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 16px; padding: 22px; }
   .owner-cal-page .canva-cal-date-nav { margin-bottom: 16px; font-size: 14px; }
   .owner-cal-page .canva-overview-kpi { background: #fff; border: 1px solid rgba(44,44,42,.08); border-radius: 16px; padding: 18px 20px; }
+  /* SoT .seg treatment reused for the live session-type filter (همه/آزاد/مربی) */
+  .owner-cal-page .canva-session-filter-row { display: inline-flex; gap: 0; background: rgba(44,44,42,.05); padding: 3px; margin-top: 6px; }
+  .owner-cal-page .canva-session-filter-btn { border: 0; background: transparent; font-size: 12.5px; font-weight: 400; padding: 7px 18px; color: #8f8f8b; }
+  .owner-cal-page .canva-session-filter-btn-on { background: #fff; color: #2c2c2a; font-weight: 600; }
+  /* SoT global: radius 0, no shadows on toolbar/legend chrome */
+  .owner-cal-page .canva-view-tabs, .owner-cal-page .canva-view-tab, .owner-cal-page .canva-session-filter-btn,
+  .owner-cal-page .canva-legend-swatch, .owner-cal-page .canva-legend-paid-dot, .owner-cal-page .canva-cal-grid-shell { border-radius: 0 !important; box-shadow: none !important; }
 }
 
 /* SoT legalPage(): FAQ sits before the disclaimer as plain .rfaq rows */
