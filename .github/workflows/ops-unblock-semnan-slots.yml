@@ -1,4 +1,4 @@
-# One-shot ops: unblock Semnan evening slots via liara shell + spaceless node -e.
+# One-shot ops: unblock Semnan evening slots via Liara exec WebSocket (URL-encoded cmd).
 name: Ops unblock Semnan slots
 on:
   workflow_dispatch:
@@ -12,41 +12,67 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Unblock 21–23 via liara shell
+      - name: Unblock 21–23 via encoded Liara exec
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
-          npm i -g @liara/cli@9
 
-          # Must be ZERO whitespace: liara exec splits cmd on spaces into argv
-          # (node, -e, CODE). Also keep short — cmd is a raw WebSocket query param.
+          # Zero-whitespace JS so server-side argv split is: node | -e | CODE
           CODE="(async()=>{p=new(require('@prisma/client').PrismaClient);c=await(p.club.findUnique({where:{slug:'club-53cb71'},select:{id:true,nameFa:true}}));if(!c)process.exit(2);r=await(p.slot.updateMany({where:{date:'2026-10-29',startTime:{in:['21:00','22:00','23:00']},displayStatus:'BLOCKED',court:{clubId:c.id}},data:{displayStatus:'FREE'}}));console.log('UPDATED='+r.count);await(p.\$disconnect());process.exit(0)})().catch(e=>{console.error(e);process.exit(1)})"
+          if printf '%s' "$CODE" | grep -q '[[:space:]]'; then echo 'whitespace in CODE'; exit 1; fi
+          export CODE
 
-          if printf '%s' "$CODE" | grep -q '[[:space:]]'; then
-            echo 'CODE contains whitespace — abort'
-            exit 1
-          fi
-          echo "CODE_LEN=${#CODE}"
+          node <<'NODE'
+          ;(async () => {
+            const token = process.env.LIARA_TOKEN
+            const code = process.env.CODE
+            if (!token) throw new Error('missing LIARA_TOKEN')
+            if (!code || /\s/.test(code)) throw new Error('bad CODE')
 
-          echo '=== probe /bin/echo ==='
-          set +e
-          timeout 25s liara shell --app inbox --api-token="$LIARA_TOKEN" -c '/bin/echo SHELL_OK' > /tmp/shell-echo.txt 2>&1
-          echo "echo_exit=$?"
-          set -e
-          cat /tmp/shell-echo.txt
+            const cmd = `node -e ${code}`
+            const url =
+              'wss://api.iran.liara.ir/v1/exec'
+              + `?token=${encodeURIComponent(token)}`
+              + `&cmd=${encodeURIComponent(cmd)}`
+              + `&project_id=inbox&teamID=`
 
-          echo '=== unblock ==='
-          set +e
-          timeout 90s liara shell --app inbox --api-token="$LIARA_TOKEN" -c "node -e ${CODE}" > /tmp/shell-out.txt 2>&1
-          echo "shell_exit=$?"
-          set -e
-          cat /tmp/shell-out.txt
+            console.log('cmd_len=', cmd.length, 'url_len=', url.length)
 
-          if ! grep -q 'UPDATED=' /tmp/shell-out.txt; then
-            echo 'Unblock did not report UPDATED='
-            exit 1
-          fi
+            const out = []
+            const ws = new WebSocket(url)
+
+            await new Promise((resolve, reject) => {
+              const t = setTimeout(() => reject(new Error('exec timeout')), 90000)
+              ws.addEventListener('open', async () => {
+                await new Promise((r) => setTimeout(r, 1000))
+                ws.send(JSON.stringify({ action: 'start', cols: 120, rows: 40 }))
+              })
+              ws.addEventListener('message', (ev) => {
+                const chunk = typeof ev.data === 'string' ? ev.data : Buffer.from(ev.data).toString()
+                out.push(chunk)
+                process.stdout.write(chunk)
+              })
+              ws.addEventListener('close', () => {
+                clearTimeout(t)
+                resolve()
+              })
+              ws.addEventListener('error', (err) => {
+                clearTimeout(t)
+                reject(err.error || err)
+              })
+            })
+
+            const text = out.join('')
+            if (!text.includes('UPDATED=')) {
+              console.error('No UPDATED= in output')
+              process.exit(1)
+            }
+          })().catch((e) => {
+            console.error(e)
+            process.exit(1)
+          })
+          NODE
 
           echo "Verifying public API…"
           sleep 2
