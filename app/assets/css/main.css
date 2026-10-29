@@ -5221,3 +5221,11 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .canva-club-detail-book .canva-club-slot-booked.canva-club-slot-active{background:#fff!important;border-color:rgba(44,44,42,.15)!important;opacity:.35;text-decoration:line-through}
 }
 @media (max-width:430px){.canva-club-court-box{all:unset}.canva-club-court-name{display:none}}
+
+/* clubs-apply modal: SoT flat cream sheet + .cpup upload box (desktop) */
+@media (min-width:431px){
+.canva-auth-sheet{background:#f3eee8!important;background-image:none!important}
+.canva-auth-sheet::before,.canva-auth-sheet::after{background:none!important;background-image:none!important}
+.canva-auth-upload{display:flex!important;gap:10px;align-items:center;border:1px dashed rgba(44,44,42,.3)!important;background:transparent!important;padding:12px!important;border-radius:0!important}
+.canva-auth-upload .canva-auth-upload-btn{order:-1;background:#ece8e2!important;border:0!important;padding:5px 10px!important;font-size:11px!important;color:#2c2c2a!important;border-radius:0!important;min-height:34px}
+}
