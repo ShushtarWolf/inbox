@@ -1,0 +1,61 @@
+# One-shot ops: unblock tonight's blocked evening slots at Semnan (club-53cb71).
+# Runs Prisma inside the Liara app container (private DB network).
+name: Ops unblock Semnan slots
+on:
+  workflow_dispatch:
+
+jobs:
+  unblock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unblock 21–23 on all Semnan courts (today)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          # Inline node: set BLOCKED → FREE for 21/22/23 on 2026-10-29 at club-53cb71
+          CMD=$(cat <<'EOF'
+          node -e '
+          const { PrismaClient } = require("@prisma/client");
+          const prisma = new PrismaClient();
+          (async () => {
+            const club = await prisma.club.findUnique({ where: { slug: "club-53cb71" }, select: { id: true, nameFa: true } });
+            if (!club) throw new Error("club not found");
+            const result = await prisma.slot.updateMany({
+              where: {
+                date: "2026-10-29",
+                startTime: { in: ["21:00", "22:00", "23:00"] },
+                displayStatus: "BLOCKED",
+                court: { clubId: club.id },
+              },
+              data: { displayStatus: "FREE" },
+            });
+            console.log(JSON.stringify({ club: club.nameFa, updated: result.count }));
+            await prisma.$disconnect();
+          })().catch(async (e) => { console.error(e); try { await prisma.$disconnect(); } catch {} process.exit(1); });
+          '
+          EOF
+          )
+          # Flatten to a single -c argument for liara shell
+          liara shell --app inbox --api-token="$LIARA_TOKEN" -c "$CMD"
+          echo "Verifying public API…"
+          sleep 2
+          curl -sS --max-time 20 "https://inboxs.ir/api/slots/available?club=club-53cb71&date=2026-10-29&includeUnavailable=1" \
+            | node -e '
+              let d=""; process.stdin.on("data",c=>d+=c); process.stdin.on("end",()=>{
+                const slots=JSON.parse(d);
+                const late=slots.filter(s=>["21:00","22:00","23:00"].includes(s.startTime));
+                const by={};
+                for (const s of late) by[s.startTime+"/"+s.displayStatus]=(by[s.startTime+"/"+s.displayStatus]||0)+1;
+                console.log(by);
+                const blocked=late.filter(s=>s.displayStatus==="BLOCKED");
+                if (blocked.length) { console.error("still blocked:", blocked.length); process.exit(1); }
+                console.log("ok: no blocked 21-23 slots");
+              });
+            '
