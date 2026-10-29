@@ -5189,3 +5189,18 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .canva-equip-wide h2.font-bold { font-size: 17px; }
   .canva-equip-wide > section > .flex.flex-wrap { margin-top: 20px; }
 }
+
+/* owner-setup SoT .cxin fields/CTA (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-setup-page .neo-form-field > .mb-1.block { font-size: 11px !important; font-weight: 400 !important; color: #4a4a47 !important; margin-bottom: 4px; }
+  .owner-setup-page .neo-input, .owner-setup-page input { min-height: 42px !important; }
+  .owner-setup-page .canva-panel .canva-gate-btn-primary { width: 75% !important; margin-top: 8px; margin-inline-end: 0; margin-inline-start: auto; display: block; min-height: 44px; }
+}
+
+/* owner-support SoT ticket CTA/guide (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-support-page form .canva-cta { width: 45% !important; display: block; margin-inline-start: 0; margin-inline-end: auto; margin-top: 12px; min-height: 44px; }
+  .owner-support-page .owner-support-guide ul { padding-inline-start: 0; padding-inline-end: 14px; }
+  .owner-support-page .owner-support-guide ul li { font-size: 13px; line-height: 26px; }
+  .owner-support-page section > h2.text-sm { font-size: 14px; margin-bottom: 18px; }
+}
