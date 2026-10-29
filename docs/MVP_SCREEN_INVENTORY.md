@@ -4,7 +4,7 @@ Court-booking pilot only. Source Canva: `canva-reference/pages/` (= `inbox-websi
 
 **Locale:** FA only. **Desktop + laptop:** required **yes** for every in-MVP row below (phone Canva is reference; product must work at laptop/desktop widths with the same jobs).
 
-**Ops note:** Coach product is **ON** in current ops (`PILOT_NO_COACH=false` / unset). Older “freeze coach for Behnaz” rows are **stale** — do not treat them as live truth. Do not enable live SMS or live IPG from this doc alone — keep local/log SMS and `PAYMENTS_MODE=test` or `pay_at_club` until an explicit cutover.
+**Ops note:** Coach product is **OFF** in current ops (`PILOT_NO_COACH=true`). Do not enable live SMS or live IPG from this doc alone — keep local/log SMS and `PAYMENTS_MODE=test` or `pay_at_club` until an explicit cutover.
 
 ---
 
@@ -16,7 +16,7 @@ Court-booking pilot only. Source Canva: `canva-reference/pages/` (= `inbox-websi
 | **Google** OAuth (shown on Canva `login_sign up.png`) | Product hard-off; leave `NUXT_OAUTH_GOOGLE_*` unset |
 | **EN** product UI (`/en`, English chrome) | `defaultLocale: fa` + `/en` redirect |
 
-**Coach (live):** `/coaches`, `/coach/*`, `/book/coach`, `/owner/coaches`, `/register/coach`, AuthFlow Coach role — gated only when `PILOT_NO_COACH=true` (not current ops).
+**Coach (frozen):** `/coaches`, `/coach/*`, `/book/coach`, `/owner/coaches`, `/register/coach`, AuthFlow Coach role — hidden while `PILOT_NO_COACH=true`.
 
 Also not in this Behnaz court-booking inventory focus (even if frames/routes exist): athlete favorites `(6)`, athlete home marketing `(8)` as a separate launch gate, admin console, workers (optional OWNER-only), CRM SMS campaign wizard (optional on open-safe CRM).
 

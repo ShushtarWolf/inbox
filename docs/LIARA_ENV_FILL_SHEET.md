@@ -21,14 +21,14 @@ Copy/paste checklist. Mark each row when set.
 
 ## B. Pilot flags
 
-**Current ops:** coach is **ON** — use the Competition + Coach column (`false` / unset). Do not set `PILOT_NO_COACH=true` from stale Behnaz freeze notes.
+**Current ops:** coach is **OFF** — set both flags to `true`. Flip back to `false` / unset only with an explicit coach re-launch.
 
-| ☐ | Variable | Court-only era (historical) | Current ops (Competition + Coach) |
-|---|----------|------------------------------|-----------------------------------|
+| ☐ | Variable | Current ops (coach hidden) | Coach re-launch |
+|---|----------|------------------------------|-----------------|
 | ☐ | `PILOT_NO_COACH` | `true` | `false` (or unset) — unlocks coach signup, `/coaches`, wallet court book |
-| ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; redeploy after change |
+| ☐ | `NUXT_PUBLIC_PILOT_NO_COACH` | `true` | `false` (or unset) — must match server; restart/redeploy after change |
 
-When coach is ON, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Class packages and season/recurring desk reserve are independent env gates.
+Ops workflow: `gh workflow run set-pilot-no-coach.yml --ref main -f app=inbox -f enabled=true`. When coach is ON again, read [COACH_V1_GO_NO_GO.md](./COACH_V1_GO_NO_GO.md). Class packages and season/recurring desk reserve are independent env gates.
 
 ---
 
