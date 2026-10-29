@@ -20,6 +20,7 @@ jobs:
           set -euo pipefail
           npm i -g @liara/cli@9
 
+          # Script body may contain spaces; it is shipped as base64.
           cat > /tmp/unblock.cjs <<'JS'
           const { PrismaClient } = require('@prisma/client')
           const prisma = new PrismaClient()
@@ -49,9 +50,11 @@ jobs:
 
           SCRIPT_B64=$(base64 -w0 /tmp/unblock.cjs)
 
-          # liara shell -c execs argv[0] directly (no shell), so wrap with sh -c.
-          liara shell --app inbox --api-token="$LIARA_TOKEN" \
-            -c "sh -c 'cd /app && echo ${SCRIPT_B64} | base64 -d > ops-unblock.cjs && node ops-unblock.cjs; ec=\$?; rm -f ops-unblock.cjs; exit \$ec'"
+          # liara shell splits -c on whitespace into exec argv.
+          # So: node | -e | <zero-whitespace JS that writes+runs the real script>
+          LAUNCH="require('fs').writeFileSync('/app/u.cjs',Buffer.from('${SCRIPT_B64}','base64'));var r=require('child_process').spawnSync(process.execPath,['/app/u.cjs'],{stdio:'inherit',cwd:'/app',env:process.env});try{require('fs').unlinkSync('/app/u.cjs')}catch(e){}process.exit(r.status==null?1:r.status)"
+
+          liara shell --app inbox --api-token="$LIARA_TOKEN" -c "node -e ${LAUNCH}"
 
           echo "Verifying public API…"
           sleep 2
