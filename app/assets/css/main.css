@@ -4826,7 +4826,7 @@
 }
 .owner-finance-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12) }
 .owner-finance-page .canva-finance-chart { background:transparent }
-.owner-finance-page .canva-promo-badge-hero { inset:auto auto 12px 10px !important; background:#c41e1e; padding:4px 10px; display:flex; flex-direction:row-reverse; gap:4px; align-items:center }
+.owner-finance-page .canva-promo-badge-hero { inset:auto auto 12px 10px !important; background:#c41e1e; padding:8px 12px; display:flex; flex-direction:row; gap:4px; align-items:center }
 .owner-finance-page .canva-promo-badge-hero > * { color:#fff !important; font-size:10px !important; font-weight:700; line-height:1.4 }
 
 /* global footer — SoT .rfoot (12px, #6b6b67, line-height 2.4, tight "·" separators) */
@@ -5123,3 +5123,21 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 
 /* SoT owner .rbanner .rbw: unfiltered photo, light top→bottom wash. */
 .canva-photo-hero-wash.canva-photo-hero-wash--sot { background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6)); }
+/* owner-finance SoT .rbanner / .oftab / .ofst / .ofchart (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-finance-page > .canva-photo-hero { height: 130px; min-height: 130px; margin-bottom: 24px; }
+  .owner-finance-page > .canva-photo-hero .canva-photo-hero-body { min-height: 0 !important; padding: 0 !important; }
+  .owner-finance-page > .canva-photo-hero .canva-promo-badge-hero { top: auto !important; bottom: 18px !important; left: 12px !important; right: auto !important; inset-inline-start: auto; }
+  .owner-finance-page .canva-finance-period { margin-top: 0; }
+  .owner-finance-page .canva-finance-period-btn { padding: 6px 2px; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2:has(> .canva-finance-chips) { display: flex; flex-direction: column; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2 > .canva-finance-chips { flex: 1; align-items: stretch; }
+  .owner-finance-page .canva-finance-wide { align-items: stretch; }
+  .owner-finance-page .canva-finance-wide > .canva-panel { align-self: start; }
+  .owner-finance-page .canva-finance-wide > div.space-y-2 > .canva-finance-chips > * { height: 100%; }
+  .owner-finance-page .canva-finance-chip { display: flex; flex-direction: column; justify-content: center; }
+  .owner-finance-page .canva-finance-chart { padding: 0; margin-top: 14px; }
+  .owner-finance-page .canva-finance-chart-bar { width: 28px !important; max-width: 28px; }
+  .owner-finance-page .canva-finance-chart-bar:not(.canva-finance-chart-bar-active) { background: #e0deda; }
+  .owner-finance-page .canva-finance-chart-label { font-size: 10px; margin-top: 4px; }
+}
