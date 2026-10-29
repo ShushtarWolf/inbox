@@ -33,6 +33,7 @@ interface OwnerSettingsClub {
   addressFa: string
   addressEn?: string | null
   phone?: string | null
+  receiptPhone?: string | null
   whatsapp?: string | null
   image?: string | null
   openHour?: number
@@ -160,6 +161,7 @@ const form = reactive({
   bookingHorizonDays: DEFAULT_BOOKING_HORIZON_DAYS,
   waitlistEnabled: true,
   phone: '',
+  receiptPhone: '',
   whatsapp: '',
   image: '',
   sheba: '',
@@ -299,6 +301,7 @@ function applyClubData() {
   form.bookingHorizonDays = clampBookingHorizonDays(club.bookingHorizonDays)
   form.waitlistEnabled = club.waitlistEnabled ?? true
   form.phone = club.phone || ''
+  form.receiptPhone = club.receiptPhone || ''
   form.whatsapp = club.whatsapp || ''
   loadedImage = club.image || null
   form.image = club.image || ''
@@ -327,6 +330,7 @@ function formSnapshot() {
     bookingHorizonDays: form.bookingHorizonDays,
     waitlistEnabled: form.waitlistEnabled,
     phone: form.phone,
+    receiptPhone: form.receiptPhone,
     whatsapp: form.whatsapp,
     image: form.image,
     sheba: form.sheba,
@@ -525,6 +529,7 @@ async function save() {
       bookingHorizonDays: clampBookingHorizonDays(form.bookingHorizonDays),
       waitlistEnabled: form.waitlistEnabled,
       phone: form.phone || null,
+      receiptPhone: form.receiptPhone || null,
       whatsapp: form.whatsapp || null,
       sheba: form.sheba || null,
       amenitiesJson: JSON.stringify(form.amenities),
@@ -670,6 +675,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
               <input v-model="form.whatsapp" dir="ltr" class="neo-input tabular-nums">
             </label>
           </div>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.receiptPhone') }}</span>
+            <input v-model="form.receiptPhone" dir="ltr" inputmode="tel" class="neo-input tabular-nums" :placeholder="form.phone">
+          </label>
           <label class="block text-sm text-start">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>
             <AppShebaInput

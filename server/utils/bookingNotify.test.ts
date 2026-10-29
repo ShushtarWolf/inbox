@@ -4,6 +4,11 @@ const createInAppNotification = vi.fn()
 const sendNotification = vi.fn()
 const resolveSmsProvider = vi.fn()
 const sendSms = vi.fn()
+const clubFindUnique = vi.fn()
+
+vi.mock('./prisma', () => ({
+  prisma: { club: { findUnique: (...args: unknown[]) => clubFindUnique(...args) } },
+}))
 
 vi.mock('./notify', () => ({
   createInAppNotification: (...args: unknown[]) => createInAppNotification(...args),
@@ -534,5 +539,40 @@ describe('whenLine series copy', () => {
     })
     expect(line).not.toContain('سانس')
     expect(line).toContain('۱۸:۰۰')
+  })
+})
+
+describe('club-side SMS fan-out', () => {
+  beforeEach(() => {
+    sendNotification.mockReset()
+    resolveSmsProvider.mockReturnValue('log')
+    clubFindUnique.mockReset()
+  })
+
+  it('sends owner booking SMS to owner, club phone and active staff (deduped)', async () => {
+    clubFindUnique.mockResolvedValue({
+      phone: '09121111111',
+      owner: { phone: '09120000000' },
+      workers: [{ mobile: '09122222222' }, { mobile: '09121111111' }],
+      memberships: [{ user: { phone: '09123333333' } }, { user: { phone: '02112345678' } }],
+    })
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: '09120000000',
+      clubName: 'باشگاه',
+      clubId: 'c1',
+      bookingId: 'b1',
+      date: '2026-10-29',
+      startTime: '15:00',
+    })
+    const tos = sendNotification.mock.calls.map((c) => (c[0] as { to: string }).to)
+    expect(tos).toEqual(['09120000000', '09121111111', '09122222222', '09123333333'])
+  })
+
+  it('still notifies staff when owner has no mobile', async () => {
+    clubFindUnique.mockResolvedValue({ phone: null, owner: null, workers: [{ mobile: '09122222222' }], memberships: [] })
+    await notifyOwnerBookingCancelled({
+      ownerPhone: null, clubName: 'x', clubId: 'c1', date: '2026-10-29', startTime: '15:00',
+    })
+    expect(sendNotification).toHaveBeenCalledTimes(1)
   })
 })
