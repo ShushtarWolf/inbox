@@ -477,6 +477,12 @@ const selectedSlotFull = computed(() => {
   if (!selectedSlot.value?.id) return null
   return data.value?.slots?.find((s) => s.id === selectedSlot.value!.id) || selectedSlot.value
 })
+/** SoT owner-calendar side panel: read-only mirror of the last opened slot (UI state only). */
+const panelSlotId = ref<string | null>(null)
+watch(() => selectedSlot.value?.id, (id) => { if (id) panelSlotId.value = id })
+const panelSlot = computed(() =>
+  panelSlotId.value ? (data.value?.slots?.find((s) => s.id === panelSlotId.value) || null) : null,
+)
 const selectedSlotsFull = computed(() => {
   const picked = selectedSlotIds.value
     .map((id) => data.value?.slots?.find((s) => s.id === id))
@@ -3357,6 +3363,7 @@ watch(pilotNoCoach, (off) => {
           </div>
         </div>
 
+        <div class="canva-cal-split">
         <div class="canva-cal-body">
           <div v-if="!courts.length">
             <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
@@ -3429,6 +3436,27 @@ watch(pilotNoCoach, (off) => {
               </template>
             </div>
           </div>
+        </div>
+        <aside class="canva-cal-side" :aria-label="t('owner.currentBooking')">
+          <template v-if="panelSlot">
+            <h3 class="canva-cal-side-title">
+              {{ slotCourtName(panelSlot) }} — <bdi dir="ltr" class="tabular-nums">{{ formatTimeLabel(panelSlot.startTime) }}</bdi>
+            </h3>
+            <span class="canva-cal-side-tag" :class="`canva-cal-side-tag-${String(panelSlot.displayStatus || 'FREE').toLowerCase()}`">{{ statusLabel(panelSlot.displayStatus) }}</span>
+            <template v-if="panelSlot.displayStatus !== 'FREE'">
+              <div class="canva-cal-side-kv">
+                <span>{{ t('owner.guestLabel') }}</span>
+                <b>{{ slotGuestLine(panelSlot) || '—' }}</b>
+              </div>
+              <div class="canva-cal-side-kv">
+                <span>{{ t('owner.guestMobile') }}</span>
+                <bdi dir="ltr" class="tabular-nums">{{ activeBooking(panelSlot)?.guestMobile ? formatPhone(activeBooking(panelSlot)?.guestMobile) : '—' }}</bdi>
+              </div>
+              <div v-if="slotNoteLine(panelSlot)" class="canva-cal-side-note">{{ slotNoteLine(panelSlot) }}</div>
+            </template>
+          </template>
+          <p v-else class="canva-cal-side-empty">{{ t('owner.emptySlotsBody') }}</p>
+        </aside>
         </div>
       </div>
     </section>
@@ -5049,4 +5077,45 @@ watch(pilotNoCoach, (off) => {
   width: auto;
   max-width: 100%;
 }
+
+/* SoT owner-calendar two-column: grid + sticky detail side panel (left in RTL). */
+.canva-cal-split { display: block; }
+.canva-cal-side { display: none; }
+@media (min-width: 1280px) {
+  .canva-cal-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    align-items: start;
+  }
+  .canva-cal-side {
+    display: block;
+    position: sticky;
+    top: 90px;
+    background: #fff;
+    border: 1px solid rgba(44, 44, 42, 0.08);
+    padding: 22px;
+  }
+}
+.canva-cal-side-title { font-size: 14px; font-weight: 700; color: #2c2c2a; margin-bottom: 16px; }
+.canva-cal-side-tag {
+  display: block; font-size: 10.5px; font-weight: 600; padding: 3px 10px;
+  background: rgba(44, 44, 42, 0.06); color: #6b6b67; margin-bottom: 18px;
+}
+.canva-cal-side-tag-reserved, .canva-cal-side-tag-public, .canva-cal-side-tag-team {
+  background: rgba(196, 30, 30, 0.08); color: #c41e1e;
+}
+.canva-cal-side-tag-pending { background: #f3e9d3; color: #9a7530; }
+.canva-cal-side-tag-blocked { background: #2c2c2a; color: #fff; }
+.canva-cal-side-kv {
+  display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px;
+  padding: 9px 0; border-bottom: 1px solid rgba(44, 44, 42, 0.06);
+}
+.canva-cal-side-kv span { color: #8f8f8b; }
+.canva-cal-side-kv b, .canva-cal-side-kv bdi { font-weight: 700; color: #2c2c2a; }
+.canva-cal-side-note {
+  margin-top: 14px; border: 1px solid rgba(44, 44, 42, 0.08); padding: 10px 12px;
+  font-size: 12px; line-height: 1.9; color: #2c2c2a;
+}
+.canva-cal-side-empty { font-size: 11.5px; color: #8f8f8b; text-align: center; padding: 6px; }
 </style>
