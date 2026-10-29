@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { parseImagesJson, serializeImagesJson } from '#shared/courtFacilities.ts'
 import { COURT_BULK_MAX, COURT_BULK_MIN, parseCourtBulkCount } from '#shared/courtBulk.ts'
+import { COURT_AUDIENCE_VALUES, parseCourtAudience, type CourtAudience } from '#shared/courtAudience.ts'
 
 const props = defineProps<{
   court?: {
@@ -14,6 +15,7 @@ const props = defineProps<{
     closeHour?: number | null
     facilitiesJson?: string | null
     pricingJson?: string | null
+    audience?: string | null
     sport?: { slug: string }
   } | null
   clubOpenHour: number
@@ -42,8 +44,12 @@ const form = reactive({
   closeHour: null as number | null,
   useClubHours: true,
   pricingJson: null as string | null,
+  audience: 'MIXED' as CourtAudience,
+  notifyFutureBookings: false,
   count: 1,
 })
+
+const audienceOptions = COURT_AUDIENCE_VALUES
 
 const submitLabel = computed(() => {
   if (props.bulkEdit) {
@@ -70,6 +76,8 @@ watch(() => props.court, (court) => {
     form.closeHour = null
     form.useClubHours = true
     form.pricingJson = null
+    form.audience = 'MIXED'
+    form.notifyFutureBookings = false
     form.count = 1
     return
   }
@@ -82,6 +90,8 @@ watch(() => props.court, (court) => {
   form.closeHour = court.closeHour ?? null
   form.useClubHours = court.openHour == null && court.closeHour == null
   form.pricingJson = court.pricingJson ?? null
+  form.audience = parseCourtAudience(court.audience) || 'MIXED'
+  form.notifyFutureBookings = false
   form.count = 1
 }, { immediate: true })
 
@@ -93,6 +103,7 @@ function submit() {
       openHour: form.useClubHours ? null : form.openHour,
       closeHour: form.useClubHours ? null : form.closeHour,
       pricingJson: form.pricingJson,
+      audience: form.audience,
       all: true,
     })
     return
@@ -116,6 +127,8 @@ function submit() {
     openHour: form.useClubHours ? null : form.openHour,
     closeHour: form.useClubHours ? null : form.closeHour,
     pricingJson: form.pricingJson,
+    audience: form.audience,
+    notifyFutureBookings: Boolean(props.court && form.notifyFutureBookings),
     count,
   })
 }
@@ -148,6 +161,24 @@ function submit() {
           <option value="tennis">{{ t('clubs.sportTennis') }}</option>
         </select>
       </label>
+    </div>
+
+    <div>
+      <p class="mb-1.5 text-sm font-bold">{{ t('owner.settingsPage.courtAudience') }}</p>
+      <div class="canva-audience-seg" role="radiogroup" :aria-label="t('owner.settingsPage.courtAudience')">
+        <button
+          v-for="option in audienceOptions"
+          :key="option"
+          type="button"
+          role="radio"
+          class="canva-audience-seg-btn"
+          :class="{ 'canva-audience-seg-btn-on': form.audience === option }"
+          :aria-checked="form.audience === option"
+          @click="form.audience = option"
+        >
+          {{ t(`owner.settingsPage.audience.${option}`) }}
+        </button>
+      </div>
     </div>
 
     <label v-if="!court" class="block text-sm">
@@ -183,6 +214,11 @@ function submit() {
     />
 
     <OwnerPhotoSlots v-if="!bulkEdit" v-model="form.images" :max="4" />
+
+    <label v-if="court && !bulkEdit" class="canva-settings-check">
+      <input v-model="form.notifyFutureBookings" type="checkbox" class="canva-settings-checkbox">
+      <span>{{ t('owner.settingsPage.notifyFutureBookings') }}</span>
+    </label>
 
     <div class="space-y-2 pt-1">
       <button

@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Waitlist is not available' })
   }
 
-  assertSlotBookable(body.date, body.startTime)
+  assertSlotBookable(body.date, body.startTime, { horizonDays: club.bookingHorizonDays })
 
   const entry = await prisma.waitlistEntry.create({
     data: {

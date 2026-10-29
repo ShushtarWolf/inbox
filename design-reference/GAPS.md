@@ -17,3 +17,9 @@ PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | So
 | athlete-* (home, bookings, profile, wallet, payments, notifications, support, favorites, competitions, m-athlete) | PASS (visual) | The live column can't be shot because live needs a login and we don't log into production. The local athlete has no bookings or transactions, so lists are empty states. |
 | owner-* (calendar, finance, settings, crm, equipment, discount, support, staff) | PASS (visual) | Live needs a login. The calendar has no local bookings, so the SoT side booking panel isn't shown (data). |
 | coach, admin, pay-link, confirm | ENV / SKIPPED | Not shot: these routes need a coach or admin role, or a payment write. |
+
+## Product — court audience (2026-10-28)
+
+| screen | region | change | status |
+|--------|--------|--------|--------|
+| owner-settings / club | court audience | `Court.audience` (MIXED/MEN/WOMEN/FAMILY) + CourtForm segment + public tags/warn + book gate + opt-in SMS on save | fixed (product) |

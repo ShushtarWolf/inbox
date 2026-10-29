@@ -128,6 +128,41 @@ export function rulesToTimesJson(rules: SeasonSessionRule[]): string {
   return JSON.stringify(map)
 }
 
+/** Rebuild weekday rules from live series slots so an extend can re-expand. */
+export function deriveSeasonRulesFromSlots(slots: Array<{
+  date: string
+  startTime: string
+  endTime: string
+  courtId: string
+}>): SeasonSessionRule[] {
+  const seen = new Set<string>()
+  const rules: SeasonSessionRule[] = []
+  for (const slot of slots) {
+    if (!slot.date || !slot.startTime || !slot.endTime || !slot.courtId) continue
+    const weekday = weekdayNameFromDate(slot.date)
+    const key = `${weekday}|${slot.startTime}|${slot.endTime}|${slot.courtId}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    rules.push({
+      weekday,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      courtId: slot.courtId,
+    })
+  }
+  return rules
+}
+
+/** Max ISO date among non-empty candidates (lexicographic works for YYYY-MM-DD). */
+export function maxIsoDate(...dates: Array<string | null | undefined>): string {
+  let best = ''
+  for (const raw of dates) {
+    const d = typeof raw === 'string' ? raw.trim() : ''
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > best) best = d
+  }
+  return best
+}
+
 export function expandDayTimesForLegacy(
   dayTimes?: Record<string, DayTimeRange>,
   times?: string[],

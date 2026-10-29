@@ -1,4 +1,6 @@
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
+import { courtAudienceBlockReason, parseCourtAudience } from '#shared/courtAudience.ts'
+import { parseGender } from '#shared/gender.ts'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
@@ -71,7 +73,7 @@ export default defineEventHandler(async (event) => {
     if (slot.displayStatus !== 'FREE' || (slot.booking && !staleCancelledBooking)) {
       throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
     }
-    assertSlotBookable(slot.date, slot.startTime)
+    assertSlotBookable(slot.date, slot.startTime, { horizonDays: club.bookingHorizonDays })
   }
 
   // Preserve caller order for primary-slot payment grouping.
@@ -119,6 +121,20 @@ export default defineEventHandler(async (event) => {
   const discountAmount = discount?.discountAmount || 0
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+  const bookerGender = parseGender(dbUser.gender)
+  for (const slot of orderedSlots) {
+    const audience = parseCourtAudience((slot.court as { audience?: string }).audience) || 'MIXED'
+    const block = courtAudienceBlockReason(audience, bookerGender)
+    if (block === 'gender_required') {
+      throw createError({ statusCode: 400, statusMessage: 'COURT_GENDER_REQUIRED' })
+    }
+    if (block === 'men_only') {
+      throw createError({ statusCode: 403, statusMessage: 'COURT_MEN_ONLY' })
+    }
+    if (block === 'women_only') {
+      throw createError({ statusCode: 403, statusMessage: 'COURT_WOMEN_ONLY' })
+    }
+  }
   const onlineEnabled = isOnlinePaymentsEnabled()
   const holdDisplay = initialOnlineCourtHoldDisplay(onlineEnabled)
 

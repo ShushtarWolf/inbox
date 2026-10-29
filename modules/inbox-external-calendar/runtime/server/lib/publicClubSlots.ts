@@ -1,8 +1,14 @@
+import { isDateBeyondBookingHorizon } from '#shared/bookingHorizon.ts'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 
-export async function loadPublicClubSlots(clubId: string, date: string) {
+export async function loadPublicClubSlots(
+  clubId: string,
+  date: string,
+  opts?: { horizonDays?: number | null },
+) {
   if (isPastDate(date)) return []
+  if (opts?.horizonDays != null && isDateBeyondBookingHorizon(date, opts.horizonDays)) return []
 
   await ensureSlotsForDate(clubId, date)
   await releaseExpiredOnlinePaymentHolds({ clubId })

@@ -3,6 +3,7 @@ import { formatSmsJalaliDate, formatSmsTime, toPersianDigits } from '#shared/jal
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { resolveSmsProvider } from '#shared/sms.ts'
 import { notifyAdminSms } from './adminNotify'
+import { prisma } from './prisma'
 import { createInAppNotification, sendNotification } from './notify'
 import { bookingTrackingCode, payUrlForPin, receiptUrlForBooking } from './receipt'
 import { renderSmsTemplate } from './sms/templates'
@@ -101,6 +102,7 @@ type BookingSmsTemplate =
   | 'OWNER_BOOKING_PAID'
   | 'OWNER_BOOKING_CANCELLED'
   | 'WAITLIST_SLOT_AVAILABLE'
+  | 'COURT_DETAILS_CHANGED'
 
 function kindLabelFa(kind: BookingNotifyKind) {
   if (kind === 'coach') return 'جلسه مربی'
@@ -131,6 +133,47 @@ export function ownerNotifyPhone(club: {
     if (mobile) return mobile
   }
   return null
+}
+
+
+/**
+ * Club-side SMS recipients: owner/club mobile passed in, plus club phone and
+ * active staff (desk workers + MANAGER/FRONT_DESK memberships). Deduped, mobiles only.
+ */
+export async function clubSideNotifyPhones(
+  primary: string | null | undefined,
+  clubId?: string,
+): Promise<string[]> {
+  const raw: Array<string | null | undefined> = [primary]
+  if (clubId) {
+    try {
+      const club = await prisma.club.findUnique({
+        where: { id: clubId },
+        select: {
+          phone: true,
+          owner: { select: { phone: true } },
+          workers: { where: { active: true }, select: { mobile: true } },
+          memberships: {
+            where: { active: true, role: { in: ['MANAGER', 'FRONT_DESK'] } },
+            select: { user: { select: { phone: true } } },
+          },
+        },
+      })
+      if (club) {
+        raw.push(club.owner?.phone, club.phone)
+        for (const w of club.workers || []) raw.push(w.mobile)
+        for (const m of club.memberships || []) raw.push(m.user?.phone)
+      }
+    } catch (err) {
+      console.error('[bookingNotify:club_recipients]', err)
+    }
+  }
+  const out: string[] = []
+  for (const r of raw) {
+    const mobile = normalizeIranPhone(r)
+    if (mobile && !out.includes(mobile)) out.push(mobile)
+  }
+  return out
 }
 
 type OwnerBookingCancelledOpts = {
@@ -196,16 +239,18 @@ export async function notifySmsSoft(
   template: BookingSmsTemplate,
   data: Record<string, unknown>,
   clubId?: string,
-) {
-  if (!phone) return
+): Promise<boolean> {
+  if (!phone) return false
   const mode = resolveSmsProvider()
   const body = renderSmsTemplate(template, data)
   // Always audit intended payload (QA without live Kavenegar).
   console.log('[bookingNotify:sms]', mode, template, phone, body)
   try {
-    await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
+    const result = await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
+    return Boolean(result?.sent)
   } catch (err) {
     console.error('[bookingNotify:sms]', template, err)
+    return false
   }
 }
 
@@ -418,6 +463,7 @@ export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
   const data = bookingNotifyData(opts)
+  let smsSent = false
   if (!opts.skipGuest) {
     if (opts.userId) {
       await safeInApp({
@@ -435,9 +481,15 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
       })
     }
     await safeEmail(opts.email, 'BOOKING_PAID', data)
-    await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
+    smsSent = await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
   }
   await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
+  return { smsSent }
+}
+
+/** Guest BOOKING_PAID SMS only — resend path, no in-app/email/admin repeats. */
+export function resendBookingPaidSms(opts: BookingNotifyOpts) {
+  return safeSms(opts.phone, 'BOOKING_PAID', bookingNotifyData(opts), opts.clubId)
 }
 
 /**
@@ -446,7 +498,8 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
  * Full multi-line body is logged; live lookup packs via token10.
  */
 export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpts) {
-  if (!opts.ownerPhone) return
+  const phones = await clubSideNotifyPhones(opts.ownerPhone, opts.clubId)
+  if (!phones.length) return
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
   const data: Record<string, unknown> = {
     clubName: opts.clubName,
@@ -462,7 +515,7 @@ export async function notifyOwnerBookingConfirmed(opts: OwnerBookingConfirmedOpt
     data.endTime = opts.endTime || ''
     data.courtName = opts.courtName || ''
   }
-  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_CONFIRMED', data, opts.clubId)
+  for (const phone of phones) await safeSms(phone, 'OWNER_BOOKING_CONFIRMED', data, opts.clubId)
 }
 
 /**
@@ -489,7 +542,8 @@ export async function notifyOwnerBookingPaid(opts: OwnerBookingPaidOpts) {
 
 /** Soft-fail SMS to club owner when a booking is cancelled (athlete or desk). */
 export async function notifyOwnerBookingCancelled(opts: OwnerBookingCancelledOpts) {
-  if (!opts.ownerPhone) return
+  const phones = await clubSideNotifyPhones(opts.ownerPhone, opts.clubId)
+  if (!phones.length) return
   const trackingCode = opts.trackingCode || (opts.bookingId ? bookingTrackingCode(opts.bookingId) : '')
   const data = {
     clubName: opts.clubName,
@@ -501,5 +555,5 @@ export async function notifyOwnerBookingCancelled(opts: OwnerBookingCancelledOpt
     guestPhone: opts.guestPhone || '',
     trackingCode,
   }
-  await safeSms(opts.ownerPhone, 'OWNER_BOOKING_CANCELLED', data, opts.clubId)
+  for (const phone of phones) await safeSms(phone, 'OWNER_BOOKING_CANCELLED', data, opts.clubId)
 }

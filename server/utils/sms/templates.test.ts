@@ -164,6 +164,14 @@ describe('SMS templates', () => {
         'Inboxs',
       ].join('\n'),
     )
+    expect(
+      renderSmsTemplate('COURT_DETAILS_CHANGED', {
+        clubName: 'پدل زون',
+        courtName: 'زمین ۲',
+        date: '1404/01/02',
+        startTime: '19:00',
+      }),
+    ).toContain('تغییر مشخصات زمین')
   })
 
   it('includes court, payment status, and location on booking confirmed', () => {
@@ -233,6 +241,19 @@ describe('SMS templates', () => {
         'Inboxs',
       ].join('\n'),
     )
+  })
+
+  it('caps long season session lists so Kavenegar accepts the body', () => {
+    const sessions = Array.from({ length: 46 }, (_, i) => ({
+      courtName: 'زمین ۱',
+      date: `2026-11-${String((i % 28) + 1).padStart(2, '0')}`,
+      startTime: '08:00',
+      endTime: '09:00',
+    }))
+    const body = renderSmsTemplate('BOOKING_PAID', { guestName: 'مائده بلند', clubName: 'تختی', sessions, paymentPaid: true })
+    expect(body.split('\n').filter((line) => line.startsWith('زمین ۱'))).toHaveLength(20)
+    expect(body).toContain('و ۲۶ سانس دیگر')
+    expect(body.length).toBeLessThan(1500)
   })
 
   it('renders owner-desk confirmation like a pay receipt SMS', () => {

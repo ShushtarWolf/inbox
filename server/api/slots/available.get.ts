@@ -1,3 +1,4 @@
+import { isDateBeyondBookingHorizon } from '#shared/bookingHorizon.ts'
 import { isPastDate, isSlotStartInPast } from '#shared/localDate.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Club not found' })
   }
 
-  if (isPastDate(date)) return []
+  if (isPastDate(date) || isDateBeyondBookingHorizon(date, club.bookingHorizonDays)) return []
 
   await ensureSlotsForDate(club.id, date)
   await releaseExpiredOnlinePaymentHolds({ clubId: club.id })

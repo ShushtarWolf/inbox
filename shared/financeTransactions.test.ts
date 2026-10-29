@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { financeSheetXml } from './financeSpreadsheet.ts'
-import { selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
+import { financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
 
 const rows: FinanceTxTimes[] = [
   {
@@ -162,5 +162,16 @@ describe('selectFinanceTransactions', () => {
       40_000,
     ])
     expect(selectFinanceTransactions(rows, { sortKey: 'guest', sortDir: 'asc' }).map((tx) => tx.guestName)[0]).toBe('رضا')
+  })
+
+  it('picks blocked / season / reserved for the ledger type column', () => {
+    expect(financeRowTypeOf({ displayStatus: 'BLOCKED', bookingStatus: 'CONFIRMED' })).toBe('blocked')
+    expect(financeRowTypeOf({ displayStatus: 'RESERVED', isRecurring: true, bookingKind: 'normal' })).toBe('season')
+    expect(financeRowTypeOf({ displayStatus: 'RESERVED', bookingKind: 'package' })).toBe('package')
+    expect(financeRowTypeOf({ kind: 'coach', bookingKind: 'coach' })).toBe('coach')
+    expect(financeRowTypeOf({ displayStatus: 'RESERVED', bookingKind: 'normal' })).toBe('reserved')
+    expect(isBlockedFinanceTx({ displayStatus: 'BLOCKED' })).toBe(true)
+    expect(isBlockedFinanceTx({ kind: 'slot' })).toBe(true)
+    expect(isBlockedFinanceTx({ displayStatus: 'RESERVED' })).toBe(false)
   })
 })

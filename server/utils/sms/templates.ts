@@ -44,6 +44,15 @@ function formatGuestSessionLine(row: SmsSessionRow) {
   return [court, date, when].filter(Boolean).join(' | ')
 }
 
+/** Kavenegar sms/send rejects long seasons (46+ lines failed, 32 delivered); full list is on the receipt link. */
+const SMS_MAX_SESSION_LINES = 20
+
+function capSessionLines(lines: string[]) {
+  if (lines.length <= SMS_MAX_SESSION_LINES) return lines
+  const rest = lines.length - SMS_MAX_SESSION_LINES
+  return [...lines.slice(0, SMS_MAX_SESSION_LINES), `و ${toPersianDigits(String(rest))} سانس دیگر`]
+}
+
 /** Guest confirmation session lines — explicit `sessions` or a single fallback row. */
 function guestSessionLines(data: Record<string, unknown>): string[] {
   const lines: string[] = []
@@ -55,7 +64,7 @@ function guestSessionLines(data: Record<string, unknown>): string[] {
       if (line) lines.push(line)
     }
   }
-  if (lines.length) return lines
+  if (lines.length) return capSessionLines(lines)
   const fallback = formatGuestSessionLine({
     courtName: String(data.courtName || data.courtNumber || '').trim(),
     date: String(data.date || data.startDate || '').trim(),
@@ -268,7 +277,7 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       buyer ? `خریدار: ${buyer}` : '',
       phone ? `شماره تماس: ${toPersianDigits(phone)}` : '',
     ].filter(Boolean)
-    const lines = [header, '', ...meta, '', 'مشخصات:', ...sessionLines, '', 'Inboxs']
+    const lines = [header, '', ...meta, '', 'مشخصات:', ...capSessionLines(sessionLines), '', 'Inboxs']
     return lines.join('\n')
   },
   /**
@@ -350,6 +359,17 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     if (club) lines.push(`باشگاه: «${club}»`)
     if (when) lines.push(when)
     lines.push('', 'سریع رزرو کنید.', '', 'Inboxs')
+    return lines.join('\n')
+  },
+  COURT_DETAILS_CHANGED: (data) => {
+    const club = String(data.clubName || '').trim()
+    const court = String(data.courtName || '').trim()
+    const when = whenBit(data)
+    const lines = ['تغییر مشخصات زمین']
+    if (club) lines.push(`باشگاه: «${club}»`)
+    if (court) lines.push(`زمین: ${court}`)
+    if (when) lines.push(when)
+    lines.push('', 'جزئیات زمین رزرو آینده شما به‌روز شد.', '', 'Inboxs')
     return lines.join('\n')
   },
   /** Compact admin alerts — Verify Lookup token10 (~100 chars). */

@@ -17,7 +17,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const mapping = getClubMapping(club.slug)
-  const inboxSlots = await loadPublicClubSlots(club.id, date)
+  const inboxSlots = await loadPublicClubSlots(club.id, date, {
+    horizonDays: club.bookingHorizonDays,
+  })
   if (!inboxSlots.length) return { suspected: [], uncertain: [] }
 
   const courtsRaw = await prisma.court.findMany({

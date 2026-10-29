@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { jalaliMonthEndIso, jalaaliToIso } from './jalali'
-import { expandSeasonRules, legacySeasonToRules } from './seasonSessions'
+import {
+  deriveSeasonRulesFromSlots,
+  expandSeasonRules,
+  legacySeasonToRules,
+  maxIsoDate,
+} from './seasonSessions'
 
 describe('jalaliMonthEndIso', () => {
   it('returns last day of Farvardin from mid-month', () => {
@@ -49,5 +54,41 @@ describe('legacySeasonToRules', () => {
     expect(rules).toHaveLength(2)
     expect(rules[0]?.courtId).toBe('a')
     expect(rules[1]?.courtId).toBe('b')
+  })
+})
+
+describe('deriveSeasonRulesFromSlots', () => {
+  it('dedupes weekday/time/court patterns', () => {
+    const rules = deriveSeasonRulesFromSlots([
+      { date: '2026-09-26', startTime: '10:00', endTime: '11:00', courtId: 'c1' }, // Sat
+      { date: '2026-10-03', startTime: '10:00', endTime: '11:00', courtId: 'c1' }, // Sat again
+      { date: '2026-09-30', startTime: '18:00', endTime: '19:00', courtId: 'c2' }, // Wed
+    ])
+    expect(rules).toEqual([
+      { weekday: 'Sat', startTime: '10:00', endTime: '11:00', courtId: 'c1' },
+      { weekday: 'Wed', startTime: '18:00', endTime: '19:00', courtId: 'c2' },
+    ])
+  })
+
+  it('re-expands into later dates for an extend', () => {
+    const rules = deriveSeasonRulesFromSlots([
+      { date: '2026-09-26', startTime: '10:00', endTime: '11:00', courtId: 'c1' },
+    ])
+    const next = expandSeasonRules({
+      startDate: '2026-10-03',
+      finishDate: '2026-10-10',
+      rules,
+    })
+    expect(next).toEqual([
+      { date: '2026-10-03', startTime: '10:00', courtId: 'c1' },
+      { date: '2026-10-10', startTime: '10:00', courtId: 'c1' },
+    ])
+  })
+})
+
+describe('maxIsoDate', () => {
+  it('picks the latest valid ISO date', () => {
+    expect(maxIsoDate('2026-10-01', null, '2026-11-15', '', '2026-09-01')).toBe('2026-11-15')
+    expect(maxIsoDate()).toBe('')
   })
 })

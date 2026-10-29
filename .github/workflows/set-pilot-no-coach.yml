@@ -1,0 +1,63 @@
+# Ops: freeze or unfreeze coach product on Liara (env + restart; no full deploy).
+name: Set pilot no-coach
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Liara app name
+        required: true
+        default: inbox
+        type: choice
+        options:
+          - inbox
+          - inbox-staging
+      enabled:
+        description: Hide coach (true) or show coach (false)
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set PILOT_NO_COACH + restart
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+          APP: ${{ inputs.app }}
+          FLAG: ${{ inputs.enabled }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          echo "Setting PILOT_NO_COACH=${FLAG} on ${APP}"
+          liara env set --app="$APP" --api-token="$LIARA_TOKEN" --force \
+            "PILOT_NO_COACH=${FLAG}" \
+            "NUXT_PUBLIC_PILOT_NO_COACH=${FLAG}"
+          echo "Restarting ${APP}…"
+          liara restart --app="$APP" --api-token="$LIARA_TOKEN"
+
+          if [ "$APP" != "inbox" ]; then
+            echo "Non-prod app — skip inboxs.ir health probe"
+            exit 0
+          fi
+
+          echo "Waiting for health…"
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /tmp/h -w '%{http_code}' --max-time 15 https://inboxs.ir/api/health || echo 000)
+            body=$(cat /tmp/h 2>/dev/null || true)
+            echo "try $i: http=$code body=$body"
+            if [ "$code" = "200" ] && echo "$body" | grep -q '"ok":true'; then
+              echo "Live health OK"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health probe did not pass"
+          exit 1

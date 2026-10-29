@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
     || ''
   const mobile = booking.guestMobile || booking.user?.phone || ''
   const clubAddress = (club.addressFa || club.addressEn || '').trim()
-  const clubPhone = (club.phone || '').trim()
+  const clubPhone = (club.receiptPhone || club.phone || '').trim()
 
   const series = await loadSeriesGroupForBooking(booking.id)
 

@@ -35,6 +35,8 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
   it('maps past and taken slot 409s to booking error keys', () => {
     expect(fetchErrorMessage(err('SLOT_IN_PAST'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotInPast')
+    expect(fetchErrorMessage(err('DATE_BEYOND_HORIZON'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.dateBeyondHorizon')
     expect(fetchErrorMessage(err('Slot not available'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotNotAvailable')
     expect(fetchErrorMessage(err('HOLD_EXPIRED'), 'مشکلی پیش آمد', t))
@@ -50,6 +52,15 @@ describe('fetchErrorMessage desk reserve conflicts', () => {
       .toBe('i18n:booking.errors.startTimeTooSoon')
     expect(fetchErrorMessage(err('Target slot is not available'), 'مشکلی پیش آمد', t))
       .toBe('i18n:booking.errors.slotNotAvailable')
+  })
+
+  it('maps court audience booking gates', () => {
+    expect(fetchErrorMessage(err('COURT_GENDER_REQUIRED'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtGenderRequired')
+    expect(fetchErrorMessage(err('COURT_MEN_ONLY'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtMenOnly')
+    expect(fetchErrorMessage(err('COURT_WOMEN_ONLY'), 'مشکلی پیش آمد', t))
+      .toBe('i18n:booking.errors.courtWomenOnly')
   })
 })
 

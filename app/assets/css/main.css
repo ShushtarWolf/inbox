@@ -2181,10 +2181,44 @@
   }
   /* HTML .rnums span — 40×40 square (auto width when court has a name) */
   .canva-club-court-num {
-    @apply inline-flex h-10 min-w-10 shrink-0 items-center justify-center whitespace-nowrap px-2 text-[13px] font-bold text-brand-navy;
+    @apply inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-2 text-[13px] font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
     border: 1px solid #2c2c2a;
     background: #fff;
+  }
+  .canva-court-audience-tag {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold leading-none;
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-court-audience-MEN {
+    background: #dbe7f5;
+    color: #1e4a7a;
+  }
+  .canva-court-audience-WOMEN {
+    background: #f7dce6;
+    color: #8a2a4a;
+  }
+  .canva-court-audience-FAMILY {
+    background: #dcebe1;
+    color: #2e7d4f;
+  }
+  .canva-club-audience-warn {
+    @apply border border-[#c41e1e] bg-[#fdf2f2] px-3 py-2 text-[12px] font-medium leading-snug text-[#8a1a1a];
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-audience-seg {
+    @apply grid grid-cols-2 gap-1.5 sm:grid-cols-4;
+  }
+  .canva-audience-seg-btn {
+    @apply px-2 py-2 text-center text-[12px] font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+    border: 1px solid rgba(44, 44, 42, 0.18);
+    background: #ece8e2;
+  }
+  .canva-audience-seg-btn-on {
+    background: #2c2c2a;
+    border-color: #2c2c2a;
+    color: #fff;
   }
   .canva-club-court-num-focus {
     outline: 2px solid #1f2a5a;

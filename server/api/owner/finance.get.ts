@@ -1,5 +1,6 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
+import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
@@ -125,11 +126,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  function isBlockedSlot(booking: (typeof bookings)[number]) {
+    return booking.slot.displayStatus === 'BLOCKED'
+  }
+
   const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
   const activeSessions = coachSessions.filter((session) => session.status !== 'CANCELLED')
   const paidBookings = activeBookings.filter((booking) => countsTowardRevenue(booking.status, paymentStatusOf(booking)))
   const paidSessions = activeSessions.filter((session) => countsTowardRevenue(session.status, paymentStatusOf(session)))
-  const unpaidBookings = activeBookings.filter((booking) => isUnpaidPaymentStatus(paymentStatusOf(booking)))
+  // Blocks are desk holds, not receivables — keep them out of unpaid chips/totals.
+  const unpaidBookings = activeBookings.filter((booking) => !isBlockedSlot(booking) && isUnpaidPaymentStatus(paymentStatusOf(booking)))
   const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
 
   const revenue =
@@ -168,6 +174,7 @@ export default defineEventHandler(async (event) => {
   // Status-first buckets for pay-at-club clarity (not method-only).
   const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
   for (const booking of activeBookings) {
+    if (isBlockedSlot(booking)) continue
     const status = paymentStatusOf(booking)
     if (isUnpaidPaymentStatus(status)) {
       paymentTotals.UNPAID += 1
@@ -259,9 +266,14 @@ export default defineEventHandler(async (event) => {
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
       const paymentStatus = paymentStatusOf(booking)
+      const blocked = isBlockedSlot(booking)
       return {
         id: booking.id,
-        guestName: booking.guestName || booking.user?.name || 'Guest',
+        guestName: resolveLinkedGuestDisplayName({
+          guestName: booking.guestName,
+          guestFamily: booking.guestFamily,
+          userName: booking.user?.name,
+        }),
         guestMobile: booking.guestMobile || booking.user?.phone || null,
         paymentMethod: booking.payment?.method || booking.paymentMethod,
         paymentStatus,
@@ -288,7 +300,7 @@ export default defineEventHandler(async (event) => {
             return qty > 1 ? `${name} ×${toPersianDigits(String(qty))}` : name
           })
           .join(', ') || null,
-        unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatusOf(booking)),
+        unpaid: !blocked && booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
         ...discountFields(
           amountOfBooking(booking),
           booking.payment?.metadataJson,

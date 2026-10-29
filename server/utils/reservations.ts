@@ -1,3 +1,4 @@
+import { isDateBeyondBookingHorizon } from '#shared/bookingHorizon.ts'
 import { canManageReservation, minutesUntilSlotStart, todayDateString } from '#shared/localDate.ts'
 
 export { canManageReservation }
@@ -19,9 +20,16 @@ export function diffHours(from: Date, to: Date) {
 }
 
 /** Athlete / public booking only — desk & coach staff may create past-hour records. */
-export function assertSlotBookable(date: string, startTime: string) {
+export function assertSlotBookable(
+  date: string,
+  startTime: string,
+  opts?: { horizonDays?: number | null },
+) {
   if (minutesUntilSlotStart(date, startTime) <= 0) {
     throw createError({ statusCode: 409, statusMessage: 'SLOT_IN_PAST' })
+  }
+  if (opts?.horizonDays != null && isDateBeyondBookingHorizon(date, opts.horizonDays)) {
+    throw createError({ statusCode: 409, statusMessage: 'DATE_BEYOND_HORIZON' })
   }
 }
 

@@ -1,0 +1,34 @@
+# Ops: resend athlete BOOKING_PAID SMS for paid bookings whose original send failed.
+# Requires repo secret ADMIN_PROVISION_SECRET (same as Liara inbox app).
+name: Resend booking SMS
+
+on:
+  workflow_dispatch:
+    inputs:
+      booking_ids:
+        description: Comma-separated season primary / booking ids
+        required: true
+        type: string
+      dry_run:
+        description: Preview only (no SMS)
+        type: boolean
+        default: true
+
+jobs:
+  resend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resend
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          IDS: ${{ inputs.booking_ids }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          body=$(jq -nc --arg ids "$IDS" --argjson dry "$DRY" \
+            '{bookingIds: ($ids | split(",") | map(gsub("\\s"; "")) | map(select(length > 0))), dryRun: $dry}')
+          curl -sS --fail-with-body -X POST "https://inboxs.ir/api/admin/sms/resend-booking-paid" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            -d "$body" | jq .

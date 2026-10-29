@@ -19,6 +19,14 @@ enum Gender {
   FEMALE
 }
 
+/** Who may book a court. MIXED = no gender restriction (default for legacy rows). */
+enum CourtAudience {
+  MIXED
+  MEN
+  WOMEN
+  FAMILY
+}
+
 enum SlotDisplayStatus {
   FREE
   RESERVED
@@ -468,6 +476,8 @@ model Club {
   descriptionFa String?
   descriptionEn String?
   phone         String?
+  /** Number shown on public receipts (/r). Falls back to phone when empty. */
+  receiptPhone  String?
   whatsapp      String?
   amenitiesJson String?
   policiesJson  String?
@@ -478,6 +488,8 @@ model Club {
   priceTo       Int?
   cancellationWindowHours Int @default(12)
   rescheduleWindowHours   Int @default(24)
+  /** How many calendar days ahead athletes can book, including today (Tehran). */
+  bookingHorizonDays Int @default(14)
   waitlistEnabled Boolean @default(true)
   /** Iranian SHEBA / IBAN (IR + 24 digits). Required before withdraw. */
   sheba String?
@@ -523,6 +535,7 @@ model Court {
   facilitiesJson String?
   pricingJson    String?
   imagesJson     String?
+  audience       CourtAudience @default(MIXED)
 
   clubId  String
   club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
