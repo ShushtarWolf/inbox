@@ -104,11 +104,19 @@ function lockAdmin() {
             <input
               id="admin-secret"
               v-model="secretInput"
-              type="password"
-              class="neo-input"
+              type="text"
+              class="neo-input admin-secret-input"
               style="border-radius: 2px;"
               dir="ltr"
-              autocomplete="current-password"
+              name="inbox-admin-provision-secret"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="text"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-form-type="other"
               :disabled="verifying"
             />
           </AppFormField>
@@ -150,3 +158,10 @@ function lockAdmin() {
     <slot />
   </DashboardShell>
 </template>
+
+<style scoped>
+/* Mask like password without type=password (mobile paste + password managers). */
+.admin-secret-input {
+  -webkit-text-security: disc;
+}
+</style>
