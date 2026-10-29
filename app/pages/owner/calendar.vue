@@ -1521,6 +1521,12 @@ async function doSaveNote() {
   }
 }
 
+async function doDeleteNote(save: () => Promise<void>) {
+  if (saving.value || !window.confirm(t('owner.deleteNoteConfirm'))) return
+  form.comments = ''
+  await save()
+}
+
 async function doCreateManualOverride(type: 'RELEASE') {
   const slot = selectedSlotFull.value
   if (!slot || saving.value) return
@@ -3553,11 +3559,15 @@ watch(pilotNoCoach, (off) => {
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ detailCoachLabel() }}</span>
             </div>
-            <div class="canva-detail-row border-b-0">
+            <div class="canva-detail-row" :class="{ 'border-b-0': !slotNoteLine(selectedSlotFull) }">
               <span class="text-brand-gray-500">{{ t('owner.paymentStatusLabel') }}</span>
               <span class="font-bold text-brand-navy">
                 {{ slotPaymentStatus(selectedSlotFull) ? t(`booking.paymentStatus.${slotPaymentStatus(selectedSlotFull)}`) : '—' }}
               </span>
+            </div>
+            <div v-if="slotNoteLine(selectedSlotFull)" class="canva-detail-row border-b-0">
+              <span class="text-brand-gray-500">{{ t('owner.noteLabel') }}</span>
+              <span class="max-w-[60%] whitespace-pre-line text-start font-bold text-brand-navy">{{ slotNoteLine(selectedSlotFull) }}</span>
             </div>
 
             <div v-if="showBookedCancelChecks" class="mt-3 space-y-2">
@@ -3631,8 +3641,8 @@ watch(pilotNoCoach, (off) => {
                 {{ t('owner.cancelBooking') }}
               </button>
               <button type="button" class="canva-detail-note" @click="openCommentsForm">
-                <AppIcon name="add" size="sm" />
-                {{ t('owner.addNote') }}
+                <AppIcon v-if="!slotNoteLine(selectedSlotFull)" name="add" size="sm" />
+                {{ slotNoteLine(selectedSlotFull) ? t('owner.editNote') : t('owner.addNote') }}
               </button>
             </div>
           </div>
@@ -3720,6 +3730,15 @@ watch(pilotNoCoach, (off) => {
               @click="doSaveExternalNote"
             >
               {{ saving ? t('common.loading') : t('owner.confirmNote') }}
+            </button>
+            <button
+              v-if="externalOwnerNote(selectedSlotFull)"
+              type="button"
+              class="canva-gate-btn-secondary mt-2"
+              :disabled="saving"
+              @click="doDeleteNote(doSaveExternalNote)"
+            >
+              {{ t('owner.deleteNote') }}
             </button>
             <button type="button" class="canva-gate-btn-secondary mt-2" @click="closeMenu">
               {{ t('common.close') }}
@@ -4381,6 +4400,15 @@ watch(pilotNoCoach, (off) => {
               @click="doSaveNote"
             >
               {{ saving ? t('common.loading') : (reserveFlowReturn ? t('owner.saveNoteToForm') : t('owner.confirmNote')) }}
+            </button>
+            <button
+              v-if="!reserveFlowReturn && slotNoteLine(selectedSlotFull)"
+              type="button"
+              class="canva-gate-btn-secondary"
+              :disabled="saving"
+              @click="doDeleteNote(doSaveNote)"
+            >
+              {{ t('owner.deleteNote') }}
             </button>
           </div>
         </div>

@@ -13,9 +13,23 @@ export default defineEventHandler(async (event) => {
 
   const slot = await prisma.slot.findFirst({
     where: { id: body.slotId, court: { clubId: club.id } },
-    include: { booking: true },
+    include: { booking: { include: { payment: { select: { id: true } } } } },
   })
   if (!slot) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
+
+  const b = slot.booking
+  const noteOnly = b && !b.userId && !b.guestName && !b.guestFamily && !b.guestMobile
+    && !b.coachId && !b.packageDraftId && !b.payment && b.source === 'CLUB'
+  if (b && noteOnly && !commentsValue) {
+    // Deleting the note of a note-only hold releases the hour instead of leaving an empty PENDING booking.
+    await prisma.$transaction([
+      prisma.booking.delete({ where: { id: b.id } }),
+      ...(slot.displayStatus === 'PENDING'
+        ? [prisma.slot.update({ where: { id: slot.id }, data: { displayStatus: 'FREE' } })]
+        : []),
+    ])
+    return { ok: true, slotId: slot.id, comments: null, displayStatus: slot.displayStatus === 'PENDING' ? 'FREE' : slot.displayStatus }
+  }
 
   if (slot.booking) {
     await prisma.booking.update({
