@@ -43,7 +43,7 @@ type ClubCourt = {
   nameEn?: string
   price?: number
   pricingJson?: string | null
-  sport?: { slug?: string }
+  sport?: { slug?: string; nameFa?: string; nameEn?: string }
 }
 
 type ClubDetail = {
@@ -1266,7 +1266,8 @@ async function shareClub() {
                   :aria-current="focusedCourtId === court.id ? 'true' : undefined"
                   @click="toggleCourt(court.id)"
                 >
-                  {{ courtChipLabel(court, idx) }}
+                  <b class="canva-club-court-box">{{ formatNumber(courtDisplayNumber({ nameFa: court.nameFa || '', nameEn: court.nameEn }, idx)) }}</b>
+                  <span class="canva-club-court-name">{{ localizedField(court as Record<string, unknown>, 'nameFa', 'nameEn') || court.nameFa }}<template v-if="court.sport?.nameFa"> · {{ localizedField(court.sport as Record<string, unknown>, 'nameFa', 'nameEn') || court.sport.nameFa }}</template></span>
                 </button>
               </div>
               <p

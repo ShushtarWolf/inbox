@@ -5204,3 +5204,20 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .owner-support-page .owner-support-guide ul li { font-size: 13px; line-height: 26px; }
   .owner-support-page section > h2.text-sm { font-size: 14px; margin-bottom: 18px; }
 }
+
+/* club detail booking: SoT .rcts court rows + .chip time pills (desktop) */
+@media (min-width:431px){
+.canva-club-detail-book .canva-club-court-list{display:grid!important;gap:8px;margin-bottom:8px}
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num{display:flex!important;align-items:center;justify-content:flex-start!important;gap:12px;width:100%!important;height:auto!important;padding:10px 12px!important;border:1px solid rgba(44,44,42,.25)!important;background:#fff!important;outline:0!important;text-align:start}
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-focus,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-target,
+.canva-club-detail-book .canva-club-court-list .canva-club-court-num-active{border-color:#2c2c2a!important;outline:1px solid #2c2c2a!important}
+.canva-club-court-box{width:30px;height:30px;border:1px solid #2c2c2a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:400;flex:none}
+.canva-club-court-name{flex:1;font-size:13px}
+.canva-club-detail-book .canva-club-slot-grid{display:flex!important;flex-wrap:wrap;gap:6px}
+.canva-club-detail-book .canva-club-slot{display:inline-flex;flex-direction:column;align-items:center;padding:7px 14px;font-size:12px;line-height:1.3}
+.canva-club-detail-book .canva-club-slot-price{font-size:9.5px}
+.canva-club-detail-book .canva-club-slot-booked,
+.canva-club-detail-book .canva-club-slot-booked.canva-club-slot-active{background:#fff!important;border-color:rgba(44,44,42,.15)!important;opacity:.35;text-decoration:line-through}
+}
+@media (max-width:430px){.canva-club-court-box{all:unset}.canva-club-court-name{display:none}}
