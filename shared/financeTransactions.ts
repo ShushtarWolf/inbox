@@ -112,6 +112,33 @@ export function financeBookingKindOf(tx: {
   return 'normal'
 }
 
+/** Primary ledger type label: blocked / season / reserved (not payment status). */
+export type FinanceRowType = 'blocked' | 'season' | 'package' | 'coach' | 'reserved'
+
+export function financeRowTypeOf(tx: {
+  kind?: string | null
+  bookingKind?: string | null
+  sessionType?: string | null
+  displayStatus?: string | null
+  bookingStatus?: string | null
+  isRecurring?: boolean | null
+}): FinanceRowType {
+  if (tx.displayStatus === 'BLOCKED' || tx.bookingStatus === 'BLOCKED') return 'blocked'
+  if (tx.isRecurring) return 'season'
+  const kind = financeBookingKindOf(tx)
+  if (kind === 'package') return 'package'
+  if (kind === 'coach') return 'coach'
+  return 'reserved'
+}
+
+export function isBlockedFinanceTx(tx: {
+  kind?: string | null
+  displayStatus?: string | null
+  bookingStatus?: string | null
+}) {
+  return tx.kind === 'slot' || tx.displayStatus === 'BLOCKED' || tx.bookingStatus === 'BLOCKED'
+}
+
 function discountMatches(tx: FinanceTxTimes, raw: string) {
   const query = normalizeDiscountCode(latinDigits(raw))
   if (!query) return true

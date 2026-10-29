@@ -2,7 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
-import { financePaymentBucket, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -313,18 +313,29 @@ function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
 
-function methodBadgeClass(tx: { paymentMethod?: string | null; unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
+function methodBadgeClass(tx: OwnerFinanceTransaction) {
+  if (isBlockedFinanceTx(tx)) return ''
   const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
   if (bucket === 'ipg') return 'canva-finance-method-badge-ipg'
   if (bucket === 'cash') return 'canva-finance-method-badge-cash'
   return 'canva-finance-method-badge-unpaid'
 }
 
-function methodBadgeLabel(tx: { paymentMethod?: string | null; unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
+function methodBadgeLabel(tx: OwnerFinanceTransaction) {
+  if (isBlockedFinanceTx(tx)) return '—'
   const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
   if (bucket === 'ipg') return t('owner.financePage.methodCashless')
   if (bucket === 'cash') return t('owner.financePage.methodCash')
   return t('owner.financePage.methodUnpaid')
+}
+
+function rowTypeLabel(tx: OwnerFinanceTransaction) {
+  const type: FinanceRowType = financeRowTypeOf(tx)
+  if (type === 'blocked') return t('owner.financeTable.rowTypeBlocked')
+  if (type === 'season') return t('owner.financeTable.rowTypeSeason')
+  if (type === 'package') return t('owner.financeTable.bookingKindPackage')
+  if (type === 'coach') return t('owner.financeTable.bookingKindCoach')
+  return t('owner.financeTable.rowTypeReserved')
 }
 
 /** Canva day chips: رزروها / پرداخت‌نشده / عدم حضور — unpaidAmount is desk receivables, not payout. */
@@ -383,16 +394,10 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   sortDir: sortDir.value,
 }))
 
-function kindLabel(kind?: string | null) {
-  if (kind === 'package') return t('owner.financeTable.bookingKindPackage')
-  if (kind === 'coach') return t('owner.financeTable.bookingKindCoach')
-  return t('owner.financeTable.bookingKindNormal')
-}
-
 function downloadExcel() {
   const headers = [
     t('owner.financeTable.reservation'),
-    t('owner.financeTable.bookingKind'),
+    t('owner.financeTable.rowType'),
     t('owner.financeTable.guest'),
     t('owner.guestMobile'),
     t('owner.financeTable.reservedAt'),
@@ -407,13 +412,13 @@ function downloadExcel() {
   ]
   const rows = visibleTransactions.value.map((tx) => [
     tx.reservationLabel,
-    kindLabel(tx.bookingKind),
-    tx.guestName,
+    rowTypeLabel(tx),
+    tx.guestName || '',
     tx.guestMobile || '',
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
-    tx.kind === 'slot' ? '' : methodBadgeLabel(tx),
-    tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
+    isBlockedFinanceTx(tx) ? '' : methodBadgeLabel(tx),
+    isBlockedFinanceTx(tx) ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED') : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
     tx.discountPercent || '',
@@ -445,10 +450,6 @@ function stampDate(stamp?: string | null) {
 function stampTime(stamp?: string | null) {
   if (!stamp || stamp.length < 16) return ''
   return formatTimeLabel(stamp.slice(11, 16))
-}
-
-function isCoachTx(tx: OwnerFinanceTransaction) {
-  return tx.kind === 'coach' || tx.sessionType === 'coach'
 }
 
 function openTx(tx: OwnerFinanceTransaction) {
@@ -650,18 +651,12 @@ function showUnpaidList() {
                 {{ stampDate(tx.paidAt) }}
                 <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
               </p>
-              <p v-if="tx.guestName" class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
-              <span
-                v-if="isCoachTx(tx)"
-                class="canva-slot-coach-chip mt-1"
-              >{{ t('owner.financeTable.sessionCoachTag') }}</span>
+              <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName || '—' }}</p>
+              <span class="canva-slot-coach-chip mt-1">{{ rowTypeLabel(tx) }}</span>
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>
-              <span v-if="tx.kind === 'slot'" class="canva-finance-method-badge mt-1">
-                {{ bookingStatusLabel(tx.bookingStatus) }}
-              </span>
-              <span v-else class="canva-finance-method-badge mt-1" :class="methodBadgeClass(tx)">
+              <span class="canva-finance-method-badge mt-1" :class="methodBadgeClass(tx)">
                 {{ methodBadgeLabel(tx) }}
               </span>
             </div>
@@ -695,6 +690,7 @@ function showUnpaidList() {
                     <span v-if="sortKey === 'guest'" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                   </button>
                 </th>
+                <th>{{ t('owner.financeTable.rowType') }}</th>
                 <th :aria-sort="ariaSort('method')">
                   <button type="button" class="canva-finance-sort" @click="toggleSort('method')">
                     {{ t('owner.financeTable.method') }}
@@ -727,12 +723,10 @@ function showUnpaidList() {
                   </template>
                   <template v-else>—</template>
                 </td>
-                <td>{{ tx.guestName }}</td>
+                <td>{{ tx.guestName || '—' }}</td>
+                <td>{{ rowTypeLabel(tx) }}</td>
                 <td>
-                  <span v-if="tx.kind === 'slot'" class="canva-finance-method-badge">
-                    {{ bookingStatusLabel(tx.bookingStatus) }}
-                  </span>
-                  <span v-else class="canva-finance-method-badge" :class="methodBadgeClass(tx)">
+                  <span class="canva-finance-method-badge" :class="methodBadgeClass(tx)">
                     {{ methodBadgeLabel(tx) }}
                   </span>
                 </td>
@@ -909,12 +903,16 @@ function showUnpaidList() {
           <bdi dir="ltr" class="font-bold tabular-nums text-brand-navy">{{ selectedTx.guestMobile ? formatPhone(selectedTx.guestMobile) : '—' }}</bdi>
         </div>
         <div class="canva-contact-row">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.rowType') }}</span>
+          <span class="font-bold text-brand-navy">{{ rowTypeLabel(selectedTx) }}</span>
+        </div>
+        <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.method') }}</span>
-          <span class="font-bold text-brand-navy">{{ selectedTx.kind === 'slot' ? '—' : methodBadgeLabel(selectedTx) }}</span>
+          <span class="font-bold text-brand-navy">{{ methodBadgeLabel(selectedTx) }}</span>
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.status') }}</span>
-          <span class="font-bold text-brand-navy">{{ bookingStatusLabel(String(selectedTx.bookingStatus || '')) }}</span>
+          <span class="font-bold text-brand-navy">{{ bookingStatusLabel(String(selectedTx.bookingStatus || selectedTx.displayStatus || '')) }}</span>
         </div>
         <div v-if="selectedTx.discountCode" class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.discountCode') }}</span>
