@@ -238,7 +238,7 @@ function conflictLabel(c: ConflictRow) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg space-y-4 px-4 py-4">
+  <div class="canva-coach-packages mx-auto max-w-lg space-y-4 px-4 py-4">
     <h1 class="text-lg font-bold text-brand-navy">{{ t('owner.packages') }}</h1>
 
     <template v-if="!packagesEnabled">

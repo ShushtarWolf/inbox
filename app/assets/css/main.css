@@ -5229,3 +5229,10 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 .canva-auth-upload{display:flex!important;gap:10px;align-items:center;border:1px dashed rgba(44,44,42,.3)!important;background:transparent!important;padding:12px!important;border-radius:0!important}
 .canva-auth-upload .canva-auth-upload-btn{order:-1;background:#ece8e2!important;border:0!important;padding:5px 10px!important;font-size:11px!important;color:#2c2c2a!important;border-radius:0!important;min-height:34px}
 }
+
+/* coach fidelity: packages full-width start-aligned, flat empty card */
+@media (min-width:431px){
+  .canva-coach-packages{max-width:none!important;margin:0!important;padding:16px 0!important;text-align:start}
+  .canva-coach-packages h1{font-size:20px!important}
+  .canva-cal-sheet .tail-card{border-radius:0!important;box-shadow:none!important}
+}
