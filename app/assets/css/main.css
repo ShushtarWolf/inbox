@@ -5141,3 +5141,18 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .owner-finance-page .canva-finance-chart-bar:not(.canva-finance-chart-bar-active) { background: #e0deda; }
   .owner-finance-page .canva-finance-chart-label { font-size: 10px; margin-top: 4px; }
 }
+/* owner-settings SoT .cxin / .ost-h / .occh (desktop) — visual only */
+@media (min-width: 431px) {
+  .owner-settings-page .canva-panel > h2:first-child,
+  .owner-settings-page .canva-panel > .font-bold.text-brand-navy:first-child { font-size: 15px; line-height: 23px; margin-bottom: 10px; }
+  .owner-settings-page .canva-panel label .mb-1.block { font-size: 11px !important; color: #4a4a47 !important; font-weight: 400; line-height: 17px; margin: 0 0 4px; }
+  .owner-settings-page .neo-input, .owner-settings-page .neo-select { min-height: 42px !important; padding-top: 12px !important; padding-bottom: 12px !important; line-height: 16px; }
+  .owner-settings-page .canva-settings-chip { padding: 8px 14px; font-weight: 400; min-height: 34px; }
+  .owner-settings-page .canva-settings-chip-idle { background: #ece8e2; }
+  .owner-settings-page .canva-settings-chip-active { background: #2c2c2a; color: #fff; }
+  .owner-settings-page .canva-panel > .space-y-2 > p.text-sm.font-bold { font-size: 11px; font-weight: 400; color: #4a4a47; }
+  .owner-settings-page .canva-panel .btn-secondary { border-radius: 0 !important; box-shadow: none !important; border: 1px solid rgba(44,44,42,.14); background: #fff; padding: 8px 16px; min-height: 34px; font-size: 12px; font-weight: 500; }
+  .owner-settings-page .canva-panel .btn-secondary + button.text-xs { color: #c41e1e; font-weight: 400; }
+  .owner-settings-page input[readonly].neo-input { background: #ece8e2 !important; }
+  .owner-settings-page span[role="note"].text-red-600 { color: #c41e1e; font-weight: 400; font-size: 11px; }
+}
