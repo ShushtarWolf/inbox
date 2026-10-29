@@ -34,6 +34,8 @@ async function load() {
     if (status === 403) {
       loadError.value = t('admin.invalidSecret')
       clearSecret()
+    } else if (status === 404) {
+      loadError.value = t('admin.clubNotFound')
     } else {
       loadError.value = t('common.error')
     }

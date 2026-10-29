@@ -181,7 +181,7 @@ function sourceDetailLine(detail: SourceDetail) {
             <AppVenusSpinner size="sm" :label="t('common.loading')" />
           </div>
           <p v-else-if="error" class="px-4 py-8 text-center text-sm text-red-700">
-            {{ t('errors.generic') }}
+            {{ typeof error === 'string' && error ? error : t('common.error') }}
           </p>
           <div v-else class="canva-cal-grid-scroll">
             <div class="canva-cal-grid" :style="{ gridTemplateColumns }">
