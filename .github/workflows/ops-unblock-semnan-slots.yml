@@ -40,6 +40,7 @@ jobs:
             console.log('cmd_len=', cmd.length, 'url_len=', url.length)
 
             const out = []
+            const pending = []
             const ws = new WebSocket(url)
 
             await new Promise((resolve, reject) => {
@@ -49,9 +50,19 @@ jobs:
                 ws.send(JSON.stringify({ action: 'start', cols: 120, rows: 40 }))
               })
               ws.addEventListener('message', (ev) => {
-                const chunk = typeof ev.data === 'string' ? ev.data : Buffer.from(ev.data).toString()
-                out.push(chunk)
-                process.stdout.write(chunk)
+                const p = (async () => {
+                  const data = ev.data
+                  let chunk
+                  if (typeof data === 'string') chunk = data
+                  else if (typeof Blob !== 'undefined' && data instanceof Blob) chunk = await data.text()
+                  else if (Buffer.isBuffer(data)) chunk = data.toString()
+                  else if (data instanceof ArrayBuffer) chunk = Buffer.from(data).toString()
+                  else chunk = String(data)
+                  out.push(chunk)
+                  process.stdout.write(chunk)
+                })()
+                pending.push(p)
+                p.catch((e) => console.error('msg parse', e))
               })
               ws.addEventListener('close', () => {
                 clearTimeout(t)
@@ -62,10 +73,11 @@ jobs:
                 reject(err.error || err)
               })
             })
+            await Promise.all(pending)
 
             const text = out.join('')
             if (!text.includes('UPDATED=')) {
-              console.error('No UPDATED= in output')
+              console.error('No UPDATED= in output; got:', text.slice(0, 1000))
               process.exit(1)
             }
           })().catch((e) => {
