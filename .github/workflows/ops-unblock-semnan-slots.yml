@@ -1,5 +1,4 @@
 # One-shot ops: unblock tonight's blocked evening slots at Semnan (club-53cb71).
-# Runs Prisma inside the Liara app container (private DB network).
 name: Ops unblock Semnan slots
 on:
   workflow_dispatch:
@@ -7,21 +6,58 @@ on:
 jobs:
   unblock:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Unblock 21–23 on all Semnan courts (today)
+      - name: Unblock via DATABASE_URL from Liara env
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
 
-          # Script body may contain spaces; it is shipped as base64.
-          cat > /tmp/unblock.cjs <<'JS'
+          ENV_JSON=$(liara env list --app inbox --api-token="$LIARA_TOKEN" --output json)
+          export ENV_JSON
+          node <<'NODE'
+          const fs = require('fs')
+          const raw = process.env.ENV_JSON || ''
+          let parsed
+          try { parsed = JSON.parse(raw) } catch { parsed = null }
+          let url = null
+          if (Array.isArray(parsed)) {
+            const row = parsed.find((r) => (r.key || r.name) === 'DATABASE_URL')
+            url = row && (row.value || row.val)
+          } else if (parsed && typeof parsed === 'object') {
+            url = parsed.DATABASE_URL || (parsed.data && parsed.data.DATABASE_URL)
+          }
+          if (!url) {
+            for (const line of raw.split('\n')) {
+              const m = line.match(/^DATABASE_URL[=:\s]+(.+)$/)
+              if (m) { url = m[1].trim().replace(/^["']|["']$/g, ''); break }
+            }
+          }
+          if (!url) {
+            console.error('DATABASE_URL not found in liara env list')
+            console.error('sample:', raw.slice(0, 800))
+            process.exit(1)
+          }
+          const host = (url.match(/@([^/:]+)/) || [])[1] || '?'
+          console.log('DATABASE_URL host=', host)
+          fs.writeFileSync('/tmp/db.url', url)
+          NODE
+
+          export DATABASE_URL="$(cat /tmp/db.url)"
+          rm -f /tmp/db.url
+
+          npm install --no-save --omit=dev --no-audit --no-fund @prisma/client@6.19.3 prisma@6.19.3
+          npx prisma generate --schema=prisma/schema.prisma
+
+          node <<'JS'
           const { PrismaClient } = require('@prisma/client')
           const prisma = new PrismaClient()
           ;(async () => {
@@ -47,14 +83,6 @@ jobs:
             process.exit(1)
           })
           JS
-
-          SCRIPT_B64=$(base64 -w0 /tmp/unblock.cjs)
-
-          # liara shell splits -c on whitespace into exec argv.
-          # So: node | -e | <zero-whitespace JS that writes+runs the real script>
-          LAUNCH="require('fs').writeFileSync('/app/u.cjs',Buffer.from('${SCRIPT_B64}','base64'));var r=require('child_process').spawnSync(process.execPath,['/app/u.cjs'],{stdio:'inherit',cwd:'/app',env:process.env});try{require('fs').unlinkSync('/app/u.cjs')}catch(e){}process.exit(r.status==null?1:r.status)"
-
-          liara shell --app inbox --api-token="$LIARA_TOKEN" -c "node -e ${LAUNCH}"
 
           echo "Verifying public API…"
           sleep 2
