@@ -476,6 +476,8 @@ model Club {
   descriptionFa String?
   descriptionEn String?
   phone         String?
+  /** Number shown on public receipts (/r). Falls back to phone when empty. */
+  receiptPhone  String?
   whatsapp      String?
   amenitiesJson String?
   policiesJson  String?

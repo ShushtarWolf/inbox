@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     bookingHorizonDays?: number
     waitlistEnabled?: boolean
     phone?: string | null
+    receiptPhone?: string | null
     whatsapp?: string | null
     image?: string | null
     amenitiesJson?: string | null
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
   }
   if (body.district !== undefined) data.district = body.district?.trim() || null
   if (body.phone !== undefined) data.phone = body.phone?.trim() || null
+  if (body.receiptPhone !== undefined) data.receiptPhone = body.receiptPhone?.trim() || null
   if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp?.trim() || null
   if (body.image !== undefined) {
     const parsed = parseClubImageInput(body.image)
@@ -129,6 +131,7 @@ export default defineEventHandler(async (event) => {
     addressFa: updated.addressFa,
     addressEn: updated.addressEn,
     phone: updated.phone,
+    receiptPhone: updated.receiptPhone,
     whatsapp: updated.whatsapp,
     image: updated.image,
     openHour: updated.openHour,
