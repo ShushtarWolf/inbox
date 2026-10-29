@@ -786,7 +786,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
   border: 1px solid #ECE9E4;
   border-radius: 0;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(31, 31, 29, 0.04), 0 10px 28px -16px rgba(31, 31, 29, 0.14);
+  box-shadow: none;
 }
 .season-wiz-steps {
   scrollbar-width: none;
