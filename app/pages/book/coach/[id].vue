@@ -139,6 +139,8 @@ async function confirm() {
     done.value = true
     feedbackTone.value = 'success'
     feedback.value = t('booking.successCoachOnline')
+    // Payment required → straight to the gateway (Pay button stays as retry on stall).
+    await pay()
   } catch (error: unknown) {
     feedbackTone.value = 'error'
     feedback.value = fetchErrorMessage(error, t('booking.actionFailed'))
