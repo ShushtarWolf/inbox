@@ -1,4 +1,4 @@
-# One-shot ops: unblock tonight's blocked evening slots at Semnan (club-53cb71).
+# One-shot ops: unblock Semnan evening slots via liara shell + spaceless node -e.
 name: Ops unblock Semnan slots
 on:
   workflow_dispatch:
@@ -8,81 +8,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Unblock via DATABASE_URL from Liara env
+      - name: Unblock 21–23 via liara shell
         env:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           set -euo pipefail
           npm i -g @liara/cli@9
 
-          ENV_JSON=$(liara env list --app inbox --api-token="$LIARA_TOKEN" --output json)
-          export ENV_JSON
-          node <<'NODE'
-          const fs = require('fs')
-          const raw = process.env.ENV_JSON || ''
-          let parsed
-          try { parsed = JSON.parse(raw) } catch { parsed = null }
-          let url = null
-          if (Array.isArray(parsed)) {
-            const row = parsed.find((r) => (r.key || r.name) === 'DATABASE_URL')
-            url = row && (row.value || row.val)
-          } else if (parsed && typeof parsed === 'object') {
-            url = parsed.DATABASE_URL || (parsed.data && parsed.data.DATABASE_URL)
-          }
-          if (!url) {
-            for (const line of raw.split('\n')) {
-              const m = line.match(/^DATABASE_URL[=:\s]+(.+)$/)
-              if (m) { url = m[1].trim().replace(/^["']|["']$/g, ''); break }
-            }
-          }
-          if (!url) {
-            console.error('DATABASE_URL not found in liara env list')
-            console.error('sample:', raw.slice(0, 800))
-            process.exit(1)
-          }
-          const host = (url.match(/@([^/:]+)/) || [])[1] || '?'
-          console.log('DATABASE_URL host=', host)
-          fs.writeFileSync('/tmp/db.url', url)
-          NODE
+          # Must be ZERO whitespace: liara exec splits cmd on spaces into argv
+          # (node, -e, CODE). Also keep short — cmd is a raw WebSocket query param.
+          CODE="(async()=>{p=new(require('@prisma/client').PrismaClient);c=await(p.club.findUnique({where:{slug:'club-53cb71'},select:{id:true,nameFa:true}}));if(!c)process.exit(2);r=await(p.slot.updateMany({where:{date:'2026-10-29',startTime:{in:['21:00','22:00','23:00']},displayStatus:'BLOCKED',court:{clubId:c.id}},data:{displayStatus:'FREE'}}));console.log('UPDATED='+r.count);await(p.\$disconnect());process.exit(0)})().catch(e=>{console.error(e);process.exit(1)})"
 
-          export DATABASE_URL="$(cat /tmp/db.url)"
-          rm -f /tmp/db.url
+          if printf '%s' "$CODE" | grep -q '[[:space:]]'; then
+            echo 'CODE contains whitespace — abort'
+            exit 1
+          fi
+          echo "CODE_LEN=${#CODE}"
 
-          npm install --no-save --omit=dev --no-audit --no-fund @prisma/client@6.19.3 prisma@6.19.3
-          npx prisma generate --schema=prisma/schema.prisma
+          echo '=== probe /bin/echo ==='
+          set +e
+          timeout 25s liara shell --app inbox --api-token="$LIARA_TOKEN" -c '/bin/echo SHELL_OK' > /tmp/shell-echo.txt 2>&1
+          echo "echo_exit=$?"
+          set -e
+          cat /tmp/shell-echo.txt
 
-          node <<'JS'
-          const { PrismaClient } = require('@prisma/client')
-          const prisma = new PrismaClient()
-          ;(async () => {
-            const club = await prisma.club.findUnique({
-              where: { slug: 'club-53cb71' },
-              select: { id: true, nameFa: true },
-            })
-            if (!club) throw new Error('club not found')
-            const result = await prisma.slot.updateMany({
-              where: {
-                date: '2026-10-29',
-                startTime: { in: ['21:00', '22:00', '23:00'] },
-                displayStatus: 'BLOCKED',
-                court: { clubId: club.id },
-              },
-              data: { displayStatus: 'FREE' },
-            })
-            console.log(JSON.stringify({ club: club.nameFa, updated: result.count }))
-            await prisma.$disconnect()
-          })().catch(async (e) => {
-            console.error(e)
-            try { await prisma.$disconnect() } catch {}
-            process.exit(1)
-          })
-          JS
+          echo '=== unblock ==='
+          set +e
+          timeout 90s liara shell --app inbox --api-token="$LIARA_TOKEN" -c "node -e ${CODE}" > /tmp/shell-out.txt 2>&1
+          echo "shell_exit=$?"
+          set -e
+          cat /tmp/shell-out.txt
+
+          if ! grep -q 'UPDATED=' /tmp/shell-out.txt; then
+            echo 'Unblock did not report UPDATED='
+            exit 1
+          fi
 
           echo "Verifying public API…"
           sleep 2
