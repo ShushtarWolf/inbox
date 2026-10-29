@@ -1,4 +1,5 @@
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
+import { healedDisplayStatusForFreeSlot } from '#shared/slotBookingConsistency.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -54,6 +55,34 @@ export default defineEventHandler(async (event) => {
     },
     orderBy: [{ courtId: 'asc' }, { startTime: 'asc' }],
   })
+
+  // Self-heal FREE slots that still carry a live booking (e.g. a desk block whose slot
+  // drifted to FREE): otherwise the grid shows a bookable cell with only a ★ note.
+  for (const slot of slots) {
+    const healed = healedDisplayStatusForFreeSlot({
+      displayStatus: slot.displayStatus,
+      booking: slot.booking
+        ? {
+            status: slot.booking.status,
+            source: slot.booking.source,
+            hasPayment: Boolean(slot.booking.payment),
+            packageDraftId: slot.booking.packageDraftId,
+            coachId: slot.booking.coachId,
+          }
+        : null,
+    })
+    if (!healed) continue
+    const res = await prisma.slot.updateMany({
+      where: { id: slot.id, displayStatus: 'FREE' },
+      data: { displayStatus: healed },
+    })
+    if (res.count === 1) {
+      console.warn('[owner-calendar:heal-free-with-booking]', {
+        slotId: slot.id, bookingId: slot.booking?.id, date: slot.date, startTime: slot.startTime, to: healed,
+      })
+      slot.displayStatus = healed
+    }
+  }
 
   return {
     date,
