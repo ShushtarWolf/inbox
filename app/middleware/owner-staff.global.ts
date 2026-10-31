@@ -2,7 +2,11 @@ function stripLocale(path: string) {
   return path.replace(/^\/en(?=\/|$)/, '') || '/'
 }
 
-/** Hide owner «کارکنان» (/owner/workers + settings staff blocks) unless OWNER_STAFF_ENABLED. */
+/**
+ * Hide standalone owner «کارکنان» (/owner/workers + settings staff blocks) unless
+ * OWNER_STAFF_ENABLED. Does not affect /owner/calendar (desk ops, external staff
+ * overlay, coach pickers, etc.).
+ */
 export default defineNuxtRouteMiddleware((to) => {
   const { ownerStaffEnabled } = usePilotFlags()
   if (ownerStaffEnabled.value) return
