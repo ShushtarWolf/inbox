@@ -375,7 +375,7 @@ const costLines = computed(() => {
 const subtotalAmount = computed(() => costLines.value.reduce((sum, line) => sum + line.amount, 0))
 
 const discountAmount = computed(() => {
-  if (seasonActive.value || !appliedDiscount.value) return 0
+  if (!appliedDiscount.value) return 0
   return applyDiscountPercent(subtotalAmount.value, appliedDiscount.value.percent).discountAmount
 })
 
@@ -448,7 +448,6 @@ watch(weeklyRepeat, (on) => {
     return
   }
   equipmentQuantities.value = {}
-  appliedDiscount.value = null
   if (!seasonFinishDate.value && props.date) {
     seasonFinishDate.value = defaultAthleteSeasonFinishDate(props.date)
   }
@@ -591,6 +590,7 @@ async function submit(preferWallet = false) {
       startTime: slot.startTime,
       endTime: slot.endTime,
       slotIds: [slot.id],
+      discountCode: appliedDiscount.value?.code,
       preferWallet,
     })
     if (result && 'conflict' in result) {
@@ -835,7 +835,7 @@ async function submit(preferWallet = false) {
               <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
             </div>
 
-            <div class="canva-confirm-book-discount" :class="{ 'pointer-events-none opacity-50': seasonActive }">
+            <div class="canva-confirm-book-discount">
               <label class="sr-only" for="confirm-discount">{{ t('booking.discountCode') }}</label>
               <div class="canva-confirm-book-discount-row">
                 <input

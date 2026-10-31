@@ -96,6 +96,9 @@ export default defineEventHandler(async (event) => {
     paymentStatus?: string
     /** Ignored — conflicts are always soft-skipped. Kept for older clients. */
     acceptSkips?: boolean
+    discountCode?: string
+    deskDiscountPercent?: number
+    complimentary?: boolean
   }>(event)
 
   if (!body.startDate || !body.finishDate) {
@@ -145,6 +148,9 @@ export default defineEventHandler(async (event) => {
     comments: body.comments,
     paymentMethod,
     paymentStatus,
+    discountCode: body.discountCode,
+    deskDiscountPercent: body.deskDiscountPercent,
+    complimentary: body.complimentary === true,
   })
 
   // Cash unpaid still gets a pin when online payments are on (series link).

@@ -2872,6 +2872,11 @@ async function doSeasonReserve(opts?: { fromPayConfirm?: boolean }) {
         equipmentQuantities: form.equipmentIds.length ? equipmentQuantitiesPayload() : undefined,
         paymentMethod: form.paymentMethod,
         paymentStatus: form.paymentStatus,
+        discountCode: deskDiscount.value?.code,
+        deskDiscountPercent: !deskDiscount.value
+          ? (parseDeskPercent(deskPercentInput.value) || undefined)
+          : undefined,
+        complimentary: deskPayMode.value === 'complimentary',
       },
     })
     if (result.slotsCreated) {
@@ -4383,7 +4388,7 @@ watch(pilotNoCoach, (off) => {
                 <span class="canva-confirm-book-cost-label">{{ line.label }}</span>
                 <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(line.amount) }}</span>
               </div>
-              <div v-if="!pendingRecurringPay" class="canva-confirm-book-discount">
+              <div v-if="!pendingRecurringPay || pendingRecurringPay === 'season'" class="canva-confirm-book-discount">
                 <div class="canva-confirm-book-discount-row">
                   <input
                     v-model="deskDiscountInput"
@@ -4430,7 +4435,7 @@ watch(pilotNoCoach, (off) => {
                 <p v-if="deskDiscountError" class="canva-confirm-book-discount-note text-brand-primary">{{ deskDiscountError }}</p>
                 <p v-else class="canva-confirm-book-discount-note">{{ t('owner.deskPercentHint') }}</p>
               </div>
-              <div v-if="!pendingRecurringPay" class="canva-confirm-book-cost-row">
+              <div v-if="!pendingRecurringPay || pendingRecurringPay === 'season'" class="canva-confirm-book-cost-row">
                 <span class="canva-confirm-book-cost-label">{{ payConfirmDiscountLabel }}</span>
                 <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(payConfirmDiscountAmount) }}</span>
               </div>

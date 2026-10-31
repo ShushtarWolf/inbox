@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
     finishDate?: string
     startTime?: string
     endTime?: string
+    discountCode?: string
   }>(event)
 
   const clubId = String(body.clubId || '').trim()
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
     mode: 'athlete',
     forceUserId: user.id,
     actorUserId: user.id,
+    discountCode: body.discountCode,
   })
 
   if (!result.primaryBookingId) {

@@ -5,6 +5,8 @@ import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSession
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import { addDaysToIsoDate, isPastDate } from '#shared/localDate.ts'
+import { clampDiscountPercent } from '#shared/discountCode.ts'
+import { resolveDeskCharge } from '#shared/deskCharge.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -14,6 +16,8 @@ const route = useRoute()
 const { formatDate, formatCurrency, formatNumber, formatTimeLabel, formatFaDigits, formatPhone, formatDayNumber, formatMonth } = useFormatters()
 const { today } = useLocalDate()
 const { fetchErrorMessage } = useFetchError()
+const { user } = useAuth()
+const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const { recurringReserveEnabled } = usePilotFlags()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
@@ -56,6 +60,11 @@ const rules = ref<RuleRow[]>([])
 const occurrences = ref<PreviewRow[]>([])
 const conflicts = ref<ConflictRow[]>([])
 const totalAmount = ref(0)
+const discountInput = ref('')
+const discountApplying = ref(false)
+const discountError = ref('')
+const deskDiscount = ref<{ code: string; percent: number; discountAmount: number } | null>(null)
+const deskPercentInput = ref('')
 
 const lastPayLink = ref<{ url: string; pin: string; mobile: string; guestName?: string } | null>(null)
 const payLinkCopied = ref(false)
@@ -126,6 +135,78 @@ function toggleCourt(rule: RuleRow, courtId: string) {
 function removeOccurrence(index: number) {
   occurrences.value = occurrences.value.filter((_, i) => i !== index)
   totalAmount.value = occurrences.value.reduce((sum, row) => sum + (row.price || 0), 0)
+}
+
+const ownerClubId = computed(() => {
+  const memberships = user.value?.memberships || []
+  return memberships.find((m) => m.club.id === selectedClubId.value)?.club.id
+    || memberships[0]?.club.id
+    || ''
+})
+
+const seasonSubtotal = computed(() =>
+  occurrences.value.reduce((sum, row) => sum + (row.price || 0), 0),
+)
+
+const seasonDeskCharge = computed(() => resolveDeskCharge({
+  subtotal: seasonSubtotal.value,
+  percent: deskDiscount.value?.percent ?? parseDeskPercent(deskPercentInput.value),
+}))
+
+const seasonDiscountAmount = computed(() => seasonDeskCharge.value.discountAmount)
+const seasonPayTotal = computed(() => seasonDeskCharge.value.amount)
+
+function parseDeskPercent(raw: string) {
+  const ascii = String(raw || '')
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[^\d]/g, '')
+  if (!ascii) return 0
+  return clampDiscountPercent(Number(ascii))
+}
+
+function onDeskPercentInput() {
+  if (!deskDiscount.value) return
+  deskDiscount.value = null
+  discountInput.value = ''
+}
+
+async function applyDeskDiscount() {
+  discountError.value = ''
+  const clubId = ownerClubId.value
+  if (!clubId || !discountInput.value.trim()) return
+  discountApplying.value = true
+  try {
+    const result = await $fetch<{ code: string; percent: number; discountAmount: number }>('/api/discounts/validate', {
+      method: 'POST',
+      body: {
+        code: discountInput.value,
+        clubId,
+        subtotal: seasonSubtotal.value,
+      },
+    })
+    deskDiscount.value = {
+      code: result.code,
+      percent: result.percent,
+      discountAmount: result.discountAmount,
+    }
+    deskPercentInput.value = String(result.percent)
+    discountInput.value = result.code
+  }
+  catch {
+    deskDiscount.value = null
+    discountError.value = t('booking.discountApplyFailed')
+  }
+  finally {
+    discountApplying.value = false
+  }
+}
+
+function clearDeskDiscount() {
+  deskDiscount.value = null
+  discountError.value = ''
+  discountInput.value = ''
+  deskPercentInput.value = ''
 }
 
 const dateRangeInvalid = computed(() =>
@@ -336,6 +417,10 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
         })),
         paymentStatus: mode === 'cash' ? 'PAID' : 'PAY_AT_CLUB',
         paymentMethod: mode === 'cash' ? 'CASH' : (payAtClubMode.value ? 'CASH' : 'IPG'),
+        discountCode: deskDiscount.value?.code,
+        deskDiscountPercent: !deskDiscount.value
+          ? (parseDeskPercent(deskPercentInput.value) || undefined)
+          : undefined,
       },
     })
     slotsCreated.value = result.slotsCreated || occurrences.value.length
@@ -773,9 +858,71 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           </span>
         </div>
 
+        <div class="canva-confirm-book-discount mt-4 text-start">
+          <div class="canva-confirm-book-discount-row">
+            <input
+              v-model="discountInput"
+              type="text"
+              class="canva-confirm-book-discount-input"
+              :placeholder="t('booking.discountPlaceholder')"
+              :disabled="discountApplying || saving"
+              autocomplete="off"
+              @keydown.enter.prevent="applyDeskDiscount"
+            >
+            <button
+              v-if="deskDiscount"
+              type="button"
+              class="canva-confirm-book-discount-btn"
+              :disabled="saving"
+              @click="clearDeskDiscount"
+            >
+              {{ t('booking.discountClear') }}
+            </button>
+            <button
+              v-else
+              type="button"
+              class="canva-confirm-book-discount-btn"
+              :disabled="discountApplying || saving || !discountInput.trim()"
+              @click="applyDeskDiscount"
+            >
+              {{ discountApplying ? t('common.loading') : t('booking.discountApply') }}
+            </button>
+          </div>
+          <div class="mt-2 text-start">
+            <label class="canva-confirm-book-discount-note" for="season-desk-percent">{{ t('owner.deskPercentLabel') }}</label>
+            <input
+              id="season-desk-percent"
+              v-model="deskPercentInput"
+              type="text"
+              inputmode="numeric"
+              class="canva-confirm-book-discount-input mt-1 w-full"
+              :placeholder="t('owner.deskPercentPlaceholder')"
+              :disabled="saving"
+              autocomplete="off"
+              @input="onDeskPercentInput"
+            >
+          </div>
+          <p v-if="discountError" class="canva-confirm-book-discount-note text-brand-primary">{{ discountError }}</p>
+          <p v-else class="canva-confirm-book-discount-note">{{ t('owner.deskPercentHint') }}</p>
+        </div>
+        <div
+          v-if="seasonDiscountAmount > 0"
+          class="flex items-center justify-between gap-2 pt-2 text-sm text-brand-primary"
+        >
+          <span v-if="deskDiscount">
+            {{ t('booking.confirmLineDiscount', {
+              code: deskDiscount.code,
+              percent: formatNumber(deskDiscount.percent),
+            }) }}
+          </span>
+          <span v-else>
+            {{ t('owner.deskPercentLine', { percent: formatNumber(seasonDeskCharge.percent) }) }}
+          </span>
+          <span class="tabular-nums" dir="ltr">−{{ formatCurrency(seasonDiscountAmount) }}</span>
+        </div>
         <div class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4">
           <span class="text-sm font-semibold text-[#55534E]">{{ t('owner.seasonPage.totalFree') }}</span>
-          <b class="text-[21px] font-extrabold tabular-nums">{{ formatCurrency(totalAmount) }}</b>
+          <b class="text-[21px] font-extrabold tabular-nums">{{ formatCurrency(seasonPayTotal) }}</b>
         </div>
         <p class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.onePaymentHint') }}</p>
 

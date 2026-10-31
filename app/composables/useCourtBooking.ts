@@ -178,6 +178,7 @@ export function useCourtBooking() {
     startTime: string
     endTime?: string
     slotIds?: string[]
+    discountCode?: string
     preferWallet?: boolean
   }) {
     if (confirming.value) return null
@@ -213,6 +214,7 @@ export function useCourtBooking() {
           finishDate: opts.finishDate,
           startTime: opts.startTime,
           endTime: opts.endTime,
+          discountCode: opts.discountCode || undefined,
         },
       })
 
