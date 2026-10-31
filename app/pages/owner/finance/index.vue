@@ -882,17 +882,16 @@ function showUnpaidList() {
 
         <label class="block text-sm text-start">
           <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.withdrawAmount') }}</span>
+          <p v-if="!settlement?.sheba" class="mb-1 text-xs text-brand-primary">{{ t('owner.financePage.shebaRequired') }}</p>
           <AppNumericInput
             v-model="withdrawAmount"
             :min="1"
-            :disabled="!settlement?.sheba"
           />
         </label>
-        <p v-if="!settlement?.sheba" class="text-xs text-brand-primary text-start">{{ t('owner.financePage.shebaRequired') }}</p>
         <button
           type="button"
           class="canva-cta w-full"
-          :disabled="payoutBusy || !settlement?.sheba || !withdrawAmount || Number(withdrawAmount) > Number(settlement?.withdrawableBalance ?? 0)"
+          :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > Number(settlement?.withdrawableBalance ?? 0)"
           @click="submitWithdraw"
         >
           {{ t('owner.financePage.withdrawRequest') }}

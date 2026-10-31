@@ -304,19 +304,22 @@ watch(
         >
           {{ t('athlete.shebaSave') }}
         </button>
-        <p v-if="!data?.sheba" class="text-xs text-brand-primary">{{ t('athlete.shebaRequired') }}</p>
-        <AppFormField field-id="wallet-withdraw-amount" :label="t('athlete.withdrawAmount')" numeric>
+        <AppFormField
+          field-id="wallet-withdraw-amount"
+          :label="t('athlete.withdrawAmount')"
+          numeric
+          :hint="!data?.sheba ? t('athlete.shebaRequired') : undefined"
+        >
           <AppNumericInput
             id="wallet-withdraw-amount"
             v-model="withdrawAmount"
-            :disabled="!data?.sheba || withdrawableBalance <= 0"
             :placeholder="t('athlete.withdrawAmountPlaceholder')"
           />
         </AppFormField>
         <button
           type="button"
           class="canva-gate-btn-primary w-full"
-          :disabled="payoutBusy || !data?.sheba || !withdrawAmount || withdrawableBalance <= 0"
+          :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > withdrawableBalance"
           @click="requestWithdraw"
         >
           {{ t('athlete.withdrawRequest') }}
