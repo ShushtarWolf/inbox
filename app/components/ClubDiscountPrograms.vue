@@ -155,7 +155,7 @@ async function submitApply() {
           <div class="min-w-0">
             <p class="font-bold text-brand-navy">
               {{ localizedField(program, 'titleFa', 'titleEn') || program.titleFa }}
-              · {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(program.percent) }) }}
+              | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(program.percent) }) }}
             </p>
             <p
               v-if="localizedField(program, 'instructionsFa', 'instructionsEn')"
@@ -199,7 +199,7 @@ async function submitApply() {
       <div v-if="applyProgram" class="venus-form-stack space-y-3 p-4 text-start">
         <p class="text-sm text-brand-navy">
           {{ localizedField(applyProgram, 'titleFa', 'titleEn') || applyProgram.titleFa }}
-          · {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(applyProgram.percent) }) }}
+          | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(applyProgram.percent) }) }}
         </p>
         <p
           v-if="localizedField(applyProgram, 'instructionsFa', 'instructionsEn')"
@@ -208,22 +208,16 @@ async function submitApply() {
           {{ localizedField(applyProgram, 'instructionsFa', 'instructionsEn') }}
         </p>
 
-        <div>
-          <p class="mb-1 text-xs font-bold text-brand-navy">{{ t('clubs.discountProof1') }}</p>
-          <AppImageUpload
-            :model-value="proofUrls[0] || ''"
-            :label="t('clubs.discountProof1')"
-            @update:model-value="(url) => { proofSlot = 0; onProof(url) }"
-          />
-        </div>
-        <div>
-          <p class="mb-1 text-xs font-bold text-brand-navy">{{ t('clubs.discountProof2') }}</p>
-          <AppImageUpload
-            :model-value="proofUrls[1] || ''"
-            :label="t('clubs.discountProof2')"
-            @update:model-value="(url) => { proofSlot = 1; onProof(url) }"
-          />
-        </div>
+        <AppImageUpload
+          :model-value="proofUrls[0] || ''"
+          :label="t('clubs.discountProof1')"
+          @update:model-value="(url) => { proofSlot = 0; onProof(url) }"
+        />
+        <AppImageUpload
+          :model-value="proofUrls[1] || ''"
+          :label="t('clubs.discountProof2')"
+          @update:model-value="(url) => { proofSlot = 1; onProof(url) }"
+        />
 
         <AppFormField :label="t('clubs.discountNote')">
           <input v-model="note" class="neo-input" :placeholder="t('clubs.discountNotePlaceholder')">

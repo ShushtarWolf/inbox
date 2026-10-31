@@ -417,8 +417,8 @@ async function revokeMember(row: MemberRow) {
                 <span class="font-bold text-brand-navy">{{ localizedField(row, 'titleFa', 'titleEn') || row.titleFa }}</span>
                 <span class="mt-0.5 block text-xs text-brand-gray-600">
                   {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(row.percent) }) }}
-                  · {{ t('owner.discountsPage.pendingShort', { n: formatNumber(row._count?.applications || 0) }) }}
-                  · {{ t('owner.discountsPage.membersShort', { n: formatNumber(row._count?.memberships || 0) }) }}
+                  | {{ t('owner.discountsPage.pendingShort', { n: formatNumber(row._count?.applications || 0) }) }}
+                  | {{ t('owner.discountsPage.membersShort', { n: formatNumber(row._count?.memberships || 0) }) }}
                 </span>
               </span>
               <span
@@ -445,7 +445,7 @@ async function revokeMember(row: MemberRow) {
                 <span class="font-bold text-brand-navy">{{ app.user.name }}</span>
                 <span class="mt-0.5 block text-xs text-brand-gray-600">
                   {{ localizedField(app.program, 'titleFa', 'titleEn') || app.program.titleFa }}
-                  · {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(app.program.percent) }) }}
+                  | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(app.program.percent) }) }}
                 </span>
                 <span v-if="app.user.phone" class="mt-0.5 block text-xs text-brand-gray-500" dir="ltr">
                   <bdi dir="ltr">{{ formatPhone(app.user.phone) }}</bdi>
@@ -468,7 +468,7 @@ async function revokeMember(row: MemberRow) {
             <span class="min-w-0 text-start">
               <span class="font-bold text-brand-navy">{{ row.user.name }}</span>
               <span class="mt-0.5 block text-xs text-brand-gray-600">
-                {{ row.labelFa }} · {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(row.percent) }) }}
+                {{ row.labelFa }} | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(row.percent) }) }}
               </span>
             </span>
             <button type="button" class="shrink-0 text-xs font-bold text-brand-primary" @click="revokeMember(row)">
@@ -496,7 +496,7 @@ async function revokeMember(row: MemberRow) {
                 <span class="font-bold text-brand-navy" dir="ltr">{{ row.code }}</span>
                 <span class="mt-0.5 block text-xs text-brand-gray-600">
                   {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(row.percent) }) }}
-                  · {{ usageLabel(row) }}
+                  | {{ usageLabel(row) }}
                 </span>
                 <span v-if="rowLabel(row)" class="mt-0.5 block text-xs text-brand-gray-500">{{ rowLabel(row) }}</span>
               </span>
@@ -640,7 +640,7 @@ async function revokeMember(row: MemberRow) {
         <p class="font-bold text-brand-navy">{{ reviewApp.user.name }}</p>
         <p class="text-xs text-brand-gray-600">
           {{ localizedField(reviewApp.program, 'titleFa', 'titleEn') || reviewApp.program.titleFa }}
-          · {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(reviewApp.program.percent) }) }}
+          | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(reviewApp.program.percent) }) }}
         </p>
         <p v-if="reviewApp.note" class="text-sm text-brand-navy">{{ reviewApp.note }}</p>
         <div class="flex flex-wrap gap-2">
