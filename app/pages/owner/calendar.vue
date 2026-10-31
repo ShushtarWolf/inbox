@@ -5323,19 +5323,23 @@ watch(pilotNoCoach, (off) => {
   }
 }
 
-/* SoT owner-calendar .cell (inbox-all-pages.html L216-221): white cells, 4px right stripe,
-   charcoal selection outline; checkbox + «گذشته» hidden visually (selection logic unchanged). */
+/* SoT owner-calendar .cell (inbox-all-pages.html L216-221): free vs past, 4px right stripe,
+   charcoal selection outline; past slots show «گذشته» (selection logic unchanged). */
 :deep(.canva-cal-grid-cell) {
   min-height: 66px;
 }
 :deep(.canva-cal-grid-cell .canva-cal-grid-cell-bar) {
   width: 4px;
 }
-:deep(.canva-cal-grid-cell.slot-free),
-:deep(.canva-cal-grid-cell.slot-past) {
+:deep(.canva-cal-grid-cell.slot-free) {
   background: #ece9e4;
   color: #8f8f8b;
   box-shadow: inset -4px 0 0 #d4d2ce;
+}
+:deep(.canva-cal-grid-cell.slot-past) {
+  background: #dedcd8;
+  color: #8e8c88;
+  box-shadow: inset -4px 0 0 #c8c6c2;
 }
 :deep(.canva-cal-grid-cell.slot-reserved),
 :deep(.canva-cal-grid-cell.slot-reserved-cash),
@@ -5387,16 +5391,12 @@ watch(pilotNoCoach, (off) => {
 }
 :deep(.canva-cal-grid-cell .canva-cal-grid-check),
 :deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-check:not(.canva-cal-grid-check-on)) {
-  opacity: 0;
+  opacity: 0.35;
   pointer-events: none;
 }
 :deep(.canva-cal-grid-cell.slot-past .canva-cal-grid-cell-label) {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  color: #8e8c88;
+  font-weight: 600;
 }
 :deep(.canva-cal-grid-cell .canva-slot-pay-chip),
 :deep(.canva-cal-grid-cell .canva-slot-coach-chip) {
