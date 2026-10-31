@@ -11,6 +11,11 @@ import { payUrlForPin } from './receipt'
 import { syncClubContactForBooking } from './contactSync'
 import { formatHour, hourEnd, addMinutes, ensureSlotsForDate } from './slots'
 import { hourFromTime } from './seasonSlots'
+import {
+  redeemSeasonAthleteDiscount,
+  resolveSeasonSeriesCharge,
+  seasonSessionPaymentAmount,
+} from './seasonDiscount'
 import { prisma } from './prisma'
 
 export type SeasonPreviewItem = SeasonSessionOccurrence & {
@@ -130,6 +135,9 @@ export type CreateSeasonSessionsOpts = {
    * Skips pay-link grouping and never deletes the season row on failure.
    */
   existingSeasonBookingId?: string
+  discountCode?: string | null
+  deskDiscountPercent?: number | null
+  complimentary?: boolean
 }
 
 export type CreateSeasonSessionsResult = SeasonPreviewResult & {
@@ -214,7 +222,19 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
   // Appends are desk cash top-ups — do not open a fresh series pay link.
   const wantPayLink = !appending && !athleteMode && opts.paymentStatus !== 'PAID' && online
   const equipmentPrice = opts.equipmentPrice || 0
-  const seriesTotal = preview.totalAmount + equipmentPrice
+  const seriesCharge = await resolveSeasonSeriesCharge({
+    clubId: opts.clubId,
+    subtotal: preview.totalAmount + equipmentPrice,
+    athleteMode,
+    discountCode: opts.discountCode,
+    deskDiscountPercent: opts.deskDiscountPercent,
+    complimentary: opts.complimentary,
+    userId: opts.forceUserId,
+  })
+  const chargedSeriesTotal = seriesCharge.chargedTotal
+  const seriesDiscountMeta = seriesCharge.paymentMetadata
+  let remainingSeriesDiscount = seriesCharge.discountAmount
+  const groupedOnPrimary = athleteMode || wantPayLink
   const holdDisplay = athleteMode
     ? initialOnlineCourtHoldDisplay(online)
     : { displayStatus: 'RESERVED' as const, bookingStatus: 'CONFIRMED' as const }
@@ -257,9 +277,17 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
       }
 
       const sessionPrice = isPrimary ? row.price + equipmentPrice : row.price
-      const amount = athleteMode || wantPayLink
-        ? (isPrimary ? seriesTotal : 0)
-        : sessionPrice
+      const paymentSplit = seasonSessionPaymentAmount({
+        groupedOnPrimary,
+        isPrimary,
+        sessionPrice,
+        chargedSeriesTotal,
+        remainingDiscount: remainingSeriesDiscount,
+      })
+      const amount = paymentSplit.amount
+      if (!groupedOnPrimary) {
+        remainingSeriesDiscount = paymentSplit.remainingDiscount
+      }
 
       const claimed = await prisma.$transaction(async (tx) => {
         let slotId: string
@@ -317,6 +345,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
                 sessionPrice,
                 seasonBookingId: seasonRecord.id,
                 ...(amount === 0 ? { coveredBySeason: true } : {}),
+                ...(isPrimary && seriesDiscountMeta ? seriesDiscountMeta : {}),
               }),
             },
           })
@@ -331,6 +360,12 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
                 seasonBookingId: seasonRecord.id,
                 sessionPrice,
                 isPrimary,
+                ...(isPrimary && seriesDiscountMeta?.discountCode
+                  ? {
+                      discountCode: seriesDiscountMeta.discountCode,
+                      discountAmount: seriesDiscountMeta.discountAmount,
+                    }
+                  : {}),
               }),
             },
           })
@@ -364,6 +399,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
               sessionPrice,
               seasonBookingId: seasonRecord.id,
               ...(wantPayLink && !isPrimary ? { coveredBySeason: true } : {}),
+              ...(isPrimary && seriesDiscountMeta ? seriesDiscountMeta : {}),
             }),
           },
         })
@@ -495,6 +531,12 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
     }
   }
 
+  if (seriesCharge.redeemDiscountId) {
+    await prisma.$transaction(async (tx) => {
+      await redeemSeasonAthleteDiscount(tx, seriesCharge.redeemDiscountId)
+    })
+  }
+
   let payPin: string | undefined
   let payUrl: string | undefined
   if (wantPayLink && primaryBookingId) {
@@ -513,6 +555,6 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
     payUrl,
     slotsCreated: bookingIds.length,
     slotsSkipped: preview.conflicts.length,
-    totalAmount: seriesTotal,
+    totalAmount: chargedSeriesTotal,
   }
 }
