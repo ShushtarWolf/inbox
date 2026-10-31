@@ -1,4 +1,4 @@
-import { revokeDiscountMembership } from '../../../utils/discountMemberships'
+import { revokeDiscountMembership } from '../../../../utils/discountMemberships'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'settings')
