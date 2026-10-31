@@ -100,12 +100,14 @@ export async function getWalletWithdrawableBalance(
   return computeWithdrawableBalance(spendable, creditSum, clawbackSum, withdrawnViaRail)
 }
 
-/** Settlement nets still held until the day after class (coach wallet). */
+/**
+ * Settlement nets still held until the day after class (coach wallet).
+ * Sum ineligible SETTLEMENT_CREDIT only — do not use lockedBalance (includes withdraw holds).
+ */
 export async function getWalletPendingClassBalance(userId: string, now = new Date()) {
   const wallet = await prisma.wallet.findUnique({
     where: { userId },
     select: {
-      lockedBalance: true,
       transactions: {
         where: { type: 'SETTLEMENT_CREDIT' },
         select: { amount: true, paymentId: true },
@@ -113,7 +115,6 @@ export async function getWalletPendingClassBalance(userId: string, now = new Dat
     },
   })
   if (!wallet) return 0
-  if (wallet.lockedBalance > 0) return wallet.lockedBalance
   const paymentIds = wallet.transactions
     .map((row) => row.paymentId)
     .filter((id): id is string => Boolean(id))
@@ -460,24 +461,80 @@ export async function debitWallet(
   if (amount <= 0) {
     throw createError({ statusCode: 400, statusMessage: 'Debit amount must be positive' })
   }
-  const wallet = await getOrCreateWallet(userId, db)
-  if (meta.allowNegative) {
-    // Prefer locked, then available, allow total negative for settlement clawback.
-    const fromLocked = Math.min(wallet.lockedBalance, amount)
-    const fromAvailable = amount - fromLocked
-    const updated = await db.wallet.update({
-      where: { id: wallet.id },
-      data: {
-        balance: { decrement: amount },
-        lockedBalance: { decrement: fromLocked },
-        availableBalance: { decrement: fromAvailable },
-      },
-    })
-    await db.walletTransaction.create({
+  const type = meta.type || 'PAYMENT_DEBIT'
+  // Checkout retries / concurrent wallet pay: one PAYMENT_DEBIT per payment (+ booking for series).
+  const idempotent = Boolean(meta.paymentId && type === 'PAYMENT_DEBIT')
+
+  const apply = async (tx: DbClient) => {
+    const wallet = await getOrCreateWallet(userId, tx)
+    if (idempotent) {
+      const existing = await tx.walletTransaction.findFirst({
+        where: {
+          paymentId: meta.paymentId,
+          type,
+          ...(meta.bookingId ? { bookingId: meta.bookingId } : { bookingId: null }),
+        },
+      })
+      if (existing) return wallet
+    }
+
+    if (meta.allowNegative) {
+      // Prefer locked, then available, allow total negative for settlement clawback.
+      const fromLocked = Math.min(wallet.lockedBalance, amount)
+      const fromAvailable = amount - fromLocked
+      const updated = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: { decrement: amount },
+          lockedBalance: { decrement: fromLocked },
+          availableBalance: { decrement: fromAvailable },
+        },
+      })
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -amount,
+          type,
+          paymentId: meta.paymentId,
+          bookingId: meta.bookingId,
+          withdrawRequestId: meta.withdrawRequestId,
+          note: meta.note,
+        },
+      })
+      return updated
+    }
+
+    if (meta.fromLocked) {
+      const claimed = await tx.wallet.updateMany({
+        where: { id: wallet.id, lockedBalance: { gte: amount }, balance: { gte: amount } },
+        data: {
+          balance: { decrement: amount },
+          lockedBalance: { decrement: amount },
+        },
+      })
+      if (claimed.count !== 1) {
+        throw createError({ statusCode: 409, statusMessage: 'Insufficient locked wallet balance' })
+      }
+    }
+    else {
+      // Spend / transfer from available only.
+      const claimed = await tx.wallet.updateMany({
+        where: { id: wallet.id, availableBalance: { gte: amount }, balance: { gte: amount } },
+        data: {
+          balance: { decrement: amount },
+          availableBalance: { decrement: amount },
+        },
+      })
+      if (claimed.count !== 1) {
+        throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
+      }
+    }
+    const updated = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
+    await tx.walletTransaction.create({
       data: {
         walletId: wallet.id,
         amount: -amount,
-        type: meta.type || 'PAYMENT_DEBIT',
+        type,
         paymentId: meta.paymentId,
         bookingId: meta.bookingId,
         withdrawRequestId: meta.withdrawRequestId,
@@ -487,42 +544,19 @@ export async function debitWallet(
     return updated
   }
 
-  if (meta.fromLocked) {
-    const claimed = await db.wallet.updateMany({
-      where: { id: wallet.id, lockedBalance: { gte: amount }, balance: { gte: amount } },
-      data: {
-        balance: { decrement: amount },
-        lockedBalance: { decrement: amount },
-      },
-    })
-    if (claimed.count !== 1) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient locked wallet balance' })
+  // Own a transaction so P2002 after decrement rolls the balance change back.
+  if ('$transaction' in db && typeof db.$transaction === 'function') {
+    try {
+      return await db.$transaction((tx) => apply(tx))
+    }
+    catch (error) {
+      if (idempotent && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return getOrCreateWallet(userId, prisma)
+      }
+      throw error
     }
   }
-  else {
-    // Spend / transfer from available only.
-    const claimed = await db.wallet.updateMany({
-      where: { id: wallet.id, availableBalance: { gte: amount }, balance: { gte: amount } },
-      data: {
-        balance: { decrement: amount },
-        availableBalance: { decrement: amount },
-      },
-    })
-    if (claimed.count !== 1) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
-    }
-  }
-  const updated = await db.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
-  await db.walletTransaction.create({
-    data: {
-      walletId: wallet.id,
-      amount: -amount,
-      type: meta.type || 'PAYMENT_DEBIT',
-      paymentId: meta.paymentId,
-      bookingId: meta.bookingId,
-      withdrawRequestId: meta.withdrawRequestId,
-      note: meta.note,
-    },
-  })
-  return updated
+
+  // Nested in caller txn: let P2002 propagate so the outer txn rolls back the debit.
+  return apply(db)
 }

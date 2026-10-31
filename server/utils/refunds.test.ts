@@ -121,4 +121,16 @@ describe('refundPaymentForCancellation', () => {
     expect(result.walletCredited).toBe(false)
     expect(result.refunded).toBe(true)
   })
+
+  it('wallet credit failure: do not mark payment REFUNDED', async () => {
+    creditWallet.mockRejectedValue(new Error('wallet down'))
+    await expect(refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'user-1',
+      reason: 'cancel',
+      bookingId: 'b1',
+    })).rejects.toThrow('wallet down')
+    expect(update).not.toHaveBeenCalled()
+    expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
+  })
 })

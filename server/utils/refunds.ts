@@ -46,18 +46,14 @@ export async function refundPaymentForCancellation(options: {
     && payment.method !== 'CASH'
     && payment.method !== 'NOT_PAID'
 
+  // Credit before marking REFUNDED — never leave the athlete without credit on a refunded row.
   if (canCreditAthlete && options.userId) {
-    try {
-      await creditWallet(options.userId, payment.amount, {
-        paymentId: payment.id,
-        bookingId: options.bookingId,
-        note: options.reason,
-      })
-      walletCredited = true
-    }
-    catch (err) {
-      console.error('[refunds:creditWallet]', payment.id, err)
-    }
+    await creditWallet(options.userId, payment.amount, {
+      paymentId: payment.id,
+      bookingId: options.bookingId,
+      note: options.reason,
+    })
+    walletCredited = true
   }
 
   await prisma.payment.update({

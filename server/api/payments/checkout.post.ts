@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { Prisma } from '@prisma/client'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
 import {
@@ -125,38 +126,85 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
     const previousStatus = existingPayment?.status || ''
-    const payment = await prisma.$transaction(async (tx) => {
-      await debitWallet(user.id, payableAmount, {
-        bookingId: body.bookingId,
-        note: body.competitionEntryId
-          ? 'Competition entry payment from wallet'
-          : 'Booking payment from wallet',
-      }, tx)
-
+    const debitNote = body.competitionEntryId
+      ? 'Competition entry payment from wallet'
+      : 'Booking payment from wallet'
+    const { payment, claimedNow } = await prisma.$transaction(async (tx) => {
+      // Claim unpaid → PAID first so a parallel wallet pay cannot double-debit.
       if (existingPayment) {
-        return tx.payment.update({
-          where: { id: existingPayment.id },
+        const claimed = await tx.payment.updateMany({
+          where: {
+            id: existingPayment.id,
+            status: { notIn: ['PAID', 'REFUNDED'] },
+          },
           data: { status: 'PAID', method: 'PAID', provider: 'pay_at_club' },
         })
+        if (claimed.count !== 1) {
+          return {
+            payment: await tx.payment.findUniqueOrThrow({ where: { id: existingPayment.id } }),
+            claimedNow: false,
+          }
+        }
+        await debitWallet(user.id, payableAmount, {
+          type: 'PAYMENT_DEBIT',
+          paymentId: existingPayment.id,
+          bookingId: body.bookingId,
+          note: debitNote,
+        }, tx)
+        return {
+          payment: await tx.payment.findUniqueOrThrow({ where: { id: existingPayment.id } }),
+          claimedNow: true,
+        }
       }
 
       if (body.competitionEntryId && competitionId) {
-        const created = await tx.payment.create({
-          data: buildCompetitionWalletPaymentCreateData({
-            amount: payableAmount,
-            userId: user.id,
-            competitionEntryId: body.competitionEntryId,
-            competitionId,
-          }),
-        })
+        const idempotencyKey = competitionJoinIdempotencyKey(
+          competitionId,
+          user.id,
+          body.competitionEntryId,
+        )
+        let created
+        try {
+          created = await tx.payment.create({
+            data: {
+              ...buildCompetitionWalletPaymentCreateData({
+                amount: payableAmount,
+                userId: user.id,
+                competitionEntryId: body.competitionEntryId,
+                competitionId,
+              }),
+              idempotencyKey,
+            },
+          })
+        }
+        catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            const existing = await tx.payment.findUnique({ where: { idempotencyKey } })
+            if (existing?.status === 'PAID') {
+              // Idempotent debit recovers a rare create-without-debit; no-op if already debited.
+              await debitWallet(user.id, payableAmount, {
+                type: 'PAYMENT_DEBIT',
+                paymentId: existing.id,
+                note: debitNote,
+              }, tx)
+              return { payment: existing, claimedNow: false }
+            }
+          }
+          throw error
+        }
+        await debitWallet(user.id, payableAmount, {
+          type: 'PAYMENT_DEBIT',
+          paymentId: created.id,
+          note: debitNote,
+        }, tx)
         await tx.competitionEntry.update({
           where: { id: body.competitionEntryId },
           data: { paymentId: created.id },
         })
-        return created
+        return { payment: created, claimedNow: true }
       }
 
-      return tx.payment.create({
+      const created = await tx.payment.create({
         data: {
           amount: payableAmount,
           method: 'PAID',
@@ -168,11 +216,19 @@ export default defineEventHandler(async (event) => {
           purpose: 'booking',
         },
       })
+      await debitWallet(user.id, payableAmount, {
+        type: 'PAYMENT_DEBIT',
+        paymentId: created.id,
+        bookingId: body.bookingId,
+        note: debitNote,
+      }, tx)
+      return { payment: created, claimedNow: true }
     })
     await syncPaymentToParent(payment.id)
     await syncCompetitionEntryOnPayment(payment.id)
-    await creditOwnerForPaidPayment(payment.id, previousStatus)
-    await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
+    // Concurrent loser: claim skipped — settle is idempotent; skip duplicate paid SMS.
+    await creditOwnerForPaidPayment(payment.id, claimedNow ? previousStatus : 'PAID')
+    if (claimedNow) await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
       paymentId: payment.id,
       mode: getPaymentsMode(),

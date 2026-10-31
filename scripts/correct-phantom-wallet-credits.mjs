@@ -77,17 +77,26 @@ async function main() {
 
   for (const [walletId, info] of byWallet) {
     await prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.findUniqueOrThrow({ where: { id: walletId } })
+      // Keep balance = available + locked. Phantom REFUND_CREDIT landed in available.
+      const decTotal = Math.min(wallet.balance, info.total)
+      const decAvailable = Math.min(wallet.availableBalance, decTotal)
+      const decLocked = Math.min(wallet.lockedBalance, decTotal - decAvailable)
       await tx.walletTransaction.create({
         data: {
           walletId,
-          amount: -info.total,
+          amount: -decTotal,
           type: 'ADJUSTMENT',
-          note: `Correction: removed ${info.total} toman phantom credit from ${info.txIds.length} cash-cancellation refund(s)`,
+          note: `Correction: removed ${decTotal} toman phantom credit from ${info.txIds.length} cash-cancellation refund(s)`,
         },
       })
       await tx.wallet.update({
         where: { id: walletId },
-        data: { balance: { decrement: info.total } },
+        data: {
+          balance: { decrement: decTotal },
+          availableBalance: { decrement: decAvailable },
+          lockedBalance: { decrement: decLocked },
+        },
       })
     })
     console.log(`  Corrected wallet ${walletId} (${info.name || '?'}, ${info.phone || '?'}): -${info.total} toman`)

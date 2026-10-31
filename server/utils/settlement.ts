@@ -162,19 +162,24 @@ export async function getClubWithdrawableBalance(
   ])
   const balance = wallet?.balance ?? 0
   const availableBalance = wallet?.availableBalance ?? balance
-  const pendingClassBalance = wallet?.lockedBalance
-    ?? sumEligibleSettlementNet(entries, now).pending
-  if (availableBalance <= 0) {
-    return { balance, availableBalance, lockedBalance: wallet?.lockedBalance ?? 0, withdrawableBalance: 0, pendingClassBalance }
-  }
   const { eligible, pending } = sumEligibleSettlementNet(entries, now)
+  // Pending class ≠ lockedBalance (locked also holds withdraw requests).
+  if (availableBalance <= 0) {
+    return {
+      balance,
+      availableBalance,
+      lockedBalance: wallet?.lockedBalance ?? 0,
+      withdrawableBalance: 0,
+      pendingClassBalance: pending,
+    }
+  }
   const withdrawnViaRail = wallet ? await sumClubWithdrawnViaRail(wallet.id, db) : 0
   return {
     balance,
     availableBalance,
     lockedBalance: wallet?.lockedBalance ?? 0,
     withdrawableBalance: computeWithdrawableBalance(availableBalance, eligible, 0, withdrawnViaRail),
-    pendingClassBalance: wallet?.lockedBalance ?? pending,
+    pendingClassBalance: pending,
   }
 }
 
