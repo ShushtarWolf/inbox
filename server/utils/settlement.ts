@@ -818,18 +818,12 @@ export async function requestClubWithdraw(options: {
   }
 
   return prisma.$transaction(async (tx) => {
-    await unlockEligibleClubSettlements(options.clubId, new Date(), tx)
-    const wallet = await getOrCreateClubWallet(options.clubId, tx)
-    if (wallet.availableBalance < amount) {
+    // Same math the finance page shows (incl. partial series clawbacks) — never a looser gate.
+    const balances = await getClubWithdrawableBalance(options.clubId, new Date(), tx)
+    if (balances.availableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
     }
-    const entries = await tx.settlementLedgerEntry.findMany({
-      where: { clubId: options.clubId, clawedBackAt: null },
-      select: { ownerNet: true, classDate: true, clawedBackAt: true },
-    })
-    const { eligible } = sumEligibleSettlementNet(entries)
-    const withdrawnViaRail = await sumClubWithdrawnViaRail(wallet.id, tx)
-    if (computeWithdrawableBalance(wallet.availableBalance, eligible, 0, withdrawnViaRail) < amount) {
+    if (balances.withdrawableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
 

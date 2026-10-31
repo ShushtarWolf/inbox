@@ -1,4 +1,5 @@
 import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
+import { MANUAL_REFUND_MARKER } from '#shared/cancelRefund.ts'
 import { getEmailStatus } from '../../utils/email'
 import { getStorageStatus } from '../../utils/storage'
 
@@ -34,6 +35,7 @@ export default defineEventHandler(async (event) => {
     ticketsOpen,
     withdrawalsPending,
     athleteWithdrawalsPending,
+    manualRefundsOwed,
   ] = await Promise.all([
     prisma.club.count(),
     prisma.club.count({ where: { status: 'ACTIVE' } }),
@@ -72,6 +74,9 @@ export default defineEventHandler(async (event) => {
     prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
     prisma.withdrawRequest.count({ where: { status: 'PENDING' } }),
     prisma.userWithdrawRequest.count({ where: { status: 'PENDING' } }),
+    prisma.payment.count({
+      where: { status: 'REFUNDED', metadataJson: { contains: MANUAL_REFUND_MARKER } },
+    }),
   ])
 
   const email = getEmailStatus()
@@ -108,6 +113,8 @@ export default defineEventHandler(async (event) => {
       paidOnSiteCount: paymentsPaidOnSite._count,
       paidOnSiteAmount: paymentsPaidOnSite._sum.amount || 0,
       pendingCount: paymentsPending,
+      /** Online refunds with no athlete wallet (pay-link guests) — bank-refund manually. */
+      manualRefundsOwed,
     },
     applications: { pending: applicationsPending },
     tickets: { open: ticketsOpen },

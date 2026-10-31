@@ -222,6 +222,7 @@ async function applySeriesSessionRefund(opts: {
   const refundMeta = buildCancelRefundMetadata(existingMeta, {
     channel,
     reason: opts.reason,
+    manualRefund: channel === 'wallet_closed_loop' && !canCredit,
   })
 
   await prisma.$transaction(async (tx) => {

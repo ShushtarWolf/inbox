@@ -159,7 +159,7 @@ export default defineEventHandler(async (event) => {
   const monthStart = jalaaliToIso(jToday.jy, jToday.jm, 1)
   const weekStart = addDaysToIsoDate(today, -6)
   const revenueFrom = weekStart < monthStart ? weekStart : monthStart
-  const [revenueBookingRows, revenueSessionRows] = await Promise.all([
+  const [revenueBookingRows, revenueSessionRows, detachedKeptRows] = await Promise.all([
     prisma.booking.findMany({
       where: {
         slot: { court: { clubId: club.id }, date: { gte: revenueFrom, lte: today } },
@@ -183,17 +183,40 @@ export default defineEventHandler(async (event) => {
         payment: { select: { amount: true, method: true, status: true } },
       },
     }),
+    // Kept-on-cancel money whose cancelled booking was removed by a re-book (staleBooking.ts).
+    prisma.payment.findMany({
+      where: {
+        bookingId: null,
+        status: 'PAID',
+        metadataJson: { contains: `"detachedClubId":"${club.id}"` },
+      },
+      select: { id: true, amount: true, method: true, status: true, metadataJson: true },
+    }),
   ])
-  const courtRevenueRows = revenueBookingRows.map((row) => ({
-    date: row.slot.date,
-    paymentId: row.payment!.id,
-    revenue: {
-      amount: row.payment!.amount,
-      method: row.payment!.method,
-      status: row.payment!.status,
-      bookingStatus: row.status,
-    } satisfies RevenueRow,
-  }))
+  const courtRevenueRows = [
+    ...revenueBookingRows.map((row) => ({
+      date: row.slot.date,
+      paymentId: row.payment!.id,
+      revenue: {
+        amount: row.payment!.amount,
+        method: row.payment!.method,
+        status: row.payment!.status,
+        bookingStatus: row.status,
+      } satisfies RevenueRow,
+    })),
+    ...detachedKeptRows
+      .map((row) => ({
+        date: String(parsePaymentMetadata(row.metadataJson).detachedSlotDate || ''),
+        paymentId: row.id,
+        revenue: {
+          amount: row.amount,
+          method: row.method,
+          status: row.status,
+          bookingStatus: 'CANCELLED',
+        } satisfies RevenueRow,
+      }))
+      .filter((row) => row.date >= revenueFrom && row.date <= today),
+  ]
   // Coach lesson fees settle to the coach wallet (online) or the coach (cash) — not club money.
   const coachFeeRows = revenueSessionRows.map((row) => ({
     date: row.date,

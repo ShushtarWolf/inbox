@@ -380,7 +380,7 @@ export async function confirmPaymentAndSync(
         bookingId: refundBookingId,
       })
       const after = await prisma.payment.findUnique({ where: { id: intent.id } })
-      return toSafeIntent(after || { ...intent, status: 'REFUNDED' })
+      return toSafeIntent(after || { ...intent, status: 'REFUNDED', providerRef: intent.providerRef ?? null })
     }
     return intent
   }
@@ -416,7 +416,7 @@ export async function confirmPaymentAndSync(
           reason: 'Late pay after cancelled competition entry',
         })
         const after = await prisma.payment.findUnique({ where: { id: intent.id } })
-        return toSafeIntent(after || { ...intent, status: 'REFUNDED' })
+        return toSafeIntent(after || { ...intent, status: 'REFUNDED', providerRef: intent.providerRef ?? null })
       }
       return intent
     }

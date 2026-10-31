@@ -73,6 +73,7 @@ export async function refundPaymentForCancellation(options: {
   const nextMeta = buildCancelRefundMetadata(existingMeta, {
     channel,
     reason: options.reason,
+    manualRefund: channel === 'wallet_closed_loop' && !canCreditAthlete && payment.method !== 'NOT_PAID',
   })
 
   let walletCredited = false

@@ -20,6 +20,7 @@ type Overview = {
     paidOnSiteCount: number
     paidOnSiteAmount: number
     pendingCount: number
+    manualRefundsOwed?: number
   }
   applications: { pending: number }
   tickets?: { open: number }
@@ -151,6 +152,10 @@ watch(secret, (value) => {
             </div>
             <div class="admin-akv"><span>{{ t('admin.metrics.bookingsToday') }}</span><b dir="ltr">{{ formatNumber(data.bookings.today) }}</b></div>
             <div class="admin-akv"><span>{{ t('admin.metrics.pendingPayments') }}</span><b dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</b></div>
+            <div class="admin-akv">
+              <span>{{ t('admin.metrics.manualRefundsOwed') }}</span>
+              <b dir="ltr" :class="(data.payments.manualRefundsOwed || 0) > 0 ? 'text-red-600' : ''">{{ formatNumber(data.payments.manualRefundsOwed || 0) }}</b>
+            </div>
           </div>
         </div>
       </div>

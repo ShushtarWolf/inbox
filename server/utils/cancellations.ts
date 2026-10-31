@@ -32,8 +32,8 @@ export async function cancelCourtBooking(options: {
       })
   const linkedActive = linkedSession && linkedSession.status !== 'CANCELLED' ? linkedSession : null
 
-  let refund: RefundResult | null = null
-  let linkedRefund: RefundResult | null = null
+  let refund = null as RefundResult | null
+  let linkedRefund = null as RefundResult | null
   const paymentsToSync: string[] = []
 
   try {
@@ -147,8 +147,8 @@ export async function cancelCoachSession(options: {
     ? session.courtBooking
     : null
 
-  let refund: RefundResult | null = null
-  let courtRefund: RefundResult | null = null
+  let refund = null as RefundResult | null
+  let courtRefund = null as RefundResult | null
   const paymentsToSync: string[] = []
 
   try {
@@ -236,7 +236,7 @@ export async function cancelPackageBooking(options: {
   moneyOutcome?: CancelMoneyOutcome
 }) {
   const moneyOutcome = options.moneyOutcome || 'full_wallet_refund'
-  let refund: RefundResult | null = null
+  let refund = null as RefundResult | null
 
   try {
     await prisma.$transaction(async (tx) => {

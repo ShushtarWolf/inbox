@@ -1044,7 +1044,8 @@
       "openTickets": "تیکت‌های باز",
       "pendingWithdrawals": "برداشت‌های در انتظار",
       "bookingsToday": "رزرو امروز",
-      "pendingPayments": "پرداخت‌های معلق"
+      "pendingPayments": "پرداخت‌های معلق",
+      "manualRefundsOwed": "استرداد بانکی دستی (مهمان بدون کیف پول)"
     },
     "clubStatus": {
       "active": "فعال",

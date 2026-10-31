@@ -32,6 +32,8 @@ export function buildCancelRefundMetadata(
     channel: RefundChannel
     reason: string
     now?: Date
+    /** Online money with no athlete wallet to credit (pay-link guest) — ops must bank-refund. */
+    manualRefund?: boolean
   },
 ): Record<string, unknown> {
   const nowIso = (opts.now || new Date()).toISOString()
@@ -43,12 +45,16 @@ export function buildCancelRefundMetadata(
     /** Cancel path never calls SEP ReverseTransaction — float is closed-loop. */
     gatewayReversed: false,
   }
+  if (opts.manualRefund) base.manualRefundRequired = true
   if (opts.channel === 'desk_cash') {
     const prior = existing.deskCashReturn
     base.deskCashReturn = prior === 'returned' ? 'returned' : 'owed'
   }
   return base
 }
+
+/** Metadata substring used to count/list online refunds that still need a manual bank transfer. */
+export const MANUAL_REFUND_MARKER = '"manualRefundRequired":true'
 
 export function readDeskCashReturn(meta: Record<string, unknown>): DeskCashReturn | null {
   const v = meta.deskCashReturn

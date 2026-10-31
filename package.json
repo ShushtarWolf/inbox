@@ -49,6 +49,7 @@
     "test:e2e:ci": "node scripts/ci-e2e.mjs",
     "competition:go-no-go": "node scripts/competition-pilot-go-no-go.mjs",
     "test": "DATABASE_URL=postgresql://test:test@127.0.0.1:5432/test vitest run",
+    "test:money": "vitest run --config vitest.money.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint .",

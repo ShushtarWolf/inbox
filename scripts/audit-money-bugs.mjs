@@ -243,6 +243,20 @@ async function main() {
   console.log(`Orphan settlement entries: ${orphanLedger[0]?.n ?? 0}`)
   console.log(`Orphan wallet transactions: ${orphanWalletTx[0]?.n ?? 0}`)
 
+  section('8) Online refunds with no athlete wallet (pay-link guests) — bank refund owed')
+  const manualOwed = await prisma.$queryRaw`
+    SELECT p.id, p.amount, p.method, p."updatedAt"
+    FROM "Payment" p
+    WHERE p.status = 'REFUNDED'
+      AND p."metadataJson" LIKE '%"manualRefundRequired":true%'
+    ORDER BY p."updatedAt" DESC
+    LIMIT 100
+  `
+  console.log(`Manual bank refunds owed: ${manualOwed.length}`)
+  for (const row of manualOwed.slice(0, 30)) {
+    console.log(`  payment=${row.id} amount=${row.amount} method=${row.method}`)
+  }
+
   section('Dump gate')
   console.log('Before APPLY=yes correction scripts or migrate deploy on shared/prod DB:')
   console.log('  - Keep a local dump under backups/ (gh workflow backup-db.yml or liara db backup download)')

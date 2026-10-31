@@ -151,6 +151,22 @@ describe('refundPaymentForCancellation', () => {
     })
   })
 
+  it('IPG guest without wallet: flags manual bank refund instead of silently dropping money', async () => {
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: null,
+      reason: 'owner-cancel',
+      bookingId: 'b1',
+    })
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadataJson: expect.stringContaining('"manualRefundRequired":true'),
+      }),
+    }))
+    expect(result.walletCredited).toBe(false)
+  })
+
   it('wallet credit failure: do not mark payment REFUNDED or clawback', async () => {
     creditWallet.mockRejectedValue(new Error('wallet down'))
     await expect(refundPaymentForCancellation({

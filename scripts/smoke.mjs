@@ -7,6 +7,10 @@ const cookieJar = createCookieJar()
 const oneDayMs = 24 * 60 * 60 * 1000
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const payAtClub = (process.env.PAYMENTS_MODE || process.env.NUXT_PUBLIC_PAYMENTS_MODE || 'pay_at_club') === 'pay_at_club'
+// Season/recurring + package reserve are feature-flagged; only expect 403 when the flag is off.
+const envOn = (...keys) => keys.some((key) => process.env[key] === 'true')
+const recurringOn = envOn('RECURRING_RESERVE_ENABLED', 'NUXT_PUBLIC_RECURRING_RESERVE_ENABLED')
+const packagesOn = envOn('PACKAGES_ENABLED', 'NUXT_PUBLIC_PACKAGES_ENABLED')
 
 function sessionHeaders(session) {
   const headers = new Headers()
@@ -200,7 +204,7 @@ async function main() {
   const seasonDate = dateOffset(21)
   const calendar = await check(`/api/owner/calendar?date=${seasonDate}`, { session: 'owner' })
   const freeSlots = (calendar.slots || []).filter((slot) => slot.displayStatus === 'FREE')
-  if (freeSlots.length >= 1) {
+  if (freeSlots.length >= 1 && !recurringOn) {
     const seasonSlot = freeSlots[0]
     const weekday = DAY_NAMES[new Date(`${seasonSlot.date}T12:00:00Z`).getUTCDay()]
     const seasonFinish = dateOffset(28)
@@ -248,7 +252,7 @@ async function main() {
   const packageDate = dateOffset(35)
   const packageCalendar = await check(`/api/owner/calendar?date=${packageDate}`, { session: 'owner' })
   const packageSlot = (packageCalendar.slots || []).find((slot) => slot.displayStatus === 'FREE')
-  if (packageSlot) {
+  if (packageSlot && !packagesOn) {
     const weekday = DAY_NAMES[new Date(`${packageSlot.date}T12:00:00Z`).getUTCDay()]
     const packageFinish = dateOffset(42)
     const packageRes = await fetch(`${base}/api/owner/package-reserve`, {
@@ -320,23 +324,28 @@ async function main() {
   await check('/api/notifications', { session: 'athlete' })
 
   if (slots.length >= 1 && !payAtClub) {
-    const booking = await check('/api/bookings/court', {
+    const walletAvailable = async () => Number((await check('/api/wallet', { session: 'athlete' })).availableBalance || 0)
+    const bookSlot = () => check('/api/bookings/court', {
       method: 'POST',
       session: 'athlete',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ slotId: slots[0].id }),
     })
+    const walletStart = await walletAvailable()
+
+    // 1) IPG pay (test gateway) → cancel outside window → full amount back to wallet.
+    const booking = await bookSlot()
     const checkout = await check('/api/payments/checkout', {
       method: 'POST',
       session: 'athlete',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ bookingId: booking.id }),
     })
-    // When online (test/live), exercise callback confirm + idempotent second hit without real IPG secrets.
     const providerRef = checkout?.intent?.providerRef
     const provider = checkout?.intent?.provider
+    const paidAmount = Number(checkout?.intent?.amount || 0)
     if (providerRef && provider && provider !== 'pay_at_club' && checkout?.intent?.status === 'PENDING_ONLINE') {
-      const okPath = `/payments/callback/${provider}?Authority=${encodeURIComponent(providerRef)}&Status=OK`
+      const okPath = `/payments/callback/${provider}?ResNum=${encodeURIComponent(providerRef)}&State=OK`
       const first = await fetch(`${base}${okPath}`, { redirect: 'manual' })
       if (![302, 303].includes(first.status)) {
         throw new Error(`payment callback expected redirect, got ${first.status}`)
@@ -345,14 +354,58 @@ async function main() {
       if (!/payment=success/.test(loc)) {
         throw new Error(`payment callback success redirect missing: ${loc}`)
       }
-      // Idempotent double-hit
       const second = await fetch(`${base}${okPath}`, { redirect: 'manual' })
       if (![302, 303].includes(second.status)) {
         throw new Error(`payment callback re-hit expected redirect, got ${second.status}`)
       }
       console.log('ok  online payment callback verify (idempotent)')
+
+      const cancelled = await check(`/api/bookings/${booking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
+      if (!cancelled.refund?.walletCredited || cancelled.refund?.amount !== paidAmount) {
+        throw new Error(`IPG cancel refund mismatch: ${JSON.stringify(cancelled.refund)}`)
+      }
+      const afterRefund = await walletAvailable()
+      if (afterRefund !== walletStart + paidAmount) {
+        throw new Error(`wallet after IPG refund ${afterRefund}, expected ${walletStart + paidAmount}`)
+      }
+      console.log('ok  IPG cancel credits athlete wallet exactly once')
+
+      // 2) Re-book the same (cancelled) slot and pay from wallet → cancel → balance restored.
+      const walletBooking = await bookSlot()
+      const walletPay = await check('/api/payments/checkout', {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ bookingId: walletBooking.id, useWallet: true }),
+      })
+      if (walletPay?.intent?.status !== 'PAID') {
+        throw new Error(`wallet checkout not PAID: ${JSON.stringify(walletPay?.intent)}`)
+      }
+      const walletCharge = Number(walletPay.intent.amount || 0)
+      const afterSpend = await walletAvailable()
+      if (afterSpend !== afterRefund - walletCharge) {
+        throw new Error(`wallet after spend ${afterSpend}, expected ${afterRefund - walletCharge}`)
+      }
+      // Idempotent wallet checkout retry must not debit twice.
+      await check('/api/payments/checkout', {
+        method: 'POST',
+        session: 'athlete',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ bookingId: walletBooking.id, useWallet: true }),
+      })
+      if (await walletAvailable() !== afterSpend) {
+        throw new Error('wallet checkout retry double-debited')
+      }
+      await check(`/api/bookings/${walletBooking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
+      const end = await walletAvailable()
+      if (end !== afterRefund) {
+        throw new Error(`wallet after wallet-pay cancel ${end}, expected ${afterRefund}`)
+      }
+      console.log('ok  wallet pay → cancel round-trip (no double debit)')
     }
-    await check(`/api/bookings/${booking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
+    else {
+      await check(`/api/bookings/${booking.id}/cancel`, { method: 'PATCH', session: 'athlete' })
+    }
   }
 
   console.log('smoke ok')
