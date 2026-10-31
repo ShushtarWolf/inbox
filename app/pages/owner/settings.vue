@@ -95,7 +95,7 @@ const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
 const { formatNumber, formatCurrency, formatPhone, formatFaDigits } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
-const { pilotNoCoach } = usePilotFlags()
+const { ownerStaffEnabled, pilotNoCoach } = usePilotFlags()
 const { fetch: fetchAuth } = useAuth()
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerSettingsResponse>('/api/owner/settings')
 const { data: courtsData, refresh: refreshCourts } = await useAuthedFetch<OwnerCourtListItem[]>('/api/owner/courts')
@@ -128,8 +128,8 @@ watch(inviteRole, (role) => {
   invitePermissions.value = [...defaultPermissionsForRole(role)]
 })
 
-watch(isOwner, (owner) => {
-  if (owner) refreshStaff()
+watch([isOwner, ownerStaffEnabled], ([owner, staffOn]) => {
+  if (owner && staffOn) refreshStaff()
 }, { immediate: true })
 
 const saving = ref(false)
@@ -884,12 +884,12 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           />
         </div>
 
-        <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
+        <div v-if="isOwner && ownerStaffEnabled" class="canva-panel canva-settings-span space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.workersSection') }}</h2>
           <OwnerWorkersPanel embedded />
         </div>
 
-        <div v-if="isOwner" class="canva-panel canva-settings-span space-y-3">
+        <div v-if="isOwner && ownerStaffEnabled" class="canva-panel canva-settings-span space-y-3">
           <h2 class="font-bold text-brand-navy">{{ t('owner.settingsPage.staffAccess') }}</h2>
           <p class="text-sm text-brand-gray-600">{{ t('owner.settingsPage.staffAccessHint') }}</p>
 

@@ -2,6 +2,7 @@ export function usePilotFlags() {
   const config = useRuntimeConfig()
   const pilotNoCoach = computed(() => Boolean(config.public.pilotNoCoach))
   const competitionsEnabled = computed(() => Boolean(config.public.competitionsEnabled))
+  const ownerStaffEnabled = computed(() => Boolean(config.public.ownerStaffEnabled))
   const packagesEnabled = computed(() => Boolean(config.public.packagesEnabled))
   const recurringReserveEnabled = computed(() => Boolean(config.public.recurringReserveEnabled))
   const athleteSeasonEnabled = computed(() => Boolean(config.public.athleteSeasonEnabled))
@@ -18,6 +19,7 @@ export function usePilotFlags() {
 
   return {
     pilotNoCoach,
+    ownerStaffEnabled,
     competitionsEnabled,
     packagesEnabled,
     recurringReserveEnabled,

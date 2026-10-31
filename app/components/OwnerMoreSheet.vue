@@ -7,7 +7,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { user } = useAuth()
-const { competitionsVisibleForClub, packagesEnabled } = usePilotFlags()
+const { competitionsVisibleForClub, ownerStaffEnabled, packagesEnabled } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 
 const activeMembership = computed(() => {
@@ -35,7 +35,7 @@ const tiles = computed(() => {
 
   return items
     .filter((item) => {
-      if (item.path === '/owner/workers' && !isOwner) return false
+      if (item.path === '/owner/workers' && (!isOwner || !ownerStaffEnabled.value)) return false
       if ((item.path === '/owner/packages' || item.path === '/owner/reserve/package') && !packagesEnabled.value) return false
       if (item.path === '/owner/competitions' && !competitionsVisibleForClub(membership?.club?.slug)) return false
       if (item.path === '/owner/reserve/package' && !canAccessOwnerNav('/owner/packages', permissions, isOwner)) return false

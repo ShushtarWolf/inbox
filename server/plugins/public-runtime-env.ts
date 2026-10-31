@@ -45,6 +45,14 @@ export default defineNitroPlugin(() => {
     }
   }
 
+  if (process.env.NUXT_PUBLIC_OWNER_STAFF_ENABLED === 'true' || process.env.OWNER_STAFF_ENABLED === 'true') {
+    try {
+      publicConfig.ownerStaffEnabled = true
+    } catch {
+      // Frozen runtimeConfig — set NUXT_PUBLIC_OWNER_STAFF_ENABLED instead.
+    }
+  }
+
   if (
     process.env.NUXT_PUBLIC_RECURRING_RESERVE_ENABLED === 'true'
     || process.env.RECURRING_RESERVE_ENABLED === 'true'

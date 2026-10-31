@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const { user, fetch: fetchAuth } = useAuth()
 const { localizedField } = useLocalizedField()
-const { competitionsEnabled, competitionsVisibleForClub, packagesEnabled } = usePilotFlags()
+const { competitionsEnabled, competitionsVisibleForClub, ownerStaffEnabled, packagesEnabled } = usePilotFlags()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
 const ownerClubVersion = ref(0)
 const moreOpen = ref(false)
@@ -45,7 +45,7 @@ function filterNav<T extends { path: string }>(items: readonly T[]) {
   const isOwner = role === 'OWNER'
 
   return items.filter((item) => {
-    if (item.path === '/owner/workers' && !isOwner) return false
+    if (item.path === '/owner/workers' && (!isOwner || !ownerStaffEnabled.value)) return false
     if (item.path === '/owner/packages' && !packagesEnabled.value) return false
     if (item.path === '/owner/competitions' && !competitionsVisibleForClub(activeMembership.value?.club?.slug)) return false
     return canAccessOwnerNav(item.path, permissions, isOwner)

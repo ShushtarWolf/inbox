@@ -231,6 +231,10 @@ export default defineNuxtConfig({
           || process.env.COMPETITIONS_PILOT_CLUB_SLUG
           || '',
         ) || '',
+      // Owner «کارکنان» (workers roster + desk staff invites). Default off until re-enabled.
+      ownerStaffEnabled:
+        process.env.NUXT_PUBLIC_OWNER_STAFF_ENABLED === 'true'
+        || process.env.OWNER_STAFF_ENABLED === 'true',
       // Class packages (owner + coach create). Default off; independent of recurring desk reserve.
       packagesEnabled:
         process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
