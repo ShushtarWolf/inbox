@@ -12,8 +12,10 @@ const props = defineProps<{
 const { t } = useI18n()
 const { formatCurrency, formatNumber } = useFormatters()
 
+const showEquipmentRow = computed(() => (props.equipmentPrice ?? 0) > 0)
+
 const perSessionTotal = computed(() =>
-  props.courtPrice + (props.coachPrice || 0) + (props.equipmentPrice || 0),
+  props.courtPrice + (props.coachPrice || 0) + (showEquipmentRow.value ? (props.equipmentPrice || 0) : 0),
 )
 
 const sessions = computed(() => Math.max(0, props.sessionCount || 0))
@@ -39,9 +41,9 @@ function priceLabel(amount: number) {
       <span class="font-medium text-brand-gray-600">{{ t('owner.priceBreakdown.coach') }}</span>
       <span class="font-bold text-brand-navy">{{ priceLabel(coachPrice) }}</span>
     </div>
-    <div class="mt-2 flex items-center justify-between gap-2">
+    <div v-if="showEquipmentRow" class="mt-2 flex items-center justify-between gap-2">
       <span class="font-medium text-brand-gray-600">{{ t('owner.priceBreakdown.equipment') }}</span>
-      <span class="font-bold text-brand-navy">{{ priceLabel(equipmentPrice || 0) }}</span>
+      <span class="font-bold text-brand-navy">{{ formatCurrency(equipmentPrice || 0) }}</span>
     </div>
     <div v-if="showEstimated && sessions > 0" class="mt-2 flex items-center justify-between gap-2 text-xs text-brand-gray-600">
       <span>{{ t('owner.priceBreakdown.perSession') }}</span>
