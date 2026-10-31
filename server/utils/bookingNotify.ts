@@ -137,8 +137,8 @@ export function ownerNotifyPhone(club: {
 
 
 /**
- * Club-side SMS recipients: owner/club mobile passed in, plus club phone and
- * active staff (desk workers + MANAGER/FRONT_DESK memberships). Deduped, mobiles only.
+ * Club-side SMS recipients: owner mobile (primary arg), club mobile, and the
+ * owner-configured `bookingNotifyPhone` only — not every staff/worker row. Deduped, mobiles only.
  */
 export async function clubSideNotifyPhones(
   primary: string | null | undefined,
@@ -153,17 +153,10 @@ export async function clubSideNotifyPhones(
           phone: true,
           bookingNotifyPhone: true,
           owner: { select: { phone: true } },
-          workers: { where: { active: true }, select: { mobile: true } },
-          memberships: {
-            where: { active: true, role: { in: ['MANAGER', 'FRONT_DESK'] } },
-            select: { user: { select: { phone: true } } },
-          },
         },
       })
       if (club) {
         raw.push(club.owner?.phone, club.phone, club.bookingNotifyPhone)
-        for (const w of club.workers || []) raw.push(w.mobile)
-        for (const m of club.memberships || []) raw.push(m.user?.phone)
       }
     } catch (err) {
       console.error('[bookingNotify:club_recipients]', err)
