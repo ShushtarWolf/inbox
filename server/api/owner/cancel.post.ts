@@ -1,4 +1,3 @@
-import { seriesCancelPaymentId } from '#shared/ownerSeries.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   notifyBookingCancelled,
@@ -7,7 +6,7 @@ import {
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
-import { loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
+import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -33,15 +32,14 @@ export default defineEventHandler(async (event) => {
     const series = await loadOwnerSeriesBookings(club.id, booking.id)
     if (series.length) {
       const reason = body.reason || 'owner-cancel-series'
+      const { cancelled, skippedPast, cancelledBookingIds } = await cancelOwnerSeriesBookings({
+        rows: series,
+        reason,
+        moneyOutcome: 'full_wallet_refund',
+      })
+      const cancelledIds = new Set(cancelledBookingIds)
       for (const row of series) {
-        await cancelCourtBooking({
-          bookingId: row.id,
-          slotId: row.slotId,
-          reason,
-          paymentId: seriesCancelPaymentId(row.payment),
-          userId: row.userId,
-          moneyOutcome: 'full_wallet_refund',
-        })
+        if (!cancelledIds.has(row.id)) continue
         await notifyWaitlistForFreedSlot({
           clubId: club.id,
           courtId: row.slot.courtId,
@@ -71,7 +69,12 @@ export default defineEventHandler(async (event) => {
           courtName: courtNotifyName(anchor.slot.court),
         })
       }
-      return { ok: true, cancelled: series.length, moneyOutcome: 'full_wallet_refund' }
+      return {
+        ok: true,
+        cancelled,
+        skippedPast,
+        moneyOutcome: 'full_wallet_refund',
+      }
     }
   }
   if (booking) {

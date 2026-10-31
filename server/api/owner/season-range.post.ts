@@ -1,12 +1,12 @@
 import { addDaysToIsoDate } from '#shared/localDate.ts'
-import { ownerSeriesKey, seriesCancelPaymentId } from '#shared/ownerSeries.ts'
+import { isSlotStartInPast } from '#shared/localDate.ts'
+import { ownerSeriesKey } from '#shared/ownerSeries.ts'
 import {
   deriveSeasonRulesFromSlots,
   expandSeasonRules,
   maxIsoDate,
 } from '#shared/seasonSessions.ts'
-import { cancelCourtBooking } from '../../utils/cancellations'
-import { loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
+import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
 import { createSeasonSessions, previewSeasonSessions } from '../../utils/seasonReserve'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
@@ -77,7 +77,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (finishDate < currentEnd) {
-    const toCancel = series.filter((row) => row.slot.date > finishDate)
+    const toCancel = series.filter(
+      (row) => row.slot.date > finishDate && !isSlotStartInPast(row.slot.date, row.slot.startTime),
+    )
     if (body.dryRun) {
       return {
         ok: true,
@@ -88,15 +90,14 @@ export default defineEventHandler(async (event) => {
         skipCount: 0,
       }
     }
+    const { cancelled, cancelledBookingIds } = await cancelOwnerSeriesBookings({
+      rows: toCancel,
+      reason: 'owner-season-shorten',
+      moneyOutcome: 'full_wallet_refund',
+    })
+    const cancelledIds = new Set(cancelledBookingIds)
     for (const row of toCancel) {
-      await cancelCourtBooking({
-        bookingId: row.id,
-        slotId: row.slotId,
-        reason: 'owner-season-shorten',
-        paymentId: seriesCancelPaymentId(row.payment),
-        userId: row.userId,
-        moneyOutcome: 'full_wallet_refund',
-      })
+      if (!cancelledIds.has(row.id)) continue
       await notifyWaitlistForFreedSlot({
         clubId: club.id,
         courtId: row.slot.courtId,
@@ -113,7 +114,7 @@ export default defineEventHandler(async (event) => {
       ok: true,
       action: 'shorten' as const,
       finishDate,
-      cancelled: toCancel.length,
+      cancelled,
       created: 0,
       skipped: 0,
     }
