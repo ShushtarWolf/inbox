@@ -75,10 +75,11 @@ function latinDigits(value: string) {
   })
 }
 
+/** `ipg` = online rail (SEP + athlete wallet `PAID`); only desk `CASH` is the till. */
 export function financePaymentBucket(tx: { paymentMethod?: string | null; unpaid?: boolean }): 'cash' | 'ipg' | 'unpaid' {
   if (tx.unpaid) return 'unpaid'
-  if (tx.paymentMethod === 'IPG') return 'ipg'
-  if (tx.paymentMethod === 'CASH' || tx.paymentMethod === 'PAID') return 'cash'
+  if (tx.paymentMethod === 'IPG' || tx.paymentMethod === 'PAID') return 'ipg'
+  if (tx.paymentMethod === 'CASH') return 'cash'
   return 'unpaid'
 }
 

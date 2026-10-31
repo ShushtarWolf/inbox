@@ -3,7 +3,8 @@ import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.t
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
-import { localDateString, localTimeString } from '#shared/localDate.ts'
+import { addDaysToIsoDate, localDateString, localTimeString } from '#shared/localDate.ts'
+import { paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
@@ -131,6 +132,14 @@ export default defineEventHandler(async (event) => {
     return booking.slot.displayStatus === 'BLOCKED'
   }
 
+  /** Receivable/collected sums use Payment.amount only — siblings and comps are 0, never slot price. */
+  function strictBookingAmount(booking: { payment?: { amount: number } | null; slot: { price: number } }) {
+    return booking.payment ? booking.payment.amount : booking.slot.price
+  }
+  function strictSessionAmount(session: { payment?: { amount: number } | null; price: number }) {
+    return session.payment ? session.payment.amount : session.price
+  }
+
   const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
   const activeSessions = coachSessions.filter((session) => session.status !== 'CANCELLED')
   const paidBookings = activeBookings.filter((booking) => countsTowardRevenue(booking.status, paymentStatusOf(booking)))
@@ -139,13 +148,79 @@ export default defineEventHandler(async (event) => {
   const unpaidBookings = activeBookings.filter((booking) => !isBlockedSlot(booking) && isUnpaidPaymentStatus(paymentStatusOf(booking)))
   const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
 
-  const revenue =
-    paidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
-    + paidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
   const unpaidAmount =
-    unpaidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
-    + unpaidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
+    unpaidBookings.reduce((sum, booking) => sum + strictBookingAmount(booking), 0)
+    + unpaidSessions.reduce((sum, session) => sum + strictSessionAmount(session), 0)
   const unpaid = unpaidBookings.length + unpaidSessions.length
+
+  // Collected money for the current Jalali month + last 7 days — full query, not the 50-row list sample.
+  const today = todayDateStr()
+  const jToday = isoToJalaali(today)
+  const monthStart = jalaaliToIso(jToday.jy, jToday.jm, 1)
+  const weekStart = addDaysToIsoDate(today, -6)
+  const revenueFrom = weekStart < monthStart ? weekStart : monthStart
+  const [revenueBookingRows, revenueSessionRows] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        slot: { court: { clubId: club.id }, date: { gte: revenueFrom, lte: today } },
+        payment: { isNot: null },
+      },
+      select: {
+        status: true,
+        slot: { select: { date: true } },
+        payment: { select: { id: true, amount: true, method: true, status: true } },
+      },
+    }),
+    prisma.coachSession.findMany({
+      where: {
+        coach: { clubId: club.id },
+        date: { gte: revenueFrom, lte: today },
+        payment: { isNot: null },
+      },
+      select: {
+        status: true,
+        date: true,
+        payment: { select: { amount: true, method: true, status: true } },
+      },
+    }),
+  ])
+  const courtRevenueRows = revenueBookingRows.map((row) => ({
+    date: row.slot.date,
+    paymentId: row.payment!.id,
+    revenue: {
+      amount: row.payment!.amount,
+      method: row.payment!.method,
+      status: row.payment!.status,
+      bookingStatus: row.status,
+    } satisfies RevenueRow,
+  }))
+  // Coach lesson fees settle to the coach wallet (online) or the coach (cash) — not club money.
+  const coachFeeRows = revenueSessionRows.map((row) => ({
+    date: row.date,
+    revenue: {
+      amount: row.payment!.amount,
+      method: row.payment!.method,
+      status: row.payment!.status,
+      bookingStatus: row.status,
+    } satisfies RevenueRow,
+  }))
+  const monthCourt = courtRevenueRows.filter((row) => row.date >= monthStart)
+  const monthSummary = summarizeCollectedRevenue(monthCourt.map((row) => row.revenue))
+  const coachFeesMonth = summarizeCollectedRevenue(
+    coachFeeRows.filter((row) => row.date >= monthStart).map((row) => row.revenue),
+  )
+  // Online net actually credited to the club wallet (after commission, minus clawbacks).
+  const onlinePaymentIds = monthCourt
+    .filter((row) => row.revenue.status === 'PAID' && paymentRail(row.revenue.method) === 'online')
+    .map((row) => row.paymentId)
+  const onlineLedger = onlinePaymentIds.length
+    ? await prisma.settlementLedgerEntry.findMany({
+        where: { paymentId: { in: onlinePaymentIds }, clubId: club.id, clawedBackAt: null },
+        select: { ownerNet: true },
+      })
+    : []
+  const onlineNetMonth = onlineLedger.reduce((sum, entry) => sum + entry.ownerNet, 0)
+  const revenue = monthSummary.total
 
   const totalReservationCount = bookings.length + coachSessions.length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -158,45 +233,27 @@ export default defineEventHandler(async (event) => {
   const weekLabels: string[] = []
   const weeklyRevenue: number[] = []
   for (let offset = 6; offset >= 0; offset -= 1) {
-    const day = new Date()
-    day.setDate(day.getDate() - offset)
-    const key = day.toISOString().slice(0, 10)
+    // Tehran calendar day (slot dates are Tehran), not UTC.
+    const key = addDaysToIsoDate(today, -offset)
     weekLabels.push(key)
-    const dayRevenue =
-      bookings
-        .filter((booking) => booking.slot.date === key && countsTowardRevenue(booking.status, paymentStatusOf(booking)))
-        .reduce((sum, booking) => sum + amountOfBooking(booking), 0)
-      + coachSessions
-        .filter((session) => session.date === key && countsTowardRevenue(session.status, paymentStatusOf(session)))
-        .reduce((sum, session) => sum + amountOfSession(session), 0)
-    weeklyRevenue.push(dayRevenue)
+    weeklyRevenue.push(
+      summarizeCollectedRevenue(courtRevenueRows.filter((row) => row.date === key).map((row) => row.revenue)).total,
+    )
   }
 
-  // Status-first buckets for pay-at-club clarity (not method-only).
+  // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
   const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
-  for (const booking of activeBookings) {
-    if (isBlockedSlot(booking)) continue
-    const status = paymentStatusOf(booking)
+  for (const row of monthCourt) {
+    if (row.revenue.bookingStatus === 'CANCELLED') continue
+    const status = row.revenue.status || ''
     if (isUnpaidPaymentStatus(status)) {
       paymentTotals.UNPAID += 1
       continue
     }
     if (status === 'PAID') {
-      const method = booking.payment?.method || booking.paymentMethod || 'CASH'
-      if (method === 'IPG') paymentTotals.PAID_IPG += 1
-      else paymentTotals.PAID_CASH += 1
-    }
-  }
-  for (const session of activeSessions) {
-    const status = paymentStatusOf(session)
-    if (isUnpaidPaymentStatus(status)) {
-      paymentTotals.UNPAID += 1
-      continue
-    }
-    if (status === 'PAID') {
-      const method = session.payment?.method || 'CASH'
-      if (method === 'IPG') paymentTotals.PAID_IPG += 1
-      else paymentTotals.PAID_CASH += 1
+      const rail = paymentRail(row.revenue.method)
+      if (rail === 'online') paymentTotals.PAID_IPG += 1
+      else if (rail === 'cash') paymentTotals.PAID_CASH += 1
     }
   }
   const paymentCount = paymentTotals.PAID_CASH + paymentTotals.PAID_IPG + paymentTotals.UNPAID
@@ -217,10 +274,6 @@ export default defineEventHandler(async (event) => {
     paid: paidBookings.length + paidSessions.length,
     total: totalReservationCount,
   }
-  const today = todayDateStr()
-  const jToday = isoToJalaali(today)
-  const monthStart = jalaaliToIso(jToday.jy, jToday.jm, 1)
-
   const [bookingsTodayCount, sessionsTodayCount, noShowsTodayBookings, noShowsTodaySessions, cancelsMonthBookings, cancelsMonthSessions] = await Promise.all([
     prisma.booking.count({ where: { slot: { court: { clubId: club.id }, date: today } } }),
     prisma.coachSession.count({ where: { coach: { clubId: club.id }, date: today } }),
@@ -413,6 +466,18 @@ export default defineEventHandler(async (event) => {
     }))
 
   return {
+    /**
+     * Club money this Jalali month by rail. `cash` is in the club's own till;
+     * `online` (SEP + athlete wallet) settles to the club wallet as `onlineNet`.
+     * Coach lesson fees are reported separately — they never belong to the club.
+     */
+    revenueBreakdown: {
+      cash: monthSummary.cash,
+      online: monthSummary.online,
+      onlineNet: onlineNetMonth,
+      keptOnCancel: monthSummary.keptOnCancel,
+      coachFees: coachFeesMonth.total,
+    },
     stats: {
       revenue,
       unpaidAmount,

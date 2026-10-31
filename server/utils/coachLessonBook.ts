@@ -5,6 +5,7 @@ import { prisma } from './prisma'
 import { debitWallet } from './wallet'
 import { isUniqueConstraintError } from './prismaErrors'
 import { addOneHour } from './reservations'
+import { deleteStaleCancelledBooking } from './staleBooking'
 
 export type CoachLessonBookSlot = {
   id: string
@@ -81,7 +82,7 @@ export async function bookCoachLessonsAtomic(input: {
           throw createError({ statusCode: 409, statusMessage: 'Slot not available' })
         }
         if (slot.staleCancelledBookingId) {
-          await tx.booking.delete({ where: { id: slot.staleCancelledBookingId } })
+          await deleteStaleCancelledBooking(tx, slot.staleCancelledBookingId)
         }
 
         const booking = await tx.booking.create({

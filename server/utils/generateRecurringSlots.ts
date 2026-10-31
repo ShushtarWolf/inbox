@@ -9,6 +9,7 @@ import {
 } from '#shared/recurringReserve.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
+import { deleteStaleCancelledBooking } from './staleBooking'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import {
   calculateSessionTotal,
@@ -198,7 +199,7 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
           if (!guest) return { slotId, bookingId: null as string | null }
 
           if (staleCancelledId) {
-            await tx.booking.delete({ where: { id: staleCancelledId } })
+            await deleteStaleCancelledBooking(tx, staleCancelledId)
           }
           const linkedUserId = linkedUser?.id ?? null
           const guestNamePair = linkedUser?.name?.trim()

@@ -17,6 +17,7 @@ import {
   seasonSessionPaymentAmount,
 } from './seasonDiscount'
 import { prisma } from './prisma'
+import { deleteStaleCancelledBooking } from './staleBooking'
 
 export type SeasonPreviewItem = SeasonSessionOccurrence & {
   price: number
@@ -298,7 +299,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
           })
           if (claimedRows.count !== 1) return null
           if (existing.booking?.status === 'CANCELLED') {
-            await tx.booking.delete({ where: { id: existing.booking.id } })
+            await deleteStaleCancelledBooking(tx, existing.booking.id)
           }
           slotId = existing.id
         }

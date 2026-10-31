@@ -46,6 +46,8 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     upcomingCount: number
     activeStudents: number
     monthlyRevenue: number
+    monthlyRevenueCash?: number
+    monthlyRevenueOnline?: number
     monthlyRevenueDeltaPct: number | null
     pendingSettlement: number
   }
@@ -248,6 +250,12 @@ function athleteInitial(name: string) {
           <div class="coach-dash-stat">
             <span>{{ t('coach.dashboardStatMonthlyRevenue') }}</span>
             <b class="tabular-nums" dir="ltr">{{ formatCurrency(data?.stats?.monthlyRevenue || 0) }}</b>
+            <small class="tabular-nums text-brand-gray-600">
+              {{ t('coach.dashboardRevenueSplit', {
+                cash: formatCurrency(data?.stats?.monthlyRevenueCash || 0),
+                online: formatCurrency(data?.stats?.monthlyRevenueOnline || 0),
+              }) }}
+            </small>
             <small
               v-if="data?.stats?.monthlyRevenueDeltaPct != null"
               class="text-emerald-700"

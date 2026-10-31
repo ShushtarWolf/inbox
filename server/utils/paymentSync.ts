@@ -343,8 +343,16 @@ export async function confirmPaymentAndSync(
   })
   const previousStatus = before?.status || ''
 
+  // Cancelled booking removed for a re-book keeps its detached payment (staleBooking.ts).
+  const detachedFromBookingId = before && !before.bookingId
+    ? parsePaymentMetadata(before.metadataJson).detachedFromBookingId
+    : undefined
+  const cancelledHold = before?.booking?.status === 'CANCELLED' || typeof detachedFromBookingId === 'string'
+
   // Hold already released — verify with bank then refund; never revive the booking.
-  if (before?.booking?.status === 'CANCELLED') {
+  if (before && cancelledHold) {
+    const refundUserId = before.userId || before.booking?.userId
+    const refundBookingId = before.booking?.id
     if (before.status === 'REFUNDED' || before.status === 'FAILED') {
       return toSafeIntent(before)
     }
@@ -352,9 +360,9 @@ export async function confirmPaymentAndSync(
       const { refundPaymentForCancellation } = await import('./refunds')
       await refundPaymentForCancellation({
         paymentId: before.id,
-        userId: before.userId || before.booking.userId,
+        userId: refundUserId,
         reason: 'Late pay after cancelled hold',
-        bookingId: before.booking.id,
+        bookingId: refundBookingId,
       })
       const after = await prisma.payment.findUnique({ where: { id: before.id } })
       return toSafeIntent(after || before)
@@ -367,9 +375,9 @@ export async function confirmPaymentAndSync(
       const { refundPaymentForCancellation } = await import('./refunds')
       await refundPaymentForCancellation({
         paymentId: intent.id,
-        userId: before.userId || before.booking.userId,
+        userId: refundUserId,
         reason: 'Late pay after cancelled hold',
-        bookingId: before.booking.id,
+        bookingId: refundBookingId,
       })
       const after = await prisma.payment.findUnique({ where: { id: intent.id } })
       return toSafeIntent(after || { ...intent, status: 'REFUNDED' })

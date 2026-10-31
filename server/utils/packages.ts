@@ -20,6 +20,7 @@ import { hourFromTime } from './seasonSlots'
 import { isSlotStartInPast } from '#shared/localDate.ts'
 import { refundPaymentForCancellation } from './refunds'
 import { prisma } from './prisma'
+import { deleteStaleCancelledBooking } from './staleBooking'
 import { requireOnlinePaymentsForAthlete } from './requireOnlinePayments'
 
 type DbClient = PrismaClient | Prisma.TransactionClient
@@ -302,7 +303,7 @@ export async function claimPackageCourtHolds(opts: {
       slotId = existing.id
       if (ownHold) continue
       if (bookingRow?.status === 'CANCELLED') {
-        await opts.tx.booking.delete({ where: { id: bookingRow.id } })
+        await deleteStaleCancelledBooking(opts.tx, bookingRow.id)
       }
     } else {
       const slot = await opts.tx.slot.create({

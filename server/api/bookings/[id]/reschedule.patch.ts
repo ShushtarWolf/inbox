@@ -1,4 +1,5 @@
 import { canManageReservation, assertSlotBookable } from '../../../utils/reservations'
+import { deleteStaleCancelledBooking } from '../../../utils/staleBooking'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
 
   await prisma.$transaction(async (tx) => {
     if (staleCancelledBooking) {
-      await tx.booking.delete({ where: { id: staleCancelledBooking.id } })
+      await deleteStaleCancelledBooking(tx, staleCancelledBooking.id)
     }
     // Claim target atomically (same pattern as court.create) so parallel reschedule/book cannot both win.
     const claimed = await tx.slot.updateMany({

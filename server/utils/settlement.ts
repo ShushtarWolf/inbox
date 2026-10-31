@@ -157,12 +157,35 @@ export async function getClubWithdrawableBalance(
     }),
     db.settlementLedgerEntry.findMany({
       where: { clubId, clawedBackAt: null },
-      select: { ownerNet: true, classDate: true, clawedBackAt: true },
+      select: { paymentId: true, ownerNet: true, classDate: true, clawedBackAt: true },
     }),
   ])
   const balance = wallet?.balance ?? 0
   const availableBalance = wallet?.availableBalance ?? balance
-  const { eligible, pending } = sumEligibleSettlementNet(entries, now)
+  // Series session refunds claw back pro-rata without setting clawedBackAt until fully reversed —
+  // net those partial clawbacks out of each open entry so they cannot be withdrawn twice.
+  const partialRows = wallet && entries.length
+    ? await db.clubWalletTransaction.findMany({
+        where: {
+          walletId: wallet.id,
+          type: 'CLAWBACK',
+          paymentId: { in: entries.map((entry) => entry.paymentId) },
+        },
+        select: { paymentId: true, amount: true },
+      })
+    : []
+  const partialByPayment = new Map<string, number>()
+  for (const row of partialRows) {
+    if (!row.paymentId) continue
+    partialByPayment.set(row.paymentId, (partialByPayment.get(row.paymentId) || 0) + Math.abs(row.amount))
+  }
+  const { eligible, pending } = sumEligibleSettlementNet(
+    entries.map((entry) => ({
+      ...entry,
+      ownerNet: Math.max(0, entry.ownerNet - (partialByPayment.get(entry.paymentId) || 0)),
+    })),
+    now,
+  )
   // Pending class ≠ lockedBalance (locked also holds withdraw requests).
   if (availableBalance <= 0) {
     return {

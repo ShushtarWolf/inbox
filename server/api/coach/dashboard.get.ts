@@ -1,4 +1,5 @@
 import { addDaysToIsoDate } from '#shared/localDate.ts'
+import { summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { getWalletWithdrawableBalance } from '../../utils/wallet'
 
 function monthKey(isoDate: string) {
@@ -61,30 +62,7 @@ export default defineEventHandler(async (event) => {
 
   const activeStudents = new Set(recentSessions.map((s) => s.athleteId)).size
 
-  const monthSessions = await prisma.coachSession.findMany({
-    where: {
-      coachId: coach.id,
-      status: { not: 'CANCELLED' },
-      date: { startsWith: thisMonth },
-    },
-    select: { price: true, paymentStatus: true },
-  })
-  const monthlyRevenue = monthSessions.reduce((sum, s) => sum + (s.price || 0), 0)
-
-  const prevMonth = addMonthsKey(thisMonth, -1)
-  const prevMonthSessions = await prisma.coachSession.findMany({
-    where: {
-      coachId: coach.id,
-      status: { not: 'CANCELLED' },
-      date: { startsWith: prevMonth },
-    },
-    select: { price: true },
-  })
-  const prevMonthlyRevenue = prevMonthSessions.reduce((sum, s) => sum + (s.price || 0), 0)
-  const monthlyRevenueDeltaPct = prevMonthlyRevenue > 0
-    ? Math.round(((monthlyRevenue - prevMonthlyRevenue) / prevMonthlyRevenue) * 100)
-    : null
-
+  // Collected lesson fees only (Payment PAID, not REFUNDED) — never list price of unpaid/cancelled sessions.
   const revenueMonths: Array<{ key: string; amount: number }> = []
   for (let i = 5; i >= 0; i -= 1) {
     const key = addMonthsKey(thisMonth, -i)
@@ -94,16 +72,35 @@ export default defineEventHandler(async (event) => {
   const paidInRange = await prisma.coachSession.findMany({
     where: {
       coachId: coach.id,
-      status: { not: 'CANCELLED' },
       date: { gte: sixMonthStart },
+      payment: { isNot: null },
     },
-    select: { date: true, price: true },
+    select: {
+      date: true,
+      status: true,
+      payment: { select: { amount: true, method: true, status: true } },
+    },
+  })
+  const revenueRow = (row: (typeof paidInRange)[number]): RevenueRow => ({
+    amount: row.payment!.amount,
+    method: row.payment!.method,
+    status: row.payment!.status,
+    bookingStatus: row.status,
   })
   for (const row of paidInRange) {
     const k = monthKey(row.date)
     const bucket = revenueMonths.find((m) => m.key === k)
-    if (bucket) bucket.amount += row.price || 0
+    if (bucket) bucket.amount += summarizeCollectedRevenue([revenueRow(row)]).total
   }
+  const monthSummary = summarizeCollectedRevenue(
+    paidInRange.filter((row) => monthKey(row.date) === thisMonth).map(revenueRow),
+  )
+  const monthlyRevenue = monthSummary.total
+  const prevMonth = addMonthsKey(thisMonth, -1)
+  const prevMonthlyRevenue = revenueMonths.find((m) => m.key === prevMonth)?.amount || 0
+  const monthlyRevenueDeltaPct = prevMonthlyRevenue > 0
+    ? Math.round(((monthlyRevenue - prevMonthlyRevenue) / prevMonthlyRevenue) * 100)
+    : null
 
   const sessionDatesThisMonth = [
     ...new Set(
@@ -142,6 +139,8 @@ export default defineEventHandler(async (event) => {
       upcomingCount: upcomingSessions.length,
       activeStudents,
       monthlyRevenue,
+      monthlyRevenueCash: monthSummary.cash,
+      monthlyRevenueOnline: monthSummary.online,
       monthlyRevenueDeltaPct,
       pendingSettlement: withdrawableBalance,
     },

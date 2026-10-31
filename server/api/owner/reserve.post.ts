@@ -30,6 +30,8 @@ import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
 import { syncClubContactForBooking } from '../../utils/contactSync'
+import { deleteStaleCancelledBooking } from '../../utils/staleBooking'
+import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
 
 function resolveDeskPaymentMethod(
   requested: string | undefined,
@@ -223,12 +225,38 @@ export default defineEventHandler(async (event) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      if (wasWalletPaid && previousPayment && existing.userId) {
-        await creditWallet(existing.userId, previousPayment.amount, {
-          paymentId: previousPayment.id,
-          bookingId: existing.id,
-          note: 'Wallet payment reversed (marked unpaid at club)',
-        }, tx)
+      if (becomingUnpaid && previousPayment) {
+        if (wasWalletPaid && existing.userId) {
+          await creditWallet(existing.userId, previousPayment.amount, {
+            paymentId: previousPayment.id,
+            bookingId: existing.id,
+            note: 'Wallet payment reversed (marked unpaid at club)',
+            type: 'REFUND_CREDIT',
+          }, tx)
+        }
+        // Same txn as the credit — never leave the club holding net for a reversed payment.
+        await clawbackOwnerForPayment(previousPayment.id, tx)
+        if (wasWalletPaid) {
+          // Retire the reversed row so the next wallet pay gets a fresh paymentId
+          // (PAYMENT_DEBIT / settlement are idempotent per paymentId).
+          await tx.payment.update({
+            where: { id: previousPayment.id },
+            data: {
+              status: 'REFUNDED',
+              bookingId: null,
+              metadataJson: JSON.stringify({
+                ...parsePaymentMetadata(previousPayment.metadataJson),
+                refundChannel: 'wallet_closed_loop',
+                refundReason: 'marked-unpaid-at-club',
+                refundedAt: new Date().toISOString(),
+                gatewayReversed: false,
+                detachedFromBookingId: existing.id,
+                detachedClubId: club.id,
+                detachedSlotDate: slot.date,
+              }),
+            },
+          })
+        }
       }
 
       await tx.booking.update({
@@ -271,14 +299,6 @@ export default defineEventHandler(async (event) => {
       })
     })
     await syncClubContactForBooking(existing.id)
-
-    if (becomingUnpaid && previousPayment) {
-      try {
-        await clawbackOwnerForPayment(previousPayment.id)
-      } catch (err) {
-        console.error('[reserve:ownerClawback]', previousPayment.id, err)
-      }
-    }
 
     if (becomingPaid) {
       const paidPayment = await prisma.payment.findUnique({ where: { bookingId: existing.id } })
@@ -344,9 +364,9 @@ export default defineEventHandler(async (event) => {
         if (claimed.count !== 1) {
           throw new SlotNotAvailableError()
         }
-        // Unique Booking.slotId: remove cancelled row before creating the new desk booking.
+        // Unique Booking.slotId: remove cancelled row (payment detached, not cascaded) before the new desk booking.
         if (staleCancelled) {
-          await tx.booking.delete({ where: { id: staleCancelled.id } })
+          await deleteStaleCancelledBooking(tx, staleCancelled.id)
         }
         const booking = await tx.booking.create({
           data: {

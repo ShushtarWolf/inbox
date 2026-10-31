@@ -59,7 +59,16 @@ type DeskCashReturnOwed = {
   courtName?: string | null
 }
 
+type OwnerFinanceRevenueBreakdown = {
+  cash?: number
+  online?: number
+  onlineNet?: number
+  keptOnCancel?: number
+  coachFees?: number
+}
+
 type OwnerFinanceResponse = {
+  revenueBreakdown?: OwnerFinanceRevenueBreakdown
   stats?: OwnerFinanceStats
   weeklyRevenue?: number[]
   weekLabels?: string[]
@@ -306,6 +315,8 @@ const heroAmount = computed(() => {
   return Number(data.value?.stats?.revenue || 0)
 })
 
+const revenueBreakdown = computed(() => data.value?.revenueBreakdown || null)
+
 const heroDateLabel = computed(() => {
   const iso = today()
   return `${formatWeekday(iso, 'long')} ${formatDayNumber(iso)} ${formatMonth(iso, 'long')}`
@@ -551,6 +562,28 @@ function showUnpaidList() {
       >
         {{ vsYesterdayLabel }}
       </p>
+      <dl v-if="period === 'month' && revenueBreakdown" class="mt-3 space-y-1 text-start text-xs text-white/85">
+        <div class="flex justify-between gap-3">
+          <dt>{{ t('owner.financePage.railCash') }}</dt>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.cash || 0) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt>{{ t('owner.financePage.railOnline') }}</dt>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.online || 0) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt>{{ t('owner.financePage.railOnlineNet') }}</dt>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.onlineNet || 0) }}</dd>
+        </div>
+        <div v-if="(revenueBreakdown.keptOnCancel || 0) > 0" class="flex justify-between gap-3">
+          <dt>{{ t('owner.financePage.railKeptOnCancel') }}</dt>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.keptOnCancel || 0) }}</dd>
+        </div>
+        <div v-if="(revenueBreakdown.coachFees || 0) > 0" class="flex justify-between gap-3 text-white/60">
+          <dt>{{ t('owner.financePage.railCoachFees') }}</dt>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.coachFees || 0) }}</dd>
+        </div>
+      </dl>
       <NuxtLink
         :to="localePath('/owner/finance/report')"
         class="canva-finance-report-link mt-4"
@@ -809,8 +842,18 @@ function showUnpaidList() {
         </p>
         <div class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-brand-cream px-3 py-3" style="border-radius: var(--sz-canva-radius);">
           <span class="text-sm text-brand-gray-600">{{ t('owner.financePage.walletBalance') }}</span>
-          <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.withdrawableBalance ?? settlement?.balance ?? 0) }}</span>
+          <span class="text-base font-bold tabular-nums text-brand-navy" dir="ltr">{{ formatCurrency(settlement?.withdrawableBalance ?? 0) }}</span>
         </div>
+        <p class="text-xs text-brand-gray-600 text-start">
+          {{ t('owner.financePage.walletOnlineOnlyNote') }}
+        </p>
+        <p
+          v-if="Number(settlement?.balance || 0) < 0"
+          class="text-xs font-bold text-red-600 text-start"
+          role="alert"
+        >
+          {{ t('owner.financePage.walletNegativeNote', { amount: formatCurrency(Math.abs(Number(settlement?.balance || 0))) }) }}
+        </p>
         <p
           v-if="Number(settlement?.pendingClassBalance || 0) > 0"
           class="text-xs text-brand-gray-600 text-start"

@@ -6,6 +6,7 @@ import { prisma } from './prisma'
 import { activeSlotBooking } from './reservations'
 import { hourFromTime } from './seasonSlots'
 import { ensureSlotsForDate, formatHour } from './slots'
+import { deleteStaleCancelledBooking } from './staleBooking'
 
 export type WeeklyBlockPreviewResult = {
   willBlock: BlockSlotRef[]
@@ -149,7 +150,7 @@ async function blockOneSlot(slotId: string, clubId: string, guestData: GuestBloc
 
   await prisma.$transaction(async (tx) => {
     if (staleCancelled) {
-      await tx.booking.delete({ where: { id: staleCancelled.id } })
+      await deleteStaleCancelledBooking(tx, staleCancelled.id)
     }
     const claimed = await tx.slot.updateMany({
       where: { id: slot.id, displayStatus: 'FREE' },

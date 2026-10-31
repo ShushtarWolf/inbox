@@ -31,6 +31,7 @@ vi.stubGlobal('prisma', {
   },
   clubWalletTransaction: {
     create: (...args: unknown[]) => clubWalletTxCreate(...args),
+    findFirst: async () => null,
   },
   $transaction: (...args: unknown[]) => transaction(...args),
 })

@@ -206,6 +206,43 @@ async function main() {
     )
   }
 
+  section('6) REFUNDED payments whose settlement was never clawed back (club/coach still holds net)')
+  const openOnRefunded = await prisma.$queryRaw`
+    SELECT s.id, s."paymentId", s."clubId", s."coachId", s."ownerNet"
+    FROM "SettlementLedgerEntry" s
+    JOIN "Payment" p ON p.id = s."paymentId"
+    WHERE p.status = 'REFUNDED'
+      AND s."clawedBackAt" IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM "ClubWalletTransaction" c
+        WHERE c."paymentId" = s."paymentId" AND c.type = 'CLAWBACK'
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM "WalletTransaction" w
+        WHERE w."paymentId" = s."paymentId" AND w.type = 'SETTLEMENT_CLAWBACK'
+      )
+    LIMIT 200
+  `
+  console.log(`Refunded payments with open settlement: ${openOnRefunded.length}`)
+  for (const row of openOnRefunded.slice(0, 30)) {
+    console.log(`  entry=${row.id} payment=${row.paymentId} net=${row.ownerNet} club=${row.clubId || '-'} coach=${row.coachId || '-'}`)
+  }
+
+  section('7) Settlement / wallet rows whose Payment was deleted (old re-book cascade)')
+  const [orphanLedger, orphanWalletTx] = await Promise.all([
+    prisma.$queryRaw`
+      SELECT COUNT(*)::int AS n FROM "SettlementLedgerEntry" s
+      WHERE NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = s."paymentId")
+    `,
+    prisma.$queryRaw`
+      SELECT COUNT(*)::int AS n FROM "WalletTransaction" w
+      WHERE w."paymentId" IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = w."paymentId")
+    `,
+  ])
+  console.log(`Orphan settlement entries: ${orphanLedger[0]?.n ?? 0}`)
+  console.log(`Orphan wallet transactions: ${orphanWalletTx[0]?.n ?? 0}`)
+
   section('Dump gate')
   console.log('Before APPLY=yes correction scripts or migrate deploy on shared/prod DB:')
   console.log('  - Keep a local dump under backups/ (gh workflow backup-db.yml or liara db backup download)')

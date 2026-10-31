@@ -2,6 +2,7 @@ import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/b
 import { courtAudienceBlockReason, parseCourtAudience } from '#shared/courtAudience.ts'
 import { parseGender } from '#shared/gender.ts'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
+import { deleteStaleCancelledBooking } from '../../utils/staleBooking'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
@@ -180,7 +181,7 @@ export default defineEventHandler(async (event) => {
           throw new SlotNotAvailableError()
         }
         if (staleCancelledBooking) {
-          await tx.booking.delete({ where: { id: staleCancelledBooking.id } })
+          await deleteStaleCancelledBooking(tx, staleCancelledBooking.id)
         }
 
         const booking = await tx.booking.create({
