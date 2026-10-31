@@ -231,6 +231,10 @@ export default defineNuxtConfig({
           || process.env.COMPETITIONS_PILOT_CLUB_SLUG
           || '',
         ) || '',
+      // Owner «کارکنان» nav/settings/workers page only — not owner calendar desk UI. Default off.
+      ownerStaffEnabled:
+        process.env.NUXT_PUBLIC_OWNER_STAFF_ENABLED === 'true'
+        || process.env.OWNER_STAFF_ENABLED === 'true',
       // Class packages (owner + coach create). Default off; independent of recurring desk reserve.
       packagesEnabled:
         process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
