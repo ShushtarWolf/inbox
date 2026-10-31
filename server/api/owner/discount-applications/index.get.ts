@@ -17,7 +17,15 @@ export default defineEventHandler(async (event) => {
     take: 100,
     include: {
       user: { select: { id: true, name: true, phone: true } },
-      program: { select: { id: true, titleFa: true, titleEn: true, percent: true } },
+      program: {
+        select: {
+          id: true,
+          titleFa: true,
+          titleEn: true,
+          percent: true,
+          verificationKind: true,
+        },
+      },
     },
   })
 

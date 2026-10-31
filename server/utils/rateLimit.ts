@@ -16,12 +16,21 @@ type RateLimitKeyConfig = {
   statusMessage?: string
 }
 
+const DISCOUNT_APP_SUBMIT_WINDOW_MS = Number(process.env.DISCOUNT_APP_SUBMIT_WINDOW_MS) || 10 * 60_000
+const DISCOUNT_APP_SUBMIT_MAX = Number(process.env.DISCOUNT_APP_SUBMIT_MAX) || 5
+
 const KEY_LIMITS: Record<string, RateLimitKeyConfig> = {
   'competitions:join': {
     windowMs: COMPETITION_JOIN_WINDOW_MS,
     max: COMPETITION_JOIN_MAX,
     perUser: true,
     statusMessage: 'COMPETITION_JOIN_RATE_LIMITED',
+  },
+  'discount-applications:submit': {
+    windowMs: DISCOUNT_APP_SUBMIT_WINDOW_MS,
+    max: DISCOUNT_APP_SUBMIT_MAX,
+    perUser: true,
+    statusMessage: 'DISCOUNT_APPLICATION_RATE_LIMITED',
   },
 }
 

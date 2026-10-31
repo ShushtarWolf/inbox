@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
       instructionsFa: true,
       instructionsEn: true,
       validityMonths: true,
+      verificationKind: true,
     },
   })
 

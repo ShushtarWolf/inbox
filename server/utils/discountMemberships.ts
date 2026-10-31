@@ -5,6 +5,7 @@ import {
 } from '#shared/discountMembership.ts'
 import { parseClubImageInput } from '#shared/clubImageUrl.ts'
 import { createInAppNotification } from './notify'
+import { assertNoApprovedStudentNumberConflict } from './studentVerificationDuplicate'
 
 const MAX_PROOF_URLS = 2
 
@@ -73,7 +74,10 @@ export async function approveDiscountApplication(opts: {
 }) {
   const app = await prisma.discountApplication.findFirst({
     where: { id: opts.applicationId, clubId: opts.clubId },
-    include: { program: true, user: { select: { id: true, name: true } } },
+    include: {
+      program: true,
+      user: { select: { id: true, name: true } },
+    },
   })
   if (!app) throw createError({ statusCode: 404, statusMessage: 'Application not found' })
   if (app.status !== 'PENDING') {
@@ -81,6 +85,15 @@ export async function approveDiscountApplication(opts: {
   }
   if (!app.program.active) {
     throw createError({ statusCode: 400, statusMessage: 'Program inactive' })
+  }
+
+  if (app.program.verificationKind === 'STUDENT' && app.studentNumber) {
+    await assertNoApprovedStudentNumberConflict({
+      clubId: app.clubId,
+      studentNumber: app.studentNumber,
+      excludeUserId: app.userId,
+      excludeApplicationId: app.id,
+    })
   }
 
   const percent = clampDiscountPercent(app.program.percent)
@@ -195,10 +208,19 @@ export function serializeApplicationForOwner(
     note: string | null
     rejectReason: string | null
     proofUrlsJson: string
+    fullName: string | null
+    studentNumber: string | null
+    ownershipConfirmed: boolean
     createdAt: Date
     reviewedAt: Date | null
     user: { id: string; name: string; phone: string | null }
-    program: { id: string; titleFa: string; titleEn: string | null; percent: number }
+    program: {
+      id: string
+      titleFa: string
+      titleEn: string | null
+      percent: number
+      verificationKind: string
+    }
   },
 ) {
   return {
@@ -207,6 +229,9 @@ export function serializeApplicationForOwner(
     note: app.note,
     rejectReason: app.rejectReason,
     proofUrls: parseProofUrls(app.proofUrlsJson),
+    fullName: app.fullName,
+    studentNumber: app.studentNumber,
+    ownershipConfirmed: app.ownershipConfirmed,
     createdAt: app.createdAt.toISOString(),
     reviewedAt: app.reviewedAt?.toISOString() || null,
     user: {
@@ -219,6 +244,7 @@ export function serializeApplicationForOwner(
       titleFa: app.program.titleFa,
       titleEn: app.program.titleEn,
       percent: app.program.percent,
+      verificationKind: app.program.verificationKind,
     },
   }
 }

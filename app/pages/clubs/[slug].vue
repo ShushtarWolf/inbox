@@ -1228,7 +1228,7 @@ async function shareClub() {
           </div>
         </section>
 
-        <ClubDiscountPrograms :club-id="club.id" />
+        <ClubDiscountPrograms :club-id="club.id" :club-slug="club.slug" />
 
         <!-- HTML prototype: coaches on club (API coaches[]; empty = omit) -->
         <section v-if="club.coaches?.length" class="canva-club-detail-section">
