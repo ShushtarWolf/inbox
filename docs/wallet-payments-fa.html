@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>گزارش کیف‌پول، پرداخت، لغو و تسویه — Inbox</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2") format("woff2");
+      }
+
+      :root {
+        color-scheme: light;
+        --text: #18212f;
+        --muted: #5b6472;
+        --line: #d9dee7;
+        --surface: #f6f8fb;
+        --accent: #c41e1e;
+        --accent-soft: #f8eaea;
+      }
+
+      @page {
+        size: A4;
+        margin: 16mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Vazirmatn", sans-serif;
+        color: var(--text);
+        background: white;
+        line-height: 1.9;
+        font-size: 12.5px;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 10px;
+        line-height: 1.4;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      h2 {
+        font-size: 16px;
+        margin-top: 26px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h3 {
+        font-size: 13.5px;
+        margin-top: 16px;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      ul, ol {
+        margin: 0 0 12px;
+        padding-inline-start: 22px;
+      }
+
+      li {
+        margin-bottom: 4px;
+      }
+
+      .hero {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        padding: 18px 20px;
+        margin-bottom: 8px;
+      }
+
+      .hero .kicker {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .callout {
+        background: var(--accent-soft);
+        border: 1px solid #e8c4c4;
+        padding: 12px 14px;
+        margin: 12px 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 14px;
+        font-size: 11.5px;
+      }
+
+      th, td {
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        text-align: right;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--surface);
+        font-weight: 700;
+      }
+
+      code, .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        direction: ltr;
+        unicode-bidi: isolate;
+      }
+
+      .flow {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        padding: 14px 16px;
+        margin: 12px 0;
+        font-size: 11.5px;
+        line-height: 1.7;
+      }
+
+      .flow .arrow {
+        color: var(--muted);
+        margin: 0 4px;
+      }
+
+      .rules li {
+        margin-bottom: 6px;
+      }
+
+      .page-break {
+        break-before: page;
+      }
+
+      .footer-meta {
+        margin-top: 28px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="kicker">Inbox · گزارش مالی محصول</div>
+      <h1>مرور کامل کیف‌پول، پرداخت، لغو و تسویه</h1>
+      <p>
+        سیستم مالی <strong>حلقهٔ بسته (closed-loop)</strong> است: پول آنلاین یا کیف‌پول وارد پلتفرم می‌شود،
+        کمیسیون سایت جدا می‌شود، خالص به باشگاه یا مربی می‌رسد، و استرداد لغو عمدتاً
+        <strong>اعتبار کیف‌پول</strong> است نه بازگشت بانکی.
+      </p>
+      <p class="note">
+        مرجع کد:
+        <span class="mono">docs/PAYMENTS.md</span>،
+        <span class="mono">server/utils/wallet.ts</span>،
+        <span class="mono">server/utils/settlement.ts</span>،
+        <span class="mono">server/utils/refunds.ts</span>،
+        <span class="mono">shared/cancelPolicy.ts</span>
+      </p>
+    </header>
+
+    <h2>۱. نقش‌ها و رابطه با پول</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>نقش</th>
+          <th>کیف‌پول</th>
+          <th>از کجا پول می‌گیرد</th>
+          <th>به کجا می‌تواند بکشد</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ورزشکار</td>
+          <td><span class="mono">Wallet</span> روی User</td>
+          <td>شارژ آنلاین، استرداد لغو، جایزه مسابقه</td>
+          <td>فقط خرج داخل سایت (رزرو / پکیج / مسابقه). برداشت بانکی ندارد</td>
+        </tr>
+        <tr>
+          <td>صاحب باشگاه</td>
+          <td><span class="mono">ClubWallet</span> روی Club</td>
+          <td>خالص پرداخت‌های IPG / کیف‌پول بعد از کمیسیون</td>
+          <td>درخواست شبا ← تأیید ادمین ← واریز دستی</td>
+        </tr>
+        <tr>
+          <td>مربی</td>
+          <td>همان Wallet کاربر (با پروفایل Coach)</td>
+          <td>خالص شهریه جلسه بعد از کمیسیون</td>
+          <td>برداشت بانکی فقط از خالص تسویه جلسه (نه شارژ / استرداد ورزشکار)</td>
+        </tr>
+        <tr>
+          <td>ادمین سایت</td>
+          <td>کیف ندارد؛ float پلتفرم</td>
+          <td>کمیسیون (~۱۰٪ پیش‌فرض)</td>
+          <td>تأیید / رد برداشت باشگاه و مربی؛ واریز دستی شبا</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="flow">
+      <strong>جریان پول (خلاصه)</strong><br />
+      ورزشکار
+      <span class="arrow">→</span>
+      IPG یا کیف‌پول
+      <span class="arrow">→</span>
+      Payment = PAID
+      <span class="arrow">→</span>
+      کمیسیون به پلتفرم + خالص به ClubWallet / کیف مربی
+      <br />
+      ClubWallet یا کیف مربی
+      <span class="arrow">→</span>
+      درخواست برداشت
+      <span class="arrow">→</span>
+      ادمین
+      <span class="arrow">→</span>
+      واریز دستی شبا
+      <br />
+      لغو با استرداد
+      <span class="arrow">→</span>
+      REFUND_CREDIT به ورزشکار + CLAWBACK از باشگاه / مربی
+    </div>
+
+    <h2>۲. ساختار کیف‌پول</h2>
+    <p>هر کیف (<span class="mono">Wallet</span> / <span class="mono">ClubWallet</span>):</p>
+    <ul>
+      <li><span class="mono">balance</span> = موجودی کل</li>
+      <li><span class="mono">availableBalance</span> = قابل خرج / قابل درخواست برداشت</li>
+      <li><span class="mono">lockedBalance</span> = قفل‌شده (تسویه کلاس قبل از روز بعد، یا hold درخواست برداشت)</li>
+    </ul>
+
+    <h3>انواع تراکنش مهم (ورزشکار / مربی)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>نوع</th>
+          <th>معنی</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="mono">TOPUP_CREDIT</span></td><td>شارژ آنلاین</td></tr>
+        <tr><td><span class="mono">PAYMENT_DEBIT</span></td><td>پرداخت رزرو از کیف</td></tr>
+        <tr><td><span class="mono">REFUND_CREDIT</span></td><td>استرداد لغو</td></tr>
+        <tr><td><span class="mono">SETTLEMENT_CREDIT</span></td><td>خالص جلسه برای مربی</td></tr>
+        <tr><td><span class="mono">SETTLEMENT_CLAWBACK</span></td><td>برگشت تسویه بعد از لغو</td></tr>
+        <tr><td><span class="mono">WITHDRAW_HOLD / RELEASE / PAID</span></td><td>چرخه برداشت بانکی</td></tr>
+        <tr><td><span class="mono">UNLOCK</span></td><td>آزاد شدن قفل کلاس (روز بعد کلاس، تهران)</td></tr>
+      </tbody>
+    </table>
+    <p>برای باشگاه: <span class="mono">BOOKING_CREDIT</span> / <span class="mono">CLAWBACK</span>.</p>
+
+    <div class="callout">
+      <strong>قانون مهم برداشت:</strong>
+      مبلغ قابل‌برداشت بانکی فقط از خالص تسویهٔ نقدی پشتوانه‌دار است.
+      شارژ، استرداد و جایزهٔ مسابقه قابل تبدیل به پول بانکی نیستند
+      (<span class="mono">computeWithdrawableBalance</span>).
+    </div>
+
+    <h2 class="page-break">۳. جریان پرداخت (ورزشکار)</h2>
+
+    <h3>۳.۱ رزرو زمین / جلسه / پکیج / ورود مسابقه</h3>
+    <ol>
+      <li>رزرو ساخته می‌شود ← ردیف <span class="mono">Payment</span> معمولاً <span class="mono">PENDING_ONLINE</span>.</li>
+      <li>
+        ورزشکار دو راه دارد (وقتی <span class="mono">PAYMENTS_MODE</span> برابر <span class="mono">test</span> یا <span class="mono">live</span> است):
+        <ul>
+          <li><strong>پرداخت آنلاین (SEP / سامان):</strong> redirect ← callback ← <span class="mono">PAID</span> با <span class="mono">method=IPG</span></li>
+          <li><strong>کیف‌پول:</strong> <span class="mono">useWallet=true</span> ← کل مبلغ از available کم می‌شود. تقسیم با IPG نداریم؛ یا همه از کیف یا همه آنلاین.</li>
+        </ul>
+      </li>
+      <li>
+        بعد از PAID ← <span class="mono">creditOwnerForPaidPayment</span>:
+        <ul>
+          <li>رزرو زمین / پکیج / مسابقه ← ClubWallet باشگاه با خالص بعد از کمیسیون پلتفرم (پیش‌فرض ۱۰٪)</li>
+          <li>شهریه جلسه مربی ← Wallet مربی با کمیسیون مربی (یا همان ۱۰٪)</li>
+          <li>هزینه زمین که مربی از کیف خودش می‌پردازد (<span class="mono">coach-lesson-court</span>) ← باشگاه ۱۰۰٪ (کمیسیون ۰)</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h3>۳.۲ شارژ کیف‌پول</h3>
+    <p>
+      <span class="mono">POST /api/wallet/topup</span> ← Payment با <span class="mono">purpose=topup</span> ← IPG ← بعد از PAID ←
+      <span class="mono">TOPUP_CREDIT</span> (idempotent). در حالت <span class="mono">pay_at_club</span> شارژ رد می‌شود.
+    </p>
+
+    <h3>۳.۳ صندوق / میز باشگاه (Cash)</h3>
+    <p>
+      صاحب باشگاه «علامت پرداخت نقدی» می‌زند (<span class="mono">method=CASH</span>).
+      نقد میز وارد float پلتفرم نمی‌شود ← نه اعتبار کیف ورزشکار در استرداد، نه تسویه قابل‌برداشت برای باشگاه/مربی.
+      فقط برای گزارش عملیات ثبت می‌ماند. ورزشکار نمی‌تواند خودش «پرداخت در باشگاه» را انتخاب کند.
+    </p>
+
+    <h2>۴. تسویه و قفل تا روز بعد کلاس</h2>
+    <p>برای پرداخت‌هایی که <span class="mono">classDate</span> دارند (زمین / جلسه):</p>
+    <ol>
+      <li>خالص به <span class="mono">lockedBalance</span> می‌رود.</li>
+      <li>از روز تقویمی بعد از کلاس (Asia/Tehran) با <span class="mono">UNLOCK</span> به available می‌آید.</li>
+      <li>پکیج و مسابقه (<span class="mono">classDate = null</span>) مستقیم به available می‌روند.</li>
+    </ol>
+    <p>
+      سپس صاحب/مربی تا سقف <span class="mono">withdrawableBalance</span> درخواست برداشت می‌دهد ← مبلغ به locked
+      (<span class="mono">WITHDRAW_HOLD</span>) ← ادمین:
+    </p>
+    <ul>
+      <li><strong>Paid:</strong> مصرف locked (<span class="mono">WITHDRAW_PAID</span>) + واریز دستی شبا</li>
+      <li><strong>Reject:</strong> برگشت به available (<span class="mono">WITHDRAW_RELEASE</span>)</li>
+    </ul>
+    <p>اعلان SMS به ادمین هنگام درخواست ارسال می‌شود.</p>
+
+    <h2>۵. لغو و استرداد</h2>
+    <p>مجوز لغو و نتیجهٔ پولی جدا هستند (<span class="mono">shared/cancelPolicy.ts</span>).</p>
+
+    <h3>۵.۱ کی می‌تواند لغو کند؟</h3>
+    <table>
+      <thead>
+        <tr><th>بازیگر</th><th>مجوز</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>صاحب / مربی</td><td>همیشه</td></tr>
+        <tr><td>ورزشکار</td><td>تا قبل از شروع اسلات؛ بعد از شروع نه</td></tr>
+      </tbody>
+    </table>
+
+    <h3>۵.۲ نتیجهٔ پولی</h3>
+    <p>
+      پنجرهٔ لغو باشگاه: <span class="mono">cancellationWindowHours</span>
+      (پیش‌فرض ۱۲ ساعت؛ در تنظیمات صاحب: ۲۴ / ۱۲ / ۰).
+    </p>
+    <table>
+      <thead>
+        <tr><th>بازیگر</th><th>شرط</th><th>پول</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>صاحب / مربی</td>
+          <td>هر زمان</td>
+          <td>۱۰۰٪ اعتبار کیف + clawback تسویه</td>
+        </tr>
+        <tr>
+          <td>ورزشکار</td>
+          <td>خارج از پنجره (فاصله تا شروع ≥ window)</td>
+          <td>۱۰۰٪ اعتبار کیف + clawback</td>
+        </tr>
+        <tr>
+          <td>ورزشکار</td>
+          <td>داخل پنجره</td>
+          <td>لغو OK ولی صفر استرداد؛ باشگاه/مربی/سایت خالص را نگه می‌دارند</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>۵.۳ مسیر واقعی استرداد</h3>
+    <p><strong>بازگشت به کارت/شبا نیست</strong> — closed-loop:</p>
+    <ol>
+      <li>اگر <span class="mono">zero_refund</span> ← هیچ کار مالی</li>
+      <li>
+        اگر پرداخت قابل استرداد (PAID) باشد:
+        <ul>
+          <li>اگر userId دارد و روش نه CASH و نه NOT_PAID ← <span class="mono">REFUND_CREDIT</span> به کیف ورزشکار (کل مبلغ)</li>
+          <li>وضعیت پرداخت ← <span class="mono">REFUNDED</span></li>
+          <li><span class="mono">clawbackOwnerForPayment</span>: خالص (ownerNet) از ClubWallet یا کیف مربی کسر می‌شود (حتی اگر موجودی منفی شود)</li>
+        </ul>
+      </li>
+      <li>نقد میز: بدون اعتبار به ورزشکار؛ clawback فقط اگر قبلاً به‌اشتباه تسویه شده باشد</li>
+      <li>پرداخت نشده: بدون استرداد</li>
+    </ol>
+    <p>سری جلسات: به‌ازای هر جلسه یک REFUND_CREDIT و clawback نسبی.</p>
+    <div class="callout">
+      کمیسیون پلتفرم در ledger به کسی credit نشده؛ در clawback فقط ownerNet برمی‌گردد.
+      در استرداد کامل به ورزشکار، ورزشکار کل مبلغ ناخالص را در کیف می‌گیرد و کمیسیون عملاً از float پلتفرم تأمین می‌شود.
+    </div>
+
+    <h2 class="page-break">۶. سناریوهای سه‌جانبه</h2>
+
+    <h3>A — رزرو آنلاین موفق</h3>
+    <p>
+      ورزشکار ۱٬۰۰۰٬۰۰۰ می‌پردازد ← سایت ~۱۰۰٬۰۰۰ کمیسیون ← باشگاه ~۹۰۰٬۰۰۰
+      (قفل تا فردای کلاس) ← بعد از unlock می‌تواند برداشت بخواهد ← ادمین واریز می‌کند.
+    </p>
+
+    <h3>B — لغو ورزشکار خارج پنجره</h3>
+    <p>
+      رزرو لغو ← ۱٬۰۰۰٬۰۰۰ به کیف ورزشکار (REFUND_CREDIT) ← ۹۰۰٬۰۰۰ از باشگاه clawback ←
+      ورزشکار می‌تواند دوباره رزرو کند ولی نمی‌تواند آن اعتبار را به بانک بکشد.
+    </p>
+
+    <h3>C — لغو ورزشکار داخل پنجره</h3>
+    <p>اسلات آزاد می‌شود ← بدون اعتبار ← باشگاه خالص را نگه می‌دارد (اگر قبلاً settle شده باشد).</p>
+
+    <h3>D — لغو توسط صاحب</h3>
+    <p>
+      همیشه full wallet refund برای ورزشکار (اگر قبلاً IPG/کیف پرداخته) + clawback باشگاه،
+      حتی نزدیک به ساعت کلاس.
+    </p>
+
+    <h3>E — پرداخت نقدی در میز</h3>
+    <p>بدون settle به ClubWallet ← در لغو بدون اعتبار کیف ورزشکار.</p>
+
+    <h3>F — مربی</h3>
+    <p>
+      شهریه به کیف مربی (locked تا فردای کلاس) ← مربی می‌تواند برداشت بانکی کند.
+      ورزشکار بدون پروفایل Coach با همان API برداشت ← خطای ۴۰۳ (closed-loop).
+    </p>
+
+    <h3>G — انتقال داخلی باشگاه ↔ مربی</h3>
+    <p>فقط record-keeping از available؛ ورزشکار این مسیر را ندارد.</p>
+
+    <h2>۷. قوانین سخت</h2>
+    <ol class="rules">
+      <li>استرداد = اعتبار کیف، نه ریورس بانکی (در مسیر فعلی gateway reverse عملاً استفاده نمی‌شود).</li>
+      <li>کیف ورزشکار برای خرج داخل محصول است؛ برداشت بانکی فقط برای نقش مربی و فقط از settlement.</li>
+      <li>نقد میز وارد اقتصاد پلتفرم نمی‌شود.</li>
+      <li>تسویه فقط روی IPG / پرداخت از کیف‌پول (method غیر CASH).</li>
+      <li>کمیسیون پیش‌فرض ۱۰٪ سایت (<span class="mono">PLATFORM_COMMISSION_BPS</span> / <span class="mono">COACH_COMMISSION_BPS</span>).</li>
+      <li>قفل تا فردای کلاس (تهران) قبل از قابل‌برداشت شدن.</li>
+      <li>ادمین اپراتور نقدینگی است: درخواست شبا را می‌بیند، Paid/Reject می‌زند، فیش ضمیمه می‌کند؛ ریل پرداخت خودکار بانکی نداریم.</li>
+      <li>Idempotency روی credit / debit / settlement / clawback با paymentId (+ گاهی bookingId) تا دوباره‌کاری نشود.</li>
+    </ol>
+
+    <div class="footer-meta">
+      Inbox · گزارش داخلی جریان مالی کیف‌پول و پرداخت · تولید از مرور کد محصول
+    </div>
+  </body>
+</html>
