@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 import { serializeBrandJsonLd } from '#shared/brandJsonLd.ts'
 import { normalizeTod, type TimeOfDayPref } from '#shared/timeOfDay.ts'
 
@@ -135,10 +134,6 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   if (club.sports?.includes('padel')) return '/hero/padel-court.jpg'
   if (club.sports?.includes('tennis')) return '/hero/tennis-court.jpg'
   return '/hero/fitness-venue.jpg'
-}
-
-function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
-  return isOfficialPilotClub(club)
 }
 
 function nextHero() {
@@ -335,11 +330,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -371,11 +361,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -406,11 +391,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>

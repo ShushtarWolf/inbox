@@ -1,6 +1,5 @@
 <script setup lang="ts">
 /** Canva p25: personalized athlete home inside phone shell (not public layout). */
-import { isOfficialPilotClub, PILOT_CLUB_NAME_FA } from '#shared/pilotClub.ts'
 import { isPastDate } from '#shared/localDate.ts'
 import { normalizeTod, type TimeOfDayPref } from '#shared/timeOfDay.ts'
 
@@ -136,10 +135,6 @@ function clubImage(club: { image?: string | null; sports?: string[] }) {
   return '/hero/fitness-venue.jpg'
 }
 
-function isPilotOfferClub(club: { slug?: string; nameFa?: string }) {
-  return isOfficialPilotClub(club)
-}
-
 function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
   return t('home.clubImageAlt', { name: localizedField(club, 'nameFa', 'nameEn') })
 }
@@ -178,16 +173,7 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
           </NuxtLink>
         </div>
       </div>
-      <div
-        class="canva-promo-badge canva-promo-badge-offer pointer-events-none"
-        :title="t('athlete.homePromoCodeHint')"
-        role="note"
-        :aria-label="t('athlete.homePromo')"
-      >
-        <span class="canva-promo-badge-label">{{ t('athlete.homePromo') }}</span>
-        <span class="canva-promo-badge-code">{{ t('athlete.homePromoAskClub') }}</span>
-      </div>
-      <div class="canva-photo-hero-body canva-photo-hero-body-with-offer !min-h-[10.5rem]">
+      <div class="canva-photo-hero-body !min-h-[10.5rem]">
         <h1 class="canva-page-hero-title text-2xl">{{ t('athlete.homeGreeting', { name: greetName }) }}</h1>
         <p class="mt-1 text-sm text-white/85">{{ t('athlete.homePickCourt') }}</p>
       </div>
@@ -294,11 +280,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -327,11 +308,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
@@ -360,11 +336,6 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
             class="canva-venue-card"
           >
             <CanvaHeroImg :src="clubImage(club)" :alt="clubImageAlt(club)" loading="lazy" />
-            <span
-              v-if="isPilotOfferClub(club)"
-              class="canva-venue-card-offer"
-              :aria-label="t('home.pilotStudentOffer', { club: PILOT_CLUB_NAME_FA })"
-            >۲۰٪</span>
             <div class="canva-venue-card-body">
               <div class="canva-venue-card-copy">
                 <p class="canva-venue-card-title">{{ localizedField(club, 'nameFa', 'nameEn') }}</p>
