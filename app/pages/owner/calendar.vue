@@ -2154,6 +2154,20 @@ function slotsForCancel() {
   return []
 }
 
+/** Matches server/utils/refunds.ts — unpaid / desk cash never credit the athlete wallet. */
+function slotWouldCreditWallet(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!booking || !isPaidPaymentStatus(slotPaymentStatus(slot))) return false
+  const method = booking.payment?.method || booking.paymentMethod
+  return method !== 'CASH' && method !== 'NOT_PAID'
+}
+
+const cancelMoneyNoteKey = computed(() => {
+  if (cancelSeries.value) return 'owner.cancelSeriesMoneyNote'
+  if (slotsForCancel().some(slotWouldCreditWallet)) return 'owner.cancelAlwaysRefundsWallet'
+  return 'owner.cancelUnpaidNoWallet'
+})
+
 function slotsForMarkPaid() {
   if (showBookedCancelChecks.value || bookedSiblingSlots.value.length) {
     return checkedUnpaidBookedSlots(bookedSiblingSlots.value, selectedSlotIds.value)
@@ -4073,7 +4087,7 @@ watch(pilotNoCoach, (off) => {
                 </li>
               </ul>
             </template>
-            <p class="text-start text-xs text-brand-gray-600">{{ t('owner.cancelAlwaysRefundsWallet') }}</p>
+            <p class="text-start text-xs text-brand-gray-600">{{ t(cancelMoneyNoteKey) }}</p>
             <AppFormField :label="t('owner.cancelReasonPlaceholder')">
               <select v-model="cancelReason" class="neo-select">
                 <option value="">{{ t('owner.cancelReasonPlaceholder') }}</option>
