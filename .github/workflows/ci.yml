@@ -56,6 +56,7 @@ jobs:
       - run: FORCE_SEED_RESET=true SEED_DEMO_DATA=true npm run db:seed
       - run: npm run lint
       - run: npm run check:i18n
+      - run: npm run check:no-student-promo-ui
       - run: npm run check:ios-hit-testing
       - run: npm run build
       - run: npm test
