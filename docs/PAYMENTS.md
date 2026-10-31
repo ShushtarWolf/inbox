@@ -122,15 +122,15 @@ Money outcome from `resolveCancelMoneyOutcome` (`shared/cancelPolicy.ts`):
 | Athlete | Outside club `cancellationWindowHours` (default 12) | **100% wallet credit** + clawback |
 | Athlete | Inside window (until slot start) | Cancel allowed, **zero refund**, club/coach/platform keep nets |
 
-`refundPaymentForCancellation`:
+`refundPaymentForCancellation` (credit + `REFUNDED` + clawback in **one DB transaction**):
 
 | Payment type | Refund path |
 |--------------|-------------|
-| IPG / wallet `PAID` | **Wallet credit** (closed-loop; no gateway reverse required) + clawback |
-| Desk `CASH` | No athlete credit; clawback only if a (historical) settlement exists |
+| IPG / wallet `PAID` | **Wallet credit** (`refundChannel=wallet_closed_loop`; **no** SEP `ReverseTransaction`) + clawback |
+| Desk `CASH` | No athlete credit; `REFUNDED` + `deskCashReturn=owed` until owner acks via `POST /api/owner/payments/:id/ack-cash-return`; clawback only if a (historical) settlement exists |
 | Unpaid | No refund |
 
-Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net.
+Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net (same atomic rule).
 
 Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 

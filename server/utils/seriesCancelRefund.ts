@@ -6,6 +6,11 @@ import {
 } from '#shared/athleteSeason.ts'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
+import {
+  buildCancelRefundMetadata,
+  parsePaymentMetadata,
+  resolveRefundChannel,
+} from '#shared/cancelRefund.ts'
 import type { RefundResult } from './refunds'
 import { refundPaymentForCancellation } from './refunds'
 import { clawbackOwnerPartialForPayment } from './settlement'
@@ -47,8 +52,15 @@ export function resolveSeriesGroupFromMeta(
 
 export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
   group: SeriesGroupInfo
-  bookingPayment: { id: string; amount: number; status: string; metadataJson: string | null } | null
-  primaryPayment: { id: string; amount: number; status: string; metadataJson: string | null; bookingId: string | null }
+  bookingPayment: { id: string; amount: number; status: string; method: string; metadataJson: string | null } | null
+  primaryPayment: {
+    id: string
+    amount: number
+    status: string
+    method: string
+    metadataJson: string | null
+    bookingId: string | null
+  }
 } | null> {
   const payment = await prisma.payment.findUnique({ where: { bookingId } })
   const meta = parseSeriesPaymentMeta(payment?.metadataJson)
@@ -83,6 +95,7 @@ export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
           id: payment.id,
           amount: payment.amount,
           status: payment.status,
+          method: payment.method,
           metadataJson: payment.metadataJson,
         }
       : null,
@@ -90,6 +103,7 @@ export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
       id: primaryPayment.id,
       amount: primaryPayment.amount,
       status: primaryPayment.status,
+      method: primaryPayment.method,
       metadataJson: primaryPayment.metadataJson,
       bookingId: primaryPayment.bookingId,
     },
@@ -151,35 +165,18 @@ export async function refundAfterSeriesSessionCancel(opts: {
         moneyOutcome: opts.moneyOutcome,
       })
     }
-    // Partial residual: wallet credit + pro-rata owner clawback.
-    if (opts.userId) {
-      await creditWallet(opts.userId, residual, {
-        paymentId: primaryPayment.id,
-        bookingId: opts.cancelledBookingId,
-        note: opts.reason,
-      })
-    }
-    try {
-      await clawbackOwnerPartialForPayment({
-        paymentId: primaryPayment.id,
-        grossRefundAmount: residual,
-        bookingId: opts.cancelledBookingId,
-      })
-    }
-    catch (err) {
-      console.error('[seriesCancelRefund:clawback]', primaryPayment.id, err)
-    }
-    await prisma.payment.update({
-      where: { id: primaryPayment.id },
-      data: {
-        status: 'REFUNDED',
-        metadataJson: JSON.stringify({
-          ...primaryMeta,
-          sessionRefundsTotal: alreadyRefunded + residual,
-        }),
-      },
+    // Partial residual: wallet credit + pro-rata owner clawback in one txn.
+    return applySeriesSessionRefund({
+      userId: opts.userId,
+      paymentId: primaryPayment.id,
+      method: primaryPayment.method,
+      bookingId: opts.cancelledBookingId,
+      amount: residual,
+      reason: opts.reason,
+      primaryMeta,
+      alreadyRefunded,
+      markRefunded: true,
     })
-    return { refunded: true, walletCredited: Boolean(opts.userId), gatewayRefunded: false, amount: residual }
   }
 
   const amount = sessionRefundAmount({
@@ -191,35 +188,77 @@ export async function refundAfterSeriesSessionCancel(opts: {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
-  if (opts.userId) {
-    await creditWallet(opts.userId, amount, {
-      paymentId: primaryPayment.id,
-      bookingId: opts.cancelledBookingId,
-      note: opts.reason,
-    })
-  }
-  try {
-    await clawbackOwnerPartialForPayment({
-      paymentId: primaryPayment.id,
-      grossRefundAmount: amount,
-      bookingId: opts.cancelledBookingId,
-    })
-  }
-  catch (err) {
-    console.error('[seriesCancelRefund:clawback]', primaryPayment.id, err)
-  }
+  return applySeriesSessionRefund({
+    userId: opts.userId,
+    paymentId: primaryPayment.id,
+    method: primaryPayment.method,
+    bookingId: opts.cancelledBookingId,
+    amount,
+    reason: opts.reason,
+    primaryMeta,
+    alreadyRefunded,
+    markRefunded: false,
+  })
+}
 
-  await prisma.payment.update({
-    where: { id: primaryPayment.id },
-    data: {
-      metadataJson: JSON.stringify({
-        ...primaryMeta,
-        sessionRefundsTotal: alreadyRefunded + amount,
-      }),
-    },
+/** Credit (non-cash) + clawback + metadata update — fail closed if clawback throws. */
+async function applySeriesSessionRefund(opts: {
+  userId?: string | null
+  paymentId: string
+  method: string
+  bookingId: string
+  amount: number
+  reason: string
+  primaryMeta: SeriesPaymentMeta
+  alreadyRefunded: number
+  markRefunded: boolean
+}): Promise<RefundResult> {
+  const channel = resolveRefundChannel(opts.method)
+  const canCredit = Boolean(opts.userId) && channel === 'wallet_closed_loop'
+  const existingMeta = {
+    ...parsePaymentMetadata(JSON.stringify(opts.primaryMeta)),
+    ...opts.primaryMeta,
+  }
+  const refundMeta = buildCancelRefundMetadata(existingMeta, {
+    channel,
+    reason: opts.reason,
   })
 
-  return { refunded: true, walletCredited: Boolean(opts.userId), gatewayRefunded: false, amount }
+  await prisma.$transaction(async (tx) => {
+    if (canCredit && opts.userId) {
+      await creditWallet(opts.userId, opts.amount, {
+        paymentId: opts.paymentId,
+        bookingId: opts.bookingId,
+        note: opts.reason,
+        type: 'REFUND_CREDIT',
+      }, tx)
+    }
+    await clawbackOwnerPartialForPayment({
+      paymentId: opts.paymentId,
+      grossRefundAmount: opts.amount,
+      bookingId: opts.bookingId,
+      db: tx,
+    })
+    await tx.payment.update({
+      where: { id: opts.paymentId },
+      data: {
+        ...(opts.markRefunded ? { status: 'REFUNDED' as const } : {}),
+        metadataJson: JSON.stringify({
+          ...refundMeta,
+          sessionRefundsTotal: opts.alreadyRefunded + opts.amount,
+        }),
+      },
+    })
+  })
+
+  return {
+    refunded: true,
+    walletCredited: canCredit,
+    gatewayRefunded: false,
+    amount: opts.amount,
+    refundChannel: channel,
+    deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
+  }
 }
 
 /** Unpaid primary cancel: also free unpaid siblings in the same series group. */

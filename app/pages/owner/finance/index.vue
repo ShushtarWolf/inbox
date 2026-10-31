@@ -49,12 +49,23 @@ type OwnerFinancePaymentBreakdown = {
   NOT_PAID?: number
 }
 
+type DeskCashReturnOwed = {
+  paymentId: string
+  amount: number
+  guestName: string
+  guestMobile?: string | null
+  date?: string | null
+  startTime?: string | null
+  courtName?: string | null
+}
+
 type OwnerFinanceResponse = {
   stats?: OwnerFinanceStats
   weeklyRevenue?: number[]
   weekLabels?: string[]
   paymentBreakdown?: OwnerFinancePaymentBreakdown
   transactions?: OwnerFinanceTransaction[]
+  deskCashReturnsOwed?: DeskCashReturnOwed[]
 }
 
 type OwnerSettlementWithdraw = {
@@ -128,10 +139,30 @@ const transferAmount = ref<number | null>(null)
 const transferNote = ref('')
 const transferBusy = ref(false)
 const transferFlash = ref('')
+const cashAckBusyId = ref<string | null>(null)
+const cashAckError = ref('')
 const { data: transferCoaches, refresh: refreshTransferCoaches } = await useAuthedFetch<Array<{ id: string; nameFa?: string; nameEn?: string }>>(
   '/api/owner/transfer-coaches',
   { immediate: false, watch: false },
 )
+
+const deskCashReturnsOwed = computed(() => data.value?.deskCashReturnsOwed || [])
+
+async function ackDeskCashReturn(paymentId: string) {
+  if (cashAckBusyId.value) return
+  cashAckBusyId.value = paymentId
+  cashAckError.value = ''
+  try {
+    await $fetch(`/api/owner/payments/${paymentId}/ack-cash-return`, { method: 'POST' })
+    await refresh()
+  }
+  catch (error: unknown) {
+    cashAckError.value = fetchErrorMessage(error, t('common.error'))
+  }
+  finally {
+    cashAckBusyId.value = null
+  }
+}
 
 const activeMembership = computed(() => {
   const memberships = user.value?.memberships || []
@@ -736,6 +767,36 @@ function showUnpaidList() {
           </table>
         </div>
         <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ t('common.empty') }}</p>
+      </div>
+
+      <div v-if="showTransactions && deskCashReturnsOwed.length" class="canva-panel space-y-3">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.deskCashReturnsTitle') }}</h2>
+        <p class="text-sm text-brand-gray-600 text-start">{{ t('owner.financePage.deskCashReturnsHint') }}</p>
+        <p v-if="cashAckError" class="text-sm text-red-600 text-start" role="alert">{{ cashAckError }}</p>
+        <ul class="space-y-2">
+          <li
+            v-for="row in deskCashReturnsOwed"
+            :key="row.paymentId"
+            class="flex flex-wrap items-center justify-between gap-2 border border-brand-gray-200 bg-brand-cream px-3 py-2"
+          >
+            <div class="text-start text-sm">
+              <p class="font-bold text-brand-navy">{{ row.guestName || '—' }} · {{ formatCurrency(row.amount) }}</p>
+              <p class="text-xs text-brand-gray-600">
+                <template v-if="row.courtName">{{ row.courtName }} · </template>
+                <template v-if="row.date">{{ formatDate(row.date) }}</template>
+                <template v-if="row.startTime"> · <bdi dir="ltr">{{ formatTimeLabel(row.startTime) }}</bdi></template>
+              </p>
+            </div>
+            <button
+              type="button"
+              class="canva-gate-btn-secondary shrink-0"
+              :disabled="cashAckBusyId === row.paymentId"
+              @click="ackDeskCashReturn(row.paymentId)"
+            >
+              {{ cashAckBusyId === row.paymentId ? t('common.loading') : t('owner.ackCashReturn') }}
+            </button>
+          </li>
+        </ul>
       </div>
 
       <div v-if="showPayoutsSection" class="canva-panel space-y-3">

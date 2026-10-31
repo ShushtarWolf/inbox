@@ -1340,6 +1340,7 @@ model ClubWalletTransaction {
 
   @@index([walletId, createdAt])
   @@index([paymentId])
+  // BOOKING_CREDIT idempotency is enforced in creditClubWallet (findFirst) + SettlementLedgerEntry.paymentId unique.
 }
 
 /** One row per settled payment — idempotency key for club/coach credit / clawback. */

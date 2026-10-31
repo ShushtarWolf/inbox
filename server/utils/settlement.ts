@@ -200,6 +200,17 @@ async function creditClubWallet(
     throw createError({ statusCode: 400, statusMessage: 'Credit amount must be positive' })
   }
   const wallet = await getOrCreateClubWallet(clubId, db)
+  // Idempotent BOOKING_CREDIT per payment (+ booking for series) — matches WalletTransaction partial uniques.
+  if (meta.paymentId && meta.type === 'BOOKING_CREDIT') {
+    const existing = await db.clubWalletTransaction.findFirst({
+      where: {
+        paymentId: meta.paymentId,
+        type: 'BOOKING_CREDIT',
+        ...(meta.bookingId ? { bookingId: meta.bookingId } : { bookingId: null }),
+      },
+    })
+    if (existing) return wallet
+  }
   const intoLocked = Boolean(meta.locked)
   const updated = await db.clubWallet.update({
     where: { id: wallet.id },

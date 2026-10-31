@@ -1,4 +1,5 @@
 import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
@@ -378,6 +379,39 @@ export default defineEventHandler(async (event) => {
     .slice(0, txLimit)
   const transactions = [...bookingTransactions, ...legendSlotRows]
 
+  // Desk cash cancels awaiting till-return ack (dual-rail: not wallet).
+  const cashRefunded = await prisma.payment.findMany({
+    where: {
+      method: 'CASH',
+      status: 'REFUNDED',
+      booking: { slot: { court: { clubId: club.id } } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 40,
+    include: {
+      booking: {
+        select: {
+          id: true,
+          guestName: true,
+          guestFamily: true,
+          guestMobile: true,
+          slot: { select: { date: true, startTime: true, court: { select: { nameFa: true } } } },
+        },
+      },
+    },
+  })
+  const deskCashReturnsOwed = cashRefunded
+    .filter((p) => readDeskCashReturn(parsePaymentMetadata(p.metadataJson)) === 'owed')
+    .map((p) => ({
+      paymentId: p.id,
+      amount: p.amount,
+      guestName: [p.booking?.guestName, p.booking?.guestFamily].filter(Boolean).join(' ').trim(),
+      guestMobile: p.booking?.guestMobile || null,
+      date: p.booking?.slot.date || null,
+      startTime: p.booking?.slot.startTime || null,
+      courtName: p.booking?.slot.court.nameFa || null,
+    }))
+
   return {
     stats: {
       revenue,
@@ -397,6 +431,7 @@ export default defineEventHandler(async (event) => {
     weekLabels,
     paymentBreakdown,
     transactions,
+    deskCashReturnsOwed,
     segments: {
       activeContacts,
       churnRisk,

@@ -5,6 +5,9 @@ const update = vi.fn()
 const creditWallet = vi.fn()
 const syncPaymentToParent = vi.fn()
 const clawbackOwnerForPayment = vi.fn()
+const tx = {
+  payment: { update: (...args: unknown[]) => update(...args) },
+}
 
 vi.mock('./prisma', () => ({
   prisma: {
@@ -12,6 +15,7 @@ vi.mock('./prisma', () => ({
       findUnique: (...args: unknown[]) => findUnique(...args),
       update: (...args: unknown[]) => update(...args),
     },
+    $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
   },
 }))
 
@@ -45,14 +49,14 @@ describe('refundPaymentForCancellation', () => {
     update.mockResolvedValue({ ...sepPaid, status: 'REFUNDED' })
     creditWallet.mockResolvedValue({})
     syncPaymentToParent.mockResolvedValue(undefined)
-    clawbackOwnerForPayment.mockResolvedValue(undefined)
+    clawbackOwnerForPayment.mockResolvedValue({ clawed: true })
   })
 
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  it('IPG cancel: wallet credit (closed-loop), no gateway reverse required', async () => {
+  it('IPG cancel: closed-loop wallet credit + clawback in one path; no gateway reverse', async () => {
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
       userId: 'user-1',
@@ -62,10 +66,24 @@ describe('refundPaymentForCancellation', () => {
     expect(creditWallet).toHaveBeenCalledWith(
       'user-1',
       400000,
-      expect.objectContaining({ paymentId: 'pay-1', bookingId: 'b1' }),
+      expect.objectContaining({ paymentId: 'pay-1', bookingId: 'b1', type: 'REFUND_CREDIT' }),
+      tx,
     )
-    expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-1')
-    expect(result).toMatchObject({ refunded: true, walletCredited: true, gatewayRefunded: false, amount: 400000 })
+    expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-1', tx)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'pay-1' },
+      data: expect.objectContaining({
+        status: 'REFUNDED',
+        metadataJson: expect.stringContaining('wallet_closed_loop'),
+      }),
+    }))
+    expect(result).toMatchObject({
+      refunded: true,
+      walletCredited: true,
+      gatewayRefunded: false,
+      amount: 400000,
+      refundChannel: 'wallet_closed_loop',
+    })
   })
 
   it('zero_refund: no credit and no clawback', async () => {
@@ -98,9 +116,10 @@ describe('refundPaymentForCancellation', () => {
     })
     expect(creditWallet).toHaveBeenCalled()
     expect(result.walletCredited).toBe(true)
+    expect(result.refundChannel).toBe('wallet_closed_loop')
   })
 
-  it('cash cancel: do not mint wallet credit, still clawback if settled', async () => {
+  it('cash cancel: no wallet credit; deskCashReturn owed; still clawback', async () => {
     findUnique.mockResolvedValue({
       id: 'pay-cash',
       amount: 400000,
@@ -117,12 +136,22 @@ describe('refundPaymentForCancellation', () => {
       bookingId: 'b1',
     })
     expect(creditWallet).not.toHaveBeenCalled()
-    expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-cash')
-    expect(result.walletCredited).toBe(false)
-    expect(result.refunded).toBe(true)
+    expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-cash', tx)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadataJson: expect.stringMatching(/desk_cash.*"deskCashReturn":"owed"/s),
+      }),
+    }))
+    expect(result).toMatchObject({
+      walletCredited: false,
+      refunded: true,
+      refundChannel: 'desk_cash',
+      deskCashReturn: 'owed',
+      gatewayRefunded: false,
+    })
   })
 
-  it('wallet credit failure: do not mark payment REFUNDED', async () => {
+  it('wallet credit failure: do not mark payment REFUNDED or clawback', async () => {
     creditWallet.mockRejectedValue(new Error('wallet down'))
     await expect(refundPaymentForCancellation({
       paymentId: 'pay-1',
@@ -132,5 +161,17 @@ describe('refundPaymentForCancellation', () => {
     })).rejects.toThrow('wallet down')
     expect(update).not.toHaveBeenCalled()
     expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
+  })
+
+  it('clawback failure rolls back — does not leave REFUNDED without clawback', async () => {
+    clawbackOwnerForPayment.mockRejectedValue(new Error('clawback down'))
+    await expect(refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'user-1',
+      reason: 'cancel',
+      bookingId: 'b1',
+    })).rejects.toThrow('clawback down')
+    // sync only after successful txn
+    expect(syncPaymentToParent).not.toHaveBeenCalled()
   })
 })

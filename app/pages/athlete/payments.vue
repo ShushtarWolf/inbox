@@ -30,6 +30,7 @@ type PaymentRow = {
   createdAt: string
   amount: number
   bookingId?: string | null
+  deskCashReturn?: 'owed' | 'returned' | null
 }
 
 const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet')
@@ -123,7 +124,11 @@ function sortLabel(key: AthletePaySortKey) {
   return t('athlete.paymentColDate')
 }
 
-function statusLabel(status: string, method: string) {
+function statusLabel(status: string, method: string, deskCashReturn?: 'owed' | 'returned' | null) {
+  if (status === 'REFUNDED' && method === 'CASH') {
+    if (deskCashReturn === 'returned') return t('athlete.paymentStatusRefundedCashReturned')
+    return t('athlete.paymentStatusRefundedCashOwed')
+  }
   if (status === 'REFUNDED' && method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
   return t(`booking.paymentStatus.${status}`)
 }
@@ -297,7 +302,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                   </template>
                   <template v-else>{{ formatDate(row.createdAt) }}</template>
                 </p>
-                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status, row.method) }}</p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status, row.method, row.deskCashReturn) }}</p>
               </div>
               <div class="flex shrink-0 flex-col items-end gap-1">
                 <p class="text-sm font-bold tabular-nums text-brand-navy">{{ formatCurrency(row.amount) }}</p>
@@ -356,7 +361,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                     </template>
                     <template v-else>{{ formatDate(row.createdAt) }}</template>
                   </td>
-                  <td class="whitespace-nowrap">{{ statusLabel(row.status, row.method) }}</td>
+                  <td class="whitespace-nowrap">{{ statusLabel(row.status, row.method, row.deskCashReturn) }}</td>
                   <td>
                     <span class="canva-finance-method-badge" :class="methodBadgeClass(row.method)">
                       {{ methodLabel(row.method) }}

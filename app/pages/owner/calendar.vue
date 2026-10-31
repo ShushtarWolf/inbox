@@ -69,7 +69,13 @@ interface OwnerCalendarBooking {
   packageDraftId?: string | null
   /** Season / package series or class-package court hold — from calendar API. */
   isRecurring?: boolean | null
-  payment?: { method?: string; status?: string; amount?: number } | null
+  payment?: {
+    id?: string
+    method?: string
+    status?: string
+    amount?: number
+    metadataJson?: string | null
+  } | null
   paymentMethod?: string | null
   paymentStatus?: string | null
   comments?: string | null
@@ -2162,9 +2168,17 @@ function slotWouldCreditWallet(slot: OwnerCalendarSlot | null | undefined) {
   return method !== 'CASH' && method !== 'NOT_PAID'
 }
 
+function slotIsPaidDeskCash(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!booking || !isPaidPaymentStatus(slotPaymentStatus(slot))) return false
+  const method = booking.payment?.method || booking.paymentMethod
+  return method === 'CASH'
+}
+
 const cancelMoneyNoteKey = computed(() => {
   if (cancelSeries.value) return 'owner.cancelSeriesMoneyNote'
   if (slotsForCancel().some(slotWouldCreditWallet)) return 'owner.cancelAlwaysRefundsWallet'
+  if (slotsForCancel().some(slotIsPaidDeskCash)) return 'owner.cancelPaidCashNoWallet'
   return 'owner.cancelUnpaidNoWallet'
 })
 
