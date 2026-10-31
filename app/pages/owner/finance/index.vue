@@ -523,10 +523,6 @@ function showUnpaidList() {
       />
       <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
-      <div class="canva-promo-badge canva-promo-badge-hero pointer-events-none" aria-hidden="true">
-        <span class="canva-promo-badge-pct">۲۰٪</span>
-        <span class="canva-promo-badge-label">{{ t('owner.calendarPromoShort') }}</span>
-      </div>
       <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
     </section>
 

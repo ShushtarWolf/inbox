@@ -38,6 +38,7 @@ import {
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
 import {
   isSellEquipmentCategory,
@@ -2160,23 +2161,36 @@ function slotsForCancel() {
   return []
 }
 
+function slotPaymentMethods(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!booking) return { method: null as string | null, bookingPaymentMethod: null as string | null }
+  return {
+    method: booking.payment?.method || null,
+    bookingPaymentMethod: booking.paymentMethod || null,
+  }
+}
+
 /** Matches server/utils/refunds.ts — unpaid / desk cash never credit the athlete wallet. */
 function slotWouldCreditWallet(slot: OwnerCalendarSlot | null | undefined) {
-  const booking = activeBooking(slot)
-  if (!booking || !isPaidPaymentStatus(slotPaymentStatus(slot))) return false
-  const method = booking.payment?.method || booking.paymentMethod
-  return method !== 'CASH' && method !== 'NOT_PAID'
+  if (!isPaidPaymentStatus(slotPaymentStatus(slot))) return false
+  const { method, bookingPaymentMethod } = slotPaymentMethods(slot)
+  if (method === 'NOT_PAID' && bookingPaymentMethod !== 'CASH') return false
+  return resolveRefundChannel(method, bookingPaymentMethod) === 'wallet_closed_loop'
 }
 
 function slotIsPaidDeskCash(slot: OwnerCalendarSlot | null | undefined) {
-  const booking = activeBooking(slot)
-  if (!booking || !isPaidPaymentStatus(slotPaymentStatus(slot))) return false
-  const method = booking.payment?.method || booking.paymentMethod
-  return method === 'CASH'
+  if (!isPaidPaymentStatus(slotPaymentStatus(slot))) return false
+  const { method, bookingPaymentMethod } = slotPaymentMethods(slot)
+  return isDeskCashCancelRefund(method, bookingPaymentMethod)
 }
 
 const cancelMoneyNoteKey = computed(() => {
-  if (cancelSeries.value) return 'owner.cancelSeriesMoneyNote'
+  if (cancelSeries.value) {
+    const slot = selectedSlotFull.value
+    if (slotIsPaidDeskCash(slot)) return 'owner.cancelSeriesAllCashNoWallet'
+    if (slotWouldCreditWallet(slot)) return 'owner.cancelSeriesOnlineWallet'
+    return 'owner.cancelSeriesMoneyNote'
+  }
   if (slotsForCancel().some(slotWouldCreditWallet)) return 'owner.cancelAlwaysRefundsWallet'
   if (slotsForCancel().some(slotIsPaidDeskCash)) return 'owner.cancelPaidCashNoWallet'
   return 'owner.cancelUnpaidNoWallet'

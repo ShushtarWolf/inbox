@@ -58,12 +58,15 @@ export async function refundPaymentForCancellation(options: {
   }
 
   const db = options.db || prisma
-  const payment = await db.payment.findUnique({ where: { id: options.paymentId } })
+  const payment = await db.payment.findUnique({
+    where: { id: options.paymentId },
+    include: { booking: { select: { paymentMethod: true } } },
+  })
   if (!payment || !isPaymentRefundable(payment.status)) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
-  const channel = resolveRefundChannel(payment.method)
+  const channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
   // Desk cash never entered platform float — no athlete credit.
   const canCreditAthlete = Boolean(options.userId)
     && channel === 'wallet_closed_loop'

@@ -21,8 +21,26 @@ export function parsePaymentMetadata(raw: string | null | undefined): Record<str
   }
 }
 
-export function resolveRefundChannel(method: string | null | undefined): RefundChannel {
-  return method === 'CASH' ? 'desk_cash' : 'wallet_closed_loop'
+/**
+ * Route cancel refunds: desk till cash never credits the athlete wallet; IPG and
+ * wallet checkout (method PAID) stay closed-loop wallet credit.
+ * Booking.paymentMethod is a fallback when the Payment row drifted from the desk mark-paid.
+ */
+export function resolveRefundChannel(
+  method: string | null | undefined,
+  bookingPaymentMethod?: string | null,
+): RefundChannel {
+  if (method === 'IPG' || method === 'PAID') return 'wallet_closed_loop'
+  if (method === 'CASH' || bookingPaymentMethod === 'CASH') return 'desk_cash'
+  return 'wallet_closed_loop'
+}
+
+/** True when a paid booking cancel should not credit the athlete wallet. */
+export function isDeskCashCancelRefund(
+  method: string | null | undefined,
+  bookingPaymentMethod?: string | null,
+): boolean {
+  return resolveRefundChannel(method, bookingPaymentMethod) === 'desk_cash'
 }
 
 /** Build metadata patch written when a cancel refund is applied. */
