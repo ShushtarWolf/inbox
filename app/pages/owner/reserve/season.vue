@@ -45,6 +45,7 @@ const lastSmsSent = ref(false)
 
 const guestFullName = ref('')
 const guestMobile = ref('')
+useAsciiDigits(guestMobile)
 const guestFullNameInput = ref<HTMLInputElement | null>(null)
 const guestMobileInput = ref<HTMLInputElement | null>(null)
 const startDate = ref('')

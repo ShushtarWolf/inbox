@@ -37,6 +37,12 @@ const credentialUrls = ref<string[]>([])
 const licenseName = ref('')
 const code = ref('')
 const otpAutofillGen = ref(0)
+
+/** Live: typed Persian/Arabic digits → Latin in the field. */
+useAsciiDigits(phone)
+useAsciiDigits(code, { maxLength: 6 })
+useAsciiDigits(sessionPrice)
+useAsciiDigits(identifier, { digitsOnly: false })
 const pending = ref(false)
 const error = ref('')
 const debugCode = ref('')
@@ -464,16 +470,10 @@ async function registerWithPassword() {
 
 /** Persian validation instead of English browser-native bubbles (forms are novalidate). */
 function phoneValidationError(): string {
-  const digits = toLatinDigits(phone.value).replace(/\D/g, '')
+  const digits = phone.value.replace(/\D/g, '')
   if (!digits) return t('auth.phoneRequired')
   if (!/^(?:98|0)?9\d{9}$/.test(digits)) return t('auth.phoneInvalid')
   return ''
-}
-
-function toLatinDigits(value: string) {
-  return String(value || '')
-    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
 }
 
 async function requestOtp() {

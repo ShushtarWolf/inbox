@@ -9,6 +9,7 @@ const { data: wallet, pending: walletPending } = useAuthedFetch<{ balance?: numb
 const { multiReady } = useSmsCapability()
 const name = ref('')
 const phone = ref('')
+useAsciiDigits(phone)
 const gender = ref<'MALE' | 'FEMALE' | ''>('')
 const avatarUrl = ref('')
 const saving = ref(false)

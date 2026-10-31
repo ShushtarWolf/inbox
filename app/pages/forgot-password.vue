@@ -29,6 +29,9 @@ const error = ref('')
 const normalizedPhone = ref('')
 const debugCode = ref('')
 
+useAsciiDigits(phone)
+useAsciiDigits(code, { maxLength: 6 })
+
 async function requestCode() {
   error.value = ''
   pending.value = true

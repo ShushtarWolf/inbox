@@ -233,6 +233,8 @@ const form = reactive({
   coachId: '',
 })
 
+watchAsciiDigits(() => form.guestMobile, (next) => { form.guestMobile = next })
+
 const seasonForm = reactive({
   startDate: '',
   finishDate: '',
@@ -450,10 +452,12 @@ const ownerMemberships = computed(() => user.value?.memberships || [])
 const showClubSwitcher = computed(() => ownerMemberships.value.length > 1)
 const occupancyMarks = ref<Record<string, 'busy' | 'soft'>>({})
 const deskDiscountInput = ref('')
+useAsciiDigits(deskDiscountInput, { digitsOnly: false })
 const deskDiscountError = ref('')
 const deskDiscountApplying = ref(false)
 const deskDiscount = ref<{ code: string; percent: number; discountAmount: number } | null>(null)
 const deskPercentInput = ref('')
+useAsciiDigits(deskPercentInput)
 const deskPayMode = ref<'cash' | 'unpaid' | 'complimentary'>('cash')
 /** Owner hero must show the active club's own cover; Canva stock photos are placeholders. */
 const clubHeroImage = computed(() => {

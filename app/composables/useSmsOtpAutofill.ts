@@ -1,3 +1,5 @@
+import { extractAsciiDigits } from '#shared/digits.ts'
+
 export type SmsOtpAutofillHost = {
   OTPCredential?: unknown
   navigator?: {
@@ -33,7 +35,7 @@ export function startSmsOtpAutofill(
     otp: { transport: ['sms'] },
     signal: abort.signal,
   }).then((cred) => {
-    const next = String(cred?.code || '').replace(/\D/g, '')
+    const next = extractAsciiDigits(String(cred?.code || ''))
     if (next.length >= 4 && next.length <= 8) onCode(next.slice(0, 6))
   }).catch(() => {})
 

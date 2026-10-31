@@ -56,6 +56,9 @@ const form = reactive({
   accessAreas: [] as WorkerAccessArea[],
 })
 
+watchAsciiDigits(() => form.mobile, (next) => { form.mobile = next })
+watchAsciiDigits(() => form.emergencyMobile, (next) => { form.emergencyMobile = next })
+
 const modalTitle = computed(() => {
   if (!editing.value) return t('owner.workersPage.addTitle')
   const name = `${form.firstName} ${form.lastName}`.trim()

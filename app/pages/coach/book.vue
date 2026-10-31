@@ -98,6 +98,7 @@ const HOUR_OPTIONS = Array.from({ length: 18 }, (_, index) => `${String(index + 
 const selectedCourtId = ref('')
 const selectedSlotId = ref('')
 const studentPhone = ref('')
+useAsciiDigits(studentPhone)
 const studentName = ref('')
 type StudentSearchHit = { name: string; mobile: string }
 const studentSuggestions = ref<StudentSearchHit[]>([])

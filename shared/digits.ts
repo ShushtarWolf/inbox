@@ -21,3 +21,15 @@ export function parseAsciiInt(input: string | null | undefined): number | null {
   const n = Number(digits)
   return Number.isFinite(n) ? n : null
 }
+
+/** Live input normalize: Persian/Arabic → Latin. Default strips non-digits (phones/OTP/amounts). */
+export function normalizeAsciiDigitInput(
+  input: string,
+  options?: { digitsOnly?: boolean; maxLength?: number },
+): string {
+  const digitsOnly = options?.digitsOnly ?? true
+  let next = digitsOnly ? extractAsciiDigits(input) : toAsciiDigits(input)
+  const max = options?.maxLength
+  if (max != null && max > 0) next = next.slice(0, max)
+  return next
+}

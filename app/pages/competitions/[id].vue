@@ -35,6 +35,7 @@ const showPending = useHeldPending(pending, { forceRelease: () => Boolean(error.
 const { data: wallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet', { lazy: true })
 
 const partnerPhone = ref('')
+useAsciiDigits(partnerPhone)
 const joinPending = ref(false)
 const joinError = ref('')
 const joinSuccess = ref('')

@@ -39,4 +39,15 @@ describe('startSmsOtpAutofill', () => {
     stop()
     expect(seenSignal?.aborted).toBe(true)
   })
+
+  it('normalizes Persian digits from WebOTP', async () => {
+    const onCode = vi.fn()
+    const get = vi.fn().mockResolvedValue({ code: '۹۱۳۷۱۷' })
+    startSmsOtpAutofill(onCode, {
+      OTPCredential: function OTPCredential() {},
+      navigator: { credentials: { get } },
+    })
+    await Promise.resolve()
+    expect(onCode).toHaveBeenCalledWith('913717')
+  })
 })

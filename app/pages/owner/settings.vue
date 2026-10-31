@@ -116,6 +116,7 @@ const staffSaving = ref<Record<string, boolean>>({})
 const staffError = ref('')
 const staffSuccess = ref('')
 const invitePhone = ref('')
+useAsciiDigits(invitePhone)
 const inviteName = ref('')
 const inviteRole = ref<'MANAGER' | 'FRONT_DESK' | 'ANALYST'>('FRONT_DESK')
 const invitePermissions = ref<OwnerPermission[]>(defaultPermissionsForRole('FRONT_DESK'))
@@ -170,6 +171,10 @@ const form = reactive({
   amenities: [] as string[],
   sessionDurations: [60] as number[],
 })
+
+watchAsciiDigits(() => form.receiptPhone, (next) => { form.receiptPhone = next })
+watchAsciiDigits(() => form.phone, (next) => { form.phone = next })
+watchAsciiDigits(() => form.whatsapp, (next) => { form.whatsapp = next })
 
 /** Canva radios ۲۴ / ۱۲ / ندارد — maps both cancel + reschedule hours. */
 const cancelPolicyHours = computed({
