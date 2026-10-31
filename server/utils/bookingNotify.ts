@@ -151,6 +151,7 @@ export async function clubSideNotifyPhones(
         where: { id: clubId },
         select: {
           phone: true,
+          bookingNotifyPhone: true,
           owner: { select: { phone: true } },
           workers: { where: { active: true }, select: { mobile: true } },
           memberships: {
@@ -160,7 +161,7 @@ export async function clubSideNotifyPhones(
         },
       })
       if (club) {
-        raw.push(club.owner?.phone, club.phone)
+        raw.push(club.owner?.phone, club.phone, club.bookingNotifyPhone)
         for (const w of club.workers || []) raw.push(w.mobile)
         for (const m of club.memberships || []) raw.push(m.user?.phone)
       }

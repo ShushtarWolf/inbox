@@ -34,6 +34,7 @@ interface OwnerSettingsClub {
   addressEn?: string | null
   phone?: string | null
   receiptPhone?: string | null
+  bookingNotifyPhone?: string | null
   whatsapp?: string | null
   image?: string | null
   openHour?: number
@@ -162,6 +163,7 @@ const form = reactive({
   waitlistEnabled: true,
   phone: '',
   receiptPhone: '',
+  bookingNotifyPhone: '',
   whatsapp: '',
   image: '',
   sheba: '',
@@ -302,6 +304,7 @@ function applyClubData() {
   form.waitlistEnabled = club.waitlistEnabled ?? true
   form.phone = club.phone || ''
   form.receiptPhone = club.receiptPhone || ''
+  form.bookingNotifyPhone = club.bookingNotifyPhone || ''
   form.whatsapp = club.whatsapp || ''
   loadedImage = club.image || null
   form.image = club.image || ''
@@ -331,6 +334,7 @@ function formSnapshot() {
     waitlistEnabled: form.waitlistEnabled,
     phone: form.phone,
     receiptPhone: form.receiptPhone,
+    bookingNotifyPhone: form.bookingNotifyPhone,
     whatsapp: form.whatsapp,
     image: form.image,
     sheba: form.sheba,
@@ -530,6 +534,7 @@ async function save() {
       waitlistEnabled: form.waitlistEnabled,
       phone: form.phone || null,
       receiptPhone: form.receiptPhone || null,
+      bookingNotifyPhone: form.bookingNotifyPhone || null,
       whatsapp: form.whatsapp || null,
       sheba: form.sheba || null,
       amenitiesJson: JSON.stringify(form.amenities),
@@ -679,6 +684,11 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.receiptPhone') }}</span>
             <input v-model="form.receiptPhone" dir="ltr" inputmode="tel" class="neo-input tabular-nums" :placeholder="form.phone">
             <span class="mt-1 block text-xs opacity-70">{{ t('owner.settingsPage.receiptPhoneHint') }}</span>
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.bookingNotifyPhone') }}</span>
+            <input v-model="form.bookingNotifyPhone" dir="ltr" inputmode="tel" class="neo-input tabular-nums">
+            <span class="mt-1 block text-xs opacity-70">{{ t('owner.settingsPage.bookingNotifyPhoneHint') }}</span>
           </label>
           <label class="block text-sm text-start">
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>

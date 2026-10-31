@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
       addressEn: club.addressEn,
       phone: club.phone,
       receiptPhone: club.receiptPhone,
+      bookingNotifyPhone: club.bookingNotifyPhone,
       whatsapp: club.whatsapp,
       image: club.image,
       openHour: club.openHour,
