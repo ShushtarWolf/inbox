@@ -4,6 +4,8 @@ import {
   evaluateDiscountCodeWindow,
   normalizeDiscountCode,
 } from '#shared/discountCode.ts'
+import { membershipDiscountCode } from '#shared/discountMembership.ts'
+import { findBestActiveMembership } from './discountMemberships'
 
 export type ResolvedDiscount = {
   id: string
@@ -14,6 +16,8 @@ export type ResolvedDiscount = {
   discountAmount: number
   total: number
   subtotal: number
+  /** Promo code vs verified club membership. Only codes are redeemed. */
+  kind: 'code' | 'membership'
 }
 
 export async function findDiscountCodeByInput(raw: string | null | undefined) {
@@ -53,6 +57,32 @@ export function assertDiscountUsable(
   throw createError({ statusCode: 400, statusMessage })
 }
 
+function toResolved(
+  opts: {
+    id: string
+    code: string
+    percent: number
+    labelFa: string | null
+    labelEn: string | null
+    kind: 'code' | 'membership'
+  },
+  subtotal: number,
+): ResolvedDiscount {
+  const safeSubtotal = Math.max(0, Math.round(subtotal) || 0)
+  const { discountAmount, total } = applyDiscountPercent(safeSubtotal, opts.percent)
+  return {
+    id: opts.id,
+    code: opts.code,
+    percent: opts.percent,
+    labelFa: opts.labelFa,
+    labelEn: opts.labelEn,
+    discountAmount,
+    total,
+    subtotal: safeSubtotal,
+    kind: opts.kind,
+  }
+}
+
 export async function resolveDiscountForBooking(opts: {
   code?: string | null
   clubId: string
@@ -61,21 +91,46 @@ export async function resolveDiscountForBooking(opts: {
   now?: Date
 }): Promise<ResolvedDiscount | null> {
   const code = normalizeDiscountCode(opts.code)
-  if (!code) return null
-  const row = await findDiscountCodeByInput(code)
-  if (!row) throw createError({ statusCode: 400, statusMessage: 'Invalid discount code' })
-  assertDiscountUsable(row, opts.clubId, opts.userId, opts.now)
-  const { discountAmount, total } = applyDiscountPercent(opts.subtotal, row.percent)
-  return {
-    id: row.id,
-    code: row.code,
-    percent: row.percent,
-    labelFa: row.labelFa,
-    labelEn: row.labelEn,
-    discountAmount,
-    total,
-    subtotal: Math.max(0, Math.round(opts.subtotal) || 0),
+  let fromCode: ResolvedDiscount | null = null
+  if (code) {
+    const row = await findDiscountCodeByInput(code)
+    if (!row) throw createError({ statusCode: 400, statusMessage: 'Invalid discount code' })
+    assertDiscountUsable(row, opts.clubId, opts.userId, opts.now)
+    fromCode = toResolved({
+      id: row.id,
+      code: row.code,
+      percent: row.percent,
+      labelFa: row.labelFa,
+      labelEn: row.labelEn,
+      kind: 'code',
+    }, opts.subtotal)
   }
+
+  let fromMembership: ResolvedDiscount | null = null
+  if (opts.userId) {
+    const membership = await findBestActiveMembership({
+      clubId: opts.clubId,
+      userId: opts.userId,
+      now: opts.now,
+    })
+    if (membership) {
+      fromMembership = toResolved({
+        id: membership.id,
+        code: membershipDiscountCode(membership.id),
+        percent: membership.percent,
+        labelFa: membership.labelFa,
+        labelEn: membership.labelEn || null,
+        kind: 'membership',
+      }, opts.subtotal)
+    }
+  }
+
+  if (!fromCode && !fromMembership) return null
+  if (!fromCode) return fromMembership
+  if (!fromMembership) return fromCode
+  // Better (or equal) membership wins so limited promo codes are not burned for no gain.
+  if (fromMembership.percent >= fromCode.percent) return fromMembership
+  return fromCode
 }
 
 export async function redeemDiscountCode(

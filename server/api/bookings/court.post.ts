@@ -240,7 +240,7 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      if (discount) {
+      if (discount?.kind === 'code') {
         await redeemDiscountCode(tx, discount.id)
       }
 

@@ -1228,6 +1228,8 @@ async function shareClub() {
           </div>
         </section>
 
+        <ClubDiscountPrograms :club-id="club.id" />
+
         <!-- HTML prototype: coaches on club (API coaches[]; empty = omit) -->
         <section v-if="club.coaches?.length" class="canva-club-detail-section">
           <h2 class="canva-club-detail-section-title">{{ t('clubs.clubCoaches') }}</h2>

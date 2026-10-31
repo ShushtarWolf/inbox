@@ -99,7 +99,10 @@ const appliedDiscount = ref<{
   code: string
   percent: number
   discountAmount: number
+  kind?: 'code' | 'membership'
+  label?: string
 } | null>(null)
+const membershipAuto = ref(false)
 
 const weeklyRepeat = ref(false)
 const seasonStartDate = ref('')
@@ -407,6 +410,35 @@ watch(done, (isDone) => {
   if (isDone) emit('success')
 })
 
+async function loadMembershipDiscount() {
+  membershipAuto.value = false
+  if (!props.clubId || !user.value) return
+  try {
+    const result = await $fetch<{
+      membership: {
+        code: string
+        percent: number
+        labelFa: string
+      } | null
+    }>('/api/discounts/eligibility', {
+      query: { clubId: props.clubId },
+    })
+    if (!result.membership) return
+    const next = applyDiscountPercent(subtotalAmount.value, result.membership.percent)
+    appliedDiscount.value = {
+      code: result.membership.code,
+      percent: result.membership.percent,
+      discountAmount: next.discountAmount,
+      kind: 'membership',
+      label: result.membership.labelFa,
+    }
+    membershipAuto.value = true
+  }
+  catch {
+    // optional — booking still works without auto discount
+  }
+}
+
 watch(() => props.open, (isOpen) => {
   if (isOpen && !done.value) {
     resetBookingState()
@@ -415,8 +447,10 @@ watch(() => props.open, (isOpen) => {
     discountInput.value = ''
     discountError.value = ''
     appliedDiscount.value = null
+    membershipAuto.value = false
     resetSeasonState()
     refreshEquipmentAvailability()
+    loadMembershipDiscount()
   }
 })
 
@@ -508,8 +542,10 @@ function close() {
 }
 
 function clearDiscount() {
+  if (appliedDiscount.value?.kind === 'membership') return
   appliedDiscount.value = null
   discountError.value = ''
+  membershipAuto.value = false
 }
 
 async function applyDiscount() {
@@ -543,11 +579,13 @@ async function applyDiscount() {
       code: result.code,
       percent: result.percent,
       discountAmount: result.discountAmount,
+      kind: 'code',
     }
+    membershipAuto.value = false
     discountInput.value = result.code
   }
   catch (error: unknown) {
-    appliedDiscount.value = null
+    if (!membershipAuto.value) appliedDiscount.value = null
     discountError.value = fetchErrorMessage(error, t('booking.discountInvalid'))
   }
   finally {
@@ -590,7 +628,10 @@ async function submit(preferWallet = false) {
       startTime: slot.startTime,
       endTime: slot.endTime,
       slotIds: [slot.id],
-      discountCode: appliedDiscount.value?.code,
+      // Membership is resolved server-side from the athlete session — do not send MEMBER:…
+      discountCode: appliedDiscount.value?.kind === 'membership'
+        ? undefined
+        : appliedDiscount.value?.code,
       preferWallet,
     })
     if (result && 'conflict' in result) {
@@ -613,7 +654,9 @@ async function submit(preferWallet = false) {
     slotIds: props.slots.map((s) => s.id),
     equipmentIds,
     equipmentQuantities: quantitiesPayload,
-    discountCode: appliedDiscount.value?.code,
+    discountCode: appliedDiscount.value?.kind === 'membership'
+      ? undefined
+      : appliedDiscount.value?.code,
     date: props.date,
     courtId: props.courtId,
     courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
@@ -849,7 +892,7 @@ async function submit(preferWallet = false) {
                   @keydown.enter.prevent="applyDiscount"
                 >
                 <button
-                  v-if="appliedDiscount"
+                  v-if="appliedDiscount && appliedDiscount.kind !== 'membership'"
                   type="button"
                   class="canva-confirm-book-discount-btn"
                   :disabled="discountApplying || payBusy"
@@ -868,6 +911,12 @@ async function submit(preferWallet = false) {
                 </button>
               </div>
               <p v-if="discountError" class="canva-confirm-book-discount-note text-brand-primary">{{ discountError }}</p>
+              <p v-else-if="appliedDiscount?.kind === 'membership'" class="canva-confirm-book-discount-note text-brand-navy">
+                {{ t('booking.discountMembershipApplied', {
+                  label: appliedDiscount.label || appliedDiscount.code,
+                  percent: formatNumber(appliedDiscount.percent),
+                }) }}
+              </p>
               <p v-else-if="appliedDiscount" class="canva-confirm-book-discount-note text-brand-navy">
                 {{ t('booking.discountApplied', {
                   code: appliedDiscount.code,
@@ -880,10 +929,17 @@ async function submit(preferWallet = false) {
               v-if="appliedDiscount && discountAmount > 0"
               class="canva-confirm-book-cost-row"
             >
-              <span class="canva-confirm-book-cost-label">{{ t('booking.confirmLineDiscount', {
-                code: appliedDiscount.code,
-                percent: formatNumber(appliedDiscount.percent),
-              }) }}</span>
+              <span class="canva-confirm-book-cost-label">{{
+                appliedDiscount.kind === 'membership'
+                  ? t('booking.confirmLineDiscountMembership', {
+                    label: appliedDiscount.label || appliedDiscount.code,
+                    percent: formatNumber(appliedDiscount.percent),
+                  })
+                  : t('booking.confirmLineDiscount', {
+                    code: appliedDiscount.code,
+                    percent: formatNumber(appliedDiscount.percent),
+                  })
+              }}</span>
               <span class="canva-confirm-book-cost-amount text-brand-primary" dir="ltr">−{{ formatCurrency(discountAmount) }}</span>
             </div>
 

@@ -257,6 +257,9 @@ model User {
   competitionPartnerEntries CompetitionEntry[] @relation("CompetitionPartner")
   competitionPrizeAwards    CompetitionPrizeAward[]
   boundDiscountCodes        DiscountCode[]       @relation("DiscountCodeBoundUser")
+  discountApplications      DiscountApplication[]
+  discountMemberships       DiscountMembership[]
+  discountApplicationsReviewed DiscountApplication[] @relation("DiscountApplicationReviewer")
   manualOverridesCreated    ManualAvailabilityOverride[] @relation("ManualOverrideCreatedBy")
   manualOverridesUpdated    ManualAvailabilityOverride[] @relation("ManualOverrideUpdatedBy")
 
@@ -516,6 +519,9 @@ model Club {
   workers     ClubWorker[]
   application ClubApplication?
   discountCodes DiscountCode[]
+  discountPrograms DiscountProgram[]
+  discountApplications DiscountApplication[]
+  discountMemberships DiscountMembership[]
   wallet            ClubWallet?
   withdrawRequests  WithdrawRequest[]
   settlementEntries SettlementLedgerEntry[]
@@ -1144,6 +1150,76 @@ model DiscountCode {
 
   @@index([active, clubId])
   @@index([boundUserId])
+}
+
+/** Club-defined verified discount (student, staff, …) — athletes apply with proof. */
+model DiscountProgram {
+  id              String   @id @default(cuid())
+  titleFa         String
+  titleEn         String?
+  percent         Int
+  instructionsFa  String?
+  instructionsEn  String?
+  /** How long an approval lasts; null = until revoked. */
+  validityMonths  Int?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  applications DiscountApplication[]
+  memberships  DiscountMembership[]
+
+  @@index([clubId, active])
+}
+
+model DiscountApplication {
+  id            String            @id @default(cuid())
+  /** JSON string array of image URLs (1–2). */
+  proofUrlsJson String
+  note          String?
+  status        ApplicationStatus @default(PENDING)
+  rejectReason  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  programId String
+  program   DiscountProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  clubId    String
+  club      Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedById String?
+  reviewedBy   User?  @relation("DiscountApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([programId, userId])
+  @@index([clubId, status, createdAt])
+  @@index([userId, status])
+}
+
+/** Approved eligibility — auto-applied at booking for this club. */
+model DiscountMembership {
+  id         String    @id @default(cuid())
+  /** Snapshot of program percent at approval time. */
+  percent    Int
+  labelFa    String
+  labelEn    String?
+  approvedAt DateTime  @default(now())
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+
+  programId String
+  program   DiscountProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  clubId    String
+  club      Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, userId])
+  @@index([clubId, userId, revokedAt])
+  @@index([userId, clubId])
 }
 
 model ContactSegment {

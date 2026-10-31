@@ -35,10 +35,8 @@ export async function resolveSeasonSeriesCharge(opts: {
   }
 
   if (opts.athleteMode) {
-    const code = opts.discountCode
-    if (!code) return empty
     const discount = await resolveDiscountForBooking({
-      code,
+      code: opts.discountCode,
       clubId: opts.clubId,
       subtotal: subtotalBeforeDiscount,
       userId: opts.userId,
@@ -49,7 +47,7 @@ export async function resolveSeasonSeriesCharge(opts: {
       chargedTotal: discount.total,
       discountAmount: discount.discountAmount,
       paymentMetadata: discountPaymentMetadata(discount),
-      redeemDiscountId: discount.id,
+      redeemDiscountId: discount.kind === 'code' ? discount.id : null,
     }
   }
 
