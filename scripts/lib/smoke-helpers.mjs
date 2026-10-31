@@ -67,10 +67,17 @@ export async function login(base, jar, session, email, password = 'demo1234') {
 
 /** Login via phone OTP (log SMS mode returns debugCode). */
 export async function loginViaOtp(base, jar, session, phone) {
-  const { res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
-    method: 'POST',
-    body: { phone, purpose: 'login' },
-  })
+  let reqRes
+  let reqData
+  for (let attempt = 0; attempt < 4; attempt++) {
+    ;({ res: reqRes, data: reqData } = await apiFetch(base, '/api/auth/otp/request', {
+      method: 'POST',
+      body: { phone, purpose: 'login' },
+    }))
+    if (reqRes.status !== 429 || attempt === 3) break
+    // Phone OTP send is 3/10m; after a burst, wait for the in-memory/redis bucket.
+    await new Promise((r) => setTimeout(r, 15_000 * (attempt + 1)))
+  }
   if (!reqRes.ok) throw new Error(`otp login request ${phone} → ${reqRes.status}`)
   if (!reqData.debugCode) throw new Error('otp login missing debugCode (expected in log SMS mode)')
   const { res, data } = await apiFetch(base, '/api/auth/otp/verify', {

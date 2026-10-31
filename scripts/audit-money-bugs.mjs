@@ -229,10 +229,18 @@ async function main() {
   }
 
   section('7) Settlement / wallet rows whose Payment was deleted (old re-book cascade)')
-  const [orphanLedger, orphanWalletTx] = await Promise.all([
+  // Already-clawed orphan settlements are historical debris (payment row gone after
+  // old re-book cascade). Only un-clawed orphans are a live money risk.
+  const [orphanLedgerOpen, orphanLedgerClawed, orphanWalletTx] = await Promise.all([
     prisma.$queryRaw`
       SELECT COUNT(*)::int AS n FROM "SettlementLedgerEntry" s
-      WHERE NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = s."paymentId")
+      WHERE s."clawedBackAt" IS NULL
+        AND NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = s."paymentId")
+    `,
+    prisma.$queryRaw`
+      SELECT COUNT(*)::int AS n FROM "SettlementLedgerEntry" s
+      WHERE s."clawedBackAt" IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = s."paymentId")
     `,
     prisma.$queryRaw`
       SELECT COUNT(*)::int AS n FROM "WalletTransaction" w
@@ -240,8 +248,9 @@ async function main() {
         AND NOT EXISTS (SELECT 1 FROM "Payment" p WHERE p.id = w."paymentId")
     `,
   ])
-  console.log(`Orphan settlement entries: ${orphanLedger[0]?.n ?? 0}`)
-  console.log(`Orphan wallet transactions: ${orphanWalletTx[0]?.n ?? 0}`)
+  console.log(`Orphan settlements still holding net (open): ${orphanLedgerOpen[0]?.n ?? 0}`)
+  console.log(`Orphan settlements already clawed (historical): ${orphanLedgerClawed[0]?.n ?? 0}`)
+  console.log(`Orphan wallet transactions (payment deleted): ${orphanWalletTx[0]?.n ?? 0}`)
 
   section('8) Online refunds with no athlete wallet (pay-link guests) — bank refund owed')
   const manualOwed = await prisma.$queryRaw`
