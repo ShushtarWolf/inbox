@@ -550,13 +550,11 @@ describe('club-side SMS fan-out', () => {
     clubFindUnique.mockReset()
   })
 
-  it('sends owner booking SMS to owner, club phone and active staff (deduped)', async () => {
+  it('sends owner booking SMS to owner, club phone and bookingNotifyPhone only (deduped, not all staff)', async () => {
     clubFindUnique.mockResolvedValue({
       phone: '09121111111',
-      bookingNotifyPhone: null,
+      bookingNotifyPhone: '09124444444',
       owner: { phone: '09120000000' },
-      workers: [{ mobile: '09122222222' }, { mobile: '09121111111' }],
-      memberships: [{ user: { phone: '09123333333' } }, { user: { phone: '02112345678' } }],
     })
     await notifyOwnerBookingConfirmed({
       ownerPhone: '09120000000',
@@ -567,15 +565,38 @@ describe('club-side SMS fan-out', () => {
       startTime: '15:00',
     })
     const tos = sendNotification.mock.calls.map((c) => (c[0] as { to: string }).to)
-    expect(tos).toEqual(['09120000000', '09121111111', '09122222222', '09123333333'])
+    expect(tos).toEqual(['09120000000', '09121111111', '09124444444'])
   })
 
-  it('still notifies staff when owner has no mobile', async () => {
-    clubFindUnique.mockResolvedValue({ phone: null, bookingNotifyPhone: null, owner: null, workers: [{ mobile: '09122222222' }], memberships: [] })
+  it('does not fan out to worker mobiles when bookingNotifyPhone is unset', async () => {
+    clubFindUnique.mockResolvedValue({
+      phone: '09121111111',
+      bookingNotifyPhone: null,
+      owner: { phone: '09120000000' },
+    })
+    await notifyOwnerBookingConfirmed({
+      ownerPhone: '09120000000',
+      clubName: 'باشگاه',
+      clubId: 'c1',
+      bookingId: 'b1',
+      date: '2026-10-29',
+      startTime: '15:00',
+    })
+    const tos = sendNotification.mock.calls.map((c) => (c[0] as { to: string }).to)
+    expect(tos).toEqual(['09120000000', '09121111111'])
+    expect(tos).not.toContain('09122222222')
+  })
+
+  it('does not notify unlisted staff when owner has no mobile', async () => {
+    clubFindUnique.mockResolvedValue({
+      phone: null,
+      bookingNotifyPhone: null,
+      owner: null,
+    })
     await notifyOwnerBookingCancelled({
       ownerPhone: null, clubName: 'x', clubId: 'c1', date: '2026-10-29', startTime: '15:00',
     })
-    expect(sendNotification).toHaveBeenCalledTimes(1)
+    expect(sendNotification).not.toHaveBeenCalled()
   })
 })
 
@@ -589,8 +610,6 @@ describe('clubSideNotifyPhones', () => {
       phone: '09121111111',
       bookingNotifyPhone: '09124444444',
       owner: { phone: '09120000000' },
-      workers: [],
-      memberships: [],
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
     expect(phones).toEqual(['09120000000', '09121111111', '09124444444'])
@@ -601,8 +620,6 @@ describe('clubSideNotifyPhones', () => {
       phone: '09121111111',
       bookingNotifyPhone: null,
       owner: { phone: '09120000000' },
-      workers: [],
-      memberships: [],
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
     expect(phones).toEqual(['09120000000', '09121111111'])
@@ -613,8 +630,6 @@ describe('clubSideNotifyPhones', () => {
       phone: '09121111111',
       bookingNotifyPhone: '09121111111',
       owner: { phone: '09120000000' },
-      workers: [],
-      memberships: [],
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
     expect(phones).toEqual(['09120000000', '09121111111'])
