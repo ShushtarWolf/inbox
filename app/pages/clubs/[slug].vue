@@ -1294,7 +1294,7 @@ async function shareClub() {
               {{ club?.phone ? t('clubs.slotLegendSuspected') : t('clubs.slotLegendUnavailable') }}
             </span>
             <span v-if="externalSuspectedEnabled" class="canva-club-legend-item" role="listitem">
-              <span class="canva-club-legend-swatch canva-club-legend-booked" aria-hidden="true" />
+              <span class="canva-club-legend-swatch canva-club-legend-uncertain" aria-hidden="true" />
               {{ t('clubs.slotLegendUncertain') }}
             </span>
           </div>
@@ -1396,7 +1396,7 @@ async function shareClub() {
                   :class="{
                     'canva-club-slot-booked': isSlotBooked(slot) && waitlistSlotId !== slot.id,
                     'canva-club-slot-suspected': !isSlotBooked(slot) && isSlotSuspected(slot),
-                    'canva-club-slot-booked canva-club-slot-uncertain': !isSlotBooked(slot) && isSlotUncertain(slot),
+                    'canva-club-slot-uncertain': !isSlotBooked(slot) && isSlotUncertain(slot),
                     'canva-club-slot-active': isSlotSelected(slot.id) || waitlistSlotId === slot.id,
                     'canva-club-slot-tod': isSlotTodPreferred(slot) && !isSlotSelected(slot.id),
                   }"

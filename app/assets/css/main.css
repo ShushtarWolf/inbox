@@ -4460,6 +4460,7 @@
 .canva-club-detail-book .canva-club-legend-selected { background: #2e9a4f; border-color: #2e9a4f; }
 .canva-club-detail-book .canva-club-legend-free { background: #fff; }
 .canva-club-detail-book .canva-club-legend-suspected { background: repeating-linear-gradient(45deg, #d9b24c, #d9b24c 2px, #fff 2px, #fff 4px); border-color: #bbb; }
+.canva-club-detail-book .canva-club-legend-uncertain { background: radial-gradient(#6b6b67 0.9px, transparent 1.1px) 0 0 / 4px 4px, #fff; border: 1px dashed #6b6b67; }
 
 /* .rbook: single column — calendar, then courts, then hours (SoT stacks at every width) */
 .canva-club-detail-book .canva-club-book { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 18px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.1); border-radius: 0; }
@@ -4501,6 +4502,8 @@
 .canva-club-detail-book .canva-club-slot-booked.canva-club-slot-active { color: #8f8f8b; border-color: #bbb; background: repeating-linear-gradient(45deg, #ccc, #ccc 2px, #eee 2px, #eee 4px); }
 .canva-club-detail-book .canva-club-slot-suspected { color: #2c2c2a; border-color: #d9b24c; background: repeating-linear-gradient(45deg, #f3e9d3, #f3e9d3 2px, #fff 2px, #fff 4px); }
 .canva-club-detail-book .canva-club-slot-suspected-label { font-size: 10px; font-weight: 700; }
+.canva-club-detail-book .canva-club-slot-uncertain,
+.canva-club-detail-book .canva-club-slot-uncertain:disabled { cursor: not-allowed; opacity: 1; color: #6b6b67; border: 1px dashed #6b6b67; background: radial-gradient(rgba(107, 107, 103, 0.28) 0.9px, transparent 1.1px) 0 0 / 6px 6px, #fff; }
 
 /* .rcta */
 .canva-club-detail-book .canva-club-book-footer { margin-top: 14px; padding: 12px 14px; gap: 12px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.12); border-radius: 0; }
