@@ -26,6 +26,15 @@ describe('jalaliMonthEndIso', () => {
 })
 
 describe('expandSeasonRules', () => {
+  it('expands a 23:00–24:00 rule into the last hourly slot', () => {
+    const sessions = expandSeasonRules({
+      startDate: '2026-09-26',
+      finishDate: '2026-09-26',
+      rules: [{ weekday: 'Sat', startTime: '23:00', endTime: '24:00', courtId: 'c1' }],
+    })
+    expect(sessions).toEqual([{ date: '2026-09-26', startTime: '23:00', courtId: 'c1' }])
+  })
+
   it('expands different court/time per weekday', () => {
     const start = '2026-09-26' // Sat
     const finish = '2026-10-02' // Fri

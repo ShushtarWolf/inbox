@@ -418,6 +418,7 @@ const overviewStats = computed(() => {
 
 const scheduleTimeOptions = computed(() => {
   const step = data.value?.sessionDurationMinutes ?? 60
+  const includeClose = activePanel.value === 'season' || activePanel.value === 'package'
   if (activePanel.value === 'season' && seasonForm.courtIds.length) {
     const selected = courts.value.filter((court) => seasonForm.courtIds.includes(court.id))
     const open = Math.min(
@@ -426,12 +427,12 @@ const scheduleTimeOptions = computed(() => {
     const close = Math.max(
       ...selected.map((court) => court.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22),
     )
-    return buildHourlyOptions(open, close, step)
+    return buildHourlyOptions(open, close, step, includeClose)
   }
   const court = courts.value.find((item) => item.id === selectedSlotFull.value?.courtId)
   const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
   const close = court?.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22
-  return buildHourlyOptions(open, close, step)
+  return buildHourlyOptions(open, close, step, includeClose)
 })
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const { user } = useAuth()
@@ -1795,16 +1796,20 @@ function applyNarrowedSelection(kind: 'season' | 'package', narrowed: NarrowedSe
   }
 }
 
-function buildSeasonReserveQuery(opts?: { fromWalkIn?: boolean }) {
+function buildSeasonReserveQuery(opts?: { fromWalkIn?: boolean; toolbarEntry?: boolean }) {
   const slot = selectedSlotsFull.value[0] || selectedSlotFull.value || selectedSlot.value
-  const anchorDate = slot?.date || data.value?.date || date.value || today()
+  const anchorDate = opts?.toolbarEntry
+    ? (date.value || today())
+    : (slot?.date || data.value?.date || date.value || today())
   const query: Record<string, string> = {
     start: anchorDate,
   }
-  if (slot?.courtId) query.courtId = slot.courtId
-  if (slot?.startTime) query.startTime = slot.startTime.slice(0, 5)
-  if (slot?.endTime) query.endTime = slot.endTime.slice(0, 5)
-  if (slot?.date) query.weekday = weekdayNameFromDate(slot.date)
+  if (!opts?.toolbarEntry) {
+    if (slot?.courtId) query.courtId = slot.courtId
+    if (slot?.startTime) query.startTime = slot.startTime.slice(0, 5)
+    if (slot?.endTime) query.endTime = slot.endTime.slice(0, 5)
+    if (slot?.date) query.weekday = weekdayNameFromDate(slot.date)
+  }
   const guest = guestNamePayload()
   const full = [guest.guestName, guest.guestFamily].filter(Boolean).join(' ').trim()
   if (opts?.fromWalkIn || full) {
@@ -1831,7 +1836,7 @@ function openSeasonFormStandalone() {
   actionError.value = ''
   showMenu.value = false
   activePanel.value = null
-  void navigateTo({ path: localePath('/owner/reserve/season'), query: buildSeasonReserveQuery() })
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: buildSeasonReserveQuery({ toolbarEntry: true }) })
 }
 
 function seedSeasonCourtsDefault() {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { IRAN_WEEKDAY_ORDER, weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { IRAN_WEEKDAY_ORDER, isEndAfterStart, weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { jalaliMonthEndIso } from '#shared/jalali.ts'
 import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -74,10 +75,8 @@ const slotsCreated = ref(0)
 const { data: courtsData } = await useAuthedFetch<CourtRow[]>('/api/owner/courts')
 const courts = computed(() => courtsData.value || [])
 
-const timeOptions = [
-  '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
-  '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
-]
+/** Include 24:00 so owners can book the last hour (e.g. 23:00–24:00). */
+const timeOptions = computed(() => buildHourlyOptions(7, 24, 60, true))
 
 function courtLabel(court: CourtRow) {
   return locale.value === 'fa'
@@ -94,7 +93,17 @@ function newRuleId() {
   return `r-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-function addRule(partial?: Partial<RuleRow> & { weekday?: string; courtId?: string }) {
+function addRule(partial?: Partial<RuleRow> & { weekday?: string; courtId?: string; blank?: boolean }) {
+  if (partial?.blank) {
+    rules.value.push({
+      id: newRuleId(),
+      weekdays: [],
+      startTime: partial.startTime || '18:00',
+      endTime: partial.endTime || '19:00',
+      courtIds: [],
+    })
+    return
+  }
   const courtId = partial?.courtId || partial?.courtIds?.[0] || courts.value[0]?.id || ''
   const weekday = partial?.weekday || partial?.weekdays?.[0] || 'Sat'
   rules.value.push({
@@ -112,24 +121,14 @@ function removeRule(id: string) {
 
 function toggleWeekday(rule: RuleRow, day: string) {
   const ix = rule.weekdays.indexOf(day)
-  if (ix >= 0) {
-    if (rule.weekdays.length <= 1) return
-    rule.weekdays.splice(ix, 1)
-  }
-  else {
-    rule.weekdays.push(day)
-  }
+  if (ix >= 0) rule.weekdays.splice(ix, 1)
+  else rule.weekdays.push(day)
 }
 
 function toggleCourt(rule: RuleRow, courtId: string) {
   const ix = rule.courtIds.indexOf(courtId)
-  if (ix >= 0) {
-    if (rule.courtIds.length <= 1) return
-    rule.courtIds.splice(ix, 1)
-  }
-  else {
-    rule.courtIds.push(courtId)
-  }
+  if (ix >= 0) rule.courtIds.splice(ix, 1)
+  else rule.courtIds.push(courtId)
 }
 
 function removeOccurrence(index: number) {
@@ -259,7 +258,7 @@ function rulesValid() {
     && r.courtIds.length > 0
     && r.startTime
     && r.endTime
-    && r.endTime > r.startTime,
+    && isEndAfterStart(r.startTime, r.endTime),
   )
 }
 
@@ -312,9 +311,6 @@ function initFromQuery() {
       weekday: weekday || weekdayNameFromDate(start),
     })
   }
-  else if (!rules.value.length && courts.value[0]) {
-    addRule()
-  }
 }
 
 onMounted(() => {
@@ -341,7 +337,7 @@ async function goStep2() {
       : (!finishDate.value ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
     return
   }
-  if (!rules.value.length) addRule()
+  if (!rules.value.length) addRule({ blank: true })
   step.value = 2
 }
 
@@ -743,7 +739,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
             </div>
           </div>
         </div>
-        <button type="button" class="season-wiz-add-rule w-full" @click="addRule()">
+        <button type="button" class="season-wiz-add-rule w-full" @click="addRule({ blank: true })">
           {{ t('owner.seasonPage.addRule') }}
         </button>
         <p v-if="localExpandCount" class="text-start text-xs text-[#8C8A84]">
