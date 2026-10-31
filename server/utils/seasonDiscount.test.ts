@@ -74,6 +74,7 @@ describe('resolveSeasonSeriesCharge (athlete)', () => {
       percent: 10,
       discountAmount: 100_000,
       total: 900_000,
+      kind: 'code',
     } as Awaited<ReturnType<typeof resolveDiscountForBooking>>)
 
     const charge = await resolveSeasonSeriesCharge({
@@ -96,8 +97,9 @@ describe('resolveSeasonSeriesCharge (athlete)', () => {
     expect(discountPaymentMetadata).toHaveBeenCalled()
   })
 
-  it('leaves total unchanged when no code is sent', async () => {
+  it('leaves total unchanged when no code and no membership', async () => {
     vi.mocked(resolveDiscountForBooking).mockClear()
+    vi.mocked(resolveDiscountForBooking).mockResolvedValueOnce(null)
     const charge = await resolveSeasonSeriesCharge({
       clubId: 'club-1',
       subtotal: 500_000,
@@ -105,7 +107,27 @@ describe('resolveSeasonSeriesCharge (athlete)', () => {
     })
     expect(charge.chargedTotal).toBe(500_000)
     expect(charge.discountAmount).toBe(0)
-    expect(resolveDiscountForBooking).not.toHaveBeenCalled()
+    expect(charge.redeemDiscountId).toBeNull()
+  })
+
+  it('applies verified membership without a code and never redeems it', async () => {
+    vi.mocked(resolveDiscountForBooking).mockClear()
+    vi.mocked(resolveDiscountForBooking).mockResolvedValueOnce({
+      id: 'mem-1',
+      code: 'MEMBER:mem-1',
+      percent: 20,
+      discountAmount: 100_000,
+      total: 400_000,
+      kind: 'membership',
+    } as Awaited<ReturnType<typeof resolveDiscountForBooking>>)
+    const charge = await resolveSeasonSeriesCharge({
+      clubId: 'club-1',
+      subtotal: 500_000,
+      athleteMode: true,
+      userId: 'user-1',
+    })
+    expect(charge.chargedTotal).toBe(400_000)
+    expect(charge.redeemDiscountId).toBeNull()
   })
 })
 
