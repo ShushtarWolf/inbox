@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { IRAN_WEEKDAY_ORDER, weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { IRAN_WEEKDAY_ORDER, isEndAfterStart, weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { jalaliMonthEndIso } from '#shared/jalali.ts'
 import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -74,10 +75,8 @@ const slotsCreated = ref(0)
 const { data: courtsData } = await useAuthedFetch<CourtRow[]>('/api/owner/courts')
 const courts = computed(() => courtsData.value || [])
 
-const timeOptions = [
-  '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
-  '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
-]
+/** Include 24:00 so owners can book the last hour (e.g. 23:00–24:00). */
+const timeOptions = computed(() => buildHourlyOptions(7, 24, 60, true))
 
 function courtLabel(court: CourtRow) {
   return locale.value === 'fa'
@@ -259,7 +258,7 @@ function rulesValid() {
     && r.courtIds.length > 0
     && r.startTime
     && r.endTime
-    && r.endTime > r.startTime,
+    && isEndAfterStart(r.startTime, r.endTime),
   )
 }
 

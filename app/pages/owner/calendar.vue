@@ -418,6 +418,7 @@ const overviewStats = computed(() => {
 
 const scheduleTimeOptions = computed(() => {
   const step = data.value?.sessionDurationMinutes ?? 60
+  const includeClose = activePanel.value === 'season' || activePanel.value === 'package'
   if (activePanel.value === 'season' && seasonForm.courtIds.length) {
     const selected = courts.value.filter((court) => seasonForm.courtIds.includes(court.id))
     const open = Math.min(
@@ -426,12 +427,12 @@ const scheduleTimeOptions = computed(() => {
     const close = Math.max(
       ...selected.map((court) => court.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22),
     )
-    return buildHourlyOptions(open, close, step)
+    return buildHourlyOptions(open, close, step, includeClose)
   }
   const court = courts.value.find((item) => item.id === selectedSlotFull.value?.courtId)
   const open = court?.effectiveOpenHour ?? data.value?.clubOpenHour ?? 8
   const close = court?.effectiveCloseHour ?? data.value?.clubCloseHour ?? 22
-  return buildHourlyOptions(open, close, step)
+  return buildHourlyOptions(open, close, step, includeClose)
 })
 const formattedDate = computed(() => formatDate(`${date.value}T12:00:00`))
 const { user } = useAuth()

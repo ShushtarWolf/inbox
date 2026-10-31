@@ -7,6 +7,8 @@ import {
   hasValidDayTimes,
   parseSeasonTimesJson,
   timesInRange,
+  isEndAfterStart,
+  timeToMinutes,
   weekdayNameFromDate,
   sortIranWeekdays,
   dayTimeRangesUniform,
@@ -24,6 +26,18 @@ describe('timesInRange', () => {
 
   it('supports custom step minutes', () => {
     expect(timesInRange('10:00', '11:00', 30)).toEqual(['10:00', '10:30'])
+  })
+
+  it('includes the 23:00 hour when end is midnight close (24:00)', () => {
+    expect(timesInRange('23:00', '24:00')).toEqual(['23:00'])
+  })
+})
+
+describe('timeToMinutes / isEndAfterStart', () => {
+  it('treats 24:00 as end-of-day', () => {
+    expect(timeToMinutes('24:00')).toBe(24 * 60)
+    expect(isEndAfterStart('23:00', '24:00')).toBe(true)
+    expect(isEndAfterStart('24:00', '24:00')).toBe(false)
   })
 })
 

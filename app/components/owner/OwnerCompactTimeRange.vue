@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { hourFromTime } from '#shared/recurringSessions.ts'
+import { hourFromTime, isEndAfterStart, timeToMinutes } from '#shared/recurringSessions.ts'
 
 const startTime = defineModel<string>('startTime', { required: true })
 const endTime = defineModel<string>('endTime', { required: true })
@@ -13,15 +13,19 @@ const props = withDefaults(defineProps<{
 const { t } = useI18n()
 const { formatTimeLabel } = useFormatters()
 
+const startOptions = computed(() =>
+  props.options.filter((time) => hourFromTime(time) < 24),
+)
+
 const endOptions = computed(() => {
-  const startH = hourFromTime(startTime.value)
-  return props.options.filter((time) => hourFromTime(time) > startH)
+  const startMin = timeToMinutes(startTime.value)
+  return props.options.filter((time) => timeToMinutes(time) > startMin)
 })
 
 function onStartChange(event: Event) {
   const start = (event.target as HTMLSelectElement).value
   startTime.value = start
-  if (hourFromTime(endTime.value) <= hourFromTime(start)) {
+  if (!isEndAfterStart(start, endTime.value)) {
     endTime.value = endOptions.value[0] || start
   }
 }
@@ -40,7 +44,7 @@ function onEndChange(event: Event) {
         dir="ltr"
         @change="onStartChange"
       >
-        <option v-for="time in options" :key="`start-${time}`" :value="time">{{ formatTimeLabel(time) }}</option>
+        <option v-for="time in startOptions" :key="`start-${time}`" :value="time">{{ formatTimeLabel(time) }}</option>
       </select>
     </AppFormField>
     <AppFormField :label="t('owner.seasonPage.endTime')">

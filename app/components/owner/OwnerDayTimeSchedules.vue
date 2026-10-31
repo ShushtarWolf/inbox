@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { hourFromTime, type DayTimeRange } from '#shared/recurringSessions.ts'
+import { isEndAfterStart, timeToMinutes, type DayTimeRange } from '#shared/recurringSessions.ts'
 
 const dayTimes = defineModel<Record<string, DayTimeRange>>('dayTimes', { required: true })
 
@@ -28,9 +28,10 @@ const sharedRange = computed(() => {
 })
 
 function endAfter(start: string, end: string): string {
-  if (hourFromTime(end) > hourFromTime(start)) return end
+  if (isEndAfterStart(start, end)) return end
   const options = props.options || ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
-  const next = options.find((time) => hourFromTime(time) > hourFromTime(start))
+  const startMin = timeToMinutes(start)
+  const next = options.find((time) => timeToMinutes(time) > startMin)
   return next || start
 }
 
