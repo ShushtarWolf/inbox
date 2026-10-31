@@ -130,6 +130,8 @@ Money outcome from `resolveCancelMoneyOutcome` (`shared/cancelPolicy.ts`):
 | Desk `CASH` | No athlete credit; `REFUNDED` + `deskCashReturn=owed` until owner acks via `POST /api/owner/payments/:id/ack-cash-return`; clawback only if a (historical) settlement exists |
 | Unpaid | No refund |
 
+**Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Series athlete cancel runs pro-rata refund **before** freeing the slot.
+
 Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net (same atomic rule).
 
 Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).

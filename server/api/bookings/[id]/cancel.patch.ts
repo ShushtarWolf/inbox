@@ -85,24 +85,40 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Slot already started' })
   }
 
-  // Series: cancel row without auto full-refund; apply pro-rata against primary after.
-  const result = await cancelCourtBooking({
-    bookingId: id!,
-    slotId: booking.slotId,
-    actorUserId: user.id,
-    reason: 'athlete-cancel',
-    paymentId: seriesAware ? null : booking.payment?.id,
-    userId: booking.userId,
-    moneyOutcome,
-  })
-
-  let refund = result.refund
-  let refundFailed = result.refundFailed
+  // Series: money first (pro-rata), then free the slot — never FREE without credit.
+  let refund = null as Awaited<ReturnType<typeof refundAfterSeriesSessionCancel>> | Awaited<ReturnType<typeof cancelCourtBooking>>['refund']
+  let refundFailed = false
 
   if (seriesAware) {
     const group = await loadSeriesGroupForBooking(booking.id)
     const isPrimary = group?.group.primaryBookingId === booking.id
     const unpaid = !group || !isPaymentRefundable(group.primaryPayment.status)
+
+    try {
+      refund = await refundAfterSeriesSessionCancel({
+        cancelledBookingId: booking.id,
+        userId: booking.userId,
+        reason: 'athlete-cancel',
+        moneyOutcome,
+      })
+    }
+    catch (err) {
+      console.error('[cancel:series-refund]', booking.id, err)
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Refund failed — booking was not cancelled',
+      })
+    }
+
+    await cancelCourtBooking({
+      bookingId: id!,
+      slotId: booking.slotId,
+      actorUserId: user.id,
+      reason: 'athlete-cancel',
+      paymentId: null,
+      userId: booking.userId,
+      moneyOutcome: 'zero_refund',
+    })
 
     if (isPrimary && unpaid) {
       await cancelUnpaidSeriesSiblings({
@@ -112,20 +128,20 @@ export default defineEventHandler(async (event) => {
         userId: booking.userId,
       })
     }
-
-    try {
-      refund = await refundAfterSeriesSessionCancel({
-        cancelledBookingId: booking.id,
-        userId: booking.userId,
-        reason: 'athlete-cancel',
-        moneyOutcome,
-      })
-      refundFailed = false
-    }
-    catch (err) {
-      console.error('[cancel:series-refund]', booking.id, err)
-      refundFailed = true
-    }
+  }
+  else {
+    // Non-series: cancel + refund in one DB transaction (throws if money fails).
+    const result = await cancelCourtBooking({
+      bookingId: id!,
+      slotId: booking.slotId,
+      actorUserId: user.id,
+      reason: 'athlete-cancel',
+      paymentId: booking.payment?.id,
+      userId: booking.userId,
+      moneyOutcome,
+    })
+    refund = result.refund
+    refundFailed = result.refundFailed
   }
 
   const club = booking.slot.court.club

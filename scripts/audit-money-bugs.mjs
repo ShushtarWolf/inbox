@@ -138,6 +138,74 @@ async function main() {
   console.log(`Pending user withdraws: ${pendingUser}`)
   console.log(`Pending club withdraws: ${pendingClub}`)
 
+  section('5) Wallet balance drift (stored balance vs Σ signed txs − paid withdraws)')
+  // HOLD/RELEASE/LOCK/UNLOCK/WITHDRAW_PAID do not carry signed total-balance deltas.
+  const userDrift = await prisma.$queryRaw`
+    WITH signed AS (
+      SELECT wt."walletId",
+             COALESCE(SUM(wt.amount) FILTER (
+               WHERE wt.type NOT IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID')
+             ), 0)::int AS signed_sum
+      FROM "WalletTransaction" wt
+      GROUP BY wt."walletId"
+    ),
+    paid AS (
+      SELECT uwr."userId", COALESCE(SUM(uwr.amount), 0)::int AS paid_sum
+      FROM "UserWithdrawRequest" uwr
+      WHERE uwr.status = 'PAID'
+      GROUP BY uwr."userId"
+    )
+    SELECT w.id AS "walletId", w."userId", w.balance,
+           COALESCE(s.signed_sum, 0) AS "signedSum",
+           COALESCE(p.paid_sum, 0) AS "withdrawPaid",
+           w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0)) AS drift
+    FROM "Wallet" w
+    LEFT JOIN signed s ON s."walletId" = w.id
+    LEFT JOIN paid p ON p."userId" = w."userId"
+    WHERE w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0)) <> 0
+    ORDER BY ABS(w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0))) DESC
+    LIMIT 50
+  `
+  console.log(`User wallets with balance drift: ${userDrift.length}`)
+  for (const row of userDrift.slice(0, 30)) {
+    console.log(
+      `  wallet=${row.walletId} user=${row.userId} bal=${row.balance} signed=${row.signedSum} paidOut=${row.withdrawPaid} drift=${row.drift}`,
+    )
+  }
+
+  const clubDrift = await prisma.$queryRaw`
+    WITH signed AS (
+      SELECT wt."walletId",
+             COALESCE(SUM(wt.amount) FILTER (
+               WHERE wt.type NOT IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID')
+             ), 0)::int AS signed_sum
+      FROM "ClubWalletTransaction" wt
+      GROUP BY wt."walletId"
+    ),
+    paid AS (
+      SELECT wr."clubId", COALESCE(SUM(wr.amount), 0)::int AS paid_sum
+      FROM "WithdrawRequest" wr
+      WHERE wr.status = 'PAID'
+      GROUP BY wr."clubId"
+    )
+    SELECT w.id AS "walletId", w."clubId", w.balance,
+           COALESCE(s.signed_sum, 0) AS "signedSum",
+           COALESCE(p.paid_sum, 0) AS "withdrawPaid",
+           w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0)) AS drift
+    FROM "ClubWallet" w
+    LEFT JOIN signed s ON s."walletId" = w.id
+    LEFT JOIN paid p ON p."clubId" = w."clubId"
+    WHERE w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0)) <> 0
+    ORDER BY ABS(w.balance - (COALESCE(s.signed_sum, 0) - COALESCE(p.paid_sum, 0))) DESC
+    LIMIT 50
+  `
+  console.log(`Club wallets with balance drift: ${clubDrift.length}`)
+  for (const row of clubDrift.slice(0, 30)) {
+    console.log(
+      `  clubWallet=${row.walletId} club=${row.clubId} bal=${row.balance} signed=${row.signedSum} paidOut=${row.withdrawPaid} drift=${row.drift}`,
+    )
+  }
+
   section('Dump gate')
   console.log('Before APPLY=yes correction scripts or migrate deploy on shared/prod DB:')
   console.log('  - Keep a local dump under backups/ (gh workflow backup-db.yml or liara db backup download)')

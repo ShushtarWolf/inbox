@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
@@ -11,6 +12,8 @@ import { syncPaymentToParent } from './paymentSync'
 import { prisma } from './prisma'
 import { clawbackOwnerForPayment } from './settlement'
 import { creditWallet } from './wallet'
+
+type DbClient = Prisma.TransactionClient | typeof prisma
 
 export interface RefundResult {
   refunded: boolean
@@ -31,8 +34,8 @@ export interface RefundResult {
  * - IPG / wallet PAID → closed-loop athlete wallet credit (no bank reverse) + owner clawback
  * - Desk CASH → no athlete credit; mark REFUNDED with deskCashReturn=owed; clawback only if a ledger row exists
  *
- * Credit + REFUNDED + clawback run in one DB transaction so we never leave
- * the athlete credited while the club/coach keeps settlement net.
+ * Credit + REFUNDED + clawback run together. Pass `db` to nest inside cancel's transaction
+ * so the slot is never freed unless money movement succeeds.
  */
 export async function refundPaymentForCancellation(options: {
   paymentId: string
@@ -42,6 +45,10 @@ export async function refundPaymentForCancellation(options: {
   /** @deprecated Prefer moneyOutcome. */
   skipWallet?: boolean
   moneyOutcome?: CancelMoneyOutcome
+  /** Nest inside an open Prisma transaction (skip outer $transaction + parent sync). */
+  db?: DbClient
+  /** When nested, caller syncs parents after commit. Default true when db omitted. */
+  syncParent?: boolean
 }): Promise<RefundResult> {
   const outcome = options.moneyOutcome
     || (options.skipWallet ? 'zero_refund' : 'full_wallet_refund')
@@ -50,7 +57,8 @@ export async function refundPaymentForCancellation(options: {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
-  const payment = await prisma.payment.findUnique({ where: { id: options.paymentId } })
+  const db = options.db || prisma
+  const payment = await db.payment.findUnique({ where: { id: options.paymentId } })
   if (!payment || !isPaymentRefundable(payment.status)) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
@@ -69,7 +77,7 @@ export async function refundPaymentForCancellation(options: {
 
   let walletCredited = false
 
-  await prisma.$transaction(async (tx) => {
+  const apply = async (tx: DbClient) => {
     // Credit before marking REFUNDED — never leave the athlete without credit on a refunded row.
     if (canCreditAthlete && options.userId) {
       await creditWallet(options.userId, payment.amount, {
@@ -89,11 +97,20 @@ export async function refundPaymentForCancellation(options: {
       },
     })
 
-    // Must succeed in the same txn — do not swallow (previously logged-only).
     await clawbackOwnerForPayment(payment.id, tx)
-  })
+  }
 
-  await syncPaymentToParent(payment.id)
+  if (options.db) {
+    await apply(options.db)
+  }
+  else {
+    await prisma.$transaction(async (tx) => apply(tx))
+  }
+
+  const shouldSync = options.syncParent ?? !options.db
+  if (shouldSync) {
+    await syncPaymentToParent(payment.id)
+  }
 
   return {
     refunded: true,

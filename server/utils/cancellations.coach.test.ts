@@ -17,6 +17,10 @@ vi.mock('./contactSync', () => ({
   syncClubContactForBooking: (...args: unknown[]) => syncClubContactForBooking(...args),
 }))
 
+vi.mock('./paymentSync', () => ({
+  syncPaymentToParent: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.stubGlobal('prisma', {
   booking: { update: (...args: unknown[]) => bookingUpdate(...args) },
   slot: { update: (...args: unknown[]) => slotUpdate(...args) },
@@ -92,6 +96,8 @@ describe('coach lesson ↔ court cancel unwind', () => {
   it('cancelCoachSession releases linked court with skipLinkedCoachSession', async () => {
     coachSessionFindUnique
       .mockResolvedValueOnce({
+        id: 'sess-1',
+        status: 'CONFIRMED',
         courtBooking: {
           id: 'book-1',
           slotId: 'slot-1',
@@ -141,5 +147,22 @@ describe('coach lesson ↔ court cancel unwind', () => {
     })
     expect(coachSessionFindUnique).not.toHaveBeenCalled()
     expect(refundPaymentForCancellation).not.toHaveBeenCalled()
+  })
+
+  it('rolls back cancel when refund throws — slot must not stay freed', async () => {
+    refundPaymentForCancellation.mockRejectedValueOnce(new Error('clawback down'))
+    await expect(cancelCourtBooking({
+      bookingId: 'book-1',
+      slotId: 'slot-1',
+      reason: 'test',
+      paymentId: 'pay-court',
+      userId: 'coach-user',
+      skipLinkedCoachSession: true,
+    })).rejects.toThrow('clawback down')
+    // Interactive txn mock still invokes fn — real Prisma would roll back.
+    // Assert we attempted refund inside the same path (not after a committed FREE).
+    expect(refundPaymentForCancellation).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentId: 'pay-court', db: expect.anything(), syncParent: false }),
+    )
   })
 })
