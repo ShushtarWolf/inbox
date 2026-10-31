@@ -1,6 +1,20 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
-import { seasonSessionPaymentAmount } from './seasonDiscount'
+import { resolveSeasonSeriesCharge, seasonSessionPaymentAmount } from './seasonDiscount'
+
+vi.mock('./discountCodes', () => ({
+  resolveDiscountForBooking: vi.fn(),
+  discountPaymentMetadata: vi.fn((discount: { code: string; percent: number; discountAmount: number }) => ({
+    discountCode: discount.code,
+    discountPercent: discount.percent,
+    discountAmount: discount.discountAmount,
+  })),
+  assertDiscountUsable: vi.fn(),
+  findDiscountCodeByInput: vi.fn(),
+  redeemDiscountCode: vi.fn(),
+}))
+
+import { discountPaymentMetadata, resolveDiscountForBooking } from './discountCodes'
 
 describe('seasonSessionPaymentAmount', () => {
   it('charges the discounted series total on the primary when grouped', () => {
@@ -48,6 +62,50 @@ describe('seasonSessionPaymentAmount', () => {
     remaining = second.remainingDiscount
     expect(second.amount).toBe(50_000)
     expect(remaining).toBe(0)
+  })
+})
+
+describe('resolveSeasonSeriesCharge (athlete)', () => {
+  it('applies validated discount code to the series subtotal', async () => {
+    vi.mocked(resolveDiscountForBooking).mockClear()
+    vi.mocked(resolveDiscountForBooking).mockResolvedValueOnce({
+      id: 'disc-1',
+      code: 'OFF10',
+      percent: 10,
+      discountAmount: 100_000,
+      total: 900_000,
+    } as Awaited<ReturnType<typeof resolveDiscountForBooking>>)
+
+    const charge = await resolveSeasonSeriesCharge({
+      clubId: 'club-1',
+      subtotal: 1_000_000,
+      athleteMode: true,
+      discountCode: 'off10',
+      userId: 'user-1',
+    })
+
+    expect(resolveDiscountForBooking).toHaveBeenCalledWith({
+      code: 'off10',
+      clubId: 'club-1',
+      subtotal: 1_000_000,
+      userId: 'user-1',
+    })
+    expect(charge.chargedTotal).toBe(900_000)
+    expect(charge.discountAmount).toBe(100_000)
+    expect(charge.redeemDiscountId).toBe('disc-1')
+    expect(discountPaymentMetadata).toHaveBeenCalled()
+  })
+
+  it('leaves total unchanged when no code is sent', async () => {
+    vi.mocked(resolveDiscountForBooking).mockClear()
+    const charge = await resolveSeasonSeriesCharge({
+      clubId: 'club-1',
+      subtotal: 500_000,
+      athleteMode: true,
+    })
+    expect(charge.chargedTotal).toBe(500_000)
+    expect(charge.discountAmount).toBe(0)
+    expect(resolveDiscountForBooking).not.toHaveBeenCalled()
   })
 })
 

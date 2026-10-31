@@ -1,6 +1,6 @@
 import { expandAthleteWeeklySeason, MAX_ATHLETE_SEASON_OCCURRENCES } from '#shared/athleteSeason.ts'
 import { isPastDate } from '#shared/localDate.ts'
-import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { isEndAfterStart, weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import type { SeasonSessionOccurrence } from '#shared/seasonSessions.ts'
 import { previewSeasonSessions, type SeasonPreviewResult } from '../utils/seasonReserve'
 import { addMinutes } from '../utils/slots'
@@ -17,7 +17,7 @@ export type AthleteWeeklySeasonBody = {
 export function resolveAthleteWeeklyEndTime(startTime: string, endTime?: string): string {
   const start = startTime.trim().slice(0, 5)
   const end = (endTime || '').trim().slice(0, 5)
-  if (end && end > start) return end
+  if (end && isEndAfterStart(start, end)) return end
   const hour = hourFromTime(start)
   return addMinutes(start, 60) || `${String(hour + 1).padStart(2, '0')}:00`
 }

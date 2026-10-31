@@ -44,6 +44,20 @@ describe('expandAthleteWeeklySeason', () => {
     expect(sessions.every((s) => s.startTime === '18:00' && s.courtId === 'c1')).toBe(true)
   })
 
+  it('includes the 23:00 slot when end is 24:00', () => {
+    const sessions = expandAthleteWeeklySeason({
+      startDate: '2026-10-03',
+      finishDate: '2026-10-03',
+      rule: {
+        weekday: 'Sat',
+        startTime: '23:00',
+        endTime: '24:00',
+        courtId: 'c1',
+      },
+    })
+    expect(sessions).toEqual([{ date: '2026-10-03', startTime: '23:00', courtId: 'c1' }])
+  })
+
   it('returns fewer than max when range is short', () => {
     const sessions = expandAthleteWeeklySeason({
       startDate: '2026-10-03',

@@ -36,17 +36,25 @@ export function hourFromTime(time: string): number {
   return Number.parseInt(time.slice(0, 2), 10)
 }
 
+/** Minutes from midnight; `24:00` is end-of-day close (1440), not a valid session start. */
+export function timeToMinutes(time: string): number {
+  const h = hourFromTime(time)
+  const m = Number.parseInt(time.slice(3, 5) || '0', 10)
+  if (h === 24 && m === 0) return 24 * 60
+  return h * 60 + m
+}
+
+export function isEndAfterStart(startTime: string, endTime: string): boolean {
+  return timeToMinutes(endTime) > timeToMinutes(startTime)
+}
+
 export function formatHour(h: number): string {
   return `${String(h).padStart(2, '0')}:00`
 }
 
 export function timesInRange(startTime: string, endTime: string, stepMinutes = 60): string[] {
-  const startH = hourFromTime(startTime)
-  const startM = Number.parseInt(startTime.slice(3, 5) || '0', 10)
-  const endH = hourFromTime(endTime)
-  const endM = Number.parseInt(endTime.slice(3, 5) || '0', 10)
-  const startTotal = startH * 60 + startM
-  const endTotal = endH * 60 + endM
+  const startTotal = timeToMinutes(startTime)
+  const endTotal = timeToMinutes(endTime)
   if (endTotal <= startTotal) return []
   const times: string[] = []
   for (let m = startTotal; m < endTotal; m += stepMinutes) {
