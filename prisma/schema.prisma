@@ -478,6 +478,8 @@ model Club {
   phone         String?
   /** Number shown on public receipts (/r). Falls back to phone when empty. */
   receiptPhone  String?
+  /** Optional extra mobile for club-side booking SMS (desk staff not in workers). */
+  bookingNotifyPhone String?
   whatsapp      String?
   amenitiesJson String?
   policiesJson  String?
