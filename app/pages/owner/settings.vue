@@ -14,8 +14,6 @@ import {
 } from '#shared/bookingHorizon.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 import { courtAudienceShowsTag, parseCourtAudience } from '#shared/courtAudience.ts'
-import { isValidSheba } from '#shared/settlement.ts'
-
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 interface OwnerSettingsClubMedia {
@@ -136,7 +134,6 @@ const saving = ref(false)
 const savingImage = ref(false)
 const saveError = ref('')
 const saveSuccess = ref(false)
-const shebaError = ref('')
 const imageError = ref('')
 const courtSaving = ref(false)
 const courtError = ref('')
@@ -167,7 +164,6 @@ const form = reactive({
   bookingNotifyPhone: '',
   whatsapp: '',
   image: '',
-  sheba: '',
   amenities: [] as string[],
   sessionDurations: [60] as number[],
 })
@@ -313,7 +309,6 @@ function applyClubData() {
   form.whatsapp = club.whatsapp || ''
   loadedImage = club.image || null
   form.image = club.image || ''
-  form.sheba = club.sheba || ''
   const allowedSlugs = new Set<string>(COURT_FACILITY_OPTIONS.map((item) => item.slug))
   form.amenities = parseFacilitiesJson(club.amenitiesJson)
     .filter((slug) => allowedSlugs.has(slug))
@@ -342,7 +337,6 @@ function formSnapshot() {
     bookingNotifyPhone: form.bookingNotifyPhone,
     whatsapp: form.whatsapp,
     image: form.image,
-    sheba: form.sheba,
     amenities: [...form.amenities],
     sessionDurations: [...form.sessionDurations],
   })
@@ -514,15 +508,9 @@ watch(data, () => {
 async function save() {
   saving.value = true
   saveError.value = ''
-  shebaError.value = ''
   imageError.value = ''
   saveSuccess.value = false
   try {
-    if (form.sheba.trim() && !isValidSheba(form.sheba)) {
-      shebaError.value = t('athlete.shebaInvalid')
-      saveError.value = t('athlete.shebaInvalid')
-      return
-    }
     const body: Record<string, unknown> = {
       nameFa: form.nameFa,
       nameEn: form.nameEn,
@@ -541,7 +529,6 @@ async function save() {
       receiptPhone: form.receiptPhone || null,
       bookingNotifyPhone: form.bookingNotifyPhone || null,
       whatsapp: form.whatsapp || null,
-      sheba: form.sheba || null,
       amenitiesJson: JSON.stringify(form.amenities),
       sessionDurationsJson: JSON.stringify(form.sessionDurations),
       // Calendar grid uses this DB field; keep it synced to the shortest allowed duration.
@@ -557,7 +544,6 @@ async function save() {
   } catch (err: unknown) {
     const message = fetchErrorMessage(err, t('common.error'))
     saveError.value = message
-    if (message === t('athlete.shebaInvalid')) shebaError.value = message
     if (message === t('owner.settingsPage.errors.imageInvalid')) imageError.value = message
   } finally {
     saving.value = false
@@ -694,19 +680,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             <span class="mb-1 block font-bold">{{ t('owner.settingsPage.bookingNotifyPhone') }}</span>
             <input v-model="form.bookingNotifyPhone" dir="ltr" inputmode="tel" class="neo-input tabular-nums">
             <span class="mt-1 block text-xs opacity-70">{{ t('owner.settingsPage.bookingNotifyPhoneHint') }}</span>
-          </label>
-          <label class="block text-sm text-start">
-            <span class="mb-1 block font-bold">{{ t('owner.settingsPage.sheba') }}</span>
-            <AppShebaInput
-              id="owner-settings-sheba"
-              v-model="form.sheba"
-              :invalid="Boolean(shebaError)"
-              :placeholder="t('owner.financePage.shebaPlaceholder')"
-              aria-describedby="owner-settings-sheba-hint"
-            />
-            <span id="owner-settings-sheba-hint" class="mt-1 block text-xs text-brand-gray-600">{{ t('owner.settingsPage.shebaHint') }}</span>
-            <span v-if="shebaError" class="mt-1 block text-xs font-bold text-red-600" role="alert">{{ shebaError }}</span>
-            <span class="mt-1 block text-xs font-bold text-red-600" role="note">{{ t('owner.settingsPage.shebaOwnerOnlyNotice') }}</span>
           </label>
         </div>
 
