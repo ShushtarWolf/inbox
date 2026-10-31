@@ -210,16 +210,17 @@ watch(
           <button type="button" class="canva-gate-btn-secondary" :disabled="payoutBusy" @click="saveSheba">
             {{ t('athlete.shebaSave') }}
           </button>
-          <AppFormField :label="t('athlete.withdrawAmount')" numeric>
-            <AppNumericInput
-              v-model="withdrawAmount"
-              :disabled="!data?.sheba || withdrawableBalance <= 0"
-            />
+          <AppFormField
+            :label="t('athlete.withdrawAmount')"
+            numeric
+            :hint="!data?.sheba ? t('athlete.shebaRequired') : undefined"
+          >
+            <AppNumericInput v-model="withdrawAmount" />
           </AppFormField>
           <button
             type="button"
             class="canva-gate-btn-primary"
-            :disabled="payoutBusy || !data?.sheba || !withdrawAmount || withdrawableBalance <= 0"
+            :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > withdrawableBalance"
             @click="requestWithdraw"
           >
             {{ t('athlete.withdrawRequest') }}
