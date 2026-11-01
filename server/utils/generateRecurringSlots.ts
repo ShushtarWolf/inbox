@@ -8,6 +8,7 @@ import {
   type RecurringGenerateResult,
 } from '#shared/recurringReserve.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
+import { userToGuestNamePair } from '#shared/userName.ts'
 import { formatHour, hourEnd, addMinutes } from './slots'
 import { deleteStaleCancelledBooking } from './staleBooking'
 import { isSlotStartInPast } from '#shared/localDate.ts'
@@ -203,7 +204,7 @@ export async function generateRecurringCourtSlots(opts: GenerateOpts): Promise<R
           }
           const linkedUserId = linkedUser?.id ?? null
           const guestNamePair = linkedUser?.name?.trim()
-            ? normalizeGuestNamePair(linkedUser.name, '')
+            ? userToGuestNamePair(linkedUser)
             : { guestName: guest.guestName, guestFamily: guest.guestFamily }
           const booking = await tx.booking.create({
             data: {

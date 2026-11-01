@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     phone?: string
     role?: string
     name?: string
+    nameFamily?: string
     permissions?: string[]
   }>(event)
 
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
     club,
     phoneRaw: body.phone || '',
     name: body.name,
+    nameFamily: body.nameFamily,
     role: body.role,
     permissions: body.permissions,
   })

@@ -1,4 +1,5 @@
 import type { Role } from '@prisma/client'
+import { resolveUserDisplayName } from '#shared/userName.ts'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
             OR: [
               { email: { contains: q, mode: 'insensitive' } },
               { name: { contains: q, mode: 'insensitive' } },
+              { nameFamily: { contains: q, mode: 'insensitive' } },
               { phone: { contains: q } },
             ],
           }
@@ -34,6 +36,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       email: true,
       name: true,
+      nameFamily: true,
       nameEn: true,
       role: true,
       secondaryRole: true,
@@ -53,7 +56,9 @@ export default defineEventHandler(async (event) => {
     users: users.map((user) => ({
       id: user.id,
       email: user.email,
-      name: user.name,
+      name: resolveUserDisplayName(user),
+      nameFirst: user.name,
+      nameFamily: user.nameFamily,
       nameEn: user.nameEn,
       role: user.role,
       secondaryRole: user.secondaryRole,

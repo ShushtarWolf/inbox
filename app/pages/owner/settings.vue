@@ -116,6 +116,7 @@ const staffSuccess = ref('')
 const invitePhone = ref('')
 useAsciiDigits(invitePhone)
 const inviteName = ref('')
+const inviteNameFamily = ref('')
 const inviteRole = ref<'MANAGER' | 'FRONT_DESK' | 'ANALYST'>('FRONT_DESK')
 const invitePermissions = ref<OwnerPermission[]>(defaultPermissionsForRole('FRONT_DESK'))
 const inviting = ref(false)
@@ -267,6 +268,7 @@ async function sendStaffInvite() {
       body: {
         phone: invitePhone.value,
         name: inviteName.value,
+        nameFamily: inviteNameFamily.value.trim() || undefined,
         role: inviteRole.value,
         permissions: invitePermissions.value,
       },
@@ -276,6 +278,7 @@ async function sendStaffInvite() {
       : t('owner.inviteSent')
     invitePhone.value = ''
     inviteName.value = ''
+    inviteNameFamily.value = ''
     invitePermissions.value = [...defaultPermissionsForRole(inviteRole.value)]
     await refreshStaff()
   }
@@ -879,9 +882,14 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 :placeholder="t('auth.phonePlaceholder')"
               >
             </AppFormField>
-            <AppFormField :label="t('auth.name')" required>
-              <input v-model="inviteName" class="neo-input" autocomplete="name">
-            </AppFormField>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <AppFormField :label="t('common.name')" required>
+                <input v-model="inviteName" class="neo-input" autocomplete="given-name">
+              </AppFormField>
+              <AppFormField :label="t('common.family')">
+                <input v-model="inviteNameFamily" class="neo-input" autocomplete="family-name">
+              </AppFormField>
+            </div>
             <AppFormField :label="t('owner.settingsPage.role')">
               <select v-model="inviteRole" class="neo-select">
                 <option value="FRONT_DESK">{{ t('owner.roles.FRONT_DESK') }}</option>

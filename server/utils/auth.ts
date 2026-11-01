@@ -116,6 +116,7 @@ export function toSessionUser(user: {
   id: string
   email: string
   name: string
+  nameFamily?: string | null
   nameEn?: string | null
   role: string
   secondaryRole?: string | null
@@ -128,6 +129,7 @@ export function toSessionUser(user: {
     id: user.id,
     email: user.email,
     name: user.name,
+    nameFamily: user.nameFamily || null,
     nameEn: user.nameEn,
     role: user.role,
     secondaryRole: user.secondaryRole || null,

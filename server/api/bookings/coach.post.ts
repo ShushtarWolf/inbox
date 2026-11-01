@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
     startTime: body.startTime,
     endTime,
     paymentPaid: false,
-    guestName: personNotifyName(athlete?.name),
+    guestName: personNotifyName(athlete?.name, athlete?.nameFamily),
     ...(coach.club ? clubNotifyLocation(coach.club) : {}),
   })
   // Owner SMS waits for PAID (notifyOwnerBookingPaid in paymentSync).

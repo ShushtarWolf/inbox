@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       email: true,
       name: true,
+      nameFamily: true,
       nameEn: true,
       role: true,
       secondaryRole: true,

@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
     startTime: slot.startTime,
     endTime,
     paymentPaid: false,
-    guestName: personNotifyName(student.name),
+    guestName: personNotifyName(student.name, student.nameFamily),
     ...clubNotifyLocation(slot.court.club),
   })
 

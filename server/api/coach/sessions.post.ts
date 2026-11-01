@@ -118,7 +118,7 @@ export default defineEventHandler(async (event) => {
     startTime,
     endTime,
     paymentPaid: false,
-    guestName: personNotifyName(athlete.name),
+    guestName: personNotifyName(athlete.name, athlete.nameFamily),
     ...(profile.club ? clubNotifyLocation(profile.club) : {}),
   })
 

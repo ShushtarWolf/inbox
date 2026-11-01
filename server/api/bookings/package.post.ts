@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     const first = sessions[0]
     const last = sessions[sessions.length - 1]
     const courtLabel = pkg.court ? courtNotifyName(pkg.court) : ''
-    const guestName = personNotifyName(athlete?.name)
+    const guestName = personNotifyName(athlete?.name, athlete?.nameFamily)
 
     await notifyBookingConfirmed({
       userId: user.id,

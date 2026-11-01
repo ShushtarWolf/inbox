@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     purpose?: OtpPurpose
     role?: OtpRole
     name?: string
+    nameFamily?: string
     gender?: string
     clubNameFa?: string
     city?: string
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
     payload: purpose === 'register'
       ? {
           name: body.name?.trim(),
+          nameFamily: body.nameFamily?.trim() || '',
           gender,
           clubNameFa: body.clubNameFa?.trim(),
           city: body.city?.trim() || 'تهران',

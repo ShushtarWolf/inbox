@@ -216,6 +216,8 @@ model User {
   email         String   @unique
   passwordHash  String?
   name          String
+  /** نام خانوادگی — optional until profile/signup split; legacy rows may keep full name in `name` only. */
+  nameFamily    String?
   nameEn        String?
   role          Role     @default(ATHLETE)
   /** Optional second platform role on the same phone/account (max 3 including `role` + tertiaryRole). */

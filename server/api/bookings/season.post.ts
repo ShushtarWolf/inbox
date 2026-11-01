@@ -1,4 +1,4 @@
-import { normalizeGuestNamePair } from '#shared/guestName.ts'
+import { userToGuestNamePair } from '#shared/userName.ts'
 import { assertAthleteSeasonEnabled } from '../../utils/athleteSeasonGate'
 import { previewAthleteWeeklySeason } from '../../utils/athleteSeasonPreview'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   await releaseExpiredOnlinePaymentHolds({ clubId })
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
-  const guest = normalizeGuestNamePair(dbUser.name || '', '')
+  const guest = userToGuestNamePair(dbUser)
 
   const result = await createSeasonSessions({
     clubId,

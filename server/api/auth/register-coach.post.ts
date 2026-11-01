@@ -1,6 +1,7 @@
 import { assignAddedRole, canAddRole } from '#shared/roles.ts'
 import { parseGender } from '#shared/gender.ts'
 import { toSessionUser, touchLastLogin } from '../../utils/auth'
+import { resolveUserDisplayName, userNameFieldsFromParts } from '../../utils/userNameRecord'
 
 /**
  * Coach password registration. Existing phone/email users get COACH as an added
@@ -12,6 +13,7 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-coach')
   const body = await readBody<{
     name?: string
+    nameFamily?: string
     email?: string
     phone?: string
     password?: string
@@ -28,14 +30,15 @@ export default defineEventHandler(async (event) => {
     returnTo?: string
   }>(event)
 
-  const name = body.name?.trim()
+  const nameParts = userNameFieldsFromParts(body.name, body.nameFamily)
+  const displayName = resolveUserDisplayName(nameParts)
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
   const clubId = body.clubId?.trim() || ''
   const phone = body.phone?.trim() || undefined
   const gender = parseGender(body.gender)
 
-  if (!name || !email || password.length < 6 || !gender) {
+  if (!nameParts.name.trim() || !email || password.length < 6 || !gender) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
@@ -93,8 +96,9 @@ export default defineEventHandler(async (event) => {
         })
       : await tx.user.create({
           data: {
-            name,
-            nameEn: name,
+            name: nameParts.name,
+            nameFamily: nameParts.nameFamily,
+            nameEn: nameParts.nameEn,
             email,
             role: 'COACH',
             passwordHash: hashSecret(password),
@@ -107,8 +111,8 @@ export default defineEventHandler(async (event) => {
 
     const coach = await tx.coach.create({
       data: {
-        nameFa: name,
-        nameEn: name,
+        nameFa: displayName,
+        nameEn: displayName,
         city: club?.city || 'تهران',
         sportId: sport.id,
         // Coaches are independent — no club affiliation at signup.

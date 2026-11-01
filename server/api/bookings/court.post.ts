@@ -14,6 +14,7 @@ import {
   notifyBookingPaid,
   personNotifyName,
 } from '../../utils/bookingNotify'
+import { userToGuestNamePair } from '#shared/userName.ts'
 import {
   loadEquipmentForBooking,
   parseEquipmentSelections,
@@ -122,6 +123,7 @@ export default defineEventHandler(async (event) => {
   const discountAmount = discount?.discountAmount || 0
 
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+  const dbUserGuest = userToGuestNamePair(dbUser)
   const bookerGender = parseGender(dbUser.gender)
   for (const slot of orderedSlots) {
     const audience = parseCourtAudience((slot.court as { audience?: string }).audience) || 'MIXED'
@@ -188,7 +190,8 @@ export default defineEventHandler(async (event) => {
           data: {
             slotId: slot.id,
             userId: user.id,
-            guestName: dbUser.name,
+            guestName: dbUserGuest.guestName,
+            guestFamily: dbUserGuest.guestFamily || undefined,
             guestMobile: dbUser.phone,
             paymentStatus: paymentFields.paymentStatus,
             source: 'PLATFORM',
@@ -333,7 +336,7 @@ export default defineEventHandler(async (event) => {
           endTime: slot.endTime,
         })),
         paymentPaid: paymentStatus === 'PAID',
-        guestName: personNotifyName(dbUser.name),
+        guestName: personNotifyName(dbUser.name, dbUser.nameFamily),
         ...clubNotifyLocation(club),
       }
       await notifyBookingConfirmed(notifyOpts)

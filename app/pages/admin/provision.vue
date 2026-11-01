@@ -8,6 +8,7 @@ const { secret, clearSecret, adminFetch } = useAdminSecret()
 
 const email = ref('')
 const name = ref('')
+const nameFamily = ref('')
 const phone = ref('')
 useAsciiDigits(phone)
 const clubName = ref('')
@@ -51,6 +52,7 @@ async function submit() {
           type: 'CLUB_ADMIN',
           email: email.value.trim(),
           name: name.value.trim(),
+          nameFamily: nameFamily.value.trim() || undefined,
           phone: phone.value.trim(),
           clubName: clubName.value.trim() || undefined,
           locale: 'fa',
@@ -60,6 +62,7 @@ async function submit() {
     result.value = data
     email.value = ''
     name.value = ''
+    nameFamily.value = ''
     phone.value = ''
     clubName.value = ''
   } catch (err: unknown) {
@@ -135,18 +138,31 @@ function resetForm() {
             :disabled="submitting"
           />
         </AppFormField>
-        <AppFormField field-id="provision-name" :label="t('common.name')">
-          <input
-            id="provision-name"
-            v-model="name"
-            type="text"
-            required
-            class="neo-input"
-            style="border-radius: 2px;"
-            autocomplete="off"
-            :disabled="submitting"
-          />
-        </AppFormField>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <AppFormField field-id="provision-name" :label="t('common.name')">
+            <input
+              id="provision-name"
+              v-model="name"
+              type="text"
+              required
+              class="neo-input"
+              style="border-radius: 2px;"
+              autocomplete="given-name"
+              :disabled="submitting"
+            />
+          </AppFormField>
+          <AppFormField field-id="provision-family" :label="t('common.family')">
+            <input
+              id="provision-family"
+              v-model="nameFamily"
+              type="text"
+              class="neo-input"
+              style="border-radius: 2px;"
+              autocomplete="family-name"
+              :disabled="submitting"
+            />
+          </AppFormField>
+        </div>
         <AppFormField field-id="provision-phone" :label="t('admin.ownerPhone')">
           <input
             id="provision-phone"
