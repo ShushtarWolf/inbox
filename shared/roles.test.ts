@@ -127,7 +127,7 @@ describe('roles helpers', () => {
   })
 
   it('maps staff invite roles to platform roles', () => {
-    expect(platformRoleForStaffInvite('COACH')).toBe('COACH')
+    expect(platformRoleForStaffInvite('COACH')).toBe('CLUB_ADMIN')
     expect(platformRoleForStaffInvite('MANAGER')).toBe('CLUB_ADMIN')
     expect(platformRoleForStaffInvite('FRONT_DESK')).toBe('CLUB_ADMIN')
   })

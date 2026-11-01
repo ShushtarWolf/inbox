@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   select: []
+  viewChange: [{ year: number, month: number }]
 }>()
 
 const { formatNumber, formatYear } = useFormatters()
@@ -39,6 +40,10 @@ function syncViewFromModel() {
 }
 
 watch(model, syncViewFromModel, { immediate: true })
+
+watch([viewYear, viewMonth], ([year, month]) => {
+  emit('viewChange', { year, month })
+}, { flush: 'post' })
 
 const monthLabel = computed(() => `${PERSIAN_MONTHS[viewMonth.value - 1]} ${formatYear(viewYear.value)}`)
 

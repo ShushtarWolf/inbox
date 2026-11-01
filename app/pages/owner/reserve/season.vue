@@ -5,7 +5,7 @@ import { jalaliMonthEndIso } from '#shared/jalali.ts'
 import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
-import { addDaysToIsoDate, isPastDate } from '#shared/localDate.ts'
+import { addDaysToIsoDate } from '#shared/localDate.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
@@ -57,6 +57,20 @@ useAsciiDigits(guestMobile)
 const guestNameInput = ref<HTMLInputElement | null>(null)
 const guestFamilyInput = ref<HTMLInputElement | null>(null)
 const guestMobileInput = ref<HTMLInputElement | null>(null)
+const {
+  guestSuggestions,
+  guestSearchOpen,
+  guestSearchPending,
+  guestSearchSource,
+  onGuestNameFieldInput,
+  onGuestMobileInput,
+  selectGuestSuggestion,
+  closeGuestSearchSoon,
+} = useOwnerGuestSearch({
+  guestName,
+  guestFamily,
+  guestMobile,
+})
 const startDate = ref('')
 const finishDate = ref('')
 const comments = ref('')
@@ -228,9 +242,8 @@ function clearDeskDiscount() {
 const dateRangeInvalid = computed(() =>
   Boolean(startDate.value && finishDate.value && finishDate.value < startDate.value),
 )
-const startInPast = computed(() => Boolean(startDate.value && isPastDate(startDate.value)))
 const datesValid = computed(() =>
-  Boolean(startDate.value && finishDate.value && !dateRangeInvalid.value && !startInPast.value),
+  Boolean(startDate.value && finishDate.value && !dateRangeInvalid.value),
 )
 
 const rangeLabel = computed(() => {
@@ -355,9 +368,9 @@ async function goStep2() {
     return
   }
   if (!datesValid.value) {
-    formError.value = startInPast.value
-      ? t('owner.errors.startDateInPast')
-      : (!finishDate.value ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
+    formError.value = !finishDate.value
+      ? t('owner.seasonPage.finishRequired')
+      : t('owner.packagesPage.dateRangeInvalid')
     return
   }
   if (!rules.value.length) addRule({ blank: true })
@@ -641,13 +654,28 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           <div class="min-w-0 space-y-4">
             <div class="grid gap-3 sm:grid-cols-2">
               <AppFormField :label="t('owner.guestName')" required>
-                <input
-                  ref="guestNameInput"
-                  v-model="guestName"
-                  class="neo-input season-wiz-inp"
-                  autocomplete="given-name"
-                  required
-                >
+                <div class="relative">
+                  <input
+                    ref="guestNameInput"
+                    v-model="guestName"
+                    class="neo-input season-wiz-inp"
+                    autocomplete="given-name"
+                    required
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                    aria-autocomplete="list"
+                    aria-controls="season-guest-suggestions-name"
+                    @input="onGuestNameFieldInput"
+                    @focus="onGuestNameFieldInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="season-guest-suggestions-name"
+                    :open="guestSearchOpen && guestSearchSource === 'name'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
               <AppFormField :label="t('owner.guestFamily')">
                 <input
@@ -655,19 +683,35 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                   v-model="guestFamily"
                   class="neo-input season-wiz-inp"
                   autocomplete="family-name"
+                  @input="onGuestNameFieldInput"
                 >
               </AppFormField>
             </div>
             <AppFormField :label="t('owner.guestMobile')" required>
-              <input
-                ref="guestMobileInput"
-                v-model="guestMobile"
-                dir="ltr"
-                class="neo-input season-wiz-inp tabular-nums"
-                inputmode="tel"
-                autocomplete="off"
-                required
-              >
+              <div class="relative">
+                <input
+                  ref="guestMobileInput"
+                  v-model="guestMobile"
+                  dir="ltr"
+                  class="neo-input season-wiz-inp tabular-nums"
+                  inputmode="tel"
+                  autocomplete="off"
+                  required
+                  :aria-expanded="guestSearchOpen && guestSearchSource === 'mobile'"
+                  aria-autocomplete="list"
+                  aria-controls="season-guest-suggestions-mobile"
+                  @input="onGuestMobileInput"
+                  @focus="onGuestMobileInput"
+                  @blur="closeGuestSearchSoon"
+                >
+                <OwnerGuestSearchDropdown
+                  list-id="season-guest-suggestions-mobile"
+                  :open="guestSearchOpen && guestSearchSource === 'mobile'"
+                  :pending="guestSearchPending"
+                  :suggestions="guestSuggestions"
+                  @select="selectGuestSuggestion"
+                />
+              </div>
               <p class="mt-1 text-start text-[12px] text-[#8C8A84]">{{ phoneSmsHint }}</p>
             </AppFormField>
             <div class="season-wiz-range-box">
