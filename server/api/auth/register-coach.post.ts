@@ -144,7 +144,7 @@ export default defineEventHandler(async (event) => {
   })
 
   await notifyAdminCoachApplication({
-    coachName: name,
+    coachName: displayName,
     city: result.coach.city,
     phone: phone || null,
     email,
