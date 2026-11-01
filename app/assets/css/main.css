@@ -696,50 +696,6 @@
     @apply inline-flex items-center justify-center self-center bg-brand-primary px-2.5 py-1 text-[10px] font-bold text-white sm:px-4 sm:py-1.5 sm:text-[11.5px];
     border-radius: var(--sz-canva-radius);
   }
-  /* HTML .rdisc — white perforated coupon centered on photo */
-  .canva-venue-card-offer {
-    position: absolute;
-    z-index: 20;
-    top: 36%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-4deg);
-    background: #fff;
-    color: #c41e1e;
-    font-size: clamp(1.75rem, 8vw, 4.5rem);
-    font-weight: 900;
-    line-height: 1;
-    white-space: nowrap;
-    padding: 0.22em 0.53em;
-    box-shadow: none;
-    border-radius: 0;
-    max-height: none;
-    overflow: visible;
-    display: block;
-    -webkit-mask:
-      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
-    mask:
-      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
-  }
-  .canva-venue-card-offer::before,
-  .canva-venue-card-offer::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    bottom: 8px;
-    border-left: 2px dashed rgba(196, 30, 30, 0.35);
-  }
-  .canva-venue-card-offer::before {
-    left: 22px;
-  }
-  .canva-venue-card-offer::after {
-    right: 22px;
-  }
-  .canva-venue-card:has(.canva-venue-card-offer) .canva-venue-card-body {
-    padding-block-start: 0;
-  }
-
   /* Coach discovery rail — square tiles, red CTA like venue cards */
   .canva-coach-grid {
     @apply grid grid-cols-3 gap-2 sm:gap-3 min-[431px]:gap-5;
@@ -2503,64 +2459,6 @@
     border-radius: var(--sz-canva-radius);
   }
 
-  .canva-promo-strip {
-    @apply absolute inset-x-0 top-0 z-[2] bg-brand-primary/95 px-3 py-1.5 text-center text-[11px] font-bold text-white;
-  }
-  .canva-promo-badge {
-    @apply absolute z-[3] flex flex-col items-center justify-center bg-brand-primary px-2.5 py-1.5 text-center font-bold text-white;
-    inset-inline-start: 0.75rem;
-    bottom: 1.25rem;
-    border-radius: var(--sz-canva-radius);
-    min-width: 3.25rem;
-    line-height: 1.1;
-  }
-  /* Athlete home: keep offer on the opposite side from RTL greeting (text-start). */
-  .canva-promo-badge-offer {
-    inset-inline-start: auto;
-    inset-inline-end: 0.75rem;
-    bottom: 1.1rem;
-    min-width: 6.75rem;
-    max-width: 7.75rem;
-    padding-block: 0.4rem;
-    padding-inline: 0.45rem;
-  }
-  .canva-promo-badge-offer .canva-promo-badge-label {
-    @apply mt-0 text-[9px] font-bold leading-tight;
-  }
-  .canva-promo-badge-code {
-    @apply mt-0.5 text-[8px] font-bold leading-tight tracking-normal opacity-95;
-    text-transform: none;
-  }
-  .canva-photo-hero-body-with-offer {
-    padding-inline-end: 8rem;
-  }
-  .canva-promo-badge-hero {
-    @apply items-start bg-transparent px-0 py-0 text-start text-brand-primary;
-    inset-inline-start: 0.85rem;
-    bottom: 2.35rem;
-    border-radius: 0;
-    min-width: 0;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
-  }
-  .canva-promo-badge-hero .canva-promo-badge-pct {
-    @apply text-[2rem] font-black leading-none;
-  }
-  .canva-promo-badge-hero .canva-promo-badge-label {
-    @apply mt-0.5 text-[11px] font-bold leading-tight;
-  }
-  button.canva-promo-badge {
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-  button.canva-promo-badge:active {
-    opacity: 0.9;
-  }
-  .canva-promo-badge-pct {
-    @apply text-lg leading-none;
-  }
-  .canva-promo-badge-label {
-    @apply mt-0.5 text-[9px] font-bold leading-tight;
-  }
   .canva-cal-sheet {
     @apply relative z-[1] -mt-4 space-y-3 bg-[var(--sz-bg)] px-4 pb-4 pt-5;
     border-radius: var(--sz-canva-radius-max) var(--sz-canva-radius-max) 0 0;
@@ -3800,9 +3698,6 @@
   .owner-cal-page .canva-photo-hero {
     min-height: 5.5rem;
   }
-  .owner-cal-page .canva-promo-badge-hero {
-    display: none;
-  }
   .canva-cal-sheet {
     padding-inline: 1rem;
     padding-top: 1.5rem;
@@ -4863,8 +4758,6 @@
 }
 .owner-finance-page .canva-panel { box-shadow:none; border:1px solid rgba(44,44,42,.12) }
 .owner-finance-page .canva-finance-chart { background:transparent }
-.owner-finance-page .canva-promo-badge-hero { inset:auto auto 12px 10px !important; background:#c41e1e; padding:8px 12px; display:flex; flex-direction:row; gap:4px; align-items:center }
-.owner-finance-page .canva-promo-badge-hero > * { color:#fff !important; font-size:10px !important; font-weight:700; line-height:1.4 }
 
 /* global footer — SoT .rfoot (12px, #6b6b67, line-height 2.4, tight "·" separators) */
 @media (min-width: 431px) {
@@ -5070,9 +4963,6 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 @media (max-width: 430px) {
   .venus-page-stack.athlete-home-page .canva-venue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card { aspect-ratio: 97 / 112; }
-  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer { top: 11px; font-size: 0.8rem; padding: 3px 12px; -webkit-mask: none; mask: none; }
-  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::before { left: 5px; }
-  .venus-page-stack.athlete-home-page .canva-venue-grid .canva-venue-card-offer::after { right: 5px; }
 }
 
 /* admin-calendar SoT: compact 34px day rows (same as owner/coach book calendars) */
@@ -5164,7 +5054,6 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
 @media (min-width: 431px) {
   .owner-finance-page > .canva-photo-hero { height: 130px; min-height: 130px; margin-bottom: 24px; }
   .owner-finance-page > .canva-photo-hero .canva-photo-hero-body { min-height: 0 !important; padding: 0 !important; }
-  .owner-finance-page > .canva-photo-hero .canva-promo-badge-hero { top: auto !important; bottom: 18px !important; left: 12px !important; right: auto !important; inset-inline-start: auto; }
   .owner-finance-page .canva-finance-period { margin-top: 0; }
   .owner-finance-page .canva-finance-period-btn { padding: 6px 2px; }
   .owner-finance-page .canva-finance-wide > div.space-y-2:has(> .canva-finance-chips) { display: flex; flex-direction: column; }

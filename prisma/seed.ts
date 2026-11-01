@@ -85,7 +85,7 @@ async function ensureSports() {
   }
 }
 
-/** Platform promo codes (matches athlete home ۲۰٪ student badge). */
+/** Platform-wide promo codes (e.g. STUDENT20) — applied at checkout, not decorative UI. */
 async function ensureDiscountCodes() {
   await prisma.discountCode.upsert({
     where: { code: 'STUDENT20' },
