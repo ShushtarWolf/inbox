@@ -58,5 +58,7 @@ const fallback = computed(() => (stem.value ? heroJpegFallback(stem.value) : pro
     :fetchpriority="fetchpriority"
     :loading="loading"
     decoding="async"
+    width="750"
+    height="422"
   />
 </template>

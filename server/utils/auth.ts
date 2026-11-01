@@ -194,14 +194,18 @@ export function permissionNeedsActiveClub(permission?: OwnerPermission | string)
 }
 
 export async function requireOwnerClub(event: H3Event, permission?: OwnerPermission) {
-  const user = await requireRole(event, 'CLUB_ADMIN')
+  const user = await requireUser(event)
   const memberships = await prisma.staffMembership.findMany({
-    where: { userId: user.id, active: true, role: { in: ['OWNER', 'MANAGER', 'ANALYST', 'FRONT_DESK'] } },
+    where: {
+      userId: user.id,
+      active: true,
+      role: { in: ['OWNER', 'MANAGER', 'ANALYST', 'FRONT_DESK', 'COACH'] },
+    },
     include: { club: true },
     orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
   })
   if (!memberships.length) {
-    throw createError({ statusCode: 404, statusMessage: 'Club not found' })
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
   const selectedClubId = getCookie(event, 'owner_club_id')
   const membership = memberships.find((item) => item.clubId === selectedClubId) || memberships[0]!

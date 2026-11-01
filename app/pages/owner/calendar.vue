@@ -161,7 +161,7 @@ const date = ref(today())
 const showDatePicker = ref(false)
 const datePickerRef = ref<HTMLElement | null>(null)
 const activeCourtId = ref<string | null>(null)
-const calendarView = ref<'today' | 'overview'>('today')
+const calendarView = ref<'today' | 'overview' | 'season'>('today')
 const selectedSlot = ref<OwnerCalendarSlot | null>(null)
 const selectedSlotIds = ref<string[]>([])
 /** Stable sibling set for booked cancel checkboxes (survives unchecking). */
@@ -312,11 +312,7 @@ watch(date, () => {
   void refreshCalendar()
 })
 
-async function loadOccupancyMarks(anchorIso?: string) {
-  const base = anchorIso || date.value
-  const j = isoToJalaali(base)
-  const from = jalaaliToIso(j.jy, j.jm, 1)
-  const to = jalaaliToIso(j.jy, j.jm, jalaaliDaysInMonth(j.jy, j.jm))
+async function loadOccupancyMarksForRange(from: string, to: string) {
   try {
     const month = await $fetch<{ busyDates?: string[]; softDates?: string[] }>('/api/owner/calendar', {
       query: { from, to },
@@ -328,6 +324,20 @@ async function loadOccupancyMarks(anchorIso?: string) {
   } catch {
     occupancyMarks.value = {}
   }
+}
+
+async function loadOccupancyMarks(anchorIso?: string) {
+  const base = anchorIso || date.value
+  const j = isoToJalaali(base)
+  const from = jalaaliToIso(j.jy, j.jm, 1)
+  const to = jalaaliToIso(j.jy, j.jm, jalaaliDaysInMonth(j.jy, j.jm))
+  await loadOccupancyMarksForRange(from, to)
+}
+
+function onDatePickerViewChange(payload: { year: number, month: number }) {
+  const from = jalaaliToIso(payload.year, payload.month, 1)
+  const to = jalaaliToIso(payload.year, payload.month, jalaaliDaysInMonth(payload.year, payload.month))
+  void loadOccupancyMarksForRange(from, to)
 }
 
 watch(showDatePicker, (open) => {
@@ -468,7 +478,8 @@ const deskPayMode = ref<'cash' | 'unpaid' | 'complimentary'>('cash')
 /** Owner hero must show the active club's own cover; Canva stock photos are placeholders. */
 const clubHeroImage = computed(() => {
   const membership = ownerMemberships.value.find((m) => m.club.id === selectedClubId.value) || ownerMemberships.value[0]
-  return membership?.club?.image || '/hero/tennis-court.jpg'
+  const raw = membership?.club?.image || '/hero/tennis-court.jpg'
+  return raw.replace(/^\/uploads\/uploads\//, '/uploads/')
 })
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
@@ -902,6 +913,7 @@ function gridCellBarClass(slot?: OwnerCalendarSlot | null) {
   const status = slot?.displayStatus || 'FREE'
   if (isReservedDisplayStatus(status)) {
     if (isRecurringReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-recurring'
+    if (isCoachReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-coach'
     if (isUnpaidPaymentStatus(slotPaymentStatus(slot))) return 'canva-cal-grid-cell-bar-reserved-unpaid'
     if (isIpgReservedSlot(slot)) return 'canva-cal-grid-cell-bar-reserved-ipg'
     return 'canva-cal-grid-cell-bar-reserved-cash'
@@ -1150,11 +1162,8 @@ const packageEquipmentPrice = computed(() => sumEquipmentIds(form.equipmentIds, 
 const seasonDateRangeInvalid = computed(() =>
   Boolean(seasonForm.startDate && seasonForm.finishDate && seasonForm.finishDate < seasonForm.startDate),
 )
-const seasonStartInPast = computed(() =>
-  Boolean(seasonForm.startDate && isPastDate(seasonForm.startDate)),
-)
 const seasonDatesValid = computed(() =>
-  Boolean(seasonForm.startDate && seasonForm.finishDate && !seasonDateRangeInvalid.value && !seasonStartInPast.value),
+  Boolean(seasonForm.startDate && seasonForm.finishDate && !seasonDateRangeInvalid.value),
 )
 const seasonSessionCount = computed(() => {
   if (!seasonDatesValid.value) return 0
@@ -2839,9 +2848,7 @@ async function runSeasonPreview() {
     actionError.value = guestFieldsErrorMessage() || (
       !seasonForm.courtIds.length
         ? t('owner.seasonPage.courtsRequired')
-        : (seasonStartInPast.value
-          ? t('owner.errors.startDateInPast')
-          : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')))
+        : (!seasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid'))
     )
     return
   }
@@ -3412,6 +3419,57 @@ const legend = computed(() => [
   { status: 'PAID_DOT', color: '#16A34A', swatch: 'dot' as const },
 ])
 
+/** Distinct booking-type swatches (player / coach / external uncertain). */
+const bookingTypeLegend = computed(() => {
+  const items: Array<{ key: string, color: string, label: string }> = [
+    { key: 'player', color: '#C41E1E', label: t('owner.legendPlayerReserve') },
+  ]
+  if (!pilotNoCoach.value) {
+    items.push({ key: 'coach', color: '#b68a3b', label: t('owner.legendCoachReserved') })
+  }
+  if (externalOverlayEnabled.value) {
+    items.push({ key: 'uncertain', color: '#f59e0b', label: t('owner.legendUncertain') })
+  }
+  return items
+})
+
+type SeasonListRow = {
+  id: string
+  guestName: string
+  guestMobile: string
+  startDate: string | null
+  finishDate: string | null
+  daysJson: string
+  timesJson: string
+  comments: string | null
+  createdAt: string
+}
+
+const { data: seasonListData, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
+  '/api/owner/seasons',
+  { immediate: false, watch: false },
+)
+
+const seasonListRows = computed(() => seasonListData.value?.seasons || [])
+
+watch(calendarView, (view) => {
+  if (view === 'season' && canShowSeasonReserve()) void refreshSeasonList()
+})
+
+function repeatSeasonBooking(row: SeasonListRow) {
+  const query: Record<string, string> = {}
+  if (row.startDate) query.start = row.startDate
+  if (row.finishDate) query.finish = row.finishDate
+  if (row.guestName) query.guestName = row.guestName
+  if (row.guestMobile) query.guestMobile = row.guestMobile
+  if (row.comments) query.comments = row.comments
+  void navigateTo({ path: localePath('/owner/reserve/season'), query })
+}
+
+function openNewSeasonBooking() {
+  openSeasonFormStandalone()
+}
+
 const sessionFilterOptions = computed(() => ([
   { value: 'all' as const, label: t('owner.sessionTypeFilterAll') },
   { value: 'free' as const, label: t('owner.sessionTypeFree') },
@@ -3486,10 +3544,66 @@ watch(pilotNoCoach, (off) => {
         >
           {{ t('owner.overview') }}
         </button>
+        <button
+          v-if="canShowSeasonReserve()"
+          type="button"
+          class="canva-view-tab"
+          :class="calendarView === 'season' ? 'canva-view-tab-active canva-cal-tab-active' : ''"
+          @click="calendarView = 'season'"
+        >
+          {{ t('owner.seasonTab') }}
+        </button>
       </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="calendar">
-    <section v-if="calendarView === 'overview'" class="canva-overview-layout space-y-3">
+    <section v-if="calendarView === 'season'" class="space-y-3">
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="canva-cal-fab canva-cal-fab-reserve" @click="openNewSeasonBooking">
+          {{ t('owner.seasonTabNew') }}
+        </button>
+      </div>
+      <CanvaEmptyState
+        v-if="!seasonListRows.length"
+        :title="t('owner.seasonTabEmpty')"
+        icon="event_repeat"
+      />
+      <div v-else class="overflow-x-auto border border-[rgba(44,44,42,.08)] bg-white">
+        <table class="min-w-full text-start text-xs">
+          <thead class="border-b border-[rgba(44,44,42,.08)] bg-brand-cream/60 text-brand-gray-600">
+            <tr>
+              <th class="px-3 py-2 font-bold">{{ t('owner.seasonTabGuest') }}</th>
+              <th class="px-3 py-2 font-bold">{{ t('owner.seasonTabRange') }}</th>
+              <th class="px-3 py-2 font-bold" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in seasonListRows"
+              :key="row.id"
+              class="border-b border-[rgba(44,44,42,.06)] last:border-0"
+            >
+              <td class="px-3 py-2.5">
+                <p class="font-bold text-brand-navy">{{ row.guestName || '—' }}</p>
+                <p v-if="row.guestMobile" class="mt-0.5 tabular-nums text-brand-gray-600" dir="ltr">
+                  <bdi>{{ formatPhone(row.guestMobile) }}</bdi>
+                </p>
+              </td>
+              <td class="px-3 py-2.5 tabular-nums text-brand-navy">
+                <span v-if="row.startDate && row.finishDate">{{ formatDate(row.startDate) }} – {{ formatDate(row.finishDate) }}</span>
+                <span v-else>—</span>
+              </td>
+              <td class="px-3 py-2.5">
+                <button type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
+                  {{ t('owner.seasonTabRepeat') }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section v-else-if="calendarView === 'overview'" class="canva-overview-layout space-y-3">
       <div class="grid grid-cols-3 gap-2 min-[431px]:gap-4">
         <div class="canva-overview-kpi">
           <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.overviewBookingsToday') }}</p>
@@ -3520,7 +3634,7 @@ watch(pilotNoCoach, (off) => {
       </div>
     </section>
 
-    <section v-else class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
+    <section v-else-if="calendarView === 'today'" class="space-y-3" :class="String(locale) === 'en' ? 'calendar-latin' : ''">
       <!-- Canva closed Today (9): legend · centered date + left FABs · multi-court GRID -->
       <div v-if="!pilotNoCoach" class="canva-session-filter-row" role="group" :aria-label="t('owner.sessionTypeFilterHint')">
         <button
@@ -3533,6 +3647,12 @@ watch(pilotNoCoach, (off) => {
         >
           {{ opt.label }}
         </button>
+      </div>
+      <div v-if="bookingTypeLegend.length" class="canva-legend-row">
+        <div v-for="item in bookingTypeLegend" :key="item.key" class="canva-legend-item">
+          <span class="canva-legend-swatch" :style="{ background: item.color }" aria-hidden="true" />
+          {{ item.label }}
+        </div>
       </div>
       <div class="canva-legend-row">
         <div v-for="item in legend" :key="item.status" class="canva-legend-item">
@@ -3589,14 +3709,6 @@ watch(pilotNoCoach, (off) => {
               @click="openFabReserve"
             >
               {{ t('owner.reserve') }}
-            </button>
-            <button
-              v-if="canShowSeasonReserve()"
-              type="button"
-              class="canva-cal-fab canva-cal-fab-block"
-              @click="openSeasonFormStandalone"
-            >
-              {{ t('owner.seasonReserve') }}
             </button>
           </div>
         </div>
@@ -3786,6 +3898,7 @@ watch(pilotNoCoach, (off) => {
           variant="owner"
           :day-marks="occupancyMarks"
           @select="onDatePicked"
+          @view-change="onDatePickerViewChange"
         />
       </div>
     </AppModal>
@@ -5315,7 +5428,9 @@ watch(pilotNoCoach, (off) => {
 }
 
 :deep(.canva-cal-grid-cell.slot-reserved-coach) {
-  box-shadow: inset 0 0 0 2px var(--sz-brand-primary, #c41e1e);
+  background: #f3e9d3;
+  color: #2c2c2a;
+  box-shadow: inset -4px 0 0 #b68a3b;
 }
 
 :deep(.canva-cal-grid-cell.canva-cal-grid-cell-filtered-out) {

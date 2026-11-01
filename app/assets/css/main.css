@@ -2615,11 +2615,15 @@
   }
   .canva-cal-grid-cell.slot-reserved,
   .canva-cal-grid-cell.slot-reserved-cash,
-  .canva-cal-grid-cell.slot-reserved-coach,
   .canva-cal-grid-cell.slot-public,
   .canva-cal-grid-cell.slot-team {
     background: var(--sz-cal-grid-reserved-paid);
     color: #2c2c2a;
+  }
+  .canva-cal-grid-cell.slot-reserved-coach {
+    background: var(--sz-cal-grid-reserved-coach, #f3e9d3);
+    color: #2c2c2a;
+    box-shadow: inset -4px 0 0 #b68a3b;
   }
   .canva-cal-grid-cell.slot-blocked {
     background: var(--sz-cal-grid-blocked);
@@ -2679,6 +2683,9 @@
   }
   .canva-cal-grid-cell-bar-reserved-recurring {
     background: #6B4C9A;
+  }
+  .canva-cal-grid-cell-bar-reserved-coach {
+    background: #b68a3b;
   }
   .canva-cal-grid-cell-bar-pending {
     background: #E8B84A;
@@ -4356,6 +4363,7 @@
 .canva-club-detail-book .canva-club-legend-free { background: #fff; }
 .canva-club-detail-book .canva-club-legend-suspected { background: repeating-linear-gradient(45deg, #d9b24c, #d9b24c 2px, #fff 2px, #fff 4px); border-color: #bbb; }
 .canva-club-detail-book .canva-club-legend-uncertain { background: radial-gradient(#6b6b67 0.9px, transparent 1.1px) 0 0 / 4px 4px, #fff; border: 1px dashed #6b6b67; }
+.canva-club-detail-book .canva-club-legend-coach { background: #f3e9d3; border-color: #b68a3b; box-shadow: inset -3px 0 0 #b68a3b; }
 
 /* .rbook: single column — calendar, then courts, then hours (SoT stacks at every width) */
 .canva-club-detail-book .canva-club-book { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 18px; background: #fff; border: 1px solid rgba(44, 44, 42, 0.1); border-radius: 0; }

@@ -1150,14 +1150,16 @@ async function shareClub() {
         @pointerdown="onGalleryPointerDown"
         @pointerup="onGalleryPointerUp"
       >
-        <img
+        <CanvaHeroImg
           :src="activeGallery"
           :alt="t('clubs.galleryImageAlt', {
             name: localizedField(club, 'nameFa', 'nameEn'),
             index: gallerySlide + 1,
             total: gallerySlides.length,
           })"
-          class="canva-club-gallery-media"
+          img-class="canva-club-gallery-media"
+          img-style="object-position: 50% 38%;"
+          fetchpriority="high"
         />
         <button type="button" class="canva-club-gallery-arrow canva-club-gallery-arrow-start" :aria-label="t('calendar.prevMonth')" @click="prevGallery">
           <AppIcon name="chevron_right" size="md" />

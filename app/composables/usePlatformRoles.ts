@@ -1,3 +1,4 @@
+import { staffCanAccessOwnerDesk } from '#shared/ownerDeskAccess.ts'
 import {
   canAddRole,
   hasRole,
@@ -55,7 +56,9 @@ export function usePlatformRoles() {
   })
 
   function roleCardState(role: PlatformRole): 'live' | 'pending' | 'missing' {
-    if (!rolesUser.value || !hasRole(rolesUser.value, role)) return 'missing'
+    const holdsPlatformRole = Boolean(rolesUser.value && hasRole(rolesUser.value, role))
+    const holdsOwnerDesk = role === 'CLUB_ADMIN' && staffCanAccessOwnerDesk(user.value?.memberships)
+    if (!holdsPlatformRole && !holdsOwnerDesk) return 'missing'
     if (role === 'COACH') {
       if (coachStatus.value === 'PENDING' || coachStatus.value === 'REJECTED') return 'pending'
       return 'live'
@@ -120,7 +123,8 @@ export function usePlatformRoles() {
 
   async function chooseRole(role: PlatformRole) {
     if (!isPlatformRole(role)) return
-    if (!rolesUser.value || !hasRole(rolesUser.value, role)) return
+    const canOwner = role === 'CLUB_ADMIN' && staffCanAccessOwnerDesk(user.value?.memberships)
+    if (!rolesUser.value || (!hasRole(rolesUser.value, role) && !canOwner)) return
     rememberRole(role)
     await navigateTo(localePath(pathForRole(role)))
   }

@@ -18,7 +18,6 @@ import {
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
-import { assertDateNotInPast } from '../../utils/reservations'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
 import { createSeasonSessions } from '../../utils/seasonReserve'
 import { assignBookingPayPin } from '../../utils/payPin'
@@ -107,8 +106,6 @@ export default defineEventHandler(async (event) => {
   if (body.finishDate < body.startDate) {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
-  assertDateNotInPast(body.startDate)
-
   let sessions = normalizeSessions(body.sessions)
   if (!sessions.length) {
     let rules = normalizeRules(body.rules)

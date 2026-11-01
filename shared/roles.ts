@@ -119,9 +119,9 @@ export function assignAddedRole(user: RolesUser, newRole: PlatformRole): RoleSlo
   return packRoleSlots(roles)
 }
 
-/** Staff desk COACH → platform COACH; other staff roles → CLUB_ADMIN. */
-export function platformRoleForStaffInvite(staffRole: string): PlatformRole {
-  return staffRole === 'COACH' ? 'COACH' : 'CLUB_ADMIN'
+/** Club desk staff always land on owner panel (StaffRole COACH ≠ marketplace coach product). */
+export function platformRoleForStaffInvite(_staffRole: string): PlatformRole {
+  return 'CLUB_ADMIN'
 }
 
 /**
