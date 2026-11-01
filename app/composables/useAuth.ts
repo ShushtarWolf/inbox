@@ -1,4 +1,5 @@
 import { defaultAvatarUrl } from '#shared/gender.ts'
+import { formatUserDisplayName } from '#shared/userName.ts'
 import { profilePathForRole, roleDashboardPath, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo } from '#shared/returnTo.ts'
 
 export { roleDashboardPath, profilePathForRole, resolvePostLoginPath, sanitizeReturnTo, buildReturnTo }
@@ -11,6 +12,7 @@ type AuthUser = {
   id: string
   email: string
   name: string
+  nameFamily?: string | null
   nameEn?: string | null
   role: string
   secondaryRole?: string | null
@@ -52,13 +54,18 @@ export function useAuth() {
   const displayName = computed(() => {
     const current = user.value
     if (!current) return ''
-    const faName = current.name?.trim()
+    const faName = formatUserDisplayName(current.name, current.nameFamily)
     const enName = current.nameEn?.trim()
     // FA-only launch: prefer Persian name
     return faName || enName || current.email.split('@')[0] || ''
   })
 
-  const firstName = computed(() => displayName.value.split(/\s+/)[0] || '')
+  const firstName = computed(() => {
+    const current = user.value
+    if (!current) return ''
+    if (current.nameFamily?.trim()) return current.name?.trim() || ''
+    return displayName.value.split(/\s+/)[0] || ''
+  })
 
   const initials = computed(() => {
     const parts = displayName.value.split(/\s+/).filter(Boolean)

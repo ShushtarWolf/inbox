@@ -9,6 +9,7 @@ import { addDaysToIsoDate, isPastDate } from '#shared/localDate.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
+import { formatGuestDisplayName } from '#shared/guestName.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -49,10 +50,12 @@ const successOpen = ref(false)
 const lastPayMode = ref<'cash' | 'unpaid' | null>(null)
 const lastSmsSent = ref(false)
 
-const guestFullName = ref('')
+const guestName = ref('')
+const guestFamily = ref('')
 const guestMobile = ref('')
 useAsciiDigits(guestMobile)
-const guestFullNameInput = ref<HTMLInputElement | null>(null)
+const guestNameInput = ref<HTMLInputElement | null>(null)
+const guestFamilyInput = ref<HTMLInputElement | null>(null)
 const guestMobileInput = ref<HTMLInputElement | null>(null)
 const startDate = ref('')
 const finishDate = ref('')
@@ -244,24 +247,25 @@ const rangeLabel = computed(() => {
 })
 
 function guestNameParts() {
-  const parts = guestFullName.value.trim().split(/\s+/).filter(Boolean)
   return {
-    guestName: parts[0] || '',
-    guestFamily: parts.slice(1).join(' '),
+    guestName: guestName.value.trim(),
+    guestFamily: guestFamily.value.trim(),
   }
 }
 
 /** Browser autofill can paint values into the DOM without updating v-model. */
 function syncGuestFieldsFromDom() {
-  const nameEl = guestFullNameInput.value
+  const nameEl = guestNameInput.value
+  const familyEl = guestFamilyInput.value
   const mobileEl = guestMobileInput.value
-  if (nameEl) guestFullName.value = nameEl.value
+  if (nameEl) guestName.value = nameEl.value
+  if (familyEl) guestFamily.value = familyEl.value
   if (mobileEl) guestMobile.value = mobileEl.value
 }
 
 function guestFieldsErrorMessage() {
   syncGuestFieldsFromDom()
-  if (!guestFullName.value.trim() || !guestMobile.value.trim()) return t('owner.guestRequired')
+  if (!guestName.value.trim() || !guestMobile.value.trim()) return t('owner.guestRequired')
   if (!normalizeIranPhone(guestMobile.value)) return t('owner.guestMobileInvalid')
   return ''
 }
@@ -306,7 +310,12 @@ function initFromQuery() {
   const start = String(q.start || q.date || '').trim() || today()
   startDate.value = start
   finishDate.value = String(q.finish || '').trim() || jalaliMonthEndIso(start)
-  guestFullName.value = String(q.guestName || '').trim()
+  const fromQuery = String(q.guestName || '').trim()
+  if (fromQuery) {
+    const parts = fromQuery.split(/\s+/).filter(Boolean)
+    guestName.value = parts[0] || ''
+    guestFamily.value = parts.slice(1).join(' ')
+  }
   guestMobile.value = String(q.guestMobile || '').trim()
   comments.value = String(q.comments || '').trim()
 
@@ -540,7 +549,7 @@ const successTitle = computed(() =>
 )
 
 const successBody = computed(() => {
-  const name = guestFullName.value.trim() || '—'
+  const name = formatGuestDisplayName(guestName.value, guestFamily.value) || '—'
   const count = formatNumber(slotsCreated.value)
   const amount = formatCurrency(totalAmount.value)
   const phone = guestMobile.value ? formatPhone(guestMobile.value) : '—'
@@ -630,15 +639,25 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
       <div v-show="step === 1">
         <div class="season-wiz-p1 grid gap-6 lg:grid-cols-[5fr_6fr]">
           <div class="min-w-0 space-y-4">
-            <AppFormField :label="t('owner.guestFullName')" required>
-              <input
-                ref="guestFullNameInput"
-                v-model="guestFullName"
-                class="neo-input season-wiz-inp"
-                autocomplete="off"
-                required
-              >
-            </AppFormField>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <AppFormField :label="t('owner.guestName')" required>
+                <input
+                  ref="guestNameInput"
+                  v-model="guestName"
+                  class="neo-input season-wiz-inp"
+                  autocomplete="given-name"
+                  required
+                >
+              </AppFormField>
+              <AppFormField :label="t('owner.guestFamily')">
+                <input
+                  ref="guestFamilyInput"
+                  v-model="guestFamily"
+                  class="neo-input season-wiz-inp"
+                  autocomplete="family-name"
+                >
+              </AppFormField>
+            </div>
             <AppFormField :label="t('owner.guestMobile')" required>
               <input
                 ref="guestMobileInput"
@@ -778,7 +797,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         <div class="season-wiz-strip grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <div>
             <span>{{ t('owner.seasonPage.stripPlayer') }}</span>
-            <b>{{ guestFullName.trim() || '—' }}</b>
+            <b>{{ formatGuestDisplayName(guestName, guestFamily) || '—' }}</b>
           </div>
           <div>
             <span>{{ t('owner.guestMobile') }}</span>

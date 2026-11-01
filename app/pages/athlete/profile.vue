@@ -7,7 +7,8 @@ const { fetchErrorMessage } = useFetchError()
 const { formatCurrency } = useFormatters()
 const { data: wallet, pending: walletPending } = useAuthedFetch<{ balance?: number }>('/api/wallet')
 const { multiReady } = useSmsCapability()
-const name = ref('')
+const firstName = ref('')
+const nameFamily = ref('')
 const phone = ref('')
 useAsciiDigits(phone)
 const gender = ref<'MALE' | 'FEMALE' | ''>('')
@@ -34,7 +35,8 @@ function normalizeAvatar(url: string) {
 
 onMounted(async () => {
   await fetch()
-  name.value = user.value?.name || ''
+  firstName.value = user.value?.name || ''
+  nameFamily.value = user.value?.nameFamily || ''
   phone.value = user.value?.phone || ''
   gender.value = user.value?.gender === 'MALE' || user.value?.gender === 'FEMALE' ? user.value.gender : ''
   const stored = normalizeAvatar(user.value?.avatarUrl || '')
@@ -97,7 +99,8 @@ async function save() {
     await $fetch('/api/profile', {
       method: 'PATCH',
       body: {
-        name: name.value,
+        name: firstName.value,
+        nameFamily: nameFamily.value,
         phone: phone.value,
         gender: gender.value || null,
         avatarUrl: avatarUrl.value || null,
@@ -143,9 +146,14 @@ async function save() {
     <div class="canva-panel canva-sot-form space-y-3">
       <AppImageUpload crop :model-value="avatarUrl" :label="t('register.profilePhoto')" @update:model-value="onAvatarChange" />
       <p v-if="savingAvatar" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
-      <AppFormField :label="t('common.name')">
-        <input v-model="name" class="neo-input" />
-      </AppFormField>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <AppFormField :label="t('common.name')">
+          <input v-model="firstName" class="neo-input" autocomplete="given-name" />
+        </AppFormField>
+        <AppFormField :label="t('common.family')">
+          <input v-model="nameFamily" class="neo-input" autocomplete="family-name" />
+        </AppFormField>
+      </div>
       <AppFormField :label="t('common.gender')">
         <select v-model="gender" class="neo-select">
           <option value="">{{ t('auth.genderPlaceholder') }}</option>

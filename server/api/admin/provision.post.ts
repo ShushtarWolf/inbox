@@ -18,6 +18,7 @@ import { PILOT_COURT_1_COVER, PILOT_COURT_COVERS } from '#shared/behnazClubPhoto
 import { toFaDigits } from '#shared/courtBulk.ts'
 import { hashSecret } from '../../utils/password'
 import { applyPilotCourtPhotos } from '../../utils/behnazClubPhotos'
+import { resolveUserDisplayName, userNameFieldsFromParts } from '../../utils/userNameRecord'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
     type?: 'COACH' | 'CLUB_ADMIN'
     email?: string
     name?: string
+    nameFamily?: string
     clubName?: string
     phone?: string
     locale?: string
@@ -33,8 +35,9 @@ export default defineEventHandler(async (event) => {
   const type = body.type
   const email = body.email?.trim().toLowerCase()
   const phone = body.phone ? normalizeIranPhone(body.phone) : null
-  const name = body.name?.trim()
-  if (!type || !email || !name || !['COACH', 'CLUB_ADMIN'].includes(type)) {
+  const nameParts = userNameFieldsFromParts(body.name, body.nameFamily)
+  const displayName = resolveUserDisplayName(nameParts)
+  if (!type || !email || !nameParts.name.trim() || !['COACH', 'CLUB_ADMIN'].includes(type)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   if (type === 'COACH') {
@@ -69,8 +72,9 @@ export default defineEventHandler(async (event) => {
     const created = await tx.user.create({
       data: {
         email,
-        name,
-        nameEn: name,
+        name: nameParts.name,
+        nameFamily: nameParts.nameFamily,
+        nameEn: nameParts.nameEn,
         role: type,
         passwordHash: hashSecret(tempPassword),
         locale: body.locale === 'en' ? 'en' : 'fa',
@@ -79,7 +83,7 @@ export default defineEventHandler(async (event) => {
     })
     if (type === 'COACH') {
       await tx.coach.create({
-        data: { nameFa: name, nameEn: name, city: 'تهران', sportId: sport.id, userId: created.id },
+        data: { nameFa: displayName, nameEn: displayName, city: 'تهران', sportId: sport.id, userId: created.id },
       })
       return { user: created, club: null as null | { id: string; slug: string; nameFa: string } }
     }

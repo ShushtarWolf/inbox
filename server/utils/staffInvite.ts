@@ -7,6 +7,7 @@ import {
   resolveInviteRoleUpgrade,
 } from '#shared/roles.ts'
 import { parseInviteStaffRole } from '#shared/staffInvite.ts'
+import { userNameFieldsFromParts } from './userNameRecord'
 
 /**
  * Provision / link a phone user onto club staff so they can OTP sign in.
@@ -17,13 +18,19 @@ export async function inviteClubStaffByPhone(opts: {
   club: { id: string; city: string }
   phoneRaw: string
   name?: string
+  nameFamily?: string
   role?: string
   permissions?: string[]
 }) {
   const role = parseInviteStaffRole(opts.role)
 
   const phone = normalizeIranPhone(opts.phoneRaw)
-  const name = opts.name?.trim() || phone || 'Staff'
+  const nameParts = userNameFieldsFromParts(opts.name, opts.nameFamily)
+  const fallback = phone || 'Staff'
+  if (!nameParts.name.trim()) {
+    nameParts.name = fallback
+    nameParts.nameEn = fallback
+  }
   const permissions = opts.permissions?.length
     ? normalizePermissions(opts.permissions)
     : defaultPermissionsForRole(role)
@@ -39,8 +46,9 @@ export async function inviteClubStaffByPhone(opts: {
       data: {
         email: phoneToSyntheticEmail(phone),
         phone,
-        name,
-        nameEn: name,
+        name: nameParts.name,
+        nameFamily: nameParts.nameFamily,
+        nameEn: nameParts.nameEn,
         role: targetPlatformRole,
         locale: 'fa',
       },

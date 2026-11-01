@@ -1,6 +1,7 @@
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
+import { userToGuestNamePair } from '#shared/userName.ts'
 import { initialOnlineCourtHoldDisplay } from '#shared/onlinePaymentHold.ts'
 import { canClaimExistingSlotForRecurring, type RecurringConflictRef } from '#shared/recurringReserve.ts'
 import type { SeasonSessionOccurrence } from '#shared/seasonSessions.ts'
@@ -183,7 +184,7 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
     throw createError({ statusCode: 404, statusMessage: 'User not found' })
   }
   const guestNamePair = linkedUser?.name?.trim()
-    ? normalizeGuestNamePair(linkedUser.name, '')
+    ? userToGuestNamePair(linkedUser)
     : guest
 
   const days = [...new Set(preview.willCreate.map((s) => {

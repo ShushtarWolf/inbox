@@ -22,6 +22,7 @@ const {
 } = useAuthFlow()
 
 const name = ref('')
+const nameFamily = ref('')
 const phone = ref('')
 const email = ref('')
 const identifier = ref('')
@@ -149,6 +150,7 @@ const safeReturnTo = computed(
 
 function resetForm() {
   name.value = ''
+  nameFamily.value = ''
   phone.value = ''
   email.value = ''
   identifier.value = ''
@@ -179,6 +181,7 @@ function prefillFromSessionIfAddingRole() {
   phone.value = session.phone
   phoneLocked.value = true
   if (session.name?.trim()) name.value = session.name.trim()
+  if (session.nameFamily?.trim()) nameFamily.value = session.nameFamily.trim()
   if (session.gender === 'MALE' || session.gender === 'FEMALE') gender.value = session.gender
 }
 
@@ -435,6 +438,7 @@ async function registerWithPassword() {
         method: 'POST',
         body: {
           name: name.value.trim(),
+          nameFamily: nameFamily.value.trim() || undefined,
           email: coachEmail,
           phone: phone.value || undefined,
           password: password.value,
@@ -514,6 +518,9 @@ async function requestOtp() {
         role: purpose.value === 'register' ? role.value : undefined,
         name: purpose.value === 'register'
           ? (role.value === 'CLUB_ADMIN' ? (name.value.trim() || clubNameFa.value.trim()) : name.value)
+          : undefined,
+        nameFamily: purpose.value === 'register' && role.value !== 'CLUB_ADMIN'
+          ? nameFamily.value.trim() || undefined
           : undefined,
         gender: purpose.value === 'register' ? gender.value || undefined : undefined,
         clubNameFa: purpose.value === 'register' && role.value === 'CLUB_ADMIN' ? clubNameFa.value : undefined,
@@ -886,9 +893,14 @@ onMounted(() => {
             </div>
           </template>
           <template v-else-if="role === 'COACH'">
-            <AppFormField field-id="auth-otp-coach-name" :label="t('auth.fullName')">
-              <input id="auth-otp-coach-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
-            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-otp-coach-name" :label="t('common.name')">
+                <input id="auth-otp-coach-name" v-model="name" class="neo-input bg-white/95" autocomplete="given-name" required />
+              </AppFormField>
+              <AppFormField field-id="auth-otp-coach-family" :label="t('common.family')">
+                <input id="auth-otp-coach-family" v-model="nameFamily" class="neo-input bg-white/95" autocomplete="family-name" />
+              </AppFormField>
+            </div>
             <AppFormField field-id="auth-otp-coach-gender" :label="t('common.gender')">
               <select id="auth-otp-coach-gender" v-model="gender" class="neo-select bg-white/95" required>
                 <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
@@ -961,9 +973,14 @@ onMounted(() => {
             </div>
           </template>
           <template v-else>
-            <AppFormField field-id="auth-otp-name" :label="t('auth.fullName')">
-              <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="name" required />
-            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-otp-name" :label="t('common.name')">
+                <input id="auth-otp-name" v-model="name" class="neo-input bg-white/95" autocomplete="given-name" required />
+              </AppFormField>
+              <AppFormField field-id="auth-otp-family" :label="t('common.family')">
+                <input id="auth-otp-family" v-model="nameFamily" class="neo-input bg-white/95" autocomplete="family-name" />
+              </AppFormField>
+            </div>
             <AppFormField field-id="auth-otp-gender" :label="t('common.gender')">
               <select id="auth-otp-gender" v-model="gender" class="neo-select bg-white/95" required>
                 <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>
@@ -1108,15 +1125,23 @@ onMounted(() => {
           </template>
 
           <template v-else-if="role === 'COACH'">
-            <AppFormField field-id="auth-coach-name" :label="t('auth.fullName')">
-              <SmoothCaretInput
-                id="auth-coach-name"
-                v-model="name"
-                :placeholder="t('auth.fullName')"
-                autocomplete="name"
-                required
-              />
-            </AppFormField>
+            <div class="grid grid-cols-2 gap-2">
+              <AppFormField field-id="auth-coach-name" :label="t('common.name')">
+                <SmoothCaretInput
+                  id="auth-coach-name"
+                  v-model="name"
+                  autocomplete="given-name"
+                  required
+                />
+              </AppFormField>
+              <AppFormField field-id="auth-coach-family" :label="t('common.family')">
+                <SmoothCaretInput
+                  id="auth-coach-family"
+                  v-model="nameFamily"
+                  autocomplete="family-name"
+                />
+              </AppFormField>
+            </div>
             <AppFormField field-id="auth-coach-gender" :label="t('common.gender')">
               <select id="auth-coach-gender" v-model="gender" class="neo-select bg-white/95" required>
                 <option value="" disabled>{{ t('auth.genderPlaceholder') }}</option>

@@ -28,6 +28,7 @@ import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/
 import { creditWallet } from '../../utils/wallet'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
+import { userToGuestNamePair } from '#shared/userName.ts'
 import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/discountCodes'
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { deleteStaleCancelledBooking } from '../../utils/staleBooking'
@@ -83,7 +84,7 @@ export default defineEventHandler(async (event) => {
   const linkedUser = await findUserByPhone(guestMobile)
   // Registered account name wins over desk typos for the same phone.
   const guest = linkedUser?.name?.trim()
-    ? normalizeGuestNamePair(linkedUser.name, '')
+    ? userToGuestNamePair(linkedUser)
     : normalizeGuestNamePair(body.guestName, body.guestFamily)
   const linkedUserId = linkedUser?.id ?? null
   const coachIdProvided = Object.prototype.hasOwnProperty.call(body, 'coachId')

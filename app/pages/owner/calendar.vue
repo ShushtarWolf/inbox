@@ -31,9 +31,7 @@ import {
 import {
   formatGuestDisplayName,
   normalizeGuestNamePair,
-  readGuestFullNameInput,
   resolveLinkedGuestDisplayName,
-  writeGuestFullNameInput,
 } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
@@ -926,17 +924,6 @@ function setSelectionReserveError() {
   actionError.value = ''
 }
 
-const guestFullName = computed({
-  get() {
-    return readGuestFullNameInput(form.guestName, form.guestFamily)
-  },
-  set(value: string) {
-    const next = writeGuestFullNameInput(value)
-    form.guestName = next.guestName
-    form.guestFamily = next.guestFamily
-  },
-})
-
 type GuestSearchHit = { name: string; mobile: string; source: 'user' | 'contact' | 'booking' }
 const guestSuggestions = ref<GuestSearchHit[]>([])
 const guestSearchOpen = ref(false)
@@ -991,9 +978,9 @@ function scheduleGuestSearch(raw: string) {
 
 const guestSearchSource = ref<'name' | 'mobile'>('name')
 
-function onGuestFullNameInput() {
+function onGuestNameFieldInput() {
   guestSearchSource.value = 'name'
-  scheduleGuestSearch(guestFullName.value)
+  scheduleGuestSearch(formatGuestDisplayName(form.guestName, form.guestFamily))
 }
 
 function onGuestMobileInput() {
@@ -1002,7 +989,9 @@ function onGuestMobileInput() {
 }
 
 function selectGuestSuggestion(guest: GuestSearchHit) {
-  guestFullName.value = guest.name || guestFullName.value
+  const parts = normalizeGuestNamePair(guest.name, '')
+  if (parts.guestName) form.guestName = parts.guestName
+  if (parts.guestFamily) form.guestFamily = parts.guestFamily
   if (guest.mobile) form.guestMobile = guest.mobile
   clearGuestSearch()
 }
@@ -4163,32 +4152,41 @@ watch(pilotNoCoach, (off) => {
             </div>
           </div>
           <form class="venus-modal-panel-body venus-form-stack !pt-1" @submit.prevent="isNewReservation() ? openPayConfirm() : doReserve()">
-            <AppFormField :label="t('owner.guestFullName')" required field-id="owner-reserve-guest-full">
-              <div class="relative">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <AppFormField :label="t('owner.guestName')" required field-id="owner-reserve-guest-name">
+                <div class="relative">
+                  <input
+                    id="owner-reserve-guest-name"
+                    v-model="form.guestName"
+                    class="neo-input"
+                    autocomplete="given-name"
+                    required
+                    :aria-required="true"
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                    aria-autocomplete="list"
+                    aria-controls="owner-reserve-guest-suggestions-name"
+                    @input="onGuestNameFieldInput"
+                    @focus="onGuestNameFieldInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="owner-reserve-guest-suggestions-name"
+                    :open="guestSearchOpen && guestSearchSource === 'name'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
+              </AppFormField>
+              <AppFormField :label="t('owner.guestFamily')" field-id="owner-reserve-guest-family">
                 <input
-                  id="owner-reserve-guest-full"
-                  v-model="guestFullName"
+                  id="owner-reserve-guest-family"
+                  v-model="form.guestFamily"
                   class="neo-input"
-                  autocomplete="off"
-                  required
-                  :aria-required="true"
-                  :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
-                  aria-autocomplete="list"
-                  aria-controls="owner-reserve-guest-suggestions-name"
-                  :placeholder="t('owner.guestFullName')"
-                  @input="onGuestFullNameInput"
-                  @focus="onGuestFullNameInput"
-                  @blur="closeGuestSearchSoon"
+                  autocomplete="family-name"
                 >
-                <OwnerGuestSearchDropdown
-                  list-id="owner-reserve-guest-suggestions-name"
-                  :open="guestSearchOpen && guestSearchSource === 'name'"
-                  :pending="guestSearchPending"
-                  :suggestions="guestSuggestions"
-                  @select="selectGuestSuggestion"
-                />
-              </div>
-            </AppFormField>
+              </AppFormField>
+            </div>
             <AppFormField :label="t('owner.guestMobile')" required field-id="owner-reserve-guest-mobile">
               <div class="relative">
                 <input
@@ -4795,31 +4793,40 @@ watch(pilotNoCoach, (off) => {
                   </option>
                 </select>
               </AppFormField>
-              <AppFormField :label="t('owner.guestFullName')" required field-id="owner-package-guest-full">
-                <div class="relative">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <AppFormField :label="t('owner.guestName')" required field-id="owner-package-guest-name">
+                  <div class="relative">
+                    <input
+                      id="owner-package-guest-name"
+                      v-model="form.guestName"
+                      class="neo-input"
+                      autocomplete="given-name"
+                      required
+                      :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
+                      aria-autocomplete="list"
+                      aria-controls="owner-package-guest-suggestions-name"
+                      @input="onGuestNameFieldInput"
+                      @focus="onGuestNameFieldInput"
+                      @blur="closeGuestSearchSoon"
+                    >
+                    <OwnerGuestSearchDropdown
+                      list-id="owner-package-guest-suggestions-name"
+                      :open="guestSearchOpen && guestSearchSource === 'name'"
+                      :pending="guestSearchPending"
+                      :suggestions="guestSuggestions"
+                      @select="selectGuestSuggestion"
+                    />
+                  </div>
+                </AppFormField>
+                <AppFormField :label="t('owner.guestFamily')" field-id="owner-package-guest-family">
                   <input
-                    id="owner-package-guest-full"
-                    v-model="guestFullName"
+                    id="owner-package-guest-family"
+                    v-model="form.guestFamily"
                     class="neo-input"
-                    autocomplete="off"
-                    required
-                    :aria-expanded="guestSearchOpen && guestSearchSource === 'name'"
-                    aria-autocomplete="list"
-                    aria-controls="owner-package-guest-suggestions-name"
-                    :placeholder="t('owner.guestFullName')"
-                    @input="onGuestFullNameInput"
-                    @focus="onGuestFullNameInput"
-                    @blur="closeGuestSearchSoon"
+                    autocomplete="family-name"
                   >
-                  <OwnerGuestSearchDropdown
-                    list-id="owner-package-guest-suggestions-name"
-                    :open="guestSearchOpen && guestSearchSource === 'name'"
-                    :pending="guestSearchPending"
-                    :suggestions="guestSuggestions"
-                    @select="selectGuestSuggestion"
-                  />
-                </div>
-              </AppFormField>
+                </AppFormField>
+              </div>
               <AppFormField :label="t('owner.guestMobile')" required field-id="owner-package-guest-mobile">
                 <div class="relative">
                   <input

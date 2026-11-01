@@ -13,11 +13,13 @@ import {
 import { createPendingOwnerApplication } from '../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../utils/adminNotify'
 import { toSessionUser, touchLastLogin } from '../../utils/auth'
+import { resolveUserDisplayName, userNameFieldsFromParts } from '../../utils/userNameRecord'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'auth:register-owner')
   const body = await readBody<{
     name?: string
+    nameFamily?: string
     email?: string
     password?: string
     locale?: string
@@ -39,7 +41,8 @@ export default defineEventHandler(async (event) => {
 
   const clubNameFa = body.clubNameFa?.trim() || body.clubNameEn?.trim()
   const clubNameEn = body.clubNameEn?.trim() || clubNameFa
-  const name = body.name?.trim() || clubNameFa
+  const nameParts = userNameFieldsFromParts(body.name?.trim() || clubNameFa, body.nameFamily)
+  const contactDisplayName = resolveUserDisplayName(nameParts)
   const password = body.password ?? ''
   const gender = parseGender(body.gender)
   const identity = resolvePasswordRegisterIdentity({
@@ -58,7 +61,7 @@ export default defineEventHandler(async (event) => {
   const courtCount = normalizeOwnerCourtCount(body.courtCount)
   const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
 
-  if (!name || !email || !isPasswordLongEnough(password) || !clubNameFa || !gender) {
+  if (!nameParts.name.trim() || !email || !isPasswordLongEnough(password) || !clubNameFa || !gender) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
   rejectDemoEmailInProduction(email)
@@ -114,8 +117,9 @@ export default defineEventHandler(async (event) => {
     } else {
       user = await tx.user.create({
         data: {
-          name,
-          nameEn: name,
+          name: nameParts.name,
+          nameFamily: nameParts.nameFamily,
+          nameEn: nameParts.nameEn,
           email,
           role: 'CLUB_ADMIN',
           passwordHash: hashSecret(password),
@@ -187,7 +191,7 @@ export default defineEventHandler(async (event) => {
       clubId: club.id,
       clubName: clubNameFa!,
       city: city!,
-      contactName: name,
+      contactName: contactDisplayName,
       contactEmail: user.email,
       contactPhone: phone,
       sport: sportKey,
@@ -202,7 +206,7 @@ export default defineEventHandler(async (event) => {
   await notifyAdminClubApplication({
     clubName: clubNameFa!,
     city,
-    contactName: name,
+    contactName: contactDisplayName,
     contactPhone: phone,
     contactEmail: result.user.email,
     sportSlug: sportKey === 'tennis' ? 'tennis' : 'padel',

@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     phone?: string
     name?: string
+    nameFamily?: string
     role?: string
     clubSlug?: string
     permissions?: string[]
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
     club,
     phoneRaw: body.phone || '',
     name: body.name,
+    nameFamily: body.nameFamily,
     role: body.role || 'FRONT_DESK',
     permissions: body.permissions,
   })

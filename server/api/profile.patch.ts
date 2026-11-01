@@ -1,4 +1,5 @@
 import { toSessionUser } from '../utils/auth'
+import { parseUserNameInput } from '../utils/userNameRecord'
 import { parseClubImageInput } from '#shared/clubImageUrl.ts'
 import { parseGender } from '#shared/gender.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
@@ -7,11 +8,17 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = await readBody<{
     name?: string
+    nameFamily?: string
     phone?: string
     locale?: string
     gender?: string | null
     avatarUrl?: string | null
   }>(event)
+
+  const nameUpdate = parseUserNameInput(body)
+  if (nameUpdate && !nameUpdate.name.trim()) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid name' })
+  }
 
   let phone: string | null | undefined
   if (body.phone !== undefined) {
@@ -58,7 +65,13 @@ export default defineEventHandler(async (event) => {
   const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
-      name: body.name?.trim() || undefined,
+      ...(nameUpdate
+        ? {
+            name: nameUpdate.name,
+            nameFamily: nameUpdate.nameFamily,
+            nameEn: nameUpdate.nameEn,
+          }
+        : {}),
       ...(phone !== undefined ? { phone } : {}),
       locale: body.locale === 'en' ? 'en' : body.locale === 'fa' ? 'fa' : undefined,
       ...(gender !== undefined ? { gender } : {}),

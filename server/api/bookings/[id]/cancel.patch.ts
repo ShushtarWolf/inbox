@@ -146,7 +146,8 @@ export default defineEventHandler(async (event) => {
 
   const club = booking.slot.court.club
   const phone = booking.user?.phone || normalizeIranPhone(booking.guestMobile) || booking.guestMobile
-  const guestName = personNotifyName(booking.guestName, booking.guestFamily) || personNotifyName(booking.user?.name)
+  const guestName = personNotifyName(booking.guestName, booking.guestFamily)
+    || personNotifyName(booking.user?.name, booking.user?.nameFamily)
   const courtName = courtNotifyName(booking.slot.court)
   const clubName = clubNotifyName(club)
 

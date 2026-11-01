@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
     endTime: first.endTime,
     sessionCount: created.length,
     paymentPaid: false,
-    guestName: personNotifyName(student.name),
+    guestName: personNotifyName(student.name, student.nameFamily),
     ...clubNotifyLocation(resolved.club),
   })
 

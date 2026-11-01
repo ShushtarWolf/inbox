@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { countsTowardRevenue } from '#shared/bookingPayment.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
+import { resolveUserDisplayName } from '#shared/userName.ts'
 import { iranPhoneStorageVariants, normalizeIranPhone } from '#shared/phone.ts'
 
 type Db = Prisma.TransactionClient | typeof prisma
@@ -13,7 +14,7 @@ export type ContactBookingRow = {
   noShowAt?: Date | null
   paymentStatus?: string | null
   payment?: { status?: string | null; amount?: number | null } | null
-  user?: { name?: string | null; phone?: string | null } | null
+  user?: { name?: string | null; nameFamily?: string | null; phone?: string | null } | null
   slot: { date: string; price: number }
 }
 
@@ -43,7 +44,7 @@ export function daysSinceIsoDate(isoDate: string, now = new Date()): number {
 export function resolveContactName(bookings: ContactBookingRow[]): string {
   // Prefer any linked account name first so one desk typo cannot rename the CRM contact.
   for (const booking of bookings) {
-    const account = booking.user?.name?.trim()
+    const account = booking.user ? resolveUserDisplayName(booking.user) : ''
     if (account) return account
   }
   for (const booking of bookings) {
@@ -96,7 +97,7 @@ export async function syncClubContactByClubAndMobile(
     where: bookingMobileWhere(clubId, mobile),
     include: {
       payment: true,
-      user: { select: { name: true, phone: true } },
+      user: { select: { name: true, nameFamily: true, phone: true } },
       slot: { select: { date: true, price: true } },
     },
     orderBy: [{ slot: { date: 'desc' } }, { createdAt: 'desc' }],

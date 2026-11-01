@@ -21,6 +21,7 @@ import {
 import { createPendingOwnerApplication } from '../../../utils/ownerSignupApplication'
 import { notifyAdminClubApplication } from '../../../utils/adminNotify'
 import { ownerPostLoginRedirect, toSessionUser } from '../../../utils/auth'
+import { resolveUserDisplayName, userNameFieldsFromParts } from '../../../utils/userNameRecord'
 import type { Prisma, User } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -82,10 +83,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const name = String(consumed.payload.name || '').trim()
-  if (!name) {
+  const nameParts = userNameFieldsFromParts(
+    String(consumed.payload.name || '').trim(),
+    String(consumed.payload.nameFamily || '').trim(),
+  )
+  if (!nameParts.name.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Name required' })
   }
+  const contactDisplayName = resolveUserDisplayName(nameParts)
   const gender = parseGender(consumed.payload.gender)
   if (!gender) {
     throw createError({ statusCode: 400, statusMessage: 'Gender required' })
@@ -122,11 +127,12 @@ export default defineEventHandler(async (event) => {
 
     const result = await prisma.$transaction(async (tx) => {
       const user = existing
-        ? await applySecondRole(tx, existing, 'CLUB_ADMIN', { name, gender })
+        ? await applySecondRole(tx, existing, 'CLUB_ADMIN', { nameParts, gender })
         : await tx.user.create({
             data: {
-              name,
-              nameEn: name,
+              name: nameParts.name,
+              nameFamily: nameParts.nameFamily,
+              nameEn: nameParts.nameEn,
               email,
               role: 'CLUB_ADMIN',
               locale,
@@ -184,7 +190,7 @@ export default defineEventHandler(async (event) => {
         clubId: club.id,
         clubName: clubNameFa,
         city,
-        contactName: name,
+        contactName: contactDisplayName,
         contactEmail: user.email,
         contactPhone: consumed.phone,
         sport: sportKey,
@@ -197,7 +203,7 @@ export default defineEventHandler(async (event) => {
     await notifyAdminClubApplication({
       clubName: clubNameFa,
       city,
-      contactName: name,
+      contactName: contactDisplayName,
       contactPhone: consumed.phone,
       contactEmail: result.user.email,
       sportSlug: sportKey === 'tennis' ? 'tennis' : 'padel',
@@ -237,11 +243,12 @@ export default defineEventHandler(async (event) => {
       : []
     const result = await prisma.$transaction(async (tx) => {
       const user = existing
-        ? await applySecondRole(tx, existing, 'COACH', { name, gender })
+        ? await applySecondRole(tx, existing, 'COACH', { nameParts, gender })
         : await tx.user.create({
             data: {
-              name,
-              nameEn: name,
+              name: nameParts.name,
+              nameFamily: nameParts.nameFamily,
+              nameEn: nameParts.nameEn,
               email,
               role: 'COACH',
               locale,
@@ -258,8 +265,8 @@ export default defineEventHandler(async (event) => {
 
       const coach = await tx.coach.create({
         data: {
-          nameFa: name,
-          nameEn: name,
+          nameFa: contactDisplayName,
+          nameEn: contactDisplayName,
           city: 'تهران',
           sportId: sport.id,
           userId: user.id,
@@ -285,7 +292,7 @@ export default defineEventHandler(async (event) => {
     })
 
     await notifyAdminCoachApplication({
-      coachName: name,
+      coachName: contactDisplayName,
       city: result.coach.city,
       phone: result.user.phone,
       email: result.user.email,
@@ -307,7 +314,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (existing) {
-    const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { name, gender }))
+    const user = await prisma.$transaction(async (tx) => applySecondRole(tx, existing, 'ATHLETE', { nameParts, gender }))
     await linkOrphanBookingsByPhone(user.id, user.phone || consumed.phone)
     await setUserSession(event, { user: toSessionUser(user) })
     return {
@@ -326,8 +333,9 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.create({
     data: {
-      name,
-      nameEn: name,
+      name: nameParts.name,
+      nameFamily: nameParts.nameFamily,
+      nameEn: nameParts.nameEn,
       email,
       role: 'ATHLETE',
       locale,
@@ -357,7 +365,10 @@ async function applySecondRole(
   tx: Prisma.TransactionClient,
   existing: User,
   newRole: PlatformRole,
-  opts: { name: string; gender?: GenderValue },
+  opts: {
+    nameParts: { name: string; nameFamily: string | null; nameEn: string }
+    gender?: GenderValue
+  },
 ) {
   const assigned = assignAddedRole(existing, newRole)
   if (!assigned) {
@@ -371,7 +382,13 @@ async function applySecondRole(
       tertiaryRole: assigned.tertiaryRole,
       phoneVerifiedAt: new Date(),
       // Keep the established display name unless empty.
-      ...(existing.name?.trim() ? {} : { name: opts.name, nameEn: opts.name }),
+      ...(existing.name?.trim()
+        ? {}
+        : {
+            name: opts.nameParts.name,
+            nameFamily: opts.nameParts.nameFamily,
+            nameEn: opts.nameParts.nameEn,
+          }),
       ...(!existing.gender && opts.gender ? { gender: opts.gender } : {}),
     },
   })
