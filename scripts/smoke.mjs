@@ -316,11 +316,19 @@ async function main() {
     }),
   })
 
-  await check('/api/auth/forgot-password', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone: '09121234567' }),
-  })
+  {
+    // Rate-limited in busy local/CI — 429 still proves the route is up.
+    const headers = new Headers({ 'content-type': 'application/json' })
+    const res = await fetch(`${base}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone: '09121234567' }),
+    })
+    if (![200, 429].includes(res.status)) {
+      throw new Error(`/api/auth/forgot-password → ${res.status}`)
+    }
+    console.log(`ok  forgot-password (${res.status})`)
+  }
   await check('/api/notifications', { session: 'athlete' })
 
   if (slots.length >= 1 && !payAtClub) {
