@@ -49,6 +49,17 @@ describe('computeListedSlotPrice', () => {
     expect(computeListedSlotPrice(600000, '18:00', bandsOnly)).toBe(800000)
   })
 
+  it('prices 23:00 in a band that ends at midnight close (24:00)', () => {
+    const eveningBand = JSON.stringify({
+      timeBands: [
+        { startTime: '07:00', endTime: '22:00', price: 450_000 },
+        { startTime: '22:00', endTime: '24:00', price: 500_000 },
+      ],
+    })
+    expect(computeListedSlotPrice(450_000, '23:00', eveningBand)).toBe(500_000)
+    expect(computeListedSlotPrice(450_000, '21:00', eveningBand)).toBe(450_000)
+  })
+
   it('ignores legacy off-peak discount in stored json', () => {
     const pricingJson = JSON.stringify({
       timeBands: [{ startTime: '08:00', endTime: '12:00', price: 500000 }],

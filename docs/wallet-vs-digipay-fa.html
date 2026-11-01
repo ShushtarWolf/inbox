@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مقایسهٔ کیف‌پول Inbox با دیجی‌پی — شکاف‌ها و منطق</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2") format("woff2");
+      }
+      :root {
+        --text: #2c2c2a;
+        --muted: #5b6472;
+        --line: #d9dee7;
+        --surface: #f4efe9;
+        --accent: #c41e1e;
+        --accent-soft: #f8eaea;
+        --green: #2e7d4f;
+        --green-soft: #dcebe1;
+        --mustard-soft: #f3e9d3;
+      }
+      @page { size: A4; margin: 15mm; }
+      * { box-sizing: border-box; border-radius: 0; }
+      body {
+        margin: 0;
+        font-family: "Vazirmatn", sans-serif;
+        color: var(--text);
+        line-height: 1.85;
+        font-size: 12px;
+        letter-spacing: 0;
+      }
+      h1, h2, h3 { margin: 0 0 8px; line-height: 1.4; }
+      h1 { font-size: 21px; }
+      h2 { font-size: 15.5px; margin-top: 24px; padding-bottom: 5px; border-bottom: 2px solid var(--accent); }
+      h3 { font-size: 13px; margin-top: 14px; }
+      p { margin: 0 0 9px; }
+      ul, ol { margin: 0 0 10px; padding-inline-start: 20px; }
+      li { margin-bottom: 4px; }
+      .hero { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; }
+      .kicker { color: var(--accent); font-weight: 700; font-size: 11.5px; }
+      .verdict { background: var(--accent-soft); border: 1px solid #e8c4c4; padding: 12px 14px; margin: 12px 0; }
+      .ok { background: var(--green-soft); border: 1px solid #b9d6c2; padding: 10px 14px; margin: 10px 0; }
+      .warn { background: var(--mustard-soft); border: 1px solid #e3d2a8; padding: 10px 14px; margin: 10px 0; }
+      .note { color: var(--muted); font-size: 11px; }
+      table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 11px; }
+      th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: start; vertical-align: top; }
+      th { background: var(--surface); font-weight: 700; }
+      .flow { border: 1px solid var(--line); background: #fafafa; padding: 10px 14px; margin: 8px 0; font-size: 11.5px; }
+      .tag { display: inline-block; padding: 0 6px; font-size: 10.5px; font-weight: 700; }
+      .t-red { background: var(--accent); color: #fff; }
+      .t-mus { background: #b68a3b; color: #fff; }
+      .t-gr { background: var(--green); color: #fff; }
+      .t-sil { background: #8f8f8b; color: #fff; }
+      .mono { font-family: ui-monospace, Menlo, monospace; font-size: 10px; direction: ltr; unicode-bidi: isolate; }
+      .page-break { break-before: page; }
+      .footer-meta { margin-top: 22px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10.5px; }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="kicker">Inbox · بررسی مالی · ۱۰ آبان ۱۴۰۵</div>
+      <h1>کیف‌پول Inbox در مقایسه با دیجی‌پی</h1>
+      <p>منطق فعلی، مقایسهٔ جریان‌ها، و فهرست کامل شکاف‌ها (به‌جز مسائل حقوقی/مجوز)</p>
+    </header>
+
+    <div class="verdict">
+      <strong>حکم کوتاه:</strong>
+      هستهٔ پول (دفتر کل، شارژ، پرداخت، لغو ← اعتبار کیف‌پول، تسویهٔ باشگاه، جدایی نقد صندوق از پول آنلاین)
+      سالم و تست‌شده است و از نظر <strong>شکل استرداد</strong> شبیه دیجی‌پی است.
+      اما «هیچ شکافی نداریم» درست نیست: <strong>۳ مورد قبل از روشن کردن پرداخت زنده</strong> باید بسته شود،
+      و چند تفاوت محصولی با دیجی‌پی باقی است که در ادامه آمده.
+    </div>
+
+    <div class="ok">
+      <strong>آنچه امروز تأیید شده (روی دیتابیس لوکال):</strong>
+      ممیزی پول: ۰ تسویهٔ نقدی اشتباه، ۰ اختلاف موجودی با دفتر، ۰ نشتی قابل‌برداشت، ۰ استرداد بدون بازپس‌گیری از باشگاه.
+      تست‌ها: ۱۲ تست یکپارچهٔ پول روی Postgres واقعی، تست‌های واحد لغو/استرداد، و smoke کامل
+      (پرداخت درگاه ← لغو ← اعتبار دقیقاً یک‌بار؛ پرداخت با کیف‌پول ← لغو بدون کسر دوباره).
+    </div>
+
+    <h2>۱. منطق فعلی Inbox</h2>
+
+    <h3>۱-۱. دو ریل پول جدا</h3>
+    <table>
+      <thead><tr><th>ریل</th><th>پول کجاست</th><th>وارد کیف‌پول قابل‌برداشت می‌شود؟</th></tr></thead>
+      <tbody>
+        <tr><td>آنلاین (درگاه سامان / کیف‌پول)</td><td>حساب پلتفرم (float)</td><td>بله — بعد از کسر کمیسیون ۱۰٪، از فردای روز کلاس</td></tr>
+        <tr><td>نقد صندوق باشگاه</td><td>دست صاحب باشگاه</td><td>خیر — فقط گزارش؛ در لغو «بدهی نقدی» ثبت می‌شود تا صاحب باشگاه تأیید کند پس داده</td></tr>
+      </tbody>
+    </table>
+
+    <h3>۱-۲. نقش‌ها</h3>
+    <table>
+      <thead><tr><th>نقش</th><th>ورودی کیف‌پول</th><th>خروجی</th></tr></thead>
+      <tbody>
+        <tr><td>ورزشکار</td><td>شارژ آنلاین (۵۰ هزار تا ۲۰ میلیون تومان)، استرداد لغو، جایزه</td><td>فقط خرج داخل سایت؛ برداشت بانکی ندارد (حلقهٔ بسته)</td></tr>
+        <tr><td>باشگاه</td><td>خالص پرداخت‌های آنلاین بعد از کمیسیون</td><td>درخواست برداشت به شبا ← تأیید و واریز دستی ادمین</td></tr>
+        <tr><td>مربی</td><td>خالص شهریهٔ جلسه</td><td>برداشت فقط از خالص تسویه (نه از شارژ/استرداد)</td></tr>
+        <tr><td>مهمان لینک پرداخت</td><td>کیف‌پول ندارد</td><td>در لغو: علامت «استرداد بانکی دستی» برای ادمین</td></tr>
+      </tbody>
+    </table>
+
+    <h3>۱-۳. جریان‌ها</h3>
+    <div class="flow">
+      <strong>شارژ:</strong> مبلغ ← درگاه سامان ← تأیید (verify) ← اعتبار کیف‌پول، فقط یک‌بار حتی با callback تکراری.
+    </div>
+    <div class="flow">
+      <strong>پرداخت رزرو:</strong> یا کامل از کیف‌پول (اگر موجودی کافی باشد) یا کامل از درگاه. پرداخت ترکیبی نداریم.
+      پرداخت تکراری کیف‌پول دوباره کسر نمی‌کند.
+    </div>
+    <div class="flow">
+      <strong>لغو و استرداد:</strong> ورزشکار تا شروع سانس می‌تواند لغو کند.
+      بیرون از پنجرهٔ لغو باشگاه = بازگشت کامل به کیف‌پول؛ داخل پنجره = لغو بدون بازگشت پول.
+      لغو توسط باشگاه/مربی = همیشه بازگشت کامل.
+      لغو و استرداد و بازپس‌گیری سهم باشگاه در <strong>یک تراکنش اتمیک</strong> انجام می‌شود؛ اگر استرداد شکست بخورد، سانس آزاد نمی‌شود.
+      برگشت به کارت بانکی (Reverse سامان) انجام نمی‌شود.
+    </div>
+    <div class="flow">
+      <strong>تسویه و برداشت:</strong> پرداخت آنلاین ← ردیف دفتر تسویه (ناخالص، کمیسیون، خالص) ← قفل تا فردای کلاس ←
+      قابل‌برداشت ← درخواست شبا (مبلغ به «قفل» می‌رود) ← ادمین «پرداخت شد» یا «رد» (آزادسازی).
+    </div>
+
+    <h2>۲. منطق دیجی‌پی (طبق منابع رسمی)</h2>
+    <ul>
+      <li><strong>استرداد لغو سفارش:</strong> تا ۲۰ میلیون تومان آنی به کیف‌پول؛ بیشتر از آن به شبای ثبت‌شده. پرداخت با کیف‌پول ← بازگشت به کیف‌پول؛ اقساط ← به اعتبار؛ کارت هدیه ← به کارت هدیه.</li>
+      <li><strong>برداشت (cash-out):</strong> بدون کارمزد، در هر ساعت، فقط به کارت/حساب به نام خود کاربر.</li>
+      <li><strong>احراز هویت:</strong> تطابق کد ملی + موبایل + کارت بانکی (دستور بانک مرکزی) در زمان برداشت.</li>
+      <li><strong>انتقال کیف‌به‌کیف:</strong> با شمارهٔ موبایل، بدون کارمزد.</li>
+      <li><strong>API پذیرنده:</strong> استرداد کامل و <strong>جزئی</strong>، پیگیری وضعیت استرداد (مقصد: کیف‌پول/شبا/کارت/اعتبار)، و ابطال دستی درگاه تا ۲۵ دقیقه بعد از verify.</li>
+      <li><strong>محصولات اضافه:</strong> اعتبار خرید و اقساط (BNPL)، قبض، شارژ، عوارض.</li>
+    </ul>
+
+    <h2 class="page-break">۳. مقایسهٔ جریان به جریان</h2>
+    <table>
+      <thead><tr><th>جریان</th><th>دیجی‌پی</th><th>Inbox امروز</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        <tr><td>شارژ کیف‌پول</td><td>درگاه، سقف روزانه</td><td>درگاه سامان، ۵۰ هزار تا ۲۰ میلیون در هر تراکنش، idempotent</td><td><span class="tag t-gr">هم‌سطح</span></td></tr>
+        <tr><td>پرداخت با کیف‌پول</td><td>یک‌کلیک</td><td>یک‌کلیک، بدون کسر دوباره</td><td><span class="tag t-gr">هم‌سطح</span></td></tr>
+        <tr><td>پرداخت ترکیبی کیف‌پول + کارت</td><td>معمولاً شارژ در همان جریان</td><td>ندارد؛ کیف‌پول باید کل مبلغ را بپوشاند</td><td><span class="tag t-mus">کمتر</span></td></tr>
+        <tr><td>استرداد پرداخت کیف‌پولی</td><td>به کیف‌پول، آنی</td><td>به کیف‌پول، آنی</td><td><span class="tag t-gr">هم‌سطح</span></td></tr>
+        <tr><td>استرداد پرداخت کارتی</td><td>زیر ۲۰ م. کیف‌پول؛ بالاتر شبا؛ اولویت کارت مبدأ</td><td>همیشه کیف‌پول؛ بدون برگشت به کارت</td><td><span class="tag t-mus">کمتر</span></td></tr>
+        <tr><td>استرداد جزئی</td><td>دارد</td><td>صفر یا صد (داخل پنجره = صفر)</td><td><span class="tag t-mus">کمتر</span></td></tr>
+        <tr><td>کاربر بدون کیف‌پول</td><td>کیف‌پول خودکار ساخته می‌شود</td><td>علامت استرداد دستی؛ ابزار پیگیری ناقص</td><td><span class="tag t-red">شکاف</span></td></tr>
+        <tr><td>برداشت مصرف‌کننده</td><td>رایگان، شبانه‌روزی، به کارت خود</td><td>ورزشکار ندارد؛ مربی/باشگاه دستی</td><td><span class="tag t-sil">تصمیم محصولی</span></td></tr>
+        <tr><td>تطابق مالکیت شبا/کارت</td><td>استعلام کد ملی + موبایل + کارت</td><td>شبا بدون استعلام ذخیره می‌شود؛ فقط هشدار متنی</td><td><span class="tag t-red">شکاف</span></td></tr>
+        <tr><td>تسویهٔ پذیرنده</td><td>خودکار</td><td>دفتر تسویه دقیق، واریز دستی ادمین</td><td><span class="tag t-sil">خارج از دامنه</span></td></tr>
+        <tr><td>انتقال کیف‌به‌کیف</td><td>دارد</td><td>فقط انتقال داخلی باشگاه ↔ مربی</td><td><span class="tag t-sil">لازم نیست</span></td></tr>
+        <tr><td>اقساط / اعتبار</td><td>دارد</td><td>ندارد</td><td><span class="tag t-sil">لازم نیست</span></td></tr>
+        <tr><td>نقد حضوری</td><td>ندارد</td><td>ریل جدا با پیگیری بدهی نقدی</td><td><span class="tag t-gr">مخصوص Inbox</span></td></tr>
+        <tr><td>تطبیق و ممیزی</td><td>گزارش و پایش خودکار</td><td>اسکریپت ممیزی دستی؛ زمان‌بندی/هشدار ندارد</td><td><span class="tag t-mus">کمتر</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>۴. فهرست شکاف‌ها</h2>
+    <p class="note">حقوقی/مجوز، برداشت خودکار، و نقد باشگاه طبق خواستهٔ شما کنار گذاشته شده‌اند، مگر جایی که مستقیم روی پول اثر دارند.</p>
+
+    <h3><span class="tag t-red">قبل از پرداخت زنده</span></h3>
+    <table>
+      <thead><tr><th>#</th><th>شکاف</th><th>اثر</th><th>راه بستن</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>۱</td>
+          <td>دادهٔ پروداکشن اصلاح نشده: ۱۵ تسویهٔ نقدی اشتباه فقط در لوکال بازپس گرفته شد</td>
+          <td>موجودی قابل‌برداشت بعضی باشگاه‌ها در پروداکشن ممکن است بیشتر از واقعیت باشد</td>
+          <td>دامپ دیتابیس ← اجرای اسکریپت اصلاح نقدی ← اجرای دوبارهٔ ممیزی تا همه صفر شود</td>
+        </tr>
+        <tr>
+          <td>۲</td>
+          <td>استرداد دستی مهمان: ادمین فقط یک «عدد» می‌بیند؛ فهرست، اطلاعات بانکی مهمان، و دکمهٔ «واریز شد» نیست</td>
+          <td>عدد هیچ‌وقت کم نمی‌شود؛ بدهی واقعی به مهمان ممکن است گم شود</td>
+          <td>فهرست در ادمین + ثبت شبا/کارت مهمان + علامت «بازپرداخت شد» با زمان و یادداشت</td>
+        </tr>
+        <tr>
+          <td>۳</td>
+          <td>چک‌لیست زندهٔ سامان (ترمینال، آدرس callback، تست واقعی خرید/verify) هنوز تأیید نشده</td>
+          <td>ریسک پول کسرشده بدون تأیید رزرو</td>
+          <td>اجرای چک‌لیست <span class="mono">docs/PAYMENTS.md</span> قبل از <span class="mono">PAYMENTS_MODE=live</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3><span class="tag t-mus">مهم — نزدیک به دیجی‌پی شدن</span></h3>
+    <table>
+      <thead><tr><th>#</th><th>شکاف</th><th>اثر</th><th>راه بستن</th></tr></thead>
+      <tbody>
+        <tr><td>۴</td><td>شبای مالک باشگاه/مربی بدون استعلام مالکیت</td><td>واریز به حساب شخص دیگر یا تقلب داخلی</td><td>استعلام شبا (نام صاحب حساب) و تطابق با نام/کد ملی پروفایل؛ ادمین قبل از واریز ببیند</td></tr>
+        <tr><td>۵</td><td>استرداد پرداخت کارتی همیشه کیف‌پول است</td><td>شکایت کاربری که پول نقد می‌خواهد</td><td>یا Reverse سامان در ۲۵ دقیقهٔ اول، یا سقف مثل دیجی‌پی (بالای سقف ← شبا با درخواست)</td></tr>
+        <tr><td>۶</td><td>ورزشکار راه خروج پول از کیف‌پول ندارد</td><td>شکایت مصرف‌کننده؛ پول «گیر» می‌افتد</td><td>حداقل: درخواست برداشت دستی برای شارژ/استرداد با شبای به نام خودش</td></tr>
+        <tr><td>۷</td><td>سیاست لغو صفر یا صد</td><td>داخل پنجره، کاربر هیچ نمی‌گیرد؛ انعطاف کم برای باشگاه</td><td>درصد استرداد قابل تنظیم برای هر باشگاه (مثلاً ۵۰٪ داخل پنجره)</td></tr>
+        <tr><td>۸</td><td>پرداخت ترکیبی ندارد</td><td>موجودی کم = باید کل مبلغ را از درگاه بدهد</td><td>کسر موجودی + درگاه برای مابقی، یا «شارژ مابه‌التفاوت» در همان جریان</td></tr>
+        <tr><td>۹</td><td>ممیزی پول دستی است</td><td>اختلاف دیر کشف می‌شود</td><td>اجرای روزانهٔ ممیزی + هشدار پیامکی/ادمین اگر هر شمارنده بیشتر از صفر شد</td></tr>
+        <tr><td>۱۰</td><td>سقف و محدودیت برداشت (حداقل/حداکثر/روزانه) تعریف نشده</td><td>فعلاً با تأیید دستی ادمین مهار می‌شود؛ با رشد، ریسک</td><td>سقف روزانه + حداقل مبلغ برداشت</td></tr>
+      </tbody>
+    </table>
+
+    <h3><span class="tag t-sil">تصمیم محصولی باز</span></h3>
+    <ul>
+      <li><strong>۱۱.</strong> شهریهٔ مربی در رزرو نقدی حضوری: کل مبلغ مال باشگاه بماند یا سهم مربی جدا ثبت شود؟</li>
+      <li><strong>۱۲.</strong> ردیف‌های قدیمی بی‌صاحب (پرداخت حذف‌شده در re-book قدیمی): همه بازپس گرفته شده‌اند و ریسک پولی ندارند؛ فقط نویز گزارش.</li>
+    </ul>
+
+    <h2>۵. جمع‌بندی</h2>
+    <div class="warn">
+      <p><strong>شبیه دیجی‌پی هستیم در:</strong> دفتر کل، شارژ، پرداخت یک‌کلیک، استرداد آنی به کیف‌پول، و idempotency.</p>
+      <p><strong>هنوز شبیه نیستیم در:</strong> برگشت به کارت/شبا، استرداد جزئی، برداشت مصرف‌کننده، استعلام مالکیت حساب، پیگیری استرداد دستی، پرداخت ترکیبی، و پایش خودکار.</p>
+      <p><strong>آمادهٔ ارسال؟</strong> کد: بله، برای مدل «اعتبار رزرو حلقه‌بسته».
+      پرداخت زنده: بعد از بستن موارد ۱ تا ۳. موارد ۴ تا ۱۰ برای رسیدن به سطح دیجی‌پی است، نه شرط شروع.</p>
+    </div>
+
+    <div class="footer-meta">
+      منابع دیجی‌پی:
+      سؤالات متداول دیجی‌کالا دربارهٔ بازگشت وجه و برداشت از کیف‌پول (digikala.com/faq/question/720 و 1464)،
+      قوانین دیجی‌پی (mydigipay.com/rules)، مستندات پلتفرم پذیرندگان (mydigipay.com/developers/docs/upg)،
+      مجلهٔ دیجی‌پی دربارهٔ کیف‌پول.
+      <br />
+      مرجع کد Inbox:
+      <span class="mono">shared/cancelPolicy.ts</span>،
+      <span class="mono">shared/cancelRefund.ts</span>،
+      <span class="mono">shared/walletTopUp.ts</span>،
+      <span class="mono">server/utils/cancellations.ts</span>،
+      <span class="mono">server/utils/settlement.ts</span>،
+      <span class="mono">server/api/admin/overview.get.ts</span>،
+      <span class="mono">scripts/audit-money-bugs.mjs</span>
+    </div>
+  </body>
+</html>
