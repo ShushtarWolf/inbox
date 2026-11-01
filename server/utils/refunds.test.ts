@@ -119,6 +119,31 @@ describe('refundPaymentForCancellation', () => {
     expect(result.refundChannel).toBe('wallet_closed_loop')
   })
 
+  it('booking paymentMethod CASH when payment row drifted: no wallet credit', async () => {
+    findUnique.mockResolvedValue({
+      id: 'pay-drift',
+      amount: 400000,
+      status: 'PAID',
+      method: 'NOT_PAID',
+      provider: 'pay_at_club',
+      providerRef: null,
+      metadataJson: null,
+      booking: { paymentMethod: 'CASH' },
+    })
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-drift',
+      userId: 'user-1',
+      reason: 'owner-cancel',
+      bookingId: 'b1',
+    })
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      walletCredited: false,
+      refundChannel: 'desk_cash',
+      deskCashReturn: 'owed',
+    })
+  })
+
   it('cash cancel: no wallet credit; deskCashReturn owed; still clawback', async () => {
     findUnique.mockResolvedValue({
       id: 'pay-cash',

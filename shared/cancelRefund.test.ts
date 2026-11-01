@@ -13,6 +13,12 @@ describe('cancelRefund metadata', () => {
     expect(resolveRefundChannel('PAID')).toBe('wallet_closed_loop')
   })
 
+  it('uses booking paymentMethod when the payment row drifted from desk cash', () => {
+    expect(resolveRefundChannel(null, 'CASH')).toBe('desk_cash')
+    expect(resolveRefundChannel('NOT_PAID', 'CASH')).toBe('desk_cash')
+    expect(resolveRefundChannel('IPG', 'CASH')).toBe('wallet_closed_loop')
+  })
+
   it('marks desk cash refund as owed until owner acks', () => {
     const meta = buildCancelRefundMetadata({}, {
       channel: 'desk_cash',

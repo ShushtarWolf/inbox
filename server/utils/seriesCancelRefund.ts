@@ -143,6 +143,13 @@ export async function refundAfterSeriesSessionCancel(opts: {
   const cancelledMeta = parseSeriesPaymentMeta(loaded.bookingPayment?.metadataJson)
   const sessionPrice = cancelledMeta.sessionPrice ?? primaryMeta.sessionPrice
   const alreadyRefunded = Number(primaryMeta.sessionRefundsTotal || 0)
+  const primaryBooking = primaryPayment.bookingId
+    ? await prisma.booking.findUnique({
+        where: { id: primaryPayment.bookingId },
+        select: { paymentMethod: true },
+      })
+    : null
+  const primaryBookingPaymentMethod = primaryBooking?.paymentMethod ?? null
 
   if (!isPaymentRefundable(primaryPayment.status)) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
@@ -170,6 +177,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
       userId: opts.userId,
       paymentId: primaryPayment.id,
       method: primaryPayment.method,
+      bookingPaymentMethod: primaryBookingPaymentMethod,
       bookingId: opts.cancelledBookingId,
       amount: residual,
       reason: opts.reason,
@@ -192,6 +200,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
     userId: opts.userId,
     paymentId: primaryPayment.id,
     method: primaryPayment.method,
+    bookingPaymentMethod: primaryBookingPaymentMethod,
     bookingId: opts.cancelledBookingId,
     amount,
     reason: opts.reason,
@@ -206,6 +215,7 @@ async function applySeriesSessionRefund(opts: {
   userId?: string | null
   paymentId: string
   method: string
+  bookingPaymentMethod?: string | null
   bookingId: string
   amount: number
   reason: string
@@ -213,7 +223,7 @@ async function applySeriesSessionRefund(opts: {
   alreadyRefunded: number
   markRefunded: boolean
 }): Promise<RefundResult> {
-  const channel = resolveRefundChannel(opts.method)
+  const channel = resolveRefundChannel(opts.method, opts.bookingPaymentMethod)
   const canCredit = Boolean(opts.userId) && channel === 'wallet_closed_loop'
   const existingMeta = {
     ...parsePaymentMetadata(JSON.stringify(opts.primaryMeta)),
