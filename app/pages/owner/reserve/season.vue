@@ -8,6 +8,7 @@ import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import { addDaysToIsoDate, isPastDate } from '#shared/localDate.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -23,7 +24,7 @@ const { recurringReserveEnabled } = usePilotFlags()
 const { public: { paymentsMode } } = useRuntimeConfig()
 const payAtClubMode = computed(() => (paymentsMode || 'pay_at_club') === 'pay_at_club')
 
-type CourtRow = { id: string; nameFa: string; nameEn: string; price?: number }
+type CourtRow = { id: string; nameFa: string; nameEn: string; price?: number; pricingJson?: string | null }
 type PreviewRow = { date: string; startTime: string; endTime?: string; courtId: string; price?: number }
 type ConflictRow = { date: string; startTime: string; courtId?: string; reason: string }
 
@@ -87,6 +88,19 @@ function courtLabel(court: CourtRow) {
 function courtNameById(id: string) {
   const court = courts.value.find((c) => c.id === id)
   return court ? courtLabel(court) : id
+}
+
+/** Listed price for one session at the rule’s start time (time bands + base). */
+function courtSessionPrice(court: CourtRow, startTime: string): number | null {
+  if (court.price == null) return null
+  const hhmm = startTime.slice(0, 5)
+  return computeListedSlotPrice(court.price, hhmm, court.pricingJson)
+}
+
+function courtSessionPriceLabel(court: CourtRow, startTime: string) {
+  const price = courtSessionPrice(court, startTime)
+  if (price == null) return '—'
+  return t('owner.seasonPage.courtPricePerSession', { price: formatCurrency(price) })
 }
 
 function newRuleId() {
@@ -732,9 +746,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                 @click="toggleCourt(rule, court.id)"
               >
                 <span class="block text-[13.5px] font-bold">{{ courtLabel(court) }}</span>
-                <span class="block text-[11.5px] text-[#8C8A84]">
-                  {{ court.price != null ? t('owner.seasonPage.courtPricePerSession', { price: formatCurrency(court.price) }) : '—' }}
-                </span>
+                <span class="block text-[11.5px] text-[#8C8A84]">{{ courtSessionPriceLabel(court, rule.startTime) }}</span>
               </button>
             </div>
           </div>
