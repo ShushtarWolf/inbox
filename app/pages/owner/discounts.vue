@@ -42,9 +42,18 @@ interface ApplicationRow {
   note: string | null
   rejectReason: string | null
   proofUrls: string[]
+  fullName: string | null
+  studentNumber: string | null
+  ownershipConfirmed: boolean
   createdAt: string
   user: { id: string; name: string; phone: string | null }
-  program: { id: string; titleFa: string; titleEn: string | null; percent: number }
+  program: {
+    id: string
+    titleFa: string
+    titleEn: string | null
+    percent: number
+    verificationKind: string
+  }
 }
 
 interface MemberRow {
@@ -442,10 +451,16 @@ async function revokeMember(row: MemberRow) {
           <li v-for="app in applications || []" :key="app.id">
             <button type="button" class="canva-equip-row w-full" @click="openReview(app)">
               <span class="min-w-0 text-start">
-                <span class="font-bold text-brand-navy">{{ app.user.name }}</span>
+                <span class="font-bold text-brand-navy">{{ app.fullName || app.user.name }}</span>
                 <span class="mt-0.5 block text-xs text-brand-gray-600">
                   {{ localizedField(app.program, 'titleFa', 'titleEn') || app.program.titleFa }}
                   | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(app.program.percent) }) }}
+                </span>
+                <span
+                  v-if="app.studentNumber"
+                  class="mt-0.5 block text-xs text-brand-gray-500 tabular-nums"
+                >
+                  <bdi dir="ltr">{{ app.studentNumber }}</bdi>
                 </span>
                 <span v-if="app.user.phone" class="mt-0.5 block text-xs text-brand-gray-500" dir="ltr">
                   <bdi dir="ltr">{{ formatPhone(app.user.phone) }}</bdi>
@@ -637,7 +652,16 @@ async function revokeMember(row: MemberRow) {
       @close="closeReview"
     >
       <div v-if="reviewApp" class="venus-form-stack space-y-3 p-4 text-start">
-        <p class="font-bold text-brand-navy">{{ reviewApp.user.name }}</p>
+        <p class="font-bold text-brand-navy">
+          {{ reviewApp.fullName || reviewApp.user.name }}
+        </p>
+        <p v-if="reviewApp.studentNumber" class="text-xs text-brand-gray-600">
+          {{ t('studentVerify.studentNumber') }}:
+          <bdi dir="ltr" class="tabular-nums">{{ reviewApp.studentNumber }}</bdi>
+        </p>
+        <p v-if="reviewApp.user.phone" class="text-xs text-brand-gray-600">
+          {{ formatPhone(reviewApp.user.phone) }}
+        </p>
         <p class="text-xs text-brand-gray-600">
           {{ localizedField(reviewApp.program, 'titleFa', 'titleEn') || reviewApp.program.titleFa }}
           | {{ t('owner.discountsPage.percentLabel', { percent: formatNumber(reviewApp.program.percent) }) }}

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 const props = defineProps<{
   clubId: string
+  clubSlug?: string
 }>()
+
+const localePath = useLocalePath()
 
 const { t } = useI18n()
 const { formatNumber } = useFormatters()
@@ -18,6 +21,7 @@ type Program = {
   instructionsFa: string | null
   instructionsEn: string | null
   validityMonths: number | null
+  verificationKind?: string
 }
 
 type Eligibility = {
@@ -176,8 +180,15 @@ async function submitApply() {
               {{ t('clubs.discountApproved') }}
             </p>
           </div>
+          <NuxtLink
+            v-if="program.verificationKind === 'STUDENT' && props.clubSlug"
+            :to="localePath(`/athlete/student-verify/${props.clubSlug}`)"
+            class="shrink-0 text-xs font-bold text-brand-primary"
+          >
+            {{ t('studentVerify.clubCta') }}
+          </NuxtLink>
           <button
-            v-if="membership?.programId !== program.id && statusFor(program.id) !== 'PENDING'"
+            v-else-if="membership?.programId !== program.id && statusFor(program.id) !== 'PENDING'"
             type="button"
             class="shrink-0 text-xs font-bold text-brand-primary"
             @click="openApply(program)"

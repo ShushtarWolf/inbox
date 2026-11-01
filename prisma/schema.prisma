@@ -381,6 +381,12 @@ enum ApplicationStatus {
   REJECTED
 }
 
+/** Athlete proof flow for a club discount program. */
+enum DiscountProgramVerificationKind {
+  GENERIC
+  STUDENT
+}
+
 enum BugReportStatus {
   OPEN
   RESOLVED
@@ -1162,6 +1168,7 @@ model DiscountProgram {
   instructionsEn  String?
   /** How long an approval lasts; null = until revoked. */
   validityMonths  Int?
+  verificationKind DiscountProgramVerificationKind @default(GENERIC)
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
 
@@ -1179,6 +1186,11 @@ model DiscountApplication {
   /** JSON string array of image URLs (1–2). */
   proofUrlsJson String
   note          String?
+  /** Student verification: name as on card. */
+  fullName      String?
+  /** Student verification: normalized digits-only university ID. */
+  studentNumber String?
+  ownershipConfirmed Boolean      @default(false)
   status        ApplicationStatus @default(PENDING)
   rejectReason  String?
   reviewedAt    DateTime?
