@@ -3,9 +3,9 @@ function stripLocale(path: string) {
 }
 
 /**
- * Hide standalone owner «کارکنان» (/owner/workers + settings staff blocks) unless
- * OWNER_STAFF_ENABLED. Does not affect /owner/calendar (desk ops, external staff
- * overlay, coach pickers, etc.).
+ * Hide standalone owner «کارکنان» (/owner/workers) unless OWNER_STAFF_ENABLED.
+ * Settings still embeds workers roster + desk staff invite/permissions. Does not
+ * affect /owner/calendar (desk ops, external staff overlay, coach pickers, etc.).
  */
 export default defineNuxtRouteMiddleware((to) => {
   const { ownerStaffEnabled } = usePilotFlags()
