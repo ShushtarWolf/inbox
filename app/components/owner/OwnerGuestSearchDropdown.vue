@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { formatPhone } = useFormatters()
-export type GuestSearchHit = { name: string; mobile: string; source?: string }
+import type { GuestSearchHit } from '#shared/guestSearch.ts'
+
+export type { GuestSearchHit }
 
 defineProps<{
   open: boolean
