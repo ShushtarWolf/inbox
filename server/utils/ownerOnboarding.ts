@@ -8,11 +8,12 @@ export function normalizeOwnerSport(raw?: string): OwnerRegisterSport {
   return 'padel'
 }
 
-/** Canva options: ۱ / ۲ / بالای ۲ → create up to 3 courts. */
-export function normalizeOwnerCourtCount(raw?: number | string) {
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n < 1) return 1
-  return Math.min(Math.floor(n), 3)
+/**
+ * Signup seeds only one placeholder court per chosen sport (padel/tennis → 1, both → 2).
+ * Owners add their real courts in setup; seeding 3 left phantom courts they could not clear.
+ */
+export function normalizeOwnerCourtCount(_raw?: number | string, sport: OwnerRegisterSport = 'padel') {
+  return sport === 'both' ? 2 : 1
 }
 
 export function sportSlugsForOwner(sport: OwnerRegisterSport): Array<'padel' | 'tennis'> {

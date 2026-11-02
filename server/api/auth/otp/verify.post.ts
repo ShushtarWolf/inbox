@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
     const city = String(consumed.payload.city || 'تهران').trim() || 'تهران'
     const addressFa = String(consumed.payload.addressFa || '').trim() || city
     const sportKey = normalizeOwnerSport(String(consumed.payload.sport || ''))
-    const courtCount = normalizeOwnerCourtCount(consumed.payload.courtCount as number | string | undefined)
+    const courtCount = normalizeOwnerCourtCount(consumed.payload.courtCount as number | string | undefined, sportKey)
     const credentialUrls = Array.isArray(consumed.payload.credentialUrls)
       ? (consumed.payload.credentialUrls as unknown[]).filter((u): u is string => typeof u === 'string' && Boolean(u.trim()))
       : []
