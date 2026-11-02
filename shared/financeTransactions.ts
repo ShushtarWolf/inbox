@@ -75,9 +75,13 @@ function latinDigits(value: string) {
   })
 }
 
-/** `ipg` = online rail (SEP + athlete wallet `PAID`); only desk `CASH` is the till. */
-export function financePaymentBucket(tx: { paymentMethod?: string | null; unpaid?: boolean }): 'cash' | 'ipg' | 'unpaid' {
-  if (tx.unpaid) return 'unpaid'
+/**
+ * `ipg` = online rail (SEP + athlete wallet `PAID`); only desk `CASH` is the till.
+ * Settled buckets require payment status `PAID` (the same rule as `paidAt`), so a
+ * pending / failed / cancelled / refunded row never reads as collected.
+ */
+export function financePaymentBucket(tx: { paymentMethod?: string | null; paymentStatus?: string | null }): 'cash' | 'ipg' | 'unpaid' {
+  if (!isPaidPaymentStatus(tx.paymentStatus)) return 'unpaid'
   if (tx.paymentMethod === 'IPG' || tx.paymentMethod === 'PAID') return 'ipg'
   if (tx.paymentMethod === 'CASH') return 'cash'
   return 'unpaid'

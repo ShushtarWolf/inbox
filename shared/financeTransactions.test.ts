@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { financeSheetXml } from './financeSpreadsheet.ts'
-import { financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
+import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
 
 const rows: FinanceTxTimes[] = [
   {
@@ -9,6 +9,7 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'زمین ۲',
     guestName: 'علی',
     paymentMethod: 'CASH',
+    paymentStatus: 'PAID',
     unpaid: false,
     guestMobile: '09120000001',
     bookingKind: 'normal',
@@ -22,6 +23,7 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'زمین ۱',
     guestName: 'سارا',
     paymentMethod: 'CASH',
+    paymentStatus: 'PAY_AT_CLUB',
     unpaid: true,
     guestMobile: '09120000002',
     bookingKind: 'package',
@@ -35,6 +37,7 @@ const rows: FinanceTxTimes[] = [
     reservationLabel: 'مربی',
     guestName: 'رضا',
     paymentMethod: 'IPG',
+    paymentStatus: 'PAID',
     unpaid: false,
     guestMobile: '09120000003',
     bookingKind: 'coach',
@@ -89,6 +92,16 @@ describe('selectFinanceTransactions', () => {
     expect(selectFinanceTransactions(rows, { payment: 'unpaid' }).map((tx) => tx.guestName)).toEqual(['سارا'])
     expect(selectFinanceTransactions(rows, { guest: 'سارا' }).map((tx) => tx.guestName)).toEqual(['سارا'])
     expect(selectFinanceTransactions(rows, { guest: '۰۹۱۲۰۰۰۰۰۰۱' }).map((tx) => tx.guestName)).toEqual(['علی'])
+  })
+
+  it('only buckets PAID rows as cash or online', () => {
+    expect(financePaymentBucket({ paymentMethod: 'IPG', paymentStatus: 'PAID' })).toBe('ipg')
+    expect(financePaymentBucket({ paymentMethod: 'PAID', paymentStatus: 'PAID' })).toBe('ipg')
+    expect(financePaymentBucket({ paymentMethod: 'CASH', paymentStatus: 'PAID' })).toBe('cash')
+    for (const status of ['PENDING_ONLINE', 'FAILED', 'PAY_AT_CLUB', 'REFUNDED', '', null]) {
+      expect(financePaymentBucket({ paymentMethod: 'IPG', paymentStatus: status })).toBe('unpaid')
+      expect(financePaymentBucket({ paymentMethod: 'CASH', paymentStatus: status })).toBe('unpaid')
+    }
   })
 
   it('filters by discount code', () => {

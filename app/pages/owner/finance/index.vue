@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
-import { isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 
@@ -407,11 +406,6 @@ function barHeightPx(amount: number) {
   return Math.max(12, Math.round((amount / maxWeeklyRevenue.value) * chartAreaHeight))
 }
 
-function isTxUnpaid(tx: { unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
-  if (typeof tx.unpaid === 'boolean') return tx.unpaid
-  return tx.bookingStatus !== 'CANCELLED' && isUnpaidPaymentStatus(tx.paymentStatus)
-}
-
 function bookingStatusLabel(status: string) {
   if (!status) return ''
   const key = `booking.status.${status}`
@@ -425,7 +419,7 @@ function paymentStatusLabel(status: string) {
 
 function methodBadgeClass(tx: OwnerFinanceTransaction) {
   if (isBlockedFinanceTx(tx)) return ''
-  const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
+  const bucket = financePaymentBucket(tx)
   if (bucket === 'ipg') return 'canva-finance-method-badge-ipg'
   if (bucket === 'cash') return 'canva-finance-method-badge-cash'
   return 'canva-finance-method-badge-unpaid'
@@ -433,7 +427,7 @@ function methodBadgeClass(tx: OwnerFinanceTransaction) {
 
 function methodBadgeLabel(tx: OwnerFinanceTransaction) {
   if (isBlockedFinanceTx(tx)) return '—'
-  const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
+  const bucket = financePaymentBucket(tx)
   if (bucket === 'ipg') return t('owner.financePage.methodCashless')
   if (bucket === 'cash') return t('owner.financePage.methodCash')
   return t('owner.financePage.methodUnpaid')

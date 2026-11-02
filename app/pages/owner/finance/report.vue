@@ -205,8 +205,8 @@ function kindLabel(kind?: string | null) {
   return t('owner.financeTable.bookingKindNormal')
 }
 
-function methodLabel(tx: { paymentMethod?: string | null; unpaid?: boolean; paymentStatus?: string; bookingStatus?: string }) {
-  const bucket = financePaymentBucket({ paymentMethod: tx.paymentMethod, unpaid: isTxUnpaid(tx) })
+function methodLabel(tx: { paymentMethod?: string | null; paymentStatus?: string | null }) {
+  const bucket = financePaymentBucket(tx)
   if (bucket === 'ipg') return t('owner.financePage.methodCashless')
   if (bucket === 'cash') return t('owner.financePage.methodCash')
   return t('owner.financePage.methodUnpaid')
