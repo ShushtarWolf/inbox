@@ -164,8 +164,24 @@ describe('selectFinanceTransactions', () => {
     expect(selectFinanceTransactions(listed, { legend: 'season' }).map((tx) => tx.guestName)).toEqual(['رضا'])
     expect(selectFinanceTransactions(listed, { legend: 'note' }).map((tx) => tx.guestName)).toEqual(['علی'])
     expect(selectFinanceTransactions(listed, { legend: 'reserved' }).map((tx) => tx.guestName)).toEqual(['رضا', 'علی'])
-    expect(selectFinanceTransactions(listed, { legend: 'blocked' }).map((tx) => tx.reservationLabel)).toEqual(['زمین ۳'])
+    // مسدود is never an accounting row — even when explicitly filtered.
+    expect(selectFinanceTransactions(listed, { legend: 'blocked' })).toEqual([])
     expect(selectFinanceTransactions(listed, { legend: 'free' }).map((tx) => tx.reservationLabel)).toEqual(['زمین ۴'])
+  })
+
+  it('drops desk-hold bookings from the ledger entirely', () => {
+    const hold: FinanceTxTimes = {
+      kind: 'court',
+      reservationLabel: 'زمین ۱',
+      guestName: 'سبحان',
+      amount: 0,
+      reservedAt: '2026-10-03T10:00:00',
+      displayStatus: 'BLOCKED',
+      bookingStatus: 'CONFIRMED',
+      paymentStatus: 'PAY_AT_CLUB',
+    }
+    expect(selectFinanceTransactions([hold, ...rows]).map((tx) => tx.guestName)).not.toContain('سبحان')
+    expect(selectFinanceTransactions([hold], { legend: 'all' })).toEqual([])
   })
 
   it('sorts income and guest', () => {

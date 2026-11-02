@@ -150,7 +150,7 @@ const financeQuery = computed(() => {
   const q: Record<string, string | number> = { txLimit: 1000 }
   if (reservedFrom.value) q.txFrom = reservedFrom.value
   if (reservedTo.value) q.txTo = reservedTo.value
-  if (legendFilter.value === 'free' || legendFilter.value === 'blocked') q.legend = legendFilter.value
+  if (legendFilter.value === 'free') q.legend = legendFilter.value
   return q
 })
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {

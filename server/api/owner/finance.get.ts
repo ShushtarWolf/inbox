@@ -32,7 +32,8 @@ export default defineEventHandler(async (event) => {
   const txTo = queryText(query.txTo)
   const txLimit = queryTxLimit(query.txLimit)
   const legendQuery = queryText(query.legend)
-  const slotLegendStatus = legendQuery === 'free' ? 'FREE' : legendQuery === 'blocked' ? 'BLOCKED' : null
+  // FREE empty hours can still be listed via legend; مسدود is calendar-only, never accounting.
+  const slotLegendStatus = legendQuery === 'free' ? 'FREE' : null
   const wideList = txLimit > 50 || Boolean(txFrom || txTo)
   const statDate = dateRange(from, to)
   const listDate = dateRange(txFrom, txTo)
@@ -60,6 +61,8 @@ export default defineEventHandler(async (event) => {
     return {
       slot: {
         court: { clubId: club.id },
+        // Desk holds are not finance events — keep them out of list + unpaid samples.
+        displayStatus: { not: 'BLOCKED' as const },
         ...(range ? { date: range } : {}),
       },
     }
@@ -362,7 +365,6 @@ export default defineEventHandler(async (event) => {
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
       const paymentStatus = paymentStatusOf(booking)
-      const blocked = isBlockedSlot(booking)
       return {
         id: booking.id,
         guestName: resolveLinkedGuestDisplayName({
@@ -375,8 +377,7 @@ export default defineEventHandler(async (event) => {
         paymentMethod: booking.payment?.method || booking.paymentMethod,
         paymentStatus,
         amount: amountOfBooking(booking),
-        // Desk holds are calendar blocks, not priced sessions — no ops "session value".
-        sessionValue: blocked ? 0 : sessionValueOf(booking.payment, booking.slot.price),
+        sessionValue: sessionValueOf(booking.payment, booking.slot.price),
         bookingStatus: booking.status,
         kind: 'court' as const,
         bookingKind: courtBookingKind(booking),
@@ -399,7 +400,7 @@ export default defineEventHandler(async (event) => {
             return qty > 1 ? `${name} ×${toPersianDigits(String(qty))}` : name
           })
           .join(', ') || null,
-        unpaid: !blocked && booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
+        unpaid: booking.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
         ...discountFields(
           amountOfBooking(booking),
           booking.payment?.metadataJson,

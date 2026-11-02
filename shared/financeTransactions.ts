@@ -45,7 +45,7 @@ export type FinanceTxQuery = {
   session?: FinanceSessionFilter
   bookingKind?: FinanceBookingKindFilter
   payment?: FinancePaymentFilter
-  /** Calendar legend. `all` keeps bookings and hides empty or blocked hours. */
+  /** Calendar legend. `all` keeps bookings and hides empty FREE hours. مسدود never belongs here. */
   legend?: FinanceLegendFilter
   /** Guest name or phone. Persian and Arabic digits count as the same phone. */
   guest?: string
@@ -212,6 +212,10 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
   const sortKey = query.sortKey || 'reservedAt'
   const sortDir = query.sortDir || 'desc'
   const filtered = rows.filter((tx) => {
+    // مسدود is calendar-only — never ledger (named holds or empty BLOCKED hours).
+    // Do not use isBlockedFinanceTx here: that also matches FREE empty `kind:slot` rows.
+    if (tx.displayStatus === 'BLOCKED' || tx.bookingStatus === 'BLOCKED') return false
+    if (legend === 'blocked') return false
     if (tx.kind === 'slot' && legend === 'all') return false
     if (legend !== 'all' && !financeLegendStates(tx).includes(legend)) return false
     if (payment !== 'all' && tx.kind === 'slot') return false

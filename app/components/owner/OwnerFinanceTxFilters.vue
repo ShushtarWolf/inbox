@@ -44,7 +44,7 @@ const legendOptions = computed(() => ([
   { value: 'reserved' as const, label: t('owner.status.RESERVED') },
   { value: 'season' as const, label: t('owner.legendSeason') },
   { value: 'pending' as const, label: t('owner.status.PENDING') },
-  { value: 'blocked' as const, label: t('owner.status.BLOCKED') },
+  // مسدود is calendar-only — not an accounting filter.
   { value: 'paid' as const, label: t('owner.legendPaid') },
   { value: 'note' as const, label: t('owner.legendNote') },
 ]))
