@@ -4,6 +4,7 @@ import {
   PAYMENT_DOCUMENT_ACCEPT,
   type PaymentDocumentRejectReason,
 } from '#shared/paymentDocumentUpload.ts'
+import { formatUserDisplayName } from '#shared/userName.ts'
 
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
@@ -48,13 +49,14 @@ type AthleteWithdrawRow = {
   paidAt: string | null
   rejectedAt: string | null
   paymentDocuments: PaymentDocument[]
-  user: { id: string; name: string; email: string; phone: string | null; sheba: string | null }
+  user: { id: string; name: string; nameFamily?: string | null; email: string; phone: string | null; sheba: string | null }
 }
 
 type WithdrawRow = ClubWithdrawRow | AthleteWithdrawRow
 
 const kindFilter = ref<KindFilter>('athlete')
 const statusFilter = ref<'ALL' | WithdrawStatus>('PENDING')
+const searchQuery = ref('')
 const requests = ref<WithdrawRow[]>([])
 const pending = ref(false)
 const actionId = ref<string | null>(null)
@@ -164,6 +166,8 @@ async function load() {
   docError.value = ''
   try {
     const params = new URLSearchParams({ status: statusFilter.value })
+    const q = searchQuery.value.trim()
+    if (q && kindFilter.value === 'athlete') params.set('q', q)
     if (kindFilter.value === 'athlete') {
       const data = await adminFetch<{ requests: Omit<AthleteWithdrawRow, 'kind'>[] }>(
         `/api/admin/athlete-withdrawals?${params}`,
@@ -233,6 +237,13 @@ watch(secret, (value) => {
 watch([statusFilter, kindFilter], () => {
   if (secret.value) load()
 })
+
+let searchDebounce: ReturnType<typeof setTimeout> | undefined
+watch(searchQuery, () => {
+  if (!secret.value) return
+  clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => load(), 300)
+})
 </script>
 
 <template>
@@ -267,6 +278,20 @@ watch([statusFilter, kindFilter], () => {
         {{ option === 'athlete' ? t('admin.withdrawalsKindAthlete') : t('admin.withdrawalsKindClub') }}
       </button>
     </div>
+
+    <AppFormField
+      v-if="kindFilter === 'athlete'"
+      :label="t('common.search')"
+      class="max-w-md"
+    >
+      <input
+        v-model="searchQuery"
+        type="search"
+        class="neo-input"
+        style="border-radius: 2px;"
+        :placeholder="t('admin.searchUsers')"
+      />
+    </AppFormField>
 
     <div class="flex flex-wrap gap-2">
       <button
@@ -330,7 +355,7 @@ watch([statusFilter, kindFilter], () => {
                   <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.club.slug }}</div>
                 </template>
                 <template v-else>
-                  <span class="font-bold text-brand-navy">{{ row.user.name }}</span>
+                  <span class="font-bold text-brand-navy">{{ formatUserDisplayName(row.user.name, row.user.nameFamily) || row.user.name }}</span>
                   <div class="text-xs text-brand-gray-600" dir="ltr">{{ row.user.phone ? formatPhone(row.user.phone) : row.user.email }}</div>
                 </template>
               </td>

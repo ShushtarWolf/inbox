@@ -2,6 +2,11 @@ import {
   ATHLETE_WITHDRAW_DAILY_MAX_IRR,
   clampAthleteWithdrawAmount,
 } from '#shared/athleteCashOut.ts'
+import { formatUserDisplayName } from '#shared/userName.ts'
+import {
+  resolveWithdrawRail,
+  type BankWithdrawRail,
+} from '#shared/walletWithdrawRail.ts'
 import {
   consumeWalletLocked,
   getAthleteCashOutBalance,
@@ -13,7 +18,7 @@ import {
 } from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 
-export type BankWithdrawKind = 'coach' | 'athlete'
+export type BankWithdrawKind = BankWithdrawRail
 
 /** Coaches cash out settlement; athletes may cash out top-up/refund credit. */
 export async function resolveBankWithdrawKind(userId: string): Promise<BankWithdrawKind> {
@@ -34,6 +39,7 @@ export async function requestUserWithdraw(options: {
   amount: number
   sheba: string | null | undefined
   note?: string
+  rail?: BankWithdrawRail
 }) {
   const amount = Math.floor(Number(options.amount))
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -44,7 +50,11 @@ export async function requestUserWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
-  const kind = await resolveBankWithdrawKind(options.userId)
+  const coach = await prisma.coach.findFirst({
+    where: { userId: options.userId },
+    select: { id: true },
+  })
+  const isCoach = Boolean(coach)
 
   return prisma.$transaction(async (tx) => {
     await unlockEligibleWalletSettlements(options.userId, new Date(), tx)
@@ -53,12 +63,30 @@ export async function requestUserWithdraw(options: {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
 
+    const coachWithdrawable = isCoach
+      ? await getWalletWithdrawableBalance(options.userId, new Date(), tx)
+      : 0
+    const athleteCashOutNet = await getAthleteCashOutBalance(options.userId, tx)
+
+    const rail = resolveWithdrawRail({
+      isCoach,
+      amount,
+      coachWithdrawable,
+      athleteCashOut: athleteCashOutNet,
+      requestedRail: options.rail,
+    })
+    if (!rail) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+    }
+
     let withdrawable = 0
-    if (kind === 'coach') {
-      withdrawable = await getWalletWithdrawableBalance(options.userId, new Date(), tx)
+    if (rail === 'coach') {
+      if (!isCoach) {
+        throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+      }
+      withdrawable = coachWithdrawable
     }
     else {
-      const cashOutNet = await getAthleteCashOutBalance(options.userId, tx)
       const dayStart = new Date()
       dayStart.setHours(0, 0, 0, 0)
       const dailyUsed = await tx.userWithdrawRequest.aggregate({
@@ -72,13 +100,13 @@ export async function requestUserWithdraw(options: {
       const dailyRemaining = Math.max(0, ATHLETE_WITHDRAW_DAILY_MAX_IRR - Number(dailyUsed._sum.amount || 0))
       const clamp = clampAthleteWithdrawAmount(amount, {
         available: wallet.availableBalance,
-        cashOutNet,
+        cashOutNet: athleteCashOutNet,
         dailyRemaining,
       })
       if (!clamp.ok) {
         throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
       }
-      withdrawable = cashOutNet
+      withdrawable = athleteCashOutNet
     }
     if (withdrawable < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
@@ -100,18 +128,19 @@ export async function requestUserWithdraw(options: {
       note: 'Withdraw request hold',
     }, tx)
 
-    return request
-  }).then(async (request) => {
+    return { request, rail }
+  }).then(async ({ request, rail }) => {
     try {
       const user = await prisma.user.findUnique({
         where: { id: options.userId },
-        select: { name: true, phone: true },
+        select: { name: true, nameFamily: true, phone: true },
       })
+      const displayName = formatUserDisplayName(user?.name, user?.nameFamily)
       await notifyAdminWithdrawRequest({
-        kind: 'athlete',
+        kind: rail === 'coach' ? 'coach' : 'athlete',
         amount: request.amount,
         sheba: request.shebaSnapshot,
-        userName: user?.name || '',
+        userName: displayName || user?.name || '',
         userPhone: user?.phone || '',
         requestId: request.id,
       })

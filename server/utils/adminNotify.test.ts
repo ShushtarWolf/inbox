@@ -16,6 +16,7 @@ import {
   notifyAdminClubApplication,
   notifyAdminSms,
   notifyAdminWithdrawRequest,
+  withdrawFinanceAlertPhones,
 } from './adminNotify'
 
 describe('adminNotify', () => {
@@ -25,6 +26,8 @@ describe('adminNotify', () => {
     delete process.env.ADMIN_ALERT_SMS
     delete process.env.ADMIN_ALERT_PHONE
     delete process.env.NUXT_PUBLIC_CONTACT_MOBILE
+    delete process.env.WITHDRAW_FINANCE_ALERT_PHONE
+    delete process.env.FINANCE_ALERT_PHONE
   })
 
   afterEach(() => {
@@ -32,6 +35,8 @@ describe('adminNotify', () => {
     delete process.env.ADMIN_ALERT_SMS
     delete process.env.ADMIN_ALERT_PHONE
     delete process.env.NUXT_PUBLIC_CONTACT_MOBILE
+    delete process.env.WITHDRAW_FINANCE_ALERT_PHONE
+    delete process.env.FINANCE_ALERT_PHONE
   })
 
   it('defaults admin phone to 09124777927', () => {
@@ -65,19 +70,22 @@ describe('adminNotify', () => {
     expect(sendNotification).not.toHaveBeenCalled()
   })
 
-  it('sends withdraw request alert', async () => {
+  it('sends withdraw request alert to finance phones', async () => {
+    process.env.WITHDRAW_FINANCE_ALERT_PHONE = '09123334455'
+    expect(withdrawFinanceAlertPhones()).toEqual(['09123334455'])
     await notifyAdminWithdrawRequest({
-      kind: 'athlete',
+      kind: 'coach',
       amount: 250000,
       sheba: 'IR00',
-      userName: 'علی',
-      userPhone: '09121234567',
+      userName: 'بهناز تعبدی',
+      userPhone: '09122900854',
       requestId: 'w1',
     })
     expect(sendNotification).toHaveBeenCalledWith(
       expect.objectContaining({
+        to: '09123334455',
         template: 'ADMIN_WITHDRAW_REQUEST',
-        data: expect.objectContaining({ kind: 'athlete', amount: 250000 }),
+        data: expect.objectContaining({ kind: 'coach', amount: 250000 }),
       }),
     )
   })

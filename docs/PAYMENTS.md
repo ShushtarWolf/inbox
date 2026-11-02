@@ -168,7 +168,8 @@ When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlem
 
 - **Coach:** settlement credits (day after class) via `getWalletWithdrawableBalance`.
 - **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float.
-- Ops pays SHEBA manually from the admin athlete withdrawals queue (same rail as coaches). No automated bank payout.
+- Ops pays SHEBA manually from the admin athlete withdrawals queue (same rail as coaches). SMS alert includes full name (نام + نام‌خانوادگی). No automated bank payout.
+- **Coach + athlete:** users with a coach profile can withdraw settlement (coach rail) and, separately, top-up/refund credit (athlete rail). The wallet API sums both for the withdraw cap; the server picks the rail automatically unless `rail` is sent on `POST /api/wallet/withdraw`.
 
 ## Split pay (wallet + IPG)
 
