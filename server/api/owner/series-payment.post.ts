@@ -1,4 +1,5 @@
-import { isSeriesDeskPaymentTarget } from '#shared/ownerSeries.ts'
+import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { isSeriesDeskPaymentTarget, seriesDeskPaymentCreates } from '#shared/ownerSeries.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   notifyBookingPaid,
@@ -15,6 +16,7 @@ import { activeSlotBooking } from '../../utils/reservations'
 /**
  * Desk cash for a whole season/class package in one go.
  * Existing payment amounts are kept: pay-link seasons hold the total on the primary row.
+ * Missing payment rows mint one charged primary + amount-0 siblings (not N× list price).
  */
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -32,7 +34,19 @@ export default defineEventHandler(async (event) => {
 
   const series = await loadOwnerSeriesBookings(club.id, booking.id)
   const targets = series.filter((row) => isSeriesDeskPaymentTarget(row, next))
-  const amount = targets.reduce((sum, row) => sum + (row.payment?.amount ?? row.slot.price ?? 0), 0)
+  const missing = targets.filter((row) => !row.payment)
+  const seasonBookingId = series
+    .map((row) => parseSeriesPaymentMeta(row.payment?.metadataJson).seasonBookingId)
+    .find((id): id is string => Boolean(id))
+  const creates = seriesDeskPaymentCreates(
+    missing.map((row) => ({ id: row.id, slotPrice: row.slot.price ?? 0 })),
+    seasonBookingId ? { seasonBookingId } : undefined,
+  )
+  const createByBookingId = new Map(creates.map((row) => [row.bookingId, row]))
+  const amount = targets.reduce((sum, row) => {
+    if (row.payment) return sum + row.payment.amount
+    return sum + (createByBookingId.get(row.id)?.amount ?? 0)
+  }, 0)
   if (body.dryRun || !targets.length) return { ok: true, count: targets.length, amount }
 
   await prisma.$transaction(async (tx) => {
@@ -41,10 +55,17 @@ export default defineEventHandler(async (event) => {
         where: { id: row.id },
         data: { paymentStatus: next, paymentMethod: 'CASH', status: 'CONFIRMED' },
       })
+      const minted = createByBookingId.get(row.id)
       await tx.payment.upsert({
         where: { bookingId: row.id },
         update: { method: 'CASH', status: next },
-        create: { bookingId: row.id, amount: row.slot.price ?? 0, method: 'CASH', status: next },
+        create: {
+          bookingId: row.id,
+          amount: minted?.amount ?? 0,
+          method: 'CASH',
+          status: next,
+          ...(minted?.metadataJson ? { metadataJson: minted.metadataJson } : {}),
+        },
       })
     }
   })

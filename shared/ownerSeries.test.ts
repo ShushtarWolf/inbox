@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ownerSeriesKey, seasonBookingIdNeedle, seriesCancelPaymentId, isSeriesDeskPaymentTarget } from './ownerSeries'
+import {
+  ownerSeriesKey,
+  seasonBookingIdNeedle,
+  seriesCancelPaymentId,
+  isSeriesDeskPaymentTarget,
+  seriesDeskPaymentCreates,
+} from './ownerSeries'
 
 describe('ownerSeriesKey', () => {
   it('prefers a class-package draft over season metadata', () => {
@@ -78,5 +84,47 @@ describe('isSeriesDeskPaymentTarget', () => {
   it('only reverses desk cash, never online payments', () => {
     expect(rows.filter((row) => isSeriesDeskPaymentTarget(row, 'PAY_AT_CLUB')).map((row) => row.id))
       .toEqual(['cash-paid'])
+  })
+})
+
+describe('seriesDeskPaymentCreates', () => {
+  it('mints one charged primary + zero siblings, not N× list price', () => {
+    const creates = seriesDeskPaymentCreates(
+      [
+        { id: 'b1', slotPrice: 600_000 },
+        { id: 'b2', slotPrice: 600_000 },
+        { id: 'b3', slotPrice: 600_000 },
+        { id: 'b4', slotPrice: 600_000 },
+      ],
+      { seasonBookingId: 'season-1' },
+    )
+
+    expect(creates.map((row) => row.amount)).toEqual([2_400_000, 0, 0, 0])
+    expect(creates.reduce((sum, row) => sum + row.amount, 0)).toBe(2_400_000)
+
+    const primary = JSON.parse(creates[0]!.metadataJson)
+    expect(primary).toMatchObject({
+      sessionPrice: 600_000,
+      seasonBookingId: 'season-1',
+      groupPrimaryBookingId: 'b1',
+      groupSiblingBookingIds: ['b2', 'b3', 'b4'],
+    })
+    expect(primary).not.toHaveProperty('coveredByBookingId')
+
+    for (const row of creates.slice(1)) {
+      expect(JSON.parse(row.metadataJson)).toEqual({
+        sessionPrice: 600_000,
+        seasonBookingId: 'season-1',
+        coveredByBookingId: 'b1',
+      })
+    }
+  })
+
+  it('keeps a single missing row at its session price', () => {
+    expect(seriesDeskPaymentCreates([{ id: 'b1', slotPrice: 450_000 }])).toEqual([{
+      bookingId: 'b1',
+      amount: 450_000,
+      metadataJson: JSON.stringify({ sessionPrice: 450_000 }),
+    }])
   })
 })

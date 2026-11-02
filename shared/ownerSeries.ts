@@ -53,3 +53,47 @@ export function isSeriesDeskPaymentTarget(row: {
   if (next === 'PAID') return isUnpaidPaymentStatus(status)
   return isPaidPaymentStatus(status) && row.payment?.method === 'CASH'
 }
+
+export type SeriesDeskPaymentCreate = {
+  bookingId: string
+  amount: number
+  metadataJson: string
+}
+
+/**
+ * Payment.create payloads when desk mark-series-paid mints missing rows.
+ * Matches seasonReserve / court multi-slot: one charged primary (sum of session
+ * prices), siblings amount 0 + coveredByBookingId, sessionPrice on every row.
+ */
+export function seriesDeskPaymentCreates(
+  rows: Array<{ id: string; slotPrice: number }>,
+  opts?: { seasonBookingId?: string },
+): SeriesDeskPaymentCreate[] {
+  if (!rows.length) return []
+  const seasonBookingId = opts?.seasonBookingId?.trim() || undefined
+  const prices = rows.map((row) => Math.max(0, Math.round(row.slotPrice || 0)))
+  const primaryId = rows[0]!.id
+  const siblingIds = rows.slice(1).map((row) => row.id)
+  const total = prices.reduce((sum, n) => sum + n, 0)
+
+  return rows.map((row, i) => {
+    const sessionPrice = prices[i]!
+    const isPrimary = i === 0
+    const meta: Record<string, unknown> = { sessionPrice }
+    if (seasonBookingId) meta.seasonBookingId = seasonBookingId
+    if (rows.length > 1) {
+      if (isPrimary) {
+        meta.groupPrimaryBookingId = primaryId
+        meta.groupSiblingBookingIds = siblingIds
+      }
+      else {
+        meta.coveredByBookingId = primaryId
+      }
+    }
+    return {
+      bookingId: row.id,
+      amount: isPrimary ? total : 0,
+      metadataJson: JSON.stringify(meta),
+    }
+  })
+}
