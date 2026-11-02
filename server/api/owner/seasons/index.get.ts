@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
       timesJson: true,
       comments: true,
       createdAt: true,
+      cancelledAt: true,
     },
   })
 
@@ -37,6 +38,8 @@ export default defineEventHandler(async (event) => {
       timesJson: row.timesJson,
       comments: row.comments,
       createdAt: row.createdAt.toISOString(),
+      status: row.cancelledAt ? 'CANCELLED' as const : 'ACTIVE' as const,
+      cancelledAt: row.cancelledAt ? row.cancelledAt.toISOString() : null,
     })),
   }
 })

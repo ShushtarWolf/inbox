@@ -1553,9 +1553,31 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   }
 }
 
+const cancelExcludedIds = ref<string[]>([])
+
+function toggleCancelSlot(id: string) {
+  const set = new Set(cancelExcludedIds.value)
+  if (set.has(id)) set.delete(id)
+  else set.add(id)
+  cancelExcludedIds.value = [...set]
+}
+
+function cancelCheckedSlots() {
+  const excluded = new Set(cancelExcludedIds.value)
+  return slotsForCancel().filter((slot) => !excluded.has(slot.id))
+}
+
 function openCancelForm() {
   cancelSeries.value = false
+  cancelExcludedIds.value = []
   if (!slotsForCancel().length) return
+  const booking = activeBooking(slotsForCancel()[0])
+  if (booking) {
+    const guest = normalizeGuestNamePair(booking.guestName || form.guestName, booking.guestFamily || form.guestFamily)
+    form.guestName = guest.guestName
+    form.guestFamily = guest.guestFamily
+    if (booking.guestMobile) form.guestMobile = booking.guestMobile
+  }
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
   activePanel.value = 'cancel'
 }
@@ -2586,7 +2608,7 @@ async function doCancel() {
     await doCancelSeries()
     return
   }
-  const targets = slotsForCancel().filter((slot) => {
+  const targets = cancelCheckedSlots().filter((slot) => {
     if (slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') return false
     return Boolean(activeBooking(slot))
   })
@@ -3828,7 +3850,7 @@ const legend = computed(() => [
 /** Distinct booking-type swatches (player / coach / external uncertain). */
 const bookingTypeLegend = computed(() => {
   const items: Array<{ key: string, color: string, label: string }> = [
-    { key: 'player', color: '#C41E1E', label: t('owner.legendPlayerReserve') },
+    // «رزرو بازیکن» duplicated «رزرو شده» (same red) — removed.
   ]
   if (!pilotNoCoach.value) {
     items.push({ key: 'coach', color: '#b68a3b', label: t('owner.legendCoachReserved') })
@@ -3851,6 +3873,7 @@ type SeasonListRow = {
   timesJson: string
   comments: string | null
   createdAt: string
+  status?: 'ACTIVE' | 'CANCELLED'
 }
 
 const seasonDeleteTarget = ref<SeasonListRow | null>(null)
@@ -4024,6 +4047,7 @@ watch(pilotNoCoach, (off) => {
             <tr>
               <th class="px-3 py-2 font-bold">{{ t('owner.seasonTabGuest') }}</th>
               <th class="px-3 py-2 font-bold">{{ t('owner.seasonTabRange') }}</th>
+              <th class="px-3 py-2 font-bold">{{ t('owner.seasonTabStatus') }}</th>
               <th class="px-3 py-2 font-bold" />
             </tr>
           </thead>
@@ -4043,8 +4067,11 @@ watch(pilotNoCoach, (off) => {
                 <span v-if="row.startDate && row.finishDate">{{ formatDate(row.startDate) }} – {{ formatDate(row.finishDate) }}</span>
                 <span v-else>—</span>
               </td>
+              <td class="px-3 py-2.5 font-bold" :class="row.status === 'CANCELLED' ? 'text-[#C41E1E]' : 'text-[#16A34A]'">
+                {{ row.status === 'CANCELLED' ? t('owner.seasonStatusCancelled') : t('owner.seasonStatusActive') }}
+              </td>
               <td class="px-3 py-2.5">
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <div v-if="row.status !== 'CANCELLED'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <button type="button" class="text-xs font-bold text-brand-primary underline" @click="editSeasonBooking(row)">
                     {{ t('owner.seasonTabEdit') }}
                   </button>
@@ -4055,6 +4082,9 @@ watch(pilotNoCoach, (off) => {
                     {{ t('owner.seasonTabDelete') }}
                   </button>
                 </div>
+                <button v-else type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
+                  {{ t('owner.seasonTabRepeat') }}
+                </button>
               </td>
             </tr>
           </tbody>
@@ -4274,7 +4304,6 @@ watch(pilotNoCoach, (off) => {
               <div v-if="slotNoteLine(panelSlot)" class="canva-cal-side-note">{{ slotNoteLine(panelSlot) }}</div>
             </template>
           </template>
-          <p v-else class="canva-cal-side-empty">{{ t('owner.emptySlotsBody') }}</p>
         </aside>
         </div>
       </div>
@@ -4734,8 +4763,18 @@ watch(pilotNoCoach, (off) => {
               <p class="text-start text-xs font-bold text-brand-gray-600">{{ t('owner.cancelledSessions') }}</p>
               <ul class="space-y-1 text-start text-sm font-bold text-brand-gray-600">
                 <li v-for="slot in slotsForCancel()" :key="slot.id">
-                  {{ formatWeekday(slot.date || date, 'long') }} {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
-                  · <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
+                  <label class="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 accent-brand-primary"
+                      :checked="!cancelExcludedIds.includes(slot.id)"
+                      @change="toggleCancelSlot(slot.id)"
+                    >
+                    <span>
+                      {{ formatWeekday(slot.date || date, 'long') }} {{ formatDayNumber(slot.date || date) }} {{ formatMonth(slot.date || date) }}
+                      · <bdi dir="ltr">{{ formatTimeLabel(slot.startTime) }}</bdi>
+                    </span>
+                  </label>
                 </li>
               </ul>
             </template>
@@ -4749,7 +4788,7 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="venus-modal-footer space-y-2">
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
-            <button type="button" class="canva-sheet-submit" :disabled="!cancelReason || saving || (cancelSeries ? !canCancelSeries : !slotsForCancel().length)" @click="doCancel">{{ cancelSeries ? t('owner.cancelSeason') : t('owner.cancelBooking') }}</button>
+            <button type="button" class="canva-sheet-submit" :disabled="!cancelReason || saving || (cancelSeries ? !canCancelSeries : !cancelCheckedSlots().length)" @click="doCancel">{{ cancelSeries ? t('owner.cancelSeason') : t('owner.cancelBooking') }}</button>
           </div>
         </div>
 

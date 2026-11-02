@@ -724,6 +724,7 @@ model SeasonBooking {
   equipmentPrice Int      @default(0)
   coachId        String?
   createdAt      DateTime @default(now())
+  cancelledAt    DateTime?
 
   clubId String
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
