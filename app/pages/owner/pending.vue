@@ -39,7 +39,7 @@ onMounted(() => {
       <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
       <CanvaOwnerHeroChrome />
       <div class="canva-photo-hero-body !min-h-[8rem] !pb-6">
-        <h1 class="canva-page-hero-title text-xl">{{ t('owner.pendingTitle') }}</h1>
+        <h1 class="canva-page-hero-title text-xl">{{ clubStatus === 'SUSPENDED' ? t('owner.suspendedTitle') : t('owner.pendingTitle') }}</h1>
         <p class="mt-1 text-sm text-white/85">{{ clubName || t('owner.pendingClubFallback') }}</p>
       </div>
     </section>
@@ -59,17 +59,10 @@ onMounted(() => {
             ? 'bg-red-100 text-red-900'
             : 'bg-amber-100 text-amber-900'"
         >
-          {{ clubStatus === 'SUSPENDED' ? t('owner.pendingRejected') : t('owner.pendingTitle') }}
+          {{ clubStatus === 'SUSPENDED' ? t('owner.suspendedTitle') : t('owner.pendingTitle') }}
         </span>
-        <p class="text-sm font-bold">{{ t('owner.pendingTitle') }}</p>
         <p class="text-sm" :class="clubStatus === 'SUSPENDED' ? 'text-red-800/90' : 'text-amber-900/90'">
-          {{ t('owner.pendingBody', { name: clubName || t('owner.pendingClubFallback') }) }}
-        </p>
-        <p
-          v-if="clubStatus === 'SUSPENDED'"
-          class="text-sm font-bold text-red-700"
-        >
-          {{ t('owner.pendingRejected') }}
+          {{ t(clubStatus === 'SUSPENDED' ? 'owner.suspendedBody' : 'owner.pendingBody', { name: clubName || t('owner.pendingClubFallback') }) }}
         </p>
       </div>
 

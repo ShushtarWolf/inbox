@@ -8,12 +8,9 @@ export function normalizeOwnerSport(raw?: string): OwnerRegisterSport {
   return 'padel'
 }
 
-/**
- * Signup seeds only one placeholder court per chosen sport (padel/tennis → 1, both → 2).
- * Owners add their real courts in setup; seeding 3 left phantom courts they could not clear.
- */
-export function normalizeOwnerCourtCount(_raw?: number | string, sport: OwnerRegisterSport = 'padel') {
-  return sport === 'both' ? 2 : 1
+/** Signup seeds no courts: owners add their real courts in setup (seeded defaults were phantom courts). */
+export function normalizeOwnerCourtCount(_raw?: number | string, _sport?: OwnerRegisterSport) {
+  return 0
 }
 
 export function sportSlugsForOwner(sport: OwnerRegisterSport): Array<'padel' | 'tennis'> {
