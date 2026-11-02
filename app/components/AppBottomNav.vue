@@ -16,7 +16,8 @@ const route = useRoute()
 
 const linkItems = computed(() => props.items.filter((item) => !item.action))
 
-const scrollLayout = computed(() => props.items.length > 5)
+/** Five dense FA tabs (admin ops) need horizontal pan; grid squashes labels on ~375px. */
+const scrollLayout = computed(() => props.items.length >= 5)
 
 const columnsClass = computed(() => {
   if (props.items.length <= 3) return 'grid-cols-3'
@@ -42,7 +43,9 @@ function isActive(to: string) {
       class="mx-auto"
       :class="[
         maxWidthClass,
-        scrollLayout ? 'flex overflow-x-auto' : ['grid', columnsClass],
+        scrollLayout
+          ? 'flex w-full max-w-full touch-pan-x flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden'
+          : ['grid', columnsClass],
       ]"
     >
       <component
@@ -50,9 +53,9 @@ function isActive(to: string) {
         v-for="item in items"
         :key="item.to + item.label"
         v-bind="item.action ? { type: 'button' } : { to: item.to }"
-        class="relative flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1 px-2 py-3 text-xs font-medium transition-colors"
+        class="relative flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-3 text-center text-xs font-medium leading-tight transition-colors"
         :class="[
-          scrollLayout ? 'min-w-[4.5rem] shrink-0' : '',
+          scrollLayout ? 'min-w-[4.75rem] max-w-[5.5rem] shrink-0' : '',
           !item.action && isActive(item.to)
             ? (dark ? 'text-brand-gold' : 'text-brand-primary')
             : (dark ? 'text-white/70' : 'text-brand-gray-500'),

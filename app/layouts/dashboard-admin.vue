@@ -53,11 +53,12 @@ const sideNav = computed((): NavItem[] => [
 ])
 
 const bottomNav = computed((): NavItem[] => {
-  const primary = new Set(ADMIN_PRIMARY_BOTTOM_PATHS.map((path) => localePath(path)))
-  return sideNav.value.filter((item) => {
-    const itemPath = item.to.split('?')[0] ?? item.to
-    return primary.has(itemPath)
-  })
+  const byPath = new Map(
+    sideNav.value.map((item) => [item.to.split('?')[0] ?? item.to, item]),
+  )
+  return ADMIN_PRIMARY_BOTTOM_PATHS.map((path) => byPath.get(localePath(path))).filter(
+    (item): item is NavItem => Boolean(item),
+  )
 })
 
 const gateMessage = computed(() => {
