@@ -1,4 +1,4 @@
-import { formatGuestDisplayName } from './guestName.ts'
+import { formatGuestDisplayName, normalizeGuestNamePair } from './guestName.ts'
 import { splitStoredFullName } from './userName.ts'
 
 export type GuestSearchSource = 'user' | 'contact' | 'booking'
@@ -32,14 +32,16 @@ export function buildGuestSearchHit(opts: {
 
 /** Map autocomplete selection → desk form first + family fields. */
 export function guestSearchHitToFormPair(hit: GuestSearchHit): { guestName: string; guestFamily: string } {
-  const first = hit.guestName.trim()
-  const family = hit.guestFamily.trim()
-  if (first || family) {
-    return {
-      guestName: first || family,
-      guestFamily: first ? family : '',
-    }
+  let { guestName, guestFamily } = normalizeGuestNamePair(hit.guestName, hit.guestFamily)
+  if (!guestName && !guestFamily && hit.name.trim()) {
+    const split = splitStoredFullName(hit.name)
+    guestName = split.name
+    guestFamily = split.nameFamily
   }
-  const split = splitStoredFullName(hit.name)
-  return { guestName: split.name, guestFamily: split.nameFamily }
+  else if (guestName && !guestFamily && guestName.includes(' ')) {
+    const split = splitStoredFullName(guestName)
+    guestName = split.name
+    guestFamily = split.nameFamily
+  }
+  return { guestName, guestFamily }
 }

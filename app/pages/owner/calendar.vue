@@ -3795,6 +3795,8 @@ const bookingTypeLegend = computed(() => {
 type SeasonListRow = {
   id: string
   guestName: string
+  guestFamily: string
+  guestLabel: string
   guestMobile: string
   startDate: string | null
   finishDate: string | null
@@ -3803,6 +3805,10 @@ type SeasonListRow = {
   comments: string | null
   createdAt: string
 }
+
+const seasonDeleteTarget = ref<SeasonListRow | null>(null)
+const seasonDeletePending = ref(false)
+const seasonDeleteError = ref('')
 
 const { data: seasonListData, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
   '/api/owner/seasons',
@@ -3815,14 +3821,53 @@ watch(calendarView, (view) => {
   if (view === 'season' && canShowSeasonReserve()) void refreshSeasonList()
 })
 
-function repeatSeasonBooking(row: SeasonListRow) {
+function seasonBookingQuery(row: SeasonListRow, mode: 'repeat' | 'edit'): Record<string, string> {
   const query: Record<string, string> = {}
+  if (mode === 'edit') query.edit = row.id
   if (row.startDate) query.start = row.startDate
   if (row.finishDate) query.finish = row.finishDate
   if (row.guestName) query.guestName = row.guestName
+  if (row.guestFamily) query.guestFamily = row.guestFamily
   if (row.guestMobile) query.guestMobile = row.guestMobile
   if (row.comments) query.comments = row.comments
-  void navigateTo({ path: localePath('/owner/reserve/season'), query })
+  return query
+}
+
+function repeatSeasonBooking(row: SeasonListRow) {
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: seasonBookingQuery(row, 'repeat') })
+}
+
+function editSeasonBooking(row: SeasonListRow) {
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: seasonBookingQuery(row, 'edit') })
+}
+
+function openSeasonDelete(row: SeasonListRow) {
+  seasonDeleteError.value = ''
+  seasonDeleteTarget.value = row
+}
+
+function closeSeasonDelete() {
+  seasonDeleteTarget.value = null
+  seasonDeleteError.value = ''
+  seasonDeletePending.value = false
+}
+
+async function confirmSeasonDelete() {
+  const row = seasonDeleteTarget.value
+  if (!row || seasonDeletePending.value) return
+  seasonDeletePending.value = true
+  seasonDeleteError.value = ''
+  try {
+    await $fetch(`/api/owner/seasons/${row.id}`, { method: 'DELETE' })
+    closeSeasonDelete()
+    await refreshSeasonList()
+  }
+  catch (err) {
+    seasonDeleteError.value = fetchErrorMessage(err, t('common.error'))
+  }
+  finally {
+    seasonDeletePending.value = false
+  }
 }
 
 function openNewSeasonBooking() {
@@ -3942,7 +3987,7 @@ watch(pilotNoCoach, (off) => {
               class="border-b border-[rgba(44,44,42,.06)] last:border-0"
             >
               <td class="px-3 py-2.5">
-                <p class="font-bold text-brand-navy">{{ row.guestName || '—' }}</p>
+                <p class="font-bold text-brand-navy">{{ row.guestLabel || formatGuestDisplayName(row.guestName, row.guestFamily) || '—' }}</p>
                 <p v-if="row.guestMobile" class="mt-0.5 tabular-nums text-brand-gray-600" dir="ltr">
                   <bdi>{{ formatPhone(row.guestMobile) }}</bdi>
                 </p>
@@ -3952,9 +3997,17 @@ watch(pilotNoCoach, (off) => {
                 <span v-else>—</span>
               </td>
               <td class="px-3 py-2.5">
-                <button type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
-                  {{ t('owner.seasonTabRepeat') }}
-                </button>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="editSeasonBooking(row)">
+                    {{ t('owner.seasonTabEdit') }}
+                  </button>
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
+                    {{ t('owner.seasonTabRepeat') }}
+                  </button>
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="openSeasonDelete(row)">
+                    {{ t('owner.seasonTabDelete') }}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -4266,6 +4319,36 @@ watch(pilotNoCoach, (off) => {
     </Teleport>
 
     <OwnerLegalFooter />
+
+    <AppModal
+      :open="Boolean(seasonDeleteTarget)"
+      patterned
+      close-icon
+      :title="t('owner.seasonTabDeleteTitle')"
+      max-width-class="max-w-md"
+      @close="closeSeasonDelete"
+    >
+      <p class="text-start text-sm leading-7 text-brand-navy">
+        {{ t('owner.seasonTabDeleteBody') }}
+      </p>
+      <p v-if="seasonDeleteTarget" class="mt-2 text-start text-sm font-bold text-brand-navy">
+        {{ seasonDeleteTarget.guestLabel || formatGuestDisplayName(seasonDeleteTarget.guestName, seasonDeleteTarget.guestFamily) }}
+      </p>
+      <p v-if="seasonDeleteError" class="venus-alert-error mt-3 text-start text-xs">{{ seasonDeleteError }}</p>
+      <div class="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+        <button
+          type="button"
+          class="canva-gate-btn-primary flex-1"
+          :disabled="seasonDeletePending"
+          @click="confirmSeasonDelete"
+        >
+          {{ seasonDeletePending ? t('common.loading') : t('owner.seasonTabDelete') }}
+        </button>
+        <button type="button" class="canva-gate-btn-secondary flex-1" :disabled="seasonDeletePending" @click="closeSeasonDelete">
+          {{ t('common.cancel') }}
+        </button>
+      </div>
+    </AppModal>
 
     <AppModal
       :open="showDatePicker"

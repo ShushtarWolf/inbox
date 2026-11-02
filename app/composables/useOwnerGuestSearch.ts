@@ -7,6 +7,9 @@ type GuestSearchFields = {
   guestName: MaybeRef<string>
   guestFamily: MaybeRef<string>
   guestMobile: MaybeRef<string>
+  guestNameInput?: Ref<HTMLInputElement | null>
+  guestFamilyInput?: Ref<HTMLInputElement | null>
+  guestMobileInput?: Ref<HTMLInputElement | null>
 }
 
 function setField(target: MaybeRef<string>, value: string) {
@@ -77,12 +80,25 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
     scheduleGuestSearch(toValue(fields.guestMobile))
   }
 
+  function syncGuestInputsFromModel() {
+    if (!import.meta.client) return
+    nextTick(() => {
+      const nameEl = fields.guestNameInput?.value
+      const familyEl = fields.guestFamilyInput?.value
+      const mobileEl = fields.guestMobileInput?.value
+      if (nameEl) nameEl.value = toValue(fields.guestName)
+      if (familyEl) familyEl.value = toValue(fields.guestFamily)
+      if (mobileEl) mobileEl.value = toValue(fields.guestMobile)
+    })
+  }
+
   function selectGuestSuggestion(guest: GuestSearchHit) {
     const parts = guestSearchHitToFormPair(guest)
     setField(fields.guestName, parts.guestName)
     setField(fields.guestFamily, parts.guestFamily)
     if (guest.mobile) setField(fields.guestMobile, guest.mobile)
     clearGuestSearch()
+    syncGuestInputsFromModel()
   }
 
   function closeGuestSearchSoon() {

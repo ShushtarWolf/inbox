@@ -15,6 +15,21 @@ describe('guestSearchHitToFormPair', () => {
     })
   })
 
+  it('splits duplicated full first name when family is also set', () => {
+    expect(
+      guestSearchHitToFormPair({
+        name: 'علی محمدی',
+        guestName: 'علی محمدی',
+        guestFamily: 'محمدی',
+        mobile: '',
+        source: 'booking',
+      }),
+    ).toEqual({
+      guestName: 'علی',
+      guestFamily: 'محمدی',
+    })
+  })
+
   it('splits legacy combined display name when parts are empty', () => {
     expect(
       guestSearchHitToFormPair({

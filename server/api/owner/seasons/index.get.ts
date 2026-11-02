@@ -27,7 +27,9 @@ export default defineEventHandler(async (event) => {
   return {
     seasons: rows.map((row) => ({
       id: row.id,
-      guestName: formatGuestDisplayName(row.guestName, row.guestFamily),
+      guestName: row.guestName,
+      guestFamily: row.guestFamily,
+      guestLabel: formatGuestDisplayName(row.guestName, row.guestFamily),
       guestMobile: row.guestMobile,
       startDate: row.startDate,
       finishDate: row.finishDate,

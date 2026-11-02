@@ -75,6 +75,38 @@ export async function loadOwnerSeriesBookings(clubId: string, bookingId: string)
   })
 }
 
+/** All live court bookings tagged with this seasonBookingId (for list delete). */
+export async function loadOwnerSeriesBookingsBySeasonId(clubId: string, seasonBookingId: string) {
+  const needle = seasonBookingIdNeedle(seasonBookingId)
+  const [fromEvents, fromPayments] = await Promise.all([
+    prisma.reservationEvent.findMany({
+      where: {
+        type: 'CREATED',
+        metadataJson: { contains: needle },
+        booking: { status: { not: 'CANCELLED' }, slot: { court: { clubId } } },
+      },
+      select: { bookingId: true },
+    }),
+    prisma.payment.findMany({
+      where: {
+        metadataJson: { contains: needle },
+        booking: { status: { not: 'CANCELLED' }, slot: { court: { clubId } } },
+      },
+      select: { bookingId: true },
+    }),
+  ])
+  const ids = [...new Set([
+    ...fromEvents.map((row) => row.bookingId),
+    ...fromPayments.map((row) => row.bookingId),
+  ])].filter((id): id is string => Boolean(id))
+  if (!ids.length) return []
+  return prisma.booking.findMany({
+    where: { id: { in: ids }, status: { not: 'CANCELLED' } },
+    include: seriesBookingInclude,
+    orderBy: [{ slot: { date: 'asc' } }, { slot: { startTime: 'asc' } }],
+  })
+}
+
 export type OwnerSeriesCancelRow = {
   id: string
   slotId: string
