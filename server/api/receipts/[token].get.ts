@@ -1,5 +1,5 @@
 import { isOnlinePaymentsEnabled, isPaidPaymentStatus, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
-import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { formatSmsJalaliLongDate, formatSmsTime, toPersianDigits } from '#shared/jalali.ts'
 import { bookingTrackingCode, parseReceiptToken } from '#shared/receiptToken.ts'
 import {
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
     where: { id: bookingId },
     include: {
       payment: true,
-      user: { select: { name: true, phone: true } },
+      user: { select: { name: true, nameFamily: true, phone: true } },
       slot: { include: { court: { include: { club: true } } } },
       bookingEquipments: { include: { equipment: true } },
     },
@@ -78,9 +78,12 @@ export default defineEventHandler(async (event) => {
   if (!booking) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   const club = booking.slot.court.club
-  const guestName = formatGuestDisplayName(booking.guestName, booking.guestFamily)
-    || booking.user?.name
-    || ''
+  const guestName = resolveLinkedGuestDisplayName({
+    guestName: booking.guestName,
+    guestFamily: booking.guestFamily,
+    userName: booking.user?.name,
+    userNameFamily: booking.user?.nameFamily,
+  })
   const mobile = booking.guestMobile || booking.user?.phone || ''
   const clubAddress = (club.addressFa || club.addressEn || '').trim()
   const clubPhone = (club.receiptPhone || club.phone || '').trim()

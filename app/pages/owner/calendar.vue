@@ -835,6 +835,7 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
       guestName: booking?.guestName,
       guestFamily: booking?.guestFamily,
       userName: booking?.user?.name,
+      userNameFamily: booking?.user?.nameFamily,
     })
     return blockedFor || t('owner.slotBlockedLabel')
   }
