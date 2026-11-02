@@ -1,4 +1,4 @@
-import { countsTowardRevenue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { countsTowardRevenue, financeIncomeAmount, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
@@ -106,12 +106,12 @@ export default defineEventHandler(async (event) => {
     return item.payment?.status || item.paymentStatus || 'PAY_AT_CLUB'
   }
 
-  function amountOfBooking(booking: (typeof bookings)[number]) {
-    return booking.payment?.amount || booking.slot.price
+  function amountOfBooking(booking: { payment?: { amount: number } | null; slot: { price: number } }) {
+    return financeIncomeAmount(booking.payment, booking.slot.price)
   }
 
-  function amountOfSession(session: (typeof coachSessions)[number]) {
-    return session.payment?.amount || session.price
+  function amountOfSession(session: { payment?: { amount: number } | null; price: number }) {
+    return financeIncomeAmount(session.payment, session.price)
   }
 
   function discountFields(paidAmount: number, paymentJson?: string | null, eventJson?: string | null) {
@@ -133,14 +133,6 @@ export default defineEventHandler(async (event) => {
     return booking.slot.displayStatus === 'BLOCKED'
   }
 
-  /** Receivable/collected sums use Payment.amount only — siblings and comps are 0, never slot price. */
-  function strictBookingAmount(booking: { payment?: { amount: number } | null; slot: { price: number } }) {
-    return booking.payment ? booking.payment.amount : booking.slot.price
-  }
-  function strictSessionAmount(session: { payment?: { amount: number } | null; price: number }) {
-    return session.payment ? session.payment.amount : session.price
-  }
-
   const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
   const activeSessions = coachSessions.filter((session) => session.status !== 'CANCELLED')
   const paidBookings = activeBookings.filter((booking) => countsTowardRevenue(booking.status, paymentStatusOf(booking)))
@@ -150,8 +142,8 @@ export default defineEventHandler(async (event) => {
   const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
 
   const unpaidAmount =
-    unpaidBookings.reduce((sum, booking) => sum + strictBookingAmount(booking), 0)
-    + unpaidSessions.reduce((sum, session) => sum + strictSessionAmount(session), 0)
+    unpaidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
+    + unpaidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
   const unpaid = unpaidBookings.length + unpaidSessions.length
 
   // Collected money for the current Jalali month + last 7 days — full query, not the 50-row list sample.

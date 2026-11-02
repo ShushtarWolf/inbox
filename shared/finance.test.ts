@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countsTowardRevenue } from './bookingPayment.ts'
+import { countsTowardRevenue, financeIncomeAmount } from './bookingPayment.ts'
 
 function computeRevenue(bookings: Array<{
   status: string
@@ -9,7 +9,7 @@ function computeRevenue(bookings: Array<{
 }>) {
   return bookings
     .filter((booking) => countsTowardRevenue(booking.status, booking.payment?.status || booking.paymentStatus))
-    .reduce((sum, booking) => sum + (booking.payment?.amount || booking.slotPrice), 0)
+    .reduce((sum, booking) => sum + financeIncomeAmount(booking.payment, booking.slotPrice), 0)
 }
 
 function applyAthleteCancel(booking: {
@@ -78,5 +78,28 @@ describe('owner finance revenue aggregation', () => {
 
   it('counts only paid non-cancelled bookings', () => {
     expect(computeRevenue(bookings)).toBe(500_000)
+  })
+})
+
+describe('owner financeIncomeAmount (series siblings)', () => {
+  it('keeps primary charge and sibling zeros — never falls back to slot list price', () => {
+    const slotPrice = 600_000
+    // Haerizadeh-style season: one charged primary + coveredByBookingId siblings at amount 0.
+    const series = [
+      { payment: { amount: 4_800_000 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+      { payment: { amount: 0 }, slotPrice },
+    ]
+    const amounts = series.map((row) => financeIncomeAmount(row.payment, row.slotPrice))
+    expect(amounts).toEqual([4_800_000, 0, 0, 0, 0, 0, 0, 0])
+    expect(amounts.reduce((sum, n) => sum + n, 0)).toBe(4_800_000)
+    // Coach session siblings use the same helper (list price = session.price).
+    expect(financeIncomeAmount({ amount: 0 }, 800_000)).toBe(0)
+    expect(financeIncomeAmount(null, slotPrice)).toBe(slotPrice)
   })
 })

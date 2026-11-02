@@ -121,6 +121,19 @@ export function settledSpendAmount(row: AthleteSpendRow): number {
   return typeof amount === 'number' && Number.isFinite(amount) ? amount : 0
 }
 
+/**
+ * Owner finance row amount (list / Excel / unpaid chips).
+ * If a Payment row exists, use its amount even when 0 (season siblings covered by
+ * coveredByBookingId, comps). Never `payment?.amount || listPrice` — that turns
+ * sibling zeros into phantom court/session list prices.
+ */
+export function financeIncomeAmount(
+  payment: { amount: number } | null | undefined,
+  listPrice: number,
+): number {
+  return payment ? payment.amount : listPrice
+}
+
 /** Sum settled spend across court / coach / package rows for the athlete hub. */
 export function sumAthleteSettledSpend(rows: AthleteSpendRow[]): number {
   return rows.reduce((sum, row) => sum + settledSpendAmount(row), 0)
