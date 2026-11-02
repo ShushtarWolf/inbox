@@ -102,4 +102,18 @@ describe('owner financeIncomeAmount (series siblings)', () => {
     expect(financeIncomeAmount({ amount: 0 }, 800_000)).toBe(0)
     expect(financeIncomeAmount(null, slotPrice)).toBe(slotPrice)
   })
+
+  it('checkout payable: stored amount 0 wins over recomputed fallback (never `||`)', () => {
+    const recomputedSlotPrice = 600_000
+    // payments/checkout.post + receipts/[token]/checkout — sibling / covered rows.
+    expect(financeIncomeAmount({ amount: 0 }, recomputedSlotPrice)).toBe(0)
+    expect(financeIncomeAmount({ amount: 0 }, recomputedSlotPrice)).not.toBe(recomputedSlotPrice)
+    // Contrast: falsy coerce would wrongly charge the sibling.
+    expect(({ amount: 0 } as { amount: number }).amount || recomputedSlotPrice).toBe(recomputedSlotPrice)
+    // Missing payment still uses the fallback price.
+    expect(financeIncomeAmount(null, recomputedSlotPrice)).toBe(recomputedSlotPrice)
+    expect(financeIncomeAmount(undefined, 0)).toBe(0)
+    // Primary sheet total is unchanged.
+    expect(financeIncomeAmount({ amount: 1_200_000 }, recomputedSlotPrice)).toBe(1_200_000)
+  })
 })

@@ -1,7 +1,11 @@
 import { randomBytes } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import { computeBookingPrice, computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { isOnlinePaymentsEnabled, isPaymentPayableOnline } from '#shared/bookingPayment.ts'
+import {
+  financeIncomeAmount,
+  isOnlinePaymentsEnabled,
+  isPaymentPayableOnline,
+} from '#shared/bookingPayment.ts'
 import {
   buildCompetitionWalletPaymentCreateData,
   competitionJoinIdempotencyKey,
@@ -120,7 +124,11 @@ export default defineEventHandler(async (event) => {
 
   // Always charge the stored payment (slot + equipment + discount). Never recompute
   // slot-only price — court booking already wrote the sheet total on Payment.amount.
-  const payableAmount = existingPayment?.amount || amount
+  // Use financeIncomeAmount (not `||`) so sibling/comp amount 0 is not replaced by list price.
+  const payableAmount = financeIncomeAmount(existingPayment, amount)
+  if (payableAmount <= 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
+  }
 
   if (useWalletMode === 'full' && payableAmount > 0) {
     const balance = await getWalletBalance(user.id)

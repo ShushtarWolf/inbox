@@ -51,7 +51,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const payableAmount = existingPayment?.amount || 0
+  // Nullish only — sibling/comp amount 0 must stay 0 (never coerce via `||`).
+  const payableAmount = existingPayment?.amount ?? 0
   if (payableAmount <= 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
   }
