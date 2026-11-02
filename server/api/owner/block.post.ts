@@ -1,7 +1,7 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { clampWeeklyWeeks } from '#shared/weeklyOccurrences.ts'
 import { rethrowSlotConflict } from '../../utils/prismaErrors'
-import { applyBlockSlotIds, applyWeeklyBlock } from '../../utils/blockWeekly'
+import { applyBlockSlotIds, applyWeeklyBlock, weeklyAnchorsFromSlotIds } from '../../utils/blockWeekly'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -25,29 +25,27 @@ export default defineEventHandler(async (event) => {
   }
 
   const weeks = body.weeks != null ? clampWeeklyWeeks(body.weeks) : 1
-  const anchorId = String(body.slotId || body.slotIds?.[0] || '').trim()
+  const ids = body.slotIds?.length
+    ? body.slotIds
+    : body.slotId
+      ? [body.slotId]
+      : []
 
   try {
     if (weeks > 1) {
-      if (!anchorId) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
-      const anchor = await prisma.slot.findFirst({
-        where: { id: anchorId, court: { clubId: club.id } },
-        select: { courtId: true, date: true, startTime: true },
-      })
-      if (!anchor) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
+      if (!ids.length) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
+      const anchors = await weeklyAnchorsFromSlotIds(club.id, ids)
+      if (!anchors.length) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
 
       return await applyWeeklyBlock({
         clubId: club.id,
-        courtId: anchor.courtId,
-        startTime: anchor.startTime,
-        anchorDate: anchor.date,
+        anchors,
         weeks,
         acceptSkips: Boolean(body.acceptSkips),
         guestData,
       })
     }
 
-    const ids = body.slotIds?.length ? body.slotIds : body.slotId ? [body.slotId] : []
     if (!ids.length) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
     return await applyBlockSlotIds({ clubId: club.id, slotIds: ids, guestData })
   } catch (err) {
