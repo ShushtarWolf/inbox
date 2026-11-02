@@ -33,7 +33,14 @@ type PaymentRow = {
   deskCashReturn?: 'owed' | 'returned' | null
 }
 
-const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch<{ balance?: number }>('/api/wallet')
+const { data: wallet, pending: walletPending, refresh: refreshWallet } = await useAuthedFetch<{
+  balance?: number
+  online?: { availableBalance?: number }
+  cashDesk?: { inTill?: number; returnsOwed?: number }
+}>('/api/wallet')
+const onlineWalletBalance = computed(() => Number(wallet.value?.online?.availableBalance ?? wallet.value?.balance ?? 0))
+const cashInClub = computed(() => Number(wallet.value?.cashDesk?.inTill || 0))
+const cashReturnsOwed = computed(() => Number(wallet.value?.cashDesk?.returnsOwed || 0))
 const { data, pending, error, refresh } = await useAuthedFetch<{
   payments?: PaymentRow[]
 }>('/api/athlete/payments?limit=100')
@@ -193,14 +200,32 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
           <AppIcon name="account_balance_wallet" size="sm" />
         </span>
         <div class="min-w-0 flex-1 text-start">
-          <p>{{ t('nav.wallet') }}</p>
-          <p class="mt-0.5 text-xs font-medium text-brand-gray-500">{{ t('athlete.walletSubtitle') }}</p>
+          <p>{{ t('athlete.walletOnlineBalance') }}</p>
+          <p class="mt-0.5 text-xs font-medium text-brand-gray-500">{{ t('athlete.walletOnlineHint') }}</p>
         </div>
-        <p class="shrink-0 text-sm font-bold text-brand-primary">
-          {{ formatCurrency(walletPending ? 0 : (wallet?.balance || 0)) }}
+        <p class="shrink-0 text-sm font-bold text-brand-primary tabular-nums">
+          {{ formatCurrency(walletPending ? 0 : onlineWalletBalance) }}
         </p>
         <AppIcon name="chevron_left" size="sm" class="text-brand-gray-400" />
       </NuxtLink>
+      <div class="canva-dash-menu-item pointer-events-none">
+        <span class="canva-dash-menu-icon">
+          <AppIcon name="payments" size="sm" />
+        </span>
+        <div class="min-w-0 flex-1 text-start">
+          <p>{{ t('athlete.walletCashBookTitle') }}</p>
+          <p class="mt-0.5 text-xs font-medium text-brand-gray-500">{{ t('athlete.walletCashBookHint') }}</p>
+          <p
+            v-if="cashReturnsOwed > 0"
+            class="mt-0.5 text-xs font-bold text-red-600"
+          >
+            {{ t('athlete.walletCashReturnsOwed') }}: {{ formatCurrency(cashReturnsOwed) }}
+          </p>
+        </div>
+        <p class="shrink-0 text-sm font-bold text-brand-navy tabular-nums">
+          {{ formatCurrency(walletPending ? 0 : cashInClub) }}
+        </p>
+      </div>
     </div>
 
     <p v-if="payError" class="canva-flash-error text-start text-sm">{{ payError }}</p>

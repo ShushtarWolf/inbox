@@ -44,8 +44,12 @@ type PaymentRow = {
   courtNameFa: string | null
   date: string | null
   startTime: string | null
+  manualRefundRequired?: boolean
+  refundChannel?: string | null
 }
 
+const route = useRoute()
+const router = useRouter()
 const tab = ref<'bookings' | 'payments'>('bookings')
 const bookings = ref<BookingRow[]>([])
 const payments = ref<PaymentRow[]>([])
@@ -54,7 +58,10 @@ const loadError = ref('')
 const search = ref('')
 const bookingStatusFilter = ref<'ALL' | BookingRow['status']>('ALL')
 const paymentStatusFilter = ref<PaymentFilter>('ALL')
+const manualRefundOnly = ref(route.query.manualRefund === '1' || route.query.manualRefund === 'true')
 const expandedId = ref<string | null>(null)
+
+if (manualRefundOnly.value) tab.value = 'payments'
 
 const chipBase = 'border px-3 py-1.5 text-xs font-bold transition'
 const chipActive = 'border-brand-primary bg-brand-primary text-white'
@@ -152,8 +159,12 @@ async function load() {
       bookings.value = data.bookings
     } else {
       const params = new URLSearchParams({ limit: '50' })
-      if (isPaymentChannel(paymentStatusFilter.value)) params.set('paymentChannel', paymentStatusFilter.value)
-      else if (paymentStatusFilter.value !== 'ALL') params.set('status', paymentStatusFilter.value)
+      if (manualRefundOnly.value) {
+        params.set('manualRefund', '1')
+      } else {
+        if (isPaymentChannel(paymentStatusFilter.value)) params.set('paymentChannel', paymentStatusFilter.value)
+        else if (paymentStatusFilter.value !== 'ALL') params.set('status', paymentStatusFilter.value)
+      }
       if (search.value.trim()) params.set('q', search.value.trim())
       const data = await adminFetch<{ payments: PaymentRow[] }>(`/api/admin/payments?${params}`)
       payments.value = data.payments
@@ -175,8 +186,18 @@ watch(secret, (value) => {
   if (value) load()
 }, { immediate: true })
 
+watch(manualRefundOnly, (on) => {
+  const query = { ...route.query }
+  if (on) query.manualRefund = '1'
+  else delete query.manualRefund
+  router.replace({ path: route.path, query })
+  if (on) tab.value = 'payments'
+  void load()
+})
+
 watch(tab, () => {
   search.value = ''
+  if (tab.value === 'bookings' && manualRefundOnly.value) manualRefundOnly.value = false
   bookingStatusFilter.value = 'ALL'
   paymentStatusFilter.value = 'ALL'
   if (secret.value) load()
@@ -216,11 +237,19 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
       </button>
       <button
         type="button"
-        :class="[chipBase, tab === 'payments' ? chipActive : chipIdle]"
+        :class="[chipBase, tab === 'payments' && !manualRefundOnly ? chipActive : chipIdle]"
         style="border-radius: 2px;"
-        @click="tab = 'payments'"
+        @click="manualRefundOnly = false; tab = 'payments'"
       >
         {{ t('admin.paymentsTab') }}
+      </button>
+      <button
+        type="button"
+        :class="[chipBase, manualRefundOnly ? chipActive : chipIdle]"
+        style="border-radius: 2px;"
+        @click="manualRefundOnly = true"
+      >
+        {{ t('admin.metrics.manualRefundsOwed') }}
       </button>
     </div>
 

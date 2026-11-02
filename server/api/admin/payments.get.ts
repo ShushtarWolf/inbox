@@ -1,5 +1,6 @@
 import type { PaymentStatus, Prisma } from '@prisma/client'
 import { isPaymentChannel, paymentRowChannelWhere } from '#shared/bookingPayment.ts'
+import { MANUAL_REFUND_MARKER, parsePaymentMetadata } from '#shared/cancelRefund.ts'
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
   'PAY_AT_CLUB',
@@ -17,9 +18,12 @@ export default defineEventHandler(async (event) => {
   const status = typeof query.status === 'string' ? query.status : undefined
   const paymentChannel = typeof query.paymentChannel === 'string' ? query.paymentChannel : undefined
   const q = typeof query.q === 'string' ? query.q.trim() : ''
+  const manualRefundOnly = query.manualRefund === '1' || query.manualRefund === 'true'
 
   const whereAnd: Prisma.PaymentWhereInput[] = []
-  if (status && PAYMENT_STATUSES.includes(status as PaymentStatus)) {
+  if (manualRefundOnly) {
+    whereAnd.push({ status: 'REFUNDED', metadataJson: { contains: MANUAL_REFUND_MARKER } })
+  } else if (status && PAYMENT_STATUSES.includes(status as PaymentStatus)) {
     whereAnd.push({ status: status as PaymentStatus })
   }
   const channelWhere = isPaymentChannel(paymentChannel)
@@ -77,22 +81,27 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    payments: payments.map((payment) => ({
-      id: payment.id,
-      amount: payment.amount,
-      method: payment.method,
-      status: payment.status,
-      provider: payment.provider,
-      createdAt: payment.createdAt,
-      bookingId: payment.bookingId,
-      club: payment.booking?.slot.court.club || null,
-      user: payment.booking?.user || null,
-      guestName: payment.booking?.guestName || null,
-      guestMobile: payment.booking?.guestMobile || null,
-      bookingStatus: payment.booking?.status || null,
-      courtNameFa: payment.booking?.slot.court.nameFa || null,
-      date: payment.booking?.slot.date || null,
-      startTime: payment.booking?.slot.startTime || null,
-    })),
+    payments: payments.map((payment) => {
+      const meta = parsePaymentMetadata(payment.metadataJson)
+      return {
+        id: payment.id,
+        amount: payment.amount,
+        method: payment.method,
+        status: payment.status,
+        provider: payment.provider,
+        createdAt: payment.createdAt,
+        bookingId: payment.bookingId,
+        club: payment.booking?.slot.court.club || null,
+        user: payment.booking?.user || null,
+        guestName: payment.booking?.guestName || null,
+        guestMobile: payment.booking?.guestMobile || null,
+        bookingStatus: payment.booking?.status || null,
+        courtNameFa: payment.booking?.slot.court.nameFa || null,
+        date: payment.booking?.slot.date || null,
+        startTime: payment.booking?.slot.startTime || null,
+        manualRefundRequired: meta.manualRefundRequired === true,
+        refundChannel: typeof meta.refundChannel === 'string' ? meta.refundChannel : null,
+      }
+    }),
   }
 })

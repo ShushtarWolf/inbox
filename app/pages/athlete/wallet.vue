@@ -8,9 +8,27 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
-const { formatCurrency, formatDate } = useFormatters()
+const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
 const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
+type AthleteCashDesk = {
+  inTill?: number
+  returnsOwed?: number
+  returnsOwedCount?: number
+  returnsReturned?: number
+  returnsReturnedCount?: number
+  recent?: Array<{
+    id: string
+    amount: number
+    status: string
+    deskCashReturn: 'owed' | 'returned' | null
+    clubName: string | null
+    date: string | null
+    startTime: string | null
+    title: string | null
+  }>
+}
+
 const { data, pending, error, refresh } = await useAuthedFetch<{
   balance?: number
   availableBalance?: number
@@ -22,6 +40,8 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: { proposedSheba: string | null; adminNote?: string | null } | null
   lastShebaRejection?: { adminNote?: string | null } | null
+  online?: { availableBalance?: number; lockedBalance?: number }
+  cashDesk?: AthleteCashDesk
   pendingWithdraws?: Array<{ id: string; amount: number }>
   transactions?: Array<{
     id: string
@@ -73,6 +93,15 @@ const topUpAmount = computed(() => {
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
 const pendingClassBalance = computed(() => Number(data.value?.pendingClassBalance || 0))
+const onlineBalance = computed(() => Number(data.value?.online?.availableBalance ?? data.value?.balance ?? 0))
+const cashDesk = computed(() => data.value?.cashDesk || null)
+
+function cashDeskRowLabel(row: NonNullable<AthleteCashDesk['recent']>[number]) {
+  if (row.status === 'REFUNDED' && row.deskCashReturn === 'owed') return t('athlete.paymentStatusRefundedCashOwed')
+  if (row.status === 'REFUNDED' && row.deskCashReturn === 'returned') return t('athlete.paymentStatusRefundedCashReturned')
+  if (row.status === 'PAID') return t('athlete.paymentMethodCash')
+  return row.status
+}
 
 const canTopUp = computed(() => {
   const amount = topUpAmount.value
@@ -225,9 +254,26 @@ watch(
   <div class="venus-page-stack ath-wallet-sot">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.walletTitle')" :subtitle="t('athlete.walletSubtitle')" />
     <section class="canva-dash-hero ath-wallet-hero">
-      <p class="text-xs text-white/80 text-start">{{ t('athlete.walletTitle') }}</p>
-      <p class="ath-wallet-amount mt-2 text-3xl font-bold text-start">{{ formatCurrency(data?.balance || 0) }}</p>
+      <p class="text-xs text-white/80 text-start">{{ t('athlete.walletBooksTitle') }}</p>
       <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
+      <div class="mt-3 grid gap-2 min-[431px]:grid-cols-2">
+        <div class="border border-white/25 bg-black/20 px-3 py-2 text-start">
+          <p class="text-[11px] text-white/75">{{ t('athlete.walletOnlineBalance') }}</p>
+          <p class="ath-wallet-amount mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(onlineBalance) }}</p>
+          <p class="mt-1 text-[11px] text-white/70">{{ t('athlete.walletOnlineHint') }}</p>
+        </div>
+        <div class="border border-white/25 bg-black/20 px-3 py-2 text-start">
+          <p class="text-[11px] text-white/75">{{ t('athlete.walletCashBookTitle') }}</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(cashDesk?.inTill || 0) }}</p>
+          <p class="mt-1 text-[11px] text-white/70">{{ t('athlete.walletCashBookHint') }}</p>
+          <p
+            v-if="(cashDesk?.returnsOwed || 0) > 0"
+            class="mt-1 text-[11px] font-bold text-amber-200"
+          >
+            {{ t('athlete.walletCashReturnsOwed') }}: {{ formatCurrency(cashDesk?.returnsOwed || 0) }}
+          </p>
+        </div>
+      </div>
       <p
         v-if="data?.canBankWithdraw"
         class="mt-2 text-xs text-white/80 text-start"
@@ -257,8 +303,50 @@ watch(
     </p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
+      <section class="canva-panel space-y-3 text-start">
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletCashBookTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ t('athlete.walletCashBookHint') }}</p>
+        <dl class="space-y-1 text-sm">
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('athlete.walletCashInClub') }}</dt>
+            <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(cashDesk?.inTill || 0) }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('athlete.walletCashReturnsOwed') }}</dt>
+            <dd
+              class="tabular-nums font-bold"
+              :class="(cashDesk?.returnsOwed || 0) > 0 ? 'text-red-600' : 'text-brand-navy'"
+            >
+              {{ formatCurrency(cashDesk?.returnsOwed || 0) }}
+            </dd>
+          </div>
+          <div v-if="(cashDesk?.returnsReturned || 0) > 0" class="flex justify-between gap-3">
+            <dt>{{ t('athlete.walletCashReturnsReturned') }}</dt>
+            <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(cashDesk?.returnsReturned || 0) }}</dd>
+          </div>
+        </dl>
+        <div v-if="cashDesk?.recent?.length" class="space-y-2">
+          <div
+            v-for="row in cashDesk.recent"
+            :key="row.id"
+            class="canva-list-card text-sm text-start"
+          >
+            <div class="flex justify-between gap-2">
+              <p class="font-bold text-brand-navy">{{ row.clubName || row.title || '—' }}</p>
+              <p class="tabular-nums font-bold">{{ formatCurrency(row.amount) }}</p>
+            </div>
+            <p class="mt-1 text-xs text-brand-gray-600">
+              {{ cashDeskRowLabel(row) }}
+              <template v-if="row.date"> · {{ formatDate(row.date) }}</template>
+              <template v-if="row.startTime"> · <bdi dir="ltr">{{ formatTimeLabel(row.startTime) }}</bdi></template>
+            </p>
+          </div>
+        </div>
+        <p v-else class="text-sm text-brand-gray-500">{{ t('athlete.walletCashEmpty') }}</p>
+      </section>
+
       <section class="canva-panel canva-sot-form space-y-3 text-start">
-        <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletTopUpTitle') }}</h2>
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletTopUpTitle') }} · {{ t('athlete.walletOnlineBalance') }}</h2>
         <p v-if="!onlineEnabled" class="text-sm text-brand-gray-600">
           {{ t('athlete.walletTopUpRequiresOnline') }}
         </p>
@@ -365,7 +453,7 @@ watch(
 
       <div class="space-y-2">
         <!-- HTML .rh3 -->
-        <h2 class="ath-wallet-history-title text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }}</h2>
+        <h2 class="ath-wallet-history-title text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }} · {{ t('athlete.walletOnlineBalance') }}</h2>
         <div v-if="data?.transactions?.length" class="space-y-2">
           <div v-for="tx in data.transactions" :key="tx.id" class="canva-list-card text-sm text-start">
             <div class="flex items-center justify-between gap-2">

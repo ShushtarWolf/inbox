@@ -1,3 +1,4 @@
+import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
 import {
   getWalletBalances,
   getWalletPendingClassBalance,
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
     prisma.coach.findFirst({ where: { userId: user.id }, select: { id: true } }),
   ])
   const canBankWithdraw = Boolean(coach)
-  const [wallet, shebaState, pendingWithdraws, recentWithdraws] = await Promise.all([
+  const [wallet, shebaState, pendingWithdraws, recentWithdraws, cashPayments] = await Promise.all([
     prisma.wallet.findUnique({
       where: { userId: user.id },
       include: {
@@ -39,6 +40,49 @@ export default defineEventHandler(async (event) => {
           take: 10,
         })
       : Promise.resolve([]),
+    prisma.payment.findMany({
+      where: {
+        method: 'CASH',
+        status: { in: ['PAID', 'REFUNDED'] },
+        OR: [
+          { booking: { userId: user.id } },
+          { coachSession: { athleteId: user.id } },
+          { packageBooking: { athleteId: user.id } },
+        ],
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 80,
+      select: {
+        id: true,
+        amount: true,
+        method: true,
+        status: true,
+        metadataJson: true,
+        booking: {
+          select: {
+            slot: {
+              select: {
+                date: true,
+                startTime: true,
+                court: { select: { nameFa: true, club: { select: { nameFa: true } } } },
+              },
+            },
+          },
+        },
+        coachSession: {
+          select: {
+            date: true,
+            startTime: true,
+            coach: { select: { nameFa: true, club: { select: { nameFa: true } } } },
+          },
+        },
+        packageBooking: {
+          select: {
+            package: { select: { title: true, club: { select: { nameFa: true } } } },
+          },
+        },
+      },
+    }),
   ])
 
   const shebaUiStatus = canBankWithdraw
@@ -48,6 +92,26 @@ export default defineEventHandler(async (event) => {
         lastRejected: shebaState.lastRejected,
       })
     : 'none'
+
+  const cashDesk = summarizeAthleteCashDesk(
+    cashPayments.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      method: p.method,
+      status: p.status,
+      metadataJson: p.metadataJson,
+      clubName: p.booking?.slot.court.club.nameFa
+        || p.coachSession?.coach.club.nameFa
+        || p.packageBooking?.package.club.nameFa
+        || null,
+      date: p.booking?.slot.date || p.coachSession?.date || null,
+      startTime: p.booking?.slot.startTime || p.coachSession?.startTime || null,
+      title: p.booking?.slot.court.nameFa
+        || p.coachSession?.coach.nameFa
+        || p.packageBooking?.package.title
+        || null,
+    })),
+  )
 
   return {
     balance: balances.availableBalance,
@@ -68,9 +132,15 @@ export default defineEventHandler(async (event) => {
           reviewedAt: shebaState.lastRejected.reviewedAt?.toISOString() ?? null,
         }
       : null,
+    /** Online rail only — spendable closed-loop credit. */
+    online: {
+      availableBalance: balances.availableBalance,
+      lockedBalance: balances.lockedBalance,
+    },
+    /** Cash rail — accounting only; never spendable in the app wallet. */
+    cashDesk,
     transactions: wallet?.transactions || [],
     pendingWithdraws,
     withdraws: recentWithdraws,
   }
 })
-

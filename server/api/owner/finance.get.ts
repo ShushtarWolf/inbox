@@ -4,6 +4,7 @@ import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { addDaysToIsoDate, localDateString, localTimeString } from '#shared/localDate.ts'
+import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
 import { paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
@@ -255,13 +256,18 @@ export default defineEventHandler(async (event) => {
 
   const weekLabels: string[] = []
   const weeklyRevenue: number[] = []
+  const weeklyCash: number[] = []
+  const weeklyOnline: number[] = []
   for (let offset = 6; offset >= 0; offset -= 1) {
     // Tehran calendar day (slot dates are Tehran), not UTC.
     const key = addDaysToIsoDate(today, -offset)
     weekLabels.push(key)
-    weeklyRevenue.push(
-      summarizeCollectedRevenue(courtRevenueRows.filter((row) => row.date === key).map((row) => row.revenue)).total,
+    const daySummary = summarizeCollectedRevenue(
+      courtRevenueRows.filter((row) => row.date === key).map((row) => row.revenue),
     )
+    weeklyRevenue.push(daySummary.total)
+    weeklyCash.push(daySummary.cash)
+    weeklyOnline.push(daySummary.online)
   }
 
   // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
@@ -488,6 +494,21 @@ export default defineEventHandler(async (event) => {
       courtName: p.booking?.slot.court.nameFa || null,
     }))
 
+  // Open dual-rail books (not period-scoped): till vs online float still on the books.
+  const openBookPayments = await prisma.payment.findMany({
+    where: {
+      OR: [
+        { booking: { slot: { court: { clubId: club.id } } } },
+        { packageBooking: { package: { clubId: club.id } } },
+      ],
+      status: { in: ['PAID', 'REFUNDED'] },
+      method: { in: ['CASH', 'IPG', 'PAID'] },
+    },
+    select: { amount: true, method: true, status: true, metadataJson: true },
+  })
+  const cashBook = summarizeCashBook(openBookPayments)
+  const onlineOpen = summarizeOnlineOpen(openBookPayments)
+
   return {
     /**
      * Club money this Jalali month by rail. `cash` is in the club's own till;
@@ -500,6 +521,14 @@ export default defineEventHandler(async (event) => {
       onlineNet: onlineNetMonth,
       keptOnCancel: monthSummary.keptOnCancel,
       coachFees: coachFeesMonth.total,
+    },
+    /** Persistent dual-rail books — never net cash into online withdrawable. */
+    books: {
+      cash: cashBook,
+      online: {
+        collectedOpen: onlineOpen.collectedOpen,
+        netMonth: onlineNetMonth,
+      },
     },
     stats: {
       revenue,
@@ -516,6 +545,8 @@ export default defineEventHandler(async (event) => {
     },
     funnel,
     weeklyRevenue,
+    weeklyCash,
+    weeklyOnline,
     weekLabels,
     paymentBreakdown,
     transactions,

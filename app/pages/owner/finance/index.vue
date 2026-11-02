@@ -67,10 +67,26 @@ type OwnerFinanceRevenueBreakdown = {
   coachFees?: number
 }
 
+type OwnerFinanceCashBook = {
+  inTill?: number
+  returnsOwed?: number
+  returnsOwedCount?: number
+  returnsReturned?: number
+  returnsReturnedCount?: number
+}
+
+type OwnerFinanceBooks = {
+  cash?: OwnerFinanceCashBook
+  online?: { collectedOpen?: number; netMonth?: number }
+}
+
 type OwnerFinanceResponse = {
   revenueBreakdown?: OwnerFinanceRevenueBreakdown
+  books?: OwnerFinanceBooks
   stats?: OwnerFinanceStats
   weeklyRevenue?: number[]
+  weeklyCash?: number[]
+  weeklyOnline?: number[]
   weekLabels?: string[]
   paymentBreakdown?: OwnerFinancePaymentBreakdown
   transactions?: OwnerFinanceTransaction[]
@@ -117,6 +133,8 @@ const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'la
 const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
 const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
+/** Dual-rail accounting tab — drives paymentFilter for cash vs online books. */
+const bookRail = ref<'all' | 'cash' | 'online'>('all')
 const legendFilter = ref<FinanceLegendFilter>('all')
 const guestQuery = ref('')
 const discountQuery = ref('')
@@ -167,6 +185,14 @@ const { data: transferCoaches, refresh: refreshTransferCoaches } = await useAuth
 )
 
 const deskCashReturnsOwed = computed(() => data.value?.deskCashReturnsOwed || [])
+const cashBook = computed(() => data.value?.books?.cash || null)
+const onlineBook = computed(() => data.value?.books?.online || null)
+
+watch(bookRail, (rail) => {
+  if (rail === 'cash') paymentFilter.value = 'cash'
+  else if (rail === 'online') paymentFilter.value = 'ipg'
+  else if (paymentFilter.value === 'cash' || paymentFilter.value === 'ipg') paymentFilter.value = 'all'
+})
 
 async function ackDeskCashReturn(paymentId: string) {
   if (cashAckBusyId.value) return
@@ -346,6 +372,18 @@ const heroAmount = computed(() => {
 })
 
 const revenueBreakdown = computed(() => data.value?.revenueBreakdown || null)
+const periodRailCash = computed(() => {
+  if (period.value === 'month') return Number(revenueBreakdown.value?.cash || 0)
+  const series = data.value?.weeklyCash || []
+  if (period.value === 'day') return Number(series[series.length - 1] || 0)
+  return series.reduce((sum, n) => sum + Number(n || 0), 0)
+})
+const periodRailOnline = computed(() => {
+  if (period.value === 'month') return Number(revenueBreakdown.value?.online || 0)
+  const series = data.value?.weeklyOnline || []
+  if (period.value === 'day') return Number(series[series.length - 1] || 0)
+  return series.reduce((sum, n) => sum + Number(n || 0), 0)
+})
 
 const heroDateLabel = computed(() => {
   const iso = today()
@@ -588,26 +626,26 @@ function showUnpaidList() {
       >
         {{ vsYesterdayLabel }}
       </p>
-      <dl v-if="period === 'month' && revenueBreakdown" class="mt-3 space-y-1 text-start text-xs text-white/85">
+      <dl class="mt-3 space-y-1 text-start text-xs text-white/85">
         <div class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railCash') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.cash || 0) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(periodRailCash) }}</dd>
         </div>
         <div class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railOnline') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.online || 0) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(periodRailOnline) }}</dd>
         </div>
-        <div class="flex justify-between gap-3">
+        <div v-if="period === 'month' && revenueBreakdown" class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railOnlineNet') }}</dt>
           <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.onlineNet || 0) }}</dd>
         </div>
-        <div v-if="(revenueBreakdown.keptOnCancel || 0) > 0" class="flex justify-between gap-3">
+        <div v-if="period === 'month' && (revenueBreakdown?.keptOnCancel || 0) > 0" class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railKeptOnCancel') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.keptOnCancel || 0) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.keptOnCancel || 0) }}</dd>
         </div>
-        <div v-if="(revenueBreakdown.coachFees || 0) > 0" class="flex justify-between gap-3 text-white/60">
+        <div v-if="period === 'month' && (revenueBreakdown?.coachFees || 0) > 0" class="flex justify-between gap-3 text-white/60">
           <dt>{{ t('owner.financePage.railCoachFees') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.coachFees || 0) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.coachFees || 0) }}</dd>
         </div>
       </dl>
       <NuxtLink
@@ -617,6 +655,74 @@ function showUnpaidList() {
         {{ t('owner.financePage.advancedReport') }}
       </NuxtLink>
     </section>
+
+    <section class="mt-3 grid gap-2 min-[431px]:grid-cols-2" :aria-label="t('owner.financePage.booksTitle')">
+      <div class="canva-panel space-y-2 text-start">
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.bookCashTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.bookCashHint') }}</p>
+        <dl class="space-y-1 text-sm">
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('owner.financePage.bookCashInTill') }}</dt>
+            <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(cashBook?.inTill || 0) }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('owner.financePage.bookCashReturnsOwed') }}</dt>
+            <dd class="tabular-nums font-bold" :class="(cashBook?.returnsOwed || 0) > 0 ? 'text-red-600' : 'text-brand-navy'">
+              {{ formatCurrency(cashBook?.returnsOwed || 0) }}
+            </dd>
+          </div>
+        </dl>
+        <button
+          type="button"
+          class="canva-gate-btn-secondary w-full text-xs"
+          @click="bookRail = 'cash'"
+        >
+          {{ t('owner.financePage.bookFilterCash') }}
+        </button>
+      </div>
+      <div class="canva-panel space-y-2 text-start">
+        <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.bookOnlineTitle') }}</h2>
+        <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.bookOnlineHint') }}</p>
+        <dl class="space-y-1 text-sm">
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('owner.financePage.bookOnlineWithdrawable') }}</dt>
+            <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(settlement?.withdrawableBalance ?? 0) }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt>{{ t('owner.financePage.bookOnlineCollectedOpen') }}</dt>
+            <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(onlineBook?.collectedOpen || 0) }}</dd>
+          </div>
+        </dl>
+        <button
+          type="button"
+          class="canva-gate-btn-secondary w-full text-xs"
+          @click="bookRail = 'online'"
+        >
+          {{ t('owner.financePage.bookFilterOnline') }}
+        </button>
+      </div>
+    </section>
+
+    <div class="canva-finance-period mt-3" role="group" :aria-label="t('owner.financePage.booksTitle')">
+      <button
+        type="button"
+        class="canva-finance-period-btn"
+        :class="bookRail === 'all' ? 'canva-finance-period-active' : ''"
+        @click="bookRail = 'all'"
+      >{{ t('owner.financePage.bookFilterAll') }}</button>
+      <button
+        type="button"
+        class="canva-finance-period-btn"
+        :class="bookRail === 'cash' ? 'canva-finance-period-active' : ''"
+        @click="bookRail = 'cash'"
+      >{{ t('owner.financePage.bookFilterCash') }}</button>
+      <button
+        type="button"
+        class="canva-finance-period-btn"
+        :class="bookRail === 'online' ? 'canva-finance-period-active' : ''"
+        @click="bookRail = 'online'"
+      >{{ t('owner.financePage.bookFilterOnline') }}</button>
+    </div>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div class="canva-finance-wide">
@@ -828,7 +934,7 @@ function showUnpaidList() {
         <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ t('common.empty') }}</p>
       </div>
 
-      <div v-if="showTransactions && deskCashReturnsOwed.length" class="canva-panel space-y-3">
+      <div v-if="showTransactions && bookRail !== 'online' && deskCashReturnsOwed.length" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.deskCashReturnsTitle') }}</h2>
         <p class="text-sm text-brand-gray-600 text-start">{{ t('owner.financePage.deskCashReturnsHint') }}</p>
         <p v-if="cashAckError" class="text-sm text-red-600 text-start" role="alert">{{ cashAckError }}</p>
@@ -858,8 +964,8 @@ function showUnpaidList() {
         </ul>
       </div>
 
-      <div v-if="showPayoutsSection" class="canva-panel space-y-3">
-        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
+      <div v-if="showPayoutsSection && bookRail !== 'cash'" class="canva-panel space-y-3">
+        <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.bookOnlineTitle') }} · {{ t('owner.financePage.payoutsTitle') }}</h2>
         <p class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
         </p>

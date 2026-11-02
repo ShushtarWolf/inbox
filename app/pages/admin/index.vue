@@ -161,7 +161,10 @@ watch(secret, (value) => {
             <div class="admin-akv"><span>{{ t('admin.metrics.bookingsToday') }}</span><b dir="ltr">{{ formatNumber(data.bookings.today) }}</b></div>
             <div class="admin-akv"><span>{{ t('admin.metrics.pendingPayments') }}</span><b dir="ltr">{{ formatNumber(data.payments.pendingCount) }}</b></div>
             <div class="admin-akv">
-              <span>{{ t('admin.metrics.manualRefundsOwed') }}</span>
+              <NuxtLink
+                :to="localePath({ path: '/admin/bookings', query: { manualRefund: '1' } })"
+                class="admin-alink"
+              >{{ t('admin.metrics.manualRefundsOwed') }}</NuxtLink>
               <b dir="ltr" :class="(data.payments.manualRefundsOwed || 0) > 0 ? 'text-red-600' : ''">{{ formatNumber(data.payments.manualRefundsOwed || 0) }}</b>
             </div>
           </div>

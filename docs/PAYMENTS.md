@@ -110,6 +110,17 @@ Owner **Mark paid (cash)** remains for walk-ins and unpaid online attempts (`PEN
 
 **Desk cash / complimentary never settle** into club or coach withdrawable wallets (`creditOwnerForPaidPayment` skips `method=CASH`). `Payment` rows remain for ops reporting. Historical phantom CASH settlements: `node scripts/audit-money-bugs.mjs` then `APPLY=yes node scripts/correct-cash-settlements.mjs` (append-only clawback).
 
+### Dual-rail books (UI)
+
+Owner finance and athlete wallet expose **two separate books** — never one mixed balance:
+
+| Book | Owner | Athlete |
+|------|-------|---------|
+| **نقد / صندوق** | `books.cash` (`inTill`, `returnsOwed`) + desk ack list | `cashDesk` (paid at club + returns owed/returned) — not spendable |
+| **آنلاین / درگاه** | Settlement withdrawable + settlement ledger | Wallet `availableBalance` + wallet txs |
+
+APIs: `GET /api/owner/finance` → `books`, `GET /api/wallet` → `online` + `cashDesk`. Admin guest IPG cancels needing bank transfer: `/admin/bookings?manualRefund=1`.
+
 Owner desk **ارسال لینک پرداخت** (not shown in `pay_at_club` — that button is **رزرو بدون دریافت وجه**) creates an unpaid IPG booking, SMS a token10-safe pay pin, and shows a copy/WhatsApp URL to `https://inboxs.ir/p/{pin}` (opens the receipt Pay CTA). Checkout still requires `PAYMENTS_MODE=test` or `live`.
 
 ## Cancellation refunds
