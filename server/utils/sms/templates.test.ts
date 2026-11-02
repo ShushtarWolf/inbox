@@ -343,6 +343,23 @@ describe('SMS templates', () => {
       }),
     ).toContain('برداشت باشگاه')
     expect(
+      renderSmsTemplate('ADMIN_WITHDRAW_REQUEST', {
+        kind: 'coach',
+        userName: 'بهناز تعبدی',
+        userPhone: '09122900854',
+        amount: 500000,
+        sheba: 'IR123456789012345678901234',
+      }),
+    ).toContain('برداشت مربی')
+    expect(
+      renderSmsTemplate('ADMIN_WITHDRAW_REQUEST', {
+        kind: 'coach',
+        userName: 'بهناز تعبدی',
+        amount: 500000,
+        sheba: 'IR123456789012345678901234',
+      }),
+    ).toContain('اقدام در ادمین')
+    expect(
       renderSmsTemplate('ADMIN_CLUB_APPLICATION', {
         clubName: 'باشگاه نو',
         city: 'تهران',

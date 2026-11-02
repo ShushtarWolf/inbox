@@ -422,14 +422,22 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
     ].filter(Boolean).join(' | ')
   },
   ADMIN_WITHDRAW_REQUEST: (data) => {
-    const kind = String(data.kind || '').toLowerCase() === 'athlete' ? 'ورزشکار' : 'باشگاه'
-    const who = kind === 'ورزشکار'
-      ? (String(data.userName || data.userPhone || '').trim() || 'ورزشکار')
-      : (String(data.clubName || '').trim() || 'باشگاه')
+    const kindRaw = String(data.kind || '').toLowerCase()
+    const kindLabel = kindRaw === 'club'
+      ? 'باشگاه'
+      : kindRaw === 'coach'
+        ? 'مربی'
+        : 'ورزشکار'
+    const userPhone = String(data.userPhone || '').trim()
+    const who = kindRaw === 'club'
+      ? (String(data.clubName || '').trim() || 'باشگاه')
+      : (String(data.userName || '').trim()
+        || (userPhone ? toPersianDigits(userPhone) : '')
+        || kindLabel)
     const amount = amountBit(data)
     const sheba = String(data.sheba || '').trim()
     return [
-      `برداشت ${kind}`,
+      `برداشت ${kindLabel}`,
       who,
       amount,
       sheba ? `شبا ${toPersianDigits(sheba.slice(-4))}` : '',

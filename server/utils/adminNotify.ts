@@ -4,6 +4,21 @@ import type { NotifyTemplate } from './notify'
 import { sendNotification } from './notify'
 import { renderSmsTemplate } from './sms/templates'
 
+function parseAlertPhoneList(raw: string): string[] {
+  const out: string[] = []
+  for (const part of raw.split(/[,;]/)) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+    try {
+      out.push(normalizeIranPhone(trimmed))
+    }
+    catch {
+      // skip invalid entries
+    }
+  }
+  return out
+}
+
 export type AdminSmsTemplate =
   | 'ADMIN_BOOKING_CONFIRMED'
   | 'ADMIN_BOOKING_PAID'
@@ -27,6 +42,22 @@ export function adminAlertPhone(): string | null {
   ).trim()
   if (!raw) return null
   return normalizeIranPhone(raw)
+}
+
+/**
+ * Finance / family ops (فامیل) — manual SHEBA payouts for coach, athlete, and club withdraws.
+ * `WITHDRAW_FINANCE_ALERT_PHONE` (comma-separated). Falls back to `ADMIN_ALERT_PHONE` when unset.
+ */
+export function withdrawFinanceAlertPhones(): string[] {
+  if (process.env.ADMIN_ALERT_SMS === 'false') return []
+  const dedicated = (
+    process.env.WITHDRAW_FINANCE_ALERT_PHONE
+    ?? process.env.FINANCE_ALERT_PHONE
+    ?? ''
+  ).trim()
+  if (dedicated) return parseAlertPhoneList(dedicated)
+  const fallback = adminAlertPhone()
+  return fallback ? [fallback] : []
 }
 
 /** Soft-fail SMS to platform admin — never breaks product flows. */
@@ -91,7 +122,7 @@ export async function notifyAdminCoachApplication(opts: {
 }
 
 export async function notifyAdminWithdrawRequest(opts: {
-  kind: 'club' | 'athlete'
+  kind: 'club' | 'athlete' | 'coach'
   amount: number
   sheba?: string | null
   clubName?: string | null
@@ -100,19 +131,34 @@ export async function notifyAdminWithdrawRequest(opts: {
   userPhone?: string | null
   requestId?: string | null
 }) {
-  await notifyAdminSms(
-    'ADMIN_WITHDRAW_REQUEST',
-    {
-      kind: opts.kind,
-      amount: opts.amount,
-      sheba: opts.sheba || '',
-      clubName: opts.clubName || '',
-      userName: opts.userName || '',
-      userPhone: opts.userPhone || '',
-      requestId: opts.requestId || '',
-    },
-    opts.clubId || undefined,
-  )
+  const phones = withdrawFinanceAlertPhones()
+  if (!phones.length) return
+  const mode = resolveSmsProvider()
+  const data = {
+    kind: opts.kind,
+    amount: opts.amount,
+    sheba: opts.sheba || '',
+    clubName: opts.clubName || '',
+    userName: opts.userName || '',
+    userPhone: opts.userPhone || '',
+    requestId: opts.requestId || '',
+  }
+  const body = renderSmsTemplate('ADMIN_WITHDRAW_REQUEST', data)
+  for (const phone of phones) {
+    console.log('[adminNotify:withdraw]', mode, opts.kind, phone, body)
+    try {
+      await sendNotification({
+        channel: 'sms',
+        to: phone,
+        template: 'ADMIN_WITHDRAW_REQUEST',
+        data,
+        clubId: opts.clubId || undefined,
+      })
+    }
+    catch (err) {
+      console.error('[adminNotify:withdraw]', opts.requestId, phone, err)
+    }
+  }
 }
 
 export async function notifyAdminWalletTopUp(opts: {

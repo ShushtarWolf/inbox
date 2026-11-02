@@ -43,7 +43,8 @@ Ops workflow: `gh workflow run set-pilot-no-coach.yml --ref main -f app=inbox -f
 | ☐ | `KAVENEGAR_TEMPLATE_NOTIFY` | **`off`** (path A) | Disables Verify Lookup for booking/CRM/admin — free-text via `KAVENEGAR_SENDER`. Values: `off` / empty / `none` / `disabled`. Path B: set to `inbox-notify2` instead. |
 | ☐ | `KAVENEGAR_SENDER` | `9982007609` | **Path A required.** Dedicated line for all non-OTP SMS. |
 | ☐ | `KAVENEGAR_TEMPLATE_PAY_LINK` | `Paylink` | Desk «ارسال با پیامک اینباکس». Panel body: `%token10 عزیز،` + pay copy + `https://inboxs.ir/p/%token` (**no trailing `%` on placeholders**). Works with Path A. |
-| ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / cashout / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
+| ☐ | `ADMIN_ALERT_PHONE` | `09124777927` (default) | Platform admin SMS for every booking / payment / cancel / club application. Set `ADMIN_ALERT_SMS=false` to disable. |
+| ☐ | `WITHDRAW_FINANCE_ALERT_PHONE` | optional | Extra SMS recipient(s) for withdraw alerts (comma-separated). Defaults to `ADMIN_ALERT_PHONE`. |
 
 Until C is complete, OTP stays **log/dry-run** (`debugCode`) — not production-safe.
 
