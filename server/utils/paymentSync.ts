@@ -426,6 +426,8 @@ export async function confirmPaymentAndSync(
   const intent = await service.confirm(providerRef, opts)
   await syncPaymentToParent(intent.id)
   if (intent.status === 'PAID') {
+    const { promoteSplitPayAmountOnPaid } = await import('./splitPayWallet')
+    await promoteSplitPayAmountOnPaid(intent.id)
     await creditWalletForTopUpPayment(intent.id, previousStatus)
     await creditOwnerForPaidPayment(intent.id, previousStatus)
     await syncCompetitionEntryOnPayment(intent.id)
@@ -466,12 +468,16 @@ export async function markPaymentFailedAndSync(providerRef: string, providerName
     return toSafeIntent(payment)
   }
   if (payment.status === 'FAILED') {
+    const { releaseSplitWalletDebit } = await import('./splitPayWallet')
+    await releaseSplitWalletDebit(payment.id)
     return toSafeIntent(payment)
   }
   const updated = await prisma.payment.update({
     where: { id: payment.id },
     data: { status: 'FAILED' },
   })
+  const { releaseSplitWalletDebit } = await import('./splitPayWallet')
+  await releaseSplitWalletDebit(updated.id)
   await syncPaymentToParent(updated.id)
   return toSafeIntent(updated)
 }

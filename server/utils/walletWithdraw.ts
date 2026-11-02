@@ -1,5 +1,10 @@
 import {
+  ATHLETE_WITHDRAW_DAILY_MAX_IRR,
+  clampAthleteWithdrawAmount,
+} from '#shared/athleteCashOut.ts'
+import {
   consumeWalletLocked,
+  getAthleteCashOutBalance,
   getOrCreateWallet,
   getWalletWithdrawableBalance,
   lockWalletAvailable,
@@ -8,18 +13,20 @@ import {
 } from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 
-/** Coaches may cash out settlement; plain athletes are closed-loop. */
-export async function assertUserCanBankWithdraw(userId: string) {
+export type BankWithdrawKind = 'coach' | 'athlete'
+
+/** Coaches cash out settlement; athletes may cash out top-up/refund credit. */
+export async function resolveBankWithdrawKind(userId: string): Promise<BankWithdrawKind> {
   const coach = await prisma.coach.findFirst({
     where: { userId },
     select: { id: true },
   })
-  if (!coach) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Athlete wallet is closed-loop — bank withdraw is not available',
-    })
-  }
+  return coach ? 'coach' : 'athlete'
+}
+
+/** @deprecated Prefer resolveBankWithdrawKind — athletes may cash out top-up/refund. */
+export async function assertUserCanBankWithdraw(userId: string) {
+  await resolveBankWithdrawKind(userId)
 }
 
 export async function requestUserWithdraw(options: {
@@ -37,7 +44,7 @@ export async function requestUserWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
-  await assertUserCanBankWithdraw(options.userId)
+  const kind = await resolveBankWithdrawKind(options.userId)
 
   return prisma.$transaction(async (tx) => {
     await unlockEligibleWalletSettlements(options.userId, new Date(), tx)
@@ -45,7 +52,34 @@ export async function requestUserWithdraw(options: {
     if (wallet.availableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
-    const withdrawable = await getWalletWithdrawableBalance(options.userId, new Date(), tx)
+
+    let withdrawable = 0
+    if (kind === 'coach') {
+      withdrawable = await getWalletWithdrawableBalance(options.userId, new Date(), tx)
+    }
+    else {
+      const cashOutNet = await getAthleteCashOutBalance(options.userId, tx)
+      const dayStart = new Date()
+      dayStart.setHours(0, 0, 0, 0)
+      const dailyUsed = await tx.userWithdrawRequest.aggregate({
+        where: {
+          userId: options.userId,
+          status: { in: ['PENDING', 'PAID'] },
+          createdAt: { gte: dayStart },
+        },
+        _sum: { amount: true },
+      })
+      const dailyRemaining = Math.max(0, ATHLETE_WITHDRAW_DAILY_MAX_IRR - Number(dailyUsed._sum.amount || 0))
+      const clamp = clampAthleteWithdrawAmount(amount, {
+        available: wallet.availableBalance,
+        cashOutNet,
+        dailyRemaining,
+      })
+      if (!clamp.ok) {
+        throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+      }
+      withdrawable = cashOutNet
+    }
     if (withdrawable < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }

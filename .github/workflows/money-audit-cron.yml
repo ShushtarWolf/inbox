@@ -1,0 +1,18 @@
+name: Money audit cron
+
+# Daily dual-rail / wallet recon. Soft-fails SMS via ADMIN_ALERT_* on findings.
+on:
+  schedule:
+    - cron: '15 5 * * *' # ~08:45 IRST
+  workflow_dispatch:
+
+jobs:
+  money-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run money audit on production
+        run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/money-audit/run" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}

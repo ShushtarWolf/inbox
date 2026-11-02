@@ -22,6 +22,10 @@ type Overview = {
     pendingCount: number
     manualRefundsOwed?: number
   }
+  wallets?: {
+    clubNegative?: number
+    userNegative?: number
+  }
   applications: { pending: number }
   tickets?: { open: number }
   withdrawals?: { pending: number }
@@ -166,6 +170,15 @@ watch(secret, (value) => {
                 class="admin-alink"
               >{{ t('admin.metrics.manualRefundsOwed') }}</NuxtLink>
               <b dir="ltr" :class="(data.payments.manualRefundsOwed || 0) > 0 ? 'text-red-600' : ''">{{ formatNumber(data.payments.manualRefundsOwed || 0) }}</b>
+            </div>
+            <div
+              v-if="(data.wallets?.clubNegative || 0) + (data.wallets?.userNegative || 0) > 0"
+              class="admin-akv"
+            >
+              <span class="text-red-700 font-bold">{{ t('admin.metrics.negativeWallets') }}</span>
+              <b dir="ltr" class="text-red-600">
+                {{ formatNumber((data.wallets?.clubNegative || 0) + (data.wallets?.userNegative || 0)) }}
+              </b>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
+import { canSplitPayWithWallet } from '#shared/splitPay.ts'
 import {
   GATEWAY_REDIRECT_STALL_MS,
   gatewayStallError,
@@ -37,7 +38,7 @@ export function useCheckout() {
     coachSessionId?: string
     packageBookingId?: string
     competitionEntryId?: string
-    useWallet?: boolean
+    useWallet?: boolean | 'full' | 'partial'
   }) {
     const result = await $fetch<{
       intent: { status: string; redirectUrl?: string }
@@ -58,7 +59,6 @@ export function useCheckout() {
     return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(paymentStatus || '')
   }
 
-  /** MVP: wallet must cover the full amount — no split with online. */
   function canCoverWithWallet(
     balance: number | null | undefined,
     amount: number | null | undefined,
@@ -66,6 +66,16 @@ export function useCheckout() {
   ) {
     if (!canPayWithWallet(paymentStatus)) return false
     return canCoverBookingWithWallet(Number(balance || 0), Number(amount || 0))
+  }
+
+  /** Partial wallet + IPG remainder (online modes only). */
+  function canSplitWithWallet(
+    balance: number | null | undefined,
+    amount: number | null | undefined,
+    paymentStatus?: string | null,
+  ) {
+    if (!onlineEnabled.value || !canPayOnline(paymentStatus)) return false
+    return canSplitPayWithWallet(Number(balance || 0), Number(amount || 0))
   }
 
   function isPaid(paymentStatus?: string | null) {
@@ -78,6 +88,7 @@ export function useCheckout() {
     startCheckout,
     redirectToPaymentGateway,
     canPayOnline,
+    canSplitWithWallet,
     canPayWithWallet,
     canCoverWithWallet,
     isPaid,

@@ -5,6 +5,7 @@ import {
   type SeriesPaymentMeta,
 } from '#shared/athleteSeason.ts'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
+import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
   buildCancelRefundMetadata,
@@ -130,6 +131,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
   userId?: string | null
   reason: string
   moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
 }): Promise<RefundResult | null> {
   if (opts.moneyOutcome === 'zero_refund') {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
@@ -170,16 +172,20 @@ export async function refundAfterSeriesSessionCancel(opts: {
         bookingId: opts.cancelledBookingId,
         reason: opts.reason,
         moneyOutcome: opts.moneyOutcome,
+        refundBps: opts.refundBps,
       })
     }
     // Partial residual: wallet credit + pro-rata owner clawback in one txn.
+    const residualScaled = opts.moneyOutcome === 'partial_wallet_refund'
+      ? refundAmountFromBps(residual, opts.refundBps ?? 10_000)
+      : residual
     return applySeriesSessionRefund({
       userId: opts.userId,
       paymentId: primaryPayment.id,
       method: primaryPayment.method,
       bookingPaymentMethod: primaryBookingPaymentMethod,
       bookingId: opts.cancelledBookingId,
-      amount: residual,
+      amount: residualScaled,
       reason: opts.reason,
       primaryMeta,
       alreadyRefunded,
@@ -187,11 +193,14 @@ export async function refundAfterSeriesSessionCancel(opts: {
     })
   }
 
-  const amount = sessionRefundAmount({
+  const amountRaw = sessionRefundAmount({
     sessionPrice,
     primaryAmount: primaryPayment.amount,
     alreadyRefunded,
   })
+  const amount = opts.moneyOutcome === 'partial_wallet_refund'
+    ? refundAmountFromBps(amountRaw, opts.refundBps ?? 10_000)
+    : amountRaw
   if (amount <= 0) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }

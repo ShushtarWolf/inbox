@@ -36,6 +36,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   withdrawableBalance?: number
   pendingClassBalance?: number
   canBankWithdraw?: boolean
+  bankWithdrawKind?: 'coach' | 'athlete' | null
   sheba?: string | null
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: { proposedSheba: string | null; adminNote?: string | null } | null
@@ -396,7 +397,9 @@ watch(
 
       <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
-        <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
+        <p class="text-xs text-brand-gray-600">
+          {{ data?.bankWithdrawKind === 'coach' ? t('athlete.withdrawHintCoach') : t('athlete.withdrawHint') }}
+        </p>
         <p v-if="shebaStatusMessage" class="text-xs text-brand-gray-600">{{ shebaStatusMessage }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">
           <AppShebaInput

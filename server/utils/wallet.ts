@@ -1,4 +1,5 @@
 import { Prisma, type WalletTransactionType } from '@prisma/client'
+import { athleteCashOutFromTxs } from '#shared/athleteCashOut.ts'
 import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import {
   canCoverBookingWithWallet,
@@ -34,6 +35,25 @@ export async function getWalletBalances(userId: string) {
     availableBalance: wallet?.availableBalance ?? wallet?.balance ?? 0,
     lockedBalance: wallet?.lockedBalance ?? 0,
   }
+}
+
+/** Athlete SHEBA cash-out: top-up + refund nets, capped by available. */
+export async function getAthleteCashOutBalance(userId: string, db: DbClient = prisma) {
+  const wallet = await db.wallet.findUnique({
+    where: { userId },
+    select: {
+      availableBalance: true,
+      balance: true,
+      transactions: {
+        where: { type: { in: ['TOPUP_CREDIT', 'REFUND_CREDIT', 'PAYMENT_DEBIT'] } },
+        select: { amount: true, type: true },
+      },
+    },
+  })
+  const available = wallet?.availableBalance ?? wallet?.balance ?? 0
+  if (!wallet || available <= 0) return 0
+  const net = athleteCashOutFromTxs(wallet.transactions)
+  return Math.max(0, Math.min(available, net))
 }
 
 async function sumWalletWithdrawnViaRail(walletId: string, db: DbClient) {

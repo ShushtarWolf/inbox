@@ -1,0 +1,62 @@
+name: Correct cash settlements (prod)
+
+# Slice 1 — claw back open CASH SettlementLedgerEntry rows that wrongly
+# credited club/coach wallets. Requires LIARA_API_TOKEN. Default is dry-run.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Set true to APPLY=yes on production (after dry-run review)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: money-correct-cash
+  cancel-in-progress: false
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --ignore-scripts
+
+      - name: Resolve prod DATABASE_URL + audit/correct
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+          APPLY_INPUT: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          npm i -g @liara/cli@9
+          # CSV: KEY,VALUE — pick DATABASE_URL without printing value
+          CSV=$(liara env list -a inbox --api-token="$LIARA_TOKEN" --csv)
+          DATABASE_URL=$(echo "$CSV" | awk -F',' '$1=="DATABASE_URL" {print substr($0, index($0,$2)); exit}')
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL not found in Liara env"
+            exit 1
+          fi
+          export DATABASE_URL
+          echo "Resolved DATABASE_URL (length=${#DATABASE_URL})"
+          npm run db:audit-money
+          if [ "$APPLY_INPUT" = "true" ]; then
+            echo "APPLY=yes — correcting cash settlements + phantom credits"
+            APPLY=yes npm run db:correct-cash-settlements
+            APPLY=yes npm run db:correct-phantom-wallet-credits
+            npm run db:audit-money
+          else
+            echo "Dry-run only"
+            npm run db:correct-cash-settlements
+            npm run db:correct-phantom-wallet-credits
+          fi

@@ -39,6 +39,7 @@ interface CourtBooking {
         addressEn?: string | null
         phone?: string | null
         cancellationWindowHours: number
+        insideWindowRefundBps?: number
         rescheduleWindowHours?: number
       }
     }
@@ -102,7 +103,7 @@ const {
   isPayAtClubStatus,
   paidHonestyNote,
 } = useBookingLabels()
-const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet, isPaid } = useCheckout()
+const { onlineEnabled, startCheckout, canPayOnline, canCoverWithWallet, canSplitWithWallet, isPaid } = useCheckout()
 const payingId = ref<string | null>(null)
 const actionError = ref('')
 const paymentFlash = ref('')
@@ -352,7 +353,7 @@ async function confirmCancel() {
   }
 }
 
-async function payBooking(item: HistoryItem, useWallet = false) {
+async function payBooking(item: HistoryItem, useWallet: boolean | 'full' | 'partial' = false) {
   if (payingId.value) return
   payingId.value = item.id
   actionError.value = ''
@@ -704,20 +705,31 @@ function canCancel(item: HistoryItem) {
   return true
 }
 
-function cancelIsZeroRefund(item: HistoryItem) {
+function cancelRefundBps(item: HistoryItem): number {
   if (item.kind === 'court') {
     const slot = item.raw?.slot
-    if (!slot) return false
+    if (!slot) return 10_000
     const hours = slot.court.club.cancellationWindowHours ?? 12
-    return !canManageReservation(slot.date, slot.startTime, hours)
+    if (canManageReservation(slot.date, slot.startTime, hours)) return 10_000
+    return Math.max(0, Math.min(10_000, Number(slot.court.club.insideWindowRefundBps ?? 10_000)))
   }
   if (item.kind === 'coach') {
     const session = (data.value?.coachSessions || []).find((row) => row.id === item.id)
-    if (!session) return false
+    if (!session) return 10_000
     const hours = session.coach?.club?.cancellationWindowHours ?? 12
-    return !canManageReservation(session.date, session.startTime, hours)
+    if (canManageReservation(session.date, session.startTime, hours)) return 10_000
+    return 10_000
   }
-  return false
+  return 10_000
+}
+
+function cancelIsZeroRefund(item: HistoryItem) {
+  return cancelRefundBps(item) <= 0
+}
+
+function cancelIsPartialRefund(item: HistoryItem) {
+  const bps = cancelRefundBps(item)
+  return bps > 0 && bps < 10_000
 }
 
 function canReschedule(item: HistoryItem) {
@@ -1045,12 +1057,24 @@ function dateLine(item: HistoryItem) {
         >
           {{ t('booking.refundNoneInsideWindow') }}
         </p>
+        <p
+          v-else-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsPartialRefund(detailItem)"
+          class="canva-history-sh-note canva-history-sh-note-warn"
+        >
+          {{ t('booking.refundPartialInsideWindow', { pct: formatNumber(Math.round(cancelRefundBps(detailItem) / 100)) }) }}
+        </p>
 
         <p v-if="actionError" class="canva-flash-error text-start text-xs">{{ actionError }}</p>
 
         <template v-if="confirmingCancel">
           <p class="canva-history-sh-note canva-history-sh-note-warn">
-            {{ cancelIsZeroRefund(detailItem) ? t('booking.confirmCancelNoRefund') : t('booking.confirmCancel') }}
+            {{
+              cancelIsZeroRefund(detailItem)
+                ? t('booking.confirmCancelNoRefund')
+                : cancelIsPartialRefund(detailItem)
+                  ? t('booking.confirmCancelPartialRefund', { pct: formatNumber(Math.round(cancelRefundBps(detailItem) / 100)) })
+                  : t('booking.confirmCancel')
+            }}
           </p>
           <div class="canva-history-sh-actions">
             <button
@@ -1081,6 +1105,13 @@ function dateLine(item: HistoryItem) {
             :disabled="payingId === detailItem.id"
             @click="payBooking(detailItem, true)"
           >{{ t('booking.payWithWallet') }}</button>
+          <button
+            v-if="detailItem.status !== 'CANCELLED' && canSplitWithWallet(wallet?.balance, detailItem.price, detailItem.paymentStatus)"
+            type="button"
+            class="canva-gate-btn-secondary"
+            :disabled="payingId === detailItem.id"
+            @click="payBooking(detailItem, 'partial')"
+          >{{ t('booking.payWithWalletAndGateway') }}</button>
           <button
             v-if="canReschedule(detailItem)"
             type="button"

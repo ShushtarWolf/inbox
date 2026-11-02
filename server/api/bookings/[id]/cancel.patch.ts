@@ -1,4 +1,4 @@
-import { canCancelReservation, resolveCancelMoneyOutcome } from '#shared/cancelPolicy.ts'
+import { canCancelReservation, resolveCancelMoneyDetail } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
@@ -33,12 +33,15 @@ export default defineEventHandler(async (event) => {
 
   const seriesAware = bookingLooksLikeSeriesPayment(booking.payment?.metadataJson)
   const windowHours = booking.slot.court.club.cancellationWindowHours
-  const moneyOutcome = resolveCancelMoneyOutcome({
+  const money = resolveCancelMoneyDetail({
     actor: 'athlete',
     date: booking.slot.date,
     startTime: booking.slot.startTime,
     windowHours,
+    insideWindowRefundBps: booking.slot.court.club.insideWindowRefundBps,
   })
+  const moneyOutcome = money.outcome
+  const refundBps = money.refundBps
 
   // Already cancelled: still retry refund if payment stayed PAID (non-atomic cancel→refund).
   if (booking.status === 'CANCELLED') {
@@ -66,6 +69,7 @@ export default defineEventHandler(async (event) => {
           bookingId: booking.id,
           reason: 'athlete-cancel-refund-retry',
           moneyOutcome,
+          refundBps,
         })
         return { ok: true, refund, moneyOutcome }
       }
@@ -100,6 +104,7 @@ export default defineEventHandler(async (event) => {
         userId: booking.userId,
         reason: 'athlete-cancel',
         moneyOutcome,
+        refundBps,
       })
     }
     catch (err) {
@@ -139,6 +144,7 @@ export default defineEventHandler(async (event) => {
       paymentId: booking.payment?.id,
       userId: booking.userId,
       moneyOutcome,
+      refundBps,
     })
     refund = result.refund
     refundFailed = result.refundFailed

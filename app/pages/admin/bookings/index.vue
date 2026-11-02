@@ -45,7 +45,13 @@ type PaymentRow = {
   date: string | null
   startTime: string | null
   manualRefundRequired?: boolean
+  manualBankRefund?: 'owed' | 'returned' | null
+  manualBankRefundOwed?: boolean
   refundChannel?: string | null
+  maskedPan?: string | null
+  refNum?: string | null
+  guestSheba?: string | null
+  refundedAt?: string | null
 }
 
 const route = useRoute()
@@ -60,8 +66,32 @@ const bookingStatusFilter = ref<'ALL' | BookingRow['status']>('ALL')
 const paymentStatusFilter = ref<PaymentFilter>('ALL')
 const manualRefundOnly = ref(route.query.manualRefund === '1' || route.query.manualRefund === 'true')
 const expandedId = ref<string | null>(null)
+const ackBusyId = ref<string | null>(null)
+const ackError = ref('')
+const ackShebaById = ref<Record<string, string>>({})
+const ackNoteById = ref<Record<string, string>>({})
 
 if (manualRefundOnly.value) tab.value = 'payments'
+
+async function ackManualRefund(row: PaymentRow) {
+  if (ackBusyId.value) return
+  ackBusyId.value = row.id
+  ackError.value = ''
+  try {
+    await adminFetch(`/api/admin/payments/${row.id}/ack-manual-refund`, {
+      method: 'POST',
+      body: {
+        note: ackNoteById.value[row.id]?.trim() || undefined,
+        guestSheba: ackShebaById.value[row.id]?.trim() || row.guestSheba || undefined,
+      },
+    })
+    await load()
+  } catch (err: unknown) {
+    ackError.value = (err as { statusMessage?: string })?.statusMessage || t('common.error')
+  } finally {
+    ackBusyId.value = null
+  }
+}
 
 const chipBase = 'border px-3 py-1.5 text-xs font-bold transition'
 const chipActive = 'border-brand-primary bg-brand-primary text-white'
@@ -500,8 +530,59 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                         <span>{{ t('common.date') }}</span>
                         <span dir="ltr">{{ formatDate(row.date) }} {{ formatTimeLabel(row.startTime) }}</span>
                       </li>
+                      <li v-if="row.maskedPan" class="flex justify-between gap-2">
+                        <span>{{ t('admin.maskedPan') }}</span>
+                        <span dir="ltr">{{ row.maskedPan }}</span>
+                      </li>
+                      <li v-if="row.refNum" class="flex justify-between gap-2">
+                        <span>{{ t('admin.refNum') }}</span>
+                        <span dir="ltr">{{ row.refNum }}</span>
+                      </li>
+                      <li v-if="row.refundedAt" class="flex justify-between gap-2">
+                        <span>{{ t('admin.refundedAt') }}</span>
+                        <span dir="ltr">{{ formatDate(row.refundedAt) }}</span>
+                      </li>
+                      <li v-if="row.guestSheba" class="flex justify-between gap-2">
+                        <span>{{ t('admin.guestSheba') }}</span>
+                        <span dir="ltr">{{ row.guestSheba }}</span>
+                      </li>
                     </ul>
-                    <p class="mt-2 text-brand-gray-500">{{ t('admin.bookingsReadOnlyNote') }}</p>
+                    <div
+                      v-if="row.manualBankRefundOwed"
+                      class="mt-3 space-y-2 border border-brand-gray-200 bg-white p-3 text-start"
+                    >
+                      <p class="text-xs font-bold text-brand-navy">{{ t('admin.ackManualRefundTitle') }}</p>
+                      <p class="text-xs text-brand-gray-600">{{ t('admin.ackManualRefundHint') }}</p>
+                      <label class="block text-xs">
+                        <span class="mb-1 block font-bold">{{ t('admin.guestSheba') }}</span>
+                        <input
+                          v-model="ackShebaById[row.id]"
+                          type="text"
+                          dir="ltr"
+                          class="neo-input"
+                          :placeholder="row.guestSheba || t('admin.guestShebaPlaceholder')"
+                        >
+                      </label>
+                      <label class="block text-xs">
+                        <span class="mb-1 block font-bold">{{ t('admin.ackManualRefundNote') }}</span>
+                        <input
+                          v-model="ackNoteById[row.id]"
+                          type="text"
+                          class="neo-input"
+                        >
+                      </label>
+                      <p v-if="ackError && ackBusyId === row.id" class="text-xs text-red-600" role="alert">{{ ackError }}</p>
+                      <button
+                        type="button"
+                        class="border border-brand-primary bg-brand-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                        style="border-radius: 2px;"
+                        :disabled="ackBusyId === row.id"
+                        @click="ackManualRefund(row)"
+                      >
+                        {{ ackBusyId === row.id ? t('common.loading') : t('admin.ackManualRefund') }}
+                      </button>
+                    </div>
+                    <p v-else class="mt-2 text-brand-gray-500">{{ t('admin.bookingsReadOnlyNote') }}</p>
                   </td>
                 </tr>
               </template>

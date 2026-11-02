@@ -1,5 +1,6 @@
 import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
 import {
+  getAthleteCashOutBalance,
   getWalletBalances,
   getWalletPendingClassBalance,
   getWalletWithdrawableBalance,
@@ -11,13 +12,16 @@ import { resolveShebaRequestUiStatus } from '#shared/shebaApproval.ts'
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   await unlockEligibleWalletSettlements(user.id)
-  const [balances, withdrawableBalance, pendingClassBalance, coach] = await Promise.all([
+  const [balances, coachWithdrawable, athleteCashOut, pendingClassBalance, coach] = await Promise.all([
     getWalletBalances(user.id),
     getWalletWithdrawableBalance(user.id),
+    getAthleteCashOutBalance(user.id),
     getWalletPendingClassBalance(user.id),
     prisma.coach.findFirst({ where: { userId: user.id }, select: { id: true } }),
   ])
-  const canBankWithdraw = Boolean(coach)
+  const isCoach = Boolean(coach)
+  const withdrawableBalance = isCoach ? coachWithdrawable : athleteCashOut
+  const canBankWithdraw = isCoach || athleteCashOut > 0
   const [wallet, shebaState, pendingWithdraws, recentWithdraws, cashPayments] = await Promise.all([
     prisma.wallet.findUnique({
       where: { userId: user.id },
@@ -121,6 +125,7 @@ export default defineEventHandler(async (event) => {
     withdrawableBalance: canBankWithdraw ? withdrawableBalance : 0,
     pendingClassBalance,
     canBankWithdraw,
+    bankWithdrawKind: isCoach ? 'coach' : (canBankWithdraw ? 'athlete' : null),
     sheba: canBankWithdraw ? (shebaState.sheba || null) : null,
     shebaUiStatus,
     pendingShebaRequest: canBankWithdraw && shebaState.pendingRequest

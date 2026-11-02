@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
       descriptionFa: club.descriptionFa,
       descriptionEn: club.descriptionEn,
       cancellationWindowHours: club.cancellationWindowHours,
+      insideWindowRefundBps: club.insideWindowRefundBps,
       rescheduleWindowHours: club.rescheduleWindowHours,
       bookingHorizonDays: club.bookingHorizonDays,
       waitlistEnabled: club.waitlistEnabled,

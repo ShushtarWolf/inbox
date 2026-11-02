@@ -29,6 +29,7 @@
     "db:backfill-competition-settlements": "node --import tsx scripts/backfill-competition-settlements.ts",
     "db:audit-money": "node scripts/audit-money-bugs.mjs",
     "db:correct-cash-settlements": "node scripts/correct-cash-settlements.mjs",
+    "db:correct-phantom-wallet-credits": "node scripts/correct-phantom-wallet-credits.mjs",
     "db:correct-series-refund-gaps": "node scripts/correct-series-refund-gaps.mjs",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCancelRefundMetadata,
   buildDeskCashReturnedMetadata,
+  buildManualBankRefundReturnedMetadata,
+  isManualBankRefundOwed,
   readDeskCashReturn,
+  readManualBankRefund,
   resolveRefundChannel,
 } from './cancelRefund.ts'
 
@@ -48,5 +51,23 @@ describe('cancelRefund metadata', () => {
     )
     expect(readDeskCashReturn(meta)).toBe('returned')
     expect(meta.deskCashReturnedAt).toBe('2026-10-31T13:00:00.000Z')
+  })
+
+  it('guest IPG manual refund is owed until admin acks', () => {
+    const meta = buildCancelRefundMetadata({}, {
+      channel: 'wallet_closed_loop',
+      reason: 'owner-cancel',
+      manualRefund: true,
+    })
+    expect(meta.manualRefundRequired).toBe(true)
+    expect(readManualBankRefund(meta)).toBe('owed')
+    expect(isManualBankRefundOwed(meta)).toBe(true)
+    const done = buildManualBankRefundReturnedMetadata(meta, {
+      now: new Date('2026-11-02T12:00:00.000Z'),
+      note: 'wired',
+      guestSheba: 'IR060170000000000000000001',
+    })
+    expect(readManualBankRefund(done)).toBe('returned')
+    expect(isManualBankRefundOwed(done)).toBe(false)
   })
 })

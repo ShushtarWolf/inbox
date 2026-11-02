@@ -369,4 +369,45 @@ suite('money integration (real Postgres)', () => {
     expect(balances.withdrawableBalance).toBe(450_000)
     expect(await clubDrift(f.club.id)).toBe(0)
   })
+
+  it('withdraw paid then cancel claws club wallet negative', async () => {
+    const f = await fixtures()
+    const { slot, booking, payment } = await paidBooking(f, { date: past, amount: 500_000, method: 'IPG' })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    const request = await m.settlement.requestClubWithdraw({
+      clubId: f.club.id,
+      amount: 450_000,
+      sheba: f.club.sheba,
+    })
+    await m.settlement.markWithdrawPaid(request.id)
+    await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'owner-cancel',
+      paymentId: payment.id,
+      userId: f.athlete.id,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    const wallet = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
+    expect(wallet.availableBalance).toBeLessThan(0)
+  })
+
+  it('partial inside-window refund credits floor(bps) and claws pro-rata', async () => {
+    const f = await fixtures()
+    const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 200_000, method: 'IPG' })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'athlete-cancel',
+      paymentId: payment.id,
+      userId: f.athlete.id,
+      moneyOutcome: 'partial_wallet_refund',
+      refundBps: 5000,
+    })
+    const athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(athlete.availableBalance).toBe(100_000)
+    const club = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
+    expect(club.balance).toBe(90_000)
+  })
 })

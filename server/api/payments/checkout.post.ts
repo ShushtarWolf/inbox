@@ -9,6 +9,7 @@ import {
 import { checkoutPreservedMetadata } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
+import { normalizeUseWallet, splitPayParts } from '#shared/splitPay.ts'
 import { signReceiptToken } from '#shared/receiptToken.ts'
 import { getPaymentService } from '../../utils/payments/service'
 import {
@@ -27,8 +28,9 @@ export default defineEventHandler(async (event) => {
     coachSessionId?: string
     packageBookingId?: string
     competitionEntryId?: string
-    useWallet?: boolean
+    useWallet?: boolean | 'full' | 'partial'
   }>(event)
+  const useWalletMode = normalizeUseWallet(body.useWallet)
   if (!body.bookingId && !body.coachSessionId && !body.packageBookingId && !body.competitionEntryId) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }
@@ -120,7 +122,7 @@ export default defineEventHandler(async (event) => {
   // slot-only price — court booking already wrote the sheet total on Payment.amount.
   const payableAmount = existingPayment?.amount || amount
 
-  if (body.useWallet && payableAmount > 0) {
+  if (useWalletMode === 'full' && payableAmount > 0) {
     const balance = await getWalletBalance(user.id)
     if (!canCoverBookingWithWallet(balance, payableAmount)) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
@@ -291,18 +293,38 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  let ipgAmount = payableAmount
+  if (useWalletMode === 'partial' && payableAmount > 0) {
+    const balance = await getWalletBalance(user.id)
+    const { walletPart, ipgPart } = splitPayParts(balance, payableAmount)
+    if (walletPart <= 0 || ipgPart <= 0) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: walletPart <= 0
+          ? 'Insufficient wallet balance'
+          : 'Wallet covers full amount — use full wallet checkout',
+      })
+    }
+    ipgAmount = ipgPart
+    preservedMetadata.splitPay = true
+    preservedMetadata.walletDebitAmount = walletPart
+    preservedMetadata.ipgChargeAmount = ipgPart
+    preservedMetadata.splitFullAmount = payableAmount
+    preservedMetadata.walletUserId = user.id
+  }
+
   const service = getPaymentService()
   const idempotencyKey = body.competitionEntryId && competitionId
     ? competitionJoinIdempotencyKey(competitionId, user.id, body.competitionEntryId)
     : randomBytes(16).toString('hex')
 
   const session = await service.createIntent({
-    amount: payableAmount,
+    amount: ipgAmount,
     bookingId: body.bookingId,
     coachSessionId: body.coachSessionId,
     packageBookingId: body.packageBookingId,
     competitionEntryId: body.competitionEntryId,
-    userId: body.competitionEntryId ? user.id : undefined,
+    userId: (body.competitionEntryId || useWalletMode === 'partial') ? user.id : undefined,
     purpose: body.competitionEntryId ? 'competition' : undefined,
     idempotencyKey,
     existingPaymentId: body.competitionEntryId && existingPayment
@@ -310,6 +332,25 @@ export default defineEventHandler(async (event) => {
       : undefined,
     preservedMetadata: Object.keys(preservedMetadata).length ? preservedMetadata : undefined,
   })
+
+  if (useWalletMode === 'partial') {
+    const walletPart = Math.floor(Number(preservedMetadata.walletDebitAmount) || 0)
+    try {
+      await debitWallet(user.id, walletPart, {
+        type: 'PAYMENT_DEBIT',
+        paymentId: session.paymentId,
+        bookingId: body.bookingId,
+        note: 'Split pay wallet portion',
+      })
+    }
+    catch (err) {
+      await prisma.payment.update({
+        where: { id: session.paymentId },
+        data: { status: 'FAILED' },
+      }).catch(() => {})
+      throw err
+    }
+  }
 
   if (body.competitionEntryId) {
     await prisma.competitionEntry.update({

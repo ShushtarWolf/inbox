@@ -1,6 +1,11 @@
 import type { PaymentStatus, Prisma } from '@prisma/client'
 import { isPaymentChannel, paymentRowChannelWhere } from '#shared/bookingPayment.ts'
-import { MANUAL_REFUND_MARKER, parsePaymentMetadata } from '#shared/cancelRefund.ts'
+import {
+  isManualBankRefundOwed,
+  MANUAL_REFUND_MARKER,
+  parsePaymentMetadata,
+  readManualBankRefund,
+} from '#shared/cancelRefund.ts'
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
   'PAY_AT_CLUB',
@@ -22,7 +27,11 @@ export default defineEventHandler(async (event) => {
 
   const whereAnd: Prisma.PaymentWhereInput[] = []
   if (manualRefundOnly) {
-    whereAnd.push({ status: 'REFUNDED', metadataJson: { contains: MANUAL_REFUND_MARKER } })
+    whereAnd.push({
+      status: 'REFUNDED',
+      metadataJson: { contains: MANUAL_REFUND_MARKER },
+      NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
+    })
   } else if (status && PAYMENT_STATUSES.includes(status as PaymentStatus)) {
     whereAnd.push({ status: status as PaymentStatus })
   }
@@ -100,7 +109,13 @@ export default defineEventHandler(async (event) => {
         date: payment.booking?.slot.date || null,
         startTime: payment.booking?.slot.startTime || null,
         manualRefundRequired: meta.manualRefundRequired === true,
+        manualBankRefund: readManualBankRefund(meta),
+        manualBankRefundOwed: isManualBankRefundOwed(meta),
         refundChannel: typeof meta.refundChannel === 'string' ? meta.refundChannel : null,
+        maskedPan: typeof meta.maskedPan === 'string' ? meta.maskedPan : null,
+        refNum: meta.refNum != null ? String(meta.refNum) : null,
+        guestSheba: typeof meta.guestSheba === 'string' ? meta.guestSheba : null,
+        refundedAt: typeof meta.refundedAt === 'string' ? meta.refundedAt : null,
       }
     }),
   }

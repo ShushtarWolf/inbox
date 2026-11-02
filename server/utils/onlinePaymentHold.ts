@@ -75,6 +75,8 @@ async function releaseOneOnlineHold(
       },
       data: { status: 'FAILED' },
     })
+    const { releaseSplitWalletDebit } = await import('./splitPayWallet')
+    await releaseSplitWalletDebit(booking.payment.id, db)
   }
 
   await db.reservationEvent.create({

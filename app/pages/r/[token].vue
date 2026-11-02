@@ -45,6 +45,9 @@ const { redirectToPaymentGateway } = useCheckout()
 const token = computed(() => String(route.params.token || ''))
 const paying = ref(false)
 const payError = ref('')
+const guestSheba = ref('')
+const shebaBusy = ref(false)
+const shebaFlash = ref('')
 
 const { data, error, pending, refresh } = await useFetch<ReceiptPayload>(
   () => `/api/receipts/${encodeURIComponent(token.value)}`,
@@ -121,11 +124,41 @@ function sessionTime(session: ReceiptSession) {
   return session.startTime
 }
 
+async function saveGuestSheba() {
+  if (!token.value || shebaBusy.value) return
+  shebaBusy.value = true
+  shebaFlash.value = ''
+  try {
+    await $fetch(`/api/receipts/${encodeURIComponent(token.value)}/guest-sheba`, {
+      method: 'POST',
+      body: { sheba: guestSheba.value },
+    })
+    shebaFlash.value = t('booking.receiptShebaSaved')
+  }
+  catch (err: unknown) {
+    shebaFlash.value = fetchErrorMessage(err, t('booking.receiptShebaInvalid'))
+  }
+  finally {
+    shebaBusy.value = false
+  }
+}
+
 async function pay() {
   if (!token.value || paying.value) return
   paying.value = true
   payError.value = ''
   try {
+    if (guestSheba.value.trim()) {
+      try {
+        await $fetch(`/api/receipts/${encodeURIComponent(token.value)}/guest-sheba`, {
+          method: 'POST',
+          body: { sheba: guestSheba.value },
+        })
+      }
+      catch {
+        // SHEBA is optional — never block gateway checkout.
+      }
+    }
     const session = await $fetch<{ intent?: { redirectUrl?: string; status?: string } }>(
       `/api/receipts/${encodeURIComponent(token.value)}/checkout`,
       { method: 'POST' },
@@ -253,6 +286,26 @@ async function pay() {
               </div>
             </template>
             <template v-else-if="data.unpaid && !data.cancelled && data.canPayOnline">
+              <label class="mb-3 block text-start text-xs text-[#55534E]">
+                <span class="mb-1 block font-bold">{{ t('booking.receiptShebaOptional') }}</span>
+                <input
+                  v-model="guestSheba"
+                  type="text"
+                  dir="ltr"
+                  class="w-full border border-[#ECE9E4] bg-white px-3 py-2 text-sm"
+                  style="border-radius: 0;"
+                  :placeholder="t('booking.receiptShebaPlaceholder')"
+                >
+                <button
+                  type="button"
+                  class="mt-2 text-xs font-bold text-[#C41E1E] underline"
+                  :disabled="shebaBusy || !guestSheba.trim()"
+                  @click="saveGuestSheba"
+                >
+                  {{ t('booking.receiptShebaSave') }}
+                </button>
+                <span v-if="shebaFlash" class="mt-1 block text-[11px]">{{ shebaFlash }}</span>
+              </label>
               <button
                 type="button"
                 class="receipt-player-pay"

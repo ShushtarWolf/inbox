@@ -18,10 +18,12 @@ export async function cancelCourtBooking(options: {
   /** @deprecated Prefer moneyOutcome. */
   skipWallet?: boolean
   moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
   skipLinkedCoachSession?: boolean
 }) {
   const moneyOutcome = options.moneyOutcome
     || (options.skipWallet ? 'zero_refund' : 'full_wallet_refund')
+  const refundBps = options.refundBps
 
   // Load linked lesson before the txn so we can cancel + refund both atomically.
   const linkedSession = options.skipLinkedCoachSession
@@ -59,6 +61,7 @@ export async function cancelCourtBooking(options: {
           bookingId: options.bookingId,
           reason: options.reason,
           moneyOutcome,
+          refundBps,
           db: tx,
           syncParent: false,
         })
@@ -84,6 +87,7 @@ export async function cancelCourtBooking(options: {
             userId: linkedActive.athleteId,
             reason: options.reason,
             moneyOutcome,
+            refundBps,
             db: tx,
             syncParent: false,
           })
@@ -234,8 +238,10 @@ export async function cancelPackageBooking(options: {
   paymentId?: string | null
   userId: string
   moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
 }) {
   const moneyOutcome = options.moneyOutcome || 'full_wallet_refund'
+  const refundBps = options.refundBps
   let refund = null as RefundResult | null
 
   try {
@@ -251,6 +257,7 @@ export async function cancelPackageBooking(options: {
           userId: options.userId,
           reason: options.reason,
           moneyOutcome,
+          refundBps,
           db: tx,
           syncParent: false,
         })

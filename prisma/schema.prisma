@@ -512,6 +512,11 @@ model Club {
   verifiedAt    DateTime?
   priceTo       Int?
   cancellationWindowHours Int @default(12)
+  /**
+   * Athlete cancel inside cancellationWindowHours: refund share in bps (10000 = 100%).
+   * Owner/coach cancels always 100%. Outside window always 100%.
+   */
+  insideWindowRefundBps Int @default(10000)
   rescheduleWindowHours   Int @default(24)
   /** How many calendar days ahead athletes can book, including today (Tehran). */
   bookingHorizonDays Int @default(14)

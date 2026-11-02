@@ -258,6 +258,7 @@ async function main() {
     FROM "Payment" p
     WHERE p.status = 'REFUNDED'
       AND p."metadataJson" LIKE '%"manualRefundRequired":true%'
+      AND p."metadataJson" NOT LIKE '%"manualBankRefund":"returned"%'
     ORDER BY p."updatedAt" DESC
     LIMIT 100
   `

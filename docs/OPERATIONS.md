@@ -377,6 +377,41 @@ Smoke: `npm run smoke:auth` expects no Google button on `/login` and fail-closed
 
 Prefer phone OTP. Do not set Google OAuth on Liara for the Iran MVP.
 
+## Money audit / cash settlement correction
+
+Dual-rail rule: desk `CASH` must never sit in club/coach withdrawable wallets. Historical bugs left open `SettlementLedgerEntry` rows on CASH payments.
+
+### Local rehearsal (required before prod APPLY)
+
+1. Download a Liara dump: `gh workflow run backup-db.yml --ref main` → download artifact `inbox-db-local-backup`.
+2. File is gzip+tar: `gunzip -c backups/….dump | tar -x` → restore `postgres.dump` into a scratch DB (`inbox_prod_audit`).
+3. `DATABASE_URL=…scratch… npm run db:audit-money` — note §1 open CASH count.
+4. Dry-run then apply on scratch:
+   - `npm run db:correct-cash-settlements`
+   - `APPLY=yes npm run db:correct-cash-settlements`
+   - `npm run db:correct-phantom-wallet-credits` / `APPLY=yes …`
+5. Re-audit until §1 = 0.
+
+**2026-11-02 rehearsal:** dump `backups/inbox-db-20261102-134331-s1.dump` → §1 was **25** open CASH settlements → local APPLY **ok=25 fail=0** → re-audit §1=0. Phantom credits already corrected. Prod APPLY via workflow below (Liara CLI login was expired on agent machine).
+
+### Production APPLY
+
+```bash
+# Dry-run first
+gh workflow run money-correct-cash.yml --ref main -f apply=false
+# After reviewing Actions logs:
+gh workflow run money-correct-cash.yml --ref main -f apply=true
+```
+
+Or with a reachable public `DATABASE_URL` (never commit it):
+
+```bash
+DATABASE_URL='…' npm run db:audit-money
+DATABASE_URL='…' APPLY=yes npm run db:correct-cash-settlements
+DATABASE_URL='…' APPLY=yes npm run db:correct-phantom-wallet-credits
+DATABASE_URL='…' npm run db:audit-money
+```
+
 ## Database backup (PostgreSQL)
 
 Production DB: Liara service **`inbox-db`**. Preferred path is Liara managed backups (verified 2026-07-19).

@@ -1,4 +1,4 @@
-import { resolveCancelMoneyOutcome } from '#shared/cancelPolicy.ts'
+import { resolveCancelMoneyDetail } from '#shared/cancelPolicy.ts'
 import { notifyBookingCancelled } from '../../../utils/bookingNotify'
 import { assertPackageCancelAllowed, packageFirstSessionTime } from '../../../utils/packages'
 import { cancelPackageBooking } from '../../../utils/cancellations'
@@ -18,14 +18,15 @@ export default defineEventHandler(async (event) => {
   assertPackageCancelAllowed(booking.package)
 
   const firstTime = packageFirstSessionTime(booking.package)
-  const moneyOutcome = booking.package.startDate
-    ? resolveCancelMoneyOutcome({
+  const money = booking.package.startDate
+    ? resolveCancelMoneyDetail({
         actor: 'athlete',
         date: booking.package.startDate,
         startTime: firstTime,
         windowHours: booking.package.club.cancellationWindowHours,
+        insideWindowRefundBps: booking.package.club.insideWindowRefundBps,
       })
-    : 'full_wallet_refund' as const
+    : { outcome: 'full_wallet_refund' as const, refundBps: 10_000 }
 
   const result = await cancelPackageBooking({
     packageBookingId: id!,
@@ -33,7 +34,8 @@ export default defineEventHandler(async (event) => {
     reason: 'athlete-cancel',
     paymentId: booking.payment?.status === 'PAID' ? booking.payment.id : null,
     userId: user.id,
-    moneyOutcome,
+    moneyOutcome: money.outcome,
+    refundBps: money.refundBps,
   })
 
   await notifyBookingCancelled({

@@ -37,6 +37,8 @@ export default defineEventHandler(async (event) => {
     athleteWithdrawalsPending,
     shebaChangesPending,
     manualRefundsOwed,
+    clubWalletsNegative,
+    userWalletsNegative,
   ] = await Promise.all([
     prisma.club.count(),
     prisma.club.count({ where: { status: 'ACTIVE' } }),
@@ -77,7 +79,17 @@ export default defineEventHandler(async (event) => {
     prisma.userWithdrawRequest.count({ where: { status: 'PENDING' } }),
     prisma.shebaChangeRequest.count({ where: { status: 'PENDING' } }),
     prisma.payment.count({
-      where: { status: 'REFUNDED', metadataJson: { contains: MANUAL_REFUND_MARKER } },
+      where: {
+        status: 'REFUNDED',
+        metadataJson: { contains: MANUAL_REFUND_MARKER },
+        NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
+      },
+    }),
+    prisma.clubWallet.count({
+      where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] },
+    }),
+    prisma.wallet.count({
+      where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] },
     }),
   ])
 
@@ -117,6 +129,10 @@ export default defineEventHandler(async (event) => {
       pendingCount: paymentsPending,
       /** Online refunds with no athlete wallet (pay-link guests) — bank-refund manually. */
       manualRefundsOwed,
+    },
+    wallets: {
+      clubNegative: clubWalletsNegative,
+      userNegative: userWalletsNegative,
     },
     applications: { pending: applicationsPending },
     tickets: { open: ticketsOpen },

@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
     openHour?: number
     closeHour?: number
     cancellationWindowHours?: number
+    insideWindowRefundBps?: number
     rescheduleWindowHours?: number
     bookingHorizonDays?: number
     waitlistEnabled?: boolean
@@ -97,6 +98,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  if (body.insideWindowRefundBps !== undefined) {
+    const value = Math.floor(Number(body.insideWindowRefundBps))
+    if (!Number.isFinite(value) || value < 0 || value > 10_000) {
+      throw createError({ statusCode: 400, statusMessage: 'insideWindowRefundBps must be 0–10000' })
+    }
+    data.insideWindowRefundBps = value
+  }
+
   if (body.bookingHorizonDays !== undefined) {
     data.bookingHorizonDays = clampBookingHorizonDays(body.bookingHorizonDays)
   }
@@ -137,6 +146,7 @@ export default defineEventHandler(async (event) => {
     descriptionFa: updated.descriptionFa,
     descriptionEn: updated.descriptionEn,
     cancellationWindowHours: updated.cancellationWindowHours,
+    insideWindowRefundBps: updated.insideWindowRefundBps,
     rescheduleWindowHours: updated.rescheduleWindowHours,
     bookingHorizonDays: updated.bookingHorizonDays,
     waitlistEnabled: updated.waitlistEnabled,

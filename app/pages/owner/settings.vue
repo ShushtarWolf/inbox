@@ -43,6 +43,7 @@ interface OwnerSettingsClub {
   descriptionFa?: string | null
   descriptionEn?: string | null
   cancellationWindowHours?: number
+  insideWindowRefundBps?: number
   rescheduleWindowHours?: number
   bookingHorizonDays?: number
   waitlistEnabled?: boolean
@@ -157,6 +158,7 @@ const form = reactive({
   openHour: 8,
   closeHour: 22,
   cancellationWindowHours: 12,
+  insideWindowRefundBps: 10_000,
   rescheduleWindowHours: 24,
   bookingHorizonDays: DEFAULT_BOOKING_HORIZON_DAYS,
   waitlistEnabled: true,
@@ -303,6 +305,7 @@ function applyClubData() {
   form.openHour = club.openHour ?? 8
   form.closeHour = club.closeHour ?? 22
   form.cancellationWindowHours = club.cancellationWindowHours ?? 12
+  form.insideWindowRefundBps = club.insideWindowRefundBps ?? 10_000
   form.rescheduleWindowHours = club.rescheduleWindowHours ?? 24
   form.bookingHorizonDays = clampBookingHorizonDays(club.bookingHorizonDays)
   form.waitlistEnabled = club.waitlistEnabled ?? true
@@ -332,6 +335,7 @@ function formSnapshot() {
     openHour: form.openHour,
     closeHour: form.closeHour,
     cancellationWindowHours: form.cancellationWindowHours,
+    insideWindowRefundBps: form.insideWindowRefundBps,
     rescheduleWindowHours: form.rescheduleWindowHours,
     bookingHorizonDays: form.bookingHorizonDays,
     waitlistEnabled: form.waitlistEnabled,
@@ -525,6 +529,7 @@ async function save() {
       openHour: Number(form.openHour),
       closeHour: Number(form.closeHour),
       cancellationWindowHours: Number(form.cancellationWindowHours),
+      insideWindowRefundBps: Number(form.insideWindowRefundBps),
       rescheduleWindowHours: Number(form.rescheduleWindowHours),
       bookingHorizonDays: clampBookingHorizonDays(form.bookingHorizonDays),
       waitlistEnabled: form.waitlistEnabled,
@@ -815,6 +820,33 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                   aria-hidden="true"
                 />
                 <span class="text-sm font-medium text-brand-navy">{{ cancelPolicyLabel(hours) }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.insideWindowRefund') }}</h3>
+            <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.settingsPage.insideWindowRefundHint') }}</p>
+            <div class="mt-2 flex flex-wrap gap-3" role="radiogroup" :aria-label="t('owner.settingsPage.insideWindowRefund')">
+              <label
+                v-for="bps in [10_000, 5000, 0]"
+                :key="bps"
+                class="canva-settings-radio"
+              >
+                <input
+                  v-model.number="form.insideWindowRefundBps"
+                  type="radio"
+                  class="sr-only"
+                  :value="bps"
+                >
+                <span
+                  class="canva-settings-radio-box"
+                  :class="form.insideWindowRefundBps === bps ? 'canva-settings-radio-box-on' : ''"
+                  aria-hidden="true"
+                />
+                <span class="text-sm font-medium text-brand-navy">
+                  {{ t('owner.settingsPage.insideWindowRefundPct', { pct: formatNumber(bps / 100) }) }}
+                </span>
               </label>
             </div>
           </div>

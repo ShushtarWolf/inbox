@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { canCancelReservation, resolveCancelMoneyOutcome } from './cancelPolicy'
+import {
+  canCancelReservation,
+  refundAmountFromBps,
+  resolveCancelMoneyDetail,
+  resolveCancelMoneyOutcome,
+} from './cancelPolicy'
 import { addDaysToIsoDate, localDateString, localTimeString } from './localDate'
 
 describe('resolveCancelMoneyOutcome', () => {
@@ -14,24 +19,22 @@ describe('resolveCancelMoneyOutcome', () => {
       startTime: '09:00',
       windowHours: 12,
       now,
-    })).toBe('full_wallet_refund')
-    expect(resolveCancelMoneyOutcome({
-      actor: 'coach',
-      date: today,
-      startTime: '09:00',
-      windowHours: 12,
-      now,
+      insideWindowRefundBps: 0,
     })).toBe('full_wallet_refund')
   })
 
-  it('athlete always gets full wallet refund (window no longer zeroes money)', () => {
+  it('athlete outside window always full refund', () => {
     expect(resolveCancelMoneyOutcome({
       actor: 'athlete',
       date: farDate,
       startTime: '10:00',
       windowHours: 12,
       now,
+      insideWindowRefundBps: 0,
     })).toBe('full_wallet_refund')
+  })
+
+  it('athlete inside window respects club bps (default 100%)', () => {
     const soon = localTimeString(new Date(now.getTime() + 2 * 60 * 60 * 1000))
     expect(resolveCancelMoneyOutcome({
       actor: 'athlete',
@@ -40,6 +43,27 @@ describe('resolveCancelMoneyOutcome', () => {
       windowHours: 12,
       now,
     })).toBe('full_wallet_refund')
+    expect(resolveCancelMoneyDetail({
+      actor: 'athlete',
+      date: today,
+      startTime: soon,
+      windowHours: 12,
+      now,
+      insideWindowRefundBps: 0,
+    })).toEqual({ outcome: 'zero_refund', refundBps: 0 })
+    expect(resolveCancelMoneyDetail({
+      actor: 'athlete',
+      date: today,
+      startTime: soon,
+      windowHours: 12,
+      now,
+      insideWindowRefundBps: 5000,
+    })).toEqual({ outcome: 'partial_wallet_refund', refundBps: 5000 })
+  })
+
+  it('refundAmountFromBps floors correctly', () => {
+    expect(refundAmountFromBps(1_000_000, 5000)).toBe(500_000)
+    expect(refundAmountFromBps(100, 3333)).toBe(33)
   })
 })
 
