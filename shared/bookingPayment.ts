@@ -134,6 +134,21 @@ export function financeIncomeAmount(
   return payment ? payment.amount : listPrice
 }
 
+/**
+ * Non-income per-session list value for owner finance ops.
+ * Prefer stored metadata sessionPrice; else court/session list price.
+ * Never use payment.amount — that is collected money (sheet totals on primary).
+ */
+export function financeSessionValue(
+  sessionPrice: number | null | undefined,
+  listPrice: number,
+): number {
+  if (typeof sessionPrice === 'number' && Number.isFinite(sessionPrice)) {
+    return Math.round(sessionPrice)
+  }
+  return listPrice
+}
+
 /** Sum settled spend across court / coach / package rows for the athlete hub. */
 export function sumAthleteSettledSpend(rows: AthleteSpendRow[]): number {
   return rows.reduce((sum, row) => sum + settledSpendAmount(row), 0)

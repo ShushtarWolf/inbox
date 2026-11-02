@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countsTowardRevenue, financeIncomeAmount } from './bookingPayment.ts'
+import { countsTowardRevenue, financeIncomeAmount, financeSessionValue } from './bookingPayment.ts'
 
 function computeRevenue(bookings: Array<{
   status: string
@@ -115,5 +115,29 @@ describe('owner financeIncomeAmount (series siblings)', () => {
     expect(financeIncomeAmount(undefined, 0)).toBe(0)
     // Primary sheet total is unchanged.
     expect(financeIncomeAmount({ amount: 1_200_000 }, recomputedSlotPrice)).toBe(1_200_000)
+  })
+})
+
+describe('owner financeSessionValue (non-income)', () => {
+  it('prefers metadata sessionPrice over list price', () => {
+    expect(financeSessionValue(600_000, 700_000)).toBe(600_000)
+  })
+
+  it('falls back to list price when sessionPrice is missing', () => {
+    expect(financeSessionValue(undefined, 600_000)).toBe(600_000)
+    expect(financeSessionValue(null, 600_000)).toBe(600_000)
+  })
+
+  it('keeps stored 0 sessionPrice (does not fall back to list price)', () => {
+    expect(financeSessionValue(0, 600_000)).toBe(0)
+  })
+
+  it('lets ops see sibling session value while income stays 0', () => {
+    const listPrice = 600_000
+    const income = financeIncomeAmount({ amount: 0 }, listPrice)
+    const sessionValue = financeSessionValue(600_000, listPrice)
+    expect(income).toBe(0)
+    expect(sessionValue).toBe(600_000)
+    expect(sessionValue).not.toBe(income)
   })
 })

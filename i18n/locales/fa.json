@@ -2540,6 +2540,7 @@
       "method": "روش پرداخت",
       "status": "وضعیت",
       "income": "درآمد",
+      "sessionValue": "ارزش جلسه",
       "collectAtClub": "وصول در باشگاه",
       "kind": {
         "court": "رزرو زمین",

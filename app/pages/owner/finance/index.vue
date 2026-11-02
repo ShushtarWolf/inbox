@@ -13,6 +13,8 @@ type OwnerFinanceTransaction = {
   paymentMethod?: string | null
   paymentStatus: string
   amount: number
+  /** Non-income list value (sessionPrice / slot price) — never sum as collected. */
+  sessionValue?: number | null
   bookingStatus: string
   displayStatus?: string | null
   comments?: string | null
@@ -498,6 +500,12 @@ const visibleTransactions = computed(() => selectFinanceTransactions(data.value?
   sortDir: sortDir.value,
 }))
 
+/** Show ops session value only when it differs from collected income (siblings, sheet totals). */
+function showSessionValue(tx: OwnerFinanceTransaction) {
+  const value = Number(tx.sessionValue || 0)
+  return value > 0 && value !== Number(tx.amount || 0)
+}
+
 function downloadExcel() {
   const headers = [
     t('owner.financeTable.reservation'),
@@ -509,6 +517,7 @@ function downloadExcel() {
     t('owner.financeTable.method'),
     t('owner.financeTable.status'),
     t('owner.financeTable.income'),
+    t('owner.financeTable.sessionValue'),
     t('owner.financeTable.discountCode'),
     t('owner.financeTable.discountPercent'),
     t('owner.financeTable.discountAmount'),
@@ -524,6 +533,7 @@ function downloadExcel() {
     isBlockedFinanceTx(tx) ? '' : methodBadgeLabel(tx),
     isBlockedFinanceTx(tx) ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED') : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
+    showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
     tx.discountPercent || '',
     tx.discountAmount || '',
@@ -846,6 +856,10 @@ function showUnpaidList() {
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>
+              <p v-if="showSessionValue(tx)" class="mt-0.5 text-[11px] tabular-nums text-brand-gray-500">
+                {{ t('owner.financeTable.sessionValue') }}
+                {{ formatCurrency(Number(tx.sessionValue || 0)) }}
+              </p>
               <span class="canva-finance-method-badge mt-1" :class="methodBadgeClass(tx)">
                 {{ methodBadgeLabel(tx) }}
               </span>
@@ -920,7 +934,13 @@ function showUnpaidList() {
                     {{ methodBadgeLabel(tx) }}
                   </span>
                 </td>
-                <td class="tabular-nums font-bold">{{ formatCurrency(tx.amount) }}</td>
+                <td class="tabular-nums font-bold">
+                  <div>{{ formatCurrency(tx.amount) }}</div>
+                  <div v-if="showSessionValue(tx)" class="mt-0.5 text-[11px] font-normal text-brand-gray-500">
+                    {{ t('owner.financeTable.sessionValue') }}
+                    {{ formatCurrency(Number(tx.sessionValue || 0)) }}
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1171,9 +1191,13 @@ function showUnpaidList() {
           <span class="text-brand-gray-500">{{ t('owner.financeTable.priceBeforeDiscount') }}</span>
           <span class="font-bold tabular-nums text-brand-navy">{{ formatCurrency(selectedTx.subtotalBeforeDiscount) }}</span>
         </div>
-        <div class="canva-contact-row border-b-0">
+        <div class="canva-contact-row" :class="showSessionValue(selectedTx) ? '' : 'border-b-0'">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.income') }}</span>
           <span class="font-bold text-brand-primary">{{ formatCurrency(Number(selectedTx.amount || 0)) }}</span>
+        </div>
+        <div v-if="showSessionValue(selectedTx)" class="canva-contact-row border-b-0">
+          <span class="text-brand-gray-500">{{ t('owner.financeTable.sessionValue') }}</span>
+          <span class="font-bold tabular-nums text-brand-navy">{{ formatCurrency(Number(selectedTx.sessionValue || 0)) }}</span>
         </div>
         <button type="button" class="canva-black-cta mt-3" @click="closeTx">{{ t('common.close') }}</button>
       </div>

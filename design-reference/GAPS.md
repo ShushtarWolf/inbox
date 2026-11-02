@@ -23,3 +23,9 @@ PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | So
 | screen | region | change | status |
 |--------|--------|--------|--------|
 | owner-settings / club | court audience | `Court.audience` (MIXED/MEN/WOMEN/FAMILY) + CourtForm segment + public tags/warn + book gate + opt-in SMS on save | fixed (product) |
+
+## Product — owner finance session value (2026-11-02)
+
+| screen | region | change | status |
+|--------|--------|--------|--------|
+| owner-finance / report | txn income | Season siblings keep درآمد `۰` (collected); optional muted «ارزش جلسه» from `sessionPrice` / slot list price for ops — not counted as money. Cash/IPG badges unchanged. | kept-product |

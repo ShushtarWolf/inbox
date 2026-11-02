@@ -13,6 +13,8 @@ type OwnerFinanceTransaction = {
   paymentMethod?: string | null
   paymentStatus: string
   amount: number
+  /** Non-income list value (sessionPrice / slot price) — never sum as collected. */
+  sessionValue?: number | null
   bookingStatus: string
   displayStatus?: string | null
   comments?: string | null
@@ -212,6 +214,12 @@ function methodLabel(tx: { paymentMethod?: string | null; paymentStatus?: string
   return t('owner.financePage.methodUnpaid')
 }
 
+/** Show ops session value only when it differs from collected income (siblings, sheet totals). */
+function showSessionValue(tx: OwnerFinanceTransaction) {
+  const value = Number(tx.sessionValue || 0)
+  return value > 0 && value !== Number(tx.amount || 0)
+}
+
 function downloadReport() {
   const headers = [
     t('owner.financeTable.reservation'),
@@ -223,6 +231,7 @@ function downloadReport() {
     t('owner.financeTable.method'),
     t('owner.financeTable.status'),
     t('owner.financeTable.income'),
+    t('owner.financeTable.sessionValue'),
     t('owner.financeTable.discountCode'),
     t('owner.financeTable.discountPercent'),
     t('owner.financeTable.discountAmount'),
@@ -238,6 +247,7 @@ function downloadReport() {
     tx.kind === 'slot' ? '' : methodLabel(tx),
     tx.kind === 'slot' ? bookingStatusLabel(tx.bookingStatus) : paymentStatusLabel(tx.paymentStatus),
     tx.amount,
+    showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
     tx.discountPercent || '',
     tx.discountAmount || '',
@@ -350,9 +360,15 @@ function downloadReport() {
                   <template v-else>{{ paymentStatusLabel(tx.paymentStatus) }} · {{ bookingStatusLabel(tx.bookingStatus) }}</template>
                 </p>
               </div>
-              <p class="shrink-0 font-bold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">
-                {{ formatCurrency(tx.amount) }}
-              </p>
+              <div class="shrink-0 text-start">
+                <p class="font-bold" :class="isTxUnpaid(tx) ? 'text-amber-700' : 'text-brand-primary'">
+                  {{ formatCurrency(tx.amount) }}
+                </p>
+                <p v-if="showSessionValue(tx)" class="mt-0.5 text-[11px] tabular-nums text-brand-gray-500">
+                  {{ t('owner.financeTable.sessionValue') }}
+                  {{ formatCurrency(Number(tx.sessionValue || 0)) }}
+                </p>
+              </div>
             </div>
           </div>
         </div>

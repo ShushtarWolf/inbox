@@ -1,4 +1,5 @@
-import { countsTowardRevenue, financeIncomeAmount, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
+import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { countsTowardRevenue, financeIncomeAmount, financeSessionValue, isUnpaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
@@ -112,6 +113,14 @@ export default defineEventHandler(async (event) => {
 
   function amountOfSession(session: { payment?: { amount: number } | null; price: number }) {
     return financeIncomeAmount(session.payment, session.price)
+  }
+
+  /** Ops-only list value — never folded into collected income. */
+  function sessionValueOf(
+    payment: { metadataJson?: string | null } | null | undefined,
+    listPrice: number,
+  ) {
+    return financeSessionValue(parseSeriesPaymentMeta(payment?.metadataJson).sessionPrice, listPrice)
   }
 
   function discountFields(paidAmount: number, paymentJson?: string | null, eventJson?: string | null) {
@@ -361,6 +370,7 @@ export default defineEventHandler(async (event) => {
         paymentMethod: booking.payment?.method || booking.paymentMethod,
         paymentStatus,
         amount: amountOfBooking(booking),
+        sessionValue: sessionValueOf(booking.payment, booking.slot.price),
         bookingStatus: booking.status,
         kind: 'court' as const,
         bookingKind: courtBookingKind(booking),
@@ -403,6 +413,7 @@ export default defineEventHandler(async (event) => {
         paymentMethod: session.payment?.method || null,
         paymentStatus,
         amount: amountOfSession(session),
+        sessionValue: sessionValueOf(session.payment, session.price),
         bookingStatus: session.status,
         kind: 'coach' as const,
         bookingKind: 'coach' as const,
@@ -442,6 +453,7 @@ export default defineEventHandler(async (event) => {
           paymentMethod: null,
           paymentStatus: '',
           amount: 0,
+          sessionValue: 0,
           bookingStatus: slot.displayStatus,
           kind: 'slot' as const,
           bookingKind: 'normal' as const,
