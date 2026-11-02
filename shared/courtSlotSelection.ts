@@ -1,3 +1,4 @@
+import { classifyUnblockCandidate } from './blockWeekly.ts'
 import { isPaidPaymentStatus, isUnpaidPaymentStatus } from './bookingPayment.ts'
 import { formatGuestDisplayName } from './guestName.ts'
 import { normalizeIranPhone } from './phone.ts'
@@ -253,6 +254,18 @@ export function isMultiSelectBookedSlot(slot: {
   const booking = slot.booking
   if (!booking || booking.status === 'CANCELLED') return false
   return true
+}
+
+/** Club (or empty) BLOCKED cell the owner may multi-select to unblock. */
+export function isMultiSelectBlockedSlot(slot: {
+  displayStatus?: string | null
+  booking?: (BookedSlotGuest & { source?: string | null }) | null
+}): boolean {
+  return classifyUnblockCandidate({
+    displayStatus: slot.displayStatus,
+    bookingSource: slot.booking?.source,
+    bookingStatus: slot.booking?.status,
+  }) === 'UNBLOCKABLE'
 }
 
 /**
