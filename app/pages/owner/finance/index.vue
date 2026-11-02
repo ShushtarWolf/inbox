@@ -131,7 +131,8 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const { user, fetch: fetchAuth } = useAuth()
 const selectedClubId = useCookie<string | null>('owner_club_id', { sameSite: 'lax' })
-const sessionFilter = ref<'all' | 'free' | 'coach'>('all')
+/** Default free-play only — coach lesson fees are not club till/IPG income. */
+const sessionFilter = ref<'all' | 'free' | 'coach'>('free')
 const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
 /** Dual-rail accounting tab — drives paymentFilter for cash vs online books. */

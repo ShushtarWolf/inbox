@@ -154,7 +154,7 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSION_BPS`, default `0` = 0% for now) including **competition entry fees** once PAID. Desk cash does **not** credit. Owner sets SHEBA and submits a **withdraw request** from **available** balance (moves to locked until admin paid/reject); ops pays via manual bank transfer. No automated payout rail.
 
-**Available / locked:** `Wallet` / `ClubWallet` keep `balance = availableBalance + lockedBalance`. Class settlements with `classDate` credit **locked** until the Tehran day after class (lazy `UNLOCK`). Packages/comps (`classDate` null) credit **available**.
+**Available / locked:** `Wallet` / `ClubWallet` keep `balance = availableBalance + lockedBalance`. Class settlements with `classDate` credit **locked** until the Tehran day after class (lazy `UNLOCK`). **Season / multi-slot series** settle once on the primary payment (ledger `classDate` = last session) but **unlock progressively** — only each completed session’s share becomes withdrawable the day after that class; cancelled sessions are clawed and never unlock. Packages/comps (`classDate` null) credit **available**.
 
 **Internal transfer:** club ↔ coach record-keeping (`POST /api/owner/transfers`, `POST /api/coach/transfers`) from available only. Athletes never have this.
 

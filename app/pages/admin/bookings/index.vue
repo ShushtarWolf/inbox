@@ -562,6 +562,9 @@ watch([bookingStatusFilter, paymentStatusFilter], () => {
                       class="mt-3 space-y-2 border border-brand-gray-200 bg-white p-3 text-start"
                     >
                       <p class="text-xs font-bold text-brand-navy">{{ t('admin.ackManualRefundTitle') }}</p>
+                      <p class="text-xs font-bold tabular-nums text-brand-primary">
+                        {{ t('admin.ackManualRefundAmountLine', { amount: formatCurrency(row.amount) }) }}
+                      </p>
                       <p class="text-xs text-brand-gray-600">{{ t('admin.ackManualRefundHint') }}</p>
                       <label class="block text-xs">
                         <span class="mb-1 block font-bold">{{ t('admin.guestSheba') }}</span>

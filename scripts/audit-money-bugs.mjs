@@ -413,6 +413,55 @@ async function main() {
     console.log('OK: no paid-zero covered siblings and no live || listPrice paths')
   }
 
+  section('10) Internal online conservation (Payment IPG/PAID vs settlement ledger)')
+  // Platform identity check — not SEP merchant export. Gross PAID online should match
+  // settlement gross (open + clawed) for the same payment ids; drift means missing settle/clawback.
+  const onlinePaid = await prisma.$queryRaw`
+    SELECT COALESCE(SUM(p.amount), 0)::int AS gross,
+           COUNT(*)::int AS n
+    FROM "Payment" p
+    WHERE p.status IN ('PAID', 'REFUNDED')
+      AND p.method IN ('IPG', 'PAID')
+      AND COALESCE(p.purpose, '') <> 'topup'
+  `
+  const settled = await prisma.$queryRaw`
+    SELECT COALESCE(SUM(s.gross), 0)::int AS gross,
+           COALESCE(SUM(s."ownerNet"), 0)::int AS "ownerNet",
+           COALESCE(SUM(s.commission), 0)::int AS commission,
+           COUNT(*)::int AS n
+    FROM "SettlementLedgerEntry" s
+    JOIN "Payment" p ON p.id = s."paymentId"
+    WHERE p.method IN ('IPG', 'PAID')
+      AND COALESCE(p.purpose, '') <> 'topup'
+  `
+  const paidGross = Number(onlinePaid[0]?.gross ?? 0)
+  const settledGross = Number(settled[0]?.gross ?? 0)
+  const drift = paidGross - settledGross
+  console.log(`Online PAID+REFUNDED payments (excl topup): n=${onlinePaid[0]?.n ?? 0} gross=${paidGross}`)
+  console.log(`Settlement rows for those methods: n=${settled[0]?.n ?? 0} gross=${settledGross} ownerNet=${settled[0]?.ownerNet ?? 0} commission=${settled[0]?.commission ?? 0}`)
+  console.log(`Gross drift (payments − settlements): ${drift}`)
+  if (Math.abs(drift) > 0) {
+    const missing = await prisma.$queryRaw`
+      SELECT p.id, p.amount, p.status, p.method
+      FROM "Payment" p
+      WHERE p.status IN ('PAID', 'REFUNDED')
+        AND p.method IN ('IPG', 'PAID')
+        AND COALESCE(p.purpose, '') <> 'topup'
+        AND NOT EXISTS (
+          SELECT 1 FROM "SettlementLedgerEntry" s WHERE s."paymentId" = p.id
+        )
+      ORDER BY p."createdAt" DESC
+      LIMIT 30
+    `
+    console.log(`Payments with no settlement row: ${missing.length} (sample up to 30)`)
+    for (const row of missing) {
+      console.log(`  payment=${row.id} amount=${row.amount} status=${row.status} method=${row.method}`)
+    }
+  }
+  else {
+    console.log('OK: online payment gross matches settlement gross')
+  }
+
   section('Dump gate')
   console.log('Before APPLY=yes correction scripts or migrate deploy on shared/prod DB:')
   console.log('  - Keep a local dump under backups/ (gh workflow backup-db.yml or liara db backup download)')

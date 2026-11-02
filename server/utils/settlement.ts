@@ -1,11 +1,21 @@
 import type { ClubWalletTransactionType, Prisma } from '@prisma/client'
 import {
+  isSeriesPaymentGroup,
+  parseSeriesPaymentMeta,
+} from '#shared/athleteSeason.ts'
+import {
   isSettlementCashoutEligible,
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
   sumEligibleSettlementNet,
 } from '#shared/settlement.ts'
+import {
+  lastSessionDate,
+  seasonUnlockDelta,
+  targetSeasonUnlockedNet,
+  type SeasonUnlockSession,
+} from '#shared/seasonSettlementUnlock.ts'
 import { computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 import { creditWallet, debitWallet } from './wallet'
@@ -50,7 +60,57 @@ async function sumClubWithdrawnViaRail(walletId: string, db: DbClient) {
   return sumWithdrawnViaRail(holdAbs, releaseSum)
 }
 
-/** Lazy-unlock class-locked club settlement once cashout-eligible. */
+async function loadSeasonUnlockSessionsForPayment(
+  paymentId: string,
+  db: DbClient,
+): Promise<SeasonUnlockSession[] | null> {
+  const payment = await db.payment.findUnique({
+    where: { id: paymentId },
+    select: {
+      metadataJson: true,
+      bookingId: true,
+      booking: { select: { id: true, status: true, slot: { select: { date: true, price: true } } } },
+    },
+  })
+  if (!payment?.bookingId || !payment.booking) return null
+  const meta = parseSeriesPaymentMeta(payment.metadataJson)
+  if (!isSeriesPaymentGroup(meta)) return null
+
+  const primaryId = meta.groupPrimaryBookingId || meta.coveredByBookingId || payment.bookingId
+  const ids = [...new Set([
+    primaryId,
+    ...(meta.groupSiblingBookingIds || []),
+    payment.bookingId,
+  ].filter((id): id is string => Boolean(id)))]
+
+  const bookings = await db.booking.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      status: true,
+      slot: { select: { date: true, price: true } },
+      payment: { select: { metadataJson: true } },
+    },
+  })
+  if (bookings.length <= 1) return null
+
+  return bookings
+    .map((row) => {
+      const sessionMeta = parseSeriesPaymentMeta(row.payment?.metadataJson)
+      const sessionPrice = typeof sessionMeta.sessionPrice === 'number' && sessionMeta.sessionPrice > 0
+        ? Math.floor(sessionMeta.sessionPrice)
+        : (row.slot.price || 0)
+      return {
+        bookingId: row.id,
+        date: row.slot.date,
+        sessionPrice,
+        cancelled: row.status === 'CANCELLED',
+      } satisfies SeasonUnlockSession
+    })
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+}
+
+/** Lazy-unlock class-locked club settlement once cashout-eligible (progressive for seasons). */
 export async function unlockEligibleClubSettlements(
   clubId: string,
   now = new Date(),
@@ -69,7 +129,7 @@ export async function unlockEligibleClubSettlements(
     where: { walletId: wallet.id, type: 'BOOKING_CREDIT', paymentId: { not: null } },
     select: { amount: true, paymentId: true, bookingId: true },
   })
-  const paymentIds = credits.map((c) => c.paymentId!).filter(Boolean)
+  const paymentIds = [...new Set(credits.map((c) => c.paymentId!).filter(Boolean))]
   if (!paymentIds.length) {
     return {
       balance: wallet.balance,
@@ -78,28 +138,74 @@ export async function unlockEligibleClubSettlements(
     }
   }
 
-  const [ledgerRows, alreadyUnlocked] = await Promise.all([
+  const [ledgerRows, unlockRows, clawbackRows] = await Promise.all([
     db.settlementLedgerEntry.findMany({
       where: { paymentId: { in: paymentIds }, clawedBackAt: null },
-      select: { paymentId: true, classDate: true },
+      select: { paymentId: true, classDate: true, ownerNet: true },
     }),
     db.clubWalletTransaction.findMany({
       where: { walletId: wallet.id, type: 'UNLOCK', paymentId: { in: paymentIds } },
-      select: { paymentId: true },
+      select: { paymentId: true, amount: true, bookingId: true },
+    }),
+    db.clubWalletTransaction.findMany({
+      where: { walletId: wallet.id, type: 'CLAWBACK', paymentId: { in: paymentIds } },
+      select: { paymentId: true, amount: true },
     }),
   ])
-  const unlocked = new Set(alreadyUnlocked.map((r) => r.paymentId).filter(Boolean))
-  const classDateByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row.classDate]))
+  const ledgerByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row]))
+  const unlockedSumByPayment = new Map<string, number>()
+  for (const row of unlockRows) {
+    if (!row.paymentId) continue
+    unlockedSumByPayment.set(
+      row.paymentId,
+      (unlockedSumByPayment.get(row.paymentId) || 0) + Math.max(0, row.amount),
+    )
+  }
+  const clawbackByPayment = new Map<string, number>()
+  for (const row of clawbackRows) {
+    if (!row.paymentId) continue
+    clawbackByPayment.set(
+      row.paymentId,
+      (clawbackByPayment.get(row.paymentId) || 0) + Math.abs(row.amount),
+    )
+  }
 
   let toUnlock = 0
   const unlockPayments: Array<{ paymentId: string, bookingId?: string | null, amount: number }> = []
-  for (const row of credits) {
-    if (!row.paymentId || unlocked.has(row.paymentId)) continue
-    const classDate = classDateByPayment.get(row.paymentId)
-    if (classDate == null) continue
-    if (!isSettlementCashoutEligible(classDate, now)) continue
-    toUnlock += row.amount
-    unlockPayments.push({ paymentId: row.paymentId, bookingId: row.bookingId, amount: row.amount })
+  for (const paymentId of paymentIds) {
+    const ledger = ledgerByPayment.get(paymentId)
+    if (!ledger) continue
+    const credit = credits.find((row) => row.paymentId === paymentId)
+    const creditAmount = credit?.amount || ledger.ownerNet
+    const already = unlockedSumByPayment.get(paymentId) || 0
+    const clawed = clawbackByPayment.get(paymentId) || 0
+    const remainingNet = Math.max(0, ledger.ownerNet - clawed)
+    if (remainingNet <= 0 || already >= remainingNet) continue
+
+    const sessions = await loadSeasonUnlockSessionsForPayment(paymentId, db)
+    let delta = 0
+    if (sessions && sessions.length > 1) {
+      delta = seasonUnlockDelta({
+        ownerNet: ledger.ownerNet,
+        sessions,
+        alreadyUnlocked: already,
+        remainingNet,
+        now,
+      })
+    }
+    else {
+      const classDate = ledger.classDate
+      if (classDate == null) continue
+      if (!isSettlementCashoutEligible(classDate, now)) continue
+      delta = Math.max(0, Math.min(creditAmount, remainingNet) - already)
+    }
+    if (delta <= 0) continue
+    toUnlock += delta
+    unlockPayments.push({
+      paymentId,
+      bookingId: credit?.bookingId || null,
+      amount: delta,
+    })
   }
   if (toUnlock <= 0) {
     return {
@@ -179,13 +285,29 @@ export async function getClubWithdrawableBalance(
     if (!row.paymentId) continue
     partialByPayment.set(row.paymentId, (partialByPayment.get(row.paymentId) || 0) + Math.abs(row.amount))
   }
-  const { eligible, pending } = sumEligibleSettlementNet(
-    entries.map((entry) => ({
-      ...entry,
-      ownerNet: Math.max(0, entry.ownerNet - (partialByPayment.get(entry.paymentId) || 0)),
-    })),
-    now,
-  )
+
+  let eligible = 0
+  let pending = 0
+  for (const entry of entries) {
+    const remainingNet = Math.max(0, entry.ownerNet - (partialByPayment.get(entry.paymentId) || 0))
+    if (remainingNet <= 0) continue
+    const sessions = await loadSeasonUnlockSessionsForPayment(entry.paymentId, db)
+    if (sessions && sessions.length > 1) {
+      const unlockedTarget = Math.min(
+        remainingNet,
+        targetSeasonUnlockedNet({ ownerNet: entry.ownerNet, sessions, now }),
+      )
+      eligible += unlockedTarget
+      pending += Math.max(0, remainingNet - unlockedTarget)
+      continue
+    }
+    const single = sumEligibleSettlementNet(
+      [{ ownerNet: remainingNet, classDate: entry.classDate }],
+      now,
+    )
+    eligible += single.eligible
+    pending += single.pending
+  }
   // Pending class ≠ lockedBalance (locked also holds withdraw requests).
   if (availableBalance <= 0) {
     return {
@@ -440,10 +562,34 @@ async function resolveClubIdForPayment(
   })
   if (!payment || payment.purpose === 'topup') return null
   if (payment.booking?.slot?.court?.clubId) {
+    let classDate: string | null = payment.booking.slot.date || null
+    const meta = parseSeriesPaymentMeta(payment.metadataJson)
+    if (isSeriesPaymentGroup(meta)) {
+      const primaryId = meta.groupPrimaryBookingId || meta.coveredByBookingId || payment.booking.id
+      const ids = [...new Set([
+        primaryId,
+        ...(meta.groupSiblingBookingIds || []),
+        payment.booking.id,
+      ].filter((id): id is string => Boolean(id)))]
+      if (ids.length > 1) {
+        const slots = await db.booking.findMany({
+          where: { id: { in: ids } },
+          select: { slot: { select: { date: true } } },
+        })
+        classDate = lastSessionDate(
+          slots.map((row, i) => ({
+            bookingId: String(i),
+            date: row.slot.date,
+            sessionPrice: 1,
+            cancelled: false,
+          })),
+        ) || classDate
+      }
+    }
     return {
       clubId: payment.booking.slot.court.clubId,
       bookingId: payment.booking.id,
-      classDate: payment.booking.slot.date || null,
+      classDate,
     }
   }
   if (payment.packageBooking?.package?.clubId) {
