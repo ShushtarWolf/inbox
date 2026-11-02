@@ -88,7 +88,10 @@ export function computeListedSlotPrice(
 }
 
 export function hoursUntilSlot(slotDate: string, startTime: string, now = new Date()): number {
-  const slotAt = new Date(`${slotDate}T${startTime}:00`)
+  // Slot wall-clock is club time (Asia/Tehran, fixed +03:30, no DST since 2022).
+  // Without an explicit offset the server (UTC) and browser (Tehran) disagree by 3.5h,
+  // so last-second discount showed on checkout but was not charged.
+  const slotAt = new Date(`${slotDate}T${startTime.slice(0, 5)}:00+03:30`)
   const diffMs = slotAt.getTime() - now.getTime()
   return diffMs / (1000 * 60 * 60)
 }

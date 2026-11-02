@@ -4,7 +4,7 @@ import {
   DEFAULT_BOOKING_HORIZON_DAYS,
   isDateBeyondBookingHorizon,
 } from '#shared/bookingHorizon.ts'
-import { computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
+import { computeBookingPrice, computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import {
   courtIdsFromSlots,
@@ -238,7 +238,11 @@ function slotPriceLabel(slot: ClubSlot): string {
   const court = courts.value.find((c) => c.id === courtId)
   const base = court?.price ?? slot.price ?? club.value?.priceFrom ?? null
   if (base == null || !Number.isFinite(Number(base)) || Number(base) <= 0) return ''
-  const price = computeListedSlotPrice(Number(base), (slot.startTime || '').slice(0, 5), court?.pricingJson ?? null)
+  const start = (slot.startTime || '').slice(0, 5)
+  const listed = computeListedSlotPrice(Number(base), start, court?.pricingJson ?? null)
+  // Same payable price as checkout + server (incl. last-second court discount).
+  const date = slot.date || selectedDate.value
+  const price = date && start ? computeBookingPrice(listed, court?.pricingJson ?? null, date, start) : listed
   return price > 0 ? toThousand(price) : ''
 }
 
