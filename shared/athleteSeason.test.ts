@@ -103,12 +103,40 @@ describe('series payment meta + pro-rata', () => {
     })).toBe(100_000)
   })
 
-  it('returns 0 when no sessionPrice', () => {
+  it('fair-splits residual when sessionPrice is missing mid-series', () => {
     expect(sessionRefundAmount({
       sessionPrice: null,
       primaryAmount: 800_000,
       alreadyRefunded: 0,
-    })).toBe(0)
+      remainingSessions: 4,
+    })).toBe(200_000)
+    expect(sessionRefundAmount({
+      sessionPrice: undefined,
+      primaryAmount: 800_000,
+      alreadyRefunded: 200_000,
+      remainingSessions: 3,
+    })).toBe(200_000)
+    // Uneven residual: floor share; last-session path keeps the leftover.
+    expect(sessionRefundAmount({
+      sessionPrice: null,
+      primaryAmount: 1000,
+      alreadyRefunded: 0,
+      remainingSessions: 3,
+    })).toBe(333)
+  })
+
+  it('never silent-zeros when residual remains and sessionPrice is missing', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: null,
+      primaryAmount: 800_000,
+      alreadyRefunded: 0,
+    })).toBe(800_000)
+    expect(sessionRefundAmount({
+      sessionPrice: 0,
+      primaryAmount: 500_000,
+      alreadyRefunded: 100_000,
+      remainingSessions: 2,
+    })).toBe(200_000)
   })
 
   it('treats only seasonBookingId as a season series label', () => {

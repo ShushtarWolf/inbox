@@ -197,6 +197,8 @@ export async function refundAfterSeriesSessionCancel(opts: {
     sessionPrice,
     primaryAmount: primaryPayment.amount,
     alreadyRefunded,
+    // remainingActive excludes cancelled; include it for fair-split denominator.
+    remainingSessions: remainingActive + 1,
   })
   const amount = opts.moneyOutcome === 'partial_wallet_refund'
     ? refundAmountFromBps(amountRaw, opts.refundBps ?? 10_000)

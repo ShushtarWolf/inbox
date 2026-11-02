@@ -125,16 +125,27 @@ export function athleteListPrice(opts: {
   return receiptLinePrice(opts)
 }
 
-/** How much to refund for one cancelled session while siblings remain. */
+/**
+ * How much to refund for one cancelled session while siblings remain.
+ * Prefer stored sessionPrice; if missing, fair-split residual across remaining
+ * sessions (including the one being cancelled). Never silent 0 when money remains.
+ */
 export function sessionRefundAmount(opts: {
   sessionPrice?: number | null
   primaryAmount: number
   alreadyRefunded: number
+  /** Active sessions still claiming money, including the cancelled one. */
+  remainingSessions?: number
 }): number {
+  const residual = Math.max(0, Math.floor(opts.primaryAmount) - Math.floor(opts.alreadyRefunded))
+  if (residual <= 0) return 0
+
   const listed = typeof opts.sessionPrice === 'number' && opts.sessionPrice > 0
-    ? opts.sessionPrice
+    ? Math.floor(opts.sessionPrice)
     : 0
-  const residual = Math.max(0, opts.primaryAmount - opts.alreadyRefunded)
-  if (listed <= 0) return 0
-  return Math.min(listed, residual)
+  if (listed > 0) return Math.min(listed, residual)
+
+  // Missing sessionPrice: equal share of residual; last session path refunds leftover.
+  const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
+  return Math.min(Math.floor(residual / sessions), residual)
 }
