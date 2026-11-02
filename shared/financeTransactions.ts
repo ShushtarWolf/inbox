@@ -37,7 +37,23 @@ export type FinanceTxTimes = {
   displayStatus?: string | null
   comments?: string | null
   isRecurring?: boolean | null
+  /** Set when this checkout is covered by another booking's payment (season sibling). */
+  coveredByBookingId?: string | null
+  /** Sessions in the same season series (primary row only; siblings are hidden from the ledger). */
+  seasonSessionCount?: number | null
   discountCode?: string | null
+}
+
+/**
+ * Covered season / multi-slot siblings store PAID amount 0 on payment metadata.
+ * They must not appear as separate ledger rows — income lives on the primary checkout.
+ */
+export function isFinanceLedgerCoveredSibling(tx: {
+  coveredByBookingId?: string | null
+  amount?: number
+}): boolean {
+  if (!tx.coveredByBookingId?.trim()) return false
+  return (tx.amount ?? 0) <= 0
 }
 
 export type FinanceTxQuery = {
@@ -212,6 +228,7 @@ export function selectFinanceTransactions<T extends FinanceTxTimes>(rows: T[], q
   const sortKey = query.sortKey || 'reservedAt'
   const sortDir = query.sortDir || 'desc'
   const filtered = rows.filter((tx) => {
+    if (isFinanceLedgerCoveredSibling(tx)) return false
     // مسدود is calendar-only — never ledger (named holds or empty BLOCKED hours).
     // Do not use isBlockedFinanceTx here: that also matches FREE empty `kind:slot` rows.
     if (tx.displayStatus === 'BLOCKED' || tx.bookingStatus === 'BLOCKED') return false

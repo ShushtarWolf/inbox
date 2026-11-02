@@ -19,6 +19,8 @@ type OwnerFinanceTransaction = {
   displayStatus?: string | null
   comments?: string | null
   isRecurring?: boolean | null
+  coveredByBookingId?: string | null
+  seasonSessionCount?: number | null
   kind?: string
   bookingKind?: 'normal' | 'package' | 'coach' | string
   sessionType?: 'free' | 'coach' | string
@@ -507,6 +509,12 @@ function showSessionValue(tx: OwnerFinanceTransaction) {
   return value > 0 && value !== Number(tx.amount || 0)
 }
 
+function seasonSeriesSubline(tx: OwnerFinanceTransaction) {
+  const count = Number(tx.seasonSessionCount || 0)
+  if (count <= 1) return ''
+  return t('owner.seasonSeriesLabel', { count: formatNumber(count) })
+}
+
 function downloadExcel() {
   const headers = [
     t('owner.financeTable.reservation'),
@@ -854,6 +862,7 @@ function showUnpaidList() {
               </p>
               <p class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName || '—' }}</p>
               <span class="canva-slot-coach-chip mt-1">{{ rowTypeLabel(tx) }}</span>
+              <p v-if="seasonSeriesSubline(tx)" class="mt-0.5 text-[11px] text-brand-gray-600">{{ seasonSeriesSubline(tx) }}</p>
             </div>
             <div class="shrink-0 text-start">
               <p class="text-sm font-bold text-brand-navy">{{ formatCurrency(tx.amount) }}</p>
@@ -929,7 +938,10 @@ function showUnpaidList() {
                   <template v-else>—</template>
                 </td>
                 <td>{{ tx.guestName || '—' }}</td>
-                <td>{{ rowTypeLabel(tx) }}</td>
+                <td>
+                  <span>{{ rowTypeLabel(tx) }}</span>
+                  <span v-if="seasonSeriesSubline(tx)" class="mt-0.5 block text-[11px] font-normal text-brand-gray-600">{{ seasonSeriesSubline(tx) }}</span>
+                </td>
                 <td>
                   <span class="canva-finance-method-badge" :class="methodBadgeClass(tx)">
                     {{ methodBadgeLabel(tx) }}
@@ -1162,7 +1174,10 @@ function showUnpaidList() {
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.rowType') }}</span>
-          <span class="font-bold text-brand-navy">{{ rowTypeLabel(selectedTx) }}</span>
+          <span class="font-bold text-brand-navy">
+            {{ rowTypeLabel(selectedTx) }}
+            <span v-if="seasonSeriesSubline(selectedTx)" class="mt-0.5 block text-xs font-normal text-brand-gray-600">{{ seasonSeriesSubline(selectedTx) }}</span>
+          </span>
         </div>
         <div class="canva-contact-row">
           <span class="text-brand-gray-500">{{ t('owner.financeTable.method') }}</span>

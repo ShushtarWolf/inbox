@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { financeSheetXml } from './financeSpreadsheet.ts'
-import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
+import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, isFinanceLedgerCoveredSibling, selectFinanceTransactions, type FinanceTxTimes } from './financeTransactions.ts'
 
 const rows: FinanceTxTimes[] = [
   {
@@ -191,6 +191,44 @@ describe('selectFinanceTransactions', () => {
       40_000,
     ])
     expect(selectFinanceTransactions(rows, { sortKey: 'guest', sortDir: 'asc' }).map((tx) => tx.guestName)[0]).toBe('رضا')
+  })
+
+  it('drops covered season siblings but keeps the charged primary (Haerizadeh-style)', () => {
+    const primary: FinanceTxTimes = {
+      kind: 'court',
+      reservationLabel: 'زمین ۱',
+      guestName: 'حری‌زاده',
+      paymentMethod: 'IPG',
+      paymentStatus: 'PAID',
+      amount: 4_800_000,
+      sessionValue: 600_000,
+      reservedAt: '2026-10-01T16:00:00',
+      paidAt: '2026-10-01T10:00:00',
+      isRecurring: true,
+      seasonSessionCount: 8,
+    }
+    const sibling = (i: number): FinanceTxTimes => ({
+      kind: 'court',
+      reservationLabel: 'زمین ۱',
+      guestName: 'حری‌زاده',
+      paymentMethod: 'IPG',
+      paymentStatus: 'PAID',
+      amount: 0,
+      sessionValue: 600_000,
+      reservedAt: `2026-10-${String(i + 8).padStart(2, '0')}T16:00:00`,
+      paidAt: '2026-10-01T10:00:00',
+      isRecurring: true,
+      coveredByBookingId: 'primary-booking',
+    })
+    const series = [primary, ...Array.from({ length: 7 }, (_, i) => sibling(i))]
+    expect(isFinanceLedgerCoveredSibling(sibling(0))).toBe(true)
+    expect(isFinanceLedgerCoveredSibling(primary)).toBe(false)
+    const visible = selectFinanceTransactions(series)
+    expect(visible).toHaveLength(1)
+    expect(visible[0]?.amount).toBe(4_800_000)
+    expect(visible[0]?.seasonSessionCount).toBe(8)
+    expect(selectFinanceTransactions(series, { legend: 'season' })).toHaveLength(1)
+    expect(selectFinanceTransactions(series, { sortKey: 'amount', sortDir: 'desc' })[0]?.guestName).toBe('حری‌زاده')
   })
 
   it('picks blocked / season / reserved for the ledger type column', () => {
