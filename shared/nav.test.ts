@@ -30,4 +30,17 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive('/athlete/bookings/abc', '/athlete', athleteNav)).toBe(false)
     expect(isNavItemActive('/athlete/bookings/abc', '/athlete/bookings', athleteNav)).toBe(true)
   })
+
+  it('marks admin sheba and accounting drill-down under their tabs', () => {
+    const adminBottom: NavItem[] = [
+      { to: '/admin', label: 'Overview' },
+      { to: '/admin/tickets', label: 'Tickets' },
+      { to: '/admin/withdrawals', label: 'Withdrawals' },
+      { to: '/admin/sheba-requests', label: 'Sheba' },
+      { to: '/admin/accounting', label: 'Accounting' },
+    ]
+    expect(isNavItemActive('/admin/sheba-requests', '/admin/sheba-requests', adminBottom)).toBe(true)
+    expect(isNavItemActive('/admin/accounting/payments', '/admin/accounting', adminBottom)).toBe(true)
+    expect(isNavItemActive('/admin/sheba-requests', '/admin', adminBottom)).toBe(false)
+  })
 })
