@@ -141,3 +141,13 @@ describe('owner financeSessionValue (non-income)', () => {
     expect(sessionValue).not.toBe(income)
   })
 })
+
+describe('owner financeIncomeAmount (desk holds / BLOCKED)', () => {
+  it('never treats calendar blocks as list-price income', () => {
+    // Sobhan-style named hold: no Payment row, slot.price 600k — must stay 0.
+    expect(financeIncomeAmount(null, 600_000, { deskHold: true })).toBe(0)
+    expect(financeIncomeAmount(undefined, 600_000, { deskHold: true })).toBe(0)
+    // Even a stray payment must not invent income for a desk hold.
+    expect(financeIncomeAmount({ amount: 600_000 }, 600_000, { deskHold: true })).toBe(0)
+  })
+})

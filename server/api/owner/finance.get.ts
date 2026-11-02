@@ -107,8 +107,13 @@ export default defineEventHandler(async (event) => {
     return item.payment?.status || item.paymentStatus || 'PAY_AT_CLUB'
   }
 
-  function amountOfBooking(booking: { payment?: { amount: number } | null; slot: { price: number } }) {
-    return financeIncomeAmount(booking.payment, booking.slot.price)
+  function amountOfBooking(booking: {
+    payment?: { amount: number } | null
+    slot: { price: number; displayStatus?: string | null }
+  }) {
+    return financeIncomeAmount(booking.payment, booking.slot.price, {
+      deskHold: booking.slot.displayStatus === 'BLOCKED',
+    })
   }
 
   function amountOfSession(session: { payment?: { amount: number } | null; price: number }) {
@@ -370,7 +375,8 @@ export default defineEventHandler(async (event) => {
         paymentMethod: booking.payment?.method || booking.paymentMethod,
         paymentStatus,
         amount: amountOfBooking(booking),
-        sessionValue: sessionValueOf(booking.payment, booking.slot.price),
+        // Desk holds are calendar blocks, not priced sessions — no ops "session value".
+        sessionValue: blocked ? 0 : sessionValueOf(booking.payment, booking.slot.price),
         bookingStatus: booking.status,
         kind: 'court' as const,
         bookingKind: courtBookingKind(booking),

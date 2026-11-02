@@ -126,11 +126,14 @@ export function settledSpendAmount(row: AthleteSpendRow): number {
  * If a Payment row exists, use its amount even when 0 (season siblings covered by
  * coveredByBookingId, comps). Never `payment?.amount || listPrice` — that turns
  * sibling zeros into phantom court/session list prices.
+ * Desk holds (BLOCKED) are not receivables — always 0 income, never list price.
  */
 export function financeIncomeAmount(
   payment: { amount: number } | null | undefined,
   listPrice: number,
+  opts?: { deskHold?: boolean },
 ): number {
+  if (opts?.deskHold) return 0
   return payment ? payment.amount : listPrice
 }
 
