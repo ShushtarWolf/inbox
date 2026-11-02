@@ -77,14 +77,14 @@ describe('computeBookingPrice', () => {
   it('applies last-second discount when within window', () => {
     const slotDate = '2026-07-12'
     const startTime = '20:00'
-    const now = new Date('2026-07-12T19:00:00')
+    const now = new Date('2026-07-12T19:00:00+03:30')
     expect(computeBookingPrice(400000, pricingJson, slotDate, startTime, now)).toBe(300000)
   })
 
   it('keeps listed price when outside window', () => {
     const slotDate = '2026-07-12'
     const startTime = '20:00'
-    const now = new Date('2026-07-12T10:00:00')
+    const now = new Date('2026-07-12T10:00:00+03:30')
     expect(computeBookingPrice(400000, pricingJson, slotDate, startTime, now)).toBe(400000)
   })
 })
@@ -104,6 +104,13 @@ describe('helpers', () => {
   })
 
   it('computes hours until slot', () => {
-    expect(hoursUntilSlot('2026-07-12', '18:00', new Date('2026-07-12T16:00:00'))).toBe(2)
+    expect(hoursUntilSlot('2026-07-12', '18:00', new Date('2026-07-12T16:00:00+03:30'))).toBe(2)
+  })
+
+  it('reads slot time as Tehran wall-clock regardless of host TZ', () => {
+    // 18:00 Tehran == 14:30 UTC
+    expect(hoursUntilSlot('2026-07-12', '18:00', new Date('2026-07-12T13:30:00Z'))).toBe(1)
+    const pricingJson = JSON.stringify({ lastSecondDiscount: { enabled: true, hoursBefore: 2, percent: 15 } })
+    expect(computeBookingPrice(5000, pricingJson, '2026-07-12', '18:00', new Date('2026-07-12T13:30:00Z'))).toBe(4250)
   })
 })
