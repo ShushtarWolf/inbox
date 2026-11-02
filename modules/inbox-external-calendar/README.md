@@ -37,10 +37,11 @@ rm -rf modules/inbox-external-calendar
 
 | Source | Status |
 |--------|--------|
-| AloPlay | club **10887** — free slots from `/v1/PublicClub/GetAvailableTime` (`productId` + `fromTime`); genders **1+2** union |
-| AloPlay courts | **56921** (زمین ۱), **317335** (زمین ۲), **112282** (زمین ۳ غیراستاندارد) |
-| AloVarzesh | products **2796** (زمین ۱), **3335** (زمین ۲), **3336** (زمین ۳) — HTML timetable |
+| AloPlay | **PAUSED** (`supported: false`) — mapping kept: club **10887**, courts **56921** / **317335** / **112282** |
+| AloVarzesh | **PAUSED** (`supported: false`) — mapping kept: products **2796** / **3335** / **3336** |
 | Courtic | stub (`supported: false`) |
+
+With all external sources paused, guest/owner/coach calendars show **Inboxs bookings** plus owner **RELEASE/BLOCK** overrides only (no AloPlay/AloVarzesh busy overlay). Set `supported: true` on a source in `mappings/iust-tennis.json` to re-enable.
 
 ## تست
 
