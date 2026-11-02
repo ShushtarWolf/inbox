@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
         guestName: true,
         guestFamily: true,
         guestMobile: true,
-        user: { select: { name: true, phone: true } },
+        user: { select: { name: true, nameFamily: true, phone: true } },
       },
       take: 40,
       orderBy: { createdAt: 'desc' },
@@ -102,6 +102,7 @@ export default defineEventHandler(async (event) => {
       guestName: booking.guestName,
       guestFamily: booking.guestFamily,
       userName: booking.user?.name,
+      userNameFamily: booking.user?.nameFamily,
     })
     const mobile = booking.guestMobile || booking.user?.phone || ''
     pushUnique(map, {

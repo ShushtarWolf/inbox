@@ -52,6 +52,7 @@ export function resolveContactName(bookings: ContactBookingRow[]): string {
       guestName: booking.guestName,
       guestFamily: booking.guestFamily,
       userName: booking.user?.name,
+      userNameFamily: booking.user?.nameFamily,
     })
     if (name) return name
   }

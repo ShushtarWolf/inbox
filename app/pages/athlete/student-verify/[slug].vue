@@ -9,6 +9,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const localePath = useLocalePath()
 const { t } = useI18n()
 const { formatNumber } = useFormatters()
 const { localizedField } = useLocalizedField()
@@ -133,6 +134,7 @@ async function onSubmitted() {
           :program-percent="studentProgram.percent"
           :initial-status="applicationStatus"
           :disabled="!studentProgram"
+          :back-to="localePath(backTo)"
           @submitted="onSubmitted"
         />
 

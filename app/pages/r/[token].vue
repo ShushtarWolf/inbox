@@ -281,9 +281,12 @@ async function pay() {
 
           <div class="mt-4">
             <template v-if="isPaid && !data.cancelled">
-              <div class="receipt-player-paid" role="status">
-                {{ t('athlete.historyStatusPaid') }}
-              </div>
+              <NuxtLink
+                :to="localePath('/')"
+                class="receipt-player-home"
+              >
+                {{ t('booking.receiptBackHome') }}
+              </NuxtLink>
             </template>
             <template v-else-if="data.unpaid && !data.cancelled && data.canPayOnline">
               <label class="mb-3 block text-start text-xs text-[#55534E]">
@@ -447,16 +450,21 @@ async function pay() {
 .receipt-player-pay:hover {
   background: #C0141F;
 }
-.receipt-player-paid {
+.receipt-player-home {
   width: 100%;
   height: 52px;
   display: grid;
   place-items: center;
-  background: #1D5C3F;
+  background: #E02330;
   color: #fff;
   font-weight: 700;
   font-size: 15.5px;
   border-radius: 0;
   letter-spacing: 0;
+  text-decoration: none;
+}
+.receipt-player-home:hover {
+  background: #C0141F;
+  color: #fff;
 }
 </style>

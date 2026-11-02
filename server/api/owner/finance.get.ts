@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
   const bookingInclude = {
     slot: { include: { court: true } },
     payment: true,
-    user: { select: { name: true, phone: true } },
+    user: { select: { name: true, nameFamily: true, phone: true } },
     coach: { select: { id: true, nameFa: true, nameEn: true } },
     bookingEquipments: { include: { equipment: true } },
     events: createdEvents,
@@ -356,6 +356,7 @@ export default defineEventHandler(async (event) => {
           guestName: booking.guestName,
           guestFamily: booking.guestFamily,
           userName: booking.user?.name,
+          userNameFamily: booking.user?.nameFamily,
         }),
         guestMobile: booking.guestMobile || booking.user?.phone || null,
         paymentMethod: booking.payment?.method || booking.paymentMethod,
