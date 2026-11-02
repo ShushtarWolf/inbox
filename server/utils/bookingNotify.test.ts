@@ -35,6 +35,7 @@ import {
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
+  skipGuestBookingSms,
   whenLine,
 } from './bookingNotify'
 
@@ -61,6 +62,14 @@ const guestOnlyOpts = {
   bookingId: 'booking-guest-1',
   clubId: 'club-behnaz',
 }
+
+describe('skipGuestBookingSms', () => {
+  it('skips receipt guest SMS for club-calendar bookings only', () => {
+    expect(skipGuestBookingSms({ source: 'CLUB' })).toBe(true)
+    expect(skipGuestBookingSms({ source: 'PLATFORM' })).toBe(false)
+    expect(skipGuestBookingSms({})).toBe(false)
+  })
+})
 
 describe('clubNotifyName', () => {
   it('prefers Persian name', () => {
@@ -398,6 +407,10 @@ describe('bookingNotify SMS', () => {
   it('sends owner new-order SMS with sessions and no athlete receipt link', async () => {
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
+    clubFindUnique.mockResolvedValue({
+      bookingNotifyPhone: null,
+      owner: { phone: '09121112233' },
+    })
 
     await notifyOwnerBookingConfirmed({
       ownerPhone: '09121112233',
@@ -444,6 +457,10 @@ describe('bookingNotify SMS', () => {
   it('sends owner new-order SMS on paid (not a separate paid template)', async () => {
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
+    clubFindUnique.mockResolvedValue({
+      bookingNotifyPhone: null,
+      owner: { phone: '09121112233' },
+    })
 
     await notifyOwnerBookingPaid({
       ownerPhone: '09121112233',
@@ -491,6 +508,10 @@ describe('bookingNotify SMS', () => {
   it('sends owner cancelled SMS with guest and time', async () => {
     resolveSmsProvider.mockReturnValue('live')
     sendNotification.mockResolvedValue({ sent: true })
+    clubFindUnique.mockResolvedValue({
+      bookingNotifyPhone: null,
+      owner: { phone: '09121112233' },
+    })
 
     await notifyOwnerBookingCancelled({
       ownerPhone: '09121112233',
@@ -550,9 +571,8 @@ describe('club-side SMS fan-out', () => {
     clubFindUnique.mockReset()
   })
 
-  it('sends owner booking SMS to owner, club phone and bookingNotifyPhone only (deduped, not all staff)', async () => {
+  it('sends owner booking SMS to owner and bookingNotifyPhone only (not club listing phone)', async () => {
     clubFindUnique.mockResolvedValue({
-      phone: '09121111111',
       bookingNotifyPhone: '09124444444',
       owner: { phone: '09120000000' },
     })
@@ -565,12 +585,11 @@ describe('club-side SMS fan-out', () => {
       startTime: '15:00',
     })
     const tos = sendNotification.mock.calls.map((c) => (c[0] as { to: string }).to)
-    expect(tos).toEqual(['09120000000', '09121111111', '09124444444'])
+    expect(tos).toEqual(['09120000000', '09124444444'])
   })
 
-  it('does not fan out to worker mobiles when bookingNotifyPhone is unset', async () => {
+  it('does not SMS club listing phone when only bookingNotifyPhone and owner are set', async () => {
     clubFindUnique.mockResolvedValue({
-      phone: '09121111111',
       bookingNotifyPhone: null,
       owner: { phone: '09120000000' },
     })
@@ -583,8 +602,8 @@ describe('club-side SMS fan-out', () => {
       startTime: '15:00',
     })
     const tos = sendNotification.mock.calls.map((c) => (c[0] as { to: string }).to)
-    expect(tos).toEqual(['09120000000', '09121111111'])
-    expect(tos).not.toContain('09122222222')
+    expect(tos).toEqual(['09120000000'])
+    expect(tos).not.toContain('09121111111')
   })
 
   it('does not notify unlisted staff when owner has no mobile', async () => {
@@ -607,31 +626,28 @@ describe('clubSideNotifyPhones', () => {
 
   it('includes bookingNotifyPhone when set', async () => {
     clubFindUnique.mockResolvedValue({
-      phone: '09121111111',
       bookingNotifyPhone: '09124444444',
       owner: { phone: '09120000000' },
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
-    expect(phones).toEqual(['09120000000', '09121111111', '09124444444'])
+    expect(phones).toEqual(['09120000000', '09124444444'])
   })
 
-  it('leaves list unchanged when bookingNotifyPhone is empty', async () => {
+  it('owner only when bookingNotifyPhone is empty', async () => {
     clubFindUnique.mockResolvedValue({
-      phone: '09121111111',
       bookingNotifyPhone: null,
       owner: { phone: '09120000000' },
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
-    expect(phones).toEqual(['09120000000', '09121111111'])
+    expect(phones).toEqual(['09120000000'])
   })
 
-  it('dedupes bookingNotifyPhone when same as owner or club phone', async () => {
+  it('dedupes bookingNotifyPhone when same as owner mobile', async () => {
     clubFindUnique.mockResolvedValue({
-      phone: '09121111111',
-      bookingNotifyPhone: '09121111111',
+      bookingNotifyPhone: '09120000000',
       owner: { phone: '09120000000' },
     })
     const phones = await clubSideNotifyPhones('09120000000', 'c1')
-    expect(phones).toEqual(['09120000000', '09121111111'])
+    expect(phones).toEqual(['09120000000'])
   })
 })

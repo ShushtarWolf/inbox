@@ -27,6 +27,7 @@ vi.mock('./bookingNotify', () => ({
   notifyOwnerBookingPaid: vi.fn(),
   ownerNotifyPhone: () => '09120000000',
   personNotifyName: (given?: string, family?: string) => [given, family].filter(Boolean).join(' '),
+  skipGuestBookingSms: (booking: { source?: string | null }) => booking.source === 'CLUB',
 }))
 
 import { notifyBookingPaid, notifyOwnerBookingPaid } from './bookingNotify'
@@ -52,6 +53,7 @@ function paidCourt(opts: { metadataJson?: string | null; date?: string }) {
     metadataJson: opts.metadataJson ?? null,
     booking: {
       id: 'b1',
+      source: 'PLATFORM',
       userId: 'u1',
       guestName: 'بهناز',
       guestFamily: 'تعبدی',
@@ -113,6 +115,22 @@ describe('notifyPaymentPaidIfNeeded season sessions', () => {
       date: '2026-09-28',
       sessions: undefined,
       sessionCount: undefined,
+      skipGuest: false,
     }))
+  })
+
+  it('skips guest SMS when a desk booking is paid online (CLUB source)', async () => {
+    findUnique.mockResolvedValue({
+      ...paidCourt({}),
+      booking: {
+        ...paidCourt({}).booking,
+        source: 'CLUB',
+      },
+    })
+
+    await notifyPaymentPaidIfNeeded('pay-1', 'PENDING_ONLINE')
+
+    expect(notifyBookingPaid).toHaveBeenCalledWith(expect.objectContaining({ skipGuest: true }))
+    expect(notifyOwnerBookingPaid).toHaveBeenCalled()
   })
 })

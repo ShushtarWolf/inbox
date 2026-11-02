@@ -12,9 +12,11 @@ import {
 import {
   notifyBookingConfirmed,
   notifyBookingPaid,
+  notifyOwnerBookingPaid,
   clubNotifyName,
   clubNotifyLocation,
   courtNotifyName,
+  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
@@ -159,7 +161,7 @@ export default defineEventHandler(async (event) => {
   }
 
   let smsSent = false
-  if (guestMobile && result.slotsCreated > 0) {
+  if (result.slotsCreated > 0) {
     const first = result.willCreate[0]
     const last = result.willCreate[result.willCreate.length - 1]
     const courtIds = [...new Set(result.willCreate.map((s) => s.courtId))]
@@ -168,8 +170,9 @@ export default defineEventHandler(async (event) => {
       select: { id: true, nameFa: true, nameEn: true },
     })
     const courtById = new Map(courts.map((c) => [c.id, c]))
+    const guestName = personNotifyName(guest.guestName, guest.guestFamily)
     const notifyOpts = {
-      phone: guestMobile,
+      phone: guestMobile || null,
       kind: 'court' as const,
       clubName: clubNotifyName(club),
       clubId: club.id,
@@ -186,14 +189,28 @@ export default defineEventHandler(async (event) => {
         endTime: s.endTime,
       })),
       paymentPaid: paymentStatus === 'PAID',
-      guestName: personNotifyName(guest.guestName, guest.guestFamily),
+      guestName,
       payPin: paymentStatus === 'PAID' ? undefined : payPin,
       payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
+      skipGuest: true,
       ...clubNotifyLocation(club),
     }
     await notifyBookingConfirmed(notifyOpts)
     if (paymentStatus === 'PAID') {
       smsSent = (await notifyBookingPaid(notifyOpts)).smsSent
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerNotifyPhone(club),
+        clubName: clubNotifyName(club),
+        clubId: club.id,
+        bookingId: notifyOpts.bookingId,
+        date: notifyOpts.date,
+        startTime: notifyOpts.startTime,
+        endTime: notifyOpts.endTime,
+        sessions: notifyOpts.sessions,
+        guestName,
+        guestPhone: guestMobile || null,
+        amountPaid: result.totalAmount,
+      })
     }
   }
 
