@@ -283,9 +283,18 @@ const seasonPreview = ref<RecurringPreview | null>(null)
 const reserveFlowReturn = ref(false)
 const packagePreview = ref<RecurringPreview | null>(null)
 
-/** Weekly repeat on block sheet — all selected anchors × N weeks in one action. */
+/** Weekly / season repeat on block sheet — whole pattern in one action. */
 const blockWeeks = ref(1)
+const blockRepeatMode = ref<'weekly' | 'season'>('weekly')
+const blockSeasonForm = reactive({
+  startDate: '',
+  finishDate: '',
+  days: [] as string[],
+  dayTimes: {} as Record<string, DayTimeRange>,
+  courtIds: [] as string[],
+})
 const blockPreview = ref<BlockWeeklyPreview | null>(null)
+const blockSeasonPreview = ref<BlockWeeklyPreview | null>(null)
 const unblockPreview = ref<UnblockWeeklyPreview | null>(null)
 const blockAcceptSkips = ref(false)
 
@@ -821,7 +830,13 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
   if (isExternalOnlyOccupied(slot) || isExternalUncertain(slot)) return externalSiteBadge(slot)
   if (slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED' || slot.displayStatus === 'CLOSED') {
-    return t('owner.slotBlockedLabel')
+    const booking = activeBooking(slot)
+    const blockedFor = resolveLinkedGuestDisplayName({
+      guestName: booking?.guestName,
+      guestFamily: booking?.guestFamily,
+      userName: booking?.user?.name,
+    })
+    return blockedFor || t('owner.slotBlockedLabel')
   }
   const booking = activeBooking(slot)
   const fullName = resolveLinkedGuestDisplayName({
@@ -860,8 +875,11 @@ function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
 }
 
 function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
-  if (!slot || slot.displayStatus === 'FREE' || slot.displayStatus === 'BLOCKED')
-    return ''
+  if (!slot || slot.displayStatus === 'FREE') return ''
+  if (slot.displayStatus === 'BLOCKED') {
+    return activeBooking(slot)?.guestMobile || ''
+  }
+  if (slot.displayStatus === 'CLOSED') return ''
 
   return activeBooking(slot)?.guestMobile || ''
 }
@@ -1345,6 +1363,7 @@ function openSelectionBlock() {
   if (!canBatchBlock.value || !selectedSlotsFull.value.length) return
   openSlot(selectedSlotsFull.value[0], { keepSelection: true })
   activePanel.value = 'block'
+  seedBlockSeasonForm()
 }
 
 function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
@@ -1414,6 +1433,9 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
   packageForm.dayTimes = ensureDayTimesForDays({}, [anchorDay], defaultRange)
   packageForm.comments = bookingNote(booking?.comments)
   resetBlockWeeklyState()
+  if (activePanel.value === 'block' && fullSlot.displayStatus !== 'BLOCKED') {
+    seedBlockSeasonForm()
+  }
 }
 
 function openCancelForm() {
@@ -1671,13 +1693,47 @@ function clearRecurringPreview() {
 
 function clearBlockWeeklyPreview() {
   blockPreview.value = null
+  blockSeasonPreview.value = null
   unblockPreview.value = null
   blockAcceptSkips.value = false
 }
 
 function resetBlockWeeklyState() {
   blockWeeks.value = 1
+  blockRepeatMode.value = 'weekly'
+  blockSeasonForm.startDate = ''
+  blockSeasonForm.finishDate = ''
+  blockSeasonForm.days = []
+  blockSeasonForm.dayTimes = {}
+  blockSeasonForm.courtIds = []
   clearBlockWeeklyPreview()
+}
+
+function seedBlockSeasonForm() {
+  const anchor = blockAnchorSlot.value
+  if (!anchor) return
+  const anchorDate = anchor.date || data.value?.date || date.value || today()
+  blockSeasonForm.startDate = anchorDate
+  blockSeasonForm.finishDate = addDaysToIsoDate(anchorDate, SEASON_DEFAULT_SPAN_DAYS)
+  const narrowed = computeNarrowedSelectionToAnchorCourt({ multiCourt: true })
+  if (narrowed) {
+    blockSeasonForm.courtIds = [...narrowed.courtIds]
+    blockSeasonForm.days = [...narrowed.days]
+    blockSeasonForm.dayTimes = { ...narrowed.dayTimes }
+  } else {
+    blockSeasonForm.courtIds = [anchor.courtId]
+    const day = weekdayNameFromDate(anchorDate)
+    blockSeasonForm.days = [day]
+    blockSeasonForm.dayTimes = ensureDayTimesForDays({}, [day], defaultDayRange(anchor))
+  }
+}
+
+function setBlockRepeatMode(mode: 'weekly' | 'season') {
+  if (blockRepeatMode.value === mode) return
+  blockRepeatMode.value = mode
+  if (mode === 'season') seedBlockSeasonForm()
+  clearBlockWeeklyPreview()
+  actionError.value = ''
 }
 
 const blockAnchorSlot = computed(() => {
@@ -1697,7 +1753,29 @@ const blockSheetMode = computed((): 'block' | 'unblock' => {
 const blockWeeklyEnabled = computed(() => blockAnchorSlotIds.value.length > 0)
 
 const blockWeeklyActive = computed(() =>
-  blockWeeklyEnabled.value && clampWeeklyWeeks(blockWeeks.value) > 1,
+  blockWeeklyEnabled.value
+  && blockRepeatMode.value === 'weekly'
+  && clampWeeklyWeeks(blockWeeks.value) > 1,
+)
+
+const blockSeasonActive = computed(() =>
+  blockWeeklyEnabled.value
+  && blockRepeatMode.value === 'season'
+  && blockSheetMode.value === 'block',
+)
+
+const blockSeasonDateRangeInvalid = computed(() =>
+  Boolean(
+    blockSeasonForm.startDate
+    && blockSeasonForm.finishDate
+    && blockSeasonForm.finishDate < blockSeasonForm.startDate,
+  ),
+)
+
+const blockSeasonScheduleValid = computed(() =>
+  blockSeasonForm.courtIds.length > 0
+  && blockSeasonForm.days.length > 0
+  && hasValidDayTimes(blockSeasonForm.dayTimes, blockSeasonForm.days),
 )
 
 function setBlockWeeks(next: number) {
@@ -1916,6 +1994,7 @@ function openBlockFromReserve() {
   actionError.value = ''
   reserveFlowReturn.value = true
   activePanel.value = 'block'
+  seedBlockSeasonForm()
 }
 
 function openNoteFromReserve() {
@@ -2709,9 +2788,85 @@ async function doMarkUnpaid() {
   }
 }
 
+function blockSeasonRequestBody() {
+  return {
+    startDate: blockSeasonForm.startDate,
+    finishDate: blockSeasonForm.finishDate,
+    days: blockSeasonForm.days,
+    dayTimes: blockSeasonForm.dayTimes,
+    courtIds: blockSeasonForm.courtIds,
+  }
+}
+
+function toggleBlockSeasonDay(day: string) {
+  const nextDays = toggleDay(blockSeasonForm.days, day)
+  const fallback = Object.values(blockSeasonForm.dayTimes)[0]
+    || defaultDayRange(blockAnchorSlot.value || { startTime: '12:00', endTime: '13:00' })
+  blockSeasonForm.days = nextDays
+  blockSeasonForm.dayTimes = ensureDayTimesForDays(blockSeasonForm.dayTimes, nextDays, fallback)
+  clearBlockWeeklyPreview()
+}
+
 async function doBlock() {
   const targets = slotsForBlock()
   if (!targets.length || saving.value || blockSheetMode.value !== 'block') return
+
+  const guest = guestNamePayload()
+
+  if (blockRepeatMode.value === 'season') {
+    if (!blockSeasonScheduleValid.value || blockSeasonDateRangeInvalid.value || !blockSeasonForm.finishDate) {
+      actionError.value = !blockSeasonForm.finishDate
+        ? t('owner.seasonPage.finishRequired')
+        : t('owner.packagesPage.dateRangeInvalid')
+      return
+    }
+    if (!blockSeasonPreview.value) {
+      actionError.value = t('owner.blockSeason.previewRequired')
+      return
+    }
+    if (blockSeasonPreview.value.willBlockCount === 0) {
+      actionError.value = t('owner.blockWeekly.noBlockableSlots')
+      return
+    }
+    if (blockSeasonPreview.value.skippedCount > 0 && !blockAcceptSkips.value) {
+      actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+      return
+    }
+    saving.value = true
+    actionError.value = ''
+    try {
+      await $fetch('/api/owner/block-season', {
+        method: 'POST',
+        body: {
+          ...blockSeasonRequestBody(),
+          acceptSkips: blockAcceptSkips.value || blockSeasonPreview.value.skippedCount === 0,
+          guestName: guest.guestName,
+          guestFamily: guest.guestFamily,
+          guestMobile: form.guestMobile,
+          comments: form.comments,
+        },
+      })
+      await finishSlotAction()
+    } catch (err) {
+      const payload = (err as { data?: { data?: BlockWeeklyPreview } })?.data?.data
+      if (payload?.conflicts) {
+        blockSeasonPreview.value = {
+          willBlockCount: payload.willBlockCount ?? 0,
+          skippedCount: payload.skippedCount ?? payload.conflicts.length,
+          willBlock: payload.willBlock || [],
+          conflicts: payload.conflicts,
+          weeks: 0,
+        }
+        actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+      } else {
+        actionError.value = t('common.error')
+      }
+      await recoverAfterBatchError()
+    } finally {
+      saving.value = false
+    }
+    return
+  }
 
   const weeks = blockWeeklyEnabled.value ? clampWeeklyWeeks(blockWeeks.value) : 1
   const slotIds = blockAnchorSlotIds.value
@@ -2733,7 +2888,6 @@ async function doBlock() {
   saving.value = true
   actionError.value = ''
   try {
-    const guest = guestNamePayload()
     await $fetch('/api/owner/block', {
       method: 'POST',
       body: weeks > 1
@@ -2776,6 +2930,40 @@ async function doBlock() {
 }
 
 async function runBlockWeeklyPreview() {
+  if (previewing.value) return
+
+  if (blockRepeatMode.value === 'season' && blockSheetMode.value === 'block') {
+    if (!blockSeasonScheduleValid.value || blockSeasonDateRangeInvalid.value || !blockSeasonForm.finishDate) {
+      actionError.value = !blockSeasonForm.finishDate
+        ? t('owner.seasonPage.finishRequired')
+        : t('owner.packagesPage.dateRangeInvalid')
+      return
+    }
+    previewing.value = true
+    actionError.value = ''
+    try {
+      const preview = await $fetch<Omit<BlockWeeklyPreview, 'weeks'>>('/api/owner/block-season-preview', {
+        method: 'POST',
+        body: blockSeasonRequestBody(),
+      })
+      blockSeasonPreview.value = { ...preview, weeks: 0 }
+      blockPreview.value = null
+      unblockPreview.value = null
+      blockAcceptSkips.value = false
+      if (preview.willBlockCount === 0) {
+        actionError.value = t('owner.blockWeekly.noBlockableSlots')
+      } else if (preview.skippedCount > 0) {
+        actionError.value = t('owner.blockWeekly.conflictsNeedConfirm')
+      }
+    } catch {
+      actionError.value = t('common.error')
+      blockSeasonPreview.value = null
+    } finally {
+      previewing.value = false
+    }
+    return
+  }
+
   const slotIds = blockAnchorSlotIds.value
   const weeks = clampWeeklyWeeks(blockWeeks.value)
   if (!slotIds.length || weeks <= 1 || previewing.value) return
@@ -4759,20 +4947,44 @@ watch(pilotNoCoach, (off) => {
               </li>
             </ul>
             <p
-              v-if="blockWeeklyActive && slotsForBlock().length > 1"
+              v-if="(blockWeeklyActive || blockSeasonActive) && slotsForBlock().length > 1"
               class="text-start text-[11px] font-medium text-brand-gray-600"
             >
               {{ t('owner.blockWeekly.patternHint') }}
             </p>
 
             <div
-              v-if="blockWeeklyEnabled"
+              v-if="blockWeeklyEnabled && blockSheetMode === 'block'"
+              class="flex flex-wrap gap-2"
+              role="group"
+              :aria-label="t('owner.blockSeason.repeatModeLabel')"
+            >
+              <button
+                type="button"
+                class="canva-chip"
+                :class="blockRepeatMode === 'weekly' ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                @click="setBlockRepeatMode('weekly')"
+              >
+                {{ t('owner.blockWeekly.title') }}
+              </button>
+              <button
+                type="button"
+                class="canva-chip"
+                :class="blockRepeatMode === 'season' ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                @click="setBlockRepeatMode('season')"
+              >
+                {{ t('owner.blockSeason.title') }}
+              </button>
+            </div>
+
+            <div
+              v-if="blockWeeklyEnabled && blockRepeatMode === 'weekly'"
               class="flex items-center justify-between gap-3 border border-brand-gray-200 bg-white px-3 py-2.5"
               style="border-radius: var(--sz-canva-radius);"
             >
               <div class="min-w-0 text-start">
-                <p class="text-sm font-bold text-brand-navy">{{ t('owner.blockWeekly.title') }}</p>
-                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.blockWeekly.weeksLabel') }}</p>
+                <p class="text-sm font-bold text-brand-navy">{{ t('owner.blockWeekly.weeksLabel') }}</p>
+                <p class="text-[11px] font-medium text-brand-gray-600">{{ t('owner.blockWeekly.weeksHint') }}</p>
               </div>
               <div class="canva-qty-step shrink-0" role="group" :aria-label="t('owner.blockWeekly.weeksLabel')">
                 <button
@@ -4789,6 +5001,78 @@ watch(pilotNoCoach, (off) => {
                   @click.prevent="setBlockWeeks(blockWeeks + 1)"
                 >+</button>
               </div>
+            </div>
+
+            <div v-if="blockSeasonActive" class="space-y-3">
+              <p class="text-start text-[11px] font-medium text-brand-gray-600">{{ t('owner.blockSeason.hint') }}</p>
+              <AppFormField :label="t('owner.blockSeason.dateRange')" required>
+                <AppDateRangeInput
+                  v-model:start="blockSeasonForm.startDate"
+                  v-model:end="blockSeasonForm.finishDate"
+                  hide-label
+                  :invalid="blockSeasonDateRangeInvalid || !blockSeasonForm.finishDate"
+                  :invalid-message="!blockSeasonForm.finishDate ? t('owner.seasonPage.finishRequired') : t('owner.packagesPage.dateRangeInvalid')"
+                  @update:start="clearBlockWeeklyPreview()"
+                  @update:end="clearBlockWeeklyPreview()"
+                />
+              </AppFormField>
+              <div>
+                <p class="mb-2 text-xs font-bold text-brand-gray-600">{{ t('owner.packagesPage.weekdays') }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="day in weekdayOptions"
+                    :key="`block-season-${day}`"
+                    type="button"
+                    class="canva-chip"
+                    :class="blockSeasonForm.days.includes(day) ? 'canva-settings-chip-active' : 'canva-settings-chip-idle'"
+                    @click="toggleBlockSeasonDay(day)"
+                  >
+                    {{ t(`owner.weekdays.${day}`) }}
+                  </button>
+                </div>
+              </div>
+              <OwnerDayTimeSchedules
+                v-model:day-times="blockSeasonForm.dayTimes"
+                :days="blockSeasonForm.days"
+                :options="scheduleTimeOptions"
+                compact
+                @update:day-times="clearBlockWeeklyPreview()"
+              />
+            </div>
+
+            <div
+              v-if="blockSeasonPreview && blockSeasonActive"
+              class="space-y-3 bg-brand-lavender px-4 py-3 text-start text-sm font-bold text-brand-navy"
+              style="border-radius: var(--sz-canva-radius);"
+            >
+              <p>{{ t('owner.blockWeekly.previewSummary', { create: formatNumber(blockSeasonPreview.willBlockCount), skip: formatNumber(blockSeasonPreview.skippedCount) }) }}</p>
+              <div v-if="blockSeasonPreview.willBlock.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.blockWeekly.willBlockTitle') }}</p>
+                <ul class="max-h-36 space-y-1 overflow-y-auto text-xs font-medium text-brand-navy">
+                  <li
+                    v-for="(item, idx) in blockSeasonPreview.willBlock"
+                    :key="`block-season-${item.slotId || ''}-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                  </li>
+                </ul>
+              </div>
+              <div v-if="blockSeasonPreview.conflicts.length" class="space-y-1">
+                <p class="text-[11px] font-bold text-brand-gray-600">{{ t('owner.blockWeekly.conflictsTitle') }}</p>
+                <ul class="max-h-28 space-y-1 overflow-y-auto text-xs font-medium text-brand-gray-600">
+                  <li
+                    v-for="(item, idx) in blockSeasonPreview.conflicts.slice(0, 12)"
+                    :key="`block-season-skip-${item.date}-${item.startTime}-${idx}`"
+                  >
+                    {{ formatDate(item.date) }} · <bdi dir="ltr">{{ formatTimeLabel(item.startTime) }}</bdi>
+                    — {{ t(`owner.blockWeekly.conflictReason.${item.reason}`) }}
+                  </li>
+                </ul>
+              </div>
+              <label v-if="blockSeasonPreview.skippedCount > 0" class="canva-recurring-check">
+                <input v-model="blockAcceptSkips" type="checkbox" class="canva-settings-checkbox">
+                <span>{{ t('owner.blockWeekly.acceptSkips') }}</span>
+              </label>
             </div>
 
             <div
@@ -4861,6 +5145,12 @@ watch(pilotNoCoach, (off) => {
               </label>
             </div>
 
+            <p
+              v-if="blockSheetMode === 'block'"
+              class="text-start text-[11px] font-medium text-brand-gray-600"
+            >
+              {{ t('owner.blockSeason.nameOnGridHint') }}
+            </p>
             <div class="venus-form-grid">
               <AppFormField :label="t('owner.guestName')" field-id="owner-block-guest-name">
                 <input
@@ -4895,6 +5185,12 @@ watch(pilotNoCoach, (off) => {
           </form>
           <div class="venus-modal-footer">
             <p
+              v-if="blockSeasonActive && !blockSeasonPreview"
+              class="text-start text-xs font-medium text-brand-primary"
+            >
+              {{ t('owner.blockSeason.previewRequired') }}
+            </p>
+            <p
               v-if="blockWeeklyActive && blockSheetMode === 'block' && !blockPreview"
               class="text-start text-xs font-medium text-brand-primary"
             >
@@ -4908,7 +5204,7 @@ watch(pilotNoCoach, (off) => {
             </p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
-              v-if="blockWeeklyActive"
+              v-if="blockWeeklyActive || blockSeasonActive"
               type="button"
               class="canva-gate-btn-secondary"
               :disabled="previewing || saving"
@@ -4917,7 +5213,9 @@ watch(pilotNoCoach, (off) => {
               {{
                 previewing
                   ? t('common.loading')
-                  : (blockSheetMode === 'unblock' ? t('owner.blockWeekly.previewUnblock') : t('owner.blockWeekly.preview'))
+                  : (blockSheetMode === 'unblock'
+                    ? t('owner.blockWeekly.previewUnblock')
+                    : (blockRepeatMode === 'season' ? t('owner.blockSeason.preview') : t('owner.blockWeekly.preview')))
               }}
             </button>
             <button
@@ -4953,6 +5251,14 @@ watch(pilotNoCoach, (off) => {
                 saving
                   || previewing
                   || (
+                    blockSeasonActive
+                    && (
+                      !blockSeasonPreview
+                      || !blockSeasonPreview.willBlockCount
+                      || (blockSeasonPreview.skippedCount > 0 && !blockAcceptSkips)
+                    )
+                  )
+                  || (
                     blockWeeklyActive
                     && (
                       !blockPreview
@@ -4964,7 +5270,11 @@ watch(pilotNoCoach, (off) => {
               "
               @click="doBlock"
             >
-              {{ saving ? t('common.loading') : t('owner.confirmBlock') }}
+              {{
+                saving
+                  ? t('common.loading')
+                  : (blockSeasonActive ? t('owner.blockSeason.confirm') : t('owner.confirmBlock'))
+              }}
             </button>
           </div>
         </div>
