@@ -2505,11 +2505,18 @@
   .canva-cal-grid-shell {
     @apply relative;
   }
+  .canva-cal-booked-select-toggle {
+    @apply absolute bottom-1 left-1 z-[3] max-w-[calc(100%-0.5rem)] border border-[rgba(44,44,42,.14)] bg-[#eceae6] px-2.5 py-1.5 text-[10px] font-bold text-brand-navy shadow-sm transition hover:bg-[#e4e0da];
+    border-radius: var(--sz-canva-radius);
+  }
+  .canva-cal-booked-select-toggle-on {
+    @apply border-brand-navy bg-brand-navy text-white hover:bg-brand-navy;
+  }
   .canva-cal-body {
     @apply block;
   }
   .canva-cal-grid-scroll {
-    @apply min-w-0 flex-1 overflow-x-auto pb-1;
+    @apply relative min-w-0 flex-1 overflow-x-auto pb-9;
   }
   /* Mobile HTML .omg/.omc: 1px gutters; desk HTML .mx: gap 8px */
   .canva-cal-grid {

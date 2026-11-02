@@ -7,6 +7,7 @@ import {
   courtIdsFromSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
+  isMultiSelectBookedSlot,
   joinWithAnd,
   removeSlotsForCourt,
   siblingBookedSlots,
@@ -380,5 +381,27 @@ describe('checkedDeskReversiblePaidSlots', () => {
 
   it('allows reversing desk cash, not gateway-paid hours', () => {
     expect(checkedDeskReversiblePaidSlots(siblings, ['s-cash', 's-ipg']).map((s) => s.id)).toEqual(['s-cash'])
+  })
+})
+
+describe('isMultiSelectBookedSlot', () => {
+  it('accepts live reserved/pending with booking', () => {
+    expect(isMultiSelectBookedSlot({
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED' },
+    })).toBe(true)
+    expect(isMultiSelectBookedSlot({
+      displayStatus: 'PENDING',
+      booking: { status: 'CONFIRMED' },
+    })).toBe(true)
+  })
+
+  it('rejects free, blocked, and cancelled', () => {
+    expect(isMultiSelectBookedSlot({ displayStatus: 'FREE', booking: null })).toBe(false)
+    expect(isMultiSelectBookedSlot({ displayStatus: 'BLOCKED', booking: { status: 'CONFIRMED' } })).toBe(false)
+    expect(isMultiSelectBookedSlot({
+      displayStatus: 'RESERVED',
+      booking: { status: 'CANCELLED' },
+    })).toBe(false)
   })
 })

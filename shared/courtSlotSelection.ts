@@ -243,6 +243,18 @@ export function isCancellableBookedSlot(slot: {
   return true
 }
 
+/** Booked grid cell the owner may multi-select to block (single or season session on this day). */
+export function isMultiSelectBookedSlot(slot: {
+  displayStatus?: string | null
+  booking?: BookedSlotGuest | null
+}): boolean {
+  const status = String(slot.displayStatus || '')
+  if (status === 'FREE' || status === 'BLOCKED' || status === 'CLOSED' || status === 'CANCELLED') return false
+  const booking = slot.booking
+  if (!booking || booking.status === 'CANCELLED') return false
+  return true
+}
+
 /**
  * Guest identity for grouping same-day hours: prefer mobile, else name+family.
  * Empty identity does not match other empty identities.
