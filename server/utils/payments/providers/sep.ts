@@ -251,7 +251,14 @@ export function sepProvider(): PaymentService {
       }
 
       const expectedRials = tomanToRials(payment.amount)
-      if (verified.amount != null && verified.amount !== expectedRials) {
+      // Payment.amount is toman; SEP returns rials. Equality (non-zero) ⇒ unit bug / rials written into Payment.
+      const unitSmell = verified.amount != null
+        && payment.amount > 0
+        && verified.amount === payment.amount
+      if (
+        (verified.amount != null && verified.amount !== expectedRials)
+        || unitSmell
+      ) {
         const failed = await prisma.payment.update({
           where: { id: payment.id },
           data: {
@@ -264,6 +271,7 @@ export function sepProvider(): PaymentService {
                 expectedToman: payment.amount,
                 expectedRials,
                 gotRials: verified.amount,
+                unitSmell: Boolean(unitSmell),
               },
             }),
           },

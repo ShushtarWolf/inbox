@@ -11,6 +11,15 @@ describe('resolveWithdrawRail', () => {
     })).toBe('athlete')
   })
 
+  it('rejects non-coach when athlete cash-out is insufficient', () => {
+    expect(resolveWithdrawRail({
+      isCoach: false,
+      amount: 300_000,
+      coachWithdrawable: 999_999,
+      athleteCashOut: 200_000,
+    })).toBeNull()
+  })
+
   it('prefers coach settlement when amount fits coach withdrawable', () => {
     expect(resolveWithdrawRail({
       isCoach: true,
@@ -36,16 +45,6 @@ describe('resolveWithdrawRail', () => {
       coachWithdrawable: 100_000,
       athleteCashOut: 200_000,
     })).toBeNull()
-  })
-
-  it('honours explicit requestedRail', () => {
-    expect(resolveWithdrawRail({
-      isCoach: true,
-      amount: 50_000,
-      coachWithdrawable: 0,
-      athleteCashOut: 500_000,
-      requestedRail: 'athlete',
-    })).toBe('athlete')
   })
 })
 

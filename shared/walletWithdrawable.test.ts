@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeWithdrawableBalance, sumWithdrawnViaRail } from './walletTopUp'
+import { applyDebtAwareWithdrawCeiling, computeWithdrawableBalance, sumWithdrawnViaRail } from './walletTopUp'
 
 describe('computeWithdrawableBalance', () => {
   it('returns 0 when balance is empty', () => {
@@ -24,11 +24,26 @@ describe('computeWithdrawableBalance', () => {
     expect(computeWithdrawableBalance(50_000, 50_000, 0, 50_000)).toBe(0)
     expect(computeWithdrawableBalance(100_000, 50_000, 0, 0)).toBe(50_000)
   })
+
+  it('seals athlete cash-out after a hold so settlement cannot be drained on athlete rail', () => {
+    // available 300k (settlement left), top-up net 700k, already held 700k → athlete cash-out 0
+    expect(computeWithdrawableBalance(300_000, 700_000, 0, 700_000)).toBe(0)
+  })
 })
 
 describe('sumWithdrawnViaRail', () => {
   it('nets holds against releases', () => {
     expect(sumWithdrawnViaRail(50_000, 0)).toBe(50_000)
     expect(sumWithdrawnViaRail(50_000, 50_000)).toBe(0)
+  })
+})
+
+describe('applyDebtAwareWithdrawCeiling', () => {
+  it('zeros payouts when balance is underwater', () => {
+    expect(applyDebtAwareWithdrawCeiling(100_000, 50_000, -20_000)).toBe(0)
+  })
+
+  it('passes through when solvent', () => {
+    expect(applyDebtAwareWithdrawCeiling(80_000, 100_000, 100_000)).toBe(80_000)
   })
 })

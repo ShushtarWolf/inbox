@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { createError } from 'h3'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
@@ -10,7 +11,11 @@ import {
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
 import { getPaymentsMode } from '#shared/payments.ts'
-import { canAttemptSepReverse } from '#shared/sepReverseWindow.ts'
+import {
+  canAttemptSepReverse,
+  isSepReverseAlreadyDoneError,
+  isSepReverseAmbiguousError,
+} from '#shared/sepReverseWindow.ts'
 import { readSplitPayMeta } from '#shared/splitPay.ts'
 import { findUserIdByPhone } from './phoneAuth'
 import { sepReverseTransaction } from './payments/sepClient'
@@ -30,6 +35,16 @@ export interface RefundResult {
   refundChannel?: RefundChannel
   /** Set when refundChannel is desk_cash. */
   deskCashReturn?: DeskCashReturn | null
+  /** Ambiguous SEP reverse left pending — cancel must not free the slot / wallet-fallback. */
+  reversePending?: boolean
+}
+
+async function persistPaymentMeta(paymentId: string, meta: Record<string, unknown>) {
+  // Always use root prisma so reversePending survives a rolled-back cancel txn.
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: { metadataJson: JSON.stringify(meta) },
+  })
 }
 
 /**
@@ -40,7 +55,8 @@ export interface RefundResult {
  *
  * Credit + REFUNDED + clawback run together. Pass `db` to nest inside cancel's transaction
  * so the slot is never freed unless money movement succeeds. Gateway reverse is attempted
- * before the DB transaction (external API).
+ * before the DB transaction (external API). Ambiguous reverse (timeout) → reversePending,
+ * no wallet credit (avoids double refund if SEP actually succeeded).
  */
 export async function refundPaymentForCancellation(options: {
   paymentId: string
@@ -83,27 +99,75 @@ export async function refundPaymentForCancellation(options: {
 
   let channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
   const bookingId = options.bookingId || payment.bookingId || undefined
-  const existingMeta = parsePaymentMetadata(payment.metadataJson)
+  let existingMeta = parsePaymentMetadata(payment.metadataJson)
 
-  let gatewayRefunded = false
+  let gatewayRefunded = existingMeta.gatewayReversed === true
   const reverseAttempt = canAttemptSepReverse({
     method: payment.method,
     provider: payment.provider,
     paymentsMode: getPaymentsMode(),
     metadata: existingMeta,
   })
-  if (channel === 'wallet_closed_loop' && reverseAttempt.ok) {
+
+  if (!gatewayRefunded && channel === 'wallet_closed_loop' && reverseAttempt.ok) {
     const terminalId = process.env.SEP_TERMINAL_ID || process.env.NUXT_SEP_TERMINAL_ID || ''
     if (terminalId) {
+      existingMeta = {
+        ...existingMeta,
+        reversePending: true,
+        reversePendingAt: new Date().toISOString(),
+      }
+      await persistPaymentMeta(payment.id, existingMeta)
+
       try {
         await sepReverseTransaction({ terminalId, refNum: reverseAttempt.refNum })
         gatewayRefunded = true
         channel = 'gateway_reverse'
+        existingMeta = {
+          ...existingMeta,
+          reversePending: false,
+          gatewayReversed: true,
+          gatewayRefund: true,
+          reverseResolvedAt: new Date().toISOString(),
+        }
+        await persistPaymentMeta(payment.id, existingMeta)
       }
       catch (err) {
-        console.warn('[refunds] SEP reverse failed; falling back to wallet', payment.id, err)
+        if (isSepReverseAlreadyDoneError(err)) {
+          gatewayRefunded = true
+          channel = 'gateway_reverse'
+          existingMeta = {
+            ...existingMeta,
+            reversePending: false,
+            gatewayReversed: true,
+            gatewayRefund: true,
+            reverseResolvedAt: new Date().toISOString(),
+          }
+          await persistPaymentMeta(payment.id, existingMeta)
+        }
+        else if (isSepReverseAmbiguousError(err)) {
+          console.warn('[refunds] SEP reverse ambiguous; leaving reversePending', payment.id, err)
+          throw createError({
+            statusCode: 409,
+            statusMessage: 'SEP_REVERSE_PENDING',
+            data: { paymentId: payment.id, reversePending: true },
+          })
+        }
+        else {
+          console.warn('[refunds] SEP reverse failed; falling back to wallet', payment.id, err)
+          existingMeta = {
+            ...existingMeta,
+            reversePending: false,
+            reverseFailedAt: new Date().toISOString(),
+            reverseFailReason: err instanceof Error ? err.message : String(err),
+          }
+          await persistPaymentMeta(payment.id, existingMeta)
+        }
       }
     }
+  }
+  else if (gatewayRefunded) {
+    channel = 'gateway_reverse'
   }
 
   // Prefer explicit cancel userId, then payment payer, then booking owner, then guest phone match.
@@ -145,6 +209,7 @@ export async function refundPaymentForCancellation(options: {
   if (gatewayRefunded) {
     nextMeta.gatewayReversed = true
     nextMeta.gatewayRefund = true
+    nextMeta.reversePending = false
   }
 
   let walletCredited = false
@@ -206,5 +271,67 @@ export async function refundPaymentForCancellation(options: {
     amount: creditAmount,
     refundChannel: channel,
     deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
+  }
+}
+
+/**
+ * Retry SEP reverse for payments stuck in reversePending after timeout.
+ * Idempotent: success or already-reversed clears pending; definitive fail clears for wallet cancel retry.
+ */
+export async function resolvePendingSepReverse(paymentId: string): Promise<{
+  resolved: boolean
+  gatewayReversed: boolean
+  reason: string
+}> {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } })
+  if (!payment) return { resolved: false, gatewayReversed: false, reason: 'not_found' }
+  if (payment.status !== 'PAID') return { resolved: false, gatewayReversed: false, reason: 'not_paid' }
+
+  const meta = parsePaymentMetadata(payment.metadataJson)
+  if (meta.gatewayReversed === true) {
+    return { resolved: true, gatewayReversed: true, reason: 'already_reversed' }
+  }
+  if (meta.reversePending !== true) {
+    return { resolved: false, gatewayReversed: false, reason: 'not_pending' }
+  }
+
+  const terminalId = process.env.SEP_TERMINAL_ID || process.env.NUXT_SEP_TERMINAL_ID || ''
+  const refNum = meta.refNum != null ? String(meta.refNum) : ''
+  if (!terminalId || !refNum) {
+    return { resolved: false, gatewayReversed: false, reason: 'missing_terminal_or_ref' }
+  }
+
+  try {
+    await sepReverseTransaction({ terminalId, refNum })
+    await persistPaymentMeta(paymentId, {
+      ...meta,
+      reversePending: false,
+      gatewayReversed: true,
+      gatewayRefund: true,
+      reverseResolvedAt: new Date().toISOString(),
+    })
+    return { resolved: true, gatewayReversed: true, reason: 'reversed' }
+  }
+  catch (err) {
+    if (isSepReverseAlreadyDoneError(err)) {
+      await persistPaymentMeta(paymentId, {
+        ...meta,
+        reversePending: false,
+        gatewayReversed: true,
+        gatewayRefund: true,
+        reverseResolvedAt: new Date().toISOString(),
+      })
+      return { resolved: true, gatewayReversed: true, reason: 'already_reversed' }
+    }
+    if (isSepReverseAmbiguousError(err)) {
+      return { resolved: false, gatewayReversed: false, reason: 'still_ambiguous' }
+    }
+    await persistPaymentMeta(paymentId, {
+      ...meta,
+      reversePending: false,
+      reverseFailedAt: new Date().toISOString(),
+      reverseFailReason: err instanceof Error ? err.message : String(err),
+    })
+    return { resolved: true, gatewayReversed: false, reason: 'definitive_fail' }
   }
 }

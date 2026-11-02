@@ -1,4 +1,5 @@
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
+import { isPaidPaymentStatus } from '#shared/bookingPayment.ts'
 import { isSeriesDeskPaymentTarget, seriesDeskPaymentCreates } from '#shared/ownerSeries.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { notifyUserDisplayName } from '#shared/userName.ts'
@@ -50,6 +51,22 @@ export default defineEventHandler(async (event) => {
   }, 0)
   if (body.dryRun || !targets.length) return { ok: true, count: targets.length, amount }
 
+  if (next !== 'PAID') {
+    for (const row of targets) {
+      const pay = row.payment
+      if (
+        pay
+        && isPaidPaymentStatus(pay.status)
+        && (pay.method === 'IPG' || pay.method === 'PAID')
+      ) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Online paid series must be cancelled to refund',
+        })
+      }
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const row of targets) {
       await tx.booking.update({
@@ -59,7 +76,19 @@ export default defineEventHandler(async (event) => {
       const minted = createByBookingId.get(row.id)
       await tx.payment.upsert({
         where: { bookingId: row.id },
-        update: { method: 'CASH', status: next },
+        update: {
+          method: 'CASH',
+          status: next,
+          ...(next !== 'PAID' && row.payment?.method === 'CASH'
+            ? {
+                metadataJson: JSON.stringify({
+                  ...parseSeriesPaymentMeta(row.payment.metadataJson),
+                  markUnpaidCash: true,
+                  markUnpaidAt: new Date().toISOString(),
+                }),
+              }
+            : {}),
+        },
         create: {
           bookingId: row.id,
           amount: minted?.amount ?? 0,

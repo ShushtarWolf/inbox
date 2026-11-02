@@ -137,14 +137,16 @@ Money outcome from `resolveCancelMoneyDetail` / `resolveCancelMoneyOutcome` (`sh
 
 | Payment type | Refund path |
 |--------------|-------------|
-| IPG `PAID` (SEP **live**, `refNum`, confirmed within **25 minutes**) | Attempt SEP `ReverseTransaction` → `refundChannel=gateway_reverse` (no athlete wallet credit; still clawback). On reverse failure / outside window / test mode → closed-loop wallet. |
+| IPG `PAID` (SEP **live**, `refNum`, confirmed within **25 minutes**) | Attempt SEP `ReverseTransaction` → `refundChannel=gateway_reverse` (no athlete wallet credit; still clawback). On **definitive** reverse failure / outside window / test mode → closed-loop wallet. On **timeout/network** → leave `metadata.reversePending` and **do not** wallet-credit (avoids double refund); cancel rolls back; retry via `POST /api/admin/payments/resolve-reverse-pending`. |
 | IPG / wallet `PAID` (fallback) | Athlete wallet credit (`refundChannel=wallet_closed_loop`) + clawback |
-| Desk `CASH` | No athlete credit; `REFUNDED` + `deskCashReturn=owed` until owner acks via `POST /api/owner/payments/:id/ack-cash-return` |
+| Desk `CASH` | No athlete credit; `REFUNDED` + `deskCashReturn=owed` until owner acks via `POST /api/owner/payments/:id/ack-cash-return` (`isRefundOwed`) |
 | Pay-link guest IPG (no athlete wallet) | `manualBankRefund=owed` until admin `POST /api/admin/payments/:id/ack-manual-refund` |
-| Split pay (wallet + IPG) | Each rail separately: gateway reverse restores wallet debit only; wallet fallback credits full promoted amount |
+| Split pay (wallet + IPG) | Gateway reverse restores **wallet debit only**; wallet fallback credits **full promoted** amount (`splitCancelCreditAmount`) |
 | Unpaid | No refund |
 
-**Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Series athlete cancel runs pro-rata refund **before** freeing the slot.
+Partial athlete refunds stay `REFUNDED` with `metadata.refundBps` (no `PARTIALLY_REFUNDED` enum). Stale `PENDING_ONLINE` → `FAILED` + `metadata.expired` via `POST /api/admin/payments/expire-pending` (`PENDING_ONLINE_EXPIRE_MINUTES`, default 45).
+
+**Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Ambiguous SEP reverse throws `SEP_REVERSE_PENDING` so the booking stays occupied. Series athlete cancel runs pro-rata refund **before** freeing the slot.
 
 Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net (same atomic rule).
 
@@ -154,11 +156,21 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSION_BPS`, default `0` = 0% for now) including **competition entry fees** once PAID. Desk cash does **not** credit. Owner sets SHEBA and submits a **withdraw request** from **available** balance (moves to locked until admin paid/reject); ops pays via manual bank transfer. No automated payout rail.
 
-**Available / locked:** `Wallet` / `ClubWallet` keep `balance = availableBalance + lockedBalance`. Class settlements with `classDate` credit **locked** until the Tehran day after class (lazy `UNLOCK`). **Season / multi-slot series** settle once on the primary payment (ledger `classDate` = last session) but **unlock progressively** — only each completed session’s share becomes withdrawable the day after that class; cancelled sessions are clawed and never unlock. Packages/comps (`classDate` null) credit **available**.
+**Available / locked:** `Wallet` / `ClubWallet` keep `balance = availableBalance + lockedBalance`. Class settlements with `classDate` credit **locked** until the Tehran day after class (lazy `UNLOCK`). **Season / multi-slot series** settle once on the primary payment (ledger `classDate` = last session) but **unlock progressively** — only each completed session’s share becomes withdrawable the day after that class; cancelled sessions are clawed and never unlock. **Packages** lock until `PackageDraft.startDate` (else `finishDate`); **competitions** lock until Tehran day of `eventAt` (ledger `classDate`). Legacy null `classDate` stays immediately eligible.
+
+**Debt-aware ceiling:** withdrawable is also capped by `applyDebtAwareWithdrawCeiling` so underwater balances after clawback cannot pay out. Clawback may still go negative (`allowNegative`); there is no separate debt table.
+
+**Rounding:** commission / refund BPS use `floor` (`splitSettlement`, `refundAmountFromBps`); leftover 1 toman on splits stays with platform net.
+
+**Commission float (Y4):** when `PLATFORM_COMMISSION_BPS > 0`, athlete refund is gross×bps but clawback is ownerNet only — platform commission is not returned from a tracked float. Default bps is `0`.
 
 **Internal transfer:** club ↔ coach record-keeping (`POST /api/owner/transfers`, `POST /api/coach/transfers`) from available only. Athletes never have this.
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261003180000_wallet_available_locked`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0` (defaults are already 0).
+**Club suspension:** `SUSPENDED` rejects pending club withdraws, blocks new `requestClubWithdraw` / admin `markWithdrawPaid`, and owner APIs already gate on `ACTIVE`.
+
+**Admin payout dual-control:** mark-paid requires `x-admin-payout-confirm: $ADMIN_PAYOUT_CONFIRM` when that env is set; otherwise body `confirmPayout: true`.
+
+On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261102180000_user_withdraw_rail`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0`, `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS=24`, `ADMIN_PAYOUT_CONFIRM=…`.
 
 ## Coach lesson settlement
 
@@ -167,13 +179,23 @@ When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlem
 ## Athlete wallet withdraw / cash-out
 
 - **Coach:** settlement credits (day after class) via `getWalletWithdrawableBalance`.
-- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float.
+- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Fresh `TOPUP_CREDIT` is excluded until `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS` (default 24). Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float. Both rails subtract `withdrawnViaRail` so mixed wallets cannot double-cash-out.
+- **Prize** competition awards (`ADJUSTMENT`) are spendable in-app but **not** SHEBA-withdrawable.
 - Ops pays SHEBA manually from the admin athlete withdrawals queue (same rail as coaches). SMS alert includes full name (نام + نام‌خانوادگی). No automated bank payout.
-- **Coach + athlete:** users with a coach profile can withdraw settlement (coach rail) and, separately, top-up/refund credit (athlete rail). The wallet API sums both for the withdraw cap; the server picks the rail automatically unless `rail` is sent on `POST /api/wallet/withdraw`.
+- **Coach + athlete:** users with a coach profile can withdraw settlement (coach rail) and, separately, top-up/refund credit (athlete rail). The wallet API sums both for the withdraw cap; **the server always picks the rail** (client `rail` is ignored). Chosen rail is stored on `UserWithdrawRequest.rail`.
+- Withdraw create is idempotent for the same user/club + amount within 2 minutes (returns existing `PENDING`).
+
+## Payment method label
+
+Prisma `PaymentMethod.PAID` means **wallet rail** (not “status paid”). UI/receipts map it to «کیف پول» / channel `WALLET`. Status remains the separate `PaymentStatus` enum.
 
 ## Split pay (wallet + IPG)
 
-Checkout `useWallet: 'partial'` debits `min(available, price)` then creates an IPG intent for the remainder (`metadata.splitPay`, `walletDebitAmount`, `splitFullAmount`). On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+Checkout `useWallet: 'partial'` debits `min(available, price)` then creates an IPG intent for the remainder (`metadata.splitPay`, `walletDebitAmount`, `splitFullAmount`). On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+
+## Desk mark-unpaid
+
+IPG and wallet (`method=PAID`) desk mark-unpaid return **409** — cancel to refund. CASH → unpaid sets `metadata.markUnpaidCash` and clawbacks only if a ledger row exists. Series desk path has the same IPG/wallet 409.
 
 ## Webhooks
 

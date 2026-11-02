@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   await assertUserCanBankWithdraw(user.id)
 
-  const body = await readBody<{ amount?: number; note?: string; rail?: 'coach' | 'athlete' }>(event)
+  const body = await readBody<{ amount?: number; note?: string }>(event)
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
@@ -25,13 +25,13 @@ export default defineEventHandler(async (event) => {
     amount: Number(body.amount),
     sheba: dbUser.sheba,
     note: body.note,
-    rail: body.rail === 'coach' || body.rail === 'athlete' ? body.rail : undefined,
   })
 
   return {
     id: request.id,
     amount: request.amount,
     status: request.status,
+    rail: request.rail,
     shebaSnapshot: request.shebaSnapshot,
     createdAt: request.createdAt,
   }

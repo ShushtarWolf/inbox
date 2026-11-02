@@ -117,6 +117,16 @@ export function readDeskCashReturn(meta: Record<string, unknown>): DeskCashRetur
   return null
 }
 
+/**
+ * True when REFUNDED (or cancel) still owes real-world cash return —
+ * desk till or ops manual bank transfer. Prefer this over treating REFUNDED as settled.
+ */
+export function isRefundOwed(meta: Record<string, unknown>): boolean {
+  if (readDeskCashReturn(meta) === 'owed') return true
+  if (isManualBankRefundOwed(meta)) return true
+  return false
+}
+
 export function buildDeskCashReturnedMetadata(
   existing: Record<string, unknown>,
   opts?: { now?: Date; note?: string },

@@ -7,19 +7,53 @@ export const ATHLETE_WITHDRAW_MIN_IRR = Number(process.env.ATHLETE_WITHDRAW_MIN_
 export const ATHLETE_WITHDRAW_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_MAX_IRR || 50_000_000)
 export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_DAILY_MAX_IRR || 50_000_000)
 
+/** Hours before a TOPUP_CREDIT counts toward SHEBA cash-out (default 24). */
+export function athleteTopUpCashOutHoldHours(
+  raw: string | undefined | null = typeof process !== 'undefined'
+    ? process.env.ATHLETE_TOPUP_CASHOUT_HOLD_HOURS
+    : undefined,
+): number {
+  const n = Number(raw ?? 24)
+  if (!Number.isFinite(n) || n < 0) return 24
+  return Math.min(24 * 30, Math.floor(n))
+}
+
+export function athleteTopUpCashOutHoldMs(
+  raw?: string | null,
+): number {
+  return athleteTopUpCashOutHoldHours(raw) * 60 * 60 * 1000
+}
+
 export type AthleteCashOutTx = {
   amount: number
   type: string
+  createdAt?: Date | string | null
 }
 
 /** Net toman available for athlete SHEBA cash-out from ledger types. */
-export function athleteCashOutFromTxs(txs: AthleteCashOutTx[]): number {
+export function athleteCashOutFromTxs(
+  txs: AthleteCashOutTx[],
+  now = new Date(),
+  topUpHoldMs = athleteTopUpCashOutHoldMs(),
+): number {
+  const nowMs = now.getTime()
   let net = 0
   for (const tx of txs) {
-    if (tx.type === 'TOPUP_CREDIT' || tx.type === 'REFUND_CREDIT') net += Math.max(0, tx.amount)
-    else if (tx.type === 'PAYMENT_DEBIT') net += Math.min(0, tx.amount) // amounts are negative for debits
+    if (tx.type === 'TOPUP_CREDIT') {
+      if (topUpHoldMs > 0 && tx.createdAt != null) {
+        const createdMs = new Date(tx.createdAt).getTime()
+        if (Number.isFinite(createdMs) && nowMs - createdMs < topUpHoldMs) continue
+      }
+      net += Math.max(0, tx.amount)
+    }
+    else if (tx.type === 'REFUND_CREDIT') {
+      net += Math.max(0, tx.amount)
+    }
+    else if (tx.type === 'PAYMENT_DEBIT') {
+      net += Math.min(0, tx.amount) // amounts are negative for debits
+    }
     else if (tx.type === 'WITHDRAW_HOLD' || tx.type === 'WITHDRAW_PAID') {
-      // HOLD locks available; PAID amount is often 0 — ignore here; caller caps by available.
+      // HOLD locks available; PAID amount is often 0 — ignore here; caller caps by withdrawnViaRail.
     }
   }
   return Math.max(0, net)

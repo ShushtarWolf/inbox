@@ -40,7 +40,6 @@ export async function requestUserWithdraw(options: {
   amount: number
   sheba: string | null | undefined
   note?: string
-  rail?: BankWithdrawRail
 }) {
   const amount = Math.floor(Number(options.amount))
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -64,6 +63,25 @@ export async function requestUserWithdraw(options: {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
 
+    // Idempotent retries: same user+amount PENDING within 2 minutes → return existing.
+    const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
+    const existing = await tx.userWithdrawRequest.findFirst({
+      where: {
+        userId: options.userId,
+        amount,
+        status: 'PENDING',
+        createdAt: { gte: dedupeSince },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (existing) {
+      return {
+        request: existing,
+        rail: (existing.rail as BankWithdrawRail | null) || 'athlete',
+        created: false as const,
+      }
+    }
+
     const coachWithdrawable = isCoach
       ? await getWalletWithdrawableBalance(options.userId, new Date(), tx)
       : 0
@@ -74,7 +92,6 @@ export async function requestUserWithdraw(options: {
       amount,
       coachWithdrawable,
       athleteCashOut: athleteCashOutNet,
-      requestedRail: options.rail,
     })
     if (!rail) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
@@ -119,6 +136,7 @@ export async function requestUserWithdraw(options: {
         amount,
         shebaSnapshot: sheba,
         status: 'PENDING',
+        rail,
         note: options.note || null,
       },
     })
@@ -129,8 +147,9 @@ export async function requestUserWithdraw(options: {
       note: 'Withdraw request hold',
     }, tx)
 
-    return { request, rail }
-  }).then(async ({ request, rail }) => {
+    return { request, rail, created: true as const }
+  }).then(async ({ request, rail, created }) => {
+    if (!created) return request
     try {
       const user = await prisma.user.findUnique({
         where: { id: options.userId },

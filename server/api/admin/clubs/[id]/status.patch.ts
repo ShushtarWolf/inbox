@@ -1,6 +1,7 @@
 import type { ClubStatus } from '@prisma/client'
 import { siteUrl } from '../../../../utils/email'
 import { sendNotification } from '../../../../utils/notify'
+import { rejectPendingClubWithdraws } from '../../../../utils/settlement'
 
 const ALLOWED: ClubStatus[] = ['PENDING', 'ACTIVE', 'SUSPENDED']
 
@@ -53,6 +54,11 @@ export default defineEventHandler(async (event) => {
     return next
   })
 
+  let frozenWithdraws: { rejected: string[] } | null = null
+  if (body.status === 'SUSPENDED' && previousStatus !== 'SUSPENDED') {
+    frozenWithdraws = await rejectPendingClubWithdraws(id)
+  }
+
   if (body.status === 'ACTIVE' && previousStatus !== 'ACTIVE' && updated.owner) {
     try {
       await sendNotification({
@@ -90,5 +96,6 @@ export default defineEventHandler(async (event) => {
     nameFa: updated.nameFa,
     nameEn: updated.nameEn,
     owner: updated.owner,
+    ...(frozenWithdraws ? { frozenWithdraws } : {}),
   }
 })

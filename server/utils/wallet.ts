@@ -2,6 +2,7 @@ import { Prisma, type WalletTransactionType } from '@prisma/client'
 import { athleteCashOutFromTxs } from '#shared/athleteCashOut.ts'
 import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import {
+  applyDebtAwareWithdrawCeiling,
   canCoverBookingWithWallet,
   computeWithdrawableBalance,
   shouldCreditTopUp,
@@ -37,23 +38,31 @@ export async function getWalletBalances(userId: string) {
   }
 }
 
-/** Athlete SHEBA cash-out: top-up + refund nets, capped by available. */
+/**
+ * Athlete SHEBA cash-out: top-up + refund nets, capped by available,
+ * minus prior withdraw holds/paid so mixed coach+top-up wallets cannot drain settlement.
+ * Fresh TOPUP_CREDIT rows are excluded until ATHLETE_TOPUP_CASHOUT_HOLD_HOURS.
+ */
 export async function getAthleteCashOutBalance(userId: string, db: DbClient = prisma) {
   const wallet = await db.wallet.findUnique({
     where: { userId },
     select: {
+      id: true,
       availableBalance: true,
       balance: true,
       transactions: {
         where: { type: { in: ['TOPUP_CREDIT', 'REFUND_CREDIT', 'PAYMENT_DEBIT'] } },
-        select: { amount: true, type: true },
+        select: { amount: true, type: true, createdAt: true },
       },
     },
   })
   const available = wallet?.availableBalance ?? wallet?.balance ?? 0
+  const balance = wallet?.balance ?? 0
   if (!wallet || available <= 0) return 0
   const net = athleteCashOutFromTxs(wallet.transactions)
-  return Math.max(0, Math.min(available, net))
+  const withdrawnViaRail = await sumWalletWithdrawnViaRail(wallet.id, db)
+  const raw = computeWithdrawableBalance(available, net, 0, withdrawnViaRail)
+  return applyDebtAwareWithdrawCeiling(raw, available, balance)
 }
 
 async function sumWalletWithdrawnViaRail(walletId: string, db: DbClient) {
@@ -117,7 +126,8 @@ export async function getWalletWithdrawableBalance(
     creditSum += row.amount
   }
   const withdrawnViaRail = await sumWalletWithdrawnViaRail(wallet.id, db)
-  return computeWithdrawableBalance(spendable, creditSum, clawbackSum, withdrawnViaRail)
+  const raw = computeWithdrawableBalance(spendable, creditSum, clawbackSum, withdrawnViaRail)
+  return applyDebtAwareWithdrawCeiling(raw, spendable, wallet.balance ?? spendable)
 }
 
 /**

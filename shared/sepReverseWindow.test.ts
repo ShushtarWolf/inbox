@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { canAttemptSepReverse, SEP_REVERSE_WINDOW_MS } from './sepReverseWindow.ts'
+import {
+  canAttemptSepReverse,
+  isSepReverseAmbiguousError,
+  isSepReverseAlreadyDoneError,
+  SEP_REVERSE_WINDOW_MS,
+} from './sepReverseWindow.ts'
 
 describe('canAttemptSepReverse', () => {
   const base = {
@@ -20,7 +25,7 @@ describe('canAttemptSepReverse', () => {
     expect(res).toEqual({ ok: true, refNum: 'R1' })
   })
 
-  it('blocks outside window / test mode / missing ref', () => {
+  it('blocks outside window / test mode / missing ref / already reversed', () => {
     expect(canAttemptSepReverse({
       ...base,
       now: new Date(Date.parse(base.metadata.confirmedAt) + SEP_REVERSE_WINDOW_MS + 1),
@@ -30,5 +35,22 @@ describe('canAttemptSepReverse', () => {
       ...base,
       metadata: { confirmedAt: base.metadata.confirmedAt },
     }).ok).toBe(false)
+    expect(canAttemptSepReverse({
+      ...base,
+      metadata: { ...base.metadata, gatewayReversed: true },
+    })).toEqual({ ok: false, reason: 'already_reversed' })
+  })
+})
+
+describe('isSepReverseAmbiguousError', () => {
+  it('treats timeouts as ambiguous and SEP business codes as definitive', () => {
+    expect(isSepReverseAmbiguousError(new Error('fetch failed: timeout'))).toBe(true)
+    expect(isSepReverseAmbiguousError(new Error('SEP reverse failed (code=5): not allowed'))).toBe(false)
+  })
+})
+
+describe('isSepReverseAlreadyDoneError', () => {
+  it('detects already-reversed messaging', () => {
+    expect(isSepReverseAlreadyDoneError(new Error('Transaction already reversed'))).toBe(true)
   })
 })

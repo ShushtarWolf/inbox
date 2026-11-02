@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const findUnique = vi.fn()
 const update = vi.fn()
+const rootUpdate = vi.fn()
 const transaction = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn({
   payment: { findUnique, update },
   booking: { findUnique: vi.fn() },
@@ -15,7 +16,7 @@ const findUserIdByPhone = vi.fn()
 
 vi.mock('./prisma', () => ({
   prisma: {
-    payment: { findUnique, update },
+    payment: { findUnique, update: rootUpdate },
     booking: { findUnique: vi.fn() },
     $transaction: transaction,
   },
@@ -59,6 +60,7 @@ describe('refundPaymentForCancellation SEP reverse', () => {
       booking: { paymentMethod: 'IPG', userId: 'ath-1', guestMobile: null },
     })
     update.mockResolvedValue({})
+    rootUpdate.mockResolvedValue({})
   })
 
   it('gateway reverse path: no athlete wallet credit', async () => {
@@ -77,8 +79,8 @@ describe('refundPaymentForCancellation SEP reverse', () => {
     expect(clawbackOwnerForPayment).toHaveBeenCalled()
   })
 
-  it('falls back to wallet when reverse fails', async () => {
-    sepReverseTransaction.mockRejectedValue(new Error('sep down'))
+  it('falls back to wallet on definitive SEP reverse failure', async () => {
+    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=5): not allowed'))
     const { refundPaymentForCancellation } = await import('./refunds')
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
@@ -89,5 +91,18 @@ describe('refundPaymentForCancellation SEP reverse', () => {
     expect(result.gatewayRefunded).toBe(false)
     expect(result.walletCredited).toBe(true)
     expect(creditWallet).toHaveBeenCalled()
+  })
+
+  it('does not wallet-fallback on ambiguous reverse timeout', async () => {
+    sepReverseTransaction.mockRejectedValue(new Error('fetch failed: timeout'))
+    const { refundPaymentForCancellation } = await import('./refunds')
+    await expect(refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'athlete-cancel',
+      moneyOutcome: 'full_wallet_refund',
+    })).rejects.toMatchObject({ statusMessage: 'SEP_REVERSE_PENDING' })
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(rootUpdate).toHaveBeenCalled()
   })
 })

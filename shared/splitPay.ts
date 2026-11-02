@@ -48,3 +48,21 @@ export function readSplitPayMeta(meta: Record<string, unknown>): {
     ...(meta.walletDebitReleased === true ? { walletDebitReleased: true as const } : {}),
   }
 }
+
+/**
+ * Cancel refund amounts for split-pay (wallet + IPG).
+ * - gateway_reverse: restock only the wallet rail (IPG reversed to card)
+ * - wallet_closed_loop fallback: credit the full promoted amount (wallet+IPG)
+ */
+export function splitCancelCreditAmount(opts: {
+  gatewayReversed: boolean
+  walletDebitAmount: number
+  splitFullAmount: number
+  refundBps?: number
+}): number {
+  const rawBps = opts.refundBps == null ? 10_000 : Number(opts.refundBps)
+  const bps = Math.max(0, Math.min(10_000, Math.floor(Number.isFinite(rawBps) ? rawBps : 10_000)))
+  const scale = (n: number) => Math.floor((Math.max(0, n) * bps) / 10_000)
+  if (opts.gatewayReversed) return scale(opts.walletDebitAmount)
+  return scale(opts.splitFullAmount)
+}

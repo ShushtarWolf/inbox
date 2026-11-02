@@ -25,7 +25,6 @@ import { payUrlForPin } from '../../utils/receipt'
 import { activeSlotBooking } from '../../utils/reservations'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
 import { clawbackOwnerForPayment, creditOwnerForPaidPayment } from '../../utils/settlement'
-import { creditWallet } from '../../utils/wallet'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { userToGuestNamePair } from '#shared/userName.ts'
@@ -203,20 +202,13 @@ export default defineEventHandler(async (event) => {
 
   if (existing) {
     const previousPayment = existing.payment
-    const wasWalletPaid = Boolean(
-      previousPayment
-      && isPaidPaymentStatus(previousPayment.status)
-      && previousPayment.method === 'PAID'
-      && paymentStatus !== 'PAID'
-      && existing.userId,
-    )
     const becomingUnpaid = previousPaid && paymentStatus !== 'PAID'
 
-    // Online IPG PAID must cancel (gateway reverse / wallet fallback) — desk mark-unpaid would drop money.
+    // Online IPG / wallet PAID must cancel (gateway reverse / wallet refund) — desk mark-unpaid drops float.
     if (
       becomingUnpaid
       && previousPayment
-      && previousPayment.method === 'IPG'
+      && (previousPayment.method === 'IPG' || previousPayment.method === 'PAID')
       && isPaidPaymentStatus(previousPayment.status)
     ) {
       throw createError({
@@ -227,33 +219,17 @@ export default defineEventHandler(async (event) => {
 
     await prisma.$transaction(async (tx) => {
       if (becomingUnpaid && previousPayment) {
-        if (wasWalletPaid && existing.userId) {
-          await creditWallet(existing.userId, previousPayment.amount, {
-            paymentId: previousPayment.id,
-            bookingId: existing.id,
-            note: 'Wallet payment reversed (marked unpaid at club)',
-            type: 'REFUND_CREDIT',
-          }, tx)
-        }
-        // Same txn as the credit — never leave the club holding net for a reversed payment.
-        await clawbackOwnerForPayment(previousPayment.id, tx)
-        if (wasWalletPaid) {
-          // Retire the reversed row so the next wallet pay gets a fresh paymentId
-          // (PAYMENT_DEBIT / settlement are idempotent per paymentId).
+        // CASH desk flip only — mark till unmatched; no float to claw unless a ledger row exists.
+        if (previousPayment.method === 'CASH' && isPaidPaymentStatus(previousPayment.status)) {
+          await clawbackOwnerForPayment(previousPayment.id, tx)
           await tx.payment.update({
             where: { id: previousPayment.id },
             data: {
-              status: 'REFUNDED',
-              bookingId: null,
+              status: 'PAY_AT_CLUB',
               metadataJson: JSON.stringify({
                 ...parsePaymentMetadata(previousPayment.metadataJson),
-                refundChannel: 'wallet_closed_loop',
-                refundReason: 'marked-unpaid-at-club',
-                refundedAt: new Date().toISOString(),
-                gatewayReversed: false,
-                detachedFromBookingId: existing.id,
-                detachedClubId: club.id,
-                detachedSlotDate: slot.date,
+                markUnpaidCash: true,
+                markUnpaidAt: new Date().toISOString(),
               }),
             },
           })

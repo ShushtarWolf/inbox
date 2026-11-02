@@ -213,6 +213,7 @@ async function act(row: WithdrawRow, action: 'paid' | 'reject') {
       body: {
         action,
         note: actionNote.value.trim() || undefined,
+        ...(action === 'paid' ? { confirmPayout: true } : {}),
       },
     })
     actionNote.value = ''

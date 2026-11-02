@@ -16,7 +16,8 @@ import {
   targetSeasonUnlockedNet,
   type SeasonUnlockSession,
 } from '#shared/seasonSettlementUnlock.ts'
-import { computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
+import { localDateString } from '#shared/localDate.ts'
+import { applyDebtAwareWithdrawCeiling, computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 import { notifyClubWithdrawPaid } from './withdrawPaidNotify'
 import { creditWallet, debitWallet } from './wallet'
@@ -320,11 +321,12 @@ export async function getClubWithdrawableBalance(
     }
   }
   const withdrawnViaRail = wallet ? await sumClubWithdrawnViaRail(wallet.id, db) : 0
+  const rawWithdrawable = computeWithdrawableBalance(availableBalance, eligible, 0, withdrawnViaRail)
   return {
     balance,
     availableBalance,
     lockedBalance: wallet?.lockedBalance ?? 0,
-    withdrawableBalance: computeWithdrawableBalance(availableBalance, eligible, 0, withdrawnViaRail),
+    withdrawableBalance: applyDebtAwareWithdrawCeiling(rawWithdrawable, availableBalance, balance),
     pendingClassBalance: pending,
   }
 }
@@ -557,8 +559,8 @@ async function resolveClubIdForPayment(
     where: { id: paymentId },
     include: {
       booking: { include: { slot: { include: { court: true } } } },
-      packageBooking: { include: { package: true } },
-      competitionEntry: { include: { competition: { select: { clubId: true } } } },
+      packageBooking: { include: { package: { select: { clubId: true, startDate: true, finishDate: true } } } },
+      competitionEntry: { include: { competition: { select: { clubId: true, eventAt: true } } } },
     },
   })
   if (!payment || payment.purpose === 'topup') return null
@@ -594,17 +596,23 @@ async function resolveClubIdForPayment(
     }
   }
   if (payment.packageBooking?.package?.clubId) {
+    const pkg = payment.packageBooking.package
+    const classDate = (pkg.startDate || pkg.finishDate || '').trim() || null
     return {
-      clubId: payment.packageBooking.package.clubId,
+      clubId: pkg.clubId,
       bookingId: payment.packageBookingId,
-      classDate: null,
+      classDate,
     }
   }
   if (payment.competitionEntry?.competition?.clubId) {
+    const competition = payment.competitionEntry.competition
+    const classDate = competition.eventAt
+      ? localDateString(competition.eventAt)
+      : null
     return {
-      clubId: payment.competitionEntry.competition.clubId,
+      clubId: competition.clubId,
       bookingId: payment.competitionEntry.id,
-      classDate: null,
+      classDate,
     }
   }
   return null
@@ -964,6 +972,14 @@ export async function requestClubWithdraw(options: {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
 
+  const club = await prisma.club.findUnique({
+    where: { id: options.clubId },
+    select: { status: true },
+  })
+  if (!club || club.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'CLUB_NOT_ACTIVE' })
+  }
+
   return prisma.$transaction(async (tx) => {
     // Same math the finance page shows (incl. partial series clawbacks) — never a looser gate.
     const balances = await getClubWithdrawableBalance(options.clubId, new Date(), tx)
@@ -973,6 +989,18 @@ export async function requestClubWithdraw(options: {
     if (balances.withdrawableBalance < amount) {
       throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
     }
+
+    const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
+    const existing = await tx.withdrawRequest.findFirst({
+      where: {
+        clubId: options.clubId,
+        amount,
+        status: 'PENDING',
+        createdAt: { gte: dedupeSince },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (existing) return { request: existing, created: false as const }
 
     const request = await tx.withdrawRequest.create({
       data: {
@@ -990,8 +1018,9 @@ export async function requestClubWithdraw(options: {
       note: 'Withdraw request hold',
     }, tx)
 
-    return request
-  }).then(async (request) => {
+    return { request, created: true as const }
+  }).then(async ({ request, created }) => {
+    if (!created) return request
     try {
       const club = await prisma.club.findUnique({
         where: { id: options.clubId },
@@ -1015,11 +1044,17 @@ export async function requestClubWithdraw(options: {
 export async function markWithdrawPaid(requestId: string, note?: string) {
   let newlyPaid = false
   const result = await prisma.$transaction(async (tx) => {
-    const request = await tx.withdrawRequest.findUnique({ where: { id: requestId } })
+    const request = await tx.withdrawRequest.findUnique({
+      where: { id: requestId },
+      include: { club: { select: { status: true } } },
+    })
     if (!request) throw createError({ statusCode: 404, statusMessage: 'Withdraw request not found' })
     if (request.status === 'PAID') return request
     if (request.status !== 'PENDING') {
       throw createError({ statusCode: 409, statusMessage: 'Withdraw request is not pending' })
+    }
+    if (request.club.status === 'SUSPENDED') {
+      throw createError({ statusCode: 409, statusMessage: 'CLUB_SUSPENDED' })
     }
 
     const updated = await tx.withdrawRequest.update({
@@ -1042,6 +1077,20 @@ export async function markWithdrawPaid(requestId: string, note?: string) {
   })
   if (newlyPaid) await notifyClubWithdrawPaid(result)
   return result
+}
+
+/** Reject all PENDING club withdraws (e.g. on SUSPENDED). */
+export async function rejectPendingClubWithdraws(clubId: string, note = 'Club suspended — withdraw frozen') {
+  const pending = await prisma.withdrawRequest.findMany({
+    where: { clubId, status: 'PENDING' },
+    select: { id: true },
+  })
+  const rejected: string[] = []
+  for (const row of pending) {
+    await rejectWithdrawRequest(row.id, note)
+    rejected.push(row.id)
+  }
+  return { rejected }
 }
 
 export async function rejectWithdrawRequest(requestId: string, note?: string) {

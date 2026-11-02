@@ -338,6 +338,8 @@ model UserWithdrawRequest {
   amount        Int
   shebaSnapshot String
   status        WithdrawRequestStatus @default(PENDING)
+  /** Server-resolved book: coach settlement vs athlete top-up/refund. */
+  rail          String?
   note          String?
   createdAt     DateTime              @default(now())
   paidAt        DateTime?

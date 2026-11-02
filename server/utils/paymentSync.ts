@@ -64,6 +64,55 @@ export async function supersedePendingTopUpPayments(userId: string, db: DbClient
   }
 }
 
+/** Default: expire PENDING_ONLINE older than 45 minutes (SEP token / hold window). */
+export function pendingOnlineExpireMs(
+  raw: string | undefined | null = typeof process !== 'undefined'
+    ? process.env.PENDING_ONLINE_EXPIRE_MINUTES
+    : undefined,
+): number {
+  const mins = Number(raw ?? 45)
+  if (!Number.isFinite(mins) || mins < 5) return 45 * 60 * 1000
+  return Math.min(24 * 60, Math.floor(mins)) * 60 * 1000
+}
+
+/**
+ * Cron/admin: PENDING_ONLINE → FAILED with metadata.expired (no EXPIRED enum).
+ * Releases split-pay wallet debits. Does not touch PAID/REFUNDED.
+ */
+export async function expireStalePendingOnlinePayments(now = new Date()) {
+  const cutoff = new Date(now.getTime() - pendingOnlineExpireMs())
+  const pending = await prisma.payment.findMany({
+    where: {
+      status: 'PENDING_ONLINE',
+      createdAt: { lt: cutoff },
+    },
+    select: { id: true, metadataJson: true },
+    take: 200,
+  })
+
+  let expired = 0
+  for (const payment of pending) {
+    const meta = parsePaymentMetadata(payment.metadataJson)
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'FAILED',
+        metadataJson: JSON.stringify({
+          ...meta,
+          expired: true,
+          expiredAt: now.toISOString(),
+          failReason: 'pending_online_expired',
+        }),
+      },
+    })
+    const { releaseSplitWalletDebit } = await import('./splitPayWallet')
+    await releaseSplitWalletDebit(payment.id)
+    await syncPaymentToParent(payment.id)
+    expired += 1
+  }
+  return { scanned: pending.length, expired }
+}
+
 export async function syncPaymentToParent(paymentId: string, db: DbClient = prisma) {
   const payment = await db.payment.findUnique({ where: { id: paymentId } })
   if (!payment) return

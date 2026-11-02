@@ -1,4 +1,5 @@
 import { requireAdminSecret } from '../../../utils/adminAuth'
+import { requireAdminPayoutConfirm } from '../../../utils/adminPayoutConfirm'
 import { markWithdrawPaid, rejectWithdrawRequest } from '../../../utils/settlement'
 
 export default defineEventHandler(async (event) => {
@@ -6,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, statusMessage: 'id required' })
 
-  const body = await readBody<{ action?: 'paid' | 'reject'; note?: string }>(event)
+  const body = await readBody<{ action?: 'paid' | 'reject'; note?: string; confirmPayout?: boolean }>(event)
   const action = body.action || 'paid'
 
   if (action === 'reject') {
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, request }
   }
 
+  requireAdminPayoutConfirm(event, body)
   const request = await markWithdrawPaid(id, body.note)
   return { ok: true, request }
 })

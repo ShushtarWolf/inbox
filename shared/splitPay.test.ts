@@ -3,6 +3,7 @@ import {
   canSplitPayWithWallet,
   normalizeUseWallet,
   readSplitPayMeta,
+  splitCancelCreditAmount,
   splitPayParts,
 } from './splitPay.ts'
 
@@ -26,5 +27,18 @@ describe('splitPay', () => {
       walletDebitAmount: 10,
       splitFullAmount: 30,
     })
+  })
+
+  it('credits wallet rail only on gateway reverse; full amount on wallet fallback', () => {
+    expect(splitCancelCreditAmount({
+      gatewayReversed: true,
+      walletDebitAmount: 40_000,
+      splitFullAmount: 100_000,
+    })).toBe(40_000)
+    expect(splitCancelCreditAmount({
+      gatewayReversed: false,
+      walletDebitAmount: 40_000,
+      splitFullAmount: 100_000,
+    })).toBe(100_000)
   })
 })

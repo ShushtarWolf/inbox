@@ -61,3 +61,20 @@ export function computeWithdrawableBalance(
 export function sumWithdrawnViaRail(holdAbsSum: number, releaseSum: number) {
   return Math.max(0, (holdAbsSum || 0) - (releaseSum || 0))
 }
+
+/**
+ * Block / shrink payouts while the wallet is underwater after clawback.
+ * debtExposure = max(0, −balance); ceiling = max(0, min(withdrawable, available − debt)).
+ */
+export function applyDebtAwareWithdrawCeiling(
+  withdrawable: number,
+  available: number,
+  balance: number,
+) {
+  const w = Number.isFinite(withdrawable) ? withdrawable : 0
+  const a = Number.isFinite(available) ? available : 0
+  const b = Number.isFinite(balance) ? balance : 0
+  if (b < 0) return 0
+  const debtExposure = Math.max(0, -b)
+  return Math.max(0, Math.min(w, a - debtExposure))
+}
