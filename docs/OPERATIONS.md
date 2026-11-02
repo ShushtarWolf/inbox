@@ -396,11 +396,23 @@ Dual-rail rule: desk `CASH` must never sit in club/coach withdrawable wallets. H
 
 ### Production APPLY
 
+Liara `DATABASE_URL` uses the internal `inbox-db` host — GitHub runners cannot reach it.
+After the correction endpoint is deployed, run via the live app:
+
 ```bash
-# Dry-run first
+# Dry-run first (POST /api/admin/money-audit/correct-cash)
 gh workflow run money-correct-cash.yml --ref main -f apply=false
 # After reviewing Actions logs:
 gh workflow run money-correct-cash.yml --ref main -f apply=true
+```
+
+Or curl with admin secret:
+
+```bash
+curl -sf -X POST "https://inboxs.ir/api/admin/money-audit/correct-cash" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET"
+curl -sf -X POST "https://inboxs.ir/api/admin/money-audit/correct-cash?apply=1" \
+  -H "x-admin-secret: $ADMIN_PROVISION_SECRET"
 ```
 
 Or with a reachable public `DATABASE_URL` (never commit it):

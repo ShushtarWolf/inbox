@@ -1,12 +1,12 @@
 name: Correct cash settlements (prod)
 
-# Slice 1 — claw back open CASH SettlementLedgerEntry rows that wrongly
-# credited club/coach wallets. Requires LIARA_API_TOKEN. Default is dry-run.
+# Slice 1 — claw back open CASH SettlementLedgerEntry rows via the live app
+# (internal DB). Requires ADMIN_PROVISION_SECRET. Default is dry-run.
 on:
   workflow_dispatch:
     inputs:
       apply:
-        description: Set true to APPLY=yes on production (after dry-run review)
+        description: Set true to APPLY on production (after dry-run review)
         required: true
         default: 'false'
         type: choice
@@ -21,45 +21,38 @@ concurrency:
 jobs:
   correct:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install deps
-        run: npm ci --ignore-scripts
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Resolve prod DATABASE_URL + audit/correct
+      - name: Dry-run or APPLY cash correction on inboxs.ir
         env:
-          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
           APPLY_INPUT: ${{ inputs.apply }}
         run: |
           set -euo pipefail
-          npm i -g @liara/cli@9
-          # CSV: KEY,VALUE — pick DATABASE_URL without printing value
-          CSV=$(liara env list -a inbox --api-token="$LIARA_TOKEN" --csv)
-          DATABASE_URL=$(echo "$CSV" | awk -F',' '$1=="DATABASE_URL" {print substr($0, index($0,$2)); exit}')
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL not found in Liara env"
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
             exit 1
           fi
-          export DATABASE_URL
-          echo "Resolved DATABASE_URL (length=${#DATABASE_URL})"
-          npm run db:audit-money
+          QS=""
           if [ "$APPLY_INPUT" = "true" ]; then
-            echo "APPLY=yes — correcting cash settlements + phantom credits"
-            APPLY=yes npm run db:correct-cash-settlements
-            APPLY=yes npm run db:correct-phantom-wallet-credits
-            npm run db:audit-money
+            QS="?apply=1"
+            echo "APPLY on production"
           else
             echo "Dry-run only"
-            npm run db:correct-cash-settlements
-            npm run db:correct-phantom-wallet-credits
           fi
+          curl -sfS -X POST "https://inboxs.ir/api/admin/money-audit/correct-cash${QS}" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            | tee /tmp/money-correct.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/money-correct.json'))
+          c=d.get('correction') or {}
+          a=d.get('audit') or {}
+          print(f"openCount={c.get('openCount')} applied={c.get('applied')} ok={c.get('ok')} fail={c.get('fail')}")
+          print(f"audit openCash={a.get('openCashSettlements')} alert={a.get('alert')}")
+          if c.get('fail'):
+            raise SystemExit('correction had failures')
+          if c.get('applied') and a.get('openCashSettlements', 0) != 0:
+            raise SystemExit('open CASH settlements remain after APPLY')
+          PY
