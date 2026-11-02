@@ -37,25 +37,28 @@ function isActive(to: string) {
     :class="[
       'min-[431px]:hidden',
       dark ? 'border-white/10 bg-brand-primary-dark' : 'border-brand-gray-200 bg-white',
+      scrollLayout
+        ? 'overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden'
+        : '',
     ]"
   >
     <div
-      class="mx-auto"
-      :class="[
-        maxWidthClass,
+      :class="
         scrollLayout
-          ? 'flex w-full max-w-full touch-pan-x flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden'
-          : ['grid', columnsClass],
-      ]"
+          ? 'inline-flex w-max min-w-full flex-nowrap'
+          : ['mx-auto grid w-full', maxWidthClass, columnsClass]
+      "
     >
       <component
         :is="item.action ? 'button' : NuxtLink"
         v-for="item in items"
         :key="item.to + item.label"
         v-bind="item.action ? { type: 'button' } : { to: item.to }"
-        class="relative flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-3 text-center text-xs font-medium leading-tight transition-colors"
+        class="relative flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 py-3 text-center text-xs font-medium leading-tight transition-colors"
         :class="[
-          scrollLayout ? 'min-w-[4.75rem] max-w-[5.5rem] shrink-0' : '',
+          scrollLayout
+            ? 'min-w-[5.25rem] w-max max-w-none shrink-0 flex-none whitespace-nowrap px-3'
+            : 'px-2',
           !item.action && isActive(item.to)
             ? (dark ? 'text-brand-gold' : 'text-brand-primary')
             : (dark ? 'text-white/70' : 'text-brand-gray-500'),
