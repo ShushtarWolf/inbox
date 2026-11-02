@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await prisma.seasonBooking.delete({ where: { id } })
+  // Soft-cancel: keep the row so the owner list shows «لغو شده» instead of it vanishing.
+  await prisma.seasonBooking.update({ where: { id }, data: { cancelledAt: new Date() } })
 
   return { ok: true, cancelled }
 })

@@ -865,7 +865,6 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                 @click="toggleCourt(rule, court.id)"
               >
                 <span class="block text-[13.5px] font-bold">{{ courtLabel(court) }}</span>
-                <span class="block text-[11.5px] text-[#8C8A84]">{{ courtSessionPriceLabel(court, rule.startTime) }}</span>
               </button>
             </div>
           </div>
