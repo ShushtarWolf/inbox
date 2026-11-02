@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نقشهٔ سیستم پول Inbox — نمودارها، منطق، تعارض‌ها</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2")
+          format("woff2");
+      }
+
+      :root {
+        --text: #2c2c2a;
+        --muted: #5b6472;
+        --line: rgba(44, 44, 42, 0.12);
+        --surface: #f4efe9;
+        --accent: #c41e1e;
+        --accent-soft: #f8eaea;
+        --green: #2e7d4f;
+        --green-soft: #dcebe1;
+        --mustard: #b68a3b;
+        --mustard-soft: #f3e9d3;
+        --purple-soft: #eee8f5;
+      }
+
+      @page {
+        size: A4;
+        margin: 14mm 12mm;
+      }
+
+      * {
+        box-sizing: border-box;
+        border-radius: 0 !important;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Vazirmatn", sans-serif;
+        color: var(--text);
+        background: #fff;
+        line-height: 1.85;
+        font-size: 12px;
+        letter-spacing: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0 0 8px;
+        line-height: 1.4;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+      h2 {
+        font-size: 15px;
+        margin-top: 22px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid var(--accent);
+      }
+      h3 {
+        font-size: 13px;
+        margin-top: 14px;
+      }
+
+      p {
+        margin: 0 0 9px;
+      }
+
+      ul,
+      ol {
+        margin: 0 0 10px;
+        padding-inline-start: 20px;
+      }
+
+      li {
+        margin-bottom: 4px;
+      }
+
+      .hero {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        padding: 16px 18px;
+        margin-bottom: 10px;
+      }
+
+      .kicker {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 11.5px;
+        margin-bottom: 4px;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .callout {
+        background: var(--accent-soft);
+        border: 1px solid #e8c4c4;
+        padding: 10px 12px;
+        margin: 10px 0;
+      }
+
+      .ok {
+        background: var(--green-soft);
+        border: 1px solid #b9d6c2;
+        padding: 10px 12px;
+        margin: 10px 0;
+      }
+
+      .warn {
+        background: var(--mustard-soft);
+        border: 1px solid #e3d2a8;
+        padding: 10px 12px;
+        margin: 10px 0;
+      }
+
+      .drift {
+        background: var(--purple-soft);
+        border: 1px solid #d4c6e8;
+        padding: 10px 12px;
+        margin: 10px 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8px 0 12px;
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 6px 8px;
+        text-align: start;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--surface);
+        font-weight: 700;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        direction: ltr;
+        unicode-bidi: isolate;
+      }
+
+      .diagram {
+        border: 1px solid var(--line);
+        background: #fafafa;
+        padding: 10px 8px;
+        margin: 10px 0 14px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .diagram .caption {
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--accent);
+      }
+
+      .mermaid {
+        display: flex;
+        justify-content: center;
+        direction: ltr;
+      }
+
+      .mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .page-break {
+        break-before: page;
+        page-break-before: always;
+      }
+
+      .footer-meta {
+        margin-top: 22px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 10.5px;
+      }
+
+      .toc a {
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .toc li {
+        margin-bottom: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="kicker">Inbox · نقشهٔ سیستم پول · به‌روز با docs/PAYMENTS.md</div>
+      <h1>نقشهٔ تصویری پول: دو ریل، لغو، ادمین، برداشت، تعارض‌ها</h1>
+      <p>
+        این سند نمودارهای جریان (flowchart) سیستم مالی محصول را با توضیح کوتاه می‌دهد.
+        مرجع حقیقت کد: <span class="mono">docs/PAYMENTS.md</span> و مسیرهای
+        <span class="mono">shared/cancelPolicy.ts</span>،
+        <span class="mono">server/utils/refunds.ts</span>،
+        <span class="mono">server/utils/settlement.ts</span>،
+        <span class="mono">shared/athleteCashOut.ts</span>.
+      </p>
+      <p class="note">
+        واحد پول محصول تومان است. درگاه SEP فقط در API مبلغ را به ریال (×۱۰) می‌فرستد.
+        کمیسیون پیش‌فرض پلتفرم و مربی ۰٪ است مگر env خلافش را بگوید.
+      </p>
+    </header>
+
+    <h2>فهرست</h2>
+    <ol class="toc">
+      <li>نقشهٔ کلان</li>
+      <li>رابطهٔ نقد ↔ IPG ↔ کیف</li>
+      <li>پرداخت آنلاین، split و لغو</li>
+      <li>ادمین و cash-out / برداشت شبا</li>
+      <li>جدول‌های منطق (لغو، استرداد، نقش‌ها)</li>
+      <li>تعارض‌ها و شکاف‌ها روی نقشه</li>
+    </ol>
+
+    <!-- ========== 1 ========== -->
+    <h2>۱. نقشهٔ کلان</h2>
+    <p>
+      پول از ورزشکار وارد یکی از ریل‌های وصول می‌شود، به ردیف
+      <span class="mono">Payment</span> می‌رسد، و فقط ریل آنلاین/کیف وارد تسویهٔ
+      ClubWallet یا کیف مربی می‌شود. نقد صندوق بیرون از پلتفرم می‌ماند.
+    </p>
+
+    <div class="diagram">
+      <div class="caption">نمودار ۱ — نقشهٔ کلان سیستم پول</div>
+      <pre class="mermaid">
+flowchart TB
+  subgraph A["ورزشکار"]
+    ATH["رزرو / پکیج / جلسه / مسابقه"]
+    TOP["شارژ کیف"]
+    W["کیف ورزشکار<br/>available + locked"]
+  end
+
+  subgraph R["دو ریل وصول"]
+    CASH["ریل نقد / صندوق<br/>method=CASH"]
+    IPG["ریل آنلاین SEP<br/>method=IPG"]
+    WAL["ریل کیف‌پول<br/>method=PAID"]
+    SPLIT["تقسیم: کیف + IPG<br/>splitPay"]
+  end
+
+  subgraph P["Payment"]
+    ST["وضعیت‌ها:<br/>PENDING_ONLINE / PAID<br/>FAILED / REFUNDED<br/>PAY_AT_CLUB"]
+  end
+
+  subgraph S["تسویه بعد از PAID"]
+    SKIP["CASH → بدون تسویه"]
+    CLUB["ClubWallet<br/>قفل تا فردای کلاس"]
+    COACH["Wallet مربی<br/>قفل تا فردای کلاس"]
+    PLAT["کمیسیون پلتفرم<br/>پیش‌فرض ۰٪"]
+  end
+
+  subgraph ADM["ادمین"]
+    WD["تأیید / رد برداشت شبا"]
+    MR["ack استرداد دستی مهمان"]
+    AUD["ممیزی پول / اصلاحات"]
+  end
+
+  ATH --> CASH & IPG & WAL & SPLIT
+  TOP --> IPG --> W
+  WAL --> W
+  CASH & IPG & WAL & SPLIT --> ST
+  ST -->|CASH PAID| SKIP
+  ST -->|IPG یا WALLET PAID| PLAT
+  PLAT --> CLUB & COACH
+  CLUB & COACH -->|درخواست برداشت| WD
+  W -->|cash-out از شارژ+استرداد| WD
+      </pre>
+    </div>
+
+    <div class="ok">
+      <strong>قانون سخت:</strong>
+      desk cash و complimentary هرگز به کیف قابل‌برداشت باشگاه/مربی settle نمی‌شوند.
+      فقط IPG و پرداخت از کیف‌پول settle می‌شوند.
+    </div>
+
+    <!-- ========== 2 ========== -->
+    <h2 class="page-break">۲. رابطهٔ نقد ↔ IPG ↔ کیف</h2>
+    <p>
+      UI صاحب و ورزشکار دو دفتر جدا نشان می‌دهد (dual-rail): صندوق نقد در برابر آنلاین.
+      مخلوط کردن این دو در یک موجودی ممنوع است.
+    </p>
+
+    <div class="diagram">
+      <div class="caption">نمودار ۲ — دو اقتصاد جدا</div>
+      <pre class="mermaid">
+flowchart LR
+  subgraph OUT["خارج از پلتفرم"]
+    TILL["صندوق باشگاه<br/>نقد واقعی"]
+  end
+
+  subgraph IN["داخل پلتفرم"]
+    SEP["درگاه SEP<br/>تومان در DB · ریال در API"]
+    AW["کیف ورزشکار"]
+    CW["ClubWallet / کیف مربی"]
+  end
+
+  DESK["میز صاحب"] -->|علامت نقدی| TILL
+  DESK -.->|فقط ثبت Payment| REPORT["گزارش / تقویم"]
+  ATH2["ورزشکار"] -->|پرداخت آنلاین| SEP
+  ATH2 -->|کیف| AW
+  SEP -->|PAID| CW
+  AW -->|PAID| CW
+  TILL -.->|هرگز| CW
+      </pre>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ریل</th>
+          <th>وارد کیف باشگاه؟</th>
+          <th>کمیسیون سایت</th>
+          <th>استرداد لغو</th>
+          <th>برداشت شبا</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>نقد CASH</td>
+          <td>خیر</td>
+          <td>خیر</td>
+          <td>بدون اعتبار کیف؛ <span class="mono">deskCashReturn=owed</span> تا ack صاحب</td>
+          <td>خیر</td>
+        </tr>
+        <tr>
+          <td>IPG</td>
+          <td>بله (بعد کمیسیون)</td>
+          <td>بله (bps)</td>
+          <td>ریورس ≤۲۵ دقیقه یا اعتبار کیف</td>
+          <td>بله بعد unlock</td>
+        </tr>
+        <tr>
+          <td>کیف‌پول</td>
+          <td>بله</td>
+          <td>بله</td>
+          <td>اعتبار کیف + clawback</td>
+          <td>بله بعد unlock</td>
+        </tr>
+        <tr>
+          <td>split</td>
+          <td>بله روی مبلغ کامل بعد promote</td>
+          <td>روی مبلغ کامل</td>
+          <td>هر ریل جدا</td>
+          <td>مثل آنلاین</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warn">
+      <strong>تعارض محصولی عمدی:</strong>
+      یک رزرو میز اگر نقد وصول شود بیرون می‌ماند؛ اگر با لینک پرداخت یا کیف وصول شود وارد اقتصاد سایت می‌شود.
+      باشگاه انگیزه دارد مشتری را به نقد بکشاند چون سایت روی نقد درآمد ندارد.
+    </div>
+
+    <!-- ========== 3 ========== -->
+    <h2 class="page-break">۳. پرداخت، split و لغو</h2>
+    <p>
+      لغو و استرداد یک تراکنش اتمیک‌اند: اگر credit یا clawback شکست بخورد، اسلات FREE نمی‌شود.
+      استرداد کامل ناخالص به ورزشکار برمی‌گردد؛ کمیسیون عملاً از float پلتفرم تأمین می‌شود.
+    </p>
+
+    <div class="diagram">
+      <div class="caption">نمودار ۳ — توالی پرداخت و لغو</div>
+      <pre class="mermaid">
+sequenceDiagram
+  participant U as ورزشکار
+  participant APP as Inbox
+  participant SEP as درگاه SEP
+  participant W as کیف ورزشکار
+  participant C as ClubWallet یا مربی
+  participant AD as ادمین
+
+  U->>APP: رزرو ← Payment PENDING_ONLINE
+  alt پرداخت کامل از کیف
+    U->>APP: useWallet
+    APP->>W: PAYMENT_DEBIT
+    APP->>C: SETTLEMENT locked
+  else IPG یا split
+    U->>SEP: checkout
+    SEP-->>APP: callback OK ← verify
+    APP->>C: SETTLEMENT locked
+    Note over APP: split: promote مبلغ به قیمت کامل
+  end
+
+  U->>APP: لغو
+  alt صاحب/مربی یا خارج پنجره یا insideBps کامل
+    alt SEP live و ≤۲۵ دقیقه و reverse OK
+      APP->>SEP: ReverseTransaction
+      Note over W: بدون اعتبار کیف
+    else fallback
+      APP->>W: REFUND_CREDIT
+    end
+    APP->>C: CLAWBACK
+  else داخل پنجره و bps برابر ۰
+    Note over APP: اسلات آزاد؛ بدون پول
+  end
+
+  C->>AD: درخواست برداشت شبا
+  AD->>AD: paid یا reject دستی
+      </pre>
+    </div>
+
+    <h3>۳.۱ منطق لغو پول</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>بازیگر</th>
+          <th>شرط</th>
+          <th>پول</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>صاحب / مربی</td>
+          <td>همیشه</td>
+          <td>۱۰۰٪ + clawback</td>
+        </tr>
+        <tr>
+          <td>ورزشکار</td>
+          <td>خارج <span class="mono">cancellationWindowHours</span> (پیش‌فرض ۱۲ ساعت)</td>
+          <td>۱۰۰٪ + clawback</td>
+        </tr>
+        <tr>
+          <td>ورزشکار</td>
+          <td>داخل پنجره</td>
+          <td>
+            سهم = <span class="mono">insideWindowRefundBps</span>
+            (پیش‌فرض ۱۰۰۰۰ = ۱۰۰٪؛ ۰ = صفر؛ ۵۰۰۰ = ۵۰٪)
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>۳.۲ مسیر واقعی استرداد</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>نوع پرداخت</th>
+          <th>مسیر</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>IPG live + refNum + ≤۲۵ دقیقه</td>
+          <td>
+            تلاش <span class="mono">gateway_reverse</span> — بدون اعتبار کیف؛ + clawback.
+            شکست / خارج پنجره / test ← کیف بسته
+          </td>
+        </tr>
+        <tr>
+          <td>IPG / کیف (fallback)</td>
+          <td><span class="mono">wallet_closed_loop</span> + clawback</td>
+        </tr>
+        <tr>
+          <td>نقد CASH</td>
+          <td>
+            <span class="mono">REFUNDED</span> +
+            <span class="mono">deskCashReturn=owed</span> تا
+            <span class="mono">ack-cash-return</span> صاحب
+          </td>
+        </tr>
+        <tr>
+          <td>مهمان pay-link بدون کیف</td>
+          <td>
+            <span class="mono">manualBankRefund=owed</span> تا ادمین
+            <span class="mono">ack-manual-refund</span>
+          </td>
+        </tr>
+        <tr>
+          <td>split</td>
+          <td>هر ریل جدا؛ reverse فقط debit کیف را برمی‌گرداند؛ fallback کل مبلغ promote‌شده</td>
+        </tr>
+        <tr>
+          <td>پرداخت‌نشده</td>
+          <td>بدون استرداد</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>هرگز با هم:</strong>
+      برای یک پرداخت IPG، gateway reverse و اعتبار کیف هم‌زمان اجرا نمی‌شوند.
+      یا ریورس کارت، یا closed-loop کیف.
+    </div>
+
+    <!-- ========== 4 ========== -->
+    <h2 class="page-break">۴. ادمین و برداشت / cash-out</h2>
+    <p>
+      ریل خودکار بانکی وجود ندارد. ادمین اپراتور نقدینگی است: شبا را می‌بیند،
+      paid یا reject می‌زند، فیش می‌گذارد. SMS درخواست شامل نام کامل است.
+    </p>
+
+    <div class="diagram">
+      <div class="caption">نمودار ۴ — درخواست برداشت و کارهای ادمین</div>
+      <pre class="mermaid">
+flowchart TB
+  subgraph REQ["درخواست برداشت"]
+    O["صاحب: از available ClubWallet"]
+    CO["مربی: از settlement قابل‌برداشت"]
+    AT["ورزشکار: فقط خالص TOPUP+REFUND − PAYMENT_DEBIT<br/>سقف env + available"]
+  end
+
+  HOLD["WITHDRAW_HOLD<br/>available → locked"]
+  ADMIN["ادمین: paid یا reject<br/>واریز دستی شبا + فیش"]
+  PAID["WITHDRAW_PAID<br/>مصرف locked"]
+  REJ["WITHDRAW_RELEASE<br/>برگشت به available"]
+
+  O & CO & AT --> HOLD --> ADMIN
+  ADMIN -->|paid| PAID
+  ADMIN -->|reject| REJ
+
+  subgraph EXTRA["کارهای ادمین پول"]
+    M1["ack-manual-refund مهمان IPG"]
+    M2["money-audit / correct-cash"]
+    M3["correct-pre-rial-ipg"]
+    M4["payments-status / accounting"]
+  end
+      </pre>
+    </div>
+
+    <h3>۴.۱ سه منبع قابل‌برداشت</h3>
+    <ul>
+      <li>
+        <strong>صاحب:</strong> خالص settle آنلاین بعد از unlock (فردای کلاس تهران؛
+        سری فصلی unlock تدریجی per session).
+      </li>
+      <li>
+        <strong>مربی:</strong> خالص شهریه جلسه (<span class="mono">SETTLEMENT_CREDIT</span>)
+        بعد از unlock — نه از شارژ/استرداد ورزشکار.
+      </li>
+      <li>
+        <strong>ورزشکار:</strong> خالص
+        <span class="mono">TOPUP_CREDIT + REFUND_CREDIT − PAYMENT_DEBIT</span>
+        با سقف‌های
+        <span class="mono">ATHLETE_WITHDRAW_MIN/MAX/DAILY_MAX</span>
+        و available.
+      </li>
+    </ul>
+    <p>
+      کاربر با پروفایل مربی دو ریل جدا دارد؛ سرور خودش ریل را انتخاب می‌کند مگر
+      <span class="mono">rail</span> در
+      <span class="mono">POST /api/wallet/withdraw</span> فرستاده شود.
+    </p>
+
+    <h3>۴.۲ قفل و available</h3>
+    <p>
+      <span class="mono">balance = availableBalance + lockedBalance</span>.
+      کلاس‌ها با <span class="mono">classDate</span> اول به locked می‌روند؛
+      پکیج و مسابقه (<span class="mono">classDate=null</span>) مستقیم available.
+      درخواست برداشت available را به locked می‌برد تا ادمین تصمیم بگیرد.
+    </p>
+
+    <!-- ========== 5 ========== -->
+    <h2 class="page-break">۵. نقش‌ها و حالت‌های پرداخت</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>نقش</th>
+          <th>کیف</th>
+          <th>ورودی پول</th>
+          <th>خروج</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ورزشکار</td>
+          <td>Wallet روی User</td>
+          <td>شارژ، استرداد لغو، جایزه</td>
+          <td>خرج داخل سایت + cash-out شبا از خالص شارژ/استرداد</td>
+        </tr>
+        <tr>
+          <td>صاحب</td>
+          <td>ClubWallet</td>
+          <td>خالص IPG / کیف بعد کمیسیون</td>
+          <td>درخواست شبا ← ادمین ← واریز دستی</td>
+        </tr>
+        <tr>
+          <td>مربی</td>
+          <td>همان Wallet کاربر</td>
+          <td>خالص شهریه جلسه</td>
+          <td>برداشت از settlement؛ جدا از ریل ورزشکار</td>
+        </tr>
+        <tr>
+          <td>ادمین</td>
+          <td>کیف ندارد؛ float</td>
+          <td>کمیسیون (پیش‌فرض ۰٪)</td>
+          <td>paid/reject برداشت؛ ack استرداد مهمان؛ ممیزی</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>۵.۱ PAYMENTS_MODE</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>حالت</th>
+          <th>رفتار</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="mono">pay_at_club</span></td>
+          <td>CTA آنلاین مخفی؛ میز mark-paid؛ ورزشکار خودش pay-at-club انتخاب نمی‌کند</td>
+        </tr>
+        <tr>
+          <td><span class="mono">test</span></td>
+          <td>بدون ترمینال ← test-gateway؛ با ترمینال ← SEP واقعی</td>
+        </tr>
+        <tr>
+          <td><span class="mono">live</span></td>
+          <td>SEP پروداکشن؛ بدون verify موفق هرگز PAID نمی‌شود</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>۵.۲ میز نقد — سه راه وصول</h3>
+    <ul>
+      <li>علامت پرداخت نقدی ← CASH·PAID ← بدون settle / کمیسیون</li>
+      <li>لینک پرداخت <span class="mono">/p/{pin}</span> ← IPG·PAID ← settle مثل آنلاین</li>
+      <li>کیف ورزشکار ← method کیف ← settle مثل آنلاین</li>
+    </ul>
+    <p>
+      برگرداندن IPG PAID به unpaid از میز مسدود است (۴۰۹)؛ باید لغو شود تا استرداد درست برود.
+    </p>
+
+    <!-- ========== 6 ========== -->
+    <h2 class="page-break">۶. تعارض‌ها روی نقشه</h2>
+    <p>
+      بعضی تعارض‌ها <strong>عمدی</strong>اند (دو ریل). بعضی <strong>ریسک عملیاتی</strong>اند.
+      بعضی فقط در اسناد قدیمی فارسی مانده‌اند و با کد فعلی فرق دارند.
+    </p>
+
+    <div class="diagram">
+      <div class="caption">نمودار ۵ — دسته‌بندی تعارض‌ها</div>
+      <pre class="mermaid">
+flowchart TB
+  subgraph C1["تعارض ریل‌ها — عمدی"]
+    X1["نقد هرگز settle نمی‌شود<br/>ولی در گزارش دیده می‌شود"]
+    X2["همان رزرو: نقد = بیرون<br/>لینک/کیف = داخل"]
+    X3["استرداد IPG: یا reverse یا کیف<br/>هرگز هر دو"]
+    X4["مهمان IPG: استرداد دستی بانکی<br/>لاگین: کیف"]
+  end
+
+  subgraph C2["ریسک عملیاتی"]
+    Y1["انگیزه کشاندن به نقد<br/>کمیسیون سایت روی نقد = ۰"]
+    Y2["تطبیق صندوق روزانه نداریم"]
+    Y3["clawback می‌تواند موجودی<br/>باشگاه/مربی را منفی کند"]
+    Y4["استرداد کامل ناخالص به ورزشکار<br/>کمیسیون از float سایت"]
+    Y5["mark-unpaid روی IPG PAID<br/>ممنوع ۴۰۹"]
+  end
+
+  subgraph C3["doc drift — HTML قدیمی فارسی"]
+    Z1["می‌گفت ورزشکار برداشت ندارد<br/>کد: athlete cash-out دارد"]
+    Z2["می‌گفت کمیسیون ۱۰٪<br/>کد: پیش‌فرض ۰ bps"]
+    Z3["می‌گفت داخل پنجره صفر استرداد<br/>کد: پیش‌فرض ۱۰۰٪"]
+    Z4["می‌گفت split نداریم<br/>کد: useWallet partial"]
+    Z5["می‌گفت reverse عملاً نیست<br/>کد: SEP live ≤۲۵د"]
+  end
+      </pre>
+    </div>
+
+    <div class="drift">
+      <strong>دربارهٔ doc drift:</strong>
+      فایل‌های
+      <span class="mono">docs/wallet-payments-fa.html</span>
+      و
+      <span class="mono">docs/wallet-vs-digipay-fa.html</span>
+      هنوز ادعاهای قدیمی دارند. حقیقت فعلی این نقشه و
+      <span class="mono">docs/PAYMENTS.md</span>
+      است. برای اشتراک داخلی این PDF را مبنا بگیرید.
+    </div>
+
+    <h3>۶.۱ اصلاحات تاریخی (اسکریپت)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>تعارض / باگ</th>
+          <th>درمان</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>تسویهٔ اشتباه روی CASH (phantom)</td>
+          <td><span class="mono">audit-money-bugs</span> + <span class="mono">correct-cash-settlements</span></td>
+        </tr>
+        <tr>
+          <td>IPG قبل از cutover ریالی (مبلغ ×۱۰ اشتباه)</td>
+          <td><span class="mono">correct-pre-rial-ipg</span></td>
+        </tr>
+        <tr>
+          <td>اعتبار کیف شبح</td>
+          <td><span class="mono">correct-phantom-wallet-credits</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>۶.۲ قوانین سخت برای خواندن سریع</h3>
+    <ol>
+      <li>دو دفتر جدا: نقد صندوق ≠ آنلاین/کیف.</li>
+      <li>استرداد: یا reverse درگاه (پنجرهٔ کوتاه) یا اعتبار کیف — نه هر دو.</li>
+      <li>نقد: بدون settle؛ استرداد نقد با ack فیزیکی صاحب.</li>
+      <li>مهمان IPG: استرداد دستی بانکی با ack ادمین.</li>
+      <li>برداشت شبا همیشه دستی از صف ادمین.</li>
+      <li>کمیسیون پیش‌فرض ۰٪؛ قفل تا فردای کلاس (تهران).</li>
+      <li>Idempotency روی credit / debit / settlement / clawback.</li>
+    </ol>
+
+    <div class="footer-meta">
+      Inbox · نقشهٔ سیستم پول · تولید از docs/PAYMENTS.md و کد محصول · برای اشتراک داخلی
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        theme: "neutral",
+        fontFamily: "Vazirmatn, sans-serif",
+        flowchart: {
+          htmlLabels: true,
+          curve: "basis",
+          padding: 12,
+          nodeSpacing: 28,
+          rankSpacing: 36,
+        },
+        sequence: {
+          actorMargin: 28,
+          messageMargin: 36,
+          boxMargin: 8,
+        },
+      });
+      await mermaid.run();
+      document.documentElement.dataset.mermaidReady = "1";
+    </script>
+  </body>
+</html>
