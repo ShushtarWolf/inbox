@@ -78,7 +78,7 @@ interface OwnerCalendarBooking {
   paymentMethod?: string | null
   paymentStatus?: string | null
   comments?: string | null
-  user?: { name?: string | null } | null
+  user?: { name?: string | null; nameFamily?: string | null } | null
   bookingEquipments?: OwnerCalendarBookingEquipment[]
 }
 
@@ -828,6 +828,7 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
     guestName: booking?.guestName,
     guestFamily: booking?.guestFamily,
     userName: booking?.user?.name,
+    userNameFamily: booking?.user?.nameFamily,
   })
   return fullName || statusLabel(slot.displayStatus)
 }
@@ -1370,6 +1371,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
       guestName: booking?.guestName,
       guestFamily: booking?.guestFamily,
       userName: booking?.user?.name,
+      userNameFamily: booking?.user?.nameFamily,
     })
     const parts = normalizeGuestNamePair(linked || booking?.guestName, booking?.guestFamily)
     form.guestName = parts.guestName
@@ -3197,6 +3199,7 @@ function slotGuestName(slot: OwnerCalendarSlot | null | undefined = selectedSlot
       guestName: booking.guestName,
       guestFamily: booking.guestFamily,
       userName: booking.user?.name,
+      userNameFamily: booking.user?.nameFamily,
     })
   }
   return formatGuestDisplayName(form.guestName, form.guestFamily)
@@ -3209,6 +3212,7 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
       guestName: booking.guestName,
       guestFamily: booking.guestFamily,
       userName: booking.user?.name,
+      userNameFamily: booking.user?.nameFamily,
     })
   }
   return slotGuestName(slot)

@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
       booking: {
         include: {
           payment: true,
-          user: { select: { name: true } },
+          user: { select: { name: true, nameFamily: true } },
           bookingEquipments: { include: { equipment: true } },
           events: {
             where: { type: 'CREATED' },

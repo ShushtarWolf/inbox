@@ -103,7 +103,17 @@ describe('resolveLinkedGuestDisplayName', () => {
     expect(resolveLinkedGuestDisplayName({
       guestName: 'avid',
       guestFamily: null,
-      userName: 'الهه ربیعی',
+      userName: 'الهه',
+      userNameFamily: 'ربیعی',
+    })).toBe('الهه ربیعی')
+  })
+
+  it('joins linked user first + family after nameFamily split', () => {
+    expect(resolveLinkedGuestDisplayName({
+      guestName: 'الهه',
+      guestFamily: null,
+      userName: 'الهه',
+      userNameFamily: 'ربیعی',
     })).toBe('الهه ربیعی')
   })
 

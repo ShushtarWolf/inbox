@@ -4,6 +4,7 @@ const props = defineProps<{
   programPercent: number
   disabled?: boolean
   initialStatus?: string | null
+  backTo?: string
 }>()
 
 const emit = defineEmits<{
@@ -28,6 +29,10 @@ const blocked = computed(() =>
   || props.initialStatus === 'PENDING'
   || props.initialStatus === 'APPROVED'
   || success.value,
+)
+
+const isReviewing = computed(() =>
+  success.value || props.initialStatus === 'PENDING',
 )
 
 async function submit() {
@@ -137,9 +142,14 @@ async function submit() {
     </label>
 
     <p v-if="formError" class="venus-alert-error" role="alert">{{ formError }}</p>
-    <p v-if="success || initialStatus === 'PENDING'" class="text-sm font-bold text-amber-800" role="status">
-      {{ t('studentVerify.status.pending') }}
-    </p>
+    <div
+      v-if="isReviewing"
+      class="space-y-2 border border-[rgba(182,138,59,.35)] bg-[#f3e9d3] px-3 py-3 text-start"
+      role="status"
+    >
+      <p class="text-sm font-bold text-brand-navy">{{ t('studentVerify.status.reviewing') }}</p>
+      <p class="text-xs text-brand-gray-600">{{ t('studentVerify.status.pending') }}</p>
+    </div>
     <p v-else-if="initialStatus === 'APPROVED'" class="text-sm font-bold text-emerald-800" role="status">
       {{ t('studentVerify.status.approved', { percent: formatNumber(programPercent) }) }}
     </p>
@@ -148,11 +158,20 @@ async function submit() {
     </p>
 
     <button
+      v-if="!isReviewing"
       type="submit"
       class="canva-black-cta"
       :disabled="blocked || submitting || !ownershipConfirmed"
     >
       {{ submitting ? t('common.loading') : t('studentVerify.submit') }}
     </button>
+
+    <NuxtLink
+      v-if="backTo && (isReviewing || initialStatus === 'APPROVED')"
+      :to="backTo"
+      class="canva-gate-btn-secondary block w-full text-center"
+    >
+      {{ t('studentVerify.backHome') }}
+    </NuxtLink>
   </form>
 </template>

@@ -65,8 +65,9 @@ export function resolveLinkedGuestDisplayName(opts: {
   guestName?: string | null
   guestFamily?: string | null
   userName?: string | null
+  userNameFamily?: string | null
 }): string {
-  const account = trimPart(opts.userName)
+  const account = formatGuestDisplayName(opts.userName, opts.userNameFamily)
   if (account) return account
   return formatGuestDisplayName(opts.guestName, opts.guestFamily)
 }
