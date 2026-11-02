@@ -10,6 +10,12 @@ export default defineEventHandler(async (event) => {
     where: { id: user.id },
     select: { sheba: true },
   })
+  const pendingSheba = await prisma.shebaChangeRequest.findFirst({
+    where: { userId: user.id, status: 'PENDING' },
+  })
+  if (pendingSheba && !dbUser?.sheba) {
+    throw createError({ statusCode: 409, statusMessage: 'SHEBA pending admin approval' })
+  }
   if (!dbUser?.sheba) {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }

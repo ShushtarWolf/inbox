@@ -59,6 +59,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Slot already started': 'booking.errors.slotAlreadyStarted',
     'Insufficient club wallet balance': 'owner.financePage.withdrawInsufficient',
     'SHEBA is required before withdraw': 'athlete.withdrawNeedSheba',
+    'SHEBA pending admin approval': 'athlete.shebaPendingApproval',
     'Invalid SHEBA': 'athlete.shebaInvalid',
     'image must be a valid URL': 'owner.settingsPage.errors.imageInvalid',
     'nameFa is required': 'owner.settingsPage.errors.nameFaRequired',

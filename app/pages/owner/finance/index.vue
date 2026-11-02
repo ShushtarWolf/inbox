@@ -89,8 +89,19 @@ type OwnerSettlementLedgerEntry = {
   clawedBackAt?: string | Date | null
 }
 
+type ShebaRequestPayload = {
+  id: string
+  proposedSheba: string | null
+  previousSheba: string | null
+  status: string
+  adminNote?: string | null
+}
+
 type OwnerSettlementResponse = {
   sheba?: string | null
+  shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
+  pendingShebaRequest?: ShebaRequestPayload | null
+  lastShebaRejection?: { adminNote?: string | null; reviewedAt?: string | null } | null
   commissionBps?: number
   balance?: number
   withdrawableBalance?: number
@@ -202,8 +213,27 @@ watch(showPayoutsSection, (show) => {
 }, { immediate: true })
 
 watch(settlement, (value) => {
-  if (value?.sheba) shebaInput.value = value.sheba
+  if (value?.pendingShebaRequest?.proposedSheba) {
+    shebaInput.value = value.pendingShebaRequest.proposedSheba
+  } else if (value?.pendingShebaRequest?.proposedSheba === null && value.pendingShebaRequest) {
+    shebaInput.value = ''
+  } else if (value?.sheba) {
+    shebaInput.value = value.sheba
+  }
 }, { immediate: true })
+
+const shebaStatusMessage = computed(() => {
+  const status = settlement.value?.shebaUiStatus
+  if (status === 'pending') return t('owner.financePage.shebaPendingApproval')
+  if (status === 'rejected') {
+    const note = settlement.value?.lastShebaRejection?.adminNote
+    return note
+      ? t('owner.financePage.shebaRejectedWithNote', { note })
+      : t('owner.financePage.shebaRejected')
+  }
+  if (status === 'active') return t('owner.financePage.shebaActive')
+  return ''
+})
 
 const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
 
@@ -243,7 +273,7 @@ async function saveSheba() {
       method: 'PATCH',
       body: { sheba: shebaInput.value.trim() || null },
     })
-    payoutSuccess.value = t('owner.financePage.shebaSaved')
+    payoutSuccess.value = t('owner.financePage.shebaSubmittedForApproval')
     await refreshSettlement()
   } catch (error: unknown) {
     payoutError.value = fetchErrorMessage(error, t('owner.financePage.shebaInvalid'))
@@ -862,6 +892,14 @@ function showUnpaidList() {
 
         <label class="block text-sm text-start">
           <span class="mb-1 block font-bold text-brand-navy">{{ t('owner.financePage.shebaLabel') }}</span>
+          <p v-if="shebaStatusMessage" class="mb-2 text-xs text-brand-gray-600">{{ shebaStatusMessage }}</p>
+          <p
+            v-if="settlement?.pendingShebaRequest?.proposedSheba"
+            class="mb-2 text-xs text-brand-primary"
+            dir="ltr"
+          >
+            {{ t('owner.financePage.shebaPendingProposed', { sheba: settlement.pendingShebaRequest.proposedSheba }) }}
+          </p>
           <AppShebaInput
             v-model="shebaInput"
             :placeholder="t('owner.financePage.shebaPlaceholder')"

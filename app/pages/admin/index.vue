@@ -25,6 +25,7 @@ type Overview = {
   applications: { pending: number }
   tickets?: { open: number }
   withdrawals?: { pending: number }
+  shebaChanges?: { pending: number }
 }
 
 const data = ref<Overview | null>(null)
@@ -145,6 +146,13 @@ watch(secret, (value) => {
             <div class="admin-akv">
               <NuxtLink :to="localePath('/admin/withdrawals')" class="admin-alink">{{ t('admin.metrics.pendingWithdrawals') }}</NuxtLink>
               <b dir="ltr">{{ formatNumber(data.withdrawals?.pending || 0) }}</b>
+            </div>
+            <div class="admin-akv">
+              <NuxtLink :to="localePath('/admin/sheba-requests')" class="admin-alink">{{ t('admin.metrics.pendingShebaChanges') }}</NuxtLink>
+              <b dir="ltr">{{ formatNumber(data.shebaChanges?.pending || 0) }}</b>
+            </div>
+            <div class="admin-akv">
+              <NuxtLink :to="localePath('/admin/accounting')" class="admin-alink">{{ t('admin.nav.accounting') }}</NuxtLink>
             </div>
             <div class="admin-akv">
               <NuxtLink :to="localePath('/admin/applications')" class="admin-alink">{{ t('admin.metrics.pendingApplications') }}</NuxtLink>

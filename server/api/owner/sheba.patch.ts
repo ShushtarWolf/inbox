@@ -1,4 +1,4 @@
-import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
+import { serializeShebaRequest, submitClubShebaChange } from '../../utils/shebaChange'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:payouts')
@@ -8,25 +8,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'sheba is required' })
   }
 
-  const raw = body.sheba?.trim() || ''
-  if (!raw) {
-    const updated = await prisma.club.update({
-      where: { id: club.id },
-      data: { sheba: null },
-      select: { id: true, sheba: true },
-    })
-    return updated
+  const result = await submitClubShebaChange(club.id, body.sheba)
+  return {
+    id: club.id,
+    sheba: result.sheba,
+    pendingShebaRequest: result.pendingRequest ? serializeShebaRequest(result.pendingRequest) : null,
   }
-
-  const sheba = normalizeSheba(raw)
-  if (!sheba || !isValidSheba(sheba)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid SHEBA' })
-  }
-
-  const updated = await prisma.club.update({
-    where: { id: club.id },
-    data: { sheba },
-    select: { id: true, sheba: true },
-  })
-  return updated
 })

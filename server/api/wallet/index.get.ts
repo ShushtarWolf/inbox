@@ -4,6 +4,8 @@ import {
   getWalletWithdrawableBalance,
   unlockEligibleWalletSettlements,
 } from '../../utils/wallet'
+import { getUserShebaState, serializeShebaRequest } from '../../utils/shebaChange'
+import { resolveShebaRequestUiStatus } from '#shared/shebaApproval.ts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -15,17 +17,14 @@ export default defineEventHandler(async (event) => {
     prisma.coach.findFirst({ where: { userId: user.id }, select: { id: true } }),
   ])
   const canBankWithdraw = Boolean(coach)
-  const [wallet, dbUser, pendingWithdraws, recentWithdraws] = await Promise.all([
+  const [wallet, shebaState, pendingWithdraws, recentWithdraws] = await Promise.all([
     prisma.wallet.findUnique({
       where: { userId: user.id },
       include: {
         transactions: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     }),
-    prisma.user.findUnique({
-      where: { id: user.id },
-      select: { sheba: true },
-    }),
+    canBankWithdraw ? getUserShebaState(user.id) : Promise.resolve({ sheba: null, pendingRequest: null, lastRejected: null }),
     canBankWithdraw
       ? prisma.userWithdrawRequest.findMany({
           where: { userId: user.id, status: 'PENDING' },
@@ -42,6 +41,14 @@ export default defineEventHandler(async (event) => {
       : Promise.resolve([]),
   ])
 
+  const shebaUiStatus = canBankWithdraw
+    ? resolveShebaRequestUiStatus({
+        approvedSheba: shebaState.sheba,
+        pendingRequest: shebaState.pendingRequest,
+        lastRejected: shebaState.lastRejected,
+      })
+    : 'none'
+
   return {
     balance: balances.availableBalance,
     totalBalance: balances.balance,
@@ -50,7 +57,17 @@ export default defineEventHandler(async (event) => {
     withdrawableBalance: canBankWithdraw ? withdrawableBalance : 0,
     pendingClassBalance,
     canBankWithdraw,
-    sheba: canBankWithdraw ? (dbUser?.sheba || null) : null,
+    sheba: canBankWithdraw ? (shebaState.sheba || null) : null,
+    shebaUiStatus,
+    pendingShebaRequest: canBankWithdraw && shebaState.pendingRequest
+      ? serializeShebaRequest(shebaState.pendingRequest)
+      : null,
+    lastShebaRejection: canBankWithdraw && shebaState.lastRejected
+      ? {
+          adminNote: shebaState.lastRejected.adminNote,
+          reviewedAt: shebaState.lastRejected.reviewedAt?.toISOString() ?? null,
+        }
+      : null,
     transactions: wallet?.transactions || [],
     pendingWithdraws,
     withdraws: recentWithdraws,

@@ -84,7 +84,7 @@ async function saveSheba() {
       return
     }
     await $fetch('/api/wallet/sheba', { method: 'PATCH', body: { sheba: raw || null } })
-    setFlash('success', t('athlete.shebaSaved'))
+    setFlash('success', t('athlete.shebaSubmittedForApproval'))
     await refresh()
   }
   catch (err: unknown) {

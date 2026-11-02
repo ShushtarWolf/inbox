@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
     ticketsOpen,
     withdrawalsPending,
     athleteWithdrawalsPending,
+    shebaChangesPending,
     manualRefundsOwed,
   ] = await Promise.all([
     prisma.club.count(),
@@ -74,6 +75,7 @@ export default defineEventHandler(async (event) => {
     prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
     prisma.withdrawRequest.count({ where: { status: 'PENDING' } }),
     prisma.userWithdrawRequest.count({ where: { status: 'PENDING' } }),
+    prisma.shebaChangeRequest.count({ where: { status: 'PENDING' } }),
     prisma.payment.count({
       where: { status: 'REFUNDED', metadataJson: { contains: MANUAL_REFUND_MARKER } },
     }),
@@ -123,6 +125,7 @@ export default defineEventHandler(async (event) => {
       clubPending: withdrawalsPending,
       athletePending: athleteWithdrawalsPending,
     },
+    shebaChanges: { pending: shebaChangesPending },
     /** Safe email ops — never includes SMTP_PASS. */
     email: {
       emailConfigured: email.emailConfigured,

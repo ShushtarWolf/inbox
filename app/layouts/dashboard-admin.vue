@@ -27,6 +27,8 @@ const nav = computed(() => [
   },
   { to: localePath('/admin/tickets'), label: t('admin.nav.tickets'), icon: 'support_agent' },
   { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals'), icon: 'account_balance' },
+  { to: localePath('/admin/sheba-requests'), label: t('admin.nav.shebaRequests'), icon: 'verified_user' },
+  { to: localePath('/admin/accounting'), label: t('admin.nav.accounting'), icon: 'payments' },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs'), icon: 'stadium' },
   { to: localePath('/admin/users'), label: t('admin.nav.users'), icon: 'group' },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings'), icon: 'event' },

@@ -167,6 +167,17 @@ enum WithdrawRequestStatus {
   REJECTED
 }
 
+enum ShebaChangeSubject {
+  CLUB
+  USER
+}
+
+enum ShebaChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SupportTicketStatus {
   OPEN
   IN_PROGRESS
@@ -255,6 +266,7 @@ model User {
   bugReports      BugReport[]
   supportTickets  SupportTicket[]
   withdrawRequests UserWithdrawRequest[]
+  shebaChangeRequests ShebaChangeRequest[]
   competitionEntries        CompetitionEntry[]
   competitionPartnerEntries CompetitionEntry[] @relation("CompetitionPartner")
   competitionPrizeAwards    CompetitionPrizeAward[]
@@ -532,6 +544,7 @@ model Club {
   discountMemberships DiscountMembership[]
   wallet            ClubWallet?
   withdrawRequests  WithdrawRequest[]
+  shebaChangeRequests ShebaChangeRequest[]
   settlementEntries SettlementLedgerEntry[]
   supportTickets    SupportTicket[]
   competitions      Competition[]
@@ -1403,6 +1416,27 @@ model WithdrawRequest {
 
   @@index([clubId, status, createdAt])
   @@index([status, createdAt])
+}
+
+/** Ops approval before a club/user SHEBA becomes active for payouts. */
+model ShebaChangeRequest {
+  id            String             @id @default(cuid())
+  subject       ShebaChangeSubject
+  proposedSheba String?
+  previousSheba String?
+  status        ShebaChangeStatus  @default(PENDING)
+  adminNote     String?
+  createdAt     DateTime           @default(now())
+  reviewedAt    DateTime?
+
+  clubId String?
+  club   Club?  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([clubId, status])
+  @@index([userId, status])
 }
 
 /** Bank receipt / transfer proof attached by ops to a cash-out request. */
