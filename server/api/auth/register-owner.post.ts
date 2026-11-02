@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   const addressFa = body.addressFa?.trim() || city
   const addressEn = body.addressEn?.trim() || addressFa
   const sportKey = normalizeOwnerSport(body.sport)
-  const courtCount = normalizeOwnerCourtCount(body.courtCount)
+  const courtCount = normalizeOwnerCourtCount(body.courtCount, sportKey)
   const setupHandoff = ownerSetupHandoff(sportKey, courtCount)
 
   if (!nameParts.name.trim() || !email || !isPasswordLongEnough(password) || !clubNameFa || !gender) {

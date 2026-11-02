@@ -409,6 +409,7 @@ async function registerWithPassword() {
         method: 'POST',
         body: {
           name: name.value.trim() || clubNameFa.value.trim(),
+          nameFamily: nameFamily.value.trim() || undefined,
           phone: phone.value || undefined,
           email: email.value || undefined,
           password: password.value,
@@ -519,7 +520,7 @@ async function requestOtp() {
         name: purpose.value === 'register'
           ? (role.value === 'CLUB_ADMIN' ? (name.value.trim() || clubNameFa.value.trim()) : name.value)
           : undefined,
-        nameFamily: purpose.value === 'register' && role.value !== 'CLUB_ADMIN'
+        nameFamily: purpose.value === 'register'
           ? nameFamily.value.trim() || undefined
           : undefined,
         gender: purpose.value === 'register' ? gender.value || undefined : undefined,
@@ -853,13 +854,6 @@ onMounted(() => {
               <input id="auth-otp-address" v-model="addressFa" class="neo-input bg-white/95" />
             </AppFormField>
             <div class="grid grid-cols-2 gap-2">
-              <AppFormField field-id="auth-otp-courts" :label="t('auth.courtCount')">
-                <select id="auth-otp-courts" v-model.number="courtCount" class="neo-select bg-white/95">
-                  <option v-for="opt in courtCountOptions" :key="opt.value" :value="opt.value">
-                    {{ t(opt.labelKey) }}
-                  </option>
-                </select>
-              </AppFormField>
               <AppFormField field-id="auth-otp-sport" class="order-first" :label="t('auth.sport')">
                 <select id="auth-otp-sport" v-model="sport" class="neo-select bg-white/95">
                   <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
@@ -1070,13 +1064,6 @@ onMounted(() => {
               />
             </AppFormField>
             <div class="grid grid-cols-2 gap-2">
-              <AppFormField field-id="auth-court-count" :label="t('auth.courtCount')">
-                <select id="auth-court-count" v-model.number="courtCount" class="neo-select bg-white/95">
-                  <option v-for="opt in courtCountOptions" :key="opt.value" :value="opt.value">
-                    {{ t(opt.labelKey) }}
-                  </option>
-                </select>
-              </AppFormField>
               <AppFormField field-id="auth-sport" :label="t('auth.sport')">
                 <select id="auth-sport" v-model="sport" class="neo-select bg-white/95">
                   <option v-for="opt in sportOptions" :key="opt.value" :value="opt.value">
@@ -1108,9 +1095,6 @@ onMounted(() => {
                 @change="onLicenseFile"
               >
             </div>
-            <p v-if="sport === 'both' && courtCount < 2" class="text-start text-[10px] text-brand-gray-500">
-              {{ t('auth.sportBothHandoff') }}
-            </p>
             <AppFormField field-id="auth-password" :label="t('auth.password')">
               <input
                 id="auth-password"
