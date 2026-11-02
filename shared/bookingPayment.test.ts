@@ -10,7 +10,9 @@ import {
   isPaymentPayableOnline,
   isPaymentRefundable,
   isUnpaidPaymentStatus,
+  isAccountingPaymentBucket,
   isWalletPayableStatus,
+  paymentRowAccountingBucketWhere,
   paymentRowChannelWhere,
   resolveParentPaymentMethod,
   resolvePaymentChannel,
@@ -218,5 +220,17 @@ describe('resolvePaymentChannel', () => {
     expect(paymentRowChannelWhere('IPG')).toEqual({ method: 'IPG' })
     expect(paymentRowChannelWhere('ON_SITE')).toEqual({ method: 'CASH' })
     expect(bookingPaymentChannelWhere('PAID')).toBeNull()
+  })
+
+  it('builds accounting bucket where aligned with admin aggregates', () => {
+    expect(paymentRowAccountingBucketWhere('IPG')).toEqual({ method: 'IPG' })
+    expect(paymentRowAccountingBucketWhere('ON_SITE')).toEqual({ method: 'CASH' })
+    expect(paymentRowAccountingBucketWhere('WALLET')).toEqual({ method: 'PAID' })
+    expect(paymentRowAccountingBucketWhere('OTHER')).toEqual({
+      method: { notIn: ['IPG', 'CASH', 'PAID'] },
+    })
+    expect(isAccountingPaymentBucket('IPG')).toBe(true)
+    expect(isAccountingPaymentBucket('WALLET')).toBe(true)
+    expect(isAccountingPaymentBucket('bogus')).toBe(false)
   })
 })

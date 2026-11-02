@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Admin unlock gate — secret-header console (NO CANVA phone frame). Clean FA ops UI. */
+import type { NavItem } from '#shared/nav.ts'
 import { PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 import { sanitizeAdminNext } from '#shared/adminNext.ts'
 
@@ -8,6 +9,15 @@ const localePath = useLocalePath()
 const route = useRoute()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
 const { pilotNoCoach } = usePilotFlags()
+
+/** Mobile bottom bar — five primary ops tabs (subset of full sidebar). */
+const ADMIN_PRIMARY_BOTTOM_PATHS = [
+  '/admin',
+  '/admin/tickets',
+  '/admin/withdrawals',
+  '/admin/sheba-requests',
+  '/admin/accounting',
+] as const
 
 useHead({
   title: () => t('admin.consoleTitle'),
@@ -18,7 +28,7 @@ const secretInput = ref('')
 const authError = ref('')
 const verifying = ref(false)
 
-const nav = computed(() => [
+const sideNav = computed((): NavItem[] => [
   { to: localePath('/admin'), label: t('admin.nav.overview'), icon: 'dashboard' },
   {
     to: localePath({ path: '/admin/calendar', query: { clubSlug: PILOT_CLUB_SLUG } }),
@@ -27,7 +37,8 @@ const nav = computed(() => [
   },
   { to: localePath('/admin/tickets'), label: t('admin.nav.tickets'), icon: 'support_agent' },
   { to: localePath('/admin/withdrawals'), label: t('admin.nav.withdrawals'), icon: 'account_balance' },
-  { to: localePath('/admin/sheba-requests'), label: t('admin.nav.shebaRequests'), icon: 'verified_user' },
+  /** shield_person — in material subset; verified_user ligature was missing from subset (broken tab). */
+  { to: localePath('/admin/sheba-requests'), label: t('admin.nav.shebaRequests'), icon: 'shield_person' },
   { to: localePath('/admin/accounting'), label: t('admin.nav.accounting'), icon: 'payments' },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs'), icon: 'stadium' },
   { to: localePath('/admin/users'), label: t('admin.nav.users'), icon: 'group' },
@@ -40,6 +51,14 @@ const nav = computed(() => [
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry'), icon: 'monitoring' },
   { to: localePath('/admin/provision'), label: t('admin.nav.provision'), icon: 'person_add' },
 ])
+
+const bottomNav = computed((): NavItem[] => {
+  const primary = new Set(ADMIN_PRIMARY_BOTTOM_PATHS.map((path) => localePath(path)))
+  return sideNav.value.filter((item) => {
+    const itemPath = item.to.split('?')[0] ?? item.to
+    return primary.has(itemPath)
+  })
+})
 
 const gateMessage = computed(() => {
   if (authError.value) return authError.value
@@ -146,7 +165,8 @@ function lockAdmin() {
     v-else
     class="canva-admin-shell"
     :title="t('admin.consoleTitle')"
-    :items="nav"
+    :items="bottomNav"
+    :side-items="sideNav"
     :wide="true"
     :dark-nav="true"
     :hide-user="true"
