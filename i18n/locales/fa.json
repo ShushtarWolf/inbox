@@ -3014,6 +3014,8 @@
       "courtFacilities": "امکانات زمین",
       "useClubHours": "استفاده از ساعت پیش‌فرض باشگاه",
       "confirmDeleteCourt": "این زمین حذف شود؟",
+      "confirmDeleteCourtAction": "حذف",
+      "addClub": "افزودن باشگاه",
       "basePriceHint": "قیمت پایه برای ساعاتی که بازه زمانی تعریف نشده است.",
       "pricingTimeline": "قیمت‌گذاری زمانی",
       "pricingTimelineHint": "برای ساعات شلوغ یا آرام، قیمت جداگانه تعریف کنید.",

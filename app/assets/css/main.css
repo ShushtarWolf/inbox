@@ -1093,6 +1093,14 @@
     background: #2c2c2a;
     border-radius: var(--sz-canva-radius);
   }
+  .canva-settings-sticky-save {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-inline: -0.25rem;
+    padding: 0.75rem 0.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, #fff 75%, rgb(255 255 255 / 0));
+  }
   .canva-owner-secondary-cta {
     @apply w-full px-4 py-3 text-sm font-bold;
     border-radius: var(--sz-canva-radius);

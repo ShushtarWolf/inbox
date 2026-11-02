@@ -25,6 +25,7 @@ const {
 } = useImageUpload()
 const inputRef = ref<HTMLInputElement | null>(null)
 const activeSlot = ref<number | null>(null)
+const uploadingSlot = ref<number | null>(null)
 
 const slots = computed(() => {
   const list = [...(props.modelValue || [])]
@@ -54,7 +55,8 @@ async function onFileChange(event: Event) {
   target.value = ''
   activeSlot.value = null
   if (!file || index == null) return
-  const result = await upload(file)
+  uploadingSlot.value = index
+  const result = await upload(file).finally(() => { uploadingSlot.value = null })
   if (!result?.url) return
   const next = [...slots.value]
   next[index] = result.url
@@ -73,6 +75,7 @@ async function onFileChange(event: Event) {
         role="listitem"
         :aria-label="url ? t('upload.remove') : t('upload.addPhoto')"
         :disabled="uploading"
+        :aria-busy="uploadingSlot === index"
         @click="url ? clearSlot(index) : openSlot(index)"
       >
         <img v-if="url" :src="url" alt="" class="canva-photo-slot-media" />
@@ -80,10 +83,17 @@ async function onFileChange(event: Event) {
           <AppIcon name="image" size="md" class="text-brand-gray-400" />
           <span class="canva-photo-slot-plus" aria-hidden="true">+</span>
         </template>
+        <span
+          v-if="uploading && uploadingSlot === index"
+          class="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/80 text-[11px] font-bold text-brand-navy"
+        >
+          <AppVenusSpinner size="sm" compact />
+          {{ t('upload.uploading') }}
+        </span>
       </button>
     </div>
     <p class="canva-photo-slots-hint">{{ hint || t('owner.settingsPage.minUploadHint') }}</p>
-    <p v-if="uploading" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
+    <p v-if="uploading" class="text-xs text-brand-gray-600" role="status" aria-live="polite">{{ t('upload.uploading') }}</p>
     <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
     <input
       ref="inputRef"
