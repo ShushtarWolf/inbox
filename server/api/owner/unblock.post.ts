@@ -1,40 +1,33 @@
-import { cancelCourtBooking } from '../../utils/cancellations'
+import { clampWeeklyWeeks } from '#shared/weeklyOccurrences.ts'
+import { applyUnblockSlotIds, applyWeeklyUnblock, weeklyAnchorsFromSlotIds } from '../../utils/blockWeekly'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string
     slotIds?: string[]
+    weeks?: number
+    acceptSkips?: boolean
   }>(event)
 
-  const ids = body.slotIds?.length ? body.slotIds : body.slotId ? [body.slotId] : []
+  const weeks = body.weeks != null ? clampWeeklyWeeks(body.weeks) : 1
+  const ids = body.slotIds?.length
+    ? body.slotIds
+    : body.slotId
+      ? [body.slotId]
+      : []
   if (!ids.length) throw createError({ statusCode: 400, statusMessage: 'slotId required' })
 
-  for (const slotId of ids) {
-    const slot = await prisma.slot.findFirst({
-      where: { id: slotId, court: { clubId: club.id }, displayStatus: 'BLOCKED' },
-      include: { booking: { include: { payment: true } } },
+  if (weeks > 1) {
+    const anchors = await weeklyAnchorsFromSlotIds(club.id, ids)
+    if (!anchors.length) throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
+    return await applyWeeklyUnblock({
+      clubId: club.id,
+      anchors,
+      weeks,
+      acceptSkips: Boolean(body.acceptSkips),
     })
-    if (!slot) throw createError({ statusCode: 404, statusMessage: 'Blocked slot not found' })
-
-    if (slot.booking) {
-      if (slot.booking.source !== 'CLUB') {
-        throw createError({ statusCode: 409, statusMessage: 'Cannot unblock non-club booking' })
-      }
-      await cancelCourtBooking({
-        bookingId: slot.booking.id,
-        slotId: slot.id,
-        reason: 'owner-unblock',
-        paymentId: slot.booking.payment?.id,
-        userId: slot.booking.userId,
-      })
-    } else {
-      await prisma.slot.update({
-        where: { id: slot.id },
-        data: { displayStatus: 'FREE' },
-      })
-    }
   }
 
-  return { ok: true, count: ids.length }
+  return await applyUnblockSlotIds({ clubId: club.id, slotIds: ids })
 })
