@@ -132,6 +132,14 @@ function submit() {
     count,
   })
 }
+
+const openHourOptions = Array.from({ length: 24 }, (_, i) => i)
+const closeHourOptions = Array.from({ length: 24 }, (_, i) => i + 1)
+watch(() => form.useClubHours, (useClub) => {
+  if (useClub) return
+  if (form.openHour == null) form.openHour = props.clubOpenHour ?? 8
+  if (form.closeHour == null) form.closeHour = props.clubCloseHour ?? 22
+})
 </script>
 
 <template>
@@ -198,11 +206,15 @@ function submit() {
     <div v-if="!form.useClubHours" class="grid grid-cols-2 gap-2">
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.openHour') }}</span>
-        <AppNumericInput v-model="form.openHour" :min="0" :max="23" />
+        <select v-model.number="form.openHour" class="neo-select">
+          <option v-for="h in openHourOptions" :key="`o-${h}`" :value="h">{{ String(h).padStart(2, '0') }}:00</option>
+        </select>
       </label>
       <label class="block text-sm">
         <span class="mb-1 block font-bold">{{ t('owner.settingsPage.closeHour') }}</span>
-        <AppNumericInput v-model="form.closeHour" :min="1" :max="24" />
+        <select v-model.number="form.closeHour" class="neo-select">
+          <option v-for="h in closeHourOptions" :key="`c-${h}`" :value="h">{{ String(h).padStart(2, '0') }}:00</option>
+        </select>
       </label>
     </div>
 

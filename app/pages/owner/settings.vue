@@ -611,7 +611,15 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     </section>
     <h1 class="text-start text-2xl font-bold text-brand-navy max-[430px]:mt-1">{{ t('owner.settings') }}</h1>
     <!-- SoT owner-settings: no subtitle under h1 -->
-    <OwnerActiveClubBar class="mb-3" />
+    <OwnerActiveClubBar class="mb-2" />
+    <NuxtLink
+      v-if="isOwner"
+      :to="localePath('/register/owner')"
+      class="canva-owner-secondary-cta mb-3 flex items-center justify-center gap-2"
+    >
+      <span aria-hidden="true">+</span>
+      {{ t('owner.settingsPage.addClub') }}
+    </NuxtLink>
 
     <div class="mb-4 min-h-[2.75rem]">
       <RoleDashboardSwitcher current="CLUB_ADMIN" />
@@ -630,7 +638,10 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             @update:model-value="onClubImageChange"
           />
           <p class="text-xs text-brand-gray-600">{{ t('owner.settingsPage.clubLogoHint') }}</p>
-          <p v-if="savingImage" class="text-xs text-brand-gray-600">{{ t('upload.uploading') }}</p>
+          <p v-if="savingImage" class="flex items-center gap-2 text-xs font-bold text-brand-navy" role="status" aria-live="polite">
+            <AppVenusSpinner size="sm" compact />
+            {{ t('upload.uploading') }}
+          </p>
           <p v-if="imageError" class="text-sm text-red-600" role="alert">{{ imageError }}</p>
           <div class="grid grid-cols-2 gap-2">
             <label class="block text-sm">
@@ -876,10 +887,6 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
             </div>
           </div>
 
-          <label class="canva-settings-check">
-            <input v-model="form.waitlistEnabled" type="checkbox" class="canva-settings-checkbox">
-            <span class="font-bold">{{ t('owner.settingsPage.waitlist') }}</span>
-          </label>
         </div>
 
         <!-- عکس مجموعه -->
@@ -1028,7 +1035,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
           </ul>
         </div>
 
-        <div class="canva-settings-span">
+        <div class="canva-settings-span canva-settings-sticky-save">
           <p class="mb-2 text-xs text-brand-gray-600">{{ t('owner.settingsPage.saveChangesHint') }}</p>
           <p v-if="saveError" class="mb-2 text-sm text-red-600">{{ saveError }}</p>
           <p v-if="saveSuccess" class="mb-2 text-sm text-green-700">{{ t('common.saved') }}</p>
@@ -1066,8 +1073,8 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
       :open="Boolean(deleteCourtId)"
       :title="t('owner.settingsPage.confirmDeleteCourt')"
       :body="t('owner.settingsPage.confirmDeleteCourt')"
-      :confirm-label="t('booking.confirmYes')"
-      :dismiss-label="t('booking.confirmNo')"
+      :confirm-label="t('owner.settingsPage.confirmDeleteCourtAction')"
+      :dismiss-label="t('common.cancel')"
       :pending="deletePending"
       danger
       @confirm="confirmDeleteCourt"

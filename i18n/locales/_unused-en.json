@@ -1559,6 +1559,8 @@
       "courtFacilities": "Court facilities",
       "useClubHours": "Use club default hours",
       "confirmDeleteCourt": "Delete this court?",
+      "confirmDeleteCourtAction": "Delete",
+      "addClub": "Add club",
       "basePriceHint": "Default price for hours without a custom time band.",
       "pricingTimeline": "Timeline pricing",
       "pricingTimelineHint": "Set different prices for peak or quiet hours.",
