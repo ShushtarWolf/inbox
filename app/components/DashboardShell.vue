@@ -220,14 +220,9 @@ function goBack() {
                   {{ t('common.menu') }}
                 </span>
               </button>
-              <button type="button" class="btn-ghost px-3 py-2 text-xs" @click="goBack">
-                <span class="inline-flex items-center gap-1.5">
-                  <AppIcon name="arrow_back" size="sm" />
-                  {{ t('common.back') }}
-                </span>
-              </button>
             </div>
             <p class="min-w-0 truncate font-display text-base font-bold">{{ title }}</p>
+            <AppBackButton @click="goBack" />
             <div class="flex min-w-0 items-center gap-2">
               <NuxtLink
                 v-if="canSwitchRole"
@@ -306,17 +301,10 @@ function goBack() {
         <div v-else class="hidden border-b border-brand-gray-200 bg-brand-cream px-6 py-4 min-[431px]:flex min-[431px]:items-center min-[431px]:justify-between">
           <div class="flex min-w-0 items-center gap-3">
             <InboxBrandLockup home-link height-class="h-7" />
-            <button
+            <AppBackButton
               v-if="!(useAccountDrawer && isDashboardRoot)"
-              type="button"
-              class="canva-home-login canva-home-login-soft px-3 py-2 text-xs"
               @click="goBack"
-            >
-              <span class="inline-flex items-center gap-1.5">
-                <AppIcon name="arrow_back" size="sm" />
-                {{ t('common.back') }}
-              </span>
-            </button>
+            />
           </div>
           <div class="flex items-center gap-2">
             <NuxtLink

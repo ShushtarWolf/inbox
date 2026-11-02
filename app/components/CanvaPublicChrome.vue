@@ -49,15 +49,8 @@ onMounted(() => {
   <!-- Phone Canva chrome only (≤430). ≥431 uses AppTopBar — one login control max. -->
   <header class="canva-home-chrome hidden max-[430px]:flex">
     <div class="flex min-w-0 items-center gap-2">
-      <NuxtLink
-        v-if="backTo"
-        :to="backHref"
-        class="inline-flex shrink-0 text-brand-navy"
-        :aria-label="t('common.back')"
-      >
-        <AppIcon name="arrow_forward" size="sm" />
-      </NuxtLink>
       <InboxBrandLockup home-link height-class="h-7" />
+      <AppBackButton v-if="backTo" :to="backHref" class="ms-2" />
     </div>
     <button
       v-if="!user"
