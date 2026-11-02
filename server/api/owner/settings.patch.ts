@@ -1,6 +1,6 @@
 import { clampBookingHorizonDays } from '#shared/bookingHorizon.ts'
 import { parseClubImageInput } from '#shared/clubImageUrl.ts'
-import { isValidSheba, normalizeSheba } from '#shared/settlement.ts'
+import { submitClubShebaChange } from '../../utils/shebaChange'
 import { parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 
 export default defineEventHandler(async (event) => {
@@ -105,17 +105,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'openHour must be before closeHour' })
   }
 
+  let shebaSideEffect: Awaited<ReturnType<typeof submitClubShebaChange>> | null = null
   if (body.sheba !== undefined) {
-    const raw = body.sheba?.trim() || ''
-    if (!raw) {
-      data.sheba = null
-    } else {
-      const sheba = normalizeSheba(raw)
-      if (!sheba || !isValidSheba(sheba)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid SHEBA' })
-      }
-      data.sheba = sheba
-    }
+    shebaSideEffect = await submitClubShebaChange(club.id, body.sheba)
   }
 
   const updated = await prisma.club.update({
@@ -148,6 +140,6 @@ export default defineEventHandler(async (event) => {
     rescheduleWindowHours: updated.rescheduleWindowHours,
     bookingHorizonDays: updated.bookingHorizonDays,
     waitlistEnabled: updated.waitlistEnabled,
-    sheba: updated.sheba,
+    sheba: shebaSideEffect?.sheba ?? updated.sheba,
   }
 })

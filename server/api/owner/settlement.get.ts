@@ -1,10 +1,12 @@
 import { getClubWithdrawableBalance } from '../../utils/settlement'
 import { resolvePlatformCommissionBps } from '#shared/settlement.ts'
+import { getClubShebaState, serializeShebaRequest } from '../../utils/shebaChange'
+import { resolveShebaRequestUiStatus } from '#shared/shebaApproval.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:payouts')
 
-  const [walletBalances, recentCredits, pendingWithdraws, recentWithdraws] = await Promise.all([
+  const [walletBalances, recentCredits, pendingWithdraws, recentWithdraws, shebaState] = await Promise.all([
     getClubWithdrawableBalance(club.id),
     prisma.settlementLedgerEntry.findMany({
       where: { clubId: club.id },
@@ -20,10 +22,25 @@ export default defineEventHandler(async (event) => {
       orderBy: { createdAt: 'desc' },
       take: 20,
     }),
+    getClubShebaState(club.id),
   ])
 
+  const shebaUiStatus = resolveShebaRequestUiStatus({
+    approvedSheba: shebaState.sheba,
+    pendingRequest: shebaState.pendingRequest,
+    lastRejected: shebaState.lastRejected,
+  })
+
   return {
-    sheba: club.sheba,
+    sheba: shebaState.sheba,
+    shebaUiStatus,
+    pendingShebaRequest: shebaState.pendingRequest ? serializeShebaRequest(shebaState.pendingRequest) : null,
+    lastShebaRejection: shebaState.lastRejected
+      ? {
+          adminNote: shebaState.lastRejected.adminNote,
+          reviewedAt: shebaState.lastRejected.reviewedAt?.toISOString() ?? null,
+        }
+      : null,
     balance: walletBalances.balance,
     availableBalance: walletBalances.availableBalance,
     lockedBalance: walletBalances.lockedBalance,

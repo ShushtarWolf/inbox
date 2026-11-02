@@ -19,6 +19,9 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   pendingClassBalance?: number
   canBankWithdraw?: boolean
   sheba?: string | null
+  shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
+  pendingShebaRequest?: { proposedSheba: string | null; adminNote?: string | null } | null
+  lastShebaRejection?: { adminNote?: string | null } | null
   pendingWithdraws?: Array<{ id: string; amount: number }>
   transactions?: Array<{
     id: string
@@ -42,8 +45,25 @@ const payoutBusy = ref(false)
 const presets = WALLET_TOPUP_PRESETS_IRR
 
 watch(data, (value) => {
-  if (value?.sheba) shebaInput.value = value.sheba
+  if (value?.pendingShebaRequest?.proposedSheba) {
+    shebaInput.value = value.pendingShebaRequest.proposedSheba
+  } else if (value?.pendingShebaRequest?.proposedSheba === null && value.pendingShebaRequest) {
+    shebaInput.value = ''
+  } else if (value?.sheba) {
+    shebaInput.value = value.sheba
+  }
 }, { immediate: true })
+
+const shebaStatusMessage = computed(() => {
+  const status = data.value?.shebaUiStatus
+  if (status === 'pending') return t('athlete.shebaPendingApproval')
+  if (status === 'rejected') {
+    const note = data.value?.lastShebaRejection?.adminNote
+    return note ? t('athlete.shebaRejectedWithNote', { note }) : t('athlete.shebaRejected')
+  }
+  if (status === 'active') return t('athlete.shebaActive')
+  return ''
+})
 
 const topUpAmount = computed(() => {
   if (selectedPreset.value != null) return selectedPreset.value
@@ -131,7 +151,7 @@ async function saveSheba() {
       body: { sheba: raw || null },
     })
     flashTone.value = 'success'
-    flash.value = t('athlete.shebaSaved')
+    flash.value = t('athlete.shebaSubmittedForApproval')
     await refresh()
   } catch (err: unknown) {
     flashTone.value = 'error'
@@ -289,6 +309,7 @@ watch(
       <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.withdrawHint') }}</p>
+        <p v-if="shebaStatusMessage" class="text-xs text-brand-gray-600">{{ shebaStatusMessage }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">
           <AppShebaInput
             id="wallet-sheba"

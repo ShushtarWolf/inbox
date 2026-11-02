@@ -12,6 +12,7 @@ function err(statusMessage: string) {
 describe('fetchErrorMessage settings PATCH', () => {
   it('maps club settings failures to Farsi keys instead of a generic fallback', () => {
     expect(fetchErrorMessage(err('Invalid SHEBA'), 'مشکلی پیش آمد', t)).toBe('i18n:athlete.shebaInvalid')
+    expect(fetchErrorMessage(err('SHEBA pending admin approval'), 'مشکلی پیش آمد', t)).toBe('i18n:athlete.shebaPendingApproval')
     expect(fetchErrorMessage(err('image must be a valid URL'), 'مشکلی پیش آمد', t))
       .toBe('i18n:owner.settingsPage.errors.imageInvalid')
     expect(fetchErrorMessage(err('nameFa is required'), 'مشکلی پیش آمد', t))
