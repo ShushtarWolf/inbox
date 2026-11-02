@@ -10,15 +10,6 @@ const route = useRoute()
 const { secret, secretRejected, setSecret, lockSecret, adminFetch } = useAdminSecret()
 const { pilotNoCoach } = usePilotFlags()
 
-/** Mobile bottom bar — five primary ops tabs (subset of full sidebar). */
-const ADMIN_PRIMARY_BOTTOM_PATHS = [
-  '/admin',
-  '/admin/tickets',
-  '/admin/withdrawals',
-  '/admin/sheba-requests',
-  '/admin/accounting',
-] as const
-
 useHead({
   title: () => t('admin.consoleTitle'),
   meta: [{ name: 'robots', content: 'noindex, nofollow' }],
@@ -28,6 +19,7 @@ const secretInput = ref('')
 const authError = ref('')
 const verifying = ref(false)
 
+/** Same list drives desktop sidebar and mobile bottom bar (full ops set; >5 tabs → scroll). */
 const sideNav = computed((): NavItem[] => [
   { to: localePath('/admin'), label: t('admin.nav.overview'), icon: 'dashboard' },
   {
@@ -51,15 +43,6 @@ const sideNav = computed((): NavItem[] => [
   { to: localePath('/admin/sentry'), label: t('admin.nav.sentry'), icon: 'monitoring' },
   { to: localePath('/admin/provision'), label: t('admin.nav.provision'), icon: 'person_add' },
 ])
-
-const bottomNav = computed((): NavItem[] => {
-  const byPath = new Map(
-    sideNav.value.map((item) => [item.to.split('?')[0] ?? item.to, item]),
-  )
-  return ADMIN_PRIMARY_BOTTOM_PATHS.map((path) => byPath.get(localePath(path))).filter(
-    (item): item is NavItem => Boolean(item),
-  )
-})
 
 const gateMessage = computed(() => {
   if (authError.value) return authError.value
@@ -166,7 +149,7 @@ function lockAdmin() {
     v-else
     class="canva-admin-shell"
     :title="t('admin.consoleTitle')"
-    :items="bottomNav"
+    :items="sideNav"
     :side-items="sideNav"
     :wide="true"
     :dark-nav="true"
