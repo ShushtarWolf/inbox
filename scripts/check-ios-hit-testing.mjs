@@ -168,6 +168,17 @@ if (!accountDrawer.includes('canva-account-drawer-overlay') || !accountDrawer.in
   }
 }
 
+const bottomNav = readFileSync('app/components/AppBottomNav.vue', 'utf8')
+if (!bottomNav.includes('scrollLayout') || !bottomNav.includes('touch-pan-x')) {
+  errors.push('AppBottomNav scroll mode must enable touch-pan-x for iOS horizontal pan')
+}
+if (!bottomNav.includes('min-w-[5.25rem]') || bottomNav.includes('max-w-[5.5rem]')) {
+  errors.push('AppBottomNav scroll tabs need min-w floor without max-w cap (five FA tabs must overflow ~390px)')
+}
+if (!bottomNav.includes('inline-flex w-max')) {
+  errors.push('AppBottomNav scroll row must use inline-flex w-max so content width exceeds the viewport')
+}
+
 const dashboardShell = readFileSync('app/components/DashboardShell.vue', 'utf8')
 if (!dashboardShell.includes('data-dashboard-nav-overlay')) {
   errors.push('DashboardShell mobile nav backdrop must use data-dashboard-nav-overlay')
