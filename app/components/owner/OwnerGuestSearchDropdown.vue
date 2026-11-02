@@ -20,8 +20,7 @@ const emit = defineEmits<{
   <div
     v-if="open && (suggestions.length || pending)"
     :id="listId"
-    class="absolute inset-x-0 top-full z-20 mt-1 max-h-48 overflow-y-auto border border-brand-gray-200 bg-white shadow-sm"
-    style="border-radius: 2px;"
+    class="owner-guest-search-dropdown absolute start-0 top-full z-20 mt-1 max-h-56 overflow-y-auto border border-brand-gray-200 bg-white shadow-md"
     role="listbox"
   >
     <div v-if="pending && !suggestions.length" class="flex justify-center px-3 py-3">
@@ -31,13 +30,22 @@ const emit = defineEmits<{
       v-for="(guest, idx) in suggestions"
       :key="`${guest.mobile}-${guest.name}-${idx}`"
       type="button"
-      class="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-brand-primary-soft"
+      class="flex w-full flex-col items-stretch gap-0.5 border-b border-brand-gray-100 px-3 py-2.5 text-start last:border-b-0 hover:bg-brand-primary-soft"
       role="option"
       :aria-selected="idx === 0"
       @mousedown.prevent="emit('select', guest)"
     >
-      <span class="min-w-0 truncate font-bold text-brand-navy">{{ guest.name || '—' }}</span>
-      <bdi v-if="guest.mobile" dir="ltr" class="shrink-0 tabular-nums text-xs text-brand-gray-600">{{ formatPhone(guest.mobile) }}</bdi>
+      <span class="w-full text-sm font-bold leading-snug text-brand-navy">{{ guest.name || '—' }}</span>
+      <bdi v-if="guest.mobile" dir="ltr" class="w-full text-start text-xs tabular-nums text-brand-gray-600">{{ formatPhone(guest.mobile) }}</bdi>
     </button>
   </div>
 </template>
+
+<style scoped>
+.owner-guest-search-dropdown {
+  min-width: min(100%, 22rem);
+  width: max(100%, 18rem);
+  max-width: min(calc(100vw - 2rem), 26rem);
+  border-radius: 0;
+}
+</style>

@@ -11,11 +11,14 @@ const props = withDefaults(defineProps<{
   /** Selected-day fill. Default: charcoal for variant=owner (SoT .cal-card), green otherwise (SoT .cxcg booking). */
   selectedTone?: 'green' | 'charcoal'
   dayMarks?: Record<string, 'busy' | 'soft'>
+  /** HTML prototype square day cells (season reserve range calendar). */
+  squareCells?: boolean
 }>(), {
   mode: 'single',
   minDate: '',
   variant: 'default',
   dayMarks: () => ({}),
+  squareCells: false,
 })
 
 const emit = defineEmits<{
@@ -240,7 +243,14 @@ function jumpToRangeStart() {
 </script>
 
 <template>
-  <div class="jalali-calendar" :class="[variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default', (selectedTone ?? (variant === 'owner' ? 'charcoal' : 'green')) === 'charcoal' ? 'jalali-calendar-sel-charcoal' : '']">
+  <div
+    class="jalali-calendar"
+    :class="[
+      variant === 'owner' ? 'jalali-calendar-owner' : 'jalali-calendar-default',
+      (selectedTone ?? (variant === 'owner' ? 'charcoal' : 'green')) === 'charcoal' ? 'jalali-calendar-sel-charcoal' : '',
+      squareCells ? 'jalali-calendar-square-cells' : '',
+    ]"
+  >
     <!-- RTL UX: month on start; prev=→ / next=← (matches owner day nav + Canva frames). -->
     <div class="mb-3 flex items-center justify-between gap-2">
       <p class="jalali-calendar-month min-w-0 flex-1 truncate text-start text-sm font-bold">{{ monthLabel }}</p>
@@ -505,4 +515,11 @@ function jumpToRangeStart() {
   color: #2c2c2a; font-size: 12px; font-weight: 700; min-height: 2.5rem;
 }
 .jalali-calendar-range-jump { border-radius: 10px; }
+.jalali-calendar-square-cells .jalali-calendar-day,
+.jalali-calendar-square-cells.jalali-calendar-owner .jalali-calendar-day,
+.jalali-calendar-square-cells .jalali-calendar-nav,
+.jalali-calendar-square-cells .jalali-calendar-today-footer,
+.jalali-calendar-square-cells .jalali-calendar-range-jump {
+  border-radius: 0 !important;
+}
 </style>

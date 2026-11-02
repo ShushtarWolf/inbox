@@ -2180,6 +2180,10 @@
     "seasonTab": "رزرو فصلی",
     "seasonTabNew": "رزرو فصلی جدید",
     "seasonTabRepeat": "تکرار",
+    "seasonTabEdit": "ویرایش",
+    "seasonTabDelete": "حذف",
+    "seasonTabDeleteTitle": "حذف رزرو فصلی؟",
+    "seasonTabDeleteBody": "سانس‌های آینده این فصل لغو می‌شوند و ردیف فصل از لیست حذف می‌شود.",
     "seasonTabEmpty": "هنوز رزرو فصلی ثبت نشده است.",
     "seasonTabGuest": "مشتری",
     "seasonTabRange": "بازه",
@@ -2345,7 +2349,10 @@
     "selectionBar": {
       "title": "سانس‌های انتخاب‌شده",
       "clear": "پاک کردن انتخاب",
-      "multiSelect": "انتخاب چندتایی"
+      "multiSelect": "انتخاب چندتایی",
+      "bookedSelect": "انتخاب",
+      "bookedSelectDone": "پایان انتخاب",
+      "bookedSelectHint": "سانس‌های رزرو‌شده را برای مسدود کردن یکجا انتخاب کنید."
     },
     "slotActions": "عملیات سانس",
     "reserveFormTitle": "فرم رزرو",

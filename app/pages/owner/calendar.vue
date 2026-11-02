@@ -21,6 +21,7 @@ import {
   checkedUnpaidBookedSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
+  isMultiSelectBookedSlot,
   joinWithAnd,
   siblingBookedSlots,
   sortSlotsByTimeThenCourt,
@@ -179,6 +180,8 @@ const selectedSlotIds = ref<string[]>([])
 const bookedSiblingIds = ref<string[]>([])
 const selectionCourtId = ref<string | null>(null)
 const multiSelectMode = ref(false)
+/** Bottom-left toggle: multi-select booked hours on this day to block together. */
+const bookedSelectMode = ref(false)
 const showMenu = ref(false)
 const activePanel = ref<ActivePanel>(null)
 const cancelReason = ref('')
@@ -329,6 +332,7 @@ async function refreshCalendar() {
 useOwnerClubRefresh(refreshCalendar)
 
 watch(date, () => {
+  bookedSelectMode.value = false
   clearSelection()
   void refreshCalendar()
 })
@@ -616,11 +620,22 @@ const canBatchBlock = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => slot.displayStatus === 'FREE'),
 )
-const selectionHasUnavailableSlot = computed(() =>
-  selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE'),
+const canBatchBlockBooked = computed(() =>
+  selectedSlotsFull.value.length > 0
+    && selectedSlotsFull.value.every((slot) => isMultiSelectBookedSlot(slot)),
 )
+const selectionBarBookedBlock = computed(() =>
+  bookedSelectMode.value && canBatchBlockBooked.value,
+)
+const selectionHasUnavailableSlot = computed(() => {
+  if (bookedSelectMode.value) {
+    return selectedSlotsFull.value.some((slot) => !isMultiSelectBookedSlot(slot))
+  }
+  return selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE')
+})
 const canSelectionCancel = computed(() =>
-  selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot)),
+  !bookedSelectMode.value
+  && selectedSlotsFull.value.some((slot) => isCancellableBookedSlot(slot)),
 )
 
 watch(canBatchReserve, (ok) => {
@@ -769,6 +784,12 @@ function slotMatchesSessionFilter(slot?: OwnerCalendarSlot | null) {
 
 function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
   return Boolean(slot && slot.displayStatus === 'FREE' && slotIsInPast(slot))
+}
+
+function gridSlotShowsSelectCheck(slot: OwnerCalendarSlot | null | undefined) {
+  if (!slot) return false
+  if (slot.displayStatus === 'FREE') return true
+  return bookedSelectMode.value && isMultiSelectBookedSlot(slot)
 }
 
 function gridCellClasses(courtId: string, hour: string) {
@@ -1268,6 +1289,35 @@ function clearSelection() {
   actionError.value = ''
 }
 
+function exitBookedSelectMode() {
+  bookedSelectMode.value = false
+  multiSelectMode.value = false
+  clearSelection()
+}
+
+function clearFreeMultiSelection() {
+  clearSelection()
+  multiSelectMode.value = false
+}
+
+function toggleBookedSelectMode() {
+  if (bookedSelectMode.value) {
+    exitBookedSelectMode()
+    return
+  }
+  showMenu.value = false
+  multiSelectMode.value = false
+  clearSelection()
+  bookedSelectMode.value = true
+  actionError.value = ''
+}
+
+function toggleBookedGridSlot(slot: OwnerCalendarSlot) {
+  if (!isMultiSelectBookedSlot(slot)) return
+  bookedSiblingIds.value = []
+  selectedSlotIds.value = toggleId(selectedSlotIds.value, slot.id)
+}
+
 function isSlotSelected(slot: OwnerCalendarSlot) {
   return selectedSlotIds.value.includes(slot.id)
 }
@@ -1327,10 +1377,19 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openSlot(fullSlot)
     return
   }
+  if (isMultiSelectBookedSlot(fullSlot)) {
+    if (bookedSelectMode.value) {
+      toggleBookedGridSlot(fullSlot)
+      return
+    }
+    openBookedSlot(fullSlot)
+    return
+  }
   if (fullSlot.displayStatus !== 'FREE') {
     openBookedSlot(fullSlot)
     return
   }
+  if (bookedSelectMode.value) return
   // Whole FREE cell toggles multi-select; reserve/block open via the selection bar.
   bookedSiblingIds.value = []
   multiSelectMode.value = true
@@ -1362,6 +1421,13 @@ function openSelectionReserve() {
 }
 
 function openSelectionBlock() {
+  if (selectionBarBookedBlock.value) {
+    if (!selectedSlotsFull.value.length) return
+    openSlot(selectedSlotsFull.value[0], { keepSelection: true })
+    activePanel.value = 'block'
+    seedBlockSeasonForm()
+    return
+  }
   if (!canBatchBlock.value || !selectedSlotsFull.value.length) return
   openSlot(selectedSlotsFull.value[0], { keepSelection: true })
   activePanel.value = 'block'
@@ -2087,6 +2153,7 @@ async function finishSlotAction() {
   deskDiscount.value = null
   deskPercentInput.value = ''
   multiSelectMode.value = false
+  bookedSelectMode.value = false
   clearSelection()
   closeMenu()
   await refreshCalendar()
@@ -2099,6 +2166,7 @@ async function recoverAfterBatchError() {
   bookedSiblingIds.value = []
   selectionCourtId.value = null
   multiSelectMode.value = false
+  bookedSelectMode.value = false
 }
 
 function hasBookedDetailContext() {
@@ -2334,6 +2402,25 @@ function slotsForBlock() {
   if (selectedSlotsFull.value.length) return selectedSlotsFull.value
   if (selectedSlotFull.value) return [selectedSlotFull.value]
   return []
+}
+
+async function cancelBookingsBeforeBlock(slots: OwnerCalendarSlot[]) {
+  const targets = slots.filter((slot) => isMultiSelectBookedSlot(slot))
+  if (!targets.length) return
+  const range = bookingTimeRange(targets)
+  for (let i = 0; i < targets.length; i++) {
+    const slot = targets[i]!
+    await $fetch('/api/owner/cancel', {
+      method: 'POST',
+      body: {
+        slotId: slot.id,
+        reason: 'owner-block-replace',
+        skipNotify: i !== targets.length - 1,
+        notifyStartTime: range.startTime,
+        notifyEndTime: range.endTime,
+      },
+    })
+  }
 }
 
 function guestNamePayload() {
@@ -2838,6 +2925,7 @@ async function doBlock() {
     saving.value = true
     actionError.value = ''
     try {
+      await cancelBookingsBeforeBlock(targets)
       await $fetch('/api/owner/block-season', {
         method: 'POST',
         body: {
@@ -2891,6 +2979,7 @@ async function doBlock() {
   saving.value = true
   actionError.value = ''
   try {
+    await cancelBookingsBeforeBlock(targets)
     await $fetch('/api/owner/block', {
       method: 'POST',
       body: weeks > 1
@@ -3334,6 +3423,7 @@ function canCancelSlot() {
 
 function canBlockSlot() {
   if (batchMode.value) return canBatchBlock.value
+  if (selectionBarBookedBlock.value) return canBatchBlockBooked.value
   return selectedSlot.value?.displayStatus === 'FREE' || selectedSlot.value?.displayStatus === 'BLOCKED'
 }
 
@@ -3705,6 +3795,8 @@ const bookingTypeLegend = computed(() => {
 type SeasonListRow = {
   id: string
   guestName: string
+  guestFamily: string
+  guestLabel: string
   guestMobile: string
   startDate: string | null
   finishDate: string | null
@@ -3713,6 +3805,10 @@ type SeasonListRow = {
   comments: string | null
   createdAt: string
 }
+
+const seasonDeleteTarget = ref<SeasonListRow | null>(null)
+const seasonDeletePending = ref(false)
+const seasonDeleteError = ref('')
 
 const { data: seasonListData, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
   '/api/owner/seasons',
@@ -3725,14 +3821,53 @@ watch(calendarView, (view) => {
   if (view === 'season' && canShowSeasonReserve()) void refreshSeasonList()
 })
 
-function repeatSeasonBooking(row: SeasonListRow) {
+function seasonBookingQuery(row: SeasonListRow, mode: 'repeat' | 'edit'): Record<string, string> {
   const query: Record<string, string> = {}
+  if (mode === 'edit') query.edit = row.id
   if (row.startDate) query.start = row.startDate
   if (row.finishDate) query.finish = row.finishDate
   if (row.guestName) query.guestName = row.guestName
+  if (row.guestFamily) query.guestFamily = row.guestFamily
   if (row.guestMobile) query.guestMobile = row.guestMobile
   if (row.comments) query.comments = row.comments
-  void navigateTo({ path: localePath('/owner/reserve/season'), query })
+  return query
+}
+
+function repeatSeasonBooking(row: SeasonListRow) {
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: seasonBookingQuery(row, 'repeat') })
+}
+
+function editSeasonBooking(row: SeasonListRow) {
+  void navigateTo({ path: localePath('/owner/reserve/season'), query: seasonBookingQuery(row, 'edit') })
+}
+
+function openSeasonDelete(row: SeasonListRow) {
+  seasonDeleteError.value = ''
+  seasonDeleteTarget.value = row
+}
+
+function closeSeasonDelete() {
+  seasonDeleteTarget.value = null
+  seasonDeleteError.value = ''
+  seasonDeletePending.value = false
+}
+
+async function confirmSeasonDelete() {
+  const row = seasonDeleteTarget.value
+  if (!row || seasonDeletePending.value) return
+  seasonDeletePending.value = true
+  seasonDeleteError.value = ''
+  try {
+    await $fetch(`/api/owner/seasons/${row.id}`, { method: 'DELETE' })
+    closeSeasonDelete()
+    await refreshSeasonList()
+  }
+  catch (err) {
+    seasonDeleteError.value = fetchErrorMessage(err, t('common.error'))
+  }
+  finally {
+    seasonDeletePending.value = false
+  }
 }
 
 function openNewSeasonBooking() {
@@ -3852,7 +3987,7 @@ watch(pilotNoCoach, (off) => {
               class="border-b border-[rgba(44,44,42,.06)] last:border-0"
             >
               <td class="px-3 py-2.5">
-                <p class="font-bold text-brand-navy">{{ row.guestName || '—' }}</p>
+                <p class="font-bold text-brand-navy">{{ row.guestLabel || formatGuestDisplayName(row.guestName, row.guestFamily) || '—' }}</p>
                 <p v-if="row.guestMobile" class="mt-0.5 tabular-nums text-brand-gray-600" dir="ltr">
                   <bdi>{{ formatPhone(row.guestMobile) }}</bdi>
                 </p>
@@ -3862,9 +3997,17 @@ watch(pilotNoCoach, (off) => {
                 <span v-else>—</span>
               </td>
               <td class="px-3 py-2.5">
-                <button type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
-                  {{ t('owner.seasonTabRepeat') }}
-                </button>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="editSeasonBooking(row)">
+                    {{ t('owner.seasonTabEdit') }}
+                  </button>
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="repeatSeasonBooking(row)">
+                    {{ t('owner.seasonTabRepeat') }}
+                  </button>
+                  <button type="button" class="text-xs font-bold text-brand-primary underline" @click="openSeasonDelete(row)">
+                    {{ t('owner.seasonTabDelete') }}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -4012,7 +4155,7 @@ watch(pilotNoCoach, (off) => {
                   class="canva-cal-grid-cell"
                   :class="gridCellClasses(court.id, hour)"
                   :title="slotCellTitle(cellSlot(court.id, hour))"
-                  :aria-pressed="cellSlot(court.id, hour)?.displayStatus === 'FREE' ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
+                  :aria-pressed="gridSlotShowsSelectCheck(cellSlot(court.id, hour)) ? isSlotSelected(cellSlot(court.id, hour)!) : undefined"
                   :disabled="!cellSlot(court.id, hour)"
                   @pointerdown="cellSlot(court.id, hour) && onSlotPointerDown(cellSlot(court.id, hour)!)"
                   @pointerup="onSlotPointerEnd"
@@ -4031,7 +4174,7 @@ watch(pilotNoCoach, (off) => {
                     <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
-                      v-else-if="cellSlot(court.id, hour)?.displayStatus === 'FREE' && isSlotSelected(cellSlot(court.id, hour)!)"
+                      v-else-if="gridSlotShowsSelectCheck(cellSlot(court.id, hour)) && isSlotSelected(cellSlot(court.id, hour)!)"
                       class="canva-cal-grid-cell-label"
                     >{{ t('owner.slotSelected') }}</span>
                     <span
@@ -4046,7 +4189,7 @@ watch(pilotNoCoach, (off) => {
                     <span v-if="slotNoteLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-sub">{{ slotNoteLine(cellSlot(court.id, hour)) }}</span>
                   </span>
                   <span
-                    v-if="cellSlot(court.id, hour)?.displayStatus === 'FREE'"
+                    v-if="gridSlotShowsSelectCheck(cellSlot(court.id, hour))"
                     class="canva-cal-grid-check"
                     :class="isSlotSelected(cellSlot(court.id, hour)!) ? 'canva-cal-grid-check-on' : ''"
                     aria-hidden="true"
@@ -4054,6 +4197,16 @@ watch(pilotNoCoach, (off) => {
                 </button>
               </template>
             </div>
+            <button
+              v-if="calendarView === 'today'"
+              type="button"
+              class="canva-cal-booked-select-toggle"
+              :class="bookedSelectMode ? 'canva-cal-booked-select-toggle-on' : ''"
+              :aria-pressed="bookedSelectMode"
+              @click="toggleBookedSelectMode"
+            >
+              {{ bookedSelectMode ? t('owner.selectionBar.bookedSelectDone') : t('owner.selectionBar.bookedSelect') }}
+            </button>
           </div>
         </div>
         <aside class="canva-cal-side" :aria-label="t('owner.currentBooking')">
@@ -4118,7 +4271,16 @@ watch(pilotNoCoach, (off) => {
           </div>
           <div class="canva-selection-bar-actions">
             <button
-              v-if="canSelectionCancel"
+              v-if="selectionBarBookedBlock"
+              type="button"
+              class="canva-selection-bar-btn-primary"
+              :disabled="saving"
+              @click="openSelectionBlock"
+            >
+              {{ t('owner.block') }}
+            </button>
+            <button
+              v-else-if="canSelectionCancel"
               type="button"
               class="canva-selection-bar-btn-primary"
               :disabled="saving"
@@ -4127,7 +4289,7 @@ watch(pilotNoCoach, (off) => {
               {{ t('owner.cancelBooking') }}
             </button>
             <button
-              v-if="!canSelectionCancel"
+              v-else-if="!canSelectionCancel"
               type="button"
               class="canva-selection-bar-btn-primary"
               :aria-describedby="selectionHasUnavailableSlot || actionError ? 'owner-cal-selection-error' : undefined"
@@ -4136,7 +4298,7 @@ watch(pilotNoCoach, (off) => {
               {{ t('owner.reserve') }}
             </button>
             <button
-              v-if="!canSelectionCancel"
+              v-if="!selectionBarBookedBlock && !canSelectionCancel"
               type="button"
               class="canva-selection-bar-btn-secondary"
               :disabled="!canBatchBlock"
@@ -4144,7 +4306,11 @@ watch(pilotNoCoach, (off) => {
             >
               {{ t('owner.block') }}
             </button>
-            <button type="button" class="canva-selection-bar-btn-ghost" @click="clearSelection(); multiSelectMode = false">
+            <button
+              type="button"
+              class="canva-selection-bar-btn-ghost"
+              @click="bookedSelectMode ? exitBookedSelectMode() : clearFreeMultiSelection()"
+            >
               {{ t('owner.selectionBar.clear') }}
             </button>
           </div>
@@ -4153,6 +4319,36 @@ watch(pilotNoCoach, (off) => {
     </Teleport>
 
     <OwnerLegalFooter />
+
+    <AppModal
+      :open="Boolean(seasonDeleteTarget)"
+      patterned
+      close-icon
+      :title="t('owner.seasonTabDeleteTitle')"
+      max-width-class="max-w-md"
+      @close="closeSeasonDelete"
+    >
+      <p class="text-start text-sm leading-7 text-brand-navy">
+        {{ t('owner.seasonTabDeleteBody') }}
+      </p>
+      <p v-if="seasonDeleteTarget" class="mt-2 text-start text-sm font-bold text-brand-navy">
+        {{ seasonDeleteTarget.guestLabel || formatGuestDisplayName(seasonDeleteTarget.guestName, seasonDeleteTarget.guestFamily) }}
+      </p>
+      <p v-if="seasonDeleteError" class="venus-alert-error mt-3 text-start text-xs">{{ seasonDeleteError }}</p>
+      <div class="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+        <button
+          type="button"
+          class="canva-gate-btn-primary flex-1"
+          :disabled="seasonDeletePending"
+          @click="confirmSeasonDelete"
+        >
+          {{ seasonDeletePending ? t('common.loading') : t('owner.seasonTabDelete') }}
+        </button>
+        <button type="button" class="canva-gate-btn-secondary flex-1" :disabled="seasonDeletePending" @click="closeSeasonDelete">
+          {{ t('common.cancel') }}
+        </button>
+      </div>
+    </AppModal>
 
     <AppModal
       :open="showDatePicker"

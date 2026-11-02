@@ -3,6 +3,7 @@ import { IRAN_WEEKDAY_ORDER, isEndAfterStart, weekdayNameFromDate } from '#share
 import { buildHourlyOptions } from '#shared/courtFacilities.ts'
 import { jalaliMonthEndIso } from '#shared/jalali.ts'
 import { expandSeasonRules, type SeasonSessionRule } from '#shared/seasonSessions.ts'
+import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import { addDaysToIsoDate } from '#shared/localDate.ts'
@@ -70,6 +71,9 @@ const {
   guestName,
   guestFamily,
   guestMobile,
+  guestNameInput,
+  guestFamilyInput,
+  guestMobileInput,
 })
 const startDate = ref('')
 const finishDate = ref('')
@@ -324,10 +328,22 @@ function initFromQuery() {
   startDate.value = start
   finishDate.value = String(q.finish || '').trim() || jalaliMonthEndIso(start)
   const fromQuery = String(q.guestName || '').trim()
-  if (fromQuery) {
-    const parts = fromQuery.split(/\s+/).filter(Boolean)
-    guestName.value = parts[0] || ''
-    guestFamily.value = parts.slice(1).join(' ')
+  const familyQuery = String(q.guestFamily || '').trim()
+  if (familyQuery) {
+    guestFamily.value = familyQuery
+    guestName.value = fromQuery
+  }
+  else if (fromQuery) {
+    const pair = normalizeGuestNamePair(fromQuery, '')
+    if (pair.guestFamily) {
+      guestName.value = pair.guestName
+      guestFamily.value = pair.guestFamily
+    }
+    else {
+      const parts = fromQuery.split(/\s+/).filter(Boolean)
+      guestName.value = parts[0] || ''
+      guestFamily.value = parts.slice(1).join(' ')
+    }
   }
   guestMobile.value = String(q.guestMobile || '').trim()
   comments.value = String(q.comments || '').trim()
@@ -349,8 +365,47 @@ function initFromQuery() {
   }
 }
 
-onMounted(() => {
+async function loadSeasonForEdit(seasonId: string) {
+  const res = await $fetch<{
+    season: {
+      guestName: string
+      guestFamily: string
+      guestMobile: string
+      startDate: string | null
+      finishDate: string | null
+      comments: string | null
+      rules: SeasonSessionRule[]
+    }
+  }>(`/api/owner/seasons/${seasonId}`)
+  const season = res.season
+  guestName.value = season.guestName || ''
+  guestFamily.value = season.guestFamily || ''
+  guestMobile.value = season.guestMobile || ''
+  startDate.value = season.startDate || today()
+  finishDate.value = season.finishDate || jalaliMonthEndIso(startDate.value)
+  comments.value = season.comments || ''
+  rules.value = (season.rules || []).map((rule) => ({
+    id: newRuleId(),
+    weekdays: [rule.weekday],
+    startTime: rule.startTime,
+    endTime: rule.endTime,
+    courtIds: [rule.courtId],
+  }))
+  syncGuestFieldsFromDom()
+}
+
+onMounted(async () => {
   if (!recurringReserveEnabled.value) return
+  const editId = String(route.query.edit || '').trim()
+  if (editId) {
+    try {
+      await loadSeasonForEdit(editId)
+    }
+    catch {
+      initFromQuery()
+    }
+    return
+  }
   initFromQuery()
 })
 
@@ -654,7 +709,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           <div class="min-w-0 space-y-4">
             <div class="grid gap-3 sm:grid-cols-2">
               <AppFormField :label="t('owner.guestName')" required>
-                <div class="relative">
+                <div class="relative w-full min-w-0">
                   <input
                     ref="guestNameInput"
                     v-model="guestName"
@@ -688,7 +743,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
               </AppFormField>
             </div>
             <AppFormField :label="t('owner.guestMobile')" required>
-              <div class="relative">
+              <div class="relative w-full min-w-0">
                 <input
                   ref="guestMobileInput"
                   v-model="guestMobile"
@@ -732,6 +787,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
               mode="range"
               variant="owner"
               selected-tone="green"
+              square-cells
               :min-date="today()"
             />
             <div class="mt-3 flex flex-wrap gap-4 text-[11.5px] text-[#8C8A84]">
