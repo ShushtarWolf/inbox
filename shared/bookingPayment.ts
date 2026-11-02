@@ -212,3 +212,20 @@ export function paymentRowChannelWhere(channel: string | undefined | null) {
   if (channel === 'ON_SITE') return { method: 'CASH' as const }
   return null
 }
+
+/** Accounting drill-down buckets (PAID rows only; matches `/api/admin/accounting` aggregates). */
+export const ACCOUNTING_PAYMENT_BUCKETS = ['IPG', 'ON_SITE', 'WALLET', 'OTHER'] as const
+export type AccountingPaymentBucket = (typeof ACCOUNTING_PAYMENT_BUCKETS)[number]
+
+export function isAccountingPaymentBucket(
+  value: string | undefined | null,
+): value is AccountingPaymentBucket {
+  return value === 'IPG' || value === 'ON_SITE' || value === 'WALLET' || value === 'OTHER'
+}
+
+export function paymentRowAccountingBucketWhere(bucket: AccountingPaymentBucket) {
+  if (bucket === 'IPG') return paymentRowChannelWhere('IPG')
+  if (bucket === 'ON_SITE') return paymentRowChannelWhere('ON_SITE')
+  if (bucket === 'WALLET') return { method: 'PAID' as const }
+  return { method: { notIn: ['IPG', 'CASH', 'PAID'] as const } }
+}

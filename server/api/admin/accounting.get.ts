@@ -1,26 +1,14 @@
 import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
+import { adminPaymentCreatedAtFilter, parseAdminDateBound } from '../../utils/adminDateRange'
 import { requireAdminSecret } from '../../utils/adminAuth'
-
-function parseDateBound(raw: unknown, endOfDay: boolean): Date | undefined {
-  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return undefined
-  const d = new Date(`${raw.trim()}T00:00:00.000Z`)
-  if (Number.isNaN(d.getTime())) return undefined
-  if (endOfDay) d.setUTCHours(23, 59, 59, 999)
-  return d
-}
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const query = getQuery(event)
-  const from = parseDateBound(query.from, false)
-  const to = parseDateBound(query.to, true)
+  const from = parseAdminDateBound(query.from, false)
+  const to = parseAdminDateBound(query.to, true)
 
-  const createdAtFilter = from || to
-    ? {
-        ...(from ? { gte: from } : {}),
-        ...(to ? { lte: to } : {}),
-      }
-    : undefined
+  const createdAtFilter = adminPaymentCreatedAtFilter(from, to)
 
   const paidBase = {
     status: 'PAID' as const,

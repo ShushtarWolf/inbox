@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { AccountingPaymentBucket } from '#shared/bookingPayment.ts'
+
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
@@ -35,6 +37,13 @@ const pending = ref(false)
 const loadError = ref('')
 const fromDate = ref('')
 const toDate = ref('')
+
+function paymentsDrillPath(bucket: AccountingPaymentBucket) {
+  const params = new URLSearchParams({ bucket })
+  if (fromDate.value) params.set('from', fromDate.value)
+  if (toDate.value) params.set('to', toDate.value)
+  return localePath(`/admin/accounting/payments?${params}`)
+}
 
 async function load() {
   if (!secret.value) return
@@ -89,62 +98,103 @@ watch(secret, (value) => {
     </form>
 
     <AppAsyncState :pending="pending" :error="loadError ? new Error(loadError) : null" skeleton-variant="stat-grid">
-      <div v-if="data" class="space-y-5">
-        <div class="admin-a2">
-          <div class="admin-astat">
-            <div>
-              <small>{{ t('admin.accounting.paidTotal') }}</small>
-              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidAmount) }}</b>
-              <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidCount) }) }}</span>
-            </div>
-          </div>
-          <div class="admin-astat">
-            <div>
-              <small>{{ t('admin.paymentChannelIpg') }}</small>
-              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidIpgAmount) }}</b>
-              <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidIpgCount) }) }}</span>
-            </div>
-          </div>
-          <div class="admin-astat">
-            <div>
-              <small>{{ t('admin.paymentChannelOnSite') }}</small>
-              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidOnSiteAmount) }}</b>
-              <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidOnSiteCount) }) }}</span>
-            </div>
-          </div>
-          <div class="admin-astat">
-            <div>
-              <small>{{ t('admin.paymentChannelWallet') }}</small>
-              <b dir="ltr" class="tabular-nums">{{ formatCurrency(data.payments.paidWalletAmount) }}</b>
-              <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.walletNote') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="data.payments.paidOtherCount > 0" class="admin-acard">
-          <h3>{{ t('admin.accounting.otherPaid') }}</h3>
-          <div class="admin-akv">
-            <span>{{ t('admin.accounting.amount') }}</span>
-            <b dir="ltr">{{ formatCurrency(data.payments.paidOtherAmount) }}</b>
-          </div>
-        </div>
-
+      <div v-if="data" class="space-y-6">
         <div class="admin-acard">
-          <h3>{{ t('admin.accounting.pendingWithdrawals') }}</h3>
-          <div class="admin-akv">
-            <span>{{ t('admin.metrics.pendingWithdrawals') }}</span>
-            <b dir="ltr">{{ formatCurrency(data.withdrawals.pendingAmount) }}</b>
-          </div>
-          <div class="admin-akv">
-            <span>{{ t('admin.accounting.clubPending') }}</span>
-            <b dir="ltr">{{ formatCurrency(data.withdrawals.clubPendingAmount) }}</b>
-          </div>
-          <div class="admin-akv">
-            <span>{{ t('admin.accounting.athletePending') }}</span>
-            <b dir="ltr">{{ formatCurrency(data.withdrawals.athletePendingAmount) }}</b>
-          </div>
-          <NuxtLink :to="localePath('/admin/withdrawals')" class="admin-alink">{{ t('admin.nav.withdrawals') }}</NuxtLink>
+          <h3>{{ t('admin.accounting.paidTotal') }}</h3>
+          <p class="mb-3 text-xs text-brand-gray-500">{{ t('admin.accounting.paidTotalHint') }}</p>
+          <b dir="ltr" class="block text-[26px] font-bold tabular-nums text-brand-navy">{{ formatCurrency(data.payments.paidAmount) }}</b>
+          <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidCount) }) }}</span>
         </div>
+
+        <section class="space-y-3">
+          <h2 class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.sectionBankInflow') }}</h2>
+          <NuxtLink
+            :to="paymentsDrillPath('IPG')"
+            class="admin-accounting-bucket admin-accounting-bucket--inflow block transition hover:border-emerald-600"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.confirmedIpgTitle') }}</p>
+                <p class="mt-1 text-xs text-emerald-800">{{ t('admin.accounting.confirmedIpgHint') }}</p>
+              </div>
+              <span class="text-xs font-bold text-brand-primary">{{ t('admin.accounting.viewTransactions') }}</span>
+            </div>
+            <b dir="ltr" class="mt-3 block text-[26px] font-bold tabular-nums text-brand-navy">{{ formatCurrency(data.payments.paidIpgAmount) }}</b>
+            <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidIpgCount) }) }}</span>
+          </NuxtLink>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.sectionOnSite') }}</h2>
+          <NuxtLink
+            :to="paymentsDrillPath('ON_SITE')"
+            class="admin-accounting-bucket block transition hover:border-brand-primary/50"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.bucket.ON_SITE') }}</p>
+                <p class="mt-1 text-xs text-brand-gray-500">{{ t('admin.accounting.onSiteHint') }}</p>
+              </div>
+              <span class="text-xs font-bold text-brand-primary">{{ t('admin.accounting.viewTransactions') }}</span>
+            </div>
+            <b dir="ltr" class="mt-3 block text-[26px] font-bold tabular-nums text-brand-navy">{{ formatCurrency(data.payments.paidOnSiteAmount) }}</b>
+            <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidOnSiteCount) }) }}</span>
+          </NuxtLink>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.sectionWallet') }}</h2>
+          <NuxtLink
+            :to="paymentsDrillPath('WALLET')"
+            class="admin-accounting-bucket admin-accounting-bucket--wallet block transition hover:border-amber-600/60"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.bucket.WALLET') }}</p>
+                <p class="mt-1 text-xs text-amber-900">{{ t('admin.accounting.walletNote') }}</p>
+              </div>
+              <span class="text-xs font-bold text-brand-primary">{{ t('admin.accounting.viewTransactions') }}</span>
+            </div>
+            <b dir="ltr" class="mt-3 block text-[26px] font-bold tabular-nums text-brand-navy">{{ formatCurrency(data.payments.paidWalletAmount) }}</b>
+            <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidWalletCount) }) }}</span>
+          </NuxtLink>
+        </section>
+
+        <section v-if="data.payments.paidOtherCount > 0" class="space-y-3">
+          <h2 class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.sectionOther') }}</h2>
+          <NuxtLink
+            :to="paymentsDrillPath('OTHER')"
+            class="admin-accounting-bucket block transition hover:border-brand-primary/50"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <p class="text-sm font-bold text-brand-navy">{{ t('admin.accounting.otherPaid') }}</p>
+              <span class="text-xs font-bold text-brand-primary">{{ t('admin.accounting.viewTransactions') }}</span>
+            </div>
+            <b dir="ltr" class="mt-3 block text-[26px] font-bold tabular-nums text-brand-navy">{{ formatCurrency(data.payments.paidOtherAmount) }}</b>
+            <span class="text-xs text-brand-gray-500">{{ t('admin.accounting.countLabel', { count: formatNumber(data.payments.paidOtherCount) }) }}</span>
+          </NuxtLink>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-sm font-bold text-brand-gray-600">{{ t('admin.accounting.sectionNotRevenue') }}</h2>
+          <div class="admin-acard border-amber-200 bg-amber-50/40">
+            <h3>{{ t('admin.accounting.pendingWithdrawals') }}</h3>
+            <p class="mb-3 text-xs text-brand-gray-600">{{ t('admin.accounting.withdrawalsHint') }}</p>
+            <div class="admin-akv">
+              <span>{{ t('admin.metrics.pendingWithdrawals') }}</span>
+              <b dir="ltr">{{ formatCurrency(data.withdrawals.pendingAmount) }}</b>
+            </div>
+            <div class="admin-akv">
+              <span>{{ t('admin.accounting.clubPending') }}</span>
+              <b dir="ltr">{{ formatCurrency(data.withdrawals.clubPendingAmount) }}</b>
+            </div>
+            <div class="admin-akv">
+              <span>{{ t('admin.accounting.athletePending') }}</span>
+              <b dir="ltr">{{ formatCurrency(data.withdrawals.athletePendingAmount) }}</b>
+            </div>
+            <NuxtLink :to="localePath('/admin/withdrawals')" class="admin-alink">{{ t('admin.nav.withdrawals') }}</NuxtLink>
+          </div>
+        </section>
 
         <div v-if="data.clubBreakdown.length" class="overflow-x-auto border border-brand-gray-200 bg-white" style="border-radius: 0;">
           <h3 class="border-b border-brand-gray-200 bg-brand-gray-50 p-3 text-sm font-bold">{{ t('admin.accounting.clubBreakdown') }}</h3>
@@ -178,5 +228,18 @@ watch(secret, (value) => {
   @apply relative mb-6 overflow-hidden p-[22px] text-white min-[431px]:px-7;
   border-radius: 0;
   background: linear-gradient(135deg, #c41e1e, #b01818);
+}
+
+.admin-accounting-bucket {
+  @apply border border-brand-gray-200 bg-white p-5 text-start no-underline;
+  border-radius: 0;
+}
+
+.admin-accounting-bucket--inflow {
+  @apply border-emerald-300 bg-emerald-50/30;
+}
+
+.admin-accounting-bucket--wallet {
+  @apply border-amber-200 bg-amber-50/25;
 }
 </style>
