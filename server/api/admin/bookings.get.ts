@@ -38,6 +38,8 @@ export default defineEventHandler(async (event) => {
         { guestMobile: { contains: q } },
         { user: { email: { contains: q, mode: 'insensitive' } } },
         { user: { name: { contains: q, mode: 'insensitive' } } },
+        { user: { nameFamily: { contains: q, mode: 'insensitive' } } },
+        { guestFamily: { contains: q, mode: 'insensitive' } },
         { slot: { court: { club: { nameFa: { contains: q, mode: 'insensitive' } } } } },
         { slot: { court: { club: { nameEn: { contains: q, mode: 'insensitive' } } } } },
         { slot: { court: { club: { slug: { contains: q, mode: 'insensitive' } } } } },
@@ -51,7 +53,7 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'desc' },
     where: whereAnd.length ? { AND: whereAnd } : undefined,
     include: {
-      user: { select: { id: true, email: true, name: true } },
+      user: { select: { id: true, email: true, name: true, nameFamily: true } },
       payment: { select: { id: true, amount: true, status: true, method: true } },
       slot: {
         include: {
@@ -74,6 +76,7 @@ export default defineEventHandler(async (event) => {
       source: booking.source,
       createdAt: booking.createdAt,
       guestName: booking.guestName,
+      guestFamily: booking.guestFamily,
       guestMobile: booking.guestMobile,
       user: booking.user,
       payment: booking.payment,

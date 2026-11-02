@@ -1,3 +1,4 @@
+import { notifyUserDisplayName } from '#shared/userName.ts'
 import { personNotifyName } from '../../utils/bookingNotify'
 import { loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
   let startDate = first?.slot.date || null
   let finishDate = last?.slot.date || null
   let guestName = personNotifyName(first?.guestName, first?.guestFamily)
-    || personNotifyName(first?.user?.name)
+    || notifyUserDisplayName(first?.user)
     || ''
 
   if (key.kind === 'season') {

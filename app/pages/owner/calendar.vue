@@ -33,6 +33,7 @@ import {
   normalizeGuestNamePair,
   resolveLinkedGuestDisplayName,
 } from '#shared/guestName.ts'
+import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
@@ -835,6 +836,7 @@ function slotGuestLine(slot: OwnerCalendarSlot | null | undefined) {
       guestName: booking?.guestName,
       guestFamily: booking?.guestFamily,
       userName: booking?.user?.name,
+      userNameFamily: booking?.user?.nameFamily,
     })
     return blockedFor || t('owner.slotBlockedLabel')
   }
@@ -966,7 +968,6 @@ function setSelectionReserveError() {
   actionError.value = ''
 }
 
-type GuestSearchHit = { name: string; mobile: string; source: 'user' | 'contact' | 'booking' }
 const guestSuggestions = ref<GuestSearchHit[]>([])
 const guestSearchOpen = ref(false)
 const guestSearchPending = ref(false)
@@ -1031,9 +1032,9 @@ function onGuestMobileInput() {
 }
 
 function selectGuestSuggestion(guest: GuestSearchHit) {
-  const parts = normalizeGuestNamePair(guest.name, '')
-  if (parts.guestName) form.guestName = parts.guestName
-  if (parts.guestFamily) form.guestFamily = parts.guestFamily
+  const parts = guestSearchHitToFormPair(guest)
+  form.guestName = parts.guestName
+  form.guestFamily = parts.guestFamily
   if (guest.mobile) form.guestMobile = guest.mobile
   clearGuestSearch()
 }

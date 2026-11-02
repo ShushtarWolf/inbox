@@ -19,8 +19,9 @@ type BookingRow = {
   source: string
   createdAt: string
   guestName: string | null
+  guestFamily: string | null
   guestMobile: string | null
-  user: { id: string; email: string; name: string } | null
+  user: { id: string; email: string; name: string; nameFamily?: string | null } | null
   payment: { id: string; amount: number; status: string; method: string } | null
   club: { id: string; nameFa: string; nameEn: string; slug: string; city: string }
   courtNameFa: string
@@ -157,8 +158,17 @@ function paymentStatusClass(status: string) {
   return 'bg-amber-100 text-amber-900'
 }
 
-function contactName(row: { user: { name: string } | null; guestName?: string | null }) {
-  return row.user?.name || row.guestName || '—'
+function contactName(row: {
+  user: { name: string; nameFamily?: string | null } | null
+  guestName?: string | null
+  guestFamily?: string | null
+}) {
+  if (row.user) {
+    const full = [row.user.name, row.user.nameFamily].filter(Boolean).join(' ').trim()
+    if (full) return full
+  }
+  const guest = [row.guestName, row.guestFamily].filter(Boolean).join(' ').trim()
+  return guest || '—'
 }
 
 function contactLine(row: {

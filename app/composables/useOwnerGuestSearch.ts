@@ -1,6 +1,7 @@
-import { formatGuestDisplayName, normalizeGuestNamePair } from '#shared/guestName.ts'
+import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 
-export type GuestSearchHit = { name: string; mobile: string; source: 'user' | 'contact' | 'booking' }
+export type { GuestSearchHit }
 
 type GuestSearchFields = {
   guestName: MaybeRef<string>
@@ -77,7 +78,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
   }
 
   function selectGuestSuggestion(guest: GuestSearchHit) {
-    const parts = normalizeGuestNamePair(guest.name, '')
+    const parts = guestSearchHitToFormPair(guest)
     setField(fields.guestName, parts.guestName)
     setField(fields.guestFamily, parts.guestFamily)
     if (guest.mobile) setField(fields.guestMobile, guest.mobile)

@@ -1,4 +1,5 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { notifyUserDisplayName } from '#shared/userName.ts'
 import { requireAdminSecret } from '../../../utils/adminAuth'
 import {
   clubNotifyLocation,
@@ -67,7 +68,9 @@ export default defineEventHandler(async (event) => {
         endTime: row.slot.endTime,
       })),
       paymentPaid: true,
-      guestName: personNotifyName(anchor.guestName, anchor.guestFamily) || anchor.user?.name || '',
+      guestName: personNotifyName(anchor.guestName, anchor.guestFamily)
+        || notifyUserDisplayName(anchor.user)
+        || '',
       ...clubNotifyLocation(club),
     }
     if (body?.dryRun) {

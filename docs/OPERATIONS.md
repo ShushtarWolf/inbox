@@ -213,6 +213,21 @@ DATABASE_URL='…production…' npm run db:backfill-competition-settlements
 
 Do **not** run against production without a fresh local dump first (see post-deploy backup rule).
 
+### Booking guest family backfill (ops)
+
+After `User.name` → `name` + `nameFamily` (PR #91), many `Booking` rows kept only a first name in `guestName` with empty `guestFamily`. Calendar/receipts join both fields; linked users already display correctly in app code, but persisted guest columns and walk-in rows need a one-shot backfill.
+
+Idempotent script (splits full `guestName` or copies `User.nameFamily` when the stored first name matches the linked account — never invents names):
+
+```bash
+npm run db:backfill-booking-guest-family -- --dry-run
+DATABASE_URL='…production…' npm run db:backfill-booking-guest-family
+```
+
+Also updates `SeasonBooking` rows with the same rules. Always `--dry-run` first and note the `wouldFix` counts.
+
+Do **not** run against production without a fresh local dump first (see post-deploy backup rule).
+
 ### Live reservation SMS cutover (later — do not enable now)
 
 When Kavenegar free-text sender is approved:

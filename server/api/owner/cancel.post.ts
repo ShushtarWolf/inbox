@@ -1,4 +1,5 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { notifyUserDisplayName } from '#shared/userName.ts'
 import {
   notifyBookingCancelled,
   notifyOwnerBookingCancelled,
@@ -54,7 +55,7 @@ export default defineEventHandler(async (event) => {
       const rawGuest = anchor.guestMobile
       const phone = anchor.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
       const guestName = personNotifyName(anchor.guestName, anchor.guestFamily)
-        || personNotifyName(anchor.user?.name)
+        || notifyUserDisplayName(anchor.user)
       if (!body.skipNotify) {
         await notifyOwnerBookingCancelled({
           ownerPhone: ownerNotifyPhone(club),
@@ -108,7 +109,7 @@ export default defineEventHandler(async (event) => {
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
     const guestName = personNotifyName(booking.guestName, booking.guestFamily)
-      || personNotifyName(booking.user?.name)
+      || notifyUserDisplayName(booking.user)
     if (!body.skipNotify) {
       await notifyOwnerBookingCancelled({
         ownerPhone: ownerNotifyPhone(club),

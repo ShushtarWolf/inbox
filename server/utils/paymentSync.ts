@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { resolveParentPaymentMethod } from '#shared/bookingPayment.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { notifyUserDisplayName } from '#shared/userName.ts'
 import {
   clubNotifyName,
   courtNotifyName,
@@ -205,7 +206,7 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
       const club = b.slot.court.club
       const rawGuest = b.guestMobile
       const phone = b.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
-      const guestName = personNotifyName(b.guestName, b.guestFamily) || b.user?.name || ''
+      const guestName = personNotifyName(b.guestName, b.guestFamily) || notifyUserDisplayName(b.user) || ''
       const courtName = courtNotifyName(b.slot.court)
       const clubName = clubNotifyName(club)
       let series: BookingNotifySessionLine[] | null = null

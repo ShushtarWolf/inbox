@@ -1,6 +1,7 @@
 import { parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { isSeriesDeskPaymentTarget, seriesDeskPaymentCreates } from '#shared/ownerSeries.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
+import { notifyUserDisplayName } from '#shared/userName.ts'
 import {
   notifyBookingPaid,
   notifyOwnerBookingPaid,
@@ -74,7 +75,9 @@ export default defineEventHandler(async (event) => {
   if (next === 'PAID') {
     const first = targets[0]!
     const phone = first.user?.phone || (first.guestMobile ? normalizeIranPhone(first.guestMobile) || first.guestMobile : null)
-    const guestName = personNotifyName(first.guestName, first.guestFamily) || first.user?.name || ''
+    const guestName = personNotifyName(first.guestName, first.guestFamily)
+      || notifyUserDisplayName(first.user)
+      || ''
     const notify = {
       clubId: club.id,
       bookingId: first.id,

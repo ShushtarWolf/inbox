@@ -43,6 +43,14 @@ export function resolveUserDisplayName(user: {
   return user.nameEn?.trim() || user.name?.trim() || ''
 }
 
+/** SMS / notify fallback when booking guest columns are empty. */
+export function notifyUserDisplayName(
+  user?: { name?: string | null; nameFamily?: string | null } | null,
+): string {
+  if (!user) return ''
+  return formatUserDisplayName(user.name, user.nameFamily)
+}
+
 /** Map User.name/nameFamily to booking guest fields. */
 export function userToGuestNamePair(user: {
   name?: string | null
