@@ -11,6 +11,11 @@ import { sendSms } from './sms/service'
 
 export type BookingNotifyKind = 'court' | 'coach' | 'package'
 
+/** Owner desk / club-calendar bookings — never SMS the receipt guest mobile; club-side only. */
+export function skipGuestBookingSms(booking: { source?: string | null }) {
+  return booking.source === 'CLUB'
+}
+
 export type BookingNotifySessionLine = {
   courtName?: string | null
   date: string
@@ -137,30 +142,31 @@ export function ownerNotifyPhone(club: {
 
 
 /**
- * Club-side SMS recipients: owner mobile (primary arg), club mobile, and the
- * owner-configured `bookingNotifyPhone` only — not every staff/worker row. Deduped, mobiles only.
+ * Club-side booking SMS: club owner mobile + owner-configured `bookingNotifyPhone` only.
+ * Never the receipt guest mobile or the club listing phone (`Club.phone`). Deduped, mobiles only.
  */
 export async function clubSideNotifyPhones(
   primary: string | null | undefined,
   clubId?: string,
 ): Promise<string[]> {
-  const raw: Array<string | null | undefined> = [primary]
+  const raw: Array<string | null | undefined> = []
   if (clubId) {
     try {
       const club = await prisma.club.findUnique({
         where: { id: clubId },
         select: {
-          phone: true,
           bookingNotifyPhone: true,
           owner: { select: { phone: true } },
         },
       })
       if (club) {
-        raw.push(club.owner?.phone, club.phone, club.bookingNotifyPhone)
+        raw.push(club.owner?.phone, club.bookingNotifyPhone)
       }
     } catch (err) {
       console.error('[bookingNotify:club_recipients]', err)
     }
+  } else {
+    raw.push(primary)
   }
   const out: string[] = []
   for (const r of raw) {

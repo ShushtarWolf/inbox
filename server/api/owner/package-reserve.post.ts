@@ -1,6 +1,14 @@
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { expandDayTimeRanges, type DayTimeRange } from '#shared/recurringSessions.ts'
-import { notifyBookingConfirmed, notifyBookingPaid, clubNotifyName, clubNotifyLocation, personNotifyName } from '../../utils/bookingNotify'
+import {
+  notifyBookingConfirmed,
+  notifyBookingPaid,
+  notifyOwnerBookingPaid,
+  clubNotifyName,
+  clubNotifyLocation,
+  ownerNotifyPhone,
+  personNotifyName,
+} from '../../utils/bookingNotify'
 import { generateRecurringCourtSlots } from '../../utils/generateRecurringSlots'
 import {
   loadEquipmentForBooking,
@@ -194,8 +202,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const phone = body.guestMobile?.trim() || null
-  if (phone && result.created > 0) {
+  if (result.created > 0) {
+    const phone = body.guestMobile?.trim() || null
+    const guestName = personNotifyName(guest.guestName, guest.guestFamily)
     const notifyOpts = {
       phone,
       kind: 'package' as const,
@@ -207,12 +216,24 @@ export default defineEventHandler(async (event) => {
       startTime: firstScheduleTime(expanded, body.times),
       sessionCount: result.created,
       paymentPaid: paymentStatus === 'PAID',
-      guestName: personNotifyName(guest.guestName, guest.guestFamily),
+      guestName,
+      skipGuest: true,
       ...clubNotifyLocation(club),
     }
     await notifyBookingConfirmed(notifyOpts)
     if (paymentStatus === 'PAID') {
       await notifyBookingPaid(notifyOpts)
+      await notifyOwnerBookingPaid({
+        ownerPhone: ownerNotifyPhone(club),
+        clubName: clubNotifyName(club),
+        clubId: club.id,
+        bookingId: record.id,
+        date: body.startDate,
+        startTime: notifyOpts.startTime,
+        guestName,
+        guestPhone: phone,
+        amountPaid: result.created * (slot.price + equipmentPrice + coachSessionPrice),
+      })
     }
   }
 

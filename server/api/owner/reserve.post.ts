@@ -317,24 +317,23 @@ export default defineEventHandler(async (event) => {
         const amountPaid = paidPayment?.amount ?? totalAmount
         const notifyStart = (body.notifyStartTime || slot.startTime).trim()
         const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
-        if (existing.userId || phone) {
-          await notifyBookingPaid({
-            userId: existing.userId,
-            email: existing.user?.email,
-            phone,
-            kind: 'court',
-            clubName: clubNotifyName(club),
-            clubId: club.id,
-            bookingId: existing.id,
-            date: slot.date,
-            startTime: notifyStart,
-            endTime: notifyEnd,
-            courtName: courtNotifyName(slot.court),
-            guestName,
-            amountPaid,
-            paymentPaid: true,
-          })
-        }
+        await notifyBookingPaid({
+          userId: existing.userId,
+          email: existing.user?.email,
+          phone,
+          kind: 'court',
+          clubName: clubNotifyName(club),
+          clubId: club.id,
+          bookingId: existing.id,
+          date: slot.date,
+          startTime: notifyStart,
+          endTime: notifyEnd,
+          courtName: courtNotifyName(slot.court),
+          guestName,
+          amountPaid,
+          paymentPaid: true,
+          skipGuest: true,
+        })
         const ownerClub = await prisma.club.findUnique({
           where: { id: club.id },
           select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
@@ -413,7 +412,8 @@ export default defineEventHandler(async (event) => {
     const guestName = personNotifyName(guest.guestName, guest.guestFamily)
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
     const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
-    const skipGuest = !phone || Boolean(body.skipNotify)
+    // Desk bookings: club-side SMS only — never the receipt guest mobile.
+    const skipGuest = true
     const payLink = await deskPayLinkFields(createdBooking.id, paymentStatus)
     const notifyBase = {
       userId: linkedUserId || undefined,

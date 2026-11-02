@@ -9,6 +9,7 @@ import {
   notifyOwnerBookingPaid,
   ownerNotifyPhone,
   personNotifyName,
+  skipGuestBookingSms,
   type BookingNotifySessionLine,
 } from './bookingNotify'
 import { notifyAdminWalletTopUp } from './adminNotify'
@@ -233,6 +234,7 @@ async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
         paymentPaid: true,
         guestName,
         amountPaid: payment.amount,
+        skipGuest: skipGuestBookingSms(b),
       })
       await notifyOwnerBookingPaid({
         ownerPhone: ownerNotifyPhone(club),

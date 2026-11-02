@@ -1,8 +1,10 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   notifyBookingCancelled,
+  notifyOwnerBookingCancelled,
   clubNotifyName,
   courtNotifyName,
+  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
@@ -51,24 +53,38 @@ export default defineEventHandler(async (event) => {
       const anchor = series.find((row) => row.id === booking.id) || series[0]!
       const rawGuest = anchor.guestMobile
       const phone = anchor.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
-      if (anchor.userId || phone) {
-        await notifyBookingCancelled({
-          userId: anchor.userId,
-          email: anchor.user?.email,
-          phone,
-          kind: 'court',
+      const guestName = personNotifyName(anchor.guestName, anchor.guestFamily)
+        || personNotifyName(anchor.user?.name)
+      if (!body.skipNotify) {
+        await notifyOwnerBookingCancelled({
+          ownerPhone: ownerNotifyPhone(club),
           clubName: clubNotifyName(club),
           clubId: club.id,
           bookingId: anchor.id,
           date: anchor.slot.date,
           startTime: anchor.slot.startTime,
           endTime: anchor.slot.endTime,
-          reason,
-          guestName: personNotifyName(anchor.guestName, anchor.guestFamily)
-            || personNotifyName(anchor.user?.name),
           courtName: courtNotifyName(anchor.slot.court),
+          guestName,
+          guestPhone: phone,
         })
       }
+      await notifyBookingCancelled({
+        userId: anchor.userId,
+        email: anchor.user?.email,
+        phone,
+        kind: 'court',
+        clubName: clubNotifyName(club),
+        clubId: club.id,
+        bookingId: anchor.id,
+        date: anchor.slot.date,
+        startTime: anchor.slot.startTime,
+        endTime: anchor.slot.endTime,
+        reason,
+        guestName,
+        courtName: courtNotifyName(anchor.slot.court),
+        skipGuest: true,
+      })
       return {
         ok: true,
         cancelled,
@@ -89,27 +105,40 @@ export default defineEventHandler(async (event) => {
     })
     const rawGuest = booking.guestMobile
     const phone = booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
-    if (booking.userId || phone) {
-      const notifyStart = (body.notifyStartTime || slot.startTime).trim()
-      const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
-      await notifyBookingCancelled({
-        userId: booking.userId,
-        email: booking.user?.email,
-        phone,
-        kind: 'court',
+    const notifyStart = (body.notifyStartTime || slot.startTime).trim()
+    const notifyEnd = (body.notifyEndTime || slot.endTime).trim()
+    const guestName = personNotifyName(booking.guestName, booking.guestFamily)
+      || personNotifyName(booking.user?.name)
+    if (!body.skipNotify) {
+      await notifyOwnerBookingCancelled({
+        ownerPhone: ownerNotifyPhone(club),
         clubName: clubNotifyName(club),
         clubId: club.id,
         bookingId: booking.id,
         date: slot.date,
         startTime: notifyStart,
         endTime: notifyEnd,
-        reason,
-        guestName: personNotifyName(booking.guestName, booking.guestFamily)
-          || personNotifyName(booking.user?.name),
         courtName: courtNotifyName(slot.court),
-        skipGuest: Boolean(body.skipNotify),
+        guestName,
+        guestPhone: phone,
       })
     }
+    await notifyBookingCancelled({
+      userId: booking.userId,
+      email: booking.user?.email,
+      phone,
+      kind: 'court',
+      clubName: clubNotifyName(club),
+      clubId: club.id,
+      bookingId: booking.id,
+      date: slot.date,
+      startTime: notifyStart,
+      endTime: notifyEnd,
+      reason,
+      guestName,
+      courtName: courtNotifyName(slot.court),
+      skipGuest: true,
+    })
   }
   else {
     await prisma.slot.update({

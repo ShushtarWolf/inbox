@@ -63,18 +63,17 @@ export default defineEventHandler(async (event) => {
       courtName: courtNotifyName(first.slot.court),
       guestName,
     }
-    if (first.userId || phone) {
-      await notifyBookingPaid({
-        ...notify,
-        userId: first.userId,
-        email: first.user?.email,
-        phone,
-        kind: 'court',
-        clubName: clubNotifyName(club),
-        amountPaid: amount,
-        paymentPaid: true,
-      })
-    }
+    await notifyBookingPaid({
+      ...notify,
+      userId: first.userId,
+      email: first.user?.email,
+      phone,
+      kind: 'court',
+      clubName: clubNotifyName(club),
+      amountPaid: amount,
+      paymentPaid: true,
+      skipGuest: true,
+    })
     const ownerClub = await prisma.club.findUnique({
       where: { id: club.id },
       select: { phone: true, nameFa: true, nameEn: true, owner: { select: { phone: true } } },
