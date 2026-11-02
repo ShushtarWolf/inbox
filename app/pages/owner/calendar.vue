@@ -21,6 +21,7 @@ import {
   checkedUnpaidBookedSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
+  isMultiSelectBlockedSlot,
   isMultiSelectBookedSlot,
   joinWithAnd,
   siblingBookedSlots,
@@ -624,12 +625,28 @@ const canBatchBlockBooked = computed(() =>
   selectedSlotsFull.value.length > 0
     && selectedSlotsFull.value.every((slot) => isMultiSelectBookedSlot(slot)),
 )
+const canBatchUnblockBlocked = computed(() =>
+  selectedSlotsFull.value.length > 0
+    && selectedSlotsFull.value.every((slot) => isMultiSelectBlockedSlot(slot)),
+)
 const selectionBarBookedBlock = computed(() =>
   bookedSelectMode.value && canBatchBlockBooked.value,
 )
+const selectionBarBlockedUnblock = computed(() =>
+  bookedSelectMode.value && canBatchUnblockBlocked.value,
+)
+const selectionBarMixedOccupied = computed(() =>
+  bookedSelectMode.value
+  && selectedSlotsFull.value.length > 0
+  && !canBatchBlockBooked.value
+  && !canBatchUnblockBlocked.value,
+)
 const selectionHasUnavailableSlot = computed(() => {
   if (bookedSelectMode.value) {
-    return selectedSlotsFull.value.some((slot) => !isMultiSelectBookedSlot(slot))
+    if (selectionBarMixedOccupied.value) return true
+    return selectedSlotsFull.value.some((slot) =>
+      !isMultiSelectBookedSlot(slot) && !isMultiSelectBlockedSlot(slot),
+    )
   }
   return selectedSlotsFull.value.some((slot) => slot.displayStatus !== 'FREE')
 })
@@ -789,7 +806,11 @@ function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
 function gridSlotShowsSelectCheck(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot) return false
   if (slot.displayStatus === 'FREE') return true
-  return bookedSelectMode.value && isMultiSelectBookedSlot(slot)
+  return bookedSelectMode.value && (isMultiSelectBookedSlot(slot) || isMultiSelectBlockedSlot(slot))
+}
+
+function isSelectModeGridSlot(slot: OwnerCalendarSlot | null | undefined) {
+  return Boolean(slot && (isMultiSelectBookedSlot(slot) || isMultiSelectBlockedSlot(slot)))
 }
 
 function gridCellClasses(courtId: string, hour: string) {
@@ -1318,6 +1339,17 @@ function toggleBookedGridSlot(slot: OwnerCalendarSlot) {
   selectedSlotIds.value = toggleId(selectedSlotIds.value, slot.id)
 }
 
+function toggleBlockedGridSlot(slot: OwnerCalendarSlot) {
+  if (!isMultiSelectBlockedSlot(slot)) return
+  bookedSiblingIds.value = []
+  selectedSlotIds.value = toggleId(selectedSlotIds.value, slot.id)
+}
+
+function toggleSelectModeGridSlot(slot: OwnerCalendarSlot) {
+  if (isMultiSelectBookedSlot(slot)) toggleBookedGridSlot(slot)
+  else if (isMultiSelectBlockedSlot(slot)) toggleBlockedGridSlot(slot)
+}
+
 function isSlotSelected(slot: OwnerCalendarSlot) {
   return selectedSlotIds.value.includes(slot.id)
 }
@@ -1377,12 +1409,16 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openSlot(fullSlot)
     return
   }
-  if (isMultiSelectBookedSlot(fullSlot)) {
+  if (isSelectModeGridSlot(fullSlot)) {
     if (bookedSelectMode.value) {
-      toggleBookedGridSlot(fullSlot)
+      toggleSelectModeGridSlot(fullSlot)
       return
     }
-    openBookedSlot(fullSlot)
+    if (isMultiSelectBookedSlot(fullSlot)) {
+      openBookedSlot(fullSlot)
+      return
+    }
+    openSlot(fullSlot)
     return
   }
   if (fullSlot.displayStatus !== 'FREE') {
@@ -1432,6 +1468,16 @@ function openSelectionBlock() {
   openSlot(selectedSlotsFull.value[0], { keepSelection: true })
   activePanel.value = 'block'
   seedBlockSeasonForm()
+}
+
+function openSelectionUnblock() {
+  if (!selectionBarBlockedUnblock.value || !selectedSlotsFull.value.length) return
+  openSlot(selectedSlotsFull.value[0], { keepSelection: true })
+  resetBlockWeeklyState()
+  blockWeeks.value = 1
+  blockRepeatMode.value = 'weekly'
+  activePanel.value = 'block'
+  actionError.value = ''
 }
 
 function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelection?: boolean }) {
@@ -3424,6 +3470,7 @@ function canCancelSlot() {
 function canBlockSlot() {
   if (batchMode.value) return canBatchBlock.value
   if (selectionBarBookedBlock.value) return canBatchBlockBooked.value
+  if (selectionBarBlockedUnblock.value) return false
   return selectedSlot.value?.displayStatus === 'FREE' || selectedSlot.value?.displayStatus === 'BLOCKED'
 }
 
@@ -4265,16 +4312,26 @@ watch(pilotNoCoach, (off) => {
               class="canva-selection-bar-error"
               role="alert"
             >
-              <p v-if="selectionHasUnavailableSlot">{{ t('booking.errors.slotNotAvailable') }}</p>
+              <p v-if="selectionBarMixedOccupied">{{ t('owner.selectionBar.mixedBlockBooked') }}</p>
+              <p v-else-if="selectionHasUnavailableSlot">{{ t('booking.errors.slotNotAvailable') }}</p>
               <p v-if="actionError && !selectionHasUnavailableSlot">{{ actionError }}</p>
             </div>
           </div>
           <div class="canva-selection-bar-actions">
             <button
-              v-if="selectionBarBookedBlock"
+              v-if="selectionBarBlockedUnblock"
               type="button"
               class="canva-selection-bar-btn-primary"
-              :disabled="saving"
+              :disabled="saving || selectionBarMixedOccupied"
+              @click="openSelectionUnblock"
+            >
+              {{ t('owner.unblock') }}
+            </button>
+            <button
+              v-else-if="selectionBarBookedBlock"
+              type="button"
+              class="canva-selection-bar-btn-primary"
+              :disabled="saving || selectionBarMixedOccupied"
               @click="openSelectionBlock"
             >
               {{ t('owner.block') }}
@@ -4298,7 +4355,7 @@ watch(pilotNoCoach, (off) => {
               {{ t('owner.reserve') }}
             </button>
             <button
-              v-if="!selectionBarBookedBlock && !canSelectionCancel"
+              v-if="!selectionBarBookedBlock && !selectionBarBlockedUnblock && !canSelectionCancel"
               type="button"
               class="canva-selection-bar-btn-secondary"
               :disabled="!canBatchBlock"

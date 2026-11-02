@@ -7,6 +7,7 @@ import {
   courtIdsFromSlots,
   deskReserveSelectionIssue,
   isCancellableBookedSlot,
+  isMultiSelectBlockedSlot,
   isMultiSelectBookedSlot,
   joinWithAnd,
   removeSlotsForCourt,
@@ -381,6 +382,27 @@ describe('checkedDeskReversiblePaidSlots', () => {
 
   it('allows reversing desk cash, not gateway-paid hours', () => {
     expect(checkedDeskReversiblePaidSlots(siblings, ['s-cash', 's-ipg']).map((s) => s.id)).toEqual(['s-cash'])
+  })
+})
+
+describe('isMultiSelectBlockedSlot', () => {
+  it('accepts club blocks and empty BLOCKED', () => {
+    expect(isMultiSelectBlockedSlot({
+      displayStatus: 'BLOCKED',
+      booking: { status: 'CONFIRMED', source: 'CLUB' },
+    })).toBe(true)
+    expect(isMultiSelectBlockedSlot({ displayStatus: 'BLOCKED', booking: null })).toBe(true)
+  })
+
+  it('rejects reserved and non-club blocks', () => {
+    expect(isMultiSelectBlockedSlot({
+      displayStatus: 'RESERVED',
+      booking: { status: 'CONFIRMED' },
+    })).toBe(false)
+    expect(isMultiSelectBlockedSlot({
+      displayStatus: 'BLOCKED',
+      booking: { status: 'CONFIRMED', source: 'ATHLETE' },
+    })).toBe(false)
   })
 })
 
