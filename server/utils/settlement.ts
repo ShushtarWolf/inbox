@@ -18,6 +18,7 @@ import {
 } from '#shared/seasonSettlementUnlock.ts'
 import { computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
+import { notifyClubWithdrawPaid } from './withdrawPaidNotify'
 import { creditWallet, debitWallet } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -1012,7 +1013,8 @@ export async function requestClubWithdraw(options: {
 }
 
 export async function markWithdrawPaid(requestId: string, note?: string) {
-  return prisma.$transaction(async (tx) => {
+  let newlyPaid = false
+  const result = await prisma.$transaction(async (tx) => {
     const request = await tx.withdrawRequest.findUnique({ where: { id: requestId } })
     if (!request) throw createError({ statusCode: 404, statusMessage: 'Withdraw request not found' })
     if (request.status === 'PAID') return request
@@ -1035,8 +1037,11 @@ export async function markWithdrawPaid(requestId: string, note?: string) {
       note: note || 'Marked paid by admin',
     }, tx)
 
+    newlyPaid = true
     return updated
   })
+  if (newlyPaid) await notifyClubWithdrawPaid(result)
+  return result
 }
 
 export async function rejectWithdrawRequest(requestId: string, note?: string) {

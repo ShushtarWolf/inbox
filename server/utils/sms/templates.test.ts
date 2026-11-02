@@ -359,6 +359,15 @@ describe('SMS templates', () => {
         sheba: 'IR123456789012345678901234',
       }),
     ).toContain('اقدام در ادمین')
+    const paid = renderSmsTemplate('WITHDRAW_PAID', {
+      clubName: 'بهناز',
+      amount: 1000000,
+      sheba: 'IR123456789012345678901234',
+    })
+    expect(paid).toContain('پرداخت به شباتون انجام شد')
+    expect(paid).toContain('بهناز')
+    expect(paid).toContain('شبا ۱۲۳۴')
+    expect(renderSmsTemplate('WITHDRAW_PAID', { amount: 5000 })).not.toContain('شبا ')
     expect(
       renderSmsTemplate('ADMIN_CLUB_APPLICATION', {
         clubName: 'باشگاه نو',
