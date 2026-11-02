@@ -8,6 +8,7 @@ import {
   type DeskCashReturn,
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
+import { findUserIdByPhone } from './phoneAuth'
 import { syncPaymentToParent } from './paymentSync'
 import { prisma } from './prisma'
 import { clawbackOwnerForPayment } from './settlement'
@@ -60,15 +61,38 @@ export async function refundPaymentForCancellation(options: {
   const db = options.db || prisma
   const payment = await db.payment.findUnique({
     where: { id: options.paymentId },
-    include: { booking: { select: { paymentMethod: true } } },
+    include: {
+      booking: { select: { paymentMethod: true, userId: true, guestMobile: true } },
+    },
   })
   if (!payment || !isPaymentRefundable(payment.status)) {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
   const channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
+  const bookingId = options.bookingId || payment.bookingId || undefined
+
+  // Prefer explicit cancel userId, then payment payer, then booking owner, then guest phone match.
+  let creditUserId = options.userId || payment.userId || payment.booking?.userId || null
+  if (!creditUserId) {
+    const guestMobile = payment.booking?.guestMobile
+    if (guestMobile) {
+      creditUserId = await findUserIdByPhone(guestMobile)
+    }
+    else if (bookingId) {
+      const booking = await db.booking.findUnique({
+        where: { id: bookingId },
+        select: { userId: true, guestMobile: true },
+      })
+      creditUserId = booking?.userId || null
+      if (!creditUserId && booking?.guestMobile) {
+        creditUserId = await findUserIdByPhone(booking.guestMobile)
+      }
+    }
+  }
+
   // Desk cash never entered platform float — no athlete credit.
-  const canCreditAthlete = Boolean(options.userId)
+  const canCreditAthlete = Boolean(creditUserId)
     && channel === 'wallet_closed_loop'
     && payment.method !== 'NOT_PAID'
 
@@ -83,10 +107,10 @@ export async function refundPaymentForCancellation(options: {
 
   const apply = async (tx: DbClient) => {
     // Credit before marking REFUNDED — never leave the athlete without credit on a refunded row.
-    if (canCreditAthlete && options.userId) {
-      await creditWallet(options.userId, payment.amount, {
+    if (canCreditAthlete && creditUserId) {
+      await creditWallet(creditUserId, payment.amount, {
         paymentId: payment.id,
-        bookingId: options.bookingId,
+        bookingId,
         note: options.reason,
         type: 'REFUND_CREDIT',
       }, tx)

@@ -138,17 +138,17 @@ Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
 ## Club settlement / owner withdraw
 
-Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSION_BPS`, default `1000` = 10%) including **competition entry fees** once PAID. Desk cash does **not** credit. Owner sets SHEBA and submits a **withdraw request** from **available** balance (moves to locked until admin paid/reject); ops pays via manual bank transfer. No automated payout rail.
+Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSION_BPS`, default `0` = 0% for now) including **competition entry fees** once PAID. Desk cash does **not** credit. Owner sets SHEBA and submits a **withdraw request** from **available** balance (moves to locked until admin paid/reject); ops pays via manual bank transfer. No automated payout rail.
 
 **Available / locked:** `Wallet` / `ClubWallet` keep `balance = availableBalance + lockedBalance`. Class settlements with `classDate` credit **locked** until the Tehran day after class (lazy `UNLOCK`). Packages/comps (`classDate` null) credit **available**.
 
 **Internal transfer:** club ↔ coach record-keeping (`POST /api/owner/transfers`, `POST /api/coach/transfers`) from available only. Athletes never have this.
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261003180000_wallet_available_locked`. Optional env: `PLATFORM_COMMISSION_BPS=1000`, `COACH_COMMISSION_BPS=1000`.
+On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261003180000_wallet_available_locked`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0` (defaults are already 0).
 
 ## Coach lesson settlement
 
-When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlement credits the **coach user wallet** with net after commission (`COACH_COMMISSION_BPS`, else same as `PLATFORM_COMMISSION_BPS`, default 10%) into **locked** until day after class. Athletes stay fee-free at checkout. Court charges paid by the coach (`metadata.source=coach-lesson-court`) still settle to the **club** at **0 bps**. Cancel/refund clawbacks debit the coach wallet (`SETTLEMENT_CLAWBACK`, may go negative).
+When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlement credits the **coach user wallet** with net after commission (`COACH_COMMISSION_BPS`, else same as `PLATFORM_COMMISSION_BPS`, default 0%) into **locked** until day after class. Athletes stay fee-free at checkout. Court charges paid by the coach (`metadata.source=coach-lesson-court`) still settle to the **club** at **0 bps**. Cancel/refund clawbacks debit the coach wallet (`SETTLEMENT_CLAWBACK`, may go negative).
 
 ## Athlete wallet withdraw
 

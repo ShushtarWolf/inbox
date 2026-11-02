@@ -1,8 +1,8 @@
 import { toAsciiDigits } from './digits.ts'
 import { isPastDate } from './localDate.ts'
 
-/** Default 10% platform fee when PLATFORM_COMMISSION_BPS / COACH_COMMISSION_BPS is unset. */
-export const DEFAULT_PLATFORM_COMMISSION_BPS = 1000
+/** Default 0% platform fee when PLATFORM_COMMISSION_BPS / COACH_COMMISSION_BPS is unset. */
+export const DEFAULT_PLATFORM_COMMISSION_BPS = 0
 
 /**
  * Cashout opens the Tehran calendar day after the class date.
@@ -59,7 +59,7 @@ export function resolvePlatformCommissionBps(
 
 /**
  * Resolve coach lesson commission BPS.
- * Uses COACH_COMMISSION_BPS when set; otherwise same as club (`PLATFORM_COMMISSION_BPS` / default 10%).
+ * Uses COACH_COMMISSION_BPS when set; otherwise same as club (`PLATFORM_COMMISSION_BPS` / default 0%).
  */
 export function resolveCoachCommissionBps(
   raw: string | undefined | null = typeof process !== 'undefined' ? process.env.COACH_COMMISSION_BPS : undefined,

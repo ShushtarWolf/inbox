@@ -486,7 +486,7 @@ async function resolveCoachForLessonPayment(
 
 /**
  * Credit payee net-after-commission when a payment becomes PAID.
- * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 10%).
+ * - Coach lesson fees → coach user wallet (COACH_COMMISSION_BPS / platform default 0%).
  * - Club bookings / packages / competition entries / coach-lesson-court → club wallet
  *   (0 bps for court charge).
  * Court/coach class settlements store classDate; cashout opens the Tehran day after.

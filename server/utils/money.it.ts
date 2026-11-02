@@ -237,7 +237,7 @@ suite('money integration (real Postgres)', () => {
     expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(1_000_000)
   })
 
-  it('athlete cancel inside window: no refund, club keeps the net', async () => {
+  it('athlete cancel of IPG booking: wallet credit + club clawback (window no longer zeroes money)', async () => {
     const f = await fixtures()
     const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 600_000, method: 'IPG' })
     await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
@@ -247,11 +247,11 @@ suite('money integration (real Postgres)', () => {
       reason: 'athlete-cancel',
       paymentId: payment.id,
       userId: f.athlete.id,
-      moneyOutcome: 'zero_refund',
+      moneyOutcome: 'full_wallet_refund',
     })
-    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('PAID')
-    expect(await db.wallet.findUnique({ where: { userId: f.athlete.id } })).toBeNull()
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(540_000)
+    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(600_000)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
   })
 
   it('cancel rolls back entirely when the refund cannot be applied (slot stays booked)', async () => {

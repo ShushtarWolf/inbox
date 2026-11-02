@@ -24,7 +24,7 @@ describe('resolveCancelMoneyOutcome', () => {
     })).toBe('full_wallet_refund')
   })
 
-  it('athlete outside window gets full wallet refund', () => {
+  it('athlete always gets full wallet refund (window no longer zeroes money)', () => {
     expect(resolveCancelMoneyOutcome({
       actor: 'athlete',
       date: farDate,
@@ -32,9 +32,6 @@ describe('resolveCancelMoneyOutcome', () => {
       windowHours: 12,
       now,
     })).toBe('full_wallet_refund')
-  })
-
-  it('athlete inside window gets zero refund', () => {
     const soon = localTimeString(new Date(now.getTime() + 2 * 60 * 60 * 1000))
     expect(resolveCancelMoneyOutcome({
       actor: 'athlete',
@@ -42,7 +39,7 @@ describe('resolveCancelMoneyOutcome', () => {
       startTime: soon,
       windowHours: 12,
       now,
-    })).toBe('zero_refund')
+    })).toBe('full_wallet_refund')
   })
 })
 
