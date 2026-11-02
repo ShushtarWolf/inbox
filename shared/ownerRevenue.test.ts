@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paymentRail, summarizeCollectedRevenue } from './ownerRevenue.ts'
+import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue } from './ownerRevenue.ts'
 
 describe('ownerRevenue', () => {
   it('treats athlete wallet (method PAID) as online, not desk cash', () => {
@@ -26,5 +26,33 @@ describe('ownerRevenue', () => {
       { amount: 0, method: 'CASH', status: 'PAID' },
     ])
     expect(summary).toEqual({ cash: 0, online: 400_000, total: 400_000, keptOnCancel: 400_000 })
+  })
+
+  it('counts season sibling PAID zeros as one checkout, not N online events', () => {
+    // Haerizadeh-style: one charged primary + coveredByBookingId siblings at amount 0.
+    const series = [
+      { amount: 4_800_000, method: 'IPG', status: 'PAID' },
+      { amount: 0, method: 'IPG', status: 'PAID' },
+      { amount: 0, method: 'IPG', status: 'PAID' },
+      { amount: 0, method: 'IPG', status: 'PAID' },
+    ]
+    const cashPaid = { amount: 500_000, method: 'CASH', status: 'PAID' }
+    const unpaid = { amount: 400_000, method: 'NOT_PAID', status: 'PAY_AT_CLUB' }
+
+    const checkouts = [...series, cashPaid, unpaid].filter((row) =>
+      isChargedPaidCheckout(row.amount, row.status),
+    )
+    expect(checkouts).toHaveLength(2)
+    expect(checkouts.map((row) => row.amount)).toEqual([4_800_000, 500_000])
+
+    // Mix %: 1 online + 1 cash (+ unpaid separate) — not 4 online.
+    const paidOnline = series.filter((row) =>
+      isChargedPaidCheckout(row.amount, row.status) && paymentRail(row.method) === 'online',
+    ).length
+    const paidCash = isChargedPaidCheckout(cashPaid.amount, cashPaid.status) ? 1 : 0
+    expect(paidOnline).toBe(1)
+    expect(paidCash).toBe(1)
+    // Revenue sum stays on raw amounts (siblings add 0).
+    expect(summarizeCollectedRevenue(series).total).toBe(4_800_000)
   })
 })

@@ -5,7 +5,7 @@ import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
 import { addDaysToIsoDate, localDateString, localTimeString } from '#shared/localDate.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
-import { paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
+import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 
 export default defineEventHandler(async (event) => {
@@ -135,8 +135,15 @@ export default defineEventHandler(async (event) => {
 
   const activeBookings = bookings.filter((booking) => booking.status !== 'CANCELLED')
   const activeSessions = coachSessions.filter((session) => session.status !== 'CANCELLED')
-  const paidBookings = activeBookings.filter((booking) => countsTowardRevenue(booking.status, paymentStatusOf(booking)))
-  const paidSessions = activeSessions.filter((session) => countsTowardRevenue(session.status, paymentStatusOf(session)))
+  // Count charged checkouts only — season siblings are PAID at amount 0.
+  const paidBookings = activeBookings.filter((booking) =>
+    countsTowardRevenue(booking.status, paymentStatusOf(booking))
+    && isChargedPaidCheckout(booking.payment?.amount, paymentStatusOf(booking)),
+  )
+  const paidSessions = activeSessions.filter((session) =>
+    countsTowardRevenue(session.status, paymentStatusOf(session))
+    && isChargedPaidCheckout(session.payment?.amount, paymentStatusOf(session)),
+  )
   // Blocks are desk holds, not receivables — keep them out of unpaid chips/totals.
   const unpaidBookings = activeBookings.filter((booking) => !isBlockedSlot(booking) && isUnpaidPaymentStatus(paymentStatusOf(booking)))
   const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
@@ -263,6 +270,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
+  // PAID amount-0 siblings are covered checkouts — skip them so online % is not inflated.
   const paymentTotals = { PAID_CASH: 0, PAID_IPG: 0, UNPAID: 0 }
   for (const row of monthCourt) {
     if (row.revenue.bookingStatus === 'CANCELLED') continue
@@ -271,11 +279,10 @@ export default defineEventHandler(async (event) => {
       paymentTotals.UNPAID += 1
       continue
     }
-    if (status === 'PAID') {
-      const rail = paymentRail(row.revenue.method)
-      if (rail === 'online') paymentTotals.PAID_IPG += 1
-      else if (rail === 'cash') paymentTotals.PAID_CASH += 1
-    }
+    if (!isChargedPaidCheckout(row.revenue.amount, status)) continue
+    const rail = paymentRail(row.revenue.method)
+    if (rail === 'online') paymentTotals.PAID_IPG += 1
+    else if (rail === 'cash') paymentTotals.PAID_CASH += 1
   }
   const paymentCount = paymentTotals.PAID_CASH + paymentTotals.PAID_IPG + paymentTotals.UNPAID
   const paymentBreakdown = {

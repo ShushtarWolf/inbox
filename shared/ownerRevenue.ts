@@ -36,6 +36,20 @@ export function collectedRail(row: RevenueRow): RevenueRail | null {
   return paymentRail(row.method)
 }
 
+/**
+ * Distinct charged checkout — season/comp siblings stay status PAID at amount 0
+ * and must not inflate paymentBreakdown / paidRate / funnel.paid.
+ * Revenue sums still use raw payment.amount (0 siblings add nothing).
+ */
+export function isChargedPaidCheckout(
+  amount: number | null | undefined,
+  status: string | null | undefined,
+): boolean {
+  if (status !== 'PAID') return false
+  const n = Number(amount)
+  return Number.isFinite(n) && n > 0
+}
+
 export function summarizeCollectedRevenue(rows: RevenueRow[]): RevenueSummary {
   const out: RevenueSummary = { cash: 0, online: 0, total: 0, keptOnCancel: 0 }
   for (const row of rows) {
