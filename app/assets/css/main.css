@@ -1095,11 +1095,18 @@
   }
   .canva-settings-sticky-save {
     position: sticky;
-    bottom: 0;
+    /* Mobile: sit above the fixed owner tab bar; desktop: viewport bottom. */
+    bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
     z-index: 20;
     margin-inline: -0.25rem;
-    padding: 0.75rem 0.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.75rem 0.25rem;
     background: linear-gradient(to top, #fff 75%, rgb(255 255 255 / 0));
+  }
+  @media (min-width: 431px) {
+    .canva-settings-sticky-save {
+      bottom: 0;
+      padding-bottom: calc(0.75rem + var(--sz-safe-bottom));
+    }
   }
   .canva-owner-secondary-cta {
     @apply w-full px-4 py-3 text-sm font-bold;
