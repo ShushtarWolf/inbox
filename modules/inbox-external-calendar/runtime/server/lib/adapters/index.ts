@@ -47,7 +47,8 @@ export async function fetchExternalOccupancy(opts: {
   }
 
   const aloplayOn = aloplaySupported(opts.mapping)
-  const [aloplayRaw, alovarzesh] = await Promise.all([
+  const alovarzeshOn = alovarzeshSupported(opts.mapping)
+  const [aloplayRaw, alovarzeshRaw] = await Promise.all([
     aloplayOn
       ? fetchAloPlayOccupied({
           mapping: opts.mapping,
@@ -64,18 +65,34 @@ export async function fetchExternalOccupancy(opts: {
           slotVerdicts: [],
           error: 'AloPlay paused for this club (supported: false).',
         }),
-    fetchAloVarzeshOccupancy({
-      mapping: opts.mapping,
-      date: opts.date,
-      courts: opts.courts,
-      sessionDurationMinutes: opts.sessionDurationMinutes,
-    }),
+    alovarzeshOn
+      ? fetchAloVarzeshOccupancy({
+          mapping: opts.mapping,
+          date: opts.date,
+          courts: opts.courts,
+          sessionDurationMinutes: opts.sessionDurationMinutes,
+        })
+      : Promise.resolve({
+          source: 'alovarzesh' as const,
+          occupied: [],
+          supported: false,
+          completeness: 'UNKNOWN' as const,
+          health: 'OFFLINE' as const,
+          slotVerdicts: [],
+          error: 'AloVarzesh paused for this club (supported: false).',
+        }),
   ])
 
   const aloplay: ExternalAdapterResult = {
     ...aloplayRaw,
     source: 'aloplay',
     supported: aloplayOn,
+  }
+
+  const alovarzesh: ExternalAdapterResult = {
+    ...alovarzeshRaw,
+    source: 'alovarzesh',
+    supported: alovarzeshOn,
   }
 
   const courtic = await fetchCourticOccupancy()
