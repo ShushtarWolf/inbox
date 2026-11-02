@@ -445,6 +445,17 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       'اینباکس',
     ].filter(Boolean).join(' | ')
   },
+  WITHDRAW_PAID: (data) => {
+    const sheba = String(data.sheba || '').trim()
+    const club = String(data.clubName || '').trim()
+    return [
+      'پرداخت به شباتون انجام شد',
+      club,
+      amountBit(data),
+      sheba ? `شبا ${toPersianDigits(sheba.slice(-4))}` : '',
+      'اینباکس',
+    ].filter(Boolean).join(' | ')
+  },
   ADMIN_CLUB_APPLICATION: (data) => {
     const club = String(data.clubName || '').trim() || 'باشگاه'
     const city = String(data.city || '').trim()

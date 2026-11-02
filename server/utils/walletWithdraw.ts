@@ -17,6 +17,7 @@ import {
   unlockWalletLocked,
 } from './wallet'
 import { notifyAdminWithdrawRequest } from './adminNotify'
+import { notifyUserWithdrawPaid } from './withdrawPaidNotify'
 
 export type BankWithdrawKind = BankWithdrawRail
 
@@ -153,7 +154,8 @@ export async function requestUserWithdraw(options: {
 }
 
 export async function markUserWithdrawPaid(requestId: string, note?: string) {
-  return prisma.$transaction(async (tx) => {
+  let newlyPaid = false
+  const result = await prisma.$transaction(async (tx) => {
     const request = await tx.userWithdrawRequest.findUnique({ where: { id: requestId } })
     if (!request) throw createError({ statusCode: 404, statusMessage: 'Withdraw request not found' })
     if (request.status === 'PAID') return request
@@ -176,8 +178,11 @@ export async function markUserWithdrawPaid(requestId: string, note?: string) {
       note: note || 'Marked paid by admin',
     }, tx)
 
+    newlyPaid = true
     return updated
   })
+  if (newlyPaid) await notifyUserWithdrawPaid(result)
+  return result
 }
 
 export async function rejectUserWithdrawRequest(requestId: string, note?: string) {
