@@ -4742,10 +4742,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'cancel'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
             <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.cancel') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
@@ -4794,10 +4791,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'reserve'" class="venus-modal-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
             <div class="canva-reserve-head mt-1">
               <h3 class="canva-reserve-title">
                 <AppIcon name="person_add" size="sm" class="text-brand-primary" />
@@ -5069,10 +5063,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'payConfirm'" class="venus-modal-panel canva-desk-pay-panel !border-0">
           <div class="venus-modal-panel-header !border-0 !pb-1 !pt-2">
-            <button type="button" class="canva-sheet-back" @click="backFromPayConfirm">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backFromPayConfirm" />
             <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.deskConfirmTitle') }}</h3>
             <p class="mt-1 text-start text-sm font-bold text-brand-navy">{{ clubCalendarTitle }}</p>
           </div>
@@ -5231,10 +5222,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'block'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
             <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.blockFormTitle') }}</h3>
           </div>
           <form class="venus-modal-panel-body venus-form-stack" @submit.prevent="doBlock">
@@ -5578,10 +5566,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'comments'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
             <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.comments') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">
@@ -5616,10 +5601,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="canShowPackageReserve() && activePanel === 'package'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
           </div>
           <div class="venus-modal-panel-body">
             <div
@@ -5857,10 +5839,7 @@ watch(pilotNoCoach, (off) => {
 
         <div v-if="activePanel === 'equipment'" class="venus-modal-panel">
           <div class="venus-modal-panel-header">
-            <button type="button" class="canva-sheet-back" @click="backToMenu">
-              <AppIcon name="arrow_back" size="sm" />
-              {{ t('common.back') }}
-            </button>
+            <AppBackButton class="canva-sheet-back-pos" @click="backToMenu" />
             <h3 class="mt-1 text-start font-bold text-brand-navy">{{ t('owner.equipments') }}</h3>
           </div>
           <div class="venus-modal-panel-body venus-form-stack">

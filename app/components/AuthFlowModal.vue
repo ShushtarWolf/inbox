@@ -716,14 +716,7 @@ onMounted(() => {
         </NuxtLink>
       </div>
       <div v-else class="relative z-[1] flex items-center justify-center px-4 py-3">
-        <button
-          type="button"
-          class="absolute left-4 inline-flex items-center gap-1 text-xs font-bold text-brand-gray-600"
-          @click="goBack"
-        >
-          <AppIcon name="arrow_back" size="sm" />
-          {{ t('common.back') }}
-        </button>
+        <AppBackButton class="absolute left-4" @click="goBack" />
         <span class="h-7" />
       </div>
 
@@ -748,19 +741,18 @@ onMounted(() => {
 
         <!-- Welcome / success — HTML ti-hand-stop in crimson square (not Material ligature) -->
         <div v-if="step === 'welcome'" class="canva-auth-welcome">
-          <div class="canva-auth-welcome-hand" aria-hidden="true">
-            <AuthHandStopIcon :size="20" />
+          <div class="canva-auth-welcome-logo" aria-hidden="true">
+            <InboxBrandLockup height-class="h-10" />
           </div>
-          <p class="canva-auth-welcome-title">{{ t('auth.welcomeHandTitle') }}</p>
+          <p class="canva-auth-welcome-title">{{ t('auth.welcomeInbox') }}</p>
           <p class="text-center text-sm text-brand-gray-600">{{ t('auth.welcomeHandSub') }}</p>
-          <p class="canva-auth-welcome-title mt-2">{{ t('auth.welcomeInbox') }}</p>
           <p v-if="welcomeVariant === 'owner'" class="mt-3 text-center text-xs text-brand-gray-600">
             {{ t('auth.welcomeOwnerReview') }}
           </p>
           <p v-else-if="welcomeVariant === 'coach'" class="mt-3 text-center text-xs text-brand-gray-600">
             {{ t('auth.welcomeCoachReview') }}
           </p>
-          <button type="button" class="canva-gate-btn-primary mt-5" @click="dismissWelcome">
+          <button type="button" class="canva-gate-btn-primary mt-8" @click="dismissWelcome">
             {{ t('auth.welcomeCta') }}
           </button>
         </div>

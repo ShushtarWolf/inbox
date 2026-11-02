@@ -400,8 +400,18 @@
     @apply shrink-0 cursor-pointer bg-brand-gray-100 px-3 py-2 text-xs font-bold text-brand-navy;
     border-radius: var(--sz-canva-radius);
   }
+  /* Unified back button — same style everywhere, pinned top-left (end side in RTL). */
+  .inbox-back-btn {
+    @apply ms-auto inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1 border border-brand-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-brand-navy;
+    border-radius: var(--sz-canva-radius);
+  }
+  .inbox-back-btn:hover { @apply bg-brand-gray-100; }
+  .canva-sheet-back-pos { @apply mb-1 flex w-fit; }
   .canva-auth-welcome {
     @apply space-y-1 py-4 text-center;
+  }
+  .canva-auth-welcome-logo {
+    @apply mx-auto mb-4 flex justify-center;
   }
   /* HTML #pages .welcome>i — crimson square hand (global radius 0 wins over circle) */
   .canva-auth-welcome-hand {
@@ -556,6 +566,14 @@
   .canva-hero-title {
     @apply max-w-xs text-3xl font-bold leading-none;
     color: #fff !important;
+    text-decoration: none !important;
+  }
+  /* Banner second line («رزرو زمین پدل و تنیس») always breaks under the Inbox title. */
+  .canva-hero-subtitle {
+    @apply mt-2 block text-lg font-bold leading-snug;
+  }
+  .canva-hero-home, .canva-hero-home a, .canva-venue-card, .canva-venue-card * {
+    text-decoration: none !important;
   }
   .canva-hero-arrow {
     @apply relative z-20 inline-flex h-11 w-11 shrink-0 items-center justify-center text-white transition hover:text-white/80;
@@ -4169,11 +4187,15 @@
     padding-bottom: 16px;
   }
   .canva-venue-card-title {
-    font-size: 15.5px;
+    font-size: 13px;
+    line-height: 1.35;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   }
   .canva-venue-card-meta {
-    font-size: 11px;
-    color: #ddd;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #f2f2f2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   }
   .canva-venue-card-cta {
     padding: 6px 16px;

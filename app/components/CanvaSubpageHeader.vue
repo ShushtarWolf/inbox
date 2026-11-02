@@ -30,15 +30,9 @@ const href = computed(() => {
   <div class="max-[430px]:space-y-1">
     <header class="canva-home-chrome hidden max-[430px]:flex">
       <div class="flex min-w-0 items-center gap-1">
-        <NuxtLink
-          :to="href"
-          class="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 text-brand-navy"
-          :aria-label="t('common.back')"
-        >
-          <AppIcon name="arrow_forward" size="sm" />
-        </NuxtLink>
         <InboxBrandLockup home-link height-class="h-7" />
       </div>
+      <AppBackButton :to="href" />
     </header>
     <h1
       v-if="title"

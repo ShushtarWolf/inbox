@@ -65,12 +65,14 @@ const sportsForSearch = computed(() =>
 const heroSlides = computed(() => {
   const slides = [
     {
-      title: t('home.heroSlideTitle'),
+      title: 'Inbox',
+      subtitle: t('home.heroSlideSubtitle'),
       body: t('home.heroBody'),
       image: '/hero/tennis-court.jpg',
     },
     {
       title: t('home.bookCourt'),
+      subtitle: '',
       body: t('home.bookCourtHint'),
       image: '/hero/tennis-court.jpg',
     },
@@ -78,6 +80,7 @@ const heroSlides = computed(() => {
   if (listedSports.value.has('padel')) {
     slides.push({
       title: t('home.padelTitle'),
+      subtitle: '',
       body: t('home.clubSectionBody'),
       image: '/hero/padel-court.jpg',
     })
@@ -209,7 +212,10 @@ function clubImageAlt(club: { nameFa?: string; nameEn?: string }) {
       <div class="canva-hero-scrim" aria-hidden="true" />
       <div class="canva-hero-content canva-hero-home-content">
         <div class="space-y-2" :key="heroSlide">
-          <h1 class="canva-hero-title">{{ activeHero?.title }}</h1>
+          <h1 class="canva-hero-title">
+            {{ activeHero?.title }}
+            <span v-if="activeHero?.subtitle" class="canva-hero-subtitle">{{ activeHero.subtitle }}</span>
+          </h1>
           <p class="max-w-sm text-sm text-white/90">{{ activeHero?.body }}</p>
         </div>
 
