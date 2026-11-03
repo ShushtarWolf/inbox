@@ -3,6 +3,7 @@ import { isOnlinePaymentsEnabled, isPaidPaymentStatus, isPaymentPayableOnline } 
 import { parseReceiptToken, signReceiptToken } from '#shared/receiptToken.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { getPaymentService } from '../../../utils/payments/service'
+import { linkPaymentSupersededBy, supersedePayablePaymentForRetry } from '../../../utils/paymentSupersede'
 import { receiptSigningSecret } from '../../../utils/receipt'
 
 function parseMeta(raw: string | null | undefined) {
@@ -59,9 +60,11 @@ export default defineEventHandler(async (event) => {
 
   // Keep series / multi-slot sibling links when replacing the payable row for IPG.
   let preservedMeta: Record<string, unknown> = {}
+  let supersededPaymentId: string | null = null
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     preservedMeta = parseMeta(existingPayment.metadataJson)
-    await prisma.payment.delete({ where: { id: existingPayment.id } })
+    supersededPaymentId = existingPayment.id
+    await supersedePayablePaymentForRetry(existingPayment)
     existingPayment = null
   } else if (existingPayment) {
     return {
@@ -84,6 +87,10 @@ export default defineEventHandler(async (event) => {
     bookingId,
     idempotencyKey: randomBytes(16).toString('hex'),
   })
+
+  if (supersededPaymentId && session.paymentId) {
+    await linkPaymentSupersededBy(supersededPaymentId, session.paymentId)
+  }
 
   const payment = await prisma.payment.findUnique({ where: { id: session.paymentId } })
   if (payment) {

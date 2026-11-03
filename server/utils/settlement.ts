@@ -791,13 +791,17 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
       data: { clawedBackAt: new Date() },
     })
 
-    if (current.ownerNet > 0 && current.coachId) {
+    // Full cancel clawbacks gross when commission was taken so athlete gross refund + club gross
+    // clawback zero-sum (commission returns via club/coach negative balance, not platform loss).
+    const clawbackAmount = current.commission > 0 ? current.gross : current.ownerNet
+
+    if (clawbackAmount > 0 && current.coachId) {
       const coach = await tx.coach.findUnique({
         where: { id: current.coachId },
         select: { userId: true },
       })
       if (coach?.userId) {
-        await debitWallet(coach.userId, current.ownerNet, {
+        await debitWallet(coach.userId, clawbackAmount, {
           type: 'SETTLEMENT_CLAWBACK',
           paymentId,
           bookingId: current.bookingId || undefined,
@@ -806,8 +810,8 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
         }, tx)
       }
     }
-    else if (current.ownerNet > 0 && current.clubId) {
-      await debitClubWallet(current.clubId, current.ownerNet, {
+    else if (clawbackAmount > 0 && current.clubId) {
+      await debitClubWallet(current.clubId, clawbackAmount, {
         type: 'CLAWBACK',
         paymentId,
         bookingId: current.bookingId || undefined,
@@ -901,8 +905,9 @@ export async function clawbackOwnerPartialForPayment(opts: {
         })
       : []
     const alreadyClawed = [...priorClub, ...priorCoach].reduce((sum, row) => sum + Math.abs(row.amount), 0)
-    const remainingNet = Math.max(0, current.ownerNet - alreadyClawed)
-    if (remainingNet <= 0) {
+    const clawCap = current.commission > 0 ? current.gross : current.ownerNet
+    const remaining = Math.max(0, clawCap - alreadyClawed)
+    if (remaining <= 0) {
       await tx.settlementLedgerEntry.update({
         where: { id: current.id },
         data: { clawedBackAt: new Date() },
@@ -910,8 +915,10 @@ export async function clawbackOwnerPartialForPayment(opts: {
       return { clawed: false as const, reason: 'already_clawed' as const, amount: 0, entry: current }
     }
 
-    const proportional = Math.floor((current.ownerNet * opts.grossRefundAmount) / current.gross)
-    const net = Math.min(remainingNet, Math.max(0, proportional))
+    const proportional = current.commission > 0
+      ? Math.floor((current.gross * opts.grossRefundAmount) / current.gross)
+      : Math.floor((current.ownerNet * opts.grossRefundAmount) / current.gross)
+    const net = Math.min(remaining, Math.max(0, proportional))
     if (net <= 0) {
       return { clawed: false as const, reason: 'zero' as const, amount: 0, entry: current }
     }
@@ -941,7 +948,7 @@ export async function clawbackOwnerPartialForPayment(opts: {
       }, tx)
     }
 
-    if (alreadyClawed + net >= current.ownerNet) {
+    if (alreadyClawed + net >= clawCap) {
       await tx.settlementLedgerEntry.update({
         where: { id: current.id },
         data: { clawedBackAt: new Date() },

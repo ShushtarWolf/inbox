@@ -22,6 +22,9 @@ import {
 } from '../../utils/onlinePaymentHold'
 import { notifyPaymentPaidIfNeeded, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
 import { receiptSigningSecret } from '../../utils/receipt'
+import { enqueueMoneyJobsForPaidPayment } from '../../utils/moneyJobs'
+import { linkPaymentSupersededBy, supersedePayablePaymentForRetry } from '../../utils/paymentSupersede'
+import { releaseSplitWalletDebit } from '../../utils/splitPayWallet'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
@@ -236,8 +239,11 @@ export default defineEventHandler(async (event) => {
     })
     await syncPaymentToParent(payment.id)
     await syncCompetitionEntryOnPayment(payment.id)
+    await enqueueMoneyJobsForPaidPayment(payment.id)
     // Concurrent loser: claim skipped — settle is idempotent; skip duplicate paid SMS.
     await creditOwnerForPaidPayment(payment.id, claimedNow ? previousStatus : 'PAID')
+    const { markMoneyJobsDoneForPaidPayment } = await import('../../utils/moneyJobs')
+    await markMoneyJobsDoneForPaidPayment(payment.id)
     if (claimedNow) await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
     return {
       paymentId: payment.id,
@@ -279,9 +285,11 @@ export default defineEventHandler(async (event) => {
   if (body.bookingId) {
     preservedMetadata.receiptToken = signReceiptToken(body.bookingId, receiptSigningSecret())
   }
+  let supersededPaymentId: string | null = null
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     if (!body.competitionEntryId) {
-      await prisma.payment.delete({ where: { id: existingPayment.id } })
+      supersededPaymentId = existingPayment.id
+      await supersedePayablePaymentForRetry(existingPayment)
       existingPayment = null
       amount = payableAmount
     }
@@ -326,38 +334,76 @@ export default defineEventHandler(async (event) => {
     ? competitionJoinIdempotencyKey(competitionId, user.id, body.competitionEntryId)
     : randomBytes(16).toString('hex')
 
-  const session = await service.createIntent({
-    amount: ipgAmount,
-    bookingId: body.bookingId,
-    coachSessionId: body.coachSessionId,
-    packageBookingId: body.packageBookingId,
-    competitionEntryId: body.competitionEntryId,
-    userId: (body.competitionEntryId || useWalletMode === 'partial') ? user.id : undefined,
-    purpose: body.competitionEntryId ? 'competition' : undefined,
-    idempotencyKey,
-    existingPaymentId: body.competitionEntryId && existingPayment
-      ? existingPayment.id
-      : undefined,
-    preservedMetadata: Object.keys(preservedMetadata).length ? preservedMetadata : undefined,
-  })
-
+  let session
   if (useWalletMode === 'partial') {
     const walletPart = Math.floor(Number(preservedMetadata.walletDebitAmount) || 0)
-    try {
+    const pendingPaymentId = await prisma.$transaction(async (tx) => {
+      const row = await tx.payment.create({
+        data: {
+          amount: ipgAmount,
+          method: 'IPG',
+          status: 'PENDING_ONLINE',
+          provider: 'sep',
+          idempotencyKey: `${idempotencyKey}-split`,
+          purpose: body.competitionEntryId ? 'competition' : 'booking',
+          userId: user.id,
+          bookingId: body.bookingId,
+          coachSessionId: body.coachSessionId,
+          packageBookingId: body.packageBookingId,
+          metadataJson: JSON.stringify(preservedMetadata),
+        },
+      })
       await debitWallet(user.id, walletPart, {
         type: 'PAYMENT_DEBIT',
-        paymentId: session.paymentId,
+        paymentId: row.id,
         bookingId: body.bookingId,
         note: 'Split pay wallet portion',
+      }, tx)
+      return row.id
+    })
+
+    try {
+      session = await service.createIntent({
+        amount: ipgAmount,
+        bookingId: body.bookingId,
+        coachSessionId: body.coachSessionId,
+        packageBookingId: body.packageBookingId,
+        competitionEntryId: body.competitionEntryId,
+        userId: user.id,
+        purpose: body.competitionEntryId ? 'competition' : undefined,
+        idempotencyKey,
+        existingPaymentId: pendingPaymentId,
+        preservedMetadata: Object.keys(preservedMetadata).length ? preservedMetadata : undefined,
       })
     }
     catch (err) {
+      await releaseSplitWalletDebit(pendingPaymentId)
       await prisma.payment.update({
-        where: { id: session.paymentId },
+        where: { id: pendingPaymentId },
         data: { status: 'FAILED' },
       }).catch(() => {})
       throw err
     }
+  }
+  else {
+    session = await service.createIntent({
+      amount: ipgAmount,
+      bookingId: body.bookingId,
+      coachSessionId: body.coachSessionId,
+      packageBookingId: body.packageBookingId,
+      competitionEntryId: body.competitionEntryId,
+      userId: (body.competitionEntryId || useWalletMode === 'partial') ? user.id : undefined,
+      purpose: body.competitionEntryId ? 'competition' : undefined,
+      idempotencyKey,
+      existingPaymentId: body.competitionEntryId && existingPayment
+        ? existingPayment.id
+        : undefined,
+      preservedMetadata: Object.keys(preservedMetadata).length ? preservedMetadata : undefined,
+    })
+  }
+
+  if (supersededPaymentId && session.paymentId) {
+    await linkPaymentSupersededBy(supersededPaymentId, session.paymentId)
   }
 
   if (body.competitionEntryId) {

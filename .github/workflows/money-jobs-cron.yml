@@ -1,0 +1,20 @@
+name: Money jobs cron
+
+# Retry SETTLE / TOPUP_CREDIT for PAID payments missing ledger credit (~5 min).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  money-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconcile PAID payments and process money jobs
+        run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/payments/process-money-jobs" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{"reconcile":true}'
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}

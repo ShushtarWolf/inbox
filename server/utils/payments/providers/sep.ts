@@ -3,6 +3,8 @@ import { paymentIntentMetadata } from '#shared/financeDiscount.ts'
 import type { PaymentConfirmOptions, PaymentService } from '#shared/payments.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, tomanToRials } from '#shared/payments.ts'
 import { siteUrl } from '../../email'
+import { enqueueMoneyJobsForPaidPayment } from '../../moneyJobs'
+import { prisma } from '../../prisma'
 import { registerPaymentProvider, toPaymentIntent } from '../registry'
 import {
   isSepSimulatedRef,
@@ -204,13 +206,17 @@ export function sepProvider(): PaymentService {
         if (getPaymentsMode() === 'live') {
           throw createError({ statusCode: 501, statusMessage: 'Simulated SEP confirm blocked in live mode' })
         }
-        const updated = await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'PAID',
-            method: 'IPG',
-            metadataJson: JSON.stringify({ ...meta, confirmedAt: new Date().toISOString(), simulated: true }),
-          },
+        const updated = await prisma.$transaction(async (tx) => {
+          const row = await tx.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'PAID',
+              method: 'IPG',
+              metadataJson: JSON.stringify({ ...meta, confirmedAt: new Date().toISOString(), simulated: true }),
+            },
+          })
+          await enqueueMoneyJobsForPaidPayment(row.id, tx)
+          return row
         })
         return toPaymentIntent(updated)
       }
@@ -283,20 +289,24 @@ export function sepProvider(): PaymentService {
         })
       }
 
-      const updated = await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'PAID',
-          method: 'IPG',
-          metadataJson: JSON.stringify({
-            ...meta,
-            refNum,
-            verifyCode: verified.resultCode,
-            maskedPan: verified.maskedPan,
-            traceNo: verified.traceNo,
-            confirmedAt: new Date().toISOString(),
-          }),
-        },
+      const updated = await prisma.$transaction(async (tx) => {
+        const row = await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'PAID',
+            method: 'IPG',
+            metadataJson: JSON.stringify({
+              ...meta,
+              refNum,
+              verifyCode: verified.resultCode,
+              maskedPan: verified.maskedPan,
+              traceNo: verified.traceNo,
+              confirmedAt: new Date().toISOString(),
+            }),
+          },
+        })
+        await enqueueMoneyJobsForPaidPayment(row.id, tx)
+        return row
       })
       return toPaymentIntent(updated)
     },

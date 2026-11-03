@@ -51,6 +51,19 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  /** Replaced by a newer checkout intent; row kept for wallet / ledger audit trail. */
+  SUPERSEDED
+}
+
+enum MoneyJobType {
+  SETTLE
+  TOPUP_CREDIT
+}
+
+enum MoneyJobStatus {
+  PENDING
+  DONE
+  FAILED
 }
 
 enum PaymentMethod {
@@ -1048,6 +1061,10 @@ model Payment {
   /** booking (default) | topup — top-up rows have userId and no booking parent. */
   purpose        String        @default("booking")
   metadataJson   String?
+  /** When status=SUPERSEDED, points at the replacement payable row. */
+  supersededByPaymentId String?
+  supersededByPayment   Payment?  @relation("PaymentSupersedeChain", fields: [supersededByPaymentId], references: [id], onDelete: SetNull)
+  supersededPayments    Payment[] @relation("PaymentSupersedeChain")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -1060,8 +1077,26 @@ model Payment {
   packageBookingId  String?          @unique
   packageBooking    PackageBooking?  @relation(fields: [packageBookingId], references: [id], onDelete: Cascade)
   competitionEntry  CompetitionEntry?
+  moneyJobs         MoneyJob[]
+  settlementLedgerEntry SettlementLedgerEntry?
 
   @@index([userId, purpose, createdAt])
+  @@index([supersededByPaymentId])
+}
+
+model MoneyJob {
+  id          String          @id @default(cuid())
+  paymentId   String
+  payment     Payment         @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  type        MoneyJobType
+  status      MoneyJobStatus  @default(PENDING)
+  attempts    Int             @default(0)
+  lastError   String?
+  createdAt   DateTime        @default(now())
+  processedAt DateTime?
+
+  @@unique([paymentId, type])
+  @@index([status, createdAt])
 }
 
 model Competition {
@@ -1400,6 +1435,7 @@ model SettlementLedgerEntry {
   coachId   String?
   coach     Coach?  @relation(fields: [coachId], references: [id], onDelete: Cascade)
   paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   bookingId String?
 
   @@index([clubId, createdAt])

@@ -35,6 +35,11 @@ vi.mock('./settlement', () => ({
   creditOwnerForPaidPayment: (...args: unknown[]) => creditOwnerForPaidPayment(...args),
 }))
 
+vi.mock('./moneyJobs', () => ({
+  enqueueMoneyJobsForPaidPayment: vi.fn().mockResolvedValue({ enqueued: 0 }),
+  markMoneyJobsDoneForPaidPayment: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('./competitions', () => ({
   confirmEntryFromPayment: (...args: unknown[]) => confirmEntryFromPayment(...args),
   findCompetitionLatePayTarget: (...args: unknown[]) => findCompetitionLatePayTarget(...args),
