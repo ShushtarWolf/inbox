@@ -49,7 +49,8 @@ async function loginOwnerPassword(page: Page) {
  */
 async function pickFreeClubSlot(page: Page) {
   await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
-  const futureDay = page.getByRole('button', { name: /^انتخاب \d+/ }).first()
+  // Accessible names use Persian digits (e.g. «انتخاب ۱۳ آبان …»), not ASCII.
+  const futureDay = page.getByRole('button', { name: /^انتخاب/ }).first()
   await expect(futureDay).toBeVisible({ timeout: 15_000 })
   await futureDay.click()
   await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
