@@ -42,6 +42,23 @@ async function loginOwnerPassword(page: Page) {
   expect(res.ok()).toBeTruthy()
 }
 
+/**
+ * Club detail defaults to «today». Late-evening CI (Tehran) filters all of today's
+ * start times as past (`isSlotStartInPast`), so the slot grid is empty. Pick the
+ * next selectable calendar day so `ensureSlotsForDate` materializes FREE slots.
+ */
+async function pickFreeClubSlot(page: Page) {
+  await page.getByRole('heading', { name: 'انتخاب تاریخ و زمان' }).scrollIntoViewIfNeeded()
+  const futureDay = page.getByRole('button', { name: /^انتخاب \d+/ }).first()
+  await expect(futureDay).toBeVisible({ timeout: 15_000 })
+  await futureDay.click()
+  await expect(page.locator('.canva-club-slot-grid')).toBeVisible({ timeout: 15_000 })
+
+  const freeSlot = page.locator('button.canva-club-slot:not(.canva-club-slot-booked):not([disabled])').first()
+  await expect(freeSlot).toBeVisible({ timeout: 20_000 })
+  return freeSlot
+}
+
 test.describe('iOS Safari tap guard', () => {
   test('auth modal close does not block search behind it', async ({ page }) => {
     await page.goto('/')
@@ -128,8 +145,7 @@ test.describe('iOS Safari tap guard', () => {
     await page.goto('/clubs/padel-zone-tehran')
     await expect(page.locator('.canva-club-book-cta')).toBeVisible({ timeout: 15_000 })
 
-    const freeSlot = page.locator('.canva-club-slot:not(.canva-club-slot-booked):not([disabled])').first()
-    await expect(freeSlot).toBeVisible({ timeout: 15_000 })
+    const freeSlot = await pickFreeClubSlot(page)
     await freeSlot.click()
     await expect(freeSlot).toHaveClass(/canva-club-slot-active/)
 
