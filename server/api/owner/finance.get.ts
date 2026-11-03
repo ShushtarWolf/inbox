@@ -512,7 +512,13 @@ export default defineEventHandler(async (event) => {
     where: {
       method: 'CASH',
       status: 'REFUNDED',
-      booking: { slot: { court: { clubId: club.id } } },
+      OR: [
+        { booking: { slot: { court: { clubId: club.id } } } },
+        {
+          bookingId: null,
+          metadataJson: { contains: `"detachedClubId":"${club.id}"` },
+        },
+      ],
     },
     orderBy: { updatedAt: 'desc' },
     take: 40,
@@ -530,15 +536,20 @@ export default defineEventHandler(async (event) => {
   })
   const deskCashReturnsOwed = cashRefunded
     .filter((p) => readDeskCashReturn(parsePaymentMetadata(p.metadataJson)) === 'owed')
-    .map((p) => ({
-      paymentId: p.id,
-      amount: p.amount,
-      guestName: [p.booking?.guestName, p.booking?.guestFamily].filter(Boolean).join(' ').trim(),
-      guestMobile: p.booking?.guestMobile || null,
-      date: p.booking?.slot.date || null,
-      startTime: p.booking?.slot.startTime || null,
-      courtName: p.booking?.slot.court.nameFa || null,
-    }))
+    .map((p) => {
+      const meta = parsePaymentMetadata(p.metadataJson)
+      return {
+        paymentId: p.id,
+        amount: p.amount,
+        guestName: [p.booking?.guestName, p.booking?.guestFamily].filter(Boolean).join(' ').trim(),
+        guestMobile: p.booking?.guestMobile || null,
+        date: p.booking?.slot.date
+          || (typeof meta.detachedSlotDate === 'string' ? meta.detachedSlotDate : null),
+        startTime: p.booking?.slot.startTime
+          || (typeof meta.detachedSlotStart === 'string' ? meta.detachedSlotStart : null),
+        courtName: p.booking?.slot.court.nameFa || null,
+      }
+    })
 
   // Open dual-rail books (not period-scoped): till vs online float still on the books.
   const openBookPayments = await prisma.payment.findMany({

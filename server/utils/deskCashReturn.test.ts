@@ -64,4 +64,32 @@ describe('acknowledgeDeskCashReturn', () => {
     await expect(acknowledgeDeskCashReturn({ paymentId: 'pay-cash', clubId: 'club-1' }))
       .rejects.toMatchObject({ statusCode: 409 })
   })
+
+  it('allows ack when booking was detached for re-book (detachedClubId)', async () => {
+    findUnique.mockResolvedValue({
+      ...cashRefunded,
+      booking: null,
+      metadataJson: JSON.stringify({
+        refundChannel: 'desk_cash',
+        deskCashReturn: 'owed',
+        detachedClubId: 'club-1',
+        detachedFromBookingId: 'b-old',
+      }),
+    })
+    const result = await acknowledgeDeskCashReturn({ paymentId: 'pay-cash', clubId: 'club-1' })
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects detached payment for wrong club', async () => {
+    findUnique.mockResolvedValue({
+      ...cashRefunded,
+      booking: null,
+      metadataJson: JSON.stringify({
+        deskCashReturn: 'owed',
+        detachedClubId: 'club-1',
+      }),
+    })
+    await expect(acknowledgeDeskCashReturn({ paymentId: 'pay-cash', clubId: 'club-2' }))
+      .rejects.toMatchObject({ statusCode: 403 })
+  })
 })

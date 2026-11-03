@@ -6,6 +6,7 @@ import {
 } from '#shared/cancelRefund.ts'
 import { syncPaymentToParent } from './paymentSync'
 import { prisma } from './prisma'
+import { resolvePaymentClubId } from './staleBooking'
 
 /**
  * Owner acknowledges that desk till cash was physically returned to the guest.
@@ -35,11 +36,7 @@ export async function acknowledgeDeskCashReturn(options: {
     throw createError({ statusCode: 409, statusMessage: 'Payment is not in REFUNDED state' })
   }
 
-  const clubId = payment.booking?.slot?.court?.clubId
-    || payment.packageBooking?.package?.clubId
-    || payment.competitionEntry?.competition?.clubId
-    || payment.coachSession?.coach?.clubId
-    || null
+  const clubId = resolvePaymentClubId(payment)
   if (!clubId || clubId !== options.clubId) {
     throw createError({ statusCode: 403, statusMessage: 'Payment does not belong to this club' })
   }

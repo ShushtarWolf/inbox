@@ -53,3 +53,24 @@ export function isDetachedCancelledPayment(payment: {
   if (payment.bookingId) return false
   return typeof parsePaymentMetadata(payment.metadataJson).detachedFromBookingId === 'string'
 }
+
+export function readDetachedClubId(metadataJson: string | null | undefined): string | null {
+  const id = parsePaymentMetadata(metadataJson).detachedClubId
+  return typeof id === 'string' && id.length > 0 ? id : null
+}
+
+/** Club that owns this payment row (live FK or detached cancel metadata). */
+export function resolvePaymentClubId(payment: {
+  metadataJson?: string | null
+  booking?: { slot?: { court?: { clubId?: string } } } | null
+  packageBooking?: { package?: { clubId?: string } } | null
+  competitionEntry?: { competition?: { clubId?: string } } | null
+  coachSession?: { coach?: { clubId?: string } } | null
+}): string | null {
+  return payment.booking?.slot?.court?.clubId
+    || payment.packageBooking?.package?.clubId
+    || payment.competitionEntry?.competition?.clubId
+    || payment.coachSession?.coach?.clubId
+    || readDetachedClubId(payment.metadataJson)
+    || null
+}
