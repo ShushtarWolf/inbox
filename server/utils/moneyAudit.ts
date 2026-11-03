@@ -10,6 +10,15 @@ export type MoneyAuditSummary = {
   clubWalletsNegative: number
   userBalanceDrift: number
   clubBalanceDrift: number
+  /** PAID online booking payments with no SettlementLedgerEntry (needs money-jobs retry). */
+  paidWithoutSettlement: number
+  /** PAID top-ups missing TOPUP_CREDIT wallet line. */
+  paidTopUpWithoutCredit: number
+  /** Sum of open ledger commission (platform float — gross − ownerNet, not clawed). */
+  openPlatformCommissionToman: number
+  pendingMoneyJobs: number
+  failedMoneyJobs: number
+  reversePendingPayments: number
   alert: boolean
 }
 
@@ -21,6 +30,12 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     manualBankRefundsOwed,
     userWalletsNegative,
     clubWalletsNegative,
+    paidWithoutSettlement,
+    paidTopUpWithoutCredit,
+    openPlatformCommission,
+    pendingMoneyJobs,
+    failedMoneyJobs,
+    reversePendingPayments,
   ] = await Promise.all([
     prisma.$queryRaw<Array<{ c: bigint }>>`
       SELECT COUNT(*)::bigint AS c
@@ -43,6 +58,35 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     }),
     prisma.wallet.count({ where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] } }),
     prisma.clubWallet.count({ where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] } }),
+    prisma.payment.count({
+      where: {
+        status: 'PAID',
+        purpose: { not: 'topup' },
+        method: { not: 'CASH' },
+        settlementLedgerEntry: { is: null },
+      },
+    }),
+    prisma.$queryRaw<Array<{ c: bigint }>>`
+      SELECT COUNT(*)::bigint AS c FROM "Payment" p
+      WHERE p.status = 'PAID' AND p.purpose = 'topup'
+        AND NOT EXISTS (
+          SELECT 1 FROM "WalletTransaction" t
+          WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'
+        )
+    `.then((rows) => Number(rows[0]?.c || 0)),
+    prisma.$queryRaw<Array<{ s: bigint | null }>>`
+      SELECT COALESCE(SUM(e.commission), 0)::bigint AS s
+      FROM "SettlementLedgerEntry" e
+      WHERE e."clawedBackAt" IS NULL AND e.commission > 0
+    `.then((rows) => Number(rows[0]?.s || 0)),
+    prisma.moneyJob.count({ where: { status: 'PENDING' } }).catch(() => 0),
+    prisma.moneyJob.count({ where: { status: 'FAILED' } }).catch(() => 0),
+    prisma.payment.count({
+      where: {
+        status: 'PAID',
+        metadataJson: { contains: '"reversePending":true' },
+      },
+    }),
   ])
 
   // Drift: sample wallets where balance ≠ Σ signed (lightweight; full formula in audit script).
@@ -83,6 +127,12 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     clubWalletsNegative,
     userBalanceDrift: Number(userDrift[0]?.c || 0),
     clubBalanceDrift: Number(clubDrift[0]?.c || 0),
+    paidWithoutSettlement,
+    paidTopUpWithoutCredit,
+    openPlatformCommissionToman: openPlatformCommission,
+    pendingMoneyJobs,
+    failedMoneyJobs,
+    reversePendingPayments,
     alert: false,
   }
   summary.alert = (
@@ -93,6 +143,9 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     + summary.clubWalletsNegative
     + summary.userBalanceDrift
     + summary.clubBalanceDrift
+    + summary.paidWithoutSettlement
+    + summary.paidTopUpWithoutCredit
+    + summary.failedMoneyJobs
   ) > 0
   return summary
 }

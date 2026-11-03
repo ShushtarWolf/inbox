@@ -50,6 +50,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
     amount: number
     createdAt: string
     note?: string | null
+    refundChannelKey?: string | null
   }>
 }>('/api/wallet')
 
@@ -118,8 +119,11 @@ watch(customAmount, () => {
   selectedPreset.value = null
 })
 
-function txLabel(tx: { type?: string; amount: number }) {
-  if (tx.type === 'REFUND_CREDIT') return t('athlete.walletTypeRefund')
+function txLabel(tx: { type?: string; amount: number; refundChannelKey?: string | null }) {
+  if (tx.type === 'REFUND_CREDIT') {
+    if (tx.refundChannelKey) return t(tx.refundChannelKey)
+    return t('athlete.walletTypeRefund')
+  }
   if (tx.type === 'PAYMENT_DEBIT') return t('athlete.walletTypePayment')
   if (tx.type === 'TOPUP_CREDIT') return t('athlete.walletTypeTopUp')
   if (tx.type === 'WITHDRAW_HOLD') return t('athlete.walletTypeWithdrawHold')

@@ -191,7 +191,18 @@ Prisma `PaymentMethod.PAID` means **wallet rail** (not “status paid”). UI/re
 
 ## Split pay (wallet + IPG)
 
-Checkout `useWallet: 'partial'` debits `min(available, price)` then creates an IPG intent for the remainder (`metadata.splitPay`, `walletDebitAmount`, `splitFullAmount`). On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB transaction** as the pending `Payment` row, then attaches the SEP intent. On `createIntent` failure, `releaseSplitWalletDebit` runs before surfacing the error. On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+
+## Money reliability (jobs / audit / CI)
+
+- **`MoneyJob` outbox** — enqueued when `Payment` → `PAID` (SEP confirm txn + confirm path). Types: `SETTLE`, `TOPUP_CREDIT`. Worker: `POST /api/admin/payments/process-money-jobs` (cron ~5 min). Idempotent with `SettlementLedgerEntry` / wallet partial uniques.
+- **Checkout retry** — payable IPG rows are **`SUPERSEDED`** (not deleted); `supersededByPaymentId` links to the replacement intent.
+- **`runMoneyAudit`** — adds `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job and `reversePending` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
+- **CI** — `npm run check:money-safety` blocks new `payment.delete` under `server/` (except catalog wipe utilities).
+
+## Guest IPG refunds
+
+Pay-link guests without a login still queue **`manualBankRefund=owed`** when no wallet user matches `guestMobile`. If the phone matches an existing user (`findUserIdByPhone`), refund credits that wallet and sets `metadata.guestRefundViaPhoneWallet=true` — ops should still verify identity before relying on phone match. Full guest-wallet product (mandatory login for IPG) remains a later decision.
 
 ## Desk mark-unpaid
 

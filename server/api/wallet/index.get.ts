@@ -1,4 +1,5 @@
 import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
+import { refundChannelFromPaymentMetadata, refundChannelI18nKey } from '#shared/refundChannelLabel.ts'
 import { totalUserWithdrawable } from '#shared/walletWithdrawRail.ts'
 import {
   getAthleteCashOutBalance,
@@ -122,6 +123,27 @@ export default defineEventHandler(async (event) => {
     })),
   )
 
+  const paymentIds = [...new Set(
+    (wallet?.transactions || [])
+      .filter((tx) => tx.type === 'REFUND_CREDIT' && tx.paymentId)
+      .map((tx) => tx.paymentId as string),
+  )]
+  const refundMetaByPayment = paymentIds.length
+    ? Object.fromEntries(
+        (await prisma.payment.findMany({
+          where: { id: { in: paymentIds } },
+          select: { id: true, metadataJson: true },
+        })).map((p) => [p.id, p.metadataJson]),
+      )
+    : {}
+
+  const transactions = (wallet?.transactions || []).map((tx) => {
+    if (tx.type !== 'REFUND_CREDIT' || !tx.paymentId) return tx
+    const channel = refundChannelFromPaymentMetadata(refundMetaByPayment[tx.paymentId])
+    const refundChannelKey = refundChannelI18nKey(channel)
+    return refundChannelKey ? { ...tx, refundChannelKey } : tx
+  })
+
   return {
     balance: balances.availableBalance,
     totalBalance: balances.balance,
@@ -152,7 +174,7 @@ export default defineEventHandler(async (event) => {
     },
     /** Cash rail — accounting only; never spendable in the app wallet. */
     cashDesk,
-    transactions: wallet?.transactions || [],
+    transactions,
     pendingWithdraws,
     withdraws: recentWithdraws,
   }

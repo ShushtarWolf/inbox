@@ -135,6 +135,22 @@ async function processOneMoneyJob(job: {
   }
 }
 
+/** Re-queue FAILED jobs (e.g. after deploy fix) — caps attempts reset not required. */
+export async function requeueFailedMoneyJobs(limit = 30) {
+  const jobs = await prisma.moneyJob.findMany({
+    where: { status: 'FAILED' },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+  })
+  for (const job of jobs) {
+    await prisma.moneyJob.update({
+      where: { id: job.id },
+      data: { status: 'PENDING', lastError: null },
+    })
+  }
+  return { requeued: jobs.length }
+}
+
 /** Worker: process pending money jobs (cron / admin). */
 export async function processPendingMoneyJobs(limit = 50) {
   const jobs = await prisma.moneyJob.findMany({
