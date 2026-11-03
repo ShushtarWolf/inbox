@@ -478,10 +478,14 @@ export async function confirmPaymentAndSync(
   const intent = await service.confirm(providerRef, opts)
   await syncPaymentToParent(intent.id)
   if (intent.status === 'PAID') {
+    const { enqueueMoneyJobsForPaidPayment } = await import('./moneyJobs')
+    await enqueueMoneyJobsForPaidPayment(intent.id)
     const { promoteSplitPayAmountOnPaid } = await import('./splitPayWallet')
     await promoteSplitPayAmountOnPaid(intent.id)
     await creditWalletForTopUpPayment(intent.id, previousStatus)
     await creditOwnerForPaidPayment(intent.id, previousStatus)
+    const { markMoneyJobsDoneForPaidPayment } = await import('./moneyJobs')
+    await markMoneyJobsDoneForPaidPayment(intent.id)
     await syncCompetitionEntryOnPayment(intent.id)
     await notifyPaidIfNeeded(intent.id, previousStatus)
     if (before?.purpose === 'topup' && previousStatus !== 'PAID') {

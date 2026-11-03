@@ -95,6 +95,7 @@ export function isPaymentRefundable(status: string): boolean {
 
 export function isPaymentPayableOnline(status: string): boolean {
   // FAILED must be retriable (test-gateway NOK / bank decline) — new checkout intent replaces the row.
+  // SUPERSEDED is terminal history; retry creates a new Payment row.
   return ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'].includes(status)
 }
 

@@ -162,7 +162,7 @@ Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSIO
 
 **Rounding:** commission / refund BPS use `floor` (`splitSettlement`, `refundAmountFromBps`); leftover 1 toman on splits stays with platform net.
 
-**Commission float (Y4):** when `PLATFORM_COMMISSION_BPS > 0`, athlete refund is gross×bps but clawback is ownerNet only — platform commission is not returned from a tracked float. Default bps is `0`.
+**Commission refund (Y4):** when `PLATFORM_COMMISSION_BPS` / `COACH_COMMISSION_BPS` > 0`, full cancel refunds the athlete **gross** (what they paid) and claws back the payee **gross** from club/coach wallet (`allowNegative` on the commission slice). That keeps platform/athlete/club zero-sum without a separate platform float account. Partial series refunds claw back pro-rata on the same gross basis. Defaults remain **0%** — do not enable non-zero bps in production until finance signs off.
 
 **Internal transfer:** club ↔ coach record-keeping (`POST /api/owner/transfers`, `POST /api/coach/transfers`) from available only. Athletes never have this.
 
@@ -191,7 +191,18 @@ Prisma `PaymentMethod.PAID` means **wallet rail** (not “status paid”). UI/re
 
 ## Split pay (wallet + IPG)
 
-Checkout `useWallet: 'partial'` debits `min(available, price)` then creates an IPG intent for the remainder (`metadata.splitPay`, `walletDebitAmount`, `splitFullAmount`). On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB transaction** as the pending `Payment` row, then attaches the SEP intent. On `createIntent` failure, `releaseSplitWalletDebit` runs before surfacing the error. On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+
+## Money reliability (jobs / audit / CI)
+
+- **`MoneyJob` outbox** — enqueued when `Payment` → `PAID` (SEP confirm txn + confirm path). Types: `SETTLE`, `TOPUP_CREDIT`. Worker: `POST /api/admin/payments/process-money-jobs` (cron ~5 min). Idempotent with `SettlementLedgerEntry` / wallet partial uniques.
+- **Checkout retry** — payable IPG rows are **`SUPERSEDED`** (not deleted); `supersededByPaymentId` links to the replacement intent.
+- **`runMoneyAudit`** — adds `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job and `reversePending` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
+- **CI** — `npm run check:money-safety` blocks new `payment.delete` under `server/` (except catalog wipe utilities).
+
+## Guest IPG refunds
+
+Pay-link guests without a login still queue **`manualBankRefund=owed`** when no wallet user matches `guestMobile`. If the phone matches an existing user (`findUserIdByPhone`), refund credits that wallet and sets `metadata.guestRefundViaPhoneWallet=true` — ops should still verify identity before relying on phone match. Full guest-wallet product (mandatory login for IPG) remains a later decision.
 
 ## Desk mark-unpaid
 

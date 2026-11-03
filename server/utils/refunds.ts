@@ -201,11 +201,19 @@ export async function refundPaymentForCancellation(options: {
       || reverseWalletRestock > 0
     )
 
+  const guestLinkedByPhone = Boolean(
+    !payment.userId
+    && creditUserId
+    && payment.booking?.guestMobile,
+  )
   const nextMeta = buildCancelRefundMetadata(existingMeta, {
     channel,
     reason: options.reason,
     manualRefund: channel === 'wallet_closed_loop' && !canCreditAthlete && payment.method !== 'NOT_PAID',
   })
+  if (guestLinkedByPhone) {
+    nextMeta.guestRefundViaPhoneWallet = true
+  }
   if (gatewayRefunded) {
     nextMeta.gatewayReversed = true
     nextMeta.gatewayRefund = true

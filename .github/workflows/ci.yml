@@ -58,6 +58,7 @@ jobs:
       - run: npm run check:i18n
       - run: npm run check:no-student-promo-ui
       - run: npm run check:ios-hit-testing
+      - run: npm run check:money-safety
       - run: npm run build
       - run: npm test
       - run: node scripts/ci-smoke.mjs

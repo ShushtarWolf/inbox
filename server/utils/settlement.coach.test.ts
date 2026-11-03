@@ -168,7 +168,10 @@ describe('coach lesson settlement', () => {
       paymentId: 'pay-lesson',
       coachId: 'coach-1',
       clubId: null,
+      gross: 500_000,
       ownerNet: 450_000,
+      commission: 50_000,
+      commissionBps: 1000,
       bookingId: 'sess-1',
       clawedBackAt: null,
     })
@@ -180,13 +183,50 @@ describe('coach lesson settlement', () => {
     expect(result.clawed).toBe(true)
     expect(debitWallet).toHaveBeenCalledWith(
       'user-coach',
-      450_000,
+      500_000,
       expect.objectContaining({
         type: 'SETTLEMENT_CLAWBACK',
         allowNegative: true,
         paymentId: 'pay-lesson',
       }),
       expect.anything(),
+    )
+  })
+
+  it('club full cancel at bps=500 claws back gross for zero-sum refund', async () => {
+    findUniqueLedger.mockResolvedValue({
+      id: 'led-club',
+      paymentId: 'pay-court',
+      coachId: null,
+      clubId: 'club-1',
+      gross: 100_000,
+      ownerNet: 95_000,
+      commission: 5_000,
+      commissionBps: 500,
+      bookingId: 'bk-1',
+      clawedBackAt: null,
+    })
+    updateLedger.mockResolvedValue({})
+    clubWalletUpsert.mockResolvedValue({
+      id: 'cw-1',
+      clubId: 'club-1',
+      balance: 95_000,
+      availableBalance: 95_000,
+      lockedBalance: 0,
+    })
+
+    const result = await clawbackOwnerForPayment('pay-court')
+
+    expect(result.clawed).toBe(true)
+    expect(clubWalletUpdate).toHaveBeenCalled()
+    expect(clubWalletTxCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          amount: -100_000,
+          type: 'CLAWBACK',
+          paymentId: 'pay-court',
+        }),
+      }),
     )
   })
 

@@ -224,7 +224,7 @@ suite('money integration (real Postgres)', () => {
     const athleteWallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
     const clubWallet = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
     expect(athleteWallet.availableBalance).toBe(1_000_000)
-    expect(clubWallet.balance).toBe(0)
+    expect(clubWallet.balance).toBe(-100_000)
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
     expect((await db.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('CANCELLED')
     expect((await db.slot.findUniqueOrThrow({ where: { id: slot.id } })).displayStatus).toBe('FREE')
@@ -251,7 +251,7 @@ suite('money integration (real Postgres)', () => {
     })
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
     expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(600_000)
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(-60_000)
   })
 
   it('cancel rolls back entirely when the refund cannot be applied (slot stays booked)', async () => {
@@ -307,7 +307,7 @@ suite('money integration (real Postgres)', () => {
     const row = await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
     expect(row.status).toBe('REFUNDED')
     expect(JSON.parse(row.metadataJson || '{}').manualRefundRequired).toBe(true)
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(-30_000)
   })
 
   it('re-booking a cancelled slot keeps the old payment (detached, not cascaded)', async () => {
@@ -408,6 +408,38 @@ suite('money integration (real Postgres)', () => {
     const athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
     expect(athlete.availableBalance).toBe(100_000)
     const club = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
-    expect(club.balance).toBe(90_000)
+    expect(club.balance).toBe(80_000)
+  })
+
+  it('money-jobs worker settles PAID IPG when confirm side-effects were skipped', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: future, amount: 800_000, method: 'IPG' })
+    const { reconcilePaidPaymentsMissingLedger } = await import('./moneyJobs')
+    await reconcilePaidPaymentsMissingLedger()
+    const wallet = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
+    expect(wallet.balance).toBe(720_000)
+    expect(await db.settlementLedgerEntry.count({ where: { paymentId: payment.id } })).toBe(1)
+    expect(await db.moneyJob.findFirst({ where: { paymentId: payment.id, status: 'DONE' } })).not.toBeNull()
+  })
+
+  it('superseded checkout row stays in DB with chain pointer', async () => {
+    const f = await fixtures()
+    const old = await db.payment.create({
+      data: {
+        amount: 100_000,
+        method: 'IPG',
+        status: 'SUPERSEDED',
+        provider: 'sep',
+        bookingId: null,
+      },
+    })
+    const { payment: replacement } = await paidBooking(f, { date: future, amount: 100_000, method: 'IPG' })
+    await db.payment.update({
+      where: { id: old.id },
+      data: { supersededByPaymentId: replacement.id },
+    })
+    const kept = await db.payment.findUniqueOrThrow({ where: { id: old.id } })
+    expect(kept.status).toBe('SUPERSEDED')
+    expect(kept.supersededByPaymentId).toBe(replacement.id)
   })
 })

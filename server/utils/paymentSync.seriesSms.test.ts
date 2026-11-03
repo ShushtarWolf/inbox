@@ -12,6 +12,10 @@ vi.mock('./payments/service', () => ({ getPaymentService: () => ({}) }))
 vi.mock('./refunds', () => ({ refundPaymentForCancellation: vi.fn() }))
 vi.mock('./wallet', () => ({ creditWalletForTopUpPayment: vi.fn() }))
 vi.mock('./settlement', () => ({ creditOwnerForPaidPayment: vi.fn() }))
+vi.mock('./moneyJobs', () => ({
+  enqueueMoneyJobsForPaidPayment: vi.fn().mockResolvedValue({ enqueued: 0 }),
+  markMoneyJobsDoneForPaidPayment: vi.fn().mockResolvedValue(undefined),
+}))
 vi.mock('./competitions', () => ({
   confirmEntryFromPayment: vi.fn(),
   findCompetitionLatePayTarget: vi.fn(),

@@ -34,6 +34,10 @@ jobs:
       # Safe when PACKAGES_ENABLED is off (endpoint is admin-secret only, no packages gate).
       - name: Expire stale PENDING package seats
         run: |
+          curl -sf -X POST "https://inboxs.ir/api/admin/payments/process-money-jobs" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{"reconcile":true}' || true
           curl -sf -X POST "https://inboxs.ir/api/admin/packages/expire-pending" \
             -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
         env:
