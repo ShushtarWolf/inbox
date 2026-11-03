@@ -359,12 +359,34 @@ export default defineEventHandler(async (event) => {
     return 'normal' as const
   }
 
+  function seasonLedgerContext(payment: { metadataJson?: string | null } | null | undefined) {
+    const meta = parseSeriesPaymentMeta(payment?.metadataJson)
+    const coveredByBookingId = meta.coveredByBookingId?.trim() || null
+    const siblingIds = meta.groupSiblingBookingIds || []
+    const seasonSessionCount = siblingIds.length > 0 ? siblingIds.length + 1 : null
+    return { coveredByBookingId, seasonSessionCount, seasonBookingId: meta.seasonBookingId?.trim() || null }
+  }
+
+  const seasonBookingCounts = new Map<string, number>()
+  for (const booking of listBookings) {
+    const { seasonBookingId } = seasonLedgerContext(booking.payment)
+    if (seasonBookingId) {
+      seasonBookingCounts.set(seasonBookingId, (seasonBookingCounts.get(seasonBookingId) || 0) + 1)
+    }
+  }
+
   const bookingTransactions = [
     ...listBookings.map((booking) => {
       const isCoachSession = Boolean(booking.coachId)
       const courtName = toPersianDigits(booking.slot.court.nameFa)
       const coachName = booking.coach?.nameFa ? toPersianDigits(booking.coach.nameFa) : ''
       const paymentStatus = paymentStatusOf(booking)
+      const seriesLedger = seasonLedgerContext(booking.payment)
+      let seasonSessionCount = seriesLedger.seasonSessionCount
+      if (!seasonSessionCount && seriesLedger.seasonBookingId) {
+        const total = seasonBookingCounts.get(seriesLedger.seasonBookingId)
+        if (total && total > 1) seasonSessionCount = total
+      }
       return {
         id: booking.id,
         guestName: resolveLinkedGuestDisplayName({
@@ -393,6 +415,8 @@ export default defineEventHandler(async (event) => {
           packageDraftId: booking.packageDraftId,
           events: booking.events,
         }),
+        coveredByBookingId: seriesLedger.coveredByBookingId,
+        seasonSessionCount,
         equipmentSummary: booking.bookingEquipments
           .map((item) => {
             const qty = Math.max(1, item.quantity || 1)
@@ -413,6 +437,7 @@ export default defineEventHandler(async (event) => {
     }),
     ...listSessions.map((session) => {
       const paymentStatus = paymentStatusOf(session)
+      const seriesLedger = seasonLedgerContext(session.payment)
       return {
         id: session.id,
         guestName: session.athlete.name,
@@ -433,6 +458,8 @@ export default defineEventHandler(async (event) => {
         displayStatus: null,
         comments: null,
         isRecurring: isOwnerRecurringBooking({ events: session.events }),
+        coveredByBookingId: seriesLedger.coveredByBookingId,
+        seasonSessionCount: seriesLedger.seasonSessionCount,
         unpaid: session.status !== 'CANCELLED' && isUnpaidPaymentStatus(paymentStatus),
         ...discountFields(amountOfSession(session), session.payment?.metadataJson),
       }

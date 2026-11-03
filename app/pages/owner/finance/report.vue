@@ -19,6 +19,8 @@ type OwnerFinanceTransaction = {
   displayStatus?: string | null
   comments?: string | null
   isRecurring?: boolean | null
+  coveredByBookingId?: string | null
+  seasonSessionCount?: number | null
   kind?: string
   bookingKind?: 'normal' | 'package' | 'coach' | string
   sessionType?: 'free' | 'coach' | string
@@ -220,6 +222,12 @@ function showSessionValue(tx: OwnerFinanceTransaction) {
   return value > 0 && value !== Number(tx.amount || 0)
 }
 
+function seasonSeriesSubline(tx: OwnerFinanceTransaction) {
+  const count = Number(tx.seasonSessionCount || 0)
+  if (count <= 1) return ''
+  return t('owner.seasonSeriesLabel', { count: formatNumber(count) })
+}
+
 function downloadReport() {
   const headers = [
     t('owner.financeTable.reservation'),
@@ -346,6 +354,7 @@ function downloadReport() {
                   <bdi dir="ltr">{{ stampTime(tx.paidAt) }}</bdi>
                 </p>
                 <p v-if="tx.guestName" class="mt-0.5 text-xs text-brand-gray-600">{{ tx.guestName }}</p>
+                <p v-if="seasonSeriesSubline(tx)" class="mt-0.5 text-[11px] text-brand-gray-600">{{ seasonSeriesSubline(tx) }}</p>
                 <p v-if="tx.discountCode || tx.discountAmount" class="mt-0.5 text-xs text-brand-primary">
                   <bdi v-if="tx.discountCode" dir="ltr">{{ tx.discountCode }}</bdi>
                   <template v-else-if="tx.complimentary">{{ t('owner.financeTable.complimentary') }}</template>
