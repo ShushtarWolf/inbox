@@ -165,7 +165,13 @@ test.describe('iOS Safari tap guard', () => {
     await expect(overlay).toHaveCount(0, { timeout: 10_000 })
     await page.waitForTimeout(250)
 
+    // Confirm sheet close may clear basket — re-tap slot to prove page controls work (iOS hit-test).
+    if (!(await cta.isEnabled())) {
+      await freeSlot.click()
+      await expect(freeSlot).toHaveClass(/canva-club-slot-active/)
+    }
     await expect(cta).toBeEnabled()
+    await cta.scrollIntoViewIfNeeded()
     await cta.click()
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
   })
