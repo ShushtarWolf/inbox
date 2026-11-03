@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { isWalletTopUpPayment } from '#shared/walletTopUp.ts'
 import { prisma } from './prisma'
 import { creditOwnerForPaidPayment } from './settlement'
+import { promoteSplitPayAmountOnPaid } from './splitPayWallet'
 import { creditWalletForTopUpPayment } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -29,30 +30,14 @@ export async function enqueueMoneyJobsForPaidPayment(
   if (types.length === 0) return { enqueued: 0 as const }
 
   const jobModel = (db as typeof prisma).moneyJob
-  if (!jobModel?.create) return { enqueued: 0 as const }
+  if (!jobModel?.createMany) return { enqueued: 0 as const }
 
-  let enqueued = 0
-  for (const type of types) {
-    try {
-      await jobModel.create({
-        data: { paymentId, type, status: 'PENDING' },
-      })
-      enqueued += 1
-    }
-    catch (err) {
-      const code = err && typeof err === 'object' && 'code' in err
-        ? String((err as { code: unknown }).code)
-        : ''
-      if (
-        code === 'P2002'
-        || (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')
-      ) {
-        continue
-      }
-      throw err
-    }
-  }
-  return { enqueued }
+  // skipDuplicates (ON CONFLICT DO NOTHING): a caught P2002 would still abort the caller's Postgres txn.
+  const { count } = await jobModel.createMany({
+    data: types.map((type) => ({ paymentId, type, status: 'PENDING' as const })),
+    skipDuplicates: true,
+  })
+  return { enqueued: count }
 }
 
 async function markJobDone(jobId: string, db: DbClient) {
@@ -62,12 +47,24 @@ async function markJobDone(jobId: string, db: DbClient) {
   })
 }
 
-/** After synchronous confirm/settle succeeded, clear matching pending jobs. */
+/**
+ * Clear pending jobs whose effect already exists (ledger row / TOPUP_CREDIT line).
+ * Never close a job just because the sync path ran — a repeat callback is a no-op there.
+ */
 export async function markMoneyJobsDoneForPaidPayment(paymentId: string, db: DbClient = prisma) {
   const jobs = (db as typeof prisma).moneyJob
   if (!jobs?.updateMany) return
+  const [ledger, topUpCredit] = await Promise.all([
+    db.settlementLedgerEntry.findUnique({ where: { paymentId }, select: { id: true } }),
+    db.walletTransaction.findFirst({ where: { paymentId, type: 'TOPUP_CREDIT' }, select: { id: true } }),
+  ])
+  const doneTypes = [
+    ...(ledger ? ['SETTLE' as const] : []),
+    ...(topUpCredit ? ['TOPUP_CREDIT' as const] : []),
+  ]
+  if (!doneTypes.length) return
   await jobs.updateMany({
-    where: { paymentId, status: 'PENDING' },
+    where: { paymentId, status: 'PENDING', type: { in: doneTypes } },
     data: { status: 'DONE', processedAt: new Date(), lastError: null },
   })
 }
@@ -114,6 +111,8 @@ async function processOneMoneyJob(job: {
       return { processed: false as const, reason: result.reason }
     }
 
+    // Crash between SEP confirm and the sync path skips promote — settle the full split price.
+    await promoteSplitPayAmountOnPaid(job.paymentId)
     const result = await creditOwnerForPaidPayment(job.paymentId, 'PENDING_ONLINE')
     if (
       result.credited
@@ -165,9 +164,21 @@ export async function processPendingMoneyJobs(limit = 50) {
   return { scanned: jobs.length, results }
 }
 
+/** Effect is still missing, so a DONE job here was closed wrongly — reopen it. */
+async function reopenMoneyJob(paymentId: string, type: 'SETTLE' | 'TOPUP_CREDIT') {
+  await prisma.moneyJob.createMany({
+    data: [{ paymentId, type, status: 'PENDING' }],
+    skipDuplicates: true,
+  })
+  await prisma.moneyJob.updateMany({
+    where: { paymentId, type, status: 'DONE' },
+    data: { status: 'PENDING', processedAt: null },
+  })
+}
+
 /**
  * Safety net: PAID booking payments without settlement ledger, and top-ups without TOPUP_CREDIT.
- * Enqueues jobs then processes pending queue.
+ * Newest first; FAILED jobs are skipped (ops summary lists them) so they cannot starve the window.
  */
 export async function reconcilePaidPaymentsMissingLedger(limit = 40) {
   const paidBooking = await prisma.payment.findMany({
@@ -176,38 +187,33 @@ export async function reconcilePaidPaymentsMissingLedger(limit = 40) {
       purpose: { not: 'topup' },
       method: { not: 'CASH' },
       settlementLedgerEntry: { is: null },
+      moneyJobs: { none: { type: 'SETTLE', status: 'FAILED' } },
     },
     select: { id: true },
+    orderBy: { createdAt: 'desc' },
     take: limit,
   })
 
-  const paidTopUpCandidates = await prisma.payment.findMany({
-    where: {
-      status: 'PAID',
-      purpose: 'topup',
-    },
-    select: { id: true },
-    take: limit * 2,
-  })
-  const creditedTopUpIds = paidTopUpCandidates.length
-    ? (await prisma.walletTransaction.findMany({
-        where: {
-          paymentId: { in: paidTopUpCandidates.map((p) => p.id) },
-          type: 'TOPUP_CREDIT',
-        },
-        select: { paymentId: true },
-      })).map((row) => row.paymentId).filter(Boolean) as string[]
-    : []
-  const creditedSet = new Set(creditedTopUpIds)
-  const paidTopUp = paidTopUpCandidates
-    .filter((p) => !creditedSet.has(p.id))
-    .slice(0, limit)
+  const paidTopUp = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT p.id FROM "Payment" p
+    WHERE p.status = 'PAID' AND p.purpose = 'topup'
+      AND NOT EXISTS (
+        SELECT 1 FROM "WalletTransaction" t
+        WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM "MoneyJob" j
+        WHERE j."paymentId" = p.id AND j.type = 'TOPUP_CREDIT' AND j.status = 'FAILED'
+      )
+    ORDER BY p."createdAt" DESC
+    LIMIT ${limit}
+  `
 
   for (const row of paidBooking) {
-    await enqueueMoneyJobsForPaidPayment(row.id)
+    await reopenMoneyJob(row.id, 'SETTLE')
   }
   for (const row of paidTopUp) {
-    await enqueueMoneyJobsForPaidPayment(row.id)
+    await reopenMoneyJob(row.id, 'TOPUP_CREDIT')
   }
 
   return processPendingMoneyJobs(limit)

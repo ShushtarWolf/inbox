@@ -79,8 +79,40 @@ describe('refundPaymentForCancellation SEP reverse', () => {
     expect(clawbackOwnerForPayment).toHaveBeenCalled()
   })
 
+  it('partial refund inside reverse window: no card reverse, wallet share + partial clawback', async () => {
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'athlete-cancel',
+      moneyOutcome: 'partial_wallet_refund',
+      refundBps: 5000,
+    })
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(result.gatewayRefunded).toBe(false)
+    expect(creditWallet).toHaveBeenCalledWith('ath-1', 100_000, expect.anything(), expect.anything())
+    expect(clawbackOwnerPartialForPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ grossRefundAmount: 100_000 }),
+    )
+    expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
+  })
+
+  it('treats SEP code 2 (duplicate reverse) as already reversed', async () => {
+    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=2): درخواست تکراری می باشد'))
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'athlete-cancel',
+      moneyOutcome: 'full_wallet_refund',
+    })
+    expect(result.gatewayRefunded).toBe(true)
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(clawbackOwnerForPayment).toHaveBeenCalled()
+  })
+
   it('falls back to wallet on definitive SEP reverse failure', async () => {
-    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=5): not allowed'))
+    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=-6): بیش از نیم ساعت گذشته است'))
     const { refundPaymentForCancellation } = await import('./refunds')
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',

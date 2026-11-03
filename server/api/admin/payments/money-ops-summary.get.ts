@@ -8,13 +8,22 @@ export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const audit = await runMoneyAudit()
 
-  const [reversePending, stalePending, failedJobs] = await Promise.all([
+  const [reversePending, reversedStillPaid, stalePending, failedJobs] = await Promise.all([
     prisma.payment.findMany({
       where: {
         status: 'PAID',
         metadataJson: { contains: '"reversePending":true' },
       },
       select: { id: true, providerRef: true, updatedAt: true },
+      take: 30,
+      orderBy: { updatedAt: 'desc' },
+    }),
+    prisma.payment.findMany({
+      where: {
+        status: 'PAID',
+        metadataJson: { contains: '"gatewayReversed":true' },
+      },
+      select: { id: true, bookingId: true, coachSessionId: true, packageBookingId: true, updatedAt: true },
       take: 30,
       orderBy: { updatedAt: 'desc' },
     }),
@@ -44,6 +53,12 @@ export default defineEventHandler(async (event) => {
         resolveEndpoint: 'POST /api/admin/payments/resolve-reverse-pending',
         paymentIds: reversePending.map((p) => p.id),
         sample: reversePending,
+      },
+      // Card already refunded at SEP; booking + club settlement still live until the cancel is re-run.
+      reversedStillPaid: {
+        action: 'Re-run the booking/session/package cancel — refund takes the gateway_reverse path (no wallet credit) and claws back the club.',
+        paymentIds: reversedStillPaid.map((p) => p.id),
+        sample: reversedStillPaid,
       },
       stalePendingOnline: {
         expireEndpoint: 'POST /api/admin/payments/expire-pending',

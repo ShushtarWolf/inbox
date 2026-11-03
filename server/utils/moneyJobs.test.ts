@@ -1,26 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const findUnique = vi.fn()
-const create = vi.fn()
+const createMany = vi.fn()
 const findMany = vi.fn()
 const update = vi.fn()
 const updateMany = vi.fn()
+const ledgerFindUnique = vi.fn()
+const walletTxFindFirst = vi.fn()
 
 vi.mock('./prisma', () => ({
   prisma: {
     payment: { findUnique: (...args: unknown[]) => findUnique(...args) },
     moneyJob: {
-      create: (...args: unknown[]) => create(...args),
+      createMany: (...args: unknown[]) => createMany(...args),
       findMany: (...args: unknown[]) => findMany(...args),
       update: (...args: unknown[]) => update(...args),
       updateMany: (...args: unknown[]) => updateMany(...args),
     },
-    walletTransaction: { findMany: vi.fn().mockResolvedValue([]) },
+    settlementLedgerEntry: { findUnique: (...args: unknown[]) => ledgerFindUnique(...args) },
+    walletTransaction: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findFirst: (...args: unknown[]) => walletTxFindFirst(...args),
+    },
   },
 }))
 
 const creditOwnerForPaidPayment = vi.fn()
 const creditWalletForTopUpPayment = vi.fn()
+const promoteSplitPayAmountOnPaid = vi.fn()
 
 vi.mock('./settlement', () => ({
   creditOwnerForPaidPayment: (...args: unknown[]) => creditOwnerForPaidPayment(...args),
@@ -30,14 +37,24 @@ vi.mock('./wallet', () => ({
   creditWalletForTopUpPayment: (...args: unknown[]) => creditWalletForTopUpPayment(...args),
 }))
 
-import { enqueueMoneyJobsForPaidPayment, processPendingMoneyJobs } from './moneyJobs'
+vi.mock('./splitPayWallet', () => ({
+  promoteSplitPayAmountOnPaid: (...args: unknown[]) => promoteSplitPayAmountOnPaid(...args),
+}))
+
+import {
+  enqueueMoneyJobsForPaidPayment,
+  markMoneyJobsDoneForPaidPayment,
+  processPendingMoneyJobs,
+} from './moneyJobs'
 
 describe('moneyJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    create.mockResolvedValue({ id: 'job-1' })
+    createMany.mockResolvedValue({ count: 1 })
     update.mockResolvedValue({})
     updateMany.mockResolvedValue({ count: 1 })
+    ledgerFindUnique.mockResolvedValue(null)
+    walletTxFindFirst.mockResolvedValue(null)
   })
 
   it('enqueues SETTLE for PAID booking IPG payment', async () => {
@@ -51,11 +68,10 @@ describe('moneyJobs', () => {
     const result = await enqueueMoneyJobsForPaidPayment('pay-1')
 
     expect(result.enqueued).toBe(1)
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { paymentId: 'pay-1', type: 'SETTLE', status: 'PENDING' },
-      }),
-    )
+    expect(createMany).toHaveBeenCalledWith({
+      data: [{ paymentId: 'pay-1', type: 'SETTLE', status: 'PENDING' }],
+      skipDuplicates: true,
+    })
   })
 
   it('enqueues TOPUP_CREDIT for PAID top-up', async () => {
@@ -68,28 +84,43 @@ describe('moneyJobs', () => {
 
     await enqueueMoneyJobsForPaidPayment('pay-t')
 
-    expect(create).toHaveBeenCalledWith(
+    expect(createMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ type: 'TOPUP_CREDIT' }),
+        data: [expect.objectContaining({ type: 'TOPUP_CREDIT' })],
       }),
     )
   })
 
-  it('ignores duplicate enqueue (P2002)', async () => {
+  it('ignores duplicate enqueue without throwing (safe inside a txn)', async () => {
     findUnique.mockResolvedValue({
       id: 'pay-1',
       status: 'PAID',
       purpose: 'booking',
       method: 'IPG',
     })
-    create.mockRejectedValue(Object.assign(new Error('dup'), { code: 'P2002' }))
+    createMany.mockResolvedValue({ count: 0 })
 
     const result = await enqueueMoneyJobsForPaidPayment('pay-1')
 
     expect(result.enqueued).toBe(0)
   })
 
-  it('processPendingMoneyJobs marks SETTLE done when already settled', async () => {
+  it('repeat callback (no ledger yet) must not close the SETTLE job', async () => {
+    await markMoneyJobsDoneForPaidPayment('pay-1')
+    expect(updateMany).not.toHaveBeenCalled()
+  })
+
+  it('closes only the job whose effect exists', async () => {
+    ledgerFindUnique.mockResolvedValue({ id: 'ledger-1' })
+    await markMoneyJobsDoneForPaidPayment('pay-1')
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { paymentId: 'pay-1', status: 'PENDING', type: { in: ['SETTLE'] } },
+      }),
+    )
+  })
+
+  it('processPendingMoneyJobs promotes split then marks SETTLE done when already settled', async () => {
     findMany.mockResolvedValue([
       { id: 'j1', paymentId: 'pay-1', type: 'SETTLE', attempts: 0 },
     ])
@@ -99,6 +130,7 @@ describe('moneyJobs', () => {
     const result = await processPendingMoneyJobs()
 
     expect(result.scanned).toBe(1)
+    expect(promoteSplitPayAmountOnPaid).toHaveBeenCalledWith('pay-1')
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'j1' },

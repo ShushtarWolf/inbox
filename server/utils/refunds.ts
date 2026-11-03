@@ -109,7 +109,8 @@ export async function refundPaymentForCancellation(options: {
     metadata: existingMeta,
   })
 
-  if (!gatewayRefunded && channel === 'wallet_closed_loop' && reverseAttempt.ok) {
+  // SEP reverses the whole charge — partial refunds must go closed-loop wallet instead.
+  if (!gatewayRefunded && channel === 'wallet_closed_loop' && reverseAttempt.ok && refundBps >= 10_000) {
     const terminalId = process.env.SEP_TERMINAL_ID || process.env.NUXT_SEP_TERMINAL_ID || ''
     if (terminalId) {
       existingMeta = {
@@ -247,7 +248,8 @@ export async function refundPaymentForCancellation(options: {
       },
     })
 
-    if (refundBps >= 10_000) {
+    // A card reverse already returned the full charge, whatever refundBps says.
+    if (refundBps >= 10_000 || gatewayRefunded) {
       await clawbackOwnerForPayment(payment.id, tx)
     }
     else if (creditAmount > 0) {

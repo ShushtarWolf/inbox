@@ -344,11 +344,12 @@ suite('money integration (real Postgres)', () => {
       bookingId: booking.id,
     })
     balances = await m.settlement.getClubWithdrawableBalance(f.club.id)
-    expect(balances.withdrawableBalance).toBe(720_000)
+    // Commission > 0 → partial clawback is on the gross basis (PAYMENTS.md "Commission refund (Y4)").
+    expect(balances.withdrawableBalance).toBe(700_000)
 
     await expect(m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 800_000, sheba: f.club.sheba }))
       .rejects.toMatchObject({ statusCode: 409 })
-    const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 720_000, sheba: f.club.sheba })
+    const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 700_000, sheba: f.club.sheba })
     balances = await m.settlement.getClubWithdrawableBalance(f.club.id)
     expect(balances.withdrawableBalance).toBe(0)
 

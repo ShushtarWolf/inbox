@@ -988,15 +988,7 @@ export async function requestClubWithdraw(options: {
   }
 
   return prisma.$transaction(async (tx) => {
-    // Same math the finance page shows (incl. partial series clawbacks) — never a looser gate.
-    const balances = await getClubWithdrawableBalance(options.clubId, new Date(), tx)
-    if (balances.availableBalance < amount) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
-    }
-    if (balances.withdrawableBalance < amount) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
-    }
-
+    // Retry dedupe before balance gates — the first request's hold already moved available → locked.
     const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
     const existing = await tx.withdrawRequest.findFirst({
       where: {
@@ -1008,6 +1000,15 @@ export async function requestClubWithdraw(options: {
       orderBy: { createdAt: 'desc' },
     })
     if (existing) return { request: existing, created: false as const }
+
+    // Same math the finance page shows (incl. partial series clawbacks) — never a looser gate.
+    const balances = await getClubWithdrawableBalance(options.clubId, new Date(), tx)
+    if (balances.availableBalance < amount) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient club wallet balance' })
+    }
+    if (balances.withdrawableBalance < amount) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+    }
 
     const request = await tx.withdrawRequest.create({
       data: {

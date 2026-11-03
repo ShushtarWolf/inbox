@@ -16,5 +16,8 @@ jobs:
             -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
             -H "Content-Type: application/json" \
             -d '{"reconcile":true}'
+          # Non-hold payables (pay-link, coach session, package, competition) — releases abandoned split wallet debits.
+          curl -sf -X POST "https://inboxs.ir/api/admin/payments/expire-pending" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}"
         env:
           ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}

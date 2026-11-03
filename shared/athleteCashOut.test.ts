@@ -18,6 +18,14 @@ describe('athleteCashOutFromTxs', () => {
       { type: 'REFUND_CREDIT', amount: 200_000 },
     ], now, 24 * 60 * 60 * 1000)).toBe(200_000)
   })
+
+  it('holds fresh REFUND_CREDIT too (card → booking → cancel → SHEBA)', () => {
+    const now = new Date('2026-01-02T12:00:00Z')
+    expect(athleteCashOutFromTxs([
+      { type: 'REFUND_CREDIT', amount: 500_000, createdAt: '2026-01-02T11:30:00Z' },
+      { type: 'REFUND_CREDIT', amount: 200_000, createdAt: '2026-01-01T00:00:00Z' },
+    ], now, 24 * 60 * 60 * 1000)).toBe(200_000)
+  })
 })
 
 describe('clampAthleteWithdrawAmount', () => {

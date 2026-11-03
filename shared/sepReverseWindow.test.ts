@@ -50,7 +50,10 @@ describe('isSepReverseAmbiguousError', () => {
 })
 
 describe('isSepReverseAlreadyDoneError', () => {
-  it('detects already-reversed messaging', () => {
-    expect(isSepReverseAlreadyDoneError(new Error('Transaction already reversed'))).toBe(true)
+  it('matches SEP codes 2 / 5 only, never free text', () => {
+    expect(isSepReverseAlreadyDoneError(new Error('SEP reverse failed (code=2): درخواست تکراری'))).toBe(true)
+    expect(isSepReverseAlreadyDoneError(new Error('SEP reverse failed (code=5): reversed'))).toBe(true)
+    expect(isSepReverseAlreadyDoneError(new Error('SEP reverse failed (code=-6): تراکنش قبلا تسویه شده'))).toBe(false)
+    expect(isSepReverseAlreadyDoneError(new Error('Transaction already reversed'))).toBe(false)
   })
 })

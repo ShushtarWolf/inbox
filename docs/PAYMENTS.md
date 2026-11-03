@@ -137,14 +137,16 @@ Money outcome from `resolveCancelMoneyDetail` / `resolveCancelMoneyOutcome` (`sh
 
 | Payment type | Refund path |
 |--------------|-------------|
-| IPG `PAID` (SEP **live**, `refNum`, confirmed within **25 minutes**) | Attempt SEP `ReverseTransaction` → `refundChannel=gateway_reverse` (no athlete wallet credit; still clawback). On **definitive** reverse failure / outside window / test mode → closed-loop wallet. On **timeout/network** → leave `metadata.reversePending` and **do not** wallet-credit (avoids double refund); cancel rolls back; retry via `POST /api/admin/payments/resolve-reverse-pending`. |
+| IPG `PAID` (SEP **live**, `refNum`, confirmed within **25 minutes**, **full** refund only) | Attempt SEP `ReverseTransaction` → `refundChannel=gateway_reverse` (no athlete wallet credit; full clawback). SEP reverses the whole charge, so **partial** refunds (`refundBps < 10000`) never reverse — they go closed-loop wallet. SEP `ResultCode` 2 (duplicate) / 5 (already reversed) count as reversed; matching is by code, never free text. On **definitive** reverse failure / outside window / test mode → closed-loop wallet. On **timeout/network** → leave `metadata.reversePending` and **do not** wallet-credit (avoids double refund); cancel rolls back; retry via `POST /api/admin/payments/resolve-reverse-pending`. A resolved reverse leaves the payment `PAID` (card refunded, booking + settlement live) — money-ops-summary lists it under `reversedStillPaid`; re-run the cancel to free the slot and claw back. |
 | IPG / wallet `PAID` (fallback) | Athlete wallet credit (`refundChannel=wallet_closed_loop`) + clawback |
 | Desk `CASH` | No athlete credit; `REFUNDED` + `deskCashReturn=owed` until owner acks via `POST /api/owner/payments/:id/ack-cash-return` (`isRefundOwed`) |
 | Pay-link guest IPG (no athlete wallet) | `manualBankRefund=owed` until admin `POST /api/admin/payments/:id/ack-manual-refund` |
 | Split pay (wallet + IPG) | Gateway reverse restores **wallet debit only**; wallet fallback credits **full promoted** amount (`splitCancelCreditAmount`) |
 | Unpaid | No refund |
 
-Partial athlete refunds stay `REFUNDED` with `metadata.refundBps` (no `PARTIALLY_REFUNDED` enum). Stale `PENDING_ONLINE` → `FAILED` + `metadata.expired` via `POST /api/admin/payments/expire-pending` (`PENDING_ONLINE_EXPIRE_MINUTES`, default 45).
+Partial athlete refunds stay `REFUNDED` with `metadata.refundBps` (no `PARTIALLY_REFUNDED` enum). Stale `PENDING_ONLINE` → `FAILED` + `metadata.expired` via `POST /api/admin/payments/expire-pending` (`PENDING_ONLINE_EXPIRE_MINUTES`, default 45; runs in `money-jobs-cron.yml`). `FAILED` stays payable.
+
+Late SEP callback on a released hold (`FAILED`) or a `SUPERSEDED` row is **not** verified — SEP auto-reverses unverified charges within 30 minutes, so the money returns to the card (athlete sees a failure page first). Superseded rows keep the old bank ref in `metadata.supersededProviderRef` for support lookup.
 
 **Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Ambiguous SEP reverse throws `SEP_REVERSE_PENDING` so the booking stays occupied. Series athlete cancel runs pro-rata refund **before** freeing the slot.
 
@@ -179,11 +181,11 @@ When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlem
 ## Athlete wallet withdraw / cash-out
 
 - **Coach:** settlement credits (day after class) via `getWalletWithdrawableBalance`.
-- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Fresh `TOPUP_CREDIT` is excluded until `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS` (default 24). Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float. Both rails subtract `withdrawnViaRail` so mixed wallets cannot double-cash-out.
+- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Fresh `TOPUP_CREDIT` **and** `REFUND_CREDIT` are excluded until `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS` (default 24) — otherwise card → booking → cancel → SHEBA skips the cool-down. Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float. Both rails subtract `withdrawnViaRail` so mixed wallets cannot double-cash-out.
 - **Prize** competition awards (`ADJUSTMENT`) are spendable in-app but **not** SHEBA-withdrawable.
 - Ops pays SHEBA manually from the admin athlete withdrawals queue (same rail as coaches). SMS alert includes full name (نام + نام‌خانوادگی). No automated bank payout.
 - **Coach + athlete:** users with a coach profile can withdraw settlement (coach rail) and, separately, top-up/refund credit (athlete rail). The wallet API sums both for the withdraw cap; **the server always picks the rail** (client `rail` is ignored). Chosen rail is stored on `UserWithdrawRequest.rail`.
-- Withdraw create is idempotent for the same user/club + amount within 2 minutes (returns existing `PENDING`).
+- Withdraw create is idempotent for the same user/club + amount within 2 minutes (returns existing `PENDING`). The dedupe runs **before** the balance gates, so retrying a full-balance withdraw returns the first request instead of 409.
 
 ## Payment method label
 
@@ -191,13 +193,15 @@ Prisma `PaymentMethod.PAID` means **wallet rail** (not “status paid”). UI/re
 
 ## Split pay (wallet + IPG)
 
-Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB transaction** as the pending `Payment` row, then attaches the SEP intent. On `createIntent` failure, `releaseSplitWalletDebit` runs before surfacing the error. On PAID, payment amount is promoted to the full price for settlement. On IPG fail / hold abandon / pending expire, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`).
+Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB transaction** as the pending `Payment` row, then attaches the SEP intent. On `createIntent` failure, `releaseSplitWalletDebit` runs before surfacing the error. On PAID, payment amount is promoted to the full price for settlement (skipped when the wallet rail was already released; the money-job worker promotes before settling too). On IPG fail / hold abandon / pending expire / **checkout retry (SUPERSEDED)**, wallet debit is released (`REFUND_CREDIT` + `walletDebitReleased`). Competition split-pay supersedes the join-linked row (fresh idempotency key) so the wallet rail is released on retry.
 
 ## Money reliability (jobs / audit / CI)
 
-- **`MoneyJob` outbox** — enqueued when `Payment` → `PAID` (SEP confirm txn + confirm path). Types: `SETTLE`, `TOPUP_CREDIT`. Worker: `POST /api/admin/payments/process-money-jobs` (cron ~5 min). Idempotent with `SettlementLedgerEntry` / wallet partial uniques.
+- **`MoneyJob` outbox** — enqueued when `Payment` → `PAID` (SEP confirm txn + confirm path; `createMany skipDuplicates`, safe inside a txn). Types: `SETTLE`, `TOPUP_CREDIT`. Worker: `POST /api/admin/payments/process-money-jobs` (cron ~5 min). Idempotent with `SettlementLedgerEntry` / wallet partial uniques. The sync path closes a job **only when its effect exists** (ledger row / `TOPUP_CREDIT` line) — a repeat callback is a no-op and must not close it. Reconcile scans newest-first, skips `FAILED` jobs, and reopens `DONE` jobs whose effect is still missing.
+- **Deploy pre-check for `20261103140000_club_booking_credit_idempotency`** — the unique index fails `migrate deploy` if duplicates exist. Run first; expect zero rows:
+  `SELECT "paymentId", "bookingId", COUNT(*) FROM "ClubWalletTransaction" WHERE type = 'BOOKING_CREDIT' AND "paymentId" IS NOT NULL GROUP BY 1, 2 HAVING COUNT(*) > 1;`
 - **Checkout retry** — payable IPG rows are **`SUPERSEDED`** (not deleted); `supersededByPaymentId` links to the replacement intent.
-- **`runMoneyAudit`** — adds `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job and `reversePending` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
+- **`runMoneyAudit`** — adds `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job, `reversePending` and `reversedStillPaid` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
 - **CI** — `npm run check:money-safety` blocks new `payment.delete` under `server/` (except catalog wipe utilities).
 
 ## Guest IPG refunds

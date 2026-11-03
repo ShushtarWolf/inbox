@@ -10,10 +10,11 @@ import {
   buildCompetitionWalletPaymentCreateData,
   competitionJoinIdempotencyKey,
 } from '#shared/competition.ts'
+import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
 import { checkoutPreservedMetadata } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
-import { normalizeUseWallet, splitPayParts } from '#shared/splitPay.ts'
+import { normalizeUseWallet, readSplitPayMeta, splitPayParts } from '#shared/splitPay.ts'
 import { signReceiptToken } from '#shared/receiptToken.ts'
 import { getPaymentService } from '../../utils/payments/service'
 import {
@@ -106,7 +107,8 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Entry not pending payment' })
     }
     competitionId = entry.competitionId
-    if (entry.payment) existingPayment = entry.payment
+    // A failed retry can leave the entry pointing at a SUPERSEDED row — start a fresh payable.
+    if (entry.payment && entry.payment.status !== 'SUPERSEDED') existingPayment = entry.payment
     else amount = entry.competition.entryFee
   }
 
@@ -287,13 +289,15 @@ export default defineEventHandler(async (event) => {
   }
   let supersededPaymentId: string | null = null
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
-    if (!body.competitionEntryId) {
+    // Competition checkout keeps the join-linked payment and refreshes intent in place —
+    // except split-pay, whose wallet rail must be released on a fresh row (in-place refresh drops split meta).
+    const existingIsSplit = Boolean(readSplitPayMeta(parsePaymentMetadata(existingPayment.metadataJson)))
+    if (!body.competitionEntryId || useWalletMode === 'partial' || existingIsSplit) {
       supersededPaymentId = existingPayment.id
       await supersedePayablePaymentForRetry(existingPayment)
       existingPayment = null
       amount = payableAmount
     }
-    // Competition checkout keeps the join-linked payment and refreshes intent in place.
   } else if (existingPayment) {
     return {
       paymentId: existingPayment.id,
@@ -330,7 +334,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const service = getPaymentService()
-  const idempotencyKey = body.competitionEntryId && competitionId
+  // A superseded competition row still holds the join key (unique) — the replacement needs its own.
+  const idempotencyKey = body.competitionEntryId && competitionId && !supersededPaymentId
     ? competitionJoinIdempotencyKey(competitionId, user.id, body.competitionEntryId)
     : randomBytes(16).toString('hex')
 
@@ -344,7 +349,7 @@ export default defineEventHandler(async (event) => {
           method: 'IPG',
           status: 'PENDING_ONLINE',
           provider: 'sep',
-          idempotencyKey: `${idempotencyKey}-split`,
+          idempotencyKey,
           purpose: body.competitionEntryId ? 'competition' : 'booking',
           userId: user.id,
           bookingId: body.bookingId,
@@ -359,6 +364,12 @@ export default defineEventHandler(async (event) => {
         bookingId: body.bookingId,
         note: 'Split pay wallet portion',
       }, tx)
+      if (body.competitionEntryId) {
+        await tx.competitionEntry.update({
+          where: { id: body.competitionEntryId },
+          data: { paymentId: row.id },
+        })
+      }
       return row.id
     })
 
@@ -392,7 +403,7 @@ export default defineEventHandler(async (event) => {
       coachSessionId: body.coachSessionId,
       packageBookingId: body.packageBookingId,
       competitionEntryId: body.competitionEntryId,
-      userId: (body.competitionEntryId || useWalletMode === 'partial') ? user.id : undefined,
+      userId: body.competitionEntryId ? user.id : undefined,
       purpose: body.competitionEntryId ? 'competition' : undefined,
       idempotencyKey,
       existingPaymentId: body.competitionEntryId && existingPayment

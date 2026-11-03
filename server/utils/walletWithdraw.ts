@@ -57,13 +57,8 @@ export async function requestUserWithdraw(options: {
   const isCoach = Boolean(coach)
 
   return prisma.$transaction(async (tx) => {
-    await unlockEligibleWalletSettlements(options.userId, new Date(), tx)
-    const wallet = await getOrCreateWallet(options.userId, tx)
-    if (wallet.availableBalance < amount) {
-      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
-    }
-
     // Idempotent retries: same user+amount PENDING within 2 minutes → return existing.
+    // Before the balance check — the first request's hold already moved available → locked.
     const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
     const existing = await tx.userWithdrawRequest.findFirst({
       where: {
@@ -80,6 +75,12 @@ export async function requestUserWithdraw(options: {
         rail: (existing.rail as BankWithdrawRail | null) || 'athlete',
         created: false as const,
       }
+    }
+
+    await unlockEligibleWalletSettlements(options.userId, new Date(), tx)
+    const wallet = await getOrCreateWallet(options.userId, tx)
+    if (wallet.availableBalance < amount) {
+      throw createError({ statusCode: 409, statusMessage: 'Insufficient wallet balance' })
     }
 
     const coachWithdrawable = isCoach

@@ -52,7 +52,8 @@ export async function promoteSplitPayAmountOnPaid(paymentId: string, db: DbClien
   if (!payment || payment.status !== 'PAID') return
   const meta = parsePaymentMetadata(payment.metadataJson)
   const split = readSplitPayMeta(meta)
-  if (!split || split.splitFullAmount <= payment.amount) return
+  // Released wallet rail went back to the athlete — only the IPG charge was actually collected.
+  if (!split || split.walletDebitReleased || split.splitFullAmount <= payment.amount) return
   await db.payment.update({
     where: { id: payment.id },
     data: {

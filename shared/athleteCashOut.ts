@@ -7,7 +7,10 @@ export const ATHLETE_WITHDRAW_MIN_IRR = Number(process.env.ATHLETE_WITHDRAW_MIN_
 export const ATHLETE_WITHDRAW_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_MAX_IRR || 50_000_000)
 export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_DAILY_MAX_IRR || 50_000_000)
 
-/** Hours before a TOPUP_CREDIT counts toward SHEBA cash-out (default 24). */
+/**
+ * Hours before a TOPUP_CREDIT or REFUND_CREDIT counts toward SHEBA cash-out (default 24).
+ * Refunds share the hold: card → booking → cancel → SHEBA would otherwise skip the top-up cool-down.
+ */
 export function athleteTopUpCashOutHoldHours(
   raw: string | undefined | null = typeof process !== 'undefined'
     ? process.env.ATHLETE_TOPUP_CASHOUT_HOLD_HOURS
@@ -39,14 +42,11 @@ export function athleteCashOutFromTxs(
   const nowMs = now.getTime()
   let net = 0
   for (const tx of txs) {
-    if (tx.type === 'TOPUP_CREDIT') {
+    if (tx.type === 'TOPUP_CREDIT' || tx.type === 'REFUND_CREDIT') {
       if (topUpHoldMs > 0 && tx.createdAt != null) {
         const createdMs = new Date(tx.createdAt).getTime()
         if (Number.isFinite(createdMs) && nowMs - createdMs < topUpHoldMs) continue
       }
-      net += Math.max(0, tx.amount)
-    }
-    else if (tx.type === 'REFUND_CREDIT') {
       net += Math.max(0, tx.amount)
     }
     else if (tx.type === 'PAYMENT_DEBIT') {

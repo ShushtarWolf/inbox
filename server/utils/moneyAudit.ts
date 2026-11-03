@@ -19,6 +19,8 @@ export type MoneyAuditSummary = {
   pendingMoneyJobs: number
   failedMoneyJobs: number
   reversePendingPayments: number
+  /** Card reversed at SEP but payment still PAID (cancel rolled back / resolve-reverse-pending) — re-run the cancel. */
+  reversedStillPaid: number
   alert: boolean
 }
 
@@ -36,6 +38,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     pendingMoneyJobs,
     failedMoneyJobs,
     reversePendingPayments,
+    reversedStillPaid,
   ] = await Promise.all([
     prisma.$queryRaw<Array<{ c: bigint }>>`
       SELECT COUNT(*)::bigint AS c
@@ -87,6 +90,12 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
         metadataJson: { contains: '"reversePending":true' },
       },
     }),
+    prisma.payment.count({
+      where: {
+        status: 'PAID',
+        metadataJson: { contains: '"gatewayReversed":true' },
+      },
+    }),
   ])
 
   // Drift: sample wallets where balance ≠ Σ signed (lightweight; full formula in audit script).
@@ -133,6 +142,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     pendingMoneyJobs,
     failedMoneyJobs,
     reversePendingPayments,
+    reversedStillPaid,
     alert: false,
   }
   summary.alert = (
@@ -146,6 +156,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     + summary.paidWithoutSettlement
     + summary.paidTopUpWithoutCredit
     + summary.failedMoneyJobs
+    + summary.reversedStillPaid
   ) > 0
   return summary
 }
