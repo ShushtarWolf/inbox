@@ -145,6 +145,9 @@ if (clubSlugPage.includes('if (focusedCourtId.value === courtId) return true')) 
 if (!clubSlugPage.includes('requestAnimationFrame') || !clubSlugPage.includes('confirmOpen.value = true')) {
   errors.push('clubs/[slug] openConfirmSheet must defer confirmOpen past the opening gesture')
 }
+if (clubSlugPage.includes('deepLinkSlotsPending') && !clubSlugPage.includes('openConfirmSheet()')) {
+  errors.push('clubs/[slug] deep-link/rebook handoff must open confirm via openConfirmSheet (court audience gate)')
+}
 // --app-vv-height must never publish 0 (collapses canva-sheet-dialog max-height).
 if (!appModal.includes('Math.max(1') && !appModal.includes('Math.max(1,')) {
   errors.push('AppModal syncVisualViewport must floor --app-vv-height to >= 1')

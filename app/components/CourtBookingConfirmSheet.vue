@@ -55,6 +55,8 @@ const props = defineProps<{
   courtId?: string
   courtLabel?: string
   slots: ConfirmSlot[]
+  /** MEN/WOMEN policy reminders for courts in this basket (Persian i18n from parent). */
+  audienceNotices?: string[]
   bookableEquipment?: ConfirmEquipment[]
 }>()
 
@@ -729,6 +731,15 @@ async function submit(preferWallet = false) {
               </template>
             </p>
           </div>
+
+          <p
+            v-for="(notice, index) in (audienceNotices || [])"
+            :key="index"
+            class="canva-club-audience-warn text-start"
+            role="note"
+          >
+            {{ notice }}
+          </p>
 
           <div class="space-y-3 text-start">
             <div v-for="group in slotDateGroups" :key="group.date">

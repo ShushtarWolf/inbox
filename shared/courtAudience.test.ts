@@ -3,7 +3,9 @@ import {
   courtAudienceAllowsGender,
   courtAudienceBlockReason,
   courtAudienceShowsTag,
+  firstAudienceBlockForCourtIds,
   parseCourtAudience,
+  restrictedAudiencesInBasket,
 } from './courtAudience.ts'
 
 describe('parseCourtAudience', () => {
@@ -40,5 +42,34 @@ describe('courtAudienceBlockReason / showsTag', () => {
     expect(courtAudienceBlockReason('FAMILY', 'MALE')).toBeNull()
     expect(courtAudienceShowsTag('MIXED')).toBe(false)
     expect(courtAudienceShowsTag('WOMEN')).toBe(true)
+  })
+})
+
+describe('basket audience helpers', () => {
+  const audiences: Record<string, 'MIXED' | 'MEN' | 'WOMEN'> = {
+    mixed: 'MIXED',
+    men: 'MEN',
+    women: 'WOMEN',
+  }
+  const lookup = (id: string) => audiences[id]
+
+  it('blocks male booker when basket spans mixed + women courts (Semnan-style mix)', () => {
+    expect(
+      firstAudienceBlockForCourtIds(['mixed', 'women'], lookup, 'MALE'),
+    ).toBe('women_only')
+  })
+
+  it('allows female booker on women-only basket', () => {
+    expect(
+      firstAudienceBlockForCourtIds(['women'], lookup, 'FEMALE'),
+    ).toBeNull()
+  })
+
+  it('lists restricted policies for confirm copy', () => {
+    expect(restrictedAudiencesInBasket(['mixed', 'women', 'men'], lookup).sort()).toEqual([
+      'MEN',
+      'WOMEN',
+    ])
+    expect(restrictedAudiencesInBasket(['mixed'], lookup)).toEqual([])
   })
 })

@@ -51,3 +51,29 @@ export function courtAudienceBlockReason(
   if (policy === 'WOMEN' && gender !== 'FEMALE') return 'women_only'
   return null
 }
+
+/** First gender-policy violation across a multi-court basket (chips + slot courts). */
+export function firstAudienceBlockForCourtIds(
+  courtIds: string[],
+  audienceForCourtId: (courtId: string) => CourtAudience | null | undefined,
+  gender: GenderValue | null | undefined,
+): CourtAudienceBlockReason {
+  for (const id of courtIds) {
+    const reason = courtAudienceBlockReason(audienceForCourtId(id), gender)
+    if (reason) return reason
+  }
+  return null
+}
+
+/** MEN/WOMEN policies present in the basket — for confirm-sheet / banner copy. */
+export function restrictedAudiencesInBasket(
+  courtIds: string[],
+  audienceForCourtId: (courtId: string) => CourtAudience | null | undefined,
+): CourtAudience[] {
+  const found = new Set<CourtAudience>()
+  for (const id of courtIds) {
+    const policy = audienceForCourtId(id) || 'MIXED'
+    if (policy === 'MEN' || policy === 'WOMEN') found.add(policy)
+  }
+  return [...found]
+}

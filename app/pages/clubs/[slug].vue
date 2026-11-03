@@ -21,9 +21,10 @@ import {
 } from '#shared/courtSlotSelection.ts'
 import { courtDisplayNumber, sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
 import {
-  courtAudienceBlockReason,
   courtAudienceShowsTag,
+  firstAudienceBlockForCourtIds,
   parseCourtAudience,
+  restrictedAudiencesInBasket,
   type CourtAudience,
 } from '#shared/courtAudience.ts'
 import { parseGender } from '#shared/gender.ts'
@@ -393,13 +394,8 @@ watch(
       }
       // Guests: keep selection + login CTA — do not open confirm until signed in.
       if (user.value) {
-        resumeConfirmAfterAuth.value = false
-        // Same deferral as openConfirmSheet — instant open races AppModal dismiss.
-        nextTick(() => {
-          requestAnimationFrame(() => {
-            confirmOpen.value = true
-          })
-        })
+        // Rebook / deep-link must use openConfirmSheet (court audience + deferral).
+        openConfirmSheet()
       }
     }
     deepLinkSlotsPending.value = false
@@ -481,19 +477,38 @@ const audienceWarnText = computed(() => {
   return ''
 })
 
+const basketCourtIds = computed(() =>
+  uniqueOrdered([
+    ...selectedCourtIds.value,
+    ...courtIdsFromSlots(selectedSlots.value),
+  ].filter(Boolean) as string[]),
+)
+
+function audienceForBasketCourtId(courtId: string): CourtAudience {
+  const court = courts.value.find((c) => c.id === courtId)
+  return courtAudienceOf(court)
+}
+
 /** Only after login — guests still reach the auth gate, then gender is enforced. */
 const audienceBlocksBooker = computed(() => {
   if (!user.value) return false
   const gender = parseGender(user.value.gender)
-  const ids = uniqueOrdered([
-    ...selectedCourtIds.value,
-    ...courtIdsFromSlots(selectedSlots.value),
-  ].filter(Boolean) as string[])
-  for (const id of ids) {
-    const court = courts.value.find((c) => c.id === id)
-    if (courtAudienceBlockReason(courtAudienceOf(court), gender)) return true
-  }
-  return false
+  return firstAudienceBlockForCourtIds(
+    basketCourtIds.value,
+    audienceForBasketCourtId,
+    gender,
+  ) !== null
+})
+
+const confirmAudienceNotices = computed(() => {
+  const policies = restrictedAudiencesInBasket(
+    courtIdsFromSlots(selectedSlots.value),
+    audienceForBasketCourtId,
+  )
+  const lines: string[] = []
+  if (policies.includes('WOMEN')) lines.push(t('clubs.audienceWarningWomen'))
+  if (policies.includes('MEN')) lines.push(t('clubs.audienceWarningMen'))
+  return lines
 })
 
 const basketDates = computed(() =>
@@ -716,17 +731,15 @@ function openConfirmSheet() {
   if (!selectedSlots.value.length) return
   if (audienceBlocksBooker.value) {
     const gender = parseGender(user.value?.gender)
-    const ids = uniqueOrdered([
-      ...selectedCourtIds.value,
-      ...courtIdsFromSlots(selectedSlots.value),
-    ].filter(Boolean) as string[])
+    const reason = firstAudienceBlockForCourtIds(
+      basketCourtIds.value,
+      audienceForBasketCourtId,
+      gender,
+    )
     let message = t('booking.errors.courtGenderRequired')
-    for (const id of ids) {
-      const reason = courtAudienceBlockReason(courtAudienceOf(courts.value.find((c) => c.id === id)), gender)
-      if (reason === 'women_only') { message = t('booking.errors.courtWomenOnly'); break }
-      if (reason === 'men_only') { message = t('booking.errors.courtMenOnly'); break }
-      if (reason === 'gender_required') { message = t('booking.errors.courtGenderRequired'); break }
-    }
+    if (reason === 'women_only') message = t('booking.errors.courtWomenOnly')
+    else if (reason === 'men_only') message = t('booking.errors.courtMenOnly')
+    else if (reason === 'gender_required') message = t('booking.errors.courtGenderRequired')
     waitlistFeedback.value = message
     waitlistFeedbackTone.value = 'error'
     return
@@ -1585,6 +1598,7 @@ async function shareClub() {
         :court-id="selectedCourtIdsForReturn || undefined"
         :court-label="selectedCourtLabel"
         :slots="confirmSlots"
+        :audience-notices="confirmAudienceNotices"
         :bookable-equipment="bookableEquipment"
         @close="onConfirmClose"
         @success="onConfirmSuccess"
