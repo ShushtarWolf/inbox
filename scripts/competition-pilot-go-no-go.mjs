@@ -121,7 +121,10 @@ async function main() {
   }
 
   const farEvent = isoOffset(30, 14)
-  const soonEvent = isoOffset(0, new Date().getHours() + 2)
+  const soonEventHour = new Date().getHours() + 2
+  const soonEvent = isoOffset(0, soonEventHour)
+  /** Registration must close before eventAt (API invariant); still inside cancel window vs soonEvent. */
+  const soonRegistrationCloses = isoOffset(0, soonEventHour - 1)
 
   async function createOpenCompetition(overrides = {}) {
     const { res, data } = await apiFetch(base, '/api/owner/competitions', {
@@ -273,7 +276,7 @@ async function main() {
       maxParticipants: 10,
       minParticipants: 2,
       eventAt: soonEvent,
-      registrationCloses: isoOffset(1),
+      registrationCloses: soonRegistrationCloses,
     })
     const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
       jar: athletes[2].jar,
