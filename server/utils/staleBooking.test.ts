@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deleteStaleCancelledBooking, isDetachedCancelledPayment } from './staleBooking'
+import {
+  deleteStaleCancelledBooking,
+  isDetachedCancelledPayment,
+  resolvePaymentClubId,
+} from './staleBooking'
 
 function makeTx(booking: unknown) {
   return {
@@ -45,5 +49,21 @@ describe('deleteStaleCancelledBooking', () => {
   it('flags detached payments for late-callback refund', () => {
     expect(isDetachedCancelledPayment({ bookingId: null, metadataJson: '{"detachedFromBookingId":"b1"}' })).toBe(true)
     expect(isDetachedCancelledPayment({ bookingId: 'b2', metadataJson: '{"detachedFromBookingId":"b1"}' })).toBe(false)
+  })
+})
+
+describe('resolvePaymentClubId', () => {
+  it('prefers live booking FK over metadata', () => {
+    expect(resolvePaymentClubId({
+      booking: { slot: { court: { clubId: 'live' } } },
+      metadataJson: '{"detachedClubId":"meta"}',
+    })).toBe('live')
+  })
+
+  it('falls back to detachedClubId when booking is gone', () => {
+    expect(resolvePaymentClubId({
+      booking: null,
+      metadataJson: '{"detachedClubId":"club-detached"}',
+    })).toBe('club-detached')
   })
 })

@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client'
 import { createError } from 'h3'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { addDaysToIsoDate, todayDateString } from '#shared/localDate.ts'
+import { readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { walletBalanceDrift } from '#shared/walletRecon.ts'
 
 const url = process.env.MONEY_IT_DATABASE_URL
@@ -290,6 +291,28 @@ suite('money integration (real Postgres)', () => {
     await m.deskCash.acknowledgeDeskCashReturn({ paymentId: payment.id, clubId: f.club.id })
     const meta = JSON.parse((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).metadataJson || '{}')
     expect(meta.deskCashReturn).toBe('returned')
+  })
+
+  it('desk cash ack still works after cancelled booking detached for re-book', async () => {
+    const f = await fixtures()
+    const staleBooking = await import('./staleBooking')
+    const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 350_000, method: 'CASH' })
+    await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'REFUNDED',
+        metadataJson: JSON.stringify({ refundChannel: 'desk_cash', deskCashReturn: 'owed' }),
+      },
+    })
+    await db.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } })
+    await db.$transaction(async (tx) => {
+      await staleBooking.deleteStaleCancelledBooking(tx, booking.id)
+      await tx.booking.create({ data: { slotId: slot.id, status: 'CONFIRMED' } })
+    })
+    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).bookingId).toBeNull()
+    await m.deskCash.acknowledgeDeskCashReturn({ paymentId: payment.id, clubId: f.club.id })
+    const after = await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
+    expect(readDeskCashReturn(JSON.parse(after.metadataJson || '{}'))).toBe('returned')
   })
 
   it('pay-link guest (no wallet) IPG cancel is flagged for manual bank refund', async () => {
