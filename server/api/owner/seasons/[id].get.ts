@@ -1,7 +1,8 @@
-import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 import type { SeasonSessionOccurrence, SeasonSessionRule } from '#shared/seasonSessions.ts'
-import { weekdayNameFromDate } from '#shared/recurringSessions.ts'
-import { deriveSeasonRulesFromSlots } from '#shared/seasonSessions.ts'
+import { parseSeasonTimesJson, weekdayNameFromDate } from '#shared/recurringSessions.ts'
+import { deriveSeasonRulesFromSlots, legacySeasonToRules } from '#shared/seasonSessions.ts'
+import { loadOwnerSeriesBookingsBySeasonId } from '../../../utils/ownerSeriesCancel'
 
 function parseSessionsJson(raw: string): SeasonSessionOccurrence[] {
   try {
@@ -66,27 +67,38 @@ export default defineEventHandler(async (event) => {
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Not found' })
 
   const sessions = parseSessionsJson(row.timesJson)
-  const rules = rulesFromSessions(sessions)
-  const weekdays = [...new Set(sessions.map((s) => weekdayNameFromDate(s.date)).filter(Boolean))]
+  let rules = rulesFromSessions(sessions)
+  const days = (() => {
+    try {
+      const parsed = JSON.parse(row.daysJson || '[]')
+      return Array.isArray(parsed) ? parsed.filter((d): d is string => typeof d === 'string' && Boolean(d.trim())) : []
+    }
+    catch {
+      return []
+    }
+  })()
+  if (!rules.length && days.length) {
+    const series = await loadOwnerSeriesBookingsBySeasonId(club.id, id)
+    const courtIds = [...new Set(series.map((booking) => booking.slot.courtId).filter(Boolean))]
+    const dayTimes = parseSeasonTimesJson(row.timesJson, days)
+    rules = legacySeasonToRules({ days, dayTimes, courtIds })
+  }
+  const weekdays = rules.length
+    ? [...new Set(rules.map((rule) => rule.weekday))]
+    : [...new Set(sessions.map((s) => weekdayNameFromDate(s.date)).filter(Boolean))]
+
+  const guest = resolveSeasonGuestFields(row)
 
   return {
     season: {
       id: row.id,
-      guestName: row.guestName,
-      guestFamily: row.guestFamily,
-      guestLabel: formatGuestDisplayName(row.guestName, row.guestFamily),
+      guestName: guest.guestName,
+      guestFamily: guest.guestFamily,
+      guestLabel: guest.guestLabel,
       guestMobile: row.guestMobile,
       startDate: row.startDate,
       finishDate: row.finishDate,
-      days: (() => {
-        try {
-          const parsed = JSON.parse(row.daysJson || '[]')
-          return Array.isArray(parsed) ? parsed : []
-        }
-        catch {
-          return []
-        }
-      })(),
+      days,
       weekdays,
       comments: row.comments,
       createdAt: row.createdAt.toISOString(),

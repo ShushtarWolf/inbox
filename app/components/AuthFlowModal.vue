@@ -4,6 +4,7 @@ import { isAuthProtectedPath } from '#shared/returnTo.ts'
 import { startSmsOtpAutofill } from '~/composables/useSmsOtpAutofill'
 
 const { t } = useI18n()
+const { formatNumber } = useFormatters()
 const localePath = useLocalePath()
 const route = useRoute()
 const { user, fetch: fetchAuth } = useAuth()
@@ -38,6 +39,31 @@ const credentialUrls = ref<string[]>([])
 const licenseName = ref('')
 const code = ref('')
 const otpAutofillGen = ref(0)
+const resendCooldownSec = ref(0)
+let resendCooldownTimer: ReturnType<typeof setInterval> | null = null
+
+function clearResendCooldownTimer() {
+  if (resendCooldownTimer) {
+    clearInterval(resendCooldownTimer)
+    resendCooldownTimer = null
+  }
+}
+
+function startResendCooldown(seconds: number) {
+  clearResendCooldownTimer()
+  resendCooldownSec.value = Math.max(0, Math.floor(seconds))
+  if (resendCooldownSec.value <= 0) return
+  resendCooldownTimer = setInterval(() => {
+    if (resendCooldownSec.value <= 1) {
+      resendCooldownSec.value = 0
+      clearResendCooldownTimer()
+      return
+    }
+    resendCooldownSec.value -= 1
+  }, 1000)
+}
+
+onUnmounted(clearResendCooldownTimer)
 
 /** Live: typed Persian/Arabic digits → Latin in the field. */
 useAsciiDigits(phone)
@@ -165,6 +191,8 @@ function resetForm() {
   credentialUrls.value = []
   licenseName.value = ''
   code.value = ''
+  clearResendCooldownTimer()
+  resendCooldownSec.value = 0
   error.value = ''
   debugCode.value = ''
   maskedPhone.value = ''
@@ -508,6 +536,7 @@ async function requestOtp() {
   try {
     const data = await $fetch<{
       phone: string
+      resendAfterSec?: number
       debugCode?: string
       smsMode?: 'log' | 'live'
       smsPhase?: 'SINGLE' | 'MULTI'
@@ -542,6 +571,7 @@ async function requestOtp() {
     })
 
     maskedPhone.value = data.phone
+    startResendCooldown(data.resendAfterSec ?? 60)
     debugCode.value = data.debugCode || ''
     // Prefill only in log/dry-run so local testing works; never imply a real SMS was sent.
     code.value = data.smsMode === 'log' ? (data.debugCode || '') : ''
@@ -563,7 +593,18 @@ async function requestOtp() {
     else if (status === 409) error.value = t('auth.phoneTaken')
     else if (status === 400 && /gender/i.test(message)) error.value = t('auth.genderRequired')
     else if (status === 400) error.value = t('auth.invalidPhone')
-    else if (status === 429) error.value = t('errors.rateLimited')
+    else if (status === 429) {
+      const retryAfterSec = Number((err as { data?: { retryAfterSec?: number } })?.data?.retryAfterSec)
+      if (/OTP_RESEND_COOLDOWN/i.test(message) || retryAfterSec > 0) {
+        startResendCooldown(retryAfterSec > 0 ? retryAfterSec : 60)
+        error.value = t('auth.otpResendCooldown', {
+          seconds: formatNumber(retryAfterSec > 0 ? retryAfterSec : resendCooldownSec.value),
+        })
+      }
+      else {
+        error.value = t('errors.rateLimited')
+      }
+    }
     else if (status === 503 || status === 500) error.value = t('auth.otpServerUnavailable')
     else if (status === 502) {
       error.value = /account-owner phone|صاحب حساب|technical|operational/i.test(message)
@@ -1352,8 +1393,17 @@ onMounted(() => {
           <button type="submit" class="canva-gate-btn-primary" :disabled="pending">
             {{ pending ? t('common.loading') : t('auth.continueConfirm') }}
           </button>
-          <button type="button" class="canva-gate-btn-secondary" :disabled="pending" @click="requestOtp">
-            {{ t('auth.resendOtp') }}
+          <button
+            type="button"
+            class="canva-gate-btn-secondary"
+            :disabled="pending || resendCooldownSec > 0"
+            @click="requestOtp"
+          >
+            {{
+              resendCooldownSec > 0
+                ? t('auth.otpResendWait', { seconds: formatNumber(resendCooldownSec) })
+                : t('auth.resendOtp')
+            }}
           </button>
           <button
             v-if="purpose === 'login'"

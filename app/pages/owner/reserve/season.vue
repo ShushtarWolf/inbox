@@ -11,6 +11,7 @@ import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -275,9 +276,9 @@ function syncGuestFieldsFromDom() {
   const nameEl = guestNameInput.value
   const familyEl = guestFamilyInput.value
   const mobileEl = guestMobileInput.value
-  if (nameEl) guestName.value = nameEl.value
-  if (familyEl) guestFamily.value = familyEl.value
-  if (mobileEl) guestMobile.value = mobileEl.value
+  if (nameEl?.value.trim()) guestName.value = nameEl.value
+  if (familyEl?.value.trim()) guestFamily.value = familyEl.value
+  if (mobileEl?.value.trim()) guestMobile.value = mobileEl.value
 }
 
 function guestFieldsErrorMessage() {
@@ -365,41 +366,59 @@ function initFromQuery() {
   }
 }
 
-async function loadSeasonForEdit(seasonId: string) {
-  const res = await $fetch<{
-    season: {
-      guestName: string
-      guestFamily: string
-      guestMobile: string
-      startDate: string | null
-      finishDate: string | null
-      comments: string | null
-      rules: SeasonSessionRule[]
-    }
-  }>(`/api/owner/seasons/${seasonId}`)
-  const season = res.season
+type LoadedSeason = {
+  guestName: string
+  guestFamily: string
+  guestMobile: string
+  startDate: string | null
+  finishDate: string | null
+  comments: string | null
+  rules: SeasonSessionRule[]
+}
+
+async function fetchSeason(seasonId: string): Promise<LoadedSeason> {
+  const res = await $fetch<{ season: LoadedSeason }>(`/api/owner/seasons/${seasonId}`)
+  return res.season
+}
+
+function applyLoadedSeason(season: LoadedSeason, opts: { resetDateRange?: boolean } = {}) {
   guestName.value = season.guestName || ''
   guestFamily.value = season.guestFamily || ''
   guestMobile.value = season.guestMobile || ''
-  startDate.value = season.startDate || today()
-  finishDate.value = season.finishDate || jalaliMonthEndIso(startDate.value)
   comments.value = season.comments || ''
-  rules.value = (season.rules || []).map((rule) => ({
+  if (opts.resetDateRange) {
+    startDate.value = today()
+    finishDate.value = jalaliMonthEndIso(startDate.value)
+  }
+  else {
+    startDate.value = season.startDate || today()
+    finishDate.value = season.finishDate || jalaliMonthEndIso(startDate.value)
+  }
+  rules.value = groupSeasonRulesForUi(season.rules || []).map((rule) => ({
     id: newRuleId(),
-    weekdays: [rule.weekday],
+    weekdays: [...rule.weekdays],
     startTime: rule.startTime,
     endTime: rule.endTime,
-    courtIds: [rule.courtId],
+    courtIds: [...rule.courtIds],
   }))
-  syncGuestFieldsFromDom()
+}
+
+async function loadSeasonForEdit(seasonId: string) {
+  applyLoadedSeason(await fetchSeason(seasonId))
+}
+
+async function loadSeasonForRepeat(seasonId: string) {
+  applyLoadedSeason(await fetchSeason(seasonId), { resetDateRange: true })
 }
 
 onMounted(async () => {
   if (!recurringReserveEnabled.value) return
   const editId = String(route.query.edit || '').trim()
-  if (editId) {
+  const repeatId = String(route.query.repeat || '').trim()
+  if (editId || repeatId) {
     try {
-      await loadSeasonForEdit(editId)
+      if (repeatId) await loadSeasonForRepeat(repeatId)
+      else await loadSeasonForEdit(editId)
     }
     catch {
       initFromQuery()
