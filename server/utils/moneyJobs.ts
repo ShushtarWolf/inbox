@@ -121,6 +121,14 @@ async function processOneMoneyJob(job: {
         await markJobDone(job.id, prisma)
         return { processed: true as const, reason: result.reason }
       }
+      // Permanent: cannot credit without a user (healOrphanTopUps recovers pan matches first).
+      if (result.reason === 'no_user') {
+        await prisma.moneyJob.update({
+          where: { id: job.id },
+          data: { status: 'FAILED', lastError: 'orphan_no_user', attempts: { increment: 1 } },
+        })
+        return { processed: false as const, reason: 'orphan_no_user' as const }
+      }
       await markJobFailed(job.id, result.reason, prisma)
       return { processed: false as const, reason: result.reason }
     }
@@ -208,9 +216,10 @@ export async function reconcilePaidPaymentsMissingLedger(limit = 40) {
     take: limit,
   })
 
+  // Orphans (null userId) are handled by healOrphanTopUps — do not spin jobs forever.
   const paidTopUp = await prisma.$queryRaw<Array<{ id: string }>>`
     SELECT p.id FROM "Payment" p
-    WHERE p.status = 'PAID' AND p.purpose = 'topup'
+    WHERE p.status = 'PAID' AND p.purpose = 'topup' AND p."userId" IS NOT NULL
       AND NOT EXISTS (
         SELECT 1 FROM "WalletTransaction" t
         WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'

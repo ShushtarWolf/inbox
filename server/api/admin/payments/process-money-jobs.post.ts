@@ -1,4 +1,5 @@
 import { requireAdminSecret } from '../../../utils/adminAuth'
+import { healOrphanTopUpPayments } from '../../../utils/healOrphanTopUps'
 import { healReversedStillPaidPayments } from '../../../utils/healReversedStillPaid'
 import {
   processPendingMoneyJobs,
@@ -13,6 +14,7 @@ export default defineEventHandler(async (event) => {
     reconcile?: boolean
     requeueFailed?: boolean
     healReversed?: boolean
+    healOrphanTopUps?: boolean
   }>(event).catch(() => ({}))
   if (body?.requeueFailed) {
     const requeued = await requeueFailedMoneyJobs()
@@ -35,8 +37,24 @@ export default defineEventHandler(async (event) => {
       heal = { scanned: 0, healed: 0, results: [], error: message.slice(0, 300) }
     }
   }
-  if (body?.reconcile !== false) {
-    return { heal, ...(await reconcilePaidPaymentsMissingLedger()) }
+  let orphanTopUps: Awaited<ReturnType<typeof healOrphanTopUpPayments>> | {
+    scanned: number
+    healed: number
+    results: Array<{ paymentId: string, ok: boolean, reason: string }>
+    error?: string
+  } = { scanned: 0, healed: 0, results: [] }
+  if (body?.healOrphanTopUps !== false) {
+    try {
+      orphanTopUps = await healOrphanTopUpPayments()
+    }
+    catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[process-money-jobs:orphanTopUps]', err)
+      orphanTopUps = { scanned: 0, healed: 0, results: [], error: message.slice(0, 300) }
+    }
   }
-  return { heal, ...(await processPendingMoneyJobs()) }
+  if (body?.reconcile !== false) {
+    return { heal, orphanTopUps, ...(await reconcilePaidPaymentsMissingLedger()) }
+  }
+  return { heal, orphanTopUps, ...(await processPendingMoneyJobs()) }
 })

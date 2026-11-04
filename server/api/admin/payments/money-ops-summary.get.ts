@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
         pending: pendingJobs,
       },
       paidTopUpWithoutCredit: {
-        action: 'POST /api/admin/payments/process-money-jobs with reconcile — credits TOPUP_CREDIT',
+        action: 'POST /api/admin/payments/process-money-jobs (healOrphanTopUps + reconcile) — attach userId via maskedPan then TOPUP_CREDIT',
         sample: unpaidTopUps,
       },
       owedAged: {

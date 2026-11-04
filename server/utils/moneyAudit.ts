@@ -19,8 +19,10 @@ export type MoneyAuditSummary = {
   clubBalanceDrift: number
   /** PAID online booking payments with no SettlementLedgerEntry (needs money-jobs retry). */
   paidWithoutSettlement: number
-  /** PAID top-ups missing TOPUP_CREDIT wallet line. */
+  /** PAID top-ups with userId missing TOPUP_CREDIT (retryable). */
   paidTopUpWithoutCredit: number
+  /** PAID top-ups with null userId and no credit (heal via maskedPan or dead-letter). */
+  paidTopUpOrphanNoUser: number
   /** Sum of open ledger commission (platform float — gross − ownerNet, not clawed). */
   openPlatformCommissionToman: number
   pendingMoneyJobs: number
@@ -46,6 +48,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     clubWalletsNegative,
     paidWithoutSettlement,
     paidTopUpWithoutCredit,
+    paidTopUpOrphanNoUser,
     openPlatformCommission,
     pendingMoneyJobs,
     failedMoneyJobs,
@@ -104,7 +107,15 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     }),
     prisma.$queryRaw<Array<{ c: bigint }>>`
       SELECT COUNT(*)::bigint AS c FROM "Payment" p
-      WHERE p.status = 'PAID' AND p.purpose = 'topup'
+      WHERE p.status = 'PAID' AND p.purpose = 'topup' AND p."userId" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM "WalletTransaction" t
+          WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'
+        )
+    `.then((rows) => Number(rows[0]?.c || 0)),
+    prisma.$queryRaw<Array<{ c: bigint }>>`
+      SELECT COUNT(*)::bigint AS c FROM "Payment" p
+      WHERE p.status = 'PAID' AND p.purpose = 'topup' AND p."userId" IS NULL
         AND NOT EXISTS (
           SELECT 1 FROM "WalletTransaction" t
           WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'
@@ -177,6 +188,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     clubBalanceDrift: Number(clubDrift[0]?.c || 0),
     paidWithoutSettlement,
     paidTopUpWithoutCredit,
+    paidTopUpOrphanNoUser,
     openPlatformCommissionToman: openPlatformCommission,
     pendingMoneyJobs,
     failedMoneyJobs,
@@ -196,6 +208,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     + summary.clubBalanceDrift
     + summary.paidWithoutSettlement
     + summary.paidTopUpWithoutCredit
+    + summary.paidTopUpOrphanNoUser
     + summary.failedMoneyJobs
     + summary.reversedStillPaid
   ) > 0

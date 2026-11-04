@@ -330,15 +330,20 @@ export async function creditWalletForTopUpPayment(
     status: payment?.status,
     userId: payment?.userId,
     alreadyCredited: Boolean(existing),
-  }) || !payment?.userId) {
+  })) {
     return {
       credited: false,
       reason: previousStatus === 'PAID'
         ? 'already_paid' as const
         : existing
           ? 'already_credited' as const
-          : 'not_topup_paid' as const,
+          : payment?.purpose === 'topup' && payment.status === 'PAID' && !payment.userId
+            ? 'no_user' as const
+            : 'not_topup_paid' as const,
     }
+  }
+  if (!payment?.userId) {
+    return { credited: false, reason: 'no_user' as const }
   }
 
   await creditWallet(payment.userId, payment.amount, {
