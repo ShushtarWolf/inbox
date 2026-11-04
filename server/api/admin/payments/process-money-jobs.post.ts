@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
     results: Array<{ paymentId: string, ok: boolean, reason: string }>
     error?: string
   } = { scanned: 0, healed: 0, results: [] }
-  if (body?.healOrphanTopUps !== false) {
+  // Masked PAN (6+4 digits) can collide across people — admin-triggered only, never cron.
+  if (body?.healOrphanTopUps === true) {
     try {
       orphanTopUps = await healOrphanTopUpPayments()
     }
