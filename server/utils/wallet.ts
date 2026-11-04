@@ -8,6 +8,8 @@ import {
   shouldCreditTopUp,
   sumWithdrawnViaRail,
 } from '#shared/walletTopUp.ts'
+import { prisma } from './prisma'
+import { paymentIdsBlockedForWithdraw } from './reversedStillPaid'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -106,12 +108,15 @@ export async function getWalletWithdrawableBalance(
   const paymentIds = wallet.transactions
     .map((row) => row.paymentId)
     .filter((id): id is string => Boolean(id))
-  const ledgerRows = paymentIds.length
-    ? await db.settlementLedgerEntry.findMany({
-        where: { paymentId: { in: paymentIds } },
-        select: { paymentId: true, classDate: true },
-      })
-    : []
+  const [ledgerRows, blockedIds] = await Promise.all([
+    paymentIds.length
+      ? db.settlementLedgerEntry.findMany({
+          where: { paymentId: { in: paymentIds } },
+          select: { paymentId: true, classDate: true },
+        })
+      : Promise.resolve([] as Array<{ paymentId: string, classDate: string | null }>),
+    paymentIdsBlockedForWithdraw(paymentIds, db as typeof prisma),
+  ])
   const classDateByPayment = new Map(ledgerRows.map((row) => [row.paymentId, row.classDate]))
 
   let creditSum = 0
@@ -121,6 +126,7 @@ export async function getWalletWithdrawableBalance(
       clawbackSum += row.amount
       continue
     }
+    if (row.paymentId && blockedIds.has(row.paymentId)) continue
     const classDate = row.paymentId ? classDateByPayment.get(row.paymentId) : null
     if (!isSettlementCashoutEligible(classDate ?? null, now)) continue
     creditSum += row.amount

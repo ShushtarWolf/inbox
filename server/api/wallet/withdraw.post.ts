@@ -4,7 +4,8 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   await assertUserCanBankWithdraw(user.id)
 
-  const body = await readBody<{ amount?: number; note?: string }>(event)
+  const body = await readBody<{ amount?: number; note?: string; idempotencyKey?: string }>(event)
+  const headerKey = getHeader(event, 'idempotency-key')
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
     amount: Number(body.amount),
     sheba: dbUser.sheba,
     note: body.note,
+    idempotencyKey: body.idempotencyKey || headerKey || null,
   })
 
   return {

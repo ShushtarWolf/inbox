@@ -9,6 +9,7 @@ const clubTxAggregate = vi.fn()
 const userTxAggregate = vi.fn()
 const findUniqueCoach = vi.fn()
 const findUniqueClub = vi.fn()
+const findFirstCoachSession = vi.fn()
 const clubWalletUpsert = vi.fn()
 const clubWalletUpdate = vi.fn()
 const clubWalletTxCreate = vi.fn()
@@ -21,6 +22,10 @@ vi.mock('./wallet', () => ({
   debitWallet: (...args: unknown[]) => debitWallet(...args),
 }))
 
+vi.mock('./reversedStillPaid', () => ({
+  paymentIdsBlockedForWithdraw: async () => new Set<string>(),
+}))
+
 vi.stubGlobal('prisma', {
   payment: { findUnique: (...args: unknown[]) => findUniquePayment(...args) },
   settlementLedgerEntry: {
@@ -31,6 +36,7 @@ vi.stubGlobal('prisma', {
   },
   walletTransaction: { aggregate: (...args: unknown[]) => userTxAggregate(...args) },
   coach: { findUnique: (...args: unknown[]) => findUniqueCoach(...args) },
+  coachSession: { findFirst: (...args: unknown[]) => findFirstCoachSession(...args) },
   club: { findUnique: (...args: unknown[]) => findUniqueClub(...args) },
   clubWallet: {
     upsert: (...args: unknown[]) => clubWalletUpsert(...args),
@@ -66,6 +72,7 @@ describe('coach lesson settlement', () => {
     transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma as never))
     findUniqueLedger.mockResolvedValue(null)
     findUniqueClub.mockResolvedValue({ commissionBps: null })
+    findFirstCoachSession.mockResolvedValue(null)
     updateManyLedger.mockResolvedValue({ count: 1 })
     clubTxAggregate.mockResolvedValue({ _sum: { amount: null } })
     userTxAggregate.mockResolvedValue({ _sum: { amount: null } })
@@ -130,6 +137,7 @@ describe('coach lesson settlement', () => {
   })
 
   it('settles coach-lesson-court to club at 0 bps (full charge)', async () => {
+    findFirstCoachSession.mockResolvedValue({ id: 'sess-linked' })
     findUniquePayment.mockImplementation(async (args: { include?: unknown }) => {
       const base = {
         id: 'pay-court',
@@ -145,20 +153,13 @@ describe('coach lesson settlement', () => {
           slot: { date: '2026-09-01', court: { clubId: 'club-1' } },
         },
       }
-      if (args?.include) return base
-      return {
-        id: 'pay-court',
-        amount: 600_000,
-        status: 'PAID',
-        purpose: null,
-        metadataJson: JSON.stringify({ source: 'coach-lesson-court' }),
-        coachSessionId: null,
-      }
+      return args?.include ? base : { ...base, booking: undefined }
     })
 
     const result = await creditOwnerForPaidPayment('pay-court')
 
     expect(result.credited).toBe(true)
+    expect(findFirstCoachSession).toHaveBeenCalled()
     expect(createLedger).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -172,6 +173,39 @@ describe('coach lesson settlement', () => {
       }),
     )
     expect(creditWallet).not.toHaveBeenCalled()
+  })
+
+  it('ignores forged coach-lesson-court source without linked session', async () => {
+    findFirstCoachSession.mockResolvedValue(null)
+    findUniquePayment.mockImplementation(async (args: { include?: unknown }) => {
+      const base = {
+        id: 'pay-forged',
+        amount: 500_000,
+        status: 'PAID',
+        purpose: null,
+        metadataJson: JSON.stringify({ source: 'coach-lesson-court' }),
+        coachSessionId: null,
+        bookingId: 'book-x',
+        packageBookingId: null,
+        booking: {
+          id: 'book-x',
+          slot: { date: '2026-09-01', court: { clubId: 'club-1' } },
+        },
+      }
+      return args?.include ? base : { ...base, booking: undefined }
+    })
+
+    await creditOwnerForPaidPayment('pay-forged')
+
+    expect(createLedger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          commissionBps: 1000,
+          commission: 50_000,
+          ownerNet: 450_000,
+        }),
+      }),
+    )
   })
 
   it('uses the club override (promo 0%) over the 10% global default', async () => {

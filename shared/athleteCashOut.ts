@@ -1,11 +1,50 @@
 /**
  * Athlete bank cash-out is limited to top-up + cancel-refund credit nets.
  * Settlement credits (coach) stay on the coach withdraw path.
+ *
+ * All amounts are **toman** (same as Payment.amount / wallet). Env names historically
+ * used `_IRR` (ISO currency); prefer `*_TOMAN` — `_IRR` remains a compat fallback.
  */
 
-export const ATHLETE_WITHDRAW_MIN_IRR = Number(process.env.ATHLETE_WITHDRAW_MIN_IRR || 50_000)
-export const ATHLETE_WITHDRAW_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_MAX_IRR || 50_000_000)
-export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = Number(process.env.ATHLETE_WITHDRAW_DAILY_MAX_IRR || 50_000_000)
+function readTomanEnv(tomanKey: string, irrKey: string, fallback: number): number {
+  const toman = process.env[tomanKey]
+  if (toman != null && String(toman).trim() !== '') {
+    const n = Number(toman)
+    if (Number.isFinite(n) && n > 0) return n
+  }
+  const irr = process.env[irrKey]
+  if (irr != null && String(irr).trim() !== '') {
+    const n = Number(irr)
+    if (Number.isFinite(n) && n > 0) return n
+  }
+  return fallback
+}
+
+/** Min SHEBA cash-out (toman). */
+export const ATHLETE_WITHDRAW_MIN_TOMAN = readTomanEnv(
+  'ATHLETE_WITHDRAW_MIN_TOMAN',
+  'ATHLETE_WITHDRAW_MIN_IRR',
+  50_000,
+)
+/** Max single SHEBA cash-out (toman). */
+export const ATHLETE_WITHDRAW_MAX_TOMAN = readTomanEnv(
+  'ATHLETE_WITHDRAW_MAX_TOMAN',
+  'ATHLETE_WITHDRAW_MAX_IRR',
+  50_000_000,
+)
+/** Max SHEBA cash-out per Tehran day (toman). */
+export const ATHLETE_WITHDRAW_DAILY_MAX_TOMAN = readTomanEnv(
+  'ATHLETE_WITHDRAW_DAILY_MAX_TOMAN',
+  'ATHLETE_WITHDRAW_DAILY_MAX_IRR',
+  50_000_000,
+)
+
+/** @deprecated Use ATHLETE_WITHDRAW_MIN_TOMAN — alias kept for existing imports. */
+export const ATHLETE_WITHDRAW_MIN_IRR = ATHLETE_WITHDRAW_MIN_TOMAN
+/** @deprecated Use ATHLETE_WITHDRAW_MAX_TOMAN */
+export const ATHLETE_WITHDRAW_MAX_IRR = ATHLETE_WITHDRAW_MAX_TOMAN
+/** @deprecated Use ATHLETE_WITHDRAW_DAILY_MAX_TOMAN */
+export const ATHLETE_WITHDRAW_DAILY_MAX_IRR = ATHLETE_WITHDRAW_DAILY_MAX_TOMAN
 
 /**
  * Hours before a TOPUP_CREDIT or REFUND_CREDIT counts toward SHEBA cash-out (default 24).
@@ -66,8 +105,8 @@ export function clampAthleteWithdrawAmount(amount: number, caps: {
 }): { ok: true; amount: number } | { ok: false; reason: string } {
   const n = Math.floor(amount)
   if (!Number.isFinite(n) || n <= 0) return { ok: false, reason: 'invalid' }
-  if (n < ATHLETE_WITHDRAW_MIN_IRR) return { ok: false, reason: 'below_min' }
-  if (n > ATHLETE_WITHDRAW_MAX_IRR) return { ok: false, reason: 'above_max' }
+  if (n < ATHLETE_WITHDRAW_MIN_TOMAN) return { ok: false, reason: 'below_min' }
+  if (n > ATHLETE_WITHDRAW_MAX_TOMAN) return { ok: false, reason: 'above_max' }
   if (n > caps.dailyRemaining) return { ok: false, reason: 'daily_cap' }
   if (n > caps.available) return { ok: false, reason: 'available' }
   if (n > caps.cashOutNet) return { ok: false, reason: 'cash_out_net' }

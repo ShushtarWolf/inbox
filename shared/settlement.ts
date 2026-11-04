@@ -1,3 +1,7 @@
+/**
+ * Pure settlement math (bps split, cashout eligibility, formatters).
+ * IO / ledger writes live in server/utils/settlement.ts — keep formulas here.
+ */
 import { toAsciiDigits } from './digits.ts'
 import { isPastDate } from './localDate.ts'
 

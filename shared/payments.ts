@@ -32,6 +32,7 @@ export type PaymentIntentStatus =
   | 'PAID'
   | 'FAILED'
   | 'REFUNDED'
+  | 'PARTIALLY_REFUNDED'
 
 export type PaymentsMode = 'pay_at_club' | 'test' | 'live'
 
@@ -104,6 +105,10 @@ export type PaymentsStatusSnapshot = {
 const PAYMENTS_WARNING: Record<string, string> = {
   live_without_terminal:
     'PAYMENTS_MODE=live but SEP_TERMINAL_ID is missing — live SEP checkout will fail',
+  live_without_payout_confirm:
+    'PAYMENTS_MODE=live but ADMIN_PAYOUT_CONFIRM is unset — mark-paid is blocked until set',
+  live_commission_zero:
+    'PLATFORM_COMMISSION_BPS is 0 while live — intentional for pilot; set per-club or env before charging fee',
   pay_at_club_fallback:
     'PAYMENTS_MODE=pay_at_club — online Pay CTA hidden; desk mark-paid / walk-ins OK (OK MVP fallback)',
   test_without_terminal:
@@ -137,6 +142,18 @@ export function getPaymentsStatusSnapshot(): PaymentsStatusSnapshot {
   if (paymentsMode === 'live' && !hasSepTerminalId) {
     warningCodes.push('live_without_terminal')
     nextActionCodes.push('set_terminal')
+  }
+
+  if (paymentsMode === 'live' && !process.env.ADMIN_PAYOUT_CONFIRM?.trim()) {
+    warningCodes.push('live_without_payout_confirm')
+  }
+
+  const platformBpsRaw = process.env.PLATFORM_COMMISSION_BPS
+  const platformBps = platformBpsRaw == null || String(platformBpsRaw).trim() === ''
+    ? 0
+    : Number(platformBpsRaw)
+  if (paymentsMode === 'live' && (!Number.isFinite(platformBps) || platformBps === 0)) {
+    warningCodes.push('live_commission_zero')
   }
 
   if (paymentsMode === 'pay_at_club') {

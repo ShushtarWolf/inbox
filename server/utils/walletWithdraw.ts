@@ -40,6 +40,7 @@ export async function requestUserWithdraw(options: {
   amount: number
   sheba: string | null | undefined
   note?: string
+  idempotencyKey?: string | null
 }) {
   const amount = Math.floor(Number(options.amount))
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -49,6 +50,7 @@ export async function requestUserWithdraw(options: {
   if (!sheba) {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
+  const idempotencyKey = options.idempotencyKey?.trim() || null
 
   const coach = await prisma.coach.findFirst({
     where: { userId: options.userId },
@@ -57,6 +59,20 @@ export async function requestUserWithdraw(options: {
   const isCoach = Boolean(coach)
 
   return prisma.$transaction(async (tx) => {
+    if (idempotencyKey) {
+      const byKey = await tx.userWithdrawRequest.findFirst({
+        where: { userId: options.userId, idempotencyKey },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (byKey) {
+        return {
+          request: byKey,
+          rail: (byKey.rail as BankWithdrawRail | null) || 'athlete',
+          created: false as const,
+        }
+      }
+    }
+
     // Idempotent retries: same user+amount PENDING within 2 minutes → return existing.
     // Before the balance check — the first request's hold already moved available → locked.
     const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
@@ -139,6 +155,7 @@ export async function requestUserWithdraw(options: {
         status: 'PENDING',
         rail,
         note: options.note || null,
+        idempotencyKey,
       },
     })
 

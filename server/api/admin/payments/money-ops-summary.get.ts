@@ -48,15 +48,16 @@ export default defineEventHandler(async (event) => {
 
   return {
     audit,
+    owedSlaHours: 48,
     actions: {
       reversePending: {
         resolveEndpoint: 'POST /api/admin/payments/resolve-reverse-pending',
         paymentIds: reversePending.map((p) => p.id),
         sample: reversePending,
       },
-      // Card already refunded at SEP; booking + club settlement still live until the cancel is re-run.
+      // Card already refunded at SEP; booking + club settlement still live until healed.
       reversedStillPaid: {
-        action: 'Re-run the booking/session/package cancel — refund takes the gateway_reverse path (no wallet credit) and claws back the club.',
+        action: 'POST /api/admin/payments/process-money-jobs (healReversed default) or re-run cancel',
         paymentIds: reversedStillPaid.map((p) => p.id),
         sample: reversedStillPaid,
       },
@@ -68,6 +69,11 @@ export default defineEventHandler(async (event) => {
       moneyJobs: {
         processEndpoint: 'POST /api/admin/payments/process-money-jobs',
         failed: failedJobs,
+      },
+      owedAged: {
+        manualBankRefundsOwedAged: audit.manualBankRefundsOwedAged,
+        deskCashReturnsOwedAged: audit.deskCashReturnsOwedAged,
+        action: 'Ack desk cash / mark manual bank refund returned in admin payments',
       },
     },
   }

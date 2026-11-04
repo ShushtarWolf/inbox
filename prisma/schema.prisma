@@ -51,6 +51,8 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  /** Booking cancelled with refundBps < 10000 (closed-loop partial); terminal like REFUNDED. */
+  PARTIALLY_REFUNDED
   /** Replaced by a newer checkout intent; row kept for wallet / ledger audit trail. */
   SUPERSEDED
 }
@@ -354,6 +356,8 @@ model UserWithdrawRequest {
   /** Server-resolved book: coach settlement vs athlete top-up/refund. */
   rail          String?
   note          String?
+  /** Client-provided key; unique per user when set. */
+  idempotencyKey String?
   createdAt     DateTime              @default(now())
   paidAt        DateTime?
   rejectedAt    DateTime?
@@ -362,6 +366,7 @@ model UserWithdrawRequest {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   paymentDocuments WithdrawPaymentDocument[]
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
 }
@@ -572,6 +577,7 @@ model Club {
   withdrawRequests  WithdrawRequest[]
   shebaChangeRequests ShebaChangeRequest[]
   settlementEntries SettlementLedgerEntry[]
+  commissionChanges ClubCommissionChange[]
   supportTickets    SupportTicket[]
   competitions      Competition[]
   externalOccupancySnapshots ExternalOccupancySnapshot[]
@@ -1456,6 +1462,8 @@ model WithdrawRequest {
   shebaSnapshot String
   status        WithdrawRequestStatus @default(PENDING)
   note          String?
+  /** Client-provided key; unique per club when set. */
+  idempotencyKey String?
   createdAt     DateTime              @default(now())
   paidAt        DateTime?
   rejectedAt    DateTime?
@@ -1464,8 +1472,22 @@ model WithdrawRequest {
   club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   paymentDocuments WithdrawPaymentDocument[]
 
+  @@unique([clubId, idempotencyKey])
   @@index([clubId, status, createdAt])
   @@index([status, createdAt])
+}
+
+/** Append-only audit when admin changes Club.commissionBps. */
+model ClubCommissionChange {
+  id        String   @id @default(cuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  fromBps   Int?
+  toBps     Int?
+  actor     String   @default("admin-secret")
+  createdAt DateTime @default(now())
+
+  @@index([clubId, createdAt])
 }
 
 /** Ops approval before a club/user SHEBA becomes active for payouts. */

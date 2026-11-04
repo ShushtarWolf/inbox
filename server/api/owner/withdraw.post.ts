@@ -2,7 +2,8 @@ import { requestClubWithdraw } from '../../utils/settlement'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'finance:payouts')
-  const body = await readBody<{ amount?: number; note?: string }>(event)
+  const body = await readBody<{ amount?: number; note?: string; idempotencyKey?: string }>(event)
+  const headerKey = getHeader(event, 'idempotency-key')
 
   const pendingSheba = await prisma.shebaChangeRequest.findFirst({
     where: { clubId: club.id, status: 'PENDING' },
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
     amount: Number(body.amount),
     sheba: club.sheba,
     note: body.note,
+    idempotencyKey: body.idempotencyKey || headerKey || null,
   })
 
   return {

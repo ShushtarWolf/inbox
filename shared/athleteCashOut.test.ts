@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { athleteCashOutFromTxs, clampAthleteWithdrawAmount, ATHLETE_WITHDRAW_MIN_IRR } from './athleteCashOut.ts'
+import {
+  athleteCashOutFromTxs,
+  clampAthleteWithdrawAmount,
+  ATHLETE_WITHDRAW_MIN_IRR,
+  ATHLETE_WITHDRAW_MIN_TOMAN,
+  ATHLETE_WITHDRAW_MAX_TOMAN,
+} from './athleteCashOut.ts'
 
 describe('athleteCashOutFromTxs', () => {
   it('nets top-up and refunds minus booking debits', () => {
@@ -40,5 +46,11 @@ describe('clampAthleteWithdrawAmount', () => {
       cashOutNet: 1_000_000,
       dailyRemaining: 1_000_000,
     })).toEqual({ ok: false, reason: 'below_min' })
+  })
+
+  it('defaults are toman-scale (not rials×10)', () => {
+    expect(ATHLETE_WITHDRAW_MIN_TOMAN).toBe(50_000)
+    expect(ATHLETE_WITHDRAW_MAX_TOMAN).toBe(50_000_000)
+    expect(ATHLETE_WITHDRAW_MIN_IRR).toBe(ATHLETE_WITHDRAW_MIN_TOMAN)
   })
 })

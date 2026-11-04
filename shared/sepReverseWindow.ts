@@ -61,8 +61,9 @@ export function isSepReverseAmbiguousError(err: unknown): boolean {
 
 /**
  * SEP ReverseTransaction: 2 = duplicate request (an earlier reverse went through),
- * 5 = transaction already reversed. Match the code only — free-text matching could
- * read a refusal as success and leave the athlete with neither card nor wallet refund.
+ * 5 = transaction already reversed.
+ * Note: verify also uses code 2 but meaning differs (already verified ≠ already reversed).
+ * Match the code only — free-text matching could read a refusal as success.
  */
 const SEP_REVERSE_ALREADY_DONE_CODES = new Set([2, 5])
 
@@ -71,4 +72,8 @@ export function isSepReverseAlreadyDoneError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err || '')
   const match = /sep reverse failed \(code=(-?\d+)\)/i.exec(msg)
   return Boolean(match && SEP_REVERSE_ALREADY_DONE_CODES.has(Number(match[1])))
+}
+
+export function isSepReverseSuccessCode(resultCode: number): boolean {
+  return resultCode === 0 || SEP_REVERSE_ALREADY_DONE_CODES.has(resultCode)
 }

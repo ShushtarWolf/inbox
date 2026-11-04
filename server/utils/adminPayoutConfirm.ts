@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
+import { getPaymentsMode } from '#shared/payments.ts'
 
 function secretsEqual(provided: string, expected: string) {
   const a = Buffer.from(provided)
@@ -13,14 +14,23 @@ function secretsEqual(provided: string, expected: string) {
 
 /**
  * Second factor for admin mark-paid on withdraw requests.
- * When ADMIN_PAYOUT_CONFIRM is set, require header `x-admin-payout-confirm`.
- * When unset, require body.confirmPayout === true (soft dual-control).
+ * Live: ADMIN_PAYOUT_CONFIRM must be set; require header `x-admin-payout-confirm`.
+ * Non-live: soft dual-control via body.confirmPayout === true (or header when env set).
  */
 export function requireAdminPayoutConfirm(
   event: H3Event,
   body?: { confirmPayout?: boolean },
 ) {
   const expected = process.env.ADMIN_PAYOUT_CONFIRM?.trim()
+  const live = getPaymentsMode() === 'live'
+
+  if (live && !expected) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'ADMIN_PAYOUT_CONFIRM required when PAYMENTS_MODE=live',
+    })
+  }
+
   if (expected) {
     const provided = getHeader(event, 'x-admin-payout-confirm')
     if (!provided || !secretsEqual(provided, expected)) {
@@ -28,6 +38,7 @@ export function requireAdminPayoutConfirm(
     }
     return
   }
+
   if (body?.confirmPayout !== true) {
     throw createError({
       statusCode: 400,

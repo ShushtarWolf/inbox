@@ -227,9 +227,15 @@ export async function refundPaymentForCancellation(options: {
     : refundAmountFromBps(payment.amount, refundBps)
   nextMeta.refundBps = refundBps
   nextMeta.refundCreditAmount = creditAmount
+  nextMeta.refundedAmount = creditAmount
+
+  // Partial closed-loop refund (booking cancelled, athlete got <100%) — not a full reverse.
+  const nextStatus = (!gatewayRefunded && refundBps > 0 && refundBps < 10_000)
+    ? 'PARTIALLY_REFUNDED' as const
+    : 'REFUNDED' as const
 
   const apply = async (tx: DbClient) => {
-    // Credit before marking REFUNDED — never leave the athlete without credit on a refunded row.
+    // Credit before marking terminal — never leave the athlete without credit on a refunded row.
     if (canCreditAthlete && creditUserId && creditAmount > 0) {
       await creditWallet(creditUserId, creditAmount, {
         paymentId: payment.id,
@@ -243,7 +249,7 @@ export async function refundPaymentForCancellation(options: {
     await tx.payment.update({
       where: { id: payment.id },
       data: {
-        status: 'REFUNDED',
+        status: nextStatus,
         metadataJson: JSON.stringify(nextMeta),
       },
     })

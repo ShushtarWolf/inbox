@@ -68,9 +68,19 @@ export function sepOnlinePgUrl(): string {
   return `${sepBaseUrl()}/OnlinePG/OnlinePG`
 }
 
-/** ResultCode 0 = first verify, 2 = already verified (idempotent). */
+/**
+ * SEP ResultCode tables differ by operation — do not reuse verify codes for reverse.
+ *
+ * VerifyTransaction: 0 = first success, 2 = already verified (idempotent OK).
+ * ReverseTransaction: 0 = first success, 2 = duplicate reverse request, 5 = already reversed.
+ */
 export function isSepVerifySuccess(resultCode: number): boolean {
   return resultCode === 0 || resultCode === 2
+}
+
+/** ReverseTransaction success / already-done codes (not the same as verify). */
+export function isSepReverseSuccess(resultCode: number): boolean {
+  return resultCode === 0 || resultCode === 2 || resultCode === 5
 }
 
 export function isSepTokenSuccess(status: number, token: string): boolean {
@@ -195,7 +205,10 @@ export async function sepReverseTransaction(
     fetchImpl,
   )
   const resultCode = Number(envelope.ResultCode ?? envelope.resultCode ?? -1)
-  const success = Boolean(envelope.Success ?? envelope.success ?? resultCode === 0)
+  // Prefer ResultCode table (0/2/5) — explicit Success:false must not override a success code
+  // the way verify's `Success ?? code` pattern would.
+  const success = isSepReverseSuccess(resultCode)
+    || Boolean(envelope.Success ?? envelope.success)
   if (!success) {
     const desc = envelope.ResultDescription != null
       ? String(envelope.ResultDescription)

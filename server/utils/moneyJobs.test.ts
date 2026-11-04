@@ -37,7 +37,12 @@ vi.mock('./wallet', () => ({
   creditWalletForTopUpPayment: (...args: unknown[]) => creditWalletForTopUpPayment(...args),
 }))
 
+vi.mock('./adminNotify', () => ({
+  notifyAdminSms: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('./splitPayWallet', () => ({
+
   promoteSplitPayAmountOnPaid: (...args: unknown[]) => promoteSplitPayAmountOnPaid(...args),
 }))
 

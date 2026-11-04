@@ -172,9 +172,25 @@ Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSIO
 
 **Club suspension:** `SUSPENDED` rejects pending club withdraws, blocks new `requestClubWithdraw` / admin `markWithdrawPaid`, and owner APIs already gate on `ACTIVE`.
 
-**Admin payout dual-control:** mark-paid requires `x-admin-payout-confirm: $ADMIN_PAYOUT_CONFIRM` when that env is set; otherwise body `confirmPayout: true`.
+**Admin payout dual-control:** when `PAYMENTS_MODE=live`, `ADMIN_PAYOUT_CONFIRM` **must** be set and mark-paid requires header `x-admin-payout-confirm`. Non-live: soft dual-control via body `confirmPayout: true` (or the header when env is set).
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261102180000_user_withdraw_rail`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0`, `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS=24`, `ADMIN_PAYOUT_CONFIRM=…`.
+On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261104180000_money_enforcement_review`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0`, `ATHLETE_WITHDRAW_*_TOMAN` (or legacy `*_IRR`), `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS=24`, `ADMIN_PAYOUT_CONFIRM=…`.
+
+## Signed intentional decisions (not bugs)
+
+These are product laws — do not “fix” them by rewriting policy:
+
+| Decision | Law |
+|---|---|
+| Commission on cancel | Platform returns its commission from float; payee returns only `ownerNet` |
+| `coach-lesson-court` @ 0 bps | Coach already paid court from wallet; club gets 100% (only when linked coach session exists) |
+| `PLATFORM_COMMISSION_BPS=0` | Pilot default; live warns but does not hard-fail |
+| Rounding | `floor` on commission/refund BPS |
+| Clawback negative | Allowed; withdraw blocked via debt-aware ceiling (no debt ledger) |
+| Athlete SHEBA hold | Default 24h on top-up/refund credits |
+| `SUSPENDED` club | Freezes withdraws only — no auto-cancel of bookings |
+| `PaymentMethod.PAID` | Means **wallet rail** (not status); do not rename to `WALLET` without a migration plan |
+| SEP reverse window | 25 minutes (conservative vs bank ~30m) |
 
 ## Coach lesson settlement
 
@@ -183,11 +199,11 @@ When an athlete pays a **coach session** fee (`Payment.coachSessionId`), settlem
 ## Athlete wallet withdraw / cash-out
 
 - **Coach:** settlement credits (day after class) via `getWalletWithdrawableBalance`.
-- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_IRR` / `MAX` / `DAILY_MAX`. Fresh `TOPUP_CREDIT` **and** `REFUND_CREDIT` are excluded until `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS` (default 24) — otherwise card → booking → cancel → SHEBA skips the cool-down. Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float. Both rails subtract `withdrawnViaRail` so mixed wallets cannot double-cash-out.
+- **Athlete:** top-up + refund credit nets (`athleteCashOutFromTxs`), capped by available + env `ATHLETE_WITHDRAW_MIN_TOMAN` / `MAX` / `DAILY_MAX` (legacy `*_IRR` aliases still work — values are **toman**). Fresh `TOPUP_CREDIT` **and** `REFUND_CREDIT` are excluded until `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS` (default 24) — otherwise card → booking → cancel → SHEBA skips the cool-down. Booking spend (`PAYMENT_DEBIT`) reduces withdrawable; it does not invent float. Both rails subtract `withdrawnViaRail` so mixed wallets cannot double-cash-out.
 - **Prize** competition awards (`ADJUSTMENT`) are spendable in-app but **not** SHEBA-withdrawable.
 - Ops pays SHEBA manually from the admin athlete withdrawals queue (same rail as coaches). SMS alert includes full name (نام + نام‌خانوادگی). No automated bank payout.
 - **Coach + athlete:** users with a coach profile can withdraw settlement (coach rail) and, separately, top-up/refund credit (athlete rail). The wallet API sums both for the withdraw cap; **the server always picks the rail** (client `rail` is ignored). Chosen rail is stored on `UserWithdrawRequest.rail`.
-- Withdraw create is idempotent for the same user/club + amount within 2 minutes (returns existing `PENDING`). The dedupe runs **before** the balance gates, so retrying a full-balance withdraw returns the first request instead of 409.
+- Withdraw create accepts optional `idempotencyKey` (body or `Idempotency-Key` header); same key returns the existing request. Fallback: same user/club + amount within 2 minutes. Dedupe runs **before** the balance gates.
 
 ## Payment method label
 

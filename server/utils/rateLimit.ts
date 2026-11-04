@@ -19,6 +19,10 @@ type RateLimitKeyConfig = {
 const DISCOUNT_APP_SUBMIT_WINDOW_MS = Number(process.env.DISCOUNT_APP_SUBMIT_WINDOW_MS) || 10 * 60_000
 const DISCOUNT_APP_SUBMIT_MAX = Number(process.env.DISCOUNT_APP_SUBMIT_MAX) || 5
 
+/** Pay-link PIN guess: tighter than default (8-char alphabet still large). */
+const PAY_LINK_WINDOW_MS = Number(process.env.PAY_LINK_RATE_LIMIT_WINDOW_MS) || 60_000
+const PAY_LINK_MAX = Number(process.env.PAY_LINK_RATE_LIMIT_MAX) || 8
+
 const KEY_LIMITS: Record<string, RateLimitKeyConfig> = {
   'competitions:join': {
     windowMs: COMPETITION_JOIN_WINDOW_MS,
@@ -31,6 +35,11 @@ const KEY_LIMITS: Record<string, RateLimitKeyConfig> = {
     max: DISCOUNT_APP_SUBMIT_MAX,
     perUser: true,
     statusMessage: 'DISCOUNT_APPLICATION_RATE_LIMITED',
+  },
+  'pay-link': {
+    windowMs: PAY_LINK_WINDOW_MS,
+    max: PAY_LINK_MAX,
+    statusMessage: 'PAY_LINK_RATE_LIMITED',
   },
 }
 

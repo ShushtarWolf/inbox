@@ -91,4 +91,18 @@ describe('sepClient', () => {
       refNum: 'ref-1',
     }, fetchImpl)).rejects.toThrow(/reverse failed/)
   })
+
+  it('reverseTransaction treats codes 0, 2, 5 as success (not verify semantics)', async () => {
+    for (const code of [0, 2, 5]) {
+      const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+        ResultCode: code,
+      }), { status: 200 })) as unknown as typeof fetch
+      const result = await sepReverseTransaction({
+        terminalId: '12345678',
+        refNum: `ref-${code}`,
+      }, fetchImpl)
+      expect(result.success).toBe(true)
+      expect(result.resultCode).toBe(code)
+    }
+  })
 })

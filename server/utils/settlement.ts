@@ -1,3 +1,7 @@
+/**
+ * Settlement IO: club/coach wallet credit, clawback, withdraw requests.
+ * Pure math (splitSettlement, cashout eligibility) is in shared/settlement.ts.
+ */
 import type { ClubWalletTransactionType, Prisma } from '@prisma/client'
 import {
   isSeriesPaymentGroup,
@@ -19,6 +23,7 @@ import {
 import { localDateString } from '#shared/localDate.ts'
 import { applyDebtAwareWithdrawCeiling, computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
+import { paymentIdsBlockedForWithdraw } from './reversedStillPaid'
 import { notifyClubWithdrawPaid } from './withdrawPaidNotify'
 import { creditWallet, debitWallet } from './wallet'
 
@@ -288,9 +293,16 @@ export async function getClubWithdrawableBalance(
     partialByPayment.set(row.paymentId, (partialByPayment.get(row.paymentId) || 0) + Math.abs(row.amount))
   }
 
+  const blockedIds = await paymentIdsBlockedForWithdraw(
+    entries.map((e) => e.paymentId),
+    db as typeof prisma,
+  )
+
   let eligible = 0
   let pending = 0
   for (const entry of entries) {
+    // Card reversed but cancel not finished — do not let club cash out that net.
+    if (blockedIds.has(entry.paymentId)) continue
     const remainingNet = Math.max(0, entry.ownerNet - (partialByPayment.get(entry.paymentId) || 0))
     if (remainingNet <= 0) continue
     const sessions = await loadSeasonUnlockSessionsForPayment(entry.paymentId, db)
@@ -726,12 +738,22 @@ export async function creditOwnerForPaidPayment(
 
   // Coach already paid the listed court fee from their wallet — club gets 100%.
   // Skimming PLATFORM_COMMISSION_BPS would leave a phantom gap (coach −charge, club +90%).
+  // Only honor source=coach-lesson-court when a linked coach session proves the server path
+  // (forged metadata on a normal booking must not zero commission).
   const metaSource = parsePaymentMetaSource(payment.metadataJson)
   const club = await db.club.findUnique({
     where: { id: resolved.clubId },
     select: { commissionBps: true },
   })
-  const bps = metaSource === 'coach-lesson-court' ? 0 : resolveClubCommissionBps(club?.commissionBps)
+  let coachLessonCourt = false
+  if (metaSource === 'coach-lesson-court' && payment.bookingId) {
+    const linked = await db.coachSession.findFirst({
+      where: { courtBookingId: payment.bookingId },
+      select: { id: true },
+    })
+    coachLessonCourt = Boolean(linked)
+  }
+  const bps = coachLessonCourt ? 0 : resolveClubCommissionBps(club?.commissionBps)
   const split = splitSettlement(payment.amount, bps)
   const lockUntilClass = Boolean(resolved.classDate)
 
@@ -984,6 +1006,7 @@ export async function requestClubWithdraw(options: {
   amount: number
   sheba: string | null | undefined
   note?: string
+  idempotencyKey?: string | null
 }) {
   const amount = Math.floor(Number(options.amount))
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -993,6 +1016,7 @@ export async function requestClubWithdraw(options: {
   if (!sheba) {
     throw createError({ statusCode: 400, statusMessage: 'SHEBA is required before withdraw' })
   }
+  const idempotencyKey = options.idempotencyKey?.trim() || null
 
   const club = await prisma.club.findUnique({
     where: { id: options.clubId },
@@ -1003,6 +1027,14 @@ export async function requestClubWithdraw(options: {
   }
 
   return prisma.$transaction(async (tx) => {
+    if (idempotencyKey) {
+      const byKey = await tx.withdrawRequest.findFirst({
+        where: { clubId: options.clubId, idempotencyKey },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (byKey) return { request: byKey, created: false as const }
+    }
+
     // Retry dedupe before balance gates — the first request's hold already moved available → locked.
     const dedupeSince = new Date(Date.now() - 2 * 60 * 1000)
     const existing = await tx.withdrawRequest.findFirst({
@@ -1032,6 +1064,7 @@ export async function requestClubWithdraw(options: {
         shebaSnapshot: sheba,
         status: 'PENDING',
         note: options.note || null,
+        idempotencyKey,
       },
     })
 

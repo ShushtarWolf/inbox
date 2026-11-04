@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { isWalletTopUpPayment } from '#shared/walletTopUp.ts'
+import { notifyAdminSms } from './adminNotify'
 import { prisma } from './prisma'
 import { creditOwnerForPaidPayment } from './settlement'
 import { promoteSplitPayAmountOnPaid } from './splitPayWallet'
@@ -91,6 +92,19 @@ async function processOneMoneyJob(job: {
       where: { id: job.id },
       data: { status: 'FAILED', lastError: 'max_attempts' },
     })
+    try {
+      await notifyAdminSms('ADMIN_WITHDRAW_REQUEST', {
+        kind: 'money-job-dead-letter',
+        amount: job.attempts,
+        sheba: `${job.type}:${job.paymentId}`,
+        userName: 'money-job',
+        userPhone: '',
+        requestId: job.id,
+      })
+    }
+    catch (err) {
+      console.error('[moneyJobs:deadLetterNotify]', job.id, err)
+    }
     return { processed: false as const, reason: 'max_attempts' as const }
   }
 

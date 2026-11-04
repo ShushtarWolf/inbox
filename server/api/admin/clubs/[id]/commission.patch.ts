@@ -14,16 +14,30 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'commissionBps must be an integer 0–10000 or null' })
   }
 
-  const exists = await prisma.club.findUnique({ where: { id }, select: { id: true } })
+  const exists = await prisma.club.findUnique({
+    where: { id },
+    select: { id: true, commissionBps: true },
+  })
   if (!exists) {
     throw createError({ statusCode: 404, statusMessage: 'Club not found' })
   }
 
-  const club = await prisma.club.update({
-    where: { id },
-    data: { commissionBps: raw },
-    select: { id: true, commissionBps: true },
+  const club = await prisma.$transaction(async (tx) => {
+    await tx.clubCommissionChange.create({
+      data: {
+        clubId: id,
+        fromBps: exists.commissionBps,
+        toBps: raw,
+        actor: 'admin-secret',
+      },
+    })
+    return tx.club.update({
+      where: { id },
+      data: { commissionBps: raw },
+      select: { id: true, commissionBps: true },
+    })
   })
+
   return {
     id: club.id,
     commissionBps: club.commissionBps,

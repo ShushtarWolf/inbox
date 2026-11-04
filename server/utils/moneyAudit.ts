@@ -2,10 +2,17 @@ import { MANUAL_REFUND_MARKER } from '#shared/cancelRefund.ts'
 import { prisma } from './prisma'
 import { notifyAdminSms } from './adminNotify'
 
+/** Owed guest/desk refunds older than this raise SLA alert (hours). */
+export const OWED_REFUND_SLA_HOURS = 48
+
 export type MoneyAuditSummary = {
   openCashSettlements: number
   refundedOpenSettlements: number
   manualBankRefundsOwed: number
+  /** manualBankRefund owed older than OWED_REFUND_SLA_HOURS. */
+  manualBankRefundsOwedAged: number
+  deskCashReturnsOwed: number
+  deskCashReturnsOwedAged: number
   userWalletsNegative: number
   clubWalletsNegative: number
   userBalanceDrift: number
@@ -26,10 +33,15 @@ export type MoneyAuditSummary = {
 
 /** Compact money audit for cron/admin — mirrors scripts/audit-money-bugs.mjs hot sections. */
 export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
+  const owedCutoff = new Date(Date.now() - OWED_REFUND_SLA_HOURS * 60 * 60 * 1000)
+
   const [
     openCashSettlements,
     refundedOpenSettlements,
     manualBankRefundsOwed,
+    manualBankRefundsOwedAged,
+    deskCashReturnsOwed,
+    deskCashReturnsOwedAged,
     userWalletsNegative,
     clubWalletsNegative,
     paidWithoutSettlement,
@@ -50,13 +62,34 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
       SELECT COUNT(*)::bigint AS c
       FROM "SettlementLedgerEntry" e
       JOIN "Payment" p ON p.id = e."paymentId"
-      WHERE e."clawedBackAt" IS NULL AND p.status = 'REFUNDED'
+      WHERE e."clawedBackAt" IS NULL AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED')
     `.then((rows) => Number(rows[0]?.c || 0)),
     prisma.payment.count({
       where: {
-        status: 'REFUNDED',
+        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
         metadataJson: { contains: MANUAL_REFUND_MARKER },
         NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        updatedAt: { lt: owedCutoff },
+        metadataJson: { contains: MANUAL_REFUND_MARKER },
+        NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        metadataJson: { contains: '"deskCashReturn":"owed"' },
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        updatedAt: { lt: owedCutoff },
+        metadataJson: { contains: '"deskCashReturn":"owed"' },
       },
     }),
     prisma.wallet.count({ where: { OR: [{ balance: { lt: 0 } }, { availableBalance: { lt: 0 } }] } }),
@@ -135,6 +168,9 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     openCashSettlements,
     refundedOpenSettlements,
     manualBankRefundsOwed,
+    manualBankRefundsOwedAged,
+    deskCashReturnsOwed,
+    deskCashReturnsOwedAged,
     userWalletsNegative,
     clubWalletsNegative,
     userBalanceDrift: Number(userDrift[0]?.c || 0),
@@ -152,6 +188,8 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     summary.openCashSettlements
     + summary.refundedOpenSettlements
     + summary.manualBankRefundsOwed
+    + summary.manualBankRefundsOwedAged
+    + summary.deskCashReturnsOwedAged
     + summary.userWalletsNegative
     + summary.clubWalletsNegative
     + summary.userBalanceDrift
