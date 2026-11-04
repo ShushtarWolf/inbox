@@ -14,6 +14,7 @@ import {
   splitSettlement,
   sumEligibleSettlementNet,
 } from '#shared/settlement.ts'
+import { loadPlatformCommissionBps } from './platformCommission.ts'
 import {
   lastSessionDate,
   seasonUnlockDelta,
@@ -677,6 +678,8 @@ export async function creditOwnerForPaidPayment(
     return { credited: false as const, reason: 'cash_not_settled' as const }
   }
 
+  const platformCommissionBps = await loadPlatformCommissionBps(db)
+
   const existing = await db.settlementLedgerEntry.findUnique({ where: { paymentId } })
   if (existing) {
     return {
@@ -692,7 +695,7 @@ export async function creditOwnerForPaidPayment(
     if (!coachPayee) {
       return { credited: false as const, reason: 'no_coach_user' as const }
     }
-    const split = splitSettlement(payment.amount, resolveCoachCommissionBps())
+    const split = splitSettlement(payment.amount, resolveCoachCommissionBps(undefined, platformCommissionBps))
     const lockUntilClass = Boolean(coachPayee.classDate)
 
     const runCoach = async (tx: Prisma.TransactionClient) => {
@@ -753,7 +756,7 @@ export async function creditOwnerForPaidPayment(
     })
     coachLessonCourt = Boolean(linked)
   }
-  const bps = coachLessonCourt ? 0 : resolveClubCommissionBps(club?.commissionBps)
+  const bps = coachLessonCourt ? 0 : resolveClubCommissionBps(club?.commissionBps, platformCommissionBps)
   const split = splitSettlement(payment.amount, bps)
   const lockUntilClass = Boolean(resolved.classDate)
 

@@ -32,6 +32,7 @@ const sideNav = computed((): NavItem[] => [
   /** shield_person — in material subset; verified_user ligature was missing from subset (broken tab). */
   { to: localePath('/admin/sheba-requests'), label: t('admin.nav.shebaRequests'), icon: 'shield_person' },
   { to: localePath('/admin/accounting'), label: t('admin.nav.accounting'), icon: 'payments' },
+  { to: localePath('/admin/platform-commission'), label: t('admin.nav.platformCommission'), icon: 'percent' },
   { to: localePath('/admin/clubs'), label: t('admin.nav.clubs'), icon: 'stadium' },
   { to: localePath('/admin/users'), label: t('admin.nav.users'), icon: 'group' },
   { to: localePath('/admin/bookings'), label: t('admin.nav.bookings'), icon: 'event' },

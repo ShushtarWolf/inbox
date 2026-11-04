@@ -62,6 +62,7 @@ describe('splitSettlement', () => {
     expect(resolveClubCommissionBps(0, '1000')).toBe(0)
     expect(resolveClubCommissionBps(500, '1000')).toBe(500)
     expect(resolveClubCommissionBps(null, '1000')).toBe(1000)
+    expect(resolveClubCommissionBps(null, 800)).toBe(800)
     expect(resolveClubCommissionBps(20_000, '1000')).toBe(1000)
   })
 

@@ -1530,3 +1530,23 @@ model WithdrawPaymentDocument {
   @@index([clubWithdrawId, createdAt])
   @@index([athleteWithdrawId, createdAt])
 }
+
+/** Singleton row — platform-wide default commission (bps) for club settlements when Club.commissionBps is null. */
+model PlatformCommissionSetting {
+  id            String   @id @default("default")
+  commissionBps Int      @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+/** Append-only audit when admin changes platform default commission. */
+model PlatformCommissionChange {
+  id              String   @id @default(cuid())
+  fromBps         Int
+  toBps           Int
+  actor           String   @default("admin-secret")
+  /** Admin acknowledged refund/float asymmetry risk when enabling bps > 0. */
+  ackRefundRisk   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+}

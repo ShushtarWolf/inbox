@@ -1,5 +1,6 @@
 import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
-import { resolveClubCommissionBps, resolvePlatformCommissionBps } from '#shared/settlement.ts'
+import { resolveClubCommissionBps } from '#shared/settlement.ts'
+import { loadPlatformCommissionBps } from '../../../utils/platformCommission.ts'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -38,6 +39,8 @@ export default defineEventHandler(async (event) => {
       { coachSession: { is: { coach: { clubId: club.id } } } },
     ],
   }
+
+  const platformCommissionBps = await loadPlatformCommissionBps()
 
   const [bookingCount, wallet, pendingWithdraws, walletTx, paidIpg, paidOnSite] = await Promise.all([
     prisma.booking.count({
@@ -95,8 +98,8 @@ export default defineEventHandler(async (event) => {
     sheba: club.sheba,
     commission: {
       clubBps: club.commissionBps,
-      defaultBps: resolvePlatformCommissionBps(),
-      effectiveBps: resolveClubCommissionBps(club.commissionBps),
+      defaultBps: platformCommissionBps,
+      effectiveBps: resolveClubCommissionBps(club.commissionBps, platformCommissionBps),
     },
     wallet: {
       balance: wallet?.balance ?? 0,
