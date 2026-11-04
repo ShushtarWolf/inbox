@@ -57,6 +57,18 @@ export function resolvePlatformCommissionBps(
   return parseCommissionBps(raw, DEFAULT_PLATFORM_COMMISSION_BPS)
 }
 
+/** Club's own rate when admin set one (0 = promo), else the global PLATFORM_COMMISSION_BPS default. */
+export function resolveClubCommissionBps(
+  clubCommissionBps: number | null | undefined,
+  platformRaw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
+): number {
+  if (clubCommissionBps != null && Number.isInteger(clubCommissionBps)
+    && clubCommissionBps >= 0 && clubCommissionBps <= 10_000) {
+    return clubCommissionBps
+  }
+  return resolvePlatformCommissionBps(platformRaw)
+}
+
 /**
  * Resolve coach lesson commission BPS.
  * Uses COACH_COMMISSION_BPS when set; otherwise same as club (`PLATFORM_COMMISSION_BPS` / default 0%).

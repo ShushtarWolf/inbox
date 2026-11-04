@@ -532,6 +532,12 @@ model Club {
    * Owner/coach cancels always 100%. Outside window always 100%.
    */
   insideWindowRefundBps Int @default(10000)
+  /**
+   * Platform commission for this club's online bookings (bps, 0–10000). Admin-set.
+   * Null → PLATFORM_COMMISSION_BPS (global default). 0 = promo / launch partner.
+   * Each SettlementLedgerEntry snapshots the rate it used, so changes are not retroactive.
+   */
+  commissionBps Int?
   rescheduleWindowHours   Int @default(24)
   /** How many calendar days ahead athletes can book, including today (Tehran). */
   bookingHorizonDays Int @default(14)

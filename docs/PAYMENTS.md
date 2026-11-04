@@ -164,7 +164,9 @@ Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSIO
 
 **Rounding:** commission / refund BPS use `floor` (`splitSettlement`, `refundAmountFromBps`); leftover 1 toman on splits stays with platform net.
 
-**Commission refund (Y4):** when `PLATFORM_COMMISSION_BPS` / `COACH_COMMISSION_BPS` > 0`, full cancel refunds the athlete **gross** (what they paid) and claws back the payee **gross** from club/coach wallet (`allowNegative` on the commission slice). That keeps platform/athlete/club zero-sum without a separate platform float account. Partial series refunds claw back pro-rata on the same gross basis. Defaults remain **0%** — do not enable non-zero bps in production until finance signs off.
+**Per-club commission:** admin sets `Club.commissionBps` on `/admin/clubs/:id` (`PATCH /api/admin/clubs/:id/commission`, bps 0–10000 or `null`). `null` → global `PLATFORM_COMMISSION_BPS`; `0` = launch-partner / promo club. Each `SettlementLedgerEntry` snapshots the rate it used, so changing a club's rate only affects payments settled afterwards. Coach lesson fees still use `COACH_COMMISSION_BPS` (env).
+
+**Commission refund:** the athlete gets back the **gross** they paid; the payee (club/coach) gives back only the **ownerNet** it was credited; the platform refunds its own commission from float. Partial refunds claw back `ownerNet × refund / gross` (floor), so the platform returns the same share of its commission. Clubs never go negative from commission on a cancellation.
 
 **Internal transfer:** club ↔ coach record-keeping (`POST /api/owner/transfers`, `POST /api/coach/transfers`) from available only. Athletes never have this.
 

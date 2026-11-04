@@ -1,4 +1,5 @@
 import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
+import { resolveClubCommissionBps, resolvePlatformCommissionBps } from '#shared/settlement.ts'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
@@ -92,6 +93,11 @@ export default defineEventHandler(async (event) => {
     paidIpgAmount: paidIpg._sum.amount || 0,
     paidOnSiteAmount: paidOnSite._sum.amount || 0,
     sheba: club.sheba,
+    commission: {
+      clubBps: club.commissionBps,
+      defaultBps: resolvePlatformCommissionBps(),
+      effectiveBps: resolveClubCommissionBps(club.commissionBps),
+    },
     wallet: {
       balance: wallet?.balance ?? 0,
       pendingWithdrawCount: pendingWithdraws.length,

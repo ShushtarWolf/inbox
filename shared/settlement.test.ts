@@ -4,6 +4,7 @@ import {
   isSettlementCashoutEligible,
   isValidSheba,
   normalizeSheba,
+  resolveClubCommissionBps,
   resolveCoachCommissionBps,
   resolvePlatformCommissionBps,
   splitSettlement,
@@ -55,6 +56,13 @@ describe('splitSettlement', () => {
       ownerNet: 0,
     })
     expect(splitSettlement(-50, 1000).gross).toBe(0)
+  })
+
+  it('club override wins over the global default; null falls back', () => {
+    expect(resolveClubCommissionBps(0, '1000')).toBe(0)
+    expect(resolveClubCommissionBps(500, '1000')).toBe(500)
+    expect(resolveClubCommissionBps(null, '1000')).toBe(1000)
+    expect(resolveClubCommissionBps(20_000, '1000')).toBe(1000)
   })
 
   it('clawback amount equals previously credited ownerNet', () => {

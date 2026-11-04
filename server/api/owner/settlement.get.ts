@@ -1,5 +1,5 @@
 import { getClubWithdrawableBalance } from '../../utils/settlement'
-import { resolvePlatformCommissionBps } from '#shared/settlement.ts'
+import { resolveClubCommissionBps } from '#shared/settlement.ts'
 import { getClubShebaState, serializeShebaRequest } from '../../utils/shebaChange'
 import { resolveShebaRequestUiStatus } from '#shared/shebaApproval.ts'
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     lockedBalance: walletBalances.lockedBalance,
     withdrawableBalance: walletBalances.withdrawableBalance,
     pendingClassBalance: walletBalances.pendingClassBalance,
-    commissionBps: resolvePlatformCommissionBps(),
+    commissionBps: resolveClubCommissionBps(club.commissionBps),
     ledger: recentCredits.map((entry) => ({
       id: entry.id,
       paymentId: entry.paymentId,

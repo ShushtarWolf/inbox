@@ -14,6 +14,7 @@ vi.stubGlobal('prisma', {
     findUnique: (...args: unknown[]) => findUniqueLedger(...args),
     create: (...args: unknown[]) => createLedger(...args),
   },
+  club: { findUnique: async () => ({ commissionBps: null }) },
   clubWallet: {
     upsert: (...args: unknown[]) => clubWalletUpsert(...args),
     update: (...args: unknown[]) => clubWalletUpdate(...args),

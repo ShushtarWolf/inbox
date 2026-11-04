@@ -5,6 +5,7 @@ const findUniqueLedger = vi.fn()
 const createLedger = vi.fn()
 const updateLedger = vi.fn()
 const findUniqueCoach = vi.fn()
+const findUniqueClub = vi.fn()
 const clubWalletUpsert = vi.fn()
 const clubWalletUpdate = vi.fn()
 const clubWalletTxCreate = vi.fn()
@@ -25,6 +26,7 @@ vi.stubGlobal('prisma', {
     update: (...args: unknown[]) => updateLedger(...args),
   },
   coach: { findUnique: (...args: unknown[]) => findUniqueCoach(...args) },
+  club: { findUnique: (...args: unknown[]) => findUniqueClub(...args) },
   clubWallet: {
     upsert: (...args: unknown[]) => clubWalletUpsert(...args),
     update: (...args: unknown[]) => clubWalletUpdate(...args),
@@ -57,6 +59,7 @@ describe('coach lesson settlement', () => {
     debitWallet.mockResolvedValue({})
     transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma as never))
     findUniqueLedger.mockResolvedValue(null)
+    findUniqueClub.mockResolvedValue({ commissionBps: null })
   })
 
   afterEach(() => {
@@ -162,6 +165,32 @@ describe('coach lesson settlement', () => {
     expect(creditWallet).not.toHaveBeenCalled()
   })
 
+  it('uses the club override (promo 0%) over the 10% global default', async () => {
+    findUniqueClub.mockResolvedValue({ commissionBps: 0 })
+    findUniquePayment.mockImplementation(async (args: { include?: unknown }) => {
+      const base = {
+        id: 'pay-promo',
+        amount: 400_000,
+        status: 'PAID',
+        purpose: null,
+        metadataJson: null,
+        coachSessionId: null,
+        bookingId: 'book-2',
+        packageBookingId: null,
+        booking: { id: 'book-2', slot: { date: '2026-09-01', court: { clubId: 'club-1' } } },
+      }
+      return args?.include ? base : { ...base, booking: undefined }
+    })
+
+    await creditOwnerForPaidPayment('pay-promo')
+
+    expect(createLedger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ commissionBps: 0, commission: 0, ownerNet: 400_000 }),
+      }),
+    )
+  })
+
   it('claws back coach settlement on cancel (allow negative wallet)', async () => {
     findUniqueLedger.mockResolvedValue({
       id: 'led-coach',
@@ -183,7 +212,7 @@ describe('coach lesson settlement', () => {
     expect(result.clawed).toBe(true)
     expect(debitWallet).toHaveBeenCalledWith(
       'user-coach',
-      500_000,
+      450_000,
       expect.objectContaining({
         type: 'SETTLEMENT_CLAWBACK',
         allowNegative: true,
@@ -193,7 +222,7 @@ describe('coach lesson settlement', () => {
     )
   })
 
-  it('club full cancel at bps=500 claws back gross for zero-sum refund', async () => {
+  it('club full cancel at bps=500 claws back only ownerNet (platform refunds its commission)', async () => {
     findUniqueLedger.mockResolvedValue({
       id: 'led-club',
       paymentId: 'pay-court',
@@ -222,7 +251,7 @@ describe('coach lesson settlement', () => {
     expect(clubWalletTxCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          amount: -100_000,
+          amount: -95_000,
           type: 'CLAWBACK',
           paymentId: 'pay-court',
         }),

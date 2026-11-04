@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { toAsciiDigits } from '#shared/digits.ts'
+
 definePageMeta({ layout: 'dashboard-admin', ssr: false })
 
 const { t } = useI18n()
@@ -31,6 +33,7 @@ type ClubDetail = {
   paidIpgAmount: number
   paidOnSiteAmount: number
   sheba: string | null
+  commission: { clubBps: number | null; defaultBps: number; effectiveBps: number }
   wallet: {
     balance: number
     pendingWithdrawCount: number
@@ -81,6 +84,45 @@ async function setStatus(status: ClubDetail['status']) {
     loadError.value = t('common.error')
   } finally {
     updating.value = false
+  }
+}
+
+const commissionPercent = ref('')
+const commissionError = ref('')
+const savingCommission = ref(false)
+
+watch(club, (value) => {
+  const bps = value?.commission.clubBps
+  commissionPercent.value = bps == null ? '' : String(bps / 100)
+})
+
+function formatBpsPercent(bps: number) {
+  return `${formatNumber(bps / 100)}٪`
+}
+
+async function saveCommission(useDefault = false) {
+  if (!club.value) return
+  commissionError.value = ''
+  let commissionBps: number | null = null
+  if (!useDefault && commissionPercent.value.trim() !== '') {
+    const pct = Number(toAsciiDigits(commissionPercent.value.trim()))
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      commissionError.value = t('admin.commissionInvalid')
+      return
+    }
+    commissionBps = Math.round(pct * 100)
+  }
+  savingCommission.value = true
+  try {
+    await adminFetch(`/api/admin/clubs/${club.value.id}/commission`, {
+      method: 'PATCH',
+      body: { commissionBps },
+    })
+    await load()
+  } catch {
+    commissionError.value = t('common.error')
+  } finally {
+    savingCommission.value = false
   }
 }
 
@@ -205,6 +247,52 @@ function walletTxLabel(type: string) {
               <li class="flex justify-between gap-2"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></li>
             </ul>
           </div>
+        </div>
+
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-2">{{ t('admin.commissionTitle') }}</h2>
+          <p class="text-xs text-brand-gray-600">
+            {{ t('admin.commissionHint', { rate: formatBpsPercent(club.commission.defaultBps) }) }}
+          </p>
+          <p class="mt-2 text-sm">
+            {{ t('admin.commissionEffective') }}:
+            <strong class="tabular-nums">{{ formatBpsPercent(club.commission.effectiveBps) }}</strong>
+            <span v-if="club.commission.clubBps == null" class="ms-1 text-xs text-brand-gray-500">({{ t('admin.commissionDefaultTag') }})</span>
+          </p>
+          <div class="mt-3 flex flex-wrap items-end gap-2">
+            <label for="club-commission-percent" class="text-xs font-bold text-brand-gray-600">
+              {{ t('admin.commissionPercent') }}
+              <input
+                id="club-commission-percent"
+                v-model="commissionPercent"
+                type="text"
+                inputmode="decimal"
+                dir="ltr"
+                class="mt-1 block w-28 border border-brand-gray-300 px-3 py-2 text-sm tabular-nums"
+                style="border-radius: 0;"
+              >
+            </label>
+            <button
+              type="button"
+              class="bg-brand-primary px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              style="border-radius: 0;"
+              :disabled="savingCommission"
+              @click="saveCommission()"
+            >
+              {{ t('admin.commissionSave') }}
+            </button>
+            <button
+              v-if="club.commission.clubBps != null"
+              type="button"
+              class="border border-brand-gray-300 bg-white px-4 py-2 text-xs font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
+              style="border-radius: 0;"
+              :disabled="savingCommission"
+              @click="saveCommission(true)"
+            >
+              {{ t('admin.commissionUseDefault') }}
+            </button>
+          </div>
+          <p v-if="commissionError" class="mt-2 text-xs font-bold text-red-700">{{ commissionError }}</p>
         </div>
 
         <div class="tail-card">

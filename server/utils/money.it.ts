@@ -208,7 +208,7 @@ suite('money integration (real Postgres)', () => {
     expect(await db.clubWallet.findUnique({ where: { clubId: f.club.id } })).toBeNull()
   })
 
-  it('owner cancel of IPG booking: athlete wallet +gross, club −net, slot free, ledgers balance', async () => {
+  it('owner cancel of IPG booking: athlete wallet +gross, club returns its net, slot free, ledgers balance', async () => {
     const f = await fixtures()
     const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 1_000_000, method: 'IPG' })
     await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
@@ -225,7 +225,8 @@ suite('money integration (real Postgres)', () => {
     const athleteWallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
     const clubWallet = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
     expect(athleteWallet.availableBalance).toBe(1_000_000)
-    expect(clubWallet.balance).toBe(-100_000)
+    // Club returns the 900k it was credited; platform refunds its own 100k commission.
+    expect(clubWallet.balance).toBe(0)
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
     expect((await db.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('CANCELLED')
     expect((await db.slot.findUniqueOrThrow({ where: { id: slot.id } })).displayStatus).toBe('FREE')
@@ -252,7 +253,7 @@ suite('money integration (real Postgres)', () => {
     })
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
     expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(600_000)
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(-60_000)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
   })
 
   it('cancel rolls back entirely when the refund cannot be applied (slot stays booked)', async () => {
@@ -330,7 +331,7 @@ suite('money integration (real Postgres)', () => {
     const row = await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
     expect(row.status).toBe('REFUNDED')
     expect(JSON.parse(row.metadataJson || '{}').manualRefundRequired).toBe(true)
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(-30_000)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
   })
 
   it('re-booking a cancelled slot keeps the old payment (detached, not cascaded)', async () => {
@@ -367,12 +368,12 @@ suite('money integration (real Postgres)', () => {
       bookingId: booking.id,
     })
     balances = await m.settlement.getClubWithdrawableBalance(f.club.id)
-    // Commission > 0 → partial clawback is on the gross basis (PAYMENTS.md "Commission refund (Y4)").
-    expect(balances.withdrawableBalance).toBe(700_000)
+    // Partial clawback is pro-rata on ownerNet: 900k × 200k / 1M = 180k.
+    expect(balances.withdrawableBalance).toBe(720_000)
 
     await expect(m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 800_000, sheba: f.club.sheba }))
       .rejects.toMatchObject({ statusCode: 409 })
-    const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 700_000, sheba: f.club.sheba })
+    const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 720_000, sheba: f.club.sheba })
     balances = await m.settlement.getClubWithdrawableBalance(f.club.id)
     expect(balances.withdrawableBalance).toBe(0)
 
@@ -432,7 +433,18 @@ suite('money integration (real Postgres)', () => {
     const athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
     expect(athlete.availableBalance).toBe(100_000)
     const club = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
-    expect(club.balance).toBe(80_000)
+    // 180k net credited, half clawed back → 90k; platform refunds half of its 20k commission.
+    expect(club.balance).toBe(90_000)
+  })
+
+  it('promo club commissionBps=0 settles 100% while the global rate is 10%', async () => {
+    const f = await fixtures()
+    await db.club.update({ where: { id: f.club.id }, data: { commissionBps: 0 } })
+    const { payment } = await paidBooking(f, { date: future, amount: 500_000, method: 'IPG' })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    const entry = await db.settlementLedgerEntry.findUniqueOrThrow({ where: { paymentId: payment.id } })
+    expect(entry.commissionBps).toBe(0)
+    expect(entry.ownerNet).toBe(500_000)
   })
 
   it('money-jobs worker settles PAID IPG when confirm side-effects were skipped', async () => {
