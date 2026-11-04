@@ -4,6 +4,9 @@ const findUniquePayment = vi.fn()
 const findUniqueLedger = vi.fn()
 const createLedger = vi.fn()
 const updateLedger = vi.fn()
+const updateManyLedger = vi.fn()
+const clubTxAggregate = vi.fn()
+const userTxAggregate = vi.fn()
 const findUniqueCoach = vi.fn()
 const findUniqueClub = vi.fn()
 const clubWalletUpsert = vi.fn()
@@ -24,7 +27,9 @@ vi.stubGlobal('prisma', {
     findUnique: (...args: unknown[]) => findUniqueLedger(...args),
     create: (...args: unknown[]) => createLedger(...args),
     update: (...args: unknown[]) => updateLedger(...args),
+    updateMany: (...args: unknown[]) => updateManyLedger(...args),
   },
+  walletTransaction: { aggregate: (...args: unknown[]) => userTxAggregate(...args) },
   coach: { findUnique: (...args: unknown[]) => findUniqueCoach(...args) },
   club: { findUnique: (...args: unknown[]) => findUniqueClub(...args) },
   clubWallet: {
@@ -34,6 +39,7 @@ vi.stubGlobal('prisma', {
   clubWalletTransaction: {
     create: (...args: unknown[]) => clubWalletTxCreate(...args),
     findFirst: async () => null,
+    aggregate: (...args: unknown[]) => clubTxAggregate(...args),
   },
   $transaction: (...args: unknown[]) => transaction(...args),
 })
@@ -60,6 +66,9 @@ describe('coach lesson settlement', () => {
     transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma as never))
     findUniqueLedger.mockResolvedValue(null)
     findUniqueClub.mockResolvedValue({ commissionBps: null })
+    updateManyLedger.mockResolvedValue({ count: 1 })
+    clubTxAggregate.mockResolvedValue({ _sum: { amount: null } })
+    userTxAggregate.mockResolvedValue({ _sum: { amount: null } })
   })
 
   afterEach(() => {
@@ -257,6 +266,47 @@ describe('coach lesson settlement', () => {
         }),
       }),
     )
+  })
+
+  it('full clawback after a partial series clawback takes only the remainder', async () => {
+    findUniqueLedger.mockResolvedValue({
+      id: 'led-club',
+      paymentId: 'pay-series',
+      coachId: null,
+      clubId: 'club-1',
+      gross: 1_000_000,
+      ownerNet: 900_000,
+      bookingId: 'bk-1',
+      clawedBackAt: null,
+    })
+    clubTxAggregate.mockResolvedValue({ _sum: { amount: -180_000 } })
+    clubWalletUpsert.mockResolvedValue({ id: 'cw-1', clubId: 'club-1', balance: 720_000, availableBalance: 720_000, lockedBalance: 0 })
+
+    await clawbackOwnerForPayment('pay-series')
+
+    expect(clubWalletTxCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ amount: -720_000, type: 'CLAWBACK' }) }),
+    )
+  })
+
+  it('concurrent clawback that loses the claim debits nothing', async () => {
+    findUniqueLedger.mockResolvedValue({
+      id: 'led-club',
+      paymentId: 'pay-court',
+      coachId: null,
+      clubId: 'club-1',
+      gross: 100_000,
+      ownerNet: 95_000,
+      bookingId: 'bk-1',
+      clawedBackAt: null,
+    })
+    updateManyLedger.mockResolvedValue({ count: 0 })
+
+    const result = await clawbackOwnerForPayment('pay-court')
+
+    expect(result.clawed).toBe(false)
+    expect(clubWalletTxCreate).not.toHaveBeenCalled()
+    expect(debitWallet).not.toHaveBeenCalled()
   })
 
   it('is idempotent when lesson settlement already exists', async () => {

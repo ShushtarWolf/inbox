@@ -188,7 +188,6 @@ export async function refundAfterSeriesSessionCancel(opts: {
       amount: residualScaled,
       reason: opts.reason,
       primaryMeta,
-      alreadyRefunded,
       markRefunded: true,
     })
   }
@@ -216,7 +215,6 @@ export async function refundAfterSeriesSessionCancel(opts: {
     amount,
     reason: opts.reason,
     primaryMeta,
-    alreadyRefunded,
     markRefunded: false,
   })
 }
@@ -231,24 +229,41 @@ async function applySeriesSessionRefund(opts: {
   amount: number
   reason: string
   primaryMeta: SeriesPaymentMeta
-  alreadyRefunded: number
   markRefunded: boolean
 }): Promise<RefundResult> {
   const channel = resolveRefundChannel(opts.method, opts.bookingPaymentMethod)
   const canCredit = Boolean(opts.userId) && channel === 'wallet_closed_loop'
-  const existingMeta = {
-    ...parsePaymentMetadata(JSON.stringify(opts.primaryMeta)),
-    ...opts.primaryMeta,
-  }
-  const refundMeta = buildCancelRefundMetadata(existingMeta, {
-    channel,
-    reason: opts.reason,
-    manualRefund: channel === 'wallet_closed_loop' && !canCredit,
-  })
 
-  await prisma.$transaction(async (tx) => {
+  const amount = await prisma.$transaction(async (tx) => {
+    // Row lock serializes session cancels on one series payment; totals below are read fresh.
+    await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${opts.paymentId} FOR UPDATE`
+    const fresh = await tx.payment.findUniqueOrThrow({ where: { id: opts.paymentId } })
+    if (!isPaymentRefundable(fresh.status)) return 0
+    const freshMeta = { ...opts.primaryMeta, ...parsePaymentMetadata(fresh.metadataJson) }
+    const doneIds = Array.isArray(freshMeta.sessionRefundedBookingIds) ? freshMeta.sessionRefundedBookingIds : []
+    const [priorUserTx, priorClubTx] = await Promise.all([
+      tx.walletTransaction.findFirst({
+        where: {
+          paymentId: opts.paymentId,
+          bookingId: opts.bookingId,
+          type: { in: ['REFUND_CREDIT', 'SETTLEMENT_CLAWBACK'] },
+        },
+        select: { id: true },
+      }),
+      tx.clubWalletTransaction.findFirst({
+        where: { paymentId: opts.paymentId, bookingId: opts.bookingId, type: 'CLAWBACK' },
+        select: { id: true },
+      }),
+    ])
+    // Retry of an already-refunded session (athlete re-tap, owner re-run) moves no money.
+    if (doneIds.includes(opts.bookingId) || priorUserTx || priorClubTx) return 0
+
+    const already = Number(freshMeta.sessionRefundsTotal || 0)
+    const capped = Math.min(opts.amount, Math.max(0, fresh.amount - already))
+    if (capped <= 0) return 0
+
     if (canCredit && opts.userId) {
-      await creditWallet(opts.userId, opts.amount, {
+      await creditWallet(opts.userId, capped, {
         paymentId: opts.paymentId,
         bookingId: opts.bookingId,
         note: opts.reason,
@@ -257,7 +272,7 @@ async function applySeriesSessionRefund(opts: {
     }
     await clawbackOwnerPartialForPayment({
       paymentId: opts.paymentId,
-      grossRefundAmount: opts.amount,
+      grossRefundAmount: capped,
       bookingId: opts.bookingId,
       db: tx,
     })
@@ -266,18 +281,27 @@ async function applySeriesSessionRefund(opts: {
       data: {
         ...(opts.markRefunded ? { status: 'REFUNDED' as const } : {}),
         metadataJson: JSON.stringify({
-          ...refundMeta,
-          sessionRefundsTotal: opts.alreadyRefunded + opts.amount,
+          ...buildCancelRefundMetadata(freshMeta, {
+            channel,
+            reason: opts.reason,
+            manualRefund: channel === 'wallet_closed_loop' && !canCredit,
+          }),
+          sessionRefundsTotal: already + capped,
+          sessionRefundedBookingIds: [...doneIds, opts.bookingId],
         }),
       },
     })
+    return capped
   })
 
+  if (amount <= 0) {
+    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  }
   return {
     refunded: true,
     walletCredited: canCredit,
     gatewayRefunded: false,
-    amount: opts.amount,
+    amount,
     refundChannel: channel,
     deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
   }

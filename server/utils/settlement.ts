@@ -790,13 +790,27 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
       return { clawed: false as const, reason: 'already_clawed' as const, entry: current }
     }
 
-    await tx.settlementLedgerEntry.update({
-      where: { id: current.id },
+    // Conditional claim: a concurrent clawback that already set clawedBackAt must not debit twice.
+    const claimed = await tx.settlementLedgerEntry.updateMany({
+      where: { id: current.id, clawedBackAt: null },
       data: { clawedBackAt: new Date() },
     })
+    if (claimed.count !== 1) {
+      return { clawed: false as const, reason: 'already_clawed' as const, entry: current }
+    }
 
-    // Payee returns only what it was credited; the platform refunds its own commission from float.
-    const clawbackAmount = current.ownerNet
+    // Payee returns only what it was credited (platform refunds its own commission from float),
+    // minus whatever series-session partial clawbacks already took.
+    const prior = current.coachId
+      ? await tx.walletTransaction.aggregate({
+          where: { paymentId, type: 'SETTLEMENT_CLAWBACK' },
+          _sum: { amount: true },
+        })
+      : await tx.clubWalletTransaction.aggregate({
+          where: { paymentId, type: 'CLAWBACK' },
+          _sum: { amount: true },
+        })
+    const clawbackAmount = Math.max(0, current.ownerNet - Math.abs(prior._sum.amount || 0))
 
     if (clawbackAmount > 0 && current.coachId) {
       const coach = await tx.coach.findUnique({

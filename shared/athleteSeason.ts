@@ -60,6 +60,8 @@ export type SeriesPaymentMeta = {
   coveredByBookingId?: string
   sessionPrice?: number
   sessionRefundsTotal?: number
+  /** Sessions already refunded on this series payment (retry guard). */
+  sessionRefundedBookingIds?: string[]
 }
 
 export function parseSeriesPaymentMeta(raw?: string | null): SeriesPaymentMeta {

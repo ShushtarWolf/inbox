@@ -478,4 +478,70 @@ suite('money integration (real Postgres)', () => {
     expect(kept.status).toBe('SUPERSEDED')
     expect(kept.supersededByPaymentId).toBe(replacement.id)
   })
+
+  it('series session refund retry moves money once; last session refunds the exact residual', async () => {
+    const f = await fixtures()
+    const { refundAfterSeriesSessionCancel } = await import('./seriesCancelRefund')
+    const primary = await paidBooking(f, { date: future, startTime: '10:00', amount: 900_000, method: 'IPG' })
+    const siblings = []
+    for (const startTime of ['12:00', '14:00']) {
+      const s = await paidBooking(f, { date: future, startTime, amount: 0, method: 'IPG' })
+      await db.payment.update({
+        where: { id: s.payment.id },
+        data: { metadataJson: JSON.stringify({ coveredByBookingId: primary.booking.id, sessionPrice: 300_000 }) },
+      })
+      siblings.push(s)
+    }
+    await db.payment.update({
+      where: { id: primary.payment.id },
+      data: {
+        metadataJson: JSON.stringify({
+          groupPrimaryBookingId: primary.booking.id,
+          groupSiblingBookingIds: siblings.map((s) => s.booking.id),
+          sessionPrice: 300_000,
+        }),
+      },
+    })
+    await m.settlement.creditOwnerForPaidPayment(primary.payment.id, 'PENDING_ONLINE')
+
+    const cancelSession = async (bookingId: string) => {
+      await db.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } })
+      return refundAfterSeriesSessionCancel({
+        cancelledBookingId: bookingId,
+        userId: f.athlete.id,
+        reason: 'athlete-cancel',
+        moneyOutcome: 'full_wallet_refund',
+      })
+    }
+
+    await cancelSession(siblings[0]!.booking.id)
+    const retry = await cancelSession(siblings[0]!.booking.id)
+    expect(retry?.amount).toBe(0)
+    let athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(athlete.availableBalance).toBe(300_000)
+    const meta = JSON.parse((await db.payment.findUniqueOrThrow({ where: { id: primary.payment.id } })).metadataJson || '{}')
+    expect(meta.sessionRefundsTotal).toBe(300_000)
+
+    await cancelSession(siblings[1]!.booking.id)
+    await cancelSession(primary.booking.id)
+    athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(athlete.availableBalance).toBe(900_000)
+    const club = await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })
+    expect(club.balance).toBe(0)
+    expect((await db.payment.findUniqueOrThrow({ where: { id: primary.payment.id } })).status).toBe('REFUNDED')
+    expect(await clubDrift(f.club.id)).toBe(0)
+    expect(await userDrift(f.athlete.id)).toBe(0)
+  })
+
+  it('cron money audit reports zero drift after a paid withdraw', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: past, amount: 500_000, method: 'IPG' })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 450_000, sheba: f.club.sheba })
+    await m.settlement.markWithdrawPaid(request.id)
+    const { runMoneyAudit } = await import('./moneyAudit')
+    const summary = await runMoneyAudit()
+    expect(summary.clubBalanceDrift).toBe(0)
+    expect(summary.userBalanceDrift).toBe(0)
+  })
 })

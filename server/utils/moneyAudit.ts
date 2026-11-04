@@ -98,34 +98,37 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     }),
   ])
 
-  // Drift: sample wallets where balance ≠ Σ signed (lightweight; full formula in audit script).
+  // Drift: balance ≠ Σ signed txs − paid withdraws (WITHDRAW_PAID rows carry amount 0),
+  // or balance ≠ available + locked. Same formula as walletBalanceDrift / audit-money-bugs.mjs.
   const userDrift = await prisma.$queryRaw<Array<{ c: bigint }>>`
-    SELECT COUNT(*)::bigint AS c FROM (
-      SELECT w.id
-      FROM "Wallet" w
-      LEFT JOIN "WalletTransaction" t ON t."walletId" = w.id
-      GROUP BY w.id, w.balance
-      HAVING w.balance <> COALESCE(SUM(
-        CASE
-          WHEN t.type IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID') THEN 0
-          ELSE t.amount
-        END
-      ), 0)
-    ) d
+    SELECT COUNT(*)::bigint AS c
+    FROM "Wallet" w
+    LEFT JOIN (
+      SELECT "walletId", SUM(amount) AS s FROM "WalletTransaction"
+      WHERE type NOT IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID')
+      GROUP BY "walletId"
+    ) t ON t."walletId" = w.id
+    LEFT JOIN (
+      SELECT "userId", SUM(amount) AS s FROM "UserWithdrawRequest"
+      WHERE status = 'PAID' GROUP BY "userId"
+    ) p ON p."userId" = w."userId"
+    WHERE w.balance <> COALESCE(t.s, 0) - COALESCE(p.s, 0)
+       OR w.balance <> w."availableBalance" + w."lockedBalance"
   `
   const clubDrift = await prisma.$queryRaw<Array<{ c: bigint }>>`
-    SELECT COUNT(*)::bigint AS c FROM (
-      SELECT w.id
-      FROM "ClubWallet" w
-      LEFT JOIN "ClubWalletTransaction" t ON t."walletId" = w.id
-      GROUP BY w.id, w.balance
-      HAVING w.balance <> COALESCE(SUM(
-        CASE
-          WHEN t.type IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID') THEN 0
-          ELSE t.amount
-        END
-      ), 0)
-    ) d
+    SELECT COUNT(*)::bigint AS c
+    FROM "ClubWallet" w
+    LEFT JOIN (
+      SELECT "walletId", SUM(amount) AS s FROM "ClubWalletTransaction"
+      WHERE type NOT IN ('WITHDRAW_HOLD','WITHDRAW_RELEASE','LOCK','UNLOCK','WITHDRAW_PAID')
+      GROUP BY "walletId"
+    ) t ON t."walletId" = w.id
+    LEFT JOIN (
+      SELECT "clubId", SUM(amount) AS s FROM "WithdrawRequest"
+      WHERE status = 'PAID' GROUP BY "clubId"
+    ) p ON p."clubId" = w."clubId"
+    WHERE w.balance <> COALESCE(t.s, 0) - COALESCE(p.s, 0)
+       OR w.balance <> w."availableBalance" + w."lockedBalance"
   `
 
   const summary: MoneyAuditSummary = {

@@ -150,7 +150,7 @@ Late SEP callback on a released hold (`FAILED`) or a `SUPERSEDED` row is **not**
 
 **Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Ambiguous SEP reverse throws `SEP_REVERSE_PENDING` so the booking stays occupied. Series athlete cancel runs pro-rata refund **before** freeing the slot.
 
-Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net (same atomic rule).
+Series session cancels credit one `REFUND_CREDIT` per cancelled `bookingId` and pro-rata clawback owner net (same atomic rule). The series payment row is locked (`FOR UPDATE`) and `sessionRefundsTotal` is re-read inside the transaction; a session already in `sessionRefundedBookingIds` (or with a prior credit/clawback row) moves no money on retry, and the running total is capped at the amount paid. A full clawback after partial session clawbacks only takes the remaining `ownerNet`, and claims the ledger row conditionally (`clawedBackAt IS NULL`) so concurrent cancels cannot debit the payee twice.
 
 Cancel SMS still fires via `notifyBookingCancelled` (soft-fail).
 
@@ -203,7 +203,7 @@ Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB 
 - **Deploy pre-check for `20261103140000_club_booking_credit_idempotency`** — the unique index fails `migrate deploy` if duplicates exist. Run first; expect zero rows:
   `SELECT "paymentId", "bookingId", COUNT(*) FROM "ClubWalletTransaction" WHERE type = 'BOOKING_CREDIT' AND "paymentId" IS NOT NULL GROUP BY 1, 2 HAVING COUNT(*) > 1;`
 - **Checkout retry** — payable IPG rows are **`SUPERSEDED`** (not deleted); `supersededByPaymentId` links to the replacement intent.
-- **`runMoneyAudit`** — adds `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job, `reversePending` and `reversedStillPaid` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
+- **`runMoneyAudit`** — balance drift = `balance ≠ Σ signed txs − PAID withdraw requests` (`WITHDRAW_PAID` rows carry amount 0) **or** `balance ≠ available + locked`; same formula as `walletBalanceDrift` / `audit-money-bugs.mjs`. Also `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job, `reversePending` and `reversedStillPaid` counts. **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
 - **CI** — `npm run check:money-safety` blocks new `payment.delete` under `server/` (except catalog wipe utilities).
 
 ## Guest IPG refunds
