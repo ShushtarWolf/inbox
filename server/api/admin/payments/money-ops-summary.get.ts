@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
   const audit = await runMoneyAudit()
 
-  const [reversePending, reversedStillPaid, stalePending, failedJobs] = await Promise.all([
+  const [reversePending, reversedStillPaid, stalePending, failedJobs, pendingJobs, unpaidTopUps] = await Promise.all([
     prisma.payment.findMany({
       where: {
         status: 'PAID',
@@ -44,6 +44,31 @@ export default defineEventHandler(async (event) => {
       take: 30,
       orderBy: { createdAt: 'desc' },
     }).catch(() => []),
+    prisma.moneyJob.findMany({
+      where: { status: 'PENDING' },
+      select: { id: true, paymentId: true, type: true, attempts: true, lastError: true, createdAt: true },
+      take: 30,
+      orderBy: { createdAt: 'asc' },
+    }).catch(() => []),
+    prisma.$queryRaw<Array<{
+      id: string
+      amount: number
+      userId: string | null
+      purpose: string | null
+      status: string
+      method: string | null
+      createdAt: Date
+    }>>`
+      SELECT p.id, p.amount, p."userId", p.purpose, p.status, p.method, p."createdAt"
+      FROM "Payment" p
+      WHERE p.status = 'PAID' AND p.purpose = 'topup'
+        AND NOT EXISTS (
+          SELECT 1 FROM "WalletTransaction" t
+          WHERE t."paymentId" = p.id AND t.type = 'TOPUP_CREDIT'
+        )
+      ORDER BY p."createdAt" DESC
+      LIMIT 20
+    `.catch(() => []),
   ])
 
   return {
@@ -69,6 +94,11 @@ export default defineEventHandler(async (event) => {
       moneyJobs: {
         processEndpoint: 'POST /api/admin/payments/process-money-jobs',
         failed: failedJobs,
+        pending: pendingJobs,
+      },
+      paidTopUpWithoutCredit: {
+        action: 'POST /api/admin/payments/process-money-jobs with reconcile — credits TOPUP_CREDIT',
+        sample: unpaidTopUps,
       },
       owedAged: {
         manualBankRefundsOwedAged: audit.manualBankRefundsOwedAged,
