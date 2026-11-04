@@ -101,18 +101,15 @@ async function main() {
   assert(provision.clubSlug, 'provision missing clubSlug')
   console.log(`ok  provision ${provision.clubSlug}`)
 
-  // --- 2. Owner login path (OTP primary; email password as desk fallback) ---
-  const ownerOtp = await loginViaOtp(base, jar, 'owner', ownerPhone)
-  assert(
-    ownerOtp.role === 'CLUB_ADMIN' || ownerOtp.redirectTo === '/owner' || /\/owner/.test(ownerOtp.redirectTo || ''),
-    `owner OTP login expected CLUB_ADMIN /owner, got role=${ownerOtp.role} redirect=${ownerOtp.redirectTo}`,
-  )
-  console.log('ok  owner OTP login')
-
-  // Email password still works for provisioned desk accounts
-  const emailJar = createCookieJar()
-  await login(base, emailJar, 'owner-email', ownerEmail, provision.temporaryPassword)
-  console.log('ok  owner email login (provision fallback)')
+  // --- 2. Owner login: provisioned accounts have a password, so OTP is refused (password XOR OTP) ---
+  const { res: ownerOtpRes } = await apiFetch(base, '/api/auth/otp/request', {
+    method: 'POST',
+    body: { phone: ownerPhone, purpose: 'login' },
+    expectStatus: 403,
+  })
+  assert(ownerOtpRes.status === 403, `owner OTP with password expected 403, got ${ownerOtpRes.status}`)
+  await login(base, jar, 'owner', ownerEmail, provision.temporaryPassword)
+  console.log('ok  owner password login (OTP refused for password accounts)')
 
   let freeSlot = null
   let reserveDate = null
@@ -205,14 +202,19 @@ async function main() {
   // Occupied overwrite path is unreachable while freeze is on — skip conflict smoke
   console.log('ok  season overwrite check skipped (recurring freeze)')
 
+  const packagesOn = process.env.PACKAGES_ENABLED === 'true'
+    || process.env.NUXT_PUBLIC_PACKAGES_ENABLED === 'true'
   const { res: ownerPackagesCreate } = await apiFetch(base, '/api/owner/packages', {
     jar,
     session: 'owner',
     method: 'POST',
     body: { title: 'Should fail' },
-    expectStatus: 403,
+    expectStatus: packagesOn ? 400 : 403,
   })
-  assert(ownerPackagesCreate.status === 403, `owner packages create expected 403, got ${ownerPackagesCreate.status}`)
+  assert(
+    ownerPackagesCreate.status === (packagesOn ? 400 : 403),
+    `owner packages invalid create expected ${packagesOn ? 400 : 403}, got ${ownerPackagesCreate.status}`,
+  )
   const { res: packagesPage } = await fetchPage(base, '/owner/packages', {
     jar,
     session: 'owner',
@@ -366,9 +368,10 @@ async function main() {
   assert(['log', 'live'].includes(processResult.provider), 'process-scheduled provider invalid')
   console.log('ok  process-scheduled')
 
-  const { res: smsPage } = await fetchPage(base, '/admin/sms', { expectStatus: 200 })
-  assert(smsPage.status === 200, `/admin/sms → ${smsPage.status}`)
-  console.log('ok  /admin/sms page')
+  // Admin UI now sits behind a session gate — anonymous hits redirect to login.
+  const smsPage = await fetch(`${base}/admin/sms`, { redirect: 'manual' })
+  assert([200, 302].includes(smsPage.status), `/admin/sms → ${smsPage.status}`)
+  console.log('ok  /admin/sms page (200 or login redirect)')
 
   // --- 4. Athlete register (phone OTP) → find club → book → /athlete/bookings ---
   const athlete = await registerAthlete(base, jar, 'athlete', { name: 'Pilot Athlete', viaOtp: true })
