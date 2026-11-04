@@ -1,4 +1,10 @@
-import { createAndSendPhoneOtp, type OtpPurpose, type OtpRole } from '../../../utils/otp'
+import {
+  createAndSendPhoneOtp,
+  OTP_RESEND_COOLDOWN_MS,
+  OtpResendCooldownError,
+  type OtpPurpose,
+  type OtpRole,
+} from '../../../utils/otp'
 import { parseGender } from '#shared/gender.ts'
 import { canOtpLogin } from '#shared/roles.ts'
 import { findUserForPhoneOtp } from '../../../utils/phoneAuth'
@@ -57,33 +63,46 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const result = await createAndSendPhoneOtp({
-    phoneRaw: body.phone || '',
-    purpose,
-    role: purpose === 'register' ? role : undefined,
-    payload: purpose === 'register'
-      ? {
-          name: body.name?.trim(),
-          nameFamily: body.nameFamily?.trim() || '',
-          gender,
-          clubNameFa: body.clubNameFa?.trim(),
-          city: body.city?.trim() || 'تهران',
-          addressFa: body.addressFa?.trim(),
-          sport: body.sport,
-          courtCount: body.courtCount,
-          sessionPrice: typeof body.sessionPrice === 'number' ? body.sessionPrice : undefined,
-          experienceYears: typeof body.experienceYears === 'number' ? body.experienceYears : undefined,
-          credentialUrls: Array.isArray(body.credentialUrls) ? body.credentialUrls.filter(Boolean) : undefined,
-        }
-      : undefined,
-  })
+  try {
+    const result = await createAndSendPhoneOtp({
+      phoneRaw: body.phone || '',
+      purpose,
+      role: purpose === 'register' ? role : undefined,
+      payload: purpose === 'register'
+        ? {
+            name: body.name?.trim(),
+            nameFamily: body.nameFamily?.trim() || '',
+            gender,
+            clubNameFa: body.clubNameFa?.trim(),
+            city: body.city?.trim() || 'تهران',
+            addressFa: body.addressFa?.trim(),
+            sport: body.sport,
+            courtCount: body.courtCount,
+            sessionPrice: typeof body.sessionPrice === 'number' ? body.sessionPrice : undefined,
+            experienceYears: typeof body.experienceYears === 'number' ? body.experienceYears : undefined,
+            credentialUrls: Array.isArray(body.credentialUrls) ? body.credentialUrls.filter(Boolean) : undefined,
+          }
+        : undefined,
+    })
 
-  return {
-    ok: true,
-    phone: result.phone,
-    expiresIn: result.expiresIn,
-    debugCode: result.debugCode,
-    smsMode: result.smsMode,
-    smsPhase: result.smsPhase,
+    return {
+      ok: true,
+      phone: result.phone,
+      expiresIn: result.expiresIn,
+      resendAfterSec: Math.floor(OTP_RESEND_COOLDOWN_MS / 1000),
+      debugCode: result.debugCode,
+      smsMode: result.smsMode,
+      smsPhase: result.smsPhase,
+    }
+  }
+  catch (err) {
+    if (err instanceof OtpResendCooldownError) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'OTP_RESEND_COOLDOWN',
+        data: { retryAfterSec: err.retryAfterSec },
+      })
+    }
+    throw err
   }
 })

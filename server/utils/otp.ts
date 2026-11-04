@@ -12,6 +12,16 @@ export type OtpRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
 
 const OTP_TTL_MS = 5 * 60 * 1000
 const MAX_ATTEMPTS = 5
+/** Minimum gap between SMS sends for the same phone/purpose (client resend cooldown). */
+export const OTP_RESEND_COOLDOWN_MS = Number(process.env.OTP_RESEND_COOLDOWN_MS) || 60_000
+
+export class OtpResendCooldownError extends Error {
+  retryAfterSec: number
+  constructor(retryAfterSec: number) {
+    super('OTP_RESEND_COOLDOWN')
+    this.retryAfterSec = retryAfterSec
+  }
+}
 
 export function generateOtpCode(): string {
   return String(randomInt(100000, 999999))
@@ -29,6 +39,19 @@ export async function createAndSendPhoneOtp(opts: {
   }
 
   await enforceOtpSendPhoneLimit(phone)
+
+  const lastSent = await prisma.phoneOtp.findFirst({
+    where: { phone, purpose: opts.purpose },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  })
+  if (lastSent) {
+    const elapsed = Date.now() - lastSent.createdAt.getTime()
+    if (elapsed < OTP_RESEND_COOLDOWN_MS) {
+      const retryAfterSec = Math.max(1, Math.ceil((OTP_RESEND_COOLDOWN_MS - elapsed) / 1000))
+      throw new OtpResendCooldownError(retryAfterSec)
+    }
+  }
 
   const smsMode = resolveSmsProvider()
   const uniformOk = () => ({

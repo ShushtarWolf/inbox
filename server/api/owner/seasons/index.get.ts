@@ -1,4 +1,4 @@
-import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -28,9 +28,7 @@ export default defineEventHandler(async (event) => {
   return {
     seasons: rows.map((row) => ({
       id: row.id,
-      guestName: row.guestName,
-      guestFamily: row.guestFamily,
-      guestLabel: formatGuestDisplayName(row.guestName, row.guestFamily),
+      ...resolveSeasonGuestFields(row),
       guestMobile: row.guestMobile,
       startDate: row.startDate,
       finishDate: row.finishDate,

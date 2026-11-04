@@ -3892,15 +3892,8 @@ watch(calendarView, (view) => {
 })
 
 function seasonBookingQuery(row: SeasonListRow, mode: 'repeat' | 'edit'): Record<string, string> {
-  const query: Record<string, string> = {}
-  if (mode === 'edit') query.edit = row.id
-  if (row.startDate) query.start = row.startDate
-  if (row.finishDate) query.finish = row.finishDate
-  if (row.guestName) query.guestName = row.guestName
-  if (row.guestFamily) query.guestFamily = row.guestFamily
-  if (row.guestMobile) query.guestMobile = row.guestMobile
-  if (row.comments) query.comments = row.comments
-  return query
+  if (mode === 'edit') return { edit: row.id }
+  return { repeat: row.id }
 }
 
 function repeatSeasonBooking(row: SeasonListRow) {
