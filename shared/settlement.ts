@@ -54,6 +54,17 @@ function parseCommissionBps(raw: string | undefined | null, fallback: number): n
   return Math.floor(n)
 }
 
+/** Clamp an already-resolved platform bps integer (0–10000). */
+export function clampPlatformCommissionBps(raw: number): number {
+  if (!Number.isFinite(raw) || raw < 0 || raw > 10_000) return DEFAULT_PLATFORM_COMMISSION_BPS
+  return Math.floor(raw)
+}
+
+function resolvePlatformBpsFromArg(platformRawOrBps?: string | null | number): number {
+  if (typeof platformRawOrBps === 'number') return clampPlatformCommissionBps(platformRawOrBps)
+  return resolvePlatformCommissionBps(platformRawOrBps)
+}
+
 /** Resolve club commission BPS from env (0–10000). Invalid/missing → default. */
 export function resolvePlatformCommissionBps(
   raw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
@@ -64,13 +75,13 @@ export function resolvePlatformCommissionBps(
 /** Club's own rate when admin set one (0 = promo), else the global PLATFORM_COMMISSION_BPS default. */
 export function resolveClubCommissionBps(
   clubCommissionBps: number | null | undefined,
-  platformRaw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
+  platformRawOrBps: string | undefined | null | number = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
 ): number {
   if (clubCommissionBps != null && Number.isInteger(clubCommissionBps)
     && clubCommissionBps >= 0 && clubCommissionBps <= 10_000) {
     return clubCommissionBps
   }
-  return resolvePlatformCommissionBps(platformRaw)
+  return resolvePlatformBpsFromArg(platformRawOrBps)
 }
 
 /**
@@ -79,12 +90,12 @@ export function resolveClubCommissionBps(
  */
 export function resolveCoachCommissionBps(
   raw: string | undefined | null = typeof process !== 'undefined' ? process.env.COACH_COMMISSION_BPS : undefined,
-  platformRaw: string | undefined | null = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
+  platformRawOrBps: string | undefined | null | number = typeof process !== 'undefined' ? process.env.PLATFORM_COMMISSION_BPS : undefined,
 ): number {
   if (raw != null && String(raw).trim() !== '') {
     return parseCommissionBps(raw, DEFAULT_PLATFORM_COMMISSION_BPS)
   }
-  return resolvePlatformCommissionBps(platformRaw)
+  return resolvePlatformBpsFromArg(platformRawOrBps)
 }
 
 /** Split gross payment into platform commission + payee net (floor). */

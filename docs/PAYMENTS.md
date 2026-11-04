@@ -164,7 +164,9 @@ Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSIO
 
 **Rounding:** commission / refund BPS use `floor` (`splitSettlement`, `refundAmountFromBps`); leftover 1 toman on splits stays with platform net.
 
-**Per-club commission:** admin sets `Club.commissionBps` on `/admin/clubs/:id` (`PATCH /api/admin/clubs/:id/commission`, bps 0–10000 or `null`). `null` → global `PLATFORM_COMMISSION_BPS`; `0` = launch-partner / promo club. Each `SettlementLedgerEntry` snapshots the rate it used, so changing a club's rate only affects payments settled afterwards. Coach lesson fees still use `COACH_COMMISSION_BPS` (env).
+**Platform default commission:** admin sets the global rate at `/admin/platform-commission` (`GET/PATCH /api/admin/platform-commission`, bps 0–10000; bps > 0 requires `confirmRefundRisk`). Stored in `PlatformCommissionSetting` with append-only `PlatformCommissionChange` audit. Settlement reads DB first; `PLATFORM_COMMISSION_BPS` env is bootstrap/fallback only when the row is missing.
+
+**Per-club commission:** admin sets `Club.commissionBps` on `/admin/clubs/:id` (`PATCH /api/admin/clubs/:id/commission`, bps 0–10000 or `null`). `null` → platform default above; `0` = launch-partner / promo club. Each `SettlementLedgerEntry` snapshots the rate it used, so changing a club's rate only affects payments settled afterwards. Coach lesson fees still use `COACH_COMMISSION_BPS` (env) when set; otherwise platform default.
 
 **Commission refund:** the athlete gets back the **gross** they paid; the payee (club/coach) gives back only the **ownerNet** it was credited; the platform refunds its own commission from float. Partial refunds claw back `ownerNet × refund / gross` (floor), so the platform returns the same share of its commission. Clubs never go negative from commission on a cancellation.
 

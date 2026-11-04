@@ -127,7 +127,7 @@ const PAYMENTS_NEXT: Record<string, string> = {
  * Local / admin diagnostics for payments mode after Liara secrets are set.
  * Never returns terminal id or other secrets.
  */
-export function getPaymentsStatusSnapshot(): PaymentsStatusSnapshot {
+export function getPaymentsStatusSnapshot(options?: { platformCommissionBps?: number }): PaymentsStatusSnapshot {
   const paymentsMode = getPaymentsMode()
   const resolvedProvider = resolvePaymentProvider()
   const hasSepTerminalId = Boolean(process.env.SEP_TERMINAL_ID?.trim())
@@ -147,10 +147,13 @@ export function getPaymentsStatusSnapshot(): PaymentsStatusSnapshot {
     warningCodes.push('live_without_payout_confirm')
   }
 
+  const platformBpsFromDb = options?.platformCommissionBps
   const platformBpsRaw = process.env.PLATFORM_COMMISSION_BPS
-  const platformBps = platformBpsRaw == null || String(platformBpsRaw).trim() === ''
-    ? 0
-    : Number(platformBpsRaw)
+  const platformBps = typeof platformBpsFromDb === 'number' && Number.isFinite(platformBpsFromDb)
+    ? platformBpsFromDb
+    : platformBpsRaw == null || String(platformBpsRaw).trim() === ''
+      ? 0
+      : Number(platformBpsRaw)
   if (paymentsMode === 'live' && (!Number.isFinite(platformBps) || platformBps === 0)) {
     warningCodes.push('live_commission_zero')
   }

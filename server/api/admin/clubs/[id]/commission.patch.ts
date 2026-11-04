@@ -1,4 +1,5 @@
 import { resolveClubCommissionBps } from '#shared/settlement.ts'
+import { loadPlatformCommissionBps } from '../../../utils/platformCommission.ts'
 
 /**
  * Set a club's platform commission (bps 0–10000), or null to use PLATFORM_COMMISSION_BPS.
@@ -38,9 +39,10 @@ export default defineEventHandler(async (event) => {
     })
   })
 
+  const platformBps = await loadPlatformCommissionBps()
   return {
     id: club.id,
     commissionBps: club.commissionBps,
-    effectiveCommissionBps: resolveClubCommissionBps(club.commissionBps),
+    effectiveCommissionBps: resolveClubCommissionBps(club.commissionBps, platformBps),
   }
 })

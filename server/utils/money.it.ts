@@ -131,6 +131,13 @@ async function clubDrift(clubId: string) {
 
 suite('money integration (real Postgres)', () => {
   beforeAll(async () => {
+    await db.platformCommissionSetting.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', commissionBps: 1000 },
+      update: { commissionBps: 1000 },
+    })
+    const { invalidatePlatformCommissionCache } = await import('./platformCommission.ts')
+    invalidatePlatformCommissionCache()
     m = {
       wallet: await import('./wallet'),
       settlement: await import('./settlement'),
