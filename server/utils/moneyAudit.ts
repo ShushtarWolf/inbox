@@ -62,18 +62,18 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
       SELECT COUNT(*)::bigint AS c
       FROM "SettlementLedgerEntry" e
       JOIN "Payment" p ON p.id = e."paymentId"
-      WHERE e."clawedBackAt" IS NULL AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED')
+      WHERE e."clawedBackAt" IS NULL AND p.status = 'REFUNDED'
     `.then((rows) => Number(rows[0]?.c || 0)),
     prisma.payment.count({
       where: {
-        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        status: 'REFUNDED',
         metadataJson: { contains: MANUAL_REFUND_MARKER },
         NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
       },
     }),
     prisma.payment.count({
       where: {
-        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        status: 'REFUNDED',
         updatedAt: { lt: owedCutoff },
         metadataJson: { contains: MANUAL_REFUND_MARKER },
         NOT: { metadataJson: { contains: '"manualBankRefund":"returned"' } },
@@ -81,13 +81,13 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     }),
     prisma.payment.count({
       where: {
-        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        status: 'REFUNDED',
         metadataJson: { contains: '"deskCashReturn":"owed"' },
       },
     }),
     prisma.payment.count({
       where: {
-        status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] },
+        status: 'REFUNDED',
         updatedAt: { lt: owedCutoff },
         metadataJson: { contains: '"deskCashReturn":"owed"' },
       },

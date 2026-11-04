@@ -51,7 +51,10 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
-  /** Booking cancelled with refundBps < 10000 (closed-loop partial); terminal like REFUNDED. */
+  /**
+   * Unused — partial refunds stay REFUNDED with metadata.refundBps / refundedAmount.
+   * Kept in the enum so existing Postgres values do not break Prisma client generation.
+   */
   PARTIALLY_REFUNDED
   /** Replaced by a newer checkout intent; row kept for wallet / ledger audit trail. */
   SUPERSEDED

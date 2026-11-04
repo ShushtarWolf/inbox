@@ -32,7 +32,6 @@ export type PaymentIntentStatus =
   | 'PAID'
   | 'FAILED'
   | 'REFUNDED'
-  | 'PARTIALLY_REFUNDED'
 
 export type PaymentsMode = 'pay_at_club' | 'test' | 'live'
 

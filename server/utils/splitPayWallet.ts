@@ -17,8 +17,7 @@ export async function releaseSplitWalletDebit(paymentId: string, db: DbClient = 
   const run = async (tx: Prisma.TransactionClient) => {
     await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${paymentId} FOR UPDATE`
     const payment = await tx.payment.findUnique({ where: { id: paymentId } })
-    if (!payment || payment.status === 'PAID' || payment.status === 'REFUNDED'
-      || payment.status === 'PARTIALLY_REFUNDED') {
+    if (!payment || payment.status === 'PAID' || payment.status === 'REFUNDED') {
       return { released: false as const }
     }
 

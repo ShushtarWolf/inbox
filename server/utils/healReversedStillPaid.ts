@@ -25,7 +25,7 @@ export async function healReversedStillPaidPayments(limit = 20) {
       metadataJson: true,
       booking: { select: { id: true, slotId: true, userId: true, status: true } },
       coachSession: { select: { id: true, athleteId: true, status: true } },
-      packageBooking: { select: { id: true, userId: true, status: true } },
+      packageBooking: { select: { id: true, athleteId: true, status: true } },
     },
     take: limit,
     orderBy: { updatedAt: 'asc' },
@@ -74,7 +74,7 @@ export async function healReversedStillPaidPayments(limit = 20) {
         await cancelPackageBooking({
           packageBookingId: payment.packageBooking.id,
           paymentId: payment.id,
-          userId: payment.packageBooking.userId,
+          userId: payment.packageBooking.athleteId,
           reason: 'heal-reversed-still-paid',
           moneyOutcome: 'full_wallet_refund',
         })

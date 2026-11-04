@@ -183,7 +183,7 @@ export function resolveParentPaymentMethod(
   if (status === 'PAID') {
     if (method === 'IPG' || method === 'CASH' || method === 'PAID') return method
   }
-  if (status === 'REFUNDED' || status === 'PARTIALLY_REFUNDED') {
+  if (status === 'REFUNDED') {
     if (method === 'IPG' || method === 'CASH' || method === 'PAID' || method === 'NOT_PAID') return method
   }
   return undefined
