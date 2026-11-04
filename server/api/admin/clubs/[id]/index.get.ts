@@ -1,6 +1,6 @@
 import { paymentRowChannelWhere } from '#shared/bookingPayment.ts'
 import { resolveClubCommissionBps } from '#shared/settlement.ts'
-import { loadPlatformCommissionBps } from '../../../utils/platformCommission.ts'
+import { loadPlatformCommissionBps } from '../../../../utils/platformCommission.ts'
 
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
