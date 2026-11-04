@@ -17,7 +17,6 @@ import {
   isSepReverseAmbiguousError,
 } from '#shared/sepReverseWindow.ts'
 import { readSplitPayMeta } from '#shared/splitPay.ts'
-import { findUserIdByPhone } from './phoneAuth'
 import { sepReverseTransaction } from './payments/sepClient'
 import { syncPaymentToParent } from './paymentSync'
 import { prisma } from './prisma'
@@ -171,23 +170,16 @@ export async function refundPaymentForCancellation(options: {
     channel = 'gateway_reverse'
   }
 
-  // Prefer explicit cancel userId, then payment payer, then booking owner, then guest phone match.
+  // Prefer explicit cancel userId, then payment payer, then booking.userId.
+  // Do NOT credit via guestMobile phone match — shared/wrong numbers hit the wrong wallet;
+  // guest IPG without a linked user stays manualBankRefund (ops ack).
   let creditUserId = options.userId || payment.userId || payment.booking?.userId || null
-  if (!creditUserId && !gatewayRefunded) {
-    const guestMobile = payment.booking?.guestMobile
-    if (guestMobile) {
-      creditUserId = await findUserIdByPhone(guestMobile)
-    }
-    else if (bookingId) {
-      const booking = await db.booking.findUnique({
-        where: { id: bookingId },
-        select: { userId: true, guestMobile: true },
-      })
-      creditUserId = booking?.userId || null
-      if (!creditUserId && booking?.guestMobile) {
-        creditUserId = await findUserIdByPhone(booking.guestMobile)
-      }
-    }
+  if (!creditUserId && !gatewayRefunded && bookingId) {
+    const booking = await db.booking.findUnique({
+      where: { id: bookingId },
+      select: { userId: true },
+    })
+    creditUserId = booking?.userId || null
   }
 
   const split = readSplitPayMeta(existingMeta)
@@ -202,19 +194,11 @@ export async function refundPaymentForCancellation(options: {
       || reverseWalletRestock > 0
     )
 
-  const guestLinkedByPhone = Boolean(
-    !payment.userId
-    && creditUserId
-    && payment.booking?.guestMobile,
-  )
   const nextMeta = buildCancelRefundMetadata(existingMeta, {
     channel,
     reason: options.reason,
     manualRefund: channel === 'wallet_closed_loop' && !canCreditAthlete && payment.method !== 'NOT_PAID',
   })
-  if (guestLinkedByPhone) {
-    nextMeta.guestRefundViaPhoneWallet = true
-  }
   if (gatewayRefunded) {
     nextMeta.gatewayReversed = true
     nextMeta.gatewayRefund = true

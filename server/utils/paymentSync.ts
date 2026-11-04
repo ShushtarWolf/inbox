@@ -23,6 +23,14 @@ import { confirmEntryFromPayment } from './competitions'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
+/** Statuses a group primary may promote on sibling payments (never REFUNDED/SUPERSEDED/PAID). */
+export const GROUP_SIBLING_SETTLE_STATUSES = [
+  'PENDING_ONLINE',
+  'FAILED',
+  'PAY_AT_CLUB',
+  'PENDING_AT_CLUB',
+] as const
+
 function parsePaymentMetadata(raw: string | null): Record<string, unknown> {
   if (!raw) return {}
   try {
@@ -153,8 +161,12 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
               ...(paymentMethod ? { paymentMethod } : {}),
             },
           })
+          // Never resurrect REFUNDED / SUPERSEDED / already-PAID siblings.
           await db.payment.updateMany({
-            where: { bookingId: siblingId },
+            where: {
+              bookingId: siblingId,
+              status: { in: [...GROUP_SIBLING_SETTLE_STATUSES] },
+            },
             data: { status: 'PAID', method: payment.method },
           })
         }

@@ -36,11 +36,6 @@ vi.mock('./settlement', () => ({
   clawbackOwnerForPayment: (...args: unknown[]) => clawbackOwnerForPayment(...args),
 }))
 
-const findUserIdByPhone = vi.fn()
-vi.mock('./phoneAuth', () => ({
-  findUserIdByPhone: (...args: unknown[]) => findUserIdByPhone(...args),
-}))
-
 import { refundPaymentForCancellation } from './refunds'
 
 const sepPaid = {
@@ -57,7 +52,6 @@ describe('refundPaymentForCancellation', () => {
   beforeEach(() => {
     findUnique.mockResolvedValue(sepPaid)
     bookingFindUnique.mockResolvedValue(null)
-    findUserIdByPhone.mockResolvedValue(null)
     update.mockResolvedValue({ ...sepPaid, status: 'REFUNDED' })
     creditWallet.mockResolvedValue({})
     syncPaymentToParent.mockResolvedValue(undefined)
@@ -188,20 +182,20 @@ describe('refundPaymentForCancellation', () => {
     })
   })
 
-  it('IPG guest without wallet: flags manual bank refund instead of silently dropping money', async () => {
+  it('IPG guest without linked user: flags manual bank refund (no phone-match credit)', async () => {
     findUnique.mockResolvedValue({
       ...sepPaid,
       userId: null,
       bookingId: 'b1',
       booking: { paymentMethod: null, userId: null, guestMobile: '09022900854' },
     })
+    bookingFindUnique.mockResolvedValue({ userId: null })
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
       userId: null,
       reason: 'owner-cancel',
       bookingId: 'b1',
     })
-    expect(findUserIdByPhone).toHaveBeenCalledWith('09022900854')
     expect(creditWallet).not.toHaveBeenCalled()
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -209,30 +203,6 @@ describe('refundPaymentForCancellation', () => {
       }),
     }))
     expect(result.walletCredited).toBe(false)
-  })
-
-  it('IPG guest with matching phone user: credits that wallet', async () => {
-    findUnique.mockResolvedValue({
-      ...sepPaid,
-      userId: null,
-      bookingId: 'b1',
-      booking: { paymentMethod: null, userId: null, guestMobile: '09022900854' },
-    })
-    findUserIdByPhone.mockResolvedValue('user-behnaz')
-    const result = await refundPaymentForCancellation({
-      paymentId: 'pay-1',
-      userId: null,
-      reason: 'owner-cancel',
-      bookingId: 'b1',
-    })
-    expect(findUserIdByPhone).toHaveBeenCalledWith('09022900854')
-    expect(creditWallet).toHaveBeenCalledWith(
-      'user-behnaz',
-      400000,
-      expect.objectContaining({ paymentId: 'pay-1', bookingId: 'b1', type: 'REFUND_CREDIT' }),
-      tx,
-    )
-    expect(result.walletCredited).toBe(true)
   })
 
   it('falls back to payment.userId when cancel userId is null', async () => {

@@ -37,6 +37,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   pendingClassBalance?: number
   canBankWithdraw?: boolean
   bankWithdrawKind?: 'coach' | 'athlete' | null
+  dualWithdrawRails?: boolean
   sheba?: string | null
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: { proposedSheba: string | null; adminNote?: string | null } | null
@@ -217,7 +218,7 @@ async function requestWithdraw() {
   try {
     await $fetch('/api/wallet/withdraw', {
       method: 'POST',
-      body: { amount },
+      body: { amount, idempotencyKey: crypto.randomUUID() },
     })
     flashTone.value = 'success'
     flash.value = t('athlete.withdrawSuccess')
@@ -267,10 +268,10 @@ watch(
           <p class="ath-wallet-amount mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(onlineBalance) }}</p>
           <p class="mt-1 text-[11px] text-white/70">{{ t('athlete.walletOnlineHint') }}</p>
         </div>
-        <div class="border border-white/25 bg-black/20 px-3 py-2 text-start">
-          <p class="text-[11px] text-white/75">{{ t('athlete.walletCashBookTitle') }}</p>
-          <p class="mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(cashDesk?.inTill || 0) }}</p>
-          <p class="mt-1 text-[11px] text-white/70">{{ t('athlete.walletCashBookHint') }}</p>
+        <div class="border border-white/15 bg-black/10 px-3 py-2 text-start">
+          <p class="text-[11px] text-white/65">{{ t('athlete.walletCashBookTitle') }}</p>
+          <p class="mt-1 text-lg font-semibold tabular-nums text-white/90">{{ formatCurrency(cashDesk?.inTill || 0) }}</p>
+          <p class="mt-1 text-[11px] text-white/60">{{ t('athlete.walletCashBookHint') }}</p>
           <p
             v-if="(cashDesk?.returnsOwed || 0) > 0"
             class="mt-1 text-[11px] font-bold text-amber-200"
@@ -402,7 +403,13 @@ watch(
       <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">
-          {{ data?.bankWithdrawKind === 'coach' ? t('athlete.withdrawHintCoach') : t('athlete.withdrawHint') }}
+          {{
+            data?.dualWithdrawRails
+              ? t('athlete.withdrawHintDualRails')
+              : data?.bankWithdrawKind === 'coach'
+                ? t('athlete.withdrawHintCoach')
+                : t('athlete.withdrawHint')
+          }}
         </p>
         <p v-if="shebaStatusMessage" class="text-xs text-brand-gray-600">{{ shebaStatusMessage }}</p>
         <AppFormField field-id="wallet-sheba" :label="t('athlete.shebaLabel')">

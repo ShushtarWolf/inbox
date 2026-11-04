@@ -210,6 +210,7 @@ export async function runMoneyAudit(): Promise<MoneyAuditSummary> {
     + summary.paidTopUpWithoutCredit
     + summary.paidTopUpOrphanNoUser
     + summary.failedMoneyJobs
+    + summary.reversePendingPayments
     + summary.reversedStillPaid
   ) > 0
   return summary

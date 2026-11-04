@@ -226,7 +226,7 @@ Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB 
 
 ## Guest IPG refunds
 
-Pay-link guests without a login still queue **`manualBankRefund=owed`** when no wallet user matches `guestMobile`. If the phone matches an existing user (`findUserIdByPhone`), refund credits that wallet and sets `metadata.guestRefundViaPhoneWallet=true` — ops should still verify identity before relying on phone match. Full guest-wallet product (mandatory login for IPG) remains a later decision.
+Pay-link guests without a linked `userId` always queue **`manualBankRefund=owed`** until admin ack. Refunds never auto-credit a wallet via `guestMobile` phone match (shared/wrong numbers). Full guest-wallet product (mandatory login for IPG) remains a later decision.
 
 ## Desk mark-unpaid
 

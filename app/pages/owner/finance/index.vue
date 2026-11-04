@@ -329,7 +329,7 @@ async function submitWithdraw() {
     }
     await $fetch('/api/owner/withdraw', {
       method: 'POST',
-      body: { amount },
+      body: { amount, idempotencyKey: crypto.randomUUID() },
     })
     payoutSuccess.value = t('owner.financePage.withdrawSuccess')
     withdrawAmount.value = null

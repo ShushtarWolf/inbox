@@ -12,8 +12,6 @@ const creditWallet = vi.fn()
 const clawbackOwnerForPayment = vi.fn().mockResolvedValue({ clawed: true })
 const clawbackOwnerPartialForPayment = vi.fn()
 const syncPaymentToParent = vi.fn()
-const findUserIdByPhone = vi.fn()
-
 vi.mock('./prisma', () => ({
   prisma: {
     payment: { findUnique, update: rootUpdate },
@@ -33,9 +31,6 @@ vi.mock('./settlement', () => ({
 }))
 vi.mock('./paymentSync', () => ({
   syncPaymentToParent: (...args: unknown[]) => syncPaymentToParent(...args),
-}))
-vi.mock('./phoneAuth', () => ({
-  findUserIdByPhone: (...args: unknown[]) => findUserIdByPhone(...args),
 }))
 vi.mock('#shared/payments.ts', () => ({
   getPaymentsMode: () => 'live',

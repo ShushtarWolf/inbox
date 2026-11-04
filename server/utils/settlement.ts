@@ -224,13 +224,22 @@ export async function unlockEligibleClubSettlements(
   }
 
   const amount = Math.min(toUnlock, wallet.lockedBalance)
-  const updated = await db.clubWallet.update({
-    where: { id: wallet.id },
+  // Claim locked atomically — concurrent unlocks must not overshoot available.
+  const claimed = await db.clubWallet.updateMany({
+    where: { id: wallet.id, lockedBalance: { gte: amount } },
     data: {
       lockedBalance: { decrement: amount },
       availableBalance: { increment: amount },
     },
   })
+  if (claimed.count !== 1) {
+    const fresh = await getOrCreateClubWallet(clubId, db)
+    return {
+      balance: fresh.balance,
+      availableBalance: fresh.availableBalance,
+      lockedBalance: fresh.lockedBalance,
+    }
+  }
   let remaining = amount
   for (const row of unlockPayments) {
     if (remaining <= 0) break
@@ -247,6 +256,7 @@ export async function unlockEligibleClubSettlements(
     })
     remaining -= slice
   }
+  const updated = await getOrCreateClubWallet(clubId, db)
   return {
     balance: updated.balance,
     availableBalance: updated.availableBalance,

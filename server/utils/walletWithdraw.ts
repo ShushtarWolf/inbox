@@ -2,6 +2,7 @@ import {
   ATHLETE_WITHDRAW_DAILY_MAX_IRR,
   clampAthleteWithdrawAmount,
 } from '#shared/athleteCashOut.ts'
+import { tehranDayStartUtc } from '#shared/localDate.ts'
 import { formatUserDisplayName } from '#shared/userName.ts'
 import {
   resolveWithdrawRail,
@@ -122,13 +123,11 @@ export async function requestUserWithdraw(options: {
       withdrawable = coachWithdrawable
     }
     else {
-      const dayStart = new Date()
-      dayStart.setHours(0, 0, 0, 0)
       const dailyUsed = await tx.userWithdrawRequest.aggregate({
         where: {
           userId: options.userId,
           status: { in: ['PENDING', 'PAID'] },
-          createdAt: { gte: dayStart },
+          createdAt: { gte: tehranDayStartUtc() },
         },
         _sum: { amount: true },
       })

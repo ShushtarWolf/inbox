@@ -212,13 +212,16 @@ export async function unlockEligibleWalletSettlements(
   if (toUnlock <= 0) return wallet
 
   const amount = Math.min(toUnlock, wallet.lockedBalance)
-  const updated = await db.wallet.update({
-    where: { id: wallet.id },
+  // Claim locked atomically — concurrent unlocks must not overshoot available.
+  const claimed = await db.wallet.updateMany({
+    where: { id: wallet.id, lockedBalance: { gte: amount } },
     data: {
       lockedBalance: { decrement: amount },
       availableBalance: { increment: amount },
     },
   })
+  if (claimed.count !== 1) return getOrCreateWallet(userId, db)
+
   // One UNLOCK row per payment for idempotency
   let remaining = amount
   for (const row of unlockPayments) {
@@ -236,7 +239,7 @@ export async function unlockEligibleWalletSettlements(
     })
     remaining -= slice
   }
-  return updated
+  return getOrCreateWallet(userId, db)
 }
 
 export async function creditWallet(

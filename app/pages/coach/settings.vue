@@ -112,7 +112,10 @@ async function requestWithdraw() {
   }
   payoutBusy.value = true
   try {
-    await $fetch('/api/wallet/withdraw', { method: 'POST', body: { amount } })
+    await $fetch('/api/wallet/withdraw', {
+      method: 'POST',
+      body: { amount, idempotencyKey: crypto.randomUUID() },
+    })
     setFlash('success', t('athlete.withdrawSuccess'))
     withdrawAmount.value = null
     await refresh()

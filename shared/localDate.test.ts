@@ -6,6 +6,7 @@ import {
   localDateString,
   localTimeString,
   minutesUntilSlotStart,
+  tehranDayStartUtc,
 } from './localDate'
 
 describe('localDateString', () => {
@@ -24,6 +25,14 @@ describe('todayDateString', () => {
   it('matches localDateString for now', () => {
     const now = new Date('2026-07-14T10:15:00Z')
     expect(localDateString(now, 'UTC')).toBe('2026-07-14')
+  })
+})
+
+describe('tehranDayStartUtc', () => {
+  it('is midnight Tehran (+03:30) for that calendar day', () => {
+    // 2026-07-14 22:00 UTC = 2026-07-15 01:30 Tehran → day start is 14 Jul 20:30 UTC
+    const start = tehranDayStartUtc(new Date('2026-07-14T22:00:00Z'))
+    expect(start.toISOString()).toBe('2026-07-14T20:30:00.000Z')
   })
 })
 

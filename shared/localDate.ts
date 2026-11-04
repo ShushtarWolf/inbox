@@ -14,6 +14,15 @@ export function todayDateString(timeZone = TEHRAN_TZ) {
   return localDateString(new Date(), timeZone)
 }
 
+/**
+ * Instant of 00:00 Asia/Tehran on the given calendar day (default: today).
+ * Iran has had no DST since 2022 — fixed offset +03:30.
+ */
+export function tehranDayStartUtc(now = new Date()) {
+  const day = localDateString(now, TEHRAN_TZ)
+  return new Date(`${day}T00:00:00+03:30`)
+}
+
 /** HH:mm in the given timezone (default: Asia/Tehran). */
 export function localTimeString(date = new Date(), timeZone = TEHRAN_TZ) {
   return new Intl.DateTimeFormat('en-GB', {
