@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>گزارش مالی — دانشگاه علم و صنعت</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Vazirmatn, Tahoma, sans-serif;
+      color: #2c2c2a;
+      background: #fff;
+      font-size: 11.5pt;
+      line-height: 1.75;
+      margin: 0;
+    }
+    h1 { font-size: 18pt; margin: 0 0 4px; color: #C41E1E; }
+    h2 {
+      font-size: 13pt;
+      margin: 22px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #C41E1E;
+      color: #2c2c2a;
+    }
+    h3 { font-size: 11.5pt; margin: 14px 0 6px; color: #b68a3b; }
+    .meta { color: #8f8f8b; font-size: 10pt; margin-bottom: 16px; }
+    .meta b { color: #2c2c2a; font-weight: 600; }
+    .box {
+      background: #f4efe9;
+      border: 1px solid rgba(44,44,42,.08);
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    .warn {
+      background: #f3e9d3;
+      border: 1px solid #b68a3b;
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    .ok {
+      background: #dcebe1;
+      border: 1px solid #2e7d4f;
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 10.5pt;
+    }
+    th, td {
+      border: 1px solid rgba(44,44,42,.12);
+      padding: 7px 10px;
+      text-align: right;
+      vertical-align: top;
+    }
+    th { background: #f4efe9; font-weight: 600; }
+    td.num, th.num { text-align: left; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: plaintext; }
+    .total td { font-weight: 700; background: #faf8f5; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+    .hero .card {
+      border: 1px solid rgba(44,44,42,.1);
+      padding: 12px 14px;
+      background: #fff;
+    }
+    .hero .card .label { font-size: 9.5pt; color: #8f8f8b; }
+    .hero .card .val {
+      font-size: 16pt;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+      direction: ltr;
+      unicode-bidi: plaintext;
+      text-align: right;
+    }
+    .hero .card.accent { border-color: #C41E1E; background: #faf5f5; }
+    .hero .card.accent .val { color: #C41E1E; }
+    ul { margin: 6px 0 12px; padding-right: 18px; }
+    li { margin: 3px 0; }
+    .footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(44,44,42,.12);
+      font-size: 9pt;
+      color: #8f8f8b;
+    }
+    .muted { color: #8f8f8b; font-size: 10pt; }
+    bdi { direction: ltr; unicode-bidi: plaintext; }
+  </style>
+</head>
+<body>
+  <h1>گزارش مالی باشگاه دانشگاه علم و صنعت</h1>
+  <div class="meta">
+    <div>پلتفرم اینباکس · گزارش کامل کیف پول و صندوق نقدی</div>
+    <div>تاریخ گزارش: <b>۱۵ آبان ۱۴۰۵</b> · منبع داده: پشتیبان production مورخ ۱۵ آبان ۱۴۰۵ (ساعت ۲۰:۲۱)</div>
+    <div>تلفن باشگاه: <bdi>۰۹۰۲۲۹۰۰۸۵۴</bdi> · صاحب حساب: مدیر · <bdi>۰۹۱۵۳۰۳۴۰۳۹</bdi></div>
+    <div>شبا تسویه: <bdi>IR510560611828006543269302</bdi> · تعداد زمین: ۳</div>
+  </div>
+
+  <div class="hero">
+    <div class="card accent">
+      <div class="label">مانده قابل تسویه (بعد از اصلاح کمیسیون)</div>
+      <div class="val">۲٬۴۵۹٬۰۰۰</div>
+    </div>
+    <div class="card">
+      <div class="label">تسویه‌شده تا امروز</div>
+      <div class="val">۴٬۲۵۷٬۰۰۰</div>
+    </div>
+    <div class="card">
+      <div class="label">فروش آنلاین قطعی</div>
+      <div class="val">۶٬۸۹۵٬۰۰۰</div>
+    </div>
+    <div class="card">
+      <div class="label">نقد دریافت‌شده در باشگاه (گذشته)</div>
+      <div class="val">۱۷٬۹۹۵٬۰۰۰</div>
+    </div>
+  </div>
+
+  <div class="ok">
+    <b>قاعده کمیسیون:</b>
+    کمیسیون ۱۰٪ فقط روی رزروهایی که در تسویهٔ ۱۱ آبان پرداخت شدند اعمال می‌شود.
+    رزروها و تسویه‌های بعدی کمیسیون ۰٪ دارند.
+  </div>
+
+  <h2>۱. خلاصه اجرایی</h2>
+  <table>
+    <thead>
+      <tr><th>مورد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>فروش آنلاین قطعی (درگاه و اپ)</td><td class="num">۶٬۸۹۵٬۰۰۰</td></tr>
+      <tr><td>کمیسیون پلتفرم (فقط تسویهٔ ۱۱ آبان)</td><td class="num">۱۷۹٬۰۰۰</td></tr>
+      <tr><td>خالص سهم باشگاه از آنلاین</td><td class="num">۶٬۷۱۶٬۰۰۰</td></tr>
+      <tr><td>تسویه‌شده (۱۱ آبان ۱۴۰۵)</td><td class="num">۴٬۲۵۷٬۰۰۰</td></tr>
+      <tr class="total"><td>مانده قابل تسویه</td><td class="num">۲٬۴۵۹٬۰۰۰</td></tr>
+      <tr><td>موجودی فعلی در production (قبل از بازگرداندن کمیسیون)</td><td class="num">۱٬۹۷۹٬۰۰۰</td></tr>
+      <tr><td>بازگرداندن کمیسیون رزروهای بعد از تسویه</td><td class="num">۴۸۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h2>۲. کیف پول اینباکس (پرداخت آنلاین)</h2>
+  <p class="muted">
+    این بخش فقط پول‌هایی را نشان می‌دهد که از درگاه اینباکس آمده و اینباکس مسئول تسویهٔ آن‌ها به شبای باشگاه است.
+    پول نقد دریافت‌شده در محل در این کیف پول نیست.
+  </p>
+
+  <h3>۲٫۱ فروش آنلاین</h3>
+  <table>
+    <thead>
+      <tr><th>نوع</th><th class="num">تعداد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>پرداخت درگاه (IPG) — قطعی</td><td class="num">۵۴</td><td class="num">۶٬۴۱۵٬۰۰۰</td></tr>
+      <tr><td>رزرو علامت‌خورده «پرداخت‌شده» (روش PAID)</td><td class="num">۱</td><td class="num">۴۸۰٬۰۰۰</td></tr>
+      <tr class="total"><td>جمع فروش آنلاین قطعی</td><td class="num">۵۵</td><td class="num">۶٬۸۹۵٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۲٫۲ کمیسیون</h3>
+  <ul>
+    <li>رزروهای مشمول تسویهٔ ۱۱ آبان: فروش ۱٬۷۹۰٬۰۰۰ تومان → کمیسیون ۱۰٪ = <b>۱۷۹٬۰۰۰</b> تومان (این کمیسیون باقی می‌ماند).</li>
+    <li>رزروهای بعد از تسویه: فروش ۵٬۱۰۵٬۰۰۰ تومان → کمیسیون باید ۰٪ باشد. کمیسیون قبلی ۴۸۰٬۰۰۰ تومان به کیف پول بازمی‌گردد.</li>
+    <li>اصلاح ریال/تومان (۲۶ مرداد): یک پرداخت اشتباه ۶۰۰٬۰۰۰ به‌جای ۶۰٬۰۰۰ ثبت شده بود؛ ۴۸۶٬۰۰۰ تومان از کیف پول کسر شد.</li>
+  </ul>
+
+  <h3>۲٫۳ تسویهٔ ۱۱ آبان ۱۴۰۵</h3>
+  <table>
+    <thead>
+      <tr><th>مورد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>خالص فروش آنلاین تا ۱۰ آبان (بعد از کمیسیون ۱۰٪)</td><td class="num">۱٬۶۱۱٬۰۰۰</td></tr>
+      <tr><td>اعتبار نقدی اشتباه که آن زمان در کیف پول بود</td><td class="num">۲٬۶۴۶٬۰۰۰</td></tr>
+      <tr class="total"><td>جمع پرداخت‌شده به شبا</td><td class="num">۴٬۲۵۷٬۰۰۰</td></tr>
+      <tr><td>وضعیت</td><td>پرداخت‌شده · رسید: IMG_1610.png</td></tr>
+      <tr><td>تاریخ درخواست / پرداخت</td><td>۱۱ آبان ۱۴۰۵ · ساعت ۱۲:۴۲</td></tr>
+    </tbody>
+  </table>
+  <div class="box">
+    مبلغ ۲٬۶۴۶٬۰۰۰ تومان مربوط به رزروهای نقدی بود که به اشتباه وارد کیف پول شده بودند.
+    بعد از تسویه، این مبلغ از کیف پول برگشت خورد و با فروش آنلاین بعدی تهاتر شد.
+    در نتیجه پول اضافه‌ای به باشگاه پرداخت نشده است.
+  </div>
+
+  <h3>۲٫۴ فروش آنلاین بعد از تسویه (کمیسیون ۰٪)</h3>
+  <table>
+    <thead>
+      <tr><th>تاریخ کلاس</th><th>توضیح</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>۱۴ آبان</td><td>پرداخت درگاه در ۹ آبان</td><td class="num">۴٬۸۰۰٬۰۰۰</td></tr>
+      <tr><td>۱۱ آبان</td><td>دو رزرو (از قبل با ۰٪ ثبت شده)</td><td class="num">۳۰۵٬۰۰۰</td></tr>
+      <tr class="total"><td colspan="2">جمع</td><td class="num">۵٬۱۰۵٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۲٫۵ محاسبهٔ مانده کیف پول</h3>
+  <table>
+    <thead>
+      <tr><th>گام</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>فروش آنلاین بعد از تسویه</td><td class="num">۵٬۱۰۵٬۰۰۰</td></tr>
+      <tr><td>منهای برگشت اعتبار نقدی اشتباه</td><td class="num">−۲٬۶۴۶٬۰۰۰</td></tr>
+      <tr class="total"><td>مانده قابل تسویه</td><td class="num">۲٬۴۵۹٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn">
+    <b>مورد باز — رزرو ۴۸۰٬۰۰۰ تومانی (۲۹ مرداد):</b>
+    مهمان «حمید رضا افقه»، روش «PAID».
+    برای این رزرو نه پرداخت درگاه ثبت شده و نه کسر از کیف پول ورزشکار.
+    خالص آن (۴۳۲٬۰۰۰ تومان) در تسویهٔ ۱۱ آبان پرداخت شد.
+    اگر این پول نقد در باشگاه گرفته شده، مبلغ اضافه‌پرداخت است و باید از ماندهٔ بالا کم شود
+    (ماندهٔ اصلاح‌شده: ۲٬۰۲۷٬۰۰۰ تومان).
+  </div>
+
+  <h2>۳. صندوق نقدی باشگاه (پرداخت در محل)</h2>
+  <p class="muted">
+    این پول هرگز وارد کیف پول اینباکس نمی‌شود. کمیسیون و تسویهٔ بانکی از سمت پلتفرم ندارد.
+    اعداد بر اساس ثبت باشگاه در سیستم است.
+  </p>
+
+  <h3>۳٫۱ رزروهای گذشته (تا ۱۵ آبان)</h3>
+  <table>
+    <thead>
+      <tr><th>وضعیت</th><th class="num">تعداد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>نقد دریافت‌شده و ثبت‌شده</td><td class="num">۴۷</td><td class="num">۱۷٬۹۹۵٬۰۰۰</td></tr>
+      <tr><td>پرداخت‌نشده / ثبت‌نشده در سیستم</td><td class="num">۱۰۳</td><td class="num">۳۲٬۲۹۲٬۵۰۰</td></tr>
+      <tr><td>پرداخت آنلاین ناموفق ولی رزرو تأییدشده</td><td class="num">۲</td><td class="num">۱٬۲۲۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۳٫۲ رزروهای آینده (تا ۳ دی)</h3>
+  <table>
+    <thead>
+      <tr><th>وضعیت</th><th class="num">تعداد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>نقد از پیش دریافت‌شده</td><td class="num">۸</td><td class="num">۱٬۲۳۰٬۰۰۰</td></tr>
+      <tr><td>قابل دریافت در محل</td><td class="num">۳۳</td><td class="num">۱۹٬۸۰۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۳٫۳ نکات صندوق نقدی</h3>
+  <ul>
+    <li>۱۰۳ رزرو گذشته به مبلغ ۳۲٬۲۹۲٬۵۰۰ تومان هنوز «پرداخت‌نشده» مانده‌اند. یا پول دریافت نشده، یا دریافت شده و در سیستم ثبت نشده است.</li>
+    <li>۱۵ رزرو لغوشده با پرداخت نقدی ثبت‌شده (حدود ۶۶۰٬۰۰۰ تومان) — بازپرداخت به مشتری بررسی شود.</li>
+    <li>اینباکس بابت صندوق نقدی بدهی یا طلبی به باشگاه ندارد.</li>
+  </ul>
+
+  <h2>۴. جمع‌بندی دو ریل مالی</h2>
+  <table>
+    <thead>
+      <tr><th>ریل</th><th>وضعیت</th><th class="num">مبلغ کلیدی (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>کیف پول آنلاین اینباکس</td><td>قابل تسویه به شبا</td><td class="num">۲٬۴۵۹٬۰۰۰</td></tr>
+      <tr><td>صندوق نقدی باشگاه (گذشته، دریافت‌شده)</td><td>دست باشگاه · خارج از اینباکس</td><td class="num">۱۷٬۹۹۵٬۰۰۰</td></tr>
+      <tr><td>صندوق نقدی باشگاه (گذشته، ثبت‌نشده)</td><td>نیاز به تعیین تکلیف باشگاه</td><td class="num">۳۲٬۲۹۲٬۵۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h2>۵. اقدامات پیشنهادی</h2>
+  <ol>
+    <li>بازگرداندن کمیسیون ۴۸۰٬۰۰۰ تومانی رزروهای بعد از تسویهٔ ۱۱ آبان در production.</li>
+    <li>روشن کردن وضعیت رزرو ۴۸۰٬۰۰۰ تومانی ۲۹ مرداد (نقد باشگاه یا آنلاین).</li>
+    <li>تعیین تکلیف ۱۰۳ رزرو پرداخت‌نشدهٔ گذشته در صندوق نقدی.</li>
+    <li>پس از اصلاح کمیسیون، درخواست تسویهٔ ماندهٔ ۲٬۴۵۹٬۰۰۰ تومان (یا مبلغ اصلاح‌شده پس از بند ۲).</li>
+  </ol>
+
+  <div class="footer">
+    گزارش تولیدشده توسط اینباکس · اعداد به تومان · ارقام فارسی
+    · کمیسیون بازگردانده‌شده در این نسخهٔ گزارش در production هنوز اعمال نشده است
+    (موجودی زنده: ۱٬۹۷۹٬۰۰۰ تومان).
+  </div>
+</body>
+</html>

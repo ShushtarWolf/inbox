@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>گزارش مالی — مجموعه تختی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Vazirmatn, Tahoma, sans-serif;
+      color: #2c2c2a;
+      background: #fff;
+      font-size: 11.5pt;
+      line-height: 1.75;
+      margin: 0;
+    }
+    h1 { font-size: 18pt; margin: 0 0 4px; color: #C41E1E; }
+    h2 {
+      font-size: 13pt;
+      margin: 22px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #C41E1E;
+      color: #2c2c2a;
+    }
+    h3 { font-size: 11.5pt; margin: 14px 0 6px; color: #b68a3b; }
+    .meta { color: #8f8f8b; font-size: 10pt; margin-bottom: 16px; }
+    .meta b { color: #2c2c2a; font-weight: 600; }
+    .box {
+      background: #f4efe9;
+      border: 1px solid rgba(44,44,42,.08);
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    .warn {
+      background: #f3e9d3;
+      border: 1px solid #b68a3b;
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    .ok {
+      background: #dcebe1;
+      border: 1px solid #2e7d4f;
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 10.5pt;
+    }
+    th, td {
+      border: 1px solid rgba(44,44,42,.12);
+      padding: 7px 10px;
+      text-align: right;
+      vertical-align: top;
+    }
+    th { background: #f4efe9; font-weight: 600; }
+    td.num, th.num { text-align: left; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: plaintext; }
+    .total td { font-weight: 700; background: #faf8f5; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+    .hero .card {
+      border: 1px solid rgba(44,44,42,.1);
+      padding: 12px 14px;
+      background: #fff;
+    }
+    .hero .card .label { font-size: 9.5pt; color: #8f8f8b; }
+    .hero .card .val {
+      font-size: 16pt;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+      direction: ltr;
+      unicode-bidi: plaintext;
+      text-align: right;
+    }
+    .hero .card.accent { border-color: #C41E1E; background: #faf5f5; }
+    .hero .card.accent .val { color: #C41E1E; }
+    ul { margin: 6px 0 12px; padding-right: 18px; }
+    li { margin: 3px 0; }
+    .footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(44,44,42,.12);
+      font-size: 9pt;
+      color: #8f8f8b;
+    }
+    .muted { color: #8f8f8b; font-size: 10pt; }
+    bdi { direction: ltr; unicode-bidi: plaintext; }
+  </style>
+</head>
+<body>
+  <h1>گزارش مالی مجموعه تختی (هیئت تنیس شهرستان سمنان)</h1>
+  <div class="meta">
+    <div>پلتفرم اینباکس · گزارش کامل کیف پول و صندوق نقدی</div>
+    <div>تاریخ گزارش: <b>۱۵ آبان ۱۴۰۵</b> · منبع داده: پشتیبان production مورخ ۱۵ آبان ۱۴۰۵ (ساعت ۲۰:۲۱)</div>
+    <div>تلفن باشگاه: <bdi>۰۹۱۲۶۳۱۰۰۶۲</bdi> · صاحب حساب: مجموعه · <bdi>۰۹۱۲۶۳۱۰۰۶۲</bdi></div>
+    <div>شبا تسویه: <bdi>IR960170000000115807958007</bdi> · تعداد زمین: ۳ · شروع فعالیت: ۷ آبان ۱۴۰۵</div>
+  </div>
+
+  <div class="hero">
+    <div class="card accent">
+      <div class="label">مانده قابل تسویه (بعد از اصلاح کمیسیون)</div>
+      <div class="val">۹۵۰٬۰۰۰</div>
+    </div>
+    <div class="card">
+      <div class="label">تسویه‌شده تا امروز</div>
+      <div class="val">۰</div>
+    </div>
+    <div class="card">
+      <div class="label">فروش آنلاین قطعی</div>
+      <div class="val">۹۵۰٬۰۰۰</div>
+    </div>
+    <div class="card">
+      <div class="label">نقد دریافت‌شده در باشگاه (گذشته)</div>
+      <div class="val">۸۱٬۶۵۰٬۰۰۰</div>
+    </div>
+  </div>
+
+  <div class="ok">
+    <b>قاعده کمیسیون:</b>
+    کمیسیون پلتفرم برای این باشگاه ۰٪ است.
+    کمیسیون قبلی ۹۵٬۰۰۰ تومان روی دو رزرو آنلاین به کیف پول بازمی‌گردد.
+    هیچ تسویهٔ بانکی تا امروز انجام نشده است.
+  </div>
+
+  <h2>۱. خلاصه اجرایی</h2>
+  <table>
+    <thead>
+      <tr><th>مورد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>فروش آنلاین قطعی (۲ رزرو درگاه)</td><td class="num">۹۵۰٬۰۰۰</td></tr>
+      <tr><td>کمیسیون پلتفرم (پس از اصلاح)</td><td class="num">۰</td></tr>
+      <tr><td>خالص سهم باشگاه از آنلاین</td><td class="num">۹۵۰٬۰۰۰</td></tr>
+      <tr><td>تسویه‌شده تاکنون</td><td class="num">۰</td></tr>
+      <tr class="total"><td>مانده قابل تسویه</td><td class="num">۹۵۰٬۰۰۰</td></tr>
+      <tr><td>موجودی فعلی در production (قبل از بازگرداندن کمیسیون)</td><td class="num">۸۵۵٬۰۰۰</td></tr>
+      <tr><td>بازگرداندن کمیسیون قبلی</td><td class="num">۹۵٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h2>۲. کیف پول اینباکس (پرداخت آنلاین)</h2>
+  <p class="muted">
+    این بخش فقط پول‌هایی را نشان می‌دهد که از درگاه اینباکس آمده و اینباکس مسئول تسویهٔ آن‌ها به شبای باشگاه است.
+    پول نقد و قراردادهای فصلی ثبت‌شده در باشگاه در این کیف پول نیست.
+  </p>
+
+  <h3>۲٫۱ فروش آنلاین</h3>
+  <table>
+    <thead>
+      <tr><th>تاریخ کلاس</th><th>توضیح</th><th class="num">ناخالص</th><th class="num">کمیسیون قبلی</th><th class="num">خالص نهایی</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>۷ آبان</td><td>پرداخت درگاه</td>
+        <td class="num">۴۵۰٬۰۰۰</td><td class="num">۴۵٬۰۰۰</td><td class="num">۴۵۰٬۰۰۰</td>
+      </tr>
+      <tr>
+        <td>۷ آبان</td><td>پرداخت درگاه</td>
+        <td class="num">۵۰۰٬۰۰۰</td><td class="num">۵۰٬۰۰۰</td><td class="num">۵۰۰٬۰۰۰</td>
+      </tr>
+      <tr class="total">
+        <td colspan="2">جمع</td>
+        <td class="num">۹۵۰٬۰۰۰</td><td class="num">۹۵٬۰۰۰</td><td class="num">۹۵۰٬۰۰۰</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>۲٫۲ وضعیت کیف پول</h3>
+  <ul>
+    <li>هر دو کلاس ۷ آبان برگزار شده‌اند؛ کل مبلغ قابل برداشت است (قفل کلاس باز شده).</li>
+    <li>تا امروز هیچ درخواست برداشت یا تسویهٔ بانکی ثبت نشده است.</li>
+    <li>شبای ثبت‌شده برای تسویه: <bdi>IR960170000000115807958007</bdi></li>
+    <li>پس از بازگرداندن کمیسیون ۹۵٬۰۰۰ تومان، موجودی قابل برداشت = <b>۹۵۰٬۰۰۰ تومان</b>.</li>
+  </ul>
+
+  <div class="box">
+    موجودی فعلی در production برابر ۸۵۵٬۰۰۰ تومان است
+    (۴۰۵٬۰۰۰ + ۴۵۰٬۰۰۰ = خالص قبلی با کمیسیون ۱۰٪).
+    با بازگرداندن ۹۵٬۰۰۰ تومان کمیسیون، موجودی به ۹۵۰٬۰۰۰ تومان می‌رسد.
+  </div>
+
+  <h2>۳. صندوق نقدی باشگاه (پرداخت در محل)</h2>
+  <p class="muted">
+    این پول هرگز وارد کیف پول اینباکس نمی‌شود. کمیسیون و تسویهٔ بانکی از سمت پلتفرم ندارد.
+    اعداد بر اساس ثبت باشگاه در سیستم است.
+  </p>
+
+  <h3>۳٫۱ رزروهای گذشته (۷ تا ۱۵ آبان)</h3>
+  <table>
+    <thead>
+      <tr><th>وضعیت</th><th class="num">تعداد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>نقد دریافت‌شده و ثبت‌شده</td><td class="num">۱۷۲</td><td class="num">۸۱٬۶۵۰٬۰۰۰</td></tr>
+      <tr><td>پرداخت‌نشده / ثبت‌نشده در سیستم</td><td class="num">۲۰</td><td class="num">۹٬۹۵۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۳٫۲ رزروهای آینده (تا ۳۰ آذر)</h3>
+  <table>
+    <thead>
+      <tr><th>وضعیت</th><th class="num">تعداد</th><th class="num">مبلغ (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>نقد از پیش دریافت‌شده</td><td class="num">۶۵۵</td><td class="num">۳۰۹٬۶۵۰٬۰۰۰</td></tr>
+      <tr><td>قابل دریافت در محل</td><td class="num">۵۴</td><td class="num">۲۷٬۰۰۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn">
+    <b>الگوی فصلی:</b>
+    بیشتر رزروهای آینده (۶۵۵ رزرو، ۳۰۹٬۶۵۰٬۰۰۰ تومان) از قبل «نقد دریافت‌شده» ثبت شده‌اند.
+    این الگو معمولاً قرارداد فصلی است. همه توسط کاربران باشگاه ثبت شده‌اند؛
+    اینباکس فقط ثبت آن‌ها را دارد، نه خود پول را.
+  </div>
+
+  <h3>۳٫۳ نکات صندوق نقدی</h3>
+  <ul>
+    <li>۲۰ رزرو گذشته به مبلغ ۹٬۹۵۰٬۰۰۰ تومان هنوز «پرداخت‌نشده» مانده‌اند — تعیین تکلیف باشگاه لازم است.</li>
+    <li>۷ رزرو لغوشده با پرداخت نقدی ثبت‌شده (۳٬۴۰۰٬۰۰۰ تومان) — بازپرداخت یا جابه‌جایی رزرو بررسی شود.</li>
+    <li>اینباکس بابت صندوق نقدی بدهی یا طلبی به باشگاه ندارد.</li>
+  </ul>
+
+  <h2>۴. جمع‌بندی دو ریل مالی</h2>
+  <table>
+    <thead>
+      <tr><th>ریل</th><th>وضعیت</th><th class="num">مبلغ کلیدی (تومان)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>کیف پول آنلاین اینباکس</td><td>قابل تسویه به شبا · هنوز برداشت نشده</td><td class="num">۹۵۰٬۰۰۰</td></tr>
+      <tr><td>صندوق نقدی باشگاه (گذشته، دریافت‌شده)</td><td>دست باشگاه · خارج از اینباکس</td><td class="num">۸۱٬۶۵۰٬۰۰۰</td></tr>
+      <tr><td>صندوق نقدی باشگاه (گذشته، ثبت‌نشده)</td><td>نیاز به تعیین تکلیف باشگاه</td><td class="num">۹٬۹۵۰٬۰۰۰</td></tr>
+      <tr><td>صندوق نقدی باشگاه (آینده، از پیش دریافت‌شده)</td><td>ثبت فصلی · خارج از اینباکس</td><td class="num">۳۰۹٬۶۵۰٬۰۰۰</td></tr>
+    </tbody>
+  </table>
+
+  <h2>۵. اقدامات پیشنهادی</h2>
+  <ol>
+    <li>بازگرداندن کمیسیون ۹۵٬۰۰۰ تومانی دو رزرو آنلاین در production.</li>
+    <li>درخواست تسویهٔ ۹۵۰٬۰۰۰ تومان به شبای ثبت‌شده (پس از اصلاح کمیسیون).</li>
+    <li>تعیین تکلیف ۲۰ رزرو پرداخت‌نشدهٔ گذشته در صندوق نقدی.</li>
+    <li>بررسی ۷ رزرو لغوشده با پرداخت نقدی ثبت‌شده (۳٬۴۰۰٬۰۰۰ تومان).</li>
+  </ol>
+
+  <div class="footer">
+    گزارش تولیدشده توسط اینباکس · اعداد به تومان · ارقام فارسی
+    · کمیسیون بازگردانده‌شده در این نسخهٔ گزارش در production هنوز اعمال نشده است
+    (موجودی زنده: ۸۵۵٬۰۰۰ تومان).
+  </div>
+</body>
+</html>
