@@ -119,7 +119,8 @@ export default defineEventHandler(async (event) => {
 
   const withdrawable = walletBalances.withdrawableBalance
   const pendingRelease = walletBalances.pendingClassBalance
-  const inPayout = walletBalances.lockedBalance
+  // lockedBalance also holds class-locked credits (already in pendingRelease) — only open withdraw requests are "in payout".
+  const inPayout = pendingWithdraws.reduce((sum, req) => sum + req.amount, 0)
   const balance = walletBalances.balance
   const debt = balance < 0 ? Math.abs(balance) : 0
   // Soft check — debt / blocked payments / season unlock can leave a gap; UI must not invent equality.
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event) => {
       : null,
     balance,
     availableBalance: walletBalances.availableBalance,
-    lockedBalance: inPayout,
+    lockedBalance: walletBalances.lockedBalance,
     withdrawableBalance: withdrawable,
     pendingClassBalance: pendingRelease,
     /** Snapp-style wallet parts (online rail only). */
