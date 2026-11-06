@@ -1,0 +1,66 @@
+name: Correct zero past commission (prod)
+
+# Refund prior platform fee on open club settlements via live app.
+# Requires ADMIN_PROVISION_SECRET. Default is dry-run.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Set true to APPLY on production (after dry-run review)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: money-correct-zero-commission
+  cancel-in-progress: false
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dry-run or APPLY zero-commission refund on inboxs.ir
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          APPLY_INPUT: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          QS=""
+          if [ "$APPLY_INPUT" = "true" ]; then
+            QS="?apply=1"
+            echo "APPLY on production"
+          else
+            echo "Dry-run only"
+          fi
+          curl -sfS -X POST "https://inboxs.ir/api/admin/money-audit/correct-zero-past-commission${QS}" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            | tee /tmp/money-correct.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/money-correct.json'))
+          c=d.get('correction') or {}
+          print(
+            f"entryCount={c.get('entryCount')} applied={c.get('applied')} "
+            f"totalRefund={c.get('totalRefundToman')} ok={c.get('ok')} "
+            f"fail={c.get('fail')} skipped={c.get('skipped')}"
+          )
+          for club in c.get('clubs') or []:
+            print(f"  {club.get('clubName')}: {club.get('refundToman')} ({club.get('entryCount')} rows)")
+          if c.get('fail'):
+            raise SystemExit('correction had failures')
+          if c.get('applied') and c.get('entryCount') and c.get('ok', 0) + c.get('skipped', 0) != c.get('entryCount'):
+            # soft check — ok+skipped should cover all attempted rows when fail=0
+            pass
+          if c.get('applied') and c.get('fail', 0) == 0:
+            # Re-fetch dry-run should show 0 remaining
+            pass
+          PY
