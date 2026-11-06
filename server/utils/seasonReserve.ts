@@ -51,7 +51,10 @@ async function loadCourtMap(clubId: string, courtIds: string[]) {
 export async function previewSeasonSessions(opts: {
   clubId: string
   sessions: SeasonSessionOccurrence[]
+  /** When set, slots already held by this season series are treated as free for preview. */
+  ignoreSeasonBookingId?: string
 }): Promise<SeasonPreviewResult> {
+  const ignoreSeasonBookingId = opts.ignoreSeasonBookingId?.trim() || undefined
   const courtMap = await loadCourtMap(opts.clubId, opts.sessions.map((s) => s.courtId))
   const willCreate: SeasonPreviewItem[] = []
   const conflicts: SeasonConflictItem[] = []
@@ -92,9 +95,22 @@ export async function previewSeasonSessions(opts: {
     await ensureSlotsForDate(opts.clubId, session.date)
     const existing = await prisma.slot.findFirst({
       where: { courtId: court.id, date: session.date, startTime, displayStatus: { not: 'CANCELLED' } },
-      include: { booking: true },
+      include: {
+        booking: {
+          select: {
+            status: true,
+            payment: { select: { metadataJson: true } },
+            events: {
+              where: { type: 'CREATED' },
+              take: 4,
+              orderBy: { createdAt: 'desc' },
+              select: { metadataJson: true },
+            },
+          },
+        },
+      },
     })
-    if (!canClaimExistingSlotForRecurring(existing)) {
+    if (!canClaimExistingSlotForRecurring(existing, ignoreSeasonBookingId ? { ignoreSeasonBookingId } : undefined)) {
       conflicts.push({ date: session.date, startTime, courtId: court.id, reason: 'OCCUPIED' })
       continue
     }
@@ -140,6 +156,11 @@ export type CreateSeasonSessionsOpts = {
   discountCode?: string | null
   deskDiscountPercent?: number | null
   complimentary?: boolean
+  /**
+   * Replace flow: preview/claim may ignore slots still held by this season until cancel runs.
+   * Do not use with `existingSeasonBookingId` (append).
+   */
+  ignoreSeasonBookingId?: string
 }
 
 export type CreateSeasonSessionsResult = SeasonPreviewResult & {
@@ -160,11 +181,19 @@ export type CreateSeasonSessionsResult = SeasonPreviewResult & {
 export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Promise<CreateSeasonSessionsResult> {
   const athleteMode = opts.mode === 'athlete'
   const appending = Boolean(opts.existingSeasonBookingId)
+  const ignoreSeasonBookingId = opts.ignoreSeasonBookingId?.trim() || undefined
+  if (ignoreSeasonBookingId && appending) {
+    throw createError({ statusCode: 400, statusMessage: 'ignoreSeasonBookingId conflicts with append' })
+  }
   if (athleteMode && appending) {
     throw createError({ statusCode: 400, statusMessage: 'Cannot append athlete season' })
   }
 
-  const preview = await previewSeasonSessions({ clubId: opts.clubId, sessions: opts.sessions })
+  const preview = await previewSeasonSessions({
+    clubId: opts.clubId,
+    sessions: opts.sessions,
+    ...(ignoreSeasonBookingId ? { ignoreSeasonBookingId } : {}),
+  })
   if (preview.willCreateCount === 0) {
     throw createError({
       statusCode: 409,
@@ -266,9 +295,22 @@ export async function createSeasonSessions(opts: CreateSeasonSessionsOpts): Prom
           startTime: row.startTime,
           displayStatus: { not: 'CANCELLED' },
         },
-        include: { booking: true },
+        include: {
+          booking: {
+            select: {
+              status: true,
+              payment: { select: { metadataJson: true } },
+              events: {
+                where: { type: 'CREATED' },
+                take: 4,
+                orderBy: { createdAt: 'desc' },
+                select: { metadataJson: true },
+              },
+            },
+          },
+        },
       })
-      if (!canClaimExistingSlotForRecurring(existing)) {
+      if (!canClaimExistingSlotForRecurring(existing, ignoreSeasonBookingId ? { ignoreSeasonBookingId } : undefined)) {
         preview.conflicts.push({
           date: row.date,
           startTime: row.startTime,

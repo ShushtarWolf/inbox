@@ -6,6 +6,7 @@ import {
   type SeasonSessionRule,
 } from '#shared/seasonSessions.ts'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
+import { prisma } from '../../utils/prisma'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
 import { previewSeasonSessions } from '../../utils/seasonReserve'
 
@@ -54,6 +55,8 @@ export default defineEventHandler(async (event) => {
     finishDate?: string
     rules?: SeasonSessionRule[]
     sessions?: SeasonSessionOccurrence[]
+    /** Edit flow: ignore the season’s own bookings when classifying conflicts. */
+    ignoreSeasonBookingId?: string
   }>(event)
 
   if (!body.startDate || !body.finishDate) {
@@ -84,7 +87,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const result = await previewSeasonSessions({ clubId: club.id, sessions })
+  const ignoreSeasonBookingId = String(body.ignoreSeasonBookingId || '').trim()
+  if (ignoreSeasonBookingId) {
+    const ok = await prisma.seasonBooking.findFirst({
+      where: { id: ignoreSeasonBookingId, clubId: club.id },
+      select: { id: true },
+    })
+    if (!ok) throw createError({ statusCode: 404, statusMessage: 'Season not found' })
+  }
+  const result = await previewSeasonSessions({
+    clubId: club.id,
+    sessions,
+    ...(ignoreSeasonBookingId ? { ignoreSeasonBookingId } : {}),
+  })
   return {
     willCreateCount: result.willCreateCount,
     skippedCount: result.skippedCount,

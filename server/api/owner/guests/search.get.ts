@@ -11,6 +11,10 @@ function toAsciiDigits(value: string) {
     .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
 }
 
+function includesInsensitive(haystack: string, needle: string) {
+  return haystack.toLowerCase().includes(needle.toLowerCase())
+}
+
 function guestKey(mobile: string, name: string) {
   const phone = normalizeIranPhone(mobile) || mobile.trim()
   return phone || `name:${name.trim().toLowerCase()}`
@@ -63,39 +67,60 @@ function bookingGuestParts(booking: {
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
-  const raw = String(getQuery(event).q || '').trim()
+  const query = getQuery(event)
+  const raw = String(query.q || '').trim()
   const q = toAsciiDigits(raw).trim()
   if (q.length < 2) return { guests: [] as GuestHit[] }
+
+  const fieldRaw = String(query.field || 'name').trim().toLowerCase()
+  const field: 'name' | 'family' | 'mobile' = fieldRaw === 'family' || fieldRaw === 'mobile' ? fieldRaw : 'name'
 
   const phoneHint = normalizeIranPhone(q) || (/\d{3,}/.test(q) ? q.replace(/\D/g, '') : '')
   const limit = 12
 
+  const bookingWhere = (() => {
+    const base = { slot: { court: { clubId: club.id } } }
+    if (field === 'mobile') {
+      return {
+        ...base,
+        OR: [
+          { guestMobile: { contains: phoneHint || q } },
+          { user: { phone: { contains: phoneHint || q } } },
+        ],
+      }
+    }
+    if (field === 'family') {
+      return {
+        ...base,
+        OR: [
+          { guestFamily: { contains: q, mode: 'insensitive' } },
+          { user: { nameFamily: { contains: q, mode: 'insensitive' } } },
+        ],
+      }
+    }
+    return {
+      ...base,
+      OR: [
+        { guestName: { contains: q, mode: 'insensitive' } },
+        { user: { name: { contains: q, mode: 'insensitive' } } },
+      ],
+    }
+  })()
+
+  const contactWhere = field === 'mobile'
+    ? { clubId: club.id, mobile: { contains: phoneHint || q } }
+    : { clubId: club.id, name: { contains: q, mode: 'insensitive' as const } }
+
   // Club-scoped only: contacts + past bookings at this club (no global User directory).
   const [contacts, bookings] = await Promise.all([
     prisma.contact.findMany({
-      where: {
-        clubId: club.id,
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { mobile: { contains: phoneHint || q } },
-        ],
-      },
+      where: contactWhere,
       select: { name: true, mobile: true },
-      take: limit,
+      take: field === 'mobile' ? limit : Math.min(limit * 4, 80),
       orderBy: [{ totalVisits: 'desc' }, { createdAt: 'desc' }],
     }),
     prisma.booking.findMany({
-      where: {
-        slot: { court: { clubId: club.id } },
-        OR: [
-          { guestName: { contains: q, mode: 'insensitive' } },
-          { guestFamily: { contains: q, mode: 'insensitive' } },
-          { guestMobile: { contains: phoneHint || q } },
-          { user: { name: { contains: q, mode: 'insensitive' } } },
-          { user: { nameFamily: { contains: q, mode: 'insensitive' } } },
-          { user: { phone: { contains: phoneHint || q } } },
-        ],
-      },
+      where: bookingWhere,
       select: {
         guestName: true,
         guestFamily: true,
@@ -111,6 +136,8 @@ export default defineEventHandler(async (event) => {
 
   for (const contact of contacts) {
     const split = splitStoredFullName(contact.name || '')
+    if (field === 'name' && !includesInsensitive(split.name, q)) continue
+    if (field === 'family' && !includesInsensitive(split.nameFamily, q)) continue
     pushUnique(map, buildGuestSearchHit({
       guestName: split.name,
       guestFamily: split.nameFamily,

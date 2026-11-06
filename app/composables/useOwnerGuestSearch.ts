@@ -1,4 +1,3 @@
-import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 
 export type { GuestSearchHit }
@@ -20,7 +19,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
   const guestSuggestions = ref<GuestSearchHit[]>([])
   const guestSearchOpen = ref(false)
   const guestSearchPending = ref(false)
-  const guestSearchSource = ref<'name' | 'mobile'>('name')
+  const guestSearchSource = ref<'name' | 'family' | 'mobile'>('name')
 
   let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
   let guestSearchRequest = 0
@@ -35,7 +34,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
     guestSearchPending.value = false
   }
 
-  async function runGuestSearch(raw: string) {
+  async function runGuestSearch(raw: string, field: 'name' | 'family' | 'mobile') {
     const q = raw.trim()
     if (q.length < 2) {
       guestSuggestions.value = []
@@ -48,7 +47,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
     guestSearchOpen.value = true
     try {
       const res = await $fetch<{ guests: GuestSearchHit[] }>('/api/owner/guests/search', {
-        query: { q },
+        query: { q, field },
       })
       if (requestId !== guestSearchRequest) return
       guestSuggestions.value = res.guests || []
@@ -63,21 +62,26 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
     }
   }
 
-  function scheduleGuestSearch(raw: string) {
+  function scheduleGuestSearch(raw: string, field: 'name' | 'family' | 'mobile') {
     if (guestSearchTimer) clearTimeout(guestSearchTimer)
     guestSearchTimer = setTimeout(() => {
-      void runGuestSearch(raw)
+      void runGuestSearch(raw, field)
     }, 250)
   }
 
   function onGuestNameFieldInput() {
     guestSearchSource.value = 'name'
-    scheduleGuestSearch(formatGuestDisplayName(toValue(fields.guestName), toValue(fields.guestFamily)))
+    scheduleGuestSearch(toValue(fields.guestName).trim(), 'name')
+  }
+
+  function onGuestFamilyFieldInput() {
+    guestSearchSource.value = 'family'
+    scheduleGuestSearch(toValue(fields.guestFamily).trim(), 'family')
   }
 
   function onGuestMobileInput() {
     guestSearchSource.value = 'mobile'
-    scheduleGuestSearch(toValue(fields.guestMobile))
+    scheduleGuestSearch(toValue(fields.guestMobile), 'mobile')
   }
 
   function syncGuestInputsFromModel() {
@@ -115,6 +119,7 @@ export function useOwnerGuestSearch(fields: GuestSearchFields) {
     guestSearchPending,
     guestSearchSource,
     onGuestNameFieldInput,
+    onGuestFamilyFieldInput,
     onGuestMobileInput,
     selectGuestSuggestion,
     closeGuestSearchSoon,
