@@ -161,15 +161,6 @@ export default defineEventHandler(async (event) => {
     countsTowardRevenue(session.status, paymentStatusOf(session))
     && isChargedPaidCheckout(session.payment?.amount, paymentStatusOf(session)),
   )
-  // Blocks are desk holds, not receivables — keep them out of unpaid chips/totals.
-  const unpaidBookings = activeBookings.filter((booking) => !isBlockedSlot(booking) && isUnpaidPaymentStatus(paymentStatusOf(booking)))
-  const unpaidSessions = activeSessions.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
-
-  const unpaidAmount =
-    unpaidBookings.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
-    + unpaidSessions.reduce((sum, session) => sum + amountOfSession(session), 0)
-  const unpaid = unpaidBookings.length + unpaidSessions.length
-
   // Collected money for the current Jalali month + last 7 days — full query, not the 50-row list sample.
   const today = todayDateStr()
   const jToday = isoToJalaali(today)
@@ -342,6 +333,51 @@ export default defineEventHandler(async (event) => {
   const bookingsToday = bookingsTodayCount + sessionsTodayCount
   const noShowsToday = noShowsTodayBookings + noShowsTodaySessions
   const cancellationsThisMonth = cancelsMonthBookings + cancelsMonthSessions
+
+  // Full open receivables (all dates) — never the take:50 period list sample.
+  // Keep in sync with isUnpaidPaymentStatus (includes legacy NOT_PAID).
+  const unpaidStatusIn = ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID', 'FAILED'] as const
+  const [unpaidBookingRows, unpaidSessionRows] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        slot: {
+          court: { clubId: club.id },
+          displayStatus: { not: 'BLOCKED' },
+        },
+        OR: [
+          { payment: { status: { in: [...unpaidStatusIn] } } },
+          { payment: null, paymentStatus: { in: [...unpaidStatusIn] } },
+        ],
+      },
+      select: {
+        paymentStatus: true,
+        payment: { select: { amount: true, status: true } },
+        slot: { select: { price: true, displayStatus: true } },
+      },
+    }),
+    prisma.coachSession.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        coach: { clubId: club.id },
+        OR: [
+          { payment: { status: { in: [...unpaidStatusIn] } } },
+          { payment: null, paymentStatus: { in: [...unpaidStatusIn] } },
+        ],
+      },
+      select: {
+        paymentStatus: true,
+        price: true,
+        payment: { select: { amount: true, status: true } },
+      },
+    }),
+  ])
+  const unpaidBookingsOpen = unpaidBookingRows.filter((booking) => isUnpaidPaymentStatus(paymentStatusOf(booking)))
+  const unpaidSessionsOpen = unpaidSessionRows.filter((session) => isUnpaidPaymentStatus(paymentStatusOf(session)))
+  const unpaidAmount =
+    unpaidBookingsOpen.reduce((sum, booking) => sum + amountOfBooking(booking), 0)
+    + unpaidSessionsOpen.reduce((sum, session) => sum + amountOfSession(session), 0)
+  const unpaid = unpaidBookingsOpen.length + unpaidSessionsOpen.length
 
   function reservedStamp(date: string, startTime: string) {
     const time = /^\d{2}:\d{2}/.test(startTime || '') ? startTime.slice(0, 5) : '00:00'

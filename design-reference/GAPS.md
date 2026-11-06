@@ -24,6 +24,13 @@ PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | So
 |--------|--------|--------|--------|
 | owner-settings / club | court audience | `Court.audience` (MIXED/MEN/WOMEN/FAMILY) + CourtForm segment + public tags/warn + book gate + opt-in SMS on save | fixed (product) |
 
+## Product — owner finance clarity (2026-11-06)
+
+| screen | region | change | status |
+|--------|--------|--------|--------|
+| owner-finance | unpaid chip | Label «بدهی وصول‌نشده» + hint; amount = all-open receivables (not take:50 / not today’s paid). | fixed (product) |
+| owner-finance | period hero vs books | Notes: day/week/month وصول ≠ cash till ≠ online open ≠ withdrawable; do not sum. | fixed (product) |
+
 ## Product — owner finance session value (2026-11-02)
 
 | screen | region | change | status |

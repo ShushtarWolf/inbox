@@ -447,7 +447,7 @@ function rowTypeLabel(tx: OwnerFinanceTransaction) {
   return t('owner.financeTable.rowTypeReserved')
 }
 
-/** Canva day chips: رزروها / پرداخت‌نشده / عدم حضور — unpaidAmount is desk receivables, not payout. */
+/** Chips: رزرو امروز / بدهی وصول‌نشده (all open) / عدم حضور امروز — unpaid ≠ period income. */
 const unpaidAmount = computed(() => data.value?.stats?.unpaidAmount)
 const hasUnpaidReceivables = computed(() => Number(unpaidAmount.value || 0) > 0)
 
@@ -457,7 +457,7 @@ const summaryChips = computed(() => {
   return [
     {
       key: 'bookings',
-      label: t('owner.financeCards.bookings'),
+      label: t('owner.financeCards.bookingsToday'),
       value: formatNumber(data.value?.stats?.bookingsToday ?? 0),
     },
     {
@@ -467,7 +467,7 @@ const summaryChips = computed(() => {
     },
     {
       key: 'noShows',
-      label: t('owner.financeCards.noShows'),
+      label: t('owner.financeCards.noShowsToday'),
       value: noShows == null ? '—' : formatNumber(noShows),
     },
   ]
@@ -661,6 +661,9 @@ function showUnpaidList() {
           <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.coachFees || 0) }}</dd>
         </div>
       </dl>
+      <p class="mt-2 text-start text-[11px] leading-4 text-white/65">
+        {{ t('owner.financePage.periodNotBooksNote') }}
+      </p>
       <NuxtLink
         :to="localePath('/owner/finance/report')"
         class="canva-finance-report-link mt-4"
@@ -669,7 +672,10 @@ function showUnpaidList() {
       </NuxtLink>
     </section>
 
-    <section class="mt-3 grid gap-2 min-[431px]:grid-cols-2" :aria-label="t('owner.financePage.booksTitle')">
+    <p class="mt-3 text-start text-[11px] leading-4 text-brand-gray-500">
+      {{ t('owner.financePage.booksVsPeriodNote') }}
+    </p>
+    <section class="mt-2 grid gap-2 min-[431px]:grid-cols-2" :aria-label="t('owner.financePage.booksTitle')">
       <div class="canva-panel space-y-2 text-start">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.bookCashTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.bookCashHint') }}</p>
