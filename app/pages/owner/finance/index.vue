@@ -80,17 +80,13 @@ type OwnerFinanceCashBook = {
 
 type OwnerFinanceBooks = {
   cash?: OwnerFinanceCashBook
-  online?: { collectedOpen?: number; netMonth?: number }
+  online?: { collectedOpen?: number }
 }
 
 type OwnerFinanceResponse = {
   revenueBreakdown?: OwnerFinanceRevenueBreakdown
   books?: OwnerFinanceBooks
   stats?: OwnerFinanceStats
-  weeklyRevenue?: number[]
-  weeklyCash?: number[]
-  weeklyOnline?: number[]
-  weekLabels?: string[]
   paymentBreakdown?: OwnerFinancePaymentBreakdown
   transactions?: OwnerFinanceTransaction[]
   deskCashReturnsOwed?: DeskCashReturnOwed[]
@@ -162,14 +158,12 @@ const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<Ow
   immediate: false,
   watch: false,
 })
-const { formatCurrency, formatNumber, formatDate, formatWeekday, formatDayNumber, formatMonth, formatPhone, formatTimeLabel } = useFormatters()
-const { today } = useLocalDate()
+const { formatCurrency, formatNumber, formatDate, formatPhone, formatTimeLabel } = useFormatters()
 const { pilotNoCoach } = usePilotFlags()
 const { fetchErrorMessage } = useFetchError()
 
 onMounted(() => { fetchAuth() })
 
-const period = ref<'day' | 'week' | 'month'>('day')
 const selectedTx = ref<OwnerFinanceTransaction | null>(null)
 const shebaInput = ref('')
 const withdrawAmount = ref<number | null>(null)
@@ -341,75 +335,8 @@ async function submitWithdraw() {
   }
 }
 
-function formatWeekLabel(iso?: string) {
-  if (!iso) return ''
-  return formatDate(iso)
-}
-
-/** Canva x-axis: single Persian weekday letter. */
-function weekdayLetter(iso?: string) {
-  if (!iso) return ''
-  const short = formatWeekday(iso, 'short')
-  return short.slice(0, 1)
-}
-
-const weekly = computed(() => data.value?.weeklyRevenue || [])
-const todayRevenue = computed(() => weekly.value[weekly.value.length - 1] || 0)
-const yesterdayRevenue = computed(() => weekly.value[weekly.value.length - 2] || 0)
-const vsYesterdayPct = computed(() => {
-  const todayAmt = todayRevenue.value
-  const yesterday = yesterdayRevenue.value
-  if (!yesterday) return todayAmt ? 100 : 0
-  return Math.round(((todayAmt - yesterday) / yesterday) * 100)
-})
-const vsYesterdayLabel = computed(() => {
-  const pct = vsYesterdayPct.value
-  if (pct > 0) return t('owner.financePage.vsYesterdayUp', { pct: formatNumber(pct) })
-  if (pct < 0) return t('owner.financePage.vsYesterdayDown', { pct: formatNumber(Math.abs(pct)) })
-  return t('owner.financePage.vsYesterdayFlat')
-})
-
-const heroAmount = computed(() => {
-  if (period.value === 'day') return todayRevenue.value
-  if (period.value === 'week') return weekly.value.reduce((sum: number, n: number) => sum + n, 0)
-  return Number(data.value?.stats?.revenue || 0)
-})
-
+const heroAmount = computed(() => Number(data.value?.stats?.revenue || 0))
 const revenueBreakdown = computed(() => data.value?.revenueBreakdown || null)
-const periodRailCash = computed(() => {
-  if (period.value === 'month') return Number(revenueBreakdown.value?.cash || 0)
-  const series = data.value?.weeklyCash || []
-  if (period.value === 'day') return Number(series[series.length - 1] || 0)
-  return series.reduce((sum, n) => sum + Number(n || 0), 0)
-})
-const periodRailOnline = computed(() => {
-  if (period.value === 'month') return Number(revenueBreakdown.value?.online || 0)
-  const series = data.value?.weeklyOnline || []
-  if (period.value === 'day') return Number(series[series.length - 1] || 0)
-  return series.reduce((sum, n) => sum + Number(n || 0), 0)
-})
-
-const heroDateLabel = computed(() => {
-  const iso = today()
-  return `${formatWeekday(iso, 'long')} ${formatDayNumber(iso)} ${formatMonth(iso, 'long')}`
-})
-
-const heroTitle = computed(() => {
-  if (period.value === 'day') return t('owner.financePage.todayRevenueDated', { date: heroDateLabel.value })
-  if (period.value === 'week') return t('owner.financePage.weekRevenue')
-  return t('owner.financePage.monthRevenue')
-})
-
-const maxWeeklyRevenue = computed(() => Math.max(...weekly.value, 0))
-const isChartEmpty = computed(() => !weekly.value.some((amount: number) => amount > 0))
-const chartAreaHeight = 140
-/** Canva: today (last day in weekly series) is the red bar. */
-const activeChartIndex = computed(() => Math.max(weekly.value.length - 1, 0))
-
-function barHeightPx(amount: number) {
-  if (!amount || !maxWeeklyRevenue.value) return 0
-  return Math.max(12, Math.round((amount / maxWeeklyRevenue.value) * chartAreaHeight))
-}
 
 function bookingStatusLabel(status: string) {
   if (!status) return ''
@@ -447,7 +374,7 @@ function rowTypeLabel(tx: OwnerFinanceTransaction) {
   return t('owner.financeTable.rowTypeReserved')
 }
 
-/** Chips: رزرو امروز / بدهی وصول‌نشده (all open) / عدم حضور امروز — unpaid ≠ period income. */
+/** Chips: رزرو امروز / بدهی وصول‌نشده (all open) / عدم حضور امروز — unpaid ≠ collected total. */
 const unpaidAmount = computed(() => data.value?.stats?.unpaidAmount)
 const hasUnpaidReceivables = computed(() => Number(unpaidAmount.value || 0) > 0)
 
@@ -608,55 +535,27 @@ function showUnpaidList() {
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-    <div class="canva-finance-period">
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="period === 'day' ? 'canva-finance-period-active' : ''"
-        @click="period = 'day'"
-      >{{ t('owner.financePage.periodDay') }}</button>
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="period === 'week' ? 'canva-finance-period-active' : ''"
-        @click="period = 'week'"
-      >{{ t('owner.financePage.periodWeek') }}</button>
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="period === 'month' ? 'canva-finance-period-active' : ''"
-        @click="period = 'month'"
-      >{{ t('owner.financePage.periodMonth') }}</button>
-    </div>
-
     <section class="canva-finance-hero-card">
-      <p class="text-xs text-white/75">{{ heroTitle }}</p>
+      <p class="text-xs text-white/75">{{ t('owner.financePage.totalRevenue') }}</p>
       <p class="mt-2 text-3xl font-bold tabular-nums text-white">{{ formatNumber(heroAmount) }} <span class="owner-fin-hero-unit">{{ t('common.currency') }}</span></p>
-      <p
-        v-if="period === 'day'"
-        class="mt-1 text-xs"
-        :class="vsYesterdayPct > 0 ? 'text-emerald-400' : vsYesterdayPct < 0 ? 'text-amber-300' : 'text-white/80'"
-      >
-        {{ vsYesterdayLabel }}
-      </p>
       <dl class="mt-3 space-y-1 text-start text-xs text-white/85">
         <div class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railCash') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(periodRailCash) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.cash || 0) }}</dd>
         </div>
         <div class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railOnline') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(periodRailOnline) }}</dd>
+          <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.online || 0) }}</dd>
         </div>
-        <div v-if="period === 'month' && revenueBreakdown" class="flex justify-between gap-3">
+        <div v-if="revenueBreakdown" class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railOnlineNet') }}</dt>
           <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown.onlineNet || 0) }}</dd>
         </div>
-        <div v-if="period === 'month' && (revenueBreakdown?.keptOnCancel || 0) > 0" class="flex justify-between gap-3">
+        <div v-if="(revenueBreakdown?.keptOnCancel || 0) > 0" class="flex justify-between gap-3">
           <dt>{{ t('owner.financePage.railKeptOnCancel') }}</dt>
           <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.keptOnCancel || 0) }}</dd>
         </div>
-        <div v-if="period === 'month' && (revenueBreakdown?.coachFees || 0) > 0" class="flex justify-between gap-3 text-white/60">
+        <div v-if="(revenueBreakdown?.coachFees || 0) > 0" class="flex justify-between gap-3 text-white/60">
           <dt>{{ t('owner.financePage.railCoachFees') }}</dt>
           <dd class="tabular-nums">{{ formatCurrency(revenueBreakdown?.coachFees || 0) }}</dd>
         </div>
@@ -797,33 +696,6 @@ function showUnpaidList() {
         <p v-if="unpaidPct > 0" class="mt-2 text-[11px] text-brand-gray-500">
           {{ t('owner.financePage.unpaidShareNote', { pct: formatNumber(unpaidPct) }) }}
         </p>
-      </div>
-
-      <div v-if="showReports" class="canva-panel">
-        <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.weeklyChart') }}</h2>
-        <div v-if="isChartEmpty" class="mt-4 border border-dashed border-brand-gray-200 bg-brand-cream px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">
-          {{ t('owner.financePage.chartEmpty') }}
-        </div>
-        <div v-else class="canva-finance-chart mt-4">
-          <div class="flex items-end justify-between gap-2" :style="{ height: `${chartAreaHeight}px` }">
-            <div
-              v-for="(amount, index) in weekly"
-              :key="data?.weekLabels?.[index] || index"
-              class="flex h-full flex-1 flex-col items-center justify-end gap-1"
-            >
-              <div
-                class="canva-finance-chart-bar"
-                :class="index === activeChartIndex ? 'canva-finance-chart-bar-active' : ''"
-                :style="{ height: `${barHeightPx(amount)}px` }"
-                :title="`${formatWeekLabel(data?.weekLabels?.[index])} — ${formatCurrency(amount)}`"
-              />
-              <span
-                class="canva-finance-chart-label"
-                :class="index === activeChartIndex ? 'canva-finance-chart-label-active' : ''"
-              >{{ weekdayLetter(data?.weekLabels?.[index]) }}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div v-if="showTransactions" id="owner-finance-tx" class="canva-finance-tx-col space-y-3">

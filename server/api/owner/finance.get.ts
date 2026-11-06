@@ -4,7 +4,7 @@ import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.t
 import { resolveFinanceDiscount } from '#shared/financeDiscount.ts'
 import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
 import { isoToJalaali, jalaaliToIso, toPersianDigits } from '#shared/jalali.ts'
-import { addDaysToIsoDate, localDateString, localTimeString } from '#shared/localDate.ts'
+import { localDateString, localTimeString } from '#shared/localDate.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
 import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue, type RevenueRow } from '#shared/ownerRevenue.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
@@ -161,16 +161,15 @@ export default defineEventHandler(async (event) => {
     countsTowardRevenue(session.status, paymentStatusOf(session))
     && isChargedPaidCheckout(session.payment?.amount, paymentStatusOf(session)),
   )
-  // Collected money for the current Jalali month + last 7 days — full query, not the 50-row list sample.
+  // Collected money, all time — full query, not the 50-row list sample.
+  // ponytail: loads every paid row for the club per request; move to a stored running total if clubs reach ~100k payments.
   const today = todayDateStr()
   const jToday = isoToJalaali(today)
   const monthStart = jalaaliToIso(jToday.jy, jToday.jm, 1)
-  const weekStart = addDaysToIsoDate(today, -6)
-  const revenueFrom = weekStart < monthStart ? weekStart : monthStart
   const [revenueBookingRows, revenueSessionRows, detachedKeptRows] = await Promise.all([
     prisma.booking.findMany({
       where: {
-        slot: { court: { clubId: club.id }, date: { gte: revenueFrom, lte: today } },
+        slot: { court: { clubId: club.id } },
         payment: { isNot: null },
       },
       select: {
@@ -182,7 +181,6 @@ export default defineEventHandler(async (event) => {
     prisma.coachSession.findMany({
       where: {
         coach: { clubId: club.id },
-        date: { gte: revenueFrom, lte: today },
         payment: { isNot: null },
       },
       select: {
@@ -222,8 +220,7 @@ export default defineEventHandler(async (event) => {
           status: row.status,
           bookingStatus: 'CANCELLED',
         } satisfies RevenueRow,
-      }))
-      .filter((row) => row.date >= revenueFrom && row.date <= today),
+      })),
   ]
   // Coach lesson fees settle to the coach wallet (online) or the coach (cash) — not club money.
   const coachFeeRows = revenueSessionRows.map((row) => ({
@@ -235,23 +232,18 @@ export default defineEventHandler(async (event) => {
       bookingStatus: row.status,
     } satisfies RevenueRow,
   }))
-  const monthCourt = courtRevenueRows.filter((row) => row.date >= monthStart)
-  const monthSummary = summarizeCollectedRevenue(monthCourt.map((row) => row.revenue))
-  const coachFeesMonth = summarizeCollectedRevenue(
-    coachFeeRows.filter((row) => row.date >= monthStart).map((row) => row.revenue),
-  )
+  const totalSummary = summarizeCollectedRevenue(courtRevenueRows.map((row) => row.revenue))
+  const coachFeesTotal = summarizeCollectedRevenue(coachFeeRows.map((row) => row.revenue))
   // Online net actually credited to the club wallet (after commission, minus clawbacks).
-  const onlinePaymentIds = monthCourt
-    .filter((row) => row.revenue.status === 'PAID' && paymentRail(row.revenue.method) === 'online')
-    .map((row) => row.paymentId)
-  const onlineLedger = onlinePaymentIds.length
-    ? await prisma.settlementLedgerEntry.findMany({
-        where: { paymentId: { in: onlinePaymentIds }, clubId: club.id, clawedBackAt: null },
-        select: { ownerNet: true },
-      })
-    : []
-  const onlineNetMonth = onlineLedger.reduce((sum, entry) => sum + entry.ownerNet, 0)
-  const revenue = monthSummary.total
+  const onlineNetTotal = (
+    await prisma.settlementLedgerEntry.aggregate({
+      where: { clubId: club.id, clawedBackAt: null },
+      _sum: { ownerNet: true },
+    })
+  )._sum.ownerNet || 0
+  const revenue = totalSummary.total
+  // Method-share bar stays this Jalali month (counts, not money).
+  const monthCourt = courtRevenueRows.filter((row) => row.date >= monthStart && row.date <= today)
 
   const totalReservationCount = bookings.length + coachSessions.length
   const noShowCount = bookings.filter((booking) => booking.noShowAt).length + coachSessions.filter((session) => session.noShowAt).length
@@ -260,22 +252,6 @@ export default defineEventHandler(async (event) => {
   const activeContacts = contacts.filter((contact) => contact.inactiveDays < 7).length
   const churnRisk = contacts.filter((contact) => contact.inactiveDays >= 14).length
   const ltv = contacts.length ? Math.round(contacts.reduce((sum, contact) => sum + contact.lifetimeValue, 0) / contacts.length) : 0
-
-  const weekLabels: string[] = []
-  const weeklyRevenue: number[] = []
-  const weeklyCash: number[] = []
-  const weeklyOnline: number[] = []
-  for (let offset = 6; offset >= 0; offset -= 1) {
-    // Tehran calendar day (slot dates are Tehran), not UTC.
-    const key = addDaysToIsoDate(today, -offset)
-    weekLabels.push(key)
-    const daySummary = summarizeCollectedRevenue(
-      courtRevenueRows.filter((row) => row.date === key).map((row) => row.revenue),
-    )
-    weeklyRevenue.push(daySummary.total)
-    weeklyCash.push(daySummary.cash)
-    weeklyOnline.push(daySummary.online)
-  }
 
   // Status-first buckets (court bookings, this month). Wallet (method PAID) is online — never till cash.
   // PAID amount-0 siblings are covered checkouts — skip them so online % is not inflated.
@@ -604,23 +580,22 @@ export default defineEventHandler(async (event) => {
 
   return {
     /**
-     * Club money this Jalali month by rail. `cash` is in the club's own till;
+     * Club money collected, all time, by rail. `cash` is in the club's own till;
      * `online` (SEP + athlete wallet) settles to the club wallet as `onlineNet`.
      * Coach lesson fees are reported separately — they never belong to the club.
      */
     revenueBreakdown: {
-      cash: monthSummary.cash,
-      online: monthSummary.online,
-      onlineNet: onlineNetMonth,
-      keptOnCancel: monthSummary.keptOnCancel,
-      coachFees: coachFeesMonth.total,
+      cash: totalSummary.cash,
+      online: totalSummary.online,
+      onlineNet: onlineNetTotal,
+      keptOnCancel: totalSummary.keptOnCancel,
+      coachFees: coachFeesTotal.total,
     },
     /** Persistent dual-rail books — never net cash into online withdrawable. */
     books: {
       cash: cashBook,
       online: {
         collectedOpen: onlineOpen.collectedOpen,
-        netMonth: onlineNetMonth,
       },
     },
     stats: {
@@ -637,10 +612,6 @@ export default defineEventHandler(async (event) => {
       noShowRate: totalReservationCount ? Math.round((noShowCount / totalReservationCount) * 100) : 0,
     },
     funnel,
-    weeklyRevenue,
-    weeklyCash,
-    weeklyOnline,
-    weekLabels,
     paymentBreakdown,
     transactions,
     deskCashReturnsOwed,
