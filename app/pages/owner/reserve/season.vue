@@ -52,6 +52,9 @@ const successOpen = ref(false)
 const lastPayMode = ref<'cash' | 'unpaid' | null>(null)
 const lastSmsSent = ref(false)
 
+/** When set, POST uses replace semantics (cancel future + recreate under same season id). */
+const editingSeasonId = ref('')
+
 const guestName = ref('')
 const guestFamily = ref('')
 const guestMobile = ref('')
@@ -65,6 +68,7 @@ const {
   guestSearchPending,
   guestSearchSource,
   onGuestNameFieldInput,
+  onGuestFamilyFieldInput,
   onGuestMobileInput,
   selectGuestSuggestion,
   closeGuestSearchSoon,
@@ -405,14 +409,17 @@ function applyLoadedSeason(season: LoadedSeason, opts: { resetDateRange?: boolea
 
 async function loadSeasonForEdit(seasonId: string) {
   applyLoadedSeason(await fetchSeason(seasonId))
+  editingSeasonId.value = seasonId
 }
 
 async function loadSeasonForRepeat(seasonId: string) {
   applyLoadedSeason(await fetchSeason(seasonId), { resetDateRange: true })
+  editingSeasonId.value = ''
 }
 
 onMounted(async () => {
   if (!recurringReserveEnabled.value) return
+  editingSeasonId.value = ''
   const editId = String(route.query.edit || '').trim()
   const repeatId = String(route.query.repeat || '').trim()
   if (editId || repeatId) {
@@ -471,6 +478,7 @@ async function runPreview() {
         startDate: startDate.value,
         finishDate: finishDate.value,
         rules: toApiRules(),
+        ...(editingSeasonId.value ? { ignoreSeasonBookingId: editingSeasonId.value } : {}),
       },
     })
     occurrences.value = [...(preview.willCreate || [])]
@@ -527,6 +535,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
         deskDiscountPercent: !deskDiscount.value
           ? (parseDeskPercent(deskPercentInput.value) || undefined)
           : undefined,
+        ...(editingSeasonId.value ? { replaceSeasonBookingId: editingSeasonId.value } : {}),
       },
     })
     slotsCreated.value = result.slotsCreated || occurrences.value.length
@@ -752,13 +761,27 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                 </div>
               </AppFormField>
               <AppFormField :label="t('owner.guestFamily')">
-                <input
-                  ref="guestFamilyInput"
-                  v-model="guestFamily"
-                  class="neo-input season-wiz-inp"
-                  autocomplete="family-name"
-                  @input="onGuestNameFieldInput"
-                >
+                <div class="relative w-full min-w-0">
+                  <input
+                    ref="guestFamilyInput"
+                    v-model="guestFamily"
+                    class="neo-input season-wiz-inp"
+                    autocomplete="family-name"
+                    :aria-expanded="guestSearchOpen && guestSearchSource === 'family'"
+                    aria-autocomplete="list"
+                    aria-controls="season-guest-suggestions-family"
+                    @input="onGuestFamilyFieldInput"
+                    @focus="onGuestFamilyFieldInput"
+                    @blur="closeGuestSearchSoon"
+                  >
+                  <OwnerGuestSearchDropdown
+                    list-id="season-guest-suggestions-family"
+                    :open="guestSearchOpen && guestSearchSource === 'family'"
+                    :pending="guestSearchPending"
+                    :suggestions="guestSuggestions"
+                    @select="selectGuestSuggestion"
+                  />
+                </div>
               </AppFormField>
             </div>
             <AppFormField :label="t('owner.guestMobile')" required>

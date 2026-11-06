@@ -51,12 +51,44 @@ export function mergeRecurringResults(parts: RecurringGenerateResult[]): Recurri
 /**
  * Whether generateRecurringCourtSlots may claim this existing slot.
  * Only FREE slots without a live (non-cancelled) booking are safe.
+ *
+ * When replacing an existing season, the slot may still show RESERVED until cancel
+ * runs; if the booking belongs to `ignoreSeasonBookingId`, treat it as claimable.
  */
-export function canClaimExistingSlotForRecurring(existing: {
-  displayStatus: string
-  booking?: { status: string } | null
-} | null): boolean {
+export function canClaimExistingSlotForRecurring(
+  existing: {
+    displayStatus: string
+    booking?: {
+      status: string
+      payment?: { metadataJson?: string | null } | null
+      events?: Array<{ metadataJson?: string | null }> | null
+    } | null
+  } | null,
+  opts?: { ignoreSeasonBookingId?: string },
+): boolean {
   if (!existing) return true
+  const ignoreId = opts?.ignoreSeasonBookingId?.trim()
+  if (
+    ignoreId
+    && existing.booking
+    && existing.booking.status !== 'CANCELLED'
+    && isOwnerRecurringBooking(existing.booking)
+  ) {
+    const blobs = [
+      ...(existing.booking.events || []).map((e) => e.metadataJson),
+      existing.booking.payment?.metadataJson,
+    ]
+    for (const raw of blobs) {
+      if (!raw) continue
+      try {
+        const meta = JSON.parse(raw) as { seasonBookingId?: string }
+        if (meta.seasonBookingId === ignoreId) return true
+      }
+      catch {
+        /* ignore */
+      }
+    }
+  }
   if (existing.displayStatus !== 'FREE') return false
   if (existing.booking && existing.booking.status !== 'CANCELLED') return false
   return true

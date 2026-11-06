@@ -99,6 +99,25 @@ describe('canClaimExistingSlotForRecurring', () => {
       expect(canClaimExistingSlotForRecurring({ displayStatus, booking: null })).toBe(false)
     }
   })
+
+  it('allows RESERVED slot held by the season being replaced (edit flow)', () => {
+    const sid = 'season-edit-1'
+    const booking = {
+      status: 'CONFIRMED' as const,
+      payment: {
+        metadataJson: JSON.stringify({ seasonBookingId: sid, sessionPrice: 1000 }),
+      },
+      events: [{ metadataJson: JSON.stringify({ source: 'owner-recurring', seasonBookingId: sid }) }],
+    }
+    expect(canClaimExistingSlotForRecurring(
+      { displayStatus: 'RESERVED', booking },
+      { ignoreSeasonBookingId: sid },
+    )).toBe(true)
+    expect(canClaimExistingSlotForRecurring(
+      { displayStatus: 'RESERVED', booking },
+      { ignoreSeasonBookingId: 'other-season' },
+    )).toBe(false)
+  })
 })
 
 describe('mergeRecurringResults', () => {
