@@ -311,8 +311,8 @@ export default defineEventHandler(async (event) => {
   const cancellationsThisMonth = cancelsMonthBookings + cancelsMonthSessions
 
   // Full open receivables (all dates) — never the take:50 period list sample.
-  // Keep in sync with isUnpaidPaymentStatus (includes legacy NOT_PAID).
-  const unpaidStatusIn = ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'NOT_PAID', 'FAILED'] as const
+  // PaymentStatus enum only — NOT_PAID is PaymentMethod, not status (Prisma rejects it).
+  const unpaidStatusIn = ['PAY_AT_CLUB', 'PENDING_AT_CLUB', 'PENDING_ONLINE', 'FAILED'] as const
   const [unpaidBookingRows, unpaidSessionRows] = await Promise.all([
     prisma.booking.findMany({
       where: {

@@ -29,7 +29,7 @@ PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | So
 | screen | region | change | status |
 |--------|--------|--------|--------|
 | owner-finance | unpaid chip | Label «بدهی وصول‌نشده» + hint; amount = all-open receivables (not take:50 / not today’s paid). | fixed (product) |
-| owner-finance | hero | Drop day/week/month toggle + 7-day chart; hero is all-time collected total by rail. Books stay current balances. | fixed (product) |
+| owner-finance | hero | Snapp-style online wallet: withdrawable now + pending release + in-payout + statement. Cash desk separate (not a platform balance). Lifetime collected → report link. | fixed (product) |
 
 ## Product — owner finance session value (2026-11-02)
 
