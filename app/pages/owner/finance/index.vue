@@ -371,7 +371,7 @@ const walletParts = computed(() => {
     balance: Number(settlement.value?.balance || 0),
     withdrawable: Number(settlement.value?.withdrawableBalance || 0),
     pendingRelease: Number(settlement.value?.pendingClassBalance || 0),
-    inPayout: Number(settlement.value?.lockedBalance || 0),
+    inPayout: (settlement.value?.pendingWithdraws || []).reduce((sum, req) => sum + Number(req.amount || 0), 0),
     debt: Number(settlement.value?.balance || 0) < 0 ? Math.abs(Number(settlement.value?.balance || 0)) : 0,
   }
 })
