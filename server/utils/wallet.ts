@@ -242,6 +242,42 @@ export async function unlockEligibleWalletSettlements(
   return getOrCreateWallet(userId, db)
 }
 
+/**
+ * Move a cached athlete balance onto the semantic ledger total and append a
+ * zero-amount ADJUSTMENT. The row is the audit trail. Its amount stays 0 so
+ * the next semantic sum does not count the cache fix as a new credit or debit.
+ */
+export async function alignAthleteCachedBalance(
+  userId: string,
+  delta: number,
+  note: string,
+  db: DbClient,
+) {
+  if (!Number.isInteger(delta) || delta === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Alignment delta must be a non-zero integer' })
+  }
+  const wallet = await getOrCreateWallet(userId, db)
+  if (wallet.availableBalance + delta < 0) {
+    throw createError({ statusCode: 409, statusMessage: 'Alignment would make available negative' })
+  }
+  const updated = await db.wallet.update({
+    where: { id: wallet.id },
+    data: {
+      balance: { increment: delta },
+      availableBalance: { increment: delta },
+    },
+  })
+  await db.walletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount: 0,
+      type: 'ADJUSTMENT',
+      note,
+    },
+  })
+  return updated
+}
+
 export async function creditWallet(
   userId: string,
   amount: number,

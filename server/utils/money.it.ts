@@ -554,4 +554,26 @@ suite('money integration (real Postgres)', () => {
     expect(summary.clubBalanceDrift).toBe(0)
     expect(summary.userBalanceDrift).toBe(0)
   })
+
+  it('append-only semantic balance gap is idempotent and leaves the ledger history', async () => {
+    const f = await fixtures()
+    await m.wallet.creditWallet(f.athlete.id, 50_000, { type: 'TOPUP_CREDIT', note: 'seed' })
+    const wallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    await db.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: 40_000, availableBalance: 40_000, lockedBalance: 0 },
+    })
+    const { loadWalletAudit, applyApprovedBalanceGap } = await import('./walletBalanceCorrection')
+    const before = await loadWalletAudit(db, 'athlete', wallet.id)
+    expect(before?.proposal?.appendAmount).toBe(10_000)
+    const first = await applyApprovedBalanceGap(db, { kind: 'athlete', walletId: wallet.id, appendAmount: 10_000 })
+    const stale = await applyApprovedBalanceGap(db, { kind: 'athlete', walletId: wallet.id, appendAmount: 10_000 })
+    const after = await db.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
+    expect(first.applied).toBe(true)
+    expect(stale).toMatchObject({ applied: false, reason: 'already_adjusted' })
+    expect(after.balance).toBe(50_000)
+    expect(await db.walletTransaction.count({ where: { walletId: wallet.id, type: 'TOPUP_CREDIT' } })).toBe(1)
+    expect(await db.walletTransaction.count({ where: { walletId: wallet.id, type: 'ADJUSTMENT', amount: 0 } })).toBe(1)
+    expect(await userDrift(f.athlete.id)).toBe(0)
+  })
 })

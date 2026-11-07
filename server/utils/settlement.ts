@@ -354,6 +354,38 @@ export async function getClubWithdrawableBalance(
   }
 }
 
+/** Cache alignment for a club wallet. The audit row amount is 0. See alignAthleteCachedBalance. */
+export async function alignClubCachedBalance(
+  clubId: string,
+  delta: number,
+  note: string,
+  db: DbClient,
+) {
+  if (!Number.isInteger(delta) || delta === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Alignment delta must be a non-zero integer' })
+  }
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  if (wallet.availableBalance + delta < 0) {
+    throw createError({ statusCode: 409, statusMessage: 'Alignment would make available negative' })
+  }
+  const updated = await db.clubWallet.update({
+    where: { id: wallet.id },
+    data: {
+      balance: { increment: delta },
+      availableBalance: { increment: delta },
+    },
+  })
+  await db.clubWalletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount: 0,
+      type: 'ADJUSTMENT',
+      note,
+    },
+  })
+  return updated
+}
+
 async function creditClubWallet(
   clubId: string,
   amount: number,
