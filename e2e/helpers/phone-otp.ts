@@ -64,13 +64,27 @@ export async function loginAthleteWithPhoneOtpUi(
   await page.goto('/login')
   await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
   await page.locator('#login-phone').fill(phone)
-  const otpRequest = page.waitForResponse(
-    (res) => res.url().includes('/api/auth/otp/request') && res.request().method() === 'POST',
-    { timeout: 20_000 },
+  const otpMatcher = (res: { url: () => string; request: () => { method: () => string } }) => (
+    res.url().includes('/api/auth/otp/request') && res.request().method() === 'POST'
   )
-  await page.locator('button[type="submit"]').click()
-  const otpRes = await otpRequest
-  expect(otpRes.ok()).toBeTruthy()
+  let otpResOk = false
+  for (let attempt = 0; attempt < 3 && !otpResOk; attempt++) {
+    const [otpRes] = await Promise.all([
+      page.waitForResponse(otpMatcher, { timeout: 20_000 }),
+      page.locator('button[type="submit"]').click(),
+    ])
+    if (otpRes.ok()) {
+      otpResOk = true
+      break
+    }
+    if (otpRes.status() === 429 && attempt < 2) {
+      await page.waitForTimeout(1500)
+      continue
+    }
+    const body = await otpRes.text()
+    throw new Error(`otp/request failed (${otpRes.status()}): ${body}`)
+  }
+  expect(otpResOk).toBeTruthy()
   await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('#login-otp')).not.toHaveValue('')
   await page.locator('button[type="submit"]').click()

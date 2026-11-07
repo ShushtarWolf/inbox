@@ -47,6 +47,7 @@ test.describe('design UI parity screenshots', () => {
   })
 
   test('athlete home and choose-role mobile', async ({ page, browserName }) => {
+    test.setTimeout(60_000)
     test.skip(browserName !== 'chromium', 'auth screenshots run on chromium project')
     await loginAthlete(page)
     await page.setViewportSize({ width: 390, height: 844 })
