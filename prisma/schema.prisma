@@ -1550,6 +1550,25 @@ model PlatformCommissionSetting {
   updatedAt     DateTime @updatedAt
 }
 
+/**
+ * Append-only record of a historical cancel refund repair.
+ * Never updated or deleted by the repair tool. Idempotency key blocks a second credit.
+ */
+model RefundReconciliation {
+  id                 String   @id @default(cuid())
+  idempotencyKey     String   @unique
+  paymentId          String
+  userId             String
+  amount             Int
+  clubClawback       Int      @default(0)
+  commissionRecorded Int      @default(0)
+  reason             String
+  evidenceJson       String
+  createdAt          DateTime @default(now())
+
+  @@index([paymentId])
+}
+
 /** Append-only audit when admin changes platform default commission. */
 model PlatformCommissionChange {
   id              String   @id @default(cuid())
