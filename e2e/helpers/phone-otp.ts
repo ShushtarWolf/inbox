@@ -78,7 +78,9 @@ export async function loginAthleteWithPhoneOtpUi(
       break
     }
     if (otpRes.status() === 429 && attempt < 2) {
-      await page.waitForTimeout(1500)
+      const body = await otpRes.json().catch(() => ({})) as OtpErrorJson
+      const retrySec = Math.max(1, Number(body?.data?.retryAfterSec) || 2)
+      await page.waitForTimeout((retrySec + 1) * 1000)
       continue
     }
     const body = await otpRes.text()

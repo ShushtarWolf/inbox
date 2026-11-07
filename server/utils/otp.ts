@@ -13,7 +13,14 @@ export type OtpRole = 'ATHLETE' | 'COACH' | 'CLUB_ADMIN'
 const OTP_TTL_MS = 5 * 60 * 1000
 const MAX_ATTEMPTS = 5
 /** Minimum gap between SMS sends for the same phone/purpose (client resend cooldown). */
-export const OTP_RESEND_COOLDOWN_MS = Number(process.env.OTP_RESEND_COOLDOWN_MS) || 60_000
+function resolveOtpResendCooldownMs(): number {
+  const raw = process.env.OTP_RESEND_COOLDOWN_MS
+  if (raw === undefined || raw === '') return 60_000
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0) return 60_000
+  return Math.floor(n)
+}
+export const OTP_RESEND_COOLDOWN_MS = resolveOtpResendCooldownMs()
 
 export class OtpResendCooldownError extends Error {
   retryAfterSec: number
