@@ -13,6 +13,7 @@ import {
 } from './payments/sepClient'
 import { claimPaymentPaid } from './paymentClaim'
 import { prisma } from './prisma'
+import { applyWalletFirstForConfirmedIpg } from './walletFirstIpg'
 import { SplitRecollectError, recollectReleasedSplitWallet } from './splitPayWallet'
 
 const PAYABLE = ['PENDING_ONLINE', 'FAILED'] as const
@@ -310,7 +311,11 @@ async function finishPaid(
       if (!claimed.claimed && claimed.payment.status !== 'PAID') {
         return { kind: 'terminal' as const, payment: claimed.payment }
       }
-      return { kind: 'paid' as const, payment: claimed.payment }
+      if (claimed.payment.status === 'PAID') {
+        await applyWalletFirstForConfirmedIpg(tx, fresh.id)
+      }
+      const paid = await tx.payment.findUniqueOrThrow({ where: { id: fresh.id } })
+      return { kind: 'paid' as const, payment: paid }
     })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

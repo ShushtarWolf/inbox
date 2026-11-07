@@ -142,6 +142,14 @@ export default [
     ],
   },
   js.configs.recommended,
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+  },
   ...pluginVue.configs['flat/recommended'],
   ...vueA11y.configs['flat/recommended'],
   {

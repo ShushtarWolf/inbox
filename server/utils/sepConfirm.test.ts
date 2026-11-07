@@ -44,6 +44,10 @@ vi.mock('./moneyJobs', () => ({
   enqueueMoneyJobsForPaidPayment: (...args: unknown[]) => enqueue(...args),
 }))
 
+vi.mock('./walletFirstIpg', () => ({
+  applyWalletFirstForConfirmedIpg: vi.fn(async () => ({ status: 'applied' })),
+}))
+
 function whereMatches(where: {
   id?: string
   status?: { in?: string[] } | string
@@ -93,6 +97,7 @@ vi.mock('./prisma', () => {
 
 import { confirmSepPayment } from './sepConfirm'
 import { SplitRecollectError } from './splitPayWallet'
+import { applyWalletFirstForConfirmedIpg } from './walletFirstIpg'
 
 function okVerify(overrides: Record<string, unknown> = {}) {
   verify.mockResolvedValue({
@@ -128,11 +133,13 @@ describe('confirmSepPayment', () => {
     expect(h.row.gatewayRef).toBe('bank-ref-1')
     expect(h.row.status).toBe('PAID')
     expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(applyWalletFirstForConfirmedIpg).toHaveBeenCalledTimes(1)
 
     verify.mockClear()
     const again = await confirmSepPayment('INBorder', { refNum: 'bank-ref-1' })
     expect(again.status).toBe('PAID')
     expect(verify).not.toHaveBeenCalled()
+    expect(applyWalletFirstForConfirmedIpg).toHaveBeenCalledTimes(1)
   })
 
   it('does not pay or fail the row when the RefNum belongs to another ResNum', async () => {

@@ -164,6 +164,17 @@ enum WalletTransactionType {
   UNLOCK
   INTERNAL_TRANSFER_OUT
   INTERNAL_TRANSFER_IN
+  /**
+   * Captured IPG amount posted into the athlete wallet before the booking debit.
+   * Not a voluntary top-up and not part of SHEBA cash-out.
+   */
+  IPG_BOOKING_CREDIT
+  /** Matching spend of that inflow on the booking. Net spendable change is zero. */
+  IPG_BOOKING_DEBIT
+  /**
+   * Historical representation of a completed card return. Not a spendable REFUND_CREDIT.
+   */
+  IPG_RETURNED_TO_CARD
 }
 
 enum ClubWalletTransactionType {
@@ -334,6 +345,11 @@ model WalletTransaction {
   type      WalletTransactionType
   note      String?
   createdAt DateTime              @default(now())
+  /**
+   * Set only on reconciliation rows. createdAt is when the row was appended.
+   * This copies a timestamp the source payment or booking already had.
+   */
+  originalEventAt DateTime?
 
   walletId          String
   wallet            Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)

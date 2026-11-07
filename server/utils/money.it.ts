@@ -554,4 +554,149 @@ suite('money integration (real Postgres)', () => {
     expect(summary.clubBalanceDrift).toBe(0)
     expect(summary.userBalanceDrift).toBe(0)
   })
+
+  it('IPG confirm credits then debits the athlete wallet once, including concurrent retries', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: future, amount: 2_500, method: 'IPG' })
+    const { applyWalletFirstForConfirmedIpg } = await import('./walletFirstIpg')
+    await Promise.allSettled([
+      db.$transaction((tx) => applyWalletFirstForConfirmedIpg(tx, payment.id)),
+      db.$transaction((tx) => applyWalletFirstForConfirmedIpg(tx, payment.id)),
+    ])
+    const wallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(wallet.balance).toBe(0)
+    expect(wallet.availableBalance).toBe(0)
+    const txs = await db.walletTransaction.findMany({ where: { paymentId: payment.id }, orderBy: { type: 'asc' } })
+    expect(txs.map((tx) => tx.type).sort()).toEqual(['IPG_BOOKING_CREDIT', 'IPG_BOOKING_DEBIT'])
+    expect(txs.reduce((sum, tx) => sum + tx.amount, 0)).toBe(0)
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    expect(await db.settlementLedgerEntry.count({ where: { paymentId: payment.id } })).toBe(1)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(2_250)
+    expect(await userDrift(f.athlete.id)).toBe(0)
+    expect(await clubDrift(f.club.id)).toBe(0)
+  })
+
+  it('cancel after wallet-first IPG refunds the wallet once and does not withdraw', async () => {
+    const f = await fixtures()
+    const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 2_500, method: 'IPG' })
+    const { applyWalletFirstForConfirmedIpg } = await import('./walletFirstIpg')
+    await db.$transaction((tx) => applyWalletFirstForConfirmedIpg(tx, payment.id))
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'athlete-cancel',
+      paymentId: payment.id,
+      userId: f.athlete.id,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    const wallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(wallet.balance).toBe(2_500)
+    expect(await db.walletTransaction.count({ where: { paymentId: payment.id, type: 'REFUND_CREDIT' } })).toBe(1)
+    expect(await db.userWithdrawRequest.count({ where: { userId: f.athlete.id } })).toBe(0)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
+    await m.refunds.refundPaymentForCancellation({ paymentId: payment.id, userId: f.athlete.id, reason: 'retry' })
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(2_500)
+  })
+
+  it('guest IPG does not create a wallet, and a top-up is not debited as a booking', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: future, amount: 2_500, method: 'IPG', userId: null })
+    const { applyWalletFirstForConfirmedIpg } = await import('./walletFirstIpg')
+    const guest = await db.$transaction((tx) => applyWalletFirstForConfirmedIpg(tx, payment.id))
+    expect(guest.status).toBe('no_account')
+    expect(await db.walletTransaction.count({ where: { paymentId: payment.id } })).toBe(0)
+    const meta = JSON.parse((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).metadataJson || '{}')
+    expect(meta.walletFirstStatus).toBe('no_account')
+
+    const topup = await db.payment.create({
+      data: { amount: 50_000, method: 'IPG', status: 'PAID', provider: 'sep', purpose: 'topup', userId: f.athlete.id },
+    })
+    await m.wallet.creditWalletForTopUpPayment(topup.id, 'PENDING_ONLINE')
+    const skipped = await db.$transaction((tx) => applyWalletFirstForConfirmedIpg(tx, topup.id))
+    expect(skipped.status).toBe('topup')
+    expect(await db.walletTransaction.count({ where: { paymentId: topup.id, type: 'IPG_BOOKING_DEBIT' } })).toBe(0)
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(50_000)
+  })
+
+  it('historical card reversal appends a net-zero trail and does not add spendable credit', async () => {
+    const f = await fixtures()
+    const { booking, payment } = await paidBooking(f, { date: past, amount: 2_500, method: 'IPG' })
+    await db.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED', cancelledAt: new Date('2026-08-15T10:00:00.000Z') } })
+    await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'REFUNDED',
+        metadataJson: JSON.stringify({
+          refundChannel: 'gateway_reverse',
+          gatewayReversed: true,
+          gatewayRefund: true,
+          reversePending: false,
+          refundCreditAmount: 0,
+          refundedAmount: 0,
+        }),
+      },
+    })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    const { planWalletFirstHistorical } = await import('#shared/walletFirstHistorical.ts')
+    const { applyHistoricalWalletFirstPair } = await import('./walletFirstIpg')
+    const loaded = await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
+    const plan = planWalletFirstHistorical({
+      paymentId: loaded.id,
+      method: loaded.method,
+      provider: loaded.provider,
+      purpose: loaded.purpose,
+      paymentStatus: loaded.status,
+      bookingStatus: 'CANCELLED',
+      amount: loaded.amount,
+      paymentUserId: f.athlete.id,
+      bookingUserId: f.athlete.id,
+      metadata: JSON.parse(loaded.metadataJson || '{}'),
+      walletTxs: [],
+      refundCreditSum: 0,
+      unclawedOwnerNet: 0,
+    })
+    expect(plan.refundCorrection).toMatchObject({ action: 'skip', reason: 'card_already_reversed' })
+    expect(plan.reconstruction).toMatchObject({ action: 'pair', debitType: 'IPG_RETURNED_TO_CARD', netWalletToman: 0 })
+    if (plan.reconstruction.action !== 'pair') throw new Error('expected pair')
+    const original = new Date('2026-08-15T10:00:00.000Z')
+    await db.$transaction((tx) => applyHistoricalWalletFirstPair(tx, {
+      userId: plan.reconstruction.action === 'pair' ? plan.reconstruction.userId : f.athlete.id,
+      paymentId: payment.id,
+      bookingId: booking.id,
+      amount: plan.reconstruction.action === 'pair' ? plan.reconstruction.amount : 0,
+      debitType: 'IPG_RETURNED_TO_CARD',
+      inflowAt: original,
+      outflowAt: original,
+    }))
+    await db.$transaction((tx) => applyHistoricalWalletFirstPair(tx, {
+      userId: f.athlete.id,
+      paymentId: payment.id,
+      bookingId: booking.id,
+      amount: 2_500,
+      debitType: 'IPG_RETURNED_TO_CARD',
+      inflowAt: original,
+      outflowAt: original,
+    }))
+    const wallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(wallet.balance).toBe(0)
+    const rows = await db.walletTransaction.findMany({ where: { paymentId: payment.id } })
+    expect(rows).toHaveLength(2)
+    expect(rows.every((row) => row.originalEventAt?.toISOString() === original.toISOString())).toBe(true)
+    expect(rows.some((row) => row.type === 'REFUND_CREDIT')).toBe(false)
+    expect(await db.userWithdrawRequest.count({ where: { userId: f.athlete.id } })).toBe(0)
+  })
+
+  it('rolls the wallet-first pair back when the surrounding transaction aborts', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: future, amount: 4_000, method: 'IPG' })
+    const { applyWalletFirstForConfirmedIpg } = await import('./walletFirstIpg')
+    await expect(db.$transaction(async (tx) => {
+      await applyWalletFirstForConfirmedIpg(tx, payment.id)
+      throw new Error('crash-after-pair')
+    })).rejects.toThrow(/crash-after-pair/)
+    expect(await db.walletTransaction.count({ where: { paymentId: payment.id } })).toBe(0)
+    expect(await db.wallet.findUnique({ where: { userId: f.athlete.id } })).toBeNull()
+  })
 })
