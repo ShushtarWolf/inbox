@@ -9,9 +9,11 @@ import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
   buildCancelRefundMetadata,
+  ordinaryCancelRefundGuard,
   parsePaymentMetadata,
   resolveRefundChannel,
 } from '#shared/cancelRefund.ts'
+import { createError } from 'h3'
 import type { RefundResult } from './refunds'
 import { refundPaymentForCancellation } from './refunds'
 import { clawbackOwnerPartialForPayment } from './settlement'
@@ -232,14 +234,26 @@ async function applySeriesSessionRefund(opts: {
   markRefunded: boolean
 }): Promise<RefundResult> {
   const channel = resolveRefundChannel(opts.method, opts.bookingPaymentMethod)
-  const canCredit = Boolean(opts.userId) && channel === 'wallet_closed_loop'
 
-  const amount = await prisma.$transaction(async (tx) => {
+  const applied = await prisma.$transaction(async (tx) => {
     // Row lock serializes session cancels on one series payment; totals below are read fresh.
     await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${opts.paymentId} FOR UPDATE`
     const fresh = await tx.payment.findUniqueOrThrow({ where: { id: opts.paymentId } })
-    if (!isPaymentRefundable(fresh.status)) return 0
+    if (!isPaymentRefundable(fresh.status)) {
+      return { amount: 0, walletCredited: false, gatewayRefunded: false, refundChannel: channel }
+    }
     const freshMeta = { ...opts.primaryMeta, ...parsePaymentMetadata(fresh.metadataJson) }
+    const guard = ordinaryCancelRefundGuard(freshMeta)
+    if (guard.action === 'reverse_pending' && channel !== 'desk_cash') {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'SEP_REVERSE_PENDING',
+        data: { paymentId: opts.paymentId, reversePending: true },
+      })
+    }
+    const historicallyReversed = guard.action === 'already_reversed'
+    const refundChannel = historicallyReversed ? 'gateway_reverse' as const : channel
+    const canCredit = Boolean(opts.userId) && refundChannel === 'wallet_closed_loop'
     const doneIds = Array.isArray(freshMeta.sessionRefundedBookingIds) ? freshMeta.sessionRefundedBookingIds : []
     const [priorUserTx, priorClubTx] = await Promise.all([
       tx.walletTransaction.findFirst({
@@ -256,12 +270,17 @@ async function applySeriesSessionRefund(opts: {
       }),
     ])
     // Retry of an already-refunded session (athlete re-tap, owner re-run) moves no money.
-    if (doneIds.includes(opts.bookingId) || priorUserTx || priorClubTx) return 0
+    if (doneIds.includes(opts.bookingId) || priorUserTx || priorClubTx) {
+      return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
+    }
 
     const already = Number(freshMeta.sessionRefundsTotal || 0)
     const capped = Math.min(opts.amount, Math.max(0, fresh.amount - already))
-    if (capped <= 0) return 0
+    if (capped <= 0) {
+      return { amount: 0, walletCredited: false, gatewayRefunded: historicallyReversed, refundChannel }
+    }
 
+    let walletCredited = false
     if (canCredit && opts.userId) {
       await creditWallet(opts.userId, capped, {
         paymentId: opts.paymentId,
@@ -269,6 +288,7 @@ async function applySeriesSessionRefund(opts: {
         note: opts.reason,
         type: 'REFUND_CREDIT',
       }, tx)
+      walletCredited = true
     }
     await clawbackOwnerPartialForPayment({
       paymentId: opts.paymentId,
@@ -282,28 +302,34 @@ async function applySeriesSessionRefund(opts: {
         ...(opts.markRefunded ? { status: 'REFUNDED' as const } : {}),
         metadataJson: JSON.stringify({
           ...buildCancelRefundMetadata(freshMeta, {
-            channel,
+            channel: refundChannel,
             reason: opts.reason,
-            manualRefund: channel === 'wallet_closed_loop' && !canCredit,
+            manualRefund: refundChannel === 'wallet_closed_loop' && !canCredit,
           }),
           sessionRefundsTotal: already + capped,
           sessionRefundedBookingIds: [...doneIds, opts.bookingId],
         }),
       },
     })
-    return capped
+    return { amount: capped, walletCredited, gatewayRefunded: historicallyReversed, refundChannel }
   })
 
-  if (amount <= 0) {
-    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  if (applied.amount <= 0) {
+    return {
+      refunded: false,
+      walletCredited: false,
+      gatewayRefunded: applied.gatewayRefunded,
+      amount: 0,
+      refundChannel: applied.refundChannel,
+    }
   }
   return {
     refunded: true,
-    walletCredited: canCredit,
-    gatewayRefunded: false,
-    amount,
-    refundChannel: channel,
-    deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
+    walletCredited: applied.walletCredited,
+    gatewayRefunded: applied.gatewayRefunded,
+    amount: applied.amount,
+    refundChannel: applied.refundChannel,
+    deskCashReturn: applied.refundChannel === 'desk_cash' ? 'owed' : null,
   }
 }
 

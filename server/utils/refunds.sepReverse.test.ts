@@ -36,30 +36,31 @@ vi.mock('#shared/payments.ts', () => ({
   getPaymentsMode: () => 'live',
 }))
 
-describe('refundPaymentForCancellation SEP reverse', () => {
+function paidIpg(metadata: Record<string, unknown>, amount = 200_000) {
+  findUnique.mockResolvedValue({
+    id: 'pay-1',
+    amount,
+    status: 'PAID',
+    method: 'IPG',
+    provider: 'sep',
+    userId: 'ath-1',
+    bookingId: 'b-1',
+    metadataJson: JSON.stringify(metadata),
+    booking: { paymentMethod: 'IPG', userId: 'ath-1', guestMobile: null },
+  })
+}
+
+describe('ordinary online cancel credits the wallet and does not reverse the card', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.SEP_TERMINAL_ID = '12345678'
-    findUnique.mockResolvedValue({
-      id: 'pay-1',
-      amount: 200_000,
-      status: 'PAID',
-      method: 'IPG',
-      provider: 'sep',
-      userId: 'ath-1',
-      bookingId: 'b-1',
-      metadataJson: JSON.stringify({
-        refNum: 'REF999',
-        confirmedAt: new Date().toISOString(),
-      }),
-      booking: { paymentMethod: 'IPG', userId: 'ath-1', guestMobile: null },
-    })
     update.mockResolvedValue({})
     rootUpdate.mockResolvedValue({})
+    creditWallet.mockResolvedValue({})
   })
 
-  it('gateway reverse path: no athlete wallet credit', async () => {
-    sepReverseTransaction.mockResolvedValue({})
+  it('credits the wallet immediately after confirm and never calls ReverseTransaction', async () => {
+    paidIpg({ refNum: 'REF999', confirmedAt: new Date().toISOString() })
     const { refundPaymentForCancellation } = await import('./refunds')
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
@@ -67,14 +68,35 @@ describe('refundPaymentForCancellation SEP reverse', () => {
       reason: 'athlete-cancel',
       moneyOutcome: 'full_wallet_refund',
     })
-    expect(sepReverseTransaction).toHaveBeenCalled()
-    expect(result.gatewayRefunded).toBe(true)
-    expect(result.walletCredited).toBe(false)
-    expect(creditWallet).not.toHaveBeenCalled()
-    expect(clawbackOwnerForPayment).toHaveBeenCalled()
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(result.gatewayRefunded).toBe(false)
+    expect(result.walletCredited).toBe(true)
+    expect(result.refundChannel).toBe('wallet_closed_loop')
+    expect(creditWallet).toHaveBeenCalledWith('ath-1', 200_000, expect.objectContaining({
+      type: 'REFUND_CREDIT',
+      paymentId: 'pay-1',
+    }), expect.anything())
+    expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-1', expect.anything())
   })
 
-  it('partial refund inside reverse window: no card reverse, wallet share + partial clawback', async () => {
+  it('still credits the wallet long after confirm', async () => {
+    paidIpg({
+      refNum: 'REF999',
+      confirmedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    })
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'athlete-cancel',
+    })
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(result.walletCredited).toBe(true)
+    expect(creditWallet).toHaveBeenCalledWith('ath-1', 200_000, expect.anything(), expect.anything())
+  })
+
+  it('partial cancel credits only that share and claws back partially', async () => {
+    paidIpg({ refNum: 'REF999', confirmedAt: new Date().toISOString() })
     const { refundPaymentForCancellation } = await import('./refunds')
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
@@ -84,52 +106,118 @@ describe('refundPaymentForCancellation SEP reverse', () => {
       refundBps: 5000,
     })
     expect(sepReverseTransaction).not.toHaveBeenCalled()
-    expect(result.gatewayRefunded).toBe(false)
+    expect(result.amount).toBe(100_000)
     expect(creditWallet).toHaveBeenCalledWith('ath-1', 100_000, expect.anything(), expect.anything())
-    expect(clawbackOwnerPartialForPayment).toHaveBeenCalledWith(
-      expect.objectContaining({ grossRefundAmount: 100_000 }),
-    )
+    expect(clawbackOwnerPartialForPayment).toHaveBeenCalledWith(expect.objectContaining({
+      grossRefundAmount: 100_000,
+    }))
     expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
   })
 
-  it('treats SEP code 2 (duplicate reverse) as already reversed', async () => {
-    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=2): درخواست تکراری می باشد'))
+  it('credits the full split price, not only the card share', async () => {
+    paidIpg({
+      refNum: 'REF999',
+      confirmedAt: new Date().toISOString(),
+      splitPay: true,
+      walletDebitAmount: 40_000,
+      ipgChargeAmount: 160_000,
+      splitFullAmount: 200_000,
+    })
     const { refundPaymentForCancellation } = await import('./refunds')
     const result = await refundPaymentForCancellation({
       paymentId: 'pay-1',
       userId: 'ath-1',
       reason: 'athlete-cancel',
-      moneyOutcome: 'full_wallet_refund',
     })
-    expect(result.gatewayRefunded).toBe(true)
-    expect(creditWallet).not.toHaveBeenCalled()
-    expect(clawbackOwnerForPayment).toHaveBeenCalled()
-  })
-
-  it('falls back to wallet on definitive SEP reverse failure', async () => {
-    sepReverseTransaction.mockRejectedValue(new Error('SEP reverse failed (code=-6): بیش از نیم ساعت گذشته است'))
-    const { refundPaymentForCancellation } = await import('./refunds')
-    const result = await refundPaymentForCancellation({
-      paymentId: 'pay-1',
-      userId: 'ath-1',
-      reason: 'athlete-cancel',
-      moneyOutcome: 'full_wallet_refund',
-    })
-    expect(result.gatewayRefunded).toBe(false)
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
     expect(result.walletCredited).toBe(true)
-    expect(creditWallet).toHaveBeenCalled()
+    expect(creditWallet).toHaveBeenCalledWith('ath-1', 200_000, expect.anything(), expect.anything())
   })
 
-  it('does not wallet-fallback on ambiguous reverse timeout', async () => {
-    sepReverseTransaction.mockRejectedValue(new Error('fetch failed: timeout'))
+  it('does not credit a second time after the payment is already refunded', async () => {
+    findUnique.mockResolvedValue({
+      id: 'pay-1',
+      amount: 200_000,
+      status: 'REFUNDED',
+      method: 'IPG',
+      provider: 'sep',
+      userId: 'ath-1',
+      bookingId: 'b-1',
+      metadataJson: '{}',
+      booking: { paymentMethod: 'IPG', userId: 'ath-1', guestMobile: null },
+    })
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'retry',
+    })
+    expect(result.refunded).toBe(false)
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+  })
+
+  it('does not credit the card amount again when that capture was already reversed', async () => {
+    paidIpg({
+      refNum: 'REF999',
+      confirmedAt: new Date().toISOString(),
+      gatewayReversed: true,
+      splitPay: true,
+      walletDebitAmount: 40_000,
+      splitFullAmount: 200_000,
+    })
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'athlete-cancel',
+    })
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(result.gatewayRefunded).toBe(true)
+    expect(result.refundChannel).toBe('gateway_reverse')
+    expect(creditWallet).toHaveBeenCalledWith('ath-1', 40_000, expect.anything(), expect.anything())
+    expect(creditWallet).not.toHaveBeenCalledWith('ath-1', 200_000, expect.anything(), expect.anything())
+  })
+
+  it('refuses the wallet credit while a historical reverse is still pending', async () => {
+    paidIpg({
+      refNum: 'REF999',
+      confirmedAt: new Date().toISOString(),
+      reversePending: true,
+    })
     const { refundPaymentForCancellation } = await import('./refunds')
     await expect(refundPaymentForCancellation({
       paymentId: 'pay-1',
       userId: 'ath-1',
       reason: 'athlete-cancel',
-      moneyOutcome: 'full_wallet_refund',
     })).rejects.toMatchObject({ statusMessage: 'SEP_REVERSE_PENDING' })
     expect(creditWallet).not.toHaveBeenCalled()
-    expect(rootUpdate).toHaveBeenCalled()
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
+  })
+
+  it('keeps desk cash out of the athlete wallet', async () => {
+    findUnique.mockResolvedValue({
+      id: 'pay-1',
+      amount: 200_000,
+      status: 'PAID',
+      method: 'CASH',
+      provider: 'pay_at_club',
+      userId: 'ath-1',
+      bookingId: 'b-1',
+      metadataJson: '{}',
+      booking: { paymentMethod: 'CASH', userId: 'ath-1', guestMobile: null },
+    })
+    const { refundPaymentForCancellation } = await import('./refunds')
+    const result = await refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      userId: 'ath-1',
+      reason: 'owner-cancel',
+    })
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(result.walletCredited).toBe(false)
+    expect(result.refundChannel).toBe('desk_cash')
+    expect(result.deskCashReturn).toBe('owed')
+    expect(creditWallet).not.toHaveBeenCalled()
   })
 })

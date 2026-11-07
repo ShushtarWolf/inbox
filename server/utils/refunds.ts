@@ -5,14 +5,13 @@ import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
   buildCancelRefundMetadata,
+  ordinaryCancelRefundGuard,
   parsePaymentMetadata,
   resolveRefundChannel,
   type DeskCashReturn,
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
-import { getPaymentsMode } from '#shared/payments.ts'
 import {
-  canAttemptSepReverse,
   isSepReverseAlreadyDoneError,
   isSepReverseAmbiguousError,
 } from '#shared/sepReverseWindow.ts'
@@ -47,15 +46,15 @@ async function persistPaymentMeta(paymentId: string, meta: Record<string, unknow
 }
 
 /**
- * Cancellation refunds are dual-rail:
- * - IPG within 25m of confirm (live SEP) → gateway reverse when possible; else wallet credit + clawback
- * - IPG / wallet PAID → closed-loop athlete wallet credit + owner clawback
- * - Desk CASH → no athlete credit; mark REFUNDED with deskCashReturn=owed; clawback only if a ledger row exists
+ * Ordinary cancellation refunds are dual-rail and do not reverse the card:
+ * - IPG, wallet checkout, and split pay → athlete wallet credit + club/coach clawback.
+ *   Bank payout is a separate withdraw request, never created here.
+ * - Desk CASH → no athlete credit and no Inbox settlement; deskCashReturn=owed.
+ * - Historical gatewayReversed → do not credit the card amount again (split wallet rail only).
+ * - Historical reversePending → refuse the credit so a possible bank reverse is not paid twice.
  *
  * Credit + REFUNDED + clawback run together. Pass `db` to nest inside cancel's transaction
- * so the slot is never freed unless money movement succeeds. Gateway reverse is attempted
- * before the DB transaction (external API). Ambiguous reverse (timeout) → reversePending,
- * no wallet credit (avoids double refund if SEP actually succeeded).
+ * so the slot is never freed unless money movement succeeds.
  */
 export async function refundPaymentForCancellation(options: {
   paymentId: string
@@ -98,77 +97,20 @@ export async function refundPaymentForCancellation(options: {
 
   let channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
   const bookingId = options.bookingId || payment.bookingId || undefined
-  let existingMeta = parsePaymentMetadata(payment.metadataJson)
+  const existingMeta = parsePaymentMetadata(payment.metadataJson)
+  const guard = ordinaryCancelRefundGuard(existingMeta)
 
-  let gatewayRefunded = existingMeta.gatewayReversed === true
-  const reverseAttempt = canAttemptSepReverse({
-    method: payment.method,
-    provider: payment.provider,
-    paymentsMode: getPaymentsMode(),
-    metadata: existingMeta,
-  })
-
-  // SEP reverses the whole charge — partial refunds must go closed-loop wallet instead.
-  if (!gatewayRefunded && channel === 'wallet_closed_loop' && reverseAttempt.ok && refundBps >= 10_000) {
-    const terminalId = process.env.SEP_TERMINAL_ID || process.env.NUXT_SEP_TERMINAL_ID || ''
-    if (terminalId) {
-      existingMeta = {
-        ...existingMeta,
-        reversePending: true,
-        reversePendingAt: new Date().toISOString(),
-      }
-      await persistPaymentMeta(payment.id, existingMeta)
-
-      try {
-        await sepReverseTransaction({ terminalId, refNum: reverseAttempt.refNum })
-        gatewayRefunded = true
-        channel = 'gateway_reverse'
-        existingMeta = {
-          ...existingMeta,
-          reversePending: false,
-          gatewayReversed: true,
-          gatewayRefund: true,
-          reverseResolvedAt: new Date().toISOString(),
-        }
-        await persistPaymentMeta(payment.id, existingMeta)
-      }
-      catch (err) {
-        if (isSepReverseAlreadyDoneError(err)) {
-          gatewayRefunded = true
-          channel = 'gateway_reverse'
-          existingMeta = {
-            ...existingMeta,
-            reversePending: false,
-            gatewayReversed: true,
-            gatewayRefund: true,
-            reverseResolvedAt: new Date().toISOString(),
-          }
-          await persistPaymentMeta(payment.id, existingMeta)
-        }
-        else if (isSepReverseAmbiguousError(err)) {
-          console.warn('[refunds] SEP reverse ambiguous; leaving reversePending', payment.id, err)
-          throw createError({
-            statusCode: 409,
-            statusMessage: 'SEP_REVERSE_PENDING',
-            data: { paymentId: payment.id, reversePending: true },
-          })
-        }
-        else {
-          console.warn('[refunds] SEP reverse failed; falling back to wallet', payment.id, err)
-          existingMeta = {
-            ...existingMeta,
-            reversePending: false,
-            reverseFailedAt: new Date().toISOString(),
-            reverseFailReason: err instanceof Error ? err.message : String(err),
-          }
-          await persistPaymentMeta(payment.id, existingMeta)
-        }
-      }
-    }
+  // A bank reverse may already have happened. Do not add a wallet credit on top.
+  if (guard.action === 'reverse_pending' && channel !== 'desk_cash') {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'SEP_REVERSE_PENDING',
+      data: { paymentId: payment.id, reversePending: true },
+    })
   }
-  else if (gatewayRefunded) {
-    channel = 'gateway_reverse'
-  }
+
+  const gatewayRefunded = guard.action === 'already_reversed'
+  if (gatewayRefunded) channel = 'gateway_reverse'
 
   // Prefer explicit cancel userId, then payment payer, then booking.userId.
   // Do NOT credit via guestMobile phone match — shared/wrong numbers hit the wrong wallet;
