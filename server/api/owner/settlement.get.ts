@@ -1,5 +1,6 @@
 import { getClubWithdrawableBalance } from '../../utils/settlement'
-import { isSettlementCashoutEligible, resolveClubCommissionBps } from '#shared/settlement.ts'
+import { buildClubCommissionEffective } from '#shared/clubCommissionEffective.ts'
+import { isSettlementCashoutEligible } from '#shared/settlement.ts'
 import { addDaysToIsoDate } from '#shared/localDate.ts'
 import {
   attachClubWalletBalanceAfter,
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
   ])
 
   const platformCommissionBps = await loadPlatformCommissionBps()
+  const commission = buildClubCommissionEffective(club.commissionBps, platformCommissionBps)
 
   const shebaUiStatus = resolveShebaRequestUiStatus({
     approvedSheba: shebaState.sheba,
@@ -153,7 +155,8 @@ export default defineEventHandler(async (event) => {
     },
     pendingReleases,
     statement,
-    commissionBps: resolveClubCommissionBps(club.commissionBps, platformCommissionBps),
+    commissionBps: commission.effectiveBps,
+    commission,
     ledger: recentCredits.map((entry) => ({
       id: entry.id,
       paymentId: entry.paymentId,

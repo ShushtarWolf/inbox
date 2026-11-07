@@ -27,6 +27,9 @@ vi.mock('./reversedStillPaid', () => ({
 }))
 
 vi.stubGlobal('prisma', {
+  platformCommissionSetting: {
+    findUnique: async () => ({ commissionBps: 1000 }),
+  },
   payment: { findUnique: (...args: unknown[]) => findUniquePayment(...args) },
   settlementLedgerEntry: {
     findUnique: (...args: unknown[]) => findUniqueLedger(...args),

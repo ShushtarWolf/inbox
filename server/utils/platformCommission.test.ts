@@ -31,12 +31,12 @@ describe('loadPlatformCommissionBps', () => {
     await expect(loadPlatformCommissionBps()).resolves.toBe(750)
   })
 
-  it('falls back to env when database row is missing', async () => {
+  it('uses safe default 0 when database row is missing (ignores legacy env)', async () => {
     findUniqueSetting.mockResolvedValue(null)
     process.env.PLATFORM_COMMISSION_BPS = '500'
     const { loadPlatformCommissionBps, invalidatePlatformCommissionCache } = await import('./platformCommission.ts')
     invalidatePlatformCommissionCache()
-    await expect(loadPlatformCommissionBps()).resolves.toBe(500)
+    await expect(loadPlatformCommissionBps()).resolves.toBe(0)
   })
 
   it('defaults to 0 when database and env are unset', async () => {

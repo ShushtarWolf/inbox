@@ -136,12 +136,20 @@ type OwnerPendingRelease = {
   amount: number
 }
 
+type OwnerCommissionInfo = {
+  effectiveBps: number
+  clubBps: number | null
+  platformDefaultBps: number
+  clubPromoZero: boolean
+}
+
 type OwnerSettlementResponse = {
   sheba?: string | null
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: ShebaRequestPayload | null
   lastShebaRejection?: { adminNote?: string | null; reviewedAt?: string | null } | null
   commissionBps?: number
+  commission?: OwnerCommissionInfo
   balance?: number
   lockedBalance?: number
   withdrawableBalance?: number
@@ -288,7 +296,14 @@ const shebaStatusMessage = computed(() => {
   return ''
 })
 
-const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
+const commissionBpsEffective = computed(() => {
+  const raw = settlement.value?.commission?.effectiveBps ?? settlement.value?.commissionBps
+  return raw == null || !Number.isFinite(Number(raw)) ? null : Math.floor(Number(raw))
+})
+const commissionPct = computed(() => (
+  commissionBpsEffective.value == null ? null : Math.round(commissionBpsEffective.value / 100)
+))
+const commissionPromoZero = computed(() => Boolean(settlement.value?.commission?.clubPromoZero))
 
 async function submitInternalTransfer() {
   if (!transferCoachId.value || !transferAmount.value) return
@@ -926,8 +941,14 @@ function showUnpaidList() {
 
       <div v-if="showPayoutsSection && bookRail !== 'cash'" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="text-sm text-brand-gray-600">
+        <p v-if="commissionPct == null" class="text-sm text-brand-gray-500">
+          {{ t('owner.financePage.commissionUnsettled') }}
+        </p>
+        <p v-else class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
+        </p>
+        <p v-if="commissionPromoZero" class="text-xs text-brand-gray-600">
+          {{ t('owner.financePage.commissionPromoZeroNote') }}
         </p>
         <p class="text-xs font-bold text-red-600 text-start" role="note">
           {{ t('owner.financePage.payoutOwnerOnlyNotice') }}

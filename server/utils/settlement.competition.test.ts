@@ -9,6 +9,9 @@ const clubWalletTxCreate = vi.fn()
 const transaction = vi.fn()
 
 vi.stubGlobal('prisma', {
+  platformCommissionSetting: {
+    findUnique: async () => ({ commissionBps: 1000 }),
+  },
   payment: { findUnique: (...args: unknown[]) => findUniquePayment(...args) },
   settlementLedgerEntry: {
     findUnique: (...args: unknown[]) => findUniqueLedger(...args),
