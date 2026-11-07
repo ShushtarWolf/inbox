@@ -33,6 +33,18 @@ const prismaMock = {
 
 vi.stubGlobal('prisma', prismaMock)
 
+describe('resolveOtpResendCooldownMs', () => {
+  it('keeps the 60s default and honors an explicit zero', async () => {
+    const { resolveOtpResendCooldownMs } = await import('./otp')
+    expect(resolveOtpResendCooldownMs(undefined)).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('')).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('0')).toBe(0)
+    expect(resolveOtpResendCooldownMs('15000')).toBe(15_000)
+    expect(resolveOtpResendCooldownMs('nope')).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('-1')).toBe(60_000)
+  })
+})
+
 describe('createAndSendPhoneOtp resend cooldown', () => {
   beforeEach(() => {
     vi.clearAllMocks()
