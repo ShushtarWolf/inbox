@@ -32,6 +32,7 @@
     "db:correct-cash-settlements": "node scripts/correct-cash-settlements.mjs",
     "db:correct-phantom-wallet-credits": "node scripts/correct-phantom-wallet-credits.mjs",
     "db:correct-series-refund-gaps": "node scripts/correct-series-refund-gaps.mjs",
+    "db:repair-historical-refunds": "node --import tsx scripts/repair-historical-cancel-refunds.ts",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:studio": "prisma studio",
     "sms:status": "node --import tsx scripts/sms-status.ts",

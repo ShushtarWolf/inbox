@@ -828,7 +828,12 @@ export async function clawbackOwnerForPayment(paymentId: string, db: DbClient = 
     // Conditional claim: a concurrent clawback that already set clawedBackAt must not debit twice.
     const claimed = await tx.settlementLedgerEntry.updateMany({
       where: { id: current.id, clawedBackAt: null },
-      data: { clawedBackAt: new Date() },
+      data: {
+        clawedBackAt: new Date(),
+        // Athlete is refunded gross elsewhere. This records the platform slice
+        // (gross - ownerNet) so the two liabilities add up. Does not change the clawback amount.
+        commissionReversed: current.commission,
+      },
     })
     if (claimed.count !== 1) {
       return { clawed: false as const, reason: 'already_clawed' as const, entry: current }
@@ -998,12 +1003,13 @@ export async function clawbackOwnerPartialForPayment(opts: {
       }, tx)
     }
 
-    if (alreadyClawed + net >= clawCap) {
-      await tx.settlementLedgerEntry.update({
-        where: { id: current.id },
-        data: { clawedBackAt: new Date() },
-      })
-    }
+    const fullyClawed = alreadyClawed + net >= clawCap
+    await tx.settlementLedgerEntry.update({
+      where: { id: current.id },
+      data: fullyClawed
+        ? { clawedBackAt: new Date(), commissionReversed: current.commission }
+        : { commissionReversed: { increment: Math.max(0, opts.grossRefundAmount - net) } },
+    })
 
     return { clawed: true as const, reason: 'ok' as const, amount: net, entry: current }
   }
@@ -1012,6 +1018,50 @@ export async function clawbackOwnerPartialForPayment(opts: {
     return prisma.$transaction(run)
   }
   return run(db as Prisma.TransactionClient)
+}
+
+/**
+ * Move club funds that already exist (available, then locked settlement) to pay a
+ * competition wallet prize. Rejects when balance cannot cover the prize. Never goes negative.
+ */
+export async function debitClubWalletForPrize(
+  clubId: string,
+  amount: number,
+  note: string,
+  db: DbClient,
+) {
+  if (amount <= 0) return { debited: false as const }
+  const wallet = await getOrCreateClubWallet(clubId, db)
+  const fromLocked = Math.min(wallet.lockedBalance, amount)
+  const fromAvailable = amount - fromLocked
+  if (wallet.balance < amount || fromAvailable > wallet.availableBalance) {
+    throw createError({ statusCode: 409, statusMessage: 'PRIZE_UNFUNDED' })
+  }
+  const claimed = await db.clubWallet.updateMany({
+    where: {
+      id: wallet.id,
+      balance: { gte: amount },
+      lockedBalance: { gte: fromLocked },
+      availableBalance: { gte: fromAvailable },
+    },
+    data: {
+      balance: { decrement: amount },
+      lockedBalance: { decrement: fromLocked },
+      availableBalance: { decrement: fromAvailable },
+    },
+  })
+  if (claimed.count !== 1) {
+    throw createError({ statusCode: 409, statusMessage: 'PRIZE_UNFUNDED' })
+  }
+  await db.clubWalletTransaction.create({
+    data: {
+      walletId: wallet.id,
+      amount: -amount,
+      type: 'ADJUSTMENT',
+      note,
+    },
+  })
+  return { debited: true as const, amount }
 }
 
 export async function requestClubWithdraw(options: {

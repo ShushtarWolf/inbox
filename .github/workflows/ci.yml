@@ -108,6 +108,8 @@ jobs:
       OTP_PHONE_VERIFY_MAX: 100
       # E2E reuses seed athlete phone across specs — prod cooldown would 429 mid-suite.
       OTP_RESEND_COOLDOWN_MS: 0
+      # Go/no-go uses per-case XFF hops; extra headroom for S-03 burst vs validation cases.
+      COMPETITION_JOIN_RATE_LIMIT_MAX: 20
 
     steps:
       - uses: actions/checkout@v4

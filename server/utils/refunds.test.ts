@@ -182,27 +182,22 @@ describe('refundPaymentForCancellation', () => {
     })
   })
 
-  it('IPG guest without linked user: flags manual bank refund (no phone-match credit)', async () => {
+  it('IPG guest without a linked account does not complete the refund', async () => {
     findUnique.mockResolvedValue({
       ...sepPaid,
       userId: null,
       bookingId: 'b1',
-      booking: { paymentMethod: null, userId: null, guestMobile: '09022900854' },
+      booking: { paymentMethod: null, userId: null, guestMobile: '09120000000' },
     })
     bookingFindUnique.mockResolvedValue({ userId: null })
-    const result = await refundPaymentForCancellation({
+    await expect(refundPaymentForCancellation({
       paymentId: 'pay-1',
       userId: null,
       reason: 'owner-cancel',
       bookingId: 'b1',
-    })
+    })).rejects.toMatchObject({ statusMessage: 'REFUND_ACCOUNT_REQUIRED' })
     expect(creditWallet).not.toHaveBeenCalled()
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        metadataJson: expect.stringContaining('"manualRefundRequired":true'),
-      }),
-    }))
-    expect(result.walletCredited).toBe(false)
+    expect(update).not.toHaveBeenCalled()
   })
 
   it('falls back to payment.userId when cancel userId is null', async () => {

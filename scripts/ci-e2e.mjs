@@ -29,6 +29,9 @@ function startServer() {
       HOST: '127.0.0.1',
       NITRO_HOST: '127.0.0.1',
       NITRO_PORT: port,
+      // Serial CI specs reuse one seeded athlete phone. `0` is a real cooldown
+      // (the old `|| 60_000` parser treated it as unset). Production stays at 60s.
+      OTP_RESEND_COOLDOWN_MS: '0',
     },
   })
   child.stdout.on('data', (chunk) => process.stdout.write(`[server] ${chunk}`))
