@@ -163,6 +163,25 @@ async function main() {
     record('F-08', res.status === 401, 'unauthenticated join → 401')
   }
 
+  // F-10 Athletes cannot self-select pay-at-club for competition entry — before join volume
+  // exhausts the shared CI IP bucket (default 10/min); must assert 400 not 429.
+  {
+    const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
+    const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
+      jar: athletes[0].jar,
+      session: athletes[0].session,
+      method: 'POST',
+      body: { payAtClub: true },
+      expectStatus: 400,
+    })
+    const msg = String(join.data?.statusMessage || join.data?.message || '')
+    record(
+      'F-10',
+      join.res.status === 400 && /PAY_AT_CLUB_NOT_ALLOWED/i.test(msg),
+      `status=${join.res.status} msg=${msg || JSON.stringify(join.data)}`,
+    )
+  }
+
   // F-07 Doubles partner required
   {
     const comp = await createOpenCompetition({ enrollmentType: 'DOUBLE', maxParticipants: 4, minParticipants: 2 })
@@ -447,24 +466,6 @@ async function main() {
     }
 
     record('OPS-01', defaultOff && pilotOnly, 'isCompetitionsEnabled / isCompetitionsVisibleForClub')
-  }
-
-  // F-10 Athletes cannot self-select pay-at-club for competition entry
-  {
-    const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
-    const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
-      jar: athletes[0].jar,
-      session: athletes[0].session,
-      method: 'POST',
-      body: { payAtClub: true },
-      expectStatus: 400,
-    })
-    const msg = String(join.data?.statusMessage || join.data?.message || '')
-    record(
-      'F-10',
-      join.res.status === 400 && /PAY_AT_CLUB_NOT_ALLOWED/i.test(msg),
-      `status=${join.res.status} msg=${msg || JSON.stringify(join.data)}`,
-    )
   }
 
   // S-03 Rate limit on join — run last so the burst does not break earlier join tests
