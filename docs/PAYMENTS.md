@@ -176,7 +176,7 @@ Owner wallet credits on **IPG / wallet** collected payments (`PLATFORM_COMMISSIO
 
 **Admin payout dual-control:** when `PAYMENTS_MODE=live`, `ADMIN_PAYOUT_CONFIRM` **must** be set and mark-paid requires header `x-admin-payout-confirm`. Non-live: soft dual-control via body `confirmPayout: true` (or the header when env is set).
 
-On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261104190000_platform_commission_setting` (admin default row; runtime does **not** use legacy env when the row exists). Optional env: `PLATFORM_COMMISSION_BPS=0` (diagnostics/bootstrap only), `COACH_COMMISSION_BPS=0`, `ATHLETE_WITHDRAW_*_TOMAN` (or legacy `*_IRR`), `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS=24`, `ADMIN_PAYOUT_CONFIRM=…`.
+On Liara after deploy: ensure `prisma migrate deploy` has applied through `20261104180000_money_enforcement_review`. Optional env: `PLATFORM_COMMISSION_BPS=0`, `COACH_COMMISSION_BPS=0`, `ATHLETE_WITHDRAW_*_TOMAN` (or legacy `*_IRR`), `ATHLETE_TOPUP_CASHOUT_HOLD_HOURS=24`, `ADMIN_PAYOUT_CONFIRM=…`.
 
 ## Signed intentional decisions (not bugs)
 

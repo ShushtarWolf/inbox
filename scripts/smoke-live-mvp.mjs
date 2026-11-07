@@ -118,7 +118,7 @@ async function main() {
   })
   assert(beforeSettlement.res.ok, `settlement before → ${beforeSettlement.res.status}`)
   const balanceBefore = Number(beforeSettlement.data.balance || 0)
-  const commissionBps = Number(beforeSettlement.data.commissionBps ?? 0)
+  const commissionBps = Number(beforeSettlement.data.commissionBps ?? 1000)
 
   // --- STEP 2: paid event ---
   const { res: paidRes, data: paid } = await apiFetch(base, '/api/owner/reserve', {

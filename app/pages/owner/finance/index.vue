@@ -2,6 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -136,20 +137,12 @@ type OwnerPendingRelease = {
   amount: number
 }
 
-type OwnerCommissionInfo = {
-  effectiveBps: number
-  clubBps: number | null
-  platformDefaultBps: number
-  clubPromoZero: boolean
-}
-
 type OwnerSettlementResponse = {
   sheba?: string | null
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: ShebaRequestPayload | null
   lastShebaRejection?: { adminNote?: string | null; reviewedAt?: string | null } | null
   commissionBps?: number
-  commission?: OwnerCommissionInfo
   balance?: number
   lockedBalance?: number
   withdrawableBalance?: number
@@ -190,7 +183,7 @@ const financeQuery = computed(() => {
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
   query: financeQuery,
 })
-const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
+const { data: settlement, pending: settlementPending, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
   immediate: false,
   watch: false,
 })
@@ -296,14 +289,11 @@ const shebaStatusMessage = computed(() => {
   return ''
 })
 
-const commissionBpsEffective = computed(() => {
-  const raw = settlement.value?.commission?.effectiveBps ?? settlement.value?.commissionBps
-  return raw == null || !Number.isFinite(Number(raw)) ? null : Math.floor(Number(raw))
-})
-const commissionPct = computed(() => (
-  commissionBpsEffective.value == null ? null : Math.round(commissionBpsEffective.value / 100)
+/** Authoritative rate from GET /api/owner/settlement — no client-side resolution. */
+const commissionPct = computed(() => ownerSettlementCommissionPct(
+  settlement.value?.commissionBps,
+  settlementPending.value,
 ))
-const commissionPromoZero = computed(() => Boolean(settlement.value?.commission?.clubPromoZero))
 
 async function submitInternalTransfer() {
   if (!transferCoachId.value || !transferAmount.value) return
@@ -946,9 +936,6 @@ function showUnpaidList() {
         </p>
         <p v-else class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
-        </p>
-        <p v-if="commissionPromoZero" class="text-xs text-brand-gray-600">
-          {{ t('owner.financePage.commissionPromoZeroNote') }}
         </p>
         <p class="text-xs font-bold text-red-600 text-start" role="note">
           {{ t('owner.financePage.payoutOwnerOnlyNotice') }}

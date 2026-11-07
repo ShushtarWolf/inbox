@@ -37,12 +37,11 @@ export async function loadPlatformCommissionBps(db: DbClient = prisma): Promise<
       return bps
     }
   } catch {
-    // Prisma mock / pre-migrate tests — use safe default below (not legacy env).
+    // Prisma mock / pre-migrate tests — fall through to env
   }
-  // Missing row: pilot-safe 0%. Legacy PLATFORM_COMMISSION_BPS env is diagnostics-only
-  // (admin platform-commission page) — avoid showing/charging 10% when DB admin default is 0.
-  cache = { bps: DEFAULT_PLATFORM_COMMISSION_BPS, at: Date.now() }
-  return DEFAULT_PLATFORM_COMMISSION_BPS
+  const fromEnv = resolvePlatformCommissionBps()
+  cache = { bps: fromEnv, at: Date.now() }
+  return fromEnv
 }
 
 export type PlatformCommissionAdminView = {
