@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { loginAthleteViaApi } from './helpers/phone-otp.ts'
 
 const ARTIFACT_DIR = process.env.DESIGN_PARITY_SHOT_DIR
   || path.join(process.cwd(), 'artifacts', 'design-ui-parity')
@@ -11,16 +12,7 @@ function shotPath(name: string) {
 }
 
 async function loginAthlete(page: Page) {
-  const otpReq = await page.request.post('/api/auth/otp/request', {
-    data: { phone: '09121234567', purpose: 'login' },
-  })
-  expect(otpReq.ok()).toBeTruthy()
-  const { debugCode } = await otpReq.json() as { debugCode?: string }
-  expect(debugCode).toBeTruthy()
-  const verify = await page.request.post('/api/auth/otp/verify', {
-    data: { phone: '09121234567', code: debugCode, purpose: 'login' },
-  })
-  expect(verify.ok()).toBeTruthy()
+  await loginAthleteViaApi(page)
 }
 
 async function loginOwner(page: Page) {
