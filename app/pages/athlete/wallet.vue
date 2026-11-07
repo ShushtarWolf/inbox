@@ -126,6 +126,9 @@ function txLabel(tx: { type?: string; amount: number; refundChannelKey?: string 
     return t('athlete.walletTypeRefund')
   }
   if (tx.type === 'PAYMENT_DEBIT') return t('athlete.walletTypePayment')
+  if (tx.type === 'IPG_BOOKING_CREDIT') return t('athlete.walletTypeIpgInflow')
+  if (tx.type === 'IPG_BOOKING_DEBIT') return t('athlete.walletTypeIpgBooking')
+  if (tx.type === 'IPG_RETURNED_TO_CARD') return t('athlete.walletTypeIpgCardReturn')
   if (tx.type === 'TOPUP_CREDIT') return t('athlete.walletTypeTopUp')
   if (tx.type === 'WITHDRAW_HOLD') return t('athlete.walletTypeWithdrawHold')
   if (tx.type === 'WITHDRAW_RELEASE') return t('athlete.walletTypeWithdrawRelease')

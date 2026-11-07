@@ -25,6 +25,15 @@ describe('athleteCashOutFromTxs', () => {
     ], now, 24 * 60 * 60 * 1000)).toBe(200_000)
   })
 
+  it('ignores the IPG booking pair and a card-return row', () => {
+    expect(athleteCashOutFromTxs([
+      { type: 'TOPUP_CREDIT', amount: 80_000, createdAt: '2026-01-01T00:00:00Z' },
+      { type: 'IPG_BOOKING_CREDIT', amount: 2_500 },
+      { type: 'IPG_BOOKING_DEBIT', amount: -2_500 },
+      { type: 'IPG_RETURNED_TO_CARD', amount: -2_500 },
+    ], new Date('2026-02-01T00:00:00Z'), 0)).toBe(80_000)
+  })
+
   it('holds fresh REFUND_CREDIT too (card → booking → cancel → SHEBA)', () => {
     const now = new Date('2026-01-02T12:00:00Z')
     expect(athleteCashOutFromTxs([

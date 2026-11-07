@@ -253,6 +253,8 @@ export async function creditWallet(
     note?: string
     /** Credit into locked (pending class settlement). Default: available. */
     locked?: boolean
+    /** Reconciliation only. Null on a live capture. Never backdates createdAt. */
+    originalEventAt?: Date | null
   },
   db: DbClient = prisma,
 ) {
@@ -261,7 +263,12 @@ export async function creditWallet(
   }
   const type = meta.type || 'REFUND_CREDIT'
   const idempotent = Boolean(
-    meta.paymentId && (type === 'REFUND_CREDIT' || type === 'TOPUP_CREDIT' || type === 'SETTLEMENT_CREDIT'),
+    meta.paymentId && (
+      type === 'REFUND_CREDIT'
+      || type === 'TOPUP_CREDIT'
+      || type === 'SETTLEMENT_CREDIT'
+      || type === 'IPG_BOOKING_CREDIT'
+    ),
   )
 
   const apply = async (tx: DbClient) => {
@@ -295,6 +302,7 @@ export async function creditWallet(
         bookingId: meta.bookingId,
         withdrawRequestId: meta.withdrawRequestId,
         note: meta.note,
+        originalEventAt: meta.originalEventAt ?? undefined,
       },
     })
     return updated
@@ -499,6 +507,8 @@ export async function debitWallet(
     allowNegative?: boolean
     /** Debit locked instead of available (class settlement clawback). */
     fromLocked?: boolean
+    /** Reconciliation only. Null on a live capture. Never backdates createdAt. */
+    originalEventAt?: Date | null
   },
   db: DbClient = prisma,
 ) {
@@ -507,7 +517,13 @@ export async function debitWallet(
   }
   const type = meta.type || 'PAYMENT_DEBIT'
   // Checkout retries / concurrent wallet pay: one PAYMENT_DEBIT per payment (+ booking for series).
-  const idempotent = Boolean(meta.paymentId && type === 'PAYMENT_DEBIT')
+  const idempotent = Boolean(
+    meta.paymentId && (
+      type === 'PAYMENT_DEBIT'
+      || type === 'IPG_BOOKING_DEBIT'
+      || type === 'IPG_RETURNED_TO_CARD'
+    ),
+  )
 
   const apply = async (tx: DbClient) => {
     const wallet = await getOrCreateWallet(userId, tx)
@@ -543,6 +559,7 @@ export async function debitWallet(
           bookingId: meta.bookingId,
           withdrawRequestId: meta.withdrawRequestId,
           note: meta.note,
+          originalEventAt: meta.originalEventAt ?? undefined,
         },
       })
       return updated
@@ -583,6 +600,7 @@ export async function debitWallet(
         bookingId: meta.bookingId,
         withdrawRequestId: meta.withdrawRequestId,
         note: meta.note,
+        originalEventAt: meta.originalEventAt ?? undefined,
       },
     })
     return updated
