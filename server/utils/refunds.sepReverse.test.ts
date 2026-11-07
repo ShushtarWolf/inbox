@@ -196,6 +196,28 @@ describe('ordinary online cancel credits the wallet and does not reverse the car
     expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
   })
 
+  it('refuses an online refund when no account can receive the wallet credit', async () => {
+    findUnique.mockResolvedValue({
+      id: 'pay-1',
+      amount: 200_000,
+      status: 'PAID',
+      method: 'IPG',
+      provider: 'sep',
+      userId: null,
+      bookingId: 'b-1',
+      metadataJson: JSON.stringify({ refNum: 'REF999', confirmedAt: new Date().toISOString() }),
+      booking: { paymentMethod: 'IPG', userId: null, guestMobile: '09120000000' },
+    })
+    const { refundPaymentForCancellation } = await import('./refunds')
+    await expect(refundPaymentForCancellation({
+      paymentId: 'pay-1',
+      reason: 'guest-cancel',
+    })).rejects.toMatchObject({ statusMessage: 'REFUND_ACCOUNT_REQUIRED' })
+    expect(creditWallet).not.toHaveBeenCalled()
+    expect(sepReverseTransaction).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('keeps desk cash out of the athlete wallet', async () => {
     findUnique.mockResolvedValue({
       id: 'pay-1',

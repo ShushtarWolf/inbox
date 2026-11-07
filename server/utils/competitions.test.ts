@@ -132,6 +132,8 @@ vi.mock('./refunds', () => ({
 
 vi.mock('./settlement', () => ({
   creditOwnerForPaidPayment: vi.fn().mockResolvedValue({ credited: true, reason: 'ok' }),
+  unlockEligibleClubSettlements: vi.fn().mockResolvedValue({}),
+  debitClubWalletForPrize: vi.fn().mockResolvedValue({ debited: true, amount: 1_000_000 }),
 }))
 
 vi.mock('./discountCodes', () => ({
@@ -425,7 +427,7 @@ describe('cancelCompetitionEntry partner cancel', () => {
     )
   })
 
-  it('sets refundPending when IPG reverse and wallet fallback both fail', async () => {
+  it('does not mark the entry refunded when the wallet was not credited', async () => {
     findUniqueEntry.mockResolvedValue({
       id: 'entry-1',
       status: 'CONFIRMED',
@@ -452,21 +454,12 @@ describe('cancelCompetitionEntry partner cancel', () => {
       amount: 200000,
     })
 
-    const result = await cancelCompetitionEntry({
+    await expect(cancelCompetitionEntry({
       entryId: 'entry-1',
       athleteId: 'athlete-1',
       reason: 'Cancel',
-    })
-
-    expect(result.refundPending).toBe(true)
-    expect(updatePayment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'pay-1' },
-        data: expect.objectContaining({
-          metadataJson: expect.stringContaining('refundPending'),
-        }),
-      }),
-    )
+    })).rejects.toThrow(/REFUND_ACCOUNT_REQUIRED/)
+    expect(updateEntry).not.toHaveBeenCalled()
   })
 
   it('rejects cancel from unrelated athlete', async () => {
@@ -842,6 +835,7 @@ describe('awardCompetitionPrizes', () => {
       club: { id: 'club-1' },
     })
 
+    const { debitClubWalletForPrize } = await import('./settlement')
     const first = await awardCompetitionPrizes('comp-1')
     expect(first.awards).toHaveLength(1)
     expect(first.awards[0]?.skipped).toBe(false)
@@ -864,6 +858,24 @@ describe('awardCompetitionPrizes', () => {
     const second = await awardCompetitionPrizes('comp-1')
     expect(second.awards[0]?.skipped).toBe(true)
     expect(creditWallet).toHaveBeenCalledTimes(1)
+    expect(debitClubWalletForPrize).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not credit a wallet prize the club cannot fund', async () => {
+    const { debitClubWalletForPrize } = await import('./settlement')
+    vi.mocked(debitClubWalletForPrize).mockRejectedValueOnce(
+      Object.assign(new Error('PRIZE_UNFUNDED'), { statusMessage: 'PRIZE_UNFUNDED' }),
+    )
+    findUniqueOrThrowCompetition.mockResolvedValue({
+      ...openCompetition,
+      status: 'COMPLETED',
+      prizesAwardedAt: null,
+      prizeAwardAuditJson: null,
+      club: { id: 'club-1' },
+    })
+    prizeAwardFindUnique.mockResolvedValue(null)
+    await expect(awardCompetitionPrizes('comp-1')).rejects.toThrow(/PRIZE_UNFUNDED/)
+    expect(creditWallet).not.toHaveBeenCalled()
   })
 })
 

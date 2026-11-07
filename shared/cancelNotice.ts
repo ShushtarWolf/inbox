@@ -19,6 +19,7 @@ export type AthleteCancelNoticeKey =
   | 'booking.refundReversePending'
   | 'booking.refundAlreadyOnCard'
   | 'booking.refundManualPending'
+  | 'booking.refundAccountRequired'
 
 export function athleteCancelNoticeKey(input: AthleteCancelNoticeInput): AthleteCancelNoticeKey | null {
   if (input.reversePending) return 'booking.refundReversePending'
@@ -38,5 +39,6 @@ export function athleteCancelNoticeKey(input: AthleteCancelNoticeInput): Athlete
 export function athleteCancelErrorNoticeKey(message: string | null | undefined): AthleteCancelNoticeKey | null {
   if (!message) return null
   if (message.includes('SEP_REVERSE_PENDING')) return 'booking.refundReversePending'
+  if (message.includes('REFUND_ACCOUNT_REQUIRED')) return 'booking.refundAccountRequired'
   return null
 }

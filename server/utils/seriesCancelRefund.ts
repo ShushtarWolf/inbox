@@ -13,6 +13,7 @@ import {
   parsePaymentMetadata,
   resolveRefundChannel,
 } from '#shared/cancelRefund.ts'
+import type { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import type { RefundResult } from './refunds'
 import { refundPaymentForCancellation } from './refunds'
@@ -134,6 +135,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
   reason: string
   moneyOutcome?: CancelMoneyOutcome
   refundBps?: number
+  db?: Prisma.TransactionClient
 }): Promise<RefundResult | null> {
   if (opts.moneyOutcome === 'zero_refund') {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
@@ -175,6 +177,8 @@ export async function refundAfterSeriesSessionCancel(opts: {
         reason: opts.reason,
         moneyOutcome: opts.moneyOutcome,
         refundBps: opts.refundBps,
+        db: opts.db,
+        syncParent: !opts.db,
       })
     }
     // Partial residual: wallet credit + pro-rata owner clawback in one txn.
@@ -191,6 +195,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
       reason: opts.reason,
       primaryMeta,
       markRefunded: true,
+      db: opts.db,
     })
   }
 
@@ -218,6 +223,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
     reason: opts.reason,
     primaryMeta,
     markRefunded: false,
+    db: opts.db,
   })
 }
 
@@ -232,10 +238,11 @@ async function applySeriesSessionRefund(opts: {
   reason: string
   primaryMeta: SeriesPaymentMeta
   markRefunded: boolean
+  db?: Prisma.TransactionClient
 }): Promise<RefundResult> {
   const channel = resolveRefundChannel(opts.method, opts.bookingPaymentMethod)
 
-  const applied = await prisma.$transaction(async (tx) => {
+  const run = async (tx: Prisma.TransactionClient) => {
     // Row lock serializes session cancels on one series payment; totals below are read fresh.
     await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${opts.paymentId} FOR UPDATE`
     const fresh = await tx.payment.findUniqueOrThrow({ where: { id: opts.paymentId } })
@@ -312,7 +319,8 @@ async function applySeriesSessionRefund(opts: {
       },
     })
     return { amount: capped, walletCredited, gatewayRefunded: historicallyReversed, refundChannel }
-  })
+  }
+  const applied = opts.db ? await run(opts.db) : await prisma.$transaction(run)
 
   if (applied.amount <= 0) {
     return {
@@ -369,6 +377,54 @@ export async function cancelUnpaidSeriesSiblings(opts: {
     cancelled.push(sibling.id)
   }
   return cancelled
+}
+
+/**
+ * Refund the series share and free this slot in one transaction.
+ * A failure rolls both back, so the court is not left free without the wallet credit.
+ */
+export async function cancelSeriesSessionWithSlot(opts: {
+  bookingId: string
+  slotId: string
+  actorUserId?: string
+  userId?: string | null
+  reason: string
+  moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
+}) {
+  const { cancelCourtBooking } = await import('./cancellations')
+  let refund: RefundResult | null = null
+  await prisma.$transaction(async (tx) => {
+    refund = await refundAfterSeriesSessionCancel({
+      cancelledBookingId: opts.bookingId,
+      userId: opts.userId,
+      reason: opts.reason,
+      moneyOutcome: opts.moneyOutcome,
+      refundBps: opts.refundBps,
+      db: tx,
+    })
+    await cancelCourtBooking({
+      bookingId: opts.bookingId,
+      slotId: opts.slotId,
+      actorUserId: opts.actorUserId,
+      reason: opts.reason,
+      paymentId: null,
+      userId: opts.userId,
+      moneyOutcome: 'zero_refund',
+      db: tx,
+    })
+  })
+  try {
+    const loaded = await loadSeriesGroupForBooking(opts.bookingId)
+    if (loaded) {
+      const { syncPaymentToParent } = await import('./paymentSync')
+      await syncPaymentToParent(loaded.primaryPayment.id)
+    }
+  }
+  catch (err) {
+    console.error('[cancelSeriesSessionWithSlot:sync]', opts.bookingId, err)
+  }
+  return refund
 }
 
 /** True when payment metadata indicates a multi-session pay group (season or basket). */

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { syncClubContactForBooking } from './contactSync'
 import { syncPaymentToParent } from './paymentSync'
@@ -20,6 +21,8 @@ export async function cancelCourtBooking(options: {
   moneyOutcome?: CancelMoneyOutcome
   refundBps?: number
   skipLinkedCoachSession?: boolean
+  /** Join an open transaction. Caller syncs parents after commit. */
+  db?: Prisma.TransactionClient
 }) {
   const moneyOutcome = options.moneyOutcome
     || (options.skipWallet ? 'zero_refund' : 'full_wallet_refund')
@@ -38,68 +41,80 @@ export async function cancelCourtBooking(options: {
   let linkedRefund = null as RefundResult | null
   const paymentsToSync: string[] = []
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: options.bookingId },
+  const run = async (tx: Prisma.TransactionClient) => {
+    await tx.booking.update({
+      where: { id: options.bookingId },
+      data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: options.reason },
+    })
+    await tx.slot.update({ where: { id: options.slotId }, data: { displayStatus: 'FREE' } })
+    await tx.reservationEvent.create({
+      data: {
+        bookingId: options.bookingId,
+        actorUserId: options.actorUserId,
+        type: 'CANCELLED',
+        metadataJson: JSON.stringify({ reason: options.reason }),
+      },
+    })
+
+    if (options.paymentId) {
+      refund = await refundPaymentForCancellation({
+        paymentId: options.paymentId,
+        userId: options.userId,
+        bookingId: options.bookingId,
+        reason: options.reason,
+        moneyOutcome,
+        refundBps,
+        db: tx,
+        syncParent: false,
+      })
+      if (refund.refunded) paymentsToSync.push(options.paymentId)
+    }
+
+    if (linkedActive) {
+      await tx.coachSession.update({
+        where: { id: linkedActive.id },
         data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: options.reason },
       })
-      await tx.slot.update({ where: { id: options.slotId }, data: { displayStatus: 'FREE' } })
       await tx.reservationEvent.create({
         data: {
-          bookingId: options.bookingId,
+          coachSessionId: linkedActive.id,
           actorUserId: options.actorUserId,
           type: 'CANCELLED',
           metadataJson: JSON.stringify({ reason: options.reason }),
         },
       })
-
-      if (options.paymentId) {
-        refund = await refundPaymentForCancellation({
-          paymentId: options.paymentId,
-          userId: options.userId,
-          bookingId: options.bookingId,
+      if (linkedActive.payment?.id) {
+        linkedRefund = await refundPaymentForCancellation({
+          paymentId: linkedActive.payment.id,
+          userId: linkedActive.athleteId,
           reason: options.reason,
           moneyOutcome,
           refundBps,
           db: tx,
           syncParent: false,
         })
-        if (refund.refunded) paymentsToSync.push(options.paymentId)
+        if (linkedRefund.refunded) paymentsToSync.push(linkedActive.payment.id)
       }
+    }
+  }
 
-      if (linkedActive) {
-        await tx.coachSession.update({
-          where: { id: linkedActive.id },
-          data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: options.reason },
-        })
-        await tx.reservationEvent.create({
-          data: {
-            coachSessionId: linkedActive.id,
-            actorUserId: options.actorUserId,
-            type: 'CANCELLED',
-            metadataJson: JSON.stringify({ reason: options.reason }),
-          },
-        })
-        if (linkedActive.payment?.id) {
-          linkedRefund = await refundPaymentForCancellation({
-            paymentId: linkedActive.payment.id,
-            userId: linkedActive.athleteId,
-            reason: options.reason,
-            moneyOutcome,
-            refundBps,
-            db: tx,
-            syncParent: false,
-          })
-          if (linkedRefund.refunded) paymentsToSync.push(linkedActive.payment.id)
-        }
-      }
-    })
+  try {
+    if (options.db) await run(options.db)
+    else await prisma.$transaction(run)
   }
   catch (err) {
     // Entire cancel+refund rolled back — slot stays booked, no orphan FREE without money.
     console.error('[cancelCourtBooking]', options.bookingId, err)
     throw err
+  }
+
+  if (options.db) {
+    return {
+      ok: true as const,
+      refund,
+      linkedRefund,
+      refundFailed: false as const,
+    }
   }
 
   await syncClubContactForBooking(options.bookingId)

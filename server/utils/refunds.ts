@@ -113,8 +113,7 @@ export async function refundPaymentForCancellation(options: {
   if (gatewayRefunded) channel = 'gateway_reverse'
 
   // Prefer explicit cancel userId, then payment payer, then booking.userId.
-  // Do NOT credit via guestMobile phone match — shared/wrong numbers hit the wrong wallet;
-  // guest IPG without a linked user stays manualBankRefund (ops ack).
+  // Do not match guestMobile to a user — a shared or wrong number would credit the wrong wallet.
   let creditUserId = options.userId || payment.userId || payment.booking?.userId || null
   if (!creditUserId && !gatewayRefunded && bookingId) {
     const booking = await db.booking.findUnique({
@@ -122,6 +121,16 @@ export async function refundPaymentForCancellation(options: {
       select: { userId: true },
     })
     creditUserId = booking?.userId || null
+  }
+
+  // Online money needs a real account. Phone-number matching is not a safe link.
+  // Do not mark the booking refunded or invent a manual bank payout.
+  if (channel === 'wallet_closed_loop' && !gatewayRefunded && !creditUserId) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'REFUND_ACCOUNT_REQUIRED',
+      data: { paymentId: payment.id },
+    })
   }
 
   const split = readSplitPayMeta(existingMeta)

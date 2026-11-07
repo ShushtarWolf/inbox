@@ -1441,6 +1441,12 @@ model SettlementLedgerEntry {
   commissionBps Int
   commission    Int
   ownerNet      Int
+  /**
+   * Platform commission given up so the athlete can be refunded the gross amount.
+   * Athlete refund = payee clawback + commissionReversed. Default 0 on rows
+   * clawed before this column existed and not yet backfilled by a later clawback.
+   */
+  commissionReversed Int @default(0)
   createdAt     DateTime  @default(now())
   clawedBackAt  DateTime?
   /**

@@ -56,6 +56,7 @@ describe('athleteCancelNoticeKey', () => {
   it('says the bank outcome is still unknown', () => {
     expect(athleteCancelNoticeKey({ reversePending: true, refunded: false })).toBe('booking.refundReversePending')
     expect(athleteCancelErrorNoticeKey('SEP_REVERSE_PENDING')).toBe('booking.refundReversePending')
+    expect(athleteCancelErrorNoticeKey('REFUND_ACCOUNT_REQUIRED')).toBe('booking.refundAccountRequired')
   })
 
   it('does not call a guest manual refund a wallet credit', () => {
