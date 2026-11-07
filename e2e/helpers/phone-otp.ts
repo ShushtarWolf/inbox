@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from '@playwright/test'
+import { expect, type APIRequestContext, type Page } from '@playwright/test'
 
 /** Seed athlete (prisma/seed.ts) — shared across e2e specs unless overridden. */
 export const E2E_ATHLETE_PHONE = '09121234567'
@@ -53,4 +53,27 @@ export async function verifyLoginOtp(
 export async function loginAthleteViaApi(page: Page, phone: string = E2E_ATHLETE_PHONE) {
   const code = await requestLoginOtpCode(page.request, phone)
   await verifyLoginOtp(page.request, phone, code)
+}
+
+/** Drive login UI; waits for otp/request so CI does not race the OTP field. */
+export async function loginAthleteWithPhoneOtpUi(
+  page: Page,
+  phone: string,
+  destination: RegExp,
+) {
+  await page.goto('/login')
+  await expect(page.locator('#login-phone')).toBeVisible({ timeout: 15_000 })
+  await page.locator('#login-phone').fill(phone)
+  const otpRequest = page.waitForResponse(
+    (res) => res.url().includes('/api/auth/otp/request') && res.request().method() === 'POST',
+    { timeout: 20_000 },
+  )
+  await page.locator('button[type="submit"]').click()
+  const otpRes = await otpRequest
+  expect(otpRes.ok()).toBeTruthy()
+  await expect(page.locator('#login-otp')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('#login-otp')).not.toHaveValue('')
+  await page.locator('button[type="submit"]').click()
+  await page.getByRole('button', { name: 'متوجه شدم' }).click({ timeout: 15_000 })
+  await page.waitForURL(destination, { timeout: 20_000 })
 }
