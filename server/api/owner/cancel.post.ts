@@ -7,6 +7,7 @@ import {
   courtNotifyName,
   ownerNotifyPhone,
   personNotifyName,
+  skipGuestBookingSms,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
 import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
@@ -84,7 +85,7 @@ export default defineEventHandler(async (event) => {
         reason,
         guestName,
         courtName: courtNotifyName(anchor.slot.court),
-        skipGuest: true,
+        skipGuest: skipGuestBookingSms(anchor),
       })
       return {
         ok: true,
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event) => {
       reason,
       guestName,
       courtName: courtNotifyName(slot.court),
-      skipGuest: true,
+      skipGuest: skipGuestBookingSms(booking),
     })
   }
   else {
