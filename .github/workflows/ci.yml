@@ -40,6 +40,8 @@ jobs:
       RATE_LIMIT_MAX: 100
       OTP_PHONE_SEND_MAX: 100
       OTP_PHONE_VERIFY_MAX: 100
+      # E2E reuses seed athlete phone across specs — prod cooldown would 429 mid-suite.
+      OTP_RESEND_COOLDOWN_MS: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +106,8 @@ jobs:
       RATE_LIMIT_MAX: 100
       OTP_PHONE_SEND_MAX: 100
       OTP_PHONE_VERIFY_MAX: 100
+      # E2E reuses seed athlete phone across specs — prod cooldown would 429 mid-suite.
+      OTP_RESEND_COOLDOWN_MS: 0
 
     steps:
       - uses: actions/checkout@v4
