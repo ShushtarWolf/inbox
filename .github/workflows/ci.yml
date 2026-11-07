@@ -104,6 +104,9 @@ jobs:
       RATE_LIMIT_MAX: 100
       OTP_PHONE_SEND_MAX: 100
       OTP_PHONE_VERIFY_MAX: 100
+      # Script issues ~11 legitimate joins, then a 25-post burst that must 429.
+      # Default 10/min rejects the pay-at-club case (expects 400) before that burst.
+      COMPETITION_JOIN_RATE_LIMIT_MAX: 20
 
     steps:
       - uses: actions/checkout@v4
