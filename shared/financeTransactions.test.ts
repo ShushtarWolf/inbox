@@ -241,4 +241,26 @@ describe('selectFinanceTransactions', () => {
     expect(isBlockedFinanceTx({ kind: 'slot' })).toBe(true)
     expect(isBlockedFinanceTx({ displayStatus: 'RESERVED' })).toBe(false)
   })
+
+  it('excel export covers the full filtered set, not a page slice', () => {
+    const many: FinanceTxTimes[] = Array.from({ length: 40 }, (_, i) => ({
+      kind: 'court' as const,
+      reservationLabel: 'زمین',
+      guestName: `مهمان${i}`,
+      paymentMethod: 'CASH',
+      paymentStatus: 'PAID',
+      amount: 1_000 + i,
+      reservedAt: '2026-10-12T16:00:00',
+      paidAt: '2026-10-11T09:00:00',
+    }))
+    const selected = selectFinanceTransactions(many, { payment: 'cash' })
+    expect(selected).toHaveLength(40)
+    const xml = financeSheetXml(
+      ['مهمان', 'مبلغ'],
+      selected.map((tx) => [tx.guestName || '', tx.amount]),
+    )
+    expect(xml.match(/<Row>/g)?.length).toBe(41)
+    expect(xml).toContain('مهمان39')
+    expect(xml).toContain('<Data ss:Type="Number">1039</Data>')
+  })
 })
