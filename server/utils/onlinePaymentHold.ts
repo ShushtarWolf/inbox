@@ -4,6 +4,7 @@ import {
   isReleasableOnlinePaymentHold,
   ONLINE_PAYMENT_HOLD_MS,
 } from '#shared/onlinePaymentHold.ts'
+import { shouldPreserveUnsettledCapture } from '#shared/paymentInFlight.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -33,6 +34,7 @@ async function releaseOneOnlineHold(
     include: { payment: true, slot: true },
   })
   if (!booking) return false
+  if (booking.payment && shouldPreserveUnsettledCapture(booking.payment)) return false
   if (!isReleasableOnlinePaymentHold({
     source: booking.source,
     status: booking.status,

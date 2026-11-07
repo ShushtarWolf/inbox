@@ -1072,6 +1072,12 @@ model Payment {
   status         PaymentStatus
   provider       String        @default("pay_at_club")
   providerRef    String?
+  /**
+   * Bank RefNum from a successful SEP verify. Unique so one capture cannot
+   * settle two payments. Null until verify binds this row. Multiple nulls are allowed.
+   * Historical duplicates in metadata are left null (see gateway_ref migration).
+   */
+  gatewayRef     String?       @unique
   idempotencyKey String?       @unique
   /** booking (default) | topup — top-up rows have userId and no booking parent. */
   purpose        String        @default("booking")

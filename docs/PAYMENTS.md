@@ -89,9 +89,11 @@ Paid SEP rows from **before** that ×10 cutover (bank charged the stored integer
 3. Athlete taps **Pay online** → `POST /api/payments/checkout` → SEP redirect
 4. Return: `POST|GET /payments/callback/sep` with `ResNum`, `RefNum`, `State=OK|…`
 5. `State=OK` → provider `confirm` (VerifyTransaction) → `PAID` + parent sync + `notifyBookingPaid` (SMS soft-fail)
-6. Non-OK / verify failure → `FAILED` (never left `PAID` incorrectly). Double callback is idempotent (`2` / already `PAID`)
-7. Athlete can **retry** after `FAILED` (Pay online creates a new intent). Desk **mark paid (cash)** still works for unpaid/`FAILED` rows
-8. `/athlete/payments` lists real `Payment` rows (paid, pending, failed, pay_at_club / cash / wallet)
+6. Verify pays this row only when the bank echoes **this** `ResNum`, the **rial amount matches** `toman × 10`, and the `RefNum` is stored on `Payment.gatewayRef` (unique). A repeated callback for that same capture is idempotent (`ResultCode` 2, or the row is already `PAID`). A `RefNum` that verifies as a different order does not change this row. A missing amount does not pay. If the amount is present and wrong for **our** order, the capture is reversed and the row fails; a reverse timeout stays payable with `reversePending` and does not wallet-credit.
+7. Transport failures (timeout, HTTP error) stay `PENDING_ONLINE`, keep `metadata.verifyPendingRefNum`, and do **not** release a split-pay wallet debit. A business decline (`ResultCode` other than 0/2) is the definitive `FAILED` path. `PAID` is claimed only from `PENDING_ONLINE` or `FAILED` — never from `REFUNDED` or `SUPERSEDED`.
+8. Checkout retry supersedes a payable row only while it is still unpaid and no verify is in flight (`409 PAYMENT_VERIFY_PENDING` otherwise). A callback that already won `PAID` is returned as paid. Split-pay that already released the wallet share must **recollect** that share before `PAID`; if the balance is gone the card capture is reversed instead of confirming the court.
+9. Athlete can **retry** after a definitive `FAILED` (Pay online creates a new intent). Desk **mark paid (cash)** still works for unpaid/`FAILED` rows. Stale expiry and NOK callbacks skip rows that already hold a bank ref.
+10. `/athlete/payments` lists real `Payment` rows (paid, pending, failed, pay_at_club / cash / wallet)
 
 ## Wallet top-up
 
@@ -146,7 +148,7 @@ Money outcome from `resolveCancelMoneyDetail` / `resolveCancelMoneyOutcome` (`sh
 
 Partial athlete refunds stay `REFUNDED` with `metadata.refundBps` (no `PARTIALLY_REFUNDED` enum). Stale `PENDING_ONLINE` → `FAILED` + `metadata.expired` via `POST /api/admin/payments/expire-pending` (`PENDING_ONLINE_EXPIRE_MINUTES`, default 45; runs in `money-jobs-cron.yml`). `FAILED` stays payable.
 
-Late SEP callback on a released hold (`FAILED`) or a `SUPERSEDED` row is **not** verified — SEP auto-reverses unverified charges within 30 minutes, so the money returns to the card (athlete sees a failure page first). Superseded rows keep the old bank ref in `metadata.supersededProviderRef` for support lookup.
+A late SEP callback on a `SUPERSEDED` row cannot verify: `providerRef` was cleared, so the bank ref is only in `metadata.supersededProviderRef`. Unverified charges still auto-reverse at SEP in about 30 minutes. A `FAILED` row can still verify (the athlete may have finished IPG after a decline or an expire); success is subject to the same ResNum, amount, and single-use `gatewayRef` checks, and a released split wallet is recollected or the card is reversed.
 
 **Cancel + refund are one transaction** (`cancelCourtBooking` / `cancelCoachSession` / `cancelPackageBooking`): the slot/session is not left FREE if wallet credit or clawback fails. Ambiguous SEP reverse throws `SEP_REVERSE_PENDING` so the booking stays occupied. Series athlete cancel runs pro-rata refund **before** freeing the slot.
 
