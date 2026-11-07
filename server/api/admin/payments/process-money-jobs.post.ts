@@ -10,12 +10,13 @@ import {
 /** Cron/admin: retry SETTLE / TOPUP_CREDIT for PAID payments (~5 min cadence). */
 export default defineEventHandler(async (event) => {
   requireAdminSecret(event)
-  const body = await readBody<{
+  type MoneyJobsBody = {
     reconcile?: boolean
     requeueFailed?: boolean
     healReversed?: boolean
     healOrphanTopUps?: boolean
-  }>(event).catch(() => ({}))
+  }
+  const body: MoneyJobsBody = await readBody<MoneyJobsBody>(event).catch(() => ({}))
   if (body?.requeueFailed) {
     const requeued = await requeueFailedMoneyJobs()
     return { ...requeued, ...(await processPendingMoneyJobs()) }

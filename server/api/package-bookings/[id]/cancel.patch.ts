@@ -51,5 +51,5 @@ export default defineEventHandler(async (event) => {
     reason: 'athlete-cancel',
   })
 
-  return { ...result, moneyOutcome }
+  return { ...result, moneyOutcome: money.outcome }
 })

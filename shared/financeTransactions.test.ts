@@ -118,7 +118,7 @@ describe('selectFinanceTransactions', () => {
   })
 
   it('filters the same states as the calendar legend', () => {
-    const listed: FinanceTxTimes[] = [
+    const listed = [
       {
         ...rows[0],
         paymentStatus: 'PAID',
@@ -157,7 +157,7 @@ describe('selectFinanceTransactions', () => {
         displayStatus: 'FREE',
         bookingStatus: 'FREE',
       },
-    ]
+    ] as FinanceTxTimes[]
     expect(selectFinanceTransactions(listed).some((tx) => tx.kind === 'slot')).toBe(false)
     expect(selectFinanceTransactions(listed, { legend: 'paid' }).map((tx) => tx.guestName)).toEqual(['رضا', 'علی'])
     expect(selectFinanceTransactions(listed, { legend: 'pending' }).map((tx) => tx.guestName)).toEqual(['سارا'])

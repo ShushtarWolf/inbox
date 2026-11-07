@@ -9,7 +9,7 @@ import {
 export default defineEventHandler(async (event) => {
   assertPackagesEnabled(event)
   const user = await requireRole(event, 'COACH')
-  await requireApprovedCoach(user.id)
+  const coach = await requireApprovedCoach(user.id)
   const body = await readBody<{
     clubId?: string
     courtId?: string

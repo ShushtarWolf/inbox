@@ -176,7 +176,7 @@ async function markDefinitiveDecline(
   const pending = typeof meta.verifyPendingRefNum === 'string' ? meta.verifyPendingRefNum : ''
   if (pending && pending !== refNum) return
   if (payment.gatewayRef && payment.gatewayRef !== refNum) return
-  const next = { ...meta, refNum, verifyCode: resultCode, verifyMessage: resultDescription }
+  const next: Record<string, unknown> = { ...meta, refNum, verifyCode: resultCode, verifyMessage: resultDescription }
   delete next.verifyPendingRefNum
   await prisma.payment.updateMany({
     where: {

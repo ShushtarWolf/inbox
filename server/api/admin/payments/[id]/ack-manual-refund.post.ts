@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'Payment id required' })
   }
-  const body = await readBody<{ note?: string; guestSheba?: string | null }>(event).catch(() => ({}))
+  const body: { note?: string; guestSheba?: string | null } = await readBody<{ note?: string; guestSheba?: string | null }>(event).catch(() => ({}))
   return acknowledgeManualBankRefund({
     paymentId: id,
     note: typeof body?.note === 'string' ? body.note : undefined,

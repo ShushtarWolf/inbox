@@ -41,6 +41,8 @@ export type FinanceTxTimes = {
   coveredByBookingId?: string | null
   /** Sessions in the same season series (primary row only; siblings are hidden from the ledger). */
   seasonSessionCount?: number | null
+  /** Per-session list price when the charged amount is a series total (season primary). */
+  sessionValue?: number | null
   discountCode?: string | null
 }
 
