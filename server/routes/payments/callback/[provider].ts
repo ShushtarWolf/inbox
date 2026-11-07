@@ -1,4 +1,5 @@
 import { confirmPaymentAndSync, markPaymentFailedAndSync } from '../../../utils/paymentSync'
+import { isDefinitivePaymentFailure } from '#shared/paymentFailure.ts'
 import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
 
 /** Only bank/IPG providers may confirm via the public browser return URL. */
@@ -90,10 +91,14 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, redirectForPayment(paymentRow, 'success'))
   } catch (err) {
     console.error('[payments:callback:confirm]', paymentRow.provider, providerRef, err)
-    try {
-      await markPaymentFailedAndSync(providerRef, paymentRow.provider)
-    } catch {
-      // ignore secondary failure
+    // Transport errors, foreign RefNums, and incomplete verify bodies stay payable.
+    // Only a definitive bank decline or a finished reverse may fail the row.
+    if (isDefinitivePaymentFailure(err)) {
+      try {
+        await markPaymentFailedAndSync(providerRef, paymentRow.provider)
+      } catch {
+        // ignore secondary failure
+      }
     }
     return sendRedirect(event, redirectForPayment(paymentRow, 'error'))
   }

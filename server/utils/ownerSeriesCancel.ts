@@ -3,7 +3,7 @@ import { ownerSeriesKey, seasonBookingIdNeedle, seriesCancelPaymentId } from '#s
 import type { CancelMoneyOutcome } from '#shared/cancelPolicy.ts'
 import { cancelCourtBooking } from './cancellations'
 import { prisma } from './prisma'
-import { bookingLooksLikeSeriesPayment, refundAfterSeriesSessionCancel } from './seriesCancelRefund'
+import { bookingLooksLikeSeriesPayment, cancelSeriesSessionWithSlot } from './seriesCancelRefund'
 
 const seriesBookingInclude = {
   payment: true,
@@ -151,30 +151,28 @@ export async function cancelOwnerSeriesBookings(opts: {
 
   for (const row of future) {
     const seriesAware = bookingLooksLikeSeriesPayment(row.payment?.metadataJson)
-    const result = await cancelCourtBooking({
-      bookingId: row.id,
-      slotId: row.slotId,
-      actorUserId: opts.actorUserId,
-      reason: opts.reason,
-      paymentId: seriesAware ? null : seriesCancelPaymentId(row.payment),
-      userId: row.userId,
-      moneyOutcome,
-    })
-    if (result.refund?.amount) refundTotal += result.refund.amount
-
     if (seriesAware) {
-      try {
-        const refund = await refundAfterSeriesSessionCancel({
-          cancelledBookingId: row.id,
-          userId: row.userId,
-          reason: opts.reason,
-          moneyOutcome,
-        })
-        if (refund?.amount) refundTotal += refund.amount
-      }
-      catch (err) {
-        console.error('[cancelOwnerSeries:series-refund]', row.id, err)
-      }
+      const refund = await cancelSeriesSessionWithSlot({
+        bookingId: row.id,
+        slotId: row.slotId,
+        actorUserId: opts.actorUserId,
+        userId: row.userId,
+        reason: opts.reason,
+        moneyOutcome,
+      })
+      if (refund?.amount) refundTotal += refund.amount
+    }
+    else {
+      const result = await cancelCourtBooking({
+        bookingId: row.id,
+        slotId: row.slotId,
+        actorUserId: opts.actorUserId,
+        reason: opts.reason,
+        paymentId: seriesCancelPaymentId(row.payment),
+        userId: row.userId,
+        moneyOutcome,
+      })
+      if (result.refund?.amount) refundTotal += result.refund.amount
     }
     cancelledBookingIds.push(row.id)
   }

@@ -1,8 +1,11 @@
 /**
  * Cancel refund channels — dual-rail money model.
- * - wallet_closed_loop: IPG/wallet paid → credit athlete wallet; no SEP bank reverse
- * - gateway_reverse: IPG reverse to card (SEP) within reverse window
+ * - wallet_closed_loop: ordinary online / wallet / split cancel → athlete wallet (withdrawal is a later, separate request)
+ * - gateway_reverse: historical card reverse only — do not credit that card amount again
  * - desk_cash: till money never entered float → no wallet credit; owner must ack cash returned
+ *
+ * Ordinary cancellation does not call SEP ReverseTransaction. Bank reverse remains
+ * only for capture rejection (wrong amount, split recollect failure), not for cancel.
  */
 
 export type RefundChannel = 'wallet_closed_loop' | 'desk_cash' | 'gateway_reverse'
@@ -39,7 +42,22 @@ export function resolveRefundChannel(
   return 'wallet_closed_loop'
 }
 
-/** True when a paid booking cancel should not credit the athlete wallet. */
+/**
+ * Historical SEP state that must not be wallet-credited again on an ordinary cancel.
+ * `reverse_pending`: the bank may already have reversed — do not also credit the wallet.
+ * `already_reversed`: the card was reversed — do not credit that card amount again.
+ */
+export function ordinaryCancelRefundGuard(meta: Record<string, unknown>):
+  | { action: 'proceed' }
+  | { action: 'reverse_pending' }
+  | { action: 'already_reversed' } {
+  if (meta.gatewayReversed === true || meta.gatewayRefund === true) {
+    return { action: 'already_reversed' }
+  }
+  if (meta.reversePending === true) return { action: 'reverse_pending' }
+  return { action: 'proceed' }
+}
+
 export function isDeskCashCancelRefund(
   method: string | null | undefined,
   bookingPaymentMethod?: string | null,
@@ -64,8 +82,8 @@ export function buildCancelRefundMetadata(
     refundChannel: opts.channel,
     refundReason: opts.reason,
     refundedAt: nowIso,
-    /** Cancel path never calls SEP ReverseTransaction — float is closed-loop. */
-    gatewayReversed: false,
+    // Keep a historical card reverse. Ordinary cancel must not clear it and then wallet-credit the same money.
+    gatewayReversed: existing.gatewayReversed === true,
   }
   if (opts.manualRefund) {
     base.manualRefundRequired = true

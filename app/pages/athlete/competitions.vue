@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { athleteCancelNoticeKey } from '#shared/cancelNotice.ts'
+
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 const { t } = useI18n()
@@ -89,13 +91,14 @@ async function cancelEntry(competitionId: string) {
       refund?: { walletCredited?: boolean; refunded?: boolean; gatewayRefunded?: boolean } | null
       refundPending?: boolean
     }>(`/api/competitions/${competitionId}/cancel-entry`, { method: 'POST' })
-    if (result.refundPending) {
-      refundNotice.value = t('competitions.refundPending')
-    } else if (result.refund?.walletCredited) {
-      refundNotice.value = t('competitions.refundToWallet')
-    } else if (result.refund?.gatewayRefunded || result.refund?.refunded) {
-      refundNotice.value = t('competitions.refundToGateway')
-    }
+    const noticeKey = result.refundPending
+      ? 'booking.refundReversePending'
+      : athleteCancelNoticeKey({
+          walletCredited: result.refund?.walletCredited,
+          refunded: result.refund?.refunded,
+          gatewayRefunded: result.refund?.gatewayRefunded,
+        })
+    if (noticeKey) refundNotice.value = t(noticeKey)
     await refresh()
   } catch (err) {
     actionError.value = fetchErrorMessage(err)
