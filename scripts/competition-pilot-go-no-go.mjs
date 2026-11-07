@@ -13,6 +13,7 @@ import {
   loadDotEnv,
   provisionOwner,
   registerAthlete,
+  syntheticRateLimitClientHeaders,
 } from './lib/smoke-helpers.mjs'
 
 loadDotEnv()
@@ -158,9 +159,29 @@ async function main() {
     const { res } = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(8),
       expectStatus: 401,
     })
     record('F-08', res.status === 401, 'unauthenticated join → 401')
+  }
+
+  // F-10 Athletes cannot self-select pay-at-club — isolated XFF hop (see syntheticRateLimitClientHeaders).
+  {
+    const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
+    const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
+      jar: athletes[0].jar,
+      session: athletes[0].session,
+      method: 'POST',
+      body: { payAtClub: true },
+      headers: syntheticRateLimitClientHeaders(10),
+      expectStatus: 400,
+    })
+    const msg = String(join.data?.statusMessage || join.data?.message || '')
+    record(
+      'F-10',
+      join.res.status === 400 && /PAY_AT_CLUB_NOT_ALLOWED/i.test(msg),
+      `status=${join.res.status} msg=${msg || JSON.stringify(join.data)}`,
+    )
   }
 
   // F-07 Doubles partner required
@@ -171,6 +192,7 @@ async function main() {
       session: athletes[0].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(7),
       expectStatus: 400,
     })
     record('F-07', res.status === 400 && /Partner required/i.test(data?.statusMessage || ''), data?.statusMessage)
@@ -184,6 +206,7 @@ async function main() {
       session: athletes[0].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(14),
     })
     assert(joinA.res.ok, `athlete0 join → ${joinA.res.status}`)
     await payCompetitionEntry(athletes[0].jar, athletes[0].session, joinA.data.entry.id)
@@ -194,12 +217,14 @@ async function main() {
         session: athletes[1].session,
         method: 'POST',
         body: {},
+        headers: syntheticRateLimitClientHeaders(14),
       }),
       apiFetch(base, `/api/competitions/${comp.id}/join`, {
         jar: athletes[2].jar,
         session: athletes[2].session,
         method: 'POST',
         body: {},
+        headers: syntheticRateLimitClientHeaders(14),
       }),
     ])
     const statuses = [b.res.status, c.res.status].sort()
@@ -220,6 +245,7 @@ async function main() {
       session: athletes[0].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(22),
     })
     assert(join.res.ok, 'join for callback test')
     await payCompetitionViaTestGateway(athletes[0].jar, athletes[0].session, join.data.entry.id)
@@ -246,6 +272,7 @@ async function main() {
       session: athletes[1].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(23),
     })
     await payCompetitionEntry(athletes[1].jar, athletes[1].session, join.data.entry.id, 150000)
     const { data: walletBefore } = await apiFetch(base, '/api/wallet', {
@@ -283,6 +310,7 @@ async function main() {
       session: athletes[2].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(24),
     })
     await payCompetitionEntry(athletes[2].jar, athletes[2].session, join.data.entry.id)
     const { res, data } = await apiFetch(base, `/api/competitions/${comp.id}/cancel-entry`, {
@@ -307,6 +335,7 @@ async function main() {
       session: athletes[0].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(25),
     })
     assert(join.res.ok, `join F-05 → ${join.res.status}`)
     await payCompetitionEntry(athletes[0].jar, athletes[0].session, join.data.entry.id)
@@ -337,7 +366,9 @@ async function main() {
       session: athletes[0].session,
       method: 'POST',
       body: {},
+      headers: syntheticRateLimitClientHeaders(26),
     })
+    assert(join.res.ok, `join F-06 → ${join.res.status}: ${JSON.stringify(join.data)}`)
     await payCompetitionEntry(athletes[0].jar, athletes[0].session, join.data.entry.id)
 
     const cancel = await apiFetch(base, `/api/owner/competitions/${comp.id}/cancel`, {
@@ -449,25 +480,7 @@ async function main() {
     record('OPS-01', defaultOff && pilotOnly, 'isCompetitionsEnabled / isCompetitionsVisibleForClub')
   }
 
-  // F-10 Athletes cannot self-select pay-at-club for competition entry
-  {
-    const comp = await createOpenCompetition({ maxParticipants: 10, minParticipants: 2 })
-    const join = await apiFetch(base, `/api/competitions/${comp.id}/join`, {
-      jar: athletes[0].jar,
-      session: athletes[0].session,
-      method: 'POST',
-      body: { payAtClub: true },
-      expectStatus: 400,
-    })
-    const msg = String(join.data?.statusMessage || join.data?.message || '')
-    record(
-      'F-10',
-      join.res.status === 400 && /PAY_AT_CLUB_NOT_ALLOWED/i.test(msg),
-      `status=${join.res.status} msg=${msg || JSON.stringify(join.data)}`,
-    )
-  }
-
-  // S-03 Rate limit on join — run last so the burst does not break earlier join tests
+  // S-03 Rate limit on join — dedicated IP (99); burst must not share earlier case hops.
   {
     const comp = await createOpenCompetition({
       maxParticipants: 100,
@@ -483,6 +496,7 @@ async function main() {
         session: athletes[0].session,
         method: 'POST',
         body: {},
+        headers: syntheticRateLimitClientHeaders(99),
       })
       if (res.status === 429) {
         got429 = true

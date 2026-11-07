@@ -2,6 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -182,7 +183,7 @@ const financeQuery = computed(() => {
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
   query: financeQuery,
 })
-const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
+const { data: settlement, pending: settlementPending, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
   immediate: false,
   watch: false,
 })
@@ -288,7 +289,11 @@ const shebaStatusMessage = computed(() => {
   return ''
 })
 
-const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
+/** Authoritative rate from GET /api/owner/settlement — no client-side resolution. */
+const commissionPct = computed(() => ownerSettlementCommissionPct(
+  settlement.value?.commissionBps,
+  settlementPending.value,
+))
 
 async function submitInternalTransfer() {
   if (!transferCoachId.value || !transferAmount.value) return
@@ -926,7 +931,10 @@ function showUnpaidList() {
 
       <div v-if="showPayoutsSection && bookRail !== 'cash'" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="text-sm text-brand-gray-600">
+        <p v-if="commissionPct == null" class="text-sm text-brand-gray-500">
+          {{ t('owner.financePage.commissionUnsettled') }}
+        </p>
+        <p v-else class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
         </p>
         <p class="text-xs font-bold text-red-600 text-start" role="note">
