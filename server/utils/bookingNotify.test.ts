@@ -71,6 +71,58 @@ describe('skipGuestBookingSms', () => {
   })
 })
 
+/** Owner cancel must use skipGuestBookingSms (same as athlete cancel) — not blanket skipGuest. */
+describe('owner cancel guest SMS (regression)', () => {
+  beforeEach(() => {
+    process.env.ADMIN_ALERT_SMS = 'false'
+    createInAppNotification.mockResolvedValue(undefined)
+    sendNotification.mockResolvedValue({ sent: true, logged: false })
+    resolveSmsProvider.mockReturnValue('log')
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+    delete process.env.ADMIN_ALERT_SMS
+  })
+
+  it('sends BOOKING_CANCELLED to guest for PLATFORM source (owner-initiated cancel)', async () => {
+    await notifyBookingCancelled({
+      ...baseOpts,
+      reason: 'owner-cancel',
+      skipGuest: skipGuestBookingSms({ source: 'PLATFORM' }),
+    })
+
+    const athleteSms = sendNotification.mock.calls.filter(
+      (call) => call[0]?.channel === 'sms' && call[0]?.template === 'BOOKING_CANCELLED',
+    )
+    expect(athleteSms).toHaveLength(1)
+    expect(athleteSms[0]![0].to).toBe('09121234567')
+  })
+
+  it('skips guest BOOKING_CANCELLED for CLUB desk source', async () => {
+    await notifyBookingCancelled({
+      ...baseOpts,
+      reason: 'owner-cancel',
+      skipGuest: skipGuestBookingSms({ source: 'CLUB' }),
+    })
+
+    const athleteSms = sendNotification.mock.calls.filter(
+      (call) => call[0]?.channel === 'sms' && call[0]?.template === 'BOOKING_CANCELLED',
+    )
+    expect(athleteSms).toHaveLength(0)
+  })
+
+  it('idempotent: skipGuest true sends no duplicate athlete channel', async () => {
+    await notifyBookingCancelled({ ...baseOpts, reason: 'owner-cancel', skipGuest: true })
+    await notifyBookingCancelled({ ...baseOpts, reason: 'owner-cancel', skipGuest: true })
+
+    const athleteSms = sendNotification.mock.calls.filter(
+      (call) => call[0]?.channel === 'sms' && call[0]?.template === 'BOOKING_CANCELLED',
+    )
+    expect(athleteSms).toHaveLength(0)
+  })
+})
+
 describe('clubNotifyName', () => {
   it('prefers Persian name', () => {
     expect(clubNotifyName({ nameFa: 'بهناز', nameEn: 'Behnaz' })).toBe('بهناز')
