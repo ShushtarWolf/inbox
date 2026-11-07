@@ -205,10 +205,9 @@ export async function sepReverseTransaction(
     fetchImpl,
   )
   const resultCode = Number(envelope.ResultCode ?? envelope.resultCode ?? -1)
-  // Prefer ResultCode table (0/2/5) — explicit Success:false must not override a success code
-  // the way verify's `Success ?? code` pattern would.
+  // Only the reverse result-code table counts. A Success flag must not turn a
+  // refusal into a reversed charge, and Success:false must not undo codes 0/2/5.
   const success = isSepReverseSuccess(resultCode)
-    || Boolean(envelope.Success ?? envelope.success)
   if (!success) {
     const desc = envelope.ResultDescription != null
       ? String(envelope.ResultDescription)

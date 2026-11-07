@@ -3,16 +3,15 @@ import { paymentIntentMetadata } from '#shared/financeDiscount.ts'
 import type { PaymentConfirmOptions, PaymentService } from '#shared/payments.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, tomanToRials } from '#shared/payments.ts'
 import { siteUrl } from '../../email'
-import { enqueueMoneyJobsForPaidPayment } from '../../moneyJobs'
+import { shouldPreserveUnsettledCapture } from '#shared/paymentInFlight.ts'
+import { confirmSepPayment } from '../../sepConfirm'
 import { prisma } from '../../prisma'
 import { registerPaymentProvider, toPaymentIntent } from '../registry'
 import {
   isSepSimulatedRef,
-  isSepVerifySuccess,
   sepRequestToken,
   sepReverseTransaction,
   sepStartPayUrl,
-  sepVerifyTransaction,
 } from '../sepClient'
 
 function terminalId(): string | undefined {
@@ -31,6 +30,39 @@ function parseMetadata(raw: string | null): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+const REFRESHABLE_INTENT_STATUSES = ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB', 'FAILED'] as const
+
+/** In-place intent refresh must not knock a settled or in-flight capture back to pending. */
+async function replacePayableIntent(
+  id: string,
+  data: {
+    amount: number
+    method: 'IPG'
+    status: 'PENDING_ONLINE'
+    provider: 'sep'
+    providerRef: string
+    idempotencyKey: string
+    purpose: string
+    userId?: string
+    metadataJson: string
+  },
+) {
+  const current = await prisma.payment.findUnique({ where: { id } })
+  if (!current) throw createError({ statusCode: 404, statusMessage: 'Payment not found' })
+  if (current.status === 'PAID' || current.status === 'REFUNDED' || current.status === 'SUPERSEDED') {
+    return current
+  }
+  const meta = parseMetadata(current.metadataJson)
+  if (shouldPreserveUnsettledCapture(current) && meta.gatewayReversed !== true) {
+    throw createError({ statusCode: 409, statusMessage: 'PAYMENT_VERIFY_PENDING' })
+  }
+  const claimed = await prisma.payment.updateMany({
+    where: { id, status: { in: [...REFRESHABLE_INTENT_STATUSES] } },
+    data: { ...data, gatewayRef: null },
+  })
+  return prisma.payment.findUniqueOrThrow({ where: { id: claimed.count === 1 ? id : current.id } })
 }
 
 /**
@@ -67,19 +99,16 @@ export function sepProvider(): PaymentService {
           competitionEntryId: input.competitionEntryId,
         }, input.preservedMetadata)
         const payment = input.existingPaymentId
-          ? await prisma.payment.update({
-              where: { id: input.existingPaymentId },
-              data: {
-                amount: input.amount,
-                method: 'IPG',
-                status: 'PENDING_ONLINE',
-                provider: 'sep',
-                providerRef,
-                idempotencyKey: input.idempotencyKey,
-                purpose,
-                userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
-                metadataJson,
-              },
+          ? await replacePayableIntent(input.existingPaymentId, {
+              amount: input.amount,
+              method: 'IPG',
+              status: 'PENDING_ONLINE',
+              provider: 'sep',
+              providerRef,
+              idempotencyKey: input.idempotencyKey,
+              purpose,
+              userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
+              metadataJson,
             })
           : await prisma.payment.create({
               data: {
@@ -97,7 +126,9 @@ export function sepProvider(): PaymentService {
                 metadataJson,
               },
             })
-        const redirectUrl = `/payments/test-gateway?provider=sep&ResNum=${encodeURIComponent(providerRef)}&amount=${payment.amount}`
+        const redirectUrl = payment.status === 'PENDING_ONLINE'
+          ? `/payments/test-gateway?provider=sep&ResNum=${encodeURIComponent(payment.providerRef || providerRef)}&amount=${payment.amount}`
+          : undefined
         return {
           paymentId: payment.id,
           mode: 'test',
@@ -105,9 +136,11 @@ export function sepProvider(): PaymentService {
             id: payment.id,
             amount: payment.amount,
             currency: PAYMENT_CURRENCY,
-            status: 'PENDING_ONLINE',
+            status: payment.status === 'PAID' || payment.status === 'REFUNDED' || payment.status === 'FAILED'
+            ? payment.status
+            : 'PENDING_ONLINE',
             provider: 'sep',
-            providerRef,
+            providerRef: payment.providerRef || providerRef,
             redirectUrl,
           },
         }
@@ -122,6 +155,30 @@ export function sepProvider(): PaymentService {
           ? 'competition'
           : 'booking'
 
+      if (input.existingPaymentId) {
+        const current = await prisma.payment.findUnique({ where: { id: input.existingPaymentId } })
+        if (current?.status === 'SUPERSEDED') {
+          throw createError({ statusCode: 409, statusMessage: 'PAYMENT_NOT_PAYABLE' })
+        }
+        if (current && (current.status === 'PAID' || current.status === 'REFUNDED')) {
+          return {
+            paymentId: current.id,
+            mode,
+            intent: {
+              id: current.id,
+              amount: current.amount,
+              currency: PAYMENT_CURRENCY,
+              status: current.status,
+              provider: 'sep',
+              providerRef: current.providerRef || undefined,
+            },
+          }
+        }
+        if (current && shouldPreserveUnsettledCapture(current) && parseMetadata(current.metadataJson).gatewayReversed !== true) {
+          throw createError({ statusCode: 409, statusMessage: 'PAYMENT_VERIFY_PENDING' })
+        }
+      }
+
       const requested = await sepRequestToken({
         terminalId: tid,
         amount: tomanToRials(input.amount),
@@ -129,25 +186,23 @@ export function sepProvider(): PaymentService {
         redirectUrl: callbackUrl(),
       })
 
+      const liveMeta = paymentIntentMetadata({
+        token: requested.token,
+        sepStatus: requested.status,
+        purpose,
+        competitionEntryId: input.competitionEntryId,
+      }, input.preservedMetadata)
       const payment = input.existingPaymentId
-        ? await prisma.payment.update({
-            where: { id: input.existingPaymentId },
-            data: {
-              amount: input.amount,
-              method: 'IPG',
-              status: 'PENDING_ONLINE',
-              provider: 'sep',
-              providerRef: resNum,
-              idempotencyKey: input.idempotencyKey,
-              purpose,
-              userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
-              metadataJson: paymentIntentMetadata({
-                token: requested.token,
-                sepStatus: requested.status,
-                purpose,
-                competitionEntryId: input.competitionEntryId,
-              }, input.preservedMetadata),
-            },
+        ? await replacePayableIntent(input.existingPaymentId, {
+            amount: input.amount,
+            method: 'IPG',
+            status: 'PENDING_ONLINE',
+            provider: 'sep',
+            providerRef: resNum,
+            idempotencyKey: input.idempotencyKey,
+            purpose,
+            userId: purpose === 'topup' || purpose === 'competition' ? input.userId : undefined,
+            metadataJson: liveMeta,
           })
         : await prisma.payment.create({
             data: {
@@ -162,12 +217,7 @@ export function sepProvider(): PaymentService {
               bookingId: input.bookingId,
               coachSessionId: input.coachSessionId,
               packageBookingId: input.packageBookingId,
-              metadataJson: paymentIntentMetadata({
-                token: requested.token,
-                sepStatus: requested.status,
-                purpose,
-                competitionEntryId: input.competitionEntryId,
-              }, input.preservedMetadata),
+              metadataJson: liveMeta,
             },
           })
 
@@ -178,137 +228,19 @@ export function sepProvider(): PaymentService {
           id: payment.id,
           amount: payment.amount,
           currency: PAYMENT_CURRENCY,
-          status: 'PENDING_ONLINE',
+          status: payment.status === 'PAID' || payment.status === 'REFUNDED' || payment.status === 'FAILED'
+            ? payment.status
+            : 'PENDING_ONLINE',
           provider: 'sep',
-          providerRef: resNum,
+          providerRef: payment.providerRef || resNum,
           // Client converts SendToken GET → POST OnlinePG + Token (see paymentRedirect).
-          redirectUrl: sepStartPayUrl(requested.token),
+          redirectUrl: payment.status === 'PENDING_ONLINE' ? sepStartPayUrl(requested.token) : undefined,
         },
       }
     },
 
     async confirm(providerRef, opts?: PaymentConfirmOptions) {
-      const payment = await prisma.payment.findFirst({
-        where: { provider: 'sep', providerRef },
-      })
-      if (!payment) throw createError({ statusCode: 404, statusMessage: 'Payment not found' })
-
-      if (payment.status === 'PAID' || payment.status === 'REFUNDED') {
-        return toPaymentIntent(payment)
-      }
-
-      // FAILED / PENDING_ONLINE may still verify (e.g. competition expire marked FAILED while
-      // athlete finished IPG). Upstream confirmPaymentAndSync refunds orphaned competition pays.
-      const meta = parseMetadata(payment.metadataJson)
-      const simulated = Boolean(meta.simulated) || isSepSimulatedRef(providerRef)
-
-      if (simulated) {
-        if (getPaymentsMode() === 'live') {
-          throw createError({ statusCode: 501, statusMessage: 'Simulated SEP confirm blocked in live mode' })
-        }
-        const updated = await prisma.$transaction(async (tx) => {
-          const row = await tx.payment.update({
-            where: { id: payment.id },
-            data: {
-              status: 'PAID',
-              method: 'IPG',
-              metadataJson: JSON.stringify({ ...meta, confirmedAt: new Date().toISOString(), simulated: true }),
-            },
-          })
-          await enqueueMoneyJobsForPaidPayment(row.id, tx)
-          return row
-        })
-        return toPaymentIntent(updated)
-      }
-
-      const tid = terminalId()
-      if (!tid) {
-        throw createError({ statusCode: 501, statusMessage: 'SEP not configured (SEP_TERMINAL_ID)' })
-      }
-
-      const refNum = String(opts?.refNum || meta.refNum || '').trim()
-      if (!refNum) {
-        throw createError({ statusCode: 400, statusMessage: 'SEP confirm requires RefNum from callback' })
-      }
-
-      const verified = await sepVerifyTransaction({
-        terminalId: tid,
-        refNum,
-      })
-
-      if (!isSepVerifySuccess(verified.resultCode)) {
-        const failed = await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'FAILED',
-            metadataJson: JSON.stringify({
-              ...meta,
-              refNum,
-              verifyCode: verified.resultCode,
-              verifyMessage: verified.resultDescription,
-            }),
-          },
-        })
-        throw createError({
-          statusCode: 402,
-          statusMessage: `SEP verify failed (code=${verified.resultCode})`,
-          data: { paymentId: failed.id, code: verified.resultCode },
-        })
-      }
-
-      const expectedRials = tomanToRials(payment.amount)
-      // Payment.amount is toman; SEP returns rials. Equality (non-zero) ⇒ unit bug / rials written into Payment.
-      const unitSmell = verified.amount != null
-        && payment.amount > 0
-        && verified.amount === payment.amount
-      if (
-        (verified.amount != null && verified.amount !== expectedRials)
-        || unitSmell
-      ) {
-        const failed = await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'FAILED',
-            metadataJson: JSON.stringify({
-              ...meta,
-              refNum,
-              verifyCode: verified.resultCode,
-              amountMismatch: {
-                expectedToman: payment.amount,
-                expectedRials,
-                gotRials: verified.amount,
-                unitSmell: Boolean(unitSmell),
-              },
-            }),
-          },
-        })
-        throw createError({
-          statusCode: 402,
-          statusMessage: 'SEP verify amount mismatch',
-          data: { paymentId: failed.id },
-        })
-      }
-
-      const updated = await prisma.$transaction(async (tx) => {
-        const row = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'PAID',
-            method: 'IPG',
-            metadataJson: JSON.stringify({
-              ...meta,
-              refNum,
-              verifyCode: verified.resultCode,
-              maskedPan: verified.maskedPan,
-              traceNo: verified.traceNo,
-              confirmedAt: new Date().toISOString(),
-            }),
-          },
-        })
-        await enqueueMoneyJobsForPaidPayment(row.id, tx)
-        return row
-      })
-      return toPaymentIntent(updated)
+      return confirmSepPayment(providerRef, opts)
     },
 
     async refund(paymentId) {

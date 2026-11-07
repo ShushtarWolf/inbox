@@ -24,10 +24,40 @@ import {
 import { notifyPaymentPaidIfNeeded, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
 import { receiptSigningSecret } from '../../utils/receipt'
 import { enqueueMoneyJobsForPaidPayment } from '../../utils/moneyJobs'
-import { linkPaymentSupersededBy, supersedePayablePaymentForRetry } from '../../utils/paymentSupersede'
+import { linkPaymentSupersededBy, supersedePayablePaymentForRetry, type SupersedeResult } from '../../utils/paymentSupersede'
 import { releaseSplitWalletDebit } from '../../utils/splitPayWallet'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
+
+async function supersedeForCheckout(
+  paymentId: string,
+  payment: { providerRef?: string | null, metadataJson: string | null },
+): Promise<{ keep?: { id: string, amount: number, status: string, provider: string, providerRef: string | null }, replacedId: string | null }> {
+  let result: SupersedeResult
+  try {
+    result = await supersedePayablePaymentForRetry(payment)
+  } catch {
+    const fresh = await prisma.payment.findUnique({ where: { id: paymentId }, select: { status: true } })
+    result = { superseded: false, status: fresh?.status || 'UNKNOWN' }
+  }
+  if (!result.superseded && (result.status === 'PAID' || result.status === 'REFUNDED')) {
+    const fresh = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })
+    return {
+      keep: {
+        id: fresh.id,
+        amount: fresh.amount,
+        status: fresh.status,
+        provider: fresh.provider,
+        providerRef: fresh.providerRef,
+      },
+      replacedId: null,
+    }
+  }
+  if (!result.superseded && result.status !== 'SUPERSEDED') {
+    throw createError({ statusCode: 409, statusMessage: 'PAYMENT_VERIFY_PENDING' })
+  }
+  return { replacedId: result.superseded ? paymentId : null }
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -293,8 +323,22 @@ export default defineEventHandler(async (event) => {
     // except split-pay, whose wallet rail must be released on a fresh row (in-place refresh drops split meta).
     const existingIsSplit = Boolean(readSplitPayMeta(parsePaymentMetadata(existingPayment.metadataJson)))
     if (!body.competitionEntryId || useWalletMode === 'partial' || existingIsSplit) {
-      supersededPaymentId = existingPayment.id
-      await supersedePayablePaymentForRetry(existingPayment)
+      const superseded = await supersedeForCheckout(existingPayment.id, existingPayment)
+      if (superseded.keep) {
+        return {
+          paymentId: superseded.keep.id,
+          mode: getPaymentsMode(),
+          intent: {
+            id: superseded.keep.id,
+            amount: superseded.keep.amount,
+            currency: PAYMENT_CURRENCY,
+            status: superseded.keep.status,
+            provider: superseded.keep.provider as PaymentProvider,
+            providerRef: superseded.keep.providerRef || undefined,
+          },
+        }
+      }
+      supersededPaymentId = superseded.replacedId
       existingPayment = null
       amount = payableAmount
     }

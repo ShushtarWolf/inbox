@@ -234,6 +234,9 @@ suite('money integration (real Postgres)', () => {
     expect(athleteWallet.availableBalance).toBe(1_000_000)
     // Club returns the 900k it was credited; platform refunds its own 100k commission.
     expect(clubWallet.balance).toBe(0)
+    const ledger = await db.settlementLedgerEntry.findUniqueOrThrow({ where: { paymentId: payment.id } })
+    expect(ledger.commissionReversed).toBe(100_000)
+    expect(ledger.ownerNet + ledger.commissionReversed).toBe(1_000_000)
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('REFUNDED')
     expect((await db.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('CANCELLED')
     expect((await db.slot.findUniqueOrThrow({ where: { id: slot.id } })).displayStatus).toBe('FREE')
@@ -323,22 +326,22 @@ suite('money integration (real Postgres)', () => {
     expect(readDeskCashReturn(JSON.parse(after.metadataJson || '{}'))).toBe('returned')
   })
 
-  it('pay-link guest (no wallet) IPG cancel is flagged for manual bank refund', async () => {
+  it('pay-link guest with no account does not cancel or refund', async () => {
     const f = await fixtures()
     const { slot, booking, payment } = await paidBooking(f, { date: future, amount: 300_000, method: 'IPG', userId: null })
     await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
-    await m.cancellations.cancelCourtBooking({
+    await expect(m.cancellations.cancelCourtBooking({
       bookingId: booking.id,
       slotId: slot.id,
       reason: 'owner-cancel',
       paymentId: payment.id,
       userId: null,
       moneyOutcome: 'full_wallet_refund',
-    })
-    const row = await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
-    expect(row.status).toBe('REFUNDED')
-    expect(JSON.parse(row.metadataJson || '{}').manualRefundRequired).toBe(true)
-    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
+    })).rejects.toMatchObject({ statusMessage: 'REFUND_ACCOUNT_REQUIRED' })
+    expect((await db.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('CONFIRMED')
+    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('PAID')
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(270_000)
+    expect(await db.wallet.count({ where: { userId: f.athlete.id } })).toBe(0)
   })
 
   it('re-booking a cancelled slot keeps the old payment (detached, not cascaded)', async () => {

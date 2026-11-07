@@ -25,7 +25,7 @@ import { notifyCompetitionCancelled } from './competitionNotify'
 import { refundPaymentForCancellation } from './refunds'
 import { createCompetitionPrizeDiscountCode } from './discountCodes'
 import { creditWallet } from './wallet'
-import { creditOwnerForPaidPayment } from './settlement'
+import { creditOwnerForPaidPayment, debitClubWalletForPrize, unlockEligibleClubSettlements } from './settlement'
 import { prisma } from './prisma'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -496,6 +496,36 @@ export async function awardCompetitionPrizes(competitionId: string): Promise<Pri
     const discountCodeIds: string[] = []
     const awardIds: string[] = []
     const awards: PrizeAwardResult['awards'] = []
+
+    if (competition.prizeType === 'WALLET') {
+      let toFund = 0
+      for (const entry of placedEntries) {
+        const placement = entry.placement!
+        const placementConfig = prizeConfig.placements.find((p) => p.placement === placement)
+        const amount = placementConfig?.amount || 0
+        if (amount <= 0) continue
+        const idempotencyKey = competitionPrizeIdempotencyKey(competitionId, entry.id, placement)
+        const existing = await tx.competitionPrizeAward.findUnique({ where: { idempotencyKey } })
+        if (existing) continue
+        const athleteId = prizeRecipientAthleteId(entry)
+        const note = competitionPrizeWalletNote(competitionId, placement)
+        const priorTx = await tx.walletTransaction.findFirst({
+          where: { note, wallet: { userId: athleteId } },
+          select: { id: true },
+        })
+        if (priorTx) continue
+        toFund += amount
+      }
+      if (toFund > 0) {
+        await unlockEligibleClubSettlements(competition.clubId, new Date(), tx)
+        await debitClubWalletForPrize(
+          competition.clubId,
+          toFund,
+          `competition-prize-fund:${competition.id}`,
+          tx,
+        )
+      }
+    }
 
     for (const entry of placedEntries) {
       const placement = entry.placement!
@@ -1187,21 +1217,19 @@ export async function cancelCompetitionEntry(opts: {
       reason: opts.reason || 'Competition entry cancelled',
     })
 
-    // IPG reverse failed and wallet fallback also failed — ops must reverse manually in SEP.
-    const refundPending = !refundResult.gatewayRefunded && !refundResult.walletCredited
-    if (refundPending) {
-      const meta = entry.payment.metadataJson
-        ? JSON.parse(entry.payment.metadataJson) as Record<string, unknown>
-        : {}
-      await prisma.payment.update({
-        where: { id: entry.payment.id },
-        data: {
-          metadataJson: JSON.stringify({
-            ...meta,
-            refundPending: true,
-            refundPendingAt: now.toISOString(),
-          }),
-        },
+    // Do not mark the entry refunded when online money had nowhere to go.
+    const channel = refundResult.refundChannel
+    if (
+      refundResult.refunded
+      && !refundResult.walletCredited
+      && !refundResult.gatewayRefunded
+      && channel !== 'desk_cash'
+      && channel !== 'gateway_reverse'
+    ) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'REFUND_ACCOUNT_REQUIRED',
+        data: { paymentId: entry.payment.id },
       })
     }
 
@@ -1209,7 +1237,7 @@ export async function cancelCompetitionEntry(opts: {
       where: { id: entry.id },
       data: { status: 'REFUNDED', paymentId: null, ...cancelData },
     })
-    return { entry: updated, refund: refundResult, refundPending }
+    return { entry: updated, refund: refundResult, refundPending: false }
   }
 
   const updated = await prisma.competitionEntry.update({

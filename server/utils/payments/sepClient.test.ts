@@ -92,6 +92,31 @@ describe('sepClient', () => {
     }, fetchImpl)).rejects.toThrow(/reverse failed/)
   })
 
+  it('does not treat Success:true as a reverse when the result code failed', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ResultCode: -1,
+      ResultDescription: 'denied',
+      Success: true,
+    }), { status: 200 })) as unknown as typeof fetch
+    await expect(sepReverseTransaction({
+      terminalId: '12345678',
+      refNum: 'ref-1',
+    }, fetchImpl)).rejects.toThrow(/reverse failed \(code=-1\)/)
+  })
+
+  it('keeps a success result code when Success is false', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ResultCode: 0,
+      Success: false,
+    }), { status: 200 })) as unknown as typeof fetch
+    const result = await sepReverseTransaction({
+      terminalId: '12345678',
+      refNum: 'ref-ok',
+    }, fetchImpl)
+    expect(result.success).toBe(true)
+    expect(result.resultCode).toBe(0)
+  })
+
   it('reverseTransaction treats codes 0, 2, 5 as success (not verify semantics)', async () => {
     for (const code of [0, 2, 5]) {
       const fetchImpl = vi.fn(async () => new Response(JSON.stringify({

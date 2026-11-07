@@ -15,6 +15,8 @@ import {
 } from './bookingNotify'
 import { notifyAdminWalletTopUp } from './adminNotify'
 import { getPaymentService } from './payments/service'
+import { shouldPreserveUnsettledCapture } from '#shared/paymentInFlight.ts'
+import { readSplitPayMeta } from '#shared/splitPay.ts'
 import { promoteOnlineHoldOnPaid } from './onlinePaymentHold'
 import { creditOwnerForPaidPayment } from './settlement'
 import { creditWalletForTopUpPayment } from './wallet'
@@ -94,15 +96,16 @@ export async function expireStalePendingOnlinePayments(now = new Date()) {
       status: 'PENDING_ONLINE',
       createdAt: { lt: cutoff },
     },
-    select: { id: true, metadataJson: true },
+    select: { id: true, metadataJson: true, gatewayRef: true },
     take: 200,
   })
 
   let expired = 0
   for (const payment of pending) {
     const meta = parsePaymentMetadata(payment.metadataJson)
-    await prisma.payment.update({
-      where: { id: payment.id },
+    if (shouldPreserveUnsettledCapture(payment)) continue
+    const claimed = await prisma.payment.updateMany({
+      where: { id: payment.id, status: 'PENDING_ONLINE', gatewayRef: null },
       data: {
         status: 'FAILED',
         metadataJson: JSON.stringify({
@@ -113,6 +116,7 @@ export async function expireStalePendingOnlinePayments(now = new Date()) {
         }),
       },
     })
+    if (claimed.count !== 1) continue
     const { releaseSplitWalletDebit } = await import('./splitPayWallet')
     await releaseSplitWalletDebit(payment.id)
     await syncPaymentToParent(payment.id)
@@ -127,6 +131,11 @@ export async function syncPaymentToParent(paymentId: string, db: DbClient = pris
 
   // Top-up has no booking/coach/package parent.
   if (payment.purpose === 'topup') return
+
+  // PAID while the wallet share is still released would confirm an underfunded court.
+  if (payment.status === 'PAID' && readSplitPayMeta(parsePaymentMetadata(payment.metadataJson))?.walletDebitReleased) {
+    return
+  }
 
   const paymentMethod = resolveParentPaymentMethod(payment.method, payment.status)
 
@@ -531,8 +540,8 @@ export async function markPaymentFailedAndSync(providerRef: string, providerName
     },
   })
   if (!payment) return null
-  if (payment.status === 'PAID' || payment.status === 'REFUNDED') {
-    // Never downgrade a settled payment from a late NOK callback.
+  if (payment.status === 'PAID' || payment.status === 'REFUNDED' || payment.status === 'SUPERSEDED') {
+    // Never downgrade a settled or replaced payment from a late NOK callback.
     return toSafeIntent(payment)
   }
   if (payment.status === 'FAILED') {
@@ -540,14 +549,24 @@ export async function markPaymentFailedAndSync(providerRef: string, providerName
     await releaseSplitWalletDebit(payment.id)
     return toSafeIntent(payment)
   }
-  const updated = await prisma.payment.update({
-    where: { id: payment.id },
+  // Verify in flight or a bound capture: keep the row payable and keep the wallet share.
+  if (shouldPreserveUnsettledCapture(payment)) return toSafeIntent(payment)
+  const claimed = await prisma.payment.updateMany({
+    where: {
+      id: payment.id,
+      status: { in: ['PENDING_ONLINE', 'PAY_AT_CLUB', 'PENDING_AT_CLUB'] },
+      gatewayRef: null,
+    },
     data: { status: 'FAILED' },
   })
+  if (claimed.count !== 1) {
+    const fresh = await prisma.payment.findUnique({ where: { id: payment.id } })
+    return fresh ? toSafeIntent(fresh) : null
+  }
   const { releaseSplitWalletDebit } = await import('./splitPayWallet')
-  await releaseSplitWalletDebit(updated.id)
-  await syncPaymentToParent(updated.id)
-  return toSafeIntent(updated)
+  await releaseSplitWalletDebit(payment.id)
+  await syncPaymentToParent(payment.id)
+  return toSafeIntent({ ...payment, status: 'FAILED' })
 }
 
 function toSafeIntent(payment: {
