@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { loginAthleteViaApi } from './helpers/phone-otp.ts'
 
 /**
  * WebKit-only: catches iOS Safari ghost overlay / tap-barrier regressions
@@ -93,7 +94,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('avatar crop close does not block profile save behind it', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
+    await loginAthleteViaApi(page)
     await page.goto('/athlete/profile')
 
     const fileChooserPromise = page.waitForEvent('filechooser')
@@ -115,7 +116,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('nested crop confirm then page controls remain tappable', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
+    await loginAthleteViaApi(page)
     await page.goto('/athlete/profile')
 
     const fileChooserPromise = page.waitForEvent('filechooser')
@@ -142,7 +143,7 @@ test.describe('iOS Safari tap guard', () => {
   })
 
   test('club confirm CTA opens sheet and close restores taps', async ({ page }) => {
-    await loginWithPhoneOtp(page, '09121234567', /\/athlete/)
+    await loginAthleteViaApi(page)
     await page.goto('/clubs/padel-zone-tehran')
     await expect(page.locator('.canva-club-book-cta')).toBeVisible({ timeout: 15_000 })
 
