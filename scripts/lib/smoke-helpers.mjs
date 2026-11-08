@@ -26,6 +26,17 @@ export function createCookieJar() {
   return new Map()
 }
 
+/**
+ * Deterministic per-case client IP for integration scripts when calling the app
+ * directly (no Liara platform IP header). Rate limiting uses the rightmost
+ * X-Forwarded-For hop — same production rule; this only isolates CI/local bursts.
+ */
+export function syntheticRateLimitClientHeaders(octet) {
+  const n = Number(octet)
+  const safe = Number.isInteger(n) && n >= 1 && n <= 254 ? n : 1
+  return { 'x-forwarded-for': `198.51.100.1, 203.0.113.${safe}` }
+}
+
 function mergeSetCookies(jar, session, setCookies) {
   if (!jar || !session || !setCookies?.length) return
   const merged = new Map()

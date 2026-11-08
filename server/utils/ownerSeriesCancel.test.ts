@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const cancelCourtBooking = vi.fn()
-const refundAfterSeriesSessionCancel = vi.fn()
+const cancelSeriesSessionWithSlot = vi.fn()
 const bookingLooksLikeSeriesPayment = vi.fn()
 
 vi.mock('./cancellations', () => ({
@@ -10,7 +10,7 @@ vi.mock('./cancellations', () => ({
 
 vi.mock('./seriesCancelRefund', () => ({
   bookingLooksLikeSeriesPayment: (...args: unknown[]) => bookingLooksLikeSeriesPayment(...args),
-  refundAfterSeriesSessionCancel: (...args: unknown[]) => refundAfterSeriesSessionCancel(...args),
+  cancelSeriesSessionWithSlot: (...args: unknown[]) => cancelSeriesSessionWithSlot(...args),
 }))
 
 import {
@@ -59,7 +59,7 @@ describe('cancelOwnerSeriesBookings', () => {
     vi.clearAllMocks()
     cancelCourtBooking.mockResolvedValue({ ok: true, refund: null, refundFailed: false })
     bookingLooksLikeSeriesPayment.mockReturnValue(true)
-    refundAfterSeriesSessionCancel.mockResolvedValue({ refunded: true, walletCredited: true, amount: 5000 })
+    cancelSeriesSessionWithSlot.mockResolvedValue({ refunded: true, walletCredited: true, amount: 5000 })
   })
 
   it('does not cancel past sessions and pro-rata refunds each future session', async () => {
@@ -84,14 +84,11 @@ describe('cancelOwnerSeriesBookings', () => {
     expect(result.skippedPast).toBe(2)
     expect(result.cancelled).toBe(1)
     expect(result.cancelledBookingIds).toEqual(['b3'])
-    expect(cancelCourtBooking).toHaveBeenCalledTimes(1)
-    expect(cancelCourtBooking).toHaveBeenCalledWith(
-      expect.objectContaining({ bookingId: 'b3', paymentId: null }),
+    expect(cancelSeriesSessionWithSlot).toHaveBeenCalledTimes(1)
+    expect(cancelSeriesSessionWithSlot).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: 'b3', slotId: 'slot-b3' }),
     )
-    expect(refundAfterSeriesSessionCancel).toHaveBeenCalledTimes(1)
-    expect(refundAfterSeriesSessionCancel).toHaveBeenCalledWith(
-      expect.objectContaining({ cancelledBookingId: 'b3' }),
-    )
+    expect(cancelCourtBooking).not.toHaveBeenCalled()
     expect(result.refundTotal).toBe(5000)
   })
 
@@ -101,7 +98,7 @@ describe('cancelOwnerSeriesBookings', () => {
       row('b1', '2026-11-04', '15:00', meta),
       row('b2', '2026-11-11', '15:00', meta),
     ]
-    refundAfterSeriesSessionCancel
+    cancelSeriesSessionWithSlot
       .mockResolvedValueOnce({ refunded: true, walletCredited: true, amount: 5000 })
       .mockResolvedValueOnce({ refunded: true, walletCredited: true, amount: 5000 })
 
@@ -113,8 +110,8 @@ describe('cancelOwnerSeriesBookings', () => {
 
     expect(result.skippedPast).toBe(0)
     expect(result.cancelled).toBe(2)
-    expect(cancelCourtBooking).toHaveBeenCalledTimes(2)
-    expect(refundAfterSeriesSessionCancel).toHaveBeenCalledTimes(2)
+    expect(cancelSeriesSessionWithSlot).toHaveBeenCalledTimes(2)
+    expect(cancelCourtBooking).not.toHaveBeenCalled()
     expect(result.refundTotal).toBe(10_000)
   })
 })

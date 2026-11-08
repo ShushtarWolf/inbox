@@ -259,5 +259,5 @@ export function paymentRowAccountingBucketWhere(bucket: AccountingPaymentBucket)
   if (bucket === 'IPG') return paymentRowChannelWhere('IPG')
   if (bucket === 'ON_SITE') return paymentRowChannelWhere('ON_SITE')
   if (bucket === 'WALLET') return { method: 'PAID' as const }
-  return { method: { notIn: ['IPG', 'CASH', 'PAID'] as const } }
+  return { method: { notIn: ['IPG', 'CASH', 'PAID'] as Array<'IPG' | 'CASH' | 'PAID'> } }
 }

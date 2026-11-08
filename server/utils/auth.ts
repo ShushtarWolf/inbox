@@ -135,7 +135,7 @@ export function toSessionUser(user: {
     secondaryRole: user.secondaryRole || null,
     tertiaryRole: user.tertiaryRole || null,
     locale: user.locale,
-    gender: user.gender || null,
+    gender: (user.gender || null) as 'MALE' | 'FEMALE' | null,
     avatarUrl: user.avatarUrl || null,
   }
 }

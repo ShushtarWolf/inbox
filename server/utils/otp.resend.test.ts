@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./rateLimit', () => ({
   enforceOtpSendPhoneLimit: vi.fn(),
@@ -33,11 +33,29 @@ const prismaMock = {
 
 vi.stubGlobal('prisma', prismaMock)
 
+describe('resolveOtpResendCooldownMs', () => {
+  it('keeps the 60s default and honors an explicit zero', async () => {
+    const { resolveOtpResendCooldownMs } = await import('./otp')
+    expect(resolveOtpResendCooldownMs(undefined)).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('')).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('0')).toBe(0)
+    expect(resolveOtpResendCooldownMs('15000')).toBe(15_000)
+    expect(resolveOtpResendCooldownMs('nope')).toBe(60_000)
+    expect(resolveOtpResendCooldownMs('-1')).toBe(60_000)
+  })
+})
+
 describe('createAndSendPhoneOtp resend cooldown', () => {
   beforeEach(() => {
+    vi.stubEnv('OTP_RESEND_COOLDOWN_MS', '60000')
+    vi.resetModules()
     vi.clearAllMocks()
     prismaMock.phoneOtp.updateMany.mockResolvedValue({ count: 0 })
     prismaMock.phoneOtp.create.mockResolvedValue({ id: 'otp1' })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('rejects when the last send was within the cooldown window', async () => {
@@ -63,5 +81,18 @@ describe('createAndSendPhoneOtp resend cooldown', () => {
     })
     expect(result.phone).toBe('09121234567')
     expect(prismaMock.phoneOtp.create).toHaveBeenCalled()
+  })
+
+  it('allows immediate resend when OTP_RESEND_COOLDOWN_MS is 0', async () => {
+    vi.stubEnv('OTP_RESEND_COOLDOWN_MS', '0')
+    vi.resetModules()
+    prismaMock.phoneOtp.findFirst.mockResolvedValue({
+      createdAt: new Date(Date.now() - 1_000),
+    })
+    const { createAndSendPhoneOtp } = await import('./otp')
+    await expect(createAndSendPhoneOtp({
+      phoneRaw: '09121234567',
+      purpose: 'login',
+    })).resolves.toMatchObject({ phone: '09121234567' })
   })
 })

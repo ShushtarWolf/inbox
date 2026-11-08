@@ -164,6 +164,17 @@ enum WalletTransactionType {
   UNLOCK
   INTERNAL_TRANSFER_OUT
   INTERNAL_TRANSFER_IN
+  /**
+   * Captured IPG amount posted into the athlete wallet before the booking debit.
+   * Not a voluntary top-up and not part of SHEBA cash-out.
+   */
+  IPG_BOOKING_CREDIT
+  /** Matching spend of that inflow on the booking. Net spendable change is zero. */
+  IPG_BOOKING_DEBIT
+  /**
+   * Historical representation of a completed card return. Not a spendable REFUND_CREDIT.
+   */
+  IPG_RETURNED_TO_CARD
 }
 
 enum ClubWalletTransactionType {
@@ -334,6 +345,11 @@ model WalletTransaction {
   type      WalletTransactionType
   note      String?
   createdAt DateTime              @default(now())
+  /**
+   * Set only on reconciliation rows. createdAt is when the row was appended.
+   * This copies a timestamp the source payment or booking already had.
+   */
+  originalEventAt DateTime?
 
   walletId          String
   wallet            Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -1072,6 +1088,12 @@ model Payment {
   status         PaymentStatus
   provider       String        @default("pay_at_club")
   providerRef    String?
+  /**
+   * Bank RefNum from a successful SEP verify. Unique so one capture cannot
+   * settle two payments. Null until verify binds this row. Multiple nulls are allowed.
+   * Historical duplicates in metadata are left null (see gateway_ref migration).
+   */
+  gatewayRef     String?       @unique
   idempotencyKey String?       @unique
   /** booking (default) | topup — top-up rows have userId and no booking parent. */
   purpose        String        @default("booking")
@@ -1435,6 +1457,12 @@ model SettlementLedgerEntry {
   commissionBps Int
   commission    Int
   ownerNet      Int
+  /**
+   * Platform commission given up so the athlete can be refunded the gross amount.
+   * Athlete refund = payee clawback + commissionReversed. Default 0 on rows
+   * clawed before this column existed and not yet backfilled by a later clawback.
+   */
+  commissionReversed Int @default(0)
   createdAt     DateTime  @default(now())
   clawedBackAt  DateTime?
   /**
@@ -1536,6 +1564,25 @@ model PlatformCommissionSetting {
   id            String   @id @default("default")
   commissionBps Int      @default(0)
   updatedAt     DateTime @updatedAt
+}
+
+/**
+ * Append-only record of a historical cancel refund repair.
+ * Never updated or deleted by the repair tool. Idempotency key blocks a second credit.
+ */
+model RefundReconciliation {
+  id                 String   @id @default(cuid())
+  idempotencyKey     String   @unique
+  paymentId          String
+  userId             String
+  amount             Int
+  clubClawback       Int      @default(0)
+  commissionRecorded Int      @default(0)
+  reason             String
+  evidenceJson       String
+  createdAt          DateTime @default(now())
+
+  @@index([paymentId])
 }
 
 /** Append-only audit when admin changes platform default commission. */

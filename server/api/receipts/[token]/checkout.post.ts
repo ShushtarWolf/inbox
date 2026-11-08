@@ -63,8 +63,29 @@ export default defineEventHandler(async (event) => {
   let supersededPaymentId: string | null = null
   if (existingPayment && isPaymentPayableOnline(existingPayment.status)) {
     preservedMeta = parseMeta(existingPayment.metadataJson)
-    supersededPaymentId = existingPayment.id
-    await supersedePayablePaymentForRetry(existingPayment)
+    const superseded = await supersedePayablePaymentForRetry(existingPayment).catch(async () => {
+      const fresh = await prisma.payment.findUnique({ where: { id: existingPayment!.id }, select: { status: true } })
+      return { superseded: false, status: fresh?.status || 'UNKNOWN' }
+    })
+    if (!superseded.superseded && (superseded.status === 'PAID' || superseded.status === 'REFUNDED')) {
+      const fresh = await prisma.payment.findUniqueOrThrow({ where: { id: existingPayment.id } })
+      return {
+        paymentId: fresh.id,
+        mode: getPaymentsMode(),
+        intent: {
+          id: fresh.id,
+          amount: fresh.amount,
+          currency: PAYMENT_CURRENCY,
+          status: fresh.status,
+          provider: fresh.provider as PaymentProvider,
+          providerRef: fresh.providerRef || undefined,
+        },
+      }
+    }
+    if (!superseded.superseded && superseded.status !== 'SUPERSEDED') {
+      throw createError({ statusCode: 409, statusMessage: 'PAYMENT_VERIFY_PENDING' })
+    }
+    supersededPaymentId = superseded.superseded ? existingPayment.id : null
     existingPayment = null
   } else if (existingPayment) {
     return {

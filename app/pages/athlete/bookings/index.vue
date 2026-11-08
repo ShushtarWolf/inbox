@@ -4,6 +4,7 @@ import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.
 import { filterBookingsByTime } from '#shared/bookingTimeFilter.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
+import { athleteCancelErrorNoticeKey, athleteCancelNoticeKey } from '#shared/cancelNotice.ts'
 import { canManageReservation } from '#shared/localDate.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
@@ -326,16 +327,26 @@ async function confirmCancel() {
         ? `/api/coach-sessions/${id}/cancel`
         : `/api/package-bookings/${id}/cancel`
     const result = await $fetch<{
-      refund?: { walletCredited?: boolean; refunded?: boolean }
-      moneyOutcome?: 'full_wallet_refund' | 'zero_refund'
+      refund?: {
+        walletCredited?: boolean
+        refunded?: boolean
+        gatewayRefunded?: boolean
+        refundChannel?: string | null
+        deskCashReturn?: string | null
+        reversePending?: boolean
+      }
+      moneyOutcome?: 'full_wallet_refund' | 'partial_wallet_refund' | 'zero_refund'
     }>(endpoint, { method: 'PATCH' })
-    const notice = result.moneyOutcome === 'zero_refund'
-      ? t('booking.refundNoneCancelled')
-      : result.refund?.walletCredited
-        ? t('booking.refundToWallet')
-        : result.refund?.refunded
-          ? t('booking.refundToWallet')
-          : ''
+    const noticeKey = athleteCancelNoticeKey({
+      moneyOutcome: result.moneyOutcome,
+      walletCredited: result.refund?.walletCredited,
+      refunded: result.refund?.refunded,
+      gatewayRefunded: result.refund?.gatewayRefunded,
+      refundChannel: result.refund?.refundChannel,
+      deskCashReturn: result.refund?.deskCashReturn,
+      reversePending: result.refund?.reversePending,
+    })
+    const notice = noticeKey ? t(noticeKey) : ''
     cancelPending.value = false
     closeDetail()
     await refresh()
@@ -345,7 +356,9 @@ async function confirmCancel() {
     }
   }
   catch (err: unknown) {
-    actionError.value = fetchErrorMessage(err, t('booking.actionFailed'))
+    const raw = fetchErrorMessage(err, t('booking.actionFailed'))
+    const pendingKey = athleteCancelErrorNoticeKey(raw)
+    actionError.value = pendingKey ? t(pendingKey) : raw
     confirmingCancel.value = false
   }
   finally {

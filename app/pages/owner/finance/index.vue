@@ -2,6 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -163,6 +164,7 @@ const bookingKind = ref<FinanceBookingKindFilter>('all')
 const paymentFilter = ref<FinancePaymentFilter>('all')
 /** Dual-rail accounting tab — drives paymentFilter for cash vs online books. */
 const bookRail = ref<'all' | 'cash' | 'online'>('all')
+const ownerTab = ref<'overview' | 'tx' | 'payout' | 'reports'>('overview')
 const legendFilter = ref<FinanceLegendFilter>('all')
 const guestQuery = ref('')
 const discountQuery = ref('')
@@ -182,7 +184,7 @@ const financeQuery = computed(() => {
 const { data, pending, error, refresh } = await useAuthedFetch<OwnerFinanceResponse>('/api/owner/finance', {
   query: financeQuery,
 })
-const { data: settlement, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
+const { data: settlement, pending: settlementPending, refresh: refreshSettlement } = await useAuthedFetch<OwnerSettlementResponse>('/api/owner/settlement', {
   immediate: false,
   watch: false,
 })
@@ -250,6 +252,7 @@ const showReports = computed(() => canReports.value || reportsGatePending.value)
 const showTransactions = computed(() => canTransactions.value || reportsGatePending.value)
 /** Withdraw / sheba form — payouts permission. Wallet summary loads with reports/view. */
 const showPayoutsSection = computed(() => canPayouts.value || reportsGatePending.value)
+const showFinancePage = computed(() => !user.value || reportsGatePending.value || isOwner.value || canReports.value || canTransactions.value || canPayouts.value)
 
 useOwnerClubRefresh(() => {
   refresh()
@@ -288,7 +291,11 @@ const shebaStatusMessage = computed(() => {
   return ''
 })
 
-const commissionPct = computed(() => Math.round(Number(settlement.value?.commissionBps || 0) / 100))
+/** Authoritative rate from GET /api/owner/settlement — no client-side resolution. */
+const commissionPct = computed(() => ownerSettlementCommissionPct(
+  settlement.value?.commissionBps,
+  settlementPending.value,
+))
 
 async function submitInternalTransfer() {
   if (!transferCoachId.value || !transferAmount.value) return
@@ -583,7 +590,19 @@ function showUnpaidList() {
     </section>
 
     <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-    <section class="canva-finance-hero-card">
+    <h1 class="px-4 pt-4 text-start text-xl font-bold text-brand-navy">{{ t('owner.financePage.pageTitle') }}</h1>
+    <p class="px-4 pb-2 text-start text-sm text-brand-gray-600">{{ t('owner.financePage.pageSubtitle') }}</p>
+    <p v-if="user && !showFinancePage" class="mx-4 border border-brand-gray-200 bg-brand-cream px-3 py-3 text-start text-sm text-brand-navy" role="alert">
+      {{ t('owner.financePage.financeLocked') }}
+    </p>
+    <div v-else class="canva-finance-period mx-4" role="tablist" :aria-label="t('owner.financePage.pageTitle')">
+      <button type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'overview'" :class="ownerTab === 'overview' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'overview'">{{ t('owner.financePage.tabOverview') }}</button>
+      <button v-if="showTransactions" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'tx'" :class="ownerTab === 'tx' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'tx'">{{ t('owner.financePage.tabTx') }}</button>
+      <button v-if="showPayoutsSection" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'payout'" :class="ownerTab === 'payout' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'payout'">{{ t('owner.financePage.tabPayout') }}</button>
+      <button v-if="showReports" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'reports'" :class="ownerTab === 'reports' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'reports'">{{ t('owner.financePage.tabReports') }}</button>
+    </div>
+    <p v-if="showFinancePage && !showPayoutsSection && !reportsGatePending" class="px-4 pt-2 text-start text-xs text-brand-gray-500">{{ t('owner.financePage.payoutTabHidden') }}</p>
+    <section v-if="showFinancePage && ownerTab === 'overview'" class="canva-finance-hero-card">
       <p class="text-xs text-white/75">{{ t('owner.financePage.walletHeroTitle') }}</p>
       <p class="mt-1 text-[11px] text-white/60">{{ t('owner.financePage.walletHeroHint') }}</p>
       <p class="mt-2 text-3xl font-bold tabular-nums text-white">
@@ -628,7 +647,7 @@ function showUnpaidList() {
       </NuxtLink>
     </section>
 
-    <section class="mt-3 canva-panel space-y-2 text-start" :aria-label="t('owner.financePage.bookCashTitle')">
+    <section v-if="showFinancePage && ownerTab === 'overview'" class="mt-3 canva-panel space-y-2 text-start" :aria-label="t('owner.financePage.bookCashTitle')">
       <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.bookCashTitle') }}</h2>
       <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.bookCashHint') }}</p>
       <dl class="space-y-1 text-sm">
@@ -646,36 +665,42 @@ function showUnpaidList() {
       <button
         type="button"
         class="canva-gate-btn-secondary w-full text-xs"
-        @click="bookRail = 'cash'"
+        @click="bookRail = 'cash'; ownerTab = 'tx'"
       >
         {{ t('owner.financePage.bookFilterCash') }}
       </button>
     </section>
 
-    <div class="canva-finance-period mt-3" role="group" :aria-label="t('owner.financePage.booksTitle')">
+    <div v-if="showFinancePage && ownerTab === 'tx'" class="canva-finance-period mt-3" role="group" :aria-label="t('owner.financePage.booksTitle')">
       <button
         type="button"
         class="canva-finance-period-btn"
         :class="bookRail === 'all' ? 'canva-finance-period-active' : ''"
         @click="bookRail = 'all'"
-      >{{ t('owner.financePage.bookFilterAll') }}</button>
+      >
+        {{ t('owner.financePage.bookFilterAll') }}
+      </button>
       <button
         type="button"
         class="canva-finance-period-btn"
         :class="bookRail === 'cash' ? 'canva-finance-period-active' : ''"
         @click="bookRail = 'cash'"
-      >{{ t('owner.financePage.bookFilterCash') }}</button>
+      >
+        {{ t('owner.financePage.bookFilterCash') }}
+      </button>
       <button
         type="button"
         class="canva-finance-period-btn"
         :class="bookRail === 'online' ? 'canva-finance-period-active' : ''"
         @click="bookRail = 'online'"
-      >{{ t('owner.financePage.bookFilterOnline') }}</button>
+      >
+        {{ t('owner.financePage.bookFilterOnline') }}
+      </button>
     </div>
 
-    <AppAsyncState :pending="pending" :error="error" skeleton-variant="stat-grid">
+    <AppAsyncState v-if="showFinancePage" :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div class="canva-finance-wide">
-      <div v-if="showReports" class="space-y-2">
+      <div v-if="showReports && ownerTab === 'overview'" class="space-y-2">
         <div class="canva-finance-chips">
           <template v-for="chip in summaryChips" :key="chip.key">
             <button
@@ -702,8 +727,9 @@ function showUnpaidList() {
         </p>
       </div>
 
-      <div v-if="showReports" class="canva-panel">
-        <div class="owner-fin-method-head flex flex-wrap items-center justify-between gap-2">
+      <div v-if="showReports && (ownerTab === 'overview' || ownerTab === 'reports')" class="canva-panel">
+        <p class="text-start text-xs text-brand-gray-500">{{ t('owner.financePage.paymentBreakdownHint') }}</p>
+        <div class="owner-fin-method-head mt-2 flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.paymentMethodTitle') }}</h2>
           <div class="owner-fin-method-legend flex items-center gap-3 text-[10px] font-bold text-brand-gray-600">
             <span class="inline-flex items-center gap-1">
@@ -729,7 +755,7 @@ function showUnpaidList() {
         </p>
       </div>
 
-      <div v-if="showTransactions" id="owner-finance-tx" class="canva-finance-tx-col space-y-3">
+      <div v-if="showTransactions && ownerTab === 'tx'" id="owner-finance-tx" class="canva-finance-tx-col space-y-3">
         <h2 class="text-start text-base font-bold text-brand-navy">{{ t('owner.financePage.recentTransactions') }}</h2>
         <OwnerFinanceTxFilters
           v-model:session="sessionFilter"
@@ -867,10 +893,10 @@ function showUnpaidList() {
             </tbody>
           </table>
         </div>
-        <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ t('common.empty') }}</p>
+        <p v-else class="border border-dashed border-brand-gray-200 px-3 py-8 text-center text-sm text-brand-gray-500" style="border-radius: var(--sz-canva-radius);">{{ (data?.transactions?.length || 0) > 0 ? t('owner.financePage.emptyFiltered') : t('owner.financePage.emptyTx') }}</p>
       </div>
 
-      <div v-if="showTransactions && bookRail !== 'online' && deskCashReturnsOwed.length" class="canva-panel space-y-3">
+      <div v-if="showTransactions && (ownerTab === 'overview' || ownerTab === 'tx') && bookRail !== 'online' && deskCashReturnsOwed.length" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.deskCashReturnsTitle') }}</h2>
         <p class="text-sm text-brand-gray-600 text-start">{{ t('owner.financePage.deskCashReturnsHint') }}</p>
         <p v-if="cashAckError" class="text-sm text-red-600 text-start" role="alert">{{ cashAckError }}</p>
@@ -900,7 +926,7 @@ function showUnpaidList() {
         </ul>
       </div>
 
-      <div v-if="showReports && bookRail !== 'cash' && walletStatement.length" class="canva-panel space-y-2 text-start">
+      <div v-if="showReports && ownerTab === 'tx' && bookRail !== 'cash' && walletStatement.length" class="canva-panel space-y-2 text-start">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.walletStatementTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.walletStatementHint') }}</p>
         <div
@@ -924,9 +950,19 @@ function showUnpaidList() {
         </div>
       </div>
 
-      <div v-if="showPayoutsSection && bookRail !== 'cash'" class="canva-panel space-y-3">
+      <div v-if="showReports && ownerTab === 'reports'" class="canva-panel space-y-2 text-start">
+        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.periodNotBooksNote') }}</p>
+        <NuxtLink :to="localePath('/owner/finance/report')" class="canva-black-cta inline-flex">
+          {{ t('owner.financePage.advancedReport') }}
+        </NuxtLink>
+      </div>
+
+      <div v-if="showPayoutsSection && ownerTab === 'payout'" class="canva-panel space-y-3">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
-        <p class="text-sm text-brand-gray-600">
+        <p v-if="commissionPct == null" class="text-sm text-brand-gray-500">
+          {{ t('owner.financePage.commissionUnsettled') }}
+        </p>
+        <p v-else class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
         </p>
         <p class="text-xs font-bold text-red-600 text-start" role="note">

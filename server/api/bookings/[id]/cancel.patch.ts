@@ -14,9 +14,9 @@ import { cancelCourtBooking } from '../../../utils/cancellations'
 import { refundPaymentForCancellation } from '../../../utils/refunds'
 import {
   bookingLooksLikeSeriesPayment,
+  cancelSeriesSessionWithSlot,
   cancelUnpaidSeriesSiblings,
   loadSeriesGroupForBooking,
-  refundAfterSeriesSessionCancel,
 } from '../../../utils/seriesCancelRefund'
 
 export default defineEventHandler(async (event) => {
@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Series: money first (pro-rata), then free the slot — never FREE without credit.
-  let refund = null as Awaited<ReturnType<typeof refundAfterSeriesSessionCancel>> | Awaited<ReturnType<typeof cancelCourtBooking>>['refund']
+  let refund = null as Awaited<ReturnType<typeof cancelSeriesSessionWithSlot>> | Awaited<ReturnType<typeof cancelCourtBooking>>['refund']
   let refundFailed = false
 
   if (seriesAware) {
@@ -100,8 +100,10 @@ export default defineEventHandler(async (event) => {
     const unpaid = !group || !isPaymentRefundable(group.primaryPayment.status)
 
     try {
-      refund = await refundAfterSeriesSessionCancel({
-        cancelledBookingId: booking.id,
+      refund = await cancelSeriesSessionWithSlot({
+        bookingId: booking.id,
+        slotId: booking.slotId,
+        actorUserId: user.id,
         userId: booking.userId,
         reason: 'athlete-cancel',
         moneyOutcome,
@@ -110,21 +112,14 @@ export default defineEventHandler(async (event) => {
     }
     catch (err) {
       console.error('[cancel:series-refund]', booking.id, err)
+      const statusMessage = err && typeof err === 'object' && 'statusMessage' in err
+        ? String((err as { statusMessage?: unknown }).statusMessage || '')
+        : ''
       throw createError({
         statusCode: 409,
-        statusMessage: 'Refund failed — booking was not cancelled',
+        statusMessage: statusMessage || 'Refund failed — booking was not cancelled',
       })
     }
-
-    await cancelCourtBooking({
-      bookingId: id!,
-      slotId: booking.slotId,
-      actorUserId: user.id,
-      reason: 'athlete-cancel',
-      paymentId: null,
-      userId: booking.userId,
-      moneyOutcome: 'zero_refund',
-    })
 
     if (isPrimary && unpaid) {
       await cancelUnpaidSeriesSiblings({
