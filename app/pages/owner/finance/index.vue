@@ -383,6 +383,14 @@ const walletParts = computed(() => {
   }
 })
 const heroWithdrawable = computed(() => Number(walletParts.value.withdrawable || 0))
+const payoutRequestBlocked = computed(() => {
+  const debt = Number(walletParts.value.debt || 0) > 0
+  return debt || !canPayouts.value || heroWithdrawable.value <= 0
+})
+function openPayoutTab() {
+  if (payoutRequestBlocked.value) return
+  ownerTab.value = 'payout'
+}
 const walletStatement = computed(() => settlement.value?.statement || [])
 const pendingReleases = computed(() => settlement.value?.pendingReleases || [])
 const lifetimeCollected = computed(() => Number(data.value?.stats?.revenue || 0))
@@ -568,6 +576,8 @@ function closeTx() {
 /** Chip and hint stay on this page: filter the ledger to unpaid and scroll to it. */
 function showUnpaidList() {
   paymentFilter.value = 'unpaid'
+  bookRail.value = 'all'
+  ownerTab.value = 'tx'
   nextTick(() => {
     document.getElementById('owner-finance-tx')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
@@ -575,125 +585,96 @@ function showUnpaidList() {
 </script>
 
 <template>
-  <div class="venus-page-stack owner-finance-page">
-    <section class="canva-photo-hero">
-      <CanvaHeroImg
-        :src="activeMembership?.club?.image || '/hero/tennis-court.jpg'"
-        alt=""
-        img-class="canva-photo-hero-media"
-        img-style="object-position: 50% 40%;"
-        fetchpriority="high"
-      />
-      <div class="canva-photo-hero-wash canva-photo-hero-wash--sot" />
-      <CanvaOwnerHeroChrome />
-      <div class="canva-photo-hero-body !min-h-[9.5rem] !pb-8" />
-    </section>
-
-    <div class="canva-cal-sheet -mx-4 min-[431px]:mx-0">
-    <h1 class="px-4 pt-4 text-start text-xl font-bold text-brand-navy">{{ t('owner.financePage.pageTitle') }}</h1>
-    <p class="px-4 pb-2 text-start text-sm text-brand-gray-600">{{ t('owner.financePage.pageSubtitle') }}</p>
-    <p v-if="user && !showFinancePage" class="mx-4 border border-brand-gray-200 bg-brand-cream px-3 py-3 text-start text-sm text-brand-navy" role="alert">
+  <div class="venus-page-stack owner-finance-page fin-v4">
+    <h1 class="fin-h1">{{ t('owner.financePage.pageTitle') }}</h1>
+    <p class="fin-sub">
+      <template v-if="activeMembership?.club?.nameFa">{{ activeMembership.club.nameFa }} · </template>
+      {{ t('owner.financePage.pageSubtitle') }}
+    </p>
+    <p v-if="user && !showFinancePage" class="fin-alert fin-alert-gry" role="alert">
       {{ t('owner.financePage.financeLocked') }}
     </p>
-    <div v-else class="canva-finance-period mx-4" role="tablist" :aria-label="t('owner.financePage.pageTitle')">
-      <button type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'overview'" :class="ownerTab === 'overview' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'overview'">{{ t('owner.financePage.tabOverview') }}</button>
-      <button v-if="showTransactions" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'tx'" :class="ownerTab === 'tx' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'tx'">{{ t('owner.financePage.tabTx') }}</button>
-      <button v-if="showPayoutsSection" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'payout'" :class="ownerTab === 'payout' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'payout'">{{ t('owner.financePage.tabPayout') }}</button>
-      <button v-if="showReports" type="button" role="tab" class="canva-finance-period-btn" :aria-selected="ownerTab === 'reports'" :class="ownerTab === 'reports' ? 'canva-finance-period-active' : ''" @click="ownerTab = 'reports'">{{ t('owner.financePage.tabReports') }}</button>
+    <div v-else class="fin-subnav" role="tablist" :aria-label="t('owner.financePage.pageTitle')">
+      <button type="button" role="tab" :aria-selected="ownerTab === 'overview'" @click="ownerTab = 'overview'">{{ t('owner.financePage.tabOverview') }}</button>
+      <button v-if="showTransactions" type="button" role="tab" :aria-selected="ownerTab === 'tx'" @click="ownerTab = 'tx'">{{ t('owner.financePage.tabTx') }}</button>
+      <button v-if="showPayoutsSection" type="button" role="tab" :aria-selected="ownerTab === 'payout'" @click="ownerTab = 'payout'">{{ t('owner.financePage.tabPayout') }}</button>
+      <button v-if="showReports" type="button" role="tab" :aria-selected="ownerTab === 'reports'" @click="ownerTab = 'reports'">{{ t('owner.financePage.tabReports') }}</button>
     </div>
-    <p v-if="showFinancePage && !showPayoutsSection && !reportsGatePending" class="px-4 pt-2 text-start text-xs text-brand-gray-500">{{ t('owner.financePage.payoutTabHidden') }}</p>
-    <section v-if="showFinancePage && ownerTab === 'overview'" class="canva-finance-hero-card">
-      <p class="text-xs text-white/75">{{ t('owner.financePage.walletHeroTitle') }}</p>
-      <p class="mt-1 text-[11px] text-white/60">{{ t('owner.financePage.walletHeroHint') }}</p>
-      <p class="mt-2 text-3xl font-bold tabular-nums text-white">
-        {{ formatNumber(heroWithdrawable) }}
-        <span class="owner-fin-hero-unit">{{ t('common.currency') }}</span>
-      </p>
-      <p class="mt-1 text-xs text-white/80">{{ t('owner.financePage.walletWithdrawableNow') }}</p>
-      <dl class="mt-3 space-y-1 text-start text-xs text-white/85">
-        <div class="flex justify-between gap-3">
-          <dt>{{ t('owner.financePage.walletTotalBalance') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(walletParts.balance || 0) }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt>{{ t('owner.financePage.walletPendingRelease') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(walletParts.pendingRelease || 0) }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt>{{ t('owner.financePage.walletInPayout') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(walletParts.inPayout || 0) }}</dd>
-        </div>
-        <div v-if="(walletParts.debt || 0) > 0" class="flex justify-between gap-3 text-amber-200">
-          <dt>{{ t('owner.financePage.walletDebt') }}</dt>
-          <dd class="tabular-nums">{{ formatCurrency(walletParts.debt || 0) }}</dd>
-        </div>
-      </dl>
-      <ul v-if="pendingReleases.length" class="mt-2 space-y-0.5 text-start text-[11px] text-white/65">
-        <li v-for="row in pendingReleases.slice(0, 3)" :key="row.releaseDate">
-          {{ t('owner.financePage.walletReleaseRow', {
-            amount: formatCurrency(row.amount),
-            date: formatDate(row.releaseDate),
-          }) }}
-        </li>
-      </ul>
-      <p class="mt-2 text-start text-[11px] leading-4 text-white/65">
-        {{ t('owner.financePage.walletNotCashNote') }}
-      </p>
-      <NuxtLink
-        :to="localePath('/owner/finance/report')"
-        class="canva-finance-report-link mt-4"
-      >
-        {{ t('owner.financePage.lifetimeReportLink', { amount: formatCurrency(lifetimeCollected) }) }}
-      </NuxtLink>
-    </section>
+    <p v-if="showFinancePage && !showPayoutsSection && !reportsGatePending" class="fin-note">{{ t('owner.financePage.payoutTabHidden') }}</p>
 
-    <section v-if="showFinancePage && ownerTab === 'overview'" class="mt-3 canva-panel space-y-2 text-start" :aria-label="t('owner.financePage.bookCashTitle')">
-      <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.bookCashTitle') }}</h2>
-      <p class="text-xs text-brand-gray-600">{{ t('owner.financePage.bookCashHint') }}</p>
-      <dl class="space-y-1 text-sm">
-        <div class="flex justify-between gap-3">
-          <dt>{{ t('owner.financePage.bookCashInTill') }}</dt>
-          <dd class="tabular-nums font-bold text-brand-navy">{{ formatCurrency(cashBook?.inTill || 0) }}</dd>
+    <div v-if="showFinancePage && ownerTab === 'overview'" class="fin-grid2">
+      <section class="fin-card fin-dark" :aria-labelledby="'owner-online-wallet'">
+        <div id="owner-online-wallet" class="fin-lab">{{ t('owner.financePage.walletHeroTitle') }}</div>
+        <div class="fin-big tabular-nums">
+          {{ formatNumber(heroWithdrawable) }}
+          <small>{{ t('common.currency') }}</small>
         </div>
-        <div class="flex justify-between gap-3">
-          <dt>{{ t('owner.financePage.bookCashReturnsOwed') }}</dt>
-          <dd class="tabular-nums font-bold" :class="(cashBook?.returnsOwed || 0) > 0 ? 'text-red-600' : 'text-brand-navy'">
-            {{ formatCurrency(cashBook?.returnsOwed || 0) }}
-          </dd>
+        <div>{{ t('owner.financePage.walletWithdrawableNow') }}</div>
+        <div v-if="(walletParts.debt || 0) > 0" class="fin-alert fin-alert-red" role="alert">
+          {{ t('owner.financePage.walletNegativeNote', { amount: formatCurrency(walletParts.debt || 0) }) }}
         </div>
-      </dl>
-      <button
-        type="button"
-        class="canva-gate-btn-secondary w-full text-xs"
-        @click="bookRail = 'cash'; ownerTab = 'tx'"
-      >
-        {{ t('owner.financePage.bookFilterCash') }}
-      </button>
-    </section>
+        <div class="fin-btns">
+          <button type="button" class="fin-btn" :disabled="payoutRequestBlocked" @click="openPayoutTab">
+            {{ t('owner.financePage.withdrawRequest') }}
+          </button>
+        </div>
+        <p class="fin-note">
+          <template v-if="!canPayouts">{{ t('owner.financePage.payoutTabHidden') }}</template>
+          <template v-else-if="(walletParts.debt || 0) > 0">{{ t('owner.financePage.walletNegativeNote', { amount: formatCurrency(walletParts.debt || 0) }) }}</template>
+          <template v-else>{{ t('owner.financePage.cashoutAfterClassNote') }}</template>
+        </p>
+        <div class="fin-pair">
+          <div>
+            <div class="fin-lab">{{ t('owner.financePage.walletPendingRelease') }}</div>
+            <div class="v tabular-nums">{{ formatCurrency(walletParts.pendingRelease || 0) }}</div>
+          </div>
+          <div>
+            <div class="fin-lab">{{ t('owner.financePage.walletInPayout') }}</div>
+            <div class="v tabular-nums">{{ formatCurrency(walletParts.inPayout || 0) }}</div>
+          </div>
+        </div>
+        <details class="fin-details">
+          <summary>{{ t('owner.financePage.walletReleaseSummary') }}</summary>
+          <ul v-if="pendingReleases.length" class="fin-list">
+            <li v-for="row in pendingReleases" :key="row.releaseDate" class="tabular-nums">
+              {{ t('owner.financePage.walletReleaseRow', { amount: formatCurrency(row.amount), date: formatDate(row.releaseDate) }) }}
+            </li>
+          </ul>
+          <p v-else class="fin-note">{{ t('owner.financePage.emptyTx') }}</p>
+          <div class="fin-row fin-row-on-dark">
+            <span>{{ t('owner.financePage.walletTotalBalance') }}</span>
+            <b class="tabular-nums" :class="(walletParts.balance || 0) < 0 ? 'fin-debt-num' : ''">{{ formatCurrency(walletParts.balance || 0) }}</b>
+          </div>
+          <p class="fin-note">{{ t('owner.financePage.walletNotCashNote') }}</p>
+        </details>
+      </section>
+      <section class="fin-card" :aria-label="t('owner.financePage.bookCashTitle')">
+        <h2>{{ t('owner.financePage.bookCashTitle') }}</h2>
+        <p class="fin-note">{{ t('owner.financePage.bookCashHint') }}</p>
+        <div class="fin-row">
+          <span>{{ t('owner.financePage.bookCashInTill') }}</span>
+          <b class="tabular-nums">{{ formatCurrency(cashBook?.inTill || 0) }}</b>
+        </div>
+        <div class="fin-row">
+          <span>{{ t('owner.financePage.bookCashReturnsOwed') }}</span>
+          <b class="tabular-nums" :class="(cashBook?.returnsOwed || 0) > 0 ? 'fin-owed' : ''">{{ formatCurrency(cashBook?.returnsOwed || 0) }}</b>
+        </div>
+        <div v-if="showTransactions" class="fin-btns">
+          <button type="button" class="fin-btn sec" @click="bookRail = 'cash'; ownerTab = 'tx'">
+            {{ t('owner.financePage.bookFilterCash') }}
+          </button>
+        </div>
+      </section>
+    </div>
 
-    <div v-if="showFinancePage && ownerTab === 'tx'" class="canva-finance-period mt-3" role="group" :aria-label="t('owner.financePage.booksTitle')">
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="bookRail === 'all' ? 'canva-finance-period-active' : ''"
-        @click="bookRail = 'all'"
-      >
+    <div v-if="showFinancePage && ownerTab === 'tx'" class="fin-tabs" role="tablist" :aria-label="t('owner.financePage.booksTitle')">
+      <button type="button" role="tab" :aria-selected="bookRail === 'all'" @click="bookRail = 'all'">
         {{ t('owner.financePage.bookFilterAll') }}
       </button>
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="bookRail === 'cash' ? 'canva-finance-period-active' : ''"
-        @click="bookRail = 'cash'"
-      >
+      <button type="button" role="tab" :aria-selected="bookRail === 'cash'" @click="bookRail = 'cash'">
         {{ t('owner.financePage.bookFilterCash') }}
       </button>
-      <button
-        type="button"
-        class="canva-finance-period-btn"
-        :class="bookRail === 'online' ? 'canva-finance-period-active' : ''"
-        @click="bookRail = 'online'"
-      >
+      <button type="button" role="tab" :aria-selected="bookRail === 'online'" @click="bookRail = 'online'">
         {{ t('owner.financePage.bookFilterOnline') }}
       </button>
     </div>
@@ -701,7 +682,7 @@ function showUnpaidList() {
     <AppAsyncState v-if="showFinancePage" :pending="pending" :error="error" skeleton-variant="stat-grid">
       <div class="canva-finance-wide">
       <div v-if="showReports && ownerTab === 'overview'" class="space-y-2">
-        <div class="canva-finance-chips">
+        <div class="fin-today">
           <template v-for="chip in summaryChips" :key="chip.key">
             <button
               v-if="chip.key === 'pendingSettlement'"
@@ -727,7 +708,7 @@ function showUnpaidList() {
         </p>
       </div>
 
-      <div v-if="showReports && (ownerTab === 'overview' || ownerTab === 'reports')" class="canva-panel">
+      <div v-if="showReports && ownerTab === 'reports'" class="fin-card">
         <p class="text-start text-xs text-brand-gray-500">{{ t('owner.financePage.paymentBreakdownHint') }}</p>
         <div class="owner-fin-method-head mt-2 flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-bold text-brand-navy">{{ t('owner.financePage.paymentMethodTitle') }}</h2>
@@ -950,14 +931,15 @@ function showUnpaidList() {
         </div>
       </div>
 
-      <div v-if="showReports && ownerTab === 'reports'" class="canva-panel space-y-2 text-start">
-        <p class="text-sm text-brand-gray-600">{{ t('owner.financePage.periodNotBooksNote') }}</p>
+      <div v-if="showReports && ownerTab === 'reports'" class="fin-card fin-stack">
+        <p class="fin-alert fin-alert-gry">{{ t('owner.financePage.lifetimeReportLink', { amount: formatCurrency(lifetimeCollected) }) }}</p>
+        <p class="fin-note">{{ t('owner.financePage.periodNotBooksNote') }}</p>
         <NuxtLink :to="localePath('/owner/finance/report')" class="canva-black-cta inline-flex">
           {{ t('owner.financePage.advancedReport') }}
         </NuxtLink>
       </div>
 
-      <div v-if="showPayoutsSection && ownerTab === 'payout'" class="canva-panel space-y-3">
+      <div v-if="showPayoutsSection && ownerTab === 'payout'" class="fin-card fin-stack">
         <h2 class="text-base font-bold text-brand-navy">{{ t('owner.financePage.payoutsTitle') }}</h2>
         <p v-if="commissionPct == null" class="text-sm text-brand-gray-500">
           {{ t('owner.financePage.commissionUnsettled') }}
@@ -1183,6 +1165,5 @@ function showUnpaidList() {
     </AppModal>
 
     <OwnerLegalFooter />
-    </div>
   </div>
 </template>
