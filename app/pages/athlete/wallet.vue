@@ -8,7 +8,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
-const { formatCurrency, formatDate, formatTimeLabel } = useFormatters()
+const { formatCurrency, formatDate, formatTimeLabel, formatNumber } = useFormatters()
 const { onlineEnabled, isTestPayments, redirectToPaymentGateway } = useCheckout()
 const { fetchErrorMessage } = useFetchError()
 type AthleteCashDesk = {
@@ -98,6 +98,16 @@ const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalanc
 const pendingClassBalance = computed(() => Number(data.value?.pendingClassBalance || 0))
 const onlineBalance = computed(() => Number(data.value?.online?.availableBalance ?? data.value?.balance ?? 0))
 const cashDesk = computed(() => data.value?.cashDesk || null)
+const athTab = ref<'ledger' | 'cash'>('ledger')
+const athPanel = ref<'topup' | 'withdraw' | null>(null)
+const pendingPayout = computed(() => (data.value?.pendingWithdraws || []).reduce((sum, row) => sum + Number(row.amount || 0), 0))
+function openAthPanel(panel: 'topup' | 'withdraw') {
+  athPanel.value = panel
+  athTab.value = 'ledger'
+  nextTick(() => {
+    document.getElementById(panel === 'topup' ? 'ath-topup' : 'ath-withdraw')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
 
 function cashDeskRowLabel(row: NonNullable<AthleteCashDesk['recent']>[number]) {
   if (row.status === 'REFUNDED' && row.deskCashReturn === 'owed') return t('athlete.paymentStatusRefundedCashOwed')
@@ -260,48 +270,39 @@ watch(
 </script>
 
 <template>
-  <div class="venus-page-stack ath-wallet-sot">
+  <div class="venus-page-stack ath-wallet-sot fin-v4">
     <CanvaSubpageHeader to="/athlete" :title="t('athlete.walletTitle')" :subtitle="t('athlete.walletSubtitle')" />
-    <section class="canva-dash-hero ath-wallet-hero">
-      <p class="text-xs text-white/80 text-start">{{ t('athlete.walletBooksTitle') }}</p>
-      <p class="mt-1 text-sm text-white/85 text-start">{{ t('athlete.walletSubtitle') }}</p>
-      <div class="mt-3 grid gap-2 min-[431px]:grid-cols-2">
-        <div class="border border-white/25 bg-black/20 px-3 py-2 text-start">
-          <p class="text-[11px] text-white/75">{{ t('athlete.walletOnlineBalance') }}</p>
-          <p class="ath-wallet-amount mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(onlineBalance) }}</p>
-          <p class="mt-1 text-[11px] text-white/70">{{ t('athlete.walletOnlineHint') }}</p>
+    <section class="fin-card fin-dark fin-ath" :aria-labelledby="'ath-online-balance'">
+      <div id="ath-online-balance" class="fin-lab">{{ t('athlete.walletOnlineBalance') }}</div>
+      <div class="fin-big tabular-nums">
+        {{ formatNumber(onlineBalance) }}
+        <small>{{ t('common.currency') }}</small>
+      </div>
+      <div class="fin-pair">
+        <div>
+          <div class="fin-lab">{{ t('athlete.walletBankTransferable') }}</div>
+          <div class="v tabular-nums">{{ formatCurrency(data?.canBankWithdraw ? withdrawableBalance : 0) }}</div>
+          <p class="fin-note">{{ data?.canBankWithdraw ? t('athlete.walletBankTransferableHint') : t('athlete.walletClosedLoopHint') }}</p>
         </div>
-        <div class="border border-white/15 bg-black/10 px-3 py-2 text-start">
-          <p class="text-[11px] text-white/65">{{ t('athlete.walletCashBookTitle') }}</p>
-          <p class="mt-1 text-lg font-semibold tabular-nums text-white/90">{{ formatCurrency(cashDesk?.inTill || 0) }}</p>
-          <p class="mt-1 text-[11px] text-white/60">{{ t('athlete.walletCashBookHint') }}</p>
-          <p
-            v-if="(cashDesk?.returnsOwed || 0) > 0"
-            class="mt-1 text-[11px] font-bold text-amber-200"
-          >
-            {{ t('athlete.walletCashReturnsOwed') }}: {{ formatCurrency(cashDesk?.returnsOwed || 0) }}
+        <div>
+          <div class="fin-lab">{{ t('athlete.walletInPayout') }}</div>
+          <div class="v tabular-nums">{{ formatCurrency(pendingPayout) }}</div>
+          <p v-if="pendingClassBalance > 0" class="fin-note">
+            {{ t('athlete.pendingClassBalance', { amount: formatCurrency(pendingClassBalance) }) }}
           </p>
         </div>
       </div>
-      <p
-        v-if="data?.canBankWithdraw"
-        class="mt-2 text-xs text-white/80 text-start"
-      >
-        {{ t('athlete.withdrawAvailable', { amount: formatCurrency(withdrawableBalance) }) }}
-      </p>
-      <p
-        v-else
-        class="mt-2 text-xs text-white/80 text-start"
-      >
-        {{ t('athlete.walletClosedLoopHint') }}
-      </p>
-      <p
-        v-if="pendingClassBalance > 0"
-        class="mt-1 text-xs text-white/70 text-start"
-      >
-        {{ t('athlete.pendingClassBalance', { amount: formatCurrency(pendingClassBalance) }) }}
-      </p>
+      <div class="fin-btns">
+        <button type="button" class="fin-btn sec" @click="openAthPanel('topup')">{{ t('athlete.walletTopUpTitle') }}</button>
+        <button type="button" class="fin-btn sec" @click="openAthPanel('withdraw')">{{ t('athlete.withdrawRequest') }}</button>
+      </div>
+      <p class="fin-note">{{ t('athlete.walletOnlineHint') }}</p>
     </section>
+    <div class="fin-tabs" role="tablist" :aria-label="t('athlete.walletTitle')">
+      <button type="button" role="tab" :aria-selected="athTab === 'ledger'" @click="athTab = 'ledger'">{{ t('athlete.walletLedgerTab') }}</button>
+      <NuxtLink class="fin-tab-link" :to="localePath('/athlete/payments')">{{ t('athlete.walletPaymentsTab') }}</NuxtLink>
+      <button type="button" role="tab" :aria-selected="athTab === 'cash'" @click="athTab = 'cash'">{{ t('athlete.walletCashBookTitle') }}</button>
+    </div>
 
     <p
       v-if="flash"
@@ -312,7 +313,7 @@ watch(
     </p>
 
     <AppAsyncState :pending="pending" :error="error" skeleton-variant="default">
-      <section class="canva-panel space-y-3 text-start">
+      <section v-if="athTab === 'cash'" class="fin-card fin-stack">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletCashBookTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">{{ t('athlete.walletCashBookHint') }}</p>
         <dl class="space-y-1 text-sm">
@@ -354,7 +355,7 @@ watch(
         <p v-else class="text-sm text-brand-gray-500">{{ t('athlete.walletCashEmpty') }}</p>
       </section>
 
-      <section class="canva-panel canva-sot-form space-y-3 text-start">
+      <section v-show="athPanel === 'topup'" id="ath-topup" class="fin-card fin-stack">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.walletTopUpTitle') }} · {{ t('athlete.walletOnlineBalance') }}</h2>
         <p v-if="!onlineEnabled" class="text-sm text-brand-gray-600">
           {{ t('athlete.walletTopUpRequiresOnline') }}
@@ -403,7 +404,8 @@ watch(
         </template>
       </section>
 
-      <section v-if="data?.canBankWithdraw" class="canva-panel space-y-3 text-start">
+      <p v-if="athPanel === 'withdraw' && !data?.canBankWithdraw" id="ath-withdraw" class="fin-alert fin-alert-gry">{{ t('athlete.walletClosedLoopHint') }}</p>
+      <section v-if="data?.canBankWithdraw && athPanel === 'withdraw'" id="ath-withdraw" class="fin-card fin-stack">
         <h2 class="text-sm font-bold text-brand-navy">{{ t('athlete.withdrawTitle') }}</h2>
         <p class="text-xs text-brand-gray-600">
           {{
@@ -468,7 +470,7 @@ watch(
         </div>
       </section>
 
-      <div class="space-y-2">
+      <div v-if="athTab === 'ledger'" class="fin-card fin-stack">
         <!-- HTML .rh3 -->
         <h2 class="ath-wallet-history-title text-[15px] font-bold text-brand-primary text-start">{{ t('athlete.walletHistoryTitle') }} · {{ t('athlete.walletOnlineBalance') }}</h2>
         <div v-if="data?.transactions?.length" class="space-y-2">

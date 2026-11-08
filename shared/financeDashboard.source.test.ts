@@ -20,6 +20,9 @@ describe('finance dashboard wiring', () => {
 
   it('gates tabs by the existing finance permissions and has no demo fixtures', () => {
     expect(page).toContain('showFinancePage')
+    expect(page).toContain('fin-v4')
+    expect(page).toContain('fin-grid2')
+    expect(page).not.toContain('canva-photo-hero')
     expect(page).toContain('finance:reports')
     expect(page).toContain('finance:transactions')
     expect(page).toContain('finance:payouts')
