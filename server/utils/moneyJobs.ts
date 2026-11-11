@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { isWalletTopUpPayment } from '#shared/walletTopUp.ts'
 import { notifyAdminSms } from './adminNotify'
 import { prisma } from './prisma'
+import { canSettleOwnerForPaidPayment } from '#shared/deskPaidGuard.ts'
 import { creditOwnerForPaidPayment } from './settlement'
 import { promoteSplitPayAmountOnPaid } from './splitPayWallet'
 import { creditWalletForTopUpPayment } from './wallet'
@@ -17,7 +18,7 @@ export async function enqueueMoneyJobsForPaidPayment(
 ) {
   const payment = await db.payment.findUnique({
     where: { id: paymentId },
-    select: { id: true, status: true, purpose: true, method: true },
+    select: { id: true, status: true, purpose: true, method: true, gatewayRef: true, metadataJson: true },
   })
   if (!payment || payment.status !== 'PAID') return { enqueued: 0 as const }
 
@@ -25,7 +26,7 @@ export async function enqueueMoneyJobsForPaidPayment(
   if (isWalletTopUpPayment(payment)) {
     types.push('TOPUP_CREDIT')
   }
-  else if (payment.method !== 'CASH') {
+  else if (canSettleOwnerForPaidPayment(payment)) {
     types.push('SETTLE')
   }
   if (types.length === 0) return { enqueued: 0 as const }
@@ -141,6 +142,7 @@ async function processOneMoneyJob(job: {
       || result.reason === 'already_settled'
       || result.reason === 'already_paid'
       || result.reason === 'cash_not_settled'
+      || result.reason === 'ipg_unverified'
       || result.reason === 'not_paid_booking'
     ) {
       await markJobDone(job.id, prisma)
@@ -211,7 +213,7 @@ export async function reconcilePaidPaymentsMissingLedger(limit = 40) {
       settlementLedgerEntry: { is: null },
       moneyJobs: { none: { type: 'SETTLE', status: 'FAILED' } },
     },
-    select: { id: true },
+    select: { id: true, method: true, gatewayRef: true, metadataJson: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
@@ -233,6 +235,7 @@ export async function reconcilePaidPaymentsMissingLedger(limit = 40) {
   `
 
   for (const row of paidBooking) {
+    if (!canSettleOwnerForPaidPayment(row)) continue
     await reopenMoneyJob(row.id, 'SETTLE')
   }
   for (const row of paidTopUp) {

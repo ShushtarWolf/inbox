@@ -39,6 +39,7 @@ import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSear
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
 import {
@@ -76,6 +77,7 @@ interface OwnerCalendarBooking {
     method?: string
     status?: string
     amount?: number
+    gatewayRef?: string | null
     metadataJson?: string | null
   } | null
   paymentMethod?: string | null
@@ -254,6 +256,67 @@ const form = reactive({
 })
 
 watchAsciiDigits(() => form.guestMobile, (next) => { form.guestMobile = next })
+
+const deskPaymentHint = ref('')
+
+function deskPaymentSourceFromSlot(slot?: OwnerCalendarSlot | null) {
+  const booking = slot ? activeBooking(slot) : null
+  const payment = booking?.payment
+  return {
+    previousMethod: payment?.method || booking?.paymentMethod,
+    previousStatus: payment?.status || booking?.paymentStatus,
+    gatewayRef: payment?.gatewayRef ?? null,
+    metadataJson: payment?.metadataJson ?? null,
+  }
+}
+
+const deskOnlinePaidLocked = computed(() => {
+  const src = deskPaymentSourceFromSlot(selectedSlot.value)
+  return isPaidPaymentStatus(src.previousStatus) && (src.previousMethod === 'IPG' || src.previousMethod === 'PAID')
+})
+
+const deskPaymentErrorKeys: Record<string, string> = {
+  PAYMENT_METHOD_LOCKED: 'owner.deskPaymentMethodLocked',
+  ONLINE_PAID_MUST_CANCEL: 'owner.deskOnlinePaidLocked',
+  PAYMENT_VERIFY_PENDING: 'owner.deskPaymentVerifyPending',
+}
+
+function applyDeskPaymentForm(opts?: { submit?: boolean }) {
+  const decision = resolveDeskPaymentWrite({
+    requestedMethod: form.paymentMethod,
+    requestedPaid: form.paymentStatus === 'PAID',
+    paymentsMode: payAtClubMode.value ? 'pay_at_club' : undefined,
+    ...deskPaymentSourceFromSlot(selectedSlot.value),
+  })
+  if (decision.error) {
+    if (decision.error.statusMessage === 'PAYMENT_VERIFY_PENDING' && form.paymentStatus === 'PAID') {
+      form.paymentStatus = 'PAY_AT_CLUB'
+      deskPaymentHint.value = t('owner.deskPaymentVerifyPending')
+    }
+    if (opts?.submit) {
+      const key = deskPaymentErrorKeys[decision.error.statusMessage]
+      actionError.value = key ? t(key) : decision.error.statusMessage
+      return null
+    }
+    return decision
+  }
+  if (decision.forcedCashForManualPaid) {
+    if (form.paymentMethod !== 'CASH') form.paymentMethod = 'CASH'
+    if (form.paymentStatus !== 'PAID') form.paymentStatus = 'PAID'
+    deskPaymentHint.value = t('owner.deskManualPaidIsCash')
+    return decision
+  }
+  if (decision.method === 'IPG' || decision.method === 'CASH') {
+    if (form.paymentMethod !== decision.method) form.paymentMethod = decision.method
+  }
+  if (form.paymentStatus !== decision.status) form.paymentStatus = decision.status
+  if (deskPaymentHint.value && form.paymentStatus !== 'PAID') deskPaymentHint.value = ''
+  return decision
+}
+
+watch(() => [form.paymentMethod, form.paymentStatus], () => {
+  applyDeskPaymentForm()
+})
 
 const seasonForm = reactive({
   startDate: '',
@@ -2498,6 +2561,8 @@ function guestNamePayload() {
 async function doReserve() {
   const targets = slotsForReserve()
   if (!targets.length || saving.value || !canSubmitReserve()) return
+  const deskPayment = applyDeskPaymentForm({ submit: true })
+  if (!deskPayment) return
   saving.value = true
   actionError.value = ''
   try {
@@ -2522,8 +2587,8 @@ async function doReserve() {
             guestName: guest.guestName,
             guestFamily: guest.guestFamily,
             guestMobile: form.guestMobile,
-            paymentMethod: form.paymentMethod,
-            paymentStatus: form.paymentStatus,
+            paymentMethod: deskPayment.method,
+            paymentStatus: deskPayment.status,
             comments: form.comments,
             equipmentIds: form.equipmentIds,
             equipmentQuantities: equipmentQuantitiesPayload(),
@@ -3452,6 +3517,8 @@ async function doPackageReserve(opts?: { fromPayConfirm?: boolean }) {
 
 async function saveEquipmentSelection() {
   if (!selectedSlot.value || saving.value) return
+  const deskPayment = applyDeskPaymentForm({ submit: true })
+  if (!deskPayment) return
   saving.value = true
   actionError.value = ''
   try {
@@ -3463,8 +3530,8 @@ async function saveEquipmentSelection() {
         guestName: guest.guestName,
         guestFamily: guest.guestFamily,
         guestMobile: form.guestMobile,
-        paymentMethod: form.paymentMethod,
-        paymentStatus: form.paymentStatus,
+        paymentMethod: deskPayment.method,
+        paymentStatus: deskPayment.status,
         comments: form.comments,
         equipmentIds: form.equipmentIds,
         equipmentQuantities: equipmentQuantitiesPayload(),
@@ -4972,17 +5039,23 @@ watch(pilotNoCoach, (off) => {
               </select>
             </AppFormField>
             <AppFormField v-if="isEditingBooking()" :label="t('owner.paymentMethod')" field-id="owner-reserve-payment-method">
-              <select id="owner-reserve-payment-method" v-model="form.paymentMethod" class="neo-select">
-                <option v-if="!payAtClubMode" value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
+              <select id="owner-reserve-payment-method" v-model="form.paymentMethod" class="neo-select" :disabled="deskOnlinePaidLocked">
+                <option v-if="!payAtClubMode && form.paymentStatus !== 'PAID'" value="IPG">{{ t('owner.paymentMethods.IPG') }}</option>
                 <option value="CASH">{{ t('owner.paymentMethods.CASH') }}</option>
               </select>
             </AppFormField>
             <AppFormField v-if="isEditingBooking()" :label="t('owner.paymentStatusLabel')" field-id="owner-reserve-payment-status">
-              <select id="owner-reserve-payment-status" v-model="form.paymentStatus" class="neo-select">
+              <select id="owner-reserve-payment-status" v-model="form.paymentStatus" class="neo-select" :disabled="deskOnlinePaidLocked">
                 <option value="PAY_AT_CLUB">{{ t('booking.paymentStatus.PAY_AT_CLUB') }}</option>
                 <option value="PAID">{{ t('booking.paymentStatus.PAID') }}</option>
               </select>
             </AppFormField>
+            <p v-if="isEditingBooking() && deskOnlinePaidLocked" class="text-start text-[11px] text-brand-gray-500">
+              {{ t('owner.deskOnlinePaidLocked') }}
+            </p>
+            <p v-else-if="isEditingBooking() && deskPaymentHint" class="text-start text-[11px] text-brand-gray-500">
+              {{ deskPaymentHint }}
+            </p>
             <AppFormField v-if="isEditingBooking()" :label="t('owner.comments')" field-id="owner-reserve-comments">
               <textarea id="owner-reserve-comments" v-model="form.comments" class="neo-textarea" rows="2" />
             </AppFormField>

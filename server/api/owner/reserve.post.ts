@@ -32,17 +32,7 @@ import { assertDiscountUsable, findDiscountCodeByInput } from '../../utils/disco
 import { syncClubContactForBooking } from '../../utils/contactSync'
 import { deleteStaleCancelledBooking } from '../../utils/staleBooking'
 import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
-
-function resolveDeskPaymentMethod(
-  requested: string | undefined,
-  previousMethod?: string | null,
-): 'IPG' | 'CASH' {
-  const mode = getPaymentsMode()
-  if (mode === 'pay_at_club') return 'CASH'
-  if (requested === 'IPG' || requested === 'CASH') return requested
-  if (previousMethod === 'IPG' || previousMethod === 'CASH') return previousMethod
-  return 'CASH'
-}
+import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 
 /** Prefer normalized 09… for SMS; fall back to trimmed raw for storage. */
 function resolveGuestMobile(raw?: string | null) {
@@ -57,6 +47,8 @@ async function deskPayLinkFields(bookingId: string, paymentStatus: string) {
 }
 
 export default defineEventHandler(async (event) => {
+  // Cash confirm is owner-desk only: club OWNER, or staff with the calendar
+  // permission (FRONT_DESK, MANAGER, and COACH have it by default; ANALYST does not).
   const { club } = await requireOwnerClub(event, 'calendar')
   const body = await readBody<{
     slotId?: string
@@ -131,13 +123,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const complimentary = body.complimentary === true
-  const paymentMethod = complimentary
-    ? 'CASH'
-    : resolveDeskPaymentMethod(
-      body.paymentMethod,
-      existing?.payment?.method || existing?.paymentMethod,
-    )
-  const paymentStatus = complimentary || body.paymentStatus === 'PAID' ? 'PAID' : 'PAY_AT_CLUB'
+  const deskPayment = resolveDeskPaymentWrite({
+    requestedMethod: body.paymentMethod,
+    requestedPaid: body.paymentStatus === 'PAID',
+    complimentary,
+    paymentsMode: getPaymentsMode(),
+    previousMethod: existing?.payment?.method || existing?.paymentMethod,
+    previousStatus: existing?.payment?.status || existing?.paymentStatus,
+    gatewayRef: existing?.payment?.gatewayRef,
+    metadataJson: existing?.payment?.metadataJson,
+  })
+  if (deskPayment.error) {
+    throw createError({
+      statusCode: deskPayment.error.statusCode,
+      statusMessage: deskPayment.error.statusMessage,
+    })
+  }
+  const paymentMethod = deskPayment.method
+  const paymentStatus = deskPayment.status
   const previousPaid = Boolean(
     existing
     && (isPaidPaymentStatus(existing.payment?.status) || isPaidPaymentStatus(existing.paymentStatus)),
@@ -198,7 +201,7 @@ export default defineEventHandler(async (event) => {
       ? requestedDisplay
       : (!existing || slot.displayStatus === 'FREE' ? 'RESERVED' : slot.displayStatus)
   ) as 'RESERVED' | 'TEAM' | 'PENDING' | 'PUBLIC'
-  const provider = getPaymentsMode() === 'pay_at_club' ? 'pay_at_club' : undefined
+  const provider = paymentMethod === 'CASH' || getPaymentsMode() === 'pay_at_club' ? 'pay_at_club' : undefined
 
   if (existing) {
     const previousPayment = existing.payment

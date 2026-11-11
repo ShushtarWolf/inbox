@@ -101,6 +101,9 @@ async function paidBooking(f: Awaited<ReturnType<typeof fixtures>>, opts: {
       method: opts.method,
       status: 'PAID',
       provider: opts.method === 'IPG' ? 'sep' : 'pay_at_club',
+      ...(opts.method === 'IPG'
+        ? { gatewayRef: `it-ref-${booking.id}` }
+        : {}),
     },
   })
   return { slot, booking, payment }
@@ -213,6 +216,16 @@ suite('money integration (real Postgres)', () => {
     const result = await m.settlement.creditOwnerForPaidPayment(payment.id, 'PAY_AT_CLUB')
     expect(result.reason).toBe('cash_not_settled')
     expect(await db.clubWallet.findUnique({ where: { clubId: f.club.id } })).toBeNull()
+  })
+
+  it('IPG PAID without a verified capture never enters the club wallet', async () => {
+    const f = await fixtures()
+    const { payment } = await paidBooking(f, { date: future, amount: 700_000, method: 'IPG' })
+    await db.payment.update({ where: { id: payment.id }, data: { gatewayRef: null } })
+    const result = await m.settlement.creditOwnerForPaidPayment(payment.id, 'PAY_AT_CLUB')
+    expect(result.reason).toBe('ipg_unverified')
+    expect(await db.clubWallet.findUnique({ where: { clubId: f.club.id } })).toBeNull()
+    expect(await db.settlementLedgerEntry.count({ where: { paymentId: payment.id } })).toBe(0)
   })
 
   it('owner cancel of IPG booking: athlete wallet +gross, club returns its net, slot free, ledgers balance', async () => {

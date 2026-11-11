@@ -4,6 +4,7 @@ import { previewAthleteWeeklySeason } from '../../utils/athleteSeasonPreview'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
 import { createSeasonSessions } from '../../utils/seasonReserve'
 import { releaseExpiredOnlinePaymentHolds } from '../../utils/onlinePaymentHold'
+import { assertAthleteDidNotConfirmCash } from '../../utils/assertAthleteNoCashConfirm'
 
 export default defineEventHandler(async (event) => {
   assertAthleteSeasonEnabled(event)
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
     endTime?: string
     discountCode?: string
   }>(event)
+  assertAthleteDidNotConfirmCash(body)
 
   const clubId = String(body.clubId || '').trim()
   if (!clubId) throw createError({ statusCode: 400, statusMessage: 'clubId required' })

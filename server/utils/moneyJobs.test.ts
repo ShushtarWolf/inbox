@@ -68,6 +68,7 @@ describe('moneyJobs', () => {
       status: 'PAID',
       purpose: 'booking',
       method: 'IPG',
+      gatewayRef: '9911',
     })
 
     const result = await enqueueMoneyJobsForPaidPayment('pay-1')
@@ -102,12 +103,29 @@ describe('moneyJobs', () => {
       status: 'PAID',
       purpose: 'booking',
       method: 'IPG',
+      gatewayRef: '9911',
     })
     createMany.mockResolvedValue({ count: 0 })
 
     const result = await enqueueMoneyJobsForPaidPayment('pay-1')
 
     expect(result.enqueued).toBe(0)
+  })
+
+  it('does not enqueue SETTLE for IPG PAID without a verified capture', async () => {
+    findUnique.mockResolvedValue({
+      id: 'pay-desk',
+      status: 'PAID',
+      purpose: 'booking',
+      method: 'IPG',
+      gatewayRef: null,
+      metadataJson: null,
+    })
+
+    const result = await enqueueMoneyJobsForPaidPayment('pay-desk')
+
+    expect(result.enqueued).toBe(0)
+    expect(createMany).not.toHaveBeenCalled()
   })
 
   it('repeat callback (no ledger yet) must not close the SETTLE job', async () => {

@@ -27,6 +27,7 @@ import { notifyAdminWithdrawRequest } from './adminNotify'
 import { paymentIdsBlockedForWithdraw } from './reversedStillPaid'
 import { notifyClubWithdrawPaid } from './withdrawPaidNotify'
 import { creditWallet, debitWallet } from './wallet'
+import { canSettleOwnerForPaidPayment } from '#shared/deskPaidGuard.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -686,6 +687,10 @@ export async function creditOwnerForPaidPayment(
   // Desk cash / complimentary never entered platform float — do not create withdrawable liability.
   if (payment.method === 'CASH') {
     return { credited: false as const, reason: 'cash_not_settled' as const }
+  }
+  // Manual/desk IPG+PAID without a verified (or simulated) capture must not credit the club or coach wallet.
+  if (payment.method === 'IPG' && !canSettleOwnerForPaidPayment(payment)) {
+    return { credited: false as const, reason: 'ipg_unverified' as const }
   }
 
   const platformCommissionBps = await loadPlatformCommissionBps(db)
