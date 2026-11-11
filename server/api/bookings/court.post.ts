@@ -31,6 +31,7 @@ import { syncClubContactForBooking } from '../../utils/contactSync'
 import { rethrowSlotConflict, SlotNotAvailableError } from '../../utils/prismaErrors'
 import { assertSlotBookable } from '../../utils/reservations'
 import { assertExternalBookingAllowedIfEnabled } from '../../utils/externalBookingGuard'
+import { assertAthleteDidNotConfirmCash } from '../../utils/assertAthleteNoCashConfirm'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -42,6 +43,7 @@ export default defineEventHandler(async (event) => {
     equipmentQuantities?: Record<string, number>
     discountCode?: string
   }>(event)
+  assertAthleteDidNotConfirmCash(body)
 
   const slotIds = [...new Set(
     (body.slotIds?.length ? body.slotIds : body.slotId ? [body.slotId] : [])

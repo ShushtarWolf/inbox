@@ -8,6 +8,7 @@ import {
 import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { isUniqueConstraintError } from '../../utils/prismaErrors'
 import { requireOnlinePaymentsForAthlete } from '../../utils/requireOnlinePayments'
+import { assertAthleteDidNotConfirmCash } from '../../utils/assertAthleteNoCashConfirm'
 import { addOneHour, canManageReservation, assertSlotBookable } from '../../utils/reservations'
 
 export default defineEventHandler(async (event) => {
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   requireOnlinePaymentsForAthlete()
   const body = await readBody<{ coachId?: string; date?: string; startTime?: string }>(event)
+  assertAthleteDidNotConfirmCash(body)
   if (!body.coachId || !body.date || !body.startTime) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
   }

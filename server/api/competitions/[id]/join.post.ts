@@ -3,6 +3,7 @@ import { joinCompetition } from '../../../utils/competitions'
 import { assertCompetitionAccessById } from '../../../utils/competitionsGate'
 import { findUserIdByPhone } from '../../../utils/phoneAuth'
 import { requireOnlinePaymentsForAthlete } from '../../../utils/requireOnlinePayments'
+import { assertAthleteDidNotConfirmCash } from '../../../utils/assertAthleteNoCashConfirm'
 
 export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'competitions:join')
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
     partnerPhone?: string | null
     payAtClub?: boolean
   }>(event)
+  assertAthleteDidNotConfirmCash(body)
 
   if (body.payAtClub) {
     throw createError({ statusCode: 400, statusMessage: 'PAY_AT_CLUB_NOT_ALLOWED' })
