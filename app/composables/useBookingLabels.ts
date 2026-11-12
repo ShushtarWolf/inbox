@@ -1,3 +1,5 @@
+import { isHoldExpiredPaymentFailure } from '#shared/onlinePaymentHold.ts'
+
 /** Shared booking / payment status labels and badge classes for athlete surfaces. */
 export function useBookingLabels() {
   const { t } = useI18n()
@@ -9,8 +11,14 @@ export function useBookingLabels() {
     return t(`booking.status.${status}`)
   }
 
-  function paymentStatusLabel(status?: string | null) {
+  function paymentStatusLabel(
+    status?: string | null,
+    opts?: { failReason?: string | null; cancellationReason?: string | null },
+  ) {
     if (!status) return t('booking.paymentStatus.NOT_PAID')
+    if (isHoldExpiredPaymentFailure({ status, failReason: opts?.failReason, cancellationReason: opts?.cancellationReason })) {
+      return t('booking.paymentStatus.HOLD_EXPIRED')
+    }
     return t(`booking.paymentStatus.${status}`)
   }
 
@@ -21,9 +29,15 @@ export function useBookingLabels() {
     return 'tail-badge-gray'
   }
 
-  function paymentStatusBadgeClass(status?: string | null) {
+  function paymentStatusBadgeClass(
+    status?: string | null,
+    opts?: { failReason?: string | null; cancellationReason?: string | null },
+  ) {
     if (status === 'PAID') return 'tail-badge-success'
     if (status === 'REFUNDED') return 'tail-badge-gray'
+    if (isHoldExpiredPaymentFailure({ status, failReason: opts?.failReason, cancellationReason: opts?.cancellationReason })) {
+      return 'tail-badge-warning'
+    }
     if (status === 'FAILED') return 'tail-badge-danger'
     if (status === 'PAY_AT_CLUB' || status === 'PENDING_AT_CLUB' || status === 'PENDING_ONLINE' || status === 'NOT_PAID') {
       return 'tail-badge-warning'

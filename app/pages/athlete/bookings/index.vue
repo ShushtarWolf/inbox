@@ -6,12 +6,14 @@ import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { athleteCancelErrorNoticeKey, athleteCancelNoticeKey } from '#shared/cancelNotice.ts'
 import { canManageReservation } from '#shared/localDate.ts'
+import { isHoldExpiredPaymentFailure, readPaymentFailReason } from '#shared/onlinePaymentHold.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
 interface CourtBooking {
   id: string
   status: string
+  cancellationReason?: string | null
   payment?: { status?: string; amount?: number; metadataJson?: string | null } | null
   paymentStatus?: string | null
   seasonBookingId?: string | null
@@ -77,6 +79,7 @@ type HistoryItem = {
   timeLabel: string
   price: number
   paymentStatus?: string | null
+  holdExpired?: boolean
   slug?: string
   coachId?: string
   image?: string
@@ -444,6 +447,7 @@ const historyItems = computed((): HistoryItem[] => {
       const qty = Math.max(1, row.quantity || 1)
       return t('athlete.historyEquipmentQty', { qty: formatNumber(qty), name })
     }).filter(Boolean) as string[]
+    const payStatus = paymentOf(b)
     items.push({
       id: b.id,
       kind: 'court',
@@ -459,7 +463,12 @@ const historyItems = computed((): HistoryItem[] => {
         paymentAmount: b.payment?.amount,
         slotPrice: b.slot.price || 0,
       }),
-      paymentStatus: paymentOf(b),
+      paymentStatus: payStatus,
+      holdExpired: isHoldExpiredPaymentFailure({
+        status: payStatus,
+        failReason: readPaymentFailReason(b.payment?.metadataJson),
+        cancellationReason: b.cancellationReason,
+      }),
       slug: b.slot.court.club.slug,
       image: b.slot.court.image || b.slot.court.club.image || '/placeholders/club.svg',
       equipmentLines: equipLines,
@@ -550,6 +559,11 @@ const STATUS_NOTE_KEY: Record<DisplayStatus, string> = {
   unpaid: 'athlete.historyNoteUnpaid',
   done: 'athlete.historyNoteDone',
   cancelled: 'athlete.historyNoteCancelled',
+}
+
+function statusNoteKey(item: HistoryItem) {
+  if (item.status === 'CANCELLED' && item.holdExpired) return 'athlete.historyNoteHoldExpired'
+  return STATUS_NOTE_KEY[displayStatus(item)]
 }
 
 /** Literal names so Tailwind keeps these `@layer components` classes in the build. */
@@ -882,7 +896,7 @@ function dateLine(item: HistoryItem) {
             'canva-history-sh-note-warn': displayStatus(panelItem.item) === 'unpaid',
             'canva-history-sh-note-ok': displayStatus(panelItem.item) === 'paid',
           }"
-        >{{ t(STATUS_NOTE_KEY[displayStatus(panelItem.item)]) }}</p>
+        >{{ t(statusNoteKey(panelItem.item)) }}</p>
         <div class="canva-history-panel-kv"><span>{{ t('athlete.historyRowDate') }}</span><b>{{ formatIsoDate(panelItem.item.date) }} — <bdi dir="ltr" class="tabular-nums">{{ panelItem.item.timeLabel }}</bdi></b></div>
         <div class="canva-history-panel-kv"><span>{{ t('athlete.historyTotal') }}</span><b class="tabular-nums">{{ formatCurrency(panelItem.item.price) }}</b></div>
         <div class="canva-history-panel-kv"><span>{{ t('athlete.historyRowStatus') }}</span><b>{{ t(STATUS_LABEL_KEY[displayStatus(panelItem.item)]) }}</b></div>
@@ -1055,7 +1069,7 @@ function dateLine(item: HistoryItem) {
             'canva-history-sh-note-ok': displayStatus(detailItem) === 'paid',
           }"
         >
-          {{ t(STATUS_NOTE_KEY[displayStatus(detailItem)]) }}
+          {{ t(statusNoteKey(detailItem)) }}
           <template v-if="detailItem.status !== 'CANCELLED' && isPayAtClubStatus(detailItem.paymentStatus)">
             {{ t('booking.payAtClubDetail') }}
           </template>

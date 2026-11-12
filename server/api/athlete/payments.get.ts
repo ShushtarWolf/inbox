@@ -1,6 +1,7 @@
 import type { PaymentStatus } from '@prisma/client'
 import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.ts'
 import { parsePaymentMetadata, readDeskCashReturn } from '#shared/cancelRefund.ts'
+import { readPaymentFailReason } from '#shared/onlinePaymentHold.ts'
 
 /**
  * Athlete payment history — real Payment rows (IPG, cash desk, wallet, failed).
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
         select: {
           id: true,
           status: true,
+          cancellationReason: true,
           slot: {
             select: {
               date: true,
@@ -129,6 +131,8 @@ export default defineEventHandler(async (event) => {
           || payment.coachSession?.status
           || payment.packageBooking?.status
           || null,
+        failReason: readPaymentFailReason(payment.metadataJson),
+        cancellationReason: payment.booking?.cancellationReason || null,
         deskCashReturn: payment.method === 'CASH' ? readDeskCashReturn(refundMeta) : null,
       }
     }),

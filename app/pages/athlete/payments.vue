@@ -7,6 +7,7 @@ import {
   type AthletePaySortKey,
   type AthletePayStatusFilter,
 } from '#shared/athletePayments.ts'
+import { isHoldExpiredPaymentFailure } from '#shared/onlinePaymentHold.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -30,6 +31,8 @@ type PaymentRow = {
   createdAt: string
   amount: number
   bookingId?: string | null
+  failReason?: string | null
+  cancellationReason?: string | null
   deskCashReturn?: 'owed' | 'returned' | null
 }
 
@@ -131,13 +134,20 @@ function sortLabel(key: AthletePaySortKey) {
   return t('athlete.paymentColDate')
 }
 
-function statusLabel(status: string, method: string, deskCashReturn?: 'owed' | 'returned' | null) {
-  if (status === 'REFUNDED' && method === 'CASH') {
-    if (deskCashReturn === 'returned') return t('athlete.paymentStatusRefundedCashReturned')
+function statusLabel(row: Pick<PaymentRow, 'status' | 'method' | 'deskCashReturn' | 'failReason' | 'cancellationReason'>) {
+  if (row.status === 'REFUNDED' && row.method === 'CASH') {
+    if (row.deskCashReturn === 'returned') return t('athlete.paymentStatusRefundedCashReturned')
     return t('athlete.paymentStatusRefundedCashOwed')
   }
-  if (status === 'REFUNDED' && method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
-  return t(`booking.paymentStatus.${status}`)
+  if (row.status === 'REFUNDED' && row.method !== 'CASH') return t('athlete.paymentStatusRefundedWallet')
+  if (isHoldExpiredPaymentFailure({
+    status: row.status,
+    failReason: row.failReason,
+    cancellationReason: row.cancellationReason,
+  })) {
+    return t('booking.paymentStatus.HOLD_EXPIRED')
+  }
+  return t(`booking.paymentStatus.${row.status}`)
 }
 
 function methodLabel(method: string) {
@@ -327,7 +337,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                   </template>
                   <template v-else>{{ formatDate(row.createdAt) }}</template>
                 </p>
-                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row.status, row.method, row.deskCashReturn) }}</p>
+                <p class="mt-0.5 text-xs text-brand-gray-600">{{ statusLabel(row) }}</p>
               </div>
               <div class="flex shrink-0 flex-col items-end gap-1">
                 <p class="text-sm font-bold tabular-nums text-brand-navy">{{ formatCurrency(row.amount) }}</p>
@@ -386,7 +396,7 @@ async function retryPay(row: { bookingId?: string | null; status: string }) {
                     </template>
                     <template v-else>{{ formatDate(row.createdAt) }}</template>
                   </td>
-                  <td class="whitespace-nowrap">{{ statusLabel(row.status, row.method, row.deskCashReturn) }}</td>
+                  <td class="whitespace-nowrap">{{ statusLabel(row) }}</td>
                   <td>
                     <span class="canva-finance-method-badge" :class="methodBadgeClass(row.method)">
                       {{ methodLabel(row.method) }}

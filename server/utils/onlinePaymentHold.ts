@@ -2,21 +2,13 @@ import type { Prisma } from '@prisma/client'
 import {
   isOnlinePaymentHoldCandidate,
   isReleasableOnlinePaymentHold,
+  ONLINE_HOLD_EXPIRED_FAIL_REASON,
   ONLINE_PAYMENT_HOLD_MS,
 } from '#shared/onlinePaymentHold.ts'
+import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
 import { shouldPreserveUnsettledCapture } from '#shared/paymentInFlight.ts'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
-
-function parsePaymentMetadata(raw: string | null | undefined): Record<string, unknown> {
-  if (!raw) return {}
-  try {
-    return JSON.parse(raw) as Record<string, unknown>
-  }
-  catch {
-    return {}
-  }
-}
 
 function siblingIdsFromMeta(meta: Record<string, unknown>): string[] {
   const ids = meta.groupSiblingBookingIds
@@ -70,12 +62,21 @@ async function releaseOneOnlineHold(
   })
 
   if (booking.payment && (booking.payment.status === 'PENDING_ONLINE' || booking.payment.status === 'FAILED')) {
+    const meta = parsePaymentMetadata(booking.payment.metadataJson)
     await db.payment.updateMany({
       where: {
         id: booking.payment.id,
         status: { in: ['PENDING_ONLINE', 'FAILED'] },
       },
-      data: { status: 'FAILED' },
+      data: {
+        status: 'FAILED',
+        metadataJson: JSON.stringify({
+          ...meta,
+          failReason: ONLINE_HOLD_EXPIRED_FAIL_REASON,
+          expiredOnlineHold: true,
+          expiredAt: opts.now.toISOString(),
+        }),
+      },
     })
     const { releaseSplitWalletDebit } = await import('./splitPayWallet')
     await releaseSplitWalletDebit(booking.payment.id, db)
@@ -93,7 +94,7 @@ async function releaseOneOnlineHold(
 }
 
 /**
- * Cancel unpaid platform online holds past the 10-minute window and free their slots.
+ * Cancel unpaid platform online holds past the hold window and free their slots.
  * Race-safe: only cancels rows still PENDING/CONFIRMED + PENDING_ONLINE/FAILED.
  */
 export async function releaseExpiredOnlinePaymentHolds(opts?: {

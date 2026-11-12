@@ -966,6 +966,7 @@ async function submit(preferWallet = false) {
             {{ t('booking.acceptTerms') }}
             <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">{{ t('legal.terms') }}</NuxtLink>
           </p>
+          <p class="text-center text-[11px] text-brand-gray-600">{{ t('booking.onlinePayHint') }}</p>
         </template>
       </div>
 

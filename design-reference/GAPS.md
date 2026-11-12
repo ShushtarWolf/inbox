@@ -18,6 +18,12 @@ PDF: `design-reference/Inboxs-HTML-fidelity-3col-2026-10-27-v3.pdf` (BRANCH | So
 | owner-* (calendar, finance, settings, crm, equipment, discount, support, staff) | PASS (visual) | Live needs a login. The calendar has no local bookings, so the SoT side booking panel isn't shown (data). |
 | coach, admin, pay-link, confirm | ENV / SKIPPED | Not shot: these routes need a coach or admin role, or a payment write. |
 
+## Product — online pay hold copy (2026-11-12)
+
+| screen | region | change | status |
+|--------|--------|--------|--------|
+| athlete payments / bookings / confirm | hold expiry | Soft-hold **۱۵** min (prototype). Hold expiry stamps `failReason=online_hold_expired` and shows «مهلت پرداخت تمام شد» — not «پرداخت ناموفق» (bank decline). Confirm sheet + unpaid note mention the ۱۵‑min seat hold. | fixed (product) |
+
 ## Product — court audience (2026-10-28)
 
 | screen | region | change | status |
