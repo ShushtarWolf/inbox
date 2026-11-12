@@ -120,3 +120,70 @@ export function defaultCourtPricingConfig(): CourtPricingConfig {
     lastSecondDiscount: { enabled: false, hoursBefore: 2, percent: 15 },
   }
 }
+
+/**
+ * Next band an owner adds with the explicit "add band" button.
+ * Pure so the default is testable: the price starts at the current base price,
+ * and `normalizeCourtPricingForSave` drops it if the owner never changes it
+ * (a price-neutral band silently diverges once the base price is edited later).
+ */
+export function nextTimeBand(
+  existing: CourtTimeBand[],
+  starts: string[],
+  ends: string[],
+  basePrice: number,
+): CourtTimeBand {
+  const lastEnd = existing.length ? existing[existing.length - 1]!.endTime : starts[0] || '09:00'
+  const startIdx = starts.indexOf(lastEnd)
+  const startTime = startIdx >= 0 && startIdx < starts.length
+    ? starts[startIdx]!
+    : starts[0] || '08:00'
+  const endFromStart = ends.indexOf(startTime)
+  const endIdx = Math.min(ends.length - 1, (endFromStart >= 0 ? endFromStart : 0) + 2)
+  const endTime = ends[endIdx] || '10:00'
+  return { labelFa: '', labelEn: '', startTime, endTime, price: basePrice }
+}
+
+/**
+ * Clean the pricing payload before it is saved for a court:
+ * - drop bands with an empty/inverted range,
+ * - drop bands whose price equals the base price (no effect today, but they keep
+ *   the old price after the base is edited — the IUST «زمین ۳» 480,000 phantom).
+ * Returns serialized JSON (or null when nothing remains).
+ */
+export function normalizeCourtPricingForSave(
+  basePrice: number,
+  pricingJson: string | null | undefined,
+): string | null {
+  const config = parseCourtPricingJson(pricingJson)
+  const timeBands = (config.timeBands || []).filter((band) =>
+    minutesFromTime(band.endTime) > minutesFromTime(band.startTime)
+    && band.price !== basePrice,
+  )
+  return serializeCourtPricingJson({ timeBands, lastSecondDiscount: config.lastSecondDiscount })
+}
+
+/** Stable comparison of two pricingJson values (ignores key order / formatting). */
+export function samePricingJson(a: string | null | undefined, b: string | null | undefined): boolean {
+  return serializeCourtPricingJson(parseCourtPricingJson(a)) === serializeCourtPricingJson(parseCourtPricingJson(b))
+}
+
+export type CourtPricingSummary = {
+  bands: Array<{ startTime: string; endTime: string; price: number }>
+  lastSecondDiscount: { hoursBefore: number; percent: number } | null
+}
+
+/** What the owner settings court list shows next to the base price. */
+export function summarizeCourtPricing(pricingJson: string | null | undefined): CourtPricingSummary {
+  const config = parseCourtPricingJson(pricingJson)
+  const bands = [...(config.timeBands || [])]
+    .sort((a, b) => minutesFromTime(a.startTime) - minutesFromTime(b.startTime))
+    .map(({ startTime, endTime, price }) => ({ startTime, endTime, price }))
+  const discount = config.lastSecondDiscount
+  return {
+    bands,
+    lastSecondDiscount: discount?.enabled && discount.percent > 0
+      ? { hoursBefore: discount.hoursBefore, percent: discount.percent }
+      : null,
+  }
+}

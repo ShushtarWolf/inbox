@@ -14,6 +14,7 @@ import {
 } from '#shared/bookingHorizon.ts'
 import { COURT_FACILITY_OPTIONS, DEFAULT_SESSION_DURATIONS, parseFacilitiesJson, parseSessionDurationsJson } from '#shared/courtFacilities.ts'
 import { courtAudienceShowsTag, parseCourtAudience } from '#shared/courtAudience.ts'
+import { summarizeCourtPricing, type CourtPricingSummary } from '#shared/courtPricing.ts'
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
 interface OwnerSettingsClubMedia {
@@ -92,7 +93,7 @@ interface OwnerStaffResponse {
 const { t } = useI18n()
 const localePath = useLocalePath()
 const { localizedField } = useLocalizedField()
-const { formatNumber, formatCurrency, formatPhone, formatFaDigits } = useFormatters()
+const { formatNumber, formatCurrency, formatPhone, formatFaDigits, formatTimeRange } = useFormatters()
 const { fetchErrorMessage } = useFetchError()
 const { pilotNoCoach } = usePilotFlags()
 const { fetch: fetchAuth } = useAuth()
@@ -575,6 +576,11 @@ const editingCourt = computed(() => {
   return (courtsData.value || []).find((c) => c.id === editingCourtId.value) || null
 })
 
+/** Time bands + last-minute discount per court, shown under the base price in the list. */
+const courtPricingSummaries = computed<Record<string, CourtPricingSummary>>(() =>
+  Object.fromEntries((courtsData.value || []).map((court) => [court.id, summarizeCourtPricing(court.pricingJson)])),
+)
+
 const bulkEditSeedCourt = computed(() => {
   const courts = courtsData.value || []
   if (!courts.length) return null
@@ -780,6 +786,19 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                   {{ courtHoursLabel(court) }}
                   · {{ formatCurrency(court.price) }}
                 </p>
+                <template v-if="courtPricingSummaries[court.id]">
+                  <p
+                    v-for="band in courtPricingSummaries[court.id]!.bands"
+                    :key="`band-${court.id}-${band.startTime}-${band.endTime}`"
+                    class="text-xs font-bold text-amber-700"
+                    data-testid="court-row-band"
+                  >
+                    {{ t('owner.settingsPage.courtRowBand', { range: formatTimeRange(band.startTime, band.endTime), price: formatCurrency(band.price) }) }}
+                  </p>
+                  <p v-if="courtPricingSummaries[court.id]!.lastSecondDiscount" class="text-xs text-brand-gray-600" data-testid="court-row-last-second">
+                    {{ t('owner.settingsPage.courtRowLastSecond', { percent: formatNumber(courtPricingSummaries[court.id]!.lastSecondDiscount!.percent), hours: formatNumber(courtPricingSummaries[court.id]!.lastSecondDiscount!.hoursBefore) }) }}
+                  </p>
+                </template>
               </div>
               <button type="button" class="canva-settings-edit-btn" @click="startEditCourt(court)">
                 {{ t('common.edit') }}
@@ -1056,6 +1075,7 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
     >
       <div class="canva-auth-body px-5 pb-6 pt-2">
         <OwnerCourtForm
+          :key="bulkEditCourts ? 'bulk' : (editingCourtId ?? 'new')"
           :court="courtFormCourt"
           :club-open-hour="form.openHour"
           :club-close-hour="form.closeHour"

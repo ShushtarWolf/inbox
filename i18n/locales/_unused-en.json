@@ -1573,7 +1573,12 @@
       "discountPercent": "Discount %",
       "workersSection": "Workers",
       "workersSectionHint": "Keep an on-site staff roster with contact details, shifts, and responsibilities. Workers are hired in person — no platform login.",
-      "manageWorkers": "Manage workers"
+      "manageWorkers": "Manage workers",
+      "pricingTimelineOverridesBase": "Base price does not apply in these bands, and they do not change when you edit the base price.",
+      "bulkApplyPricing": "Replace time pricing on all courts",
+      "bulkApplyPricingHint": "Only when checked, every court's bands and last-minute discount are replaced with the values below.",
+      "courtRowBand": "Time price {range} · {price}",
+      "courtRowLastSecond": "Last-minute {percent}% off within {hours}h"
     },
     "workersPage": {
       "subtitle": "Add on-site club workers (reception, security, and similar roles).",

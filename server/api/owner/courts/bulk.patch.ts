@@ -1,4 +1,5 @@
 import { parseCourtAudience } from '#shared/courtAudience.ts'
+import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { repriceFreeSlotsForCourts } from '../../../utils/slots'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
@@ -20,7 +21,6 @@ export default defineEventHandler(async (event) => {
   if (body.price !== undefined) data.price = body.price
   if (body.openHour !== undefined) data.openHour = body.openHour
   if (body.closeHour !== undefined) data.closeHour = body.closeHour
-  if (body.pricingJson !== undefined) data.pricingJson = body.pricingJson
   if (body.facilitiesJson !== undefined) data.facilitiesJson = body.facilitiesJson
   if (body.audience !== undefined) {
     const audience = parseCourtAudience(body.audience)
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     if (sport) data.sportId = sport.id
   }
 
-  if (!Object.keys(data).length) {
+  if (!Object.keys(data).length && body.pricingJson === undefined) {
     throw createError({ statusCode: 400, statusMessage: 'No fields to update' })
   }
 
@@ -66,10 +66,29 @@ export default defineEventHandler(async (event) => {
 
   const pricingChanged = body.price !== undefined || body.pricingJson !== undefined
 
-  await prisma.court.updateMany({
-    where: { clubId: club.id, id: { in: courtIds } },
-    data,
-  })
+  if (body.pricingJson === undefined) {
+    await prisma.court.updateMany({
+      where: { clubId: club.id, id: { in: courtIds } },
+      data,
+    })
+  } else {
+    // Time pricing is replaced only when the owner explicitly opted in (client sends
+    // pricingJson only then). Normalise per court against that court's own base price.
+    const existing = await prisma.court.findMany({
+      where: { clubId: club.id, id: { in: courtIds } },
+      select: { id: true, price: true },
+    })
+    await prisma.$transaction(existing.map((court) => prisma.court.update({
+      where: { id: court.id },
+      data: {
+        ...data,
+        pricingJson: normalizeCourtPricingForSave(
+          body.price !== undefined ? body.price : court.price,
+          body.pricingJson,
+        ),
+      },
+    })))
+  }
 
   const updatedCourts = await prisma.court.findMany({
     where: { id: { in: courtIds } },
