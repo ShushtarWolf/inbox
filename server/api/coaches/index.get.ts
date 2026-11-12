@@ -1,6 +1,7 @@
 import { coachRankingScore, getQueryNumber, parseJsonArray } from '../../utils/catalog'
 import { PUBLIC_COACH_WHERE } from '../../utils/coaches'
 import { slugify } from '../../utils/slug'
+import { omitPrivateCoachFields, PUBLIC_CLUB_SUMMARY_SELECT } from '#shared/publicClub.ts'
 
 export default defineCachedEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -24,7 +25,7 @@ export default defineCachedEventHandler(async (event) => {
     },
     include: {
       sport: true,
-      club: true,
+      club: { select: PUBLIC_CLUB_SUMMARY_SELECT },
       _count: { select: { reviews: true } },
     },
     orderBy: [{ featured: 'desc' }, { rating: 'desc' }, { sessionPrice: 'asc' }],
@@ -34,7 +35,7 @@ export default defineCachedEventHandler(async (event) => {
     const reviewCount = coach._count.reviews
     const { _count, ...coachData } = coach
     return {
-      ...coachData,
+      ...omitPrivateCoachFields(coachData),
       slug: slugify(coach.nameEn),
       specialties,
       verified: Boolean(coach.verifiedAt),
