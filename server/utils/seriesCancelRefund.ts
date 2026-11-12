@@ -54,7 +54,9 @@ export function resolveSeriesGroupFromMeta(
   }
 }
 
-export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
+type SeriesDb = Prisma.TransactionClient | typeof prisma
+
+export async function loadSeriesGroupForBooking(bookingId: string, db: SeriesDb = prisma): Promise<{
   group: SeriesGroupInfo
   bookingPayment: { id: string; amount: number; status: string; method: string; metadataJson: string | null } | null
   primaryPayment: {
@@ -66,12 +68,12 @@ export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
     bookingId: string | null
   }
 } | null> {
-  const payment = await prisma.payment.findUnique({ where: { bookingId } })
+  const payment = await db.payment.findUnique({ where: { bookingId } })
   const meta = parseSeriesPaymentMeta(payment?.metadataJson)
   let group = resolveSeriesGroupFromMeta(bookingId, meta)
   if (!group) return null
 
-  const primaryPayment = await prisma.payment.findUnique({
+  const primaryPayment = await db.payment.findUnique({
     where: { bookingId: group.primaryBookingId },
   })
   if (!primaryPayment) return null
@@ -114,8 +116,8 @@ export async function loadSeriesGroupForBooking(bookingId: string): Promise<{
   }
 }
 
-async function countActiveSeriesBookings(bookingIds: string[], excludingId?: string) {
-  return prisma.booking.count({
+async function countActiveSeriesBookings(bookingIds: string[], excludingId?: string, db: SeriesDb = prisma) {
+  return db.booking.count({
     where: {
       id: { in: bookingIds },
       status: { not: 'CANCELLED' },
@@ -141,7 +143,9 @@ export async function refundAfterSeriesSessionCancel(opts: {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
-  const loaded = await loadSeriesGroupForBooking(opts.cancelledBookingId)
+  // Read through the caller's transaction so several cancels in one txn see each other's writes.
+  const reader: SeriesDb = opts.db || prisma
+  const loaded = await loadSeriesGroupForBooking(opts.cancelledBookingId, reader)
   if (!loaded) return null
 
   const { group, primaryPayment } = loaded
@@ -150,7 +154,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
   const sessionPrice = cancelledMeta.sessionPrice ?? primaryMeta.sessionPrice
   const alreadyRefunded = Number(primaryMeta.sessionRefundsTotal || 0)
   const primaryBooking = primaryPayment.bookingId
-    ? await prisma.booking.findUnique({
+    ? await reader.booking.findUnique({
         where: { id: primaryPayment.bookingId },
         select: { paymentMethod: true },
       })
@@ -161,7 +165,7 @@ export async function refundAfterSeriesSessionCancel(opts: {
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
-  const remainingActive = await countActiveSeriesBookings(group.allBookingIds, opts.cancelledBookingId)
+  const remainingActive = await countActiveSeriesBookings(group.allBookingIds, opts.cancelledBookingId, reader)
 
   if (remainingActive === 0) {
     // Last session — refund residual on primary (may be full amount if nothing refunded yet).

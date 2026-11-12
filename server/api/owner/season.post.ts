@@ -3,7 +3,6 @@ import { isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import type { DayTimeRange } from '#shared/recurringSessions.ts'
-import { IRAN_WEEKDAY_ORDER, weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import {
   expandSeasonRules,
   legacySeasonToRules,
@@ -22,8 +21,8 @@ import {
 } from '../../utils/bookingNotify'
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
-import { cancelFutureSessionsForSeasonReplace, pruneStaleSeasonCreatedEvents } from '../../utils/seasonReplace'
-import { createSeasonSessions, previewSeasonSessions } from '../../utils/seasonReserve'
+import { applySeasonEdit } from '../../utils/seasonEdit'
+import { createSeasonSessions } from '../../utils/seasonReserve'
 import { assignBookingPayPin } from '../../utils/payPin'
 import { prisma } from '../../utils/prisma'
 import { payUrlForPin } from '../../utils/receipt'
@@ -103,7 +102,7 @@ export default defineEventHandler(async (event) => {
     discountCode?: string
     deskDiscountPercent?: number
     complimentary?: boolean
-    /** Replace an existing season (edit flow): cancel future sessions and reuse the same season id. */
+    /** Edit an existing season in place: diff hours, keep unchanged bookings, add/cancel only the changes. */
     replaceSeasonBookingId?: string
   }>(event)
 
@@ -145,27 +144,73 @@ export default defineEventHandler(async (event) => {
 
   const replaceSeasonBookingId = String(body.replaceSeasonBookingId || '').trim()
   if (replaceSeasonBookingId) {
-    const seasonRow = await prisma.seasonBooking.findFirst({
-      where: { id: replaceSeasonBookingId, clubId: club.id },
-      select: { id: true, cancelledAt: true },
-    })
-    if (!seasonRow) throw createError({ statusCode: 404, statusMessage: 'Season not found' })
-    if (seasonRow.cancelledAt) {
-      throw createError({ statusCode: 400, statusMessage: 'Cannot edit a cancelled season' })
-    }
-    const dryPreview = await previewSeasonSessions({
+    // Diff-based edit: unchanged hours untouched, added hours created, removed hours cancelled
+    // with normal refund rules — all in one transaction (see server/utils/seasonEdit.ts).
+    const edit = await applySeasonEdit({
       clubId: club.id,
+      seasonBookingId: replaceSeasonBookingId,
       sessions,
-      ignoreSeasonBookingId: replaceSeasonBookingId,
+      guestName: guest.guestName,
+      guestFamily: guest.guestFamily,
+      guestMobile,
+      comments: body.comments ?? null,
+      startDate: body.startDate,
+      finishDate: body.finishDate,
+      paymentMethod,
+      paymentStatus,
     })
-    if (dryPreview.willCreateCount === 0) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'RECURRING_NO_FREE_SLOTS',
-        data: { conflicts: dryPreview.conflicts, skippedCount: dryPreview.skippedCount },
+    if (edit.added > 0) {
+      const courtIds = [...new Set(edit.addedUnits.map((s) => s.courtId))]
+      const courts = await prisma.court.findMany({
+        where: { id: { in: courtIds }, clubId: club.id },
+        select: { id: true, nameFa: true, nameEn: true },
+      })
+      const courtById = new Map(courts.map((c) => [c.id, c]))
+      const first = edit.addedUnits[0]
+      const last = edit.addedUnits[edit.addedUnits.length - 1]
+      await notifyBookingConfirmed({
+        phone: guestMobile || null,
+        kind: 'court' as const,
+        clubName: clubNotifyName(club),
+        clubId: club.id,
+        bookingId: edit.addedBookingIds[0] || replaceSeasonBookingId,
+        date: first?.date || body.startDate,
+        finishDate: last?.date || body.finishDate,
+        startTime: first?.startTime || '',
+        endTime: first?.endTime || '',
+        sessionCount: edit.added,
+        sessions: edit.addedUnits.map((s) => ({
+          courtName: courtNotifyName(courtById.get(s.courtId) || { nameFa: s.courtId }),
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
+        paymentPaid: paymentStatus === 'PAID',
+        guestName: personNotifyName(guest.guestName, guest.guestFamily),
+        skipGuest: true,
+        ...clubNotifyLocation(club),
       })
     }
-    await cancelFutureSessionsForSeasonReplace({ clubId: club.id, seasonBookingId: replaceSeasonBookingId })
+    return {
+      id: replaceSeasonBookingId,
+      edit: {
+        unchanged: edit.unchanged,
+        added: edit.added,
+        removed: edit.removed,
+        keptPast: edit.keptPast,
+        addedRanges: edit.addedRanges,
+        removedRanges: edit.removedRanges,
+        refundTotal: edit.refundTotal,
+        cashReturnTotal: edit.cashReturnTotal,
+      },
+      slotsCreated: edit.added,
+      slotsSkipped: 0,
+      conflicts: [],
+      willCreate: edit.addedUnits,
+      totalAmount: edit.addedAmount,
+      primaryBookingId: null,
+      smsSent: false,
+    }
   }
 
   const result = await createSeasonSessions({
@@ -180,35 +225,7 @@ export default defineEventHandler(async (event) => {
     discountCode: body.discountCode,
     deskDiscountPercent: body.deskDiscountPercent,
     complimentary: body.complimentary === true,
-    ...(replaceSeasonBookingId
-      ? {
-          existingSeasonBookingId: replaceSeasonBookingId,
-          ignoreSeasonBookingId: replaceSeasonBookingId,
-        }
-      : {}),
   })
-
-  if (replaceSeasonBookingId && result.slotsCreated > 0) {
-    const dayOrder = new Map(IRAN_WEEKDAY_ORDER.map((d, i) => [d, i]))
-    const days = [...new Set(sessions.map((s) => weekdayNameFromDate(s.date)))].sort(
-      (a, b) => (dayOrder.get(a) ?? 99) - (dayOrder.get(b) ?? 99),
-    )
-    await prisma.seasonBooking.update({
-      where: { id: replaceSeasonBookingId },
-      data: {
-        guestName: guest.guestName,
-        guestFamily: guest.guestFamily,
-        guestMobile,
-        comments: body.comments ?? null,
-        startDate: body.startDate,
-        finishDate: body.finishDate,
-        daysJson: JSON.stringify(days),
-        timesJson: JSON.stringify(sessions),
-        cancelledAt: null,
-      },
-    })
-    await pruneStaleSeasonCreatedEvents({ clubId: club.id, seasonBookingId: replaceSeasonBookingId })
-  }
 
   // Cash unpaid still gets a pin when online payments are on (series link).
   let payPin = result.payPin

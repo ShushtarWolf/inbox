@@ -88,6 +88,11 @@ const rules = ref<RuleRow[]>([])
 const occurrences = ref<PreviewRow[]>([])
 const conflicts = ref<ConflictRow[]>([])
 const totalAmount = ref(0)
+type EditRange = { date: string; courtId: string; startTime: string; endTime: string; hours: number }
+type EditDiffSummary = { unchanged: number; added: number; removed: number; keptPast?: number; addedRanges?: EditRange[]; removedRanges?: EditRange[] }
+/** Edit flow: what save will change (unchanged hours keep their booking and payment). */
+const editDiff = ref<EditDiffSummary | null>(null)
+const lastEditResult = ref<EditDiffSummary | null>(null)
 const discountInput = ref('')
 const discountApplying = ref(false)
 const discountError = ref('')
@@ -472,6 +477,7 @@ async function runPreview() {
       conflicts: ConflictRow[]
       skippedCount: number
       totalAmount: number
+      editDiff?: EditDiffSummary
     }>('/api/owner/recurring-preview', {
       method: 'POST',
       body: {
@@ -484,6 +490,7 @@ async function runPreview() {
     occurrences.value = [...(preview.willCreate || [])]
     conflicts.value = preview.conflicts || []
     totalAmount.value = preview.totalAmount || occurrences.value.reduce((s, r) => s + (r.price || 0), 0)
+    editDiff.value = preview.editDiff || null
     if (!occurrences.value.length) {
       formError.value = t('owner.seasonPage.noFreeSlots')
       return
@@ -515,6 +522,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
       payUrl?: string
       totalAmount?: number
       smsSent?: boolean
+      edit?: EditDiffSummary
     }>('/api/owner/season', {
       method: 'POST',
       body: {
@@ -538,7 +546,9 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
         ...(editingSeasonId.value ? { replaceSeasonBookingId: editingSeasonId.value } : {}),
       },
     })
-    slotsCreated.value = result.slotsCreated || occurrences.value.length
+    lastEditResult.value = result.edit || null
+    slotsCreated.value = result.edit ? (result.slotsCreated ?? 0) : (result.slotsCreated || occurrences.value.length)
+    if (result.edit) totalAmount.value = result.totalAmount ?? 0
     lastPayMode.value = mode
     lastSmsSent.value = Boolean(result.smsSent)
     if (mode === 'unpaid' && result.payUrl && result.payPin) {
@@ -644,7 +654,28 @@ const successTitle = computed(() =>
     : t('owner.seasonPage.successLinkTitle'),
 )
 
+function editRangeLabel(range: EditRange) {
+  return `${formatDate(range.date)} ${courtNameById(range.courtId)} ${formatTimeLabel(range.startTime)}–${formatTimeLabel(range.endTime)}`
+}
+
+const editDiffSummaryText = computed(() => {
+  const diff = editDiff.value
+  if (!diff) return ''
+  return t('owner.seasonPage.editDiffSummary', {
+    unchanged: formatNumber(diff.unchanged),
+    added: formatNumber(diff.added),
+    removed: formatNumber(diff.removed),
+  })
+})
+
 const successBody = computed(() => {
+  if (lastEditResult.value) {
+    return t('owner.seasonPage.editSavedBody', {
+      unchanged: formatNumber(lastEditResult.value.unchanged),
+      added: formatNumber(lastEditResult.value.added),
+      removed: formatNumber(lastEditResult.value.removed),
+    })
+  }
   const name = formatGuestDisplayName(guestName.value, guestFamily.value) || '—'
   const count = formatNumber(slotsCreated.value)
   const amount = formatCurrency(totalAmount.value)
@@ -943,6 +974,15 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
 
       <!-- Step 3 -->
       <div v-show="step === 3" class="space-y-4">
+        <div v-if="editingSeasonId && editDiff" class="season-wiz-card space-y-1 p-3 text-start text-xs" role="status">
+          <p class="font-bold text-brand-navy">{{ editDiffSummaryText }}</p>
+          <p v-for="range in editDiff.removedRanges || []" :key="`rm-${range.date}-${range.courtId}-${range.startTime}`" class="text-red-600">
+            − <bdi dir="ltr">{{ editRangeLabel(range) }}</bdi>
+          </p>
+          <p v-for="range in editDiff.addedRanges || []" :key="`add-${range.date}-${range.courtId}-${range.startTime}`" class="text-emerald-700">
+            + <bdi dir="ltr">{{ editRangeLabel(range) }}</bdi>
+          </p>
+        </div>
         <div class="season-wiz-strip grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <div>
             <span>{{ t('owner.seasonPage.stripPlayer') }}</span>
