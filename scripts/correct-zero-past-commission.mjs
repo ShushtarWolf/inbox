@@ -27,8 +27,21 @@ async function alreadyRefunded(tx, paymentId) {
   return Boolean(row)
 }
 
+/** Current effective club rate: club override when set, else the DB platform default (env only if row missing). */
+async function loadPlatformBps() {
+  const row = await prisma.platformCommissionSetting.findUnique({ where: { id: 'default' }, select: { commissionBps: true } })
+  if (row && Number.isInteger(row.commissionBps)) return row.commissionBps
+  const raw = Number(process.env.PLATFORM_COMMISSION_BPS ?? 0)
+  return Number.isFinite(raw) && raw >= 0 && raw <= 10_000 ? Math.floor(raw) : 0
+}
+
+function effectiveBps(clubBps, platformBps) {
+  return Number.isInteger(clubBps) && clubBps >= 0 && clubBps <= 10_000 ? clubBps : platformBps
+}
+
 async function main() {
-  const entries = await prisma.settlementLedgerEntry.findMany({
+  const platformBps = await loadPlatformBps()
+  const allEntries = await prisma.settlementLedgerEntry.findMany({
     where: {
       clubId: { not: null },
       clawedBackAt: null,
@@ -45,9 +58,12 @@ async function main() {
       ownerNet: true,
       classDate: true,
       createdAt: true,
-      club: { select: { nameFa: true } },
+      club: { select: { nameFa: true, commissionBps: true } },
     },
   })
+  // Only clubs whose current effective rate is 0% are owed their prior platform fee back.
+  const entries = allEntries.filter((row) => effectiveBps(row.club?.commissionBps, platformBps) === 0)
+  const excludedCount = allEntries.length - entries.length
 
   const byClub = new Map()
   for (const row of entries) {
@@ -80,6 +96,8 @@ async function main() {
   if (!APPLY) {
     console.log(JSON.stringify({
       applied: false,
+      platformCommissionBps: platformBps,
+      excludedNonZeroClubEntries: excludedCount,
       entryCount: entries.length,
       clubCount: clubs.length,
       totalRefundToman: totalRefund,
@@ -105,6 +123,10 @@ async function main() {
       }
       if (await alreadyRefunded(tx, ledger.paymentId)) {
         return { skipped: true, reason: 'already_refunded' }
+      }
+      const club = await tx.club.findUnique({ where: { id: ledger.clubId }, select: { commissionBps: true } })
+      if (effectiveBps(club?.commissionBps, platformBps) !== 0) {
+        return { skipped: true, reason: 'club_rate_not_zero' }
       }
 
       const refund = ledger.commission

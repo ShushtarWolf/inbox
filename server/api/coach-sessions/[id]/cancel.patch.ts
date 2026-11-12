@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const isCoachActor = session.coach.userId === user.id
   const hostClub = session.courtBooking?.slot.court.club || session.coach.club
   const actor = isCoachActor ? 'coach' as const : 'athlete' as const
-  const windowHours = hostClub?.cancellationWindowHours ?? 24
+  const windowHours = hostClub?.cancellationWindowHours ?? 12
 
   if (!canCancelReservation({
     actor,

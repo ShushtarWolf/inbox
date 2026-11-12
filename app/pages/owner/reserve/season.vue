@@ -665,6 +665,14 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
   <div class="season-wiz mx-auto max-w-[920px] space-y-4 px-4 py-4 pb-24">
     <CanvaSubpageHeader to="/owner/calendar" :title="t('owner.seasonPage.title')" />
 
+    <p
+      v-if="editingSeasonId && recurringReserveEnabled && !done"
+      class="season-wiz-card p-3 text-start text-xs font-bold text-red-600"
+      role="note"
+    >
+      {{ t('owner.seasonPage.editReplacesWarning') }}
+    </p>
+
     <div v-if="!recurringReserveEnabled" class="season-wiz-card space-y-3 p-4">
       <p class="text-sm font-bold text-brand-navy">{{ t('owner.reserveRedirect.title') }}</p>
       <p class="text-sm text-brand-gray-600">{{ t('owner.reserveRedirect.body') }}</p>
