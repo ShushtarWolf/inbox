@@ -3,9 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const findUnique = vi.fn()
 const update = vi.fn()
 const rootUpdate = vi.fn()
+const walletTransaction = {
+  findFirst: vi.fn().mockResolvedValue(null),
+  findMany: vi.fn().mockResolvedValue([]),
+  count: vi.fn().mockResolvedValue(0),
+}
+const wallet = { findUnique: vi.fn().mockResolvedValue(null) }
 const transaction = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn({
   payment: { findUnique, update },
   booking: { findUnique: vi.fn() },
+  walletTransaction,
+  wallet,
 }))
 const sepReverseTransaction = vi.fn()
 const creditWallet = vi.fn()
@@ -16,6 +24,8 @@ vi.mock('./prisma', () => ({
   prisma: {
     payment: { findUnique, update: rootUpdate },
     booking: { findUnique: vi.fn() },
+    walletTransaction,
+    wallet,
     $transaction: transaction,
   },
 }))
@@ -28,6 +38,7 @@ vi.mock('./wallet', () => ({
 vi.mock('./settlement', () => ({
   clawbackOwnerForPayment: (...args: unknown[]) => clawbackOwnerForPayment(...args),
   clawbackOwnerPartialForPayment: (...args: unknown[]) => clawbackOwnerPartialForPayment(...args),
+  creditOwnerForPaidPayment: vi.fn().mockResolvedValue({ credited: false, reason: 'already_settled' }),
 }))
 vi.mock('./paymentSync', () => ({
   syncPaymentToParent: (...args: unknown[]) => syncPaymentToParent(...args),

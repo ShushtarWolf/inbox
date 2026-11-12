@@ -254,7 +254,7 @@ async function applySeriesSessionRefund(opts: {
       return { amount: 0, walletCredited: false, gatewayRefunded: false, refundChannel: channel }
     }
     const freshMeta = { ...opts.primaryMeta, ...parsePaymentMetadata(fresh.metadataJson) }
-    const guard = ordinaryCancelRefundGuard(freshMeta)
+    const guard = ordinaryCancelRefundGuard(freshMeta, { method: fresh.method })
     if (guard.action === 'reverse_pending' && channel !== 'desk_cash') {
       throw createError({
         statusCode: 409,

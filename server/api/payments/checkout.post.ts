@@ -10,7 +10,7 @@ import {
   buildCompetitionWalletPaymentCreateData,
   competitionJoinIdempotencyKey,
 } from '#shared/competition.ts'
-import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
+import { parsePaymentMetadata, walletCheckoutClaimMetadata } from '#shared/cancelRefund.ts'
 import { checkoutPreservedMetadata } from '#shared/financeDiscount.ts'
 import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared/payments.ts'
 import { canCoverBookingWithWallet } from '#shared/walletTopUp.ts'
@@ -182,12 +182,35 @@ export default defineEventHandler(async (event) => {
             id: existingPayment.id,
             status: { notIn: ['PAID', 'REFUNDED'] },
           },
-          data: { status: 'PAID', method: 'PAID', provider: 'pay_at_club' },
+          data: {
+            status: 'PAID',
+            method: 'PAID',
+            provider: 'pay_at_club',
+            userId: user.id,
+            // Drop leftover gateway flags from an earlier IPG attempt on this row — a later
+            // cancel must credit the wallet, not treat it as a card that was already reversed.
+            metadataJson: JSON.stringify(walletCheckoutClaimMetadata(
+              parsePaymentMetadata(existingPayment.metadataJson),
+              { userId: user.id },
+            )),
+          },
         })
         if (claimed.count !== 1) {
           return {
             payment: await tx.payment.findUniqueOrThrow({ where: { id: existingPayment.id } }),
             claimedNow: false,
+          }
+        }
+        if (body.bookingId) {
+          // Same transaction as the debit: a hold-expiry release that already cancelled the
+          // booking must abort this payment (rolls back the claim + debit), and once this commits
+          // the release can no longer match paymentStatus PENDING_ONLINE/FAILED.
+          const parent = await tx.booking.updateMany({
+            where: { id: body.bookingId, status: { not: 'CANCELLED' } },
+            data: { paymentStatus: 'PAID', paymentMethod: 'PAID' },
+          })
+          if (parent.count !== 1) {
+            throw createError({ statusCode: 409, statusMessage: 'HOLD_EXPIRED' })
           }
         }
         await debitWallet(user.id, payableAmount, {
@@ -249,12 +272,23 @@ export default defineEventHandler(async (event) => {
         return { payment: created, claimedNow: true }
       }
 
+      if (body.bookingId) {
+        const parent = await tx.booking.updateMany({
+          where: { id: body.bookingId, status: { not: 'CANCELLED' } },
+          data: { paymentStatus: 'PAID', paymentMethod: 'PAID' },
+        })
+        if (parent.count !== 1) {
+          throw createError({ statusCode: 409, statusMessage: 'HOLD_EXPIRED' })
+        }
+      }
       const created = await tx.payment.create({
         data: {
           amount: payableAmount,
           method: 'PAID',
           status: 'PAID',
           provider: 'pay_at_club',
+          userId: user.id,
+          metadataJson: JSON.stringify({ walletCheckout: true, walletUserId: user.id }),
           bookingId: body.bookingId,
           coachSessionId: body.coachSessionId,
           packageBookingId: body.packageBookingId,

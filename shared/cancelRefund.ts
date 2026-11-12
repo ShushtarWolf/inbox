@@ -47,10 +47,17 @@ export function resolveRefundChannel(
  * `reverse_pending`: the bank may already have reversed — do not also credit the wallet.
  * `already_reversed`: the card was reversed — do not credit that card amount again.
  */
-export function ordinaryCancelRefundGuard(meta: Record<string, unknown>):
+export function ordinaryCancelRefundGuard(
+  meta: Record<string, unknown>,
+  opts?: { method?: string | null },
+):
   | { action: 'proceed' }
   | { action: 'reverse_pending' }
   | { action: 'already_reversed' } {
+  // Full wallet checkout (method PAID) never charged a card. Gateway flags on such a row are
+  // leftovers from an earlier IPG attempt on the same Payment row — honoring them would skip
+  // the wallet credit and strand the athlete's money.
+  if (isWalletCheckoutMethod(opts?.method)) return { action: 'proceed' }
   if (meta.gatewayReversed === true || meta.gatewayRefund === true) {
     return { action: 'already_reversed' }
   }
@@ -157,4 +164,79 @@ export function buildDeskCashReturnedMetadata(
     ...(opts?.note ? { deskCashReturnNote: opts.note } : {}),
     gatewayReversed: false,
   }
+}
+
+/** Full wallet checkout rail (Payment.method PAID, money taken from the athlete wallet). */
+export function isWalletCheckoutMethod(method: string | null | undefined): boolean {
+  return method === 'PAID'
+}
+
+/** Gateway-attempt flags that must not survive onto a wallet-paid Payment row. */
+export const STALE_GATEWAY_META_KEYS = [
+  'gatewayReversed',
+  'gatewayRefund',
+  'reversePending',
+  'reverseFailReason',
+  'reverseResolvedAt',
+  'gatewayCaptured',
+  'splitRecollectFailed',
+] as const
+
+/**
+ * Metadata for a Payment row claimed by full wallet checkout. Drops leftover gateway flags from
+ * an earlier IPG attempt on the same row and records the wallet payer.
+ */
+export function walletCheckoutClaimMetadata(
+  existing: Record<string, unknown>,
+  opts: { userId: string; now?: Date },
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...existing }
+  const dropped: string[] = []
+  for (const key of STALE_GATEWAY_META_KEYS) {
+    if (key in next) {
+      dropped.push(key)
+      delete next[key]
+    }
+  }
+  next.walletCheckout = true
+  next.walletUserId = opts.userId
+  next.walletPaidAt = (opts.now || new Date()).toISOString()
+  if (dropped.length) next.walletCheckoutDroppedGatewayKeys = dropped
+  return next
+}
+
+/**
+ * Who gets an ordinary wallet-rail cancel credit. The wallet that was actually debited for this
+ * payment wins: a desk edit can re-link Booking.userId to a different phone, and money must go
+ * back to whoever paid it.
+ */
+export function resolveRefundCreditUserId(opts: {
+  debitedWalletUserId?: string | null
+  explicitUserId?: string | null
+  paymentUserId?: string | null
+  bookingUserId?: string | null
+}): string | null {
+  return opts.debitedWalletUserId
+    || opts.explicitUserId
+    || opts.paymentUserId
+    || opts.bookingUserId
+    || null
+}
+
+/**
+ * Net athlete-wallet movement for one payment across the booking rail
+ * (debit, refund, wallet-first IPG pair, split recollect). Negative after a full-refund cancel
+ * means money left the wallet and never came back.
+ */
+export const BOOKING_RAIL_WALLET_TX_TYPES = [
+  'PAYMENT_DEBIT',
+  'REFUND_CREDIT',
+  'IPG_BOOKING_CREDIT',
+  'IPG_BOOKING_DEBIT',
+  'ADJUSTMENT',
+] as const
+
+export function netWalletRailAmount(rows: Array<{ type: string; amount: number }>): number {
+  const types = BOOKING_RAIL_WALLET_TX_TYPES as readonly string[]
+  return rows.reduce((sum, row) => (types.includes(row.type) ? sum + (Number(row.amount) || 0) : sum), 0)
 }

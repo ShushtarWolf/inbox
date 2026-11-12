@@ -712,4 +712,122 @@ suite('money integration (real Postgres)', () => {
     expect(await db.walletTransaction.count({ where: { paymentId: payment.id } })).toBe(0)
     expect(await db.wallet.findUnique({ where: { userId: f.athlete.id } })).toBeNull()
   })
+
+  async function walletPaidBooking(f: Awaited<ReturnType<typeof fixtures>>, opts: { amount: number, date: string, startTime?: string, metadata?: Record<string, unknown> }) {
+    await m.wallet.creditWallet(f.athlete.id, 52_000, { type: 'TOPUP_CREDIT', note: 'seed' })
+    const { slot, booking, payment } = await paidBooking(f, { date: opts.date, startTime: opts.startTime, amount: opts.amount, method: 'PAID' })
+    if (opts.metadata) {
+      await db.payment.update({ where: { id: payment.id }, data: { metadataJson: JSON.stringify(opts.metadata) } })
+    }
+    await m.wallet.debitWallet(f.athlete.id, opts.amount, { type: 'PAYMENT_DEBIT', paymentId: payment.id, bookingId: booking.id })
+    return { slot, booking, payment }
+  }
+
+  it('owner cancel of a full-wallet booking inside the deadline refunds the wallet and shows credit + clawback', async () => {
+    const f = await fixtures()
+    const tomorrow = addDaysToIsoDate(today, 1)
+    const { slot, booking, payment } = await walletPaidBooking(f, { amount: 5_000, date: tomorrow, startTime: '09:00' })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'owner-cancel',
+      paymentId: payment.id,
+      userId: booking.userId,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(52_000)
+    const clubTx = await db.clubWalletTransaction.findMany({ where: { paymentId: payment.id }, orderBy: { createdAt: 'asc' } })
+    expect(clubTx.map((t) => t.type)).toEqual(['BOOKING_CREDIT', 'CLAWBACK'])
+    expect(await userDrift(f.athlete.id)).toBe(0)
+    expect(await clubDrift(f.club.id)).toBe(0)
+  })
+
+  it('wallet row carrying stale gateway-reversed flags still refunds the wallet on owner cancel', async () => {
+    const f = await fixtures()
+    const { slot, booking, payment } = await walletPaidBooking(f, {
+      amount: 5_000,
+      date: future,
+      metadata: { refNum: 'old', gatewayReversed: true, gatewayRefund: true, reversePending: false },
+    })
+    await m.settlement.creditOwnerForPaidPayment(payment.id, 'PENDING_ONLINE')
+    const result = await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'owner-cancel',
+      paymentId: payment.id,
+      userId: booking.userId,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    expect(result.refund?.walletCredited).toBe(true)
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(52_000)
+    expect(await db.walletTransaction.count({ where: { paymentId: payment.id, type: 'REFUND_CREDIT' } })).toBe(1)
+    expect((await db.clubWallet.findUniqueOrThrow({ where: { clubId: f.club.id } })).balance).toBe(0)
+  })
+
+  it('cancel settles a never-settled wallet payment first: full refund nets to zero, zero refund keeps it on club books', async () => {
+    const f = await fixtures()
+    const full = await walletPaidBooking(f, { amount: 5_000, date: future, startTime: '10:00' })
+    await m.cancellations.cancelCourtBooking({
+      bookingId: full.booking.id,
+      slotId: full.slot.id,
+      reason: 'owner-cancel',
+      paymentId: full.payment.id,
+      userId: full.booking.userId,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    const fullClub = await db.clubWalletTransaction.findMany({ where: { paymentId: full.payment.id }, orderBy: { createdAt: 'asc' } })
+    expect(fullClub.map((t) => t.type)).toEqual(['BOOKING_CREDIT', 'CLAWBACK'])
+    expect(fullClub.reduce((sum, t) => sum + t.amount, 0)).toBe(0)
+
+    const kept = await paidBooking(f, { date: future, startTime: '11:00', amount: 5_000, method: 'PAID' })
+    await m.wallet.debitWallet(f.athlete.id, 5_000, { type: 'PAYMENT_DEBIT', paymentId: kept.payment.id, bookingId: kept.booking.id })
+    await m.cancellations.cancelCourtBooking({
+      bookingId: kept.booking.id,
+      slotId: kept.slot.id,
+      reason: 'athlete-cancel',
+      paymentId: kept.payment.id,
+      userId: kept.booking.userId,
+      moneyOutcome: 'zero_refund',
+    })
+    const keptLedger = await db.settlementLedgerEntry.findUniqueOrThrow({ where: { paymentId: kept.payment.id } })
+    expect(keptLedger.gross).toBe(5_000)
+    expect(keptLedger.clawedBackAt).toBeNull()
+    expect(await db.walletTransaction.count({ where: { paymentId: kept.payment.id, type: 'REFUND_CREDIT' } })).toBe(0)
+    expect(await clubDrift(f.club.id)).toBe(0)
+  })
+
+  it('refund follows the debited wallet when the booking was re-linked to another account', async () => {
+    const f = await fixtures()
+    const other = await db.user.create({ data: { email: `other-${f.tag}@it.local`, name: 'Other' } })
+    const { slot, booking, payment } = await walletPaidBooking(f, { amount: 5_000, date: future, startTime: '12:00' })
+    await db.booking.update({ where: { id: booking.id }, data: { userId: other.id } })
+    await m.cancellations.cancelCourtBooking({
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'owner-cancel',
+      paymentId: payment.id,
+      userId: other.id,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(52_000)
+    expect(await db.wallet.findUnique({ where: { userId: other.id } })).toBeNull()
+  })
+
+  it('cancel twice after a wallet refund never double-credits', async () => {
+    const f = await fixtures()
+    const { slot, booking, payment } = await walletPaidBooking(f, { amount: 5_000, date: future, startTime: '13:00' })
+    const args = {
+      bookingId: booking.id,
+      slotId: slot.id,
+      reason: 'owner-cancel',
+      paymentId: payment.id,
+      userId: booking.userId,
+      moneyOutcome: 'full_wallet_refund' as const,
+    }
+    await m.cancellations.cancelCourtBooking(args)
+    await m.refunds.refundPaymentForCancellation({ paymentId: payment.id, userId: booking.userId, reason: 'retry', bookingId: booking.id })
+    expect((await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })).balance).toBe(52_000)
+    expect(await db.walletTransaction.count({ where: { paymentId: payment.id, type: 'REFUND_CREDIT' } })).toBe(1)
+  })
 })
