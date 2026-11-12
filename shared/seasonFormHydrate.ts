@@ -11,36 +11,31 @@ export type SeasonUiRuleRow = {
 
 /** Merge API weekday×court rules into multi-select UI rows (same start/end). */
 export function groupSeasonRulesForUi(rules: SeasonSessionRule[]): SeasonUiRuleRow[] {
-  const groups = new Map<string, {
-    weekdays: Set<string>
-    courtIds: Set<string>
-    startTime: string
-    endTime: string
-  }>()
-
+  // Each UI row expands to weekdays × courts. Only group weekdays that share the exact same
+  // court set for the same time range, so reloading never adds sessions that were not booked.
+  const byTimeDay = new Map<string, { startTime: string; endTime: string; weekday: string; courtIds: Set<string> }>()
   for (const rule of rules) {
     if (!rule.weekday || !rule.courtId || !rule.startTime || !rule.endTime) continue
-    const key = `${rule.startTime}|${rule.endTime}`
-    let group = groups.get(key)
-    if (!group) {
-      group = {
-        weekdays: new Set(),
-        courtIds: new Set(),
-        startTime: rule.startTime,
-        endTime: rule.endTime,
-      }
-      groups.set(key, group)
+    const key = `${rule.startTime}|${rule.endTime}|${rule.weekday}`
+    const row = byTimeDay.get(key) || {
+      startTime: rule.startTime,
+      endTime: rule.endTime,
+      weekday: rule.weekday,
+      courtIds: new Set<string>(),
     }
-    group.weekdays.add(rule.weekday)
-    group.courtIds.add(rule.courtId)
+    row.courtIds.add(rule.courtId)
+    byTimeDay.set(key, row)
   }
 
-  return [...groups.values()].map((group) => ({
-    weekdays: [...group.weekdays],
-    startTime: group.startTime,
-    endTime: group.endTime,
-    courtIds: [...group.courtIds],
-  }))
+  const groups = new Map<string, SeasonUiRuleRow>()
+  for (const row of byTimeDay.values()) {
+    const courtIds = [...row.courtIds].sort()
+    const key = `${row.startTime}|${row.endTime}|${courtIds.join(',')}`
+    const group = groups.get(key) || { weekdays: [], startTime: row.startTime, endTime: row.endTime, courtIds }
+    if (!group.weekdays.includes(row.weekday)) group.weekdays.push(row.weekday)
+    groups.set(key, group)
+  }
+  return [...groups.values()]
 }
 
 /** Normalize stored guest columns for list labels and form preload. */

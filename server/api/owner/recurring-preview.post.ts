@@ -8,6 +8,7 @@ import {
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { prisma } from '../../utils/prisma'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
+import { previewSeasonEditDiff } from '../../utils/seasonEdit'
 import { previewSeasonSessions } from '../../utils/seasonReserve'
 
 function normalizeSessions(raw: unknown): SeasonSessionOccurrence[] {
@@ -100,11 +101,20 @@ export default defineEventHandler(async (event) => {
     sessions,
     ...(ignoreSeasonBookingId ? { ignoreSeasonBookingId } : {}),
   })
+  // Edit flow: what the diff-based save will actually do (unchanged hours are not re-charged).
+  const editDiff = ignoreSeasonBookingId
+    ? await previewSeasonEditDiff({
+        clubId: club.id,
+        seasonBookingId: ignoreSeasonBookingId,
+        sessions: result.willCreate.map((row) => ({ date: row.date, startTime: row.startTime, courtId: row.courtId })),
+      })
+    : undefined
   return {
     willCreateCount: result.willCreateCount,
     skippedCount: result.skippedCount,
     willCreate: result.willCreate,
     conflicts: result.conflicts,
     totalAmount: result.totalAmount,
+    ...(editDiff ? { editDiff } : {}),
   }
 })

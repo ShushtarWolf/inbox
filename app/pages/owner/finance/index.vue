@@ -2,7 +2,7 @@
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
-import { ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
+import { ownerLedgerHasPastRate, ownerLedgerRowFee, ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -101,6 +101,9 @@ type OwnerSettlementWithdraw = {
 type OwnerSettlementLedgerEntry = {
   id: string
   ownerNet: number
+  gross?: number
+  commission?: number
+  commissionBps?: number
   classDate?: string | null
   clawedBackAt?: string | Date | null
 }
@@ -295,6 +298,12 @@ const shebaStatusMessage = computed(() => {
 const commissionPct = computed(() => ownerSettlementCommissionPct(
   settlement.value?.commissionBps,
   settlementPending.value,
+))
+
+/** Past rows may carry the rate that applied at payment time (e.g. the old 10% default). */
+const ledgerHasPastRate = computed(() => ownerLedgerHasPastRate(
+  settlement.value?.ledger,
+  settlement.value?.commissionBps,
 ))
 
 async function submitInternalTransfer() {
@@ -947,6 +956,9 @@ function showUnpaidList() {
         <p v-else class="text-sm text-brand-gray-600">
           {{ t('owner.financePage.commissionNote', { pct: formatNumber(commissionPct) }) }}
         </p>
+        <p v-if="ledgerHasPastRate" class="text-xs text-brand-gray-600" role="note">
+          {{ t('owner.financePage.commissionPastRateNote') }}
+        </p>
         <p class="text-xs font-bold text-red-600 text-start" role="note">
           {{ t('owner.financePage.payoutOwnerOnlyNotice') }}
         </p>
@@ -1036,6 +1048,16 @@ function showUnpaidList() {
             <span>
               {{ t('owner.financePage.ledgerNet') }}
               <template v-if="entry.clawedBackAt"> · {{ t('owner.financePage.ledgerClawed') }}</template>
+              <template v-if="ownerLedgerRowFee(entry)">
+                <br>
+                <span class="text-brand-gray-500">
+                  {{ t('owner.financePage.ledgerRowFee', {
+                    gross: formatCurrency(ownerLedgerRowFee(entry)!.gross),
+                    pct: formatNumber(ownerLedgerRowFee(entry)!.pct),
+                    fee: formatCurrency(ownerLedgerRowFee(entry)!.fee),
+                  }) }}
+                </span>
+              </template>
             </span>
             <span class="tabular-nums font-bold" dir="ltr">{{ formatCurrency(entry.ownerNet) }}</span>
           </div>

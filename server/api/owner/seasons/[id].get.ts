@@ -1,7 +1,7 @@
 import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 import type { SeasonSessionOccurrence, SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { parseSeasonTimesJson, weekdayNameFromDate } from '#shared/recurringSessions.ts'
-import { deriveSeasonRulesFromSlots, legacySeasonToRules } from '#shared/seasonSessions.ts'
+import { legacySeasonToRules, seasonRulesFromOccurrences } from '#shared/seasonSessions.ts'
 import { loadOwnerSeriesBookingsBySeasonId } from '../../../utils/ownerSeriesCancel'
 
 function parseSessionsJson(raw: string): SeasonSessionOccurrence[] {
@@ -23,25 +23,9 @@ function parseSessionsJson(raw: string): SeasonSessionOccurrence[] {
   }
 }
 
-function endTimeAfterStart(startTime: string): string {
-  const [hRaw, mRaw] = startTime.split(':')
-  const h = Number(hRaw) || 0
-  const m = Number(mRaw) || 0
-  const total = h * 60 + m + 60
-  const eh = Math.min(24, Math.floor(total / 60))
-  const em = total % 60
-  if (eh >= 24) return '24:00'
-  return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`
-}
-
+/** Merge back-to-back stored hours so a 2-hour weekly session reloads as one row. */
 function rulesFromSessions(sessions: SeasonSessionOccurrence[]): SeasonSessionRule[] {
-  const slots = sessions.map((session) => ({
-    date: session.date,
-    startTime: session.startTime,
-    endTime: endTimeAfterStart(session.startTime),
-    courtId: session.courtId,
-  }))
-  return deriveSeasonRulesFromSlots(slots)
+  return seasonRulesFromOccurrences(sessions)
 }
 
 export default defineEventHandler(async (event) => {

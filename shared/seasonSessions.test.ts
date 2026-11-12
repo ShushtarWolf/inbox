@@ -5,7 +5,9 @@ import {
   expandSeasonRules,
   legacySeasonToRules,
   maxIsoDate,
+  seasonRulesFromOccurrences,
 } from './seasonSessions'
+import { groupSeasonRulesForUi } from './seasonFormHydrate'
 
 describe('jalaliMonthEndIso', () => {
   it('returns last day of Farvardin from mid-month', () => {
@@ -99,5 +101,61 @@ describe('maxIsoDate', () => {
   it('picks the latest valid ISO date', () => {
     expect(maxIsoDate('2026-10-01', null, '2026-11-15', '', '2026-09-01')).toBe('2026-11-15')
     expect(maxIsoDate()).toBe('')
+  })
+})
+
+describe('seasonRulesFromOccurrences (edit / repeat reload)', () => {
+  // 2026-11-03, -10, -17 are Tuesdays.
+  const tuesdays = ['2026-11-03', '2026-11-10', '2026-11-17']
+
+  it('merges a Tue 18:00–20:00 season back into one rule', () => {
+    const sessions = tuesdays.flatMap((date) => [
+      { date, startTime: '18:00', courtId: 'z3' },
+      { date, startTime: '19:00', courtId: 'z3' },
+    ])
+    expect(seasonRulesFromOccurrences(sessions)).toEqual([
+      { weekday: 'Tue', courtId: 'z3', startTime: '18:00', endTime: '20:00' },
+    ])
+  })
+
+  it('keeps the full range when one week lost an hour to a conflict', () => {
+    const sessions = [
+      { date: tuesdays[0]!, startTime: '18:00', courtId: 'z3' },
+      { date: tuesdays[0]!, startTime: '19:00', courtId: 'z3' },
+      { date: tuesdays[1]!, startTime: '18:00', courtId: 'z3' },
+    ]
+    expect(seasonRulesFromOccurrences(sessions)).toEqual([
+      { weekday: 'Tue', courtId: 'z3', startTime: '18:00', endTime: '20:00' },
+    ])
+  })
+
+  it('keeps separate ranges when hours are not back to back, and ends at 24:00', () => {
+    const sessions = [
+      { date: tuesdays[0]!, startTime: '18:00', courtId: 'z3' },
+      { date: tuesdays[0]!, startTime: '21:00', courtId: 'z3' },
+      { date: tuesdays[0]!, startTime: '22:00', courtId: 'z3' },
+      { date: tuesdays[0]!, startTime: '23:00', courtId: 'z3' },
+    ]
+    expect(seasonRulesFromOccurrences(sessions)).toEqual([
+      { weekday: 'Tue', courtId: 'z3', startTime: '18:00', endTime: '19:00' },
+      { weekday: 'Tue', courtId: 'z3', startTime: '21:00', endTime: '24:00' },
+    ])
+  })
+
+  it('reload → save re-expands to exactly the same sessions (no extra, no missing)', () => {
+    const original = expandSeasonRules({
+      startDate: '2026-11-01',
+      finishDate: '2026-11-30',
+      rules: [
+        { weekday: 'Tue', startTime: '18:00', endTime: '20:00', courtId: 'z3' },
+        { weekday: 'Sat', startTime: '21:00', endTime: '22:00', courtId: 'z1' },
+      ],
+    })
+    const reloaded = groupSeasonRulesForUi(seasonRulesFromOccurrences(original))
+    expect(reloaded).toHaveLength(2)
+    const rules = reloaded.flatMap((row) => row.weekdays.flatMap((weekday) =>
+      row.courtIds.map((courtId) => ({ weekday, courtId, startTime: row.startTime, endTime: row.endTime }))))
+    const again = expandSeasonRules({ startDate: '2026-11-01', finishDate: '2026-11-30', rules })
+    expect(again).toEqual(original)
   })
 })

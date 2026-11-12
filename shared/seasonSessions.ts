@@ -153,6 +153,57 @@ export function deriveSeasonRulesFromSlots(slots: Array<{
   return rules
 }
 
+function hhmmToMinutes(value: string): number {
+  const [h, m] = value.split(':')
+  return (Number(h) || 0) * 60 + (Number(m) || 0)
+}
+
+function minutesToHhmm(total: number): string {
+  if (total >= 24 * 60) return '24:00'
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+/**
+ * Rebuild weekly rules from stored per-hour occurrences (timesJson).
+ * Hours are unioned per weekday + court across all weeks, then back-to-back hours are merged,
+ * so Tue 18:00 + 19:00 comes back as one 18:00–20:00 rule (not two 1-hour rules).
+ */
+export function seasonRulesFromOccurrences(
+  sessions: SeasonSessionOccurrence[],
+  slotMinutes = 60,
+): SeasonSessionRule[] {
+  const hoursByKey = new Map<string, { weekday: string; courtId: string; starts: Set<number> }>()
+  for (const session of sessions) {
+    if (!session.date || !session.startTime || !session.courtId) continue
+    const weekday = weekdayNameFromDate(session.date)
+    const key = `${weekday}|${session.courtId}`
+    const bucket = hoursByKey.get(key) || { weekday, courtId: session.courtId, starts: new Set<number>() }
+    bucket.starts.add(hhmmToMinutes(session.startTime.slice(0, 5)))
+    hoursByKey.set(key, bucket)
+  }
+  const rules: SeasonSessionRule[] = []
+  for (const bucket of hoursByKey.values()) {
+    const starts = [...bucket.starts].sort((a, b) => a - b)
+    let rangeStart: number | null = null
+    let rangeEnd = 0
+    for (const start of starts) {
+      if (rangeStart != null && start === rangeEnd) {
+        rangeEnd = start + slotMinutes
+        continue
+      }
+      if (rangeStart != null) {
+        rules.push({ weekday: bucket.weekday, courtId: bucket.courtId, startTime: minutesToHhmm(rangeStart), endTime: minutesToHhmm(rangeEnd) })
+      }
+      rangeStart = start
+      rangeEnd = start + slotMinutes
+    }
+    if (rangeStart != null) {
+      rules.push({ weekday: bucket.weekday, courtId: bucket.courtId, startTime: minutesToHhmm(rangeStart), endTime: minutesToHhmm(rangeEnd) })
+    }
+  }
+  return rules
+}
+
 /** Max ISO date among non-empty candidates (lexicographic works for YYYY-MM-DD). */
 export function maxIsoDate(...dates: Array<string | null | undefined>): string {
   let best = ''

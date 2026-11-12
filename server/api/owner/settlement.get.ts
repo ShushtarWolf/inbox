@@ -160,6 +160,7 @@ export default defineEventHandler(async (event) => {
       bookingId: entry.bookingId,
       classDate: entry.classDate,
       gross: entry.gross,
+      commissionBps: entry.commissionBps,
       commission: entry.commission,
       ownerNet: entry.ownerNet,
       clawedBackAt: entry.clawedBackAt,

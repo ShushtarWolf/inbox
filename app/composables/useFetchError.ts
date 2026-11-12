@@ -59,6 +59,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     ONLINE_PAID_MUST_CANCEL: 'owner.deskOnlinePaidLocked',
     'Online paid bookings must be cancelled to refund': 'owner.deskOnlinePaidLocked',
     PAYMENT_VERIFY_PENDING: 'owner.deskPaymentVerifyPending',
+    SEASON_EDIT_CONFLICT: 'owner.seasonPage.editConflict',
     'Insufficient withdrawable balance': 'athlete.withdrawInsufficient',
     'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',
     'Slot already started': 'booking.errors.slotAlreadyStarted',

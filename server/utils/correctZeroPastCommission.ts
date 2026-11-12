@@ -1,4 +1,6 @@
 import type { Prisma } from '@prisma/client'
+import { resolveClubCommissionBps } from '#shared/settlement.ts'
+import { loadPlatformCommissionBps } from './platformCommission.ts'
 import { prisma } from './prisma'
 
 const NOTE_PREFIX = 'Zero-commission refund of prior platform fee'
@@ -19,6 +21,18 @@ export type ZeroCommissionCorrectionSummary = {
   ok: number
   fail: number
   skipped: number
+  /** Platform default used to decide which clubs are effectively at 0%. */
+  platformCommissionBps: number
+  /** Clubs with open fees left alone because their current effective rate is above 0%. */
+  excludedClubs: Array<{ clubId: string; clubName: string; effectiveBps: number; entryCount: number }>
+}
+
+/** Only clubs whose current effective rate is 0% are owed their prior platform fee back. */
+export function isClubEffectivelyZeroCommission(
+  clubCommissionBps: number | null | undefined,
+  platformCommissionBps: number,
+): boolean {
+  return resolveClubCommissionBps(clubCommissionBps, platformCommissionBps) === 0
 }
 
 async function alreadyRefunded(tx: Prisma.TransactionClient, paymentId: string) {
@@ -38,7 +52,8 @@ export async function correctZeroPastCommission(opts?: {
   apply?: boolean
 }): Promise<ZeroCommissionCorrectionSummary> {
   const apply = opts?.apply === true
-  const entries = await prisma.settlementLedgerEntry.findMany({
+  const platformCommissionBps = await loadPlatformCommissionBps(prisma)
+  const allEntries = await prisma.settlementLedgerEntry.findMany({
     where: {
       clubId: { not: null },
       clawedBackAt: null,
@@ -52,8 +67,23 @@ export async function correctZeroPastCommission(opts?: {
       gross: true,
       commissionBps: true,
       commission: true,
-      club: { select: { nameFa: true } },
+      club: { select: { nameFa: true, commissionBps: true } },
     },
+  })
+
+  const excluded = new Map<string, { clubId: string; clubName: string; effectiveBps: number; entryCount: number }>()
+  const entries = allEntries.filter((row) => {
+    if (!row.clubId) return false
+    if (isClubEffectivelyZeroCommission(row.club?.commissionBps, platformCommissionBps)) return true
+    const bucket = excluded.get(row.clubId) || {
+      clubId: row.clubId,
+      clubName: row.club?.nameFa || row.clubId,
+      effectiveBps: resolveClubCommissionBps(row.club?.commissionBps, platformCommissionBps),
+      entryCount: 0,
+    }
+    bucket.entryCount += 1
+    excluded.set(row.clubId, bucket)
+    return false
   })
 
   const byClub = new Map<string, ZeroCommissionClubSummary>()
@@ -81,6 +111,8 @@ export async function correctZeroPastCommission(opts?: {
     ok: 0,
     fail: 0,
     skipped: 0,
+    platformCommissionBps,
+    excludedClubs: [...excluded.values()],
   }
   if (!apply || !entries.length) return summary
 
@@ -96,6 +128,11 @@ export async function correctZeroPastCommission(opts?: {
           return 'skipped' as const
         }
         if (await alreadyRefunded(tx, ledger.paymentId)) {
+          return 'skipped' as const
+        }
+        // Re-check inside the transaction: an admin may have set a non-zero club rate since the scan.
+        const club = await tx.club.findUnique({ where: { id: ledger.clubId }, select: { commissionBps: true } })
+        if (!isClubEffectivelyZeroCommission(club?.commissionBps, platformCommissionBps)) {
           return 'skipped' as const
         }
 

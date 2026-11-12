@@ -34,16 +34,16 @@ export default defineEventHandler(async (event) => {
   })
   const athlete = await prisma.user.findUnique({ where: { id: user.id } })
   if (pkg) {
-    const days = body.days?.length
-      ? body.days
-      : (pkg.daysJson ? (JSON.parse(pkg.daysJson) as string[]) : [])
+    // The seat is booked on the package's stored schedule (bookPackageSeat ignores body days/times),
+    // so the confirmation must describe that schedule, not whatever the client sent.
+    const days = pkg.daysJson ? (JSON.parse(pkg.daysJson) as string[]) : []
     const duration = pkg.club.defaultSessionDurationMinutes || 60
     const sessions = (pkg.startDate && pkg.finishDate)
       ? expandPackageSessions({
           startDate: pkg.startDate,
           finishDate: pkg.finishDate,
           days,
-          timesJson: body.times?.length ? JSON.stringify(body.times) : pkg.timesJson,
+          timesJson: pkg.timesJson,
           daysJson: pkg.daysJson,
         }, duration)
       : []
