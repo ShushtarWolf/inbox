@@ -4,17 +4,20 @@ import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import { PILOT_CLUB_LAT, PILOT_CLUB_LNG, PILOT_CLUB_SLUG } from '#shared/pilotClub.ts'
 import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 import { sortCourtsByOrdinal } from '#shared/courtDisplay.ts'
+import { PUBLIC_CLUB_SELECT, PUBLIC_REVIEW_SELECT } from '#shared/publicClub.ts'
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
   const slug = resolveClubSlugAlias(getRouterParam(event, 'slug') || '')
+  // Public, unauthenticated: explicit allowlist only. Never add sheba / ownerId / commission /
+  // admin notes / private SMS numbers here — those stay on owner/admin endpoints.
   const club = await prisma.club.findUnique({
     where: { slug },
-    include: {
+    select: {
+      ...PUBLIC_CLUB_SELECT,
       courts: { include: { sport: true }, orderBy: { nameFa: 'asc' } },
-      owner: { select: { name: true } },
       media: { orderBy: { sortOrder: 'asc' } },
-      reviews: { orderBy: { publishedAt: 'desc' }, take: 6 },
+      reviews: { orderBy: { publishedAt: 'desc' }, take: 6, select: PUBLIC_REVIEW_SELECT },
       equipment: {
         where: { category: { in: ['RENTAL', 'SELL'] } },
         orderBy: { nameFa: 'asc' },

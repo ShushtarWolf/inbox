@@ -1,6 +1,7 @@
 import { assertCoachApproved, findCoachByIdOrSlug } from '../../utils/coaches'
 import { parseJsonArray, reviewSummary } from '../../utils/catalog'
 import { slugify } from '../../utils/slug'
+import { omitPrivateCoachFields, PUBLIC_REVIEW_SELECT } from '#shared/publicClub.ts'
 
 export default defineEventHandler(async (event) => {
   assertCoachProductEnabled(event)
@@ -22,13 +23,13 @@ export default defineEventHandler(async (event) => {
         take: 4,
         select: { id: true, title: true, price: true, discount: true, capacity: true, comment: true },
       },
-      reviews: { orderBy: { publishedAt: 'desc' }, take: 6 },
+      reviews: { orderBy: { publishedAt: 'desc' }, take: 6, select: PUBLIC_REVIEW_SELECT },
       media: { orderBy: { sortOrder: 'asc' } },
     },
   })
   if (!coach) throw createError({ statusCode: 404, statusMessage: 'Coach not found' })
   return {
-    ...coach,
+    ...omitPrivateCoachFields(coach),
     slug: slugify(coach.nameEn),
     specialties: parseJsonArray(coach.specialtiesJson),
     credentials: parseJsonArray(coach.credentialsJson),
