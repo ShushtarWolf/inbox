@@ -246,3 +246,159 @@ suite('season edit diff (real Postgres)', () => {
     expect(removed.status).toBe('CANCELLED')
   })
 })
+
+// ── Multi-week season with a start in the past (Eli's case: shorten / extend the end). ──
+const TODAY = todayDateString()
+const PAST = addDaysToIsoDate(TODAY, -7)
+const W1 = addDaysToIsoDate(TODAY, 7)
+const W2 = addDaysToIsoDate(TODAY, 14)
+const W3 = addDaysToIsoDate(TODAY, 21)
+const W4 = addDaysToIsoDate(TODAY, 28)
+
+async function bookOn(f: F, date: string, opts: { method: Method; userId: string | null; seasonId?: string }) {
+  const slot = await db.slot.create({
+    data: { courtId: f.court.id, date, startTime: '18:00', endTime: '19:00', price: PRICE, displayStatus: 'RESERVED' },
+  })
+  const booking = await db.booking.create({
+    data: {
+      slotId: slot.id, userId: opts.userId, status: 'CONFIRMED', paymentStatus: 'PAID', paymentMethod: opts.method,
+      ...(opts.seasonId ? { source: 'CLUB' as const, guestName: 'Ali', guestFamily: 'Ahmadi' } : {}),
+    },
+  })
+  await db.payment.create({
+    data: {
+      bookingId: booking.id, amount: PRICE, method: opts.method, status: 'PAID',
+      provider: opts.method === 'IPG' ? 'sep' : 'pay_at_club',
+      ...(opts.method === 'IPG' ? { gatewayRef: `it-ref-${booking.id}` } : {}),
+      metadataJson: opts.seasonId ? JSON.stringify({ sessionPrice: PRICE, seasonBookingId: opts.seasonId }) : null,
+    },
+  })
+  if (opts.seasonId) {
+    await db.reservationEvent.create({
+      data: { type: 'CREATED', bookingId: booking.id, metadataJson: JSON.stringify({ source: 'owner-recurring', seasonBookingId: opts.seasonId }) },
+    })
+  }
+  return booking
+}
+
+/** Weekly 18:00 season: one past week + three future weeks; stored start in the past. */
+async function weeklySeason(f: F, method: Method) {
+  const dates = [PAST, W1, W2, W3]
+  const s = await db.seasonBooking.create({
+    data: {
+      clubId: f.club.id, guestName: 'Ali', guestFamily: 'Ahmadi', guestMobile: '', daysJson: '[]',
+      timesJson: JSON.stringify(dates.map((date) => ({ date, startTime: '18:00', courtId: f.court.id }))),
+      startDate: PAST, finishDate: W3,
+    },
+  })
+  const bookings = new Map<string, { id: string }>()
+  for (const date of dates) {
+    bookings.set(date, await bookOn(f, date, { method, userId: method === 'IPG' ? f.athlete.id : null, seasonId: s.id }))
+  }
+  return { season: s, bookings }
+}
+
+const at18 = (f: F, dates: string[]) => dates.map((date) => ({ date, startTime: '18:00', courtId: f.court.id }))
+
+function editDates(f: F, seasonId: string, sessions: ReturnType<typeof at18>, startDate: string, finishDate: string) {
+  return edit.applySeasonEdit({
+    clubId: f.club.id, seasonBookingId: seasonId, sessions,
+    guestName: 'Ali', guestFamily: 'Ahmadi', guestMobile: '', comments: null,
+    startDate, finishDate, paymentMethod: 'CASH', paymentStatus: 'PAY_AT_CLUB',
+  })
+}
+
+async function activeDates(f: F) {
+  const rows = await db.booking.findMany({
+    where: { status: { not: 'CANCELLED' }, slot: { courtId: f.court.id } },
+    include: { slot: true },
+  })
+  return rows.map((r) => r.slot.date).sort()
+}
+
+suite('season edit: change end with a past start (real Postgres)', () => {
+  beforeAll(async () => {
+    edit = await import('./seasonEdit')
+  })
+
+  it('shortening the end keeps the past start, cancels later online-paid weeks with one wallet refund each', async () => {
+    const f = await fixtures()
+    const { season: s, bookings } = await weeklySeason(f, 'IPG')
+    const pastBefore = await db.booking.findUniqueOrThrow({ where: { id: bookings.get(PAST)!.id }, include: { payment: true } })
+    // Preview sends only future occurrences (past = PAST conflict), new end = W1 + 2 days.
+    const newEnd = addDaysToIsoDate(W1, 2)
+    const res = await editDates(f, s.id, at18(f, [W1]), PAST, newEnd)
+    expect(res).toMatchObject({ unchanged: 1, added: 0, removed: 2, keptPast: 1 })
+    expect(res.refundTotal).toBe(2 * PRICE)
+    expect(res.cashReturnTotal).toBe(0)
+    expect(await activeDates(f)).toEqual([PAST, W1])
+    expect(await db.booking.findUniqueOrThrow({ where: { id: bookings.get(PAST)!.id }, include: { payment: true } })).toEqual(pastBefore)
+    const row = await db.seasonBooking.findUniqueOrThrow({ where: { id: s.id } })
+    expect(row.startDate).toBe(PAST)
+    expect(row.finishDate).toBe(newEnd)
+    expect(JSON.parse(row.timesJson).map((u: { date: string }) => u.date).sort()).toEqual([PAST, W1])
+    expect(await athleteRefunds(f.athlete.id)).toHaveLength(2)
+
+    // Retry is a no-op: no second refund.
+    const again = await editDates(f, s.id, at18(f, [W1]), PAST, newEnd)
+    expect(again).toMatchObject({ removed: 0, added: 0, refundTotal: 0, changed: false })
+    expect(await athleteRefunds(f.athlete.id)).toHaveLength(2)
+    const wallet = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(wallet.balance).toBe(2 * PRICE)
+  })
+
+  it('shortening a cash season never touches a wallet (desk cash-return only)', async () => {
+    const f = await fixtures()
+    const { season: s } = await weeklySeason(f, 'CASH')
+    const walletTxBefore = await db.walletTransaction.count()
+    const res = await editDates(f, s.id, at18(f, [W1]), PAST, addDaysToIsoDate(W1, 2))
+    expect(res).toMatchObject({ removed: 2, keptPast: 1, refundTotal: 0, cashReturnTotal: 2 * PRICE })
+    expect(await db.walletTransaction.count()).toBe(walletTxBefore)
+    expect(await db.wallet.count({ where: { user: { email: { contains: f.tag } } } })).toBe(0)
+    expect(await activeDates(f)).toEqual([PAST, W1])
+  })
+
+  it('end moved before the next session (empty desired list) cancels all future weeks, keeps the past', async () => {
+    const f = await fixtures()
+    const { season: s } = await weeklySeason(f, 'IPG')
+    const res = await editDates(f, s.id, [], PAST, TODAY)
+    expect(res).toMatchObject({ removed: 3, keptPast: 1, added: 0, refundTotal: 3 * PRICE })
+    expect(await activeDates(f)).toEqual([PAST])
+    const row = await db.seasonBooking.findUniqueOrThrow({ where: { id: s.id } })
+    expect(JSON.parse(row.timesJson)).toEqual([{ date: PAST, startTime: '18:00', courtId: f.court.id }])
+    expect(row.finishDate).toBe(TODAY)
+  })
+
+  it('extending the end adds only the new week (past and kept weeks untouched)', async () => {
+    const f = await fixtures()
+    const { season: s, bookings } = await weeklySeason(f, 'IPG')
+    const before = await db.booking.findMany({ where: { id: { in: [...bookings.values()].map((b) => b.id) } }, orderBy: { id: 'asc' } })
+    const res = await editDates(f, s.id, at18(f, [W1, W2, W3, W4]), PAST, W4)
+    expect(res).toMatchObject({ unchanged: 3, added: 1, removed: 0, keptPast: 1, refundTotal: 0 })
+    expect(await activeDates(f)).toEqual([PAST, W1, W2, W3, W4])
+    const after = await db.booking.findMany({ where: { id: { in: [...bookings.values()].map((b) => b.id) } }, orderBy: { id: 'asc' } })
+    expect(after).toEqual(before)
+    expect(await athleteRefunds(f.athlete.id)).toHaveLength(0)
+  })
+
+  it('extending into a week held by another customer rejects the whole edit', async () => {
+    const f = await fixtures()
+    const { season: s } = await weeklySeason(f, 'IPG')
+    await bookOn(f, W4, { method: 'IPG', userId: f.other.id })
+    await expect(editDates(f, s.id, at18(f, [W1, W4]), PAST, W4)).rejects.toMatchObject({ statusCode: 409 })
+    expect(await activeDates(f)).toEqual([PAST, W1, W2, W3, W4])
+    expect(await athleteRefunds(f.athlete.id)).toHaveLength(0)
+  })
+
+  it('rejects moving the start to another past day and a changed end before today; writes nothing', async () => {
+    const f = await fixtures()
+    const { season: s } = await weeklySeason(f, 'IPG')
+    await expect(editDates(f, s.id, at18(f, [W1]), addDaysToIsoDate(PAST, 1), W1))
+      .rejects.toMatchObject({ statusCode: 400, statusMessage: 'SEASON_EDIT_START_IN_PAST' })
+    await expect(editDates(f, s.id, [], PAST, addDaysToIsoDate(TODAY, -1)))
+      .rejects.toMatchObject({ statusCode: 400, statusMessage: 'SEASON_EDIT_FINISH_IN_PAST' })
+    expect(await activeDates(f)).toEqual([PAST, W1, W2, W3])
+    const row = await db.seasonBooking.findUniqueOrThrow({ where: { id: s.id } })
+    expect(row).toMatchObject({ startDate: PAST, finishDate: W3 })
+  })
+})

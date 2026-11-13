@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso, jalaliCalendarView } from '#shared/jalali.ts'
+import { pickRangeDay } from '#shared/rangePick.ts'
 
 const model = defineModel<string>({ required: true })
 const rangeEnd = defineModel<string>('rangeEnd', { default: '' })
@@ -13,12 +14,15 @@ const props = withDefaults(defineProps<{
   dayMarks?: Record<string, 'busy' | 'soft'>
   /** HTML prototype square day cells (season reserve range calendar). */
   squareCells?: boolean
+  /** Range mode: keep the start fixed; every tap on/after it sets the end (season edit, past start). */
+  lockStart?: boolean
 }>(), {
   mode: 'single',
   minDate: '',
   variant: 'default',
   dayMarks: () => ({}),
   squareCells: false,
+  lockStart: false,
 })
 
 const emit = defineEmits<{
@@ -151,41 +155,14 @@ function isRangeEnd(cell: { iso: string | null }) {
 function selectDay(iso: string) {
   if (effectiveMinDate.value && iso < effectiveMinDate.value) return
   if (props.mode === 'range') {
-    // Incomplete range: first tap = start, second = end.
-    if (!model.value) {
-      model.value = iso
-      rangeEnd.value = ''
-      return
-    }
-    if (!rangeEnd.value) {
-      if (iso < model.value) {
-        rangeEnd.value = model.value
-        model.value = iso
-      } else if (iso === model.value) {
-        // Same day twice → single-day range.
-        rangeEnd.value = iso
-      } else {
-        rangeEnd.value = iso
-      }
-      emit('select')
-      return
-    }
-    // Complete range: adjust nearer endpoint — never wipe the whole selection.
-    if (iso <= model.value) {
-      model.value = iso
-    } else if (iso >= rangeEnd.value) {
-      rangeEnd.value = iso
-    } else {
-      const startMs = Date.parse(`${model.value}T12:00:00Z`)
-      const endMs = Date.parse(`${rangeEnd.value}T12:00:00Z`)
-      const tapMs = Date.parse(`${iso}T12:00:00Z`)
-      if (Math.abs(tapMs - startMs) <= Math.abs(tapMs - endMs)) {
-        model.value = iso
-      } else {
-        rangeEnd.value = iso
-      }
-    }
-    emit('select')
+    const hadStart = Boolean(model.value)
+    const next = pickRangeDay({ start: model.value, end: rangeEnd.value }, iso, {
+      lockStart: props.lockStart,
+    })
+    model.value = next.start
+    rangeEnd.value = next.end
+    // First tap of a fresh range only sets the start.
+    if (hadStart || props.lockStart) emit('select')
     return
   }
   model.value = iso
@@ -201,7 +178,9 @@ function isSelected(cell: { iso: string | null }) {
 }
 
 function isDisabled(cell: { iso: string | null }) {
-  return Boolean(cell.iso && effectiveMinDate.value && cell.iso < effectiveMinDate.value)
+  if (!cell.iso) return false
+  if (effectiveMinDate.value && cell.iso < effectiveMinDate.value) return true
+  return Boolean(props.mode === 'range' && props.lockStart && model.value && cell.iso < model.value)
 }
 
 function cellClass(cell: { iso: string | null }) {
@@ -209,6 +188,10 @@ function cellClass(cell: { iso: string | null }) {
   const classes: string[] = []
   if (isDisabled(cell)) {
     classes.push('jalali-calendar-day-disabled')
+    // Locked season start (past): still show the kept part of the range.
+    if (props.mode === 'range' && props.lockStart && isInRange(cell.iso)) {
+      classes.push(isRangeStart(cell) ? 'jalali-calendar-day-selected' : 'jalali-calendar-day-in-range')
+    }
   }
   else if (props.mode === 'range' && isInRange(cell.iso)) {
     if (isRangeStart(cell) || isRangeEnd(cell)) classes.push('jalali-calendar-day-selected')
