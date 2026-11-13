@@ -5,6 +5,8 @@ async function loginOwnerPassword(page: Page) {
     data: { email: 'owner@inbox.local', password: 'demo1234' },
   })
   expect(res.ok()).toBeTruthy()
+  await page.goto('/owner/calendar')
+  await page.waitForURL(/\/owner/)
 }
 
 /**
@@ -14,7 +16,6 @@ async function loginOwnerPassword(page: Page) {
 test.describe('owner desk pay confirm', () => {
   test.beforeEach(async ({ page }) => {
     await loginOwnerPassword(page)
-    await page.goto('/owner/calendar')
     await expect(page.locator('.canva-cal-grid-cell').first()).toBeVisible({ timeout: 20_000 })
   })
 
@@ -28,8 +29,8 @@ test.describe('owner desk pay confirm', () => {
     await expect(page.locator('[data-app-modal-overlay]')).toBeVisible({ timeout: 10_000 })
     await page.locator('#owner-reserve-guest-name, #owner-guest-name').first().fill('تست')
     await page.locator('#owner-reserve-guest-mobile, #owner-guest-mobile').first().fill('09121234567')
-    await page.getByRole('button', { name: /ثبت رزرو|ادامه/ }).first().click()
-    await expect(page.getByText('تایید رزرو میز')).toBeVisible({ timeout: 10_000 })
+    await page.locator('.canva-sheet-submit').filter({ hasText: /ثبت رزرو/ }).click()
+    await expect(page.locator('.canva-desk-pay-panel').getByRole('heading', { name: 'تایید رزرو میز' })).toBeVisible({ timeout: 10_000 })
     const reservePromise = page.waitForResponse(
       (res) => res.url().includes('/api/owner/reserve') && res.request().method() === 'POST',
       { timeout: 15_000 },
