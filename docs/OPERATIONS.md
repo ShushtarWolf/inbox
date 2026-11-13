@@ -337,9 +337,13 @@ Set in the Liara dashboard (never commit real values):
 |----------|-------|
 | `SENTRY_DSN` | Project DSN from Sentry |
 | `SENTRY_ENVIRONMENT` | `production` |
+| `NUXT_PUBLIC_SENTRY_DSN` | Same DSN — required for the browser SDK |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | `production` |
 | `GIT_COMMIT_SHA` | Optional deploy SHA / release label |
 
-Redeploy or restart the app after setting env so both server and client pick up the DSN.
+The Nitro bundle is built in Actions without `SENTRY_DSN`, so the client DSN is empty unless `NUXT_PUBLIC_SENTRY_DSN` is set on Liara (server-only capture otherwise). To copy it from `SENTRY_DSN` without pasting the value: `gh workflow run set-sentry-public-dsn.yml --ref main -f app=inbox`.
+
+Restart the app after setting env so both server and client pick up the DSN.
 
 ### Verify checklist
 
