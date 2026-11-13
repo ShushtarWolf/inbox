@@ -1,5 +1,6 @@
 import { numberedCourtNames, parseCourtBulkCount } from '#shared/courtBulk.ts'
 import { parseCourtAudience } from '#shared/courtAudience.ts'
+import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 
 export default defineEventHandler(async (event) => {
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
       image: body.image?.trim() || null,
       imagesJson: body.imagesJson ?? null,
       facilitiesJson: body.facilitiesJson ?? null,
-      pricingJson: body.pricingJson ?? null,
+      pricingJson: normalizeCourtPricingForSave(body.price ?? 600000, body.pricingJson ?? null),
       audience: audience || 'MIXED',
     }
   }

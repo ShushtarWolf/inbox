@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { parseImagesJson, serializeImagesJson } from '#shared/courtFacilities.ts'
-import { COURT_BULK_MAX, COURT_BULK_MIN, parseCourtBulkCount } from '#shared/courtBulk.ts'
+import { samePricingJson } from '#shared/courtPricing.ts'
+import {
+  buildBulkCourtPatch,
+  COURT_BULK_MAX,
+  COURT_BULK_MIN,
+  parseCourtBulkCount,
+  type BulkCourtFields,
+} from '#shared/courtBulk.ts'
 import { COURT_AUDIENCE_VALUES, parseCourtAudience, type CourtAudience } from '#shared/courtAudience.ts'
 
 const props = defineProps<{
@@ -47,7 +54,22 @@ const form = reactive({
   audience: 'MIXED' as CourtAudience,
   notifyFutureBookings: false,
   count: 1,
+  /** Bulk only: owner explicitly chose to replace time pricing on every court. */
+  applyPricingToAll: false,
 })
+
+/** Bulk only: values the sheet opened with, so we send just what the owner changed. */
+let bulkInitial: BulkCourtFields | null = null
+
+function currentBulkFields(): BulkCourtFields {
+  return {
+    price: form.price ?? 0,
+    sportSlug: form.sportSlug,
+    openHour: form.useClubHours ? null : form.openHour,
+    closeHour: form.useClubHours ? null : form.closeHour,
+    audience: form.audience,
+  }
+}
 
 const audienceOptions = COURT_AUDIENCE_VALUES
 
@@ -65,7 +87,9 @@ const canSubmit = computed(() => {
   return Boolean(form.nameFa)
 })
 
-watch(() => props.court, (court) => {
+watch([() => props.court, () => props.bulkEdit], ([court]) => {
+  form.applyPricingToAll = false
+  bulkInitial = null
   if (!court) {
     form.nameFa = ''
     form.nameEn = ''
@@ -93,19 +117,27 @@ watch(() => props.court, (court) => {
   form.audience = parseCourtAudience(court.audience) || 'MIXED'
   form.notifyFutureBookings = false
   form.count = 1
+  if (props.bulkEdit) {
+    // Never pre-fill «ویرایش همه» with the first court's time bands: saving would
+    // silently copy (or wipe) bands on every other court.
+    form.pricingJson = null
+    bulkInitial = currentBulkFields()
+  }
 }, { immediate: true })
 
 function submit() {
   if (props.bulkEdit) {
-    emit('save', {
-      price: form.price ?? 0,
-      sportSlug: form.sportSlug,
-      openHour: form.useClubHours ? null : form.openHour,
-      closeHour: form.useClubHours ? null : form.closeHour,
+    const patch = buildBulkCourtPatch({
+      initial: bulkInitial ?? currentBulkFields(),
+      current: currentBulkFields(),
+      applyPricingToAll: form.applyPricingToAll,
       pricingJson: form.pricingJson,
-      audience: form.audience,
-      all: true,
     })
+    if (!Object.keys(patch).length) {
+      emit('cancel')
+      return
+    }
+    emit('save', { ...patch, all: true })
     return
   }
   let count = 1
@@ -126,7 +158,10 @@ function submit() {
     imagesJson,
     openHour: form.useClubHours ? null : form.openHour,
     closeHour: form.useClubHours ? null : form.closeHour,
-    pricingJson: form.pricingJson,
+    // Only send time pricing when the owner changed it in this sheet.
+    pricingJson: props.court && samePricingJson(form.pricingJson, props.court.pricingJson)
+      ? undefined
+      : form.pricingJson,
     audience: form.audience,
     notifyFutureBookings: Boolean(props.court && form.notifyFutureBookings),
     count,
@@ -218,7 +253,17 @@ watch(() => form.useClubHours, (useClub) => {
       </label>
     </div>
 
+    <label v-if="bulkEdit" class="canva-settings-check">
+      <input v-model="form.applyPricingToAll" type="checkbox" class="canva-settings-checkbox" data-testid="bulk-apply-pricing">
+      <span>
+        <span class="font-bold">{{ t('owner.settingsPage.bulkApplyPricing') }}</span>
+        <span class="mt-0.5 block text-xs font-normal text-brand-gray-600">{{ t('owner.settingsPage.bulkApplyPricingHint') }}</span>
+      </span>
+    </label>
+
     <OwnerCourtPricingTimeline
+      v-if="!bulkEdit || form.applyPricingToAll"
+      :key="bulkEdit ? 'bulk' : (court?.id ?? 'new')"
       v-model="form.pricingJson"
       :base-price="form.price"
       :open-hour="form.useClubHours ? clubOpenHour : (form.openHour ?? clubOpenHour)"

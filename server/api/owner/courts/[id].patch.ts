@@ -1,4 +1,5 @@
 import { parseCourtAudience } from '#shared/courtAudience.ts'
+import { normalizeCourtPricingForSave } from '#shared/courtPricing.ts'
 import { repriceFreeSlotsForCourts } from '../../../utils/slots'
 import { syncClubCatalogPrices } from '../../../utils/clubCatalogPrices'
 import { notifyFutureCourtBookers } from '../../../utils/courtAudienceNotify'
@@ -32,7 +33,13 @@ export default defineEventHandler(async (event) => {
   if (body.image !== undefined) data.image = body.image?.trim() || null
   if (body.imagesJson !== undefined) data.imagesJson = body.imagesJson
   if (body.facilitiesJson !== undefined) data.facilitiesJson = body.facilitiesJson
-  if (body.pricingJson !== undefined) data.pricingJson = body.pricingJson
+  if (body.pricingJson !== undefined) {
+    // Drop empty / price-neutral bands so a band never silently keeps an old base price.
+    data.pricingJson = normalizeCourtPricingForSave(
+      body.price !== undefined ? body.price : court.price,
+      body.pricingJson,
+    )
+  }
   if (body.audience !== undefined) {
     const audience = parseCourtAudience(body.audience)
     if (!audience) throw createError({ statusCode: 400, statusMessage: 'Invalid audience' })

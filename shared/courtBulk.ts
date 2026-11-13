@@ -37,3 +37,36 @@ export function numberedCourtNames(input: {
     nameEn: `${baseEn || 'Court'} ${input.index}`,
   }
 }
+
+export type BulkCourtFields = {
+  price: number
+  sportSlug: string
+  openHour: number | null
+  closeHour: number | null
+  audience: string
+}
+
+/**
+ * «ویرایش همه» patch: only the fields the owner actually changed compared with the
+ * values the sheet opened with. Time-band pricing is never copied from the seed
+ * court; it is sent only when the owner explicitly opts in to replace every
+ * court's pricing.
+ */
+export function buildBulkCourtPatch(input: {
+  initial: BulkCourtFields
+  current: BulkCourtFields
+  applyPricingToAll: boolean
+  pricingJson: string | null
+}): Record<string, unknown> {
+  const patch: Record<string, unknown> = {}
+  const { initial, current } = input
+  if (current.price !== initial.price) patch.price = current.price
+  if (current.sportSlug !== initial.sportSlug) patch.sportSlug = current.sportSlug
+  if (current.openHour !== initial.openHour || current.closeHour !== initial.closeHour) {
+    patch.openHour = current.openHour
+    patch.closeHour = current.closeHour
+  }
+  if (current.audience !== initial.audience) patch.audience = current.audience
+  if (input.applyPricingToAll) patch.pricingJson = input.pricingJson
+  return patch
+}

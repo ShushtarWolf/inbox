@@ -4,6 +4,7 @@ import {
 } from '#shared/courtFacilities.ts'
 import {
   defaultCourtPricingConfig,
+  nextTimeBand,
   parseCourtPricingJson,
   serializeCourtPricingJson,
   type CourtPricingConfig,
@@ -41,27 +42,12 @@ watch(config, () => {
   emit('update:modelValue', serializeCourtPricingJson(config))
 }, { deep: true })
 
+/** Bands are only ever created here, by the owner pressing «افزودن بازه». */
 function addTimeBand() {
   const bands = config.timeBands || []
-  const starts = timeOptions.value
-  const ends = endTimeOptions.value
-  const lastEnd = bands.length ? bands[bands.length - 1]!.endTime : starts[0] || '09:00'
-  const startIdx = starts.indexOf(lastEnd)
-  const startTime = startIdx >= 0 && startIdx < starts.length
-    ? starts[startIdx]!
-    : starts[0] || '08:00'
-  const endFromStart = ends.indexOf(startTime)
-  const endIdx = Math.min(ends.length - 1, (endFromStart >= 0 ? endFromStart : 0) + 2)
-  const endTime = ends[endIdx] || '10:00'
   config.timeBands = [
     ...bands,
-    {
-      labelFa: '',
-      labelEn: '',
-      startTime,
-      endTime,
-      price: props.basePrice,
-    },
+    nextTimeBand(bands, timeOptions.value, endTimeOptions.value, props.basePrice),
   ]
 }
 
@@ -100,6 +86,9 @@ function endOptionsFor(startTime: string) {
 
     <p v-if="!(config.timeBands || []).length" class="text-xs text-brand-gray-600">
       {{ t('owner.settingsPage.pricingTimelineEmpty') }}
+    </p>
+    <p v-else class="text-xs font-bold text-amber-700" data-testid="band-overrides-base">
+      {{ t('owner.settingsPage.pricingTimelineOverridesBase') }}
     </p>
 
     <ul class="space-y-2">
