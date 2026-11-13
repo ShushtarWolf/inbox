@@ -21,7 +21,7 @@ import {
   assertOnlineHoldPayable,
   releaseExpiredOnlinePaymentHolds,
 } from '../../utils/onlinePaymentHold'
-import { notifyPaymentPaidIfNeeded, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
+import { runPaidBookkeepingThenNotify, syncCompetitionEntryOnPayment, syncPaymentToParent } from '../../utils/paymentSync'
 import { receiptSigningSecret } from '../../utils/receipt'
 import { enqueueMoneyJobsForPaidPayment } from '../../utils/moneyJobs'
 import { linkPaymentSupersededBy, supersedePayablePaymentForRetry, type SupersedeResult } from '../../utils/paymentSupersede'
@@ -303,14 +303,17 @@ export default defineEventHandler(async (event) => {
       }, tx)
       return { payment: created, claimedNow: true }
     })
-    await syncPaymentToParent(payment.id)
-    await syncCompetitionEntryOnPayment(payment.id)
-    await enqueueMoneyJobsForPaidPayment(payment.id)
+    // Wallet debit is committed. Bookkeeping below is retried by money jobs; the paid SMS
+    // (guest + club owner) is attempted even if a bookkeeping step throws.
     // Concurrent loser: claim skipped — settle is idempotent; skip duplicate paid SMS.
-    await creditOwnerForPaidPayment(payment.id, claimedNow ? previousStatus : 'PAID')
-    const { markMoneyJobsDoneForPaidPayment } = await import('../../utils/moneyJobs')
-    await markMoneyJobsDoneForPaidPayment(payment.id)
-    if (claimedNow) await notifyPaymentPaidIfNeeded(payment.id, previousStatus)
+    await runPaidBookkeepingThenNotify(payment.id, previousStatus, async () => {
+      await syncPaymentToParent(payment.id)
+      await syncCompetitionEntryOnPayment(payment.id)
+      await enqueueMoneyJobsForPaidPayment(payment.id)
+      await creditOwnerForPaidPayment(payment.id, claimedNow ? previousStatus : 'PAID')
+      const { markMoneyJobsDoneForPaidPayment } = await import('../../utils/moneyJobs')
+      await markMoneyJobsDoneForPaidPayment(payment.id)
+    }, { notify: claimedNow })
     return {
       paymentId: payment.id,
       mode: getPaymentsMode(),

@@ -68,10 +68,10 @@ export async function notifyAdminSms(
 ) {
   const phone = adminAlertPhone()
   if (!phone) return
-  const mode = resolveSmsProvider()
-  const body = renderSmsTemplate(template as NotifyTemplate, data)
-  console.log('[adminNotify:sms]', mode, template, phone, body)
   try {
+    const mode = resolveSmsProvider()
+    const body = renderSmsTemplate(template as NotifyTemplate, data)
+    console.log('[adminNotify:sms]', mode, template, phone, body)
     await sendNotification({
       channel: 'sms',
       to: phone,

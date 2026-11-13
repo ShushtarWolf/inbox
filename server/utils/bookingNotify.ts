@@ -241,17 +241,31 @@ export async function notifySmsSoft(
   clubId?: string,
 ): Promise<boolean> {
   if (!phone) return false
-  const mode = resolveSmsProvider()
-  const body = renderSmsTemplate(template, data)
-  // Always audit intended payload (QA without live Kavenegar).
-  console.log('[bookingNotify:sms]', mode, template, phone, body)
   try {
+    const mode = resolveSmsProvider()
+    const body = renderSmsTemplate(template, data)
+    // Always audit intended payload (QA without live Kavenegar).
+    console.log('[bookingNotify:sms]', mode, template, phone, body)
     const result = await sendNotification({ channel: 'sms', to: phone, template, data, clubId })
-    return Boolean(result?.sent)
+    const sent = Boolean(result?.sent)
+    if (!sent && mode === 'live') {
+      // Live gateway refused or errored — one grep-able line per lost SMS (no secrets, no body).
+      console.error('[sms:notify:not_sent]', template, maskPhone(phone), clubId || '-')
+    }
+    return sent
   } catch (err) {
+    // Render or provider failure must never reach the booking/cancel/payment caller.
     console.error('[bookingNotify:sms]', template, err)
+    console.error('[sms:notify:not_sent]', template, maskPhone(phone), clubId || '-')
     return false
   }
+}
+
+/** 0912***4567 — enough to match a complaint without logging full numbers twice. */
+export function maskPhone(phone: string | null | undefined) {
+  const raw = String(phone || '')
+  if (raw.length < 8) return raw ? '***' : '-'
+  return `${raw.slice(0, 4)}***${raw.slice(-4)}`
 }
 
 async function safeSms(
