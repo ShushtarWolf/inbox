@@ -8,7 +8,7 @@ import {
 import { assertRecurringReserveEnabled } from '../../utils/recurringReserveGate'
 import { prisma } from '../../utils/prisma'
 import { resolveOwnerCourtIds } from '../../utils/resolveOwnerCourts'
-import { previewSeasonEditDiff } from '../../utils/seasonEdit'
+import { assertSeasonEditDates, previewSeasonEditDiff } from '../../utils/seasonEdit'
 import { previewSeasonSessions } from '../../utils/seasonReserve'
 
 function normalizeSessions(raw: unknown): SeasonSessionOccurrence[] {
@@ -92,9 +92,10 @@ export default defineEventHandler(async (event) => {
   if (ignoreSeasonBookingId) {
     const ok = await prisma.seasonBooking.findFirst({
       where: { id: ignoreSeasonBookingId, clubId: club.id },
-      select: { id: true },
+      select: { id: true, startDate: true, finishDate: true },
     })
     if (!ok) throw createError({ statusCode: 404, statusMessage: 'Season not found' })
+    assertSeasonEditDates(ok, { startDate: body.startDate, finishDate: body.finishDate })
   }
   const result = await previewSeasonSessions({
     clubId: club.id,

@@ -13,7 +13,8 @@
 import type { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { isSlotStartInPast } from '#shared/localDate.ts'
+import { isSlotStartInPast, localDateString } from '#shared/localDate.ts'
+import { seasonEditDateError } from '#shared/rangePick.ts'
 import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { userToGuestNamePair } from '#shared/userName.ts'
 import { seriesCancelPaymentId } from '#shared/ownerSeries.ts'
@@ -81,6 +82,24 @@ function daysJsonFor(units: SeasonUnit[]): string {
   return JSON.stringify(days)
 }
 
+/**
+ * A season whose start is already in the past keeps that start (sent unchanged); the start may never
+ * be moved to a past day and a changed end must be today or later (Tehran calendar day).
+ */
+export function assertSeasonEditDates(
+  season: { startDate: string | null; finishDate: string | null },
+  opts: { startDate: string; finishDate: string; now?: Date },
+) {
+  const error = seasonEditDateError({
+    storedStart: season.startDate,
+    storedFinish: season.finishDate,
+    startDate: opts.startDate,
+    finishDate: opts.finishDate,
+    today: localDateString(opts.now || new Date()),
+  })
+  if (error) throw createError({ statusCode: 400, statusMessage: `SEASON_EDIT_${error}` })
+}
+
 /** Read-only diff for the edit preview (no writes). */
 export async function previewSeasonEditDiff(opts: {
   clubId: string
@@ -125,6 +144,7 @@ export async function applySeasonEdit(opts: {
   const season = await prisma.seasonBooking.findFirst({ where: { id: seasonId, clubId: opts.clubId } })
   if (!season) throw createError({ statusCode: 404, statusMessage: 'Season not found' })
   if (season.cancelledAt) throw createError({ statusCode: 400, statusMessage: 'Cannot edit a cancelled season' })
+  assertSeasonEditDates(season, opts)
 
   const desired = uniqueSeasonUnits(opts.sessions)
   const isPast = (u: SeasonUnit) => isSlotStartInPast(u.date, u.startTime, opts.now)

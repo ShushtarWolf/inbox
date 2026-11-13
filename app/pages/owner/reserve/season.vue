@@ -12,6 +12,7 @@ import { resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
+import { seasonEditLocksStart } from '#shared/rangePick.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -54,6 +55,10 @@ const lastSmsSent = ref(false)
 
 /** When set, POST uses replace semantics (cancel future + recreate under same season id). */
 const editingSeasonId = ref('')
+/** Stored start of the season being edited (a past start is kept and locked in the calendar). */
+const storedSeasonStart = ref('')
+const startLocked = computed(() =>
+  Boolean(editingSeasonId.value) && seasonEditLocksStart(storedSeasonStart.value, today()))
 
 const guestName = ref('')
 const guestFamily = ref('')
@@ -260,6 +265,13 @@ const datesValid = computed(() =>
   Boolean(startDate.value && finishDate.value && !dateRangeInvalid.value),
 )
 
+/** Edit that only cancels future hours (e.g. end moved before the next session). */
+const editRemovesOnly = computed(() =>
+  Boolean(editingSeasonId.value && editDiff.value && editDiff.value.removed > 0))
+
+const rangeHintText = computed(() =>
+  startLocked.value ? t('owner.seasonPage.editStartLocked') : t('owner.seasonPage.rangeHint'))
+
 const rangeLabel = computed(() => {
   if (startDate.value && finishDate.value) {
     return t('owner.seasonPage.rangeSelected', {
@@ -323,6 +335,12 @@ function toApiRules(): SeasonSessionRule[] {
 
 function applyMonthDefault() {
   if (!startDate.value) startDate.value = today()
+  if (startLocked.value) {
+    // Locked past start: end on the month end of today or later (never before today).
+    const anchor = startDate.value > today() ? startDate.value : today()
+    finishDate.value = jalaliMonthEndIso(anchor)
+    return
+  }
   finishDate.value = jalaliMonthEndIso(startDate.value)
 }
 
@@ -413,7 +431,9 @@ function applyLoadedSeason(season: LoadedSeason, opts: { resetDateRange?: boolea
 }
 
 async function loadSeasonForEdit(seasonId: string) {
-  applyLoadedSeason(await fetchSeason(seasonId))
+  const season = await fetchSeason(seasonId)
+  applyLoadedSeason(season)
+  storedSeasonStart.value = season.startDate || ''
   editingSeasonId.value = seasonId
 }
 
@@ -425,6 +445,7 @@ async function loadSeasonForRepeat(seasonId: string) {
 onMounted(async () => {
   if (!recurringReserveEnabled.value) return
   editingSeasonId.value = ''
+  storedSeasonStart.value = ''
   const editId = String(route.query.edit || '').trim()
   const repeatId = String(route.query.repeat || '').trim()
   if (editId || repeatId) {
@@ -488,10 +509,11 @@ async function runPreview() {
       },
     })
     occurrences.value = [...(preview.willCreate || [])]
-    conflicts.value = preview.conflicts || []
+    // Edit: past hours of this season are kept untouched — not "skipped" sessions.
+    conflicts.value = (preview.conflicts || []).filter((row) => !(editingSeasonId.value && row.reason === 'PAST'))
     totalAmount.value = preview.totalAmount || occurrences.value.reduce((s, r) => s + (r.price || 0), 0)
     editDiff.value = preview.editDiff || null
-    if (!occurrences.value.length) {
+    if (!occurrences.value.length && !editRemovesOnly.value) {
       formError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
@@ -508,7 +530,7 @@ async function runPreview() {
 async function confirmReserve(mode: 'cash' | 'unpaid') {
   formError.value = ''
   syncGuestFieldsFromDom()
-  if (!occurrences.value.length) {
+  if (!occurrences.value.length && !editRemovesOnly.value) {
     formError.value = t('owner.seasonPage.noFreeSlots')
     return
   }
@@ -630,6 +652,9 @@ const previewWeeks = computed(() => {
 const step3Banner = computed(() => {
   const free = occurrences.value.length
   const skip = conflicts.value.length
+  if (!free && !skip && editRemovesOnly.value) {
+    return { tone: 'warn' as const, text: editDiffSummaryText.value }
+  }
   if (!free && !skip) {
     return { tone: 'err' as const, text: t('owner.seasonPage.bannerEmpty') }
   }
@@ -852,7 +877,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
             </AppFormField>
             <div class="season-wiz-range-box">
               <p class="text-sm font-extrabold text-[#C0141F]" aria-live="polite">{{ rangeLabel }}</p>
-              <p class="mt-1 text-start text-[12px] text-[#8C8A84]">{{ t('owner.seasonPage.rangeHint') }}</p>
+              <p class="mt-1 text-start text-[12px] text-[#8C8A84]">{{ rangeHintText }}</p>
               <button type="button" class="mt-2 text-xs font-bold text-brand-primary" @click="applyMonthDefault">
                 {{ t('owner.seasonPage.useMonthEnd') }}
               </button>
@@ -869,6 +894,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
               variant="owner"
               selected-tone="green"
               square-cells
+              :lock-start="startLocked"
               :min-date="today()"
             />
             <div class="mt-3 flex flex-wrap gap-4 text-[11.5px] text-[#8C8A84]">
@@ -1150,7 +1176,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           <button
             type="button"
             class="season-wiz-btn season-wiz-btn-primary"
-            :disabled="saving || !occurrences.length"
+            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
             @click="confirmReserve('cash')"
           >
             {{ saving ? t('common.loading') : t('owner.payCash') }}
@@ -1158,7 +1184,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           <button
             type="button"
             class="season-wiz-btn season-wiz-btn-dark"
-            :disabled="saving || !occurrences.length"
+            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
             @click="confirmReserve('unpaid')"
           >
             {{ saving ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}

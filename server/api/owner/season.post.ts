@@ -112,8 +112,12 @@ export default defineEventHandler(async (event) => {
   if (body.finishDate < body.startDate) {
     throw createError({ statusCode: 400, statusMessage: 'Finish date must be on or after start date' })
   }
+  const replaceSeasonBookingId = String(body.replaceSeasonBookingId || '').trim()
+  // Edit that only cancels future hours (end moved before the next session): the client sends an
+  // explicit empty list. Never re-expand rules for it — the diff then removes future hours only.
+  const removalOnlyEdit = Boolean(replaceSeasonBookingId) && Array.isArray(body.sessions) && body.sessions.length === 0
   let sessions = normalizeSessions(body.sessions)
-  if (!sessions.length) {
+  if (!sessions.length && !removalOnlyEdit) {
     let rules = normalizeRules(body.rules)
     if (!rules.length) {
       const courtIds = await resolveOwnerCourtIds(club.id, body)
@@ -134,7 +138,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!sessions.length) {
+  if (!sessions.length && !removalOnlyEdit) {
     throw createError({ statusCode: 400, statusMessage: 'schedule is required' })
   }
 
@@ -142,7 +146,6 @@ export default defineEventHandler(async (event) => {
   const guestMobile = resolveGuestMobile(body.guestMobile)
   const { paymentMethod, paymentStatus } = resolvePayment(body)
 
-  const replaceSeasonBookingId = String(body.replaceSeasonBookingId || '').trim()
   if (replaceSeasonBookingId) {
     // Diff-based edit: unchanged hours untouched, added hours created, removed hours cancelled
     // with normal refund rules — all in one transaction (see server/utils/seasonEdit.ts).
