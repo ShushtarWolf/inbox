@@ -135,6 +135,7 @@ export default [
     ignores: [
       '.output/**',
       '.nuxt/**',
+      '.inbox-dev/**',
       'node_modules/**',
       'coverage/**',
       'dist/**',

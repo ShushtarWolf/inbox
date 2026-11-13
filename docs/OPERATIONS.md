@@ -309,7 +309,7 @@ Optional: `S3_REGION=us-east-1` (default in code). Redeploy/restart after settin
 
 ## Sentry (error tracking)
 
-Optional. When `SENTRY_DSN` is **unset**, both plugins no-op and the app runs normally. When set, Nitro captures server errors and the Vue client SDK captures browser/Vue errors. Cookies, `Authorization`, and `x-admin-secret` are scrubbed before send (`sendDefaultPii: false`). Prod trace sample rates: server `0.1`, client `0.05`.
+Optional. When `SENTRY_DSN` is **unset**, both plugins no-op and the app runs normally. When set, Nitro captures server errors and the Vue client SDK captures browser/Vue errors. Cookies, `Authorization`, and `x-admin-secret` are scrubbed before send (`sendDefaultPii: false`). `shared/sentryScrub.ts` also **drops** scanner 404 probes and expected auth rejects (OTP / rate limit / disabled account) so GlitchTip stays readable. Prod trace sample rates: server `0.1`, client `0.05`.
 
 ### Create a Sentry project
 
