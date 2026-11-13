@@ -1,0 +1,14 @@
+{
+  "name": "design-inventory-tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node capture.mjs",
+    "tokens": "node extract-tokens.mjs",
+    "html": "node build-html.mjs",
+    "all": "node run.mjs"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.5"
+  }
+}
