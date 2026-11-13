@@ -1,6 +1,7 @@
 import { summarizeAthleteCashDesk } from '#shared/dualRailBooks.ts'
 import { refundChannelFromPaymentMetadata, refundChannelI18nKey } from '#shared/refundChannelLabel.ts'
 import { totalUserWithdrawable } from '#shared/walletWithdrawRail.ts'
+import { ATHLETE_WITHDRAW_MIN_TOMAN } from '#shared/athleteCashOut.ts'
 import {
   getAthleteCashOutBalance,
   getWalletBalances,
@@ -152,6 +153,7 @@ export default defineEventHandler(async (event) => {
     withdrawableBalance: canBankWithdraw ? withdrawableBalance : 0,
     coachWithdrawableBalance: isCoach ? coachWithdrawable : 0,
     athleteCashOutBalance: athleteCashOut,
+    athleteWithdrawMin: ATHLETE_WITHDRAW_MIN_TOMAN,
     pendingClassBalance,
     canBankWithdraw,
     bankWithdrawKind: isCoach ? 'coach' : (canBankWithdraw ? 'athlete' : null),
