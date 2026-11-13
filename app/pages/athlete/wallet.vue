@@ -38,6 +38,7 @@ const { data, pending, error, refresh } = await useAuthedFetch<{
   canBankWithdraw?: boolean
   bankWithdrawKind?: 'coach' | 'athlete' | null
   dualWithdrawRails?: boolean
+  athleteWithdrawMin?: number
   sheba?: string | null
   shebaUiStatus?: 'none' | 'pending' | 'rejected' | 'active'
   pendingShebaRequest?: { proposedSheba: string | null; adminNote?: string | null } | null
@@ -95,6 +96,8 @@ const topUpAmount = computed(() => {
 })
 
 const withdrawableBalance = computed(() => Number(data.value?.withdrawableBalance || 0))
+const withdrawMin = computed(() => data.value?.bankWithdrawKind === 'athlete' ? Number(data.value?.athleteWithdrawMin || 0) : 0)
+const withdrawBelowMin = computed(() => withdrawMin.value > 0 && withdrawableBalance.value < withdrawMin.value)
 const pendingClassBalance = computed(() => Number(data.value?.pendingClassBalance || 0))
 const onlineBalance = computed(() => Number(data.value?.online?.availableBalance ?? data.value?.balance ?? 0))
 const cashDesk = computed(() => data.value?.cashDesk || null)
@@ -222,6 +225,11 @@ async function requestWithdraw() {
     flash.value = t('athlete.withdrawInvalidAmount')
     return
   }
+  if (amount < withdrawMin.value) {
+    flashTone.value = 'error'
+    flash.value = t('athlete.withdrawBelowMin', { min: formatCurrency(withdrawMin.value) })
+    return
+  }
   if (amount > withdrawableBalance.value) {
     flashTone.value = 'error'
     flash.value = t('athlete.withdrawInsufficient')
@@ -283,6 +291,9 @@ watch(
           <div class="fin-lab">{{ t('athlete.walletBankTransferable') }}</div>
           <div class="v tabular-nums">{{ formatCurrency(data?.canBankWithdraw ? withdrawableBalance : 0) }}</div>
           <p class="fin-note">{{ data?.canBankWithdraw ? t('athlete.walletBankTransferableHint') : t('athlete.walletClosedLoopHint') }}</p>
+          <p v-if="data?.canBankWithdraw && withdrawBelowMin" class="fin-note">
+            {{ t('athlete.withdrawBelowMin', { min: formatCurrency(withdrawMin) }) }}
+          </p>
         </div>
         <div>
           <div class="fin-lab">{{ t('athlete.walletInPayout') }}</div>
@@ -447,7 +458,7 @@ watch(
         <button
           type="button"
           class="canva-gate-btn-primary w-full"
-          :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > withdrawableBalance"
+          :disabled="payoutBusy || withdrawBelowMin || !withdrawAmount || Number(withdrawAmount) < withdrawMin || Number(withdrawAmount) > withdrawableBalance"
           @click="requestWithdraw"
         >
           {{ t('athlete.withdrawRequest') }}

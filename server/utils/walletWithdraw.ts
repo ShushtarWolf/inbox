@@ -138,7 +138,10 @@ export async function requestUserWithdraw(options: {
         dailyRemaining,
       })
       if (!clamp.ok) {
-        throw createError({ statusCode: 409, statusMessage: 'Insufficient withdrawable balance' })
+        throw createError({
+          statusCode: 409,
+          statusMessage: clamp.reason === 'below_min' ? 'Withdraw amount below minimum' : 'Insufficient withdrawable balance',
+        })
       }
       withdrawable = athleteCashOutNet
     }

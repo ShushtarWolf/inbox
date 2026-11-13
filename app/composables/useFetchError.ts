@@ -65,6 +65,7 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     CLUB_NOT_ACTIVE: 'owner.errors.clubNotActive',
     SEASON_EDIT_CONFLICT: 'owner.seasonPage.editConflict',
     'Insufficient withdrawable balance': 'athlete.withdrawInsufficient',
+    'Withdraw amount below minimum': 'athlete.withdrawBelowMinGeneric',
     'Athlete wallet is closed-loop — bank withdraw is not available': 'athlete.walletClosedLoopHint',
     'Slot already started': 'booking.errors.slotAlreadyStarted',
     'Insufficient club wallet balance': 'owner.financePage.withdrawInsufficient',
