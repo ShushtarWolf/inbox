@@ -63,6 +63,14 @@ jobs:
       - run: npm run check:money-safety
       - run: npm run build
       - run: npm test
+      - name: Money integration tests (wallet_it schema)
+        env:
+          # Isolated schema so money ITs never touch the seeded public schema.
+          MONEY_IT_DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox?schema=wallet_it
+          DATABASE_URL: postgresql://inbox:inbox@localhost:5432/inbox?schema=wallet_it
+        run: |
+          npx prisma migrate deploy
+          npm run test:money
       - run: node scripts/ci-smoke.mjs
       - run: npx playwright install chromium webkit --with-deps
       - run: npm run test:e2e:ci

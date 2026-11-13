@@ -11,11 +11,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { addDaysToIsoDate, todayDateString } from '#shared/localDate.ts'
 import { readDeskCashReturn } from '#shared/cancelRefund.ts'
 import { walletBalanceDrift } from '#shared/walletRecon.ts'
+import { resolveMoneyItDatabaseUrl } from './moneyItEnv'
 
-const url = process.env.MONEY_IT_DATABASE_URL
-if (url && !/schema=wallet_it/.test(url)) {
-  throw new Error('MONEY_IT_DATABASE_URL must target the isolated wallet_it schema')
-}
+const url = resolveMoneyItDatabaseUrl()
 const suite = url ? describe : describe.skip
 
 process.env.DATABASE_URL = url || process.env.DATABASE_URL
