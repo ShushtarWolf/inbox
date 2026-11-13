@@ -39,6 +39,7 @@ import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSear
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { clampDiscountPercent } from '#shared/discountCode.ts'
 import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
 import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
@@ -258,6 +259,8 @@ const form = reactive({
 watchAsciiDigits(() => form.guestMobile, (next) => { form.guestMobile = next })
 
 const deskPaymentHint = ref('')
+/** Suppress payment-form sync while confirmDeskPay applies mode + calls the API. */
+const deskPaymentApplyPaused = ref(false)
 
 function deskPaymentSourceFromSlot(slot?: OwnerCalendarSlot | null) {
   const booking = slot ? activeBooking(slot) : null
@@ -268,6 +271,15 @@ function deskPaymentSourceFromSlot(slot?: OwnerCalendarSlot | null) {
     gatewayRef: payment?.gatewayRef ?? null,
     metadataJson: payment?.metadataJson ?? null,
   }
+}
+
+function deskPaymentAnchorForWrite() {
+  const anchor = deskPaymentAnchorSlot(
+    selectedSlot.value,
+    slotsForReserve(),
+    isNewReservation(),
+  )
+  return deskPaymentSourceFromSlot(anchor)
 }
 
 const deskOnlinePaidLocked = computed(() => {
@@ -285,8 +297,9 @@ function applyDeskPaymentForm(opts?: { submit?: boolean }) {
   const decision = resolveDeskPaymentWrite({
     requestedMethod: form.paymentMethod,
     requestedPaid: form.paymentStatus === 'PAID',
+    complimentary: deskPayMode.value === 'complimentary',
     paymentsMode: payAtClubMode.value ? 'pay_at_club' : undefined,
-    ...deskPaymentSourceFromSlot(selectedSlot.value),
+    ...deskPaymentAnchorForWrite(),
   })
   if (decision.error) {
     if (decision.error.statusMessage === 'PAYMENT_VERIFY_PENDING' && form.paymentStatus === 'PAID') {
@@ -315,7 +328,14 @@ function applyDeskPaymentForm(opts?: { submit?: boolean }) {
 }
 
 watch(() => [form.paymentMethod, form.paymentStatus], () => {
+  if (deskPaymentApplyPaused.value) return
   applyDeskPaymentForm()
+})
+
+watch(selectedSlotIds, () => {
+  if (showMenu.value) return
+  const anchor = selectedSlotsFull.value[0]
+  if (anchor?.displayStatus === 'FREE') selectedSlot.value = anchor
 })
 
 const seasonForm = reactive({
@@ -1712,16 +1732,37 @@ function backFromPayConfirm() {
   activePanel.value = 'reserve'
 }
 
+function payConfirmPrecheck(): string | null {
+  if (saving.value || confirming.value) return null
+  if (!slotsForReserve().length) return t('owner.deskPaymentNoSlots')
+  if (!guestFieldsValid()) return guestFieldsErrorMessage() || t('owner.guestRequired')
+  return null
+}
+
 async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
-  deskPayMode.value = mode
-  if (mode === 'cash' || mode === 'complimentary') {
-    form.paymentMethod = 'CASH'
-    form.paymentStatus = 'PAID'
-  } else {
-    // Recurring unpaid: always desk cash unpaid — no series pay link.
-    form.paymentMethod = (payAtClubMode.value || pendingRecurringPay.value) ? 'CASH' : 'IPG'
-    form.paymentStatus = 'PAY_AT_CLUB'
+  const precheck = payConfirmPrecheck()
+  if (precheck) {
+    actionError.value = precheck
+    return
   }
+  if (saving.value || confirming.value) return
+  deskPayMode.value = mode
+  deskPaymentApplyPaused.value = true
+  actionError.value = ''
+  try {
+    if (mode === 'cash' || mode === 'complimentary') {
+      form.paymentMethod = 'CASH'
+      form.paymentStatus = 'PAID'
+    } else {
+      // Recurring unpaid: always desk cash unpaid — no series pay link.
+      form.paymentMethod = (payAtClubMode.value || pendingRecurringPay.value) ? 'CASH' : 'IPG'
+      form.paymentStatus = 'PAY_AT_CLUB'
+    }
+  } finally {
+    deskPaymentApplyPaused.value = false
+  }
+  const preview = applyDeskPaymentForm({ submit: true })
+  if (!preview) return
   const recurring = pendingRecurringPay.value
   if (recurring === 'season') {
     await doSeasonReserve({ fromPayConfirm: true })
@@ -1731,7 +1772,7 @@ async function confirmDeskPay(mode: 'cash' | 'unpaid' | 'complimentary') {
     await doPackageReserve({ fromPayConfirm: true })
     return
   }
-  await doReserve()
+  await doReserve({ skipDeskPaymentPrecheck: true })
 }
 
 const payLinkWhatsappHref = computed(() => {
@@ -2210,7 +2251,14 @@ function openFabBlock() {
 
 /** Canva (9) date-row FAB — same path as the bottom selection-bar primary. */
 function openFabReserve() {
-  if (!canBatchReserve.value) return
+  if (!selectedSlotsFull.value.length) {
+    actionError.value = t('owner.selectionBar.pickSlotFirst')
+    return
+  }
+  if (!canBatchReserve.value) {
+    setSelectionReserveError()
+    return
+  }
   openSelectionReserve()
 }
 
@@ -2558,10 +2606,20 @@ function guestNamePayload() {
   return normalizeGuestNamePair(form.guestName, form.guestFamily)
 }
 
-async function doReserve() {
+async function doReserve(opts?: { skipDeskPaymentPrecheck?: boolean }) {
   const targets = slotsForReserve()
-  if (!targets.length || saving.value || !canSubmitReserve()) return
-  const deskPayment = applyDeskPaymentForm({ submit: true })
+  if (!targets.length) {
+    actionError.value = t('owner.deskPaymentNoSlots')
+    return
+  }
+  if (saving.value) return
+  if (!canSubmitReserve()) {
+    actionError.value = guestFieldsErrorMessage() || t('owner.guestRequired')
+    return
+  }
+  const deskPayment = opts?.skipDeskPaymentPrecheck
+    ? applyDeskPaymentForm()
+    : applyDeskPaymentForm({ submit: true })
   if (!deskPayment) return
   saving.value = true
   actionError.value = ''
@@ -5221,13 +5279,13 @@ watch(pilotNoCoach, (off) => {
               </div>
             </div>
           </div>
-          <div class="venus-modal-footer space-y-2">
-            <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
+          <div class="venus-modal-footer canva-desk-pay-footer space-y-2">
+            <p v-if="actionError" class="venus-alert-error" role="alert">{{ actionError }}</p>
             <button
               type="button"
               class="canva-gate-btn-primary w-full"
               :disabled="saving || confirming"
-              @click="confirmDeskPay('cash')"
+              @click.stop="confirmDeskPay('cash')"
             >
               {{ (saving || confirming) && deskPayMode === 'cash' ? t('common.loading') : t('owner.payCash') }}
             </button>
@@ -5235,7 +5293,15 @@ watch(pilotNoCoach, (off) => {
               type="button"
               class="canva-desk-pay-tertiary w-full"
               :disabled="saving || confirming"
-              @click="confirmDeskPay('unpaid')"
+              @click.stop="backFromPayConfirm"
+            >
+              {{ t('common.back') }}
+            </button>
+            <button
+              type="button"
+              class="canva-gate-btn-secondary w-full"
+              :disabled="saving || confirming"
+              @click.stop="confirmDeskPay('unpaid')"
             >
               {{ (saving || confirming) && deskPayMode === 'unpaid' ? t('common.loading') : ((payAtClubMode || pendingRecurringPay) ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
             </button>

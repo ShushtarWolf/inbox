@@ -1383,6 +1383,10 @@
   .canva-selection-bar {
     @apply fixed inset-x-0 z-[55] border-t border-brand-gray-200 bg-white px-3 py-3 shadow-tail-lg;
     bottom: calc(var(--sz-tab-bar-height) + var(--sz-safe-bottom));
+    /* iOS Safari: stable fixed bar above bottom nav (avoids jump when URL chrome shifts). */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    padding-bottom: max(0.75rem, var(--sz-safe-bottom));
   }
   .canva-selection-bar-inner {
     @apply mx-auto flex w-full max-w-[var(--sz-phone-width)] flex-col gap-3 min-[431px]:max-w-none lg:flex-row lg:items-start lg:justify-between;
@@ -2486,6 +2490,14 @@
   }
   .canva-desk-pay-panel {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+  .canva-desk-pay-footer {
+    @apply shrink-0;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--sz-bg, #f4efe9);
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
   .canva-desk-pay-tertiary {
     @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white px-4 py-3 text-sm font-bold text-brand-navy transition hover:bg-brand-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
