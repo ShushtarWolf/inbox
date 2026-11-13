@@ -27,6 +27,8 @@ async function releaseOneOnlineHold(
   })
   if (!booking) return false
   if (booking.payment && shouldPreserveUnsettledCapture(booking.payment)) return false
+  // Money already taken (wallet checkout / captured IPG) — never release the seat under it.
+  if (booking.payment && (booking.payment.status === 'PAID' || booking.payment.status === 'REFUNDED')) return false
   if (!isReleasableOnlinePaymentHold({
     source: booking.source,
     status: booking.status,

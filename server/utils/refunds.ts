@@ -5,9 +5,12 @@ import { refundAmountFromBps } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
 import {
   buildCancelRefundMetadata,
+  isWalletCheckoutMethod,
+  netWalletRailAmount,
   ordinaryCancelRefundGuard,
   parsePaymentMetadata,
   resolveRefundChannel,
+  resolveRefundCreditUserId,
   type DeskCashReturn,
   type RefundChannel,
 } from '#shared/cancelRefund.ts'
@@ -19,7 +22,11 @@ import { readSplitPayMeta } from '#shared/splitPay.ts'
 import { sepReverseTransaction } from './payments/sepClient'
 import { syncPaymentToParent } from './paymentSync'
 import { prisma } from './prisma'
-import { clawbackOwnerForPayment, clawbackOwnerPartialForPayment } from './settlement'
+import {
+  clawbackOwnerForPayment,
+  clawbackOwnerPartialForPayment,
+  creditOwnerForPaidPayment,
+} from './settlement'
 import { creditWallet } from './wallet'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
@@ -43,6 +50,21 @@ async function persistPaymentMeta(paymentId: string, meta: Record<string, unknow
     where: { id: paymentId },
     data: { metadataJson: JSON.stringify(meta) },
   })
+}
+
+/**
+ * A kept (not refunded) share of online/wallet money must sit on the club or coach books.
+ * Settlement normally runs right after capture, outside the capture transaction; if that step
+ * was skipped (crash, timeout, retry job not yet run) a cancel would otherwise leave the money
+ * with nobody. Idempotent on paymentId; cash and unverified IPG are skipped inside.
+ */
+export async function ensureOwnerSettledBeforeCancel(paymentId: string, db: DbClient = prisma) {
+  const payment = await db.payment.findUnique({
+    where: { id: paymentId },
+    select: { id: true, status: true, method: true },
+  })
+  if (!payment || payment.status !== 'PAID' || payment.method === 'CASH') return null
+  return creditOwnerForPaidPayment(payment.id, undefined, db)
 }
 
 /**
@@ -75,12 +97,15 @@ export async function refundPaymentForCancellation(options: {
     || (options.skipWallet ? 'zero_refund' : 'full_wallet_refund')
 
   if (outcome === 'zero_refund') {
+    // Club keeps 100% — make sure it is actually on the club books.
+    await ensureOwnerSettledBeforeCancel(options.paymentId, options.db || prisma)
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
   const refundBps = outcome === 'partial_wallet_refund'
     ? Math.max(0, Math.min(10_000, Math.floor(Number(options.refundBps) || 0)))
     : 10_000
   if (outcome === 'partial_wallet_refund' && refundBps <= 0) {
+    await ensureOwnerSettledBeforeCancel(options.paymentId, options.db || prisma)
     return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
   }
 
@@ -98,7 +123,7 @@ export async function refundPaymentForCancellation(options: {
   let channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
   const bookingId = options.bookingId || payment.bookingId || undefined
   const existingMeta = parsePaymentMetadata(payment.metadataJson)
-  const guard = ordinaryCancelRefundGuard(existingMeta)
+  const guard = ordinaryCancelRefundGuard(existingMeta, { method: payment.method })
 
   // A bank reverse may already have happened. Do not add a wallet credit on top.
   if (guard.action === 'reverse_pending' && channel !== 'desk_cash') {
@@ -112,9 +137,23 @@ export async function refundPaymentForCancellation(options: {
   const gatewayRefunded = guard.action === 'already_reversed'
   if (gatewayRefunded) channel = 'gateway_reverse'
 
-  // Prefer explicit cancel userId, then payment payer, then booking.userId.
+  // The wallet actually debited for this payment wins, then explicit cancel userId, payment payer,
+  // booking.userId. A desk edit may re-link Booking.userId to another phone — the refund must
+  // still go back to the wallet the money came from.
   // Do not match guestMobile to a user — a shared or wrong number would credit the wrong wallet.
-  let creditUserId = options.userId || payment.userId || payment.booking?.userId || null
+  const debitRow = channel === 'wallet_closed_loop'
+    ? await db.walletTransaction.findFirst({
+        where: { paymentId: payment.id, type: { in: ['PAYMENT_DEBIT', 'IPG_BOOKING_DEBIT'] } },
+        orderBy: { createdAt: 'asc' },
+        select: { wallet: { select: { userId: true } } },
+      })
+    : null
+  let creditUserId = resolveRefundCreditUserId({
+    debitedWalletUserId: debitRow?.wallet?.userId,
+    explicitUserId: options.userId,
+    paymentUserId: payment.userId,
+    bookingUserId: payment.booking?.userId,
+  })
   if (!creditUserId && !gatewayRefunded && bookingId) {
     const booking = await db.booking.findUnique({
       where: { id: bookingId },
@@ -167,6 +206,12 @@ export async function refundPaymentForCancellation(options: {
   // a PARTIALLY_REFUNDED status was skipped by finance/wallet filters and SEP protectors.
 
   const apply = async (tx: DbClient) => {
+    // Settle first (idempotent) so the clawback below — or the club's kept share on a partial
+    // refund — always has a ledger row to act on and shows in owner finance.
+    if (!gatewayRefunded) {
+      await ensureOwnerSettledBeforeCancel(payment.id, tx)
+    }
+
     // Credit before marking REFUNDED — never leave the athlete without credit on a refunded row.
     if (canCreditAthlete && creditUserId && creditAmount > 0) {
       await creditWallet(creditUserId, creditAmount, {
@@ -176,6 +221,30 @@ export async function refundPaymentForCancellation(options: {
         type: 'REFUND_CREDIT',
       }, tx)
       walletCredited = true
+    }
+
+    // Full wallet checkout + full refund must leave the wallet whole. If it would not
+    // (missing payer, wrong wallet), fail the whole cancel rather than strand the money.
+    if (isWalletCheckoutMethod(payment.method) && refundBps >= 10_000 && !gatewayRefunded) {
+      const payerWallet = creditUserId
+        ? await tx.wallet.findUnique({ where: { userId: creditUserId }, select: { id: true } })
+        : null
+      const railRows = payerWallet
+        ? await tx.walletTransaction.findMany({
+            where: { walletId: payerWallet.id, paymentId: payment.id },
+            select: { type: true, amount: true },
+          })
+        : []
+      const anyDebit = await tx.walletTransaction.count({
+        where: { paymentId: payment.id, type: 'PAYMENT_DEBIT' },
+      })
+      if (anyDebit > 0 && netWalletRailAmount(railRows) < 0) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'WALLET_REFUND_INCOMPLETE',
+          data: { paymentId: payment.id },
+        })
+      }
     }
 
     await tx.payment.update({

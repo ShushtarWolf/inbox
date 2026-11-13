@@ -220,6 +220,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const onlinePaidLocked = Boolean(
+      previousPayment
+      && (previousPayment.method === 'IPG' || previousPayment.method === 'PAID')
+      && isPaidPaymentStatus(previousPayment.status),
+    )
     await prisma.$transaction(async (tx) => {
       if (becomingUnpaid && previousPayment) {
         // CASH desk flip only — mark till unmatched; no float to claw unless a ledger row exists.
@@ -250,7 +255,9 @@ export default defineEventHandler(async (event) => {
           paymentStatus,
           status: 'CONFIRMED',
           // Attach to athlete when desk phone matches a registered user; never clear an existing link.
-          ...(linkedUserId ? { userId: linkedUserId } : {}),
+          // Never re-point a booking that was paid online / from a wallet: the refund on cancel
+          // must go back to the account that paid, not to whoever owns the newly typed phone.
+          ...(linkedUserId && (!onlinePaidLocked || !existing.userId) ? { userId: linkedUserId } : {}),
           ...(coachIdProvided ? { coachId: resolvedCoachId ?? null } : {}),
         },
       })

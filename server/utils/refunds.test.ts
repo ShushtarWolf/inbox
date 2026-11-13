@@ -6,9 +6,25 @@ const update = vi.fn()
 const creditWallet = vi.fn()
 const syncPaymentToParent = vi.fn()
 const clawbackOwnerForPayment = vi.fn()
+const creditOwnerForPaidPayment = vi.fn()
+const walletTxFindFirst = vi.fn()
+const walletTxFindMany = vi.fn()
+const walletTxCount = vi.fn()
+const walletFindUnique = vi.fn()
+const walletTransaction = {
+  findFirst: (...args: unknown[]) => walletTxFindFirst(...args),
+  findMany: (...args: unknown[]) => walletTxFindMany(...args),
+  count: (...args: unknown[]) => walletTxCount(...args),
+}
+const wallet = { findUnique: (...args: unknown[]) => walletFindUnique(...args) }
 const tx = {
-  payment: { update: (...args: unknown[]) => update(...args) },
+  payment: {
+    update: (...args: unknown[]) => update(...args),
+    findUnique: (...args: unknown[]) => findUnique(...args),
+  },
   booking: { findUnique: (...args: unknown[]) => bookingFindUnique(...args) },
+  walletTransaction,
+  wallet,
 }
 
 vi.mock('./prisma', () => ({
@@ -20,6 +36,8 @@ vi.mock('./prisma', () => ({
     booking: {
       findUnique: (...args: unknown[]) => bookingFindUnique(...args),
     },
+    get walletTransaction() { return walletTransaction },
+    get wallet() { return wallet },
     $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
   },
 }))
@@ -34,6 +52,7 @@ vi.mock('./paymentSync', () => ({
 
 vi.mock('./settlement', () => ({
   clawbackOwnerForPayment: (...args: unknown[]) => clawbackOwnerForPayment(...args),
+  creditOwnerForPaidPayment: (...args: unknown[]) => creditOwnerForPaidPayment(...args),
 }))
 
 import { refundPaymentForCancellation } from './refunds'
@@ -56,6 +75,11 @@ describe('refundPaymentForCancellation', () => {
     creditWallet.mockResolvedValue({})
     syncPaymentToParent.mockResolvedValue(undefined)
     clawbackOwnerForPayment.mockResolvedValue({ clawed: true })
+    creditOwnerForPaidPayment.mockResolvedValue({ credited: false, reason: 'already_settled' })
+    walletTxFindFirst.mockResolvedValue(null)
+    walletTxFindMany.mockResolvedValue([])
+    walletTxCount.mockResolvedValue(0)
+    walletFindUnique.mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -239,5 +263,106 @@ describe('refundPaymentForCancellation', () => {
     })).rejects.toThrow('clawback down')
     // sync only after successful txn
     expect(syncPaymentToParent).not.toHaveBeenCalled()
+  })
+
+  describe('wallet-paid cancel never strands money', () => {
+    const walletPaid = (metadata: Record<string, unknown> | null) => ({
+      id: 'pay-w',
+      amount: 5000,
+      status: 'PAID',
+      method: 'PAID',
+      provider: 'pay_at_club',
+      providerRef: null,
+      userId: null,
+      bookingId: 'b1',
+      metadataJson: metadata ? JSON.stringify(metadata) : null,
+      booking: { paymentMethod: 'PAID', userId: 'user-1', guestMobile: null },
+    })
+
+    it('stale gateway flags from an earlier IPG attempt do not block the wallet credit', async () => {
+      findUnique.mockResolvedValue(walletPaid({ gatewayReversed: true, gatewayRefund: true }))
+      const result = await refundPaymentForCancellation({
+        paymentId: 'pay-w',
+        userId: 'user-1',
+        reason: 'owner-cancel',
+        bookingId: 'b1',
+        moneyOutcome: 'full_wallet_refund',
+      })
+      expect(creditWallet).toHaveBeenCalledWith('user-1', 5000, expect.objectContaining({ type: 'REFUND_CREDIT' }), tx)
+      expect(result.walletCredited).toBe(true)
+      expect(result.gatewayRefunded).toBe(false)
+      expect(result.refundChannel).toBe('wallet_closed_loop')
+    })
+
+    it('stale reversePending on a wallet row does not refuse the owner cancel', async () => {
+      findUnique.mockResolvedValue(walletPaid({ reversePending: true }))
+      const result = await refundPaymentForCancellation({
+        paymentId: 'pay-w',
+        userId: 'user-1',
+        reason: 'owner-cancel',
+        bookingId: 'b1',
+      })
+      expect(result.walletCredited).toBe(true)
+    })
+
+    it('credits the wallet that was actually debited, not a re-linked booking user', async () => {
+      findUnique.mockResolvedValue(walletPaid(null))
+      walletTxFindFirst.mockResolvedValue({ wallet: { userId: 'payer-7' } })
+      await refundPaymentForCancellation({
+        paymentId: 'pay-w',
+        userId: 'someone-else',
+        reason: 'owner-cancel',
+        bookingId: 'b1',
+      })
+      expect(creditWallet).toHaveBeenCalledWith('payer-7', 5000, expect.anything(), tx)
+    })
+
+    it('settles the club (idempotent) before refunding so finance shows credit + clawback', async () => {
+      findUnique.mockResolvedValue(walletPaid(null))
+      await refundPaymentForCancellation({ paymentId: 'pay-w', userId: 'user-1', reason: 'owner-cancel', bookingId: 'b1' })
+      expect(creditOwnerForPaidPayment).toHaveBeenCalledWith('pay-w', undefined, tx)
+      expect(clawbackOwnerForPayment).toHaveBeenCalledWith('pay-w', tx)
+    })
+
+    it('zero refund still puts the kept money on the club books', async () => {
+      findUnique.mockResolvedValue(walletPaid(null))
+      const result = await refundPaymentForCancellation({
+        paymentId: 'pay-w',
+        userId: 'user-1',
+        reason: 'athlete-cancel',
+        moneyOutcome: 'zero_refund',
+      })
+      expect(result.refunded).toBe(false)
+      expect(creditWallet).not.toHaveBeenCalled()
+      expect(creditOwnerForPaidPayment).toHaveBeenCalledWith('pay-w', undefined, expect.anything())
+    })
+
+    it('fails the whole cancel when a full refund would leave the payer wallet short', async () => {
+      findUnique.mockResolvedValue(walletPaid(null))
+      walletFindUnique.mockResolvedValue({ id: 'w1' })
+      walletTxCount.mockResolvedValue(1)
+      // Debit is on the books but the credit went nowhere visible in this wallet.
+      walletTxFindMany.mockResolvedValue([{ type: 'PAYMENT_DEBIT', amount: -5000 }])
+      await expect(refundPaymentForCancellation({
+        paymentId: 'pay-w',
+        userId: 'user-1',
+        reason: 'owner-cancel',
+        bookingId: 'b1',
+      })).rejects.toMatchObject({ statusMessage: 'WALLET_REFUND_INCOMPLETE' })
+      expect(update).not.toHaveBeenCalled()
+      expect(clawbackOwnerForPayment).not.toHaveBeenCalled()
+    })
+
+    it('passes when debit and refund credit net to zero', async () => {
+      findUnique.mockResolvedValue(walletPaid(null))
+      walletFindUnique.mockResolvedValue({ id: 'w1' })
+      walletTxCount.mockResolvedValue(1)
+      walletTxFindMany.mockResolvedValue([
+        { type: 'PAYMENT_DEBIT', amount: -5000 },
+        { type: 'REFUND_CREDIT', amount: 5000 },
+      ])
+      const result = await refundPaymentForCancellation({ paymentId: 'pay-w', userId: 'user-1', reason: 'owner-cancel', bookingId: 'b1' })
+      expect(result.refunded).toBe(true)
+    })
   })
 })
