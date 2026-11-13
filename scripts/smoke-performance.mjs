@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Performance sanity smoke — response time ceilings on key routes. */
-import { timedFetch } from './lib/smoke-helpers.mjs'
+import { isPilotNoCoachRuntime, timedFetch } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 
@@ -15,9 +15,15 @@ const limits = [
 
 async function main() {
   console.log(`smoke-performance → ${base}`)
+  const pilotNoCoach = await isPilotNoCoachRuntime(base)
 
   for (const check of limits) {
     const { res, ms } = await timedFetch(check.url)
+    if (pilotNoCoach && check.url.endsWith('/api/coaches')) {
+      if (res.status !== 404) throw new Error(`${check.label} expected 404 when pilotNoCoach, got ${res.status}`)
+      console.log(`ok  ${check.label} gated (pilotNoCoach)`)
+      continue
+    }
     if (!res.ok && check.url.includes('/api/')) {
       throw new Error(`${check.label} returned ${res.status}`)
     }

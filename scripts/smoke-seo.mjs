@@ -262,13 +262,10 @@ async function main() {
     console.log(`ok  ${path} FAQPage JSON-LD`)
   }
 
-  // Login page basic a11y — phone OTP inputs
+  // /login SSR is a spinner; the phone form mounts client-side in AuthFlowModal
   const { html: loginHtml } = await fetchPage(base, '/login')
   const lang = extractHtmlLang(loginHtml)
   if (!lang) throw new Error('/login missing html lang attribute')
-  if (!loginHtml.includes('login-phone') && !loginHtml.includes('type="tel"')) {
-    console.warn('warn  /login phone input not detected in SSR HTML')
-  }
   console.log('ok  /login lang attribute')
 
   // Favicon

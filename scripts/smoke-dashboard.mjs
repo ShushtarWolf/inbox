@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Dashboard route smoke — run with server up: BASE_URL=http://localhost:3000 node scripts/smoke-dashboard.mjs */
-import { createCookieJar, isProdSmokeBase, login } from './lib/smoke-helpers.mjs'
+import { createCookieJar, isPilotNoCoachRuntime, isProdSmokeBase, login } from './lib/smoke-helpers.mjs'
 
 const base = process.env.BASE_URL || 'http://localhost:3000'
 const prodAware = isProdSmokeBase(base)
@@ -32,9 +32,11 @@ async function checkHtml(path, session, { allowRedirect, expectRedirect } = {}) 
 
 async function main() {
   console.log(`smoke-dashboard → ${base}${prodAware ? ' (prod-aware)' : ''}`)
+  const pilotNoCoach = await isPilotNoCoachRuntime(base)
+  if (pilotNoCoach) console.log('note  pilotNoCoach=true — coach routes expected to redirect')
 
   await checkHtml('/owner', 'guest', { allowRedirect: true })
-  await checkHtml('/coach', 'guest', { allowRedirect: true })
+  await checkHtml('/coach', 'guest', pilotNoCoach ? { expectRedirect: true } : { allowRedirect: true })
   await checkHtml('/athlete', 'guest', { allowRedirect: true })
 
   if (prodAware) {
@@ -44,19 +46,21 @@ async function main() {
   }
 
   await loginSession('owner', 'owner@inbox.local')
-  await loginSession('coach', 'coach@inbox.local')
+  if (!pilotNoCoach) await loginSession('coach', 'coach@inbox.local')
   await loginSession('athlete', 'athlete@inbox.local')
 
-  const ownerPaths = ['/owner', '/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/discounts', '/owner/packages', '/owner/crm', '/owner/support', '/owner/settings']
+  // /owner is an index redirect to /owner/calendar
+  await checkHtml('/owner', 'owner', { expectRedirect: true })
+  const ownerPaths = ['/owner/calendar', '/owner/finance', '/owner/finance/report', '/owner/equipments', '/owner/discounts', '/owner/packages', '/owner/crm', '/owner/support', '/owner/settings']
   const coachPaths = ['/coach', '/coach/schedule', '/coach/clients', '/coach/profile']
   const athletePaths = ['/athlete', '/athlete/bookings', '/athlete/profile']
 
   for (const path of ownerPaths) await checkHtml(path, 'owner')
-  for (const path of coachPaths) await checkHtml(path, 'coach')
+  if (!pilotNoCoach) for (const path of coachPaths) await checkHtml(path, 'coach')
   for (const path of athletePaths) await checkHtml(path, 'athlete')
 
   await checkHtml('/en/owner', 'owner', { expectRedirect: true })
-  await checkHtml('/en/coach', 'coach', { expectRedirect: true })
+  if (!pilotNoCoach) await checkHtml('/en/coach', 'coach', { expectRedirect: true })
   await checkHtml('/en/athlete/bookings', 'athlete', { expectRedirect: true })
 
   console.log('dashboard smoke ok')
