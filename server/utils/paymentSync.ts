@@ -237,6 +237,37 @@ export async function syncCompetitionEntryOnPayment(paymentId: string) {
 
 async function notifyPaidIfNeeded(paymentId: string, previousStatus: string) {
   if (previousStatus === 'PAID') return
+  try {
+    await notifyPaidUnsafe(paymentId)
+  } catch (err) {
+    // SMS/in-app must never fail a payment that is already committed.
+    console.error('[paymentSync:notifyPaid]', paymentId, err)
+  }
+}
+
+/**
+ * Post-commit bookkeeping for a payment that just became PAID, then the paid SMS.
+ * The SMS is attempted even when a bookkeeping step throws (money jobs retry settlement;
+ * the athlete was charged and the seat is theirs). The bookkeeping error is rethrown after.
+ */
+export async function runPaidBookkeepingThenNotify(
+  paymentId: string,
+  previousStatus: string,
+  bookkeeping: () => Promise<void>,
+  opts: { notify?: boolean } = {},
+) {
+  let failure: unknown
+  try {
+    await bookkeeping()
+  } catch (err) {
+    failure = err
+    console.error('[paymentSync:paidBookkeeping]', paymentId, err)
+  }
+  if (opts.notify !== false) await notifyPaidIfNeeded(paymentId, previousStatus)
+  if (failure) throw failure
+}
+
+async function notifyPaidUnsafe(paymentId: string) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -497,18 +528,22 @@ export async function confirmPaymentAndSync(
 
   const service = getPaymentService(providerName)
   const intent = await service.confirm(providerRef, opts)
-  await syncPaymentToParent(intent.id)
+  if (intent.status !== 'PAID') {
+    await syncPaymentToParent(intent.id)
+  }
   if (intent.status === 'PAID') {
-    const { enqueueMoneyJobsForPaidPayment } = await import('./moneyJobs')
-    await enqueueMoneyJobsForPaidPayment(intent.id)
-    const { promoteSplitPayAmountOnPaid } = await import('./splitPayWallet')
-    await promoteSplitPayAmountOnPaid(intent.id)
-    await creditWalletForTopUpPayment(intent.id, previousStatus)
-    await creditOwnerForPaidPayment(intent.id, previousStatus)
-    const { markMoneyJobsDoneForPaidPayment } = await import('./moneyJobs')
-    await markMoneyJobsDoneForPaidPayment(intent.id)
-    await syncCompetitionEntryOnPayment(intent.id)
-    await notifyPaidIfNeeded(intent.id, previousStatus)
+    await runPaidBookkeepingThenNotify(intent.id, previousStatus, async () => {
+      await syncPaymentToParent(intent.id)
+      const { enqueueMoneyJobsForPaidPayment } = await import('./moneyJobs')
+      await enqueueMoneyJobsForPaidPayment(intent.id)
+      const { promoteSplitPayAmountOnPaid } = await import('./splitPayWallet')
+      await promoteSplitPayAmountOnPaid(intent.id)
+      await creditWalletForTopUpPayment(intent.id, previousStatus)
+      await creditOwnerForPaidPayment(intent.id, previousStatus)
+      const { markMoneyJobsDoneForPaidPayment } = await import('./moneyJobs')
+      await markMoneyJobsDoneForPaidPayment(intent.id)
+      await syncCompetitionEntryOnPayment(intent.id)
+    })
     if (before?.purpose === 'topup' && previousStatus !== 'PAID') {
       try {
         const user = before.userId
