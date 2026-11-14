@@ -1,5 +1,6 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { notifyUserDisplayName } from '#shared/userName.ts'
+import { isCashPaidBooking } from '#shared/cancelNotice.ts'
 import {
   notifyBookingCancelled,
   notifyOwnerBookingCancelled,
@@ -86,6 +87,11 @@ export default defineEventHandler(async (event) => {
         guestName,
         courtName: courtNotifyName(anchor.slot.court),
         skipGuest: skipGuestBookingSms(anchor),
+        cashPaid: isCashPaidBooking({
+          paymentMethod: booking.payment?.method,
+          bookingPaymentMethod: booking.paymentMethod,
+          paymentStatus: booking.payment?.status || booking.paymentStatus,
+        }),
       })
       return {
         ok: true,
@@ -140,6 +146,11 @@ export default defineEventHandler(async (event) => {
       guestName,
       courtName: courtNotifyName(slot.court),
       skipGuest: skipGuestBookingSms(booking),
+      cashPaid: isCashPaidBooking({
+        paymentMethod: booking.payment?.method,
+        bookingPaymentMethod: booking.paymentMethod,
+        paymentStatus: booking.payment?.status || booking.paymentStatus,
+      }),
     })
   }
   else {

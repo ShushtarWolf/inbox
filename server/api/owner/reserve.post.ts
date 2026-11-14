@@ -33,6 +33,7 @@ import { syncClubContactForBooking } from '../../utils/contactSync'
 import { deleteStaleCancelledBooking } from '../../utils/staleBooking'
 import { parsePaymentMetadata } from '#shared/cancelRefund.ts'
 import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
+import { carriedDeskDiscount, requestHasNoDiscount } from '#shared/deskDiscountCarry.ts'
 
 /** Prefer normalized 09… for SMS; fall back to trimmed raw for storage. */
 function resolveGuestMobile(raw?: string | null) {
@@ -162,7 +163,33 @@ export default defineEventHandler(async (event) => {
   })
   const subtotalAmount = totalAmount
   let discountMeta: Record<string, unknown> | null = null
-  if (complimentary) {
+  // Re-save of an existing booking (mark paid/unpaid, equipment, edit) sends no discount:
+  // keep the one already on the payment instead of resetting to the full list price.
+  const carried = existing && requestHasNoDiscount(body)
+    ? carriedDeskDiscount(existing.payment?.metadataJson)
+    : null
+  if (carried?.kind === 'complimentary') {
+    const charge = resolveDeskCharge({ subtotal: totalAmount, complimentary: true })
+    totalAmount = charge.amount
+    discountMeta = { complimentary: true, discountAmount: charge.discountAmount }
+  } else if (carried?.kind === 'code') {
+    const charge = resolveDeskCharge({ subtotal: totalAmount, percent: carried.percent })
+    totalAmount = charge.amount
+    discountMeta = {
+      discountCode: carried.code,
+      discountPercent: carried.percent,
+      discountAmount: charge.discountAmount,
+      subtotalBeforeDiscount: subtotalAmount,
+    }
+  } else if (carried?.kind === 'percent') {
+    const charge = resolveDeskCharge({ subtotal: totalAmount, percent: carried.percent })
+    totalAmount = charge.amount
+    discountMeta = {
+      deskDiscountPercent: carried.percent,
+      discountAmount: charge.discountAmount,
+      subtotalBeforeDiscount: subtotalAmount,
+    }
+  } else if (complimentary) {
     const charge = resolveDeskCharge({ subtotal: totalAmount, complimentary: true })
     totalAmount = charge.amount
     discountMeta = { complimentary: true, discountAmount: charge.discountAmount }
@@ -262,6 +289,14 @@ export default defineEventHandler(async (event) => {
         },
       })
       await syncBookingEquipments(tx, existing.id, equipmentItems)
+      // Merge discount fields into the row's current metadata (refund / mark-unpaid flags survive).
+      const currentPayment = await tx.payment.findUnique({
+        where: { bookingId: existing.id },
+        select: { metadataJson: true },
+      })
+      const mergedMetadataJson = discountMeta
+        ? JSON.stringify({ ...parsePaymentMetadata(currentPayment?.metadataJson), ...discountMeta })
+        : undefined
       await tx.payment.upsert({
         where: { bookingId: existing.id },
         update: {
@@ -269,7 +304,7 @@ export default defineEventHandler(async (event) => {
           method: paymentMethod,
           status: paymentStatus,
           ...(provider ? { provider } : {}),
-          ...(paymentMetadataJson ? { metadataJson: paymentMetadataJson } : {}),
+          ...(mergedMetadataJson ? { metadataJson: mergedMetadataJson } : {}),
         },
         create: {
           bookingId: existing.id,
