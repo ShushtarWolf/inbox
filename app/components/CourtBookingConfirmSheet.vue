@@ -530,11 +530,22 @@ watch([equipmentQuantities, () => props.slots], () => {
 
 const payBusy = computed(() => confirming.value || paying.value)
 
+const needsGatewayPay = computed(() =>
+  totalAmount.value > 0
+  && onlineEnabled.value
+  && lastPaymentStatus.value !== 'PAID',
+)
+
 const payCtaLabel = computed(() => {
-  if (paying.value) return t('booking.redirectingToGateway')
+  if (paying.value) {
+    return needsGatewayPay.value ? t('booking.redirectingToGateway') : t('common.loading')
+  }
   if (confirming.value) return t('common.loading')
   if (!user.value) return t('booking.loginToContinue')
-  if (feedbackTone.value === 'error' && createdBookingId.value) return t('booking.payRetry')
+  if (feedbackTone.value === 'error' && createdBookingId.value) {
+    return needsGatewayPay.value ? t('booking.payRetry') : t('booking.confirmFreeCheckout')
+  }
+  if (totalAmount.value === 0) return t('booking.confirmFreeCheckout')
   return t('booking.pay')
 })
 
@@ -966,7 +977,7 @@ async function submit(preferWallet = false) {
             {{ t('booking.acceptTerms') }}
             <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">{{ t('legal.terms') }}</NuxtLink>
           </p>
-          <p class="text-center text-[11px] text-brand-gray-600">{{ t('booking.onlinePayHint') }}</p>
+          <p v-if="totalAmount > 0" class="text-center text-[11px] text-brand-gray-600">{{ t('booking.onlinePayHint') }}</p>
         </template>
       </div>
 

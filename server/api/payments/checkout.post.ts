@@ -27,6 +27,7 @@ import { enqueueMoneyJobsForPaidPayment } from '../../utils/moneyJobs'
 import { linkPaymentSupersededBy, supersedePayablePaymentForRetry, type SupersedeResult } from '../../utils/paymentSupersede'
 import { releaseSplitWalletDebit } from '../../utils/splitPayWallet'
 import { creditOwnerForPaidPayment } from '../../utils/settlement'
+import { confirmZeroAmountCheckout } from '../../utils/zeroAmountCheckout'
 import { debitWallet, getWalletBalance } from '../../utils/wallet'
 
 async function supersedeForCheckout(
@@ -161,8 +162,31 @@ export default defineEventHandler(async (event) => {
   // slot-only price — court booking already wrote the sheet total on Payment.amount.
   // Use financeIncomeAmount (not `||`) so sibling/comp amount 0 is not replaced by list price.
   const payableAmount = financeIncomeAmount(existingPayment, amount)
-  if (payableAmount <= 0) {
+  if (payableAmount < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
+  }
+  if (payableAmount === 0) {
+    if (!existingPayment?.id) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
+    }
+    const previousStatus = existingPayment.status
+    const zero = await confirmZeroAmountCheckout({
+      paymentId: existingPayment.id,
+      bookingId: body.bookingId,
+      existingMetadataJson: existingPayment.metadataJson,
+      previousStatus,
+    })
+    return {
+      paymentId: zero.payment.id,
+      mode: getPaymentsMode(),
+      intent: {
+        id: zero.payment.id,
+        amount: zero.payment.amount,
+        currency: PAYMENT_CURRENCY,
+        status: 'PAID',
+        provider: zero.payment.provider as PaymentProvider,
+      },
+    }
   }
 
   if (useWalletMode === 'full' && payableAmount > 0) {

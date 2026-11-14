@@ -21,6 +21,7 @@ export function hasVerifiedIpgCapture(payment: {
   if (!payment) return false
   if (hasGatewayRef(payment)) return true
   const meta = parsePaymentMetadata(payment.metadataJson)
+  if (meta.zeroAmountCheckout === true) return true
   if (meta.gatewayCaptured === true) return true
   if (meta.simulated === true && typeof meta.confirmedAt === 'string' && meta.confirmedAt.trim()) {
     return true
