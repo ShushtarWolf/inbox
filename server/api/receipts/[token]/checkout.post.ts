@@ -5,6 +5,7 @@ import { getPaymentsMode, PAYMENT_CURRENCY, type PaymentProvider } from '#shared
 import { getPaymentService } from '../../../utils/payments/service'
 import { linkPaymentSupersededBy, supersedePayablePaymentForRetry } from '../../../utils/paymentSupersede'
 import { receiptSigningSecret } from '../../../utils/receipt'
+import { confirmZeroAmountCheckout } from '../../../utils/zeroAmountCheckout'
 
 function parseMeta(raw: string | null | undefined) {
   if (!raw) return {} as Record<string, unknown>
@@ -54,8 +55,31 @@ export default defineEventHandler(async (event) => {
 
   // Nullish only — sibling/comp amount 0 must stay 0 (never coerce via `||`).
   const payableAmount = existingPayment?.amount ?? 0
-  if (payableAmount <= 0) {
+  if (payableAmount < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
+  }
+  if (payableAmount === 0) {
+    if (!existingPayment?.id) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid amount' })
+    }
+    const previousStatus = existingPayment.status
+    const zero = await confirmZeroAmountCheckout({
+      paymentId: existingPayment.id,
+      bookingId,
+      existingMetadataJson: existingPayment.metadataJson,
+      previousStatus,
+    })
+    return {
+      paymentId: zero.payment.id,
+      mode: getPaymentsMode(),
+      intent: {
+        id: zero.payment.id,
+        amount: zero.payment.amount,
+        currency: PAYMENT_CURRENCY,
+        status: 'PAID',
+        provider: zero.payment.provider as PaymentProvider,
+      },
+    }
   }
 
   // Keep series / multi-slot sibling links when replacing the payable row for IPG.

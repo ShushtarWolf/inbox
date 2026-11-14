@@ -258,9 +258,10 @@ export function useCourtBooking() {
       && canCoverWithWallet(walletBalance.value, amount, result.paymentStatus),
     )
     const goGateway = !useWallet && onlineEnabled.value && canPayOnline(result.paymentStatus)
+    const confirmFree = !useWallet && amount === 0 && canPayOnline(result.paymentStatus)
     // Payment required → go straight to the gateway; don't flip to the done
     // («مشاهده رزروها») state first. On stall the Pay CTA re-checkouts the same booking.
-    if (!goGateway) done.value = true
+    if (!goGateway && !confirmFree) done.value = true
 
     if (useWallet) {
       paying.value = true
@@ -278,14 +279,23 @@ export function useCourtBooking() {
         paying.value = false
       }
     }
-    else if (goGateway) {
+    else if (goGateway || confirmFree) {
       paying.value = true
       try {
-        await startCheckout({ bookingId: result.id })
+        const checkout = await startCheckout({ bookingId: result.id })
+        if (checkout.intent.status === 'PAID') {
+          lastPaymentStatus.value = 'PAID'
+          done.value = true
+          feedbackTone.value = 'success'
+          feedback.value = opts.successMessage
+        }
       }
       catch (checkoutError: unknown) {
         feedbackTone.value = 'error'
-        feedback.value = fetchErrorMessage(checkoutError, t('booking.gatewayRedirectStalled'))
+        feedback.value = fetchErrorMessage(
+          checkoutError,
+          confirmFree ? t('booking.actionFailed') : t('booking.gatewayRedirectStalled'),
+        )
       }
       finally {
         paying.value = false
@@ -298,14 +308,23 @@ export function useCourtBooking() {
   async function payBooking(bookingId?: string | null) {
     const id = bookingId || createdBookingId.value
     if (!id || paying.value) return
+    const freeCheckout = Number(bookedTotal.value ?? 0) === 0
     paying.value = true
     feedback.value = ''
     try {
-      await startCheckout({ bookingId: id })
+      const checkout = await startCheckout({ bookingId: id })
+      if (checkout.intent.status === 'PAID') {
+        lastPaymentStatus.value = 'PAID'
+        done.value = true
+        feedbackTone.value = 'success'
+      }
     }
     catch (error: unknown) {
       feedbackTone.value = 'error'
-      feedback.value = fetchErrorMessage(error, t('booking.gatewayRedirectStalled'))
+      feedback.value = fetchErrorMessage(
+        error,
+        freeCheckout ? t('booking.actionFailed') : t('booking.gatewayRedirectStalled'),
+      )
     }
     finally {
       paying.value = false
@@ -335,6 +354,7 @@ export function useCourtBooking() {
     if (confirming.value) return t('common.loading')
     if (!user.value) return t('booking.loginToContinue')
     if (!onlineEnabled.value) return t('booking.onlinePaymentsRequired')
+    if (bookedTotal.value === 0) return t('booking.confirmFreeCheckout')
     return t('booking.pay')
   })
 

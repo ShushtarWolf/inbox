@@ -37,6 +37,16 @@ describe('hasVerifiedIpgCapture', () => {
       metadataJson: JSON.stringify({ gatewayCaptured: true }),
     })).toBe(true)
   })
+
+  it('accepts server-confirmed zero-amount checkout', () => {
+    expect(hasVerifiedIpgCapture({
+      metadataJson: JSON.stringify({ zeroAmountCheckout: true }),
+    })).toBe(true)
+    expect(canSettleOwnerForPaidPayment({
+      method: 'IPG',
+      metadataJson: JSON.stringify({ zeroAmountCheckout: true }),
+    })).toBe(true)
+  })
 })
 
 describe('canSettleOwnerForPaidPayment', () => {
