@@ -38,13 +38,58 @@ describe('bindSepVerify', () => {
     })).toEqual({ action: 'reject_foreign' })
   })
 
-  it('rejects a success body that omits ResNum unless this payment already owns the RefNum', () => {
+  it('pays a real SEP verify body (no ResNum echo) when terminal and rial amount match', () => {
+    // Saman TransactionDetail has no ResNum; this is what production receives.
+    expect(bindSepVerify({
+      ...base,
+      resultCode: 0,
+      resNum: undefined,
+      amountRials: 1_000_000,
+      terminalNumber: 12345678,
+      expectedTerminal: 12345678,
+    })).toEqual({ action: 'paid' })
     expect(bindSepVerify({
       ...base,
       resultCode: 2,
       resNum: '',
       amountRials: 1_000_000,
+    })).toEqual({ action: 'paid' })
+  })
+
+  it('rejects a no-ResNum body from another terminal', () => {
+    expect(bindSepVerify({
+      ...base,
+      resultCode: 0,
+      resNum: undefined,
+      amountRials: 1_000_000,
+      terminalNumber: 999,
+      expectedTerminal: 12345678,
     })).toEqual({ action: 'reject_foreign' })
+  })
+
+  it('never reverses a no-ResNum body with the wrong amount unless the RefNum is already ours', () => {
+    expect(bindSepVerify({
+      ...base,
+      resultCode: 0,
+      resNum: undefined,
+      amountRials: 50_000,
+    })).toEqual({ action: 'reject_foreign' })
+    expect(bindSepVerify({
+      ...base,
+      resultCode: 0,
+      resNum: undefined,
+      amountRials: 50_000,
+      storedGatewayRef: 'bank-ref-1',
+    })).toEqual({ action: 'reverse_ours' })
+  })
+
+  it('a no-ResNum body without amount pays only when this row already owns the RefNum', () => {
+    expect(bindSepVerify({
+      ...base,
+      resultCode: 2,
+      resNum: null,
+      amountRials: null,
+    })).toEqual({ action: 'retry_incomplete' })
 
     expect(bindSepVerify({
       ...base,

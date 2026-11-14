@@ -1,9 +1,16 @@
 /**
  * Pure SEP verify binding. IO (verify call, reverse, status writes) stays in sepConfirm.
  *
- * A success code is not enough: the bank ResNum must be this payment's providerRef,
- * the rial amount must match, and a RefNum already stored on this row is the only
- * case where a thin duplicate-verify body (code 2, amount omitted) may complete.
+ * A success code is not enough: the rial amount must match, and when SEP echoes a
+ * ResNum it must be this payment's providerRef.
+ *
+ * Real SEP VerifyTransaction bodies do NOT carry ResNum: TransactionDetail is
+ * { RRN, RefNum, MaskedPan, HashedPan, TerminalNumber, OrginalAmount, AffectiveAmount,
+ *   StraceDate, StraceNo }. The RefNum arrives on the callback together with our ResNum,
+ * so a body without ResNum is bound by: same terminal + exact rial amount. The unique
+ * Payment.gatewayRef index stops one RefNum from ever paying two rows.
+ * A RefNum already stored on this row is the only case where a thin duplicate-verify
+ * body (code 2, amount omitted) may complete.
  */
 
 export type SepVerifyBindInput = {
@@ -20,6 +27,10 @@ export type SepVerifyBindInput = {
   storedGatewayRef?: string | null
   /** Rials previously accepted for storedGatewayRef. */
   storedVerifiedRials?: number | null
+  /** TerminalNumber echoed in TransactionDetail, when present. */
+  terminalNumber?: number | null
+  /** Our SEP terminal (SEP_TERMINAL_ID). */
+  expectedTerminal?: number | null
 }
 
 export type SepVerifyBindResult =
@@ -47,8 +58,9 @@ export function bindSepVerify(input: SepVerifyBindInput): SepVerifyBindResult {
   const resNumMatches = Boolean(resNum) && resNum === expectedRes
 
   if (resNum && !resNumMatches) return { action: 'reject_foreign' }
-  // Code 2 (already verified) without ResNum is only ours if we already stored this RefNum.
-  if (!resNum && !ownsRef) return { action: 'reject_foreign' }
+  const terminalKnown = input.terminalNumber != null && Number.isFinite(input.terminalNumber)
+    && input.expectedTerminal != null && Number.isFinite(input.expectedTerminal)
+  if (terminalKnown && input.terminalNumber !== input.expectedTerminal) return { action: 'reject_foreign' }
 
   const amount = input.amountRials
   const amountKnown = amount != null && Number.isFinite(amount)
@@ -68,6 +80,7 @@ export function bindSepVerify(input: SepVerifyBindInput): SepVerifyBindResult {
     && amount === input.expectedToman
     && amount !== input.expectedRials
   if (amount !== input.expectedRials || unitSmell) {
+    // Without a ResNum echo we cannot prove a wrong-amount capture is ours: never reverse it.
     if (resNumMatches || ownsRef) return { action: 'reverse_ours' }
     return { action: 'reject_foreign' }
   }

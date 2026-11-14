@@ -36,6 +36,8 @@ export interface SepVerifyResult {
   resNum?: string
   maskedPan?: string
   traceNo?: string
+  /** TerminalNumber from TransactionDetail. */
+  terminalNumber?: number
 }
 
 export interface SepReverseInput {
@@ -182,7 +184,11 @@ export async function sepVerifyTransaction(
       : detail.OrginalAmount != null
         ? Number(detail.OrginalAmount)
         : undefined,
+    // Real SEP verify bodies omit ResNum; kept for gateways/versions that echo it.
     resNum: detail.ResNum != null ? String(detail.ResNum) : undefined,
+    terminalNumber: detail.TerminalNumber != null && Number.isFinite(Number(detail.TerminalNumber))
+      ? Number(detail.TerminalNumber)
+      : undefined,
     maskedPan: detail.MaskedPan != null ? String(detail.MaskedPan) : undefined,
     traceNo: detail.StraceNo != null
       ? String(detail.StraceNo)

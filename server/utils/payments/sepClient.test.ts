@@ -79,6 +79,32 @@ describe('sepClient', () => {
     expect(result.amount).toBe(50_000)
   })
 
+  it('verifyTransaction parses the real Saman body (no ResNum, OrginalAmount, TerminalNumber)', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      TransactionDetail: {
+        RRN: '14226761817',
+        RefNum: 'ref-1',
+        MaskedPan: '621986****8080',
+        HashedPan: 'x',
+        TerminalNumber: 12345678,
+        OrginalAmount: 25_000,
+        AffectiveAmount: 25_000,
+        StraceDate: '2026-11-14 13:58:00',
+        StraceNo: '100428',
+      },
+      ResultCode: 0,
+      ResultDescription: 'عملیات با موفقیت انجام شد',
+      Success: true,
+    }), { status: 200 })) as unknown as typeof fetch
+
+    const result = await sepVerifyTransaction({ terminalId: '12345678', refNum: 'ref-1' }, fetchImpl)
+    expect(result.resultCode).toBe(0)
+    expect(result.amount).toBe(25_000)
+    expect(result.resNum).toBeUndefined()
+    expect(result.terminalNumber).toBe(12345678)
+    expect(result.traceNo).toBe('100428')
+  })
+
   it('reverseTransaction requires success', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
       ResultCode: -1,
