@@ -153,6 +153,36 @@ describe('confirmSepPayment', () => {
     expect(isDefinitivePaymentFailure(await capture(() => confirmSepPayment('INBorder', { refNum: 'stolen-ref' })))).toBe(false)
   })
 
+  it('pays the real Saman verify body, which has no ResNum (2,500 toman order)', async () => {
+    h.row.amount = 2_500
+    verify.mockResolvedValue({
+      resultCode: 0,
+      amount: 25_000,
+      resNum: undefined,
+      terminalNumber: 12345678,
+      maskedPan: '6037****',
+      traceNo: 't1',
+    })
+    const intent = await confirmSepPayment('INBorder', { refNum: 'bank-ref-1' })
+    expect(intent.status).toBe('PAID')
+    expect(h.row.gatewayRef).toBe('bank-ref-1')
+    expect(reverse).not.toHaveBeenCalled()
+  })
+
+  it('recovers a capture already verified by an earlier failed callback (code 2, no ResNum)', async () => {
+    verify.mockResolvedValue({ resultCode: 2, amount: 1_000_000, resNum: undefined })
+    const intent = await confirmSepPayment('INBorder', { refNum: 'bank-ref-1' })
+    expect(intent.status).toBe('PAID')
+    expect(h.row.gatewayRef).toBe('bank-ref-1')
+  })
+
+  it('keeps the rejected RefNum on the row for tracing when verify does not match', async () => {
+    okVerify({ resultCode: 0, resNum: 'INBother', amount: 1_000_000 })
+    await capture(() => confirmSepPayment('INBorder', { refNum: 'other-ref' }))
+    expect(h.row.status).toBe('PENDING_ONLINE')
+    expect(JSON.parse(h.row.metadataJson).verifyRejected).toMatchObject({ refNum: 'other-ref', code: 0 })
+  })
+
   it('leaves the row payable when the amount is missing', async () => {
     okVerify({ amount: undefined, resNum: 'INBorder' })
     const err = await capture(() => confirmSepPayment('INBorder', { refNum: 'bank-ref-1' }))

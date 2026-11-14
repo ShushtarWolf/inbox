@@ -108,7 +108,14 @@ export async function confirmSepPayment(providerRef: string, opts?: PaymentConfi
     refNum,
     storedGatewayRef: payment.gatewayRef,
     storedVerifiedRials: storedRials(meta),
+    terminalNumber: verified.terminalNumber ?? null,
+    expectedTerminal: Number.isFinite(Number(tid)) ? Number(tid) : null,
   })
+  // One grep-able line per verify (no card data): providerRef, RefNum, code, decision.
+  console.info('[sep:verify]', payment.providerRef || providerRef, `refNum=${refNum}`,
+    `code=${verified.resultCode}`, `amountRials=${verified.amount ?? 'none'}`,
+    `expectedRials=${expectedRials}`, `resNum=${verified.resNum ? 'echoed' : 'absent'}`,
+    `decision=${decision.action}`)
 
   if (decision.action === 'declined') {
     await markDefinitiveDecline(payment, meta, refNum, verified.resultCode, verified.resultDescription)
@@ -116,6 +123,23 @@ export async function confirmSepPayment(providerRef: string, opts?: PaymentConfi
   }
 
   if (decision.action === 'reject_foreign') {
+    // Keep the bank RefNum on the row so a stranded capture can be traced and re-verified.
+    await prisma.payment.updateMany({
+      where: { id: payment.id, status: { in: [...PAYABLE] }, gatewayRef: null },
+      data: {
+        metadataJson: JSON.stringify({
+          ...meta,
+          verifyRejected: {
+            refNum,
+            code: verified.resultCode,
+            amountRials: verified.amount ?? null,
+            resNum: verified.resNum ?? null,
+            terminalNumber: verified.terminalNumber ?? null,
+            at: new Date().toISOString(),
+          },
+        }),
+      },
+    })
     fail(false, 'SEP_VERIFY_FOREIGN_REF', 409, 'SEP verify does not match this payment')
   }
 
@@ -145,6 +169,7 @@ export async function confirmSepPayment(providerRef: string, opts?: PaymentConfi
     confirmedAt: new Date().toISOString(),
   }
   delete paidMeta.verifyPendingRefNum
+  delete paidMeta.verifyRejected
   return finishPaid(payment, paidMeta, refNum)
 }
 
