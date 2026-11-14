@@ -61,6 +61,8 @@ type BookingNotifyOpts = {
   amountPaid?: number | null
   /** Skip athlete/guest channels but still alert platform admin. */
   skipGuest?: boolean
+  /** Cancel of a cash-at-club booking: SMS says «settle with the club», never a wallet refund. */
+  cashPaid?: boolean
 }
 
 export type OwnerBookingSessionLine = BookingNotifySessionLine
@@ -367,6 +369,7 @@ function bookingNotifyData(opts: BookingNotifyOpts) {
     address: opts.address || '',
     mapsUrl: opts.mapsUrl || '',
     guestName: opts.guestName || '',
+    cashPaid: opts.cashPaid === true,
     trackingCode,
     receiptUrl,
     payPin,

@@ -509,4 +509,19 @@ describe('SMS templates', () => {
       ].join('\n'),
     )
   })
+
+  it('BOOKING_CANCELLED for a cash booking says settle with the club, never wallet', () => {
+    const body = renderSmsTemplate('BOOKING_CANCELLED', {
+      guestName: 'بهناز',
+      courtName: 'زمین ۳',
+      date: '2026-11-14',
+      startTime: '18:00',
+      endTime: '19:00',
+      trackingCode: '1057128',
+      cashPaid: true,
+    })
+    expect(body).toContain('پرداخت نقدی بوده؛ حساب‌وکتاب با خود باشگاه')
+    expect(body).not.toContain('کیف پول')
+    expect(renderSmsTemplate('BOOKING_CANCELLED', { guestName: 'بهناز', cashPaid: false })).not.toContain('نقدی')
+  })
 })

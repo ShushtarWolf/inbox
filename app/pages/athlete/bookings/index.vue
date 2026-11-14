@@ -4,7 +4,7 @@ import { athleteListPrice, parseSeriesPaymentMeta } from '#shared/athleteSeason.
 import { filterBookingsByTime } from '#shared/bookingTimeFilter.ts'
 import { PERSIAN_MONTHS, isoToJalaali, jalaaliDaysInMonth, jalaaliToIso } from '#shared/jalali.ts'
 import { canCancelReservation } from '#shared/cancelPolicy.ts'
-import { athleteCancelErrorNoticeKey, athleteCancelNoticeKey } from '#shared/cancelNotice.ts'
+import { athleteCancelConfirmKey, athleteCancelErrorNoticeKey, athleteCancelNoticeKey, isCashPaidBooking } from '#shared/cancelNotice.ts'
 import { canManageReservation } from '#shared/localDate.ts'
 import { isHoldExpiredPaymentFailure, readPaymentFailReason } from '#shared/onlinePaymentHold.ts'
 
@@ -14,8 +14,9 @@ interface CourtBooking {
   id: string
   status: string
   cancellationReason?: string | null
-  payment?: { status?: string; amount?: number; metadataJson?: string | null } | null
+  payment?: { status?: string; amount?: number; method?: string | null; metadataJson?: string | null } | null
   paymentStatus?: string | null
+  paymentMethod?: string | null
   seasonBookingId?: string | null
   seasonSessionCount?: number | null
   bookingEquipments?: Array<{
@@ -79,6 +80,10 @@ type HistoryItem = {
   timeLabel: string
   price: number
   paymentStatus?: string | null
+  /** Cash at the club (active, or cancelled with a desk-cash return) — never a wallet refund. */
+  cashAtClub?: boolean
+  paymentMethod?: string | null
+  bookingPaymentMethod?: string | null
   holdExpired?: boolean
   slug?: string
   coachId?: string
@@ -464,6 +469,17 @@ const historyItems = computed((): HistoryItem[] => {
         slotPrice: b.slot.price || 0,
       }),
       paymentStatus: payStatus,
+      paymentMethod: b.payment?.method ?? null,
+      bookingPaymentMethod: b.paymentMethod ?? null,
+      cashAtClub: isCashPaidBooking({
+        paymentMethod: b.payment?.method,
+        bookingPaymentMethod: b.paymentMethod,
+        paymentStatus: payStatus,
+      }) || (
+        (b.payment?.method === 'CASH' || (!b.payment?.method && b.paymentMethod === 'CASH'))
+        && payStatus === 'REFUNDED'
+        && readRefundChannel(b.payment?.metadataJson) === 'desk_cash'
+      ),
       holdExpired: isHoldExpiredPaymentFailure({
         status: payStatus,
         failReason: readPaymentFailReason(b.payment?.metadataJson),
@@ -748,6 +764,34 @@ function cancelRefundBps(item: HistoryItem): number {
     return 10_000
   }
   return 10_000
+}
+
+function readRefundChannel(raw?: string | null): string {
+  if (!raw) return ''
+  try {
+    const meta = JSON.parse(raw) as { refundChannel?: unknown }
+    return typeof meta.refundChannel === 'string' ? meta.refundChannel : ''
+  }
+  catch {
+    return ''
+  }
+}
+
+function cancelConfirmText(item: HistoryItem) {
+  const key = athleteCancelConfirmKey({
+    paymentMethod: item.paymentMethod,
+    bookingPaymentMethod: item.bookingPaymentMethod,
+    paymentStatus: item.paymentStatus,
+    refundBps: cancelRefundBps(item),
+  })
+  return key === 'booking.confirmCancelPartialRefund'
+    ? t(key, { pct: formatNumber(Math.round(cancelRefundBps(item) / 100)) })
+    : t(key)
+}
+
+/** Window warnings talk about wallet money — only for online/wallet-paid bookings. */
+function walletRefundApplies(item: HistoryItem) {
+  return !item.cashAtClub && isPaid(item.paymentStatus)
 }
 
 function cancelIsZeroRefund(item: HistoryItem) {
@@ -1079,29 +1123,30 @@ function dateLine(item: HistoryItem) {
         </p>
 
         <p
-          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsZeroRefund(detailItem)"
+          v-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && walletRefundApplies(detailItem) && cancelIsZeroRefund(detailItem)"
           class="canva-history-sh-note canva-history-sh-note-warn"
         >
           {{ t('booking.refundNoneInsideWindow') }}
         </p>
         <p
-          v-else-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && cancelIsPartialRefund(detailItem)"
+          v-else-if="detailItem.status !== 'CANCELLED' && historyStatus(detailItem) === 'pending' && canCancel(detailItem) && walletRefundApplies(detailItem) && cancelIsPartialRefund(detailItem)"
           class="canva-history-sh-note canva-history-sh-note-warn"
         >
           {{ t('booking.refundPartialInsideWindow', { pct: formatNumber(Math.round(cancelRefundBps(detailItem) / 100)) }) }}
+        </p>
+
+        <p
+          v-if="detailItem.cashAtClub"
+          class="canva-history-sh-note canva-history-sh-note-warn"
+        >
+          {{ t('booking.cashSettleWithClub') }}
         </p>
 
         <p v-if="actionError" class="canva-flash-error text-start text-xs">{{ actionError }}</p>
 
         <template v-if="confirmingCancel">
           <p class="canva-history-sh-note canva-history-sh-note-warn">
-            {{
-              cancelIsZeroRefund(detailItem)
-                ? t('booking.confirmCancelNoRefund')
-                : cancelIsPartialRefund(detailItem)
-                  ? t('booking.confirmCancelPartialRefund', { pct: formatNumber(Math.round(cancelRefundBps(detailItem) / 100)) })
-                  : t('booking.confirmCancel')
-            }}
+            {{ cancelConfirmText(detailItem) }}
           </p>
           <div class="canva-history-sh-actions">
             <button

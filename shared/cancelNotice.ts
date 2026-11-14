@@ -23,10 +23,11 @@ export type AthleteCancelNoticeKey =
 
 export function athleteCancelNoticeKey(input: AthleteCancelNoticeInput): AthleteCancelNoticeKey | null {
   if (input.reversePending) return 'booking.refundReversePending'
-  if (input.moneyOutcome === 'zero_refund') return 'booking.refundNoneCancelled'
+  // Cash first: a cash booking never touches the wallet, whatever the window says.
   if (input.deskCashReturn === 'owed' || input.refundChannel === 'desk_cash') {
     return 'booking.refundCashAtClub'
   }
+  if (input.moneyOutcome === 'zero_refund') return 'booking.refundNoneCancelled'
   if (input.walletCredited) return 'booking.refundToWallet'
   if (input.gatewayRefunded || input.refundChannel === 'gateway_reverse') {
     return 'booking.refundAlreadyOnCard'
@@ -41,4 +42,39 @@ export function athleteCancelErrorNoticeKey(message: string | null | undefined):
   if (message.includes('SEP_REVERSE_PENDING')) return 'booking.refundReversePending'
   if (message.includes('REFUND_ACCOUNT_REQUIRED')) return 'booking.refundAccountRequired'
   return null
+}
+
+export type AthleteCancelConfirmKey =
+  | 'booking.confirmCancel'
+  | 'booking.confirmCancelNoRefund'
+  | 'booking.confirmCancelPartialRefund'
+  | 'booking.confirmCancelCash'
+  | 'booking.confirmCancelUnpaid'
+
+/** Paid at the club in cash (or marked cash by the owner) — refunds are the club's, never the wallet. */
+export function isCashPaidBooking(input: {
+  paymentMethod?: string | null
+  bookingPaymentMethod?: string | null
+  paymentStatus?: string | null
+}): boolean {
+  if (input.paymentStatus !== 'PAID') return false
+  if (input.paymentMethod === 'IPG' || input.paymentMethod === 'PAID') return false
+  return input.paymentMethod === 'CASH' || input.bookingPaymentMethod === 'CASH'
+}
+
+/**
+ * Pre-cancel confirm copy. Only an online (IPG) or wallet-paid booking may promise a
+ * wallet refund; cash says «settle with the club»; unpaid says nothing comes back.
+ */
+export function athleteCancelConfirmKey(input: {
+  paymentMethod?: string | null
+  bookingPaymentMethod?: string | null
+  paymentStatus?: string | null
+  refundBps: number
+}): AthleteCancelConfirmKey {
+  if (isCashPaidBooking(input)) return 'booking.confirmCancelCash'
+  if (input.paymentStatus !== 'PAID') return 'booking.confirmCancelUnpaid'
+  if (input.refundBps <= 0) return 'booking.confirmCancelNoRefund'
+  if (input.refundBps < 10_000) return 'booking.confirmCancelPartialRefund'
+  return 'booking.confirmCancel'
 }

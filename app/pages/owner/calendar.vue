@@ -2698,6 +2698,7 @@ async function doCancelSeries() {
   if (!slot || !cancelReason.value || saving.value || !isRecurringReservedSlot(slot)) return
   saving.value = true
   actionError.value = ''
+  const wasCash = slotIsPaidDeskCash(slot)
   try {
     await $fetch('/api/owner/cancel', {
       method: 'POST',
@@ -2708,6 +2709,7 @@ async function doCancelSeries() {
       },
     })
     await finishSlotAction()
+    if (wasCash) flashMessage.value = t('owner.cancelCashDoneFlash')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
     await refreshCalendar()
@@ -2728,6 +2730,8 @@ async function doCancel() {
   if (!targets.length || !cancelReason.value || saving.value) return
   saving.value = true
   actionError.value = ''
+  // Cash never returns to the athlete wallet — tell the owner after cancel (Behnaz, Nov 14).
+  const anyCash = targets.some(slotIsPaidDeskCash)
   try {
     const range = bookingTimeRange(targets)
     for (let i = 0; i < targets.length; i++) {
@@ -2745,6 +2749,7 @@ async function doCancel() {
       })
     }
     await finishSlotAction()
+    if (anyCash) flashMessage.value = t('owner.cancelCashDoneFlash')
   } catch (err) {
     actionError.value = fetchErrorMessage(err, t('common.error'))
     await refreshCalendar()

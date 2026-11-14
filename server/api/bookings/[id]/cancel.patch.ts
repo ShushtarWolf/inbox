@@ -1,5 +1,6 @@
 import { canCancelReservation, resolveCancelMoneyDetail } from '#shared/cancelPolicy.ts'
 import { isPaymentRefundable } from '#shared/bookingPayment.ts'
+import { isCashPaidBooking } from '#shared/cancelNotice.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import {
   notifyBookingCancelled,
@@ -168,6 +169,11 @@ export default defineEventHandler(async (event) => {
     guestName,
     reason: 'athlete-cancel',
     skipGuest: skipGuestBookingSms(booking),
+    cashPaid: isCashPaidBooking({
+      paymentMethod: booking.payment?.method,
+      bookingPaymentMethod: booking.paymentMethod,
+      paymentStatus: booking.payment?.status || booking.paymentStatus,
+    }),
   })
 
   await notifyOwnerBookingCancelled({

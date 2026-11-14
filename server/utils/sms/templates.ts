@@ -219,6 +219,8 @@ const TEMPLATE_BODIES: Record<NotifyTemplate | 'CAMPAIGN', (data: Record<string,
       .join(' | ')
     const lines = [guest ? `رزرو ${guest} لغو شد` : 'رزرو لغو شد']
     if (detail) lines.push('', detail)
+    // Cash at the club never comes back to the Inbox wallet.
+    if (data.cashPaid === true) lines.push('', 'پرداخت نقدی بوده؛ حساب‌وکتاب با خود باشگاه')
     lines.push('', 'Inboxs')
     return lines.join('\n')
   },
