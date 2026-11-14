@@ -43,6 +43,8 @@ export function fetchErrorMessage(error: unknown, fallback: string, translate?: 
     'Coach not found': 'booking.errors.coachNotFound',
     'Online checkout is disabled; pay at the club or use wallet balance': 'booking.onlinePaymentsRequired',
     ONLINE_PAYMENTS_REQUIRED: 'booking.onlinePaymentsRequired',
+    ALLOW_CASH_AT_CLUB_DISABLED: 'booking.errors.allowCashAtClubDisabled',
+    ATHLETE_PAY_AT_CLUB_LIMIT: 'booking.errors.payAtClubLimit',
     'Wallet top-up requires online payments mode': 'athlete.walletTopUpRequiresOnline',
     'Invalid top-up amount': 'athlete.walletTopUpInvalidAmountShort',
     'Booking not found': 'booking.errors.bookingNotFound',

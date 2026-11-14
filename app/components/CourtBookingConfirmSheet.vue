@@ -58,6 +58,8 @@ const props = defineProps<{
   /** MEN/WOMEN policy reminders for courts in this basket (Persian i18n from parent). */
   audienceNotices?: string[]
   bookableEquipment?: ConfirmEquipment[]
+  /** Club opted in — show cash-at-club choice for paid checkouts. */
+  allowCashAtClub?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -90,6 +92,8 @@ const {
   payBookingWithWallet,
   walletCoversAmount,
 } = useCourtBooking()
+
+const paymentChoice = ref<'online' | 'cash_at_club'>('online')
 
 const equipmentQuantities = ref<Record<string, number>>({})
 const equipmentAvailability = ref<Record<string, number>>({})
@@ -396,8 +400,17 @@ const seasonSubmitBlocked = computed(() =>
   ),
 )
 
+const showCashAtClubChoice = computed(() =>
+  Boolean(props.allowCashAtClub)
+  && totalAmount.value > 0
+  && onlineEnabled.value
+  && !seasonActive.value,
+)
+
 const showWalletCta = computed(() =>
-  Boolean(user.value) && walletCoversAmount(totalAmount.value),
+  paymentChoice.value !== 'cash_at_club'
+  && Boolean(user.value)
+  && walletCoversAmount(totalAmount.value),
 )
 
 const slotCourtIds = computed(() =>
@@ -443,6 +456,7 @@ async function loadMembershipDiscount() {
 
 watch(() => props.open, (isOpen) => {
   if (isOpen && !done.value) {
+    paymentChoice.value = 'online'
     resetBookingState()
     equipmentQuantities.value = {}
     equipmentAvailability.value = {}
@@ -533,8 +547,16 @@ const payBusy = computed(() => confirming.value || paying.value)
 const needsGatewayPay = computed(() =>
   totalAmount.value > 0
   && onlineEnabled.value
-  && lastPaymentStatus.value !== 'PAID',
+  && lastPaymentStatus.value !== 'PAID'
+  && lastPaymentStatus.value !== 'PAY_AT_CLUB',
 )
+
+const successTitle = computed(() => {
+  if (lastPaymentStatus.value === 'PAY_AT_CLUB' && totalAmount.value > 0) {
+    return t('booking.successPayAtClubTitle')
+  }
+  return t('booking.successPaidTitle')
+})
 
 const payCtaLabel = computed(() => {
   if (paying.value) {
@@ -546,7 +568,8 @@ const payCtaLabel = computed(() => {
     return needsGatewayPay.value ? t('booking.payRetry') : t('booking.confirmFreeCheckout')
   }
   if (totalAmount.value === 0) return t('booking.confirmFreeCheckout')
-  return t('booking.pay')
+  if (paymentChoice.value === 'cash_at_club') return t('booking.payCashAtClubAthlete')
+  return t('booking.payOnline')
 })
 
 function close() {
@@ -676,6 +699,7 @@ async function submit(preferWallet = false) {
     courtId: props.courtId,
     courtIds: slotCourtIds.value.length ? slotCourtIds.value : undefined,
     preferWallet,
+    payAtClub: paymentChoice.value === 'cash_at_club',
   })
   if (result && 'conflict' in result) {
     emit('slotConflict')
@@ -683,7 +707,9 @@ async function submit(preferWallet = false) {
   }
   if (!result) return
   // Still on-page after online checkout means stall/error — keep slots so Pay can retry.
-  if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID') return
+  if (onlineEnabled.value && lastPaymentStatus.value !== 'PAID' && lastPaymentStatus.value !== 'PAY_AT_CLUB') {
+    return
+  }
 }
 </script>
 
@@ -716,7 +742,7 @@ async function submit(preferWallet = false) {
         <template v-if="done">
           <div class="canva-confirm-success">
             <AppIcon name="check_circle" size="xl" class="mx-auto text-emerald-600" />
-            <h2 class="canva-confirm-success-title">{{ t('booking.successPaidTitle') }}</h2>
+            <h2 class="canva-confirm-success-title">{{ successTitle }}</h2>
             <p class="canva-confirm-success-body" :class="{ 'text-red-600': feedbackTone === 'error' }" :role="feedbackTone === 'error' ? 'alert' : undefined">
               {{ feedback || t('booking.successPaidBody', { club: clubName }) }}
             </p>
@@ -979,7 +1005,44 @@ async function submit(preferWallet = false) {
             {{ t('booking.acceptTerms') }}
             <NuxtLink :to="localePath('/terms')" class="font-bold text-brand-primary underline">{{ t('legal.terms') }}</NuxtLink>
           </p>
-          <p v-if="totalAmount > 0" class="text-center text-[11px] text-brand-gray-600">{{ t('booking.onlinePayHint') }}</p>
+          <div
+            v-if="showCashAtClubChoice"
+            class="space-y-2 rounded-[2px] border border-brand-gray-200 p-3 text-start"
+          >
+            <p class="text-xs font-bold text-brand-navy">{{ t('booking.paymentMethodChoose') }}</p>
+            <label class="flex cursor-pointer items-start gap-2">
+              <input
+                v-model="paymentChoice"
+                type="radio"
+                class="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+                value="online"
+                :disabled="payBusy"
+              >
+              <span>
+                <span class="block text-sm font-bold text-brand-navy">{{ t('booking.payOnline') }}</span>
+                <span class="text-[11px] text-brand-gray-600">{{ t('booking.onlinePayHint') }}</span>
+              </span>
+            </label>
+            <label class="flex cursor-pointer items-start gap-2">
+              <input
+                v-model="paymentChoice"
+                type="radio"
+                class="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+                value="cash_at_club"
+                :disabled="payBusy"
+              >
+              <span>
+                <span class="block text-sm font-bold text-brand-navy">{{ t('booking.payCashAtClubAthlete') }}</span>
+                <span class="text-[11px] text-brand-gray-600">{{ t('booking.payCashAtClubAthleteHint') }}</span>
+              </span>
+            </label>
+          </div>
+          <p
+            v-else-if="totalAmount > 0"
+            class="text-center text-[11px] text-brand-gray-600"
+          >
+            {{ t('booking.onlinePayHint') }}
+          </p>
         </template>
       </div>
 
