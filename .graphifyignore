@@ -1,0 +1,21 @@
+# Index app code only; skip design assets, dumps, and generated output.
+200/
+backups/
+brand/
+canva-reference/
+design-reference/
+mockups/
+planning/
+public/
+test-results/
+playwright-report/
+graphify-out/
+package-lock.json
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.zip
+*.pdf
+*.dump

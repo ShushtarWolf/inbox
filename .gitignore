@@ -47,6 +47,9 @@ canva-reference/*.zip
 # Shell / editor temp junk
 sh-thd-*
 
+# Graphify local knowledge graph (rebuild with `graphify update .`)
+graphify-out/
+
 # Runtime local uploads + Playwright artifacts (never commit)
 public/uploads/
 data/uploads/
