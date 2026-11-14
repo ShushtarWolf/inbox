@@ -1,0 +1,168 @@
+name: Read-only SQL reports
+
+on:
+  workflow_dispatch:
+    inputs:
+      report:
+        description: Which report SQL to run (read-only; production data)
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - sms-delivery-gap
+          - trace-wallet-cancel-lost-refund
+          - list-suspect-court-time-bands
+
+concurrency:
+  group: readonly-sql-reports
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reports:
+    name: Run SQL report (${{ inputs.report }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch main for file presence checks
+        run: git fetch origin main --depth=1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install PostgreSQL client
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client perl
+
+      - name: Install Liara CLI
+        run: npm i -g @liara/cli@9
+
+      - name: Resolve production DATABASE_URL (Liara API)
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sql/resolve-inbox-db-url.sh
+          # shellcheck disable=SC1091
+          source scripts/sql/resolve-inbox-db-url.sh
+          test -n "${DATABASE_URL:-}"
+
+      - name: Select report files
+        id: pick
+        env:
+          REPORT: ${{ inputs.report }}
+        run: |
+          set -euo pipefail
+          declare -a FILES=()
+          declare -a SKIPPED=()
+
+          add_if_on_main() {
+            local base="$1"
+            local path="scripts/sql/${base}.sql"
+            if ! git cat-file -e "origin/main:${path}" 2>/dev/null; then
+              SKIPPED+=("$path (not on main)")
+              return
+            fi
+            if [ ! -f "$path" ]; then
+              mkdir -p scripts/sql
+              git show "origin/main:${path}" >"$path"
+            fi
+            FILES+=("$path")
+          }
+
+          case "$REPORT" in
+            all)
+              add_if_on_main sms-delivery-gap
+              add_if_on_main trace-wallet-cancel-lost-refund
+              add_if_on_main list-suspect-court-time-bands
+              ;;
+            sms-delivery-gap|trace-wallet-cancel-lost-refund|list-suspect-court-time-bands)
+              add_if_on_main "$REPORT"
+              ;;
+            *)
+              echo "::error::Unknown report: $REPORT"
+              exit 1
+              ;;
+          esac
+
+          if [ "${#SKIPPED[@]}" -gt 0 ]; then
+            echo "## Skipped (missing on main)" >>"$GITHUB_STEP_SUMMARY"
+            for s in "${SKIPPED[@]}"; do
+              echo "- $s" >>"$GITHUB_STEP_SUMMARY"
+              echo "::warning::$s"
+            done
+          fi
+
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::No report files to run"
+            exit 1
+          fi
+
+          mkdir -p reports
+          printf '%s\n' "${FILES[@]}" > reports/selected-files.txt
+
+      - name: Static read-only SQL guard
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < reports/selected-files.txt
+          python3 scripts/sql/assert-readonly-sql.py "${FILES[@]}"
+
+      - name: Run reports (read-only transaction)
+        id: run
+        env:
+          PGOPTIONS: '-c default_transaction_read_only=on'
+        run: |
+          set -euo pipefail
+          mkdir -p reports/sql-out
+          COMBINED="reports/sql-out/combined.txt"
+          : >"$COMBINED"
+
+          mapfile -t FILES < reports/selected-files.txt
+          for sql in "${FILES[@]}"; do
+            base=$(basename "$sql" .sql)
+            out="reports/sql-out/${base}.txt"
+            echo "===== ${base} =====" | tee -a "$COMBINED"
+            {
+              echo "BEGIN TRANSACTION READ ONLY;"
+              echo "SET LOCAL statement_timeout = '60s';"
+              echo "\\i ${sql}"
+              echo "ROLLBACK;"
+            } | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 2>&1 \
+              | perl scripts/sql/mask-report-output.pl \
+              | tee "$out" -a "$COMBINED"
+            echo "" >>"$COMBINED"
+          done
+
+      - name: Publish job summary
+        run: |
+          set -euo pipefail
+          {
+            echo "## Read-only SQL report: \`${{ inputs.report }}\`"
+            echo ""
+            echo "Section **(c)** in \`trace-wallet-cancel-lost-refund.sql\` is a **SELECT-only dry-run proposal**;"
+            echo "the workflow runs the full file when that report is selected (no writes)."
+            echo ""
+            echo '```text'
+            head -c 60000 reports/sql-out/combined.txt
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: readonly-sql-report-${{ inputs.report }}-${{ github.run_id }}
+          path: reports/sql-out/
+          retention-days: 7
+          if-no-files-found: error
