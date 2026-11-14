@@ -19,3 +19,16 @@ export function resolveDeskCharge(opts: {
   const { discountAmount, total } = applyDiscountPercent(subtotal, percent)
   return { amount: total, discountAmount, percent, complimentary: false }
 }
+
+/**
+ * Desk «تخفیف میز (٪)» field → percent. Empty / non-numeric input is 0% (full
+ * price), never 100%. Accepts Persian and Arabic-Indic digits.
+ */
+export function parseDeskPercent(raw: string | null | undefined): number {
+  const ascii = String(raw || '')
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[^\d]/g, '')
+  if (!ascii) return 0
+  return clampDiscountPercent(Number(ascii))
+}
