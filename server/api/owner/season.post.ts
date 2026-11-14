@@ -27,6 +27,10 @@ import { assignBookingPayPin } from '../../utils/payPin'
 import { prisma } from '../../utils/prisma'
 import { payUrlForPin } from '../../utils/receipt'
 
+function maskPhone(phone: string) {
+  return phone.length > 6 ? `${phone.slice(0, 4)}***${phone.slice(-2)}` : '***'
+}
+
 function resolveGuestMobile(raw?: string | null) {
   if (!raw?.trim()) return ''
   return normalizeIranPhone(raw) || raw.trim()
@@ -270,12 +274,18 @@ export default defineEventHandler(async (event) => {
       guestName,
       payPin: paymentStatus === 'PAID' ? undefined : payPin,
       payUrl: paymentStatus === 'PAID' ? undefined : payUrl,
-      skipGuest: true,
+      // New season from the owner wizard: the athlete mobile the owner typed gets the
+      // confirmation (paid) or pay-link (unpaid) SMS — the wizard promises this
+      // (owner.seasonPage.phoneSmsHint / successCashBody). Club side is notified as before.
+      skipGuest: !guestMobile,
       ...clubNotifyLocation(club),
     }
     await notifyBookingConfirmed(notifyOpts)
     if (paymentStatus === 'PAID') {
       smsSent = (await notifyBookingPaid(notifyOpts)).smsSent
+      if (guestMobile && !smsSent) {
+        console.warn('[owner:season:sms] athlete BOOKING_PAID not sent', maskPhone(guestMobile), club.id, notifyOpts.bookingId)
+      }
       await notifyOwnerBookingPaid({
         ownerPhone: ownerNotifyPhone(club),
         clubName: clubNotifyName(club),
