@@ -55,3 +55,23 @@ Most high-count rows are **scanner 404 noise** (`.env`, `.git`, WordPress probes
 | 8–20 | various | Page not found: //…/wlwmanifest.xml (and similar) | ~151–153 each | GlitchTip Issues list |
 
 **Perf note (not in table):** GlitchTip Performance shows slow `POST /api/owner/season` ~7.15s avg — worth a separate perf pass, not a P0 money bug.
+
+## Server API static review — `server/api/<area>/**` (2026-11-13)
+
+Read-only pass for: missing auth/role checks, missing input validation, money/booking races (no txn/lock), unhandled promise errors, N+1 queries. **No fixes in this pass.** Scope: area trees under `server/api/` (auth, bookings, wallet, payments, receipts, owner, admin, coach, competitions, etc.). No clear floating unhandled promises found in this sweep (`.catch(() => {})` swallows were intentional ops paths).
+
+| id | area | symptom | evidence | users affected | severity | est. size |
+|---|---|---|---|---|---|---|
+| S1 | auth | Existing-account takeover via public coach signup: matching email/phone overwrites `passwordHash`, adds COACH, opens session without proving ownership | `server/api/auth/register-coach.post.ts:87` | Anyone who knows a victim email or phone (incl. OTP-only athletes) | P0 | S |
+| S2 | auth | Same takeover via owner signup: overwrites password, adds CLUB_ADMIN, creates club + OWNER membership, sets session | `server/api/auth/register-owner.post.ts:105` | Same as S1; also existing multi-role users if `canAddRole(CLUB_ADMIN)` | P0 | S |
+| S3 | auth | Register merge attaches `phone` to an existing account with no OTP/verification | `server/api/auth/register-coach.post.ts:92`; `server/api/auth/register-owner.post.ts:112` | Users with email but no phone on file | P1 | S |
+| S4 | coach | Club↔coach wallet transfers only `requireUser` + affiliation; skip owner `finance:payouts` used by `owner/transfers` — affiliated coach can `club_to_coach` drain club wallet | `server/api/coach/transfers.post.ts:5` | Clubs with affiliated coaches | P1 | S |
+| S5 | receipts | Public receipt checkout never calls `assertOnlineHoldPayable` / `releaseExpiredOnlinePaymentHolds` (auth checkout does at `payments/checkout.post.ts`) — IPG can start after soft-hold window while booking still uncancelled | `server/api/receipts/[token]/checkout.post.ts:23` | Guests/athletes paying via `/r/:token` or pay-link | P1 | S |
+| S6 | coach | After atomic lesson book + wallet debit, club settlement (`creditOwnerForPaidPayment`) runs outside the txn in a loop — crash/partial failure leaves coach charged without club credit | `server/api/coach/lessons/series.post.ts:74` | Coaches booking multi-slot lesson series | P1 | S |
+| S7 | bookings | Athlete coach book: `coachSession.create` then separate `payment.create` (not one `$transaction`) — priced session can remain with no payable payment row | `server/api/bookings/coach.post.ts:56` | Athletes booking coaches | P2 | S |
+| S8 | receipts | Unauthenticated guest SHEBA POST (token-only) overwrites `guestSheba` with no booking/payment status guard — refund metadata editable outside cancel/refund flow | `server/api/receipts/[token]/guest-sheba.post.ts:24` | Holders of a valid receipt token | P2 | S |
+| S9 | bookings | Multi-slot court book: `syncClubContactForBooking` awaited once per booking id (serial N+1) | `server/api/bookings/court.post.ts:304` | Athletes booking multiple slots | P3 | S |
+| S10 | owner | Series cancel: `notifyWaitlistForFreedSlot` awaited inside per-booking loop | `server/api/owner/cancel.post.ts:45` | Owners cancelling series | P3 | S |
+| S11 | coach | Lesson series: `syncClubContactForBooking` (+ settle) serial loop over created rows | `server/api/coach/lessons/series.post.ts:72` | Coaches booking series | P3 | S |
+| S12 | competitions | Public list: per-row `countActiveEntries` + `countConfirmedEntries` (N+1) | `server/api/competitions/index.get.ts:38` | Public competition browse | P3 | S |
+| S13 | owner | Owner competitions list: same per-row entry-count N+1 | `server/api/owner/competitions/index.get.ts:16` | Club owners | P3 | S |
