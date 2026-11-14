@@ -353,6 +353,7 @@ async function confirmCancel() {
       refundChannel: result.refund?.refundChannel,
       deskCashReturn: result.refund?.deskCashReturn,
       reversePending: result.refund?.reversePending,
+      paymentAmount: item.price,
     })
     const notice = noticeKey ? t(noticeKey) : ''
     cancelPending.value = false
@@ -614,11 +615,13 @@ const statusChips: Array<{ value: StatusFilter; labelKey: string }> = [
 
 const summary = computed(() => {
   const todayIso = today()
-  const live = historyItems.value.filter((item) => item.status !== 'CANCELLED' && item.date >= todayIso)
+  const monthItems = visibleHistory.value
+  const timeScoped = filterBookingsByTime(monthItems, timeFilter.value, todayIso)
+  const live = timeScoped.filter((item) => item.status !== 'CANCELLED' && item.date >= todayIso)
   return {
     upcoming: live.length,
     unpaid: live.filter((item) => !isPaid(item.paymentStatus)).length,
-    cancelled: historyItems.value.filter((item) => item.status === 'CANCELLED').length,
+    cancelled: timeScoped.filter((item) => item.status === 'CANCELLED').length,
   }
 })
 
@@ -644,12 +647,15 @@ function dayAriaLabel(iso: string) {
 }
 
 const filteredItems = computed(() => {
-  let list = filterBookingsByTime(visibleHistory.value, timeFilter.value, today())
+  let list = visibleHistory.value
   if (selectedDayIso.value) {
     list = list.filter((item) => item.date === selectedDayIso.value)
   }
   else if (statusFilter.value !== 'all') {
     list = list.filter((item) => displayStatus(item) === statusFilter.value)
+  }
+  else {
+    list = filterBookingsByTime(list, timeFilter.value, today())
   }
   // Newest first; copy so Vue sees a new array.
   return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel))
@@ -783,6 +789,7 @@ function cancelConfirmText(item: HistoryItem) {
     bookingPaymentMethod: item.bookingPaymentMethod,
     paymentStatus: item.paymentStatus,
     refundBps: cancelRefundBps(item),
+    paymentAmount: item.price,
   })
   return key === 'booking.confirmCancelPartialRefund'
     ? t(key, { pct: formatNumber(Math.round(cancelRefundBps(item) / 100)) })

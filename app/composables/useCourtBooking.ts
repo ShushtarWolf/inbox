@@ -99,6 +99,17 @@ export function useCourtBooking() {
     return canCoverBookingWithWallet(walletBalance.value, Number(amount || 0))
   }
 
+  function bookingSuccessFeedback(
+    result: { totalAmount?: number; paymentStatus: string },
+    opts: { successMessage: string; clubName?: string },
+  ) {
+    const amount = result.totalAmount ?? 0
+    const settled = amount === 0 || result.paymentStatus === 'PAID'
+    if (settled && opts.clubName) return t('booking.successPaidBody', { club: opts.clubName })
+    if (settled) return t('booking.successPaidBodyShort')
+    return opts.successMessage
+  }
+
   async function createCourtBookings(opts: {
     slotIds: string[]
     equipmentIds?: string[]
@@ -109,6 +120,7 @@ export function useCourtBooking() {
     courtId?: string
     courtIds?: string[]
     preferWallet?: boolean
+    clubName?: string
   }) {
     const slotIds = [...new Set(opts.slotIds.filter(Boolean))]
     if (!slotIds.length || confirming.value) return null
@@ -155,6 +167,7 @@ export function useCourtBooking() {
       return await afterBookingCreated(result, {
         preferWallet: opts.preferWallet,
         successMessage: t('booking.successCourtOnline'),
+        clubName: opts.clubName,
       })
     }
     catch (error: unknown) {
@@ -180,6 +193,7 @@ export function useCourtBooking() {
     slotIds?: string[]
     discountCode?: string
     preferWallet?: boolean
+    clubName?: string
   }) {
     if (confirming.value) return null
 
@@ -221,6 +235,7 @@ export function useCourtBooking() {
       return await afterBookingCreated(result, {
         preferWallet: opts.preferWallet,
         successMessage: t('booking.successSeasonOnline'),
+        clubName: opts.clubName,
       })
     }
     catch (error: unknown) {
@@ -243,14 +258,14 @@ export function useCourtBooking() {
       bookingIds?: string[]
       totalAmount?: number
     },
-    opts: { preferWallet?: boolean; successMessage: string },
+    opts: { preferWallet?: boolean; successMessage: string; clubName?: string },
   ) {
     createdBookingId.value = result.id
     createdBookingIds.value = result.bookingIds?.length ? result.bookingIds : [result.id]
     lastPaymentStatus.value = result.paymentStatus
     bookedTotal.value = result.totalAmount ?? null
     feedbackTone.value = 'success'
-    feedback.value = opts.successMessage
+    feedback.value = bookingSuccessFeedback(result, opts)
 
     const amount = result.totalAmount ?? 0
     const useWallet = Boolean(
@@ -287,7 +302,7 @@ export function useCourtBooking() {
           lastPaymentStatus.value = 'PAID'
           done.value = true
           feedbackTone.value = 'success'
-          feedback.value = opts.successMessage
+          feedback.value = bookingSuccessFeedback({ ...result, paymentStatus: 'PAID' }, opts)
         }
       }
       catch (checkoutError: unknown) {

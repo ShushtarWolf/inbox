@@ -5,6 +5,7 @@ import {
   isDateBeyondBookingHorizon,
 } from '#shared/bookingHorizon.ts'
 import { computeBookingPrice, computeListedSlotPrice, parseCourtPricingJson } from '#shared/courtPricing.ts'
+import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 import { resolveClubSlugAlias } from '#shared/clubSlugAliases.ts'
 import {
   courtIdsFromSlots,
@@ -689,8 +690,9 @@ const pricingFootnotes = computed(() => {
       }))
     }
   } else {
-    const from = club.value.priceFrom
-    const to = club.value.priceTo
+    const catalog = clubCatalogPriceRange(courts.value)
+    const from = catalog.priceFrom ?? club.value.priceFrom
+    const to = catalog.priceTo ?? club.value.priceTo
     if (from != null && to != null && from !== to) {
       notes.push(t('clubs.sessionRateRangeNote', {
         from: toThousand(from),

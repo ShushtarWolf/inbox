@@ -73,9 +73,9 @@ export function courtListedPricePoints(court: {
 }): number[] {
   const points: number[] = []
   const base = Number(court.price)
-  if (Number.isFinite(base) && base > 0) points.push(base)
+  if (Number.isFinite(base)) points.push(base)
   for (const band of parseCourtPricingJson(court.pricingJson).timeBands || []) {
-    if (Number.isFinite(band.price) && band.price > 0) points.push(band.price)
+    if (Number.isFinite(band.price)) points.push(band.price)
   }
   return points
 }

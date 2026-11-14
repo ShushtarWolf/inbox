@@ -337,6 +337,33 @@ describe('bookingNotify SMS', () => {
     logSpy.mockRestore()
   })
 
+  it('zero-toman PAID uses BOOKING_CONFIRMED SMS, not the payment receipt template', async () => {
+    resolveSmsProvider.mockReturnValue('log')
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await notifyBookingPaid({
+      ...baseOpts,
+      amountPaid: 0,
+      paymentPaid: true,
+    })
+
+    expect(logSpy).toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_CONFIRMED',
+      '09121234567',
+      expect.stringContaining('رزرو تایید شد'),
+    )
+    expect(logSpy).not.toHaveBeenCalledWith(
+      '[bookingNotify:sms]',
+      'log',
+      'BOOKING_PAID',
+      expect.anything(),
+      expect.anything(),
+    )
+    logSpy.mockRestore()
+  })
+
   it('guest paid SMS uses rich confirmation body', async () => {
     resolveSmsProvider.mockReturnValue('log')
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})

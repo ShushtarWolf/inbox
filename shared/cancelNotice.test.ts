@@ -70,4 +70,13 @@ describe('athleteCancelNoticeKey', () => {
   it('says nothing came back inside the cancellation window', () => {
     expect(athleteCancelNoticeKey({ moneyOutcome: 'zero_refund' })).toBe('booking.refundNoneCancelled')
   })
+
+  it('complimentary bookings get plain cancelled copy', () => {
+    expect(athleteCancelNoticeKey({
+      moneyOutcome: 'full_wallet_refund',
+      refunded: true,
+      walletCredited: false,
+      paymentAmount: 0,
+    })).toBe('booking.refundZeroAmountCancelled')
+  })
 })

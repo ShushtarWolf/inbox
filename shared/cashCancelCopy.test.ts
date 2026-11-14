@@ -19,6 +19,11 @@ describe('cash cancel copy never promises a wallet refund', () => {
     }
   })
 
+  it('confirm: complimentary paid bookings skip wallet wording', () => {
+    expect(athleteCancelConfirmKey({ paymentMethod: 'IPG', paymentStatus: 'PAID', refundBps: 10_000, paymentAmount: 0 }))
+      .toBe('booking.confirmCancelZeroAmount')
+  })
+
   it('confirm: unpaid never mentions a wallet refund; online/wallet keeps the wallet copy', () => {
     expect(athleteCancelConfirmKey({ paymentMethod: 'CASH', paymentStatus: 'PAY_AT_CLUB', refundBps: 10_000 }))
       .toBe('booking.confirmCancelUnpaid')
