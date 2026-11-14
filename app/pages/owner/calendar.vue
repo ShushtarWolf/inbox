@@ -37,8 +37,7 @@ import {
 } from '#shared/guestName.ts'
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
-import { clampDiscountPercent } from '#shared/discountCode.ts'
-import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
 import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
 import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
@@ -1680,15 +1679,6 @@ function openSelectionCancel() {
   selectedSlot.value = targets[0]!
   showMenu.value = true
   openCancelForm()
-}
-
-function parseDeskPercent(raw: string) {
-  const ascii = String(raw || '')
-    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
-    .replace(/[^\d]/g, '')
-  if (!ascii) return 0
-  return clampDiscountPercent(Number(ascii))
 }
 
 function onDeskPercentInput() {
@@ -4577,7 +4567,7 @@ watch(pilotNoCoach, (off) => {
       patterned
       sheet
       :title="slotModalTitle"
-      :hide-title-bar="activePanel === 'reserve'"
+      :hide-title-bar="activePanel === 'reserve' || activePanel === 'payConfirm'"
       :aria-label="activePanel === 'reserve' ? reserveMenuLabel() : slotModalTitle"
       max-width-class="canva-owner-slot-modal"
       @close="closeMenu"
@@ -5155,7 +5145,7 @@ watch(pilotNoCoach, (off) => {
               :equipment-price="reserveEquipmentPrice"
             />
           </form>
-          <div class="venus-modal-footer !space-y-2 !py-3">
+          <div class="venus-modal-footer !space-y-2 !pt-3">
             <p v-if="!guestFieldsValid()" class="text-xs font-medium text-brand-gray-600">{{ guestFieldsErrorMessage() || t('owner.guestRequired') }}</p>
             <p v-if="actionError" class="venus-alert-error">{{ actionError }}</p>
             <button
@@ -5213,7 +5203,7 @@ watch(pilotNoCoach, (off) => {
                 </li>
               </ul>
             </div>
-            <div class="canva-confirm-book-costs mt-4 text-start">
+            <div class="canva-confirm-book-costs canva-desk-pay-costs mt-4 text-start">
               <div
                 v-for="(line, idx) in payConfirmCostLines"
                 :key="idx"
@@ -5252,7 +5242,7 @@ watch(pilotNoCoach, (off) => {
                     {{ deskDiscountApplying ? t('common.loading') : t('booking.discountApply') }}
                   </button>
                 </div>
-                <div class="mt-2 text-start">
+                <div class="canva-desk-pay-percent text-start">
                   <label class="canva-confirm-book-discount-note" for="owner-desk-percent">{{ t('owner.deskPercentLabel') }}</label>
                   <input
                     id="owner-desk-percent"
@@ -5273,13 +5263,13 @@ watch(pilotNoCoach, (off) => {
                 <span class="canva-confirm-book-cost-label">{{ payConfirmDiscountLabel }}</span>
                 <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(payConfirmDiscountAmount) }}</span>
               </div>
-              <div class="canva-confirm-book-cost-row font-bold text-brand-navy">
-                <span>{{ t('owner.priceBreakdown.total') }}</span>
-                <span dir="ltr">{{ formatCurrency(payConfirmTotal) }}</span>
+              <div class="canva-confirm-book-cost-row canva-desk-pay-total font-bold text-brand-navy" data-testid="desk-pay-total">
+                <span class="canva-confirm-book-cost-label">{{ t('owner.priceBreakdown.total') }}</span>
+                <span class="canva-confirm-book-cost-amount" dir="ltr">{{ formatCurrency(payConfirmTotal) }}</span>
               </div>
             </div>
           </div>
-          <div class="venus-modal-footer canva-desk-pay-footer space-y-2">
+          <div class="venus-modal-footer canva-desk-pay-footer">
             <p v-if="actionError" class="venus-alert-error" role="alert">{{ actionError }}</p>
             <button
               type="button"

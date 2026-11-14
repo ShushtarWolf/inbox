@@ -145,6 +145,7 @@ function syncVisualViewport() {
   if (!vv) {
     document.documentElement.style.setProperty('--app-vv-height', `${fallback}px`)
     document.documentElement.style.setProperty('--app-keyboard-inset', '0px')
+    setKeyboardOpenFlag(false)
     return
   }
   // Never publish 0 — sheet max-height uses this var; 0 collapses the dialog and
@@ -153,6 +154,19 @@ function syncVisualViewport() {
   const keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
   document.documentElement.style.setProperty('--app-vv-height', `${height}px`)
   document.documentElement.style.setProperty('--app-keyboard-inset', `${keyboardInset}px`)
+  // iOS Safari keeps the layout viewport (and max-height media queries) at full
+  // height while the keyboard is up — expose a flag so sheets can switch to a
+  // single-scroll compact layout instead of pinning header + footer.
+  setKeyboardOpenFlag(keyboardInset > KEYBOARD_OPEN_MIN_INSET)
+}
+
+/** Insets below this are browser chrome (URL bar) jitter, not a software keyboard. */
+const KEYBOARD_OPEN_MIN_INSET = 120
+
+function setKeyboardOpenFlag(open: boolean) {
+  if (!import.meta.client) return
+  if (open) document.documentElement.setAttribute('data-app-keyboard', 'open')
+  else document.documentElement.removeAttribute('data-app-keyboard')
 }
 
 function getFocusableElements(root: HTMLElement) {
@@ -240,6 +254,7 @@ watch(() => props.open, (isOpen) => {
     window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
     window.removeEventListener('resize', syncVisualViewport)
     document.removeEventListener('keydown', onDialogKeydown)
+    setKeyboardOpenFlag(false)
     releaseLock()
     // Avoid focusing a hidden file input (Safari tap dead-zone after photo pick).
     const restore = previousFocus.value
@@ -265,6 +280,7 @@ onUnmounted(() => {
     window.visualViewport?.removeEventListener('resize', syncVisualViewport)
     window.visualViewport?.removeEventListener('scroll', syncVisualViewport)
     window.removeEventListener('resize', syncVisualViewport)
+    if (props.open) setKeyboardOpenFlag(false)
     releaseLock()
   }
 })

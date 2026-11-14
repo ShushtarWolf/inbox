@@ -7,8 +7,7 @@ import { normalizeGuestNamePair } from '#shared/guestName.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import { addDaysToIsoDate } from '#shared/localDate.ts'
-import { clampDiscountPercent } from '#shared/discountCode.ts'
-import { resolveDeskCharge } from '#shared/deskCharge.ts'
+import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
@@ -204,15 +203,6 @@ const seasonDeskCharge = computed(() => resolveDeskCharge({
 
 const seasonDiscountAmount = computed(() => seasonDeskCharge.value.discountAmount)
 const seasonPayTotal = computed(() => seasonDeskCharge.value.amount)
-
-function parseDeskPercent(raw: string) {
-  const ascii = String(raw || '')
-    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
-    .replace(/[^\d]/g, '')
-  if (!ascii) return 0
-  return clampDiscountPercent(Number(ascii))
-}
 
 function onDeskPercentInput() {
   if (!deskDiscount.value) return

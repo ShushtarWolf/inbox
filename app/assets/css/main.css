@@ -2491,13 +2491,106 @@
   .canva-desk-pay-panel {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
+  /*
+   * Desk pay CTAs: a plain shrink-0 flex child (no position: sticky/fixed — those
+   * jump with the iOS visual viewport). Gap instead of space-y so the phone
+   * grid below can reflow without margin leftovers.
+   */
   .canva-desk-pay-footer {
-    @apply shrink-0;
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
+    @apply flex shrink-0 flex-col gap-2;
     background: var(--sz-bg, #f4efe9);
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  /* Cost lines: label + amount on one row (amount was dropping to its own line on phones). */
+  .canva-desk-pay-costs .canva-confirm-book-cost-row {
+    @apply flex-row items-baseline justify-between gap-3;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-cost-label {
+    @apply flex-1;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-cost-amount {
+    @apply whitespace-nowrap;
+  }
+  .canva-desk-pay-costs .canva-desk-pay-total {
+    @apply border-t border-brand-gray-200 pt-2 text-sm;
+  }
+  .canva-desk-pay-costs .canva-desk-pay-total .canva-confirm-book-cost-label {
+    @apply text-brand-navy;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-discount {
+    @apply space-y-0 pt-2;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-discount-row {
+    @apply flex-wrap;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-discount-row .canva-confirm-book-discount-input {
+    min-width: 10rem;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-discount-btn {
+    @apply min-w-[4.5rem] px-3 text-xs disabled:opacity-70;
+  }
+  .canva-desk-pay-percent {
+    @apply mt-3;
+  }
+  .canva-desk-pay-percent .canva-confirm-book-discount-note {
+    @apply mb-0.5;
+  }
+  .canva-desk-pay-costs .canva-confirm-book-discount > .canva-confirm-book-discount-note:last-child {
+    @apply mt-1.5 leading-5;
+  }
+  @media (max-width: 639px) {
+    /* Phone: cash full width, back + pay-link side by side — three stacked 48px
+       buttons pushed the last one under the iOS home indicator. */
+    .canva-desk-pay-footer {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .canva-desk-pay-footer > .venus-alert-error,
+    .canva-desk-pay-footer > .canva-gate-btn-primary {
+      grid-column: 1 / -1;
+    }
+    .canva-desk-pay-footer > button {
+      @apply min-h-[2.75rem] px-2 py-2.5;
+    }
+  }
+
+  /*
+   * Owner slot sheet — compact single-scroll mode when vertical space is scarce:
+   * iOS keyboard up (AppModal sets html[data-app-keyboard=open]; layout viewport
+   * and media queries stay full-height there) or a genuinely short viewport.
+   * Header, body and footer scroll together so the pinned header + footer no
+   * longer squeeze the inputs to ~0px and the footer cannot cover fields.
+   */
+  html[data-app-keyboard='open'] [data-app-modal-overlay]:has(.canva-owner-slot-modal) {
+    padding-top: 0.25rem;
+    padding-bottom: calc(var(--app-keyboard-inset, 0px) + 0.25rem);
+  }
+  html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-panel {
+    @apply block overflow-y-auto overscroll-contain;
+  }
+  html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-panel-body {
+    @apply flex-none overflow-visible;
+  }
+  html[data-app-keyboard='open'] .canva-owner-slot-modal .venus-modal-footer {
+    position: static;
+  }
+  @media (max-height: 640px) and (max-width: 1023px) {
+    .canva-owner-slot-modal .venus-modal-panel {
+      @apply block overflow-y-auto overscroll-contain;
+    }
+    .canva-owner-slot-modal .venus-modal-panel-body {
+      @apply flex-none overflow-visible;
+    }
+    .canva-owner-slot-modal .venus-modal-footer {
+      position: static;
+    }
+  }
+  /* Last field never sits flush against the footer border. */
+  .canva-owner-slot-modal .venus-modal-panel-body {
+    padding-bottom: 1.25rem;
+  }
+  .canva-owner-slot-modal .venus-modal-footer {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   }
   .canva-desk-pay-tertiary {
     @apply flex w-full items-center justify-center border border-brand-gray-300 bg-white px-4 py-3 text-sm font-bold text-brand-navy transition hover:bg-brand-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
