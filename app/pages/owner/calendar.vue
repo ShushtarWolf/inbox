@@ -856,7 +856,7 @@ function slotClass(status: string, slot?: OwnerCalendarSlot | null) {
     BLOCKED: 'slot-blocked',
   }
   const base = map[status] || 'slot-free'
-  if (slot && status === 'FREE' && slotIsInPast(slot)) return `${base} slot-past`
+  if (slot && status === 'FREE' && !pending.value && slotIsInPast(slot)) return `${base} slot-past`
   if (isReservedDisplayStatus(status)) {
     const parts = [base]
     // Recurring series gets its own grid color (paid/unpaid still in cell badge / detail).
@@ -882,6 +882,7 @@ function slotMatchesSessionFilter(slot?: OwnerCalendarSlot | null) {
 }
 
 function isPastFreeSlot(slot: OwnerCalendarSlot | null | undefined) {
+  if (pending.value) return false
   return Boolean(slot && slot.displayStatus === 'FREE' && slotIsInPast(slot))
 }
 
@@ -4361,7 +4362,8 @@ watch(pilotNoCoach, (off) => {
                   />
                   <span v-if="hasSlotNote(cellSlot(court.id, hour))" class="canva-cal-grid-note" aria-hidden="true">★</span>
                   <span class="canva-cal-grid-cell-body">
-                    <span v-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
+                    <span v-if="pending && cellSlot(court.id, hour)?.displayStatus === 'FREE' && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label text-brand-gray-500">{{ t('common.loading') }}</span>
+                    <span v-else-if="isPastFreeSlot(cellSlot(court.id, hour)) && !isExternalOnlyOccupied(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ t('owner.slotPast') }}</span>
                     <span v-else-if="slotGuestLine(cellSlot(court.id, hour))" class="canva-cal-grid-cell-label">{{ slotGuestLine(cellSlot(court.id, hour)) }}</span>
                     <span
                       v-else-if="gridSlotShowsSelectCheck(cellSlot(court.id, hour)) && isSlotSelected(cellSlot(court.id, hour)!)"

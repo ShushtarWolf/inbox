@@ -636,6 +636,7 @@ async function submit(preferWallet = false) {
     const result = await createSeasonBookings({
       clubId: props.clubId!,
       courtId: singleSlotCourtId.value,
+      clubName: props.clubName,
       startDate: props.date,
       finishDate: seasonFinishDate.value,
       startTime: slot.startTime,
@@ -665,6 +666,7 @@ async function submit(preferWallet = false) {
     : undefined
   const result = await createCourtBookings({
     slotIds: props.slots.map((s) => s.id),
+    clubName: props.clubName,
     equipmentIds,
     equipmentQuantities: quantitiesPayload,
     discountCode: appliedDiscount.value?.kind === 'membership'

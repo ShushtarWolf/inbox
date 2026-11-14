@@ -10,9 +10,12 @@ export type AthleteCancelNoticeInput = {
   refundChannel?: 'wallet_closed_loop' | 'desk_cash' | 'gateway_reverse' | string | null
   reversePending?: boolean
   deskCashReturn?: 'owed' | 'returned' | string | null
+  /** Payment row amount — 0 means complimentary; never show wallet/refund copy. */
+  paymentAmount?: number | null
 }
 
 export type AthleteCancelNoticeKey =
+  | 'booking.refundZeroAmountCancelled'
   | 'booking.refundNoneCancelled'
   | 'booking.refundToWallet'
   | 'booking.refundCashAtClub'
@@ -28,6 +31,9 @@ export function athleteCancelNoticeKey(input: AthleteCancelNoticeInput): Athlete
     return 'booking.refundCashAtClub'
   }
   if (input.moneyOutcome === 'zero_refund') return 'booking.refundNoneCancelled'
+  if (typeof input.paymentAmount === 'number' && input.paymentAmount <= 0) {
+    return 'booking.refundZeroAmountCancelled'
+  }
   if (input.walletCredited) return 'booking.refundToWallet'
   if (input.gatewayRefunded || input.refundChannel === 'gateway_reverse') {
     return 'booking.refundAlreadyOnCard'
@@ -50,6 +56,7 @@ export type AthleteCancelConfirmKey =
   | 'booking.confirmCancelPartialRefund'
   | 'booking.confirmCancelCash'
   | 'booking.confirmCancelUnpaid'
+  | 'booking.confirmCancelZeroAmount'
 
 /** Paid at the club in cash (or marked cash by the owner) — refunds are the club's, never the wallet. */
 export function isCashPaidBooking(input: {
@@ -71,8 +78,17 @@ export function athleteCancelConfirmKey(input: {
   bookingPaymentMethod?: string | null
   paymentStatus?: string | null
   refundBps: number
+  /** Payment row amount — complimentary bookings skip wallet/refund wording. */
+  paymentAmount?: number | null
 }): AthleteCancelConfirmKey {
   if (isCashPaidBooking(input)) return 'booking.confirmCancelCash'
+  if (
+    input.paymentStatus === 'PAID'
+    && typeof input.paymentAmount === 'number'
+    && input.paymentAmount <= 0
+  ) {
+    return 'booking.confirmCancelZeroAmount'
+  }
   if (input.paymentStatus !== 'PAID') return 'booking.confirmCancelUnpaid'
   if (input.refundBps <= 0) return 'booking.confirmCancelNoRefund'
   if (input.refundBps < 10_000) return 'booking.confirmCancelPartialRefund'

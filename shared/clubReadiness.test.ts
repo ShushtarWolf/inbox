@@ -56,6 +56,17 @@ describe('clubCatalogPriceRange', () => {
     ])).toEqual({ priceFrom: 480000, priceTo: 600000 })
   })
 
+  it('treats complimentary courts as 0 in the catalog range', () => {
+    expect(clubCatalogPriceRange([{ price: 0 }, { price: 0 }])).toEqual({
+      priceFrom: 0,
+      priceTo: 0,
+    })
+    expect(clubCatalogPriceRange([{ price: 400000 }, { price: 0 }])).toEqual({
+      priceFrom: 0,
+      priceTo: 400000,
+    })
+  })
+
   it('includes time-band prices in the range', () => {
     const pricingJson = JSON.stringify({
       timeBands: [

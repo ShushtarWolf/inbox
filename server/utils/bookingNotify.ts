@@ -413,6 +413,15 @@ function adminBookingData(opts: BookingNotifyOpts) {
   }
 }
 
+/** Complimentary / 0-toman checkouts use confirmation copy, not the payment-receipt SMS. */
+export function isZeroAmountBookingNotify(opts: { amountPaid?: number | null }) {
+  return typeof opts.amountPaid === 'number' && opts.amountPaid <= 0
+}
+
+function guestFinalSmsTemplate(opts: BookingNotifyOpts): BookingSmsTemplate {
+  return isZeroAmountBookingNotify(opts) ? 'BOOKING_CONFIRMED' : 'BOOKING_PAID'
+}
+
 /** Booking created (platform creates as CONFIRMED). In-app when userId; email when address present.
  * Guest confirmation SMS is deferred to notifyBookingPaid — unpaid create only gets the pay-link SMS.
  */
@@ -479,15 +488,19 @@ export async function notifyBookingCancelled(opts: BookingNotifyOpts & { reason?
 /** Pay-at-club / wallet / online verified — notify linked athlete and/or guest phone. */
 export async function notifyBookingPaid(opts: BookingNotifyOpts) {
   const label = kindLabelFa(opts.kind)
-  const data = bookingNotifyData(opts)
+  const data = { ...bookingNotifyData(opts), paymentPaid: true }
+  const zeroAmount = isZeroAmountBookingNotify(opts)
+  const smsTemplate = guestFinalSmsTemplate(opts)
   let smsSent = false
   if (!opts.skipGuest) {
     if (opts.userId) {
       await safeInApp({
         userId: opts.userId,
-        type: 'BOOKING_PAID',
-        title: 'پرداخت ثبت شد',
-        body: `${label} در «${opts.clubName}» — ${whenLine(opts)} پرداخت شد`,
+        type: zeroAmount ? 'BOOKING_CONFIRMED' : 'BOOKING_PAID',
+        title: zeroAmount ? 'رزرو تایید شد' : 'پرداخت ثبت شد',
+        body: zeroAmount
+          ? `${label} در «${opts.clubName}» — ${whenLine(opts)}`
+          : `${label} در «${opts.clubName}» — ${whenLine(opts)} پرداخت شد`,
         metadata: {
           kind: opts.kind,
           clubId: opts.clubId,
@@ -497,16 +510,21 @@ export async function notifyBookingPaid(opts: BookingNotifyOpts) {
         },
       })
     }
-    await safeEmail(opts.email, 'BOOKING_PAID', data)
-    smsSent = await safeSms(opts.phone, 'BOOKING_PAID', data, opts.clubId)
+    await safeEmail(opts.email, smsTemplate, data)
+    smsSent = await safeSms(opts.phone, smsTemplate, data, opts.clubId)
   }
-  await notifyAdminSms('ADMIN_BOOKING_PAID', adminBookingData(opts), opts.clubId)
+  await notifyAdminSms(
+    zeroAmount ? 'ADMIN_BOOKING_CONFIRMED' : 'ADMIN_BOOKING_PAID',
+    adminBookingData(opts),
+    opts.clubId,
+  )
   return { smsSent }
 }
 
 /** Guest BOOKING_PAID SMS only — resend path, no in-app/email/admin repeats. */
 export function resendBookingPaidSms(opts: BookingNotifyOpts) {
-  return safeSms(opts.phone, 'BOOKING_PAID', bookingNotifyData(opts), opts.clubId)
+  const template = guestFinalSmsTemplate(opts)
+  return safeSms(opts.phone, template, { ...bookingNotifyData(opts), paymentPaid: true }, opts.clubId)
 }
 
 /**
