@@ -81,6 +81,15 @@ const sessionList = computed(() => {
   return d.session ? [d.session] : []
 })
 
+/** Lists with more than this many rows scroll in-place so total + pay stay on screen. */
+const RECEIPT_LINE_LIST_SCROLL_AFTER = 4
+
+const sessionsListScrollable = computed(() => sessionList.value.length > RECEIPT_LINE_LIST_SCROLL_AFTER)
+
+const equipmentsListScrollable = computed(
+  () => (data.value?.equipments?.length ?? 0) > RECEIPT_LINE_LIST_SCROLL_AFTER,
+)
+
 /** Paid booking, or bank-return success before refresh catches up — never show the red pay CTA. */
 const isPaid = computed(() => {
   const d = data.value
@@ -245,30 +254,46 @@ async function pay() {
             </p>
           </div>
 
-          <h2 class="mt-5 mb-2.5 text-[15px] font-extrabold">{{ t('booking.receiptSessions') }}</h2>
-          <div
-            v-for="(session, idx) in sessionList"
-            :key="`${session.date}-${session.startTime}-${idx}`"
-            class="receipt-player-sess mb-2 flex flex-wrap items-center gap-3"
-          >
-            <span v-if="session.courtName" class="receipt-player-field">{{ session.courtName }}</span>
-            <span class="text-[13px] font-semibold">{{ session.date }}</span>
-            <span class="text-[12.5px] text-[#55534E]">
-              <bdi dir="ltr">{{ sessionTime(session) }}</bdi>
-            </span>
-            <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(session.price) }}</span>
+          <h2 class="receipt-player-list-heading mt-5 mb-2.5 text-[15px] font-extrabold">
+            <span>{{ t('booking.receiptSessions') }}</span>
+            <span
+              v-if="sessionList.length > 1"
+              class="text-[12px] font-semibold text-[#8C8A84] tabular-nums"
+            >{{ formatNumber(sessionList.length) }}</span>
+          </h2>
+          <div :class="sessionsListScrollable ? 'receipt-player-list-scroll' : undefined">
+            <div
+              v-for="(session, idx) in sessionList"
+              :key="`${session.date}-${session.startTime}-${idx}`"
+              class="receipt-player-sess mb-2 flex flex-wrap items-center gap-3"
+            >
+              <span v-if="session.courtName" class="receipt-player-field">{{ session.courtName }}</span>
+              <span class="text-[13px] font-semibold">{{ session.date }}</span>
+              <span class="text-[12.5px] text-[#55534E]">
+                <bdi dir="ltr">{{ sessionTime(session) }}</bdi>
+              </span>
+              <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(session.price) }}</span>
+            </div>
           </div>
 
           <template v-if="data.equipments?.length">
-            <h2 class="mt-5 mb-2.5 text-[15px] font-extrabold">{{ t('booking.receiptEquipments') }}</h2>
-            <div
-              v-for="(item, idx) in data.equipments"
-              :key="`${item.name}-${idx}`"
-              class="receipt-player-sess mb-2 flex flex-wrap items-center gap-3"
-            >
-              <span class="text-[13px] font-semibold">{{ item.name }}</span>
-              <span class="text-[12.5px] text-[#55534E] tabular-nums">× {{ formatNumber(item.quantity) }}</span>
-              <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(item.price) }}</span>
+            <h2 class="receipt-player-list-heading mt-5 mb-2.5 text-[15px] font-extrabold">
+              <span>{{ t('booking.receiptEquipments') }}</span>
+              <span
+                v-if="data.equipments.length > 1"
+                class="text-[12px] font-semibold text-[#8C8A84] tabular-nums"
+              >{{ formatNumber(data.equipments.length) }}</span>
+            </h2>
+            <div :class="equipmentsListScrollable ? 'receipt-player-list-scroll' : undefined">
+              <div
+                v-for="(item, idx) in data.equipments"
+                :key="`${item.name}-${idx}`"
+                class="receipt-player-sess mb-2 flex flex-wrap items-center gap-3"
+              >
+                <span class="text-[13px] font-semibold">{{ item.name }}</span>
+                <span class="text-[12.5px] text-[#55534E] tabular-nums">× {{ formatNumber(item.quantity) }}</span>
+                <span class="ms-auto text-sm font-extrabold tabular-nums">{{ formatCurrency(item.price) }}</span>
+              </div>
             </div>
           </template>
 
@@ -415,6 +440,38 @@ async function pay() {
   padding: 14px 16px;
   background: #FAF9F6;
   border-radius: 0;
+}
+.receipt-player-list-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  letter-spacing: 0;
+}
+.receipt-player-list-scroll {
+  position: relative;
+  max-height: min(320px, 40vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #ECE9E4;
+  background: #FAF9F6;
+  padding: 2px 2px 0;
+  border-radius: 0;
+  scrollbar-gutter: stable;
+}
+.receipt-player-list-scroll::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 18px;
+  margin-top: -18px;
+  pointer-events: none;
+  background: linear-gradient(to top, #FAF9F6 35%, rgba(250, 249, 246, 0));
+}
+.receipt-player-list-scroll .receipt-player-sess:last-child {
+  margin-bottom: 8px;
 }
 .receipt-player-sess {
   border: 1px solid #ECE9E4;
