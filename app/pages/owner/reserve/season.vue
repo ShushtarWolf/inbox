@@ -9,7 +9,8 @@ import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
 import { addDaysToIsoDate } from '#shared/localDate.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
 import { computeListedSlotPrice } from '#shared/courtPricing.ts'
-import { formatGuestDisplayName } from '#shared/guestName.ts'
+import { resolveLinkedGuestDisplayName } from '#shared/guestName.ts'
+import type { GuestSearchHit } from '#shared/guestSearch.ts'
 import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
 import { seasonEditLocksStart } from '#shared/rangePick.ts'
 
@@ -84,6 +85,46 @@ const {
   guestFamilyInput,
   guestMobileInput,
 })
+
+/** Registered User.name/nameFamily for this mobile (confirm step / desk typos). */
+const linkedAccountFromPhone = ref<{ userName: string; userNameFamily: string } | null>(null)
+let linkedPhoneLookup = 0
+
+async function refreshLinkedAccountFromPhone() {
+  const phone = normalizeIranPhone(guestMobile.value)
+  if (!phone || phone.length < 10) {
+    linkedAccountFromPhone.value = null
+    return
+  }
+  const requestId = ++linkedPhoneLookup
+  try {
+    const res = await $fetch<{ guests: GuestSearchHit[] }>('/api/owner/guests/search', {
+      query: { q: phone, field: 'mobile' },
+    })
+    if (requestId !== linkedPhoneLookup) return
+    const userHit = res.guests?.find((g) => g.source === 'user')
+    linkedAccountFromPhone.value = userHit
+      ? { userName: userHit.guestName, userNameFamily: userHit.guestFamily }
+      : null
+  }
+  catch {
+    if (requestId === linkedPhoneLookup) linkedAccountFromPhone.value = null
+  }
+}
+
+watch(guestMobile, () => {
+  void refreshLinkedAccountFromPhone()
+})
+
+const seasonGuestDisplayName = computed(() =>
+  resolveLinkedGuestDisplayName({
+    guestName: guestName.value,
+    guestFamily: guestFamily.value,
+    userName: linkedAccountFromPhone.value?.userName,
+    userNameFamily: linkedAccountFromPhone.value?.userNameFamily,
+  }) || '—',
+)
+
 const startDate = ref('')
 const finishDate = ref('')
 const comments = ref('')
@@ -691,7 +732,7 @@ const successBody = computed(() => {
       removed: formatNumber(lastEditResult.value.removed),
     })
   }
-  const name = formatGuestDisplayName(guestName.value, guestFamily.value) || '—'
+  const name = seasonGuestDisplayName.value
   const count = formatNumber(slotsCreated.value)
   const amount = formatCurrency(totalAmount.value)
   const phone = guestMobile.value ? formatPhone(guestMobile.value) : '—'
@@ -1002,7 +1043,7 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
         <div class="season-wiz-strip grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <div>
             <span>{{ t('owner.seasonPage.stripPlayer') }}</span>
-            <b>{{ formatGuestDisplayName(guestName, guestFamily) || '—' }}</b>
+            <b>{{ seasonGuestDisplayName }}</b>
           </div>
           <div>
             <span>{{ t('owner.guestMobile') }}</span>

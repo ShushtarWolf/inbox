@@ -1,4 +1,5 @@
 import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
+import { findUserByPhone } from '../../../utils/phoneAuth'
 import type { SeasonSessionOccurrence, SeasonSessionRule } from '#shared/seasonSessions.ts'
 import { parseSeasonTimesJson, weekdayNameFromDate } from '#shared/recurringSessions.ts'
 import { legacySeasonToRules, seasonRulesFromOccurrences } from '#shared/seasonSessions.ts'
@@ -71,7 +72,12 @@ export default defineEventHandler(async (event) => {
     ? [...new Set(rules.map((rule) => rule.weekday))]
     : [...new Set(sessions.map((s) => weekdayNameFromDate(s.date)).filter(Boolean))]
 
-  const guest = resolveSeasonGuestFields(row)
+  const linkedUser = await findUserByPhone(row.guestMobile)
+  const guest = resolveSeasonGuestFields({
+    ...row,
+    userName: linkedUser?.name,
+    userNameFamily: linkedUser?.nameFamily,
+  })
 
   return {
     season: {

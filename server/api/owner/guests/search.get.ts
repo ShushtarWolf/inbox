@@ -157,6 +157,22 @@ export default defineEventHandler(async (event) => {
     }))
   }
 
+  if (field === 'mobile' && phoneHint.length >= 10) {
+    const registered = await prisma.user.findUnique({
+      where: { phone: phoneHint },
+      select: { name: true, nameFamily: true, phone: true },
+    })
+    if (registered) {
+      const parts = userToGuestNamePair(registered)
+      pushUnique(map, buildGuestSearchHit({
+        guestName: parts.guestName,
+        guestFamily: parts.guestFamily,
+        mobile: registered.phone || phoneHint,
+        source: 'user',
+      }))
+    }
+  }
+
   const guests = [...map.values()]
     .filter((item) => item.name || item.mobile)
     .slice(0, limit)

@@ -45,14 +45,37 @@ export async function isPhoneRegistered(phoneRaw: string): Promise<boolean> {
 /** Resolve registered user id+name when the mobile matches User.phone. */
 export async function findUserByPhone(
   phoneRaw: string | null | undefined,
-): Promise<{ id: string; name: string } | null> {
+): Promise<{ id: string; name: string | null; nameFamily: string | null } | null> {
   const phone = normalizeIranPhone(phoneRaw)
   if (!phone) return null
   const existing = await prisma.user.findUnique({
     where: { phone },
-    select: { id: true, name: true },
+    select: { id: true, name: true, nameFamily: true },
   })
   return existing
+}
+
+/** Batch lookup for season list / desk flows (keys are normalized User.phone). */
+export async function findUsersByPhones(
+  phones: Array<string | null | undefined>,
+): Promise<Map<string, { name: string | null; nameFamily: string | null }>> {
+  const normalized = [
+    ...new Set(
+      phones
+        .map((p) => normalizeIranPhone(p))
+        .filter((p): p is string => Boolean(p)),
+    ),
+  ]
+  if (!normalized.length) return new Map()
+  const users = await prisma.user.findMany({
+    where: { phone: { in: normalized } },
+    select: { phone: true, name: true, nameFamily: true },
+  })
+  const map = new Map<string, { name: string | null; nameFamily: string | null }>()
+  for (const user of users) {
+    if (user.phone) map.set(user.phone, { name: user.name, nameFamily: user.nameFamily })
+  }
+  return map
 }
 
 /** Link desk/guest bookings to a registered athlete when the mobile matches User.phone. */
