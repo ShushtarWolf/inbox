@@ -120,6 +120,8 @@ export async function previewSeasonEditDiff(opts: {
     keptPast: diff.keptPast.length,
     addedRanges: aggregateSeasonUnits(diff.added),
     removedRanges: aggregateSeasonUnits(diff.removed),
+    /** Per-hour units classified as added (for step-3 UI billing). */
+    addedSessions: diff.added,
   }
 }
 

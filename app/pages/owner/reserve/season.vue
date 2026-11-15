@@ -12,6 +12,13 @@ import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
 import { seasonEditLocksStart } from '#shared/rangePick.ts'
+import { seasonUnitKey } from '#shared/seasonEditDiff.ts'
+import {
+  expandSeasonUnitRanges,
+  seasonEditAddedKeySet,
+  seasonEditStep3NeedsPayment,
+  seasonEditStep3SaveOnly,
+} from '#shared/seasonEditPreview.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -42,6 +49,9 @@ type RuleRow = {
 
 type SessionListRow =
   | { kind: 'free'; index: number; row: PreviewRow }
+  | { kind: 'added'; index: number; row: PreviewRow }
+  | { kind: 'unchanged'; index: number; row: PreviewRow }
+  | { kind: 'removed'; row: PreviewRow }
   | { kind: 'conflict'; row: ConflictRow }
 
 const step = ref<1 | 2 | 3>(1)
@@ -93,9 +103,19 @@ const occurrences = ref<PreviewRow[]>([])
 const conflicts = ref<ConflictRow[]>([])
 const totalAmount = ref(0)
 type EditRange = { date: string; courtId: string; startTime: string; endTime: string; hours: number }
-type EditDiffSummary = { unchanged: number; added: number; removed: number; keptPast?: number; addedRanges?: EditRange[]; removedRanges?: EditRange[] }
+type EditDiffSummary = {
+  unchanged: number
+  added: number
+  removed: number
+  keptPast?: number
+  addedRanges?: EditRange[]
+  removedRanges?: EditRange[]
+  addedSessions?: Array<{ date: string; startTime: string; courtId: string }>
+}
 /** Edit flow: what save will change (unchanged hours keep their booking and payment). */
 const editDiff = ref<EditDiffSummary | null>(null)
+/** Unit keys for newly added hours (edit preview); unchanged keys are everything else in occurrences. */
+const editAddedKeys = ref<Set<string>>(new Set())
 const lastEditResult = ref<EditDiffSummary | null>(null)
 const discountInput = ref('')
 const discountApplying = ref(false)
@@ -182,7 +202,7 @@ function toggleCourt(rule: RuleRow, courtId: string) {
 
 function removeOccurrence(index: number) {
   occurrences.value = occurrences.value.filter((_, i) => i !== index)
-  totalAmount.value = occurrences.value.reduce((sum, row) => sum + (row.price || 0), 0)
+  totalAmount.value = billableOccurrences.value.reduce((sum, row) => sum + (row.price || 0), 0)
 }
 
 const ownerClubId = computed(() => {
@@ -192,8 +212,14 @@ const ownerClubId = computed(() => {
     || ''
 })
 
+const billableOccurrences = computed(() => {
+  if (!editingSeasonId.value) return occurrences.value
+  if (!editAddedKeys.value.size) return []
+  return occurrences.value.filter((row) => editAddedKeys.value.has(seasonUnitKey(row)))
+})
+
 const seasonSubtotal = computed(() =>
-  occurrences.value.reduce((sum, row) => sum + (row.price || 0), 0),
+  billableOccurrences.value.reduce((sum, row) => sum + (row.price || 0), 0),
 )
 
 const seasonDeskCharge = computed(() => resolveDeskCharge({
@@ -255,9 +281,14 @@ const datesValid = computed(() =>
   Boolean(startDate.value && finishDate.value && !dateRangeInvalid.value),
 )
 
-/** Edit that only cancels future hours (e.g. end moved before the next session). */
-const editRemovesOnly = computed(() =>
-  Boolean(editingSeasonId.value && editDiff.value && editDiff.value.removed > 0))
+const editNeedsPayment = computed(() =>
+  seasonEditStep3NeedsPayment(Boolean(editingSeasonId.value), editDiff.value))
+
+const editSaveOnly = computed(() =>
+  seasonEditStep3SaveOnly(Boolean(editingSeasonId.value), editDiff.value))
+
+const editHasSessionChanges = computed(() =>
+  Boolean(editDiff.value && (editDiff.value.added > 0 || editDiff.value.removed > 0)))
 
 const rangeHintText = computed(() =>
   startLocked.value ? t('owner.seasonPage.editStartLocked') : t('owner.seasonPage.rangeHint'))
@@ -501,9 +532,20 @@ async function runPreview() {
     occurrences.value = [...(preview.willCreate || [])]
     // Edit: past hours of this season are kept untouched — not "skipped" sessions.
     conflicts.value = (preview.conflicts || []).filter((row) => !(editingSeasonId.value && row.reason === 'PAST'))
-    totalAmount.value = preview.totalAmount || occurrences.value.reduce((s, r) => s + (r.price || 0), 0)
+    const addedFromPreview = preview.editDiff?.addedSessions || []
+    const addedSubtotal = addedFromPreview.reduce((sum, u) => {
+      const row = (preview.willCreate || []).find((w) => seasonUnitKey(w) === seasonUnitKey(u))
+      return sum + (row?.price || 0)
+    }, 0)
+    totalAmount.value = editingSeasonId.value
+      ? addedSubtotal
+      : (preview.totalAmount || occurrences.value.reduce((s, r) => s + (r.price || 0), 0))
     editDiff.value = preview.editDiff || null
-    if (!occurrences.value.length && !editRemovesOnly.value) {
+    editAddedKeys.value = seasonEditAddedKeySet(preview.editDiff?.addedSessions || [])
+    const canEnterStep3 = occurrences.value.length > 0
+      || conflicts.value.length > 0
+      || editHasSessionChanges.value
+    if (!canEnterStep3) {
       formError.value = t('owner.seasonPage.noFreeSlots')
       return
     }
@@ -520,7 +562,7 @@ async function runPreview() {
 async function confirmReserve(mode: 'cash' | 'unpaid') {
   formError.value = ''
   syncGuestFieldsFromDom()
-  if (!occurrences.value.length && !editRemovesOnly.value) {
+  if (!occurrences.value.length && !editSaveOnly.value && !editHasSessionChanges.value) {
     formError.value = t('owner.seasonPage.noFreeSlots')
     return
   }
@@ -611,9 +653,17 @@ const localExpandCount = computed(() => {
 })
 
 const sessionList = computed((): SessionListRow[] => {
-  const free: SessionListRow[] = occurrences.value.map((row, index) => ({ kind: 'free', index, row }))
+  const desired: SessionListRow[] = occurrences.value.map((row, index) => {
+    if (!editingSeasonId.value) return { kind: 'free' as const, index, row }
+    return editAddedKeys.value.has(seasonUnitKey(row))
+      ? { kind: 'added' as const, index, row }
+      : { kind: 'unchanged' as const, index, row }
+  })
+  const removed: SessionListRow[] = editingSeasonId.value && editDiff.value?.removedRanges?.length
+    ? expandSeasonUnitRanges(editDiff.value.removedRanges).map((row) => ({ kind: 'removed' as const, row }))
+    : []
   const busy: SessionListRow[] = conflicts.value.map((row) => ({ kind: 'conflict', row }))
-  return [...free, ...busy].sort((a, b) =>
+  return [...desired, ...removed, ...busy].sort((a, b) =>
     a.row.date.localeCompare(b.row.date) || a.row.startTime.localeCompare(b.row.startTime))
 })
 
@@ -640,34 +690,60 @@ const previewWeeks = computed(() => {
 })
 
 const step3Banner = computed(() => {
-  const free = occurrences.value.length
   const skip = conflicts.value.length
-  if (!free && !skip && editRemovesOnly.value) {
-    return { tone: 'warn' as const, text: editDiffSummaryText.value }
+  if (editingSeasonId.value && editDiff.value) {
+    const { added, removed, unchanged } = editDiff.value
+    if (added === 0 && removed > 0 && unchanged >= 0) {
+      return { tone: 'warn' as const, text: editDiffSummaryText.value }
+    }
+    if (added > 0 || removed > 0) {
+      return { tone: 'ok' as const, text: editDiffSummaryText.value }
+    }
   }
-  if (!free && !skip) {
+  const billable = billableOccurrences.value.length
+  const displayCount = editingSeasonId.value ? billable : occurrences.value.length
+  if (!displayCount && !skip && !occurrences.value.length) {
     return { tone: 'err' as const, text: t('owner.seasonPage.bannerEmpty') }
   }
   if (skip) {
     return {
       tone: 'warn' as const,
       text: t('owner.seasonPage.previewSummary', {
-        create: formatNumber(free),
+        create: formatNumber(displayCount),
         skip: formatNumber(skip),
       }),
     }
   }
+  if (editingSeasonId.value && editDiff.value) {
+    return { tone: 'ok' as const, text: editDiffSummaryText.value }
+  }
   return {
     tone: 'ok' as const,
-    text: t('owner.seasonPage.bannerOk', { count: formatNumber(free) }),
+    text: t('owner.seasonPage.bannerOk', { count: formatNumber(displayCount) }),
   }
 })
 
-const successTitle = computed(() =>
-  lastPayMode.value === 'cash'
+function sessionPillClass(item: SessionListRow) {
+  if (item.kind === 'conflict') return 'is-conf'
+  if (item.kind === 'removed') return 'is-removed'
+  if (item.kind === 'unchanged') return 'is-kept'
+  return 'is-ok'
+}
+
+function sessionPillRemovable(item: SessionListRow) {
+  return item.kind === 'free' || item.kind === 'added' || item.kind === 'unchanged'
+}
+
+async function confirmEditSave() {
+  await confirmReserve('cash')
+}
+
+const successTitle = computed(() => {
+  if (lastEditResult.value) return t('owner.seasonPage.editSavedTitle')
+  return lastPayMode.value === 'cash'
     ? t('owner.seasonPage.successCashTitle')
-    : t('owner.seasonPage.successLinkTitle'),
-)
+    : t('owner.seasonPage.successLinkTitle')
+})
 
 function editRangeLabel(range: EditRange) {
   return `${formatDate(range.date)} ${courtNameById(range.courtId)} ${formatTimeLabel(range.startTime)}–${formatTimeLabel(range.endTime)}`
@@ -1047,21 +1123,25 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                 </span>
                 <div
                   v-for="(item, idx) in cell.items"
-                  :key="item.kind === 'free'
-                    ? `f-${item.row.courtId}-${item.row.startTime}-${item.index}`
-                    : `c-${item.row.courtId || ''}-${item.row.startTime}-${idx}`"
+                  :key="item.kind === 'conflict'
+                    ? `c-${item.row.courtId || ''}-${item.row.startTime}-${idx}`
+                    : `${item.kind}-${item.row.courtId}-${item.row.startTime}-${'index' in item ? item.index : idx}`"
                   class="season-wiz-pill"
-                  :class="item.kind === 'free' ? 'is-ok' : 'is-conf'"
-                  :title="item.kind === 'free'
-                    ? (item.row.price != null ? formatCurrency(item.row.price) : '')
-                    : t('owner.seasonPage.badgeConflict', {
+                  :class="sessionPillClass(item)"
+                  :title="item.kind === 'conflict'
+                    ? t('owner.seasonPage.badgeConflict', {
                       reason: t(`owner.seasonPage.conflictReason.${item.row.reason}`),
-                    })"
+                    })
+                    : item.kind === 'removed'
+                      ? t('owner.seasonPage.badgeRemoved')
+                      : item.kind === 'unchanged'
+                        ? t('owner.seasonPage.badgeKept')
+                        : (item.row.price != null ? formatCurrency(item.row.price) : '')"
                 >
                   <div class="flex items-center justify-between gap-1">
                     <bdi dir="ltr" class="font-bold tabular-nums">{{ formatTimeLabel(item.row.startTime) }}</bdi>
                     <button
-                      v-if="item.kind === 'free'"
+                      v-if="sessionPillRemovable(item)"
                       type="button"
                       class="season-wiz-pill-x"
                       :aria-label="t('common.remove')"
@@ -1074,23 +1154,56 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
                   <span v-if="item.kind === 'conflict'" class="block truncate">
                     {{ t(`owner.seasonPage.conflictReason.${item.row.reason}`) }}
                   </span>
+                  <span v-else-if="item.kind === 'removed'" class="block truncate text-red-700">
+                    {{ t('owner.seasonPage.badgeRemoved') }}
+                  </span>
+                  <span v-else-if="item.kind === 'unchanged'" class="block truncate text-[#55534E]">
+                    {{ t('owner.seasonPage.badgeKept') }}
+                  </span>
+                  <span v-else-if="item.kind === 'added'" class="block truncate text-emerald-800">
+                    {{ t('owner.seasonPage.badgeAdded') }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-4 text-xs text-[#55534E]">
-          <span class="inline-flex items-center gap-1.5">
-            <i class="season-wiz-lg season-wiz-pill-lg is-ok" aria-hidden="true" />
-            {{ t('owner.seasonPage.badgeFree') }}
-          </span>
+          <template v-if="editingSeasonId">
+            <span class="inline-flex items-center gap-1.5">
+              <i class="season-wiz-lg season-wiz-pill-lg is-kept" aria-hidden="true" />
+              {{ t('owner.seasonPage.badgeKept') }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="season-wiz-lg season-wiz-pill-lg is-ok" aria-hidden="true" />
+              {{ t('owner.seasonPage.badgeAdded') }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="season-wiz-lg season-wiz-pill-lg is-removed" aria-hidden="true" />
+              {{ t('owner.seasonPage.badgeRemoved') }}
+            </span>
+          </template>
+          <template v-else>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="season-wiz-lg season-wiz-pill-lg is-ok" aria-hidden="true" />
+              {{ t('owner.seasonPage.badgeFree') }}
+            </span>
+          </template>
           <span class="inline-flex items-center gap-1.5">
             <i class="season-wiz-lg season-wiz-pill-lg is-conf" aria-hidden="true" />
             {{ t('owner.seasonPage.legendConflict') }}
           </span>
         </div>
 
-        <div class="canva-confirm-book-discount mt-4 text-start">
+        <p
+          v-if="editingSeasonId && editDiff && editDiff.removed > 0"
+          class="text-start text-xs text-[#55534E] leading-6"
+          role="note"
+        >
+          {{ t('owner.seasonPage.editRefundNote') }}
+        </p>
+
+        <div v-if="!editSaveOnly" class="canva-confirm-book-discount mt-4 text-start">
           <div class="canva-confirm-book-discount-row">
             <input
               v-model="discountInput"
@@ -1152,33 +1265,52 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           </span>
           <span class="tabular-nums" dir="ltr">−{{ formatCurrency(seasonDiscountAmount) }}</span>
         </div>
-        <div class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4">
-          <span class="text-sm font-semibold text-[#55534E]">{{ t('owner.seasonPage.totalFree') }}</span>
+        <div
+          v-if="editNeedsPayment || !editingSeasonId"
+          class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4"
+        >
+          <span class="text-sm font-semibold text-[#55534E]">
+            {{ editingSeasonId ? t('owner.seasonPage.totalAdded') : t('owner.seasonPage.totalFree') }}
+          </span>
           <b class="text-[21px] font-extrabold tabular-nums">{{ formatCurrency(seasonPayTotal) }}</b>
         </div>
-        <p class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.onePaymentHint') }}</p>
+        <p v-if="editSaveOnly" class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.editSaveHint') }}</p>
+        <p v-else-if="editNeedsPayment" class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.editPaymentHint') }}</p>
+        <p v-else-if="!editingSeasonId" class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.onePaymentHint') }}</p>
 
         <div class="season-wiz-actions flex flex-wrap gap-3 border-t border-[#ECE9E4] pt-5">
           <button type="button" class="season-wiz-btn season-wiz-btn-ghost" :disabled="saving" @click="goStep(2)">
             {{ t('common.back') }}
           </button>
           <span class="flex-1" />
-          <button
-            type="button"
-            class="season-wiz-btn season-wiz-btn-primary"
-            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
-            @click="confirmReserve('cash')"
-          >
-            {{ saving ? t('common.loading') : t('owner.payCash') }}
-          </button>
-          <button
-            type="button"
-            class="season-wiz-btn season-wiz-btn-dark"
-            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
-            @click="confirmReserve('unpaid')"
-          >
-            {{ saving ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
-          </button>
+          <template v-if="editSaveOnly">
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-primary"
+              :disabled="saving || !editHasSessionChanges"
+              @click="confirmEditSave"
+            >
+              {{ saving ? t('common.loading') : t('owner.seasonPage.saveChanges') }}
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-primary"
+              :disabled="saving || (!billableOccurrences.length && !occurrences.length && !editHasSessionChanges)"
+              @click="confirmReserve('cash')"
+            >
+              {{ saving ? t('common.loading') : t('owner.payCash') }}
+            </button>
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-dark"
+              :disabled="saving || (!billableOccurrences.length && !occurrences.length && !editHasSessionChanges)"
+              @click="confirmReserve('unpaid')"
+            >
+              {{ saving ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
+            </button>
+          </template>
         </div>
       </div>
     </section>
@@ -1418,6 +1550,20 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
   background: #FDEDEE;
   border-color: #F8D8DA;
   color: #C0141F;
+}
+.season-wiz-pill.is-kept,
+.season-wiz-pill-lg.is-kept {
+  background: #F4F2EE;
+  border-color: #E0DDD6;
+  color: #55534E;
+}
+.season-wiz-pill.is-removed,
+.season-wiz-pill-lg.is-removed {
+  background: #FDEDEE;
+  border-color: #F0C8CB;
+  color: #A10F19;
+  text-decoration: line-through;
+  opacity: 0.9;
 }
 .season-wiz-pill.is-conf {
   text-decoration: line-through;
