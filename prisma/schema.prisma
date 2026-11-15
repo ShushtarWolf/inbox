@@ -530,6 +530,8 @@ model Club {
   priceFrom Int     @default(500000)
   image     String?
   featured  Boolean @default(false)
+  /** When true: direct /clubs/:slug still works; hidden from public directory APIs and sitemap. */
+  isUnlisted Boolean @default(false)
   status    ClubStatus @default(ACTIVE)
   openHour  Int     @default(8)
   closeHour Int     @default(22)

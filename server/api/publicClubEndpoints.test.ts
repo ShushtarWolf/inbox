@@ -19,6 +19,7 @@ const fullClub = {
   priceTo: 600000,
   image: null,
   featured: false,
+  isUnlisted: false,
   status: 'ACTIVE',
   openHour: 7,
   closeHour: 23,

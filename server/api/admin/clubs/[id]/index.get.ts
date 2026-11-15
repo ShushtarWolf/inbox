@@ -82,6 +82,7 @@ export default defineEventHandler(async (event) => {
     district: club.district,
     addressFa: club.addressFa,
     status: club.status,
+    isUnlisted: club.isUnlisted,
     phone: club.phone,
     openHour: club.openHour,
     closeHour: club.closeHour,

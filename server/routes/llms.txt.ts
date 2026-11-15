@@ -1,3 +1,4 @@
+import { PUBLIC_CLUB_DIRECTORY_WHERE } from '#shared/clubDirectory.ts'
 import { buildLlmsTxt } from '#shared/llmsTxt.ts'
 import { slugify } from '../utils/slug'
 
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const pilotNoCoach = isCoachProductDisabled(event)
 
   const clubs = await prisma.club.findMany({
-    where: { status: 'ACTIVE' },
+    where: PUBLIC_CLUB_DIRECTORY_WHERE,
     select: {
       slug: true,
       nameFa: true,

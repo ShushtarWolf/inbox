@@ -1,3 +1,4 @@
+import { PUBLIC_CLUB_DIRECTORY_WHERE } from '#shared/clubDirectory.ts'
 import { listGeoSportHubPaths } from '#shared/geoSportHubs.ts'
 import { slugify } from '../utils/slug'
 
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
   ]
 
   const clubs = await prisma.club.findMany({
-    where: { status: 'ACTIVE' },
+    where: PUBLIC_CLUB_DIRECTORY_WHERE,
     select: { slug: true },
     orderBy: { slug: 'asc' },
   })

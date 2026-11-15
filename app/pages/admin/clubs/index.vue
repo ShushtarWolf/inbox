@@ -13,6 +13,7 @@ type ClubRow = {
   nameEn: string
   city: string
   status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
+  isUnlisted: boolean
   owner: { id: string; email: string; name: string; disabledAt: string | null } | null
   courtCount: number
   bookingCount: number
@@ -130,6 +131,13 @@ watch(statusFilter, () => {
                 <NuxtLink :to="localePath(`/admin/clubs/${club.id}`)" class="font-bold text-brand-navy underline">
                   {{ localizedField(club, 'nameFa', 'nameEn') }}
                 </NuxtLink>
+                <span
+                  v-if="club.isUnlisted"
+                  class="ms-1 inline-block bg-brand-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-brand-navy"
+                  style="border-radius: 2px;"
+                >
+                  {{ t('admin.clubUnlistedBadge') }}
+                </span>
                 <div class="text-xs text-brand-gray-600" dir="ltr">{{ club.slug }}</div>
               </td>
               <td class="p-3">{{ club.city }}</td>
