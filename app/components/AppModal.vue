@@ -165,8 +165,11 @@ const KEYBOARD_OPEN_MIN_INSET = 120
 
 function setKeyboardOpenFlag(open: boolean) {
   if (!import.meta.client) return
-  if (open) document.documentElement.setAttribute('data-app-keyboard', 'open')
-  else document.documentElement.removeAttribute('data-app-keyboard')
+  // Compact owner-sheet layout is for iOS software keyboard — not desktop/laptop viewports
+  // where visualViewport jitter can falsely set data-app-keyboard=open and break flex inputs.
+  const touchPrimary = window.matchMedia('(pointer: coarse)').matches
+  if (!open || !touchPrimary) document.documentElement.removeAttribute('data-app-keyboard')
+  else document.documentElement.setAttribute('data-app-keyboard', 'open')
 }
 
 function getFocusableElements(root: HTMLElement) {

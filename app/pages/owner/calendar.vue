@@ -38,6 +38,8 @@ import {
 import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSearch.ts'
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
+import { mergeGuestMobileFromDom, applyGuestMobileInput } from '#shared/ownerDeskGuestForm.ts'
+import { shouldExitBookedSelectForFreeSlot } from '#shared/ownerCalendarSelection.ts'
 import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
 import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
@@ -255,7 +257,9 @@ const form = reactive({
   coachId: '',
 })
 
-watchAsciiDigits(() => form.guestMobile, (next) => { form.guestMobile = next })
+const guestNameInput = ref<HTMLInputElement | null>(null)
+const guestFamilyInput = ref<HTMLInputElement | null>(null)
+const guestMobileInput = ref<HTMLInputElement | null>(null)
 
 const deskPaymentHint = ref('')
 /** Suppress payment-form sync while confirmDeskPay applies mode + calls the API. */
@@ -602,6 +606,9 @@ function clearLongPressTimer() {
 
 function onSlotPointerDown(slot: OwnerCalendarSlot) {
   if (slot.displayStatus !== 'FREE') return
+  if (shouldExitBookedSelectForFreeSlot(bookedSelectMode.value, slot.displayStatus)) {
+    exitBookedSelectMode()
+  }
   longPressFired = false
   clearLongPressTimer()
   longPressTimer = setTimeout(() => {
@@ -1151,7 +1158,21 @@ function onGuestNameFieldInput() {
   scheduleGuestSearch(formatGuestDisplayName(form.guestName, form.guestFamily))
 }
 
-function onGuestMobileInput() {
+function syncGuestFieldsFromDom() {
+  if (!import.meta.client) return
+  const nameEl = guestNameInput.value
+  const familyEl = guestFamilyInput.value
+  const mobileEl = guestMobileInput.value
+  if (nameEl?.value.trim()) form.guestName = nameEl.value
+  if (familyEl?.value.trim()) form.guestFamily = familyEl.value
+  if (mobileEl) {
+    form.guestMobile = mergeGuestMobileFromDom(form.guestMobile, mobileEl.value)
+  }
+}
+
+function onGuestMobileInput(event: Event) {
+  const raw = (event.target as HTMLInputElement).value
+  form.guestMobile = applyGuestMobileInput(raw)
   guestSearchSource.value = 'mobile'
   scheduleGuestSearch(form.guestMobile)
 }
@@ -1508,7 +1529,9 @@ function handleSlotClick(slot: OwnerCalendarSlot | null | undefined) {
     openBookedSlot(fullSlot)
     return
   }
-  if (bookedSelectMode.value) return
+  if (shouldExitBookedSelectForFreeSlot(bookedSelectMode.value, fullSlot.displayStatus)) {
+    exitBookedSelectMode()
+  }
   // Whole FREE cell toggles multi-select; reserve/block open via the selection bar.
   bookedSiblingIds.value = []
   multiSelectMode.value = true
@@ -1689,6 +1712,7 @@ function onDeskPercentInput() {
 }
 
 function openPayConfirm() {
+  syncGuestFieldsFromDom()
   if (!canSubmitReserve()) return
   pendingRecurringPay.value = null
   deskDiscountInput.value = ''
@@ -2289,6 +2313,9 @@ function openEquipmentForm() {
 
 function closeMenu() {
   showMenu.value = false
+  if (!selectedSlotIds.value.length) {
+    bookedSelectMode.value = false
+  }
   resetPanels()
   clearRecurringPreview()
   resetBlockWeeklyState()
@@ -2598,6 +2625,7 @@ function guestNamePayload() {
 }
 
 async function doReserve(opts?: { skipDeskPaymentPrecheck?: boolean }) {
+  syncGuestFieldsFromDom()
   const targets = slotsForReserve()
   if (!targets.length) {
     actionError.value = t('owner.deskPaymentNoSlots')
@@ -3714,11 +3742,13 @@ function isNewReservation() {
 }
 
 function guestFieldsValid() {
+  syncGuestFieldsFromDom()
   // Canva single full-name field → family may be empty for one-word names.
   return Boolean(form.guestName.trim() && normalizeIranPhone(form.guestMobile))
 }
 
 function guestFieldsErrorMessage() {
+  syncGuestFieldsFromDom()
   if (!form.guestName.trim() || !form.guestMobile.trim()) return t('owner.guestRequired')
   if (!normalizeIranPhone(form.guestMobile)) return t('owner.guestMobileInvalid')
   return ''
@@ -4940,6 +4970,7 @@ watch(pilotNoCoach, (off) => {
                 <div class="relative">
                   <input
                     id="owner-reserve-guest-name"
+                    ref="guestNameInput"
                     v-model="form.guestName"
                     class="neo-input"
                     autocomplete="given-name"
@@ -4964,6 +4995,7 @@ watch(pilotNoCoach, (off) => {
               <AppFormField :label="t('owner.guestFamily')" field-id="owner-reserve-guest-family">
                 <input
                   id="owner-reserve-guest-family"
+                  ref="guestFamilyInput"
                   v-model="form.guestFamily"
                   class="neo-input"
                   autocomplete="family-name"
@@ -4974,6 +5006,7 @@ watch(pilotNoCoach, (off) => {
               <div class="relative">
                 <input
                   id="owner-reserve-guest-mobile"
+                  ref="guestMobileInput"
                   v-model="form.guestMobile"
                   dir="ltr"
                   class="neo-input tabular-nums"
