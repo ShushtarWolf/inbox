@@ -1,4 +1,5 @@
 import { clubRankingScore, getQueryNumber, haversineKm, parseJsonArray } from '../../utils/catalog'
+import { PUBLIC_CLUB_DIRECTORY_WHERE } from '#shared/clubDirectory.ts'
 import { clubCatalogPriceRange } from '#shared/clubReadiness.ts'
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const sort = (query.sort as string | undefined) || 'rank'
 
   const where = {
-    status: 'ACTIVE' as const,
+    ...PUBLIC_CLUB_DIRECTORY_WHERE,
     ...(sport ? { courts: { some: { sport: { slug: sport } } } } : {}),
     ...(city ? { city } : {}),
     ...(district ? { district } : {}),

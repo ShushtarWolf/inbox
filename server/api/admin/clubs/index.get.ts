@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
       nameEn: club.nameEn,
       city: club.city,
       status: club.status,
+      isUnlisted: club.isUnlisted,
       owner: club.owner,
       courtCount: club._count.courts,
       bookingCount: bookingCounts[index] || 0,

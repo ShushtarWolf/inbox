@@ -62,6 +62,7 @@ type ClubCourt = {
 
 type ClubDetail = {
   id: string
+  isUnlisted?: boolean
   image?: string | null
   media?: Array<{ url: string }>
   reviewSummary?: { count: number; average: number | null }
@@ -995,6 +996,7 @@ useSeoMeta({
   ogType: 'website',
   twitterCard: 'summary_large_image',
   twitterImage: () => clubOgImage.value,
+  robots: () => (club.value?.isUnlisted ? 'noindex' : undefined),
 })
 
 useHead(() => {

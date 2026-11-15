@@ -19,6 +19,7 @@ type ClubDetail = {
   district: string | null
   addressFa: string
   status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
+  isUnlisted: boolean
   phone: string | null
   openHour: number
   closeHour: number
@@ -47,6 +48,8 @@ const club = ref<ClubDetail | null>(null)
 const pending = ref(false)
 const loadError = ref('')
 const updating = ref(false)
+const savingUnlisted = ref(false)
+const unlistedError = ref('')
 
 async function load() {
   if (!secret.value) return
@@ -68,6 +71,23 @@ async function load() {
     }
   } finally {
     pending.value = false
+  }
+}
+
+async function saveUnlisted(isUnlisted: boolean) {
+  if (!club.value) return
+  unlistedError.value = ''
+  savingUnlisted.value = true
+  try {
+    await adminFetch(`/api/admin/clubs/${club.value.id}/unlisted`, {
+      method: 'PATCH',
+      body: { isUnlisted },
+    })
+    await load()
+  } catch {
+    unlistedError.value = t('common.error')
+  } finally {
+    savingUnlisted.value = false
   }
 }
 
@@ -171,17 +191,26 @@ function walletTxLabel(type: string) {
               </NuxtLink>
             </div>
           </div>
-          <span
-            class="px-3 py-1 text-xs font-bold"
-            style="border-radius: 2px;"
-            :class="{
-              'bg-green-100 text-green-800': club.status === 'ACTIVE',
-              'bg-amber-100 text-amber-800': club.status === 'PENDING',
-              'bg-red-100 text-red-800': club.status === 'SUSPENDED',
-            }"
-          >
-            {{ t(`admin.clubStatus.${club.status.toLowerCase()}`) }}
-          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="px-3 py-1 text-xs font-bold"
+              style="border-radius: 2px;"
+              :class="{
+                'bg-green-100 text-green-800': club.status === 'ACTIVE',
+                'bg-amber-100 text-amber-800': club.status === 'PENDING',
+                'bg-red-100 text-red-800': club.status === 'SUSPENDED',
+              }"
+            >
+              {{ t(`admin.clubStatus.${club.status.toLowerCase()}`) }}
+            </span>
+            <span
+              v-if="club.isUnlisted"
+              class="bg-brand-gray-200 px-3 py-1 text-xs font-bold text-brand-navy"
+              style="border-radius: 2px;"
+            >
+              {{ t('admin.clubUnlistedBadge') }}
+            </span>
+          </div>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -247,6 +276,22 @@ function walletTxLabel(type: string) {
               <li class="flex justify-between gap-2"><span>{{ t('admin.media') }}</span><strong dir="ltr">{{ formatNumber(club.mediaCount) }}</strong></li>
             </ul>
           </div>
+        </div>
+
+        <div class="tail-card">
+          <h2 class="tail-section-title mb-2">{{ t('admin.clubUnlistedToggle') }}</h2>
+          <p class="text-xs text-brand-gray-600">{{ t('admin.clubUnlistedHint') }}</p>
+          <label class="mt-3 flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              class="mt-0.5"
+              :checked="club.isUnlisted"
+              :disabled="savingUnlisted"
+              @change="saveUnlisted(($event.target as HTMLInputElement).checked)"
+            >
+            <span>{{ t('admin.clubUnlistedToggle') }}</span>
+          </label>
+          <p v-if="unlistedError" class="mt-2 text-xs font-bold text-red-700">{{ unlistedError }}</p>
         </div>
 
         <div class="tail-card">

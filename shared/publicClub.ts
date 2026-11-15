@@ -23,6 +23,7 @@ export const PUBLIC_CLUB_SCALAR_FIELDS = [
   'priceTo',
   'image',
   'featured',
+  'isUnlisted',
   'status',
   'openHour',
   'closeHour',
