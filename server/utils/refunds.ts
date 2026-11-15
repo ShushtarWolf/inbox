@@ -78,6 +78,77 @@ export async function ensureOwnerSettledBeforeCancel(paymentId: string, db: DbCl
  * Credit + REFUNDED + clawback run together. Pass `db` to nest inside cancel's transaction
  * so the slot is never freed unless money movement succeeds.
  */
+/** Read-only refund amount for edit preview / UI (same rails as refundPaymentForCancellation). */
+export async function estimateRefundPaymentForCancellation(options: {
+  paymentId: string
+  userId?: string | null
+  bookingId?: string
+  moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
+  db?: DbClient
+}): Promise<RefundResult> {
+  const zero: RefundResult = { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  const outcome = options.moneyOutcome || 'full_wallet_refund'
+  if (outcome === 'zero_refund') return zero
+  const refundBps = outcome === 'partial_wallet_refund'
+    ? Math.max(0, Math.min(10_000, Math.floor(Number(options.refundBps) || 0)))
+    : 10_000
+  if (outcome === 'partial_wallet_refund' && refundBps <= 0) return zero
+
+  const db = options.db || prisma
+  const payment = await db.payment.findUnique({
+    where: { id: options.paymentId },
+    include: { booking: { select: { paymentMethod: true, userId: true } } },
+  })
+  if (!payment || !isPaymentRefundable(payment.status)) return zero
+
+  let channel = resolveRefundChannel(payment.method, payment.booking?.paymentMethod)
+  const bookingId = options.bookingId || payment.bookingId || undefined
+  const existingMeta = parsePaymentMetadata(payment.metadataJson)
+  const guard = ordinaryCancelRefundGuard(existingMeta, { method: payment.method })
+  if (guard.action === 'reverse_pending' && channel !== 'desk_cash') return zero
+
+  const gatewayRefunded = guard.action === 'already_reversed'
+  if (gatewayRefunded) channel = 'gateway_reverse'
+
+  const split = readSplitPayMeta(existingMeta)
+  const reverseWalletRestock = gatewayRefunded && split
+    ? refundAmountFromBps(split.walletDebitAmount, refundBps)
+    : 0
+  let creditUserId = resolveRefundCreditUserId({
+    explicitUserId: options.userId,
+    paymentUserId: payment.userId,
+    bookingUserId: payment.booking?.userId,
+  })
+  if (!creditUserId && !gatewayRefunded && bookingId) {
+    const booking = await db.booking.findUnique({ where: { id: bookingId }, select: { userId: true } })
+    creditUserId = booking?.userId || null
+  }
+
+  const canCreditAthlete = Boolean(creditUserId)
+    && payment.method !== 'NOT_PAID'
+    && (
+      (channel === 'wallet_closed_loop' && !gatewayRefunded)
+      || reverseWalletRestock > 0
+    )
+
+  const creditAmount = gatewayRefunded
+    ? reverseWalletRestock
+    : refundAmountFromBps(payment.amount, refundBps)
+
+  const walletCredited = canCreditAthlete && creditAmount > 0 && channel === 'wallet_closed_loop'
+  const refunded = channel === 'desk_cash' ? creditAmount > 0 : creditAmount > 0 && (walletCredited || gatewayRefunded)
+
+  return {
+    refunded,
+    walletCredited,
+    gatewayRefunded,
+    amount: creditAmount,
+    refundChannel: channel,
+    deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
+  }
+}
+
 export async function refundPaymentForCancellation(options: {
   paymentId: string
   userId?: string | null

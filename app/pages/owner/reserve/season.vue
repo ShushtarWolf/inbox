@@ -12,6 +12,7 @@ import { computeListedSlotPrice } from '#shared/courtPricing.ts'
 import { formatGuestDisplayName } from '#shared/guestName.ts'
 import { groupSeasonRulesForUi } from '#shared/seasonFormHydrate.ts'
 import { seasonEditLocksStart } from '#shared/rangePick.ts'
+import { seasonConfirmChargeSubtotal, seasonEditSaveOnly } from '#shared/seasonEditConfirm.ts'
 
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
 
@@ -51,6 +52,7 @@ const formError = ref('')
 const successOpen = ref(false)
 const lastPayMode = ref<'cash' | 'unpaid' | null>(null)
 const lastSmsSent = ref(false)
+const lastEditSaveOnly = ref(false)
 
 /** When set, POST uses replace semantics (cancel future + recreate under same season id). */
 const editingSeasonId = ref('')
@@ -93,7 +95,17 @@ const occurrences = ref<PreviewRow[]>([])
 const conflicts = ref<ConflictRow[]>([])
 const totalAmount = ref(0)
 type EditRange = { date: string; courtId: string; startTime: string; endTime: string; hours: number }
-type EditDiffSummary = { unchanged: number; added: number; removed: number; keptPast?: number; addedRanges?: EditRange[]; removedRanges?: EditRange[] }
+type EditDiffSummary = {
+  unchanged: number
+  added: number
+  removed: number
+  keptPast?: number
+  addedAmount?: number
+  refundTotal?: number
+  cashReturnTotal?: number
+  addedRanges?: EditRange[]
+  removedRanges?: EditRange[]
+}
 /** Edit flow: what save will change (unchanged hours keep their booking and payment). */
 const editDiff = ref<EditDiffSummary | null>(null)
 const lastEditResult = ref<EditDiffSummary | null>(null)
@@ -192,9 +204,23 @@ const ownerClubId = computed(() => {
     || ''
 })
 
-const seasonSubtotal = computed(() =>
+const createSubtotal = computed(() =>
   occurrences.value.reduce((sum, row) => sum + (row.price || 0), 0),
 )
+
+const seasonSubtotal = computed(() => seasonConfirmChargeSubtotal({
+  editingSeasonId: Boolean(editingSeasonId.value),
+  editAddedAmount: editDiff.value?.addedAmount,
+  createSubtotal: createSubtotal.value,
+}))
+
+const editSaveOnlyMode = computed(() => seasonEditSaveOnly({
+  editingSeasonId: Boolean(editingSeasonId.value && editDiff.value),
+  addedCount: editDiff.value?.added,
+}))
+
+const editRefundWallet = computed(() => Math.max(0, editDiff.value?.refundTotal ?? 0))
+const editRefundCash = computed(() => Math.max(0, editDiff.value?.cashReturnTotal ?? 0))
 
 const seasonDeskCharge = computed(() => resolveDeskCharge({
   subtotal: seasonSubtotal.value,
@@ -517,6 +543,10 @@ async function runPreview() {
   }
 }
 
+async function confirmSaveEdit() {
+  await confirmReserve('cash')
+}
+
 async function confirmReserve(mode: 'cash' | 'unpaid') {
   formError.value = ''
   syncGuestFieldsFromDom()
@@ -525,6 +555,7 @@ async function confirmReserve(mode: 'cash' | 'unpaid') {
     return
   }
   saving.value = true
+  lastEditSaveOnly.value = editSaveOnlyMode.value
   lastPayLink.value = null
   try {
     const guest = guestNameParts()
@@ -663,11 +694,14 @@ const step3Banner = computed(() => {
   }
 })
 
-const successTitle = computed(() =>
-  lastPayMode.value === 'cash'
+const successTitle = computed(() => {
+  if (lastEditResult.value && lastEditSaveOnly.value) {
+    return t('owner.seasonPage.editSavedTitle')
+  }
+  return lastPayMode.value === 'cash'
     ? t('owner.seasonPage.successCashTitle')
-    : t('owner.seasonPage.successLinkTitle'),
-)
+    : t('owner.seasonPage.successLinkTitle')
+})
 
 function editRangeLabel(range: EditRange) {
   return `${formatDate(range.date)} ${courtNameById(range.courtId)} ${formatTimeLabel(range.startTime)}–${formatTimeLabel(range.endTime)}`
@@ -1152,33 +1186,82 @@ const phoneSmsHint = computed(() => t('owner.seasonPage.phoneSmsHint'))
           </span>
           <span class="tabular-nums" dir="ltr">−{{ formatCurrency(seasonDiscountAmount) }}</span>
         </div>
-        <div class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4">
-          <span class="text-sm font-semibold text-[#55534E]">{{ t('owner.seasonPage.totalFree') }}</span>
+        <template v-if="editingSeasonId">
+          <p v-if="editDiff?.unchanged" class="text-start text-xs text-[#8C8A84]">
+            {{ t('owner.seasonPage.editNoRechargeHint', { count: formatNumber(editDiff.unchanged) }) }}
+          </p>
+          <div
+            v-if="editRefundWallet > 0"
+            class="flex items-center justify-between gap-2 pt-2 text-sm text-emerald-800"
+          >
+            <span>{{ t('owner.seasonPage.editRefundWallet') }}</span>
+            <span class="tabular-nums font-semibold" dir="ltr">{{ formatCurrency(editRefundWallet) }}</span>
+          </div>
+          <div
+            v-if="editRefundCash > 0"
+            class="flex items-center justify-between gap-2 pt-2 text-sm text-[#55534E]"
+          >
+            <span>{{ t('owner.seasonPage.editRefundCash') }}</span>
+            <span class="tabular-nums font-semibold" dir="ltr">{{ formatCurrency(editRefundCash) }}</span>
+          </div>
+        </template>
+        <div
+          v-if="!editSaveOnlyMode || seasonPayTotal > 0"
+          class="flex items-center justify-between gap-2 border-t border-dashed border-[#E0DDD6] pt-4"
+        >
+          <span class="text-sm font-semibold text-[#55534E]">
+            {{ editingSeasonId ? t('owner.seasonPage.editAddedTotal') : t('owner.seasonPage.totalFree') }}
+          </span>
           <b class="text-[21px] font-extrabold tabular-nums">{{ formatCurrency(seasonPayTotal) }}</b>
         </div>
-        <p class="text-start text-xs text-[#8C8A84]">{{ t('owner.seasonPage.onePaymentHint') }}</p>
+        <p
+          v-if="!editingSeasonId"
+          class="text-start text-xs text-[#8C8A84]"
+        >
+          {{ t('owner.seasonPage.onePaymentHint') }}
+        </p>
+        <p
+          v-else-if="!editSaveOnlyMode"
+          class="text-start text-xs text-[#8C8A84]"
+        >
+          {{ t('owner.seasonPage.editAddedPaymentHint') }}
+        </p>
 
         <div class="season-wiz-actions flex flex-wrap gap-3 border-t border-[#ECE9E4] pt-5">
           <button type="button" class="season-wiz-btn season-wiz-btn-ghost" :disabled="saving" @click="goStep(2)">
             {{ t('common.back') }}
           </button>
           <span class="flex-1" />
-          <button
-            type="button"
-            class="season-wiz-btn season-wiz-btn-primary"
-            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
-            @click="confirmReserve('cash')"
-          >
-            {{ saving ? t('common.loading') : t('owner.payCash') }}
-          </button>
-          <button
-            type="button"
-            class="season-wiz-btn season-wiz-btn-dark"
-            :disabled="saving || (!occurrences.length && !editRemovesOnly)"
-            @click="confirmReserve('unpaid')"
-          >
-            {{ saving ? t('common.loading') : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink')) }}
-          </button>
+          <template v-if="editSaveOnlyMode">
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-primary"
+              :disabled="saving"
+              @click="confirmSaveEdit"
+            >
+              {{ saving ? t('common.loading') : t('owner.seasonPage.editSaveChanges') }}
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-primary"
+              :disabled="saving || (!occurrences.length && !editRemovesOnly)"
+              @click="confirmReserve('cash')"
+            >
+              {{ saving ? t('common.loading') : (editingSeasonId ? t('owner.seasonPage.editPayCashAdded') : t('owner.payCash')) }}
+            </button>
+            <button
+              type="button"
+              class="season-wiz-btn season-wiz-btn-dark"
+              :disabled="saving || (!occurrences.length && !editRemovesOnly)"
+              @click="confirmReserve('unpaid')"
+            >
+              {{ saving ? t('common.loading') : (editingSeasonId
+                ? t('owner.seasonPage.editSendPayLinkAdded')
+                : (payAtClubMode ? t('owner.reserveUnpaid') : t('owner.sendPayLink'))) }}
+            </button>
+          </template>
         </div>
       </div>
     </section>

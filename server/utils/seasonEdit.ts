@@ -35,7 +35,13 @@ import { loadOwnerSeriesBookingsBySeasonId } from './ownerSeriesCancel'
 import { findUserByPhone } from './phoneAuth'
 import { prisma } from './prisma'
 import { hourFromTime } from './seasonSlots'
-import { bookingLooksLikeSeriesPayment, loadSeriesGroupForBooking, refundAfterSeriesSessionCancel } from './seriesCancelRefund'
+import {
+  bookingLooksLikeSeriesPayment,
+  estimateRefundAfterSeriesSessionCancel,
+  loadSeriesGroupForBooking,
+  refundAfterSeriesSessionCancel,
+} from './seriesCancelRefund'
+import { estimateRefundPaymentForCancellation } from './refunds'
 import { addMinutes, ensureSlotsForDate, formatHour, hourEnd } from './slots'
 import { deleteStaleCancelledBooking } from './staleBooking'
 
@@ -100,6 +106,47 @@ export function assertSeasonEditDates(
   if (error) throw createError({ statusCode: 400, statusMessage: `SEASON_EDIT_${error}` })
 }
 
+async function estimateSeasonEditRemovalMoney(row: LiveRow): Promise<{ amount: number; walletCredited: boolean }> {
+  const zero = { amount: 0, walletCredited: false }
+  if (bookingLooksLikeSeriesPayment(row.payment?.metadataJson)) {
+    const est = await estimateRefundAfterSeriesSessionCancel({
+      cancelledBookingId: row.id,
+      userId: row.userId,
+      moneyOutcome: 'full_wallet_refund',
+    })
+    if (!est?.amount) return zero
+    return { amount: est.amount, walletCredited: est.walletCredited }
+  }
+  const paymentId = seriesCancelPaymentId(row.payment)
+  if (!paymentId) return zero
+  const est = await estimateRefundPaymentForCancellation({
+    paymentId,
+    userId: row.userId,
+    bookingId: row.id,
+    moneyOutcome: 'full_wallet_refund',
+  })
+  if (!est.amount) return zero
+  return { amount: est.amount, walletCredited: est.walletCredited }
+}
+
+async function sumAddedListedPrices(clubId: string, added: SeasonUnit[]) {
+  if (!added.length) return 0
+  const courts = await prisma.court.findMany({
+    where: { clubId, id: { in: [...new Set(added.map((u) => u.courtId))] } },
+    include: { club: true },
+  })
+  const courtById = new Map(courts.map((c) => [c.id, c]))
+  let sum = 0
+  for (const unit of added) {
+    const court = courtById.get(unit.courtId)
+    if (!court) continue
+    const hour = hourFromTime(unit.startTime)
+    const startTime = formatHour(hour)
+    sum += computeListedSlotPrice(court.price, startTime, court.pricingJson)
+  }
+  return sum
+}
+
 /** Read-only diff for the edit preview (no writes). */
 export async function previewSeasonEditDiff(opts: {
   clubId: string
@@ -113,11 +160,24 @@ export async function previewSeasonEditDiff(opts: {
     desired: opts.sessions,
     isPast: (u) => isSlotStartInPast(u.date, u.startTime, opts.now),
   })
+  let refundTotal = 0
+  let cashReturnTotal = 0
+  for (const removed of diff.removed) {
+    const row = removed.ref!
+    const est = await estimateSeasonEditRemovalMoney(row)
+    if (!est.amount) continue
+    if (est.walletCredited) refundTotal += est.amount
+    else cashReturnTotal += est.amount
+  }
+  const addedAmount = await sumAddedListedPrices(opts.clubId, diff.added)
   return {
     unchanged: diff.unchanged.length,
     added: diff.added.length,
     removed: diff.removed.length,
     keptPast: diff.keptPast.length,
+    addedAmount,
+    refundTotal,
+    cashReturnTotal,
     addedRanges: aggregateSeasonUnits(diff.added),
     removedRanges: aggregateSeasonUnits(diff.removed),
   }

@@ -16,7 +16,7 @@ import {
 import type { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import type { RefundResult } from './refunds'
-import { refundPaymentForCancellation } from './refunds'
+import { estimateRefundPaymentForCancellation, refundPaymentForCancellation } from './refunds'
 import { clawbackOwnerPartialForPayment } from './settlement'
 import { creditWallet } from './wallet'
 import { cancelCourtBooking } from './cancellations'
@@ -124,6 +124,91 @@ async function countActiveSeriesBookings(bookingIds: string[], excludingId?: str
       ...(excludingId ? { NOT: { id: excludingId } } : {}),
     },
   })
+}
+
+/**
+ * Read-only series-session refund estimate (same amounts as refundAfterSeriesSessionCancel).
+ */
+export async function estimateRefundAfterSeriesSessionCancel(opts: {
+  cancelledBookingId: string
+  userId?: string | null
+  moneyOutcome?: CancelMoneyOutcome
+  refundBps?: number
+  db?: Prisma.TransactionClient
+}): Promise<RefundResult | null> {
+  if (opts.moneyOutcome === 'zero_refund') {
+    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  }
+
+  const reader: SeriesDb = opts.db || prisma
+  const loaded = await loadSeriesGroupForBooking(opts.cancelledBookingId, reader)
+  if (!loaded) return null
+
+  const { group, primaryPayment } = loaded
+  const primaryMeta = parseSeriesPaymentMeta(primaryPayment.metadataJson)
+  const cancelledMeta = parseSeriesPaymentMeta(loaded.bookingPayment?.metadataJson)
+  const sessionPrice = cancelledMeta.sessionPrice ?? primaryMeta.sessionPrice
+  const alreadyRefunded = Number(primaryMeta.sessionRefundsTotal || 0)
+  const primaryBooking = primaryPayment.bookingId
+    ? await reader.booking.findUnique({
+        where: { id: primaryPayment.bookingId },
+        select: { paymentMethod: true },
+      })
+    : null
+  const primaryBookingPaymentMethod = primaryBooking?.paymentMethod ?? null
+
+  if (!isPaymentRefundable(primaryPayment.status)) {
+    return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+  }
+
+  const remainingActive = await countActiveSeriesBookings(group.allBookingIds, opts.cancelledBookingId, reader)
+  const channel = resolveRefundChannel(primaryPayment.method, primaryBookingPaymentMethod)
+  const walletForAmount = (amount: number): RefundResult => {
+    if (amount <= 0) {
+      return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+    }
+    const walletCredited = channel === 'wallet_closed_loop' && Boolean(opts.userId)
+    return {
+      refunded: true,
+      walletCredited,
+      gatewayRefunded: false,
+      amount,
+      refundChannel: channel,
+      deskCashReturn: channel === 'desk_cash' ? 'owed' : null,
+    }
+  }
+
+  if (remainingActive === 0) {
+    const residual = Math.max(0, primaryPayment.amount - alreadyRefunded)
+    if (residual <= 0) {
+      return { refunded: false, walletCredited: false, gatewayRefunded: false, amount: 0 }
+    }
+    if (alreadyRefunded <= 0 && residual === primaryPayment.amount) {
+      return estimateRefundPaymentForCancellation({
+        paymentId: primaryPayment.id,
+        userId: opts.userId,
+        bookingId: opts.cancelledBookingId,
+        moneyOutcome: opts.moneyOutcome,
+        refundBps: opts.refundBps,
+        db: reader,
+      })
+    }
+    const residualScaled = opts.moneyOutcome === 'partial_wallet_refund'
+      ? refundAmountFromBps(residual, opts.refundBps ?? 10_000)
+      : residual
+    return walletForAmount(residualScaled)
+  }
+
+  const amountRaw = sessionRefundAmount({
+    sessionPrice,
+    primaryAmount: primaryPayment.amount,
+    alreadyRefunded,
+    remainingSessions: remainingActive + 1,
+  })
+  const amount = opts.moneyOutcome === 'partial_wallet_refund'
+    ? refundAmountFromBps(amountRaw, opts.refundBps ?? 10_000)
+    : amountRaw
+  return walletForAmount(amount)
 }
 
 /**
