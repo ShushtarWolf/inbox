@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     rescheduleWindowHours?: number
     bookingHorizonDays?: number
     waitlistEnabled?: boolean
+    allowCashAtClub?: boolean
     phone?: string | null
     receiptPhone?: string | null
     bookingNotifyPhone?: string | null
@@ -72,6 +73,7 @@ export default defineEventHandler(async (event) => {
     data.image = parsed.value
   }
   if (body.waitlistEnabled !== undefined) data.waitlistEnabled = Boolean(body.waitlistEnabled)
+  if (body.allowCashAtClub !== undefined) data.allowCashAtClub = Boolean(body.allowCashAtClub)
   if (body.amenitiesJson !== undefined) data.amenitiesJson = body.amenitiesJson
   if (body.sessionDurationsJson !== undefined) {
     data.sessionDurationsJson = body.sessionDurationsJson
@@ -150,6 +152,7 @@ export default defineEventHandler(async (event) => {
     rescheduleWindowHours: updated.rescheduleWindowHours,
     bookingHorizonDays: updated.bookingHorizonDays,
     waitlistEnabled: updated.waitlistEnabled,
+    allowCashAtClub: updated.allowCashAtClub,
     sheba: shebaSideEffect?.sheba ?? updated.sheba,
   }
 })

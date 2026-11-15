@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
       rescheduleWindowHours: club.rescheduleWindowHours,
       bookingHorizonDays: club.bookingHorizonDays,
       waitlistEnabled: club.waitlistEnabled,
+      allowCashAtClub: club.allowCashAtClub,
       sheba: club.sheba,
       media: await prisma.clubMedia.findMany({
         where: { clubId: club.id },

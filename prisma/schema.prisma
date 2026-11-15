@@ -566,6 +566,11 @@ model Club {
   /** How many calendar days ahead athletes can book, including today (Tehran). */
   bookingHorizonDays Int @default(14)
   waitlistEnabled Boolean @default(true)
+  /**
+   * When true, logged-in athletes may create unpaid PAY_AT_CLUB court bookings online
+   * (cash at desk) instead of IPG. Default off — no behavior change for existing clubs.
+   */
+  allowCashAtClub Boolean @default(false)
   /** Iranian SHEBA / IBAN (IR + 24 digits). Required before withdraw. */
   sheba String?
 

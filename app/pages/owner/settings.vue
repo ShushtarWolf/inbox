@@ -48,6 +48,7 @@ interface OwnerSettingsClub {
   rescheduleWindowHours?: number
   bookingHorizonDays?: number
   waitlistEnabled?: boolean
+  allowCashAtClub?: boolean
   sheba?: string | null
   media?: OwnerSettingsClubMedia[]
 }
@@ -163,6 +164,7 @@ const form = reactive({
   rescheduleWindowHours: 24,
   bookingHorizonDays: DEFAULT_BOOKING_HORIZON_DAYS,
   waitlistEnabled: true,
+  allowCashAtClub: false,
   phone: '',
   receiptPhone: '',
   bookingNotifyPhone: '',
@@ -310,6 +312,7 @@ function applyClubData() {
   form.rescheduleWindowHours = club.rescheduleWindowHours ?? 24
   form.bookingHorizonDays = clampBookingHorizonDays(club.bookingHorizonDays)
   form.waitlistEnabled = club.waitlistEnabled ?? true
+  form.allowCashAtClub = club.allowCashAtClub ?? false
   form.phone = club.phone || ''
   form.receiptPhone = club.receiptPhone || ''
   form.bookingNotifyPhone = club.bookingNotifyPhone || ''
@@ -340,6 +343,7 @@ function formSnapshot() {
     rescheduleWindowHours: form.rescheduleWindowHours,
     bookingHorizonDays: form.bookingHorizonDays,
     waitlistEnabled: form.waitlistEnabled,
+    allowCashAtClub: form.allowCashAtClub,
     phone: form.phone,
     receiptPhone: form.receiptPhone,
     bookingNotifyPhone: form.bookingNotifyPhone,
@@ -534,6 +538,7 @@ async function save() {
       rescheduleWindowHours: Number(form.rescheduleWindowHours),
       bookingHorizonDays: clampBookingHorizonDays(form.bookingHorizonDays),
       waitlistEnabled: form.waitlistEnabled,
+      allowCashAtClub: form.allowCashAtClub,
       phone: form.phone || null,
       receiptPhone: form.receiptPhone || null,
       bookingNotifyPhone: form.bookingNotifyPhone || null,
@@ -879,6 +884,19 @@ const hourOptions = computed(() => Array.from({ length: 25 }, (_, i) => i))
                 </span>
               </label>
             </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-brand-navy">{{ t('owner.settingsPage.allowCashAtClub') }}</h3>
+            <p class="mt-1 text-xs text-brand-gray-600">{{ t('owner.settingsPage.allowCashAtClubHint') }}</p>
+            <label class="mt-2 flex cursor-pointer items-start gap-2">
+              <input
+                v-model="form.allowCashAtClub"
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+              >
+              <span class="text-sm font-medium text-brand-navy">{{ t('owner.settingsPage.allowCashAtClubToggle') }}</span>
+            </label>
           </div>
 
           <div>

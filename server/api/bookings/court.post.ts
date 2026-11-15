@@ -1,3 +1,10 @@
+import {
+  ALLOW_CASH_AT_CLUB_DISABLED,
+  athletePayAtClubPaymentMetadata,
+  initialAthletePayAtClubPaymentFields,
+  PAY_AT_CLUB_REQUIRES_PAYMENT,
+  parseAthletePayAtClubChoice,
+} from '#shared/athletePayAtClub.ts'
 import { initialPlatformPaymentFields, isOnlinePaymentsEnabled } from '#shared/bookingPayment.ts'
 import { courtAudienceBlockReason, parseCourtAudience } from '#shared/courtAudience.ts'
 import { parseGender } from '#shared/gender.ts'
@@ -12,8 +19,11 @@ import {
   courtNotifyName,
   notifyBookingConfirmed,
   notifyBookingPaid,
+  notifyOwnerBookingConfirmed,
+  ownerNotifyPhone,
   personNotifyName,
 } from '../../utils/bookingNotify'
+import { assertAthletePayAtClubUnderLimit } from '../../utils/athletePayAtClub'
 import { userToGuestNamePair } from '#shared/userName.ts'
 import {
   loadEquipmentForBooking,
@@ -42,8 +52,10 @@ export default defineEventHandler(async (event) => {
     equipmentIds?: string[]
     equipmentQuantities?: Record<string, number>
     discountCode?: string
+    payAtClub?: boolean
   }>(event)
   assertAthleteDidNotConfirmCash(body)
+  const wantsPayAtClub = parseAthletePayAtClubChoice(body)
 
   const slotIds = [...new Set(
     (body.slotIds?.length ? body.slotIds : body.slotId ? [body.slotId] : [])
@@ -56,7 +68,14 @@ export default defineEventHandler(async (event) => {
 
   const slots = await prisma.slot.findMany({
     where: { id: { in: slotIds } },
-    include: { court: { include: { club: true } }, booking: true },
+    include: {
+      court: {
+        include: {
+          club: { include: { owner: { select: { phone: true } } } },
+        },
+      },
+      booking: true,
+    },
   })
   if (slots.length !== slotIds.length) {
     throw createError({ statusCode: 404, statusMessage: 'Slot not found' })
@@ -124,6 +143,16 @@ export default defineEventHandler(async (event) => {
   const totalAmount = discount ? discount.total : subtotal
   const discountAmount = discount?.discountAmount || 0
 
+  if (wantsPayAtClub) {
+    if (!club.allowCashAtClub) {
+      throw createError({ statusCode: 400, statusMessage: ALLOW_CASH_AT_CLUB_DISABLED })
+    }
+    if (totalAmount <= 0) {
+      throw createError({ statusCode: 400, statusMessage: PAY_AT_CLUB_REQUIRES_PAYMENT })
+    }
+    await assertAthletePayAtClubUnderLimit(user.id, clubId)
+  }
+
   const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
   const dbUserGuest = userToGuestNamePair(dbUser)
   const bookerGender = parseGender(dbUser.gender)
@@ -141,7 +170,10 @@ export default defineEventHandler(async (event) => {
     }
   }
   const onlineEnabled = isOnlinePaymentsEnabled()
-  const holdDisplay = initialOnlineCourtHoldDisplay(onlineEnabled)
+  const athletePayAtClub = wantsPayAtClub && onlineEnabled && totalAmount > 0
+  const holdDisplay = athletePayAtClub
+    ? { displayStatus: 'RESERVED' as const, bookingStatus: 'CONFIRMED' as const }
+    : initialOnlineCourtHoldDisplay(onlineEnabled)
 
   let primaryBookingId = ''
   let paymentStatus = ''
@@ -157,7 +189,7 @@ export default defineEventHandler(async (event) => {
         // gateway checkout covers the sheet total; siblings are amount 0 + linked.
         // Pay-at-club: each booking keeps its own desk amount (+ equipment on primary),
         // with percent discount applied across lines (primary first).
-        const groupOnPrimary = orderedSlots.length > 1 && onlineEnabled
+        const groupOnPrimary = orderedSlots.length > 1 && onlineEnabled && !athletePayAtClub
         let amount: number
         if (groupOnPrimary) {
           amount = isPrimary ? totalAmount : 0
@@ -168,7 +200,9 @@ export default defineEventHandler(async (event) => {
           remainingDiscount -= cut
           amount = base - cut
         }
-        const paymentFields = initialPlatformPaymentFields(amount)
+        const paymentFields = athletePayAtClub
+          ? initialAthletePayAtClubPaymentFields(amount)
+          : initialPlatformPaymentFields(amount)
         const discountMeta = isPrimary && discount
           ? discountPaymentMetadata(discount)
           : null
@@ -214,6 +248,7 @@ export default defineEventHandler(async (event) => {
         const basePaymentMeta = {
           ...(discountMeta || {}),
           ...(sessionPrice !== null ? { sessionPrice } : {}),
+          ...(athletePayAtClub ? athletePayAtClubPaymentMetadata() : {}),
         }
         await tx.payment.create({
           data: {
@@ -309,7 +344,7 @@ export default defineEventHandler(async (event) => {
   // must not alert the club on unpaid create.
 
   // Online soft-holds wait for PAID before "رزرو تایید شد"; pay-at-club confirms now.
-  if (!onlineEnabled) {
+  if (!onlineEnabled || athletePayAtClub) {
     const groups = new Map<string, typeof orderedSlots>()
     for (const slot of orderedSlots) {
       const key = `${slot.date}|${slot.courtId}`
@@ -338,12 +373,28 @@ export default defineEventHandler(async (event) => {
           endTime: slot.endTime,
         })),
         paymentPaid: paymentStatus === 'PAID',
+        amountPaid: totalAmount,
         guestName: personNotifyName(dbUser.name, dbUser.nameFamily),
         ...clubNotifyLocation(club),
       }
       await notifyBookingConfirmed(notifyOpts)
       if (paymentStatus === 'PAID') {
         await notifyBookingPaid(notifyOpts)
+      }
+      else if (athletePayAtClub) {
+        await notifyOwnerBookingConfirmed({
+          ownerPhone: ownerNotifyPhone(club),
+          clubName: clubNotifyName(club),
+          clubId,
+          bookingId: notifyOpts.bookingId,
+          guestName: notifyOpts.guestName,
+          guestPhone: dbUser.phone,
+          sessions: notifyOpts.sessions,
+          date: notifyOpts.date,
+          startTime: notifyOpts.startTime,
+          endTime: notifyOpts.endTime,
+          courtName: notifyOpts.courtName,
+        })
       }
     }
   }

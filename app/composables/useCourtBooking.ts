@@ -107,6 +107,9 @@ export function useCourtBooking() {
     const settled = amount === 0 || result.paymentStatus === 'PAID'
     if (settled && opts.clubName) return t('booking.successPaidBody', { club: opts.clubName })
     if (settled) return t('booking.successPaidBodyShort')
+    if (result.paymentStatus === 'PAY_AT_CLUB' && amount > 0) {
+      return t('booking.payAtClubDetail')
+    }
     return opts.successMessage
   }
 
@@ -120,6 +123,7 @@ export function useCourtBooking() {
     courtId?: string
     courtIds?: string[]
     preferWallet?: boolean
+    payAtClub?: boolean
     clubName?: string
   }) {
     const slotIds = [...new Set(opts.slotIds.filter(Boolean))]
@@ -161,11 +165,12 @@ export function useCourtBooking() {
             ? opts.equipmentQuantities
             : undefined,
           discountCode: opts.discountCode || undefined,
+          payAtClub: opts.payAtClub === true ? true : undefined,
         },
       })
 
       return await afterBookingCreated(result, {
-        preferWallet: opts.preferWallet,
+        preferWallet: opts.payAtClub ? false : opts.preferWallet,
         successMessage: t('booking.successCourtOnline'),
         clubName: opts.clubName,
       })
@@ -272,8 +277,9 @@ export function useCourtBooking() {
       opts.preferWallet
       && canCoverWithWallet(walletBalance.value, amount, result.paymentStatus),
     )
-    const goGateway = !useWallet && onlineEnabled.value && canPayOnline(result.paymentStatus)
-    const confirmFree = !useWallet && amount === 0 && canPayOnline(result.paymentStatus)
+    const payAtClub = result.paymentStatus === 'PAY_AT_CLUB' && amount > 0
+    const goGateway = !payAtClub && !useWallet && onlineEnabled.value && canPayOnline(result.paymentStatus)
+    const confirmFree = !payAtClub && !useWallet && amount === 0 && canPayOnline(result.paymentStatus)
     // Payment required → go straight to the gateway; don't flip to the done
     // («مشاهده رزروها») state first. On stall the Pay CTA re-checkouts the same booking.
     if (!goGateway && !confirmFree) done.value = true

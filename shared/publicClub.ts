@@ -41,6 +41,7 @@ export const PUBLIC_CLUB_SCALAR_FIELDS = [
   'rescheduleWindowHours',
   'bookingHorizonDays',
   'waitlistEnabled',
+  'allowCashAtClub',
 ] as const
 
 /** Must never appear in a public club payload (top level or nested). */

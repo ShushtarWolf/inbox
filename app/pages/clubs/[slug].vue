@@ -69,6 +69,7 @@ type ClubDetail = {
   district?: string
   courts?: ClubCourt[]
   waitlistEnabled?: boolean
+  allowCashAtClub?: boolean
   bookingHorizonDays?: number
   equipment?: Array<{ id: string; nameFa: string; nameEn: string; price: number; quantity?: number; category?: string }>
   pricing?: Array<{ labelFa?: string; labelEn?: string; from?: number; to?: number; price?: number }>
@@ -1602,6 +1603,7 @@ async function shareClub() {
         :slots="confirmSlots"
         :audience-notices="confirmAudienceNotices"
         :bookable-equipment="bookableEquipment"
+        :allow-cash-at-club="club.allowCashAtClub === true"
         @close="onConfirmClose"
         @success="onConfirmSuccess"
         @slot-conflict="onSlotConflict"
