@@ -40,4 +40,16 @@ describe('resolveSeasonGuestFields', () => {
     const resolved = resolveSeasonGuestFields({ guestName: 'محسن', guestFamily: 'رهنما' })
     expect(resolved.guestLabel).toBe('محسن رهنما')
   })
+
+  it('prefers registered account name when stored season guestFamily is empty', () => {
+    const resolved = resolveSeasonGuestFields({
+      guestName: 'الهه',
+      guestFamily: '',
+      userName: 'الهه',
+      userNameFamily: 'ربیعی',
+    })
+    expect(resolved.guestLabel).toBe('الهه ربیعی')
+    expect(resolved.guestName).toBe('الهه')
+    expect(resolved.guestFamily).toBe('ربیعی')
+  })
 })

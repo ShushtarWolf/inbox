@@ -1,5 +1,5 @@
-import { normalizeGuestNamePair, formatGuestDisplayName } from './guestName.ts'
-import { splitStoredFullName } from './userName.ts'
+import { normalizeGuestNamePair, formatGuestDisplayName, resolveLinkedGuestDisplayName } from './guestName.ts'
+import { splitStoredFullName, userToGuestNamePair } from './userName.ts'
 import type { SeasonSessionRule } from './seasonSessions.ts'
 
 export type SeasonUiRuleRow = {
@@ -42,6 +42,8 @@ export function groupSeasonRulesForUi(rules: SeasonSessionRule[]): SeasonUiRuleR
 export function resolveSeasonGuestFields(row: {
   guestName?: string | null
   guestFamily?: string | null
+  userName?: string | null
+  userNameFamily?: string | null
 }): { guestName: string; guestFamily: string; guestLabel: string } {
   let guestName = String(row.guestName || '').trim()
   let guestFamily = String(row.guestFamily || '').trim()
@@ -51,9 +53,21 @@ export function resolveSeasonGuestFields(row: {
     guestFamily = split.nameFamily
   }
   const pair = normalizeGuestNamePair(guestName, guestFamily)
-  return {
+  const guestLabel = resolveLinkedGuestDisplayName({
     guestName: pair.guestName,
     guestFamily: pair.guestFamily,
-    guestLabel: formatGuestDisplayName(pair.guestName, pair.guestFamily),
+    userName: row.userName,
+    userNameFamily: row.userNameFamily,
+  })
+  const accountPair = row.userName?.trim()
+    ? userToGuestNamePair({ name: row.userName, nameFamily: row.userNameFamily })
+    : null
+  const formPair = accountPair && formatGuestDisplayName(accountPair.guestName, accountPair.guestFamily)
+    ? accountPair
+    : pair
+  return {
+    guestName: formPair.guestName,
+    guestFamily: formPair.guestFamily,
+    guestLabel,
   }
 }
