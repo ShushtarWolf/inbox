@@ -62,7 +62,9 @@ jobs:
           print(f"applied={r.get('applied')} creditCount={r.get('creditCount')} creditToman={r.get('creditToman')} appliedCount={r.get('appliedCount')}")
           print(f"counts={r.get('counts')}")
           for c in (r.get('credits') or [])[:20]:
-            print(f"  {c.get('paymentId')} booking={c.get('bookingId')} amount={c.get('amount')} reason={c.get('reason')}")
+            print(f"  credit {c.get('paymentId')} booking={c.get('bookingId')} amount={c.get('amount')} reason={c.get('reason')}")
+          for s in (r.get('ledgerShortfalls') or [])[:20]:
+            print(f"  shortfall {s.get('paymentId')} method={s.get('method')} status={s.get('paymentStatus')} debited={s.get('debited')} refunded={s.get('refunded')} net={s.get('net')} payer={s.get('payerUserId')}")
           tm=r.get('trackingMatch')
           if tm:
             print(f"trackingMatch={tm}")

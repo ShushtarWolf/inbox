@@ -31,6 +31,18 @@ export type HistoricalCancelRefundReport = {
   counts: Record<string, number>
   credits: Array<{ paymentId: string, bookingId: string | null, amount: number, reason: string }>
   trackingMatch: HistoricalCancelRefundLine | null
+  /** Ledger shortfalls (wallet debit without matching refund), independent of cancel metadata. */
+  ledgerShortfalls: Array<{
+    paymentId: string
+    bookingId: string | null
+    method: string
+    paymentStatus: string
+    amount: number
+    debited: number
+    refunded: number
+    net: number
+    payerUserId: string | null
+  }>
 }
 
 function parseMeta(raw: string | null): Record<string, unknown> {
@@ -307,6 +319,77 @@ async function applyCredit(line: HistoricalCancelRefundLine): Promise<boolean> {
   return wrote
 }
 
+async function listLedgerShortfalls() {
+  // Same idea as scripts/sql/trace-wallet-cancel-lost-refund.sql section (b):
+  // wallet was debited for a booking payment and never got a matching REFUND_CREDIT.
+  return prisma.$queryRaw<Array<{
+    paymentId: string
+    bookingId: string | null
+    method: string
+    paymentStatus: string
+    amount: number
+    debited: number
+    refunded: number
+    net: number
+    payerUserId: string | null
+  }>>`
+    WITH payer AS (
+      SELECT DISTINCT wt."paymentId" AS payment_id, wt."walletId" AS wallet_id
+      FROM "WalletTransaction" wt
+      WHERE wt."paymentId" IS NOT NULL
+        AND wt.type IN ('PAYMENT_DEBIT'::"WalletTransactionType", 'IPG_BOOKING_DEBIT'::"WalletTransactionType")
+    ),
+    rail AS (
+      SELECT
+        pw.payment_id,
+        MIN(w."userId") AS payer_user_id,
+        COALESCE(SUM(wt.amount) FILTER (
+          WHERE wt.type IN ('PAYMENT_DEBIT'::"WalletTransactionType", 'IPG_BOOKING_DEBIT'::"WalletTransactionType")
+        ), 0)::int AS debited,
+        COALESCE(SUM(wt.amount) FILTER (
+          WHERE wt.type = 'REFUND_CREDIT'::"WalletTransactionType"
+        ), 0)::int AS refunded,
+        COALESCE(SUM(wt.amount) FILTER (
+          WHERE wt.type IN (
+            'PAYMENT_DEBIT'::"WalletTransactionType",
+            'REFUND_CREDIT'::"WalletTransactionType",
+            'IPG_BOOKING_CREDIT'::"WalletTransactionType",
+            'IPG_BOOKING_DEBIT'::"WalletTransactionType",
+            'ADJUSTMENT'::"WalletTransactionType"
+          )
+        ), 0)::int AS net_wallet
+      FROM payer pw
+      JOIN "Wallet" w ON w.id = pw.wallet_id
+      JOIN "WalletTransaction" wt
+        ON wt."paymentId" = pw.payment_id AND wt."walletId" = pw.wallet_id
+      GROUP BY pw.payment_id, pw.wallet_id
+    )
+    SELECT
+      p.id AS "paymentId",
+      p."bookingId" AS "bookingId",
+      p.method::text AS method,
+      p.status::text AS "paymentStatus",
+      p.amount::int AS amount,
+      r.debited AS debited,
+      r.refunded AS refunded,
+      r.net_wallet AS net,
+      r.payer_user_id AS "payerUserId"
+    FROM rail r
+    JOIN "Payment" p ON p.id = r.payment_id
+    LEFT JOIN "Booking" b ON b.id = p."bookingId"
+    WHERE COALESCE(p.purpose, 'booking') <> 'topup'
+      AND r.debited < 0
+      AND r.net_wallet < 0
+      AND (
+        b.status = 'CANCELLED'
+        OR p.status IN ('REFUNDED', 'FAILED', 'SUPERSEDED')
+        OR p."bookingId" IS NULL
+      )
+    ORDER BY p."updatedAt" DESC
+    LIMIT 50
+  `
+}
+
 /** Dry-run by default. `apply: true` appends wallet credits + recon rows (never deletes). */
 export async function runHistoricalCancelRefundRepair(opts?: {
   apply?: boolean
@@ -314,6 +397,13 @@ export async function runHistoricalCancelRefundRepair(opts?: {
 }): Promise<HistoricalCancelRefundReport> {
   const apply = opts?.apply === true
   const report = await inventoryHistoricalCancelRefunds(opts?.tracking)
+  let ledgerShortfalls: Awaited<ReturnType<typeof listLedgerShortfalls>> = []
+  try {
+    ledgerShortfalls = await listLedgerShortfalls()
+  }
+  catch (err) {
+    console.error('[historicalCancelRefundRepair] ledgerShortfalls query failed', err)
+  }
   const credits = report.lines
     .filter((line) => line.decision.action === 'credit')
     .map((line) => ({
@@ -323,21 +413,60 @@ export async function runHistoricalCancelRefundRepair(opts?: {
       reason: line.decision.reason,
     }))
 
+  // If metadata inventory missed a ledger shortfall, synthesize a credit line so APPLY heals it.
+  const creditIds = new Set(credits.map((c) => c.paymentId))
+  const synthesized: HistoricalCancelRefundLine[] = []
+  for (const row of ledgerShortfalls) {
+    if (creditIds.has(row.paymentId)) continue
+    if (!row.payerUserId) continue
+    const gap = Math.max(0, Math.abs(row.net))
+    if (gap <= 0) continue
+    const line: HistoricalCancelRefundLine = {
+      paymentId: row.paymentId,
+      bookingId: row.bookingId,
+      decision: { action: 'credit', amount: gap, reason: 'wallet_spend_shortfall' },
+    }
+    synthesized.push(line)
+    credits.push({
+      paymentId: row.paymentId,
+      bookingId: row.bookingId,
+      amount: gap,
+      reason: 'wallet_spend_shortfall',
+    })
+    creditIds.add(row.paymentId)
+  }
+
+  const allCreditLines = [
+    ...report.lines.filter((line) => line.decision.action === 'credit'),
+    ...synthesized,
+  ]
+  const creditCount = allCreditLines.length
+  const creditToman = allCreditLines.reduce(
+    (sum, line) => sum + (line.decision.action === 'credit' ? line.decision.amount : 0),
+    0,
+  )
+
   let appliedCount = 0
   if (apply) {
-    for (const line of report.lines) {
-      if (line.decision.action !== 'credit') continue
+    for (const line of allCreditLines) {
       if (await applyCredit(line)) appliedCount += 1
     }
   }
 
   return {
     applied: apply,
-    creditCount: report.creditCount,
-    creditToman: report.creditToman,
+    creditCount,
+    creditToman,
     appliedCount,
     counts: report.counts,
     credits: credits.slice(0, 50),
     trackingMatch: report.trackingMatch,
+    ledgerShortfalls: ledgerShortfalls.map((row) => ({
+      ...row,
+      amount: Number(row.amount),
+      debited: Number(row.debited),
+      refunded: Number(row.refunded),
+      net: Number(row.net),
+    })),
   }
 }
