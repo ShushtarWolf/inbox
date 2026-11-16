@@ -554,6 +554,50 @@ suite('money integration (real Postgres)', () => {
     expect(await userDrift(f.athlete.id)).toBe(0)
   })
 
+  it('owner single-slot cancel on a covered sibling credits pro-rata from the primary IPG payment', async () => {
+    const f = await fixtures()
+    const { cancelSeriesSessionWithSlot } = await import('./seriesCancelRefund')
+    const primary = await paidBooking(f, { date: future, startTime: '10:00', amount: 600_000, method: 'IPG' })
+    const sibling = await paidBooking(f, { date: future, startTime: '18:00', amount: 0, method: 'IPG' })
+    await db.payment.update({
+      where: { id: primary.payment.id },
+      data: {
+        metadataJson: JSON.stringify({
+          groupPrimaryBookingId: primary.booking.id,
+          groupSiblingBookingIds: [sibling.booking.id],
+          sessionPrice: 300_000,
+        }),
+      },
+    })
+    await db.payment.update({
+      where: { id: sibling.payment.id },
+      data: {
+        metadataJson: JSON.stringify({
+          coveredByBookingId: primary.booking.id,
+          sessionPrice: 300_000,
+        }),
+      },
+    })
+    await m.settlement.creditOwnerForPaidPayment(primary.payment.id, 'PENDING_ONLINE')
+
+    const refund = await cancelSeriesSessionWithSlot({
+      bookingId: sibling.booking.id,
+      slotId: sibling.slot.id,
+      userId: f.athlete.id,
+      reason: 'owner-cancel',
+      moneyOutcome: 'full_wallet_refund',
+    })
+    expect(refund?.amount).toBe(300_000)
+    expect(refund?.walletCredited).toBe(true)
+    const athlete = await db.wallet.findUniqueOrThrow({ where: { userId: f.athlete.id } })
+    expect(athlete.availableBalance).toBe(300_000)
+    expect((await db.booking.findUniqueOrThrow({ where: { id: sibling.booking.id } })).status).toBe('CANCELLED')
+    expect((await db.payment.findUniqueOrThrow({ where: { id: primary.payment.id } })).status).toBe('PAID')
+    expect((await db.payment.findUniqueOrThrow({ where: { id: sibling.payment.id } })).status).toBe('PAID')
+    expect(await userDrift(f.athlete.id)).toBe(0)
+    expect(await clubDrift(f.club.id)).toBe(0)
+  })
+
   it('cron money audit reports zero drift after a paid withdraw', async () => {
     const f = await fixtures()
     const { payment } = await paidBooking(f, { date: past, amount: 500_000, method: 'IPG' })
