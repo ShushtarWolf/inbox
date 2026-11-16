@@ -38,6 +38,8 @@ export type HistoricalCancelRefundReport = {
   creditCount: number
   creditToman: number
   appliedCount: number
+  /** Per-line APPLY failures (caught so the request returns JSON instead of HTTP 500). */
+  applyErrors: Array<{ paymentId: string, bookingId: string | null, message: string }>
   counts: Record<string, number>
   /** Phase-3 rollup: credit | skip | review | series_gap */
   buckets: Record<HistoricalRepairBucket, number>
@@ -518,26 +520,40 @@ async function applyCredit(line: HistoricalCancelRefundLine, opts?: {
       if (clubClawback > 0 && ledger.clubId) {
         const clubWallet = await tx.clubWallet.findUnique({ where: { clubId: ledger.clubId } })
         if (clubWallet) {
-          const fromLocked = Math.min(clubWallet.lockedBalance, clubClawback)
-          const fromAvailable = clubClawback - fromLocked
-          await tx.clubWallet.update({
-            where: { id: clubWallet.id },
-            data: {
-              balance: { decrement: clubClawback },
-              lockedBalance: { decrement: fromLocked },
-              availableBalance: { decrement: fromAvailable },
-            },
-          })
-          await tx.clubWalletTransaction.create({
-            data: {
-              walletId: clubWallet.id,
-              amount: -clubClawback,
-              type: 'CLAWBACK',
-              paymentId: payment.id,
-              bookingId: key,
-              note: key,
-            },
-          })
+          // Cap to what the club wallet actually holds — never drive locked/available negative.
+          const maxClaw = Math.min(
+            clubClawback,
+            Math.max(0, clubWallet.balance),
+            Math.max(0, clubWallet.lockedBalance) + Math.max(0, clubWallet.availableBalance),
+          )
+          const fromLocked = Math.min(Math.max(0, clubWallet.lockedBalance), maxClaw)
+          const fromAvailable = Math.min(
+            Math.max(0, clubWallet.availableBalance),
+            Math.max(0, maxClaw - fromLocked),
+          )
+          const clawed = fromLocked + fromAvailable
+          clubClawback = clawed
+          commissionRecorded = Math.max(0, again.amount - clubClawback)
+          if (clawed > 0) {
+            await tx.clubWallet.update({
+              where: { id: clubWallet.id },
+              data: {
+                balance: { decrement: clawed },
+                lockedBalance: { decrement: fromLocked },
+                availableBalance: { decrement: fromAvailable },
+              },
+            })
+            await tx.clubWalletTransaction.create({
+              data: {
+                walletId: clubWallet.id,
+                amount: -clawed,
+                type: 'CLAWBACK',
+                paymentId: payment.id,
+                bookingId: line.bookingId || null,
+                note: key,
+              },
+            })
+          }
         }
       }
       const fully = alreadyClawed + clubClawback >= ledger.ownerNet
@@ -861,14 +877,30 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     ? allCreditLines.filter((line) => forcedIds.has(line.paymentId))
     : allCreditLines
   let appliedCount = 0
+  const applyErrors: HistoricalCancelRefundReport['applyErrors'] = []
   if (apply) {
     for (const line of linesToApply) {
       const forced = forcedIds.has(line.paymentId)
-      if (await applyCredit(line, {
-        force: forced,
-        trustDecision: line.bucket === 'series_gap' || line.decision.reason === 'series_session_shortfall',
-      })) {
-        appliedCount += 1
+      try {
+        if (await applyCredit(line, {
+          force: forced,
+          trustDecision: line.bucket === 'series_gap' || line.decision.reason === 'series_session_shortfall',
+        })) {
+          appliedCount += 1
+        }
+      }
+      catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(
+          '[historicalCancelRefundRepair] applyCredit failed',
+          { paymentId: line.paymentId, bookingId: line.bookingId, message },
+          err,
+        )
+        applyErrors.push({
+          paymentId: line.paymentId,
+          bookingId: line.bookingId,
+          message: message.slice(0, 500),
+        })
       }
     }
   }
@@ -906,6 +938,7 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     creditCount,
     creditToman,
     appliedCount,
+    applyErrors,
     counts: report.counts,
     buckets,
     credits: credits.slice(0, 50),
