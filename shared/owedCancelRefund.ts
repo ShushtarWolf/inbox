@@ -1,0 +1,123 @@
+/**
+ * Single brain for "how many toman go to the athlete wallet on cancel".
+ * Live cancel, retry, and historical repair must agree on this math.
+ *
+ * Desk cash → 0. Series → session share (capped by residual). Standalone → payment amount × bps.
+ * Explicit refundCreditAmount / refundedAmount in metadata wins when present (already decided).
+ */
+import {
+  isSeriesPaymentGroup,
+  parseSeriesPaymentMeta,
+  sessionRefundAmount,
+  type SeriesPaymentMeta,
+} from './athleteSeason.ts'
+import { refundAmountFromBps } from './cancelPolicy.ts'
+import { resolveRefundChannel } from './cancelRefund.ts'
+
+export type CancelWalletCreditReason =
+  | 'desk_cash'
+  | 'zero'
+  | 'explicit_meta'
+  | 'standalone'
+  | 'series_session'
+
+export type CancelWalletCreditInput = {
+  method: string | null | undefined
+  bookingPaymentMethod?: string | null
+  /** This payment row's amount (0 on series siblings). */
+  paymentAmount: number
+  /** Primary / charged series total when known. Defaults to paymentAmount. */
+  primaryAmount?: number | null
+  sessionPrice?: number | null
+  /** Already credited for earlier session cancels on this primary. */
+  alreadyRefundedOnPrimary?: number | null
+  /** Active sessions still claiming money, including the one being cancelled. */
+  remainingSessionsIncludingCancelled?: number | null
+  /** Force series math even if metadata markers are incomplete. */
+  treatAsSeries?: boolean
+  refundBps?: number | null
+  metadata?: Record<string, unknown> | string | null
+}
+
+export type CancelWalletCreditResult = {
+  amount: number
+  reason: CancelWalletCreditReason
+  series: boolean
+}
+
+function asMeta(raw: CancelWalletCreditInput['metadata']): Record<string, unknown> {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : {}
+    }
+    catch {
+      return {}
+    }
+  }
+  return raw
+}
+
+function metaNumber(meta: Record<string, unknown>, key: string): number | null {
+  const n = Number(meta[key])
+  if (!Number.isFinite(n) || n < 0) return null
+  return Math.floor(n)
+}
+
+/**
+ * Gross toman to credit the athlete wallet for this cancel (after refundBps).
+ * Never returns a negative. Series never returns more than residual on primary.
+ */
+export function cancelWalletCreditAmount(input: CancelWalletCreditInput): CancelWalletCreditResult {
+  if (resolveRefundChannel(input.method, input.bookingPaymentMethod) === 'desk_cash') {
+    return { amount: 0, reason: 'desk_cash', series: false }
+  }
+
+  const meta = asMeta(input.metadata)
+  const seriesMeta = parseSeriesPaymentMeta(JSON.stringify(meta)) as SeriesPaymentMeta
+  const series = input.treatAsSeries === true || isSeriesPaymentGroup(seriesMeta)
+  const bps = input.refundBps != null
+    ? Math.max(0, Math.min(10_000, Math.floor(Number(input.refundBps) || 0)))
+    : (metaNumber(meta, 'refundBps') ?? 10_000)
+
+  const explicit = metaNumber(meta, 'refundCreditAmount') ?? metaNumber(meta, 'refundedAmount')
+  if (explicit != null) {
+    // Explicit amounts are already the decided credit (often post-bps). Do not double-scale.
+    return { amount: Math.max(0, explicit), reason: 'explicit_meta', series }
+  }
+
+  if (series) {
+    const primary = Math.max(
+      0,
+      Math.floor(Number(input.primaryAmount ?? input.paymentAmount) || 0),
+    )
+    const already = Math.max(
+      0,
+      Math.floor(
+        Number(
+          input.alreadyRefundedOnPrimary
+          ?? metaNumber(meta, 'sessionRefundsTotal')
+          ?? 0,
+        ) || 0,
+      ),
+    )
+    const sessionPrice = input.sessionPrice != null
+      ? Number(input.sessionPrice)
+      : metaNumber(meta, 'sessionPrice')
+    const raw = sessionRefundAmount({
+      sessionPrice,
+      primaryAmount: primary,
+      alreadyRefunded: already,
+      remainingSessions: input.remainingSessionsIncludingCancelled,
+    })
+    const amount = refundAmountFromBps(raw, bps)
+    return { amount, reason: amount > 0 ? 'series_session' : 'zero', series: true }
+  }
+
+  const cap = Math.max(0, Math.floor(Number(input.paymentAmount) || 0))
+  const amount = refundAmountFromBps(cap, bps)
+  return { amount, reason: amount > 0 ? 'standalone' : 'zero', series: false }
+}

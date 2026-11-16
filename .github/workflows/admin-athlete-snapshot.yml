@@ -38,35 +38,34 @@ jobs:
           echo
           curl -sfS "https://inboxs.ir/api/admin/payments?q=${ENC}&limit=100" "${H[@]}" | tee reports/payments.json
           echo
+          # Full ledger when phone looks Iranian (post-deploy athlete-ledger endpoint).
+          if echo "$Q" | grep -qE '^09[0-9]{9}$'; then
+            curl -sfS "https://inboxs.ir/api/admin/money-audit/athlete-ledger?phone=${ENC}" "${H[@]}" \
+              | tee reports/athlete-ledger.json || echo '{"skipped":"athlete-ledger unavailable"}' > reports/athlete-ledger.json
+          fi
           python3 - <<'PY'
-          import json
+          import json, os
           users=json.load(open('reports/users.json')).get('users') or []
           books=json.load(open('reports/bookings.json')).get('bookings') or []
           pays=json.load(open('reports/payments.json')).get('payments') or []
           print(f"users={len(users)} bookings={len(books)} payments={len(pays)}")
           for u in users[:5]:
             print(f"USER id={u.get('id')} name={u.get('name')} phone={u.get('phone')} bookingCount={u.get('bookingCount')}")
-          for b in books:
-            slot=b.get('slot') or {}
-            court=(slot.get('court') or {})
-            club=(court.get('club') or {})
+          for b in books[:40]:
             pay=b.get('payment') or {}
             print(
-              f"BOOK {b.get('status')} {slot.get('date')} {slot.get('startTime')} "
-              f"{club.get('slug')} {court.get('nameFa')} "
+              f"BOOK {b.get('status')} {b.get('date')} {b.get('startTime')} "
+              f"{(b.get('club') or {}).get('slug')} {b.get('courtNameFa')} "
               f"pay={pay.get('amount')}/{pay.get('method')}/{pay.get('status')} "
-              f"bookPay={b.get('paymentMethod')}/{b.get('paymentStatus')} "
-              f"reason={b.get('cancellationReason')} id={b.get('id')} pid={pay.get('id')}"
+              f"id={b.get('id')} pid={pay.get('id')}"
             )
-          for p in pays:
-            book=p.get('booking') or {}
-            slot=book.get('slot') or {}
-            print(
-              f"PAY {p.get('id')} amt={p.get('amount')} {p.get('method')}/{p.get('status')} "
-              f"book={book.get('id')} bookSt={book.get('status')} "
-              f"{slot.get('date')} {slot.get('startTime')} "
-              f"manual={p.get('manualBankRefund')}"
-            )
+          if os.path.exists('reports/athlete-ledger.json'):
+            led=json.load(open('reports/athlete-ledger.json'))
+            if led.get('user'):
+              w=led.get('wallet') or {}
+              print(f"LEDGER user={led['user'].get('id')} bookings={len(led.get('bookings') or [])} "
+                    f"payments={len(led.get('payments') or [])} walletBal={w.get('balance')} "
+                    f"txs={len(w.get('transactions') or [])}")
           PY
 
       - uses: actions/upload-artifact@v4

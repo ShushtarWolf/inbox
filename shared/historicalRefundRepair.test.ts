@@ -77,6 +77,23 @@ describe('decideHistoricalCancelRefund', () => {
     }).reason).toBe('card_already_reversed')
   })
 
+  it('credits series session share not full primary when treatAsSeries is set', () => {
+    expect(decideHistoricalCancelRefund({
+      ...base,
+      amount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      alreadyRefundedOnPrimary: 0,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+      metadata: { refundChannel: 'wallet_closed_loop', seasonBookingId: 's1' },
+    })).toEqual({
+      action: 'credit',
+      amount: 1_500,
+      reason: 'wallet_path_shortfall',
+    })
+  })
+
   it('skips when the stable reconciliation key already exists', () => {
     expect(decideHistoricalCancelRefund({ ...base, alreadyReconciled: true }).reason).toBe('already_reconciled')
     expect(historicalRefundIdempotencyKey('pay-1')).toBe('recon:historical-cancel:pay-1')

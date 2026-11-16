@@ -1,9 +1,14 @@
 import { bookingTrackingCode } from '#shared/receiptToken.ts'
 import {
+  isSeriesPaymentGroup,
+  parseSeriesPaymentMeta,
+} from '#shared/athleteSeason.ts'
+import {
   decideHistoricalCancelRefund,
   historicalRefundIdempotencyKey,
   type HistoricalRefundDecision,
 } from '#shared/historicalRefundRepair.ts'
+import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import { prisma } from './prisma'
 
 type Candidate = {
@@ -447,6 +452,7 @@ export async function runHistoricalCancelRefundRepair(opts?: {
   }
 
   // Explicit force list (closed-loop IPG cancel wrongly flagged as card reverse).
+  // Amount comes from cancelWalletCreditAmount — never blind full primary for a series session.
   for (const paymentId of opts?.forcePaymentIds || []) {
     if (creditIds.has(paymentId)) continue
     const payment = await prisma.payment.findUnique({
@@ -456,31 +462,59 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     if (!payment || payment.method === 'CASH' || payment.booking?.paymentMethod === 'CASH') continue
     const userId = payment.userId || payment.booking?.userId
     if (!userId) continue
+    const meta = parseMeta(payment.metadataJson)
+    const seriesMeta = parseSeriesPaymentMeta(payment.metadataJson)
+    let primaryAmount = payment.amount
+    let alreadyOnPrimary = 0
+    let creditPaymentId = payment.id
+    if (isSeriesPaymentGroup(seriesMeta)) {
+      const primaryBookingId = seriesMeta.coveredByBookingId
+        || seriesMeta.groupPrimaryBookingId
+        || payment.bookingId
+      if (primaryBookingId) {
+        const primary = await prisma.payment.findUnique({ where: { bookingId: primaryBookingId } })
+        if (primary) {
+          creditPaymentId = primary.id
+          primaryAmount = primary.amount
+          const primaryMeta = parseMeta(primary.metadataJson)
+          alreadyOnPrimary = Math.max(0, Math.floor(Number(primaryMeta.sessionRefundsTotal) || 0))
+          const creditedPrimary = await prisma.walletTransaction.aggregate({
+            where: { paymentId: primary.id, type: 'REFUND_CREDIT' },
+            _sum: { amount: true },
+          })
+          alreadyOnPrimary = Math.max(alreadyOnPrimary, Math.max(0, creditedPrimary._sum.amount || 0))
+        }
+      }
+    }
+    if (creditIds.has(creditPaymentId)) continue
     const credited = await prisma.walletTransaction.aggregate({
-      where: { paymentId: payment.id, type: 'REFUND_CREDIT' },
+      where: { paymentId: creditPaymentId, type: 'REFUND_CREDIT' },
       _sum: { amount: true },
     })
-    const already = Math.max(0, credited._sum.amount || 0)
-    const meta = parseMeta(payment.metadataJson)
-    const owed = Math.max(
-      0,
-      Math.floor(Number(meta.refundCreditAmount) || Number(meta.refundedAmount) || payment.amount || 0),
-    )
-    const gap = Math.max(0, owed - already)
+    const already = Math.max(0, credited._sum.amount || 0, alreadyOnPrimary)
+    const owed = cancelWalletCreditAmount({
+      method: payment.method,
+      bookingPaymentMethod: payment.booking?.paymentMethod,
+      paymentAmount: payment.amount,
+      primaryAmount,
+      alreadyRefundedOnPrimary: alreadyOnPrimary,
+      metadata: meta,
+    })
+    const gap = Math.max(0, owed.amount - already)
     if (gap <= 0) continue
     const line: HistoricalCancelRefundLine = {
-      paymentId: payment.id,
+      paymentId: creditPaymentId,
       bookingId: payment.bookingId,
       decision: { action: 'credit', amount: gap, reason: 'wallet_path_shortfall' },
     }
     synthesized.push(line)
     credits.push({
-      paymentId: payment.id,
+      paymentId: creditPaymentId,
       bookingId: payment.bookingId,
       amount: gap,
-      reason: 'wallet_path_shortfall',
+      reason: owed.series ? 'series_session_force' : 'wallet_path_shortfall',
     })
-    creditIds.add(payment.id)
+    creditIds.add(creditPaymentId)
   }
 
   const allCreditLines = [

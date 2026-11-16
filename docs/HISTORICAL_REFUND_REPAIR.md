@@ -19,7 +19,10 @@ APPLY=yes node --import tsx scripts/repair-historical-cancel-refunds.ts
 - `reversePending` is not set.
 - For an IPG row, the wallet path is positively recorded (`refundChannel=wallet_closed_loop`, `method=PAID`, or `reverseFailedAt`). Empty metadata is unresolved, not a credit.
 - Full wallet checkout (`method=PAID`) ignores leftover `gatewayReversed` / `gatewayRefund` / `reversePending` flags on the same Payment row (earlier IPG attempt). Those flags must not skip the wallet credit.
-- Owed toman is taken from `refundCreditAmount`, `refundedAmount`, `refundBps`, or `sessionRefundsTotal` when present, otherwise the full amount only on a proven wallet path.
+- Owed toman uses `cancelWalletCreditAmount` (`shared/owedCancelRefund.ts`): explicit
+  `refundCreditAmount` / `refundedAmount` when present; series → session share capped by
+  residual; otherwise standalone `payment.amount` × `refundBps`. Force-repair must not
+  credit a full series primary for one sibling cancel.
 - Existing `REFUND_CREDIT` sums are subtracted. The stable key `recon:historical-cancel:{paymentId}` blocks a second apply.
 
 ## Left unresolved on purpose
