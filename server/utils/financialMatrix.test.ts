@@ -5,6 +5,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { resolveRefundChannel } from '#shared/cancelRefund.ts'
+import { decideHistoricalCancelRefund } from '#shared/historicalRefundRepair.ts'
+import { classifyHistoricalRefundBucket } from '#shared/historicalRefundInventory.ts'
+import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import { summarizeCashBook, summarizeOnlineOpen } from '#shared/dualRailBooks.ts'
 import { isPaymentCallbackOk, readPaymentCallbackFields } from '#shared/paymentCallback.ts'
 import { tomanToRials } from '#shared/payments.ts'
@@ -72,5 +75,75 @@ describe('FINANCIAL_CROSS_SYSTEM_TESTS', () => {
       },
     ])
     expect(online.collectedOpen).toBe(0)
+  })
+})
+
+describe('MONEY_POLICY_PHASE1_TESTS', () => {
+  it('owed helper and historical decide agree on standalone IPG cancel', () => {
+    const owed = cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 100_000,
+      refundBps: 10_000,
+    }).amount
+    const decision = decideHistoricalCancelRefund({
+      method: 'IPG',
+      paymentStatus: 'REFUNDED',
+      bookingStatus: 'CANCELLED',
+      amount: 100_000,
+      userId: 'u1',
+      refundCreditSum: 0,
+      metadata: { refundChannel: 'wallet_closed_loop', refundCreditAmount: 100_000 },
+    })
+    expect(owed).toBe(100_000)
+    expect(decision).toEqual({ action: 'credit', amount: 100_000, reason: 'wallet_path_shortfall' })
+    expect(classifyHistoricalRefundBucket({
+      decision,
+      method: 'IPG',
+      paymentAmount: 100_000,
+      metadata: {},
+      owedAmount: owed,
+      creditedAmount: 0,
+    })).toBe('credit')
+  })
+
+  it('series session cancel never invents full primary in owed helper', () => {
+    const owed = cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      alreadyRefundedOnPrimary: 0,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+    }).amount
+    expect(owed).toBe(1_500)
+    const decision = decideHistoricalCancelRefund({
+      method: 'IPG',
+      paymentStatus: 'PAID',
+      bookingStatus: 'CANCELLED',
+      amount: 0,
+      userId: 'u1',
+      refundCreditSum: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      treatAsSeries: true,
+      metadata: {
+        coveredByBookingId: 'b-primary',
+        sessionPrice: 1_500,
+        refundChannel: 'wallet_closed_loop',
+      },
+    })
+    expect(decision).toEqual({ action: 'credit', amount: 1_500, reason: 'wallet_path_shortfall' })
+    expect(classifyHistoricalRefundBucket({
+      decision,
+      method: 'IPG',
+      paymentAmount: 0,
+      bookingStatus: 'CANCELLED',
+      metadata: { coveredByBookingId: 'b-primary' },
+      owedAmount: owed,
+      creditedAmount: 0,
+      primaryPaymentStatus: 'PAID',
+      isSeriesSiblingRow: true,
+    })).toBe('series_gap')
   })
 })

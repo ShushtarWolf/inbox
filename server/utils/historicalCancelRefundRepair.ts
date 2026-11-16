@@ -8,6 +8,11 @@ import {
   historicalRefundIdempotencyKey,
   type HistoricalRefundDecision,
 } from '#shared/historicalRefundRepair.ts'
+import {
+  classifyHistoricalRefundBucket,
+  isSeriesSiblingCancelRow,
+  type HistoricalRefundBucket,
+} from '#shared/historicalRefundInventory.ts'
 import { cancelWalletCreditAmount } from '#shared/owedCancelRefund.ts'
 import { prisma } from './prisma'
 
@@ -26,6 +31,10 @@ export type HistoricalCancelRefundLine = {
   paymentId: string
   bookingId: string | null
   decision: HistoricalRefundDecision
+  bucket: HistoricalRefundBucket
+  owedAmount?: number
+  creditedAmount?: number
+  primaryPaymentId?: string | null
 }
 
 export type HistoricalCancelRefundReport = {
@@ -137,17 +146,101 @@ async function reconKeys(paymentIds: string[]) {
   return new Set(rows.map((row) => row.idempotencyKey))
 }
 
+type PrimaryPaymentRow = {
+  id: string
+  bookingId: string | null
+  amount: number
+  status: string
+  metadataJson: string | null
+}
+
+async function loadPrimaryPaymentsByBookingId(candidates: Candidate[]) {
+  const bookingIds = new Set<string>()
+  for (const row of candidates) {
+    const seriesMeta = parseSeriesPaymentMeta(row.metadataJson)
+    if (!isSeriesPaymentGroup(seriesMeta)) continue
+    const primaryBookingId = seriesMeta.coveredByBookingId
+      || seriesMeta.groupPrimaryBookingId
+      || (Math.floor(row.amount) === 0 ? null : row.bookingId)
+    if (primaryBookingId) bookingIds.add(primaryBookingId)
+  }
+  if (!bookingIds.size) return new Map<string, PrimaryPaymentRow>()
+  const rows = await prisma.payment.findMany({
+    where: { bookingId: { in: [...bookingIds] } },
+    select: {
+      id: true,
+      bookingId: true,
+      amount: true,
+      status: true,
+      metadataJson: true,
+    },
+  })
+  return new Map(
+    rows
+      .filter((row) => row.bookingId)
+      .map((row) => [row.bookingId as string, row]),
+  )
+}
+
+function seriesInventoryFields(
+  row: Candidate,
+  primaryByBooking: Map<string, PrimaryPaymentRow>,
+  creditSums: Map<string, number>,
+) {
+  const meta = parseMeta(row.metadataJson)
+  const seriesMeta = parseSeriesPaymentMeta(row.metadataJson)
+  if (!isSeriesPaymentGroup(seriesMeta)) {
+    return {
+      treatAsSeries: false as const,
+      primaryAmount: null as number | null,
+      sessionPrice: null as number | null,
+      alreadyRefundedOnPrimary: null as number | null,
+      creditTargetPaymentId: row.id,
+      primaryPaymentStatus: null as string | null,
+      isSeriesSibling: false,
+    }
+  }
+  const primaryBookingId = seriesMeta.coveredByBookingId
+    || seriesMeta.groupPrimaryBookingId
+    || (Math.floor(row.amount) === 0 ? null : row.bookingId)
+  const primary = primaryBookingId ? primaryByBooking.get(primaryBookingId) : null
+  const primaryMeta = primary ? parseMeta(primary.metadataJson) : {}
+  const sessionPrice = seriesMeta.sessionPrice ?? (typeof primaryMeta.sessionPrice === 'number' ? primaryMeta.sessionPrice : null)
+  const alreadyMeta = Math.max(0, Math.floor(Number(primaryMeta.sessionRefundsTotal) || 0))
+  const creditedOnPrimary = primary ? (creditSums.get(primary.id) || 0) : 0
+  const alreadyRefundedOnPrimary = Math.max(alreadyMeta, creditedOnPrimary)
+  const creditTargetPaymentId = primary?.id || row.id
+  const isSeriesSibling = isSeriesSiblingCancelRow({
+    paymentAmount: row.amount,
+    bookingStatus: row.booking?.status,
+    metadata: meta,
+  })
+  return {
+    treatAsSeries: true as const,
+    primaryAmount: primary?.amount ?? (Math.floor(row.amount) > 0 ? row.amount : null),
+    sessionPrice,
+    alreadyRefundedOnPrimary,
+    creditTargetPaymentId,
+    primaryPaymentStatus: primary?.status ?? null,
+    isSeriesSibling,
+  }
+}
+
 export async function inventoryHistoricalCancelRefunds(tracking?: string): Promise<{
   lines: HistoricalCancelRefundLine[]
   counts: Record<string, number>
+  bucketCounts: Record<HistoricalRefundBucket, number>
   creditCount: number
   creditToman: number
   trackingMatch: HistoricalCancelRefundLine | null
 }> {
   const candidates = await loadCandidates()
   const ids = candidates.map((row) => row.id)
+  const primaryByBooking = await loadPrimaryPaymentsByBookingId(candidates)
+  const primaryPaymentIds = [...new Set([...primaryByBooking.values()].map((row) => row.id))]
+  const allCreditIds = [...new Set([...ids, ...primaryPaymentIds])]
   const [sums, keys, debits] = await Promise.all([
-    creditSums(ids),
+    creditSums(allCreditIds),
     reconKeys(ids),
     walletDebitInfo(ids),
   ])
@@ -159,11 +252,31 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
 
   const lines: HistoricalCancelRefundLine[] = []
   const counts: Record<string, number> = {}
+  const bucketCounts: Record<HistoricalRefundBucket, number> = {
+    credit: 0,
+    skip: 0,
+    review: 0,
+    series_gap: 0,
+  }
   let creditCount = 0
   let creditToman = 0
   let trackingMatch: HistoricalCancelRefundLine | null = null
 
   for (const row of candidates) {
+    const meta = parseMeta(row.metadataJson)
+    const seriesFields = seriesInventoryFields(row, primaryByBooking, sums)
+    const refundCreditSum = sums.get(seriesFields.creditTargetPaymentId) || sums.get(row.id) || 0
+    const owed = cancelWalletCreditAmount({
+      method: row.method,
+      bookingPaymentMethod: row.booking?.paymentMethod,
+      paymentAmount: row.amount,
+      primaryAmount: seriesFields.primaryAmount,
+      sessionPrice: seriesFields.sessionPrice,
+      alreadyRefundedOnPrimary: seriesFields.alreadyRefundedOnPrimary,
+      treatAsSeries: seriesFields.treatAsSeries,
+      metadata: meta,
+    }).amount
+
     const decision = decideHistoricalCancelRefund({
       method: row.method,
       bookingPaymentMethod: row.booking?.paymentMethod,
@@ -173,14 +286,41 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       userId: row.userId || row.booking?.userId || null,
       debitedWalletUserId: debits.payer.get(row.id) || null,
       walletDebitAbs: debits.abs.get(row.id) || 0,
-      metadata: parseMeta(row.metadataJson),
-      refundCreditSum: sums.get(row.id) || 0,
+      metadata: meta,
+      refundCreditSum,
       alreadyReconciled: keys.has(historicalRefundIdempotencyKey(row.id)),
+      primaryAmount: seriesFields.primaryAmount,
+      sessionPrice: seriesFields.sessionPrice,
+      alreadyRefundedOnPrimary: seriesFields.alreadyRefundedOnPrimary,
+      treatAsSeries: seriesFields.treatAsSeries || undefined,
     })
-    const line = { paymentId: row.id, bookingId: row.bookingId, decision }
+    const phase3Bucket = classifyHistoricalRefundBucket({
+      decision,
+      method: row.method,
+      paymentAmount: row.amount,
+      bookingStatus: row.booking?.status,
+      metadata: meta,
+      owedAmount: owed,
+      creditedAmount: refundCreditSum,
+      walletDebitAbs: debits.abs.get(row.id) || 0,
+      primaryPaymentStatus: seriesFields.primaryPaymentStatus,
+      isSeriesSiblingRow: seriesFields.isSeriesSibling,
+    })
+    const line: HistoricalCancelRefundLine = {
+      paymentId: row.id,
+      bookingId: row.bookingId,
+      decision,
+      bucket: phase3Bucket,
+      owedAmount: owed,
+      creditedAmount: refundCreditSum,
+      primaryPaymentId: seriesFields.creditTargetPaymentId !== row.id
+        ? seriesFields.creditTargetPaymentId
+        : null,
+    }
     lines.push(line)
     const bucket = `${decision.action}:${decision.reason}`
     counts[bucket] = (counts[bucket] || 0) + 1
+    bucketCounts[phase3Bucket] += 1
     if (decision.action === 'credit') {
       creditCount += 1
       creditToman += decision.amount
@@ -188,7 +328,42 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
     if (trackingBookingId && row.bookingId === trackingBookingId) trackingMatch = line
   }
 
-  return { lines, counts, creditCount, creditToman, trackingMatch: tracking ? trackingMatch : null }
+  return { lines, counts, bucketCounts, creditCount, creditToman, trackingMatch: tracking ? trackingMatch : null }
+}
+
+/** Phase 3 — dry-run inventory only (credit / skip / review / series_gap). Never writes. */
+export async function runPhase3CancelRefundInventory(opts?: {
+  tracking?: string
+  clubSlug?: string
+  sampleLimit?: number
+}) {
+  const report = await inventoryHistoricalCancelRefunds(opts?.tracking)
+  const sampleLimit = Math.max(1, Math.min(50, opts?.sampleLimit ?? 25))
+  const samples: Record<HistoricalRefundBucket, HistoricalCancelRefundLine[]> = {
+    credit: [],
+    skip: [],
+    review: [],
+    series_gap: [],
+  }
+  for (const line of report.lines) {
+    const bucketList = samples[line.bucket]
+    if (bucketList.length < sampleLimit) bucketList.push(line)
+  }
+  let clubFilter: string | null = opts?.clubSlug?.trim() || null
+  if (clubFilter) {
+    const club = await prisma.club.findUnique({ where: { slug: clubFilter }, select: { id: true } })
+    if (!club) clubFilter = null
+  }
+  return {
+    dryRun: true,
+    clubSlug: clubFilter,
+    creditCount: report.creditCount,
+    creditToman: report.creditToman,
+    bucketCounts: report.bucketCounts,
+    decisionCounts: report.counts,
+    samples,
+    trackingMatch: report.trackingMatch,
+  }
 }
 
 async function applyCredit(line: HistoricalCancelRefundLine, opts?: { force?: boolean }): Promise<boolean> {

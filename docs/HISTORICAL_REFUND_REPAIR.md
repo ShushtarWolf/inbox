@@ -8,6 +8,13 @@ TRACKING=1541908 node --import tsx scripts/repair-historical-cancel-refunds.ts
 APPLY=yes node --import tsx scripts/repair-historical-cancel-refunds.ts
 ```
 
+Phase 3 inventory (dry-run only — buckets `credit` / `skip` / `review` / `series_gap`):
+
+```bash
+npm run db:inventory-cancel-refunds
+TRACKING=1541908 CLUB_SLUG=iust-tennis npm run db:inventory-cancel-refunds
+```
+
 `APPLY=yes` is not part of deploy. Run it only after a dry-run has been reviewed, and only against a database you intend to change. Re-run the dry-run afterward. `creditCount` should be 0.
 
 ## Credit only when all of these are true

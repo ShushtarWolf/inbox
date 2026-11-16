@@ -1,6 +1,7 @@
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { notifyUserDisplayName } from '#shared/userName.ts'
 import { isCashPaidBooking } from '#shared/cancelNotice.ts'
+import { seriesCancelPaymentId } from '#shared/ownerSeries.ts'
 import {
   notifyBookingCancelled,
   notifyOwnerBookingCancelled,
@@ -13,6 +14,10 @@ import {
 import { cancelCourtBooking } from '../../utils/cancellations'
 import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
 import { activeSlotBooking } from '../../utils/reservations'
+import {
+  bookingLooksLikeSeriesPayment,
+  cancelSeriesSessionWithSlot,
+} from '../../utils/seriesCancelRefund'
 
 export default defineEventHandler(async (event) => {
   const { club } = await requireOwnerClub(event, 'calendar')
@@ -103,14 +108,38 @@ export default defineEventHandler(async (event) => {
   }
   if (booking) {
     const reason = body.reason || 'owner-cancel'
-    await cancelCourtBooking({
-      bookingId: booking.id,
-      slotId: slot.id,
-      reason,
-      paymentId: booking.payment?.id,
-      userId: booking.userId,
-      moneyOutcome: 'full_wallet_refund',
-    })
+    const seriesAware = bookingLooksLikeSeriesPayment(booking.payment?.metadataJson)
+    try {
+      if (seriesAware) {
+        await cancelSeriesSessionWithSlot({
+          bookingId: booking.id,
+          slotId: slot.id,
+          userId: booking.userId,
+          reason,
+          moneyOutcome: 'full_wallet_refund',
+        })
+      }
+      else {
+        await cancelCourtBooking({
+          bookingId: booking.id,
+          slotId: slot.id,
+          reason,
+          paymentId: seriesCancelPaymentId(booking.payment),
+          userId: booking.userId,
+          moneyOutcome: 'full_wallet_refund',
+        })
+      }
+    }
+    catch (err) {
+      console.error('[owner/cancel:refund]', booking.id, err)
+      const statusMessage = err && typeof err === 'object' && 'statusMessage' in err
+        ? String((err as { statusMessage?: unknown }).statusMessage || '')
+        : ''
+      throw createError({
+        statusCode: 409,
+        statusMessage: statusMessage || 'Refund failed — booking was not cancelled',
+      })
+    }
     const rawGuest = booking.guestMobile
     const phone = booking.user?.phone || (rawGuest ? normalizeIranPhone(rawGuest) || rawGuest : null)
     const notifyStart = (body.notifyStartTime || slot.startTime).trim()
