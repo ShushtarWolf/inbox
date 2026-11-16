@@ -61,6 +61,8 @@ jobs:
       - run: npm run check:no-student-promo-ui
       - run: npm run check:ios-hit-testing
       - run: npm run check:money-safety
+      - run: npm run test:money-matrix
+      - run: npm run check:backup-assert
       - run: npm run build
       - run: npm test
       - name: Money integration tests (wallet_it schema)

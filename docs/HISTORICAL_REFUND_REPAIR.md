@@ -1,5 +1,7 @@
 # Historical cancel refund repair (Phase 3)
 
+Guardrails / complaint path: [MONEY_GUARDRAILS.md](./MONEY_GUARDRAILS.md).
+
 Dry-run by default. Nothing is deleted. Prior payment, booking, and ledger rows are not rewritten to hide a gap. A reviewed apply appends a wallet credit, a club clawback when a settlement is still open, and one `RefundReconciliation` row.
 
 ```bash

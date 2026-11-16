@@ -253,8 +253,9 @@ export async function runMoneyAuditAndAlert(opts?: { notify?: boolean }) {
   if (opts?.notify !== false && summary.alert) {
     await notifyAdminSms('ADMIN_WITHDRAW_REQUEST', {
       kind: 'money-audit',
-      amount: summary.openCashSettlements + summary.clubWalletsNegative + summary.userBalanceDrift,
-      sheba: `cash=${summary.openCashSettlements} negClub=${summary.clubWalletsNegative} driftU=${summary.userBalanceDrift}`,
+      amount: summary.openCashSettlements + summary.clubWalletsNegative + summary.userBalanceDrift
+        + summary.cancelledOnlineWithoutRefundCredit,
+      sheba: `cash=${summary.openCashSettlements} negClub=${summary.clubWalletsNegative} driftU=${summary.userBalanceDrift} cancelNoCredit=${summary.cancelledOnlineWithoutRefundCredit}`,
       userName: 'money-audit',
       userPhone: '',
       requestId: `audit-${Date.now()}`,

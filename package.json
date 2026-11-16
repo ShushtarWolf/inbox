@@ -62,6 +62,8 @@
     "check:no-student-promo-ui": "node scripts/check-no-student-promo-ui.mjs",
     "check:ios-hit-testing": "node scripts/check-ios-hit-testing.mjs",
     "check:money-safety": "node scripts/check-money-safety.mjs",
+    "test:money-matrix": "vitest run shared/moneyCancelMatrix.test.ts shared/owedCancelRefund.test.ts shared/historicalRefundRepair.test.ts shared/cancelRefund.walletRail.test.ts",
+    "check:backup-assert": "bash scripts/sql/assert-inbox-postgres-dump.test.sh",
     "check:canva": "node scripts/canva-pixel-compare.mjs",
     "check:html": "node scripts/check-html-screens.mjs",
     "check:db": "node scripts/check-db.mjs",

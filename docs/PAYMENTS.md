@@ -224,6 +224,7 @@ Checkout `useWallet: 'partial'` debits `min(available, price)` in the **same DB 
   `SELECT "paymentId", "bookingId", COUNT(*) FROM "ClubWalletTransaction" WHERE type = 'BOOKING_CREDIT' AND "paymentId" IS NOT NULL GROUP BY 1, 2 HAVING COUNT(*) > 1;`
 - **Checkout retry** — payable IPG rows are **`SUPERSEDED`** (not deleted); `supersededByPaymentId` links to the replacement intent.
 - **`runMoneyAudit`** — balance drift = `balance ≠ Σ signed txs − PAID withdraw requests` (`WITHDRAW_PAID` rows carry amount 0) **or** `balance ≠ available + locked`; same formula as `walletBalanceDrift` / `audit-money-bugs.mjs`. Also `paidWithoutSettlement`, `paidTopUpWithoutCredit`, `openPlatformCommissionToman`, money-job, `reversePending`, `reversedStillPaid`, and `cancelledOnlineWithoutRefundCredit` (cancelled IPG/PAID with no athlete `REFUND_CREDIT` and no proven card/desk/manual owe marker). **`GET /api/admin/payments/money-ops-summary`** lists sample ids + action endpoints.
+- **Phase-4 guardrails** — see [MONEY_GUARDRAILS.md](./MONEY_GUARDRAILS.md): CI `test:money-matrix`, backup assert, money-audit cron fails on cancel-without-credit, no repair APPLY in deploy.
 - **CI** — `npm run check:money-safety` blocks new `payment.delete` under `server/` (except catalog wipe utilities).
 
 ## Guest IPG refunds
