@@ -82,10 +82,22 @@ watch(secret, (value) => {
 
     <form class="flex flex-wrap items-end gap-3" @submit.prevent="load">
       <AppFormField field-id="acct-from" :label="t('admin.accounting.fromDate')">
-        <input id="acct-from" v-model="fromDate" type="date" class="neo-input" style="border-radius: 0;" dir="ltr">
+        <AppIsoDateFilterInput
+          id="acct-from"
+          v-model="fromDate"
+          :grow="false"
+          input-class="neo-input rounded-none"
+          :aria-label="t('admin.accounting.fromDate')"
+        />
       </AppFormField>
       <AppFormField field-id="acct-to" :label="t('admin.accounting.toDate')">
-        <input id="acct-to" v-model="toDate" type="date" class="neo-input" style="border-radius: 0;" dir="ltr">
+        <AppIsoDateFilterInput
+          id="acct-to"
+          v-model="toDate"
+          :grow="false"
+          input-class="neo-input rounded-none"
+          :aria-label="t('admin.accounting.toDate')"
+        />
       </AppFormField>
       <button
         type="submit"

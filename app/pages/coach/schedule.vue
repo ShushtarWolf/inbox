@@ -400,7 +400,13 @@ function bookLinkFor(startTime: string) {
         </div>
         <label class="block text-sm font-bold text-brand-navy">
           {{ t('coach.rescheduleDate') }}
-          <input v-model="rescheduleDate" type="date" dir="ltr" class="neo-input mt-1 w-full" />
+          <AppIsoDateFilterInput
+            v-model="rescheduleDate"
+            :grow="false"
+            wrapper-class="mt-1"
+            input-class="neo-input"
+            :aria-label="t('coach.rescheduleDate')"
+          />
         </label>
         <label class="block text-sm font-bold text-brand-navy">
           {{ t('coach.rescheduleTime') }}

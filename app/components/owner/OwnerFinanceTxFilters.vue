@@ -176,39 +176,34 @@ function sortLabel(key: FinanceTxSortKey) {
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.reservedAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="reservedFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="reservedTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.reservedAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
       <div class="text-start">
         <span class="mb-1 block text-xs font-bold text-brand-navy">{{ t('owner.financeTable.paidAt') }}</span>
         <span class="flex gap-2">
-          <input
+          <AppIsoDateFilterInput
             v-model="paidFrom"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateFrom')}`"
-          >
-          <input
+          />
+          <AppIsoDateFilterInput
             v-model="paidTo"
-            type="date"
-            dir="ltr"
-            class="canva-finance-date tabular-nums"
+            class="min-w-0 flex-1"
+            input-class="canva-finance-date tabular-nums"
             :aria-label="`${t('owner.financeTable.paidAt')} ${t('owner.financeTable.dateTo')}`"
-          >
+          />
         </span>
       </div>
     </div>
