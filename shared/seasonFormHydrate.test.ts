@@ -52,4 +52,16 @@ describe('resolveSeasonGuestFields', () => {
     expect(resolved.guestName).toBe('الهه')
     expect(resolved.guestFamily).toBe('ربیعی')
   })
+
+  it('fills family from linked user when desk guest columns are first-name only', () => {
+    const resolved = resolveSeasonGuestFields({
+      guestName: 'Behnaz',
+      guestFamily: '',
+      userName: 'Behnaz',
+      userNameFamily: 'Tabbati',
+    })
+    expect(resolved.guestName).toBe('Behnaz')
+    expect(resolved.guestFamily).toBe('Tabbati')
+    expect(resolved.guestLabel).toBe('Behnaz Tabbati')
+  })
 })

@@ -39,6 +39,7 @@ import { guestSearchHitToFormPair, type GuestSearchHit } from '#shared/guestSear
 import { normalizeIranPhone } from '#shared/phone.ts'
 import { parseDeskPercent, resolveDeskCharge } from '#shared/deskCharge.ts'
 import { mergeGuestMobileFromDom, applyGuestMobileInput } from '#shared/ownerDeskGuestForm.ts'
+import { resolveSeasonGuestFields } from '#shared/seasonFormHydrate.ts'
 import { shouldExitBookedSelectForFreeSlot } from '#shared/ownerCalendarSelection.ts'
 import { deskPaymentAnchorSlot } from '#shared/deskPaymentAnchor.ts'
 import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
@@ -1605,15 +1606,7 @@ function openSlot(slot: OwnerCalendarSlot | null | undefined, opts?: { keepSelec
     form.guestFamily = ''
   }
   else {
-    const linked = resolveLinkedGuestDisplayName({
-      guestName: booking?.guestName,
-      guestFamily: booking?.guestFamily,
-      userName: booking?.user?.name,
-      userNameFamily: booking?.user?.nameFamily,
-    })
-    const parts = normalizeGuestNamePair(linked || booking?.guestName, booking?.guestFamily)
-    form.guestName = parts.guestName
-    form.guestFamily = parts.guestFamily
+    applyBookingGuestToForm(booking)
   }
   form.guestMobile = isFree ? '' : (booking?.guestMobile || '')
   form.coachId = pilotNoCoach.value ? '' : (booking?.coachId || '')
@@ -1673,17 +1666,24 @@ function cancelCheckedSlots() {
   return slotsForCancel().filter((slot) => !excluded.has(slot.id))
 }
 
+function applyBookingGuestToForm(booking: OwnerCalendarBooking | null | undefined) {
+  if (!booking) return
+  const guest = resolveSeasonGuestFields({
+    guestName: booking.guestName,
+    guestFamily: booking.guestFamily,
+    userName: booking.user?.name,
+    userNameFamily: booking.user?.nameFamily,
+  })
+  form.guestName = guest.guestName
+  form.guestFamily = guest.guestFamily
+  if (booking.guestMobile) form.guestMobile = booking.guestMobile
+}
+
 function openCancelForm() {
   cancelSeries.value = false
   cancelExcludedIds.value = []
   if (!slotsForCancel().length) return
-  const booking = activeBooking(slotsForCancel()[0])
-  if (booking) {
-    const guest = normalizeGuestNamePair(booking.guestName || form.guestName, booking.guestFamily || form.guestFamily)
-    form.guestName = guest.guestName
-    form.guestFamily = guest.guestFamily
-    if (booking.guestMobile) form.guestMobile = booking.guestMobile
-  }
+  applyBookingGuestToForm(activeBooking(slotsForCancel()[0]))
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
   activePanel.value = 'cancel'
 }
@@ -1691,6 +1691,7 @@ function openCancelForm() {
 function openSeriesCancelForm() {
   if (!canCancelSeries.value || !selectedSlotFull.value) return
   cancelSeries.value = true
+  applyBookingGuestToForm(activeBooking(selectedSlotFull.value))
   cancelReason.value = cancelReason.value || 'CUSTOMER_REQUEST'
   activePanel.value = 'cancel'
 }
