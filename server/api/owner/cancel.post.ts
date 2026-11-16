@@ -9,7 +9,7 @@ import {
   courtNotifyName,
   ownerNotifyPhone,
   personNotifyName,
-  skipGuestBookingSms,
+  skipGuestCancelSms,
 } from '../../utils/bookingNotify'
 import { cancelCourtBooking } from '../../utils/cancellations'
 import { cancelOwnerSeriesBookings, loadOwnerSeriesBookings } from '../../utils/ownerSeriesCancel'
@@ -91,11 +91,11 @@ export default defineEventHandler(async (event) => {
         reason,
         guestName,
         courtName: courtNotifyName(anchor.slot.court),
-        skipGuest: skipGuestBookingSms(anchor),
+        skipGuest: skipGuestCancelSms(anchor),
         cashPaid: isCashPaidBooking({
-          paymentMethod: booking.payment?.method,
-          bookingPaymentMethod: booking.paymentMethod,
-          paymentStatus: booking.payment?.status || booking.paymentStatus,
+          paymentMethod: anchor.payment?.method,
+          bookingPaymentMethod: anchor.paymentMethod,
+          paymentStatus: anchor.payment?.status || anchor.paymentStatus,
         }),
       })
       return {
@@ -174,7 +174,7 @@ export default defineEventHandler(async (event) => {
       reason,
       guestName,
       courtName: courtNotifyName(slot.court),
-      skipGuest: skipGuestBookingSms(booking),
+      skipGuest: skipGuestCancelSms(booking),
       cashPaid: isCashPaidBooking({
         paymentMethod: booking.payment?.method,
         bookingPaymentMethod: booking.paymentMethod,

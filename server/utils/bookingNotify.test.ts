@@ -36,6 +36,7 @@ import {
   ownerNotifyPhone,
   personNotifyName,
   skipGuestBookingSms,
+  skipGuestCancelSms,
   whenLine,
 } from './bookingNotify'
 
@@ -71,7 +72,40 @@ describe('skipGuestBookingSms', () => {
   })
 })
 
-/** Owner cancel must use skipGuestBookingSms (same as athlete cancel) — not blanket skipGuest. */
+describe('skipGuestCancelSms', () => {
+  it('still sends cancel SMS for desk-origin IPG / wallet paid bookings', () => {
+    expect(skipGuestCancelSms({
+      source: 'CLUB',
+      userId: 'u1',
+      payment: { method: 'IPG', status: 'PAID' },
+    })).toBe(false)
+    expect(skipGuestCancelSms({
+      source: 'CLUB',
+      userId: 'u1',
+      payment: { method: 'PAID', status: 'PAID' },
+    })).toBe(false)
+    expect(skipGuestCancelSms({
+      source: 'CLUB',
+      paymentStatus: 'PENDING_ONLINE',
+      payment: { method: 'NOT_PAID', status: 'PENDING_ONLINE' },
+    })).toBe(false)
+  })
+
+  it('skips cancel SMS for desk cash and anonymous unpaid walk-ins', () => {
+    expect(skipGuestCancelSms({
+      source: 'CLUB',
+      payment: { method: 'CASH', status: 'PAID' },
+      paymentMethod: 'CASH',
+    })).toBe(true)
+    expect(skipGuestCancelSms({ source: 'CLUB' })).toBe(true)
+  })
+
+  it('never skips PLATFORM athlete bookings', () => {
+    expect(skipGuestCancelSms({ source: 'PLATFORM', payment: { method: 'IPG', status: 'PAID' } })).toBe(false)
+  })
+})
+
+/** Owner cancel must use skipGuestCancelSms — not blanket skipGuest or receipt-only skip. */
 describe('owner cancel guest SMS (regression)', () => {
   beforeEach(() => {
     process.env.ADMIN_ALERT_SMS = 'false'
@@ -89,7 +123,7 @@ describe('owner cancel guest SMS (regression)', () => {
     await notifyBookingCancelled({
       ...baseOpts,
       reason: 'owner-cancel',
-      skipGuest: skipGuestBookingSms({ source: 'PLATFORM' }),
+      skipGuest: skipGuestCancelSms({ source: 'PLATFORM', payment: { method: 'IPG', status: 'PAID' } }),
     })
 
     const athleteSms = sendNotification.mock.calls.filter(
@@ -99,11 +133,32 @@ describe('owner cancel guest SMS (regression)', () => {
     expect(athleteSms[0]![0].to).toBe('09121234567')
   })
 
-  it('skips guest BOOKING_CANCELLED for CLUB desk source', async () => {
+  it('sends BOOKING_CANCELLED for CLUB pay-link paid via IPG', async () => {
     await notifyBookingCancelled({
       ...baseOpts,
       reason: 'owner-cancel',
-      skipGuest: skipGuestBookingSms({ source: 'CLUB' }),
+      skipGuest: skipGuestCancelSms({
+        source: 'CLUB',
+        userId: 'user-1',
+        payment: { method: 'IPG', status: 'PAID' },
+      }),
+    })
+
+    const athleteSms = sendNotification.mock.calls.filter(
+      (call) => call[0]?.channel === 'sms' && call[0]?.template === 'BOOKING_CANCELLED',
+    )
+    expect(athleteSms).toHaveLength(1)
+  })
+
+  it('skips guest BOOKING_CANCELLED for CLUB desk cash', async () => {
+    await notifyBookingCancelled({
+      ...baseOpts,
+      reason: 'owner-cancel',
+      skipGuest: skipGuestCancelSms({
+        source: 'CLUB',
+        payment: { method: 'CASH', status: 'PAID' },
+        paymentMethod: 'CASH',
+      }),
     })
 
     const athleteSms = sendNotification.mock.calls.filter(
