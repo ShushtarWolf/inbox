@@ -855,9 +855,14 @@ export async function runHistoricalCancelRefundRepair(opts?: {
   )
 
   const forcedIds = new Set(reviewIds.map((id) => id.includes(':') ? id.slice(0, id.indexOf(':')) : id))
+  // When ops passes force/review ids, APPLY only those lines — never also dump
+  // the platform-wide auto credit inventory (would over-pay unrelated packs).
+  const linesToApply = forcedIds.size > 0
+    ? allCreditLines.filter((line) => forcedIds.has(line.paymentId))
+    : allCreditLines
   let appliedCount = 0
   if (apply) {
-    for (const line of allCreditLines) {
+    for (const line of linesToApply) {
       const forced = forcedIds.has(line.paymentId)
       if (await applyCredit(line, {
         force: forced,
