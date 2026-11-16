@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
+import { financeLedgerStatusKind, financeLedgerStatusToken } from '#shared/financeLedgerStatus.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 import { ownerLedgerHasPastRate, ownerLedgerRowFee, ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
@@ -423,6 +424,14 @@ function paymentStatusLabel(status: string) {
   return t(`booking.paymentStatus.${status}`)
 }
 
+function ledgerStatusLabel(tx: OwnerFinanceTransaction) {
+  const token = financeLedgerStatusToken(tx)
+  if (!token) return ''
+  return financeLedgerStatusKind(tx) === 'booking'
+    ? bookingStatusLabel(token)
+    : paymentStatusLabel(token)
+}
+
 function methodBadgeClass(tx: OwnerFinanceTransaction) {
   if (isBlockedFinanceTx(tx)) return ''
   const bucket = financePaymentBucket(tx)
@@ -542,9 +551,7 @@ function downloadExcel() {
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
     isBlockedFinanceTx(tx) ? '' : methodBadgeLabel(tx),
-    isBlockedFinanceTx(tx)
-      ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED')
-      : (tx.bookingStatus === 'CANCELLED' ? bookingStatusLabel('CANCELLED') : paymentStatusLabel(tx.paymentStatus)),
+    ledgerStatusLabel(tx),
     tx.amount,
     showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),

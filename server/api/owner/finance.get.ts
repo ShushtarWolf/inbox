@@ -175,7 +175,7 @@ export default defineEventHandler(async (event) => {
       select: {
         status: true,
         slot: { select: { date: true } },
-        payment: { select: { id: true, amount: true, method: true, status: true } },
+        payment: { select: { id: true, amount: true, method: true, status: true, metadataJson: true } },
       },
     }),
     prisma.coachSession.findMany({
@@ -186,7 +186,7 @@ export default defineEventHandler(async (event) => {
       select: {
         status: true,
         date: true,
-        payment: { select: { amount: true, method: true, status: true } },
+        payment: { select: { amount: true, method: true, status: true, metadataJson: true } },
       },
     }),
     // Kept-on-cancel money whose cancelled booking was removed by a re-book (staleBooking.ts).
@@ -208,6 +208,7 @@ export default defineEventHandler(async (event) => {
         method: row.payment!.method,
         status: row.payment!.status,
         bookingStatus: row.status,
+        metadataJson: row.payment!.metadataJson,
       } satisfies RevenueRow,
     })),
     ...detachedKeptRows
@@ -219,6 +220,7 @@ export default defineEventHandler(async (event) => {
           method: row.method,
           status: row.status,
           bookingStatus: 'CANCELLED',
+          metadataJson: row.metadataJson,
         } satisfies RevenueRow,
       })),
   ]
@@ -230,6 +232,7 @@ export default defineEventHandler(async (event) => {
       method: row.payment!.method,
       status: row.payment!.status,
       bookingStatus: row.status,
+      metadataJson: row.payment!.metadataJson,
     } satisfies RevenueRow,
   }))
   const totalSummary = summarizeCollectedRevenue(courtRevenueRows.map((row) => row.revenue))

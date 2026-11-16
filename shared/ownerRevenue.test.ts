@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue } from './ownerRevenue.ts'
+import { countsTowardCollectedRevenue, isChargedPaidCheckout, paymentRail, summarizeCollectedRevenue } from './ownerRevenue.ts'
 
 describe('ownerRevenue', () => {
   it('treats athlete wallet (method PAID) as online, not desk cash', () => {
@@ -26,6 +26,31 @@ describe('ownerRevenue', () => {
       { amount: 0, method: 'CASH', status: 'PAID' },
     ])
     expect(summary).toEqual({ cash: 0, online: 400_000, total: 400_000, keptOnCancel: 400_000 })
+  })
+
+  it('excludes cancelled desk cash still marked PAID from collected totals (IB-38)', () => {
+    const cancelledCash = {
+      amount: 12_000,
+      method: 'CASH',
+      status: 'PAID',
+      bookingStatus: 'CANCELLED',
+    }
+    expect(countsTowardCollectedRevenue(cancelledCash)).toBe(false)
+    expect(summarizeCollectedRevenue([
+      cancelledCash,
+      { amount: 500_000, method: 'CASH', status: 'PAID', bookingStatus: 'CONFIRMED' },
+    ])).toEqual({ cash: 500_000, online: 0, total: 500_000, keptOnCancel: 0 })
+  })
+
+  it('excludes cancelled rows flagged deskCashReturn owed even when still PAID', () => {
+    const row = {
+      amount: 12_000,
+      method: 'CASH',
+      status: 'PAID',
+      bookingStatus: 'CANCELLED',
+      metadataJson: JSON.stringify({ deskCashReturn: 'owed' }),
+    }
+    expect(countsTowardCollectedRevenue(row)).toBe(false)
   })
 
   it('counts season sibling PAID zeros as one checkout, not N online events', () => {
