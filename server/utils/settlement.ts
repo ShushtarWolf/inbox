@@ -16,12 +16,18 @@ import {
 } from '#shared/settlement.ts'
 import { loadPlatformCommissionBps } from './platformCommission.ts'
 import {
+  allocateSessionNets,
   lastSessionDate,
   seasonUnlockDelta,
   targetSeasonUnlockedNet,
   type SeasonUnlockSession,
 } from '#shared/seasonSettlementUnlock.ts'
-import { localDateString } from '#shared/localDate.ts'
+import { addDaysToIsoDate } from '#shared/localDate.ts'
+import {
+  pendingReleasesFromBuckets,
+  reconcileReleaseBucketsToPending,
+  type ClubPendingReleaseRow,
+} from './settlementBreakdown.ts'
 import { applyDebtAwareWithdrawCeiling, computeWithdrawableBalance, sumWithdrawnViaRail } from '#shared/walletTopUp.ts'
 import { notifyAdminWithdrawRequest } from './adminNotify'
 import { paymentIdsBlockedForWithdraw } from './reversedStillPaid'
@@ -53,6 +59,93 @@ export async function getOrCreateClubWallet(clubId: string, db: DbClient = prism
 export async function getClubWalletBalance(clubId: string) {
   const wallet = await prisma.clubWallet.findUnique({ where: { clubId } })
   return wallet?.balance ?? 0
+}
+
+/**
+ * Same rules as pendingClassBalance in getClubWithdrawableBalance, bucketed by Tehran release day.
+ */
+async function computeClubSettlementBreakdown(
+  entries: Array<{ paymentId: string; ownerNet: number; classDate: string | null }>,
+  opts: {
+    now: Date
+    db: DbClient
+    partialByPayment: Map<string, number>
+    blockedIds: Set<string>
+  },
+): Promise<{ eligible: number; pending: number; releaseBuckets: Map<string, number> }> {
+  let eligible = 0
+  let pending = 0
+  const releaseBuckets = new Map<string, number>()
+
+  for (const entry of entries) {
+    if (opts.blockedIds.has(entry.paymentId)) continue
+    const remainingNet = Math.max(0, entry.ownerNet - (opts.partialByPayment.get(entry.paymentId) || 0))
+    if (remainingNet <= 0) continue
+
+    const sessions = await loadSeasonUnlockSessionsForPayment(entry.paymentId, opts.db)
+    if (sessions && sessions.length > 1) {
+      const unlockedTarget = Math.min(
+        remainingNet,
+        targetSeasonUnlockedNet({ ownerNet: entry.ownerNet, sessions, now: opts.now }),
+      )
+      eligible += unlockedTarget
+      const entryPending = Math.max(0, remainingNet - unlockedTarget)
+      pending += entryPending
+      if (entryPending > 0) {
+        const shares = allocateSessionNets(remainingNet, sessions)
+        const ineligible: Array<{ releaseDate: string; share: number }> = []
+        let ineligibleSum = 0
+        for (const row of sessions) {
+          if (row.cancelled) continue
+          if (isSettlementCashoutEligible(row.date, opts.now)) continue
+          const share = shares.get(row.bookingId) || 0
+          if (share <= 0) continue
+          const classDay = (row.date || '').trim()
+          if (!classDay) continue
+          ineligibleSum += share
+          ineligible.push({ releaseDate: addDaysToIsoDate(classDay, 1), share })
+        }
+        if (ineligibleSum > 0 && ineligible.length) {
+          let allocated = 0
+          for (let i = 0; i < ineligible.length; i += 1) {
+            const row = ineligible[i]!
+            const isLast = i === ineligible.length - 1
+            const amount = isLast
+              ? Math.max(0, entryPending - allocated)
+              : Math.floor((entryPending * row.share) / ineligibleSum)
+            allocated += amount
+            if (amount > 0) {
+              releaseBuckets.set(row.releaseDate, (releaseBuckets.get(row.releaseDate) || 0) + amount)
+            }
+          }
+        } else {
+          const last = lastSessionDate(sessions.filter((row) => !row.cancelled))
+          if (last) {
+            const releaseDate = addDaysToIsoDate(last, 1)
+            releaseBuckets.set(releaseDate, (releaseBuckets.get(releaseDate) || 0) + entryPending)
+          }
+        }
+      }
+      continue
+    }
+
+    const single = sumEligibleSettlementNet(
+      [{ ownerNet: remainingNet, classDate: entry.classDate }],
+      opts.now,
+    )
+    eligible += single.eligible
+    pending += single.pending
+    if (single.pending > 0) {
+      const classDay = (entry.classDate || '').trim()
+      if (classDay) {
+        const releaseDate = addDaysToIsoDate(classDay, 1)
+        releaseBuckets.set(releaseDate, (releaseBuckets.get(releaseDate) || 0) + single.pending)
+      }
+    }
+  }
+
+  reconcileReleaseBucketsToPending(releaseBuckets, pending)
+  return { eligible, pending, releaseBuckets }
 }
 
 async function sumClubWithdrawnViaRail(walletId: string, db: DbClient) {
@@ -310,30 +403,13 @@ export async function getClubWithdrawableBalance(
     db as typeof prisma,
   )
 
-  let eligible = 0
-  let pending = 0
-  for (const entry of entries) {
-    // Card reversed but cancel not finished — do not let club cash out that net.
-    if (blockedIds.has(entry.paymentId)) continue
-    const remainingNet = Math.max(0, entry.ownerNet - (partialByPayment.get(entry.paymentId) || 0))
-    if (remainingNet <= 0) continue
-    const sessions = await loadSeasonUnlockSessionsForPayment(entry.paymentId, db)
-    if (sessions && sessions.length > 1) {
-      const unlockedTarget = Math.min(
-        remainingNet,
-        targetSeasonUnlockedNet({ ownerNet: entry.ownerNet, sessions, now }),
-      )
-      eligible += unlockedTarget
-      pending += Math.max(0, remainingNet - unlockedTarget)
-      continue
-    }
-    const single = sumEligibleSettlementNet(
-      [{ ownerNet: remainingNet, classDate: entry.classDate }],
-      now,
-    )
-    eligible += single.eligible
-    pending += single.pending
-  }
+  const { eligible, pending, releaseBuckets } = await computeClubSettlementBreakdown(entries, {
+    now,
+    db,
+    partialByPayment,
+    blockedIds,
+  })
+  const pendingReleases = pendingReleasesFromBuckets(releaseBuckets)
   // Pending class ≠ lockedBalance (locked also holds withdraw requests).
   if (availableBalance <= 0) {
     return {
@@ -342,6 +418,7 @@ export async function getClubWithdrawableBalance(
       lockedBalance: wallet?.lockedBalance ?? 0,
       withdrawableBalance: 0,
       pendingClassBalance: pending,
+      pendingReleases,
     }
   }
   const withdrawnViaRail = wallet ? await sumClubWithdrawnViaRail(wallet.id, db) : 0
@@ -352,6 +429,7 @@ export async function getClubWithdrawableBalance(
     lockedBalance: wallet?.lockedBalance ?? 0,
     withdrawableBalance: applyDebtAwareWithdrawCeiling(rawWithdrawable, availableBalance, balance),
     pendingClassBalance: pending,
+    pendingReleases,
   }
 }
 
