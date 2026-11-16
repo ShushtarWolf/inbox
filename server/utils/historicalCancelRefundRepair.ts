@@ -43,6 +43,11 @@ export type HistoricalCancelRefundReport = {
     net: number
     payerUserId: string | null
   }>
+  /** Samples for ops review when creditCount is 0 but skips look suspicious. */
+  samples: {
+    cardAlreadyReversed: Array<{ paymentId: string, bookingId: string | null, method: string, amount: number, userId: string | null, metaKeys: string[] }>
+    noVerifiedAccount: Array<{ paymentId: string, bookingId: string | null, method: string, amount: number, metaKeys: string[] }>
+  }
 }
 
 function parseMeta(raw: string | null): Record<string, unknown> {
@@ -453,6 +458,31 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     }
   }
 
+  const cardAlreadyReversed = report.lines
+    .filter((line) => line.decision.action === 'skip' && line.decision.reason === 'card_already_reversed')
+    .slice(0, 10)
+  const noVerified = report.lines
+    .filter((line) => line.decision.action === 'unresolved' && line.decision.reason === 'no_verified_account')
+    .slice(0, 10)
+  const samplePayments = await prisma.payment.findMany({
+    where: {
+      id: {
+        in: [...cardAlreadyReversed, ...noVerified].map((line) => line.paymentId),
+      },
+    },
+    select: {
+      id: true,
+      bookingId: true,
+      method: true,
+      amount: true,
+      userId: true,
+      metadataJson: true,
+      booking: { select: { userId: true } },
+    },
+  })
+  const byId = new Map(samplePayments.map((row) => [row.id, row]))
+  const metaKeysOf = (raw: string | null) => Object.keys(parseMeta(raw)).sort()
+
   return {
     applied: apply,
     creditCount,
@@ -468,5 +498,28 @@ export async function runHistoricalCancelRefundRepair(opts?: {
       refunded: Number(row.refunded),
       net: Number(row.net),
     })),
+    samples: {
+      cardAlreadyReversed: cardAlreadyReversed.map((line) => {
+        const row = byId.get(line.paymentId)
+        return {
+          paymentId: line.paymentId,
+          bookingId: line.bookingId,
+          method: row?.method || '?',
+          amount: row?.amount || 0,
+          userId: row?.userId || row?.booking?.userId || null,
+          metaKeys: metaKeysOf(row?.metadataJson || null),
+        }
+      }),
+      noVerifiedAccount: noVerified.map((line) => {
+        const row = byId.get(line.paymentId)
+        return {
+          paymentId: line.paymentId,
+          bookingId: line.bookingId,
+          method: row?.method || '?',
+          amount: row?.amount || 0,
+          metaKeys: metaKeysOf(row?.metadataJson || null),
+        }
+      }),
+    },
   }
 }

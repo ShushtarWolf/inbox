@@ -65,6 +65,11 @@ jobs:
             print(f"  credit {c.get('paymentId')} booking={c.get('bookingId')} amount={c.get('amount')} reason={c.get('reason')}")
           for s in (r.get('ledgerShortfalls') or [])[:20]:
             print(f"  shortfall {s.get('paymentId')} method={s.get('method')} status={s.get('paymentStatus')} debited={s.get('debited')} refunded={s.get('refunded')} net={s.get('net')} payer={s.get('payerUserId')}")
+          samples=r.get('samples') or {}
+          for s in (samples.get('cardAlreadyReversed') or [])[:10]:
+            print(f"  card_reversed {s.get('paymentId')} method={s.get('method')} amount={s.get('amount')} userId={s.get('userId')} meta={s.get('metaKeys')}")
+          for s in (samples.get('noVerifiedAccount') or [])[:10]:
+            print(f"  no_account {s.get('paymentId')} method={s.get('method')} amount={s.get('amount')} meta={s.get('metaKeys')}")
           tm=r.get('trackingMatch')
           if tm:
             print(f"trackingMatch={tm}")
