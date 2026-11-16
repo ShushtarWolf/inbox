@@ -1,0 +1,76 @@
+name: Admin athlete snapshot (read-only)
+
+# Pulls existing admin GET APIs for one athlete phone/name. No DB writes.
+on:
+  workflow_dispatch:
+    inputs:
+      q:
+        description: Phone or name search (e.g. 09022900854 or Behnaz)
+        required: true
+        default: '09022900854'
+        type: string
+
+concurrency:
+  group: admin-athlete-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch admin bookings + payments + user
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          Q: ${{ inputs.q }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          mkdir -p reports
+          ENC=$(python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['Q']))")
+          H=(-H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" -H "accept: application/json")
+          curl -sfS "https://inboxs.ir/api/admin/users?q=${ENC}" "${H[@]}" | tee reports/users.json
+          echo
+          curl -sfS "https://inboxs.ir/api/admin/bookings?q=${ENC}&limit=100" "${H[@]}" | tee reports/bookings.json
+          echo
+          curl -sfS "https://inboxs.ir/api/admin/payments?q=${ENC}&limit=100" "${H[@]}" | tee reports/payments.json
+          echo
+          python3 - <<'PY'
+          import json
+          users=json.load(open('reports/users.json')).get('users') or []
+          books=json.load(open('reports/bookings.json')).get('bookings') or []
+          pays=json.load(open('reports/payments.json')).get('payments') or []
+          print(f"users={len(users)} bookings={len(books)} payments={len(pays)}")
+          for u in users[:5]:
+            print(f"USER id={u.get('id')} name={u.get('name')} phone={u.get('phone')} bookingCount={u.get('bookingCount')}")
+          for b in books:
+            slot=b.get('slot') or {}
+            court=(slot.get('court') or {})
+            club=(court.get('club') or {})
+            pay=b.get('payment') or {}
+            print(
+              f"BOOK {b.get('status')} {slot.get('date')} {slot.get('startTime')} "
+              f"{club.get('slug')} {court.get('nameFa')} "
+              f"pay={pay.get('amount')}/{pay.get('method')}/{pay.get('status')} "
+              f"bookPay={b.get('paymentMethod')}/{b.get('paymentStatus')} "
+              f"reason={b.get('cancellationReason')} id={b.get('id')} pid={pay.get('id')}"
+            )
+          for p in pays:
+            book=p.get('booking') or {}
+            slot=book.get('slot') or {}
+            print(
+              f"PAY {p.get('id')} amt={p.get('amount')} {p.get('method')}/{p.get('status')} "
+              f"book={book.get('id')} bookSt={book.get('status')} "
+              f"{slot.get('date')} {slot.get('startTime')} "
+              f"manual={p.get('manualBankRefund')}"
+            )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-athlete-snapshot-${{ github.run_id }}
+          path: reports/
+          retention-days: 7
