@@ -2604,6 +2604,7 @@
       "ltvTitle": "ارزش طول عمر مشتری",
       "funnelTitle": "قیف رزرو (۷ روز اخیر)",
       "funnelPlaceholder": "نمای قیف در نسخه‌های بعدی تکمیل می‌شود",
+      "funnelConfirmedTotalLabel": "تأیید‌شده / کل رزروها",
       "downloadReport": "دانلود گزارش"
     },
     "guestName": "نام مهمان",
