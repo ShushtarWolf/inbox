@@ -83,12 +83,18 @@ export function decideHistoricalCancelRefund(input: HistoricalRefundInput): Hist
   if (input.alreadyReconciled) return { action: 'skip', reason: 'already_reconciled' }
   if (isCash(input)) return { action: 'skip', reason: 'cash_club_responsibility' }
   if (!cancelled(input)) return { action: 'skip', reason: 'not_cancelled' }
-  if (bankPending(input.metadata)) return { action: 'unresolved', reason: 'bank_outcome_pending' }
+  // reversePending on a full wallet (PAID) row is stale IPG leftover — do not block credit.
+  if (bankPending(input.metadata) && input.method !== 'PAID') {
+    return { action: 'unresolved', reason: 'bank_outcome_pending' }
+  }
   if (!input.userId) return { action: 'unresolved', reason: 'no_verified_account' }
 
   const credited = Math.max(0, Math.floor(input.refundCreditSum) || 0)
 
-  if (cardReversed(input.metadata)) {
+  // Full wallet checkout never charged a card. gatewayReversed / gatewayRefund on a PAID
+  // row are leftovers from an earlier IPG attempt — same trap as ordinaryCancelRefundGuard.
+  // Honoring them here would skip the stranded wallet credit (Behnaz / iust-tennis case).
+  if (cardReversed(input.metadata) && input.method !== 'PAID') {
     const walletRail = metaNumber(input.metadata, 'walletDebitAmount') ?? 0
     const released = input.metadata.walletDebitReleased === true
     if (!input.metadata.splitPay || walletRail <= 0 || released) {

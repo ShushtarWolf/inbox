@@ -7,6 +7,12 @@ import { canCancelReservation } from '#shared/cancelPolicy.ts'
 import { athleteCancelConfirmKey, athleteCancelErrorNoticeKey, athleteCancelNoticeKey, isCashPaidBooking } from '#shared/cancelNotice.ts'
 import { canManageReservation } from '#shared/localDate.ts'
 import { isHoldExpiredPaymentFailure, readPaymentFailReason } from '#shared/onlinePaymentHold.ts'
+import {
+  athleteBookingPaymentStatus,
+  athleteEffectiveBookingStatus,
+  athleteHistoryDisplayStatus,
+  type AthleteHistoryDisplayStatus,
+} from '#shared/athleteHistoryStatus.ts'
 
 definePageMeta({ layout: 'dashboard-athlete', middleware: ['auth', 'role'], role: 'ATHLETE', ssr: false })
 
@@ -121,7 +127,7 @@ const rescheduleTarget = ref<CourtBooking | null>(null)
 const rescheduleDate = ref(today())
 const rescheduleSlotId = ref('')
 const reschedulePending = ref(false)
-type DisplayStatus = 'paid' | 'unpaid' | 'done' | 'cancelled'
+type DisplayStatus = AthleteHistoryDisplayStatus
 type StatusFilter = 'all' | 'unpaid' | 'paid' | 'cancelled'
 type TimeFilter = 'upcoming' | 'past' | 'all'
 const statusFilter = ref<StatusFilter>('all')
@@ -453,11 +459,12 @@ const historyItems = computed((): HistoryItem[] => {
       const qty = Math.max(1, row.quantity || 1)
       return t('athlete.historyEquipmentQty', { qty: formatNumber(qty), name })
     }).filter(Boolean) as string[]
-    const payStatus = paymentOf(b)
+    const payStatus = athleteBookingPaymentStatus(b)
+    const effectiveStatus = athleteEffectiveBookingStatus(b)
     items.push({
       id: b.id,
       kind: 'court',
-      status: b.status,
+      status: effectiveStatus,
       date: b.slot.date,
       title: clubName || courtName,
       subtitle: courtName,
@@ -501,7 +508,7 @@ const historyItems = computed((): HistoryItem[] => {
       items.push({
         id: s.id,
         kind: 'coach',
-        status: s.status,
+        status: athleteEffectiveBookingStatus(s),
         date: s.date,
         title: localizedField(s.coach, 'nameFa', 'nameEn'),
         subtitle: t('home.findCoach'),
@@ -513,7 +520,7 @@ const historyItems = computed((): HistoryItem[] => {
           paymentAmount: s.payment?.amount,
           slotPrice: s.price || 0,
         }),
-        paymentStatus: paymentOf(s),
+        paymentStatus: athleteBookingPaymentStatus(s),
         coachId: s.coach.id,
         image: s.coach.photo || '/placeholders/coach.svg',
         equipmentLines: [],
@@ -557,11 +564,9 @@ function historyStatus(item: HistoryItem): 'done' | 'pending' | 'cancelled' {
   return 'pending'
 }
 
-/** Badge / dot status: payment state for live bookings; past unpaid rows read as done, not «awaiting payment». */
+/** Badge / dot status: booking status first; payment only when the reservation is still live. */
 function displayStatus(item: HistoryItem): DisplayStatus {
-  if (item.status === 'CANCELLED') return 'cancelled'
-  if (isPaid(item.paymentStatus)) return 'paid'
-  return item.date < today() ? 'done' : 'unpaid'
+  return athleteHistoryDisplayStatus(item, today())
 }
 
 const STATUS_LABEL_KEY: Record<DisplayStatus, string> = {
@@ -620,8 +625,8 @@ const summary = computed(() => {
   const live = timeScoped.filter((item) => item.status !== 'CANCELLED' && item.date >= todayIso)
   return {
     upcoming: live.length,
-    unpaid: live.filter((item) => !isPaid(item.paymentStatus)).length,
-    cancelled: timeScoped.filter((item) => item.status === 'CANCELLED').length,
+    unpaid: live.filter((item) => displayStatus(item) === 'unpaid').length,
+    cancelled: timeScoped.filter((item) => displayStatus(item) === 'cancelled').length,
   }
 })
 
