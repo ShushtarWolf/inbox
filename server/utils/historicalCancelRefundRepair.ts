@@ -274,6 +274,29 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
     }
   }
 
+  // Series live-cancel credits land on the primary payment id with sibling bookingId.
+  // Always refresh those sums — candidate/extras merge can miss a primary that was
+  // resolved only via coveredByBookingId metadata (not bookingId FK).
+  const seriesPrimaryPayIds = new Set<string>()
+  for (const row of candidates) {
+    const meta = parseSeriesPaymentMeta(row.metadataJson)
+    if (!isSeriesPaymentGroup(meta)) continue
+    const primaryBookingId = meta.coveredByBookingId || meta.groupPrimaryBookingId || row.bookingId
+    const primary = primaryBookingId ? paymentByBookingId.get(primaryBookingId) : null
+    if (primary) seriesPrimaryPayIds.add(primary.id)
+  }
+  if (seriesPrimaryPayIds.size) {
+    const primaryIds = [...seriesPrimaryPayIds]
+    const [pSums, pByBooking, pKeys] = await Promise.all([
+      creditSums(primaryIds),
+      creditSumsByBooking(primaryIds),
+      reconKeys(primaryIds, [...seriesBookingIdSet]),
+    ])
+    for (const [k, v] of pSums) sums.set(k, v)
+    for (const [k, v] of pByBooking) byBooking.set(k, v)
+    for (const k of pKeys) keys.add(k)
+  }
+
   let trackingBookingId: string | null = null
   if (tracking) {
     const bookings = await prisma.booking.findMany({ select: { id: true } })
