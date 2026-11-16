@@ -90,6 +90,15 @@ describe('series payment meta + pro-rata', () => {
     expect(meta.sessionPrice).toBe(100)
   })
 
+  it('caps list sessionPrice by fair share when primary was discounted', () => {
+    expect(sessionRefundAmount({
+      sessionPrice: 150_000,
+      primaryAmount: 720_000,
+      alreadyRefunded: 0,
+      remainingSessions: 6,
+    })).toBe(120_000)
+  })
+
   it('refunds sessionPrice while residual remains', () => {
     expect(sessionRefundAmount({
       sessionPrice: 200_000,

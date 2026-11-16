@@ -138,11 +138,44 @@ export default defineEventHandler(async (event) => {
       )
     : {}
 
+  const refundBookingIds = [...new Set(
+    (wallet?.transactions || [])
+      .filter((tx) => tx.type === 'REFUND_CREDIT' && tx.bookingId)
+      .map((tx) => tx.bookingId as string),
+  )]
+  const refundBookingById = refundBookingIds.length
+    ? Object.fromEntries(
+        (await prisma.booking.findMany({
+          where: { id: { in: refundBookingIds } },
+          select: {
+            id: true,
+            slot: {
+              select: {
+                date: true,
+                startTime: true,
+                court: { select: { nameFa: true, club: { select: { nameFa: true } } } },
+              },
+            },
+          },
+        })).map((b) => [b.id, {
+          date: b.slot.date,
+          startTime: b.slot.startTime,
+          courtName: b.slot.court.nameFa,
+          clubName: b.slot.court.club.nameFa,
+        }]),
+      )
+    : {}
+
   const transactions = (wallet?.transactions || []).map((tx) => {
-    if (tx.type !== 'REFUND_CREDIT' || !tx.paymentId) return tx
-    const channel = refundChannelFromPaymentMetadata(refundMetaByPayment[tx.paymentId])
+    if (tx.type !== 'REFUND_CREDIT') return tx
+    const refundBooking = tx.bookingId ? refundBookingById[tx.bookingId] : undefined
+    if (!tx.paymentId && !refundBooking) return tx
+    const channel = tx.paymentId
+      ? refundChannelFromPaymentMetadata(refundMetaByPayment[tx.paymentId])
+      : 'wallet_closed_loop'
     const refundChannelKey = refundChannelI18nKey(channel)
-    return refundChannelKey ? { ...tx, refundChannelKey } : tx
+    const base = refundChannelKey ? { ...tx, refundChannelKey } : { ...tx }
+    return refundBooking ? { ...base, refundBooking } : base
   })
 
   return {

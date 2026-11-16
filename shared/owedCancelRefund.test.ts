@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cancelWalletCreditAmount } from './owedCancelRefund.ts'
+import { cancelWalletCreditAmount, owedCancelRefund } from './owedCancelRefund.ts'
 
 describe('cancelWalletCreditAmount', () => {
   it('desk cash → 0', () => {
@@ -56,7 +56,7 @@ describe('cancelWalletCreditAmount', () => {
       alreadyRefundedOnPrimary: 8_000,
       remainingSessionsIncludingCancelled: 2,
       treatAsSeries: true,
-    }).amount).toBe(1_000)
+    }).amount).toBe(500)
   })
 
   it('series last session credits full residual even when sessionPrice is lower', () => {
@@ -89,5 +89,40 @@ describe('cancelWalletCreditAmount', () => {
       sessionPrice: 1500,
       metadata: { groupPrimaryBookingId: 'b1', groupSiblingBookingIds: ['b2'] },
     }).series).toBe(true)
+  })
+
+  it('failed IPG capture (amount 0) yields zero standalone credit', () => {
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 0,
+      refundBps: 10_000,
+    })).toEqual({ amount: 0, reason: 'zero', series: false })
+  })
+
+  it('discounted series primary: session share uses charged primary total not list price', () => {
+    expect(cancelWalletCreditAmount({
+      method: 'IPG',
+      paymentAmount: 7_200,
+      primaryAmount: 7_200,
+      sessionPrice: 1_500,
+      alreadyRefundedOnPrimary: 0,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+    }).amount).toBe(1_200)
+  })
+
+  it('owedCancelRefund exposes channel desk_cash vs wallet_closed_loop', () => {
+    expect(owedCancelRefund(
+      { method: 'CASH', amount: 50_000 },
+      { paymentMethod: 'CASH' },
+      null,
+      10_000,
+    )).toEqual({ amount: 0, channel: 'desk_cash', reason: 'desk_cash' })
+    expect(owedCancelRefund(
+      { method: 'PAID', amount: 5_000, metadata: { gatewayReversed: true } },
+      null,
+      null,
+      10_000,
+    )).toEqual({ amount: 5_000, channel: 'wallet_closed_loop', reason: 'standalone' })
   })
 })

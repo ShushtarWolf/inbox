@@ -12,7 +12,7 @@ import {
   type SeriesPaymentMeta,
 } from './athleteSeason.ts'
 import { refundAmountFromBps } from './cancelPolicy.ts'
-import { resolveRefundChannel } from './cancelRefund.ts'
+import { resolveRefundChannel, type RefundChannel } from './cancelRefund.ts'
 
 export type CancelWalletCreditReason =
   | 'desk_cash'
@@ -130,4 +130,39 @@ export function cancelWalletCreditAmount(input: CancelWalletCreditInput): Cancel
   const cap = Math.max(0, Math.floor(Number(input.paymentAmount) || 0))
   const amount = refundAmountFromBps(cap, bps)
   return { amount, reason: amount > 0 ? 'standalone' : 'zero', series: false }
+}
+
+export type OwedCancelRefundSeriesContext = {
+  primaryAmount?: number | null
+  sessionPrice?: number | null
+  alreadyRefundedOnPrimary?: number | null
+  remainingSessionsIncludingCancelled?: number | null
+  treatAsSeries?: boolean
+}
+
+/** Plan name: one owed brain with refund channel for live / repair / force paths. */
+export function owedCancelRefund(
+  payment: {
+    method: string | null | undefined
+    amount: number
+    metadata?: Record<string, unknown> | string | null
+  },
+  booking: { paymentMethod?: string | null } | null | undefined,
+  seriesContext: OwedCancelRefundSeriesContext | null | undefined,
+  refundBps?: number | null,
+): { amount: number; channel: RefundChannel; reason: CancelWalletCreditReason } {
+  const channel = resolveRefundChannel(payment.method, booking?.paymentMethod)
+  const credit = cancelWalletCreditAmount({
+    method: payment.method,
+    bookingPaymentMethod: booking?.paymentMethod,
+    paymentAmount: payment.amount,
+    refundBps,
+    metadata: payment.metadata,
+    primaryAmount: seriesContext?.primaryAmount,
+    sessionPrice: seriesContext?.sessionPrice,
+    alreadyRefundedOnPrimary: seriesContext?.alreadyRefundedOnPrimary,
+    remainingSessionsIncludingCancelled: seriesContext?.remainingSessionsIncludingCancelled,
+    treatAsSeries: seriesContext?.treatAsSeries,
+  })
+  return { amount: credit.amount, channel, reason: credit.reason }
 }

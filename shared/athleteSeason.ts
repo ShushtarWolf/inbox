@@ -145,7 +145,11 @@ export function sessionRefundAmount(opts: {
   const listed = typeof opts.sessionPrice === 'number' && opts.sessionPrice > 0
     ? Math.floor(opts.sessionPrice)
     : 0
-  if (listed > 0) return Math.min(listed, residual)
+  if (listed > 0) {
+    const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 0))
+    const fairCap = sessions > 1 ? Math.min(listed, Math.floor(residual / sessions)) : listed
+    return Math.min(fairCap, residual)
+  }
 
   // Missing sessionPrice: equal share of residual; last session path refunds leftover.
   const sessions = Math.max(1, Math.floor(Number(opts.remainingSessions) || 1))
