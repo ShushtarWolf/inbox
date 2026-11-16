@@ -19,6 +19,10 @@ describe('equipmentPriceAtBooking', () => {
   it('charges listed price for sellable equipment', () => {
     expect(equipmentPriceAtBooking({ id: '3', price: 500000, category: 'SELL' })).toBe(500000)
   })
+
+  it('charges listed price for bookable services', () => {
+    expect(equipmentPriceAtBooking({ id: '4', price: 100000, category: 'SERVICE' })).toBe(100000)
+  })
 })
 
 describe('sumEquipmentPrices', () => {

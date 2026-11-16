@@ -46,6 +46,7 @@ import { resolveDeskPaymentWrite } from '#shared/deskPaidGuard.ts'
 import { isDeskCashCancelRefund, resolveRefundChannel } from '#shared/cancelRefund.ts'
 import { bookingNote } from '#shared/packages.ts'
 import {
+  isOwnerDeskEquipmentPickerCategory,
   isSellEquipmentCategory,
   minAvailableEquipmentAcrossTimes,
   normalizeSlotTime,
@@ -3757,9 +3758,7 @@ function slotRowGuestName(slot: OwnerCalendarSlot) {
 const cancelReasons = ['CUSTOMER_REQUEST', 'NO_PAYMENT', 'SCHEDULE_CONFLICT'] as const
 
 const rentalEquipments = computed(() =>
-  (equipments.value || []).filter((item) =>
-    item.category === 'CLUB' || item.category === 'RENTAL' || item.category === 'SELL',
-  ),
+  (equipments.value || []).filter((item) => isOwnerDeskEquipmentPickerCategory(item.category)),
 )
 
 const equipmentPickerOptions = computed(() =>
