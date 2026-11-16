@@ -135,3 +135,18 @@ describe('doReserve guest family copy', () => {
     expect(calendarSrc).not.toMatch(/guestFamily\s*=\s*form\.guestName/)
   })
 })
+
+describe('owner calendar cancel guest hydration', () => {
+  it('openCancelForm uses linked-account guest resolution', () => {
+    const calendarSrc = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '../app/pages/owner/calendar.vue'),
+      'utf8',
+    )
+    const openCancel = calendarSrc.slice(
+      calendarSrc.indexOf('function openCancelForm'),
+      calendarSrc.indexOf('function openSeriesCancelForm'),
+    )
+    expect(openCancel).toContain('applyBookingGuestToForm')
+    expect(openCancel).not.toMatch(/normalizeGuestNamePair\(booking\.guestName/)
+  })
+})
