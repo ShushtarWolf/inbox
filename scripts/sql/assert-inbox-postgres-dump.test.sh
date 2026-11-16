@@ -8,10 +8,8 @@ chmod +x "$ASSERT"
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-# GlitchTip must fail.
-printf 'glitchtip events table\n' >"$TMPDIR/bad.gz"
-# not valid gzip — assert falls through to raw dd/cp path
-cp "$TMPDIR/bad.gz" "$TMPDIR/glitch.dump"
+# GlitchTip-only must fail.
+printf 'glitchtip events table\n' >"$TMPDIR/glitch.dump"
 if "$ASSERT" "$TMPDIR/glitch.dump" 2>/dev/null; then
   echo "expected glitchtip dump to fail"
   exit 1
@@ -27,5 +25,12 @@ fi
 # Inbox-shaped markers must pass.
 printf 'COPY "Payment" FROM stdin;\nCOPY "WalletTransaction" FROM stdin;\n' >"$TMPDIR/ok.dump"
 "$ASSERT" "$TMPDIR/ok.dump"
+
+# Shared Liara cluster: gzip+tar with glitchtip.dump + postgres.dump (inbox markers).
+printf 'COPY "Payment" FROM stdin;\n"WalletTransaction"\nBooking\n' >"$TMPDIR/postgres.dump"
+printf 'glitchtip only\n' >"$TMPDIR/glitchtip.dump"
+tar -cf "$TMPDIR/cluster.tar" -C "$TMPDIR" postgres.dump glitchtip.dump
+gzip -c "$TMPDIR/cluster.tar" >"$TMPDIR/cluster.dump.gz"
+"$ASSERT" "$TMPDIR/cluster.dump.gz"
 
 echo "assert-inbox-postgres-dump self-check OK"
