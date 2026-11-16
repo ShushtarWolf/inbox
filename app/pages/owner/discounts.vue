@@ -374,10 +374,12 @@ async function revokeMember(row: MemberRow) {
     />
     <OwnerActiveClubBar class="mb-3" />
 
-    <div class="mb-3 flex flex-wrap gap-2">
+    <div class="owner-discount-tabs canva-clubs-chip-row" role="tablist" :aria-label="t('owner.discounts')">
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'programs'"
+        class="canva-clubs-chip"
         :class="tab === 'programs' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'programs'"
       >
@@ -385,7 +387,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'requests'"
+        class="canva-clubs-chip"
         :class="tab === 'requests' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'requests'"
       >
@@ -394,7 +398,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'members'"
+        class="canva-clubs-chip"
         :class="tab === 'members' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'members'"
       >
@@ -402,7 +408,9 @@ async function revokeMember(row: MemberRow) {
       </button>
       <button
         type="button"
-        class="canva-chip text-xs"
+        role="tab"
+        :aria-selected="tab === 'codes'"
+        class="canva-clubs-chip"
         :class="tab === 'codes' ? 'canva-clubs-chip-active' : 'canva-clubs-chip-idle'"
         @click="tab = 'codes'"
       >
