@@ -186,7 +186,7 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
   return { lines, counts, creditCount, creditToman, trackingMatch: tracking ? trackingMatch : null }
 }
 
-async function applyCredit(line: HistoricalCancelRefundLine): Promise<boolean> {
+async function applyCredit(line: HistoricalCancelRefundLine, opts?: { force?: boolean }): Promise<boolean> {
   if (line.decision.action !== 'credit') return false
   const key = historicalRefundIdempotencyKey(line.paymentId)
   let wrote = false
@@ -210,19 +210,22 @@ async function applyCredit(line: HistoricalCancelRefundLine): Promise<boolean> {
     const walletDebitAbs = debitRows.reduce((sum, row) => sum + Math.abs(row.amount || 0), 0)
     const debitedWalletUserId = debitRows[0]?.wallet?.userId || null
     const userId = debitedWalletUserId || payment.userId || payment.booking?.userId || null
-    const again = decideHistoricalCancelRefund({
-      method: payment.method,
-      bookingPaymentMethod: payment.booking?.paymentMethod,
-      paymentStatus: payment.status,
-      bookingStatus: payment.booking?.status,
-      amount: payment.amount,
-      userId,
-      debitedWalletUserId,
-      walletDebitAbs,
-      metadata: parseMeta(payment.metadataJson),
-      refundCreditSum: credited._sum.amount || 0,
-      alreadyReconciled: false,
-    })
+    // force: ops-approved closed-loop credit even when stale gateway reverse flags would skip.
+    const again = opts?.force && line.decision.action === 'credit'
+      ? line.decision
+      : decideHistoricalCancelRefund({
+        method: payment.method,
+        bookingPaymentMethod: payment.booking?.paymentMethod,
+        paymentStatus: payment.status,
+        bookingStatus: payment.booking?.status,
+        amount: payment.amount,
+        userId,
+        debitedWalletUserId,
+        walletDebitAbs,
+        metadata: parseMeta(payment.metadataJson),
+        refundCreditSum: credited._sum.amount || 0,
+        alreadyReconciled: false,
+      })
     if (again.action !== 'credit' || !userId) return
 
     const wallet = await tx.wallet.upsert({
@@ -399,6 +402,8 @@ async function listLedgerShortfalls() {
 export async function runHistoricalCancelRefundRepair(opts?: {
   apply?: boolean
   tracking?: string
+  /** Ops-approved payment ids to credit even when gateway reverse flags would skip. */
+  forcePaymentIds?: string[]
 }): Promise<HistoricalCancelRefundReport> {
   const apply = opts?.apply === true
   const report = await inventoryHistoricalCancelRefunds(opts?.tracking)
@@ -441,6 +446,43 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     creditIds.add(row.paymentId)
   }
 
+  // Explicit force list (closed-loop IPG cancel wrongly flagged as card reverse).
+  for (const paymentId of opts?.forcePaymentIds || []) {
+    if (creditIds.has(paymentId)) continue
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { booking: { select: { userId: true, status: true, paymentMethod: true } } },
+    })
+    if (!payment || payment.method === 'CASH' || payment.booking?.paymentMethod === 'CASH') continue
+    const userId = payment.userId || payment.booking?.userId
+    if (!userId) continue
+    const credited = await prisma.walletTransaction.aggregate({
+      where: { paymentId: payment.id, type: 'REFUND_CREDIT' },
+      _sum: { amount: true },
+    })
+    const already = Math.max(0, credited._sum.amount || 0)
+    const meta = parseMeta(payment.metadataJson)
+    const owed = Math.max(
+      0,
+      Math.floor(Number(meta.refundCreditAmount) || Number(meta.refundedAmount) || payment.amount || 0),
+    )
+    const gap = Math.max(0, owed - already)
+    if (gap <= 0) continue
+    const line: HistoricalCancelRefundLine = {
+      paymentId: payment.id,
+      bookingId: payment.bookingId,
+      decision: { action: 'credit', amount: gap, reason: 'wallet_path_shortfall' },
+    }
+    synthesized.push(line)
+    credits.push({
+      paymentId: payment.id,
+      bookingId: payment.bookingId,
+      amount: gap,
+      reason: 'wallet_path_shortfall',
+    })
+    creditIds.add(payment.id)
+  }
+
   const allCreditLines = [
     ...report.lines.filter((line) => line.decision.action === 'credit'),
     ...synthesized,
@@ -451,10 +493,11 @@ export async function runHistoricalCancelRefundRepair(opts?: {
     0,
   )
 
+  const forcedIds = new Set(opts?.forcePaymentIds || [])
   let appliedCount = 0
   if (apply) {
     for (const line of allCreditLines) {
-      if (await applyCredit(line)) appliedCount += 1
+      if (await applyCredit(line, { force: forcedIds.has(line.paymentId) })) appliedCount += 1
     }
   }
 

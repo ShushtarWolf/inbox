@@ -18,6 +18,11 @@ on:
         required: false
         default: ''
         type: string
+      forcePaymentId:
+        description: Comma-separated payment ids to force closed-loop wallet credit (ops review)
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: money-repair-historical-cancel-refunds
@@ -33,6 +38,7 @@ jobs:
           ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
           APPLY_INPUT: ${{ inputs.apply }}
           TRACKING: ${{ inputs.tracking }}
+          FORCE_PAYMENT_ID: ${{ inputs.forcePaymentId }}
         run: |
           set -euo pipefail
           if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
@@ -48,6 +54,10 @@ jobs:
           fi
           if [ -n "${TRACKING:-}" ]; then
             QS="${QS:+$QS&}tracking=${TRACKING}"
+          fi
+          if [ -n "${FORCE_PAYMENT_ID:-}" ]; then
+            QS="${QS:+$QS&}forcePaymentId=${FORCE_PAYMENT_ID}"
+            echo "Force payment ids set"
           fi
           URL="https://inboxs.ir/api/admin/money-audit/repair-historical-cancel-refunds"
           if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
