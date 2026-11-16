@@ -108,4 +108,24 @@ describe('decideHistoricalCancelRefund', () => {
       reason: 'wallet_spend_shortfall',
     })
   })
+
+  it('credits when a wallet debit exists even if IPG metadata claims card reverse', () => {
+    expect(decideHistoricalCancelRefund({
+      ...base,
+      method: 'IPG',
+      amount: 5_000,
+      userId: null,
+      debitedWalletUserId: 'payer-1',
+      walletDebitAbs: 5_000,
+      metadata: {
+        gatewayReversed: true,
+        gatewayRefund: true,
+        refundChannel: 'gateway_reverse',
+      },
+    })).toEqual({
+      action: 'credit',
+      amount: 5_000,
+      reason: 'wallet_spend_shortfall',
+    })
+  })
 })

@@ -78,6 +78,32 @@ async function creditSums(paymentIds: string[]) {
   return new Map(rows.map((row) => [row.paymentId || '', row._sum.amount || 0]))
 }
 
+/** Absolute toman debited from athlete wallets + first payer userId per payment. */
+async function walletDebitInfo(paymentIds: string[]) {
+  const abs = new Map<string, number>()
+  const payer = new Map<string, string>()
+  if (!paymentIds.length) return { abs, payer }
+  const rows = await prisma.walletTransaction.findMany({
+    where: {
+      paymentId: { in: paymentIds },
+      type: { in: ['PAYMENT_DEBIT', 'IPG_BOOKING_DEBIT'] },
+    },
+    select: {
+      paymentId: true,
+      amount: true,
+      createdAt: true,
+      wallet: { select: { userId: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+  for (const row of rows) {
+    if (!row.paymentId) continue
+    abs.set(row.paymentId, (abs.get(row.paymentId) || 0) + Math.abs(row.amount || 0))
+    if (!payer.has(row.paymentId) && row.wallet?.userId) payer.set(row.paymentId, row.wallet.userId)
+  }
+  return { abs, payer }
+}
+
 async function reconKeys(paymentIds: string[]) {
   if (!paymentIds.length) return new Set<string>()
   const keys = paymentIds.map(historicalRefundIdempotencyKey)
@@ -97,7 +123,11 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
 }> {
   const candidates = await loadCandidates()
   const ids = candidates.map((row) => row.id)
-  const [sums, keys] = await Promise.all([creditSums(ids), reconKeys(ids)])
+  const [sums, keys, debits] = await Promise.all([
+    creditSums(ids),
+    reconKeys(ids),
+    walletDebitInfo(ids),
+  ])
   let trackingBookingId: string | null = null
   if (tracking) {
     const bookings = await prisma.booking.findMany({ select: { id: true } })
@@ -118,6 +148,8 @@ export async function inventoryHistoricalCancelRefunds(tracking?: string): Promi
       bookingStatus: row.booking?.status,
       amount: row.amount,
       userId: row.userId || row.booking?.userId || null,
+      debitedWalletUserId: debits.payer.get(row.id) || null,
+      walletDebitAbs: debits.abs.get(row.id) || 0,
       metadata: parseMeta(row.metadataJson),
       refundCreditSum: sums.get(row.id) || 0,
       alreadyReconciled: keys.has(historicalRefundIdempotencyKey(row.id)),
@@ -152,7 +184,14 @@ async function applyCredit(line: HistoricalCancelRefundLine): Promise<boolean> {
       where: { paymentId: payment.id, type: 'REFUND_CREDIT' },
       _sum: { amount: true },
     })
-    const userId = payment.userId || payment.booking?.userId || null
+    const debitRows = await tx.walletTransaction.findMany({
+      where: { paymentId: payment.id, type: { in: ['PAYMENT_DEBIT', 'IPG_BOOKING_DEBIT'] } },
+      select: { amount: true, wallet: { select: { userId: true } } },
+      orderBy: { createdAt: 'asc' },
+    })
+    const walletDebitAbs = debitRows.reduce((sum, row) => sum + Math.abs(row.amount || 0), 0)
+    const debitedWalletUserId = debitRows[0]?.wallet?.userId || null
+    const userId = debitedWalletUserId || payment.userId || payment.booking?.userId || null
     const again = decideHistoricalCancelRefund({
       method: payment.method,
       bookingPaymentMethod: payment.booking?.paymentMethod,
@@ -160,6 +199,8 @@ async function applyCredit(line: HistoricalCancelRefundLine): Promise<boolean> {
       bookingStatus: payment.booking?.status,
       amount: payment.amount,
       userId,
+      debitedWalletUserId,
+      walletDebitAbs,
       metadata: parseMeta(payment.metadataJson),
       refundCreditSum: credited._sum.amount || 0,
       alreadyReconciled: false,
