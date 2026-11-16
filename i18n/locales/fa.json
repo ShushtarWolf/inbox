@@ -2264,7 +2264,7 @@
     "seasonStatusActive": "فعال",
     "seasonStatusCancelled": "لغو شده",
     "seasonTabDeleteTitle": "حذف رزرو فصلی؟",
-    "seasonTabDeleteBody": "سانس‌های آینده این فصل لغو می‌شوند و ردیف فصل از لیست حذف می‌شود.",
+    "seasonTabDeleteBody": "سانس‌های آینده این فصل لغو می‌شوند و وضعیت ردیف فصل در این لیست «لغو شده» می‌شود (سانس‌های گذشتهٔ انجام‌شده در تاریخچه می‌مانند).",
     "seasonTabEmpty": "هنوز رزرو فصلی ثبت نشده است.",
     "seasonTabGuest": "مشتری",
     "seasonTabRange": "بازه",

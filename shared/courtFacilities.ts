@@ -65,6 +65,20 @@ export function formatMinutesAsTime(totalMinutes: number): string {
  * Hourly (or stepped) clock options from open to close.
  * By default close is exclusive (start slots). Pass includeClose for end-time selects so e.g. 24:00 appears.
  */
+/** True when a slot start time is inside court/club operating hours (half-open interval). */
+export function slotStartWithinOperatingHours(
+  startTime: string,
+  openHour: number,
+  closeHour: number,
+  sessionMinutes = 60,
+): boolean {
+  const [h, m] = startTime.split(':').map((part) => Number(part) || 0)
+  const startMin = h * 60 + m
+  const openMin = openHour * 60
+  const closeMin = closeHour * 60
+  return startMin >= openMin && startMin + sessionMinutes <= closeMin
+}
+
 export function buildHourlyOptions(
   openHour: number,
   closeHour: number,

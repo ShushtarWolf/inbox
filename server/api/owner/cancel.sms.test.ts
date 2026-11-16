@@ -28,6 +28,7 @@ vi.mock('../../utils/cancellations', () => ({
 vi.mock('../../utils/ownerSeriesCancel', () => ({
   cancelOwnerSeriesBookings: vi.fn(),
   loadOwnerSeriesBookings: vi.fn().mockResolvedValue([]),
+  finalizeSeasonBookingIfNoActiveSessions: vi.fn().mockResolvedValue(false),
 }))
 vi.mock('../../utils/reservations', () => ({
   activeSlotBooking: (b: unknown) => b,

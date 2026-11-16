@@ -189,3 +189,17 @@ export async function cancelOwnerSeriesBookings(opts: {
     cancelledBookingIds,
   }
 }
+
+/**
+ * When every live court booking for a season row is cancelled, stamp cancelledAt so
+ * the owner season list matches the calendar (avoids «فعال» + bogus edit-diff adds).
+ */
+export async function finalizeSeasonBookingIfNoActiveSessions(clubId: string, seasonBookingId: string) {
+  const remaining = await loadOwnerSeriesBookingsBySeasonId(clubId, seasonBookingId)
+  if (remaining.length > 0) return false
+  const updated = await prisma.seasonBooking.updateMany({
+    where: { id: seasonBookingId, clubId, cancelledAt: null },
+    data: { cancelledAt: new Date() },
+  })
+  return updated.count > 0
+}

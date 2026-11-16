@@ -11,7 +11,7 @@ import {
   weekdayNameFromDate,
   type DayTimeRange,
 } from '#shared/recurringSessions.ts'
-import { buildHourlyOptions } from '#shared/courtFacilities.ts'
+import { buildHourlyOptions, slotStartWithinOperatingHours } from '#shared/courtFacilities.ts'
 import { isOwnerRecurringBooking } from '#shared/recurringReserve.ts'
 import { bookingTimeRange } from '#shared/bookingTimeRange.ts'
 import { whatsappHrefForIranMobile } from '#shared/payPin.ts'
@@ -472,7 +472,17 @@ watch(
 
 const hours = computed(() => {
   const set = new Set<string>()
-  data.value?.slots?.forEach((s) => set.add(s.startTime))
+  const duration = data.value?.sessionDurationMinutes ?? 60
+  const clubOpen = data.value?.clubOpenHour ?? 8
+  const clubClose = data.value?.clubCloseHour ?? 22
+  data.value?.slots?.forEach((slot) => {
+    const court = courts.value.find((item) => item.id === slot.courtId)
+    const open = court?.effectiveOpenHour ?? clubOpen
+    const close = court?.effectiveCloseHour ?? clubClose
+    if (slotStartWithinOperatingHours(slot.startTime, open, close, duration)) {
+      set.add(slot.startTime)
+    }
+  })
   return [...set].sort()
 })
 
@@ -1010,6 +1020,14 @@ function slotPaymentStatus(slot: OwnerCalendarSlot | null | undefined) {
   return booking.payment?.status || booking.paymentStatus || null
 }
 
+function detailBookingAmount(slot: OwnerCalendarSlot | null | undefined) {
+  const booking = activeBooking(slot)
+  if (!booking) return slot?.price ?? 0
+  const paid = Number(booking.payment?.amount)
+  if (paid > 0) return paid
+  return slot?.price ?? 0
+}
+
 function slotMeta(slot: OwnerCalendarSlot | null | undefined) {
   if (!slot || slot.displayStatus === 'FREE') return ''
   if (slot.displayStatus === 'BLOCKED') {
@@ -1106,12 +1124,14 @@ const guestSearchOpen = ref(false)
 const guestSearchPending = ref(false)
 let guestSearchTimer: ReturnType<typeof setTimeout> | null = null
 let guestSearchRequest = 0
+const guestSearchScheduledAt = ref(0)
 
 function clearGuestSearch() {
   if (guestSearchTimer) {
     clearTimeout(guestSearchTimer)
     guestSearchTimer = null
   }
+  guestSearchScheduledAt.value = 0
   guestSuggestions.value = []
   guestSearchOpen.value = false
   guestSearchPending.value = false
@@ -1146,10 +1166,28 @@ async function runGuestSearch(raw: string) {
 }
 
 function scheduleGuestSearch(raw: string) {
+  const q = raw.trim()
   if (guestSearchTimer) clearTimeout(guestSearchTimer)
-  guestSearchTimer = setTimeout(() => {
+  guestSearchTimer = null
+  if (q.length < 2) {
+    guestSuggestions.value = []
+    guestSearchOpen.value = false
+    guestSearchPending.value = false
+    return
+  }
+  /** Fast typists never hit a 250ms idle — cap wait so suggestions still load. */
+  const maxWaitMs = 400
+  const now = Date.now()
+  const lastAt = guestSearchScheduledAt.value
+  if (!lastAt || now - lastAt >= maxWaitMs) {
+    guestSearchScheduledAt.value = now
     void runGuestSearch(raw)
-  }, 250)
+  }
+  guestSearchTimer = setTimeout(() => {
+    guestSearchScheduledAt.value = Date.now()
+    void runGuestSearch(raw)
+    guestSearchTimer = null
+  }, 120)
 }
 
 const guestSearchSource = ref<'name' | 'mobile'>('name')
@@ -4032,7 +4070,7 @@ const seasonDeleteTarget = ref<SeasonListRow | null>(null)
 const seasonDeletePending = ref(false)
 const seasonDeleteError = ref('')
 
-const { data: seasonListData, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
+const { data: seasonListData, pending: seasonListPending, refresh: refreshSeasonList } = await useAuthedFetch<{ seasons: SeasonListRow[] }>(
   '/api/owner/seasons',
   { immediate: false, watch: false },
 )
@@ -4181,8 +4219,9 @@ watch(pilotNoCoach, (off) => {
           {{ t('owner.seasonTabNew') }}
         </button>
       </div>
+      <AppVenusSpinner v-if="seasonListPending" size="sm" />
       <CanvaEmptyState
-        v-if="!seasonListRows.length"
+        v-else-if="!seasonListRows.length"
         :title="t('owner.seasonTabEmpty')"
         icon="event_repeat"
       />
@@ -4349,7 +4388,8 @@ watch(pilotNoCoach, (off) => {
 
         <div class="canva-cal-split">
         <div class="canva-cal-body">
-          <div v-if="!courts.length">
+          <AppVenusSpinner v-if="pending && !courts.length" size="sm" />
+          <div v-else-if="!courts.length">
             <CanvaEmptyState :title="t('owner.emptyCourtsTitle')" doodle="bench" />
           </div>
           <div v-else-if="!hours.length">
@@ -4698,6 +4738,10 @@ watch(pilotNoCoach, (off) => {
             <div v-if="!pilotNoCoach" class="canva-detail-row">
               <span class="text-brand-gray-500">{{ t('owner.coachLabel') }}</span>
               <span class="max-w-[60%] text-start font-bold text-brand-navy">{{ detailCoachLabel() }}</span>
+            </div>
+            <div class="canva-detail-row">
+              <span class="text-brand-gray-500">{{ t('owner.financeTable.income') }}</span>
+              <span class="font-bold tabular-nums text-brand-navy">{{ formatCurrency(detailBookingAmount(selectedSlotFull)) }}</span>
             </div>
             <div class="canva-detail-row" :class="{ 'border-b-0': !slotNoteLine(selectedSlotFull) }">
               <span class="text-brand-gray-500">{{ t('owner.paymentStatusLabel') }}</span>

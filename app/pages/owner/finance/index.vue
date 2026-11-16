@@ -251,6 +251,8 @@ const canTransactions = computed(() => isOwner.value || hasOwnerPermission(permi
 const canPayouts = computed(() => isOwner.value || hasOwnerPermission(permissions.value, 'finance:payouts'))
 /** Avoid false lock before /api/auth/me hydrates memberships. */
 const reportsGatePending = computed(() => Boolean(user.value) && !(user.value?.memberships?.length))
+/** Before auth/me resolves, do not show payout-notice or zero hero as if the owner lacked access. */
+const financeAuthPending = computed(() => !user.value || reportsGatePending.value)
 const showReports = computed(() => canReports.value || reportsGatePending.value)
 const showTransactions = computed(() => canTransactions.value || reportsGatePending.value)
 /** Withdraw / sheba form — payouts permission. Wallet summary loads with reports/view. */
@@ -431,6 +433,7 @@ function methodBadgeClass(tx: OwnerFinanceTransaction) {
 
 function methodBadgeLabel(tx: OwnerFinanceTransaction) {
   if (isBlockedFinanceTx(tx)) return '—'
+  if (tx.bookingStatus === 'CANCELLED') return bookingStatusLabel('CANCELLED')
   const bucket = financePaymentBucket(tx)
   if (bucket === 'ipg') return t('owner.financePage.methodCashless')
   if (bucket === 'cash') return t('owner.financePage.methodCash')
@@ -539,7 +542,9 @@ function downloadExcel() {
     `${stampDate(tx.reservedAt)} ${stampTime(tx.reservedAt)}`.trim(),
     tx.paidAt ? `${stampDate(tx.paidAt)} ${stampTime(tx.paidAt)}`.trim() : '',
     isBlockedFinanceTx(tx) ? '' : methodBadgeLabel(tx),
-    isBlockedFinanceTx(tx) ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED') : paymentStatusLabel(tx.paymentStatus),
+    isBlockedFinanceTx(tx)
+      ? bookingStatusLabel(tx.bookingStatus || tx.displayStatus || 'BLOCKED')
+      : (tx.bookingStatus === 'CANCELLED' ? bookingStatusLabel('CANCELLED') : paymentStatusLabel(tx.paymentStatus)),
     tx.amount,
     showSessionValue(tx) ? Number(tx.sessionValue || 0) : '',
     tx.complimentary && !tx.discountCode ? t('owner.financeTable.complimentary') : (tx.discountCode || ''),
@@ -609,11 +614,13 @@ function showUnpaidList() {
       <button v-if="showPayoutsSection" type="button" role="tab" :aria-selected="ownerTab === 'payout'" @click="ownerTab = 'payout'">{{ t('owner.financePage.tabPayout') }}</button>
       <button v-if="showReports" type="button" role="tab" :aria-selected="ownerTab === 'reports'" @click="ownerTab = 'reports'">{{ t('owner.financePage.tabReports') }}</button>
     </div>
-    <p v-if="showFinancePage && !showPayoutsSection && !reportsGatePending" class="fin-note">{{ t('owner.financePage.payoutTabHidden') }}</p>
+    <p v-if="showFinancePage && !showPayoutsSection && !financeAuthPending" class="fin-note">{{ t('owner.financePage.payoutTabHidden') }}</p>
 
     <div v-if="showFinancePage && ownerTab === 'overview'" class="fin-grid2">
       <section class="fin-card fin-dark" :aria-labelledby="'owner-online-wallet'">
         <div id="owner-online-wallet" class="fin-lab">{{ t('owner.financePage.walletHeroTitle') }}</div>
+        <AppVenusSpinner v-if="financeAuthPending || settlementPending" size="sm" :label="t('common.loading')" />
+        <template v-else>
         <div class="fin-big tabular-nums">
           {{ formatNumber(heroWithdrawable) }}
           <small>{{ t('common.currency') }}</small>
@@ -656,10 +663,13 @@ function showUnpaidList() {
           </div>
           <p class="fin-note">{{ t('owner.financePage.walletNotCashNote') }}</p>
         </details>
+        </template>
       </section>
       <section class="fin-card" :aria-label="t('owner.financePage.bookCashTitle')">
         <h2>{{ t('owner.financePage.bookCashTitle') }}</h2>
         <p class="fin-note">{{ t('owner.financePage.bookCashHint') }}</p>
+        <AppVenusSpinner v-if="financeAuthPending || pending" size="sm" :label="t('common.loading')" />
+        <template v-else>
         <div class="fin-row">
           <span>{{ t('owner.financePage.bookCashInTill') }}</span>
           <b class="tabular-nums">{{ formatCurrency(cashBook?.inTill || 0) }}</b>
@@ -673,6 +683,7 @@ function showUnpaidList() {
             {{ t('owner.financePage.bookFilterCash') }}
           </button>
         </div>
+        </template>
       </section>
     </div>
 

@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { cancelWalletCreditAmount } from './owedCancelRefund.ts'
+import { cancelDeskCashReturnAmount, cancelWalletCreditAmount } from './owedCancelRefund.ts'
 
 describe('cancelWalletCreditAmount', () => {
-  it('desk cash → 0', () => {
+  it('desk cash → 0 wallet credit; desk return still reports share', () => {
     expect(cancelWalletCreditAmount({
       method: 'CASH',
       paymentAmount: 50_000,
     })).toEqual({ amount: 0, reason: 'desk_cash', series: false })
+    expect(cancelDeskCashReturnAmount({
+      method: 'CASH',
+      paymentAmount: 50_000,
+    })).toEqual({ amount: 50_000, reason: 'desk_cash', series: false })
+    expect(cancelDeskCashReturnAmount({
+      method: 'CASH',
+      paymentAmount: 0,
+      primaryAmount: 9_000,
+      sessionPrice: 1_500,
+      remainingSessionsIncludingCancelled: 6,
+      treatAsSeries: true,
+    }).amount).toBe(1_500)
   })
 
   it('standalone IPG → full amount at 100% bps', () => {
