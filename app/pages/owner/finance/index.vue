@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.ts'
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
-import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
+import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey, type OwnerFinanceTxFilterState } from '#shared/financeTransactions.ts'
 import { ownerLedgerHasPastRate, ownerLedgerRowFee, ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
@@ -177,6 +177,24 @@ const paidFrom = ref('')
 const paidTo = ref('')
 const sortKey = ref<FinanceTxSortKey>('reservedAt')
 const sortDir = ref<FinanceTxSortDir>('desc')
+const financeTxFilterDefaults: OwnerFinanceTxFilterState = {
+  session: 'free',
+  bookingKind: 'all',
+  payment: 'all',
+  legend: 'all',
+  guest: '',
+  discountCode: '',
+  reservedFrom: '',
+  reservedTo: '',
+  paidFrom: '',
+  paidTo: '',
+  sortKey: 'reservedAt',
+  sortDir: 'desc',
+}
+
+function onFinanceTxFiltersCleared() {
+  bookRail.value = 'all'
+}
 const financeQuery = computed(() => {
   const q: Record<string, string | number> = { txLimit: 1000 }
   if (reservedFrom.value) q.txFrom = reservedFrom.value
@@ -771,8 +789,10 @@ function showUnpaidList() {
           v-model:paid-to="paidTo"
           v-model:sort-key="sortKey"
           v-model:sort-dir="sortDir"
+          :defaults="financeTxFilterDefaults"
           :show-session="!pilotNoCoach"
           sort-mode="narrow"
+          @cleared="onFinanceTxFiltersCleared"
         />
         <button type="button" class="canva-black-cta w-full" @click="downloadExcel">
           {{ t('owner.financeTable.downloadExcel') }}
