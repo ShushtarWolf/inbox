@@ -3,6 +3,7 @@ import { hasOwnerPermission, parsePermissions } from '#shared/ownerPermissions.t
 import { financeSheetXml, saveFinanceSheet } from '#shared/financeSpreadsheet.ts'
 import { financePaymentBucket, financeRowTypeOf, isBlockedFinanceTx, selectFinanceTransactions, type FinanceBookingKindFilter, type FinanceLegendFilter, type FinancePaymentFilter, type FinanceRowType, type FinanceTxSortDir, type FinanceTxSortKey } from '#shared/financeTransactions.ts'
 import { ownerLedgerHasPastRate, ownerLedgerRowFee, ownerSettlementCommissionPct } from '#shared/ownerSettlementCommissionPct.ts'
+import { ownerWithdrawAmountIssue } from '#shared/ownerWithdrawAmount.ts'
 
 /** Canva finance — black income hero + method bar + txn sheet. */
 definePageMeta({ layout: 'dashboard-owner', middleware: ['auth', 'role'], role: 'CLUB_ADMIN', ssr: false })
@@ -353,6 +354,21 @@ async function saveSheba() {
   }
 }
 
+const withdrawableBalanceAmount = computed(() => Number(settlement.value?.withdrawableBalance ?? 0))
+
+const withdrawAmountInlineError = computed(() => {
+  const issue = ownerWithdrawAmountIssue(withdrawAmount.value, withdrawableBalanceAmount.value)
+  if (issue === 'invalid') return t('owner.financePage.withdrawInvalidAmount')
+  if (issue === 'over') return t('owner.financePage.withdrawAmountOverBalance')
+  return ''
+})
+
+const withdrawSubmitBlocked = computed(() => (
+  payoutBusy.value
+  || withdrawAmount.value == null
+  || Boolean(withdrawAmountInlineError.value)
+))
+
 async function submitWithdraw() {
   payoutBusy.value = true
   payoutError.value = ''
@@ -363,9 +379,13 @@ async function submitWithdraw() {
       return
     }
     const amount = Number(withdrawAmount.value ?? 0)
-    const withdrawable = Number(settlement.value?.withdrawableBalance ?? 0)
+    const withdrawable = withdrawableBalanceAmount.value
+    if (!Number.isFinite(amount) || amount <= 0) {
+      payoutError.value = t('owner.financePage.withdrawInvalidAmount')
+      return
+    }
     if (amount > withdrawable) {
-      payoutError.value = t('owner.financePage.withdrawInsufficient')
+      payoutError.value = t('owner.financePage.withdrawAmountOverBalance')
       return
     }
     await $fetch('/api/owner/withdraw', {
@@ -1022,11 +1042,12 @@ function showUnpaidList() {
             v-model="withdrawAmount"
             :min="1"
           />
+          <p v-if="withdrawAmountInlineError" class="mt-1 text-start text-xs text-brand-primary">{{ withdrawAmountInlineError }}</p>
         </label>
         <button
           type="button"
           class="canva-cta w-full"
-          :disabled="payoutBusy || !withdrawAmount || Number(withdrawAmount) > Number(settlement?.withdrawableBalance ?? 0)"
+          :disabled="withdrawSubmitBlocked"
           @click="submitWithdraw"
         >
           {{ t('owner.financePage.withdrawRequest') }}

@@ -392,8 +392,10 @@ suite('money integration (real Postgres)', () => {
     // Partial clawback is pro-rata on ownerNet: 900k × 200k / 1M = 180k.
     expect(balances.withdrawableBalance).toBe(720_000)
 
+    await expect(m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 0, sheba: f.club.sheba }))
+      .rejects.toMatchObject({ statusCode: 400, statusMessage: 'Withdraw amount must be positive' })
     await expect(m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 800_000, sheba: f.club.sheba }))
-      .rejects.toMatchObject({ statusCode: 409 })
+      .rejects.toMatchObject({ statusCode: 409, statusMessage: 'Owner withdraw amount exceeds withdrawable balance' })
     const request = await m.settlement.requestClubWithdraw({ clubId: f.club.id, amount: 720_000, sheba: f.club.sheba })
     balances = await m.settlement.getClubWithdrawableBalance(f.club.id)
     expect(balances.withdrawableBalance).toBe(0)

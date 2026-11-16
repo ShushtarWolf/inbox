@@ -2594,6 +2594,8 @@
       "withdrawRejected": "رد شده",
       "withdrawSuccess": "درخواست برداشت ثبت شد.",
       "withdrawNeedSheba": "بدون شبا نمی‌توانید برداشت کنید.",
+      "withdrawInvalidAmount": "مبلغ برداشت باید بیشتر از صفر باشد.",
+      "withdrawAmountOverBalance": "مبلغ از موجودی قابل برداشت بیشتر است.",
       "withdrawInsufficient": "موجودی قابل برداشت کافی نیست (کلاس‌های آینده هنوز قفل‌اند).",
       "ledgerTitle": "آخرین تسویه‌ها",
       "ledgerNet": "خالص مالک",
