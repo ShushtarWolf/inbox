@@ -47,10 +47,11 @@ function parseMeta(raw: string | null): Record<string, unknown> {
 }
 
 async function loadCandidates(): Promise<Candidate[]> {
+  // Include FAILED/SUPERSEDED so detached (re-booked) wallet-paid cancels still repair.
   return prisma.payment.findMany({
     where: {
       OR: [
-        { status: 'REFUNDED' },
+        { status: { in: ['REFUNDED', 'FAILED', 'SUPERSEDED'] } },
         { booking: { status: 'CANCELLED' } },
       ],
       method: { in: ['IPG', 'PAID', 'CASH'] },

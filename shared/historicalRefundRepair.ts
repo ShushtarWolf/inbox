@@ -46,7 +46,11 @@ function isCash(input: HistoricalRefundInput): boolean {
 }
 
 function cancelled(input: HistoricalRefundInput): boolean {
-  return input.paymentStatus === 'REFUNDED' || input.bookingStatus === 'CANCELLED'
+  const pay = input.paymentStatus
+  return pay === 'REFUNDED'
+    || pay === 'FAILED'
+    || pay === 'SUPERSEDED'
+    || input.bookingStatus === 'CANCELLED'
 }
 
 function cardReversed(meta: Record<string, unknown>): boolean {
