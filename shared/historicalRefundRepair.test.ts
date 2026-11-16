@@ -90,4 +90,22 @@ describe('decideHistoricalCancelRefund', () => {
       metadata: {},
     })).toEqual({ action: 'credit', amount: 100_000, reason: 'wallet_spend_shortfall' })
   })
+
+  it('credits wallet PAID even when stale gateway reverse flags remain on the row', () => {
+    expect(decideHistoricalCancelRefund({
+      ...base,
+      method: 'PAID',
+      paymentStatus: 'REFUNDED',
+      amount: 5_000,
+      metadata: {
+        gatewayReversed: true,
+        gatewayRefund: true,
+        refundChannel: 'gateway_reverse',
+      },
+    })).toEqual({
+      action: 'credit',
+      amount: 5_000,
+      reason: 'wallet_spend_shortfall',
+    })
+  })
 })

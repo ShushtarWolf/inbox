@@ -1,0 +1,71 @@
+name: Repair historical cancel refunds (prod)
+
+# Credits stranded athlete wallets after cancel (append-only). Default dry-run.
+# Requires ADMIN_PROVISION_SECRET. Review Actions logs before apply=true.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Set true to APPLY on production (after dry-run review)
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      tracking:
+        description: Optional booking tracking code to highlight in the response
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: money-repair-historical-cancel-refunds
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dry-run or APPLY historical cancel refund repair on inboxs.ir
+        env:
+          ADMIN_PROVISION_SECRET: ${{ secrets.ADMIN_PROVISION_SECRET }}
+          APPLY_INPUT: ${{ inputs.apply }}
+          TRACKING: ${{ inputs.tracking }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ADMIN_PROVISION_SECRET:-}" ]; then
+            echo "ADMIN_PROVISION_SECRET missing"
+            exit 1
+          fi
+          QS=""
+          if [ "$APPLY_INPUT" = "true" ]; then
+            QS="apply=1"
+            echo "APPLY on production"
+          else
+            echo "Dry-run only"
+          fi
+          if [ -n "${TRACKING:-}" ]; then
+            QS="${QS:+$QS&}tracking=${TRACKING}"
+          fi
+          URL="https://inboxs.ir/api/admin/money-audit/repair-historical-cancel-refunds"
+          if [ -n "$QS" ]; then URL="${URL}?${QS}"; fi
+          curl -sfS -X POST "$URL" \
+            -H "x-admin-secret: ${ADMIN_PROVISION_SECRET}" \
+            -H "content-type: application/json" \
+            | tee /tmp/money-repair.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/money-repair.json'))
+          r=d.get('repair') or {}
+          print(f"applied={r.get('applied')} creditCount={r.get('creditCount')} creditToman={r.get('creditToman')} appliedCount={r.get('appliedCount')}")
+          print(f"counts={r.get('counts')}")
+          for c in (r.get('credits') or [])[:20]:
+            print(f"  {c.get('paymentId')} booking={c.get('bookingId')} amount={c.get('amount')} reason={c.get('reason')}")
+          tm=r.get('trackingMatch')
+          if tm:
+            print(f"trackingMatch={tm}")
+          if r.get('applied') and r.get('appliedCount', 0) < r.get('creditCount', 0):
+            raise SystemExit('appliedCount lower than creditCount')
+          PY

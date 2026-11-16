@@ -18,6 +18,7 @@ APPLY=yes node --import tsx scripts/repair-historical-cancel-refunds.ts
 - The card was not reversed: `gatewayReversed` and `gatewayRefund` are not true, except a split payment may still restore `walletDebitAmount` when that wallet share was not already released or credited.
 - `reversePending` is not set.
 - For an IPG row, the wallet path is positively recorded (`refundChannel=wallet_closed_loop`, `method=PAID`, or `reverseFailedAt`). Empty metadata is unresolved, not a credit.
+- Full wallet checkout (`method=PAID`) ignores leftover `gatewayReversed` / `gatewayRefund` / `reversePending` flags on the same Payment row (earlier IPG attempt). Those flags must not skip the wallet credit.
 - Owed toman is taken from `refundCreditAmount`, `refundedAmount`, `refundBps`, or `sessionRefundsTotal` when present, otherwise the full amount only on a proven wallet path.
 - Existing `REFUND_CREDIT` sums are subtracted. The stable key `recon:historical-cancel:{paymentId}` blocks a second apply.
 
