@@ -32,6 +32,13 @@ for (const line of rg('vvTop|overlayStyle', 'app/components')) {
 }
 
 const css = readFileSync('app/assets/css/main.css', 'utf8')
+if (!css.includes('iOS Safari input zoom guard')) {
+  errors.push('main.css must include mobile iOS Safari input zoom guard (16px floor under sm)')
+}
+if (!css.includes('@media (max-width: 639px)') || !css.match(/max-width:\s*639px[\s\S]{0,400}font-size:\s*16px\s*!important/)) {
+  errors.push('iOS input zoom guard must set font-size: 16px !important under max-width: 639px')
+}
+
 const requiredPointerNone = [
   '.canva-hero-media',
   '.canva-photo-hero-media',

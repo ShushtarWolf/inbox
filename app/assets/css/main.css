@@ -2467,7 +2467,8 @@
     @apply flex items-stretch gap-2;
   }
   .canva-confirm-book-discount-input {
-    @apply min-w-0 flex-1 border border-[rgba(44,44,42,0.2)] bg-white px-[10px] py-[10px] text-sm text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70;
+    /* text-base (16px) on phone — iOS Safari auto-zooms focused fields under 16px (neo-input pattern) */
+    @apply min-w-0 flex-1 border border-[rgba(44,44,42,0.2)] bg-white px-[10px] py-[10px] text-base text-brand-navy placeholder:text-brand-gray-600 disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm;
     border-radius: var(--sz-canva-radius);
   }
   /* HTML .cxtiny — beige apply */
@@ -4471,7 +4472,12 @@
 /* SoT .field inputs + .chip presets + auto-width .btn (athlete profile/wallet) */
 .canva-sot-form .neo-input, .canva-sot-form .neo-select, .canva-sot-form input:not([type=file]):not([type=checkbox]):not([type=radio]) {
   border: 1px solid rgba(44,44,42,.08) !important; border-radius: 0 !important; background: #fff !important;
-  padding: 10px 12px; font-size: 13px; color: #2c2c2a; box-shadow: none !important; width: 100%;
+  padding: 10px 12px; font-size: 16px; color: #2c2c2a; box-shadow: none !important; width: 100%;
+}
+@media (min-width: 640px) {
+  .canva-sot-form .neo-input, .canva-sot-form .neo-select, .canva-sot-form input:not([type=file]):not([type=checkbox]):not([type=radio]) {
+    font-size: 13px;
+  }
 }
 .canva-sot-form .neo-input:focus, .canva-sot-form .neo-select:focus { outline: none; border-color: #C41E1E !important; }
 .canva-sot-chips { display: flex !important; flex-wrap: wrap; gap: 8px; }
@@ -4485,7 +4491,7 @@
   border: 1px solid rgba(44,44,42,.08); border-radius: 0; background-color: #fff; color: #2c2c2a; padding: 10px 12px;
 }
 .neo-input:focus, .neo-select:focus, .neo-textarea:focus, .tail-input:focus, .tail-select:focus, .tail-textarea:focus { border: 1px solid #C41E1E; }
-@media (min-width: 431px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
+@media (min-width: 640px) { .neo-input, .neo-select, .neo-textarea, .tail-input, .tail-select, .tail-textarea { font-size: 13px; } }
 /* SoT owner: single in-page active-club card (layout switcher wins when shown) */
 .canva-club-switcher ~ * .owner-rclubcard, .canva-club-switcher ~ .owner-rclubcard { display: none !important; }
 .canva-sot-actions .canva-gate-btn-primary { width: auto !important; padding: 9px 22px; }
@@ -5378,4 +5384,16 @@ main:has(.owner-staff-page) section:has(> .owner-staff-page) { background:transp
   .fin-v4 .fin-today{gap:6px}
   .fin-v4 .fin-today .canva-finance-chip,.fin-v4 .fin-today .canva-finance-chip-link{padding:10px}
   .fin-v4 .fin-today .canva-finance-chip-value{font-size:15px}
+}
+
+/* ─── iOS Safari input zoom guard (mobile) ───
+   Safari auto-zooms focused fields under 16px and often stays zoomed (layout “jumble”).
+   Backstop below sm: beats SoT 13px overrides; desktop sizes unchanged at ≥640px. */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']):not([type='range']):not([type='color']),
+  textarea,
+  select,
+  [contenteditable]:not([contenteditable='false']) {
+    font-size: 16px !important;
+  }
 }

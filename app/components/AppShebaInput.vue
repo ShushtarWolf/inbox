@@ -26,7 +26,7 @@ const digits = computed({
 
 <template>
   <div
-    class="neo-input flex items-center gap-1.5 font-mono text-sm tabular-nums focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2"
+    class="neo-input flex items-center gap-1.5 font-mono text-base tabular-nums focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 sm:text-sm"
     :class="invalid ? 'ring-2 ring-red-500' : ''"
     style="outline-color: var(--brand-primary, #173f5f)"
     dir="ltr"
